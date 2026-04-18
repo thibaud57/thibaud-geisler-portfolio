@@ -4,7 +4,7 @@ paths:
   - ".github/workflows/**/*.yaml"
 ---
 
-# GitHub Actions — Workflows CI (lint, tests)
+# GitHub Actions — Workflows CI (lint, typecheck, tests, build, audit)
 
 ## À faire
 - Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
