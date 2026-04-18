@@ -17,6 +17,7 @@ permissions:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 2
     outputs:
       source: ${{ steps.filter.outputs.source }}
     steps:
@@ -97,6 +98,7 @@ jobs:
     needs: [changes, test]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 2
     steps:
       - name: Verify
         run: |
