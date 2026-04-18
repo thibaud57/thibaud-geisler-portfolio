@@ -32,7 +32,7 @@ jobs:
               - '!docs/**'
               - '!.claude/**'
 
-  test:
+  quality:
     needs: changes
     if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-24.04
@@ -95,7 +95,7 @@ jobs:
         continue-on-error: true
 
   ci:
-    needs: [changes, test]
+    needs: [changes, quality]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -106,8 +106,8 @@ jobs:
             echo "Changes detection job did not succeed: ${{ needs.changes.result }}"
             exit 1
           fi
-          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.test.result }}" == "cancelled" ]]; then
-            echo "Test job failed or cancelled"
+          if [[ "${{ needs.quality.result }}" == "failure" || "${{ needs.quality.result }}" == "cancelled" ]]; then
+            echo "Quality job failed or cancelled"
             exit 1
           fi
-          echo "CI OK (source tested or doc-only skip)"
+          echo "CI OK (quality passed or doc-only skip)"
