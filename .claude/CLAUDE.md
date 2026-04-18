@@ -32,8 +32,9 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 
 ### Workflow Git
 
-Branches : `feature/*` → `develop` → `main` (Dokploy auto-deploy) → tag `vX.Y.Z` | `hotfix/*` → `main`
+Branches : `feature/*` → `develop` → `main` (Dokploy auto-deploy) → tag `vX.Y.Z` (auto via release-please) | `hotfix/*` → `main`
 Commits : `type(scope): description`, types `feat | fix | docs | refactor | test | chore`
+Après merge PR : `/git-sync-develop` pour aligner develop local + supprimer la feature branch
 
 > Politique de tag, checklist release, flux hotfix détaillé : [PRODUCTION.md](../docs/PRODUCTION.md)
 
