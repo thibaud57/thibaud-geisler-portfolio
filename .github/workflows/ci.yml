@@ -3,16 +3,8 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.claude/**'
   pull_request:
     branches: [main, develop]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.claude/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,7 +14,25 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            source:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!.claude/**'
+
+  test:
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
@@ -81,3 +91,16 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level=high
         continue-on-error: true
+
+  ci:
+    needs: [changes, test]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify
+        run: |
+          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.test.result }}" == "cancelled" ]]; then
+            echo "Test job failed or cancelled"
+            exit 1
+          fi
+          echo "CI OK (source tested or doc-only skip)"
