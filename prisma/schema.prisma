@@ -1,0 +1,10 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// TODO: define schema (Project, Asset, etc. — voir docs/ARCHITECTURE.md)
