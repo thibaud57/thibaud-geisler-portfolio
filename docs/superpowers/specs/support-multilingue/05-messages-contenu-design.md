@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Extraction contenu textuel et traductions FR/EN"
 goal: "Extraire tout le contenu textuel des pages et composants dans les fichiers de messages JSON et câbler les traductions FR/EN via useTranslations/getTranslations"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["03-layout-locale-design.md"]
