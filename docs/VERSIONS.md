@@ -4,7 +4,7 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-04-13"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "Zod", "nodemailer", "Pino", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
 ---
 
 # Vue d'ensemble
@@ -30,55 +30,56 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 10 | next-themes | `0.4.6` | ✅ | Dark/light mode, `suppressHydrationWarning` requis |
 | 11 | next-intl | `4.9.1` | ✅ | Nécessite Next.js >= 16.2 pour `use cache` |
 | 12 | @icons-pack/react-simple-icons | `13.13.0` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
+| 13 | country-flag-icons | `1.6.16` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
 
 ## Librairies applicatives
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 13 | Zod | `4.3.6` | ✅ | Validateurs string déplacés en top-level |
-| 14 | nodemailer | `8.0.5` | ✅ | CVE CRLF corrigée en 8.0.5 (obligatoire) |
-| 15 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages` requis dans `next.config.ts` |
-| 16 | dotenv | `17.4.2` | ✅ | Chargement `.env` au runtime requis pour Prisma 7 (non auto-chargé depuis v7) |
-| 17 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
+| 14 | Zod | `4.3.6` | ✅ | Validateurs string déplacés en top-level |
+| 15 | nodemailer | `8.0.5` | ✅ | CVE CRLF corrigée en 8.0.5 (obligatoire) |
+| 16 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages` requis dans `next.config.ts` |
+| 17 | dotenv | `17.4.2` | ✅ | Chargement `.env` au runtime requis pour Prisma 7 (non auto-chargé depuis v7) |
+| 18 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 
 ## Tests
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 18 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
-| 19 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
-| 20 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
+| 19 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
+| 20 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
+| 21 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
 
 ## Base de données
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 21 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
-| 22 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
-| 23 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
+| 22 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
+| 23 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| 24 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
 
 ## Auth (post-MVP)
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 24 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (dotenv) |
+| 25 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (dotenv) |
 
 ## Infrastructure
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 25 | Docker Engine | `29.4.0` | ✅ | containerd image store par défaut, ulimit réduit |
-| 26 | Docker Compose | `v5.1.2` | ✅ | Numérotation v2 → v5 (saut direct), `version:` YAML ignoré |
-| 27 | Dokploy | `0.28.8` | ✅ | Rollbacks registry-based (v0.26+), Traefik 3.5 interne |
-| 28 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions v6 (`checkout`, `setup-node`, `pnpm/action-setup`), `cache: 'pnpm'` explicite |
-| 29 | Cloudflare R2 | managed service | ✅ | Backups pg_dump + assets, API S3-compatible |
+| 26 | Docker Engine | `29.4.0` | ✅ | containerd image store par défaut, ulimit réduit |
+| 27 | Docker Compose | `v5.1.2` | ✅ | Numérotation v2 → v5 (saut direct), `version:` YAML ignoré |
+| 28 | Dokploy | `0.28.8` | ✅ | Rollbacks registry-based (v0.26+), Traefik 3.5 interne |
+| 29 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions v6 (`checkout`, `setup-node`, `pnpm/action-setup`), `cache: 'pnpm'` explicite |
+| 30 | Cloudflare R2 | managed service | ✅ | Backups pg_dump + assets, API S3-compatible |
 
 ## Services externes (post-MVP)
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 30 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
-| 31 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 31 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 32 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
 
 ---
 
