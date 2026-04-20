@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.1.0...v0.2.0) (2026-04-20)
+
+
+### Features
+
+* **i18n:** add AppConfig augmentation and align localePrefix with spec ([312e4ce](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/312e4cef2460282fe687178ccb9e0d9374409063))
+* **i18n:** add country flag icons to LanguageSwitcher ([f48bb03](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f48bb036b491d66a2e70c3c7f2cd05e3b2a1d30c))
+* **i18n:** add locale detection proxy with next-intl middleware ([29ea57b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/29ea57b81697403f9804e0ce16bcb7d6014fbace))
+* **i18n:** wire FR/EN translations for public pages and state screens ([0311b12](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0311b125253da7eb0bf44b34361a4e6893ed4762))
+* **i18n:** wire LanguageSwitcher with localized router and typed locales ([010bc7d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/010bc7d89cc8d65d2369c8bcf5690bcf67e0676d))
+* **seo:** add localized metadata, hreflang alternates and multilingual sitemap ([c656f04](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c656f045cfa18fe686fd0113f5e141896a624b4f))
+
+
+### Bug Fixes
+
+* **ci:** add predicate-quantifier=every to paths-filter for proper exclusions ([cd24a44](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cd24a44b03d25d73dd4f97ae7b19635d9d49e91c))
+* **ci:** add pull-requests:read permission for paths-filter API access ([058759e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/058759e9c86daf82cf88d40d0f7d48bdf4c78214))
+* **ci:** add timeout-minutes on changes + ci aggregator jobs ([32125f6](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/32125f63b5810eac3cb0e0694ae6ded202ab8f94))
+* **ci:** aggregator also fails if changes detection job fails ([e6204f8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e6204f8d5578f690a60d091f29e87a6edb24511f))
+* **ci:** refactor with paths-filter + ci aggregator job ([11a4036](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/11a4036ea7f11f265fc14b246fa3e84ed653e3ba))
+* **ci:** rename test job to quality (lint + typecheck + test + build + audit) ([f4627f9](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f4627f99a2aae7cab677996c50dba5cf20fdd8d6))
+* **ci:** skip runs on doc-only changes ([36decca](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/36decca587fc762d999c84e17a93642c44e0b8e4))
+* **ci:** skip runs on doc-only changes (md, docs/, .claude/) ([42ad21e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/42ad21e58c06313c6237519065ffe387becccf8d))
+* **i18n:** align LanguageSwitcher flag type with country-flag-icons ([2a6c788](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2a6c7880bb301228f9a60d38d30d2cece79d9a00))
+* **i18n:** localize global-error via URL-based locale detection ([59ea56f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/59ea56f6d2944cd26a934d4a17375f44ef6ddf25))
+* **theme:** silence React 19 script tag warning from next-themes ([f908b46](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f908b4686e6d9819b4d743a049194754dd46a39d))
+* **ui:** restore cursor pointer on interactive elements after Tailwind v4 ([2733d93](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2733d93392062f5a8fde92bd589d05f05f168946))
+
 ## 0.1.0 (2026-04-18)
 
 
