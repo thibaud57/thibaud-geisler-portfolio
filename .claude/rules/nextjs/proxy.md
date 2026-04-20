@@ -7,7 +7,8 @@ paths:
 # Next.js — proxy.ts (ex-middleware)
 
 ## À faire
-- Nommer le fichier `proxy.ts` et la fonction exportée `proxy` (Next 16 remplace `middleware.ts`)
+- Nommer le fichier `proxy.ts`. Pour un proxy **custom** (logique écrite à la main), exporter la fonction nommée `proxy` (Next 16 remplace `middleware.ts`)
+- Pour un proxy **délégué à un handler tiers** (ex: `createMiddleware(routing)` de next-intl, `clerkMiddleware()` de Clerk), utiliser `export default handler` : pattern recommandé par ces librairies et supporté officiellement par Next 16 (`export default` OU named `proxy`, jamais les deux simultanément)
 - Placer `proxy.ts` à la racine du projet ou dans `src/`, au même niveau que `app/`
 - Runtime `nodejs` **implicite** (Edge runtime supprimé pour `proxy.ts` en Next 16). **Ne pas** déclarer `export const runtime = 'nodejs'` : Next rejette tout route segment config dans `proxy.ts` ("Route segment config is not allowed in Proxy file")
 - Configurer un `matcher` strict pour exclure les assets statiques, sinon le proxy s'exécute sur **toutes** les routes (y compris `_next/static`, images, favicon) et dégrade les performances
@@ -26,6 +27,7 @@ paths:
 - Codemod automatique dispo : `npx @next/codemod@canary middleware-to-proxy .`
 - Le proxy s'exécute **avant** le rendering mais **après** les redirects statiques de `next.config.ts`
 - Better Auth : protéger les routes `(admin)/` via check d'existence du cookie de session uniquement, la validation DB se fait dans le layout protégé ou la Server Action
+- Next 16 refuse `export default` + `export const proxy` simultanément : un seul des deux par fichier (`"The file must export a single function, either as a default export or named proxy"`)
 
 ## Exemples
 ```typescript
@@ -46,4 +48,20 @@ export const config = {
 export async function middleware(request) {
   const user = await db.user.findUnique({ ... }) // jamais en proxy
 }
+```
+
+```typescript
+// ✅ Proxy délégué à next-intl : export default (convention officielle next-intl)
+import createMiddleware from 'next-intl/middleware'
+import { routing } from '@/i18n/routing'
+
+export default createMiddleware(routing)
+
+export const config = {
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+}
+
+// ❌ Double export rejeté par Next 16
+export const proxy = createMiddleware(routing)
+export default proxy
 ```
