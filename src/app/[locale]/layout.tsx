@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { Geist, Geist_Mono, Sansation } from 'next/font/google'
 import { cn } from '@/lib/utils'
+import { Navbar } from '@/components/layout/Navbar'
 import { Providers } from '@/components/providers/Providers'
 import { routing } from '@/i18n/routing'
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -64,7 +65,10 @@ export default async function LocaleLayout({
     >
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            <Navbar />
+            {children}
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>
