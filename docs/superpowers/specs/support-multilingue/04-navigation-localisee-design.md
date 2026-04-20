@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "APIs de navigation localisées"
 goal: "Configurer les APIs de navigation localisées (Link, redirect, useRouter, usePathname) et remplacer les imports natifs Next.js dans les composants existants"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["01-config-routing-types-design.md"]
