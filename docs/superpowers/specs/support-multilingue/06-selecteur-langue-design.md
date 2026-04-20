@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Sélecteur de langue FR/EN dans la navbar"
 goal: "Implémenter le sélecteur de langue FR/EN dans la navbar avec shadcn/ui DropdownMenu et l'icône Globe de Lucide"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["04-navigation-localisee-design.md", "03-layout-locale-design.md"]

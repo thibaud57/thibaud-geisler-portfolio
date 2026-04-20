@@ -1,1 +1,57 @@
-{}
+{
+  "HomePage": {
+    "title": "Home",
+    "placeholder": "Content coming soon."
+  },
+  "ServicesPage": {
+    "title": "Services",
+    "placeholder": "Content coming soon."
+  },
+  "ProjectsPage": {
+    "title": "Projects",
+    "placeholder": "Content coming soon."
+  },
+  "ProjectPage": {
+    "title": "Project: {slug}",
+    "placeholder": "Content coming soon."
+  },
+  "AboutPage": {
+    "title": "About",
+    "placeholder": "Content coming soon."
+  },
+  "ContactPage": {
+    "title": "Contact",
+    "placeholder": "Content coming soon."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "Page not found."
+  },
+  "ErrorPage": {
+    "title": "Error",
+    "message": "Something went wrong."
+  },
+  "Common": {
+    "loading": "Loading…",
+    "retry": "Retry"
+  },
+  "LanguageSwitcher": {
+    "ariaLabel": "Change language"
+  },
+  "Metadata": {
+    "siteTitle": "Thibaud Geisler: AI & Development",
+    "siteDescription": "Thibaud Geisler's portfolio. Artificial intelligence, full-stack development, and AI training.",
+    "homeTitle": "Home",
+    "homeDescription": "Explore my services in AI, full-stack development, and training. Projects and live demos available.",
+    "servicesTitle": "Services",
+    "servicesDescription": "AI & automation, full-stack development, corporate AI training.",
+    "projectsTitle": "Projects",
+    "projectsDescription": "Portfolio of artificial intelligence and full-stack development projects.",
+    "projectTitle": "Project: {slug}",
+    "projectDescription": "Case study of the {slug} project by Thibaud Geisler.",
+    "aboutTitle": "About",
+    "aboutDescription": "Background, technical skills, and working approach of Thibaud Geisler.",
+    "contactTitle": "Contact",
+    "contactDescription": "Get in touch with Thibaud Geisler for an AI project, an application, or training."
+  }
+}

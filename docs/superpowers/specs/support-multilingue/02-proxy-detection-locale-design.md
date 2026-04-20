@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Proxy de détection automatique de locale"
 goal: "Configurer le proxy Next.js 16+ pour la détection automatique de locale (Accept-Language, cookie) et la redirection vers /fr ou /en"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["01-config-routing-types-design.md"]
