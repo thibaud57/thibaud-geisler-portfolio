@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 import { routing } from '@/i18n/routing'
 
@@ -22,11 +22,14 @@ const messages = {
   },
 } satisfies Record<Locale, Record<string, string>>
 
-function detectLocale(): Locale {
-  if (typeof window === 'undefined') return routing.defaultLocale
+function getClientLocale(): Locale {
   const segment = window.location.pathname.split('/')[1]
   return routing.locales.find((loc) => loc === segment) ?? routing.defaultLocale
 }
+
+// Pas de souscription : global-error ne survit pas à une navigation popstate.
+const subscribe = () => () => {}
+const getServerLocale = (): Locale => routing.defaultLocale
 
 type Props = {
   error: Error & { digest?: string }
@@ -34,11 +37,7 @@ type Props = {
 }
 
 export default function GlobalError({ error: _error, reset }: Props) {
-  const [locale, setLocale] = useState<Locale>(routing.defaultLocale)
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- locale dépend de window.location, disponible uniquement après mount
-  useEffect(() => setLocale(detectLocale()), [])
-
+  const locale = useSyncExternalStore(subscribe, getClientLocale, getServerLocale)
   const t = messages[locale]
 
   return (
