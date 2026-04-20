@@ -1,6 +1,25 @@
+import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
+import {
+  buildLanguageAlternates,
+  localeToOgLocale,
+  setupLocaleMetadata,
+} from '@/lib/seo'
+
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/a-propos'>): Promise<Metadata> {
+  const { locale, t } = await setupLocaleMetadata(params)
+
+  return {
+    title: t('aboutTitle'),
+    description: t('aboutDescription'),
+    openGraph: { locale: localeToOgLocale[locale] },
+    alternates: { languages: buildLanguageAlternates('/a-propos') },
+  }
+}
 
 export default async function AProposPage({ params }: PageProps<'/[locale]/a-propos'>) {
   await setupLocalePage(params)

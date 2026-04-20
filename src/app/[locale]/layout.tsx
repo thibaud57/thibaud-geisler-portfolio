@@ -6,6 +6,12 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Providers } from '@/components/providers/Providers'
 import { routing } from '@/i18n/routing'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import {
+  buildLanguageAlternates,
+  localeToOgLocale,
+  setupLocaleMetadata,
+  siteUrl,
+} from '@/lib/seo'
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -28,15 +34,26 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
 }
 
-export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
-  ),
-  title: {
-    template: '%s | Thibaud Geisler',
-    default: 'Thibaud Geisler',
-  },
-  description: 'TODO: set description',
+export async function generateMetadata({
+  params,
+}: LayoutProps<'/[locale]'>): Promise<Metadata> {
+  const { locale, t } = await setupLocaleMetadata(params)
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      template: `%s | ${t('siteTitle')}`,
+      default: t('siteTitle'),
+    },
+    description: t('siteDescription'),
+    openGraph: {
+      locale: localeToOgLocale[locale],
+      siteName: t('siteTitle'),
+    },
+    alternates: {
+      languages: buildLanguageAlternates(''),
+    },
+  }
 }
 
 export const viewport: Viewport = {
