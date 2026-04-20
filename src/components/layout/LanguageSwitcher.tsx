@@ -1,8 +1,11 @@
 'use client'
 
+import FR from 'country-flag-icons/react/3x2/FR'
+import GB from 'country-flag-icons/react/3x2/GB'
 import { Globe } from 'lucide-react'
 import type { Locale } from 'next-intl'
 import { useLocale, useTranslations } from 'next-intl'
+import type { ComponentType, SVGProps } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +22,11 @@ const localeLabels = {
   fr: 'Français',
   en: 'English',
 } satisfies Record<Locale, string>
+
+const localeFlags = {
+  fr: FR,
+  en: GB,
+} satisfies Record<Locale, ComponentType<SVGProps<SVGSVGElement>>>
 
 export function LanguageSwitcher() {
   const locale = useLocale()
@@ -38,15 +46,22 @@ export function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {routing.locales.map((loc) => (
-          <DropdownMenuItem
-            key={loc}
-            onClick={() => handleLocaleChange(loc)}
-            className={cn(locale === loc && 'font-semibold')}
-          >
-            {localeLabels[loc]}
-          </DropdownMenuItem>
-        ))}
+        {routing.locales.map((loc) => {
+          const Flag = localeFlags[loc]
+          return (
+            <DropdownMenuItem
+              key={loc}
+              onClick={() => handleLocaleChange(loc)}
+              className={cn(locale === loc && 'font-semibold')}
+            >
+              <Flag
+                aria-hidden
+                className="rounded-xs"
+              />
+              {localeLabels[loc]}
+            </DropdownMenuItem>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )
