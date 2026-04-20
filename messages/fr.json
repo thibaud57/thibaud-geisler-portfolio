@@ -37,5 +37,21 @@
   },
   "LanguageSwitcher": {
     "ariaLabel": "Changer de langue"
+  },
+  "Metadata": {
+    "siteTitle": "Thibaud Geisler\u00a0: IA & Développement",
+    "siteDescription": "Portfolio de Thibaud Geisler. Intelligence artificielle, développement full-stack et formation IA.",
+    "homeTitle": "Accueil",
+    "homeDescription": "Découvrez mes services en IA, développement full-stack et formation. Projets et démos disponibles.",
+    "servicesTitle": "Services",
+    "servicesDescription": "IA & automatisation, développement full-stack, formation IA en entreprise.",
+    "projectsTitle": "Projets",
+    "projectsDescription": "Portfolio de projets en intelligence artificielle et développement full-stack.",
+    "projectTitle": "Projet\u00a0: {slug}",
+    "projectDescription": "Étude de cas du projet {slug} par Thibaud Geisler.",
+    "aboutTitle": "À propos",
+    "aboutDescription": "Parcours, compétences techniques et approche de travail de Thibaud Geisler.",
+    "contactTitle": "Contact",
+    "contactDescription": "Contactez Thibaud Geisler pour un projet IA, une application web ou une formation."
   }
 }
