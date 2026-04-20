@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Configuration fondation i18n next-intl"
 goal: "Configurer le routing centralisé, le chargement des messages par requête et l'augmentation TypeScript pour la type-safety des locales et clés de traduction"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []
