@@ -12,9 +12,30 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
-  ci:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          predicate-quantifier: every
+          filters: |
+            source:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!.claude/**'
+
+  quality:
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
@@ -73,3 +94,21 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level=high
         continue-on-error: true
+
+  ci:
+    needs: [changes, quality]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Verify
+        run: |
+          if [[ "${{ needs.changes.result }}" != "success" ]]; then
+            echo "Changes detection job did not succeed: ${{ needs.changes.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.quality.result }}" == "failure" || "${{ needs.quality.result }}" == "cancelled" ]]; then
+            echo "Quality job failed or cancelled"
+            exit 1
+          fi
+          echo "CI OK (quality passed or doc-only skip)"

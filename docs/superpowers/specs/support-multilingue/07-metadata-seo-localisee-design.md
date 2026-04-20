@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Metadata SEO localisées et sitemap multilingue"
 goal: "Localiser les metadata SEO de toutes les pages (titres, descriptions, Open Graph) et adapter le sitemap pour le support multilingue avec hreflang"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["05-messages-contenu-design.md"]

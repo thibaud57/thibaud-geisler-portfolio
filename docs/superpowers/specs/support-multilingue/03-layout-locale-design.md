@@ -2,7 +2,7 @@
 feature: "Feature 6 — Support multilingue (FR / EN)"
 subproject: "Restructuration app sous segment [locale]"
 goal: "Restructurer l'application sous le segment dynamique [locale] avec le root layout configuré pour le rendu statique multilingue"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["01-config-routing-types-design.md"]

@@ -1,16 +1,21 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 type Props = {
   error: Error & { digest?: string }
   reset: () => void
 }
 
-export default function Error({ error, reset }: Props) {
+export default function Error({ error: _error, reset }: Props) {
+  const t = useTranslations('ErrorPage')
+  const tCommon = useTranslations('Common')
+
   return (
     <main>
-      <h1>Erreur</h1>
-      <p>TODO: implement error page (translated)</p>
-      <button onClick={reset}>Réessayer</button>
+      <h1>{t('title')}</h1>
+      <p>{t('message')}</p>
+      <button onClick={reset}>{tCommon('retry')}</button>
     </main>
   )
 }

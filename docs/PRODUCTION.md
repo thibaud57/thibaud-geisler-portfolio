@@ -19,6 +19,8 @@ technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokpl
 
 > **Exemple** : `v1.2.0` → 1ère version majeure, 2ème feature ajoutée, aucun bugfix
 
+> **Milestone `v1.0.0`** : atteint après le premier déploiement Dokploy validé + toutes les features MVP livrées (accueil, projets, services, contact). Jusque-là, le projet reste en `0.x.x` (dev initial, API instable). Bump automatique via release-please depuis les commits Conventional (`feat:` → MINOR, `fix:` → PATCH, `feat!:` ou `BREAKING CHANGE` → MAJOR).
+
 ## Workflow Release
 
 ### Flow
@@ -35,7 +37,9 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 | Développement | `feature/*` | Local | — |
 | Intégration | `develop` | Local | Merge feature/* → develop |
 | Mise en production | `main` | Production (Dokploy) | Merge develop → main (epic terminé) |
-| Tag release | — | — | Manuel après déploiement validé |
+| PR release (CHANGELOG + bump version) | `release-please--branches--main--*` | — | Auto à chaque merge sur `main` (release-please) |
+| Tag release | — | — | Auto au merge de la PR release-please |
+| Resync develop | `develop` | Local | `git pull origin main` après tag |
 
 ### Flux Hotfix (bug critique prod)
 
@@ -43,8 +47,8 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 |-------|--------|---------------|-------------|
 | Fix | `hotfix/*` depuis `main` | Local | — |
 | Mise en production | `main` | Production (Dokploy) | Merge hotfix/* → main |
-| Tag release | — | — | Manuel après déploiement validé |
-| Resync develop | `develop` | Local | `git merge main` après tag |
+| Tag release | — | — | Auto au merge de la PR release-please |
+| Resync develop | `develop` | Local | `git pull origin main` après tag |
 
 ## Convention Commits
 
@@ -72,9 +76,9 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 - [ ] Migrations Prisma appliquées — vérifier dans les logs Dokploy au démarrage du container
 - [ ] Smoke test manuel : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` modifié (`curl -I https://thibaud-geisler.com`)
-- [ ] Tag Git créé après validation prod (`git tag vX.Y.Z && git push --tags`)
+- [ ] PR release-please mergée après validation prod (smoke test + Dokploy ✅) → tag `vX.Y.Z` auto-créé
 
-> **Politique de tagging** : un tag = un merge vers `main` validé en production (smoke test passé + Dokploy ✅) — fin d'epic ou hotfix critique. Les merges `feature/* → develop` ne donnent pas lieu à un tag. Taguer **après** confirmation, pas avant.
+> **Politique de tagging** : les tags sont générés automatiquement par release-please au merge de la PR release sur `main` (fin d'epic ou hotfix critique). Les merges `feature/* → develop` ne déclenchent pas de release. **Merger la PR release-please uniquement après validation prod** (smoke test + Dokploy ✅) pour que le tag ne soit créé qu'après confirmation.
 
 ---
 
@@ -186,7 +190,7 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 
 # ✅ Checklist Pré-MEP (one-shot, avant premier déploiement)
 
-Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le tout premier merge `develop → main` (qui déclenchera le premier déploiement Dokploy).
+Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
 
 - [ ] **Dockerfile `output: 'standalone'`** — activer dans `next.config.ts` + adapter le stage `runner` du Dockerfile (copier uniquement `.next/standalone`, `.next/static`, `public/` ; lancer `node server.js`). Réduit l'image Docker de ~1.2 GB à ~250 MB (build + pull plus rapides).
 
