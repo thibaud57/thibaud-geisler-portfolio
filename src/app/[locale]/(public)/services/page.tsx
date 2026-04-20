@@ -1,12 +1,15 @@
+import { getTranslations } from 'next-intl/server'
+
 import { setupLocalePage } from '@/i18n/locale-guard'
 
 export default async function ServicesPage({ params }: PageProps<'/[locale]/services'>) {
   await setupLocalePage(params)
+  const t = await getTranslations('ServicesPage')
 
   return (
     <main>
-      <h1>Services</h1>
-      <p>TODO: implement services page</p>
+      <h1>{t('title')}</h1>
+      <p>{t('placeholder')}</p>
     </main>
   )
 }
