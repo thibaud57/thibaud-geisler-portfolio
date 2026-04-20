@@ -34,5 +34,8 @@
   "Common": {
     "loading": "Chargement…",
     "retry": "Réessayer"
+  },
+  "LanguageSwitcher": {
+    "ariaLabel": "Changer de langue"
   }
 }
