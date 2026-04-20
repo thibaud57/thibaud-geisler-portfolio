@@ -1,1 +1,38 @@
-{}
+{
+  "HomePage": {
+    "title": "Home",
+    "placeholder": "Content coming soon."
+  },
+  "ServicesPage": {
+    "title": "Services",
+    "placeholder": "Content coming soon."
+  },
+  "ProjectsPage": {
+    "title": "Projects",
+    "placeholder": "Content coming soon."
+  },
+  "ProjectPage": {
+    "title": "Project: {slug}",
+    "placeholder": "Content coming soon."
+  },
+  "AboutPage": {
+    "title": "About",
+    "placeholder": "Content coming soon."
+  },
+  "ContactPage": {
+    "title": "Contact",
+    "placeholder": "Content coming soon."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "Page not found."
+  },
+  "ErrorPage": {
+    "title": "Error",
+    "message": "Something went wrong."
+  },
+  "Common": {
+    "loading": "Loading…",
+    "retry": "Retry"
+  }
+}

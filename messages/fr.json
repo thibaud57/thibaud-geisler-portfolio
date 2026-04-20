@@ -1,1 +1,38 @@
-{}
+{
+  "HomePage": {
+    "title": "Accueil",
+    "placeholder": "Contenu à venir."
+  },
+  "ServicesPage": {
+    "title": "Services",
+    "placeholder": "Contenu à venir."
+  },
+  "ProjectsPage": {
+    "title": "Projets",
+    "placeholder": "Contenu à venir."
+  },
+  "ProjectPage": {
+    "title": "Projet : {slug}",
+    "placeholder": "Contenu à venir."
+  },
+  "AboutPage": {
+    "title": "À propos",
+    "placeholder": "Contenu à venir."
+  },
+  "ContactPage": {
+    "title": "Contact",
+    "placeholder": "Contenu à venir."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "Page introuvable."
+  },
+  "ErrorPage": {
+    "title": "Erreur",
+    "message": "Une erreur est survenue."
+  },
+  "Common": {
+    "loading": "Chargement…",
+    "retry": "Réessayer"
+  }
+}
