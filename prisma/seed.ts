@@ -60,46 +60,36 @@ async function main() {
         )
       }
 
+      const tagCommon = {
+        nameFr: t.nameFr,
+        nameEn: t.nameEn,
+        kind: t.kind,
+        icon: iconParse.data,
+      }
+
       await prisma.tag.upsert({
         where: { slug: t.slug },
-        create: {
-          slug: t.slug,
-          nameFr: t.nameFr,
-          nameEn: t.nameEn,
-          kind: t.kind,
-          icon: iconParse.data,
-        },
-        update: {
-          nameFr: t.nameFr,
-          nameEn: t.nameEn,
-          kind: t.kind,
-          icon: iconParse.data,
-        },
+        create: { slug: t.slug, ...tagCommon },
+        update: tagCommon,
       })
     }
     const nbExpertises = tags.filter((t) => t.kind === 'EXPERTISE').length
     console.log(`✔ ${tags.length} tags upsertés (dont ${nbExpertises} expertises)`)
 
     for (const c of companies) {
+      const companyCommon = {
+        name: c.name,
+        logoFilename: c.logoFilename,
+        websiteUrl: c.websiteUrl,
+        sectors: c.sectors,
+        size: c.size,
+        locations: c.locations,
+      }
+
       await prisma.company.upsert({
         where: { slug: c.slug },
-        create: {
-          slug: c.slug,
-          name: c.name,
-          logoFilename: c.logoFilename,
-          websiteUrl: c.websiteUrl,
-          sectors: c.sectors,
-          size: c.size,
-          locations: c.locations,
-        },
-        update: {
-          name: c.name,
-          logoFilename: c.logoFilename,
-          websiteUrl: c.websiteUrl,
-          sectors: c.sectors,
-          size: c.size,
-          locations: c.locations,
-        },
+        create: { slug: c.slug, ...companyCommon },
+        update: companyCommon,
       })
     }
     console.log(`✔ ${companies.length} companies upsertées`)
