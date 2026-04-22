@@ -202,7 +202,7 @@ Stockage et mise à disposition publique dès le MVP :
 * Images de projets (screenshots, schémas)
 * Documents publics
 
-Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment du dashboard upload. Assets servis exclusivement via route API `/api/assets/[filename]` (voir ADR-011).
+Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment du dashboard upload. Assets servis exclusivement via route API catch-all `/api/assets/[...path]` (organisation en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, voir ADR-011).
 
 ### Feature 4 — Formulaire de contact
 
