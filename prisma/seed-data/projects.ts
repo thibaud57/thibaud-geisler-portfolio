@@ -65,7 +65,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2025-10-16'),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: null,
+    coverFilename: 'projets/client/foyer/cover.webp',
     displayOrder: 0,
     tagSlugs: [
       'scala',
@@ -99,7 +99,7 @@ export const projects: ProjectInput[] = [
     endedAt: null,
     githubUrl: null,
     demoUrl: null,
-    coverFilename: null,
+    coverFilename: 'projets/client/wanted-design/cover.webp',
     displayOrder: 1,
     tagSlugs: [
       'agents-ia',
@@ -130,7 +130,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2022-04-30'),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: null,
+    coverFilename: 'projets/client/paysystem/cover.webp',
     displayOrder: 6,
     tagSlugs: ['angular', 'nodejs', 'mongodb', 'scraping', 'php'],
     clientMeta: {
@@ -152,7 +152,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2021-09-30'),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: null,
+    coverFilename: 'projets/client/cloudsmart/cover.webp',
     displayOrder: 7,
     tagSlugs: ['python', 'odoo', 'android'],
     clientMeta: {

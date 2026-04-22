@@ -97,6 +97,7 @@ type CoverAreaProps = {
 function CoverArea({ coverFilename, title, showInProgress, inProgressLabel }: CoverAreaProps) {
   const [imageErrored, setImageErrored] = useState(false)
   const showImage = coverFilename !== null && !imageErrored
+  const isSvg = coverFilename?.toLowerCase().endsWith('.svg') ?? false
 
   return (
     <div className="relative h-56 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-accent/20">
@@ -108,6 +109,7 @@ function CoverArea({ coverFilename, title, showInProgress, inProgressLabel }: Co
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover"
+            unoptimized={isSvg}
             onError={() => setImageErrored(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />

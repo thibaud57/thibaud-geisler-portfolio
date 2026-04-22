@@ -84,5 +84,5 @@ export const tags: TagInput[] = [
   { slug: 'mcp', name: 'MCP', kind: 'EXPERTISE', icon: 'lucide:plug' },
   { slug: 'agents-ia', name: 'Agents IA', kind: 'EXPERTISE', icon: 'lucide:brain-circuit' },
   { slug: 'skills', name: 'Skills', kind: 'EXPERTISE', icon: 'lucide:sparkles' },
-  { slug: 'automatisation', name: 'Automatisation / Workflow', kind: 'EXPERTISE', icon: 'lucide:workflow' },
+  { slug: 'automatisation', name: 'Automatisation', kind: 'EXPERTISE', icon: 'lucide:workflow' },
 ]

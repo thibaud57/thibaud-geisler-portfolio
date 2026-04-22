@@ -13,9 +13,8 @@ export type CompanyInput = {
   slug: string
   name: string
   /**
-   * Nom de fichier du logo placé manuellement dans `/assets/` (servi par
-   * `/api/assets/[filename]` via le sub-project 04).
-   * null si pas de logo disponible (badge UI affiche le nom seul).
+   * Chemin relatif du logo dans `/assets/` (servi par `/api/assets/[...path]`).
+   * Convention : `projets/client/<slug>/logo.png`. null si pas de logo disponible.
    */
   logoFilename: string | null
   websiteUrl: string | null
@@ -36,7 +35,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'foyer',
     name: 'Foyer Group',
-    logoFilename: 'foyer-logo.png',
+    logoFilename: 'projets/client/foyer/logo.png',
     websiteUrl: 'https://www.foyer.lu',
     sectors: ['ASSURANCE'],
     size: 'ETI',
@@ -45,7 +44,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'cloudsmart',
     name: 'CloudSmart',
-    logoFilename: 'cloudsmart-logo.png',
+    logoFilename: 'projets/client/cloudsmart/logo.png',
     websiteUrl: 'https://cloudsmart.lu',
     sectors: ['SAAS', 'LOGICIELS_ENTREPRISE'],
     size: 'TPE',
@@ -54,7 +53,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'paysystem',
     name: 'PaySystem',
-    logoFilename: 'paysystem-logo.png',
+    logoFilename: 'projets/client/paysystem/logo.png',
     websiteUrl: 'https://www.paysystem.eu',
     sectors: ['SAAS', 'SERVICES_RH'],
     size: 'TPE',
@@ -63,7 +62,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'wanted-design',
     name: 'Wanted Design',
-    logoFilename: 'wanted-design-logo.png',
+    logoFilename: 'projets/client/wanted-design/logo.png',
     websiteUrl: 'https://www.wanteddesign.fr',
     sectors: ['EMARKETING', 'IA_AUTOMATISATION'],
     size: 'TPE',
