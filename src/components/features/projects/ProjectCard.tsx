@@ -39,32 +39,24 @@ export function ProjectCard({ project }: Props) {
           />
 
           <div className="flex flex-1 flex-col gap-3 p-6">
-            {company ? (
-              <div className="flex items-center gap-2">
-                <CompanyLogo filename={company.logoFilename} name={company.name} />
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {company.name}
-                </span>
-              </div>
-            ) : null}
-
             <h3 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
               {project.title}
             </h3>
 
-            {project.formats.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {project.formats.map((format) => (
-                  <Badge
-                    key={format}
-                    variant="outline"
-                    className="text-[10px] font-medium uppercase tracking-wider"
-                  >
-                    {tFormats(format)}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
+            <div className="flex flex-wrap gap-1.5">
+              {company ? (
+                <ContextBadge logoFilename={company.logoFilename} name={company.name} />
+              ) : null}
+              {project.formats.map((format) => (
+                <Badge
+                  key={format}
+                  variant="outline"
+                  className="text-[10px] font-medium uppercase tracking-wider"
+                >
+                  {tFormats(format)}
+                </Badge>
+              ))}
+            </div>
 
             <p className="text-base leading-relaxed text-muted-foreground line-clamp-3">
               {project.description}
@@ -94,10 +86,14 @@ type CoverAreaProps = {
   inProgressLabel: string
 }
 
-function CoverArea({ coverFilename, title, showInProgress, inProgressLabel }: CoverAreaProps) {
+function CoverArea({
+  coverFilename,
+  title,
+  showInProgress,
+  inProgressLabel,
+}: CoverAreaProps) {
   const [imageErrored, setImageErrored] = useState(false)
   const showImage = coverFilename !== null && !imageErrored
-  const isSvg = coverFilename?.toLowerCase().endsWith('.svg') ?? false
 
   return (
     <div className="relative h-56 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-accent/20">
@@ -109,7 +105,6 @@ function CoverArea({ coverFilename, title, showInProgress, inProgressLabel }: Co
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover"
-            unoptimized={isSvg}
             onError={() => setImageErrored(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -127,23 +122,31 @@ function CoverArea({ coverFilename, title, showInProgress, inProgressLabel }: Co
   )
 }
 
-type CompanyLogoProps = {
-  filename: string | null
+type ContextBadgeProps = {
+  logoFilename: string | null
   name: string
 }
 
-function CompanyLogo({ filename, name }: CompanyLogoProps) {
+function ContextBadge({ logoFilename, name }: ContextBadgeProps) {
   const [errored, setErrored] = useState(false)
-  if (!filename || errored) return null
+  const showLogo = logoFilename !== null && !errored
 
   return (
-    <Image
-      src={`/api/assets/${filename}`}
-      alt={name}
-      width={28}
-      height={28}
-      className="rounded object-contain"
-      onError={() => setErrored(true)}
-    />
+    <Badge
+      variant="outline"
+      className="gap-1.5 text-[10px] font-medium uppercase tracking-wider"
+    >
+      {showLogo ? (
+        <Image
+          src={`/api/assets/${logoFilename}`}
+          alt={name}
+          width={14}
+          height={14}
+          className="rounded object-contain"
+          onError={() => setErrored(true)}
+        />
+      ) : null}
+      {name}
+    </Badge>
   )
 }
