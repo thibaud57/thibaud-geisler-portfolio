@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { PrismaClient, type ProjectType } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { routing } from '../src/i18n/routing.js'
 import { tags } from './seed-data/tags.js'
 import { companies } from './seed-data/companies.js'
 import { projects } from './seed-data/projects.js'
@@ -19,9 +20,21 @@ const IconSchema = z
   )
   .nullable()
 
-function readCaseStudy(slug: string, type: ProjectType): string | null {
+type Locale = (typeof routing.locales)[number]
+
+function readCaseStudy(
+  slug: string,
+  type: ProjectType,
+  locale: Locale,
+): string | null {
   const folder = type === 'CLIENT' ? 'client' : 'personal'
-  const path = join(__dirname, 'seed-data', 'case-studies', folder, `${slug}.md`)
+  const path = join(
+    __dirname,
+    'seed-data',
+    'case-studies',
+    folder,
+    `${slug}.${locale}.md`,
+  )
   try {
     return readFileSync(path, 'utf8')
   } catch (err) {
@@ -39,7 +52,6 @@ async function main() {
       `→ Seed démarré. ${tags.length} tags, ${companies.length} companies, ${projects.length} projets.`,
     )
 
-    // Ordre tags → companies → projects requis : FK sur Tag.slug et Company.slug.
     for (const t of tags) {
       const iconParse = IconSchema.safeParse(t.icon)
       if (!iconParse.success) {
@@ -52,12 +64,14 @@ async function main() {
         where: { slug: t.slug },
         create: {
           slug: t.slug,
-          name: t.name,
+          nameFr: t.nameFr,
+          nameEn: t.nameEn,
           kind: t.kind,
           icon: iconParse.data,
         },
         update: {
-          name: t.name,
+          nameFr: t.nameFr,
+          nameEn: t.nameEn,
           kind: t.kind,
           icon: iconParse.data,
         },
@@ -90,8 +104,15 @@ async function main() {
     }
     console.log(`✔ ${companies.length} companies upsertées`)
 
+    const missingEnStubs: string[] = []
+
     for (const p of projects) {
-      const caseStudyMarkdown = readCaseStudy(p.slug, p.type)
+      const caseStudyMarkdownFr = readCaseStudy(p.slug, p.type, 'fr')
+      const caseStudyMarkdownEn = readCaseStudy(p.slug, p.type, 'en')
+
+      if (caseStudyMarkdownFr !== null && caseStudyMarkdownEn === null) {
+        missingEnStubs.push(p.slug)
+      }
 
       const clientMetaData = p.clientMeta
         ? {
@@ -107,46 +128,48 @@ async function main() {
         tag: { connect: { slug } },
       }))
 
+      const projectCommon = {
+        titleFr: p.titleFr,
+        titleEn: p.titleEn,
+        descriptionFr: p.descriptionFr,
+        descriptionEn: p.descriptionEn,
+        type: p.type,
+        status: p.status,
+        formats: p.formats,
+        startedAt: p.startedAt,
+        endedAt: p.endedAt,
+        githubUrl: p.githubUrl,
+        demoUrl: p.demoUrl,
+        coverFilename: p.coverFilename,
+        caseStudyMarkdownFr,
+        caseStudyMarkdownEn,
+        displayOrder: p.displayOrder,
+      }
+
       await prisma.project.upsert({
         where: { slug: p.slug },
         create: {
           slug: p.slug,
-          title: p.title,
-          description: p.description,
-          type: p.type,
-          status: p.status,
-          formats: p.formats,
-          startedAt: p.startedAt,
-          endedAt: p.endedAt,
-          githubUrl: p.githubUrl,
-          demoUrl: p.demoUrl,
-          coverFilename: p.coverFilename,
-          caseStudyMarkdown,
-          displayOrder: p.displayOrder,
+          ...projectCommon,
           tags: { create: projectTagCreate },
           clientMeta: clientMetaData ? { create: clientMetaData } : undefined,
         },
         update: {
-          title: p.title,
-          description: p.description,
-          type: p.type,
-          status: p.status,
-          formats: p.formats,
-          startedAt: p.startedAt,
-          endedAt: p.endedAt,
-          githubUrl: p.githubUrl,
-          demoUrl: p.demoUrl,
-          coverFilename: p.coverFilename,
-          caseStudyMarkdown,
-          displayOrder: p.displayOrder,
-          // deleteMany + create : seul moyen de re-synchroniser l'ordre des tags par-projet
-          // (Prisma `connect` ne permet pas de modifier displayOrder de la table de jointure).
+          ...projectCommon,
+          // deleteMany + create : seul moyen de re-synchroniser ProjectTag.displayOrder
+          // (Prisma `connect` ne permet pas de modifier displayOrder sur la jointure).
           tags: { deleteMany: {}, create: projectTagCreate },
           clientMeta: clientMetaData
             ? { upsert: { create: clientMetaData, update: clientMetaData } }
             : undefined,
         },
       })
+    }
+
+    if (missingEnStubs.length > 0) {
+      console.warn(
+        `⚠ ${missingEnStubs.length} projet(s) sans case study EN (FR seule présente) : ${missingEnStubs.join(', ')}. caseStudyMarkdownEn = null.`,
+      )
     }
 
     const nbClients = projects.filter((p) => p.type === 'CLIENT').length
