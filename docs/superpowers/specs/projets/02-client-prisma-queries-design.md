@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "client-prisma-queries"
 goal: "Fournir un singleton PrismaClient et les queries de lecture des projets publiés, filtrables par type, pour les pages publiques"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-project-design.md"]
