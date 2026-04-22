@@ -79,6 +79,10 @@ db:
     docker compose up -d --wait postgres
     pnpm prisma migrate deploy
 
+[group('db')]
+seed:
+    pnpm prisma db seed
+
 # ─── Setup ───────────────────────────────────────────────────────────
 [group('setup')]
 install:
