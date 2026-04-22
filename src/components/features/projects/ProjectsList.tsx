@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 import { BentoGrid } from '@/components/magicui/bento-grid'
 import { ProjectCard } from './ProjectCard'
 import { ProjectFilters, type ProjectsFilter } from './ProjectFilters'
 
 type Props = {
-  projects: ProjectWithRelations[]
+  projects: LocalizedProjectWithRelations[]
 }
 
 export function ProjectsList({ projects }: Props) {

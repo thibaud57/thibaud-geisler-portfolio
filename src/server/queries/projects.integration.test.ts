@@ -11,13 +11,13 @@ describe('findManyPublished', () => {
   it('retourne uniquement les projets status=PUBLISHED (exclut DRAFT et ARCHIVED)', async () => {
     await prisma.project.createMany({
       data: [
-        { slug: 'pub', title: 'Pub', description: 'd', type: 'PERSONAL', status: 'PUBLISHED' },
-        { slug: 'draft', title: 'Draft', description: 'd', type: 'PERSONAL', status: 'DRAFT' },
-        { slug: 'arch', title: 'Arch', description: 'd', type: 'PERSONAL', status: 'ARCHIVED' },
+        { slug: 'pub',   titleFr: 'Pub',   titleEn: 'Pub',   descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED' },
+        { slug: 'draft', titleFr: 'Draft', titleEn: 'Draft', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'DRAFT' },
+        { slug: 'arch',  titleFr: 'Arch',  titleEn: 'Arch',  descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'ARCHIVED' },
       ],
     })
 
-    const result = await findManyPublished()
+    const result = await findManyPublished({ locale: 'fr' })
 
     expect(result).toHaveLength(1)
     expect(result[0]?.slug).toBe('pub')
@@ -29,12 +29,12 @@ describe('findManyPublished', () => {
   ] as const)('filtre par type=%s quand précisé', async (type, expectedSlug) => {
     await prisma.project.createMany({
       data: [
-        { slug: 'cli', title: 'Cli', description: 'd', type: 'CLIENT', status: 'PUBLISHED' },
-        { slug: 'perso', title: 'Perso', description: 'd', type: 'PERSONAL', status: 'PUBLISHED' },
+        { slug: 'cli',   titleFr: 'Cli',   titleEn: 'Cli',   descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT',   status: 'PUBLISHED' },
+        { slug: 'perso', titleFr: 'Perso', titleEn: 'Perso', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED' },
       ],
     })
 
-    const result = await findManyPublished({ type })
+    const result = await findManyPublished({ type, locale: 'fr' })
 
     expect(result).toHaveLength(1)
     expect(result[0]?.slug).toBe(expectedSlug)
@@ -43,13 +43,13 @@ describe('findManyPublished', () => {
   it('retourne les projets triés par displayOrder asc (0 en premier)', async () => {
     await prisma.project.createMany({
       data: [
-        { slug: 'a', title: 'A', description: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 10 },
-        { slug: 'b', title: 'B', description: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 0 },
-        { slug: 'c', title: 'C', description: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 5 },
+        { slug: 'a', titleFr: 'A', titleEn: 'A', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 10 },
+        { slug: 'b', titleFr: 'B', titleEn: 'B', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 0 },
+        { slug: 'c', titleFr: 'C', titleEn: 'C', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED', displayOrder: 5 },
       ],
     })
 
-    const result = await findManyPublished()
+    const result = await findManyPublished({ locale: 'fr' })
 
     expect(result.map((p) => p.slug)).toEqual(['b', 'c', 'a'])
   })
@@ -67,17 +67,19 @@ describe('findManyPublished', () => {
 
     await prisma.tag.createMany({
       data: [
-        { slug: 'react', name: 'React', kind: 'FRAMEWORK', icon: 'simple-icons:react' },
-        { slug: 'anti-bot-scraping', name: 'Scraping anti-bot', kind: 'EXPERTISE', icon: 'lucide:spider' },
-        { slug: 'docker', name: 'Docker', kind: 'INFRA', icon: 'simple-icons:docker' },
+        { slug: 'react',             nameFr: 'React',             nameEn: 'React',             kind: 'FRAMEWORK',  icon: 'simple-icons:react' },
+        { slug: 'anti-bot-scraping', nameFr: 'Scraping anti-bot', nameEn: 'Anti-bot scraping', kind: 'EXPERTISE',  icon: 'lucide:spider' },
+        { slug: 'docker',            nameFr: 'Docker',            nameEn: 'Docker',            kind: 'INFRA',      icon: 'simple-icons:docker' },
       ],
     })
 
     await prisma.project.create({
       data: {
         slug: 'full',
-        title: 'Full',
-        description: 'd',
+        titleFr: 'Full',
+        titleEn: 'Full',
+        descriptionFr: 'd',
+        descriptionEn: 'd',
         type: 'CLIENT',
         status: 'PUBLISHED',
         formats: ['WEB_APP', 'API'],
@@ -99,7 +101,7 @@ describe('findManyPublished', () => {
       },
     })
 
-    const result = await findManyPublished()
+    const result = await findManyPublished({ locale: 'fr' })
 
     expect(result).toHaveLength(1)
     expect(result[0]?.tags).toHaveLength(3)
@@ -111,6 +113,71 @@ describe('findManyPublished', () => {
     expect(result[0]?.clientMeta?.company?.name).toBe('Airbus')
     expect(result[0]?.clientMeta?.company?.size).toBe('GROUPE')
   })
+
+  it('résout title/description en FR quand locale = fr', async () => {
+    await prisma.project.create({
+      data: {
+        slug: 'bi',
+        titleFr: 'Digiclaims - Gestion Sinistres',
+        titleEn: 'Digiclaims - Claims Management',
+        descriptionFr: 'Desc FR',
+        descriptionEn: 'Desc EN',
+        type: 'CLIENT',
+        status: 'PUBLISHED',
+      },
+    })
+
+    const result = await findManyPublished({ locale: 'fr' })
+
+    expect(result[0]?.title).toBe('Digiclaims - Gestion Sinistres')
+    expect(result[0]?.description).toBe('Desc FR')
+    expect(result[0]).not.toHaveProperty('titleFr')
+    expect(result[0]).not.toHaveProperty('titleEn')
+  })
+
+  it('résout title/description en EN quand locale = en', async () => {
+    await prisma.project.create({
+      data: {
+        slug: 'bi',
+        titleFr: 'Digiclaims - Gestion Sinistres',
+        titleEn: 'Digiclaims - Claims Management',
+        descriptionFr: 'Desc FR',
+        descriptionEn: 'Desc EN',
+        type: 'CLIENT',
+        status: 'PUBLISHED',
+      },
+    })
+
+    const result = await findManyPublished({ locale: 'en' })
+
+    expect(result[0]?.title).toBe('Digiclaims - Claims Management')
+    expect(result[0]?.description).toBe('Desc EN')
+  })
+
+  it('applique la locale sur les tags nested (name résolu selon locale)', async () => {
+    await prisma.tag.create({
+      data: { slug: 'automatisation', nameFr: 'Automatisation', nameEn: 'Automation', kind: 'EXPERTISE' },
+    })
+    await prisma.project.create({
+      data: {
+        slug: 'bi',
+        titleFr: 'T',
+        titleEn: 'T',
+        descriptionFr: 'd',
+        descriptionEn: 'd',
+        type: 'PERSONAL',
+        status: 'PUBLISHED',
+        tags: { create: [{ displayOrder: 0, tag: { connect: { slug: 'automatisation' } } }] },
+      },
+    })
+
+    const resultFr = await findManyPublished({ locale: 'fr' })
+    const resultEn = await findManyPublished({ locale: 'en' })
+
+    expect(resultFr[0]?.tags[0]?.tag.name).toBe('Automatisation')
+    expect(resultEn[0]?.tags[0]?.tag.name).toBe('Automation')
+    expect(resultFr[0]?.tags[0]?.tag).not.toHaveProperty('nameFr')
+  })
 })
 
 describe('findPublishedBySlug', () => {
@@ -118,18 +185,20 @@ describe('findPublishedBySlug', () => {
     await resetDatabase()
   })
 
-  it('retourne le projet PUBLISHED avec ses relations nested (tags via ProjectTag, company)', async () => {
+  it('retourne le projet PUBLISHED avec ses relations nested localisées', async () => {
     await prisma.company.create({
       data: { slug: 'airbus', name: 'Airbus', sectors: ['LOGICIELS_ENTREPRISE'], size: 'GROUPE' },
     })
     await prisma.tag.create({
-      data: { slug: 'react', name: 'React', kind: 'FRAMEWORK' },
+      data: { slug: 'react', nameFr: 'React', nameEn: 'React', kind: 'FRAMEWORK' },
     })
     await prisma.project.create({
       data: {
         slug: 'mon-projet',
-        title: 'Mon Projet',
-        description: 'd',
+        titleFr: 'Mon Projet',
+        titleEn: 'My Project',
+        descriptionFr: 'd',
+        descriptionEn: 'd',
         type: 'CLIENT',
         status: 'PUBLISHED',
         tags: {
@@ -144,10 +213,11 @@ describe('findPublishedBySlug', () => {
       },
     })
 
-    const result = await findPublishedBySlug('mon-projet')
+    const result = await findPublishedBySlug('mon-projet', 'en')
 
     expect(result).not.toBeNull()
     expect(result?.slug).toBe('mon-projet')
+    expect(result?.title).toBe('My Project')
     expect(result?.tags).toHaveLength(1)
     expect(result?.tags[0]?.tag.slug).toBe('react')
     expect(result?.tags[0]?.displayOrder).toBe(0)
@@ -162,14 +232,16 @@ describe('findPublishedBySlug', () => {
     await prisma.project.create({
       data: {
         slug: 'mon-brouillon',
-        title: 'Brouillon',
-        description: 'd',
+        titleFr: 'Brouillon',
+        titleEn: 'Draft',
+        descriptionFr: 'd',
+        descriptionEn: 'd',
         type: 'PERSONAL',
         status: 'DRAFT',
       },
     })
 
-    const result = await findPublishedBySlug(slug)
+    const result = await findPublishedBySlug(slug, 'fr')
 
     expect(result).toBeNull()
   })

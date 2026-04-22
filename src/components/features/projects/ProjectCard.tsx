@@ -4,13 +4,13 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 import { Badge } from '@/components/ui/badge'
 import { BentoCard } from '@/components/magicui/bento-grid'
 import { TagBadge } from './TagBadge'
 
 type Props = {
-  project: ProjectWithRelations
+  project: LocalizedProjectWithRelations
 }
 
 const MAX_VISIBLE_TAGS = 3

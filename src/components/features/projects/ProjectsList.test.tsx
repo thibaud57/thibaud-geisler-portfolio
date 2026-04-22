@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 import { ProjectsList } from './ProjectsList'
 
 vi.mock('next-intl', async (orig) => {
@@ -21,7 +21,7 @@ vi.mock('@/components/magicui/bento-grid', () => ({
   BentoCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
-type Company = NonNullable<NonNullable<ProjectWithRelations['clientMeta']>['company']>
+type Company = NonNullable<NonNullable<LocalizedProjectWithRelations['clientMeta']>['company']>
 
 function createCompany(overrides?: Partial<Company>): Company {
   const now = new Date()
@@ -40,7 +40,7 @@ function createCompany(overrides?: Partial<Company>): Company {
   }
 }
 
-function createProject(overrides?: Partial<ProjectWithRelations>): ProjectWithRelations {
+function createProject(overrides?: Partial<LocalizedProjectWithRelations>): LocalizedProjectWithRelations {
   const now = new Date()
   const company = overrides?.clientMeta?.company ?? createCompany()
   return {
@@ -78,7 +78,7 @@ function createProject(overrides?: Partial<ProjectWithRelations>): ProjectWithRe
 
 describe('ProjectsList filter', () => {
   it('affiche tous les projets par défaut, filtre correctement CLIENT/PERSONAL', async () => {
-    const fixtures: ProjectWithRelations[] = [
+    const fixtures: LocalizedProjectWithRelations[] = [
       createProject({
         id: '1',
         slug: 'p1',

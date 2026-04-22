@@ -2,16 +2,16 @@
 
 /* eslint-disable react-hooks/static-components -- resolveTagIcon fait un lookup par clé dans des registries immuables (Simple Icons / Lucide), pas une création de composant runtime */
 
-import type { Tag } from '@/generated/prisma/client'
 import * as SimpleIcons from '@icons-pack/react-simple-icons'
 import * as LucideIcons from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import type { LocalizedTagRecord } from '@/types/project'
 
 type IconComponent = React.ComponentType<{ size?: number; className?: string }>
 
 type Props = {
-  tag: Pick<Tag, 'name' | 'icon'>
+  tag: Pick<LocalizedTagRecord, 'name' | 'icon'>
   className?: string
 }
 

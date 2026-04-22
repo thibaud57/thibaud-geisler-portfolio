@@ -26,9 +26,9 @@ export async function generateMetadata({
 }
 
 export default async function ProjetsPage({ params }: PageProps<'/[locale]/projets'>) {
-  await setupLocalePage(params)
+  const { locale } = await setupLocalePage(params)
   const t = await getTranslations('Projects')
-  const projects = await findManyPublished()
+  const projects = await findManyPublished({ locale })
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
