@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "route-api-assets"
 goal: "Exposer la route GET /api/assets/[filename] qui sert les fichiers images depuis un volume Docker dédié avec validation anti path-traversal et cache headers"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "full"
 depends_on: []
