@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "i18n-content-bilingue"
 goal: "Rendre tout le content DB bilingue FR/EN (titres, descriptions, noms de tags, case studies markdown) via colonnes jumelées fr/en + helper de localisation côté query"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-project-design.md", "02-client-prisma-queries-design.md", "03-seed-projets-design.md", "05-page-liste-projets-filtres-design.md"]
