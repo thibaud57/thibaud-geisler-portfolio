@@ -181,8 +181,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Formulaires | Input, Textarea, Select | shadcn/ui | Formulaire contact |
 | Cards services | Service Card | shadcn/ui (Card) | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
 | Cards projets | Project Card | Magic UI (BentoCard) | Showcase visuel dans BentoGrid asymétrique (landing + /projects) |
-| Filtres projets | Tabs | Aceternity UI | Filtres client / personnel / tous sur /projets, version animée Aceternity |
-| Badges stack | Badge + Simple Icons | shadcn/ui + @icons-pack/react-simple-icons | Stack technologique des projets (Python, React, Docker, etc.) avec icône colorée |
+| Filtres projets | Tabs custom minimaliste (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`). Aceternity Tabs pas installé en MVP |
+| Badges Tag (technos/infra/outils/expertises) | Badge + Simple Icons / Lucide | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | Tags projets avec icône : Simple Icons pour technos/infra/outils (ex: React, Python, Docker) ou Lucide pour expertises (ex: Scraping, RAG, MCP). `variant="secondary"` par défaut. Délégation du renderer d'icône selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`) |
+| Badges Format (type de projet) | Badge sans icône | shadcn/ui | Types de projet (API, Web App, App Mobile, Desktop App, CLI, IA) affichés à côté ou sous le titre (card + case study). `variant="outline"` pour distinguer visuellement des Tags (étiquette catégorique, pas de glyphe). Valeur en texte uniquement |
 | Feedback | Toast, Alert | shadcn/ui (Sonner, Alert) | Confirmation formulaire |
 | Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | — |
 | Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal) |
