@@ -292,11 +292,11 @@ Créer `src/components/features/projects/CaseStudyHeader.tsx` avec ce contenu ex
 ```typescript
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 import { Badge } from '@/components/ui/badge'
 
 type Props = {
-  project: ProjectWithRelations
+  project: LocalizedProjectWithRelations
 }
 
 function formatYearRange(startedAt: Date | null, endedAt: Date | null, inProgressLabel: string): string {
@@ -460,10 +460,10 @@ import { ArrowLeft, ExternalLink, Github } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { Button } from '@/components/ui/button'
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 
 type Props = {
-  project: ProjectWithRelations
+  project: LocalizedProjectWithRelations
 }
 
 export function CaseStudyFooter({ project }: Props) {
@@ -537,14 +537,14 @@ Expected : 0 erreur.
 Créer `src/components/features/projects/CaseStudyLayout.tsx` avec ce contenu exact :
 
 ```typescript
-import type { ProjectWithRelations } from '@/types/project'
+import type { LocalizedProjectWithRelations } from '@/types/project'
 import { CaseStudyHeader } from './CaseStudyHeader'
 import { TagStackGrouped } from './TagStackGrouped'
 import { CaseStudyMarkdown } from './CaseStudyMarkdown'
 import { CaseStudyFooter } from './CaseStudyFooter'
 
 type Props = {
-  project: ProjectWithRelations
+  project: LocalizedProjectWithRelations
 }
 
 /**
@@ -840,7 +840,7 @@ export async function generateStaticParams(): Promise<{ locale: string; slug: st
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, slug } = await params
-  const project = await findPublishedBySlug(slug)
+  const project = await findPublishedBySlug(slug, locale)
 
   if (!project) {
     return { title: 'Not found' }
@@ -867,7 +867,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
 
   setRequestLocale(locale)
 
-  const project = await findPublishedBySlug(slug)
+  const project = await findPublishedBySlug(slug, locale)
 
   if (!project) {
     notFound()
@@ -1079,7 +1079,7 @@ Expected : commit listant les fichiers attendus.
 **2. Placeholder scan** : aucun TBD/TODO. Exception conditionnelle documentée (T8 step 2 installe Button si absent via shadcn CLI). Le mock `server-only` est hérité du sub-project 02 Task 6, pas un workaround conditionnel dans ce plan.
 
 **3. Type consistency** :
-- `ProjectWithRelations` (sub-project 02) : importé T7/T8/T9/T12, cohérent partout. Les tags y sont un array de `ProjectTag` incluant la relation `tag` (via `include: { tags: { include: { tag: true } } }`), déjà trié `displayOrder asc` côté query.
+- `LocalizedProjectWithRelations` (sub-project 02) : importé T7/T8/T9/T12, cohérent partout. Les tags y sont un array de `ProjectTag` incluant la relation `tag` (via `include: { tags: { include: { tag: true } } }`), déjà trié `displayOrder asc` côté query.
 - `TagKind` : importé Task 4+5 depuis Prisma client, énuméré dans `KIND_ORDER` dans l'ordre spec'é `[EXPERTISE, LANGUAGE, FRAMEWORK, DATABASE, AI, INFRA]`.
 - `ProjectTagWithTag` : type local dans TagStackGrouped (Task 4+5), dérivé via `Prisma.ProjectTagGetPayload<{ include: { tag: true } }>` — correspond exactement au shape retourné par `findPublishedBySlug`.
 - `findPublishedBySlug` : signature défendue sub-project 02, appelée T12 (generateMetadata + page)
