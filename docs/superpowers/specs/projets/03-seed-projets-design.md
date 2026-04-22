@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "seed-projets"
 goal: "Peupler les tables Project, ClientMeta, Company, Tag et ProjectTag via un script prisma/seed.ts idempotent alimenté par des fichiers TypeScript déclaratifs"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["01-schema-prisma-project-design.md"]
