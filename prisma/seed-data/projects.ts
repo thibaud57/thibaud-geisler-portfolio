@@ -8,8 +8,10 @@ import type {
 
 export type ProjectInput = {
   slug: string
-  title: string
-  description: string
+  titleFr: string
+  titleEn: string
+  descriptionFr: string
+  descriptionEn: string
   type: ProjectType
   status: ProjectStatus
   formats: ProjectFormat[]
@@ -34,9 +36,12 @@ export type ProjectInput = {
 export const projects: ProjectInput[] = [
   {
     slug: 'digiclaims',
-    title: 'Digiclaims - Gestion Sinistres',
-    description:
+    titleFr: 'Digiclaims - Gestion Sinistres',
+    titleEn: 'Digiclaims - Claims Management',
+    descriptionFr:
       'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction de 50% du temps de traitement, utilisée par 100+ courtiers.',
+    descriptionEn:
+      'Scala/Angular web app for claims management at Foyer (Luxembourg insurance), microservices CQRS/Event Sourcing architecture. 50% reduction in processing time, used by 100+ brokers.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP', 'API'],
@@ -68,9 +73,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'referent-ia-automatisation',
-    title: 'Référent Technique IA & Automatisation',
-    description:
+    titleFr: 'Référent Technique IA & Automatisation',
+    titleEn: 'Technical Lead AI & Automation',
+    descriptionFr:
       "Référent technique et stratégique IA/automatisation pour une agence digitale. Structuration des offres from scratch (gammes MX/AX), architecture d'agents IA, cadrage avant-vente, mentorat technique, infrastructure et ops.",
+    descriptionEn:
+      'Technical and strategic lead on AI / automation for a digital agency. Building the service catalog from scratch (MX/AX lines), AI agents architecture, pre-sales framing, technical mentoring, infrastructure and ops.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['IA'],
@@ -99,9 +107,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'saas-gestion-paie',
-    title: 'SaaS Gestion de Paie',
-    description:
+    titleFr: 'SaaS Gestion de Paie',
+    titleEn: 'Payroll Management SaaS',
+    descriptionFr:
       "Plateforme SaaS de gestion de la paie (Angular/Node.js). Développement de features frontend (stepper d'ajout employé) et d'un module de scraping automatisé (PHP, Puppeteer) pour pré-remplir les fiches de paie depuis un site gouvernemental.",
+    descriptionEn:
+      'Payroll management SaaS platform (Angular / Node.js). Developed frontend features (employee-creation stepper) and an automated scraping module (PHP, Puppeteer) to prefill payslips from a government website.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP'],
@@ -121,9 +132,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'erp-odoo-android',
-    title: 'ERP Odoo & App Android',
-    description:
+    titleFr: 'ERP Odoo & App Android',
+    titleEn: 'Odoo ERP & Android App',
+    descriptionFr:
       "Développement de modules Odoo ERP personnalisés et d'une application Android de scan de médicaments intégrée à l'ERP, déployée en test chez des pharmacies partenaires.",
+    descriptionEn:
+      'Developed custom Odoo ERP modules and an Android drug-scanning app integrated with the ERP, deployed in pilot at partner pharmacies.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP', 'MOBILE_APP'],
@@ -143,9 +157,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'portfolio',
-    title: 'Thibaud Geisler Portfolio',
-    description:
+    titleFr: 'Thibaud Geisler Portfolio',
+    titleEn: 'Thibaud Geisler Portfolio',
+    descriptionFr:
       'Plateforme personnelle Next.js/TypeScript servant de vitrine professionnelle et de fondation technique pour une plateforme freelance évolutive (dashboard admin, chatbot RAG, mini-CRM, blog) à venir post-MVP.',
+    descriptionEn:
+      'Personal Next.js / TypeScript platform acting as a professional showcase and a technical foundation for an evolving freelance platform (admin dashboard, RAG chatbot, mini-CRM, blog) coming post-MVP.',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['WEB_APP'],
@@ -169,9 +186,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'techno-scraper',
-    title: 'Techno Scraper',
-    description:
+    titleFr: 'Techno Scraper',
+    titleEn: 'Techno Scraper',
+    descriptionFr:
       'API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données via REST puis via un serveur MCP pour intégration native avec des agents IA.',
+    descriptionEn:
+      'Python / FastAPI API scraping 3 music platforms (SoundCloud, Beatport, Bandcamp) and exposing the data via REST, then through an MCP server for native integration with AI agents.',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['API'],
@@ -195,9 +215,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'crm-leads-n8n',
-    title: 'CRM Leads - Relance Automatisée (n8n)',
-    description:
+    titleFr: 'CRM Leads - Relance Automatisée (n8n)',
+    titleEn: 'CRM Leads - Automated Follow-up (n8n)',
+    descriptionFr:
       "Workflow n8n qui automatise la relance de leads CRM : mise à jour d'une date dans Notion déclenche un agent Claude qui rédige un message personnalisé, puis upsert idempotent d'une tâche TickTick de rappel.",
+    descriptionEn:
+      'n8n workflow that automates CRM lead follow-ups: updating a date in Notion triggers a Claude agent to draft a personalized message, then idempotently upserts a TickTick reminder task.',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['IA'],
@@ -220,9 +243,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'flight-search-api',
-    title: 'Flight Search API',
-    description:
+    titleFr: 'Flight Search API',
+    titleEn: 'Flight Search API',
+    descriptionFr:
       'API Python/FastAPI pour trouver les vols multi-destinations les moins chers en testant toutes les combinaisons de dates possibles, avec anti-détection avancé (Crawl4AI, Patchright, proxies résidentiels) face aux protections anti-bot de Google Flights et Kayak.',
+    descriptionEn:
+      'Python / FastAPI API finding the cheapest multi-destination flights by testing every possible date combination, with advanced anti-detection (Crawl4AI, Patchright, residential proxies) against Google Flights and Kayak anti-bot protections.',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['API'],
@@ -246,9 +272,12 @@ export const projects: ProjectInput[] = [
   },
   {
     slug: 'skill-prof',
-    title: 'Skill prof - Leçons programmation',
-    description:
+    titleFr: 'Skill prof - Leçons programmation',
+    titleEn: 'Skill prof - Programming Lessons',
+    descriptionFr:
       "Skill Claude Code et workflow multi-agents pour générer et maintenir automatiquement des fiches de révision techniques denses, calibrées pour développeurs mid/senior, avec audit qualité multi-couche (format, exactitude technique, cohérence cross-leçons).",
+    descriptionEn:
+      'Claude Code skill and multi-agent workflow that automatically generates and maintains dense technical review sheets, calibrated for mid/senior developers, with multi-layer quality auditing (format, technical accuracy, cross-lesson consistency).',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['IA'],

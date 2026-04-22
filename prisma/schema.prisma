@@ -82,24 +82,27 @@ enum CompanyLocation {
 }
 
 model Project {
-  id                String          @id @default(uuid(7))
-  slug              String          @unique
-  title             String
-  description       String
-  type              ProjectType
-  status            ProjectStatus   @default(DRAFT)
-  formats           ProjectFormat[]
-  startedAt         DateTime?       @db.Timestamptz
-  endedAt           DateTime?       @db.Timestamptz
-  githubUrl         String?
-  demoUrl           String?
-  coverFilename     String?
-  caseStudyMarkdown String?
-  displayOrder      Int             @default(0)
-  tags              ProjectTag[]
-  clientMeta        ClientMeta?
-  createdAt         DateTime        @default(now()) @db.Timestamptz
-  updatedAt         DateTime        @updatedAt @db.Timestamptz
+  id                  String          @id @default(uuid(7))
+  slug                String          @unique
+  titleFr             String
+  titleEn             String
+  descriptionFr       String
+  descriptionEn       String
+  type                ProjectType
+  status              ProjectStatus   @default(DRAFT)
+  formats             ProjectFormat[]
+  startedAt           DateTime?       @db.Timestamptz
+  endedAt             DateTime?       @db.Timestamptz
+  githubUrl           String?
+  demoUrl             String?
+  coverFilename       String?
+  caseStudyMarkdownFr String?
+  caseStudyMarkdownEn String?
+  displayOrder        Int             @default(0)
+  tags                ProjectTag[]
+  clientMeta          ClientMeta?
+  createdAt           DateTime        @default(now()) @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @db.Timestamptz
 }
 
 model ClientMeta {
@@ -132,7 +135,8 @@ model Company {
 model Tag {
   id        String       @id @default(uuid(7))
   slug      String       @unique
-  name      String
+  nameFr    String
+  nameEn    String
   kind      TagKind
   icon      String?
   projects  ProjectTag[]
