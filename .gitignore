@@ -49,3 +49,7 @@ next-env.d.ts
 
 # Playwright MCP (screenshots, snapshots, logs de debug)
 .playwright-mcp/
+
+# Assets locaux (servis par /api/assets en dev, volume Docker en prod)
+/assets/*
+!/assets/.gitkeep
