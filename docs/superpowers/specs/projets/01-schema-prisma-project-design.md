@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "schema-prisma-project"
 goal: "Ajouter les modèles Prisma Project, ClientMeta, Company, Tag, ProjectTag et la migration initiale qui crée les tables en base"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []
