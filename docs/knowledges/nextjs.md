@@ -36,7 +36,7 @@ src/app/
 ├── (admin)/
 │   └── dashboard/page.tsx    → /dashboard (post-MVP)
 ├── api/
-│   └── assets/[filename]/route.ts → /api/assets/[filename]
+│   └── assets/[...path]/route.ts → /api/assets/projets/client/foyer/logo.png
 └── layout.tsx                → root layout
 ```
 

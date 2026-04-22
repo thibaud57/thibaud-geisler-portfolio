@@ -107,7 +107,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 # Application
 NODE_ENV=                           # development | production
 
-# Assets (fichiers servis via /api/assets/[filename])
+# Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
 ```
 

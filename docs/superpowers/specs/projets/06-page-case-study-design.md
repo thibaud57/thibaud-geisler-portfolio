@@ -24,7 +24,7 @@ Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.t
 - `01-schema-prisma-project-design.md` (statut: draft) — utilise les champs `Project.caseStudyMarkdown`, `Project.coverFilename`, `Project.tags` (array de `ProjectTag` avec `displayOrder` par-projet, chaque row expose `tag.kind` incluant `EXPERTISE`), `Project.clientMeta`
 - `02-client-prisma-queries-design.md` (statut: draft) — utilise `findPublishedBySlug` qui retourne `ProjectWithRelations` (type alias qui inclut automatiquement les scalaires + `tags: ProjectTag[]` triés `displayOrder asc` + clientMeta.company)
 - `03-seed-projets-design.md` (statut: draft) — au moins 1-2 projets PUBLISHED avec `caseStudyMarkdown` rempli (depuis `prisma/seed-data/case-studies/<slug>.md`) sont nécessaires pour valider visuellement
-- `04-route-api-assets-design.md` (statut: draft) — la cover image et les images inline du markdown sont servies via `/api/assets/[filename]`
+- `04-route-api-assets-design.md` (statut: implemented, évolué catch-all) — la cover image et les images inline du markdown sont servies via `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`)
 
 ## Files touched
 
@@ -66,7 +66,7 @@ La hiérarchie de lecture est : header (contexte immédiat) → narration libre 
 
 ### Composant `CaseStudyHeader` (Server Component)
 
-- **Cover image** : identique au pattern de `ProjectCard` du sub-project 05 — `<Image src="/api/assets/<coverFilename>">` ou gradient fallback si null. Affichée en grand (hauteur ~400px desktop, responsive).
+- **Cover image** : identique au pattern de `ProjectCard` du sub-project 05 — `<Image src="/api/assets/<coverFilename>">` où `coverFilename` est un chemin relatif nested `projets/{client,personal}/<slug>/cover.webp` (route catch-all, convention dans `.claude/rules/nextjs/assets.md`). Gradient fallback si null. Affichée en grand (hauteur ~400px desktop, responsive).
 - **Titre H1** : `project.title` (classes Tailwind typography pour grand titre).
 - **Badges Format** sous le titre : `project.formats.map(format => <Badge variant="outline">{t(`Projects.formats.${format}`)}</Badge>)` — étiquettes catégoriques sans icône (cohérent avec la card liste). Omis si `formats.length === 0`.
 - **Sous-titre** : `project.description` (teaser court en lead texte).
@@ -96,7 +96,7 @@ La hiérarchie de lecture est : header (contexte immédiat) → narration libre 
 - **Props** : `{ markdown: string }`.
 - **Render via `react-markdown`** avec `remark-gfm` (GitHub Flavored Markdown : tables, checklists, strikethrough).
 - **Wrapper autour** : classe `prose prose-lg dark:prose-invert max-w-none` (plugin `@tailwindcss/typography`).
-- **Custom renderer pour les images** : wrap `<img>` markdown en `<figure>` contenant `<Image>` Next.js + `<figcaption>` dérivée de l'`alt` du markdown. L'alt (`![Dashboard](/api/assets/foo.png)`) devient légende visible sous l'image. Accessibilité : `alt` vide si légende vide, sémantique `<figure>` correcte.
+- **Custom renderer pour les images** : wrap `<img>` markdown en `<figure>` contenant `<Image>` Next.js + `<figcaption>` dérivée de l'`alt` du markdown. L'alt (`![Dashboard](/api/assets/projets/personal/<slug>/dashboard.png)`) devient légende visible sous l'image. Accessibilité : `alt` vide si légende vide, sémantique `<figure>` correcte.
 - **Custom renderer pour les liens externes** : ajouter `target="_blank" rel="noopener noreferrer"` si `href` commence par `http`.
 
 ### Composant `CaseStudyFooter` (Server Component)
