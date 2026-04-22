@@ -140,13 +140,45 @@ Présentation du positionnement par ordre de priorité :
 
 Coeur du portfolio. Données stockées en base de données dès le MVP.
 
-**Modèle BDD (`Project`) :**
-* `slug` (unique, URL-friendly)
-* `title`, `description`
-* `stack` (badges technologiques)
-* `githubUrl`, `demoUrl` (lien vers démo externe)
-* `type` : CLIENT / PERSONAL (filtres sur la page)
-* `published` (boolean)
+**Modèle BDD (4 tables Prisma) :**
+
+`Project` (table principale) :
+* `slug` (unique, URL-friendly, language-agnostic cf. ADR-010)
+* `title`, `description` (teaser court affiché card + meta SEO)
+* `type` : `ProjectType` (CLIENT / PERSONAL) — filtres sur la page liste
+* `status` : `ProjectStatus` (DRAFT / PUBLISHED / ARCHIVED) — défaut DRAFT, seuls PUBLISHED visibles publiquement
+* `formats` : `ProjectFormat[]` (API / WEB_APP / MOBILE_APP / DESKTOP_APP / CLI / IA) — multi-valeurs, nature technique du projet (affichée en badge outline à côté du titre)
+* `startedAt`, `endedAt` (DateTime nullable) — début et fin de mission (CLIENT) ou début + date de MEP (PERSONAL)
+* `githubUrl`, `demoUrl` (nullables — NDA / projet sans démo)
+* `coverFilename`, `caseStudyMarkdown` (nullables)
+* `displayOrder` (Int, défaut 0) — tri manuel ASC des projets sur la page liste (0 en premier). **Ne concerne pas l'ordre des tags du projet**, qui est porté par `ProjectTag.displayOrder`.
+* relation m:n `tags` → `ProjectTag[]` via table de jointure explicite (mélange technos + infra + outils + expertises métier, distingués par `Tag.kind` ; ordre par-projet via `ProjectTag.displayOrder`)
+* relation 1:1 optionnelle `clientMeta` → `ClientMeta?`
+
+`ClientMeta` (métadonnées spécifiques aux missions clients, relation 1:1 optionnelle avec Project) :
+* `teamSize` (Int nullable), `contractStatus` : `ContractStatus` (FREELANCE / CDI / STAGE / ALTERNANCE, nullable)
+* `workMode` : `WorkMode` (PRESENTIEL / HYBRIDE / REMOTE) — required, info toujours connue
+* relation N:1 required vers `Company` via `companyId` (une entreprise peut avoir plusieurs missions successives)
+* Cascade delete avec le Project parent
+
+`Company` (référentiel entreprises clientes, relation 1:N vers ClientMeta) :
+* `slug` (unique, dérivé du nom), `name`
+* `logoFilename` (nullable, image dans `/assets`), `websiteUrl` (nullable)
+* `sectors` : `CompanySector[]` (Assurance / Fintech / SaaS / ... / Autre — 11 valeurs, multi)
+* `size` : `CompanySize?` (TPE / PME / ETI / GROUPE)
+* `locations` : `CompanyLocation[]` (Luxembourg / Paris / Grand_Est / France / Belgique / Suisse / Europe / Monde — multi)
+
+`Tag` (référentiel unifié : technos / infra / outils / expertises métier) :
+* `slug` (unique), `name`
+* `kind` : `TagKind` (LANGUAGE / FRAMEWORK / DATABASE / INFRA / AI / EXPERTISE)
+* `icon` (nullable, format `"<lib>:<slug>"` — ex `"simple-icons:react"` pour une techno, `"lucide:spider"` pour une expertise)
+* **pas de `displayOrder` global** — l'ordre est par-projet via `ProjectTag.displayOrder`
+
+`ProjectTag` (table de jointure explicite Project ↔ Tag, porte l'ordre d'affichage par-projet) :
+* `projectId` + `tagId` — clé primaire composite
+* `displayOrder` (Int, défaut 0) — tri ASC des tags **de ce projet** sur la card liste et dans chaque groupe de la case study (0 en premier)
+* Cascade delete côté Project (supprimer le projet retire ses liaisons), Restrict côté Tag (protège le référentiel)
+* Index composite `(projectId, displayOrder)` pour accélérer la query `orderBy: { displayOrder: 'asc' }`
 
 **Page `/projets` :**
 * Liste avec filtres client / personnel
