@@ -4,18 +4,10 @@ import type {
   CompanySize,
 } from '@/generated/prisma/client'
 
-/**
- * Company input shape consumed by `prisma/seed.ts` (upsert by slug).
- *
- * @see docs/superpowers/specs/projets/03-seed-projets-design.md
- */
 export type CompanyInput = {
   slug: string
   name: string
-  /**
-   * Chemin relatif du logo dans `/assets/` (servi par `/api/assets/[...path]`).
-   * Convention : `projets/client/<slug>/logo.png`. null si pas de logo disponible.
-   */
+  // Convention de stockage : assets/projets/{client,personal}/<slug>/logo.png
   logoFilename: string | null
   websiteUrl: string | null
   sectors: CompanySector[]
@@ -23,14 +15,7 @@ export type CompanyInput = {
   locations: CompanyLocation[]
 }
 
-/**
- * Référentiel des entreprises clientes (réutilisables entre plusieurs projets).
- *
- * Source : DB Notion "Entreprises", filtré sur `Travaillé = true` et limité aux
- * entreprises liées à des projets CLIENT publiés sur le portfolio.
- *
- * Mapping taille : `1-50` → TPE, `50-250` → PME, `250-5000` → ETI, `5000+` → GROUPE.
- */
+// Mapping taille : 1-50 → TPE, 50-250 → PME, 250-5000 → ETI, 5000+ → GROUPE
 export const companies: CompanyInput[] = [
   {
     slug: 'foyer',
@@ -67,5 +52,14 @@ export const companies: CompanyInput[] = [
     sectors: ['EMARKETING', 'IA_AUTOMATISATION'],
     size: 'TPE',
     locations: ['GRAND_EST'],
+  },
+  {
+    slug: 'personnel',
+    name: 'Personnel',
+    logoFilename: null,
+    websiteUrl: null,
+    sectors: [],
+    size: null,
+    locations: [],
   },
 ]

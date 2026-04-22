@@ -6,11 +6,6 @@ import type {
   WorkMode,
 } from '@/generated/prisma/client'
 
-/**
- * Project input shape consumed by `prisma/seed.ts` (upsert by slug).
- *
- * @see docs/superpowers/specs/projets/03-seed-projets-design.md
- */
 export type ProjectInput = {
   slug: string
   title: string
@@ -24,16 +19,9 @@ export type ProjectInput = {
   demoUrl: string | null
   coverFilename: string | null
   displayOrder: number
-  /**
-   * Liste ORDONNÉE des slugs de tags liés au projet.
-   * L'ordre détermine `ProjectTag.displayOrder` (index dans le tableau, 0 en premier).
-   * Chaque slug doit exister dans `tags.ts`, sinon le seed lève une erreur FK.
-   */
+  // L'index du slug dans tagSlugs[] pilote ProjectTag.displayOrder au seed (0 en premier)
   tagSlugs: string[]
-  /**
-   * Méta-données CLIENT uniquement. null pour les projets PERSONAL.
-   * `companySlug` doit référencer une entrée de `companies.ts`.
-   */
+  // companySlug doit exister dans companies.ts. Les projets PERSONAL pointent sur slug 'personnel'.
   clientMeta: {
     companySlug: string
     teamSize: number | null
@@ -42,16 +30,7 @@ export type ProjectInput = {
   } | null
 }
 
-/**
- * Projets affichés sur le portfolio (CLIENT + PERSONAL).
- *
- * Ordre page liste piloté par `Project.displayOrder` ASC (0 en premier).
- * Ordre des tags par-projet piloté par `ProjectTag.displayOrder` ASC,
- * calculé à partir de l'index dans `tagSlugs[]` au seed.
- *
- * Sections narratives (contexte, réalisations, apprentissages, liens) résolues
- * au seed depuis `./case-studies/<client|personal>/<slug>.md`.
- */
+// Sections narratives résolues au seed depuis ./case-studies/<client|personal>/<slug>.md
 export const projects: ProjectInput[] = [
   {
     slug: 'digiclaims',
@@ -66,13 +45,13 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/foyer/cover.webp',
-    displayOrder: 0,
+    displayOrder: 1,
     tagSlugs: [
       'scala',
       'angular',
       'kafka',
-      'mongodb',
       'play',
+      'mongodb',
       'docker',
       'kubernetes',
       'github-actions',
@@ -100,15 +79,15 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/wanted-design/cover.webp',
-    displayOrder: 1,
+    displayOrder: 0,
     tagSlugs: [
       'agents-ia',
-      'skills',
       'automatisation',
+      'n8n',
+      'skills',
       'anthropic',
       'openai',
       'perplexity',
-      'n8n',
       'dokploy',
     ],
     clientMeta: {
@@ -131,8 +110,8 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/paysystem/cover.webp',
-    displayOrder: 6,
-    tagSlugs: ['angular', 'nodejs', 'mongodb', 'scraping', 'php'],
+    displayOrder: 7,
+    tagSlugs: ['angular', 'nodejs', 'php', 'scraping', 'mongodb'],
     clientMeta: {
       companySlug: 'paysystem',
       teamSize: 4,
@@ -153,7 +132,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/cloudsmart/cover.webp',
-    displayOrder: 7,
+    displayOrder: 8,
     tagSlugs: ['python', 'odoo', 'android'],
     clientMeta: {
       companySlug: 'cloudsmart',
@@ -174,8 +153,9 @@ export const projects: ProjectInput[] = [
     endedAt: null,
     githubUrl: 'https://github.com/thibaud57/thibaud-geisler-portfolio',
     demoUrl: 'https://thibaud-geisler.com',
-    coverFilename: null,
+    coverFilename: 'projets/personal/portfolio/cover.webp',
     displayOrder: 2,
+    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'nextjs',
       'typescript',
@@ -186,11 +166,10 @@ export const projects: ProjectInput[] = [
       'dokploy',
       'github-actions',
     ],
-    clientMeta: null,
   },
   {
     slug: 'techno-scraper',
-    title: 'Techno-Scraper',
+    title: 'Techno Scraper',
     description:
       'API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données via REST puis via un serveur MCP pour intégration native avec des agents IA.',
     type: 'PERSONAL',
@@ -200,19 +179,19 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2025-04-21'),
     githubUrl: 'https://github.com/thibaud57/techno-scraper',
     demoUrl: null,
-    coverFilename: null,
-    displayOrder: 4,
+    coverFilename: 'projets/personal/techno-scraper/cover.webp',
+    displayOrder: 5,
+    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
-      'mcp',
-      'scraping',
-      'anti-bot',
       'python',
+      'scraping',
+      'mcp',
       'fastapi',
+      'anti-bot',
       'docker',
       'dokploy',
       'github-actions',
     ],
-    clientMeta: null,
   },
   {
     slug: 'crm-leads-n8n',
@@ -227,8 +206,9 @@ export const projects: ProjectInput[] = [
     githubUrl:
       'https://github.com/thibaud57/n8n-backups/blob/main/workflows/work/ybAxfufVGPJPln2i.json',
     demoUrl: null,
-    coverFilename: null,
-    displayOrder: 5,
+    coverFilename: 'projets/personal/crm-leads-n8n/cover.webp',
+    displayOrder: 4,
+    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -237,7 +217,6 @@ export const projects: ProjectInput[] = [
       'docker',
       'dokploy',
     ],
-    clientMeta: null,
   },
   {
     slug: 'flight-search-api',
@@ -251,11 +230,12 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2025-12-06'),
     githubUrl: 'https://github.com/thibaud57/flight-search-api',
     demoUrl: null,
-    coverFilename: null,
+    coverFilename: 'projets/personal/flight-search-api/cover.webp',
     displayOrder: 3,
+    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
-      'anti-bot',
       'scraping',
+      'anti-bot',
       'anonymisation',
       'python',
       'fastapi',
@@ -263,7 +243,6 @@ export const projects: ProjectInput[] = [
       'dokploy',
       'github-actions',
     ],
-    clientMeta: null,
   },
   {
     slug: 'skill-prof',
@@ -277,9 +256,9 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2026-04-10'),
     githubUrl: 'https://github.com/thibaud57/lessons',
     demoUrl: null,
-    coverFilename: null,
-    displayOrder: 8,
+    coverFilename: 'projets/personal/skill-prof/cover.webp',
+    displayOrder: 6,
+    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: ['skills', 'anthropic', 'local'],
-    clientMeta: null,
   },
 ]

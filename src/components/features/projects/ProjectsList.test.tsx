@@ -21,35 +21,100 @@ vi.mock('@/components/magicui/bento-grid', () => ({
   BentoCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
-const baseProject: ProjectWithRelations = {
-  id: 'id',
-  slug: 'slug',
-  title: 'Project',
-  description: 'Desc',
-  type: 'CLIENT',
-  status: 'PUBLISHED',
-  formats: [],
-  startedAt: null,
-  endedAt: null,
-  githubUrl: null,
-  demoUrl: null,
-  coverFilename: null,
-  caseStudyMarkdown: null,
-  displayOrder: 0,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  tags: [],
-  clientMeta: null,
+type Company = NonNullable<NonNullable<ProjectWithRelations['clientMeta']>['company']>
+
+function createCompany(overrides?: Partial<Company>): Company {
+  const now = new Date()
+  return {
+    id: 'company-id',
+    slug: 'personnel',
+    name: 'Personnel',
+    logoFilename: null,
+    websiteUrl: null,
+    sectors: [],
+    size: null,
+    locations: [],
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
 }
 
-const fixtures: ProjectWithRelations[] = [
-  { ...baseProject, id: '1', slug: 'p1', title: 'Client Project 1', type: 'CLIENT' },
-  { ...baseProject, id: '2', slug: 'p2', title: 'Personal Project 1', type: 'PERSONAL' },
-  { ...baseProject, id: '3', slug: 'p3', title: 'Client Project 2', type: 'CLIENT' },
-]
+function createProject(overrides?: Partial<ProjectWithRelations>): ProjectWithRelations {
+  const now = new Date()
+  const company = overrides?.clientMeta?.company ?? createCompany()
+  return {
+    id: 'project-id',
+    slug: 'project-slug',
+    title: 'Project',
+    description: 'Desc',
+    type: 'PERSONAL',
+    status: 'PUBLISHED',
+    formats: [],
+    startedAt: null,
+    endedAt: null,
+    githubUrl: null,
+    demoUrl: null,
+    coverFilename: null,
+    caseStudyMarkdown: null,
+    displayOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+    tags: [],
+    clientMeta: {
+      id: 'clientmeta-id',
+      projectId: 'project-id',
+      companyId: company.id,
+      teamSize: null,
+      contractStatus: null,
+      workMode: 'REMOTE',
+      createdAt: now,
+      updatedAt: now,
+      company,
+    },
+    ...overrides,
+  }
+}
 
 describe('ProjectsList filter', () => {
   it('affiche tous les projets par défaut, filtre correctement CLIENT/PERSONAL', async () => {
+    const fixtures: ProjectWithRelations[] = [
+      createProject({
+        id: '1',
+        slug: 'p1',
+        title: 'Client Project 1',
+        type: 'CLIENT',
+        clientMeta: {
+          id: 'cm-1',
+          projectId: '1',
+          companyId: 'c-foyer',
+          teamSize: 6,
+          contractStatus: 'CDI',
+          workMode: 'HYBRIDE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          company: createCompany({ id: 'c-foyer', slug: 'foyer', name: 'Foyer Group' }),
+        },
+      }),
+      createProject({ id: '2', slug: 'p2', title: 'Personal Project 1', type: 'PERSONAL' }),
+      createProject({
+        id: '3',
+        slug: 'p3',
+        title: 'Client Project 2',
+        type: 'CLIENT',
+        clientMeta: {
+          id: 'cm-3',
+          projectId: '3',
+          companyId: 'c-acme',
+          teamSize: null,
+          contractStatus: null,
+          workMode: 'REMOTE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          company: createCompany({ id: 'c-acme', slug: 'acme', name: 'Acme' }),
+        },
+      }),
+    ]
     const user = userEvent.setup()
     render(<ProjectsList projects={fixtures} />)
 
