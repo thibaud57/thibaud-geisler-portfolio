@@ -11,6 +11,28 @@
     "title": "Projets",
     "placeholder": "Contenu à venir."
   },
+  "Projects": {
+    "metaTitle": "Projets",
+    "metaDescription": "Sélection de projets clients et personnels en développement full-stack et IA",
+    "pageTitle": "Mes projets",
+    "pageSubtitle": "Missions freelance et projets personnels",
+    "filters": {
+      "all": "Tous",
+      "client": "Clients",
+      "personal": "Personnels"
+    },
+    "formats": {
+      "API": "API",
+      "WEB_APP": "Web App",
+      "MOBILE_APP": "App Mobile",
+      "DESKTOP_APP": "Desktop App",
+      "CLI": "CLI",
+      "IA": "IA"
+    },
+    "inProgress": "En cours",
+    "emptyState": "Aucun projet à afficher dans cette catégorie pour le moment.",
+    "cardAriaLabel": "Voir le projet {title}"
+  },
   "ProjectPage": {
     "title": "Projet : {slug}",
     "placeholder": "Contenu à venir."

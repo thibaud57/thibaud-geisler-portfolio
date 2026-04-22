@@ -77,7 +77,7 @@ export const tags: TagInput[] = [
   { slug: 'local', name: 'Local', kind: 'INFRA', icon: 'lucide:monitor' },
 
   // === EXPERTISE (8) ===
-  { slug: 'scraping', name: 'Scraping', kind: 'EXPERTISE', icon: 'lucide:spider' },
+  { slug: 'scraping', name: 'Scraping', kind: 'EXPERTISE', icon: 'lucide:bug' },
   { slug: 'anti-bot', name: 'Anti-bot', kind: 'EXPERTISE', icon: 'lucide:shield-ban' },
   { slug: 'anonymisation', name: 'Anonymisation', kind: 'EXPERTISE', icon: 'lucide:ghost' },
   { slug: 'rag', name: 'RAG', kind: 'EXPERTISE', icon: 'lucide:database' },
