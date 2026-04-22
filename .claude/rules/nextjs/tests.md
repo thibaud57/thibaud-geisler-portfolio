@@ -1,7 +1,7 @@
 ---
 paths:
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
+  - "src/**/*.test.ts"
+  - "src/**/*.test.tsx"
 ---
 
 # Next.js — Tests (specifics Next.js)

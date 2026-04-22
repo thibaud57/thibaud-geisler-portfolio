@@ -1,8 +1,6 @@
 ---
 paths:
   - "src/components/aceternity/**/*.tsx"
-  - "src/components/**/*.tsx"
-  - "src/app/[locale]/(public)/**/*.tsx"
 ---
 
 # Aceternity UI — Composants animés premium

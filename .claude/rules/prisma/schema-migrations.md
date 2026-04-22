@@ -1,8 +1,6 @@
 ---
 paths:
-  - "prisma/schema.prisma"
-  - "prisma/migrations/**"
-  - "prisma/seed.ts"
+  - "prisma/**"
   - "prisma.config.ts"
 ---
 
