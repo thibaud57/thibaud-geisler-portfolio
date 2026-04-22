@@ -23,6 +23,7 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 
 ### Standards
 
+- **Diagnostic SessionStart (hook env-check)** : le hook vérifie Docker/Postgres/.env au démarrage et injecte via `additionalContext` une instruction impérative si des warnings sont détectés. Respecter strictement : énumérer les blocages et proposer les correctifs (`just docker-up`, etc.) avant toute tâche DB/infra.
 - **Périmètre single-user** : pas de multi-tenant, pas de gestion multi-utilisateur, whitelist email unique côté auth (post-MVP)
 - **Hub de démos externes** : le portfolio liste et pointe vers des démos autonomes, il ne démo pas les applications lui-même
 - **Pas de sur-ingénierie anticipatoire** : chaque complexité ajoutée uniquement si le besoin réel apparaît
