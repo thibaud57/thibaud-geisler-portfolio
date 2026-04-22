@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from 'vitest'
-import { prisma, resetDatabase } from './setup'
+import { prisma, resetDatabase } from '@/lib/prisma-test-setup'
 import { findManyPublished, findPublishedBySlug } from '@/server/queries/projects'
 
 describe('findManyPublished', () => {
