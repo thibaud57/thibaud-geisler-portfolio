@@ -13,6 +13,7 @@ paths:
 - Pour les messages ICU avec pluriels : utiliser les tags `zero`, `one`, `two`, `few`, `many`, `other` (seul `other` obligatoire), `#` insère la valeur numérique
 - **`t.rich(key, tags)`** pour interpoler du JSX dans un message (ex: footer avec liens vers les CGV, mentions légales)
 - **`useFormatter()` / `getFormatter()`** pour formater dates et nombres selon la locale : `format.dateTime`, `format.number`, `format.relativeTime`, `format.list` — basé sur l'API `Intl` native du navigateur
+- **Séparer UI chrome et content DB** : les labels d'interface (nav, boutons, titres de page statiques, enums bornés) vivent dans `messages/{fr,en}.json` et sont consommés via `useTranslations` / `getTranslations`. Le **content éditorial long** stocké en BDD (titres de projets, descriptions, markdown case study, noms de tags affichés) passe par des **colonnes jumelées Prisma `<champ>Fr`/`<champ>En`** et un helper pur `localize*(entity, locale)` qui résout le bon champ avant render (cf. `src/i18n/localize-content.ts`). Ne jamais dupliquer du content éditorial dans `messages/*.json`
 
 ## À éviter
 - Concaténer des strings pour construire un message : perd le support ICU (interpolation, plurals, rich text)

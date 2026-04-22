@@ -22,7 +22,7 @@ Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.t
 ## Dependencies
 
 - `01-schema-prisma-project-design.md` (statut: draft) — utilise les champs `Project.caseStudyMarkdown`, `Project.coverFilename`, `Project.tags` (array de `ProjectTag` avec `displayOrder` par-projet, chaque row expose `tag.kind` incluant `EXPERTISE`), `Project.clientMeta`
-- `02-client-prisma-queries-design.md` (statut: draft) — utilise `findPublishedBySlug` qui retourne `ProjectWithRelations` (type alias qui inclut automatiquement les scalaires + `tags: ProjectTag[]` triés `displayOrder asc` + clientMeta.company)
+- `02-client-prisma-queries-design.md` (statut: draft) — utilise `findPublishedBySlug` qui retourne `LocalizedProjectWithRelations` (type alias qui inclut automatiquement les scalaires + `tags: ProjectTag[]` triés `displayOrder asc` + clientMeta.company)
 - `03-seed-projets-design.md` (statut: draft) — au moins 1-2 projets PUBLISHED avec `caseStudyMarkdown` rempli (depuis `prisma/seed-data/case-studies/<slug>.md`) sont nécessaires pour valider visuellement
 - `04-route-api-assets-design.md` (statut: implemented, évolué catch-all) — la cover image et les images inline du markdown sont servies via `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`)
 
@@ -48,7 +48,7 @@ Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.t
 - **Async params** : `params: Promise<{ locale: string; slug: string }>`, `const { locale, slug } = await params`. Next 15+ + next-intl 4.
 - **`setRequestLocale(locale)`** obligatoire en tête pour supporter le rendu statique par locale. Conforme à [.claude/rules/next-intl/setup.md](../../../../.claude/rules/next-intl/setup.md).
 - **`hasLocale(routing.locales, locale)`** comme type guard avec `notFound()` si invalide.
-- **Fetch server-side** : `const project = await findPublishedBySlug(slug)` (sub-project 02). Si `project === null` : `notFound()` (slug absent OU projet non PUBLISHED). Conforme à [.claude/rules/nextjs/data-fetching.md](../../../../.claude/rules/nextjs/data-fetching.md).
+- **Fetch server-side** : `const project = await findPublishedBySlug(slug, locale)` (sub-project 02). Si `project === null` : `notFound()` (slug absent OU projet non PUBLISHED). Conforme à [.claude/rules/nextjs/data-fetching.md](../../../../.claude/rules/nextjs/data-fetching.md).
 - **Passage props** : la page rend `<CaseStudyLayout project={project} locale={locale} />`.
 - **Pas d'ISR ou cache explicite** : `generateStaticParams` pré-génère les pages à la build, `cacheComponents: true` de Next 16 active le Partial Prerendering automatiquement. Conforme à [.claude/rules/nextjs/rendering-caching.md](../../../../.claude/rules/nextjs/rendering-caching.md).
 - **`generateStaticParams`** : async, utilise `prisma.project.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true } })` pour récupérer uniquement les slugs publiés (pas d'include, minimal payload). Retourne un produit cartésien `slug × locale` : `routing.locales.flatMap(locale => slugs.map(({ slug }) => ({ locale, slug })))`.
@@ -101,7 +101,7 @@ La hiérarchie de lecture est : header (contexte immédiat) → narration libre 
 
 ### Composant `CaseStudyFooter` (Server Component)
 
-- **Props** : `{ project: ProjectWithRelations, locale: string }`.
+- **Props** : `{ project: LocalizedProjectWithRelations, locale: string }`.
 - **Rendu** :
   - Bloc "Liens" : boutons `Démo` (si `demoUrl` non-null) + `GitHub` (si `githubUrl` non-null). Utilise `Button` shadcn + Lucide icons (`ExternalLink`, `Github`).
   - Lien retour : `<Link href="/projets">← Retour aux projets</Link>`.

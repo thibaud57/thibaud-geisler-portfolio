@@ -20,6 +20,7 @@ paths:
 - Préférer **`TEXT`** à `VARCHAR(n)` et **`TIMESTAMPTZ`** à `TIMESTAMP` dans les types Prisma/PostgreSQL
 - Pour les index créés en prod sur des tables peuplées : utiliser **`CREATE INDEX CONCURRENTLY`** (dans une migration SQL raw) pour éviter le lock exclusif qui bloque les écritures
 - Retirer `url = env("DATABASE_URL")` du `datasource db` : l'URL vient de `prisma.config.ts` en v7, le bloc datasource ne garde que `provider = "postgresql"`
+- **Content multilingue** : pour les champs texte éditoriaux traduisibles (titres, descriptions, markdown longs, noms de tags affichés à l'utilisateur), utiliser la convention **colonnes jumelées `<champ>Fr` + `<champ>En`** (ex : `titleFr`/`titleEn`, `caseStudyMarkdownFr`/`caseStudyMarkdownEn`). Pipe le résultat Prisma via les helpers purs `localizeProject` / `localizeTag` (cf. `src/i18n/localize-content.ts`). Ne **pas** appliquer aux enums, slugs, noms de marques (`Company.name`), identifiants techniques — ils restent mono-valeur
 
 ## À éviter
 - Omettre `output` dans le generator : erreur de validation en v7
