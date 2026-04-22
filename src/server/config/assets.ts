@@ -11,35 +11,41 @@ export const CONTENT_TYPE_MAP: Record<string, string> = {
 }
 
 const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
-const FILENAME_PATTERN = new RegExp(
-  `^[a-z0-9][a-z0-9._-]*\\.(${ALLOWED_EXTENSIONS.join('|')})$`,
-  'i',
-)
+const SEGMENT_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i
+const MAX_SEGMENTS = 5
 
-export const FilenameSchema = z
-  .string()
-  .regex(
-    FILENAME_PATTERN,
-    `Filename must match [a-z0-9][a-z0-9._-]* and end with one of: ${ALLOWED_EXTENSIONS.join(', ')}`,
+const SegmentSchema = z.string().regex(SEGMENT_PATTERN, 'Segment invalide')
+
+export const AssetPathSchema = z
+  .array(SegmentSchema)
+  .min(1)
+  .max(MAX_SEGMENTS)
+  .refine(
+    (segments) => {
+      const last = segments.at(-1) ?? ''
+      const ext = path.extname(last).slice(1).toLowerCase()
+      return ALLOWED_EXTENSIONS.includes(ext)
+    },
+    { message: `Extension non autorisée (attendu : ${ALLOWED_EXTENSIONS.join(', ')})` },
   )
 
-export type ValidateFilenameResult =
-  | { ok: true; filename: string }
+export type ValidateAssetPathResult =
+  | { ok: true; segments: string[]; joined: string }
   | { ok: false; error: string }
 
-export function validateFilename(raw: string): ValidateFilenameResult {
-  const parsed = FilenameSchema.safeParse(raw)
+export function validateAssetPath(raw: string[]): ValidateAssetPathResult {
+  const parsed = AssetPathSchema.safeParse(raw)
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid filename' }
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Chemin invalide' }
   }
-  return { ok: true, filename: parsed.data }
+  return { ok: true, segments: parsed.data, joined: parsed.data.join('/') }
 }
 
-export function resolveAssetPath(filename: string): string {
+export function resolveAssetPath(joined: string): string {
   const root = path.resolve(process.env.ASSETS_PATH ?? './assets')
-  const candidate = path.resolve(root, filename)
+  const candidate = path.resolve(root, joined)
   if (!candidate.startsWith(root + path.sep) && candidate !== root) {
-    throw new Error(`Path traversal detected: "${filename}"`)
+    throw new Error(`Path traversal detected: "${joined}"`)
   }
   return candidate
 }

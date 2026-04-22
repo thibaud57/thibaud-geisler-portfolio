@@ -13,9 +13,8 @@ export type CompanyInput = {
   slug: string
   name: string
   /**
-   * Nom de fichier du logo placé manuellement dans `/assets/` (servi par
-   * `/api/assets/[filename]` via le sub-project 04).
-   * null si pas de logo disponible (badge UI affiche le nom seul).
+   * Chemin relatif du logo dans `/assets/` (servi par `/api/assets/[...path]`).
+   * Convention : `projets/client/<slug>/logo.png`. null si pas de logo disponible.
    */
   logoFilename: string | null
   websiteUrl: string | null
@@ -36,7 +35,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'acme',
     name: 'Acme',
-    logoFilename: 'acme-logo.png',
+    logoFilename: 'projets/client/acme/logo.png',
     websiteUrl: 'https://acme.example',
     sectors: ['ASSURANCE'],
     size: 'ETI',
@@ -45,7 +44,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'soylent',
     name: 'Soylent',
-    logoFilename: 'soylent-logo.png',
+    logoFilename: 'projets/client/soylent/logo.png',
     websiteUrl: 'https://soylent.example',
     sectors: ['SAAS', 'LOGICIELS_ENTREPRISE'],
     size: 'TPE',
@@ -54,7 +53,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'umbrella',
     name: 'Umbrella',
-    logoFilename: 'umbrella-logo.png',
+    logoFilename: 'projets/client/umbrella/logo.png',
     websiteUrl: 'https://umbrella.example',
     sectors: ['SAAS', 'SERVICES_RH'],
     size: 'TPE',
@@ -63,7 +62,7 @@ export const companies: CompanyInput[] = [
   {
     slug: 'initech',
     name: 'Initech',
-    logoFilename: 'initech-logo.png',
+    logoFilename: 'projets/client/initech/logo.png',
     websiteUrl: 'https://initech.example',
     sectors: ['EMARKETING', 'IA_AUTOMATISATION'],
     size: 'TPE',
