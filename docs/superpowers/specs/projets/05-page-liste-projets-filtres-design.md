@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "page-liste-projets-filtres"
 goal: "Afficher la page publique /[locale]/(public)/projets avec liste BentoGrid filtrable par type CLIENT/PERSONAL/Tous, cards cliquables vers le case study"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-project-design.md", "02-client-prisma-queries-design.md", "03-seed-projets-design.md"]
