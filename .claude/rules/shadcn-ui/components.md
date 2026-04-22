@@ -1,7 +1,6 @@
 ---
 paths:
   - "src/components/**/*.tsx"
-  - "src/components/ui/**/*.tsx"
 ---
 
 # shadcn/ui — Composants, CVA & Server/Client

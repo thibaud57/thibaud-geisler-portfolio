@@ -2,7 +2,6 @@
 paths:
   - "src/lib/prisma.ts"
   - "prisma.config.ts"
-  - "package.json"
 ---
 
 # Prisma 7 — Client Setup & Instanciation

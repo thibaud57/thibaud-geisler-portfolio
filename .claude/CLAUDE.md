@@ -28,6 +28,7 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 - **Hub de démos externes** : le portfolio liste et pointe vers des démos autonomes, il ne démo pas les applications lui-même
 - **Pas de sur-ingénierie anticipatoire** : chaque complexité ajoutée uniquement si le besoin réel apparaît
 - **Stratégie de tests** : TDD sur les Server Actions critiques (contact, mutations dashboard), intégration sur les chemins critiques uniquement, pas de tests e2e en MVP
+- **Zéro commentaire sans valeur** : ne jamais écrire de commentaire qui paraphrase le code (le WHAT), narre un changement, ou référence une spec/task/caller. Un commentaire est autorisé UNIQUEMENT s'il porte un WHY non-évident : contrainte cachée, invariant subtil, workaround ciblé, comportement contre-intuitif. Les JSDoc descriptifs sont interdits (les noms d'identifiants bien choisis suffisent). Si en relisant un commentaire tu peux le supprimer sans perte de compréhension pour un lecteur futur → supprime-le.
 
 > Les règles techniques (Zod, Prisma, Next.js, secrets, etc.) sont dans [.claude/rules/](rules/) et chargées dynamiquement.
 

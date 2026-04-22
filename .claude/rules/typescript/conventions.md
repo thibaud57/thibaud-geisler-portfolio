@@ -1,7 +1,11 @@
 ---
 paths:
-  - "**/*.ts"
-  - "**/*.tsx"
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+  - "prisma/**/*.ts"
+  - "__mocks__/**/*.ts"
+  - "*.config.ts"
+  - "vitest.setup.ts"
   - "tsconfig.json"
 ---
 
