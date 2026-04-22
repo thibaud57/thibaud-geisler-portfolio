@@ -3,6 +3,7 @@ set dotenv-required := true
 set windows-shell := ["bash", "-cu"]
 
 PORT := env("PORT", "3000")
+DOTENV_TEST := "set -a && . ./.env.test && set +a"
 
 default:
     @just --list
@@ -82,6 +83,20 @@ db:
 [group('db')]
 seed:
     pnpm prisma db seed
+
+[group('db')]
+db-test:
+    docker compose up -d --wait postgres
+    @{{DOTENV_TEST}} && pnpm prisma migrate deploy
+
+[group('db')]
+[confirm('Cela va DROP la DB de test. Continuer ?')]
+db-test-reset:
+    @{{DOTENV_TEST}} && pnpm prisma migrate reset --force --skip-seed
+
+[group('db')]
+db-test-studio:
+    @{{DOTENV_TEST}} && pnpm prisma studio
 
 # ─── Setup ───────────────────────────────────────────────────────────
 [group('setup')]
