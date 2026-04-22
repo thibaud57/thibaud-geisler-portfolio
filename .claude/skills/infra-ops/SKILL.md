@@ -1,8 +1,8 @@
 ---
 name: infra-ops
-description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`. Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev).
+description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`, `seed`. Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev).
 disable-model-invocation: true
-allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio)
+allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio), Bash(just seed)
 ---
 
 # infra-ops - Opérations Docker + Database
@@ -26,6 +26,7 @@ Ta mission est d'exécuter des opérations Docker et Database selon la demande e
 | Créer une migration dev | `just db-migrate <LABEL>` | LABEL obligatoire (snake-case, ex: `add-project-slug`) |
 | Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation |
 | Ouvrir Prisma Studio | `just db-studio` | Background (UI locale, http://localhost:5555) |
+| Seed la DB depuis `prisma/seed-data/` | `just seed` | Idempotent (upsert par slug). Pas destructif. Requiert tables migrées (`just db`) |
 
 ## Règles
 
