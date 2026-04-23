@@ -12,7 +12,7 @@ technologies: ["Docker", "Next.js", "Cloudflare R2"]
 
 Le portfolio expose des assets publics : CV PDF téléchargeable, images de projets, documents publics. Ces fichiers doivent être accessibles via l'application Next.js.
 
-**Contrainte actée (indépendante du choix de stockage) :** les assets ne sont jamais servis depuis le dossier `public/` du repo Git. Ce dossier est copié dans le container au moment du build et ne supporte pas le contenu dynamique (nouvelle version du CV = commit + redéploiement). Les assets sont systématiquement servis via une route API dédiée (`/api/assets/[filename]`), qui lit le fichier depuis le backend (volume ou bucket selon l'option retenue).
+**Contrainte actée (indépendante du choix de stockage) :** les assets ne sont jamais servis depuis le dossier `public/` du repo Git. Ce dossier est copié dans le container au moment du build et ne supporte pas le contenu dynamique (nouvelle version du CV = commit + redéploiement). Les assets sont systématiquement servis via une route API dédiée (`/api/assets/[...path]`), qui lit le fichier depuis le backend (volume ou bucket selon l'option retenue).
 
 ---
 
@@ -26,7 +26,7 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 ## Option A — Volumes Docker (MVP)
 
-**Description :** Assets stockés dans un volume Docker persistant, montés dans le container Next.js. Servis exclusivement via route API (`/api/assets/[filename]` → lecture fs → stream de la réponse).
+**Description :** Assets stockés dans un volume Docker persistant, montés dans le container Next.js. Servis exclusivement via route API (`/api/assets/[...path]` → lecture fs → stream de la réponse).
 
 **Avantages :**
 - Zéro coût supplémentaire
@@ -110,7 +110,7 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 
 # 📝 Notes complémentaires
 
-**Pattern commun aux trois options :** route API `/api/assets/[filename]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier, configurée via une variable d'environnement `ASSETS_PATH`.
+**Pattern commun aux trois options :** route API `/api/assets/[...path]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier, configurée via une variable d'environnement `ASSETS_PATH`.
 
 **Workflow dev local / prod :**
 - Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env.local`
@@ -120,3 +120,5 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 **Trigger migration vers R2 :** dès l'implémentation de l'upload depuis le dashboard admin. R2 est préféré à Minio : zéro service à opérer, free tier 10 Go, zéro frais de sortie (egress), SDK S3-compatible.
 
 Voir ADR-005 pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
+
+**Évolution post-implémentation — route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque suit la convention `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.

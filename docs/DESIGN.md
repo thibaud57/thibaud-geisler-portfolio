@@ -84,6 +84,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--success` | `#16A34A` | `#22C55E` | Confirmation formulaire, actions réussies |
 | `--warning` | `#CA8A04` | `#EAB308` | Avertissements, états attention |
 | `--info` | `#2563EB` | `#3B82F6` | Messages informatifs, aide contextuelle |
+| `--shine` | `#FFFFFF / 0.95` | `#FFFFFF / 0.95` | Reflet lumineux constant (BorderBeam, effets shimmer) — volontairement non-thémé pour conserver l'effet de brillance en dark mode |
 
 ### Règles
 
@@ -156,6 +157,7 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : text effects, typographie animée, bento grid, marquee, particles, borders animés |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
+| `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies (`prose prose-lg dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
 > Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. Le dashboard admin (post-MVP) utilise shadcn/ui seul.
 
@@ -181,8 +183,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Formulaires | Input, Textarea, Select | shadcn/ui | Formulaire contact |
 | Cards services | Service Card | shadcn/ui (Card) | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
 | Cards projets | Project Card | Magic UI (BentoCard) | Showcase visuel dans BentoGrid asymétrique (landing + /projects) |
-| Filtres projets | Tabs | Aceternity UI | Filtres client / personnel / tous sur /projets, version animée Aceternity |
-| Badges stack | Badge + Simple Icons | shadcn/ui + @icons-pack/react-simple-icons | Stack technologique des projets (Python, React, Docker, etc.) avec icône colorée |
+| Filtres projets | Tabs custom minimaliste (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`). Aceternity Tabs pas installé en MVP |
+| Badges Tag (technos/infra/outils/expertises) | Badge + Simple Icons / Lucide | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | Tags projets avec icône : Simple Icons pour technos/infra/outils (ex: React, Python, Docker) ou Lucide pour expertises (ex: Scraping, RAG, MCP). `variant="secondary"` par défaut. Délégation du renderer d'icône selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`) |
+| Badges Format (type de projet) | Badge sans icône | shadcn/ui | Types de projet (API, Web App, App Mobile, Desktop App, CLI, IA) affichés à côté ou sous le titre (card + case study). `variant="outline"` pour distinguer visuellement des Tags (étiquette catégorique, pas de glyphe). Valeur en texte uniquement |
 | Feedback | Toast, Alert | shadcn/ui (Sonner, Alert) | Confirmation formulaire |
 | Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | — |
 | Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal) |
@@ -248,6 +251,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Boutons CTA standards | Défaut shadcn (`hover:bg-primary/90`) | Tailwind transitions | Hover |
 | Navigation | Transition smooth underline | Tailwind transitions | Hover / Active |
 | Page transitions | Fade cross-dissolve (expérimental — nécessite View Transitions API) | Motion | Route change |
+| Badge "En cours" (indicateur live) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (signale un projet actif sur ProjectCard) |
+| CTA "Voir la démo" (case study) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (mise en valeur du CTA principal, uniquement sur bouton démo, pas github) |
 
 ---
 
@@ -305,6 +310,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ✅ **`cn()` obligatoire** : toujours utiliser `cn()` pour composer les classes dans les composants React (permet le merge propre et l'override par props)
 - ✅ **Composants shadcn** : toujours utiliser les composants shadcn/ui quand ils existent avant de créer un composant custom
 - ✅ **Responsive** : écrire le style mobile d'abord, puis élargir avec `sm:`, `md:`, `lg:`
+- ✅ **Liens sans underline** : distinction par couleur uniquement (ex: `hover:text-primary`), reset global dans `globals.css`
 
 ## Anti-Patterns
 

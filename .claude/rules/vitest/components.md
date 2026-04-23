@@ -1,6 +1,6 @@
 ---
 paths:
-  - "**/*.test.tsx"
+  - "src/**/*.test.tsx"
 ---
 
 # Vitest — Tests de composants React (Testing Library)

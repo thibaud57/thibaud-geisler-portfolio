@@ -1,8 +1,6 @@
 ---
 paths:
   - "src/components/magicui/**/*.tsx"
-  - "src/components/**/*.tsx"
-  - "src/app/[locale]/(public)/**/*.tsx"
 ---
 
 # Magic UI — Composants animés copy-paste

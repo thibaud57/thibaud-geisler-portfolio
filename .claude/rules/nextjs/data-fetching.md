@@ -30,6 +30,7 @@ paths:
 - Next 15 breaking : `fetch()` n'est **plus** caché par défaut, chaque appel est `no-store` sauf opt-in explicite via `cache: 'force-cache'` ou `'use cache'` (Next 16)
 - Prisma 7 + Next 16 : après l'upgrade v6→v7, il faut ajouter `await connection()` dans les pages qui utilisent Prisma
 - `cache()` React est per-request uniquement (détruit à la fin du render), **pas** le Data Cache persistant : portée limitée à la requête courante, aucun partage entre utilisateurs
+- **`cache()` React et `'use cache'` Next 16 opèrent dans des scopes isolés, pas complémentaires** : superposer les 2 sur la même fonction est redondant (les valeurs stockées via `cache()` hors d'un scope `'use cache'` ne sont pas visibles dedans). Préférer `'use cache'` seul (Data Cache persistant + dedup per-request automatique) dès que `cacheComponents: true`. Garder `cache()` uniquement pour les fonctions qui ne passent pas par le Data Cache (ex: utilitaire pur sans fetch ni query DB, appelé plusieurs fois dans le même render)
 - Activer `logging: { fetches: { fullUrl: true } }` dans `next.config.ts` pour tracer les waterfalls et débugger les HIT/MISS en dev
 
 ## Exemples

@@ -3,8 +3,8 @@ paths:
   - "vitest.config.ts"
   - "vitest.config.mts"
   - "vitest.setup.ts"
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
+  - "src/**/*.test.ts"
+  - "src/**/*.test.tsx"
 ---
 
 # Vitest — Configuration, matchers, mocks, coverage
@@ -15,7 +15,7 @@ paths:
 - Activer `globals: true` dans `vitest.config.ts` + ajouter `"types": ["vitest/globals"]` dans `tsconfig.json` pour avoir `describe`/`it`/`expect` sans import
 - Importer les matchers Testing Library via **`@testing-library/jest-dom/vitest`** (chemin `/vitest` obligatoire) dans le fichier setup
 - Installer les packages canoniques : `vitest`, `@vitejs/plugin-react`, `vite-tsconfig-paths`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`, `@testing-library/user-event`
-- Colocaliser les fichiers `.test.ts(x)` à côté des fichiers testés (pattern `__tests__/` ou suffixe `.test.tsx`)
+- Colocaliser les fichiers `.test.ts(x)` et `.integration.test.ts(x)` **strictement à plat** à côté du fichier testé (ex: `foo.ts` + `foo.test.ts` dans le même dossier). Convention projet : pas de dossier `__tests__/`, pas de dossier `tests/` à la racine, pas de structure miroir
 - **Matchers** : `toBe` (primitives, `Object.is`), `toEqual` (objets, comparaison récursive), `toStrictEqual` (strict avec types + `undefined`)
 - **Erreurs sync** : `expect(() => fn()).toThrow(/pattern/)` (wrapper en arrow function obligatoire)
 - **Erreurs async** : `await expect(promise).rejects.toThrow('msg')` pour les rejets de promise
@@ -39,6 +39,7 @@ paths:
 - Vitest 4.1.4 : Vite ≥ 6 + Node.js ≥ 20 requis
 - Async Server Components Next.js **non testables** dans Vitest (limitation jsdom + RSC) — passer en E2E (Playwright) ou extraire le data fetching dans une fonction pure
 - `@testing-library/react@16.x` : combo officiel avec Vitest 4 (versions antérieures incompatibles)
+- **Emplacement des tests (convention projet)** : strictement à plat à côté du fichier testé. Pas de `__tests__/`, pas de `tests/` racine, pas de structure miroir. Les helpers de test partagés (fixtures, setup DB) vont dans `src/lib/*-test-setup.ts` (colocalisés avec les utilitaires `lib/` qu'ils testent)
 
 ## Exemples
 ```typescript

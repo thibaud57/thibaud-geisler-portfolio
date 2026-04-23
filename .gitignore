@@ -49,3 +49,10 @@ next-env.d.ts
 
 # Playwright MCP (screenshots, snapshots, logs de debug)
 .playwright-mcp/
+
+# Claude Code worktrees (créés dynamiquement lors des dispatches parallèles)
+.claude/worktrees/
+
+# Assets locaux (servis par /api/assets en dev, volume Docker en prod)
+/assets/*
+!/assets/.gitkeep
