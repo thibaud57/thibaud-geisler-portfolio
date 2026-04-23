@@ -12,11 +12,10 @@ type Props = {
 
 export function CaseStudyFooter({ project }: Props) {
   const t = useTranslations('Projects.caseStudy')
-  const hasLinks = Boolean(project.demoUrl || project.githubUrl)
 
   return (
     <footer className="mt-16 flex flex-col gap-6 border-t border-border pt-8">
-      {hasLinks ? (
+      {project.demoUrl || project.githubUrl ? (
         <div className="flex flex-wrap gap-3">
           {project.demoUrl ? (
             <Button asChild variant="default" className="relative">
