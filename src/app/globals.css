@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
@@ -39,6 +41,7 @@
 
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
+    --color-shine: var(--shine);
     --color-muted-foreground: var(--muted-foreground);
     --color-muted: var(--muted);
     --color-secondary-foreground: var(--secondary-foreground);
@@ -77,6 +80,7 @@
     --muted-foreground: oklch(0.556 0 0);
     --accent: oklch(0.965 0.008 140);
     --accent-foreground: oklch(0.145 0 0);
+    --shine: oklch(1 0 0 / 0.95);
 
     --destructive: oklch(0.577 0.245 27.325);
     --success: oklch(0.65 0.17 140);
@@ -124,6 +128,7 @@
     --muted-foreground: oklch(0.708 0 0);
     --accent: oklch(0.28 0.03 140);
     --accent-foreground: oklch(0.985 0 0);
+    --shine: oklch(1 0 0 / 0.95);
 
     --destructive: oklch(0.704 0.191 22.216);
     --success: oklch(0.72 0.18 145);
@@ -167,4 +172,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
     }
+  a, a:hover, a:focus, a:active {
+    text-decoration: none;
+    }
+}
+
+.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)),
+.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)):hover {
+  text-decoration: none;
 }

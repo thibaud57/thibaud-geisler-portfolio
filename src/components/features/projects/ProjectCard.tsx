@@ -1,13 +1,17 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
+import { buildAssetUrl } from '@/lib/assets'
+import { getProjectTimeline } from '@/lib/projects'
 import type { LocalizedProjectWithRelations } from '@/types/project'
 import { Badge } from '@/components/ui/badge'
 import { BentoCard } from '@/components/magicui/bento-grid'
+import { BorderBeam } from '@/components/magicui/border-beam'
+import { FormatBadges } from './FormatBadges'
 import { TagBadge } from './TagBadge'
+import { useImageFallback } from './useImageFallback'
 
 type Props = {
   project: LocalizedProjectWithRelations
@@ -17,10 +21,9 @@ const MAX_VISIBLE_TAGS = 3
 
 export function ProjectCard({ project }: Props) {
   const t = useTranslations('Projects')
-  const tFormats = useTranslations('Projects.formats')
   const visibleProjectTags = project.tags.slice(0, MAX_VISIBLE_TAGS)
   const extraCount = Math.max(0, project.tags.length - MAX_VISIBLE_TAGS)
-  const isInProgress = project.endedAt === null
+  const { inProgress } = getProjectTimeline(project.startedAt, project.endedAt)
   const company = project.clientMeta?.company
 
   return (
@@ -34,7 +37,7 @@ export function ProjectCard({ project }: Props) {
           <CoverArea
             coverFilename={project.coverFilename}
             title={project.title}
-            showInProgress={isInProgress}
+            showInProgress={inProgress}
             inProgressLabel={t('inProgress')}
           />
 
@@ -43,19 +46,11 @@ export function ProjectCard({ project }: Props) {
               {project.title}
             </h3>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {company ? (
                 <ContextBadge logoFilename={company.logoFilename} name={company.name} />
               ) : null}
-              {project.formats.map((format) => (
-                <Badge
-                  key={format}
-                  variant="outline"
-                  className="text-[10px] font-medium uppercase tracking-wider"
-                >
-                  {tFormats(format)}
-                </Badge>
-              ))}
+              <FormatBadges formats={project.formats} size="sm" className="gap-1.5" />
             </div>
 
             <p className="text-base leading-relaxed text-muted-foreground line-clamp-3">
@@ -92,20 +87,19 @@ function CoverArea({
   showInProgress,
   inProgressLabel,
 }: CoverAreaProps) {
-  const [imageErrored, setImageErrored] = useState(false)
-  const showImage = coverFilename !== null && !imageErrored
+  const { showImage, onError } = useImageFallback(coverFilename)
 
   return (
     <div className="relative h-56 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-accent/20">
-      {showImage ? (
+      {showImage && coverFilename ? (
         <>
           <Image
-            src={`/api/assets/${coverFilename}`}
+            src={buildAssetUrl(coverFilename)}
             alt={title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover"
-            onError={() => setImageErrored(true)}
+            onError={onError}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         </>
@@ -113,9 +107,16 @@ function CoverArea({
       {showInProgress ? (
         <Badge
           variant="default"
-          className="absolute right-3 top-3 text-[10px] font-medium uppercase tracking-wider"
+          className="absolute right-3 top-3 overflow-visible text-[10px] font-medium uppercase tracking-wider"
         >
           {inProgressLabel}
+          <BorderBeam
+            size={30}
+            duration={4}
+            borderWidth={2}
+            colorFrom="var(--shine)"
+            colorTo="transparent"
+          />
         </Badge>
       ) : null}
     </div>
@@ -128,22 +129,21 @@ type ContextBadgeProps = {
 }
 
 function ContextBadge({ logoFilename, name }: ContextBadgeProps) {
-  const [errored, setErrored] = useState(false)
-  const showLogo = logoFilename !== null && !errored
+  const { showImage, onError } = useImageFallback(logoFilename)
 
   return (
     <Badge
       variant="outline"
       className="gap-1.5 text-[10px] font-medium uppercase tracking-wider"
     >
-      {showLogo ? (
+      {showImage && logoFilename ? (
         <Image
-          src={`/api/assets/${logoFilename}`}
+          src={buildAssetUrl(logoFilename)}
           alt={name}
           width={14}
           height={14}
           className="rounded object-contain"
-          onError={() => setErrored(true)}
+          onError={onError}
         />
       ) : null}
       {name}
