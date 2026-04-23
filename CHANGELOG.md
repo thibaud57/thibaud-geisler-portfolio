@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.2.0...v0.3.0) (2026-04-23)
+
+
+### Features
+
+* **i18n:** helper localizeProject/localizeTag + queries locale-aware + UI localisée ([3052b4d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3052b4d818368f266287596a5f3735561cb0a7df))
+* **projets:** ajoute schéma Prisma Project, ClientMeta, Company, Tag, ProjectTag ([f5ec7f1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f5ec7f11c600c185edc6dbbdec7872edf3f9c04c))
+* **projets:** page /projets publique avec BentoGrid filtrable (variante editorial) ([cfef2ab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cfef2abab5b4cfe8a7e2112609d188f133ea3c9d))
+* **projets:** page case study /projets/[slug] avec generateStaticParams + markdown ([ff438a0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff438a017b4d742cd476acc91728a28ac3b99654))
+* **projets:** route GET /api/assets/[filename] with Zod path traversal guard ([0d98789](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0d98789bcf037fe4801cc3dc823ac304ef8fbb57))
+* **projets:** seed Prisma idempotent depuis fichiers TS + case studies .md séparés ([eb86857](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/eb868573b3fa0f79d388032a4a89027dc40481be))
+* **projets:** singleton Prisma + queries findMany/findBySlug + 7 tests integration ([b60e5f0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b60e5f04ea99f6244c320d44da634e698deb5108))
+* **seed:** add 9 case studies markdown (4 client + 5 personal) ([d6ffcb4](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d6ffcb4f0b6fd7149dc9791123b3c292341278a5))
+* **seed:** add tags, companies and projects seed data ([a7f7dab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a7f7dab868b81d0eee6981532f65975123760048))
+* **ui:** effet BorderBeam sur badge "En cours" et CTA démo + doc DESIGN.md ([ffd60ae](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ffd60aed25392d41e82a5c289ac46eaf04df9e4a))
+
+
+### Bug Fixes
+
+* **ci:** apply Prisma migrations to test DB + drop vite-tsconfig-paths plugin ([3f6d16d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3f6d16d1d6d4a4d7db1c1e7001e9132ead673400))
+* **ci:** prisma migrate deploy direct au lieu de just db-test ([7fa9a2a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/7fa9a2a5767a3525304762c9f6348c1edc0d7868))
+* **tests:** isoler portfolio_test de portfolio_dev via setupFile Vitest ([bd29d69](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/bd29d6924c28d98615f25d0c98fa42a5042d7006))
+
 ## [0.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.1.0...v0.2.0) (2026-04-20)
 
 
