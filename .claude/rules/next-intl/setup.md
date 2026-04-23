@@ -6,7 +6,6 @@ paths:
   - "src/app/[locale]/**/layout.tsx"
   - "src/app/[locale]/**/page.tsx"
   - "next.config.ts"
-  - "package.json"
 ---
 
 # next-intl — Setup, routing & static rendering

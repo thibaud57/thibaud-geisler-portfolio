@@ -17,7 +17,7 @@ paths:
 - Installer `libc6-compat` via `apk add --no-cache libc6-compat` dans le Dockerfile alpine pour que `sharp` fonctionne
 - Activer `optimizePackageImports` pour les barrel files (`lucide-react`, `date-fns`, `@heroicons/react`)
 - Créer `instrumentation.ts` à la racine avec `register()` et `onRequestError()` pour bootstrap observabilité (Pino, Sentry, etc.)
-- Exposer `GET /api/health` avec `dynamic = 'force-dynamic'` + `Cache-Control: no-cache, no-store, must-revalidate`, exclure du matcher proxy auth
+- Exposer `GET /api/health` en s'appuyant sur le dynamic par défaut (aucun `export const dynamic` — incompatible avec `cacheComponents: true`) + `Cache-Control: no-cache, no-store, must-revalidate`, exclure du matcher proxy auth
 - Valider les variables d'environnement au build via `@t3-oss/env-nextjs` + Zod pour bloquer les builds invalides
 - Configurer `proxy_set_header X-Forwarded-Host $host;` côté reverse proxy (Nginx/Caddy) pour les Server Actions
 - Configurer un `cacheHandler` custom (Redis) si multi-replicas, sinon le cache filesystem se désynchronise
@@ -52,11 +52,12 @@ export const onRequestError = async (error, request, context) => { ... }
 ```
 
 ```typescript
-// ✅ /api/health : force-dynamic + Cache-Control no-cache (jamais cacher)
-export const dynamic = 'force-dynamic'
+// ✅ /api/health : dynamic par défaut (cacheComponents: true = PAS d'export const dynamic) + Cache-Control no-cache
 export async function GET() {
   return Response.json({ status: 'ok' }, {
     headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
   })
 }
+
+// ❌ export const dynamic = 'force-dynamic' : incompatible avec cacheComponents: true, throw au build
 ```

@@ -11,6 +11,92 @@
     "title": "Projects",
     "placeholder": "Content coming soon."
   },
+  "Projects": {
+    "metaTitle": "Projects",
+    "metaDescription": "Selected client and personal projects in full-stack development and AI",
+    "pageTitle": "My projects",
+    "pageSubtitle": "Client and personal projects",
+    "filters": {
+      "all": "All",
+      "client": "Client",
+      "personal": "Personal"
+    },
+    "formats": {
+      "API": "API",
+      "WEB_APP": "Web App",
+      "MOBILE_APP": "Mobile App",
+      "DESKTOP_APP": "Desktop App",
+      "CLI": "CLI",
+      "IA": "AI"
+    },
+    "inProgress": "In progress",
+    "emptyState": "No projects to display in this category yet.",
+    "cardAriaLabel": "View project {title}",
+    "caseStudy": {
+      "stackTitle": "Stack & Expertise",
+      "backToList": "Back to projects",
+      "inProgress": "In progress",
+      "meta": {
+        "teamSize": "Team",
+        "teamSizeValue": "{count, plural, one {# person} other {# people}}",
+        "contract": "Contract",
+        "workMode": "Mode",
+        "duration": "Duration"
+      },
+      "contractStatus": {
+        "FREELANCE": "Freelance",
+        "CDI": "Permanent",
+        "STAGE": "Internship",
+        "ALTERNANCE": "Apprenticeship"
+      },
+      "workMode": {
+        "PRESENTIEL": "On-site",
+        "HYBRIDE": "Hybrid",
+        "REMOTE": "Remote"
+      },
+      "sector": {
+        "ASSURANCE": "Insurance",
+        "FINTECH": "Fintech",
+        "SAAS": "SaaS",
+        "SERVICES_RH": "HR Services",
+        "ESN_CONSEIL": "Consulting",
+        "LOGICIELS_ENTREPRISE": "Enterprise Software",
+        "ECOMMERCE": "E-commerce",
+        "IA_AUTOMATISATION": "AI / Automation",
+        "EMARKETING": "E-marketing",
+        "BANQUE": "Banking",
+        "AUTRE": "Other"
+      },
+      "companySize": {
+        "TPE": "Small (1-50)",
+        "PME": "Medium (50-250)",
+        "ETI": "Mid-large (250-5000)",
+        "GROUPE": "Enterprise (5000+)"
+      },
+      "companyLocation": {
+        "LUXEMBOURG": "Luxembourg",
+        "PARIS": "Paris",
+        "GRAND_EST": "Grand Est",
+        "FRANCE": "France",
+        "BELGIQUE": "Belgium",
+        "SUISSE": "Switzerland",
+        "EUROPE": "Europe",
+        "MONDE": "Worldwide"
+      },
+      "kind": {
+        "EXPERTISE": "Expertise",
+        "LANGUAGE": "Languages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Databases",
+        "AI": "AI",
+        "INFRA": "Infrastructure"
+      },
+      "links": {
+        "demo": "View demo",
+        "github": "View code"
+      }
+    }
+  },
   "ProjectPage": {
     "title": "Project: {slug}",
     "placeholder": "Content coming soon."

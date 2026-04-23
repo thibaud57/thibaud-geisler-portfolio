@@ -2,7 +2,6 @@
 paths:
   - "src/lib/mailer.ts"
   - "src/lib/mailer/**/*.ts"
-  - "package.json"
 ---
 
 # nodemailer — Email transactionnel SMTP

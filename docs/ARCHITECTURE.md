@@ -66,7 +66,7 @@ pnpm
 - **Frontend** : Pages publiques React (SSG/SSR) + Dashboard admin (post-MVP)
 - **Backend** : Server Actions + API Routes Next.js
 - **Données** : PostgreSQL + Prisma (projets, assets, leads post-MVP)
-- **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)) — servis via route API `/api/assets/[filename]`, jamais depuis `public/`
+- **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)) — servis via route API catch-all `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`), jamais depuis `public/`
 - **Sécurité** : Middleware Next.js (headers, protection routes admin) + Better Auth avec Google OAuth (dashboard post-MVP)
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV)
 
@@ -251,7 +251,7 @@ Cache Next.js natif (data cache, full route cache). ISR envisageable post-MVP po
 
 ### Files / Assets Storage
 
-Volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API `/api/assets/[filename]`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment du dashboard upload.
+Volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]` organisée en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment du dashboard upload.
 
 ### File Processing
 
