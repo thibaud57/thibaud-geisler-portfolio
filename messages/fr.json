@@ -31,7 +31,71 @@
     },
     "inProgress": "En cours",
     "emptyState": "Aucun projet à afficher dans cette catégorie pour le moment.",
-    "cardAriaLabel": "Voir le projet {title}"
+    "cardAriaLabel": "Voir le projet {title}",
+    "caseStudy": {
+      "stackTitle": "Stack & Expertises",
+      "backToList": "Retour aux projets",
+      "inProgress": "En cours",
+      "meta": {
+        "teamSize": "Équipe",
+        "teamSizeValue": "{count, plural, one {# personne} other {# personnes}}",
+        "contract": "Contrat",
+        "workMode": "Mode",
+        "duration": "Durée"
+      },
+      "contractStatus": {
+        "FREELANCE": "Freelance",
+        "CDI": "CDI",
+        "STAGE": "Stage",
+        "ALTERNANCE": "Alternance"
+      },
+      "workMode": {
+        "PRESENTIEL": "Présentiel",
+        "HYBRIDE": "Hybride",
+        "REMOTE": "Remote"
+      },
+      "sector": {
+        "ASSURANCE": "Assurance",
+        "FINTECH": "Fintech",
+        "SAAS": "SaaS",
+        "SERVICES_RH": "Services RH",
+        "ESN_CONSEIL": "ESN / Conseil",
+        "LOGICIELS_ENTREPRISE": "Logiciels d'entreprise",
+        "ECOMMERCE": "E-commerce",
+        "IA_AUTOMATISATION": "IA / Automatisation",
+        "EMARKETING": "E-marketing",
+        "BANQUE": "Banque",
+        "AUTRE": "Autre"
+      },
+      "companySize": {
+        "TPE": "TPE (1-50)",
+        "PME": "PME (50-250)",
+        "ETI": "ETI (250-5000)",
+        "GROUPE": "Groupe (5000+)"
+      },
+      "companyLocation": {
+        "LUXEMBOURG": "Luxembourg",
+        "PARIS": "Paris",
+        "GRAND_EST": "Grand Est",
+        "FRANCE": "France",
+        "BELGIQUE": "Belgique",
+        "SUISSE": "Suisse",
+        "EUROPE": "Europe",
+        "MONDE": "Monde"
+      },
+      "kind": {
+        "EXPERTISE": "Expertises",
+        "LANGUAGE": "Langages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Bases de données",
+        "AI": "IA",
+        "INFRA": "Infrastructure"
+      },
+      "links": {
+        "demo": "Voir la démo",
+        "github": "Voir le code"
+      }
+    }
   },
   "ProjectPage": {
     "title": "Projet : {slug}",
