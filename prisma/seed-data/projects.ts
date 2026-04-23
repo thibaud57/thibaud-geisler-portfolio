@@ -32,7 +32,6 @@ export type ProjectInput = {
   } | null
 }
 
-// Sections narratives résolues au seed depuis ./case-studies/<client|personal>/<slug>.md
 export const projects: ProjectInput[] = [
   {
     slug: 'digiclaims',
@@ -55,6 +54,7 @@ export const projects: ProjectInput[] = [
       'scala',
       'angular',
       'kafka',
+      'typescript',
       'play',
       'mongodb',
       'docker',
@@ -122,7 +122,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/paysystem/cover.webp',
     displayOrder: 7,
-    tagSlugs: ['angular', 'nodejs', 'php', 'scraping', 'mongodb'],
+    tagSlugs: ['angular', 'nodejs', 'express', 'php', 'scraping', 'mongodb'],
     clientMeta: {
       companySlug: 'paysystem',
       teamSize: 4,
@@ -147,7 +147,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/cloudsmart/cover.webp',
     displayOrder: 8,
-    tagSlugs: ['python', 'odoo', 'android'],
+    tagSlugs: ['python', 'odoo', 'android', 'java'],
     clientMeta: {
       companySlug: 'cloudsmart',
       teamSize: 5,
@@ -172,7 +172,7 @@ export const projects: ProjectInput[] = [
     demoUrl: 'https://thibaud-geisler.com',
     coverFilename: 'projets/personal/portfolio/cover.webp',
     displayOrder: 2,
-    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'nextjs',
       'typescript',
@@ -201,7 +201,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/techno-scraper/cover.webp',
     displayOrder: 5,
-    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'python',
       'scraping',
@@ -231,7 +231,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/crm-leads-n8n/cover.webp',
     displayOrder: 4,
-    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -254,11 +254,11 @@ export const projects: ProjectInput[] = [
     formats: ['API'],
     startedAt: new Date('2025-11-16'),
     endedAt: new Date('2025-12-06'),
-    githubUrl: 'https://github.com/thibaud57/flight-search-api',
+    githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/personal/flight-search-api/cover.webp',
     displayOrder: 3,
-    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'scraping',
       'anti-bot',
@@ -287,7 +287,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/skill-prof/cover.webp',
     displayOrder: 6,
-    clientMeta: { companySlug: 'personnel', teamSize: null, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: ['skills', 'anthropic', 'local'],
   },
 ]
