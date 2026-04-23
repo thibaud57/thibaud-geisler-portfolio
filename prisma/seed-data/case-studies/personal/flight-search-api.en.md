@@ -1,66 +1,64 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+While planning a multi-destination trip (South America), I realized that flight comparators (Google Flights, Kayak) **don't support dynamic date ranges in multi-city mode**.
 
-En préparant un voyage multi-destinations (Amérique du Sud), j'ai réalisé que les comparateurs de vols (Google Flights, Kayak) ne permettent **pas de range dynamique sur les dates en multi-city**.
+Concretely: for a **Paris → Rio → Buenos Aires → Paris** trip with flexible dates (departure between June 1st and 15th, then Rio → Buenos Aires between June 20th and 30th), **impossible** with these comparators. I have to enter a fixed date for each flight.
 
-Concrètement : pour un voyage **Paris → Rio → Buenos Aires → Paris** avec des dates flexibles (départ entre le 1er et le 15 juin, puis Rio → Buenos Aires entre le 20 et le 30 juin), **impossible** avec ces comparateurs. Je dois entrer une date fixe pour chaque vol.
+With 3-4-5 flights and flexible date windows, that adds up to **hundreds of combinations to test manually**. Only Kiwi offers this feature, but its prices are systematically higher.
 
-Avec 3-4-5 vols et des fenêtres de dates flexibles, ça fait **des centaines de combinaisons à tester manuellement**. Seul Kiwi propose cette fonctionnalité, mais ses prix sont systématiquement plus élevés.
+**Goal**: build a bot that automatically tests all possible date combinations for a multi-city trip and extracts the **top 10 cheapest prices**.
 
-**Objectif** : créer un bot qui teste automatiquement toutes les combinaisons de dates possibles pour un vol multi-city et extrait le **top 10 des prix les moins chers**.
+**My role**: end-to-end design, development and deployment, autonomously.
 
-**Mon rôle** : conception, développement et déploiement de bout en bout en autonomie.
+## Key achievements
 
-## Réalisations marquantes
+### Google Flights scraping
 
-### Scraping Google Flights
+Crawling Google Flights pages to extract flight prices via CSS selectors.
 
-Crawl des pages Google Flights pour extraire les prix des vols via sélecteurs CSS.
+**Technical challenges**: Google's anti-bot detection, complex and dynamic HTML structure, captcha handling.
 
-**Défis techniques** : détection anti-bot de Google, structure HTML complexe et dynamique, gestion des captchas.
+**Solutions**: stealth browser with realistic Chrome headers, French-IP residential proxies, retry logic with exponential backoff plus proxy rotation on captcha detection.
 
-**Solutions** : navigateur stealth avec headers Chrome réalistes, proxies résidentiels IP françaises, retry logic avec backoff exponentiel + rotation proxy si captcha détecté.
+### Pivot to Kayak (the real challenge)
 
-### Pivot vers Kayak (le gros défi)
+After Google Flights, added Kayak to compare prices across sources (Kayak aggregates 50+ carriers).
 
-Après Google Flights, ajout de Kayak pour comparer les prix entre sources (Kayak agrège +50 compagnies).
+**Technical challenges**: **Kayak extremely aggressive anti-bot**, all my initial attempts failed (basic stealth, residential proxies, standard techniques). Advanced fingerprinting detecting automation.
 
-**Défis techniques** : **Kayak ultra-agressif anti-bot**, toutes mes tentatives initiales échouaient (stealth basique, proxies résidentiels, techniques standards). Fingerprinting avancé détectant l'automatisation.
+**Solutions**: **pivot to a browser with advanced anti-fingerprinting**, network capture of internal API requests, JSON parsing instead of HTML.
 
-**Solutions** : **pivot vers un navigateur avec anti-fingerprinting avancé**, capture réseau des requêtes API internes, parsing JSON au lieu du HTML.
+### Multi-city combination generation
 
-### Génération combinaisons multi-city
+Generating all possible date combinations for each trip leg.
 
-Générer toutes les combinaisons possibles de dates pour chaque étape du voyage.
+**Technical challenges**: combinatorial explosion (e.g. 3 legs × 15 days each = thousands of requests), prohibitive crawl time if testing everything.
 
-**Défis techniques** : explosion combinatoire (ex : 3 étapes × 15 jours chacun = des milliers de requêtes), temps de crawl prohibitif si on teste tout.
+**Solutions**: algorithmic optimization and controlled parallelism to reduce crawl time while avoiding blocks.
 
-**Solutions** : optimisation algorithmique et parallélisation contrôlée pour réduire le temps de crawl tout en évitant les blocages.
+## Results
 
-## Résultats
+- **200 combinations tested in 5 min** (Google Flights), 10 min (Kayak)
+- **€100-200 savings** found vs random combinations
+- **Operating cost**: ~$10 per 1500 requests (Google), ~$20 (Kayak)
+- Price tracking possible via cron to monitor trends
 
-- **200 combinaisons testées en 5 min** (Google Flights), 10 min (Kayak)
-- **100-200€ d'économie** trouvés vs combinaisons au hasard
-- **Coût opérationnel** : ~10$/1500 requêtes (Google), ~20$ (Kayak)
-- Tracking prix possible via cron pour surveiller l'évolution
+## Takeaways
 
-## Apprentissages
+- Advanced scraping and anti-detection (stealth browsers, anti-fingerprinting)
+- Handling advanced browser fingerprinting
+- Async Python architecture (FastAPI, asyncio)
+- Rigorous TDD (317 tests, 90% coverage)
+- Technical documentation via ADRs
+- Don't underestimate modern anti-bot protections, always have a plan B (and C)
 
-- Scraping avancé et anti-détection (navigateurs stealth, anti-fingerprinting)
-- Gestion du fingerprinting navigateur avancé
-- Architecture async Python (FastAPI, asyncio)
-- TDD rigoureux (317 tests, 90% coverage)
-- Documentation technique via ADRs
-- Ne pas sous-estimer les protections anti-bot modernes, toujours avoir un plan B (et C)
+## Planned evolutions
 
-## Évolutions prévues
+- Opening up to other search types (not only multi-city)
+- Setting up an MCP
+- Web UI to visualize results
+- Price alerts (webhook when a price drops)
 
-- Ouvrir à d'autres types de recherche (pas que multi-city)
-- Mettre en place un MCP
-- Interface web pour visualiser les résultats
-- Alertes prix (webhook quand un prix baisse)
+## Links
 
-## Liens
-
-Code source disponible sur demande (non public par choix stratégique).
+Source code available on request (not public by strategic choice).

@@ -32,9 +32,9 @@ Consommation d'événements Kafka avec filtrage puis transformation vers un form
 
 **Défis techniques** : intégration avec un service legacy sans JSON ni REST, autonomie importante sous contrainte de temps.
 
-### Hackathon Foyer 2023 (gagné)
+### Hackathon Foyer 2023
 
-Participation en équipe et victoire au hackathon interne Foyer 2023 avec un projet de **chatbot IA et classification automatique**. Première exploration de l'IA appliquée dans un contexte métier assurance.
+Participation en équipe et **victoire** au hackathon interne Foyer 2023 avec un projet de **chatbot IA et classification automatique**. Première exploration de l'IA appliquée dans un contexte métier assurance.
 
 ## Apprentissages
 
@@ -46,5 +46,5 @@ Participation en équipe et victoire au hackathon interne Foyer 2023 avec un pro
 
 ## Liens
 
-- [LinkedIn, Hackathon Foyer 2023 (gagné)](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
+- [LinkedIn, Hackathon Foyer 2023](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
 - [LinkedIn, DigiClaims Auto (vidéo de présentation)](https://www.linkedin.com/posts/foyer-group_proximitaez-courtage-foyerbelgium-ugcPost-7376985940679983104-MX1X)

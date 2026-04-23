@@ -1,40 +1,38 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+**Ongoing freelance engagement** at **Wanted Design**, a digital agency (e-marketing and AI/automation). Acting as **technical and strategic AI/automation expert**, ensuring consistency between sales narrative and technical reality.
 
-Mission **freelance en cours** chez **Wanted Design**, agence digitale (e-marketing et IA/automatisation). Intervention en tant qu'**expert technique et stratégique IA/automatisation**, garant de la cohérence entre discours commercial et réalité technique.
+The engagement is split into 2 phases:
+- **Phase 1 (Jan → April 2026)**: AI offering consulting & conference support
+- **Phase 2 (since April 2026, ongoing)**: AI & Automation Technical Lead
 
-Mission décomposée en 2 phases :
-- **Phase 1 (Jan → Avril 2026)** : Consulting offres IA & Support Conférence
-- **Phase 2 (depuis Avril 2026, en cours)** : Référent Technique IA & Automatisation
+**My role**: three main axes (shaping offerings, technical mentoring, public outreach), complemented by maintenance of the technical infrastructure.
 
-**Mon rôle** : intervention sur 3 axes principaux (structuration d'offres, mentorat technique, vulgarisation), complétée par le maintien de l'infrastructure technique.
+## Key achievements
 
-## Réalisations marquantes
+### Shaping AI/automation offerings
 
-### Structuration des offres IA/automatisation
+Structuring AI/automation offerings for a digital agency, with production of sales collateral and tooling for non-technical teams. Creation of an **autonomous AI-agent system** to automate the generation of target profiles, personas and use cases.
 
-Structuration d'offres IA/automatisation pour une agence digitale, avec production de supports commerciaux et outillage pour équipes non techniques. Création d'un **système d'agents IA autonomes** pour automatiser la génération de fiches cibles, personas et cas d'usage.
+**Public AI outreach**: conference support on ethics in AI, BNI talk (30 min + Q&A).
 
-**Interventions publiques de vulgarisation IA** : support de conférence sur l'éthique dans l'IA, présentation BNI (30 min + Q&A).
+### Architecture and pre-sales scoping
 
-### Architecture et cadrage avant-vente
+Acting as architect and technical analyst on various pre-sales projects: client-needs scoping, architecture design (multi-agent AI pipelines, API integrations), ADRs for technical choices, budget estimates, participation in sales meetings.
 
-Rôle d'architecte et analyste technique sur différents projets avant-vente : cadrage des besoins clients, conception d'architectures (pipelines multi-agents IA, intégrations API), ADRs choix techniques, estimations budgétaires, participation aux RDV commerciaux.
+### Technical mentoring
 
-### Mentorat technique
-
-Accompagnement d'un développeur sur les projets IA/automatisation : transmission des bonnes pratiques d'architecture, validation des choix techniques, reviews avant mise en production.
+Supporting a developer on AI/automation projects: passing on architecture best practices, validating technical choices, pre-production reviews.
 
 ### Infrastructure & Ops
 
-Mise en place et maintien de l'infrastructure technique (VPS, orchestration, workflows n8n en production, alerting).
+Setup and maintenance of the technical infrastructure (VPS, orchestration, production n8n workflows, alerting).
 
-## Apprentissages
+## Takeaways
 
-- Architecture IA et automatisation en contexte production
-- Conception d'offres techniques et sales enablement
-- Création de systèmes d'agents IA autonomes
-- Mentorat développeur et transmission technique
-- Prise de parole et vulgarisation technique (BNI, conférences)
-- Vision business : traduction de tech en discours commercial accessible
+- AI and automation architecture in a production context
+- Designing technical offerings and sales enablement
+- Building autonomous AI-agent systems
+- Developer mentoring and technical knowledge transfer
+- Public speaking and technical outreach (BNI, conferences)
+- Business perspective: translating technology into an accessible sales narrative

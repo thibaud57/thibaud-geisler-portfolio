@@ -1,33 +1,31 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+First professional contract, an apprenticeship at **CloudSmart**, a Luxembourg SME publishing ERP software (Odoo) and associated mobile applications. Contribution to the development of custom ERP solutions for clients across various sectors, and design of an Android application for medication scanning integrated with the ERP.
 
-Premier contrat professionnel en alternance chez **CloudSmart**, PME luxembourgeoise éditrice de logiciels ERP (Odoo) et d'applications mobiles associées. Contribution au développement de solutions ERP personnalisées pour des clients de secteurs variés, et conception d'une application Android de scan de médicaments intégrée à l'ERP.
+**My role**: versatile apprentice developer (Python/Odoo and Android), autonomous on full-scope missions.
 
-**Mon rôle** : développeur alternant polyvalent (Python/Odoo et Android), en autonomie sur des missions complètes.
+## Key achievements
 
-## Réalisations marquantes
+### Android medication scanning app
 
-### Application Android de scan de médicaments
+Full design and development of an Android application letting pharmacists scan medication barcodes with automatic sync to the Odoo ERP. Creation of the Odoo-side API to expose the features required by the mobile app.
 
-Conception et développement complet d'une application Android permettant aux pharmaciens de scanner des codes-barres de médicaments avec remontée automatique vers l'ERP Odoo. Création de l'API côté Odoo pour exposer les fonctionnalités nécessaires à l'application mobile.
+**Technical challenges**: first hands-on experience with mobile development, Odoo ERP integration via a custom API, reliability of barcode scanning.
 
-**Défis techniques** : première expérience en développement mobile, intégration ERP Odoo via API custom, fiabilité du scan de codes-barres.
+**Impact**: application deployed in a pilot phase with partner pharmacies, measurable time savings on medication inventory.
 
-**Impact** : application déployée en phase de test auprès de pharmacies partenaires, gain de temps mesurable pour l'inventaire des médicaments.
+### Custom Odoo modules
 
-### Modules Odoo personnalisés
+Development of bespoke Odoo modules and adaptation of existing modules to address the business needs of various clients (inventory, invoicing, internal processes).
 
-Développement de modules Odoo sur-mesure et adaptation de modules existants pour répondre aux besoins métier de clients variés (inventaire, facturation, processus internes).
+**Technical challenges**: learning the Odoo framework autonomously, fast adaptation to business contexts that differ from one client to another.
 
-**Défis techniques** : compréhension du framework Odoo en autonomie, adaptation rapide aux contextes métier différents d'un client à l'autre.
+**Impact**: modules shipped to production and used daily by several clients.
 
-**Impact** : modules déployés en production et utilisés au quotidien par plusieurs clients.
+## Takeaways
 
-## Apprentissages
-
-- Découverte du développement mobile natif Android (Java)
-- Premier contact avec un framework ERP complet (Odoo, en Python)
-- Intégration via API custom entre plateformes différentes
-- Autonomie dans la gestion de projets clients en contexte PME
-- Adaptation rapide à des besoins métier variés
+- Discovery of native Android mobile development (Java)
+- First exposure to a full ERP framework (Odoo, in Python)
+- Integration via custom API between different platforms
+- Autonomy in managing client projects in an SME context
+- Fast adaptation to varied business needs

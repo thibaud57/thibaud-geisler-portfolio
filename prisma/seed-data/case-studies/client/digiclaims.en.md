@@ -1,52 +1,50 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+Long-term engagement at **Foyer**, Luxembourg's leading insurance group, via **H2H Services**. Contribution to the development of two strategic applications for the Belgian market in a microservices architecture, with a focus on quality and clean code.
 
-Mission longue durée chez **Foyer**, leader de l'assurance au Luxembourg, via **H2H Services**. Contribution au développement de deux applications stratégiques pour le marché belge en architecture microservices, avec un focus sur la qualité et le clean code.
+**My role**: fullstack developer, junior then mid-level.
 
-**Mon rôle** : développeur fullstack junior puis confirmé.
+## Key achievements
 
-## Réalisations marquantes
+### Digiclaims, claims file management
 
-### Digiclaims, gestion de dossiers sinistres
+Replacement of a legacy system with a modern application letting Belgian-market claim handlers manage their case files. Automation of repetitive tasks, full case tracking, integration with external sector-specific services.
 
-Remplacement d'un système legacy par une application moderne permettant aux gestionnaires du marché belge de gérer leurs dossiers de sinistres. Automatisation de tâches répétitives, suivi complet des dossiers, intégration avec services externes sectoriels.
+Active contribution across every module: technical and functional analysis, API integration, producing and consuming events via Kafka, release and follow-up.
 
-Participation active sur tous les modules : analyse technique et fonctionnelle, intégration d'APIs, production et consommation d'événements via Kafka, mise en prod et suivi.
+**Technical challenges**: performance and scalability on large volumes, from-scratch development with an 80%+ coverage requirement, integration with legacy external services.
 
-**Défis techniques** : performance et scalabilité sur volumes importants, développement from scratch avec exigence 80%+ de coverage, intégration avec services externes legacy.
+**Impact**: **50%** reduction in case processing time, 4 business hours for the full processing of a case file.
 
-**Impact** : réduction de **50%** du temps de traitement des dossiers, 4h ouvrables pour le traitement complet d'un dossier.
+### Digicourtier, claim creation by brokers
 
-### Digicourtier, création de sinistres par les courtiers
+Platform allowing brokers to create DAB or Auto claims for their clients, with automatic generation of an attachment and creation of a pre-filled case file in Digiclaims.
 
-Plateforme permettant aux courtiers de créer des sinistres DAB ou Auto pour leurs clients, avec génération automatique d'une pièce jointe et création d'un dossier pré-rempli dans Digiclaims.
+Major contribution across the whole project, from the technical foundation to the latest features. Led the complex **Angular 15 to 17** migration (Signals, standalone components, replacement of the translation library with native i18n).
 
-Contribution majeure sur l'ensemble du projet, du socle technique aux dernières features. Pilotage de la migration complexe **Angular 15 vers 17** (Signals, standalone components, remplacement de la lib de traduction par i18n natif).
+**Technical challenges**: screens that adapt to the case type (DAB/Auto), multilingual support (FR/NL), Angular 15 to 17 migration with Signals and standalone components.
 
-**Défis techniques** : écrans évolutifs selon type de dossier (DAB/Auto), gestion multilingue (FR/NL), migration Angular 15 vers 17 avec Signals et standalone components.
+**Impact**: **3 minutes** to file an auto claim, **100+ active brokers** with steady growth.
 
-**Impact** : **3 minutes** pour déclarer un sinistre auto, **+100 courtiers** actifs en croissance constante.
+### Edimerx, ad-hoc reinforcement
 
-### Edimerx, renfort ponctuel
+Consumption of Kafka events with filtering then transformation to a legacy sector-specific format (no JSON, no REST), generation and sending of attachments.
 
-Consommation d'événements Kafka avec filtrage puis transformation vers un format sectoriel legacy (sans JSON ni REST), génération et envoi de pièces jointes.
+**Technical challenges**: integration with a legacy service without JSON or REST, significant autonomy under time constraints.
 
-**Défis techniques** : intégration avec un service legacy sans JSON ni REST, autonomie importante sous contrainte de temps.
+### Foyer Hackathon 2023
 
-### Hackathon Foyer 2023 (gagné)
+Team participation and **win** at the internal Foyer Hackathon 2023 with an **AI chatbot and automatic classification** project. First exploration of applied AI in an insurance business context.
 
-Participation en équipe et victoire au hackathon interne Foyer 2023 avec un projet de **chatbot IA et classification automatique**. Première exploration de l'IA appliquée dans un contexte métier assurance.
+## Takeaways
 
-## Apprentissages
+- Strong ramp-up on Scala and functional programming
+- Hands-on experience with an event-driven microservices architecture (CQRS, Event Sourcing)
+- Angular lead (v15 → v17 migration, reviews, frontend support), mentoring of interns, involvement in technical and functional decisions
+- Quality discipline: **90%+** code coverage maintained over 3 years, near-zero P0 bugs (3 to 4 hotfixes over 2 years)
+- Comprehensive testing: unit, integration, load
 
-- Montée en compétence forte sur Scala et la programmation fonctionnelle
-- Expérience concrète d'une architecture microservices event-driven (CQRS, Event Sourcing)
-- Référent Angular (migration v15 → v17, reviews, support frontend), mentorat de stagiaires, participation aux décisions techniques et fonctionnelles
-- Rigueur qualité : **90%+** de code coverage maintenu sur 3 ans, quasi zéro bugs P0 (3-4 hotfixes sur 2 ans)
-- Tests complets : unitaires, intégration, charge
+## Links
 
-## Liens
-
-- [LinkedIn, Hackathon Foyer 2023 (gagné)](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
-- [LinkedIn, DigiClaims Auto (vidéo de présentation)](https://www.linkedin.com/posts/foyer-group_proximitaez-courtage-foyerbelgium-ugcPost-7376985940679983104-MX1X)
+- [LinkedIn, Foyer Hackathon 2023](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
+- [LinkedIn, DigiClaims Auto (presentation video)](https://www.linkedin.com/posts/foyer-group_proximitaez-courtage-foyerbelgium-ugcPost-7376985940679983104-MX1X)

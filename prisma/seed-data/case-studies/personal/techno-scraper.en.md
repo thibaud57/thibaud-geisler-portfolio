@@ -1,56 +1,54 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+Python/FastAPI API to scrape 3 music platforms (Soundcloud, Beatport, Bandcamp) and expose the data to n8n workflows, then **migration to an MCP server** (Model Context Protocol) for native integration with AI agents (Claude Desktop, n8n MCP Server Trigger).
 
-API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données à des workflows n8n, puis **migration vers un serveur MCP** (Model Context Protocol) pour intégration native avec des agents IA (Claude Desktop, n8n MCP Server Trigger).
+**Business goal**: have a unified interface to automatically extract music metadata across several platforms, usable both by classic workflows and by AI agents.
 
-**Objectif business** : disposer d'une interface unifiée pour extraire automatiquement les métadonnées musicales de plusieurs plateformes, utilisable à la fois par des workflows classiques et par des agents IA.
+**My role**: end-to-end design, development and deployment, autonomously.
 
-**Mon rôle** : conception, développement et déploiement de bout en bout en autonomie.
+## Key achievements
 
-## Réalisations marquantes
+### Multi-platform music scraping
 
-### Scraping multi-plateformes musicales
+Robust scrapers for 3 platforms: **Soundcloud** (via official API after obtaining developer access), **Beatport** (extraction of structured JSON data), **Bandcamp** (HTML parsing with filtering).
 
-Scrapers robustes pour 3 plateformes : **Soundcloud** (via API officielle après obtention des accès développeur), **Beatport** (extraction de données JSON structurées), **Bandcamp** (parsing HTML avec filtrage).
+**Technical challenges**: rate-limit handling, mid-project pivot on Soundcloud (HTML scraping → official API), resilience to page-structure changes.
 
-**Défis techniques** : gestion des rate limits, pivot en cours de route sur Soundcloud (scraping HTML → API officielle), résilience aux changements de structure des pages.
+**Solutions**: async architecture with retry and backoff, separate handling of temporary errors (automatic retry) and permanent errors (escalation), parallelization of related requests.
 
-**Solutions** : architecture async avec retry et backoff, gestion distincte des erreurs temporaires (retry automatique) et permanentes (remontée), parallélisation des requêtes liées.
+### REST API then MCP server
 
-### API REST puis serveur MCP
+Scrapers exposed via an authenticated REST API, then **migration to an MCP server** exposing the scrapers as **native tools** for AI agents (Claude Desktop, n8n MCP).
 
-Exposition des scrapers via une API REST authentifiée, puis **migration vers un serveur MCP** exposant les scrapers comme **tools natifs** pour agents IA (Claude Desktop, n8n MCP).
+**Technical challenges**: first MCP server implemented, several iterations to stabilize communication, coexistence of REST and MCP with shared business code.
 
-**Défis techniques** : premier serveur MCP implémenté, plusieurs itérations pour stabiliser la communication, coexistence REST + MCP avec code métier partagé.
+**Solutions**: 1 MCP tool = 1 former REST route, business code shared between both interfaces, separate Docker images for REST and MCP.
 
-**Solutions** : 1 tool MCP = 1 ex-route REST, code métier partagé entre les deux interfaces, images Docker distinctes pour REST et MCP.
+### Self-hosted deployment
 
-### Déploiement self-hosted
+Initial deployment via GitHub Actions + SSH, then migration to **Dokploy** to simplify orchestration and centralize the infrastructure with the other self-hosted projects. Automatic CI/CD on merge.
 
-Déploiement initial via GitHub Actions + SSH, puis migration vers **Dokploy** pour simplifier l'orchestration et centraliser l'infra avec les autres projets self-hosted. CI/CD automatique sur merge.
+## Results
 
-## Résultats
+- 3 music platforms scrapeable through a unified interface
+- MCP phases 1 to 3 complete (all scrapers exposed as tools)
+- Native integration with the ecosystem's AI agents (Claude Desktop, n8n)
 
-- 3 plateformes musicales scrapeables via une interface unifiée
-- Phases 1-3 MCP complètes (tous les scrapers exposés en tools)
-- Intégration native avec les agents IA de l'écosystème (Claude Desktop, n8n)
+## Takeaways
 
-## Apprentissages
+- Robust async scraping (fine-grained error handling, retry, resilience)
+- OAuth 2.1 and integration with official APIs
+- Model Context Protocol (MCP): first server implemented
+- Modern self-hosting via Dokploy
+- When an official API becomes available, **pivoting** is more sustainable than maintaining a scraper
 
-- Scraping async robuste (gestion fine des erreurs, retry, résilience)
-- OAuth 2.1 et intégration avec des APIs officielles
-- Model Context Protocol (MCP) : premier serveur implémenté
-- Self-hosting moderne via Dokploy
-- Quand une API officielle devient accessible, **pivoter** est plus durable que maintenir un scraper
+## Planned evolutions
 
-## Évolutions prévues
+- Refactor of the MCP server (first implementation to revisit)
+- Discogs and Songstats scrapers
+- Monitoring and caching for frequent requests
 
-- Refactor du serveur MCP (première implémentation à revoir)
-- Scraper Discogs et Songstats
-- Monitoring et cache pour requêtes fréquentes
+## Links
 
-## Liens
-
-- [Documentation MCP Usage](https://github.com/thibaud57/techno-scraper/blob/master/docs/mcp-usage.md)
-- [Documentation n8n MCP Setup](https://github.com/thibaud57/techno-scraper/blob/master/docs/n8n-mcp-setup.md)
+- [MCP Usage documentation](https://github.com/thibaud57/techno-scraper/blob/master/docs/mcp-usage.md)
+- [n8n MCP Setup documentation](https://github.com/thibaud57/techno-scraper/blob/master/docs/n8n-mcp-setup.md)

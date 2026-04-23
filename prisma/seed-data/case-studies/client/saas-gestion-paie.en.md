@@ -1,33 +1,31 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+7-month permanent contract at **PaySystem**, a Luxembourg startup publishing a SaaS payroll-management platform. Contribution to the development of frontend and backend features, as well as product maintenance.
 
-CDI de 7 mois chez **PaySystem**, startup luxembourgeoise éditrice d'une plateforme SaaS de gestion de paie. Contribution au développement de fonctionnalités frontend et backend, ainsi qu'à la maintenance du produit.
+**My role**: junior fullstack developer, first real experience with Angular in a business setting.
 
-**Mon rôle** : développeur fullstack junior, première vraie expérience avec Angular en entreprise.
+## Key achievements
 
-## Réalisations marquantes
+### Employee-onboarding stepper
 
-### Stepper ajout employé
+Development of an Angular Material stepper component letting clients (HR firms, executives) add their employees through a multi-step form. Smooth navigation between pages, incremental data entry, per-step validation.
 
-Développement d'un composant stepper Angular Material permettant aux clients (cabinets RH, dirigeants) d'ajouter leurs employés via un formulaire multi-étapes. Navigation fluide entre pages, ajout progressif d'informations, validation par étape.
+**Technical challenges**: smooth UX on a multi-step form, complex state management across steps.
 
-**Défis techniques** : UX fluide sur un formulaire multi-étapes, gestion d'état complexe entre les étapes.
+**Impact**: intuitive interface appreciated by clients, fewer input errors thanks to per-step validation.
 
-**Impact** : interface intuitive appréciée par les clients, réduction des erreurs de saisie grâce à la validation par étape.
+### Government-site scraping (payslip pre-fill)
 
-### Scraping de site gouvernemental (pré-remplissage fiches de paie)
+Development of an automated scraping module to gather the data required to generate payslips from a loosely structured government website. Feature additions and optimization of existing code.
 
-Développement d'un module de scraping automatisé pour compléter les informations nécessaires à la génération des fiches de paie depuis un site gouvernemental peu structuré. Ajout de fonctionnalités et optimisation du code existant.
+**Technical challenges**: first exposure to PHP and Puppeteer, poorly structured government website.
 
-**Défis techniques** : première approche de PHP et Puppeteer, site gouvernemental mal structuré.
+**Impact**: significant time savings for users, a nicer experience than manual entry on the government site.
 
-**Impact** : gain de temps significatif pour les utilisateurs, expérience plus agréable que la saisie manuelle sur le site d'état.
+## Takeaways
 
-## Apprentissages
-
-- Première approche d'Angular en entreprise (avec Angular Material)
-- Développement d'APIs REST avec Node.js et Express
-- Premiers tests unitaires en production
-- Collaboration en mode Kanban
-- Début de réflexion sur le clean code et l'optimisation
+- First real exposure to Angular in a business context (with Angular Material)
+- Development of REST APIs with Node.js and Express
+- First production unit tests
+- Kanban-based collaboration
+- Early reflection on clean code and optimization

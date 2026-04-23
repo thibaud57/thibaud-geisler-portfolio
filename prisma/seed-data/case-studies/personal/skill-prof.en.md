@@ -1,49 +1,47 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+Technical cheat sheets available online are often too generic, too verbose, or quickly outdated. For a mid/senior developer, re-reading official docs or beginner tutorials is a waste of time.
 
-Les fiches de révision techniques disponibles en ligne sont souvent trop généralistes, trop verbeuses, ou rapidement obsolètes. Pour un dev mid/senior, relire une doc officielle ou un tutoriel débutant est une perte de temps.
+**Goal**: automate the creation and update of professional-grade technical cheat sheets via a Claude Code skill and a batch generation workflow with multi-layer auditing (format, technical accuracy, cross-lesson consistency).
 
-**Objectif** : automatiser la création et la mise à jour de fiches de révision techniques de qualité professionnelle via un skill Claude Code et un workflow de génération batch avec audit multi-couche (format, exactitude technique, cohérence cross-leçons).
+**My role**: full system design (skill, batch workflow, audit agents).
 
-**Mon rôle** : conception complète du système (skill, workflow batch, agents d'audit).
+## Key achievements
 
-## Réalisations marquantes
+### `prof` skill: creating and updating a lesson
 
-### Skill `prof` : création et mise à jour d'une leçon
+A Claude Code skill that generates a dense cheat sheet for a given technology, from a title and a concept list. It validates the concepts, performs web research on stable versions and breaking changes, structures chapters in pedagogical order, then asks for validation before writing.
 
-Skill Claude Code qui génère une fiche de révision dense pour une techno donnée, à partir d'un titre et d'une liste de concepts. Valide les concepts, fait de la recherche web sur les versions stables et breaking changes, structure les chapitres dans l'ordre pédagogique, puis demande validation avant écriture.
+**Technical challenges**: guaranteeing density (not too short, not too long) with no redundancy between lessons, staying up-to-date on breaking changes and deprecations at every generation, calibrating format limits for fluent reading.
 
-**Défis techniques** : garantir la densité (pas trop court, pas trop long) sans redondance entre leçons, rester à jour sur les breaking changes et dépréciations à chaque génération, calibrer les limites de format pour une lecture fluide.
+**Solutions**: anti-redundancy matrix defined in the pedagogical plans, systematic targeted web research before writing, blocking user validation before any writing, deprecations explicitly flagged.
 
-**Solutions** : matrice anti-redondance définie dans les plans pédagogiques, web research ciblé systématique avant écriture, validation utilisateur bloquante avant toute écriture, dépréciations marquées explicitement.
+### `/create-lesson`: batch generation from a plan
 
-### `/create-lesson` : génération batch depuis un plan
+A slash command that orchestrates the parallel creation of N lessons from a pedagogical plan file. 5 phases: writing → individual audit → coherence audit → index consolidation → report.
 
-Commande slash qui orchestre la création de N leçons en parallèle à partir d'un fichier plan pédagogique. 5 phases : rédaction → audit individuel → audit cohérence → consolidation index → rapport.
+**Technical challenges**: coordinating parallel agents with partial-error handling, cross-lesson consistency (versions, deprecations, redundancies), atomic writing of the index without conflicts.
 
-**Défis techniques** : coordination d'agents parallèles avec gestion des erreurs partielles, cohérence cross-leçons (versions, dépréciations, redondances), écriture atomique de l'index sans conflits.
+**Solutions**: writers launched in parallel (errors isolated per lesson), a single coherence audit over the whole batch, index consolidation at the end of the pipeline to avoid conflicts.
 
-**Solutions** : writers lancés en parallèle (erreurs isolées par leçon), un seul audit de cohérence sur tout le batch, consolidation de l'index en fin de pipeline pour éviter les conflits.
+### Multi-layer quality audit
 
-### Audit qualité multi-couche
+Two complementary audit agents: `lesson/auditor` (format + technical accuracy per lesson) and `lesson/coherence-auditor` (cross-lesson consistency). Structured output separating blockers from recommendations.
 
-Deux agents d'audit complémentaires : `lesson/auditor` (format + exactitude technique par leçon) et `lesson/coherence-auditor` (cohérence cross-leçons). Sortie structurée séparant blocages et recommandations.
+**Technical challenges**: checking technical accuracy (APIs, versions) without generating false positives, detecting duplicate coverage across all existing lessons.
 
-**Défis techniques** : vérifier l'exactitude technique (APIs, versions) sans générer de faux positifs, détecter les doublons de traitement entre toutes les leçons existantes.
+**Solutions**: individual auditor with reading plus web search on official docs, read-only coherence-auditor relying on the pedagogical plan to identify canonical concepts.
 
-**Solutions** : auditor individuel avec lecture + web search sur la doc officielle, coherence-auditor en lecture seule s'appuyant sur le plan pédagogique pour identifier les concepts canoniques.
+## Results
 
-## Résultats
+- Corpus of dense lessons kept up-to-date (versions, breaking changes, deprecations) across several backend, frontend and foundational technologies
+- Mid/senior calibration: no beginner reminders, focus on modern patterns and pitfalls
+- Extensible architecture: adding a new technology via a pedagogical plan, without touching the skill
 
-- Corpus de leçons denses maintenues à jour (versions, breaking changes, dépréciations) sur plusieurs technos backend, frontend et fondamentaux
-- Couverture calibrée mid/senior : pas de rappels débutants, focus patterns modernes et pièges
-- Architecture extensible : ajout d'une nouvelle techno via un plan pédagogique, sans toucher au skill
+## Takeaways
 
-## Apprentissages
-
-- Orchestration d'agents Claude (parallélisme, checkpoints, consolidation atomique)
-- Conception de prompts système denses et contraignants
-- Design de workflows multi-étapes avec quality gates
-- Structuration pédagogique de contenus techniques complexes
-- La matrice anti-redondance dans les plans est critique pour des leçons denses sans répétition
+- Claude agent orchestration (parallelism, checkpoints, atomic consolidation)
+- Designing dense and constraining system prompts
+- Multi-step workflows with quality gates
+- Pedagogical structuring of complex technical content
+- The anti-redundancy matrix in plans is critical for dense lessons without repetition
