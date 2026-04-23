@@ -32,9 +32,9 @@ Consommation d'événements Kafka avec filtrage puis transformation vers un form
 
 **Défis techniques** : intégration avec un service legacy sans JSON ni REST, autonomie importante sous contrainte de temps.
 
-### Hackathon Acme 2023 (gagné)
+### Hackathon Acme 2023
 
-Participation en équipe et victoire au hackathon interne Acme 2023 avec un projet de **chatbot IA et classification automatique**. Première exploration de l'IA appliquée dans un contexte métier assurance.
+Participation en équipe et **victoire** au hackathon interne Acme 2023 avec un projet de **chatbot IA et classification automatique**. Première exploration de l'IA appliquée dans un contexte métier assurance.
 
 ## Apprentissages
 
@@ -46,5 +46,5 @@ Participation en équipe et victoire au hackathon interne Acme 2023 avec un proj
 
 ## Liens
 
-- [LinkedIn, Hackathon Acme 2023 (gagné)](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
+- [LinkedIn, Hackathon Acme 2023](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
 - [LinkedIn, Portail Sinistres Auto (vidéo de présentation)](https://www.linkedin.com/posts/acme-example)

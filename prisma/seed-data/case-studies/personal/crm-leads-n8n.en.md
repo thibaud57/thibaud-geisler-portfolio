@@ -1,43 +1,41 @@
-<!-- TODO: translate to English -->
+## Context
 
-## Contexte
+I maintain a professional-leads CRM in a **Notion database** (status, interest level, next step, notes, next-message date). Until now: manual drafting of each follow-up plus manual addition of a TickTick reminder task. Repetitive, time-consuming, risk of forgetting.
 
-Je maintiens un CRM de leads professionnels dans une **DB Notion** (statut, niveau d'intérêt, next step, notes, date de prochain message). Jusqu'ici : rédaction manuelle de chaque relance + ajout manuel d'une tâche TickTick de rappel. Répétitif, chronophage, risque d'oublis.
+**Business goal**: a single action (updating the next-message date in Notion) automatically triggers the drafting of a personalized message and the scheduling of a reminder task.
 
-**Objectif business** : un seul geste (mettre à jour la date de prochain message dans Notion) déclenche automatiquement la rédaction d'un message personnalisé et la planification d'une tâche de rappel.
+**My role**: end-to-end design and implementation of the workflow, from requirements analysis to production deployment.
 
-**Mon rôle** : conception et réalisation complète du workflow, de l'analyse du besoin au déploiement en production.
+## Key achievements
 
-## Réalisations marquantes
+### End-to-end CRM follow-up automation
 
-### Automatisation de la relance CRM end-to-end
+Event-driven n8n workflow that listens to Notion DB updates and orchestrates 3 steps:
+1. **Smart trigger filtering** (only generates when the follow-up date is in the future, avoiding unnecessary LLM calls)
+2. **Message drafting by an AI agent** (Claude) producing a personalized follow-up tailored to the lead context (status, interest, history)
+3. **Automatic scheduling** of a TickTick task that reminds the follow-up at the right time
 
-Workflow n8n event-driven qui écoute les mises à jour de la DB Notion et orchestre 3 étapes :
-1. **Filtrage intelligent** des déclenchements (ne génère que si date de relance future, évite les appels LLM inutiles)
-2. **Rédaction par agent IA** (Claude) d'un message de relance personnalisé et adapté au contexte du lead (statut, intérêt, historique)
-3. **Planification automatique** d'une tâche TickTick rappelant la relance au bon moment
+**Challenges**: generating messages that are **genuinely personalized** (tone, context, length of the relationship) without falling into empty sales clichés.
 
-**Défis** : générer des messages **réellement personnalisés** (ton, contexte, ancienneté de la relation) sans tomber dans les formules commerciales creuses.
+**Solutions**: advanced prompt engineering (strict rules on tone, relative dates, concise style), structured output for reliability.
 
-**Solutions** : prompt engineering avancé (règles strictes sur ton, dates relatives, style bref), sortie structurée pour fiabilité.
+### Notion → Claude → TickTick pipeline without duplicates
 
-### Pipeline Notion → Claude → TickTick sans doublons
+Connecting **Notion ↔ Claude ↔ TickTick** in a single pipeline. Handling edge cases: repeated edits on the same lead (no duplicates), TickTick API without native upsert (match by title → update or create), network errors.
 
-Connexion **Notion ↔ Claude ↔ TickTick** dans un seul pipeline. Gestion des cas limites : modifications répétées du même lead (pas de doublons), API TickTick sans upsert natif (match par titre → update ou create), erreurs réseau.
+### Self-hosted deployment
 
-### Déploiement self-hosted
+Workflow deployed on self-hosted n8n (VPS + Dokploy) and versioned in a dedicated repo for backup and change traceability.
+Dedicated **alerting workflow** that notifies on execution failures (crash, timeout, API error).
 
-Workflow déployé sur n8n self-hosted (VPS + Dokploy) et versionné dans un repo dédié pour backup et traçabilité des évolutions. 
-**Workflow d'alerting** dédié qui notifie en cas d'échec d'exécution (crash, timeout, erreur API).
+## Results
 
-## Résultats
+- **Time savings**: automatic follow-up in < 10 seconds vs 3-5 minutes manually
+- **No more forgotten follow-ups**: the TickTick reminder guarantees that no scheduled follow-up is missed
+- **Quality**: contextualized messages consistent with the relationship history
 
-- **Gain de temps** : relance automatique en < 10 secondes vs 3-5 minutes manuelles
-- **Fin des oublis** : le rappel TickTick garantit qu'aucune relance planifiée n'est ratée
-- **Qualité** : messages contextualisés, cohérents avec l'historique de la relation
+## Takeaways
 
-## Apprentissages
-
-- Prompt engineering avancé pour sorties IA fiables et contextualisées
-- Orchestration multi-outils n8n (patterns upsert sans API native, filtrage)
-- Conception d'outils internes qui font gagner du temps (approche ROI-first)
+- Advanced prompt engineering for reliable and contextualized AI outputs
+- Multi-tool orchestration in n8n (upsert patterns without a native API, filtering)
+- Designing internal tooling that saves time (ROI-first approach)
