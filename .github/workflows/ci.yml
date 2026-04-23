@@ -61,12 +61,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Create .env for just (dotenv-required)
+      - name: Create .env + .env.test for just (dotenv-required)
         run: |
           cat > .env <<'EOF'
           DATABASE_URL=postgresql://test:test@localhost:5432/test_db
           NEXT_PUBLIC_SITE_URL=http://localhost:3000
           EOF
+          cp .env .env.test
 
       - uses: pnpm/action-setup@v6
 
@@ -88,6 +89,7 @@ jobs:
 
       - run: just lint
       - run: just typecheck
+      - run: just db-test
       - run: just test
       - run: just build
 
