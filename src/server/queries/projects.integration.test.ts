@@ -1,5 +1,12 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('next/cache', () => ({
+  cacheLife: vi.fn(),
+  cacheTag: vi.fn(),
+  revalidateTag: vi.fn(),
+}))
+
 import { prisma, resetDatabase } from '@/lib/prisma-test-setup'
 import { findManyPublished, findPublishedBySlug } from '@/server/queries/projects'
 
