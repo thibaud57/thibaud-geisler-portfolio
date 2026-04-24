@@ -2,7 +2,7 @@
 feature: "Feature 3 MVP — Gestion et exposition des assets"
 subproject: "support-pdf-route-assets"
 goal: "Permettre à la route /api/assets/[...path] de servir les PDF et documenter la convention documents/<slug>/<filename>"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "partial"
 depends_on: []
