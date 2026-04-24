@@ -16,7 +16,7 @@ paths:
 - **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
 - **`timeout-minutes: 15`** sur chaque job : évite qu'un test qui hang consomme les 6h de timeout par défaut et bloque les minutes CI (15 min suffit largement pour lint + typecheck + tests d'un MVP)
 - **Service container `postgres:18`** pour tests d'intégration : `image: postgres:18`, healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner (pas le nom du service)
-- **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v3` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
+- **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v4` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
 
 ## À éviter
 - **Pas de deploy job** GitHub Actions : Dokploy gère tout le déploiement via webhook natif sur merge `main` (ARCHITECTURE.md)
@@ -76,7 +76,7 @@ jobs:
       source: ${{ steps.filter.outputs.source }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           predicate-quantifier: every   # obligatoire pour que les négations excluent réellement (défaut 'some' = OR → ** matche toujours et rend les négations inertes)
