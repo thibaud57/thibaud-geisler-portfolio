@@ -8,6 +8,7 @@ export const CONTENT_TYPE_MAP: Record<string, string> = {
   jpeg: 'image/jpeg',
   webp: 'image/webp',
   svg: 'image/svg+xml',
+  pdf: 'application/pdf',
 }
 
 const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
