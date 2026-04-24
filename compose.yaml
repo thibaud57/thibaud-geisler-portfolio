@@ -23,6 +23,8 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      ASSETS_PATH: /app/assets
     depends_on:
       postgres:
         condition: service_healthy

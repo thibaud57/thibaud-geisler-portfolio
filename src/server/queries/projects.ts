@@ -6,11 +6,13 @@ import type { ProjectType } from '@/generated/prisma/client'
 import { localizeProject } from '@/i18n/localize-content'
 import { PROJECT_INCLUDE, type LocalizedProjectWithRelations } from '@/types/project'
 
-// Runtime only : `'use cache'` forcerait la matérialisation au prerender build.
 export async function findManyPublished(params: {
   type?: ProjectType
   locale: Locale
 }): Promise<LocalizedProjectWithRelations[]> {
+  'use cache'
+  cacheLife('hours')
+  cacheTag('projects')
   const projects = await prisma.project.findMany({
     where: {
       status: 'PUBLISHED',
