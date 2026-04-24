@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   poweredByHeader: false,
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  env: {
+    NEXT_PUBLIC_BUILD_YEAR: String(new Date().getFullYear()),
+  },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
