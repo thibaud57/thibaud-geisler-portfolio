@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { Geist, Geist_Mono, Sansation } from 'next/font/google'
-import { Suspense } from 'react'
 import { cn } from '@/lib/utils'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
@@ -87,9 +86,7 @@ export default async function LocaleLayout({
           <Providers>
             <Navbar />
             {children}
-            <Suspense fallback={null}>
-              <Footer />
-            </Suspense>
+            <Footer />
           </Providers>
         </NextIntlClientProvider>
       </body>
