@@ -4,7 +4,7 @@ export function buildAssetUrl(filename: string): string {
   return `/api/assets/${filename}`
 }
 
-export const CV_FILENAMES = {
+const CV_FILENAMES = {
   fr: 'cv-thibaud-geisler-fr.pdf',
   en: 'cv-thibaud-geisler-en.pdf',
 } as const satisfies Record<Locale, string>

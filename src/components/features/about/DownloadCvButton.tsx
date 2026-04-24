@@ -5,7 +5,6 @@ import type { ComponentProps } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { buildCvUrl, CV_DOWNLOAD_FILENAME } from '@/lib/assets'
-import { cn } from '@/lib/utils'
 
 type ButtonProps = ComponentProps<typeof Button>
 
@@ -25,7 +24,7 @@ export async function DownloadCvButton({
   const t = await getTranslations('Common.cv')
 
   return (
-    <Button asChild variant={variant} size={size} className={cn(className)}>
+    <Button asChild variant={variant} size={size} className={className}>
       <a
         href={buildCvUrl(locale)}
         download={CV_DOWNLOAD_FILENAME}
