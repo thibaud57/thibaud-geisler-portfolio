@@ -1,10 +1,12 @@
-import 'dotenv/config'
-import { defineConfig, env } from 'prisma/config'
+import { loadEnvConfig } from '@next/env'
+loadEnvConfig(process.cwd())
+
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: env('DATABASE_URL'),
+    url: process.env.DATABASE_URL!,
   },
   migrations: {
     path: 'prisma/migrations',

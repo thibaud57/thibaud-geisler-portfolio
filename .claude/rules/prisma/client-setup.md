@@ -9,8 +9,8 @@ paths:
 ## À faire
 - Instancier `PrismaClient` en **singleton global** pour éviter l'épuisement du pool de connexions pendant le HMR Next.js en dev
 - Utiliser `@prisma/adapter-pg` : driver adapter **obligatoire** pour PostgreSQL en Prisma 7
-- Appeler `import 'dotenv/config'` au runtime (ou configurer via `prisma.config.ts`) : Prisma 7 ne charge **plus** `.env` automatiquement
-- Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via helper `env()`, `migrations.path`). L'**adapter** (`PrismaPg`) n'est **pas** dans ce fichier — il se configure à l'instanciation du `PrismaClient` (dans `src/lib/prisma.ts`)
+- Charger `.env` dans `prisma.config.ts` via **`@next/env`** (`loadEnvConfig(process.cwd())` en tête de fichier) — recommandation officielle Next.js pour charger les env vars hors runtime Next, pas de dep dotenv supplémentaire à ajouter (déjà transitif via `next`)
+- Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via **`process.env.DATABASE_URL!`**, `migrations.path`). L'**adapter** (`PrismaPg`) n'est **pas** dans ce fichier — il se configure à l'instanciation du `PrismaClient` (dans `src/lib/prisma.ts`)
 - Déclarer `"type": "module"` dans `package.json` : Prisma 7 est **ESM-only**
 - Ajouter `"postinstall": "prisma generate"` dans `package.json` (convention standard Prisma 7)
 - Importer le client dans le code depuis le chemin `output` déclaré dans le generator (ex: `@/generated/prisma/client`), et **non plus** depuis `@prisma/client` (ancien chemin v6). Le package `@prisma/client` reste néanmoins requis comme dépendance runtime dans `package.json` (non déprécié en v7, adapter également requis via `@prisma/adapter-pg`)
@@ -20,9 +20,10 @@ paths:
 ## À éviter
 - Instancier `new PrismaClient()` dans chaque module : multiplie les pools de connexions, épuise Postgres
 - Utiliser `$use()` pour les middlewares : **supprimé** en Prisma 7, migrer vers `$extends()`
-- Compter sur le chargement auto de `.env` au runtime : supprimé en Prisma 7, charger explicitement via `dotenv.config()` ou `prisma.config.ts`
+- Compter sur le chargement auto de `.env` au runtime : supprimé en Prisma 7, charger explicitement via `@next/env` dans `prisma.config.ts`
 - Laisser `provider = "prisma-client-js"` : **renommé** `prisma-client` en v7 dans le generator
 - Omettre le champ `output` dans le generator : **obligatoire** en v7
+- Utiliser le helper **`env('DATABASE_URL')`** de `prisma/config` dans `prisma.config.ts` : cette fonction throw `PrismaConfigEnvError` **au chargement du fichier config**, ce qui casse toute commande CLI (y compris `prisma generate` qui n'a pas besoin de l'URL) sans `DATABASE_URL` set. Utiliser `process.env.DATABASE_URL!` à la place (lecture paresseuse, seules les commandes qui utilisent vraiment l'URL échouent si absente)
 
 ## Gotchas
 - Prisma 7 + Better Auth + Next 16 : erreur P1010 "User was denied access" vient presque toujours d'une `DATABASE_URL` non chargée (pas d'un bug Prisma), vérifier `dotenv.config()` au runtime
@@ -31,6 +32,7 @@ paths:
 - Client Rust-free v7 : bundle ~90% plus petit, queries ~3x plus rapides, perf TS ~70% plus rapide
 - Generation **dans le code source** en v7 (plus dans `node_modules`) : ajouter le dossier `output` au `.gitignore`
 - Datasource v7 sans `url` : le bloc `datasource db` ne contient plus que `provider = "postgresql"`, l'URL vient de `prisma.config.ts`
+- **Prisma 7 + `env()` + build CI/Docker** : `env('DATABASE_URL')` throw au chargement du config même si la commande CLI n'utilise pas la DB. Position officielle Prisma (jkomyno, [issue #28590](https://github.com/prisma/prisma/issues/28590), 2025-11-24) : *« If your environment variable isn't guaranteed to exist, you should not use the env() utility from prisma/config »*. Utiliser `process.env.DATABASE_URL!` qui est lu paresseusement, aucun impact runtime
 
 ## Exemples
 ```typescript
@@ -54,17 +56,29 @@ export const prisma = new PrismaClient()
 
 ```typescript
 // ✅ prisma.config.ts — schema + datasource + migrations (v7 stable)
-import 'dotenv/config'
-import { defineConfig, env } from 'prisma/config'
+// @next/env : chargement .env hors runtime Next (reco officielle Next.js)
+// process.env.DATABASE_URL! (pas env()) : ne casse pas prisma generate au build CI/Docker (#28590)
+import { loadEnvConfig } from '@next/env'
+loadEnvConfig(process.cwd())
+
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: env('DATABASE_URL'),
+    url: process.env.DATABASE_URL!,
   },
   migrations: {
     path: 'prisma/migrations',
   },
+})
+```
+
+```typescript
+// ❌ env() throw PrismaConfigEnvError au chargement du config, casse prisma generate (#28590)
+import { defineConfig, env } from 'prisma/config'
+export default defineConfig({
+  datasource: { url: env('DATABASE_URL') }, // ← throw sans DATABASE_URL set
 })
 ```
 
