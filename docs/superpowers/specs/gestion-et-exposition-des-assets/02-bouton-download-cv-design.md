@@ -2,7 +2,7 @@
 feature: "Feature 3 MVP — Gestion et exposition des assets"
 subproject: "bouton-download-cv"
 goal: "Rendre le CV téléchargeable depuis /a-propos et depuis le footer via un Server Component réutilisable"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["01-support-pdf-route-assets-design.md"]
