@@ -63,7 +63,7 @@ pnpm
 
 ## Composants Principaux (Haut Niveau)
 
-- **Frontend** : Pages publiques React (SSG/SSR) + Dashboard admin (post-MVP)
+- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + Dashboard admin (post-MVP)
 - **Backend** : Server Actions + API Routes Next.js
 - **Données** : PostgreSQL + Prisma (projets, assets, leads post-MVP)
 - **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)) — servis via route API catch-all `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`), jamais depuis `public/`
@@ -106,8 +106,8 @@ graph TB
 ### Use-case 1 : Affichage de la liste des projets
 
 1. Visiteur accède à `/projets`
-2. Next.js Server Component exécute une query Prisma (`findMany`)
-3. La liste des projets est rendue côté serveur (SSR)
+2. Shell statique (header, filtre) pré-rendu au build ; contenu listing wrapped `<Suspense>` (fallback skeleton)
+3. Next.js Server Component async exécute la query Prisma (`findMany`) au runtime et streame le résultat
 4. Chaque projet affiche titre, stack, lien GitHub, lien démo externe
 5. Filtrage par type (client / personnel) disponible sur la page
 
@@ -122,9 +122,8 @@ graph TB
 ### Use-case 3 : Affichage d'une page projet (case study)
 
 1. Visiteur accède à `/projets/[slug]`
-2. Next.js query Prisma sur le slug
-3. Rendu SSR de la page détail (contexte, défis, solution, screenshots, liens)
-4. `generateStaticParams` pour pré-générer les slugs connus (SEO)
+2. Next.js query Prisma sur le slug (wrapped `'use cache'` + `cacheTag('projects')`)
+3. Rendu dynamique à la demande au premier hit, puis servi depuis le Data Cache jusqu'à revalidation
 
 Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 
@@ -132,10 +131,9 @@ Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages déd
 
 | Pattern | Contexte d'application |
 |---------|------------------------|
-| **SSG** (Static Site Generation) | Pages sans données variables à la requête (accueil, services, contact) |
-| **SSR** (Server-Side Rendering) | Pages avec données BDD (liste projets `/projets`, case study `/projets/[slug]`) |
+| **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
+| **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours')` + `cacheTag('projects')`) : Data Cache persistant, revalidation ciblée via `revalidateTag` |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
-| **ISR** (Incremental Static Regeneration) | Post-MVP : revalidation périodique des pages projets sans redéploiement complet |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -200,7 +198,7 @@ Node.js — TypeScript strict
 
 ### Framework
 
-Next.js (App Router, Server Actions + API Routes). Caching opt-in : pages dynamiques par défaut, cache activé explicitement par page.
+Next.js (App Router, Server Actions + API Routes). Caching opt-in granulaire (composant/fonction) via directive `'use cache'` : contenu dynamique par défaut, cache activé explicitement sur les queries Prisma.
 
 ### Structure du Code
 
@@ -247,7 +245,7 @@ Prisma Migrate — migrations versionnées dans `prisma/migrations/`
 
 ### Cache
 
-Cache Next.js natif (data cache, full route cache). ISR envisageable post-MVP pour les pages à contenu dynamique (projets, case studies).
+Data Cache Next 16 opt-in via directive `'use cache'` sur les queries Prisma, avec `cacheLife('hours')` + `cacheTag('projects')` pour revalidation ciblée (`revalidateTag` depuis les Server Actions admin post-MVP).
 
 ### Files / Assets Storage
 
@@ -310,7 +308,7 @@ sequenceDiagram
     Prisma-->>SC: Project { title, stack, description, ... }
     alt Projet trouvé
         SC-->>Page: HTML rendu (case study complet)
-        Page-->>Visiteur: Page projet avec contenu SSR
+        Page-->>Visiteur: Page projet — 1er hit runtime, suivants depuis Data Cache
     else Projet introuvable
         SC-->>Page: notFound()
         Page-->>Visiteur: Page 404
@@ -351,8 +349,8 @@ GitHub Actions : lint + tests uniquement. Le déploiement est entièrement gér�
 ### Scalabilité & Performance
 
 - **Scalabilité** : verticale (upgrade VPS) si besoin — trafic initial faible
-- **Performance frontend** : SSG pour les pages statiques, SSR pour les pages dynamiques, `next/image` pour l'optimisation des images
-- **Cache** : Cache Next.js natif (ISR si besoin post-MVP)
+- **Performance frontend** : Partial Prerendering (shell statique + streaming dynamique via `<Suspense>`) + `next/image` pour l'optimisation des images
+- **Cache** : Data Cache Next 16 via `'use cache'` + `cacheLife` sur les queries, revalidation ciblée via `revalidateTag`
 
 ## 🔐 Sécurité Globale
 
