@@ -16,13 +16,20 @@ const PNG_1X1 = Buffer.from([
 
 const SVG_MIN = '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
 
+const PDF_MIN = Buffer.from('%PDF-1.4\n%%EOF\n', 'ascii')
+
 beforeAll(() => {
   mkdirSync(path.join(TEST_ASSETS_DIR, 'projets', 'client', 'foyer'), { recursive: true })
+  mkdirSync(path.join(TEST_ASSETS_DIR, 'documents', 'cv'), { recursive: true })
   writeFileSync(path.join(TEST_ASSETS_DIR, 'test.png'), PNG_1X1)
   writeFileSync(path.join(TEST_ASSETS_DIR, 'test.svg'), SVG_MIN)
   writeFileSync(
     path.join(TEST_ASSETS_DIR, 'projets', 'client', 'foyer', 'logo.png'),
     PNG_1X1,
+  )
+  writeFileSync(
+    path.join(TEST_ASSETS_DIR, 'documents', 'cv', 'cv-test.pdf'),
+    PDF_MIN,
   )
   process.env.ASSETS_PATH = TEST_ASSETS_DIR
 })
@@ -104,5 +111,13 @@ describe('GET /api/assets/[...path]', () => {
     const response = await callRoute(['projets', 'client', 'foyer', 'logo.png'])
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('image/png')
+  })
+
+  it('retourne 200 + Content-Type application/pdf pour un PDF sous documents/cv/', async () => {
+    const response = await callRoute(['documents', 'cv', 'cv-test.pdf'])
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toBe('application/pdf')
+    const body = Buffer.from(await response.arrayBuffer())
+    expect(body.equals(PDF_MIN)).toBe(true)
   })
 })
