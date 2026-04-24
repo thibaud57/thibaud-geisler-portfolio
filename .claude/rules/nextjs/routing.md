@@ -14,7 +14,7 @@ paths:
 ## À faire
 - Toujours `await params` et `await searchParams` dans les pages, layouts, route handlers et `generateMetadata` (Promise obligatoire)
 - Utiliser les route groups `(public)/` et `(admin)/` pour partager des layouts sans affecter l'URL
-- Déclarer `generateStaticParams` sur les routes dynamiques `[slug]` pour pré-générer les pages au build (SEO, performance)
+- `generateStaticParams` sur les routes dynamiques `[slug]` est **optionnel** avec `cacheComponents: true` : ne l'utiliser que si les slugs sont connus au build ET que la DB est accessible au build (Dokploy self-hosted ne garantit pas l'accès DB au build). Sans `generateStaticParams`, les pages sont rendues à la demande au premier hit puis cachées via `'use cache'` + `cacheTag` sur la query Prisma — même bénéfice SEO après le premier crawl
 - Retourner `notFound()` côté serveur quand une ressource Prisma n'existe pas : consommé par `not-found.tsx` le plus proche
 - Utiliser `redirect()` (307) et `permanentRedirect()` (308) dans Server Components / Server Actions / Route Handlers
 - Appeler `unstable_rethrow(error)` dans tout `try/catch` qui pourrait avaler `redirect()`, `notFound()`, `unauthorized()` ou `forbidden()`
