@@ -140,49 +140,11 @@ Présentation du positionnement par ordre de priorité :
 
 Coeur du portfolio. Données stockées en base de données dès le MVP.
 
-**Modèle BDD (4 tables Prisma) :**
-
-`Project` (table principale) :
-* `slug` (unique, URL-friendly, language-agnostic cf. ADR-010)
-* `title`, `description` (teaser court affiché card + meta SEO)
-* `type` : `ProjectType` (CLIENT / PERSONAL) — filtres sur la page liste
-* `status` : `ProjectStatus` (DRAFT / PUBLISHED / ARCHIVED) — défaut DRAFT, seuls PUBLISHED visibles publiquement
-* `formats` : `ProjectFormat[]` (API / WEB_APP / MOBILE_APP / DESKTOP_APP / CLI / IA) — multi-valeurs, nature technique du projet (affichée en badge outline à côté du titre)
-* `startedAt`, `endedAt` (DateTime nullable) — début et fin de mission (CLIENT) ou début + date de MEP (PERSONAL)
-* `githubUrl`, `demoUrl` (nullables — NDA / projet sans démo)
-* `coverFilename`, `caseStudyMarkdown` (nullables)
-* `displayOrder` (Int, défaut 0) — tri manuel ASC des projets sur la page liste (0 en premier). **Ne concerne pas l'ordre des tags du projet**, qui est porté par `ProjectTag.displayOrder`.
-* relation m:n `tags` → `ProjectTag[]` via table de jointure explicite (mélange technos + infra + outils + expertises métier, distingués par `Tag.kind` ; ordre par-projet via `ProjectTag.displayOrder`)
-* relation 1:1 optionnelle `clientMeta` → `ClientMeta?`
-
-`ClientMeta` (métadonnées spécifiques aux missions clients, relation 1:1 optionnelle avec Project) :
-* `teamSize` (Int nullable), `contractStatus` : `ContractStatus` (FREELANCE / CDI / STAGE / ALTERNANCE, nullable)
-* `workMode` : `WorkMode` (PRESENTIEL / HYBRIDE / REMOTE) — required, info toujours connue
-* relation N:1 required vers `Company` via `companyId` (une entreprise peut avoir plusieurs missions successives)
-* Cascade delete avec le Project parent
-
-`Company` (référentiel entreprises clientes, relation 1:N vers ClientMeta) :
-* `slug` (unique, dérivé du nom), `name`
-* `logoFilename` (nullable, image dans `/assets`), `websiteUrl` (nullable)
-* `sectors` : `CompanySector[]` (Assurance / Fintech / SaaS / ... / Autre — 11 valeurs, multi)
-* `size` : `CompanySize?` (TPE / PME / ETI / GROUPE)
-* `locations` : `CompanyLocation[]` (Luxembourg / Paris / Grand_Est / France / Belgique / Suisse / Europe / Monde — multi)
-
-`Tag` (référentiel unifié : technos / infra / outils / expertises métier) :
-* `slug` (unique), `name`
-* `kind` : `TagKind` (LANGUAGE / FRAMEWORK / DATABASE / INFRA / AI / EXPERTISE)
-* `icon` (nullable, format `"<lib>:<slug>"` — ex `"simple-icons:react"` pour une techno, `"lucide:spider"` pour une expertise)
-* **pas de `displayOrder` global** — l'ordre est par-projet via `ProjectTag.displayOrder`
-
-`ProjectTag` (table de jointure explicite Project ↔ Tag, porte l'ordre d'affichage par-projet) :
-* `projectId` + `tagId` — clé primaire composite
-* `displayOrder` (Int, défaut 0) — tri ASC des tags **de ce projet** sur la card liste et dans chaque groupe de la case study (0 en premier)
-* Cascade delete côté Project (supprimer le projet retire ses liaisons), Restrict côté Tag (protège le référentiel)
-* Index composite `(projectId, displayOrder)` pour accélérer la query `orderBy: { displayOrder: 'asc' }`
+Chaque projet porte : un titre, une description courte, une stack technique (badges), des liens GitHub et démo, un type (client / personnel), un statut de publication, un format (API, Web App, CLI, IA...) et des métadonnées contextuelles pour les missions clients (entreprise, mode de travail, type de contrat). Le schéma BDD détaillé est dans [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Page `/projets` :**
 * Liste avec filtres client / personnel
-* Cards : titre, stack (badges), lien démo, lien GitHub
+* Cards : titre, format, stack (badges avec icônes), lien démo, lien GitHub
 
 **Page `/projets/[slug]` (case study) :**
 * Contexte et objectifs
@@ -349,7 +311,7 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 
 | Étape | Contenu | Pourquoi cet ordre |
 |-------|---------|-------------------|
-| 1 | Setup infra : Next.js, Docker, PostgreSQL, Prisma schema (`Project`, `Asset`) | Fondation de tout le reste |
+| 1 | Setup infra : Next.js, Docker, PostgreSQL, Prisma schema | Fondation de tout le reste |
 | 2 | Feature 6 — i18n (next-intl) | À câbler avant d'écrire le moindre contenu |
 | 3 | Feature 2 — Projets (BDD + liste + case studies) | Coeur du portfolio, démontre la valeur |
 | 4 | Feature 3 — Assets (volumes Docker + route API + CV + images) | Nécessaire pour les projets et l'accueil |

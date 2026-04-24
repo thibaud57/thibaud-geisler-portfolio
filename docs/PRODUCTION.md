@@ -119,7 +119,7 @@ ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/
 # Base de données
 DATABASE_URL=                       # URL connexion PostgreSQL (ex: postgresql://user:pass@postgres:5432/db)
                                     # ⚠️ Utiliser le nom du service Docker comme host : "postgres", jamais "localhost"
-                                    # ⚠️ Prisma 7 : la CLI ne charge plus .env automatiquement. En prod Dokploy, aucun impact (var injectée par Docker). En dev local : charger via prisma.config.ts ou dotenv explicitement.
+                                    # ⚠️ Prisma 7 : la CLI ne charge plus .env automatiquement. En prod Dokploy, aucun impact (var injectée par Docker). En dev local : `@next/env` dans `prisma.config.ts` charge le .env.
 
 # SMTP IONOS (formulaire contact)
 SMTP_HOST=                         # Hôte SMTP IONOS (ex: smtp.ionos.fr)
@@ -192,13 +192,15 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 
 Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
 
-- [ ] **Dockerfile `output: 'standalone'`** — activer dans `next.config.ts` + adapter le stage `runner` du Dockerfile (copier uniquement `.next/standalone`, `.next/static`, `public/` ; lancer `node server.js`). Réduit l'image Docker de ~1.2 GB à ~250 MB (build + pull plus rapides).
+- [x] **Dockerfile `output: 'standalone'`** — activé dans `next.config.ts`, stage `runner` copie `.next/standalone` + `.next/static` + `public/` + `CMD ["node", "server.js"]`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
 
-- [ ] **Opt-out Turbopack build si Prisma WASM casse** — si le build Docker échoue avec `query_compiler_fast_bg.postgresql.mjs not found`, remplacer `pnpm build` par `next build --webpack` dans le Dockerfile. À surveiller : [Prisma issue #29025](https://github.com/prisma/prisma/issues/29025).
+- [x] **Opt-out Turbopack build (Prisma WASM)** — `next build --webpack` actif dans le Dockerfile. À surveiller : [Prisma issue #29025](https://github.com/prisma/prisma/issues/29025) pour retirer quand le bug upstream est corrigé.
 
-- [ ] **Fermer port `5432` postgres en prod** — retirer la section `ports: ['5432:5432']` du service postgres dans `compose.yaml` (ou utiliser un override `compose.prod.yaml`). Le dev local garde l'exposition pour DBeaver/psql. Sans ça, la DB est exposée publiquement.
+- [x] **Migrations auto au startup container** — stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 
-> Ces items sont des optimisations et workarounds techniques (pas des ADRs : pas de décision architecturale structurelle). Identifiés au bootstrap Phase 6.
+> Ces items étaient des optimisations et workarounds techniques (pas des ADRs : pas de décision architecturale structurelle). Implémentés au bootstrap Phase 6 et validés empiriquement.
+
+> **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
 
 ---
 
@@ -584,9 +586,10 @@ curl -I https://thibaud-geisler.com
 
 ## Optimisations
 
-- [ ] Activer ISR post-MVP sur `/projets` et `/projets/[slug]` pour réduire la charge SSR
 - [ ] Surveiller la taille des bundles JS (`next build` → rapport de bundles)
 - [ ] Vérifier les Core Web Vitals après mise en production initiale (Google Search Console)
+
+> La revalidation type ISR est déjà en place via `cacheComponents: true` + `'use cache'` + `cacheTag('projects')` sur les queries mises en cache. Invalidation ciblée via `revalidateTag('projects')` depuis les Server Actions admin (post-MVP).
 
 ---
 
