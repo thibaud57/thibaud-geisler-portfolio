@@ -1,0 +1,14 @@
+services:
+  postgres:
+    # Exposition dev local pour clients SQL (DBeaver, psql).
+    ports:
+      - '5432:5432'
+
+  nextjs:
+    # Override du .env host (DATABASE_URL pointe vers localhost pour `just dev` natif) :
+    # dans le container, Postgres est résolu via DNS compose, pas localhost.
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-portfolio}:${POSTGRES_PASSWORD:-portfolio}@postgres:5432/${POSTGRES_DB:-portfolio}
+    # Bind-mount host : modifs sur ./assets visibles en direct dans le container.
+    volumes:
+      - ./assets:/app/assets:ro

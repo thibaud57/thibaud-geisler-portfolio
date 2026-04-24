@@ -3,14 +3,8 @@ import { notFound } from 'next/navigation'
 
 import { CaseStudyLayout } from '@/components/features/projects/CaseStudyLayout'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { routing } from '@/i18n/routing'
 import { buildLanguageAlternates, localeToOgLocale, setupLocaleMetadata } from '@/lib/seo'
-import { findPublishedBySlug, findPublishedSlugs } from '@/server/queries/projects'
-
-export async function generateStaticParams(): Promise<{ locale: string; slug: string }[]> {
-  const slugs = await findPublishedSlugs()
-  return routing.locales.flatMap((locale) => slugs.map((slug) => ({ locale, slug })))
-}
+import { findPublishedBySlug } from '@/server/queries/projects'
 
 export async function generateMetadata({
   params,
