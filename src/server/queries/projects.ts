@@ -6,17 +6,6 @@ import type { ProjectType } from '@/generated/prisma/client'
 import { localizeProject } from '@/i18n/localize-content'
 import { PROJECT_INCLUDE, type LocalizedProjectWithRelations } from '@/types/project'
 
-export async function findPublishedSlugs(): Promise<string[]> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('projects')
-  const rows = await prisma.project.findMany({
-    where: { status: 'PUBLISHED' },
-    select: { slug: true },
-  })
-  return rows.map((row) => row.slug)
-}
-
 export async function findManyPublished(params: {
   type?: ProjectType
   locale: Locale

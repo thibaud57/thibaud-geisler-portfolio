@@ -39,30 +39,31 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 14 | Zod | `4.3.6` | ✅ | Validateurs string déplacés en top-level |
 | 15 | nodemailer | `8.0.5` | ✅ | CVE CRLF corrigée en 8.0.5 (obligatoire) |
 | 16 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages` requis dans `next.config.ts` |
-| 17 | dotenv | `17.4.2` | ✅ | Chargement `.env` au runtime requis pour Prisma 7 (non auto-chargé depuis v7) |
-| 18 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
+| 17 | @next/env | `16.2.4` | ✅ | Chargement `.env` dans `prisma.config.ts` (recommandation officielle Next.js pour env hors runtime Next) |
+| 18 | dotenv | `17.4.2` | ✅ | Chargement `.env` pour scripts hors runtime Next (Vitest, seed Prisma) |
+| 19 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 
 ## Tests
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 19 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
-| 20 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
-| 21 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
+| 20 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
+| 21 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
+| 22 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
 
 ## Base de données
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 22 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
-| 23 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
-| 24 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
+| 23 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
+| 24 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| 25 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
 
 ## Auth (post-MVP)
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 25 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (dotenv) |
+| 26 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (via `@next/env` dans `prisma.config.ts`) |
 
 ## Infrastructure
 
@@ -618,7 +619,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - **Output obligatoire** : champ `output` requis dans le `generator`
 - **Driver adapter obligatoire** : `@prisma/adapter-pg` pour PostgreSQL
 - **`prisma.config.ts`** : fichier centralisé, `url` dans `schema.prisma` déprécié
-- **`.env` non chargé automatiquement** : dotenv explicite ou via `prisma.config.ts`
+- **`.env` non chargé automatiquement** : utiliser `@next/env` (`loadEnvConfig(process.cwd())`) en tête de `prisma.config.ts` — recommandation officielle Next.js pour charger les env vars hors runtime Next
 - **`prisma migrate dev`** ne lance plus `prisma generate` automatiquement
 - **Seeding automatique supprimé** : lancer `pnpm prisma db seed` explicitement
 - **API `$use()` supprimée** → `$extends()`
@@ -639,7 +640,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - Better Auth : ✅ (charger `.env` explicitement au runtime, voir section Better Auth)
 
 **Issues connues & gotchas** :
-- **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `dotenv.config()` ou centraliser dans `prisma.config.ts`. Cause de l'erreur P1010 si oublié.
+- **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts` — recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
 - **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). Issue active : la résolution du module WASM `query_compiler_fast_bg.postgresql.mjs` échoue en build Turbopack avec le provider `prisma-client` v7. **Workaround** : opt-out via `next build --webpack` dans le Dockerfile/CI jusqu'à correction upstream. Surveiller l'état de l'issue avant chaque upgrade.
 - **CI/CD avec build séparé du déploiement** (issue #29025) : si tu buildes en CI puis déploies les artifacts ailleurs en relançant `prisma generate`, hash mismatch possible. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Dokploy build directement sur le serveur**, donc non concerné.
 - **Server Components** : après upgrade v6→v7, ajouter `await connection()` dans les pages utilisant Prisma
@@ -696,18 +697,22 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - Next.js 15 : ✅
 - Next.js 16 : ✅ (workaround `use cache` + `getServerSession` : extraire les cookies avant le scope cache et les passer en argument — Issue #5584 fermée NOT_PLANNED, c'est une contrainte Next.js pas un bug Better Auth)
 - PostgreSQL : ✅
-- Prisma v7 + `@prisma/adapter-pg` : ✅ à condition de **charger `.env` explicitement au runtime** (`dotenv.config()` ou via `prisma.config.ts`). L'erreur P1010 "User was denied access" vient d'une `DATABASE_URL` manquante, pas d'un bug Prisma 7
+- Prisma v7 + `@prisma/adapter-pg` : ✅ à condition de **charger `.env` explicitement** dans `prisma.config.ts` via `@next/env` (`loadEnvConfig(process.cwd())`). L'erreur P1010 "User was denied access" vient d'une `DATABASE_URL` manquante, pas d'un bug Prisma 7
 - Google OAuth : ✅ (provider built-in)
 
 **Gotcha `.env` Prisma 7** :
 ```ts
-// src/lib/prisma.ts
-import 'dotenv/config'  // ← obligatoire en Prisma 7 au runtime
-import { PrismaClient } from '@/generated/prisma'
-import { PrismaPg } from '@prisma/adapter-pg'
+// prisma.config.ts — @next/env charge .env pour la CLI Prisma (hors runtime Next)
+import { loadEnvConfig } from '@next/env'
+loadEnvConfig(process.cwd())
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-export const prisma = new PrismaClient({ adapter })
+import { defineConfig } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  datasource: { url: process.env.DATABASE_URL! },
+  migrations: { path: 'prisma/migrations' },
+})
 ```
 
 **Recommandation** : ✅ Better Auth 1.6.2 utilisable dès l'implémentation du dashboard post-MVP. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
@@ -959,7 +964,7 @@ import Script from 'next/script'
 | Next.js 16.2.4 | Aceternity UI | ✅ | Utiliser `motion` v12+, pas `framer-motion` |
 | Prisma 7.7.0 | PostgreSQL 18.3 | ✅ | Support officiel depuis 7.2.0 |
 | Prisma 7.7.0 | pgvector 0.8.2 | ⚠️ | Support partiel : `Unsupported("vector")` + SQL manuel |
-| Prisma 7.7.0 | Better Auth 1.6.2 | ✅ | Charger `.env` explicitement au runtime (`dotenv.config()`) pour éviter P1010 "DATABASE_URL manquante" |
+| Prisma 7.7.0 | Better Auth 1.6.2 | ✅ | `DATABASE_URL` disponible au runtime via `process.env` (Next.js charge `.env` en dev, Docker/Dokploy injecte en prod). `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth. |
 | Prisma 7.7.0 | TypeScript 6.0.2 | ✅ | `moduleResolution: bundler` requis |
 | Tailwind 4.2.2 | shadcn/ui | ✅ | Composants mis à jour pour v4 |
 | Tailwind 4.2.2 | Magic UI | ✅ | Tailwind v4 par défaut depuis avril 2025 |
@@ -986,7 +991,7 @@ import Script from 'next/script'
 | nodemailer < 8.0.5 + CRLF injection | 🔴 Critique | Pinner nodemailer >= 8.0.5 dans `package.json` |
 | pgvector < 0.8.2 + CVE-2026-3172 | 🔴 Critique | Utiliser pgvector 0.8.2 minimum dès l'activation du RAG |
 | Node.js 20 EOL (30 avril 2026) | 🔴 Critique | Migrer vers Node.js 24 LTS avant cette date (image Docker) |
-| Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `dotenv.config()` explicite dans le fichier d'instantiation Prisma, ou via `prisma.config.ts`. Cause de l'erreur P1010 si oublié |
+| Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` — recommandation Next.js. Cause de l'erreur P1010 si oublié |
 | Pino + Next.js App Router (bundling) | 🟡 Moyen | `serverExternalPackages: ['pino', 'pino-pretty']` dans `next.config.ts` |
 | next-intl + `use cache` (Next 16.0/16.1) | 🟡 Moyen | Utiliser Next.js >= 16.2.4 (version cible du projet) |
 | TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS — migrer les `require()` si présents |
@@ -1258,7 +1263,7 @@ pnpm test
 - [ ] `serverExternalPackages: ['pino', 'pino-pretty']` dans `next.config.ts`
 - [ ] `prisma.config.ts` présent avec driver adapter `PrismaPg`
 - [ ] Champ `output` défini dans le bloc `generator` de `schema.prisma`
-- [ ] `dotenv.config()` ou `prisma.config.ts` charge la `DATABASE_URL` au runtime (Prisma 7 ne la charge plus auto)
+- [ ] `prisma.config.ts` charge la `DATABASE_URL` via `@next/env` (Prisma 7 ne la charge plus auto)
 - [ ] `moduleResolution: "bundler"` dans `tsconfig.json`
 - [ ] `preserveSymlinks: false` (ou omis) dans `tsconfig.json`
 - [ ] nodemailer >= 8.0.5 dans `package.json`
@@ -1272,7 +1277,7 @@ pnpm test
 - [ ] Dokploy >= 0.28.8 + script de sécurité v0.26.6 exécuté
 - [ ] Registre externe Docker configuré pour les rollbacks Dokploy (v0.26+)
 - [ ] Si pgvector activé : version >= 0.8.2 (CVE-2026-3172)
-- [ ] Better Auth : `dotenv.config()` au runtime + workaround `cookies()` avant `use cache` si dashboard cache activé
+- [ ] Better Auth : `DATABASE_URL` via `process.env` au runtime Next (pas d'action requise, chargement auto) + workaround `cookies()` avant `use cache` si dashboard cache activé
 - [ ] n8n / Umami post-MVP : base PostgreSQL dédiée (pas celle du portfolio), validation PG 18 en staging
 - [ ] Build Docker : utiliser `next build --webpack` (opt-out Turbopack) tant que l'issue Prisma 7 WASM n'est pas corrigée upstream
 
@@ -1287,7 +1292,7 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 1. **Node.js 20 EOL (30 avril 2026)** : basculer l'image Docker sur `node:24-alpine` avant cette date
 2. **nodemailer < 8.0.5** : vulnérabilité CRLF, ne jamais déployer une version antérieure
 3. **pgvector CVE-2026-3172** : pinner >= 0.8.2 dès l'activation du RAG
-4. **Prisma 7 `.env` runtime** : charger explicitement (`dotenv.config()` ou `prisma.config.ts`) — la cause principale de l'erreur P1010 "User was denied access"
+4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` — la cause principale de l'erreur P1010 "User was denied access"
 5. **Umami + n8n + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (bases séparées de celle du portfolio)
 6. **Dokploy 0.26+** : rollbacks registry-based — configurer un registre externe (Docker Hub / GHCR) dès le MVP pour garder la fonctionnalité
 7. **Pino + Next.js App Router** : `serverExternalPackages: ['pino', 'pino-pretty']` obligatoire dans `next.config.ts`
