@@ -119,7 +119,11 @@
   },
   "Common": {
     "loading": "Loading…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "cv": {
+      "download": "Download my CV",
+      "downloadAriaLabel": "Download CV as PDF"
+    }
   },
   "LanguageSwitcher": {
     "ariaLabel": "Change language"

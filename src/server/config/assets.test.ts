@@ -1,3 +1,4 @@
+// @vitest-environment node
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { getContentType, resolveAssetPath, validateAssetPath } from './assets'
@@ -42,7 +43,7 @@ describe('AssetPathSchema + validateAssetPath', () => {
 
   it('rejette les extensions hors whitelist et segments commençant par un point', () => {
     expect(validateAssetPath(['malware.exe']).ok).toBe(false)
-    expect(validateAssetPath(['doc.pdf']).ok).toBe(false)
+    expect(validateAssetPath(['doc.docx']).ok).toBe(false)
     expect(validateAssetPath(['.htaccess']).ok).toBe(false)
   })
 
@@ -54,16 +55,28 @@ describe('AssetPathSchema + validateAssetPath', () => {
     expect(validateAssetPath(['projets', 'client', 'logo.png']).ok).toBe(true)
     expect(validateAssetPath(['projets.png', 'client', 'logo']).ok).toBe(false)
   })
+
+  it('accepte un PDF sous documents/cv/', () => {
+    expect(
+      validateAssetPath(['documents', 'cv', 'cv-thibaud-geisler-fr.pdf']).ok,
+    ).toBe(true)
+  })
+
+  it('accepte un PDF avec extension majuscule (flag i)', () => {
+    expect(validateAssetPath(['documents', 'cv', 'CV-TEST.PDF']).ok).toBe(true)
+  })
 })
 
 describe('getContentType', () => {
-  it('mape les 5 extensions whitelist vers le bon MIME (case-insensitive)', () => {
+  it('mape les 6 extensions whitelist vers le bon MIME (case-insensitive)', () => {
     expect(getContentType('a.png')).toBe('image/png')
     expect(getContentType('a.jpg')).toBe('image/jpeg')
     expect(getContentType('a.jpeg')).toBe('image/jpeg')
     expect(getContentType('a.webp')).toBe('image/webp')
     expect(getContentType('a.svg')).toBe('image/svg+xml')
+    expect(getContentType('a.pdf')).toBe('application/pdf')
     expect(getContentType('Test.PNG')).toBe('image/png')
+    expect(getContentType('CV.PDF')).toBe('application/pdf')
   })
 
   it('retourne application/octet-stream sur extension inconnue', () => {

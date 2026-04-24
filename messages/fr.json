@@ -119,7 +119,11 @@
   },
   "Common": {
     "loading": "Chargement…",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "cv": {
+      "download": "Télécharger mon CV",
+      "downloadAriaLabel": "Télécharger le CV au format PDF"
+    }
   },
   "LanguageSwitcher": {
     "ariaLabel": "Changer de langue"
