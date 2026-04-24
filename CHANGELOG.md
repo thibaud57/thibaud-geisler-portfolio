@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.3.0...v0.4.0) (2026-04-24)
+
+
+### Features
+
+* release includes gestion-et-exposition-des-assets (PDF support + CV download button) ([#21](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/21)) ([f0eb4f3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f0eb4f3404c929cdc4631951214bf29b6ff66870))
+
 ## [0.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.2.0...v0.3.0) (2026-04-23)
 
 
