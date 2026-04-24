@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { buildLanguageAlternates, localeToOgLocale } from '@/lib/seo'
@@ -8,6 +9,7 @@ import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 import { findManyPublished } from '@/server/queries/projects'
 import { ProjectsList } from '@/components/features/projects/ProjectsList'
+import { ProjectsListSkeleton } from '@/components/features/projects/ProjectsListSkeleton'
 
 export async function generateMetadata({
   params,
@@ -28,7 +30,6 @@ export async function generateMetadata({
 export default async function ProjetsPage({ params }: PageProps<'/[locale]/projets'>) {
   const { locale } = await setupLocalePage(params)
   const t = await getTranslations('Projects')
-  const projects = await findManyPublished({ locale })
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
@@ -39,7 +40,14 @@ export default async function ProjetsPage({ params }: PageProps<'/[locale]/proje
         <p className="text-lg text-muted-foreground">{t('pageSubtitle')}</p>
       </header>
 
-      <ProjectsList projects={projects} />
+      <Suspense fallback={<ProjectsListSkeleton />}>
+        <ProjectsListAsync locale={locale} />
+      </Suspense>
     </main>
   )
+}
+
+async function ProjectsListAsync({ locale }: { locale: Locale }) {
+  const projects = await findManyPublished({ locale })
+  return <ProjectsList projects={projects} />
 }
