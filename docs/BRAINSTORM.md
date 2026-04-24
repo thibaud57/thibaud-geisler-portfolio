@@ -191,6 +191,20 @@ Basculement entre français et anglais pour toucher des clients nationaux et int
 
 **Important : à câbler dès le début du développement** — ajouter l'i18n après coup oblige à réécrire tout le contenu.
 
+### Feature 7 — Conformité légale
+
+Pages légales et consentement cookies obligatoires avant mise en production publique. Bloquante légalement (LCEN France, loi e-commerce Luxembourg, RGPD, directive ePrivacy).
+
+* Page `/mentions-legales` (identification responsable + hébergeur, base légale LCEN art 6-III)
+* Page `/confidentialite` (politique RGPD art 13/14 — traitement du formulaire de contact, base légale intérêt légitime art 6-1-f, rétention 3 ans maximum, droits utilisateur, transfert hors UE Calendly via Data Privacy Framework)
+* Bandeau consentement cookies (`vanilla-cookieconsent` self-hosted, MIT, ~30 KB) — conforme CNIL 2025 : Accept all / Reject all même niveau visuel, opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
+* Gating du script Calendly inline (Feature 1 sub 04) : `widget.js` ne charge qu'après consentement de la catégorie marketing (Calendly pose des cookies tiers Segment, Google Analytics, Google Ads, Hotjar, LinkedIn Insight Tag, Facebook Pixel)
+* Extension du footer (Feature 1 sub 05) : décommenter la nav légale dans la row bottom déjà préparée (Mentions légales, Politique de confidentialité, Gérer mes cookies)
+
+Justification positionnement MVP : le formulaire de contact (Feature 4) collecte des données personnelles dès le 1er visiteur EU → politique de confidentialité obligatoire. Calendly inline embed (Feature 1 sub 04) pose des cookies tiers marketing → bandeau consentement obligatoire. Risque CNIL jusqu'à 20 M€ ou 4 % CA.
+
+Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur), registre des traitements formel (optionnel < 250 salariés).
+
 ---
 
 ## Post-MVP
@@ -318,8 +332,9 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 | 5 | Feature 1 — Pages publiques statiques (accueil, services, a-propos, contact) | S'appuie sur les projets déjà en BDD |
 | 6 | Feature 4 — Formulaire de contact (Server Action + SMTP) | Dernière pièce fonctionnelle |
 | 7 | Feature 5 — SEO (metadata, sitemap, robots.txt) | Avant mise en prod, pas avant |
-| 8 | Tests, perf, polish | Smoke test, Core Web Vitals, vérif headers |
-| 9 | Mise en production | Dokploy + DNS + smoke test final |
+| 8 | Feature 7 — Conformité légale (mentions, confidentialité, bandeau cookies + gating Calendly) | **Bloquante avant prod publique** — LCEN + RGPD + directive ePrivacy (risque CNIL). Passe par les tests de l'étape 9 |
+| 9 | Tests, perf, polish | Smoke test, Core Web Vitals, vérif headers — couvre tout le code livré étapes 1 à 8 |
+| 10 | Mise en production | Dokploy + DNS + smoke test final |
 
 **Principes directeurs :**
 

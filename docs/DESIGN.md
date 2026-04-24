@@ -155,7 +155,7 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 |-----------|------|-----------|
 | shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables — toute l'UI fonctionnelle |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : text effects, typographie animée, bento grid, marquee, particles, borders animés |
-| Aceternity UI | Effets visuels copy-paste | Effets hero premium : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams |
+| Aceternity UI | Effets visuels copy-paste | Effets hero premium : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies (`prose prose-lg dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
@@ -188,7 +188,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Badges Format (type de projet) | Badge sans icône | shadcn/ui | Types de projet (API, Web App, App Mobile, Desktop App, CLI, IA) affichés à côté ou sous le titre (card + case study). `variant="outline"` pour distinguer visuellement des Tags (étiquette catégorique, pas de glyphe). Valeur en texte uniquement |
 | Feedback | Toast, Alert | shadcn/ui (Sonner, Alert) | Confirmation formulaire |
 | Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | — |
-| Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal) |
+| Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal, Background Ripple Effect = fond interactif hero/CTA — grille de cellules qui ripplent au clic) |
+| Formulaire contact | Form shadcn pur (Card + Input + Textarea + Button + Label) | shadcn/ui | Layout 2 cols (form / Calendly + réseaux) reconstruit en shadcn sans bloc Aceternity PRO. UI livrée par Feature 1 sub 04, logique métier (Zod + Server Action + SMTP + rate limiting) par Feature 4 |
 | Effets visuels enrichis | Border Beam, Shine Border, Particles, Meteors, Magic Card | Magic UI | Enrichissement visuel des sections marketing |
 | Typographie display | Aurora Text, Animated Gradient Text, Text Reveal, Word Rotate | Magic UI | Titres hero Sansation, effets textes animés |
 | Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
@@ -231,7 +232,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|------|-----------|
 | Motion (package `motion`, import `motion/react`) | Animations UI et transitions | Fade-in au scroll, transitions de page, hover states |
 | Magic UI | Text effects et effets visuels enrichis | Text reveals, aurora text, border beam, particles — 2-3 effets max par page |
-| Aceternity UI | Hero effects premium | MacbookScroll, Spotlight, Hero Parallax, Aurora Background — hero / sections clés uniquement |
+| Aceternity UI | Hero effects premium | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect — hero / sections clés uniquement |
 
 ## Principes Directeurs
 
