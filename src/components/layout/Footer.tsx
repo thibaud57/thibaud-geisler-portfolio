@@ -1,8 +1,10 @@
+import { connection } from 'next/server'
 import { getLocale } from 'next-intl/server'
 
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
 
 export async function Footer() {
+  await connection()
   const locale = await getLocale()
   const year = new Date().getFullYear()
 
