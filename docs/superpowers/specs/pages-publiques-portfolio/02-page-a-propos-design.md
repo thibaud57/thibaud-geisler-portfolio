@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "page-a-propos"
 goal: "Livrer la page publique /a-propos présentant hero + portrait, positionnement business, stats dynamiques (XP auto + missions + clients dérivés DB), stack technique dérivée des tags projets publiés, bouton CV téléchargeable."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
