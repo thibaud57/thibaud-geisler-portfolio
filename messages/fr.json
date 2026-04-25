@@ -139,7 +139,32 @@
   },
   "AboutPage": {
     "title": "À propos",
-    "placeholder": "Contenu à venir."
+    "hero": {
+      "headline": "Thibaud Geisler - IA & Développement Full-Stack",
+      "tagline": "Je conçois des produits IA et des applications web sur mesure, en équipe réduite ou en solo, avec une approche business-solution.",
+      "portraitAlt": "Portrait de Thibaud Geisler"
+    },
+    "bio": {
+      "intro": "Développeur full-stack spécialisé IA et automatisation, je travaille en freelance et j'interviens auprès d'entreprises (de la TPE au groupe) pour livrer des produits concrets, mesurables et maintenables. Basé entre la France et le Luxembourg, j'opère en remote ou hybride.",
+      "positioning": "Mon positionnement : l'IA au service d'un cas d'usage business précis, pas un gadget. Je combine LLM, automatisations et développement full-stack pour livrer la solution la plus simple qui résout le problème.",
+      "approach": "Mon approche : cadrer le besoin réel avec vous, prototyper vite, itérer sur des livrables concrets, documenter pour la maintenance. J'avance par jalons courts pour livrer régulièrement et m'adapter à vos retours."
+    },
+    "stats": {
+      "years": { "label": "années d'expérience" },
+      "missions": { "label": "projets clients livrés" },
+      "clients": { "label": "clients servis" }
+    },
+    "stack": {
+      "title": "Stack technique",
+      "kindLabels": {
+        "AI": "IA & Automatisation",
+        "EXPERTISE": "Expertises",
+        "LANGUAGE": "Langages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Bases de données",
+        "INFRA": "Infrastructure"
+      }
+    }
   },
   "ContactPage": {
     "title": "Contact",

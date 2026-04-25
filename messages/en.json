@@ -139,7 +139,32 @@
   },
   "AboutPage": {
     "title": "About",
-    "placeholder": "Content coming soon."
+    "hero": {
+      "headline": "Thibaud Geisler - AI & Full-Stack Development",
+      "tagline": "I design AI products and custom web apps, in small teams or solo, with a business-solution mindset.",
+      "portraitAlt": "Portrait of Thibaud Geisler"
+    },
+    "bio": {
+      "intro": "Full-stack developer specialized in AI and automation. I work as a freelancer with companies from small businesses to large groups, delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
+      "positioning": "My positioning: AI in service of a precise business use case, not a gimmick. I combine LLMs, automations and full-stack development to deliver the simplest solution that actually solves the problem.",
+      "approach": "My approach: scope the real need with you, prototype fast, iterate on concrete deliverables, document for maintenance. I work in short milestones to ship regularly and adapt to your feedback."
+    },
+    "stats": {
+      "years": { "label": "years of experience" },
+      "missions": { "label": "client projects delivered" },
+      "clients": { "label": "clients served" }
+    },
+    "stack": {
+      "title": "Tech stack",
+      "kindLabels": {
+        "AI": "AI & Automation",
+        "EXPERTISE": "Expertise",
+        "LANGUAGE": "Languages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Databases",
+        "INFRA": "Infrastructure"
+      }
+    }
   },
   "ContactPage": {
     "title": "Contact",

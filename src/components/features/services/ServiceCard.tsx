@@ -1,6 +1,7 @@
 import { Link } from '@/i18n/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { LabeledText } from '@/components/ui/labeled-text'
 import { cn } from '@/lib/utils'
 import { ServiceCardBeam } from './ServiceCardBeam'
 import { SERVICE_HIGHLIGHTS, SERVICE_ICONS, type ServiceSlug } from './service-slugs'
@@ -11,22 +12,6 @@ type Props = {
   description: string
   bullets: string[]
   ctaLabel: string
-}
-
-const BULLET_LABEL_MAX_LENGTH = 30
-
-function BulletText({ text }: { text: string }) {
-  const idx = text.indexOf(':')
-  if (idx <= 0 || idx > BULLET_LABEL_MAX_LENGTH) return <span>{text}</span>
-  const labelEnd = text[idx - 1] === ' ' ? idx - 1 : idx
-  const label = text.slice(0, labelEnd)
-  const sepAndRest = text.slice(labelEnd)
-  return (
-    <span>
-      <strong className="font-semibold">{label}</strong>
-      {sepAndRest}
-    </span>
-  )
 }
 
 export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Props) {
@@ -52,7 +37,7 @@ export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Pro
           {bullets.map((bullet) => (
             <li key={bullet} className="flex gap-2">
               <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-              <BulletText text={bullet} />
+              <LabeledText text={bullet} />
             </li>
           ))}
         </ul>
