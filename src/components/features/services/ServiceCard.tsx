@@ -2,7 +2,8 @@ import { Link } from '@/i18n/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { SERVICE_ICONS, type ServiceSlug } from './service-slugs'
+import { ServiceCardBeam } from './ServiceCardBeam'
+import { SERVICE_HIGHLIGHTS, SERVICE_ICONS, type ServiceSlug } from './service-slugs'
 
 type Props = {
   slug: ServiceSlug
@@ -34,13 +35,13 @@ export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Pro
   return (
     <Card
       className={cn(
-        'flex h-full flex-col',
+        'relative flex h-full flex-col overflow-hidden',
         'transition hover:-translate-y-0.5 hover:shadow-md',
       )}
     >
       <CardHeader className="gap-4">
         <Icon className="size-8 text-primary" aria-hidden />
-        <CardTitle className="text-2xl font-semibold">{title}</CardTitle>
+        <CardTitle className="font-display text-2xl font-semibold">{title}</CardTitle>
         <CardDescription className="text-base text-muted-foreground">
           {description}
         </CardDescription>
@@ -64,6 +65,7 @@ export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Pro
           </Link>
         </Button>
       </CardFooter>
+      {SERVICE_HIGHLIGHTS[slug] && <ServiceCardBeam />}
     </Card>
   )
 }
