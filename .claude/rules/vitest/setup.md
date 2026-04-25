@@ -12,6 +12,7 @@ paths:
 ## À faire
 - Configurer `vitest.config.ts` avec le plugin **`@vitejs/plugin-react`** + résoudre les alias `@/*` via le plugin **`vite-tsconfig-paths`** (`plugins: [tsconfigPaths(), react()]`) **OU** la forme native Vitest 4 **`resolve.tsconfigPaths: true`** dans le bloc `resolve` (équivalent fonctionnel, pas de dep additionnelle si Vitest 4)
 - **Séparer unit / integration via `projects`** (pattern Vitest 4) : un project `unit` (env jsdom, parallélisme normal) et un project `integration` (env node, sérialisation si DB partagée — voir gotcha plus bas). Évite le directive `// @vitest-environment node` par fichier
+- **Inliner `next-intl` côté project unit** via **`server.deps.inline: ['next-intl']`** : next-intl est ESM-only et importe `next/navigation` sans extension `.js` (workaround Next.js [#77200](https://github.com/vercel/next.js/issues/77200), pas fixé en Next 16). Sans inline, Node ESM strict refuse la résolution. Solution officielle [next-intl.dev/docs/environments/testing](https://next-intl.dev/docs/environments/testing). Préférer cette option à `vi.mock('next/navigation')` (insuffisant car le bug est à la résolution, avant `vi.mock`)
 - Définir `environment: 'jsdom'` pour les tests qui touchent au DOM, **`node`** pour les tests de logique pure (plus rapide)
 - Activer `globals: true` dans `vitest.config.ts` + ajouter `"types": ["vitest/globals"]` dans `tsconfig.json` pour avoir `describe`/`it`/`expect` sans import
 - Importer les matchers Testing Library via **`@testing-library/jest-dom/vitest`** (chemin `/vitest` obligatoire) dans le fichier setup
@@ -67,6 +68,8 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
           exclude: ['src/**/*.integration.test.{ts,tsx}'],
+          // next-intl ESM-only importe `next/navigation` sans extension .js (cf. vercel/next.js#77200)
+          server: { deps: { inline: ['next-intl'] } },
         },
       },
       {

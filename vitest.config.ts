@@ -21,6 +21,9 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
           exclude: ['src/**/*.integration.test.{ts,tsx}'],
+          // next-intl ESM-only importe `next/navigation` sans extension `.js` (cf. vercel/next.js#77200) ;
+          // inline force Vite (pas Node strict ESM) à résoudre. Solution officielle next-intl.dev/docs/environments/testing
+          server: { deps: { inline: ['next-intl'] } },
         },
       },
       {
