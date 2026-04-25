@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "migration-tags-et-seed-realiste"
 goal: "Ajouter Tag.displayOrder + Project.deliverablesCount au schema, étoffer le seed tags (elasticsearch in, vercel out, ordre custom par TagKind) et mettre à jour les labels stats /a-propos pour refléter la réalité du parcours sans multiplier les rows Project."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
