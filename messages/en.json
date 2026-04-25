@@ -5,7 +5,43 @@
   },
   "ServicesPage": {
     "title": "Services",
-    "placeholder": "Content coming soon."
+    "subtitle": "Three ways to work together, from AI prototypes to full-stack products, through upskilling your teams.",
+    "offers": {
+      "ia": {
+        "title": "AI & Automation",
+        "description": "AI solutions (chatbots, agents, RAG, MCP, LLM integrations) that automate your repetitive tasks and make your business processes more reliable. From scoping to production.",
+        "bullets": [
+          "Scoped, measurable use case before any prototype",
+          "POC delivered quickly, then industrialized for production",
+          "Integrated into your existing tools (CRM, API, internal tools...)",
+          "Guardrails: hallucination detection, continuous quality monitoring",
+          "AI Act and GDPR compliant by design"
+        ],
+        "ctaLabel": "Discuss my AI needs"
+      },
+      "fullstack": {
+        "title": "Full-Stack Development",
+        "description": "Web apps and APIs built to last, delivered on time and easy to evolve. Enterprise-grade rigor applied to a modern, productive stack.",
+        "bullets": [
+          "Technical scoping before any code (architecture and stack tailored to your context)",
+          "Fast and accessible interfaces, clean and documented APIs",
+          "Structured data that grows with your business",
+          "Tested code that limits regressions across updates",
+          "Deployment, monitoring and alerting in production"
+        ],
+        "ctaLabel": "Discuss my project"
+      },
+      "formation": {
+        "title": "AI Training for Companies",
+        "description": "Hands-on generative AI training for your teams, across 3 levels tailored to your business context. Short or in-depth formats, onsite or remote.",
+        "bullets": [
+          "Discovery (business teams): LLMs, AI agents, effective prompts, building a first agent",
+          "Developer: coding with Claude Code (sub-agents, skills, hooks) / first automation workflows (n8n)",
+          "Expert: advanced multi-agent architectures, the system that builds the system (requires existing fluency with Claude Code, Pi Agent or similar tools)"
+        ],
+        "ctaLabel": "Organize a training session"
+      }
+    }
   },
   "ProjectsPage": {
     "title": "Projects",

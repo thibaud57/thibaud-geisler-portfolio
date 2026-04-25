@@ -8,6 +8,11 @@ import {
   setupLocaleMetadata,
 } from '@/lib/seo'
 
+import { MotionItem } from '@/components/features/services/MotionItem'
+import { ServiceCard } from '@/components/features/services/ServiceCard'
+import { SERVICE_SLUGS } from '@/components/features/services/service-slugs'
+import { PageShell } from '@/components/layout/PageShell'
+
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/services'>): Promise<Metadata> {
@@ -26,9 +31,20 @@ export default async function ServicesPage({ params }: PageProps<'/[locale]/serv
   const t = await getTranslations('ServicesPage')
 
   return (
-    <main>
-      <h1>{t('title')}</h1>
-      <p>{t('placeholder')}</p>
-    </main>
+    <PageShell title={t('title')} subtitle={t('subtitle')}>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {SERVICE_SLUGS.map((slug, index) => (
+          <MotionItem key={slug} index={index}>
+            <ServiceCard
+              slug={slug}
+              title={t(`offers.${slug}.title`)}
+              description={t(`offers.${slug}.description`)}
+              bullets={t.raw(`offers.${slug}.bullets`) as string[]}
+              ctaLabel={t(`offers.${slug}.ctaLabel`)}
+            />
+          </MotionItem>
+        ))}
+      </div>
+    </PageShell>
   )
 }

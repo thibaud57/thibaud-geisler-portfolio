@@ -1,0 +1,69 @@
+import { Link } from '@/i18n/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { SERVICE_ICONS, type ServiceSlug } from './service-slugs'
+
+type Props = {
+  slug: ServiceSlug
+  title: string
+  description: string
+  bullets: string[]
+  ctaLabel: string
+}
+
+const BULLET_LABEL_MAX_LENGTH = 30
+
+function BulletText({ text }: { text: string }) {
+  const idx = text.indexOf(':')
+  if (idx <= 0 || idx > BULLET_LABEL_MAX_LENGTH) return <span>{text}</span>
+  const labelEnd = text[idx - 1] === ' ' ? idx - 1 : idx
+  const label = text.slice(0, labelEnd)
+  const sepAndRest = text.slice(labelEnd)
+  return (
+    <span>
+      <strong className="font-semibold">{label}</strong>
+      {sepAndRest}
+    </span>
+  )
+}
+
+export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Props) {
+  const Icon = SERVICE_ICONS[slug]
+
+  return (
+    <Card
+      className={cn(
+        'flex h-full flex-col',
+        'transition hover:-translate-y-0.5 hover:shadow-md',
+      )}
+    >
+      <CardHeader className="gap-4">
+        <Icon className="size-8 text-primary" aria-hidden />
+        <CardTitle className="text-2xl font-semibold">{title}</CardTitle>
+        <CardDescription className="text-base text-muted-foreground">
+          {description}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex-1">
+        <ul className="flex flex-col gap-2 text-base">
+          {bullets.map((bullet) => (
+            <li key={bullet} className="flex gap-2">
+              <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+              <BulletText text={bullet} />
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+
+      <CardFooter>
+        <Button asChild className="w-full">
+          <Link href={{ pathname: '/contact', query: { service: slug } }}>
+            {ctaLabel}
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}

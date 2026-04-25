@@ -5,7 +5,43 @@
   },
   "ServicesPage": {
     "title": "Services",
-    "placeholder": "Contenu à venir."
+    "subtitle": "Trois façons de travailler ensemble, du prototype IA au produit full-stack, en passant par la montée en compétences de vos équipes.",
+    "offers": {
+      "ia": {
+        "title": "IA & Automatisation",
+        "description": "Des solutions IA (chatbots, agents, RAG, MCP, intégrations LLM) qui automatisent vos tâches répétitives et fiabilisent vos processus métier. Du cadrage à la mise en production.",
+        "bullets": [
+          "Cas d'usage cadré et mesurable avant tout prototype",
+          "POC livré rapidement, puis industrialisé pour la production",
+          "Intégré à vos outils existants (CRM, API, outils internes...)",
+          "Garde-fous : détection des hallucinations, monitoring qualité continu",
+          "Conforme AI Act et RGPD dès la conception"
+        ],
+        "ctaLabel": "Parler de mon besoin IA"
+      },
+      "fullstack": {
+        "title": "Développement Full-Stack",
+        "description": "Des applications web et API conçues pour durer, livrées dans les délais et faciles à faire évoluer. La rigueur d'environnements enterprise appliquée à une stack moderne et productive.",
+        "bullets": [
+          "Cadrage technique avant le code (architecture et stack adaptées à votre contexte)",
+          "Interfaces rapides et accessibles, APIs propres et documentées",
+          "Données structurées qui évoluent avec votre activité",
+          "Code testé pour limiter les régressions au fil des mises à jour",
+          "Déploiement, monitoring et alerting en production"
+        ],
+        "ctaLabel": "Discuter de mon projet"
+      },
+      "formation": {
+        "title": "Formation IA en entreprise",
+        "description": "Formations pratiques à l'IA générative pour vos équipes, en 3 niveaux adaptés au contexte métier. Formats courts ou approfondis, en présentiel ou à distance.",
+        "bullets": [
+          "Découverte (équipes métier) : LLM, agents IA, prompts efficaces, création d'un premier agent",
+          "Développeur : coder avec Claude Code (sub-agents, skills, hooks) / premiers workflows d'automatisation (n8n)",
+          "Expert : architectures multi-agents avancées, le système qui construit le système (nécessite déjà la maîtrise de Claude Code, Pi Agent ou équivalents)"
+        ],
+        "ctaLabel": "Organiser une formation"
+      }
+    }
   },
   "ProjectsPage": {
     "title": "Projets",
