@@ -4,10 +4,11 @@ import type {
   CompanySize,
 } from '@/generated/prisma/client'
 
+export const PERSONAL_COMPANY_SLUG = 'personnel'
+
 export type CompanyInput = {
   slug: string
   name: string
-  // Convention de stockage : assets/projets/{client,personal}/<slug>/logo.png
   logoFilename: string | null
   websiteUrl: string | null
   sectors: CompanySector[]
@@ -15,7 +16,6 @@ export type CompanyInput = {
   locations: CompanyLocation[]
 }
 
-// Mapping taille : 1-50 → TPE, 50-250 → PME, 250-5000 → ETI, 5000+ → GROUPE
 export const companies: CompanyInput[] = [
   {
     slug: 'foyer',
@@ -54,7 +54,7 @@ export const companies: CompanyInput[] = [
     locations: ['GRAND_EST'],
   },
   {
-    slug: 'personnel',
+    slug: PERSONAL_COMPANY_SLUG,
     name: 'Personnel',
     logoFilename: null,
     websiteUrl: null,

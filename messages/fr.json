@@ -152,9 +152,9 @@
     "stats": {
       "years": { "label": "années d'expérience" },
       "missions": { "label": "projets clients livrés" },
-      "clients": { "label": "clients servis" }
+      "clients": { "label": "clients accompagnés" }
     },
-    "transition": "L'IA bouge vite. Je veille en continu, je teste, et je n'embarque dans vos projets que ce qui tient en production.",
+    "transition": "L'IA bouge vite. Je veille en continu, je teste, et j'embarque dans vos projets ce qui tient en production.",
     "stack": {
       "title": "Stack & Expertises",
       "kindLabels": {

@@ -42,11 +42,11 @@ test: test-unit test-integration
 
 [group('quality')]
 test-unit:
-    pnpm vitest run --exclude "**/*.integration.test.{ts,tsx}" --passWithNoTests
+    pnpm vitest run --project unit --passWithNoTests
 
 [group('quality')]
 test-integration:
-    pnpm vitest run integration.test
+    pnpm vitest run --project integration --no-file-parallelism
 
 [group('quality')]
 test-watch:

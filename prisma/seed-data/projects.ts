@@ -5,6 +5,7 @@ import type {
   ProjectType,
   WorkMode,
 } from '@/generated/prisma/client'
+import { PERSONAL_COMPANY_SLUG } from './companies'
 
 export type ProjectInput = {
   slug: string
@@ -21,9 +22,9 @@ export type ProjectInput = {
   demoUrl: string | null
   coverFilename: string | null
   displayOrder: number
+  deliverablesCount: number
   // L'index du slug dans tagSlugs[] pilote ProjectTag.displayOrder au seed (0 en premier)
   tagSlugs: string[]
-  // companySlug doit exister dans companies.ts. Les projets PERSONAL pointent sur slug 'personnel'.
   clientMeta: {
     companySlug: string
     teamSize: number | null
@@ -50,18 +51,20 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/foyer/cover.webp',
     displayOrder: 1,
+    deliverablesCount: 3,
     tagSlugs: [
+      'typescript',
       'scala',
       'angular',
       'kafka',
-      'typescript',
       'play',
       'mongodb',
       'docker',
       'kubernetes',
       'github-actions',
-      'sentry',
       'datadog',
+      'elasticsearch',
+      'sentry',
       'sonarqube',
     ],
     clientMeta: {
@@ -88,6 +91,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/wanted-design/cover.webp',
     displayOrder: 0,
+    deliverablesCount: 0,
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -122,7 +126,8 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/paysystem/cover.webp',
     displayOrder: 7,
-    tagSlugs: ['angular', 'nodejs', 'express', 'php', 'scraping', 'mongodb'],
+    deliverablesCount: 1,
+    tagSlugs: ['typescript', 'angular', 'nodejs', 'express', 'php', 'scraping', 'mongodb'],
     clientMeta: {
       companySlug: 'paysystem',
       teamSize: 4,
@@ -147,6 +152,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/cloudsmart/cover.webp',
     displayOrder: 8,
+    deliverablesCount: 2,
     tagSlugs: ['python', 'odoo', 'android', 'java'],
     clientMeta: {
       companySlug: 'cloudsmart',
@@ -172,7 +178,8 @@ export const projects: ProjectInput[] = [
     demoUrl: 'https://thibaud-geisler.com',
     coverFilename: 'projets/personal/portfolio/cover.webp',
     displayOrder: 2,
-    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    deliverablesCount: 1,
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'nextjs',
       'typescript',
@@ -201,7 +208,8 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/techno-scraper/cover.webp',
     displayOrder: 5,
-    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    deliverablesCount: 1,
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'python',
       'scraping',
@@ -231,7 +239,8 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/crm-leads-n8n/cover.webp',
     displayOrder: 4,
-    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    deliverablesCount: 1,
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -258,7 +267,8 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/flight-search-api/cover.webp',
     displayOrder: 3,
-    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    deliverablesCount: 1,
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: [
       'scraping',
       'anti-bot',
@@ -287,7 +297,8 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/skill-prof/cover.webp',
     displayOrder: 6,
-    clientMeta: { companySlug: 'personnel', teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    deliverablesCount: 1,
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
     tagSlugs: ['skills', 'anthropic', 'local'],
   },
 ]

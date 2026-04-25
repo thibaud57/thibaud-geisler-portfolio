@@ -14,9 +14,9 @@ import {
   setupLocaleMetadata,
 } from '@/lib/seo'
 import {
-  countClientsServed,
+  countClientsSupported,
   countMissionsDelivered,
-  findPublishedTags,
+  findAllTags,
   getYearsOfExperience,
 } from '@/server/queries/about'
 
@@ -86,7 +86,7 @@ async function StatsAsync() {
     getTranslations('AboutPage.stats'),
     getYearsOfExperience(),
     countMissionsDelivered(),
-    countClientsServed(),
+    countClientsSupported(),
   ])
   const stats = [
     { slug: 'years', value: years, label: t('years.label') },
@@ -110,7 +110,7 @@ function StatsSkeleton() {
 }
 
 async function StackAsync({ locale }: { locale: Locale }) {
-  const tags = await findPublishedTags(locale)
+  const tags = await findAllTags(locale)
   return <TechStackBadges tags={tags} />
 }
 

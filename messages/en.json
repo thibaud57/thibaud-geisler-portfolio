@@ -152,9 +152,9 @@
     "stats": {
       "years": { "label": "years of experience" },
       "missions": { "label": "client projects delivered" },
-      "clients": { "label": "clients served" }
+      "clients": { "label": "clients supported" }
     },
-    "transition": "AI moves fast. I watch continuously, I test, and I only bring into your projects what holds up in production.",
+    "transition": "AI moves fast. I watch continuously, I test, and I bring into your projects what holds up in production.",
     "stack": {
       "title": "Stack & Expertise",
       "kindLabels": {
