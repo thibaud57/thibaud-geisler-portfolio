@@ -32,7 +32,7 @@ export function NumberTickerStats({ stats, className }: Props) {
             <NumberTicker value={stat.value} />
             {stat.suffix ? <span>{stat.suffix}</span> : null}
           </div>
-          <div className="text-base text-muted-foreground">{stat.label}</div>
+          <div className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">{stat.label}</div>
         </div>
       ))}
     </div>

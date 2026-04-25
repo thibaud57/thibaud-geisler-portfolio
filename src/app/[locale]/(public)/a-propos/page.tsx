@@ -55,9 +55,19 @@ export default async function AProposPage({
         </div>
       </AboutHero>
 
-      <Suspense fallback={<StatsSkeleton />}>
-        <StatsAsync />
-      </Suspense>
+      <blockquote className="mx-auto max-w-4xl text-center">
+        <p className="text-2xl italic leading-relaxed text-muted-foreground sm:text-3xl">
+          <span aria-hidden className="text-primary">«&nbsp;</span>
+          {t('transition')}
+          <span aria-hidden className="text-primary">&nbsp;»</span>
+        </p>
+      </blockquote>
+
+      <section className="border-y border-border py-16 sm:py-20 lg:py-24">
+        <Suspense fallback={<StatsSkeleton />}>
+          <StatsAsync />
+        </Suspense>
+      </section>
 
       <section className="flex flex-col gap-6">
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">

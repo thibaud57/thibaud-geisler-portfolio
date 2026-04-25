@@ -19,11 +19,11 @@ export async function AboutHero({ locale, className, children }: Props) {
   return (
     <section
       className={cn(
-        'grid gap-10 lg:grid-cols-2 lg:items-start',
+        'grid gap-6 lg:grid-cols-2 lg:items-center lg:px-4',
         className,
       )}
     >
-      <div className="order-1 mx-auto flex w-full max-w-sm flex-col gap-4 lg:order-2 lg:max-w-md">
+      <div className="order-1 mx-auto flex w-full max-w-sm flex-col gap-4 lg:order-2 lg:mx-0 lg:max-w-md lg:justify-self-end">
         <Image
           src={buildAssetUrl('branding/portrait.jpg')}
           alt={t('portraitAlt')}

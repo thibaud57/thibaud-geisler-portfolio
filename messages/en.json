@@ -154,8 +154,9 @@
       "missions": { "label": "client projects delivered" },
       "clients": { "label": "clients served" }
     },
+    "transition": "AI moves fast. I watch continuously, I test, and I only bring into your projects what holds up in production.",
     "stack": {
-      "title": "Tech stack",
+      "title": "Stack & Expertise",
       "kindLabels": {
         "AI": "AI & Automation",
         "EXPERTISE": "Expertise",

@@ -154,8 +154,9 @@
       "missions": { "label": "projets clients livrés" },
       "clients": { "label": "clients servis" }
     },
+    "transition": "L'IA bouge vite. Je veille en continu, je teste, et je n'embarque dans vos projets que ce qui tient en production.",
     "stack": {
-      "title": "Stack technique",
+      "title": "Stack & Expertises",
       "kindLabels": {
         "AI": "IA & Automatisation",
         "EXPERTISE": "Expertises",
