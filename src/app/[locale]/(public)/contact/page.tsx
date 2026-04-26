@@ -13,6 +13,7 @@ import { ContactForm } from '@/components/features/contact/ContactForm'
 import { LocationLine } from '@/components/features/contact/LocationLine'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { PageShell } from '@/components/layout/PageShell'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const PREFILL_SLUGS = ['ia', 'fullstack', 'formation'] as const
 type PrefillSlug = (typeof PREFILL_SLUGS)[number]
@@ -43,10 +44,13 @@ export default async function ContactPage({
   const rawService = resolvedSearchParams?.service
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
 
-  const tHeader = await getTranslations('ContactPage.header')
-  const tCalendly = await getTranslations('ContactPage.calendly')
-  const tForm = await getTranslations('ContactPage.form')
-  const tPrefill = await getTranslations('ContactPage.form.subjectPrefill')
+  const [tHeader, tCalendly, tForm, tPrefill, tTabs] = await Promise.all([
+    getTranslations('ContactPage.header'),
+    getTranslations('ContactPage.calendly'),
+    getTranslations('ContactPage.form'),
+    getTranslations('ContactPage.form.subjectPrefill'),
+    getTranslations('ContactPage.tabs'),
+  ])
 
   const defaultSubject = isPrefillSlug(serviceParam) ? tPrefill(serviceParam) : ''
 
@@ -71,24 +75,25 @@ export default async function ContactPage({
 
   return (
     <PageShell title={tHeader('h1')} subtitle={tHeader('tagline')}>
-      <LocationLine className="mb-10 -mt-2" />
-
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <section className="flex flex-col gap-6">
-          <h2 className="font-display text-2xl font-semibold tracking-tight">
-            {tCalendly('title')}
-          </h2>
-          <CalendlyWidget url={calendlyUrl} placeholderLabel={tCalendly('placeholder')} />
-        </section>
-
-        <section className="flex flex-col gap-6">
-          <h2 className="font-display text-2xl font-semibold tracking-tight">
-            {tForm('title')}
-          </h2>
-          <SocialLinks />
-          <ContactForm labels={formLabels} defaultSubject={defaultSubject} />
-        </section>
+      <div className="mb-10 -mt-2 flex flex-wrap items-center justify-between gap-4">
+        <LocationLine />
+        <SocialLinks className="justify-end" />
       </div>
+
+      <Tabs defaultValue="form" className="mx-auto w-full max-w-4xl">
+        <TabsList className="mx-auto grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="form">{tTabs('form')}</TabsTrigger>
+          <TabsTrigger value="calendly">{tTabs('calendly')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="form" className="mt-8 flex flex-col gap-6">
+          <ContactForm labels={formLabels} defaultSubject={defaultSubject} />
+        </TabsContent>
+
+        <TabsContent value="calendly" className="mt-8 flex flex-col gap-6">
+          <CalendlyWidget url={calendlyUrl} placeholderLabel={tCalendly('placeholder')} />
+        </TabsContent>
+      </Tabs>
     </PageShell>
   )
 }
