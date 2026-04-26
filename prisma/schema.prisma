@@ -99,6 +99,7 @@ model Project {
   caseStudyMarkdownFr String?
   caseStudyMarkdownEn String?
   displayOrder        Int             @default(0)
+  deliverablesCount   Int             @default(1)
   tags                ProjectTag[]
   clientMeta          ClientMeta?
   createdAt           DateTime        @default(now()) @db.Timestamptz
@@ -133,15 +134,16 @@ model Company {
 }
 
 model Tag {
-  id        String       @id @default(uuid(7))
-  slug      String       @unique
-  nameFr    String
-  nameEn    String
-  kind      TagKind
-  icon      String?
-  projects  ProjectTag[]
-  createdAt DateTime     @default(now()) @db.Timestamptz
-  updatedAt DateTime     @updatedAt @db.Timestamptz
+  id           String       @id @default(uuid(7))
+  slug         String       @unique
+  nameFr       String
+  nameEn       String
+  kind         TagKind
+  icon         String?
+  displayOrder Int          @default(0)
+  projects     ProjectTag[]
+  createdAt    DateTime     @default(now()) @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @db.Timestamptz
 }
 
 model ProjectTag {

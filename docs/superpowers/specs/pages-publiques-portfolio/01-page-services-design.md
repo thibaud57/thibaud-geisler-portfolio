@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "page-services"
 goal: "Livrer la page publique /services présentant les 3 offres (IA & Automatisation, Développement Full-Stack, Formation IA) avec CTA par service."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []

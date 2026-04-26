@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
 
+import { FinalCtaSection } from '@/components/features/home/FinalCtaSection'
+import { Hero } from '@/components/features/home/Hero'
+import { ProjectsTeaserSection } from '@/components/features/home/ProjectsTeaserSection'
+import { ServicesTeaserSection } from '@/components/features/home/ServicesTeaserSection'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import {
   buildLanguageAlternates,
   localeToOgLocale,
   setupLocaleMetadata,
 } from '@/lib/seo'
+import { getTranslations } from 'next-intl/server'
+
+
 
 export async function generateMetadata({
   params,
@@ -22,13 +28,30 @@ export async function generateMetadata({
 }
 
 export default async function HomePage({ params }: PageProps<'/[locale]'>) {
-  await setupLocalePage(params)
-  const t = await getTranslations('HomePage')
+  const { locale } = await setupLocalePage(params)
+  const tHero = await getTranslations('HomePage.hero')
 
   return (
-    <main>
-      <h1>{t('title')}</h1>
-      <p>{t('placeholder')}</p>
+    <main className="flex flex-col gap-20 pb-20 sm:gap-24 sm:pb-24 lg:gap-28 lg:pb-28">
+      <Hero
+        h1={tHero('h1')}
+        tagline={tHero('tagline')}
+        ctaPrimaryLabel={tHero('ctaPrimary')}
+        ctaSecondaryLabel={tHero('ctaSecondary')}
+        scrollCueAriaLabel={tHero('scrollCueAriaLabel')}
+      />
+
+      <div id="services" className="mx-auto w-full max-w-7xl scroll-mt-16 px-4 sm:px-6 lg:px-8">
+        <ServicesTeaserSection />
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ProjectsTeaserSection locale={locale} />
+      </div>
+
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <FinalCtaSection locale={locale} />
+      </div>
     </main>
   )
 }

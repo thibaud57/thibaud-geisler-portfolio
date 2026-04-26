@@ -10,6 +10,7 @@ import { routing } from '@/i18n/routing'
 import { findManyPublished } from '@/server/queries/projects'
 import { ProjectsList } from '@/components/features/projects/ProjectsList'
 import { ProjectsListSkeleton } from '@/components/features/projects/ProjectsListSkeleton'
+import { PageShell } from '@/components/layout/PageShell'
 
 export async function generateMetadata({
   params,
@@ -32,18 +33,11 @@ export default async function ProjetsPage({ params }: PageProps<'/[locale]/proje
   const t = await getTranslations('Projects')
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14">
-      <header className="mb-8 flex flex-col items-center gap-2 text-center lg:mb-10">
-        <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
-          {t('pageTitle')}
-        </h1>
-        <p className="text-lg text-muted-foreground">{t('pageSubtitle')}</p>
-      </header>
-
+    <PageShell title={t('pageTitle')} subtitle={t('pageSubtitle')}>
       <Suspense fallback={<ProjectsListSkeleton />}>
         <ProjectsListAsync locale={locale} />
       </Suspense>
-    </main>
+    </PageShell>
   )
 }
 

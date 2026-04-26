@@ -36,7 +36,9 @@ type Props = {
   reset: () => void
 }
 
-export default function GlobalError({ error: _error, reset }: Props) {
+export default function GlobalError({ error, reset }: Props) {
+  // TODO post-MVP : envoyer error à Sentry (cf. PRODUCTION.md > Monitoring)
+  void error
   const locale = useSyncExternalStore(subscribe, getClientLocale, getServerLocale)
   const t = messages[locale]
 

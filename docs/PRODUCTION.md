@@ -109,6 +109,9 @@ NODE_ENV=                           # development | production
 
 # Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
+
+# Calendly (widget inline /contact, exposé au navigateur)
+NEXT_PUBLIC_CALENDLY_URL=           # URL Calendly (ex: https://calendly.com/<slug>/<event-type>)
 ```
 
 ### Variables Secrets
@@ -201,6 +204,13 @@ Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le
 > Ces items étaient des optimisations et workarounds techniques (pas des ADRs : pas de décision architecturale structurelle). Implémentés au bootstrap Phase 6 et validés empiriquement.
 
 > **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
+
+## Cohérence documentaire (alignement specs ↔ implémentation)
+
+- [ ] **BRAINSTORM.md** — auditer le doc dans son ensemble et identifier les écarts entre la vision/features livrées et l'impl
+- [ ] **ARCHITECTURE.md** — auditer le doc dans son ensemble et identifier les écarts entre l'architecture documentée et l'impl
+- [ ] **DESIGN.md** — auditer le doc dans son ensemble et identifier les écarts entre le design system et l'UI livrée
+- [ ] **PRODUCTION.md** — auditer le doc dans son ensemble et vérifier que toutes les procédures opérationnelles documentées sont effectivement en place
 
 ---
 
