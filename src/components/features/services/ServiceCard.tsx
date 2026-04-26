@@ -10,12 +10,21 @@ type Props = {
   slug: ServiceSlug
   title: string
   description: string
-  bullets: string[]
-  ctaLabel: string
+  bullets?: string[]
+  ctaLabel?: string
+  variant?: 'full' | 'teaser'
 }
 
-export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Props) {
+export function ServiceCard({
+  slug,
+  title,
+  description,
+  bullets,
+  ctaLabel,
+  variant = 'full',
+}: Props) {
   const Icon = SERVICE_ICONS[slug]
+  const isFull = variant === 'full'
 
   return (
     <Card
@@ -32,24 +41,28 @@ export function ServiceCard({ slug, title, description, bullets, ctaLabel }: Pro
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1">
-        <ul className="flex flex-col gap-2 text-base">
-          {bullets.map((bullet) => (
-            <li key={bullet} className="flex gap-2">
-              <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
-              <LabeledText text={bullet} />
-            </li>
-          ))}
-        </ul>
-      </CardContent>
+      {isFull && bullets && (
+        <CardContent className="flex-1">
+          <ul className="flex flex-col gap-2 text-base">
+            {bullets.map((bullet) => (
+              <li key={bullet} className="flex gap-2">
+                <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                <LabeledText text={bullet} />
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      )}
 
-      <CardFooter>
-        <Button asChild className="w-full">
-          <Link href={{ pathname: '/contact', query: { service: slug } }}>
-            {ctaLabel}
-          </Link>
-        </Button>
-      </CardFooter>
+      {isFull && ctaLabel && (
+        <CardFooter>
+          <Button asChild className="w-full">
+            <Link href={{ pathname: '/contact', query: { service: slug } }}>
+              {ctaLabel}
+            </Link>
+          </Button>
+        </CardFooter>
+      )}
       {SERVICE_HIGHLIGHTS[slug] && <ServiceCardBeam />}
     </Card>
   )

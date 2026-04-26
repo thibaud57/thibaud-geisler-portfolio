@@ -1,7 +1,27 @@
 {
   "HomePage": {
     "title": "Home",
-    "placeholder": "Content coming soon."
+    "hero": {
+      "h1": "Thibaud Geisler - AI & Full-Stack Development",
+      "tagline": "AI, custom application development and training: from idea to production.",
+      "ctaPrimary": "Let's talk about your project",
+      "ctaSecondary": "See services"
+    },
+    "servicesTeaser": {
+      "title": "My services",
+      "subtitle": "Three ways to work together, tailored to your context and your level of maturity.",
+      "seeAll": "See all services"
+    },
+    "projectsTeaser": {
+      "title": "Recent projects",
+      "subtitle": "A selection of missions and projects that concretely illustrate the way I work.",
+      "seeAll": "See all projects"
+    },
+    "finalCta": {
+      "title": "Got a project in mind?",
+      "subtitle": "AI, web app, automation, training: tell me what you want to build and let's see how we can move forward together.",
+      "ctaLabel": "Let's talk about your project"
+    }
   },
   "ServicesPage": {
     "title": "Services",
