@@ -197,6 +197,10 @@
       "h1": "Contact",
       "tagline": "Let's talk about your AI project, your custom application or a training session for your team."
     },
+    "tabs": {
+      "calendly": "Book a slot",
+      "form": "Write to me"
+    },
     "calendly": {
       "title": "Book a slot",
       "subtitle": "A 30-minute call to scope your need.",
@@ -235,6 +239,13 @@
         "fullstack": "Full-Stack Development Project",
         "formation": "AI Training for Companies"
       }
+    }
+  },
+  "Footer": {
+    "tagline": "AI & Full-Stack Development",
+    "location": "Grand Est · Luxembourg · Remote",
+    "cv": {
+      "label": "My résumé (PDF):"
     }
   },
   "NotFound": {

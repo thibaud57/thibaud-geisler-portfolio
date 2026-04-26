@@ -197,6 +197,10 @@
       "h1": "Contact",
       "tagline": "Parlons de votre projet IA, de votre application sur mesure ou d'une formation pour vos équipes."
     },
+    "tabs": {
+      "calendly": "Réservez un créneau",
+      "form": "Écrivez-moi"
+    },
     "calendly": {
       "title": "Réservez un créneau",
       "subtitle": "Un échange de 30 minutes pour cadrer votre besoin.",
@@ -235,6 +239,13 @@
         "fullstack": "Projet Développement Full-Stack",
         "formation": "Formation IA en entreprise"
       }
+    }
+  },
+  "Footer": {
+    "tagline": "IA & Développement Full-Stack",
+    "location": "Grand Est · Luxembourg · Remote",
+    "cv": {
+      "label": "Mon CV au format PDF :"
     }
   },
   "NotFound": {

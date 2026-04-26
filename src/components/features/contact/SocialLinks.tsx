@@ -2,23 +2,9 @@ import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Mail } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
+import { SOCIAL_LINKS, type SocialSlug } from '@/config/social-links'
+import { LinkedinIcon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-
-import { SOCIAL_LINKS, type SocialSlug } from './social-links-config'
-
-function LinkedinIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      role="img"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path d="M20.452 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.356V9h3.414v1.561h.046c.477-.9 1.637-1.852 3.37-1.852 3.601 0 4.266 2.37 4.266 5.455v6.288zM5.337 7.433a2.062 2.062 0 1 1 0-4.126 2.063 2.063 0 0 1 0 4.126zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
-    </svg>
-  )
-}
 
 const ICONS: Record<SocialSlug, React.ComponentType<{ className?: string }>> = {
   linkedin: LinkedinIcon,
@@ -50,9 +36,9 @@ export async function SocialLinks({ className }: Props) {
             href={link.url}
             {...(isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
             aria-label={ariaLabels[link.slug]}
-            className="flex size-14 items-center justify-center rounded-lg border border-border bg-card transition hover:scale-105 hover:shadow-md"
+            className="flex size-9 items-center justify-center rounded-md border border-border bg-card transition hover:scale-105 hover:shadow-md"
           >
-            <Icon className="size-6" />
+            <Icon className="size-4" />
           </a>
         )
       })}
