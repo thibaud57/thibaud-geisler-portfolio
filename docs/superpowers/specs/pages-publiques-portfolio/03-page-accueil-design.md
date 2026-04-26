@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "page-accueil"
 goal: "Livrer la page publique / (racine locale) avec Hero interactif Aceternity, teasers Services et Projets et section CTA finale, axée conversion business."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["01-page-services-design.md"]
