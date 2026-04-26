@@ -17,6 +17,7 @@ paths:
 - Préférer l'**extraction en composants React** plutôt que `@apply` pour créer une **classe réutilisable** du type `.btn-primary` (composants > directives Tailwind). **Exception** : `@apply` reste autorisé dans `@layer base` pour les **resets HTML globaux** (sélecteurs `*`, `body`, `html`…) où aucun composant React ne peut matcher la cible
 - Utiliser les **opacity modifiers** (`bg-black/50`, `text-foreground/80`) au lieu de `bg-opacity-*` / `text-opacity-*` (supprimés en v4)
 - **Border radius via `--radius`** : modifier uniquement `--radius` dans `globals.css` pour ajuster proportionnellement toute l'échelle (sm/md/lg/xl dérivés via `calc()`)
+- **`cursor-pointer` v4** : preflight v4 retire le default sur `<button>` → restaurer via snippet officiel (`button:not(:disabled), [role="button"]:not(:disabled)`) dans `@layer base` + ajouter `cursor-pointer` dans les CVA des items shadcn cliquables (`DropdownMenuItem`, `SelectItem`, etc.). Pas de `:is()` custom étendu.
 
 ## À éviter
 - **Couleurs en dur** : `bg-green-600`, `text-[#8FA68E]`, `text-red-500` → toujours via tokens (`bg-primary`, `text-destructive`) sinon le dark mode ne fonctionne pas

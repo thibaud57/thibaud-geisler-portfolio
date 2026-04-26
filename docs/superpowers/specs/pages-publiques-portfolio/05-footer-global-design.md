@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "footer-global"
 goal: "Livrer le footer partagé par toutes les pages publiques (logo horizontal + tagline + réseaux + CV + copyright) avec emplacements commentés pour les liens légaux que Feature 7 conformité livrera."
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["04-page-contact-layout-design.md"]

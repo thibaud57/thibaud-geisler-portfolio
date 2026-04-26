@@ -7,7 +7,9 @@ type Props = {
   reset: () => void
 }
 
-export default function Error({ error: _error, reset }: Props) {
+export default function Error({ error, reset }: Props) {
+  // TODO post-MVP : envoyer error à Sentry (cf. PRODUCTION.md > Monitoring)
+  void error
   const t = useTranslations('ErrorPage')
   const tCommon = useTranslations('Common')
 

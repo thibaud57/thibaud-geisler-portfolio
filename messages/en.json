@@ -1,11 +1,71 @@
 {
   "HomePage": {
     "title": "Home",
-    "placeholder": "Content coming soon."
+    "hero": {
+      "h1": "Thibaud Geisler - AI & Full-Stack Development",
+      "tagline": "AI, custom application development and training.\nFrom idea to production.",
+      "ctaPrimary": "Let's talk about your project",
+      "ctaSecondary": "See my projects",
+      "scrollCueAriaLabel": "Discover my services"
+    },
+    "servicesTeaser": {
+      "title": "My services",
+      "subtitle": "Three ways to work together, tailored to your context and your level of maturity.",
+      "seeAll": "See all services"
+    },
+    "projectsTeaser": {
+      "title": "Recent projects",
+      "subtitle": "A selection of missions and projects that concretely illustrate the way I work.",
+      "seeAll": "See all projects"
+    },
+    "finalCta": {
+      "title": "Got a project in mind?",
+      "subtitle": "AI, web app, automation, training: tell me what you want to build and let's see how we can move forward together.",
+      "ctaLabel": "Let's talk about your project"
+    },
+    "signatureSection": {
+      "title": "Daily stack & tools"
+    }
   },
   "ServicesPage": {
     "title": "Services",
-    "placeholder": "Content coming soon."
+    "subtitle": "Three ways to work together, from AI prototypes to full-stack products, through upskilling your teams.",
+    "offers": {
+      "ia": {
+        "title": "AI & Automation",
+        "description": "AI solutions (chatbots, agents, RAG, MCP, LLM integrations) that automate your repetitive tasks and make your business processes more reliable. From scoping to production.",
+        "bullets": [
+          "Scoped, measurable use case before any prototype",
+          "POC delivered quickly, then industrialized for production",
+          "Integrated into your existing tools (CRM, API, internal tools...)",
+          "Guardrails (hallucination detection, continuous quality monitoring)",
+          "AI Act and GDPR compliant by design"
+        ],
+        "ctaLabel": "Discuss my AI needs"
+      },
+      "fullstack": {
+        "title": "Full-Stack Development",
+        "description": "Web apps and APIs built to last, delivered on time and easy to evolve. Enterprise-grade rigor applied to a modern, productive stack.",
+        "bullets": [
+          "Technical scoping before any code (architecture and stack tailored to your context)",
+          "Fast and accessible interfaces, clean and documented APIs",
+          "Structured data that grows with your business",
+          "Tested code that limits regressions across updates",
+          "Deployment, monitoring and alerting in production"
+        ],
+        "ctaLabel": "Discuss my project"
+      },
+      "formation": {
+        "title": "AI Training for Companies",
+        "description": "Hands-on generative AI training for your teams, across 3 levels tailored to your business context. Short or in-depth formats, onsite or remote.",
+        "bullets": [
+          "Discovery (business teams): LLMs, AI agents, effective prompts, building a first agent",
+          "Developer: coding with Claude Code (sub-agents, skills, hooks) / first automation workflows (n8n)",
+          "Expert: advanced multi-agent architectures, the system that builds the system (requires existing fluency with Claude Code, Pi Agent or similar tools)"
+        ],
+        "ctaLabel": "Organize a training session"
+      }
+    }
   },
   "ProjectsPage": {
     "title": "Projects",
@@ -103,11 +163,90 @@
   },
   "AboutPage": {
     "title": "About",
-    "placeholder": "Content coming soon."
+    "hero": {
+      "headline": "Thibaud Geisler - AI & Full-Stack Development",
+      "tagline": "I design AI products and custom web apps, in small teams or solo, with a business-solution mindset.",
+      "portraitAlt": "Portrait of Thibaud Geisler"
+    },
+    "bio": {
+      "intro": "Full-stack developer specialized in AI and automation. I work as a freelancer with companies from small businesses to large groups, delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
+      "positioning": "My positioning: AI in service of a precise business use case, not a gimmick. I combine LLMs, automations and full-stack development to deliver the simplest solution that actually solves the problem.",
+      "approach": "My approach: scope the real need with you, prototype fast, iterate on concrete deliverables, document for maintenance. I work in short milestones to ship regularly and adapt to your feedback."
+    },
+    "stats": {
+      "years": { "label": "years of experience" },
+      "missions": { "label": "client projects delivered" },
+      "clients": { "label": "clients supported" }
+    },
+    "transition": "AI moves fast. I watch continuously, I test, and I bring into your projects what holds up in production.",
+    "stack": {
+      "title": "Stack & Expertise",
+      "kindLabels": {
+        "AI": "AI & Automation",
+        "EXPERTISE": "Expertise",
+        "LANGUAGE": "Languages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Databases",
+        "INFRA": "Infrastructure"
+      }
+    }
   },
   "ContactPage": {
     "title": "Contact",
-    "placeholder": "Content coming soon."
+    "header": {
+      "h1": "Contact",
+      "tagline": "Let's talk about your AI project, your custom application or a training session for your team."
+    },
+    "tabs": {
+      "calendly": "Book a slot",
+      "form": "Write to me"
+    },
+    "calendly": {
+      "title": "Book a slot",
+      "subtitle": "A 30-minute call to scope your need.",
+      "placeholder": "Booking module coming soon"
+    },
+    "social": {
+      "ariaLabel": {
+        "linkedin": "Thibaud Geisler's LinkedIn profile",
+        "github": "Thibaud Geisler's GitHub profile",
+        "email": "Send an email to Thibaud Geisler"
+      }
+    },
+    "form": {
+      "title": "Send me a message",
+      "subtitle": "I reply within 24 to 48 business hours.",
+      "fields": {
+        "name": "Full name",
+        "company": "Company",
+        "companyOptional": "(optional)",
+        "email": "Email",
+        "subject": "Subject",
+        "message": "Message"
+      },
+      "placeholders": {
+        "name": "Jane Doe",
+        "company": "Acme Inc.",
+        "email": "jane@example.com",
+        "subject": "What's your message about?",
+        "message": "Describe your need, your context and your questions…"
+      },
+      "submit": "Send",
+      "submitting": "Sending…",
+      "stubToast": "Thanks, message received on the UI side. Actual sending will be enabled very soon.",
+      "subjectPrefill": {
+        "ia": "AI & Automation Project",
+        "fullstack": "Full-Stack Development Project",
+        "formation": "AI Training for Companies"
+      }
+    }
+  },
+  "Footer": {
+    "tagline": "AI & Full-Stack Development",
+    "location": "Grand Est · Luxembourg · Remote",
+    "cv": {
+      "label": "My résumé (PDF):"
+    }
   },
   "NotFound": {
     "title": "404",
@@ -127,6 +266,19 @@
   },
   "LanguageSwitcher": {
     "ariaLabel": "Change language"
+  },
+  "ThemeToggle": {
+    "ariaLabel": "Toggle theme"
+  },
+  "MobileMenu": {
+    "ariaLabel": "Open navigation menu"
+  },
+  "Nav": {
+    "home": "Home",
+    "services": "Services",
+    "projects": "Projects",
+    "about": "About",
+    "contact": "Contact"
   },
   "Metadata": {
     "siteTitle": "Thibaud Geisler: AI & Development",
