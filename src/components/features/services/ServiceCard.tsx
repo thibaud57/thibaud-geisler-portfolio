@@ -30,7 +30,7 @@ export function ServiceCard({
     <Card
       className={cn(
         'relative flex h-full flex-col overflow-hidden',
-        'transition hover:-translate-y-0.5 hover:shadow-md',
+        'transition hover:-translate-y-0.5 hover:border-primary/40',
       )}
     >
       <CardHeader className="gap-4">
