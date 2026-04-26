@@ -3,9 +3,10 @@
     "title": "Home",
     "hero": {
       "h1": "Thibaud Geisler - AI & Full-Stack Development",
-      "tagline": "AI, custom application development and training: from idea to production.",
+      "tagline": "AI, custom application development and training.\nFrom idea to production.",
       "ctaPrimary": "Let's talk about your project",
-      "ctaSecondary": "See services"
+      "ctaSecondary": "See my projects",
+      "scrollCueAriaLabel": "Discover my services"
     },
     "servicesTeaser": {
       "title": "My services",
@@ -209,6 +210,12 @@
   },
   "LanguageSwitcher": {
     "ariaLabel": "Change language"
+  },
+  "ThemeToggle": {
+    "ariaLabel": "Toggle theme"
+  },
+  "MobileMenu": {
+    "ariaLabel": "Open navigation menu"
   },
   "Metadata": {
     "siteTitle": "Thibaud Geisler: AI & Development",

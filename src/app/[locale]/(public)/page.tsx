@@ -38,9 +38,10 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
         tagline={tHero('tagline')}
         ctaPrimaryLabel={tHero('ctaPrimary')}
         ctaSecondaryLabel={tHero('ctaSecondary')}
+        scrollCueAriaLabel={tHero('scrollCueAriaLabel')}
       />
 
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div id="services" className="mx-auto w-full max-w-7xl scroll-mt-16 px-4 sm:px-6 lg:px-8">
         <ServicesTeaserSection />
       </div>
 

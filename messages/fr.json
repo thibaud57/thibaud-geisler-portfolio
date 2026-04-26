@@ -3,9 +3,10 @@
     "title": "Accueil",
     "hero": {
       "h1": "Thibaud Geisler - IA & Développement Full-Stack",
-      "tagline": "IA, développement d'applications sur mesure et formation : de l'idée à la mise en production.",
+      "tagline": "IA, développement d'applications sur mesure et formation.\nDe l'idée à la mise en production.",
       "ctaPrimary": "Parlons de votre projet",
-      "ctaSecondary": "Voir les services"
+      "ctaSecondary": "Voir mes projets",
+      "scrollCueAriaLabel": "Découvrir mes services"
     },
     "servicesTeaser": {
       "title": "Mes services",
@@ -209,6 +210,12 @@
   },
   "LanguageSwitcher": {
     "ariaLabel": "Changer de langue"
+  },
+  "ThemeToggle": {
+    "ariaLabel": "Changer de thème"
+  },
+  "MobileMenu": {
+    "ariaLabel": "Ouvrir le menu de navigation"
   },
   "Metadata": {
     "siteTitle": "Thibaud Geisler\u00a0: IA & Développement",
