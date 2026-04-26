@@ -273,6 +273,13 @@
   "MobileMenu": {
     "ariaLabel": "Ouvrir le menu de navigation"
   },
+  "Nav": {
+    "home": "Accueil",
+    "services": "Services",
+    "projects": "Projets",
+    "about": "À propos",
+    "contact": "Contact"
+  },
   "Metadata": {
     "siteTitle": "Thibaud Geisler\u00a0: IA & Développement",
     "siteDescription": "Portfolio de Thibaud Geisler. Intelligence artificielle, développement full-stack et formation IA.",
