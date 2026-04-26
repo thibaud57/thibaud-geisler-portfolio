@@ -193,7 +193,49 @@
   },
   "ContactPage": {
     "title": "Contact",
-    "placeholder": "Contenu à venir."
+    "header": {
+      "h1": "Contact",
+      "tagline": "Parlons de votre projet IA, de votre application sur mesure ou d'une formation pour vos équipes."
+    },
+    "calendly": {
+      "title": "Réservez un créneau",
+      "subtitle": "Un échange de 30 minutes pour cadrer votre besoin.",
+      "placeholder": "Module de réservation bientôt disponible"
+    },
+    "social": {
+      "ariaLabel": {
+        "linkedin": "Profil LinkedIn de Thibaud Geisler",
+        "github": "Profil GitHub de Thibaud Geisler",
+        "email": "Envoyer un email à Thibaud Geisler"
+      }
+    },
+    "form": {
+      "title": "Envoyez-moi un message",
+      "subtitle": "Je vous réponds sous 24 à 48 h ouvrées.",
+      "fields": {
+        "name": "Nom complet",
+        "company": "Entreprise",
+        "companyOptional": "(optionnel)",
+        "email": "Email",
+        "subject": "Sujet",
+        "message": "Message"
+      },
+      "placeholders": {
+        "name": "Jeanne Dupont",
+        "company": "Acme SAS",
+        "email": "jeanne@exemple.com",
+        "subject": "Sujet de votre message",
+        "message": "Décrivez votre besoin, votre contexte et vos questions…"
+      },
+      "submit": "Envoyer",
+      "submitting": "Envoi…",
+      "stubToast": "Merci, message bien reçu côté interface. L'envoi réel sera activé très prochainement.",
+      "subjectPrefill": {
+        "ia": "Projet IA & Automatisation",
+        "fullstack": "Projet Développement Full-Stack",
+        "formation": "Formation IA en entreprise"
+      }
+    }
   },
   "NotFound": {
     "title": "404",

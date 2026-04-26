@@ -193,7 +193,49 @@
   },
   "ContactPage": {
     "title": "Contact",
-    "placeholder": "Content coming soon."
+    "header": {
+      "h1": "Contact",
+      "tagline": "Let's talk about your AI project, your custom application or a training session for your team."
+    },
+    "calendly": {
+      "title": "Book a slot",
+      "subtitle": "A 30-minute call to scope your need.",
+      "placeholder": "Booking module coming soon"
+    },
+    "social": {
+      "ariaLabel": {
+        "linkedin": "Thibaud Geisler's LinkedIn profile",
+        "github": "Thibaud Geisler's GitHub profile",
+        "email": "Send an email to Thibaud Geisler"
+      }
+    },
+    "form": {
+      "title": "Send me a message",
+      "subtitle": "I reply within 24 to 48 business hours.",
+      "fields": {
+        "name": "Full name",
+        "company": "Company",
+        "companyOptional": "(optional)",
+        "email": "Email",
+        "subject": "Subject",
+        "message": "Message"
+      },
+      "placeholders": {
+        "name": "Jane Doe",
+        "company": "Acme Inc.",
+        "email": "jane@example.com",
+        "subject": "What's your message about?",
+        "message": "Describe your need, your context and your questions…"
+      },
+      "submit": "Send",
+      "submitting": "Sending…",
+      "stubToast": "Thanks, message received on the UI side. Actual sending will be enabled very soon.",
+      "subjectPrefill": {
+        "ia": "AI & Automation Project",
+        "fullstack": "Full-Stack Development Project",
+        "formation": "AI Training for Companies"
+      }
+    }
   },
   "NotFound": {
     "title": "404",
