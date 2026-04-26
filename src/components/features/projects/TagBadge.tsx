@@ -14,7 +14,7 @@ type Props = {
 
 export function TagBadge({ tag, className }: Props) {
   return (
-    <Badge variant="secondary" className={cn('gap-1.5 rounded-sm', className)}>
+    <Badge variant="secondary" className={cn('gap-1.5', className)}>
       <TagIcon icon={tag.icon} />
       <span>{tag.name}</span>
     </Badge>

@@ -63,7 +63,7 @@ export async function TechStackBadges({ tags, className }: Props) {
                   <Badge
                     key={tag.slug}
                     variant="outline"
-                    className="gap-1.5 rounded-sm bg-background/60"
+                    className="gap-1.5 bg-background/60"
                   >
                     {Icon ? <Icon size={14} className="shrink-0" /> : null}
                     <span>{tag.name}</span>
