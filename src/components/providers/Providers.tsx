@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
 
+import { Toaster } from '@/components/ui/sonner'
+
 // Faux positif React 19 × next-themes 0.4.6 : next-themes injecte un <script> inline
 // pour éviter le FOUC, React 19 warne à tort (le script s'exécute bien en SSR).
 // Workaround communautaire accepté, dev-only, filtre le message exact.
@@ -31,6 +33,7 @@ export function Providers({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       {children}
+      <Toaster />
     </ThemeProvider>
   )
 }

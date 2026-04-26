@@ -62,7 +62,7 @@ export function ProjectCard({ project }: Props) {
                 <TagBadge key={projectTag.tag.slug} tag={projectTag.tag} />
               ))}
               {extraCount > 0 ? (
-                <Badge variant="outline" className="rounded-sm text-xs">
+                <Badge variant="outline" className="text-xs">
                   +{extraCount}
                 </Badge>
               ) : null}

@@ -25,7 +25,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 **Source** : Google Fonts via `next/font/google`
 
-**Usage** : titres hero (H1), éléments de marque, logo, sections display marketing
+**Usage** : titres hero (H1), titres de cards des surfaces marketing, éléments de marque, logo, sections display marketing
 
 ### Police Monospace
 
@@ -47,6 +47,8 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
 
 > `font-display` est une classe Tailwind custom mappée sur Sansation. Les autres tailles utilisent Geist Sans par défaut.
+
+> **Exception** : sur les surfaces marketing, les titres de cards ajoutent aussi `font-display` au H3 (`font-display text-2xl font-semibold`) pour la cohérence éditoriale avec les H1 hero. Les pages internes (admin post-MVP, formulaires) gardent Geist Sans en H3.
 
 ## Palette de Couleurs
 
@@ -181,8 +183,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero / landing uniquement, effet shimmer, max 1 par page |
 | Boutons | Button (variants selon contexte) | shadcn/ui | default, outline, ghost, destructive, icon — variant choisi selon l'usage |
 | Formulaires | Input, Textarea, Select | shadcn/ui | Formulaire contact |
-| Cards services | Service Card | shadcn/ui (Card) | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
-| Cards projets | Project Card | Magic UI (BentoCard) | Showcase visuel dans BentoGrid asymétrique (landing + /projects) |
+| Cards services | Card service | shadcn/ui (Card) | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
+| Cards projets | Card projet | Magic UI (BentoCard) | Showcase visuel dans BentoGrid asymétrique (landing + /projects) |
 | Filtres projets | Tabs custom minimaliste (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`). Aceternity Tabs pas installé en MVP |
 | Badges Tag (technos/infra/outils/expertises) | Badge + Simple Icons / Lucide | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | Tags projets avec icône : Simple Icons pour technos/infra/outils (ex: React, Python, Docker) ou Lucide pour expertises (ex: Scraping, RAG, MCP). `variant="secondary"` par défaut. Délégation du renderer d'icône selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`) |
 | Badges Format (type de projet) | Badge sans icône | shadcn/ui | Types de projet (API, Web App, App Mobile, Desktop App, CLI, IA) affichés à côté ou sous le titre (card + case study). `variant="outline"` pour distinguer visuellement des Tags (étiquette catégorique, pas de glyphe). Valeur en texte uniquement |
@@ -252,7 +254,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Boutons CTA standards | Défaut shadcn (`hover:bg-primary/90`) | Tailwind transitions | Hover |
 | Navigation | Transition smooth underline | Tailwind transitions | Hover / Active |
 | Page transitions | Fade cross-dissolve (expérimental — nécessite View Transitions API) | Motion | Route change |
-| Badge "En cours" (indicateur live) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (signale un projet actif sur ProjectCard) |
+| Badge "En cours" (indicateur live) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (signale les cards de projets actifs) |
 | CTA "Voir la démo" (case study) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (mise en valeur du CTA principal, uniquement sur bouton démo, pas github) |
 
 ---

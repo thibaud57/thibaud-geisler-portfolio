@@ -1,20 +1,55 @@
+import Image from 'next/image'
 import type { Locale } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
+import { SocialLinks } from '@/components/features/contact/SocialLinks'
+import { buildAssetUrl } from '@/lib/assets'
 
 type Props = {
   locale: Locale
 }
 
-export function Footer({ locale }: Props) {
+export async function Footer({ locale }: Props) {
+  const t = await getTranslations('Footer')
+
   return (
     <footer className="border-t border-border mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          © {process.env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler
-        </p>
-        <DownloadCvButton locale={locale} variant="outline" size="sm" />
-        {/* TODO: logo, nav secondaire, social icons */}
+      <div className="max-w-7xl mx-auto grid gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+        <div className="flex flex-col gap-3">
+          <Image
+            src={buildAssetUrl('branding/logo-horizontal-light.png')}
+            alt="Thibaud Geisler"
+            width={180}
+            height={40}
+            className="h-10 w-auto max-w-[200px] object-contain dark:hidden"
+          />
+          <Image
+            src={buildAssetUrl('branding/logo-horizontal-dark.png')}
+            alt=""
+            width={180}
+            height={40}
+            className="hidden h-10 w-auto max-w-[200px] object-contain dark:block"
+          />
+          <p className="text-sm text-muted-foreground">{t('tagline')}</p>
+          <p className="text-sm text-muted-foreground">{t('location')}</p>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:items-end">
+          <SocialLinks />
+          <div className="flex flex-col gap-2 lg:items-end">
+            <p className="text-sm text-muted-foreground">{t('cv.label')}</p>
+            <DownloadCvButton locale={locale} variant="outline" size="sm" />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border">
+        <div className="max-w-7xl mx-auto flex flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+          <p>© {process.env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler</p>
+
+          {/* TODO(feature-7-conformite-legale): nav légale (mentions, confidentialité, cookies) */}
+        </div>
       </div>
     </footer>
   )

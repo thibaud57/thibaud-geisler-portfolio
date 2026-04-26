@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "page-contact-layout"
 goal: "Livrer la page /contact en layout 2 colonnes (Calendly + réseaux à gauche, form UI à droite) avec stub submit, en attendant que Feature 4 branche la logique métier SMTP."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []

@@ -1,11 +1,71 @@
 {
   "HomePage": {
     "title": "Accueil",
-    "placeholder": "Contenu à venir."
+    "hero": {
+      "h1": "Thibaud Geisler - IA & Développement Full-Stack",
+      "tagline": "IA, développement d'applications sur mesure et formation.\nDe l'idée à la mise en production.",
+      "ctaPrimary": "Parlons de votre projet",
+      "ctaSecondary": "Voir mes projets",
+      "scrollCueAriaLabel": "Découvrir mes services"
+    },
+    "servicesTeaser": {
+      "title": "Mes services",
+      "subtitle": "Trois façons de travailler ensemble, adaptées à votre contexte et votre niveau de maturité.",
+      "seeAll": "Voir tous les services"
+    },
+    "projectsTeaser": {
+      "title": "Projets récents",
+      "subtitle": "Une sélection de missions et de projets qui illustrent concrètement ma manière de travailler.",
+      "seeAll": "Voir tous les projets"
+    },
+    "finalCta": {
+      "title": "Un projet en tête ?",
+      "subtitle": "IA, application web, automatisation, formation : décrivez-moi ce que vous voulez construire et voyons comment avancer ensemble.",
+      "ctaLabel": "Parlons de votre projet"
+    },
+    "signatureSection": {
+      "title": "Stack & outils au quotidien"
+    }
   },
   "ServicesPage": {
     "title": "Services",
-    "placeholder": "Contenu à venir."
+    "subtitle": "Trois façons de travailler ensemble, du prototype IA au produit full-stack, en passant par la montée en compétences de vos équipes.",
+    "offers": {
+      "ia": {
+        "title": "IA & Automatisation",
+        "description": "Des solutions IA (chatbots, agents, RAG, MCP, intégrations LLM) qui automatisent vos tâches répétitives et fiabilisent vos processus métier. Du cadrage à la mise en production.",
+        "bullets": [
+          "Cas d'usage cadré et mesurable avant tout prototype",
+          "POC livré rapidement, puis industrialisé pour la production",
+          "Intégré à vos outils existants (CRM, API, outils internes...)",
+          "Garde-fous (détection des hallucinations, monitoring qualité continu)",
+          "Conforme AI Act et RGPD dès la conception"
+        ],
+        "ctaLabel": "Parler de mon besoin IA"
+      },
+      "fullstack": {
+        "title": "Développement Full-Stack",
+        "description": "Des applications web et API conçues pour durer, livrées dans les délais et faciles à faire évoluer. La rigueur d'environnements enterprise appliquée à une stack moderne et productive.",
+        "bullets": [
+          "Cadrage technique avant le code (architecture et stack adaptées à votre contexte)",
+          "Interfaces rapides et accessibles, APIs propres et documentées",
+          "Données structurées qui évoluent avec votre activité",
+          "Code testé pour limiter les régressions au fil des mises à jour",
+          "Déploiement, monitoring et alerting en production"
+        ],
+        "ctaLabel": "Discuter de mon projet"
+      },
+      "formation": {
+        "title": "Formation IA en entreprise",
+        "description": "Formations pratiques à l'IA générative pour vos équipes, en 3 niveaux adaptés au contexte métier. Formats courts ou approfondis, en présentiel ou à distance.",
+        "bullets": [
+          "Découverte (équipes métier) : LLM, agents IA, prompts efficaces, création d'un premier agent",
+          "Développeur : coder avec Claude Code (sub-agents, skills, hooks) / premiers workflows d'automatisation (n8n)",
+          "Expert : architectures multi-agents avancées, le système qui construit le système (nécessite déjà la maîtrise de Claude Code, Pi Agent ou équivalents)"
+        ],
+        "ctaLabel": "Organiser une formation"
+      }
+    }
   },
   "ProjectsPage": {
     "title": "Projets",
@@ -103,11 +163,90 @@
   },
   "AboutPage": {
     "title": "À propos",
-    "placeholder": "Contenu à venir."
+    "hero": {
+      "headline": "Thibaud Geisler - IA & Développement Full-Stack",
+      "tagline": "Je conçois des produits IA et des applications web sur mesure, en équipe réduite ou en solo, avec une approche business-solution.",
+      "portraitAlt": "Portrait de Thibaud Geisler"
+    },
+    "bio": {
+      "intro": "Développeur full-stack spécialisé IA et automatisation, je travaille en freelance et j'interviens auprès d'entreprises (de la TPE au groupe) pour livrer des produits concrets, mesurables et maintenables. Basé entre la France et le Luxembourg, j'opère en remote ou hybride.",
+      "positioning": "Mon positionnement : l'IA au service d'un cas d'usage business précis, pas un gadget. Je combine LLM, automatisations et développement full-stack pour livrer la solution la plus simple qui résout le problème.",
+      "approach": "Mon approche : cadrer le besoin réel avec vous, prototyper vite, itérer sur des livrables concrets, documenter pour la maintenance. J'avance par jalons courts pour livrer régulièrement et m'adapter à vos retours."
+    },
+    "stats": {
+      "years": { "label": "années d'expérience" },
+      "missions": { "label": "projets clients livrés" },
+      "clients": { "label": "clients accompagnés" }
+    },
+    "transition": "L'IA bouge vite. Je veille en continu, je teste, et j'embarque dans vos projets ce qui tient en production.",
+    "stack": {
+      "title": "Stack & Expertises",
+      "kindLabels": {
+        "AI": "IA & Automatisation",
+        "EXPERTISE": "Expertises",
+        "LANGUAGE": "Langages",
+        "FRAMEWORK": "Frameworks",
+        "DATABASE": "Bases de données",
+        "INFRA": "Infrastructure"
+      }
+    }
   },
   "ContactPage": {
     "title": "Contact",
-    "placeholder": "Contenu à venir."
+    "header": {
+      "h1": "Contact",
+      "tagline": "Parlons de votre projet IA, de votre application sur mesure ou d'une formation pour vos équipes."
+    },
+    "tabs": {
+      "calendly": "Réservez un créneau",
+      "form": "Écrivez-moi"
+    },
+    "calendly": {
+      "title": "Réservez un créneau",
+      "subtitle": "Un échange de 30 minutes pour cadrer votre besoin.",
+      "placeholder": "Module de réservation bientôt disponible"
+    },
+    "social": {
+      "ariaLabel": {
+        "linkedin": "Profil LinkedIn de Thibaud Geisler",
+        "github": "Profil GitHub de Thibaud Geisler",
+        "email": "Envoyer un email à Thibaud Geisler"
+      }
+    },
+    "form": {
+      "title": "Envoyez-moi un message",
+      "subtitle": "Je vous réponds sous 24 à 48 h ouvrées.",
+      "fields": {
+        "name": "Nom complet",
+        "company": "Entreprise",
+        "companyOptional": "(optionnel)",
+        "email": "Email",
+        "subject": "Sujet",
+        "message": "Message"
+      },
+      "placeholders": {
+        "name": "Jeanne Dupont",
+        "company": "Acme SAS",
+        "email": "jeanne@exemple.com",
+        "subject": "Sujet de votre message",
+        "message": "Décrivez votre besoin, votre contexte et vos questions…"
+      },
+      "submit": "Envoyer",
+      "submitting": "Envoi…",
+      "stubToast": "Merci, message bien reçu côté interface. L'envoi réel sera activé très prochainement.",
+      "subjectPrefill": {
+        "ia": "Projet IA & Automatisation",
+        "fullstack": "Projet Développement Full-Stack",
+        "formation": "Formation IA en entreprise"
+      }
+    }
+  },
+  "Footer": {
+    "tagline": "IA & Développement Full-Stack",
+    "location": "Grand Est · Luxembourg · Remote",
+    "cv": {
+      "label": "Mon CV au format PDF :"
+    }
   },
   "NotFound": {
     "title": "404",
@@ -127,6 +266,12 @@
   },
   "LanguageSwitcher": {
     "ariaLabel": "Changer de langue"
+  },
+  "ThemeToggle": {
+    "ariaLabel": "Changer de thème"
+  },
+  "MobileMenu": {
+    "ariaLabel": "Ouvrir le menu de navigation"
   },
   "Metadata": {
     "siteTitle": "Thibaud Geisler\u00a0: IA & Développement",
