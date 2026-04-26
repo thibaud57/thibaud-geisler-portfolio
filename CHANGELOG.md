@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.4.0...v0.5.0) (2026-04-26)
+
+
+### Features
+
+* pages publiques portfolio + decompose formulaire de contact ([#28](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/28)) ([5824833](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/58248338e9e2cb25069d96bf58f8da3fdb16b1c3))
+
 ## [0.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.3.0...v0.4.0) (2026-04-24)
 
 
