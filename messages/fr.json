@@ -22,6 +22,9 @@
       "title": "Un projet en tête ?",
       "subtitle": "IA, application web, automatisation, formation : décrivez-moi ce que vous voulez construire et voyons comment avancer ensemble.",
       "ctaLabel": "Parlons de votre projet"
+    },
+    "signatureSection": {
+      "title": "Stack & outils au quotidien"
     }
   },
   "ServicesPage": {

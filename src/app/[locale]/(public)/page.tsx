@@ -50,7 +50,7 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <FinalCtaSection />
+        <FinalCtaSection locale={locale} />
       </div>
     </main>
   )

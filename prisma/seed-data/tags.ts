@@ -39,9 +39,9 @@ export const tags: TagInput[] = [
   { slug: 'n8n', nameFr: 'n8n', nameEn: 'n8n', kind: 'AI', icon: 'simple-icons:n8n', displayOrder: 0 },
   { slug: 'rag', nameFr: 'RAG', nameEn: 'RAG', kind: 'AI', icon: 'lucide:database', displayOrder: 1 },
   { slug: 'mcp', nameFr: 'MCP', nameEn: 'MCP', kind: 'AI', icon: 'lucide:plug', displayOrder: 2 },
-  { slug: 'anthropic', nameFr: 'Claude (Anthropic)', nameEn: 'Claude (Anthropic)', kind: 'AI', icon: 'simple-icons:anthropic', displayOrder: 3 },
-  { slug: 'skills', nameFr: 'Skills', nameEn: 'Skills', kind: 'AI', icon: 'lucide:sparkles', displayOrder: 4 },
-  { slug: 'openai', nameFr: 'ChatGPT (OpenAI)', nameEn: 'ChatGPT (OpenAI)', kind: 'AI', icon: 'lucide:sparkles', displayOrder: 5 },
+  { slug: 'skills', nameFr: 'Skills', nameEn: 'Skills', kind: 'AI', icon: 'simple-icons:anthropic', displayOrder: 3 },
+  { slug: 'anthropic', nameFr: 'Claude', nameEn: 'Claude', kind: 'AI', icon: 'simple-icons:claude', displayOrder: 4 },
+  { slug: 'openai', nameFr: 'ChatGPT', nameEn: 'ChatGPT', kind: 'AI', icon: 'lucide:message-circle', displayOrder: 5 },
   { slug: 'perplexity', nameFr: 'Perplexity', nameEn: 'Perplexity', kind: 'AI', icon: 'simple-icons:perplexity', displayOrder: 6 },
   { slug: 'piagent', nameFr: 'PiAgent', nameEn: 'PiAgent', kind: 'AI', icon: 'lucide:bot', displayOrder: 7 },
 

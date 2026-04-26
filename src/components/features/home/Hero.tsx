@@ -3,7 +3,7 @@
 import { ChevronDown } from 'lucide-react'
 
 import { BackgroundRippleEffect } from '@/components/aceternity/background-ripple-effect'
-import { ShimmerButton } from '@/components/ui/shimmer-button'
+import { ShimmerButton } from '@/components/magicui/shimmer-button'
 import { Button } from '@/components/ui/button'
 import { Link, useRouter } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
