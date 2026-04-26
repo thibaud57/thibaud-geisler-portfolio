@@ -58,6 +58,7 @@ function createProject(overrides?: Partial<LocalizedProjectWithRelations>): Loca
     coverFilename: null,
     caseStudyMarkdown: null,
     displayOrder: 0,
+    deliverablesCount: 1,
     createdAt: now,
     updatedAt: now,
     tags: [],

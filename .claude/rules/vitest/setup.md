@@ -10,7 +10,9 @@ paths:
 # Vitest — Configuration, matchers, mocks, coverage
 
 ## À faire
-- Configurer `vitest.config.ts` avec les plugins **`@vitejs/plugin-react`** et **`vite-tsconfig-paths`** (sinon les alias `@/*` cassent dans les tests)
+- Configurer `vitest.config.ts` avec le plugin **`@vitejs/plugin-react`** + résoudre les alias `@/*` via le plugin **`vite-tsconfig-paths`** (`plugins: [tsconfigPaths(), react()]`) **OU** la forme native Vitest 4 **`resolve.tsconfigPaths: true`** dans le bloc `resolve` (équivalent fonctionnel, pas de dep additionnelle si Vitest 4)
+- **Séparer unit / integration via `projects`** (pattern Vitest 4) : un project `unit` (env jsdom, parallélisme normal) et un project `integration` (env node, sérialisation si DB partagée — voir gotcha plus bas). Évite le directive `// @vitest-environment node` par fichier
+- **Inliner `next-intl` côté project unit** via **`server.deps.inline: ['next-intl']`** : next-intl est ESM-only et importe `next/navigation` sans extension `.js` (workaround Next.js [#77200](https://github.com/vercel/next.js/issues/77200), pas fixé en Next 16). Sans inline, Node ESM strict refuse la résolution. Solution officielle [next-intl.dev/docs/environments/testing](https://next-intl.dev/docs/environments/testing). Préférer cette option à `vi.mock('next/navigation')` (insuffisant car le bug est à la résolution, avant `vi.mock`)
 - Définir `environment: 'jsdom'` pour les tests qui touchent au DOM, **`node`** pour les tests de logique pure (plus rapide)
 - Activer `globals: true` dans `vitest.config.ts` + ajouter `"types": ["vitest/globals"]` dans `tsconfig.json` pour avoir `describe`/`it`/`expect` sans import
 - Importer les matchers Testing Library via **`@testing-library/jest-dom/vitest`** (chemin `/vitest` obligatoire) dans le fichier setup
@@ -37,19 +39,52 @@ paths:
 
 ## Gotchas
 - Vitest 4.1.4 : Vite ≥ 6 + Node.js ≥ 20 requis
+- **Vitest 4 a aplani `poolOptions`** : `pool`, `maxWorkers`, `minWorkers`, `isolate`, `fileParallelism` sont désormais des options **top-level** (dans `test:` ou dans `projects[].test:`). Plus de `poolOptions: { forks: { singleFork: true } }` (typage refuse). Migration : `singleFork: true` → `maxWorkers: 1` + `fileParallelism: false` (voir [Vitest 4 migration guide](https://vitest.dev/guide/migration.html))
+- **Tests d'intégration partageant une DB** (Postgres unique pour tous les workers) : le parallélisme inter-fichiers crée des race conditions (truncate + insert concurrents). **Forcer la sérialisation** sur le project `integration` via `pool: 'forks'` + `maxWorkers: 1` + `fileParallelism: false`. Alternative production-grade : schema-per-worker via `VITEST_POOL_ID` (1..N), une DB ou un schéma Postgres par worker — voir [zenn.dev pattern Vitest+Prisma+Testcontainers](https://zenn.dev/onozaty/articles/vitest-testcontainer-prisma)
 - Async Server Components Next.js **non testables** dans Vitest (limitation jsdom + RSC) — passer en E2E (Playwright) ou extraire le data fetching dans une fonction pure
 - `@testing-library/react@16.x` : combo officiel avec Vitest 4 (versions antérieures incompatibles)
 - **Emplacement des tests (convention projet)** : strictement à plat à côté du fichier testé. Pas de `__tests__/`, pas de `tests/` racine, pas de structure miroir. Les helpers de test partagés (fixtures, setup DB) vont dans `src/lib/*-test-setup.ts` (colocalisés avec les utilitaires `lib/` qu'ils testent)
 
 ## Exemples
 ```typescript
-// ✅ vitest.config.ts minimal — plugins + jsdom + globals + setup
+// ✅ vitest.config.ts Vitest 4 — projects unit/integration séparés
+// Plugins / resolve / setupFiles hérités par les projects via extends: true
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [react()],
+  resolve: {
+    tsconfigPaths: true, // forme native Vitest 4 (équivaut au plugin vite-tsconfig-paths)
+  },
   test: {
-    environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          include: ['src/**/*.test.{ts,tsx}'],
+          exclude: ['src/**/*.integration.test.{ts,tsx}'],
+          // next-intl ESM-only importe `next/navigation` sans extension .js (cf. vercel/next.js#77200)
+          server: { deps: { inline: ['next-intl'] } },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          environment: 'node',
+          include: ['src/**/*.integration.test.{ts,tsx}'],
+          // DB partagée → sérialisation totale entre fichiers
+          pool: 'forks',
+          maxWorkers: 1,
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 })
 
