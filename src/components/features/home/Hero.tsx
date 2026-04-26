@@ -1,12 +1,11 @@
-'use client'
-
 import { ChevronDown } from 'lucide-react'
 
 import { BackgroundRippleEffect } from '@/components/aceternity/background-ripple-effect'
-import { ShimmerButton } from '@/components/magicui/shimmer-button'
 import { Button } from '@/components/ui/button'
-import { Link, useRouter } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
+import { HeroPrimaryCta } from './HeroPrimaryCta'
 
 type Props = {
   h1: string
@@ -25,8 +24,6 @@ export function Hero({
   scrollCueAriaLabel,
   className,
 }: Props) {
-  const router = useRouter()
-
   return (
     <section
       className={cn(
@@ -44,14 +41,7 @@ export function Hero({
           {tagline}
         </p>
         <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-          <ShimmerButton
-            onClick={() => router.push('/contact')}
-            background="var(--primary)"
-          >
-            <span className="text-base font-medium text-primary-foreground">
-              {ctaPrimaryLabel}
-            </span>
-          </ShimmerButton>
+          <HeroPrimaryCta label={ctaPrimaryLabel} />
           <Button asChild variant="outline" size="lg" className="h-12 rounded-full px-8 text-base font-medium">
             <Link href="/projets">{ctaSecondaryLabel}</Link>
           </Button>
