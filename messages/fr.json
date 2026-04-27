@@ -19,7 +19,9 @@
       "seeAll": "Voir tous les projets"
     },
     "finalCta": {
-      "title": "Un projet en tête ?",
+      "titlePrefix": "Un projet",
+      "titleSuffix": "en tête ?",
+      "rotateWords": ["IA", "Fullstack", "Formation"],
       "subtitle": "IA, application web, automatisation, formation : décrivez-moi ce que vous voulez construire et voyons comment avancer ensemble.",
       "ctaLabel": "Parlons de votre projet"
     },

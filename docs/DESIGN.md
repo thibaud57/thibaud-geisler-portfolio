@@ -193,7 +193,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal, Background Ripple Effect = fond interactif hero/CTA — grille de cellules qui ripplent au clic) |
 | Formulaire contact | Form shadcn pur (Card + Input + Textarea + Button + Label) | shadcn/ui | Layout 2 cols (form / Calendly + réseaux) reconstruit en shadcn sans bloc Aceternity PRO. UI livrée par Feature 1 sub 04, logique métier (Zod + Server Action + SMTP + rate limiting) par Feature 4 |
 | Effets visuels enrichis | Border Beam, Shine Border, Particles, Meteors, Magic Card | Magic UI | Enrichissement visuel des sections marketing |
-| Typographie display | Aurora Text, Animated Gradient Text, Text Reveal, Word Rotate | Magic UI | Titres hero Sansation, effets textes animés |
+| Typographie display | Hyper Text, Text Reveal, Word Rotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots, reveal au scroll) |
+| Typographie display (alt) | Text Generate Effect, Flip Words | Aceternity UI | Alternatives premium pour génération de texte (style IA) ou flip de phrases sur sections clés |
 | Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique pour les cards projets (landing + /projects) |
 | Marquee | Marquee | Magic UI | Défilement horizontal (logos techs, clients, projets) |
