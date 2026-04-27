@@ -2,7 +2,7 @@
 feature: "Feature 4 — Formulaire de contact"
 subproject: "refactor-calendly-widget-react-lib"
 goal: "Migrer CalendlyWidget vers la lib react-calendly avec un custom hook useCalendlyInline qui fixe le bug de remount Tabs et applique les params URL gratuits Calendly free."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
