@@ -73,7 +73,7 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
     return (
       <div
         className={cn(
-          'flex w-full flex-1 flex-col items-center justify-center min-h-[500px] gap-3 border border-dashed border-border bg-muted/40 text-muted-foreground rounded-lg',
+          'flex w-full flex-1 flex-col items-center justify-center min-h-[500px] gap-3 border border-border bg-card text-muted-foreground rounded-lg',
           className,
         )}
       >
@@ -97,7 +97,7 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
         styles={{ minWidth: MIN_WIDTH_PX, height, marginTop: -cropPx }}
       />
       {!iframeReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-muted/40 text-muted-foreground rounded-lg">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 border border-border bg-card text-muted-foreground rounded-lg">
           <PlaceholderContent label={placeholderLabel} />
         </div>
       )}

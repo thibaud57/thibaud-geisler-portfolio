@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 
 import { BackgroundRippleEffect } from '@/components/aceternity/background-ripple-effect'
+import { HyperText } from '@/components/magicui/hyper-text'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
@@ -37,9 +38,21 @@ export function Hero({
         <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
           {h1}
         </h1>
-        <p className="max-w-2xl whitespace-pre-line text-lg text-muted-foreground">
-          {tagline}
-        </p>
+        <div className="relative max-w-2xl overflow-hidden">
+          <p
+            aria-hidden
+            className="invisible whitespace-pre-line text-lg text-muted-foreground sm:text-xl"
+          >
+            {tagline}
+          </p>
+          <HyperText
+            as="p"
+            revealOrder="random"
+            className="absolute inset-0 py-0 text-lg font-normal text-muted-foreground sm:text-xl"
+          >
+            {tagline}
+          </HyperText>
+        </div>
         <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
           <HeroPrimaryCta label={ctaPrimaryLabel} />
           <Button asChild variant="outline" size="lg" className="h-12 rounded-full px-8 text-base font-medium">
