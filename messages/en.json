@@ -19,7 +19,9 @@
       "seeAll": "See all projects"
     },
     "finalCta": {
-      "title": "Got a project in mind?",
+      "titlePrefix": "Got a",
+      "titleSuffix": "project in mind?",
+      "rotateWords": ["AI", "Fullstack", "Training"],
       "subtitle": "AI, web app, automation, training: tell me what you want to build and let's see how we can move forward together.",
       "ctaLabel": "Let's talk about your project"
     },
