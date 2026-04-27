@@ -176,10 +176,12 @@ Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment du da
 
 Transversal — à implémenter avant la mise en production :
 
-* Metadata Open Graph par page (titre, description, image)
-* `sitemap.xml` généré dynamiquement (inclut les slugs projets)
+* Metadata Open Graph + Twitter Cards par page (titre, description, hreflang FR/EN, noindex auto hors prod)
+* OG images dynamiques 1200×630 (ImageResponse Next.js)
+* `sitemap.xml` généré dynamiquement (slugs projets + alternates hreflang)
 * `robots.txt`
-* Structured data JSON-LD (optionnel, post-MVP si besoin)
+* JSON-LD `ProfilePage` + `Person` (Wikidata `knowsAbout`) + `BreadcrumbList` (best practice 2026 pour Knowledge Panel + rich results E-E-A-T)
+* `llms.txt` pour AI engines (ChatGPT, Perplexity, Claude search — GEO 2026)
 
 ### Feature 6 — Support multilingue (FR / EN)
 
@@ -199,6 +201,8 @@ Pages légales et consentement cookies obligatoires avant mise en production pub
 * Page `/confidentialite` (politique RGPD art 13/14 — traitement du formulaire de contact, base légale intérêt légitime art 6-1-f, rétention 3 ans maximum, droits utilisateur, transfert hors UE Calendly via Data Privacy Framework)
 * Bandeau consentement cookies (`vanilla-cookieconsent` self-hosted, MIT, ~30 KB) — conforme CNIL 2025 : Accept all / Reject all même niveau visuel, opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
 * Gating du script Calendly inline (Feature 1 sub 04) : `widget.js` ne charge qu'après consentement de la catégorie marketing (Calendly pose des cookies tiers Segment, Google Analytics, Google Ads, Hotjar, LinkedIn Insight Tag, Facebook Pixel)
+* CSP (Content-Security-Policy) finalisé en synchronisation avec le gating cookies (origines `*.calendly.com` MVP + Umami post-MVP autorisées seulement après consentement marketing)
+* Banner cookies non-bloquant pour les Core Web Vitals : lazy load après FCP, position `fixed` pour CLS = 0, contenu indexable servi avant consentement (Googlebot ne consent jamais)
 * Extension du footer (Feature 1 sub 05) : décommenter la nav légale dans la row bottom déjà préparée (Mentions légales, Politique de confidentialité, Gérer mes cookies)
 
 Justification positionnement MVP : le formulaire de contact (Feature 4) collecte des données personnelles dès le 1er visiteur EU → politique de confidentialité obligatoire. Calendly inline embed (Feature 1 sub 04) pose des cookies tiers marketing → bandeau consentement obligatoire. Risque CNIL jusqu'à 20 M€ ou 4 % CA.
@@ -251,6 +255,8 @@ Possibles intégrations à étudier selon le besoin réel :
 Articles rédigés (tutoriels, retours d'expérience, posts techniques) pour renforcer le SEO et la crédibilité.
 
 Stockage : **PostgreSQL** (voir ADR-013). Articles gérés via le dashboard admin (CRUD, éditeur Markdown). Pas de MDX : incompatible avec le workflow dashboard et avec la Feature 6 (brouillons générés par IA).
+
+Activera les schémas JSON-LD `Article`/`BlogPosting` (rich results SERPs) et l'inclusion des slugs articles dans le `sitemap.xml` existant (extension de la query Prisma du sub-project 03 `sitemap-dynamique`).
 
 ### Feature 6 — Génération IA de contenu
 
