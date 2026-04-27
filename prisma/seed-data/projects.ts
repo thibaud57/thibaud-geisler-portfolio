@@ -53,6 +53,7 @@ export const projects: ProjectInput[] = [
     displayOrder: 1,
     deliverablesCount: 3,
     tagSlugs: [
+      'developpement-fullstack',
       'typescript',
       'scala',
       'angular',
@@ -127,7 +128,16 @@ export const projects: ProjectInput[] = [
     coverFilename: 'projets/client/paysystem/cover.webp',
     displayOrder: 7,
     deliverablesCount: 1,
-    tagSlugs: ['typescript', 'angular', 'nodejs', 'express', 'php', 'scraping', 'mongodb'],
+    tagSlugs: [
+      'developpement-fullstack',
+      'typescript',
+      'angular',
+      'nodejs',
+      'express',
+      'php',
+      'scraping',
+      'mongodb',
+    ],
     clientMeta: {
       companySlug: 'paysystem',
       teamSize: 4,

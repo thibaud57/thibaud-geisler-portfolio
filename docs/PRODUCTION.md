@@ -110,8 +110,9 @@ NODE_ENV=                           # development | production
 # Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
 
-# Calendly (widget inline /contact, exposé au navigateur)
-NEXT_PUBLIC_CALENDLY_URL=           # URL Calendly (ex: https://calendly.com/<slug>/<event-type>)
+# Calendly (widget inline /contact, exposé au navigateur — une URL par locale, event types FR/EN distincts)
+NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
+NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
 ```
 
 ### Variables Secrets
@@ -189,28 +190,33 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le backup S3 (voir section Backup & Recovery) avant ou après le rollback.
 
----
-
-# ✅ Checklist Pré-MEP (one-shot, avant premier déploiement)
+## Checklist Pré-MEP
 
 Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
 
 - [x] **Dockerfile `output: 'standalone'`** — activé dans `next.config.ts`, stage `runner` copie `.next/standalone` + `.next/static` + `public/` + `CMD ["node", "server.js"]`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
-
 - [x] **Opt-out Turbopack build (Prisma WASM)** — `next build --webpack` actif dans le Dockerfile. À surveiller : [Prisma issue #29025](https://github.com/prisma/prisma/issues/29025) pour retirer quand le bug upstream est corrigé.
-
 - [x] **Migrations auto au startup container** — stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 
 > Ces items étaient des optimisations et workarounds techniques (pas des ADRs : pas de décision architecturale structurelle). Implémentés au bootstrap Phase 6 et validés empiriquement.
 
 > **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
 
-## Cohérence documentaire (alignement specs ↔ implémentation)
+### Cohérence documentaire (alignement specs ↔ implémentation)
 
 - [ ] **BRAINSTORM.md** — auditer le doc dans son ensemble et identifier les écarts entre la vision/features livrées et l'impl
 - [ ] **ARCHITECTURE.md** — auditer le doc dans son ensemble et identifier les écarts entre l'architecture documentée et l'impl
 - [ ] **DESIGN.md** — auditer le doc dans son ensemble et identifier les écarts entre le design system et l'UI livrée
 - [ ] **PRODUCTION.md** — auditer le doc dans son ensemble et vérifier que toutes les procédures opérationnelles documentées sont effectivement en place
+
+## Checklist Post-MEP
+
+À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).
+
+- [ ] **Search Console + Bing Webmaster** — vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
+- [ ] **Validation rich results JSON-LD** — [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
+- [ ] **Accessibilité `/llms.txt`** — `curl` sur l'URL prod retourne le markdown attendu
+- [ ] **Baseline Core Web Vitals** — [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline
 
 ---
 
@@ -267,11 +273,11 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé — retire `
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Limite la fuite d'URL vers les sites externes |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Désactive les APIs navigateur inutilisées |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` | Force HTTPS sur 2 ans |
-| `Content-Security-Policy` | À définir à l'implémentation | Whitelist des origines autorisées — protection XSS |
+| `Content-Security-Policy` | Livrée par Feature 7 (cohérence avec gating cookies Calendly) | Whitelist des origines autorisées — protection XSS |
 
 > ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com`
 > ❌ **Ne pas désactiver HSTS ou CSP en production**, même temporairement
-> ℹ️ **CSP — origines tierces à prévoir** : Calendly (widget embed, MVP) et Umami (analytics, post-MVP) devront être explicitement autorisés dans la valeur CSP à l'implémentation
+> ℹ️ **CSP — origines tierces à prévoir** : Calendly (widget embed, MVP) et Umami (analytics, post-MVP) devront être explicitement autorisés. Implémentation livrée par Feature 7, en synchronisation avec le gating cookies Calendly.
 
 ## Rate Limiting
 
@@ -308,6 +314,8 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé — retire `
 | Métrique | Target | Outil |
 |----------|--------|-------|
 | LCP pages publiques | < 2.5s | [PageSpeed Insights](https://pagespeed.web.dev/) ou Google Search Console |
+| INP — pages interactives | < 200ms | [PageSpeed Insights](https://pagespeed.web.dev/) ou package `web-vitals` côté client |
+| CLS — pages publiques | < 0.1 | [PageSpeed Insights](https://pagespeed.web.dev/) ou Google Search Console (impacté par le banner cookies de Feature 7) |
 | TTFB page accueil (SSG) | < 200ms | `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com` |
 | TTFB page `/projets` (SSR) | < 500ms | Lighthouse (DevTools → Network) |
 | Durée Server Action formulaire | < 3s (hors SMTP) | Pino logs instrumentés dans la Server Action |
@@ -598,6 +606,9 @@ curl -I https://thibaud-geisler.com
 
 - [ ] Surveiller la taille des bundles JS (`next build` → rapport de bundles)
 - [ ] Vérifier les Core Web Vitals après mise en production initiale (Google Search Console)
+- [ ] Baseline LCP/INP/CLS via [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales au premier déploiement
+- [ ] Lazy load du banner cookies (Feature 7) pour préserver INP, position `fixed` pour CLS = 0
+- [ ] `priority` sur l'image LCP above-the-fold (cf. `.claude/rules/nextjs/images-fonts.md`)
 
 > La revalidation type ISR est déjà en place via `cacheComponents: true` + `'use cache'` + `cacheTag('projects')` sur les queries mises en cache. Invalidation ciblée via `revalidateTag('projects')` depuis les Server Actions admin (post-MVP).
 

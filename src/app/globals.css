@@ -229,3 +229,9 @@
 .prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)):hover {
   text-decoration: none;
 }
+
+html[data-magicui-theme-vt="active"]::view-transition-old(root),
+html[data-magicui-theme-vt="active"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
