@@ -2,7 +2,7 @@
 feature: "Feature 4 — Formulaire de contact"
 subproject: "branchement-contact-form-action"
 goal: "Brancher la Server Action submitContact sur le ContactForm existant via useActionState, ajouter le champ honeypot caché et localiser les messages d'erreur/succès dans messages/fr.json + messages/en.json."
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["03-server-action-submit-contact-design.md"]

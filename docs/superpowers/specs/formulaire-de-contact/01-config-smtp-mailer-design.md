@@ -2,7 +2,7 @@
 feature: "Feature 4 — Formulaire de contact"
 subproject: "config-smtp-mailer"
 goal: "Configurer les variables d'environnement SMTP IONOS et fournir un transporter nodemailer singleton prêt à l'emploi pour la Server Action submitContact."
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []

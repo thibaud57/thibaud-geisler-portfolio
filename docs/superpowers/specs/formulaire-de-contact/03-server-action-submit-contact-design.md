@@ -2,7 +2,7 @@
 feature: "Feature 4 — Formulaire de contact"
 subproject: "server-action-submit-contact"
 goal: "Implémenter la Server Action submitContact qui valide l'input via Zod, applique le rate limit IP, rejette les payloads honeypot, envoie l'email via le transporter nodemailer et loggue selon la politique RGPD du projet."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "full"
 depends_on: ["01-config-smtp-mailer-design.md", "02-zod-schema-contact-design.md"]
