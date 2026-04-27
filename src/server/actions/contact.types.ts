@@ -4,7 +4,7 @@ export type ContactFormMessage = 'rate_limit' | 'smtp_error' | null
 
 export type ContactFormState = {
   ok: boolean | null
-  errors: Partial<Record<keyof ContactInput | '_global', string[]>>
+  errors: Partial<Record<keyof ContactInput, string[]>>
   message: ContactFormMessage
   values?: Partial<Record<keyof ContactInput, string>>
 }

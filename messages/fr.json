@@ -204,7 +204,7 @@
     "calendly": {
       "title": "Réservez un créneau",
       "subtitle": "Un échange de 30 minutes pour cadrer votre besoin.",
-      "placeholder": "Module de réservation bientôt disponible"
+      "placeholder": "Chargement du calendrier…"
     },
     "social": {
       "ariaLabel": {
@@ -242,7 +242,6 @@
         "subject_too_long": "Sujet trop long (max 200 caractères).",
         "message_too_short": "Votre message doit contenir au moins 20 caractères.",
         "message_too_long": "Votre message est trop long (max 5000 caractères).",
-        "rate_limit_exceeded": "Trop de tentatives, veuillez réessayer dans quelques minutes.",
         "rate_limit": "Trop de tentatives, veuillez réessayer dans quelques minutes.",
         "smtp_error": "Une erreur est survenue lors de l'envoi. Veuillez réessayer plus tard."
       },

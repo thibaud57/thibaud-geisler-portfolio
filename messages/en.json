@@ -204,7 +204,7 @@
     "calendly": {
       "title": "Book a slot",
       "subtitle": "A 30-minute call to scope your need.",
-      "placeholder": "Booking module coming soon"
+      "placeholder": "Loading calendar…"
     },
     "social": {
       "ariaLabel": {
@@ -242,7 +242,6 @@
         "subject_too_long": "Subject is too long (max 200 characters).",
         "message_too_short": "Your message must be at least 20 characters.",
         "message_too_long": "Your message is too long (max 5000 characters).",
-        "rate_limit_exceeded": "Too many attempts, please try again in a few minutes.",
         "rate_limit": "Too many attempts, please try again in a few minutes.",
         "smtp_error": "An error occurred while sending. Please try again later."
       },

@@ -178,7 +178,7 @@ describe('submitContact', () => {
     expect(result.errors.message).toEqual(['message_too_short'])
   })
 
-  it('rejette quand checkRateLimit retourne allowed:false (errors._global + log warn)', async () => {
+  it('rejette quand checkRateLimit retourne allowed:false (message rate_limit + log warn)', async () => {
     vi.mocked(checkRateLimit).mockReturnValue({
       allowed: false,
       retryAfterSeconds: 240,
@@ -189,7 +189,7 @@ describe('submitContact', () => {
     expect(transporter.sendMail).not.toHaveBeenCalled()
     expect(result).toEqual({
       ok: false,
-      errors: { _global: ['rate_limit_exceeded'] },
+      errors: {},
       message: 'rate_limit',
       values: { ...FORM_DEFAULTS },
     })

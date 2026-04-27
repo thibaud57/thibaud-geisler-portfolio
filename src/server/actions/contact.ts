@@ -1,30 +1,15 @@
 'use server'
 
 import 'server-only'
-import { createHash, randomUUID } from 'node:crypto'
-import { headers } from 'next/headers'
 
-import { logger } from '@/lib/logger'
 import { MAIL_FROM, MAIL_TO, transporter } from '@/lib/mailer'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { contactSchema, type ContactInput } from '@/lib/schemas/contact'
+import { createActionLogger } from '@/lib/server-utils'
 
 import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from './contact.types'
 
-const IP_HASH_LENGTH = 8
-
 type ZodFieldErrors = Partial<Record<keyof ContactInput, string[]>>
-
-// TODO: bucket partagé pour requêtes sans x-forwarded-for, à raffiner si threat model évolue (proxy/CDN abuse).
-function extractClientIp(forwardedFor: string | null): string {
-  if (!forwardedFor) return 'unknown'
-  const first = forwardedFor.split(',')[0]?.trim()
-  return first && first.length > 0 ? first : 'unknown'
-}
-
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex').slice(0, IP_HASH_LENGTH)
-}
 
 function buildEmailBody(data: {
   name: string
@@ -50,11 +35,7 @@ export async function submitContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  const requestId = randomUUID()
-  const headersList = await headers()
-  const ip = extractClientIp(headersList.get('x-forwarded-for'))
-  const ipHash = hashIp(ip)
-  const log = logger.child({ action: 'submitContact', requestId, ip_hash: ipHash })
+  const { log, ip } = await createActionLogger('submitContact')
 
   const honeypot = formData.get('website')
   if (typeof honeypot === 'string' && honeypot.trim().length > 0) {
@@ -78,7 +59,7 @@ export async function submitContact(
     log.warn({ event: 'rate_limit:exceeded', retryAfterSeconds: rateLimit.retryAfterSeconds })
     return {
       ok: false,
-      errors: { _global: ['rate_limit_exceeded'] },
+      errors: {},
       message: 'rate_limit',
       values: submittedValues,
     }
