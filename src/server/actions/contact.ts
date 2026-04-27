@@ -9,24 +9,13 @@ import { MAIL_FROM, MAIL_TO, transporter } from '@/lib/mailer'
 import { checkRateLimit } from '@/lib/rate-limiter'
 import { contactSchema, type ContactInput } from '@/lib/schemas/contact'
 
-export type ContactFormMessage = 'rate_limit' | 'smtp_error' | null
+import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from './contact.types'
 
-export type ContactFormState = {
-  ok: boolean | null
-  errors: Partial<Record<keyof ContactInput | '_global', string[]>>
-  message: ContactFormMessage
-}
-
-export const initialContactFormState: ContactFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
-
-const RATE_LIMIT_MAX = 5
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
 const IP_HASH_LENGTH = 8
 
+type ZodFieldErrors = Partial<Record<keyof ContactInput, string[]>>
+
+// TODO: bucket partagé pour requêtes sans x-forwarded-for, à raffiner si threat model évolue (proxy/CDN abuse).
 function extractClientIp(forwardedFor: string | null): string {
   if (!forwardedFor) return 'unknown'
   const first = forwardedFor.split(',')[0]?.trim()
@@ -73,6 +62,14 @@ export async function submitContact(
     return { ok: true, errors: {}, message: null }
   }
 
+  const submittedValues: ContactFormState['values'] = {
+    name: String(formData.get('name') ?? ''),
+    company: String(formData.get('company') ?? ''),
+    email: String(formData.get('email') ?? ''),
+    subject: String(formData.get('subject') ?? ''),
+    message: String(formData.get('message') ?? ''),
+  }
+
   const rateLimit = checkRateLimit(ip, {
     max: RATE_LIMIT_MAX,
     windowMs: RATE_LIMIT_WINDOW_MS,
@@ -83,6 +80,7 @@ export async function submitContact(
       ok: false,
       errors: { _global: ['rate_limit_exceeded'] },
       message: 'rate_limit',
+      values: submittedValues,
     }
   }
 
@@ -90,8 +88,9 @@ export async function submitContact(
   if (!result.success) {
     return {
       ok: false,
-      errors: result.error.flatten().fieldErrors as ContactFormState['errors'],
+      errors: result.error.flatten().fieldErrors as ZodFieldErrors,
       message: null,
+      values: submittedValues,
     }
   }
 
@@ -111,6 +110,6 @@ export async function submitContact(
     return { ok: true, errors: {}, message: null }
   } catch (err) {
     log.error({ err, event: 'email:failed' })
-    return { ok: false, errors: {}, message: 'smtp_error' }
+    return { ok: false, errors: {}, message: 'smtp_error', values: submittedValues }
   }
 }

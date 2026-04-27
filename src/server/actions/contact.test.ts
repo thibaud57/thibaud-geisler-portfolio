@@ -32,29 +32,45 @@ vi.mock('@/lib/logger', () => ({
   },
 }))
 
-import { initialContactFormState, submitContact } from './contact'
+import { submitContact } from './contact'
+import {
+  RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW_MS,
+  initialContactFormState,
+} from './contact.types'
+
+const FORM_DEFAULTS = {
+  name: 'Alice',
+  company: 'Acme',
+  email: 'alice@acme.fr',
+  subject: 'Projet IA',
+  message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
+} as const
 
 const buildFormData = (
   overrides: Record<string, string> = {},
   options: { omit?: readonly string[] } = {},
 ): FormData => {
   const fd = new FormData()
-  const defaults: Record<string, string> = {
-    name: 'Alice',
-    company: 'Acme',
-    email: 'alice@acme.fr',
-    subject: 'Projet IA',
-    message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
-  }
   const omit = new Set(options.omit ?? [])
-  for (const [key, value] of Object.entries({ ...defaults, ...overrides })) {
+  for (const [key, value] of Object.entries({ ...FORM_DEFAULTS, ...overrides })) {
     if (omit.has(key)) continue
     fd.append(key, value)
   }
   return fd
 }
 
-const getChildLog = () => vi.mocked(logger.child).mock.results.at(-1)?.value
+type ChildLog = {
+  info: ReturnType<typeof vi.fn>
+  warn: ReturnType<typeof vi.fn>
+  error: ReturnType<typeof vi.fn>
+}
+
+const getChildLog = (): ChildLog => {
+  const result = vi.mocked(logger.child).mock.results.at(-1)?.value
+  if (!result) throw new Error('logger.child was never called')
+  return result as ChildLog
+}
 
 describe('submitContact', () => {
   beforeEach(() => {
@@ -134,6 +150,22 @@ describe('submitContact', () => {
     expect(result.message).toBeNull()
   })
 
+  it('preserve les valeurs saisies dans state.values en cas d\'erreur Zod', async () => {
+    const result = await submitContact(
+      initialContactFormState,
+      buildFormData({ email: 'pas-un-email' }),
+    )
+
+    expect(result.values).toEqual({ ...FORM_DEFAULTS, email: 'pas-un-email' })
+  })
+
+  it('ne renvoie pas state.values en cas de succes (form reset normal)', async () => {
+    const result = await submitContact(initialContactFormState, buildFormData())
+
+    expect(result.ok).toBe(true)
+    expect(result.values).toBeUndefined()
+  })
+
   it('retourne plusieurs erreurs Zod en cascade (name vide + message court)', async () => {
     const result = await submitContact(
       initialContactFormState,
@@ -159,6 +191,7 @@ describe('submitContact', () => {
       ok: false,
       errors: { _global: ['rate_limit_exceeded'] },
       message: 'rate_limit',
+      values: { ...FORM_DEFAULTS },
     })
 
     const childLog = getChildLog()
@@ -174,7 +207,12 @@ describe('submitContact', () => {
 
     const result = await submitContact(initialContactFormState, buildFormData())
 
-    expect(result).toEqual({ ok: false, errors: {}, message: 'smtp_error' })
+    expect(result).toEqual({
+      ok: false,
+      errors: {},
+      message: 'smtp_error',
+      values: { ...FORM_DEFAULTS },
+    })
 
     const childLog = getChildLog()
     expect(childLog.error).toHaveBeenCalledWith({
@@ -189,8 +227,8 @@ describe('submitContact', () => {
     await submitContact(initialContactFormState, buildFormData())
 
     expect(checkRateLimit).toHaveBeenCalledWith('unknown', {
-      max: 5,
-      windowMs: 600_000,
+      max: RATE_LIMIT_MAX,
+      windowMs: RATE_LIMIT_WINDOW_MS,
     })
   })
 
@@ -202,8 +240,8 @@ describe('submitContact', () => {
     await submitContact(initialContactFormState, buildFormData())
 
     expect(checkRateLimit).toHaveBeenCalledWith('1.2.3.4', {
-      max: 5,
-      windowMs: 600_000,
+      max: RATE_LIMIT_MAX,
+      windowMs: RATE_LIMIT_WINDOW_MS,
     })
   })
 
@@ -215,8 +253,8 @@ describe('submitContact', () => {
     await submitContact(initialContactFormState, buildFormData())
 
     expect(checkRateLimit).toHaveBeenCalledWith('1.2.3.4', {
-      max: 5,
-      windowMs: 600_000,
+      max: RATE_LIMIT_MAX,
+      windowMs: RATE_LIMIT_WINDOW_MS,
     })
   })
 
@@ -247,10 +285,9 @@ describe('submitContact', () => {
 
     for (const payload of allLogPayloads) {
       const json = JSON.stringify(payload ?? {})
-      expect(json).not.toContain('alice@acme.fr')
-      expect(json).not.toContain('Alice')
-      expect(json).not.toContain('Projet IA')
-      expect(json).not.toContain('Bonjour, j’aimerais discuter')
+      for (const value of Object.values(FORM_DEFAULTS)) {
+        expect(json).not.toContain(value)
+      }
     }
   })
 })

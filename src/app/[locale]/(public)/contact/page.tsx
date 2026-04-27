@@ -57,7 +57,6 @@ export default async function ContactPage({
   const formLabels = {
     name: tForm('fields.name'),
     company: tForm('fields.company'),
-    companyOptional: tForm('fields.companyOptional'),
     email: tForm('fields.email'),
     subject: tForm('fields.subject'),
     message: tForm('fields.message'),
@@ -68,7 +67,7 @@ export default async function ContactPage({
     messagePlaceholder: tForm('placeholders.message'),
     submit: tForm('submit'),
     submitting: tForm('submitting'),
-    stubToast: tForm('stubToast'),
+    successToast: tForm('success.toast'),
   }
 
   const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? ''
