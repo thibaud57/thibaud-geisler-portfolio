@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.5.0...v0.6.0) (2026-04-27)
+
+
+### Features
+
+* formulaire contact complet + text effects landing + theme toggler animé ([#32](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/32)) ([4b7dc35](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4b7dc3560f8c41bec839b9d28729e63cd91808de))
+
 ## [0.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.4.0...v0.5.0) (2026-04-26)
 
 
