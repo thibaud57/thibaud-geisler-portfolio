@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 
 import { StackMarqueeSkeleton } from '@/components/features/home/StackMarqueeSkeleton'
 import { Marquee } from '@/components/magicui/marquee'
+import { WordRotate } from '@/components/magicui/word-rotate'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { resolveTagIcon } from '@/lib/icons'
@@ -35,10 +36,14 @@ export async function FinalCtaSection({ locale }: Props) {
     getTranslations('HomePage.signatureSection'),
   ])
 
+  const rotateWords = tFinalCta.raw('rotateWords') as string[]
+
   return (
     <section className="flex flex-col items-center gap-8 rounded-xl border bg-card px-6 py-12 text-center sm:py-16">
-      <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-        {tFinalCta('title')}
+      <h2 className="flex flex-wrap items-center justify-center gap-x-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+        <span>{tFinalCta('titlePrefix')}</span>
+        <WordRotate words={rotateWords} className="text-primary" />
+        <span>{tFinalCta('titleSuffix')}</span>
       </h2>
       <p className="max-w-2xl text-lg text-muted-foreground">
         {tFinalCta('subtitle')}

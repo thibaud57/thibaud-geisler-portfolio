@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { logger } from '@/lib/logger'
 import {
   buildLanguageAlternates,
   localeToOgLocale,
@@ -10,10 +12,10 @@ import {
 
 import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
 import { ContactForm } from '@/components/features/contact/ContactForm'
+import { ContactTabs } from '@/components/features/contact/ContactTabs'
 import { LocationLine } from '@/components/features/contact/LocationLine'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { PageShell } from '@/components/layout/PageShell'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const PREFILL_SLUGS = ['ia', 'fullstack', 'formation'] as const
 type PrefillSlug = (typeof PREFILL_SLUGS)[number]
@@ -21,6 +23,11 @@ type PrefillSlug = (typeof PREFILL_SLUGS)[number]
 function isPrefillSlug(value: string | undefined): value is PrefillSlug {
   return typeof value === 'string' && (PREFILL_SLUGS as readonly string[]).includes(value)
 }
+
+const CALENDLY_URL_BY_LOCALE = {
+  fr: process.env.NEXT_PUBLIC_CALENDLY_URL_FR,
+  en: process.env.NEXT_PUBLIC_CALENDLY_URL_EN,
+} as const satisfies Record<Locale, string | undefined>
 
 export async function generateMetadata({
   params,
@@ -39,25 +46,23 @@ export default async function ContactPage({
   params,
   searchParams,
 }: PageProps<'/[locale]/contact'>) {
-  await setupLocalePage(params)
+  const { locale } = await setupLocalePage(params)
   const resolvedSearchParams = await searchParams
   const rawService = resolvedSearchParams?.service
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
 
-  const [tHeader, tCalendly, tForm, tPrefill, tTabs] = await Promise.all([
+  const [tHeader, tCalendly, tForm, tTabs] = await Promise.all([
     getTranslations('ContactPage.header'),
     getTranslations('ContactPage.calendly'),
     getTranslations('ContactPage.form'),
-    getTranslations('ContactPage.form.subjectPrefill'),
     getTranslations('ContactPage.tabs'),
   ])
 
-  const defaultSubject = isPrefillSlug(serviceParam) ? tPrefill(serviceParam) : ''
+  const defaultSubject = isPrefillSlug(serviceParam) ? tForm(`subjectPrefill.${serviceParam}`) : ''
 
   const formLabels = {
     name: tForm('fields.name'),
     company: tForm('fields.company'),
-    companyOptional: tForm('fields.companyOptional'),
     email: tForm('fields.email'),
     subject: tForm('fields.subject'),
     message: tForm('fields.message'),
@@ -68,32 +73,31 @@ export default async function ContactPage({
     messagePlaceholder: tForm('placeholders.message'),
     submit: tForm('submit'),
     submitting: tForm('submitting'),
-    stubToast: tForm('stubToast'),
+    successToast: tForm('success.toast'),
   }
 
-  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? ''
+  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
+  if (!calendlyUrl) {
+    logger.warn({ event: 'calendly:url_missing', locale }, 'NEXT_PUBLIC_CALENDLY_URL_<locale> absent')
+  }
 
   return (
     <PageShell title={tHeader('h1')} subtitle={tHeader('tagline')}>
-      <div className="mb-10 -mt-2 flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-center mb-10 -mt-2 gap-4 md:justify-between">
         <LocationLine />
-        <SocialLinks className="justify-end" />
+        <SocialLinks className="md:justify-end" />
       </div>
 
-      <Tabs defaultValue="form" className="mx-auto w-full max-w-4xl">
-        <TabsList className="mx-auto grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="form">{tTabs('form')}</TabsTrigger>
-          <TabsTrigger value="calendly">{tTabs('calendly')}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="form" className="mt-8 flex flex-col gap-6">
-          <ContactForm labels={formLabels} defaultSubject={defaultSubject} />
-        </TabsContent>
-
-        <TabsContent value="calendly" className="mt-8 flex flex-col gap-6">
+      <ContactTabs
+        formLabel={tTabs('form')}
+        calendlyLabel={tTabs('calendly')}
+        formContent={
+          <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
+        }
+        calendlyContent={
           <CalendlyWidget url={calendlyUrl} placeholderLabel={tCalendly('placeholder')} />
-        </TabsContent>
-      </Tabs>
+        }
+      />
     </PageShell>
   )
 }

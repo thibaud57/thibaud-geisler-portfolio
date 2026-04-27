@@ -19,7 +19,9 @@
       "seeAll": "Voir tous les projets"
     },
     "finalCta": {
-      "title": "Un projet en tête ?",
+      "titlePrefix": "Un projet",
+      "titleSuffix": "en tête ?",
+      "rotateWords": ["IA", "Fullstack", "Formation"],
       "subtitle": "IA, application web, automatisation, formation : décrivez-moi ce que vous voulez construire et voyons comment avancer ensemble.",
       "ctaLabel": "Parlons de votre projet"
     },
@@ -204,7 +206,7 @@
     "calendly": {
       "title": "Réservez un créneau",
       "subtitle": "Un échange de 30 minutes pour cadrer votre besoin.",
-      "placeholder": "Module de réservation bientôt disponible"
+      "placeholder": "Chargement du calendrier…"
     },
     "social": {
       "ariaLabel": {
@@ -218,8 +220,7 @@
       "subtitle": "Je vous réponds sous 24 à 48 h ouvrées.",
       "fields": {
         "name": "Nom complet",
-        "company": "Entreprise",
-        "companyOptional": "(optionnel)",
+        "company": "Entreprise (optionnel)",
         "email": "Email",
         "subject": "Sujet",
         "message": "Message"
@@ -233,7 +234,22 @@
       },
       "submit": "Envoyer",
       "submitting": "Envoi…",
-      "stubToast": "Merci, message bien reçu côté interface. L'envoi réel sera activé très prochainement.",
+      "errors": {
+        "name_required": "Votre nom est requis.",
+        "name_too_long": "Votre nom est trop long (max 120 caractères).",
+        "company_too_long": "Le nom de votre société est trop long (max 200 caractères).",
+        "email_invalid": "Email invalide.",
+        "email_too_long": "Email trop long (max 200 caractères).",
+        "subject_required": "Le sujet est requis.",
+        "subject_too_long": "Sujet trop long (max 200 caractères).",
+        "message_too_short": "Votre message doit contenir au moins 20 caractères.",
+        "message_too_long": "Votre message est trop long (max 5000 caractères).",
+        "rate_limit": "Trop de tentatives, veuillez réessayer dans quelques minutes.",
+        "smtp_error": "Une erreur est survenue lors de l'envoi. Veuillez réessayer plus tard."
+      },
+      "success": {
+        "toast": "Merci pour votre message ! Je vous réponds très vite."
+      },
       "subjectPrefill": {
         "ia": "Projet IA & Automatisation",
         "fullstack": "Projet Développement Full-Stack",

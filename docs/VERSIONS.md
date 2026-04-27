@@ -4,7 +4,7 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-04-13"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
 ---
 
 # Vue d'ensemble
@@ -42,45 +42,46 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 17 | @next/env | `16.2.4` | ✅ | Chargement `.env` dans `prisma.config.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | 18 | dotenv | `17.4.2` | ✅ | Chargement `.env` pour scripts hors runtime Next (Vitest, seed Prisma) |
 | 19 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
+| 20 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
 
 ## Tests
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 20 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
-| 21 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
-| 22 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
+| 21 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
+| 22 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
+| 23 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
 
 ## Base de données
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 23 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
-| 24 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
-| 25 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
+| 24 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
+| 25 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| 26 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
 
 ## Auth (post-MVP)
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 26 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (via `@next/env` dans `prisma.config.ts`) |
+| 27 | Better Auth | `1.6.2` | ✅ | Charger `.env` explicitement côté runtime pour Prisma 7 (via `@next/env` dans `prisma.config.ts`) |
 
 ## Infrastructure
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 26 | Docker Engine | `29.4.0` | ✅ | containerd image store par défaut, ulimit réduit |
-| 27 | Docker Compose | `v5.1.2` | ✅ | Numérotation v2 → v5 (saut direct), `version:` YAML ignoré |
-| 28 | Dokploy | `0.28.8` | ✅ | Rollbacks registry-based (v0.26+), Traefik 3.5 interne |
-| 29 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions v6 (`checkout`, `setup-node`, `pnpm/action-setup`), `cache: 'pnpm'` explicite |
-| 30 | Cloudflare R2 | managed service | ✅ | Backups pg_dump + assets, API S3-compatible |
+| 28 | Docker Engine | `29.4.0` | ✅ | containerd image store par défaut, ulimit réduit |
+| 29 | Docker Compose | `v5.1.2` | ✅ | Numérotation v2 → v5 (saut direct), `version:` YAML ignoré |
+| 30 | Dokploy | `0.28.8` | ✅ | Rollbacks registry-based (v0.26+), Traefik 3.5 interne |
+| 31 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions v6 (`checkout`, `setup-node`, `pnpm/action-setup`), `cache: 'pnpm'` explicite |
+| 32 | Cloudflare R2 | managed service | ✅ | Backups pg_dump + assets, API S3-compatible |
 
 ## Services externes (post-MVP)
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 31 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
-| 32 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 33 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 34 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
 
 ---
 

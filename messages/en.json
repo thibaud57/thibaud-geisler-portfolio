@@ -19,7 +19,9 @@
       "seeAll": "See all projects"
     },
     "finalCta": {
-      "title": "Got a project in mind?",
+      "titlePrefix": "Got a",
+      "titleSuffix": "project in mind?",
+      "rotateWords": ["AI", "Fullstack", "Training"],
       "subtitle": "AI, web app, automation, training: tell me what you want to build and let's see how we can move forward together.",
       "ctaLabel": "Let's talk about your project"
     },
@@ -204,7 +206,7 @@
     "calendly": {
       "title": "Book a slot",
       "subtitle": "A 30-minute call to scope your need.",
-      "placeholder": "Booking module coming soon"
+      "placeholder": "Loading calendar…"
     },
     "social": {
       "ariaLabel": {
@@ -218,8 +220,7 @@
       "subtitle": "I reply within 24 to 48 business hours.",
       "fields": {
         "name": "Full name",
-        "company": "Company",
-        "companyOptional": "(optional)",
+        "company": "Company (optional)",
         "email": "Email",
         "subject": "Subject",
         "message": "Message"
@@ -233,7 +234,22 @@
       },
       "submit": "Send",
       "submitting": "Sending…",
-      "stubToast": "Thanks, message received on the UI side. Actual sending will be enabled very soon.",
+      "errors": {
+        "name_required": "Your name is required.",
+        "name_too_long": "Your name is too long (max 120 characters).",
+        "company_too_long": "Your company name is too long (max 200 characters).",
+        "email_invalid": "Invalid email.",
+        "email_too_long": "Email is too long (max 200 characters).",
+        "subject_required": "Subject is required.",
+        "subject_too_long": "Subject is too long (max 200 characters).",
+        "message_too_short": "Your message must be at least 20 characters.",
+        "message_too_long": "Your message is too long (max 5000 characters).",
+        "rate_limit": "Too many attempts, please try again in a few minutes.",
+        "smtp_error": "An error occurred while sending. Please try again later."
+      },
+      "success": {
+        "toast": "Thanks for your message! I'll get back to you soon."
+      },
       "subjectPrefill": {
         "ia": "AI & Automation Project",
         "fullstack": "Full-Stack Development Project",

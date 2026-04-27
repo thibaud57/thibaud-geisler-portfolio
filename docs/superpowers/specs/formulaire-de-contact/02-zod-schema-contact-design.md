@@ -2,7 +2,7 @@
 feature: "Feature 4 — Formulaire de contact"
 subproject: "zod-schema-contact"
 goal: "Définir le schéma Zod contactSchema qui valide les 5 champs métier du formulaire de contact (name, company, email, subject, message) avec des codes d'erreur custom destinés à l'i18n côté UI."
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "partial"
 depends_on: []
