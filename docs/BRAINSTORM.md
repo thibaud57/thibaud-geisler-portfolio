@@ -169,7 +169,7 @@ Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment du da
 ### Feature 4 — Formulaire de contact
 
 * Envoi de message via SMTP IONOS (Server Action + Zod + nodemailer)
-* Widget Calendly (prise de rendez-vous)
+* Widget Calendly inline (lib `react-calendly`)
 * Liens réseaux professionnels
 
 ### Feature 5 — SEO & Référencement
@@ -330,7 +330,7 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 | 3 | Feature 2 — Projets (BDD + liste + case studies) | Coeur du portfolio, démontre la valeur |
 | 4 | Feature 3 — Assets (volumes Docker + route API + CV + images) | Nécessaire pour les projets et l'accueil |
 | 5 | Feature 1 — Pages publiques statiques (accueil, services, a-propos, contact) | S'appuie sur les projets déjà en BDD |
-| 6 | Feature 4 — Formulaire de contact (Server Action + SMTP) | Dernière pièce fonctionnelle |
+| 6 | Feature 4 — Formulaire de contact (Server Action + SMTP) + widget Calendly | Dernière pièce fonctionnelle |
 | 7 | Feature 5 — SEO (metadata, sitemap, robots.txt) | Avant mise en prod, pas avant |
 | 8 | Feature 7 — Conformité légale (mentions, confidentialité, bandeau cookies + gating Calendly) | **Bloquante avant prod publique** — LCEN + RGPD + directive ePrivacy (risque CNIL). Passe par les tests de l'étape 9 |
 | 9 | Tests, perf, polish | Smoke test, Core Web Vitals, vérif headers — couvre tout le code livré étapes 1 à 8 |
