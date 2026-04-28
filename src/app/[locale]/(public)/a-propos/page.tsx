@@ -7,6 +7,7 @@ import { AboutHero } from '@/components/features/about/AboutHero'
 import { NumberTickerStats } from '@/components/features/about/NumberTickerStats'
 import { TechStackBadges } from '@/components/features/about/TechStackBadges'
 import { LabeledText } from '@/components/ui/labeled-text'
+import { Skeleton } from '@/components/ui/skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import {
   buildLanguageAlternates,
@@ -101,8 +102,8 @@ function StatsSkeleton() {
     <div className="grid gap-10 sm:grid-cols-3" aria-hidden>
       {Array.from({ length: 3 }, (_, i) => (
         <div key={i} className="flex flex-col items-center gap-2 text-center">
-          <div className="h-14 w-20 rounded bg-muted" />
-          <div className="h-4 w-32 rounded bg-muted" />
+          <Skeleton className="h-14 w-20" />
+          <Skeleton className="h-4 w-32" />
         </div>
       ))}
     </div>
@@ -119,10 +120,10 @@ function StackSkeleton() {
     <div className="flex flex-col gap-8" aria-hidden>
       {Array.from({ length: 3 }, (_, i) => (
         <div key={i} className="flex flex-col gap-3">
-          <div className="h-6 w-40 rounded bg-muted" />
+          <Skeleton className="h-6 w-40" />
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 4 }, (_, j) => (
-              <div key={j} className="h-6 w-20 rounded bg-muted" />
+              <Skeleton key={j} className="h-6 w-20" />
             ))}
           </div>
         </div>
