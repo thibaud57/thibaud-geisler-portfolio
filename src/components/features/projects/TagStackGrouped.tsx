@@ -42,7 +42,7 @@ export function TagStackGrouped({ tags }: Props) {
     <section className="my-16" aria-labelledby="case-study-stack-title">
       <h2
         id="case-study-stack-title"
-        className="mb-8 text-3xl font-semibold tracking-tight sm:text-4xl"
+        className="mb-8 text-3xl font-semibold tracking-tight"
       >
         {tCaseStudy('stackTitle')}
       </h2>

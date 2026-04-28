@@ -36,12 +36,12 @@ export type ProjectInput = {
 export const projects: ProjectInput[] = [
   {
     slug: 'digiclaims',
-    titleFr: 'Digiclaims - Gestion Sinistres',
-    titleEn: 'Digiclaims - Claims Management',
+    titleFr: 'Webapp Gestion Sinistres',
+    titleEn: 'Claims Management Web App',
     descriptionFr:
-      'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction de 50% du temps de traitement, utilisée par 100+ courtiers.',
+      'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction significative du temps de traitement, utilisée par 100+ courtiers.',
     descriptionEn:
-      'Scala/Angular web app for claims management at Foyer (Luxembourg insurance), microservices CQRS/Event Sourcing architecture. 50% reduction in processing time, used by 100+ brokers.',
+      'Scala/Angular web app for claims management at Foyer (Luxembourg insurance), microservices CQRS/Event Sourcing architecture. Significant reduction in processing time, used by 100+ brokers.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP', 'API'],
@@ -54,6 +54,7 @@ export const projects: ProjectInput[] = [
     deliverablesCount: 3,
     tagSlugs: [
       'developpement-fullstack',
+      'microservices',
       'typescript',
       'scala',
       'angular',
@@ -80,9 +81,9 @@ export const projects: ProjectInput[] = [
     titleFr: 'Référent Technique IA & Automatisation',
     titleEn: 'Technical Lead AI & Automation',
     descriptionFr:
-      "Référent technique et stratégique IA/automatisation pour une agence digitale. Structuration des offres from scratch (gammes MX/AX), architecture d'agents IA, cadrage avant-vente, mentorat technique, infrastructure et ops.",
+      "Référent technique et stratégique IA/automatisation pour une agence digitale. Structuration des offres IA et marketing automation, architecture d'agents IA, cadrage avant-vente, mentorat technique, infrastructure et ops.",
     descriptionEn:
-      'Technical and strategic lead on AI / automation for a digital agency. Building the service catalog from scratch (MX/AX lines), AI agents architecture, pre-sales framing, technical mentoring, infrastructure and ops.',
+      'Technical and strategic lead on AI / automation for a digital agency. Building the AI and marketing automation service catalog, AI agents architecture, pre-sales framing, technical mentoring, infrastructure and ops.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['IA'],
@@ -105,7 +106,7 @@ export const projects: ProjectInput[] = [
     ],
     clientMeta: {
       companySlug: 'wanted-design',
-      teamSize: 4,
+      teamSize: 3,
       contractStatus: 'FREELANCE',
       workMode: 'REMOTE',
     },
