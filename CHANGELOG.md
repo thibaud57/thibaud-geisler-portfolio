@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.6.0...v0.7.0) (2026-04-28)
+
+
+### Features
+
+* release v0.7.0 - SEO référencement complet + UX polish ([#37](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/37)) ([4f2dda1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4f2dda181509d59750bffba13a21717e309f0dd4))
+
 ## [0.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.5.0...v0.6.0) (2026-04-27)
 
 
