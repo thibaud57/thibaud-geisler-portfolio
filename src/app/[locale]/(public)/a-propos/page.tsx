@@ -45,7 +45,7 @@ export default async function AProposPage({
     <PageShell>
       <div className="flex flex-col gap-16 sm:gap-20 lg:gap-24">
         <AboutHero locale={locale}>
-          <div className="mt-2 flex max-w-xl flex-col gap-4">
+          <div className="mt-2 flex flex-col gap-4">
             <p className="text-base leading-relaxed">
               <LabeledText text={t('bio.intro')} />
             </p>
