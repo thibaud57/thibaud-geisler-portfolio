@@ -24,9 +24,9 @@ export async function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur border-b border-border bg-background/80">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-6">
+      <nav className="flex justify-between items-center md:grid md:grid-cols-[1fr_auto_1fr] max-w-7xl mx-auto h-16 gap-6 px-4 sm:px-6 lg:px-8">
         <Suspense fallback={<div className="h-10 w-[180px]" />}>
-          <Link href="/" aria-label={t('home')} className="shrink-0">
+          <Link href="/" aria-label={t('home')} className="shrink-0 justify-self-start">
             <BrandLogo priority />
           </Link>
         </Suspense>
@@ -35,7 +35,7 @@ export async function Navbar() {
           <NavLinks orientation="horizontal" className="hidden md:flex" />
         </Suspense>
 
-        <div className="flex items-center gap-2 ml-auto md:ml-0">
+        <div className="flex items-center gap-2 justify-self-end">
           <Suspense fallback={<div className="size-9" />}>
             <LanguageSwitcher />
           </Suspense>

@@ -75,7 +75,7 @@ export default async function LocaleLayout({
       lang={locale}
       suppressHydrationWarning
       className={cn(
-        'h-full antialiased',
+        'h-full antialiased scroll-pt-16 motion-safe:scroll-smooth',
         geistSans.variable,
         geistMono.variable,
         sansation.variable,
