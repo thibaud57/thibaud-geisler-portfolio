@@ -15,12 +15,12 @@ type Props = {
 }
 
 const KIND_LAYOUT: Record<TagKind, string> = {
-  EXPERTISE: 'md:col-span-2 lg:col-span-2',
-  AI: 'md:col-span-2 lg:col-span-1',
+  EXPERTISE: 'md:col-span-1 lg:col-span-2',
+  AI: 'md:col-span-1 lg:col-span-1',
   LANGUAGE: 'md:col-span-1 lg:col-span-1',
   FRAMEWORK: 'md:col-span-1 lg:col-span-2',
   DATABASE: 'md:col-span-1 lg:col-span-1',
-  INFRA: 'md:col-span-2 lg:col-span-2',
+  INFRA: 'md:col-span-1 lg:col-span-2',
 }
 
 const KIND_ACCENT: Partial<Record<TagKind, string>> = {
