@@ -1,19 +1,23 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 import type { Locale } from 'next-intl'
 import { findManyPublished } from '@/server/queries/projects'
 import { ProjectsList } from '@/components/features/projects/ProjectsList'
 import { ProjectsListSkeleton } from '@/components/features/projects/ProjectsListSkeleton'
 import { PageShell } from '@/components/layout/PageShell'
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/projets'>): Promise<Metadata> {
-  const { locale, t } = await setupLocaleMetadata(params)
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]/projets'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
   return buildPageMetadata({
     locale,
     path: '/projets',
@@ -21,6 +25,8 @@ export async function generateMetadata({
     description: t('projectsDescription'),
     siteName: t('siteTitle'),
     ogType: 'website',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
   })
 }
 

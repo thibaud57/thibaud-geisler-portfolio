@@ -1,15 +1,19 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { CaseStudyLayout } from '@/components/features/projects/CaseStudyLayout'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 import { findPublishedBySlug } from '@/server/queries/projects'
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/projets/[slug]'>): Promise<Metadata> {
-  const { locale, slug, t } = await setupLocaleMetadata(params)
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]/projets/[slug]'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, slug, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
 
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
@@ -21,6 +25,8 @@ export async function generateMetadata({
     description: project.description,
     siteName: t('siteTitle'),
     ogType: 'article',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
   })
 }
 

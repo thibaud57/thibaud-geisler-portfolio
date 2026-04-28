@@ -1,17 +1,21 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 
 import { FinalCtaSection } from '@/components/features/home/FinalCtaSection'
 import { Hero } from '@/components/features/home/Hero'
 import { ProjectsTeaserSection } from '@/components/features/home/ProjectsTeaserSection'
 import { ServicesTeaserSection } from '@/components/features/home/ServicesTeaserSection'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 import { getTranslations } from 'next-intl/server'
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]'>): Promise<Metadata> {
-  const { locale, t } = await setupLocaleMetadata(params)
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
   return buildPageMetadata({
     locale,
     path: '',
@@ -19,6 +23,8 @@ export async function generateMetadata({
     description: t('homeDescription'),
     siteName: t('siteTitle'),
     ogType: 'website',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
   })
 }
 

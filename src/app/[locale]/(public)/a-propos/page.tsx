@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
@@ -10,7 +10,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { LabeledText } from '@/components/ui/labeled-text'
 import { Skeleton } from '@/components/ui/skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 import {
   countClientsSupported,
   countMissionsDelivered,
@@ -18,10 +18,14 @@ import {
   getYearsOfExperience,
 } from '@/server/queries/about'
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/a-propos'>): Promise<Metadata> {
-  const { locale, t } = await setupLocaleMetadata(params)
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]/a-propos'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
   return buildPageMetadata({
     locale,
     path: '/a-propos',
@@ -29,6 +33,8 @@ export async function generateMetadata({
     description: t('aboutDescription'),
     siteName: t('siteTitle'),
     ogType: 'website',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
   })
 }
 

@@ -1,9 +1,21 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import { hasLocale, type Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import { routing } from '@/i18n/routing'
+
+type OpenGraphImages = NonNullable<NonNullable<Metadata['openGraph']>['images']>
+type TwitterImages = NonNullable<NonNullable<Metadata['twitter']>['images']>
+
+export async function resolveParentOgImages(
+  parent: ResolvingMetadata,
+): Promise<{ og: OpenGraphImages | undefined; twitter: TwitterImages | undefined }> {
+  const resolved = await parent
+  const og = resolved.openGraph?.images ?? undefined
+  const twitter = resolved.twitter?.images ?? undefined
+  return { og, twitter }
+}
 
 // TODO: déplacer vers src/env.ts (t3-env + Zod) quand la config env centralisée sera mise en place.
 function resolveSiteUrl(): string {
@@ -43,6 +55,8 @@ export type BuildPageMetadataInput = {
   description: string
   siteName: string
   ogType?: 'website' | 'article'
+  parentOpenGraphImages?: OpenGraphImages
+  parentTwitterImages?: TwitterImages
 }
 
 export function buildPageMetadata({
@@ -52,6 +66,8 @@ export function buildPageMetadata({
   description,
   siteName,
   ogType = 'website',
+  parentOpenGraphImages,
+  parentTwitterImages,
 }: BuildPageMetadataInput): Metadata {
   const url = `${resolveSiteUrl()}/${locale}${path}`
   const isProduction = process.env.NODE_ENV === 'production'
@@ -66,11 +82,13 @@ export function buildPageMetadata({
       siteName,
       title,
       description,
+      ...(parentOpenGraphImages ? { images: parentOpenGraphImages } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      ...(parentTwitterImages ? { images: parentTwitterImages } : {}),
     },
     alternates: {
       canonical: url,

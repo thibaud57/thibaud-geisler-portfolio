@@ -1,18 +1,22 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 
 import { MotionItem } from '@/components/features/services/MotionItem'
 import { ServiceCard } from '@/components/features/services/ServiceCard'
 import { SERVICE_SLUGS } from '@/components/features/services/service-slugs'
 import { PageShell } from '@/components/layout/PageShell'
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/services'>): Promise<Metadata> {
-  const { locale, t } = await setupLocaleMetadata(params)
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]/services'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
   return buildPageMetadata({
     locale,
     path: '/services',
@@ -20,6 +24,8 @@ export async function generateMetadata({
     description: t('servicesDescription'),
     siteName: t('siteTitle'),
     ogType: 'website',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
   })
 }
 
