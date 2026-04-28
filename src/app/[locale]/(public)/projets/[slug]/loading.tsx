@@ -1,15 +1,10 @@
-import { getTranslations } from 'next-intl/server'
-
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default async function CaseStudyLoading() {
-  const tCommon = await getTranslations('Common')
-
+export default function CaseStudyLoading() {
   return (
     <main
       role="status"
       aria-busy="true"
-      aria-label={tCommon('loading')}
       className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-14"
     >
       <div className="flex flex-col gap-4">
