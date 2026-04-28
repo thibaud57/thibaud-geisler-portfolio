@@ -10,11 +10,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { LabeledText } from '@/components/ui/labeled-text'
 import { Skeleton } from '@/components/ui/skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import {
-  buildLanguageAlternates,
-  localeToOgLocale,
-  setupLocaleMetadata,
-} from '@/lib/seo'
+import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
 import {
   countClientsSupported,
   countMissionsDelivered,
@@ -26,13 +22,14 @@ export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/a-propos'>): Promise<Metadata> {
   const { locale, t } = await setupLocaleMetadata(params)
-
-  return {
+  return buildPageMetadata({
+    locale,
+    path: '/a-propos',
     title: t('aboutTitle'),
     description: t('aboutDescription'),
-    openGraph: { locale: localeToOgLocale[locale] },
-    alternates: { languages: buildLanguageAlternates('/a-propos') },
-  }
+    siteName: t('siteTitle'),
+    ogType: 'website',
+  })
 }
 
 export default async function AProposPage({

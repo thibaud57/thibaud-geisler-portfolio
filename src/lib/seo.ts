@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { hasLocale, type Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
@@ -5,7 +6,11 @@ import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 
 // TODO: déplacer vers src/env.ts (t3-env + Zod) quand la config env centralisée sera mise en place.
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+function resolveSiteUrl(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+}
+
+export const siteUrl = resolveSiteUrl()
 
 export const localeToOgLocale = {
   fr: 'fr_FR',
@@ -29,4 +34,48 @@ export async function setupLocaleMetadata<T extends { locale: string }>(
   const locale: Locale = resolved.locale
   const t = await getTranslations({ locale, namespace: 'Metadata' })
   return { ...resolved, locale, t }
+}
+
+export type BuildPageMetadataInput = {
+  locale: Locale
+  path: string
+  title: string
+  description: string
+  siteName: string
+  ogType?: 'website' | 'article'
+}
+
+export function buildPageMetadata({
+  locale,
+  path,
+  title,
+  description,
+  siteName,
+  ogType = 'website',
+}: BuildPageMetadataInput): Metadata {
+  const url = `${resolveSiteUrl()}/${locale}${path}`
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  return {
+    title,
+    description,
+    openGraph: {
+      type: ogType,
+      locale: localeToOgLocale[locale],
+      url,
+      siteName,
+      title,
+      description,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    alternates: {
+      canonical: url,
+      languages: buildLanguageAlternates(path),
+    },
+    ...(isProduction ? {} : { robots: { index: false, follow: false } }),
+  }
 }

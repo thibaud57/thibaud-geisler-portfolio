@@ -5,26 +5,21 @@ import { Hero } from '@/components/features/home/Hero'
 import { ProjectsTeaserSection } from '@/components/features/home/ProjectsTeaserSection'
 import { ServicesTeaserSection } from '@/components/features/home/ServicesTeaserSection'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import {
-  buildLanguageAlternates,
-  localeToOgLocale,
-  setupLocaleMetadata,
-} from '@/lib/seo'
+import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
 import { getTranslations } from 'next-intl/server'
-
-
 
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]'>): Promise<Metadata> {
   const { locale, t } = await setupLocaleMetadata(params)
-
-  return {
+  return buildPageMetadata({
+    locale,
+    path: '',
     title: t('homeTitle'),
     description: t('homeDescription'),
-    openGraph: { locale: localeToOgLocale[locale] },
-    alternates: { languages: buildLanguageAlternates('') },
-  }
+    siteName: t('siteTitle'),
+    ogType: 'website',
+  })
 }
 
 export default async function HomePage({ params }: PageProps<'/[locale]'>) {

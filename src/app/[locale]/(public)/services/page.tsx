@@ -2,11 +2,7 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
-import {
-  buildLanguageAlternates,
-  localeToOgLocale,
-  setupLocaleMetadata,
-} from '@/lib/seo'
+import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
 
 import { MotionItem } from '@/components/features/services/MotionItem'
 import { ServiceCard } from '@/components/features/services/ServiceCard'
@@ -17,13 +13,14 @@ export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/services'>): Promise<Metadata> {
   const { locale, t } = await setupLocaleMetadata(params)
-
-  return {
+  return buildPageMetadata({
+    locale,
+    path: '/services',
     title: t('servicesTitle'),
     description: t('servicesDescription'),
-    openGraph: { locale: localeToOgLocale[locale] },
-    alternates: { languages: buildLanguageAlternates('/services') },
-  }
+    siteName: t('siteTitle'),
+    ogType: 'website',
+  })
 }
 
 export default async function ServicesPage({ params }: PageProps<'/[locale]/services'>) {

@@ -4,11 +4,7 @@ import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { logger } from '@/lib/logger'
-import {
-  buildLanguageAlternates,
-  localeToOgLocale,
-  setupLocaleMetadata,
-} from '@/lib/seo'
+import { buildPageMetadata, setupLocaleMetadata } from '@/lib/seo'
 
 import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
 import { ContactForm } from '@/components/features/contact/ContactForm'
@@ -33,13 +29,14 @@ export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/contact'>): Promise<Metadata> {
   const { locale, t } = await setupLocaleMetadata(params)
-
-  return {
+  return buildPageMetadata({
+    locale,
+    path: '/contact',
     title: t('contactTitle'),
     description: t('contactDescription'),
-    openGraph: { locale: localeToOgLocale[locale] },
-    alternates: { languages: buildLanguageAlternates('/contact') },
-  }
+    siteName: t('siteTitle'),
+    ogType: 'website',
+  })
 }
 
 export default async function ContactPage({
