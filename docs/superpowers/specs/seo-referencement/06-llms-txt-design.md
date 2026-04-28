@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "Fichier llms.txt pour AI engines (GEO 2026)"
 goal: "Exposer /llms.txt à la racine du domaine au format llmstxt.org pour fournir aux AI engines (ChatGPT, Perplexity, Claude search) une carte structurée et machine-readable du portfolio"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []

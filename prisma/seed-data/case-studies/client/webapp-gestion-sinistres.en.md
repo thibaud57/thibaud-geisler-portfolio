@@ -2,23 +2,23 @@
 
 Long-term engagement at **Acme**, Luxembourg's leading insurance group, via **une ESN**. Contribution to the development of two strategic applications for the Belgian market in a microservices architecture, with a focus on quality and clean code.
 
-**My role**: fullstack developer, junior then mid-level.
+**My role**: fullstack developer.
 
 ## Key achievements
 
-### Portail Sinistres, claims file management
+### Claims management application
 
 Replacement of a legacy system with a modern application letting Belgian-market claim handlers manage their case files. Automation of repetitive tasks, full case tracking, integration with external sector-specific services.
 
 Active contribution across every module: technical and functional analysis, API integration, producing and consuming events via Kafka, release and follow-up.
 
-**Technical challenges**: performance and scalability on large volumes, from-scratch development with an 80%+ coverage requirement, integration with legacy external services.
+**Technical challenges**: performance and scalability on large volumes, from-scratch development with a **90%+** coverage requirement, integration with legacy external services.
 
-**Impact**: **50%** reduction in case processing time, 4 business hours for the full processing of a case file.
+**Impact**: significant reduction in case processing time, **4 business hours** for the full processing of a case file.
 
-### Portail Courtiers, claim creation by brokers
+### Broker application, claim creation
 
-Platform allowing brokers to create DAB or Auto claims for their clients, with automatic generation of an attachment and creation of a pre-filled case file in Portail Sinistres.
+Platform allowing brokers to create DAB or Auto claims for their clients, with automatic generation of an attachment and creation of a pre-filled case file in the claims management application.
 
 Major contribution across the whole project, from the technical foundation to the latest features. Led the complex **Angular 15 to 17** migration (Signals, standalone components, replacement of the translation library with native i18n).
 
@@ -26,7 +26,7 @@ Major contribution across the whole project, from the technical foundation to th
 
 **Impact**: **3 minutes** to file an auto claim, **100+ active brokers** with steady growth.
 
-### Outil d'éditique, ad-hoc reinforcement
+### Ad-hoc reinforcement on another internal team
 
 Consumption of Kafka events with filtering then transformation to a legacy sector-specific format (no JSON, no REST), generation and sending of attachments.
 
@@ -41,10 +41,11 @@ Team participation and **win** at the internal Acme Hackathon 2023 with an **AI 
 - Strong ramp-up on Scala and functional programming
 - Hands-on experience with an event-driven microservices architecture (CQRS, Event Sourcing)
 - Angular lead (v15 → v17 migration, reviews, frontend support), mentoring of interns, involvement in technical and functional decisions
-- Quality discipline: **90%+** code coverage maintained over 3 years, near-zero P0 bugs (3 to 4 hotfixes over 2 years)
+- Quality discipline: **90%+** code coverage maintained over 3 years, very few P0 bugs and hotfixes in production
 - Comprehensive testing: unit, integration, load
 
 ## Links
 
-- [LinkedIn, Acme Hackathon 2023](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
-- [LinkedIn, Portail Sinistres Auto (presentation video)](https://www.linkedin.com/posts/acme-example)
+- [LinkedIn: Acme Hackathon 2023](https://www.linkedin.com/posts/hackathon2023-innovation-succaeys-ugcPost-7140709391946665984-Mxai)
+- [LinkedIn: Acme presentation video](https://www.linkedin.com/posts/acme-example)
+- [Assurances Acme: digital tools for brokers](https://acme.example/fr/nos-services/nos-outils/)

@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "Génération des images Open Graph et Twitter (1200×630)"
 goal: "Générer dynamiquement les images Open Graph et Twitter pour les pages publiques et les case studies via ImageResponse, alignées au design system DESIGN.md"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["01-metadata-base-design.md"]

@@ -51,6 +51,9 @@ export async function generateMetadata({
       locale: localeToOgLocale[locale],
       siteName: t('siteTitle'),
     },
+    twitter: {
+      card: 'summary_large_image',
+    },
     alternates: {
       languages: buildLanguageAlternates(''),
     },
