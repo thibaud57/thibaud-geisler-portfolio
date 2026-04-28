@@ -1,6 +1,11 @@
 'use client'
 
+import { AlertCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+
+import { PageShell } from '@/components/layout/PageShell'
+import { Button } from '@/components/ui/button'
+import { Link } from '@/i18n/navigation'
 
 type Props = {
   error: Error & { digest?: string }
@@ -14,10 +19,23 @@ export default function Error({ error, reset }: Props) {
   const tCommon = useTranslations('Common')
 
   return (
-    <main>
-      <h1>{t('title')}</h1>
-      <p>{t('message')}</p>
-      <button onClick={reset}>{tCommon('retry')}</button>
-    </main>
+    <PageShell title={t('title')} subtitle={t('message')}>
+      <section className="mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
+        <AlertCircle
+          aria-hidden
+          className="size-16 text-destructive"
+          strokeWidth={1.5}
+        />
+        <p className="text-base text-muted-foreground">{t('description')}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <Button type="button" size="lg" onClick={reset}>
+            {tCommon('retry')}
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/">{t('ctaLabel')}</Link>
+          </Button>
+        </div>
+      </section>
+    </PageShell>
   )
 }

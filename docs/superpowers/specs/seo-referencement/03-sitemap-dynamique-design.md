@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "Sitemap dynamique avec slugs projets et hreflang FR/EN"
 goal: "Étendre /sitemap.xml pour inclure tous les projets publiés en plus des pages statiques, avec alternates hreflang et invalidation par cacheTag('projects')"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []

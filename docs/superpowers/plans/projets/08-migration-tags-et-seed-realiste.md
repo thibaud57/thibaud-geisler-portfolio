@@ -288,7 +288,7 @@ Valeurs par défaut :
 
 | Project slug | `deliverablesCount` | Justification |
 |--------------|---------------------|---------------|
-| `digiclaims` | **3** | Mission Foyer = DigiClaims + DigiCourtier + Edimerx |
+| `digiclaims` | **3** | Mission Foyer = 3 applications distinctes |
 | `referent-ia-automatisation` | **0** | Mission de conseil chez Wanted Design, rien en prod à ce jour |
 | `saas-gestion-paie` | **1** | Mission Paysystem = 1 livrable |
 | `erp-odoo-android` | **2** | Mission Cloudsmart = ERP Odoo + App Android |

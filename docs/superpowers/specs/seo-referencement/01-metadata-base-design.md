@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "Metadata Open Graph & Twitter sur toutes les pages publiques"
 goal: "Doter chaque page publique FR/EN d'un title, description, openGraph, twitter et alternates hreflang corrects via un helper pur réutilisable"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []

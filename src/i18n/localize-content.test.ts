@@ -15,8 +15,8 @@ const baseTag = {
 const baseProject = {
   id: 'proj-1',
   slug: 'digiclaims',
-  titleFr: 'Digiclaims - Gestion Sinistres',
-  titleEn: 'Digiclaims - Claims Management',
+  titleFr: 'Webapp Gestion Sinistres',
+  titleEn: 'Claims Management Web App',
   descriptionFr: 'Description FR',
   descriptionEn: 'Description EN',
   caseStudyMarkdownFr: '# Contexte FR',
@@ -56,7 +56,7 @@ describe('localizeTag', () => {
 describe('localizeProject', () => {
   it('résout title/description/caseStudyMarkdown depuis les champs FR quand locale = fr', () => {
     const result = localizeProject(baseProject, 'fr')
-    expect(result.title).toBe('Digiclaims - Gestion Sinistres')
+    expect(result.title).toBe('Webapp Gestion Sinistres')
     expect(result.description).toBe('Description FR')
     expect(result.caseStudyMarkdown).toBe('# Contexte FR')
     expect(result).not.toHaveProperty('titleFr')
@@ -67,7 +67,7 @@ describe('localizeProject', () => {
 
   it('résout title/description/caseStudyMarkdown depuis les champs EN quand locale = en', () => {
     const result = localizeProject(baseProject, 'en')
-    expect(result.title).toBe('Digiclaims - Claims Management')
+    expect(result.title).toBe('Claims Management Web App')
     expect(result.description).toBe('Description EN')
     expect(result.caseStudyMarkdown).toBe('# Context EN')
   })

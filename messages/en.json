@@ -266,11 +266,15 @@
   },
   "NotFound": {
     "title": "404",
-    "message": "Page not found."
+    "message": "Page not found.",
+    "description": "The page you are looking for does not exist or has been moved. Check the URL or head back home to explore the portfolio.",
+    "ctaLabel": "Back to home"
   },
   "ErrorPage": {
     "title": "Error",
-    "message": "Something went wrong."
+    "message": "Something went wrong.",
+    "description": "Something didn't go as expected. Retry or head back home. If the issue persists, please reach out.",
+    "ctaLabel": "Back to home"
   },
   "Common": {
     "loading": "Loading…",
@@ -310,6 +314,10 @@
     "aboutTitle": "About",
     "aboutDescription": "Background, technical skills, and working approach of Thibaud Geisler.",
     "contactTitle": "Contact",
-    "contactDescription": "Get in touch with Thibaud Geisler for an AI project, an application, or training."
+    "contactDescription": "Get in touch with Thibaud Geisler for an AI project, an application, or training.",
+    "jobTitle": "AI & full-stack development",
+    "breadcrumbHome": "Home",
+    "breadcrumbServices": "Services",
+    "breadcrumbProjects": "Projects"
   }
 }

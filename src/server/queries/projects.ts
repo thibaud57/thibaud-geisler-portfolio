@@ -37,3 +37,16 @@ export async function findPublishedBySlug(
   })
   return project ? localizeProject(project, locale) : null
 }
+
+export async function findAllPublishedSlugs(): Promise<
+  { slug: string; updatedAt: Date }[]
+> {
+  'use cache'
+  cacheLife('hours')
+  cacheTag('projects')
+  return prisma.project.findMany({
+    where: { status: 'PUBLISHED' },
+    select: { slug: true, updatedAt: true },
+    orderBy: { displayOrder: 'asc' },
+  })
+}

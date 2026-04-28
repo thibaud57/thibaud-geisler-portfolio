@@ -1,10 +1,8 @@
 ## Context
 
-**Ongoing freelance engagement** at **Wanted Design**, a digital agency (e-marketing and AI/automation). Acting as **technical and strategic AI/automation expert**, ensuring consistency between sales narrative and technical reality.
+**Ongoing freelance engagement** at **Wanted Design**, a digital agency (e-marketing and AI/automation). Acting as **technical and strategic AI/automation expert**, contributing to alignment between offerings and technical reality.
 
-The engagement is split into 2 phases:
-- **Phase 1 (Jan → April 2026)**: AI offering consulting & conference support
-- **Phase 2 (since April 2026, ongoing)**: AI & Automation Technical Lead
+Ongoing engagement since January 2026, starting as consulting (AI offerings & conference support) and evolving into AI & Automation Technical Lead.
 
 **My role**: three main axes (shaping offerings, technical mentoring, public outreach), complemented by maintenance of the technical infrastructure.
 
@@ -12,21 +10,21 @@ The engagement is split into 2 phases:
 
 ### Shaping AI/automation offerings
 
-Structuring AI/automation offerings for a digital agency, with production of sales collateral and tooling for non-technical teams. Creation of an **autonomous AI-agent system** to automate the generation of target profiles, personas and use cases.
+Structuring AI/automation offerings for a digital agency, with production of sales collateral and tooling for non-technical teams. Creation of **autonomous AI-agent systems** to automate internal processes.
 
 **Public AI outreach**: conference support on ethics in AI, BNI talk (30 min + Q&A).
 
 ### Architecture and pre-sales scoping
 
-Acting as architect and technical analyst on various pre-sales projects: client-needs scoping, architecture design (multi-agent AI pipelines, API integrations), ADRs for technical choices, budget estimates, participation in sales meetings.
+Acting as architect and technical analyst on various pre-sales projects: client-needs scoping, architecture design (multi-agent AI pipelines, API integrations), ADRs for technical choices, effort estimates, pre-sales support.
 
 ### Technical mentoring
 
-Supporting a developer on AI/automation projects: passing on architecture best practices, validating technical choices, pre-production reviews.
+Supporting the technical team on AI/automation projects: passing on architecture best practices, validating technical choices, pre-production reviews.
 
 ### Infrastructure & Ops
 
-Setup and maintenance of the technical infrastructure (VPS, orchestration, production n8n workflows, alerting).
+Setup and maintenance of the production technical infrastructure (orchestration, automated workflows, monitoring).
 
 ## Takeaways
 
