@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "Robots.txt avec déclaration du sitemap"
 goal: "Exposer /robots.txt autorisant le crawl public des pages indexables, bloquant /api/ et déclarant l'URL absolue du sitemap"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["03-sitemap-dynamique-design.md"]

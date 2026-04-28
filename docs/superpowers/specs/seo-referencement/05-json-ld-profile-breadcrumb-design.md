@@ -2,7 +2,7 @@
 feature: "Feature 5 — SEO & Référencement"
 subproject: "JSON-LD ProfilePage + Person + BreadcrumbList"
 goal: "Injecter du JSON-LD ProfilePage (avec Person imbriqué + sameAs + knowsAbout Thing+Wikidata) sur /a-propos et BreadcrumbList sur les pages internes pour activer les rich results Profile page et Breadcrumbs"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []

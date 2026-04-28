@@ -24,7 +24,7 @@ export async function Footer({ locale }: Props) {
 
         <div className="flex flex-col gap-6 lg:items-end">
           <SocialLinks />
-          <div className="flex flex-col gap-2 lg:items-end">
+          <div className="flex flex-col items-start gap-2 lg:items-end">
             <p className="text-sm text-muted-foreground">{t('cv.label')}</p>
             <DownloadCvButton locale={locale} variant="outline" size="sm" />
           </div>

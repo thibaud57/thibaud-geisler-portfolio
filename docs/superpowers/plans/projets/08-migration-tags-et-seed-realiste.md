@@ -288,7 +288,7 @@ Valeurs par défaut :
 
 | Project slug | `deliverablesCount` | Justification |
 |--------------|---------------------|---------------|
-| `webapp-gestion-sinistres` | **3** | Mission Acme = Portail Sinistres + Portail Courtiers + Outil d'éditique |
+| `webapp-gestion-sinistres` | **3** | Mission Acme = 3 applications distinctes |
 | `referent-ia-automatisation` | **0** | Mission de conseil chez Initech, rien en prod à ce jour |
 | `saas-gestion-paie` | **1** | Mission Umbrella = 1 livrable |
 | `erp-odoo-android` | **2** | Mission Soylent = ERP Odoo + App Android |

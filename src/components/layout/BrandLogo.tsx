@@ -8,6 +8,8 @@ type Props = {
   priority?: boolean
 }
 
+const LOGO_CLASSES = 'h-9 w-auto max-w-[140px] object-contain md:h-10 md:max-w-[200px]'
+
 export function BrandLogo({ className, priority }: Props) {
   return (
     <>
@@ -17,7 +19,7 @@ export function BrandLogo({ className, priority }: Props) {
         width={180}
         height={40}
         preload={priority}
-        className={cn('h-10 w-auto max-w-[200px] object-contain dark:hidden', className)}
+        className={cn(LOGO_CLASSES, 'dark:hidden', className)}
       />
       <Image
         src={buildAssetUrl('branding/logo-horizontal-dark.png')}
@@ -25,7 +27,7 @@ export function BrandLogo({ className, priority }: Props) {
         width={180}
         height={40}
         preload={priority}
-        className={cn('hidden h-10 w-auto max-w-[200px] object-contain dark:block', className)}
+        className={cn('hidden dark:block', LOGO_CLASSES, className)}
       />
     </>
   )
