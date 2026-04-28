@@ -19,7 +19,7 @@ export async function resolveParentOgImages(
 
 // TODO: déplacer vers src/env.ts (t3-env + Zod) quand la config env centralisée sera mise en place.
 function resolveSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 }
 
 export const siteUrl = resolveSiteUrl()
