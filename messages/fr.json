@@ -314,6 +314,10 @@
     "aboutTitle": "À propos",
     "aboutDescription": "Parcours, compétences techniques et approche de travail de Thibaud Geisler.",
     "contactTitle": "Contact",
-    "contactDescription": "Contactez Thibaud Geisler pour un projet IA, une application ou une formation."
+    "contactDescription": "Contactez Thibaud Geisler pour un projet IA, une application ou une formation.",
+    "jobTitle": "IA & développement full-stack",
+    "breadcrumbHome": "Accueil",
+    "breadcrumbServices": "Services",
+    "breadcrumbProjects": "Projets"
   }
 }

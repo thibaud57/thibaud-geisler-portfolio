@@ -1,4 +1,5 @@
 import type { Metadata, ResolvingMetadata } from 'next'
+import { cacheLife } from 'next/cache'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
@@ -7,10 +8,23 @@ import { AboutHero } from '@/components/features/about/AboutHero'
 import { NumberTickerStats } from '@/components/features/about/NumberTickerStats'
 import { TechStackBadges } from '@/components/features/about/TechStackBadges'
 import { PageShell } from '@/components/layout/PageShell'
+import { JsonLd } from '@/components/seo/json-ld'
 import { LabeledText } from '@/components/ui/labeled-text'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EXPERTISE } from '@/config/expertise'
+import { SOCIAL_LINKS } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
+import { buildAssetUrl } from '@/lib/assets'
+import {
+  buildPageMetadata,
+  resolveParentOgImages,
+  setupLocaleMetadata,
+  siteUrl,
+} from '@/lib/seo'
+import {
+  buildProfilePagePerson,
+  type ProfilePagePersonInput,
+} from '@/lib/seo/json-ld'
 import {
   countClientsSupported,
   countMissionsDelivered,
@@ -43,6 +57,25 @@ export default async function AProposPage({
 }: PageProps<'/[locale]/a-propos'>) {
   const { locale } = await setupLocalePage(params)
   const t = await getTranslations('AboutPage')
+  const tMeta = await getTranslations({ locale, namespace: 'Metadata' })
+
+  const sameAs = SOCIAL_LINKS.filter((link) => link.slug !== 'email').map(
+    (link) => link.url,
+  )
+  const emailEntry = SOCIAL_LINKS.find((link) => link.slug === 'email')
+  const email = emailEntry?.url.replace(/^mailto:/, '') ?? ''
+
+  const profileJsonLd = await getCachedProfileJsonLd({
+    locale,
+    siteUrl,
+    name: 'Thibaud Geisler',
+    jobTitle: tMeta('jobTitle'),
+    description: tMeta('aboutDescription'),
+    email,
+    image: `${siteUrl}${buildAssetUrl('branding/portrait.jpg')}`,
+    sameAs,
+    expertise: EXPERTISE,
+  })
 
   return (
     <PageShell>
@@ -84,8 +117,15 @@ export default async function AProposPage({
           </Suspense>
         </section>
       </div>
+      <JsonLd data={profileJsonLd} />
     </PageShell>
   )
+}
+
+async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
+  'use cache'
+  cacheLife('days')
+  return buildProfilePagePerson(input)
 }
 
 async function StatsAsync() {
