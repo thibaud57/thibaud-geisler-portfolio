@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "loading-states"
 goal: "Installer le primitif Skeleton shadcn, refactor les 4 skeletons custom pour l'utiliser, ajouter un loading dédié sur /projets/[slug] et redesigner [locale]/loading.tsx en mini-shell branding"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["07-error-states-design.md"]
