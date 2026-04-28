@@ -1,4 +1,5 @@
 import { TEASER_LIMIT } from '@/components/features/home/constants'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function ProjectsTeaserSkeleton() {
   return (
@@ -11,11 +12,11 @@ export function ProjectsTeaserSkeleton() {
           key={i}
           className="flex h-full flex-col overflow-hidden rounded-lg border bg-card"
         >
-          <div className="h-56 w-full bg-muted" />
+          <Skeleton className="h-56 w-full rounded-none" />
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <div className="h-7 w-3/4 rounded bg-muted" />
-            <div className="h-4 w-full rounded bg-muted" />
-            <div className="h-4 w-5/6 rounded bg-muted" />
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
           </div>
         </div>
       ))}
