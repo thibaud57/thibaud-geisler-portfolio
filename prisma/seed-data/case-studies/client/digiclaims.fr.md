@@ -2,7 +2,7 @@
 
 Mission longue durée chez **Foyer**, leader de l'assurance au Luxembourg, via **H2H Services**. Contribution au développement de deux applications stratégiques pour le marché belge en architecture microservices, avec un focus sur la qualité et le clean code.
 
-**Mon rôle** : développeur fullstack junior puis confirmé.
+**Mon rôle** : développeur fullstack.
 
 ## Réalisations marquantes
 

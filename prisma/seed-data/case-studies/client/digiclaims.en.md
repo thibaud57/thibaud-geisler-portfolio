@@ -2,7 +2,7 @@
 
 Long-term engagement at **Foyer**, Luxembourg's leading insurance group, via **H2H Services**. Contribution to the development of two strategic applications for the Belgian market in a microservices architecture, with a focus on quality and clean code.
 
-**My role**: fullstack developer, junior then mid-level.
+**My role**: fullstack developer.
 
 ## Key achievements
 
