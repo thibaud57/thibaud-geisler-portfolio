@@ -717,9 +717,9 @@ export const projects: ProjectInput[] = [
     titleFr: 'Référent Technique IA & Automatisation',
     titleEn: 'Technical Lead AI & Automation',
     descriptionFr:
-      "Référent technique et stratégique IA/automatisation pour une agence digitale. Structuration des offres from scratch (gammes MX/AX), architecture d'agents IA, cadrage avant-vente, mentorat technique, infrastructure et ops.",
+      "Référent technique et stratégique IA/automatisation pour une agence digitale. Structuration des offres IA et marketing automation, architecture d'agents IA, cadrage avant-vente, mentorat technique, infrastructure et ops.",
     descriptionEn:
-      'Technical and strategic lead on AI / automation for a digital agency. Building the service catalog from scratch (MX/AX lines), AI agents architecture, pre-sales framing, technical mentoring, infrastructure and ops.',
+      'Technical and strategic lead on AI / automation for a digital agency. Building the AI and marketing automation service catalog, AI agents architecture, pre-sales framing, technical mentoring, infrastructure and ops.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['IA'],

@@ -1,14 +1,10 @@
-import type { Metadata } from 'next'
+import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { logger } from '@/lib/logger'
-import {
-  buildLanguageAlternates,
-  localeToOgLocale,
-  setupLocaleMetadata,
-} from '@/lib/seo'
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 
 import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
 import { ContactForm } from '@/components/features/contact/ContactForm'
@@ -29,17 +25,24 @@ const CALENDLY_URL_BY_LOCALE = {
   en: process.env.NEXT_PUBLIC_CALENDLY_URL_EN,
 } as const satisfies Record<Locale, string | undefined>
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/contact'>): Promise<Metadata> {
-  const { locale, t } = await setupLocaleMetadata(params)
-
-  return {
+export async function generateMetadata(
+  { params }: PageProps<'/[locale]/contact'>,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ locale, t }, parentImages] = await Promise.all([
+    setupLocaleMetadata(params),
+    resolveParentOgImages(parent),
+  ])
+  return buildPageMetadata({
+    locale,
+    path: '/contact',
     title: t('contactTitle'),
     description: t('contactDescription'),
-    openGraph: { locale: localeToOgLocale[locale] },
-    alternates: { languages: buildLanguageAlternates('/contact') },
-  }
+    siteName: t('siteTitle'),
+    ogType: 'website',
+    parentOpenGraphImages: parentImages.og,
+    parentTwitterImages: parentImages.twitter,
+  })
 }
 
 export default async function ContactPage({

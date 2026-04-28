@@ -124,8 +124,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Digiclaims - Gestion Sinistres',
-        titleEn: 'Digiclaims - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -135,7 +135,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'fr' })
 
-    expect(result[0]?.title).toBe('Digiclaims - Gestion Sinistres')
+    expect(result[0]?.title).toBe('Webapp Gestion Sinistres')
     expect(result[0]?.description).toBe('Desc FR')
     expect(result[0]).not.toHaveProperty('titleFr')
     expect(result[0]).not.toHaveProperty('titleEn')
@@ -145,8 +145,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Digiclaims - Gestion Sinistres',
-        titleEn: 'Digiclaims - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -156,7 +156,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'en' })
 
-    expect(result[0]?.title).toBe('Digiclaims - Claims Management')
+    expect(result[0]?.title).toBe('Claims Management Web App')
     expect(result[0]?.description).toBe('Desc EN')
   })
 
