@@ -2,7 +2,7 @@
 feature: "Feature 1 MVP — Pages publiques portfolio"
 subproject: "error-states"
 goal: "Refactor design des 3 pages d'erreur App Router (not-found, error, global-error) pour cohérence avec DESIGN.md, et ajout d'un not-found.tsx racine pour catch les URLs hors locale"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["05-footer-global-design.md", "06-navbar-globale-design.md"]
