@@ -1,114 +1,69 @@
-# Bandeau consentement cookies vanilla-cookieconsent v3 headless Implementation Plan
+# Bandeau consentement cookies via c15t mode offline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Installer `vanilla-cookieconsent` v3 self-hosted en mode headless, exposer un bandeau motion/react slide-up CWV-friendly + une modale Dialog shadcn de préférences granulaires conformes CNIL 2025-2026, et un hook `useConsentStatus()` consommable par les autres surfaces de la feature 7.
+**Goal:** Installer `@c15t/nextjs@^2.0.0` (Apache 2.0) + `@c15t/translations@^2.0.0` en mode `offline`, monter `ConsentManagerProvider` + `ConsentBanner` + `ConsentDialog` dans `Providers.tsx` avec translations FR/EN built-in et `hideBranding`, exposer un sync runtime entre `useLocale()` next-intl et `setLanguage()` c15t, et themer via CSS variables aux tokens DESIGN.md.
 
-**Architecture:** vanilla-cookieconsent gère uniquement persistance localStorage cookie 13 mois + events DOM (`cc:onConsent` / `cc:onChange`). On remplace banner + modale built-in par 2 composants custom (banner motion/react fixed bottom + modale Dialog shadcn). Hook `useConsentStatus()` via Context React synchronisé avec la lib via 2 useEffect listeners. Lazy load via `dynamic({ ssr: false })` pour ne pas bloquer FCP.
+**Architecture:** c15t en mode `offline` stocke le consentement en localStorage + cookie sans backend. `overrides.country: 'FR'` force GDPR sans géo-détection IP. Translations FR/EN fournies par `baseTranslations` de `@c15t/translations/all`. `<ConsentLanguageSync />` (Client Component leaf) appelle `setLanguage(useLocale())` dans un `useEffect` pour propager le switch FR/EN dans le banner. Theming via override des variables `--button-*`, `--banner-*`, `--dialog-*` dans `globals.css`. API exposée aux subs 4/5/7 : `useConsentManager().has({ category: 'marketing' })` et `setActiveUI('dialog')`.
 
-**Tech Stack:** Next.js 16, React 19, TypeScript 6 strict, Tailwind 4, shadcn/ui (Dialog, Card, Button), motion@^12 (motion/react), vanilla-cookieconsent v3.1.0, Vitest 4 (project integration jsdom), pnpm 10.
+**Tech Stack:** Next.js 16, React 19, TypeScript 6 strict, Tailwind 4, next-intl 4, @c15t/nextjs 2.0.0, @c15t/translations 2.0.0, Vitest 4 (project integration jsdom), pnpm 10.
 
 **Spec source :** [docs/superpowers/specs/conformite-legale/03-bandeau-consentement-cookies-design.md](../../specs/conformite-legale/03-bandeau-consentement-cookies-design.md)
 
-**Discipline commit (CLAUDE.md projet) :** AUCUN `git commit` intermédiaire pendant l'implémentation. Un seul commit final après validation utilisateur explicite à la fin de Task 11. Toutes les Tasks intermédiaires laissent le working tree modifié sans commit.
+**Knowledge fiche :** [docs/knowledges/c15t.md](../../../knowledges/c15t.md)
+
+**Discipline commit (CLAUDE.md projet) :** AUCUN `git commit` intermédiaire pendant l'implémentation. Un seul commit final après validation utilisateur explicite à la fin de Task 9. Toutes les Tasks intermédiaires laissent le working tree modifié sans commit.
 
 **Rules applicables :**
-- `.claude/rules/react/hooks.md` (Rules of Hooks, useEffect cleanup, useMemo Context value, custom hooks `useXxx`, throw explicite)
-- `.claude/rules/nextjs/server-client-components.md` (`'use client'` au plus bas, `dynamic({ ssr: false })`)
+- `.claude/rules/react/hooks.md` (Rules of Hooks, useEffect cleanup, deps exhaustives)
+- `.claude/rules/nextjs/server-client-components.md` (`'use client'` au plus bas, Provider Client Component)
 - `.claude/rules/nextjs/configuration.md` (Next 16 cacheComponents compatible)
-- `.claude/rules/next-intl/translations.md` (`useTranslations` Client Components, namespaces)
-- `.claude/rules/next-themes/theming.md` (pattern `mounted` anti-hydration mismatch)
-- `.claude/rules/shadcn-ui/components.md` (Dialog primitive interactive, Card mapping)
-- `.claude/rules/tailwind/conventions.md` (cn(), tokens sémantiques, `position fixed` + z-50, mobile-first)
+- `.claude/rules/next-intl/translations.md` (`useLocale` Client Component)
+- `.claude/rules/tailwind/conventions.md` (cn(), tokens sémantiques, ordering imports CSS)
 - `.claude/rules/typescript/conventions.md` (alias `@/*`, types lib via import explicite)
 - `.claude/rules/vitest/setup.md` (project integration séparé, jsdom env override)
-- `.claude/rules/nextjs/tests.md` (factory pattern, mock `next/navigation` si besoin, pas de mock lib testée)
-- `.claude/rules/pino/logger.md` (format `{ level, service, time, msg }` à aligner pour client-logger)
+- `.claude/rules/nextjs/tests.md` (factory pattern, mock `next/navigation`, no-lib-test strict)
 
 ---
 
-## Task 1: Installer la dépendance et étendre messages i18n
+## Task 1: Installer les dépendances et étendre messages i18n
 
 **Files:**
-- Modify: `package.json` (ajout `vanilla-cookieconsent`)
-- Modify: `messages/fr.json` (extension namespace `Cookies`)
-- Modify: `messages/en.json` (extension namespace `Cookies`)
+- Modify: `package.json` (ajout `@c15t/nextjs` et `@c15t/translations`)
+- Modify: `messages/fr.json` (ajout namespace `Cookies` minimal)
+- Modify: `messages/en.json` (idem EN)
 
-- [ ] **Step 1.1: Installer `vanilla-cookieconsent` v3.1.0**
+- [ ] **Step 1.1: Installer `@c15t/nextjs` et `@c15t/translations`**
 
-Run: `pnpm add vanilla-cookieconsent@^3.1.0`
-Expected: ajout de `"vanilla-cookieconsent": "^3.1.0"` dans `dependencies` du `package.json`, lockfile mis à jour. Aucune erreur de peer dep.
+Run: `pnpm add @c15t/nextjs@^2.0.0 @c15t/translations@^2.0.0`
+Expected: ajout des 2 packages dans `dependencies` du `package.json`, lockfile mis à jour. `@c15t/translations` doit être installé EXPLICITEMENT (et pas seulement comme transitif de `@c15t/nextjs`) sinon `Module not found: Can't resolve '@c15t/translations/all'` au build.
 
-- [ ] **Step 1.2: Vérifier que les types sont bien fournis**
+- [ ] **Step 1.2: Vérifier que les types sont fournis**
 
-Run: `node -e "console.log(require.resolve('vanilla-cookieconsent/dist/types.d.ts'))"` (ou équivalent selon la lib)
-Expected: chemin vers les types TypeScript fournis par la lib. Sinon, le types `CookieConsentConfig` et `Translation` seront exportés depuis le module principal.
+Run: `node -e "console.log(require.resolve('@c15t/nextjs'))" ; node -e "console.log(require.resolve('@c15t/translations/all'))"`
+Expected: chemins vers les builds installés. Les types sont fournis via `dist-types/` et exportés depuis le package principal.
 
-- [ ] **Step 1.3: Ajouter le namespace `Cookies` complet à `messages/fr.json`**
+- [ ] **Step 1.3: Ajouter le namespace `Cookies` minimal à `messages/fr.json`**
 
-Lire `messages/fr.json` actuel pour identifier la position d'insertion (typiquement à la fin de l'objet root, en respectant la virgule de séparation avec le dernier namespace).
+Lire `messages/fr.json` actuel pour identifier la position d'insertion (typiquement à la fin de l'objet root, avec virgule de séparation).
 
 Ajouter le bloc suivant comme nouveau namespace top-level :
 
 ```json
 "Cookies": {
-  "banner": {
-    "title": "Cookies & confidentialité",
-    "description": "Nous utilisons des cookies essentiels pour le fonctionnement du site. Le widget Calendly de prise de rendez-vous nécessite votre accord pour les cookies marketing.",
-    "acceptAll": "Tout accepter",
-    "rejectAll": "Tout refuser",
-    "customize": "Personnaliser"
-  },
-  "modal": {
-    "title": "Préférences de cookies",
-    "description": "Choisissez les types de cookies que vous acceptez. Vous pouvez modifier ce choix à tout moment via le lien \"Gérer mes cookies\" du pied de page.",
-    "categories": {
-      "necessary": {
-        "title": "Cookies essentiels",
-        "description": "Indispensables au fonctionnement du site (préférence de thème, mémorisation de votre choix de cookies). Toujours actifs."
-      },
-      "marketing": {
-        "title": "Cookies marketing",
-        "description": "Permettent l'affichage du widget Calendly sur la page Contact. Calendly transfère vos données aux États-Unis dans le cadre du Data Privacy Framework."
-      }
-    },
-    "save": "Sauvegarder mes préférences",
-    "acceptAll": "Tout accepter",
-    "rejectAll": "Tout refuser"
-  }
+  "openManagerLabel": "Gérer mes cookies"
 }
 ```
 
-- [ ] **Step 1.4: Ajouter le namespace `Cookies` complet à `messages/en.json`**
+Le namespace `Cookies` projet est volontairement minimal (1 clé) : tous les textes du banner et de la modale viennent de `@c15t/translations/all` (built-in c15t). Ce namespace ne contient que les libellés boutons custom du projet (consommés par sub 5 via prop `label?` du bouton, et sub 7 footer).
+
+- [ ] **Step 1.4: Ajouter le namespace `Cookies` à `messages/en.json`**
 
 Idem position d'insertion. Ajouter :
 
 ```json
 "Cookies": {
-  "banner": {
-    "title": "Cookies & Privacy",
-    "description": "We use essential cookies to operate the site. The Calendly scheduling widget requires your consent for marketing cookies.",
-    "acceptAll": "Accept all",
-    "rejectAll": "Reject all",
-    "customize": "Customize"
-  },
-  "modal": {
-    "title": "Cookie preferences",
-    "description": "Choose which types of cookies you accept. You can change your mind anytime via the \"Manage my cookies\" link in the footer.",
-    "categories": {
-      "necessary": {
-        "title": "Essential cookies",
-        "description": "Required for site functionality (theme preference, cookie consent storage). Always active."
-      },
-      "marketing": {
-        "title": "Marketing cookies",
-        "description": "Enable the Calendly scheduling widget on the Contact page. Calendly transfers your data to the United States under the Data Privacy Framework."
-      }
-    },
-    "save": "Save my preferences",
-    "acceptAll": "Accept all",
-    "rejectAll": "Reject all"
-  }
+  "openManagerLabel": "Manage cookies"
 }
 ```
 
@@ -118,45 +73,37 @@ Run: `node -e "JSON.parse(require('fs').readFileSync('messages/fr.json','utf8'))
 Expected: `OK` (les 2 fichiers sont du JSON valide).
 
 Run: `pnpm typecheck`
-Expected: aucune erreur. Le namespace `Cookies` est désormais accessible via `t('Cookies.banner.title')` etc.
+Expected: aucune erreur. La clé `Cookies.openManagerLabel` est désormais accessible via `t('openManagerLabel')` dans le namespace `Cookies`.
 
 ---
 
-## Task 2: Créer `src/lib/cookies/client-logger.ts`
+## Task 2: Créer le helper `buildLegalLinks`
 
 **Files:**
-- Create: `src/lib/cookies/client-logger.ts`
+- Create: `src/lib/cookies/build-legal-links.ts`
 
-- [ ] **Step 2.1: Créer le fichier**
+- [ ] **Step 2.1: Créer le helper pur**
 
-Create `src/lib/cookies/client-logger.ts` :
+Create `src/lib/cookies/build-legal-links.ts` :
 
 ```typescript
-type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+type Locale = 'fr' | 'en'
 
-const SERVICE = 'thibaud-geisler-portfolio'
-
-function emit(level: LogLevel, msg: string, payload: Record<string, unknown> = {}): void {
-  const entry = {
-    level,
-    service: SERVICE,
-    context: 'client',
-    time: new Date().toISOString(),
-    msg,
-    ...payload,
-  }
-  const serialized = JSON.stringify(entry)
-  if (level === 'error') console.error(serialized)
-  else if (level === 'warn') console.warn(serialized)
-  else console.info(serialized)
+type LegalLinks = {
+  privacyPolicy: { href: string; target: '_self' }
 }
 
-export const clientLogger = {
-  info: (msg: string, payload?: Record<string, unknown>): void => emit('info', msg, payload),
-  warn: (msg: string, payload?: Record<string, unknown>): void => emit('warn', msg, payload),
-  error: (msg: string, payload?: Record<string, unknown>): void => emit('error', msg, payload),
+export function buildLegalLinks(locale: Locale): LegalLinks {
+  return {
+    privacyPolicy: {
+      href: `/${locale}/confidentialite`,
+      target: '_self',
+    },
+  }
 }
 ```
+
+Note : pas de `cookiePolicy` séparée car la section cookies vit dans la page `/confidentialite` du sub 4 (pas de page séparée). Le path `/confidentialite` reste identique en EN (slug FR conservé en EN, voir `Architectural decisions` du sub 4 si besoin de localiser le slug ultérieurement).
 
 - [ ] **Step 2.2: Vérifier la compilation**
 
@@ -165,742 +112,193 @@ Expected: aucune erreur.
 
 ---
 
-## Task 3: Créer `src/lib/cookies/consent-config.ts`
+## Task 3: TDD red — écrire les tests d'intégration de `<ConsentLanguageSync />`
 
 **Files:**
-- Create: `src/lib/cookies/consent-config.ts`
+- Create: `src/lib/cookies/consent-language-sync.integration.test.tsx`
 
-- [ ] **Step 3.1: Créer le fichier de configuration vanilla-cookieconsent**
+- [ ] **Step 3.1: Créer le fichier de tests avec les 3 cas du spec**
 
-Create `src/lib/cookies/consent-config.ts` :
-
-```typescript
-import type { CookieConsentConfig, Translation } from 'vanilla-cookieconsent'
-
-export const consentCookieName = 'cc_consent'
-export const consentCookieMaxDays = 395 // ~13 mois CNIL
-
-export type ConsentTranslations = {
-  fr: Translation
-  en: Translation
-}
-
-export function buildConsentConfig(translations: ConsentTranslations): CookieConsentConfig {
-  return {
-    cookie: {
-      name: consentCookieName,
-      expiresAfterDays: consentCookieMaxDays,
-    },
-    guiOptions: {
-      consentModal: {
-        layout: 'box inline',
-        position: 'bottom right',
-        equalWeightButtons: true,
-      },
-      preferencesModal: {
-        layout: 'box',
-        equalWeightButtons: true,
-      },
-    },
-    categories: {
-      necessary: { enabled: true, readOnly: true },
-      marketing: { enabled: false, autoClear: { cookies: [] } },
-    },
-    language: {
-      default: 'fr',
-      autoDetect: 'document',
-      translations,
-    },
-    disablePageInteraction: false,
-  }
-}
-```
-
-- [ ] **Step 3.2: Vérifier la compilation**
-
-Run: `pnpm typecheck`
-Expected: aucune erreur. Les types `CookieConsentConfig` et `Translation` sont importés depuis `vanilla-cookieconsent`.
-
----
-
-## Task 4: TDD red — écrire les tests d'intégration du Hook + Provider
-
-**Files:**
-- Create: `src/lib/cookies/use-consent-status.integration.test.ts`
-
-- [ ] **Step 4.1: Créer le fichier de tests avec les 12 cas du spec**
-
-Create `src/lib/cookies/use-consent-status.integration.test.ts` :
+Create `src/lib/cookies/consent-language-sync.integration.test.tsx` :
 
 ```typescript
 // @vitest-environment jsdom
 
-import { act, render, renderHook, screen } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 
-import { CookieConsentProvider, useConsentStatus } from './use-consent-status'
-import type { ConsentTranslations } from './consent-config'
-import { consentCookieName } from './consent-config'
+import { ConsentManagerProvider } from '@c15t/nextjs'
+import { baseTranslations } from '@c15t/translations/all'
 
-const fakeTranslations: ConsentTranslations = {
-  fr: {
-    consentModal: {
-      title: 'Cookies',
-      description: 'desc',
-      acceptAllBtn: 'Tout accepter',
-      acceptNecessaryBtn: 'Tout refuser',
-      showPreferencesBtn: 'Personnaliser',
-    },
-    preferencesModal: {
-      title: 'Préférences',
-      acceptAllBtn: 'Tout accepter',
-      acceptNecessaryBtn: 'Tout refuser',
-      savePreferencesBtn: 'Sauvegarder',
-      closeIconLabel: 'Fermer',
-      sections: [
-        { title: 'Essentiels', description: 'desc', linkedCategory: 'necessary' },
-        { title: 'Marketing', description: 'desc', linkedCategory: 'marketing' },
-      ],
-    },
-  },
-  en: {
-    consentModal: {
-      title: 'Cookies',
-      description: 'desc',
-      acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
-      showPreferencesBtn: 'Customize',
-    },
-    preferencesModal: {
-      title: 'Preferences',
-      acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
-      savePreferencesBtn: 'Save',
-      closeIconLabel: 'Close',
-      sections: [
-        { title: 'Essential', description: 'desc', linkedCategory: 'necessary' },
-        { title: 'Marketing', description: 'desc', linkedCategory: 'marketing' },
-      ],
-    },
-  },
-}
+const setLanguageMock = vi.fn()
+const useLocaleMock = vi.fn<() => 'fr' | 'en'>()
+
+vi.mock('next-intl', () => ({
+  useLocale: () => useLocaleMock(),
+}))
+
+vi.mock('@c15t/nextjs', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@c15t/nextjs')>()
+  return {
+    ...original,
+    useConsentManager: () => ({
+      setLanguage: setLanguageMock,
+      consents: {},
+      has: () => false,
+      setActiveUI: () => undefined,
+    }),
+  }
+})
+
+import { ConsentLanguageSync } from './consent-language-sync'
 
 function Wrapper({ children }: { children: ReactNode }) {
-  return <CookieConsentProvider translations={fakeTranslations}>{children}</CookieConsentProvider>
-}
-
-function clearConsentCookie(): void {
-  document.cookie = `${consentCookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
-  localStorage.clear()
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        i18n: { locale: 'fr', detectBrowserLanguage: false, messages: baseTranslations },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  )
 }
 
 beforeEach(() => {
-  clearConsentCookie()
-  vi.spyOn(console, 'info').mockImplementation(() => {})
-  vi.spyOn(console, 'warn').mockImplementation(() => {})
-  vi.spyOn(console, 'error').mockImplementation(() => {})
+  setLanguageMock.mockClear()
+  useLocaleMock.mockReturnValue('fr')
+  localStorage.clear()
+  document.cookie = ''
 })
 
 afterEach(() => {
   vi.clearAllMocks()
-  clearConsentCookie()
 })
 
-describe('useConsentStatus()', () => {
-  it('lance une erreur explicite si appelé hors Provider', () => {
-    expect(() => renderHook(() => useConsentStatus())).toThrow(
-      'useConsentStatus must be used within CookieConsentProvider',
-    )
-  })
-
-  it('retourne { marketing: false, hasInteracted: false } à l initial avec localStorage vide', async () => {
-    const { result } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    // Attendre le tick suivant pour que le useEffect du Provider charge la lib
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-    expect(result.current.marketing).toBe(false)
-    expect(result.current.hasInteracted).toBe(false)
-  })
-
-  it('synchronise marketing=true après dispatch de cc:onConsent quand la catégorie est acceptée', async () => {
-    const { result } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    await act(async () => {
-      cc.acceptCategory('all')
-      window.dispatchEvent(new CustomEvent('cc:onConsent'))
-      await new Promise((resolve) => setTimeout(resolve, 10))
-    })
-
-    expect(result.current.marketing).toBe(true)
-    expect(result.current.hasInteracted).toBe(true)
-  })
-
-  it('logge consent:accepted en console.info au format JSON Pino-like quand marketing=true', async () => {
-    renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    await act(async () => {
-      cc.acceptCategory('all')
-      window.dispatchEvent(new CustomEvent('cc:onConsent'))
-      await new Promise((resolve) => setTimeout(resolve, 10))
-    })
-
-    const calls = (console.info as ReturnType<typeof vi.spyOn>).mock.calls.map(
-      (args) => JSON.parse(args[0] as string) as Record<string, unknown>,
-    )
-    const acceptedCall = calls.find((c) => c.msg === 'consent:accepted')
-    expect(acceptedCall).toBeDefined()
-    expect(acceptedCall?.level).toBe('info')
-    expect(acceptedCall?.service).toBe('thibaud-geisler-portfolio')
-    expect(acceptedCall?.context).toBe('client')
-    expect(acceptedCall?.marketing).toBe(true)
-    expect(typeof acceptedCall?.time).toBe('string')
-  })
-
-  it('logge consent:rejected quand marketing=false', async () => {
-    renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    await act(async () => {
-      cc.acceptCategory([])
-      window.dispatchEvent(new CustomEvent('cc:onConsent'))
-      await new Promise((resolve) => setTimeout(resolve, 10))
-    })
-
-    const calls = (console.info as ReturnType<typeof vi.spyOn>).mock.calls.map(
-      (args) => JSON.parse(args[0] as string) as Record<string, unknown>,
-    )
-    expect(calls.find((c) => c.msg === 'consent:rejected')).toBeDefined()
-  })
-
-  it('logge consent:changed quand cc:onChange est dispatché', async () => {
-    const { result } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    await act(async () => {
-      cc.acceptCategory(['marketing'])
-      window.dispatchEvent(new CustomEvent('cc:onChange'))
-      await new Promise((resolve) => setTimeout(resolve, 10))
-    })
-
-    const calls = (console.info as ReturnType<typeof vi.spyOn>).mock.calls.map(
-      (args) => JSON.parse(args[0] as string) as Record<string, unknown>,
-    )
-    expect(calls.find((c) => c.msg === 'consent:changed')).toBeDefined()
-    expect(result.current.marketing).toBe(true)
-  })
-
-  it('openPreferences() appelle cc.showPreferences() de la lib', async () => {
-    const { result } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    const showPreferencesSpy = vi.spyOn(cc, 'showPreferences').mockImplementation(() => {})
-
-    act(() => {
-      result.current.openPreferences()
-    })
-
-    expect(showPreferencesSpy).toHaveBeenCalledTimes(1)
-    showPreferencesSpy.mockRestore()
-  })
-
-  it('openPreferences() logge consent:customized', async () => {
-    const { result } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    const cc = await import('vanilla-cookieconsent')
-    vi.spyOn(cc, 'showPreferences').mockImplementation(() => {})
-
-    act(() => {
-      result.current.openPreferences()
-    })
-
-    const calls = (console.info as ReturnType<typeof vi.spyOn>).mock.calls.map(
-      (args) => JSON.parse(args[0] as string) as Record<string, unknown>,
-    )
-    expect(calls.find((c) => c.msg === 'consent:customized')).toBeDefined()
-  })
-
-  it('cleanup les event listeners cc:onConsent et cc:onChange au unmount', async () => {
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
-    const { unmount } = renderHook(() => useConsentStatus(), { wrapper: Wrapper })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    unmount()
-
-    const removedEvents = removeEventListenerSpy.mock.calls.map((call) => call[0])
-    expect(removedEvents).toContain('cc:onConsent')
-    expect(removedEvents).toContain('cc:onChange')
-    removeEventListenerSpy.mockRestore()
-  })
-
-  it('Provider re-rend les consumers quand le state change', async () => {
-    function StatusDisplay() {
-      const { marketing, hasInteracted } = useConsentStatus()
-      return (
-        <div>
-          <span data-testid="marketing">{marketing ? 'true' : 'false'}</span>
-          <span data-testid="interacted">{hasInteracted ? 'true' : 'false'}</span>
-        </div>
-      )
-    }
-
+describe('<ConsentLanguageSync />', () => {
+  it('appelle setLanguage(locale) au mount avec la locale courante', () => {
+    useLocaleMock.mockReturnValue('fr')
     render(
       <Wrapper>
-        <StatusDisplay />
+        <ConsentLanguageSync />
       </Wrapper>,
     )
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
-
-    expect(screen.getByTestId('marketing').textContent).toBe('false')
-    expect(screen.getByTestId('interacted').textContent).toBe('false')
-
-    const cc = await import('vanilla-cookieconsent')
-    await act(async () => {
-      cc.acceptCategory('all')
-      window.dispatchEvent(new CustomEvent('cc:onConsent'))
-      await new Promise((resolve) => setTimeout(resolve, 10))
-    })
-
-    expect(screen.getByTestId('marketing').textContent).toBe('true')
-    expect(screen.getByTestId('interacted').textContent).toBe('true')
+    expect(setLanguageMock).toHaveBeenCalledTimes(1)
+    expect(setLanguageMock).toHaveBeenCalledWith('fr')
   })
 
-  it('clientLogger émet le format JSON avec toutes les clés Pino-like', async () => {
-    const { clientLogger } = await import('./client-logger')
-
-    clientLogger.info('test:event', { foo: 'bar' })
-
-    const lastCall = (console.info as ReturnType<typeof vi.spyOn>).mock.calls.at(-1)
-    expect(lastCall).toBeDefined()
-    const payload = JSON.parse(lastCall?.[0] as string) as Record<string, unknown>
-
-    expect(payload.level).toBe('info')
-    expect(payload.service).toBe('thibaud-geisler-portfolio')
-    expect(payload.context).toBe('client')
-    expect(typeof payload.time).toBe('string')
-    expect(new Date(payload.time as string).toISOString()).toBe(payload.time)
-    expect(payload.msg).toBe('test:event')
-    expect(payload.foo).toBe('bar')
-  })
-
-  it('clientLogger.error utilise console.error au lieu de console.info', async () => {
-    const { clientLogger } = await import('./client-logger')
-
-    clientLogger.error('test:error')
-
-    expect(console.error).toHaveBeenCalledTimes(1)
-    expect((console.error as ReturnType<typeof vi.spyOn>).mock.calls[0]?.[0]).toContain(
-      '"msg":"test:error"',
+  it('rappelle setLanguage avec la nouvelle locale après changement (re-render)', () => {
+    useLocaleMock.mockReturnValue('fr')
+    const { rerender } = render(
+      <Wrapper>
+        <ConsentLanguageSync />
+      </Wrapper>,
     )
+    expect(setLanguageMock).toHaveBeenCalledWith('fr')
+
+    useLocaleMock.mockReturnValue('en')
+    act(() => {
+      rerender(
+        <Wrapper>
+          <ConsentLanguageSync />
+        </Wrapper>,
+      )
+    })
+
+    expect(setLanguageMock).toHaveBeenCalledTimes(2)
+    expect(setLanguageMock).toHaveBeenLastCalledWith('en')
+  })
+
+  it('ne génère pas de warning React au unmount', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { unmount } = render(
+      <Wrapper>
+        <ConsentLanguageSync />
+      </Wrapper>,
+    )
+    unmount()
+    expect(consoleErrorSpy).not.toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
   })
 })
 ```
 
-- [ ] **Step 4.2: Lancer les tests, ils doivent ÉCHOUER (red phase)**
+- [ ] **Step 3.2: Lancer les tests, ils doivent ÉCHOUER (red phase)**
 
-Run: `pnpm test src/lib/cookies/use-consent-status.integration.test.ts`
-Expected: échec d'import `Cannot find module './use-consent-status'` (le fichier n'existe pas encore). C'est attendu : c'est la phase red du TDD.
+Run: `pnpm test src/lib/cookies/consent-language-sync.integration.test.tsx`
+Expected: échec d'import `Cannot find module './consent-language-sync'` (le fichier n'existe pas encore). C'est attendu : c'est la phase red du TDD.
 
 ---
 
-## Task 5: TDD green — implémenter le Provider et le Hook
+## Task 4: TDD green — implémenter `<ConsentLanguageSync />`
 
 **Files:**
-- Create: `src/lib/cookies/use-consent-status.ts`
+- Create: `src/lib/cookies/consent-language-sync.tsx`
 
-- [ ] **Step 5.1: Créer le Provider et le Hook**
+- [ ] **Step 4.1: Créer le composant**
 
-Create `src/lib/cookies/use-consent-status.ts` :
+Create `src/lib/cookies/consent-language-sync.tsx` :
 
 ```typescript
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { CookieConsent as CookieConsentApi } from 'vanilla-cookieconsent'
+import { useEffect } from 'react'
+import { useLocale } from 'next-intl'
+import { useConsentManager } from '@c15t/nextjs'
 
-import { buildConsentConfig, type ConsentTranslations } from './consent-config'
-import { clientLogger } from './client-logger'
-
-type ConsentState = { marketing: boolean; hasInteracted: boolean }
-type ConsentContextValue = ConsentState & { openPreferences: () => void }
-
-const ConsentContext = createContext<ConsentContextValue | null>(null)
-
-type ProviderProps = {
-  children: ReactNode
-  translations: ConsentTranslations
-}
-
-export function CookieConsentProvider({ children, translations }: ProviderProps) {
-  const [state, setState] = useState<ConsentState>({ marketing: false, hasInteracted: false })
-  const [api, setApi] = useState<CookieConsentApi | null>(null)
+export function ConsentLanguageSync() {
+  const locale = useLocale()
+  const { setLanguage } = useConsentManager()
 
   useEffect(() => {
-    let cancelled = false
-    void import('vanilla-cookieconsent').then((cc) => {
-      if (cancelled) return
-      void cc.run(buildConsentConfig(translations))
-      setApi(cc)
-      setState({
-        marketing: cc.acceptedCategory('marketing'),
-        hasInteracted: cc.validConsent(),
-      })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [translations])
+    setLanguage(locale)
+  }, [locale, setLanguage])
 
-  useEffect(() => {
-    if (!api) return
-    const onConsent = () => {
-      const marketing = api.acceptedCategory('marketing')
-      setState({ marketing, hasInteracted: api.validConsent() })
-      clientLogger.info(marketing ? 'consent:accepted' : 'consent:rejected', { marketing })
-    }
-    const onChange = () => {
-      const marketing = api.acceptedCategory('marketing')
-      setState({ marketing, hasInteracted: api.validConsent() })
-      clientLogger.info('consent:changed', { marketing })
-    }
-    window.addEventListener('cc:onConsent', onConsent)
-    window.addEventListener('cc:onChange', onChange)
-    return () => {
-      window.removeEventListener('cc:onConsent', onConsent)
-      window.removeEventListener('cc:onChange', onChange)
-    }
-  }, [api])
-
-  const openPreferences = () => {
-    api?.showPreferences()
-    clientLogger.info('consent:customized', {})
-  }
-
-  const value = useMemo<ConsentContextValue>(
-    () => ({ ...state, openPreferences }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, api],
-  )
-
-  return <ConsentContext value={value}>{children}</ConsentContext>
-}
-
-export function useConsentStatus(): ConsentContextValue {
-  const ctx = useContext(ConsentContext)
-  if (!ctx) {
-    throw new Error('useConsentStatus must be used within CookieConsentProvider')
-  }
-  return ctx
+  return null
 }
 ```
 
-- [ ] **Step 5.2: Lancer les tests, ils doivent PASSER (green phase)**
+- [ ] **Step 4.2: Lancer les tests, ils doivent PASSER (green phase)**
 
-Run: `pnpm test src/lib/cookies/use-consent-status.integration.test.ts`
-Expected: tous les 12 tests passent (vert).
+Run: `pnpm test src/lib/cookies/consent-language-sync.integration.test.tsx`
+Expected: les 3 tests passent (vert). Si un warning ESLint `react-hooks/exhaustive-deps` apparaît, vérifier que `setLanguage` est bien dans les deps (c'est notre design pour re-déclencher si la référence change).
 
-Si certains tests échouent à cause de timings (la lib est lazy-loadée, parfois `setTimeout(50)` n'est pas suffisant), augmenter à `setTimeout(100)`. Si l'import dynamique de `vanilla-cookieconsent` échoue en jsdom, vérifier que la lib est bien dans `dependencies` (pas `devDependencies`).
-
-- [ ] **Step 5.3: Vérifier la compilation**
+- [ ] **Step 4.3: Vérifier la compilation**
 
 Run: `pnpm typecheck`
 Expected: aucune erreur.
 
 ---
 
-## Task 6: Créer la modale `CookiePreferencesModal`
-
-**Files:**
-- Create: `src/components/layout/CookiePreferencesModal.tsx`
-
-- [ ] **Step 6.1: Créer la modale Dialog shadcn avec 2 Card et toggles**
-
-Create `src/components/layout/CookiePreferencesModal.tsx` :
-
-```typescript
-'use client'
-
-import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
-
-type Props = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function CookiePreferencesModal({ open, onOpenChange }: Props) {
-  const t = useTranslations('Cookies.modal')
-  const [marketingChecked, setMarketingChecked] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    void import('vanilla-cookieconsent').then((cc) => {
-      if (cancelled) return
-      setMarketingChecked(cc.acceptedCategory('marketing'))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [open])
-
-  const handleAcceptAll = async () => {
-    const cc = await import('vanilla-cookieconsent')
-    cc.acceptCategory('all')
-    onOpenChange(false)
-  }
-
-  const handleRejectAll = async () => {
-    const cc = await import('vanilla-cookieconsent')
-    cc.acceptCategory([])
-    onOpenChange(false)
-  }
-
-  const handleSave = async () => {
-    const cc = await import('vanilla-cookieconsent')
-    cc.acceptCategory(marketingChecked ? ['necessary', 'marketing'] : ['necessary'])
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4 py-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-              <CardTitle className="text-base">{t('categories.necessary.title')}</CardTitle>
-              <input
-                type="checkbox"
-                checked
-                disabled
-                aria-label={t('categories.necessary.title')}
-                className={cn(
-                  'size-5 rounded border border-input',
-                  'bg-primary text-primary-foreground',
-                  'cursor-not-allowed opacity-60',
-                )}
-              />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{t('categories.necessary.description')}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-              <CardTitle className="text-base">{t('categories.marketing.title')}</CardTitle>
-              <input
-                type="checkbox"
-                checked={marketingChecked}
-                onChange={(e) => setMarketingChecked(e.target.checked)}
-                aria-label={t('categories.marketing.title')}
-                className={cn(
-                  'size-5 rounded border border-input cursor-pointer',
-                  'checked:bg-primary checked:text-primary-foreground',
-                  'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                )}
-              />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{t('categories.marketing.description')}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="default" onClick={handleSave} className="w-full sm:w-auto">
-            {t('save')}
-          </Button>
-          <Button variant="default" onClick={handleAcceptAll} className="w-full sm:w-auto">
-            {t('acceptAll')}
-          </Button>
-          <Button variant="default" onClick={handleRejectAll} className="w-full sm:w-auto">
-            {t('rejectAll')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-```
-
-- [ ] **Step 6.2: Vérifier la compilation**
-
-Run: `pnpm typecheck`
-Expected: aucune erreur. Si Card / CardContent / CardHeader / CardTitle ne sont pas exportés depuis `@/components/ui/card`, vérifier le contenu de ce fichier shadcn.
-
----
-
-## Task 7: Créer le banner motion/react `CookieConsent`
-
-**Files:**
-- Create: `src/components/layout/CookieConsent.tsx`
-
-- [ ] **Step 7.1: Créer le banner motion/react avec compose modale**
-
-Create `src/components/layout/CookieConsent.tsx` :
-
-```typescript
-'use client'
-
-import { AnimatePresence, motion } from 'motion/react'
-import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
-
-import { Button } from '@/components/ui/button'
-import { useConsentStatus } from '@/lib/cookies/use-consent-status'
-
-import { CookiePreferencesModal } from './CookiePreferencesModal'
-
-export function CookieConsent() {
-  const [mounted, setMounted] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
-  const t = useTranslations('Cookies')
-  const { hasInteracted } = useConsentStatus()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null
-
-  const handleAcceptAll = async () => {
-    const cc = await import('vanilla-cookieconsent')
-    cc.acceptCategory('all')
-  }
-
-  const handleRejectAll = async () => {
-    const cc = await import('vanilla-cookieconsent')
-    cc.acceptCategory([])
-  }
-
-  return (
-    <>
-      <AnimatePresence>
-        {!hasInteracted && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card p-4 sm:p-6 shadow-lg"
-            role="dialog"
-            aria-labelledby="cookie-banner-title"
-          >
-            <div className="max-w-7xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-2">
-                <h2 id="cookie-banner-title" className="text-base font-semibold text-foreground">
-                  {t('banner.title')}
-                </h2>
-                <p className="text-sm text-muted-foreground">{t('banner.description')}</p>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleAcceptAll}
-                  className="w-full sm:w-auto"
-                >
-                  {t('banner.acceptAll')}
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleRejectAll}
-                  className="w-full sm:w-auto"
-                >
-                  {t('banner.rejectAll')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setModalOpen(true)}
-                  className="w-full sm:w-auto"
-                >
-                  {t('banner.customize')}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <CookiePreferencesModal open={modalOpen} onOpenChange={setModalOpen} />
-    </>
-  )
-}
-```
-
-- [ ] **Step 7.2: Vérifier la compilation**
-
-Run: `pnpm typecheck`
-Expected: aucune erreur.
-
----
-
-## Task 8: Intégrer le Provider et le Banner dans `Providers.tsx`
+## Task 5: Intégrer ConsentManagerProvider + composants c15t dans `Providers.tsx`
 
 **Files:**
 - Modify: `src/components/providers/Providers.tsx`
 
-- [ ] **Step 8.1: Ajouter le Provider et le mount lazy du banner**
+- [ ] **Step 5.1: Modifier le Provider pour wrapper ConsentManagerProvider**
 
-Le contenu actuel (`'use client'` directive + workaround next-themes + `Providers` qui wrap ThemeProvider + Toaster).
+Le contenu actuel : `'use client'` + workaround next-themes + `Providers` qui wrap `ThemeProvider` + `Toaster`.
 
 Modifier comme suit (en gardant le workaround next-themes intact) :
 
 ```typescript
 'use client'
 
-import dynamic from 'next/dynamic'
-import { useMessages } from 'next-intl'
 import type { ReactNode } from 'react'
+import { useLocale } from 'next-intl'
 import { ThemeProvider } from 'next-themes'
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/nextjs'
+import { baseTranslations } from '@c15t/translations/all'
 
 import { Toaster } from '@/components/ui/sonner'
-import { CookieConsentProvider } from '@/lib/cookies/use-consent-status'
-import type { ConsentTranslations } from '@/lib/cookies/consent-config'
+import { ConsentLanguageSync } from '@/lib/cookies/consent-language-sync'
+import { buildLegalLinks } from '@/lib/cookies/build-legal-links'
 
 // Faux positif React 19 × next-themes 0.4.6 : next-themes injecte un <script> inline
 // pour éviter le FOUC, React 19 warne à tort (le script s'exécute bien en SSR).
@@ -921,285 +319,317 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   }
 }
 
-const CookieConsent = dynamic(
-  () => import('@/components/layout/CookieConsent').then((m) => m.CookieConsent),
-  { ssr: false },
-)
-
-function buildConsentTranslations(messages: Record<string, unknown>): ConsentTranslations {
-  // Mapping minimal pour vanilla-cookieconsent (les clés FR/EN sont projetées
-  // depuis messages/{fr,en}.json namespace Cookies via next-intl).
-  // La modale custom (CookiePreferencesModal) lit directement les messages via useTranslations,
-  // mais vanilla-cookieconsent v3 exige un objet translations valide même en mode headless.
-  const cookies = messages.Cookies as Record<string, Record<string, string>>
-  const banner = cookies.banner
-  const modal = cookies.modal
-  return {
-    fr: {
-      consentModal: {
-        title: banner.title,
-        description: banner.description,
-        acceptAllBtn: banner.acceptAll,
-        acceptNecessaryBtn: banner.rejectAll,
-        showPreferencesBtn: banner.customize,
-      },
-      preferencesModal: {
-        title: modal.title,
-        acceptAllBtn: modal.acceptAll,
-        acceptNecessaryBtn: modal.rejectAll,
-        savePreferencesBtn: modal.save,
-        closeIconLabel: 'Fermer',
-        sections: [
-          { title: 'Essentiels', description: '', linkedCategory: 'necessary' },
-          { title: 'Marketing', description: '', linkedCategory: 'marketing' },
-        ],
-      },
-    },
-    en: {
-      consentModal: {
-        title: banner.title,
-        description: banner.description,
-        acceptAllBtn: banner.acceptAll,
-        acceptNecessaryBtn: banner.rejectAll,
-        showPreferencesBtn: banner.customize,
-      },
-      preferencesModal: {
-        title: modal.title,
-        acceptAllBtn: modal.acceptAll,
-        acceptNecessaryBtn: modal.rejectAll,
-        savePreferencesBtn: modal.save,
-        closeIconLabel: 'Close',
-        sections: [
-          { title: 'Essential', description: '', linkedCategory: 'necessary' },
-          { title: 'Marketing', description: '', linkedCategory: 'marketing' },
-        ],
-      },
-    },
-  }
-}
-
 export function Providers({ children }: { children: ReactNode }) {
-  const messages = useMessages()
-  const translations = buildConsentTranslations(messages as Record<string, unknown>)
+  const locale = useLocale()
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        overrides: { country: 'FR' },
+        consentCategories: ['necessary', 'marketing'],
+        i18n: {
+          locale,
+          detectBrowserLanguage: false,
+          messages: baseTranslations,
+        },
+        legalLinks: buildLegalLinks(locale),
+      }}
     >
-      <CookieConsentProvider translations={translations}>
+      <ConsentLanguageSync />
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
         {children}
-        <CookieConsent />
+        <ConsentBanner hideBranding />
+        <ConsentDialog hideBranding />
         <Toaster />
-      </CookieConsentProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ConsentManagerProvider>
   )
 }
 ```
 
-Note importante : la modale custom `CookiePreferencesModal` lit les traductions via `useTranslations('Cookies.modal')` directement (pattern next-intl idiomatique). Le mapping ci-dessus vers `vanilla-cookieconsent.translations` n'est utilisé que parce que la lib v3 exige un objet `translations` valide même quand on désactive son UI native. C'est un mapping minimal de surface (titres, boutons) avec des descriptions vides : la lib ne render rien de tout ça en mode headless puisqu'on a notre propre UI.
+Notes :
+- `ConsentManagerProvider` est WRAPPER autour de `ThemeProvider` (provider global à l'extérieur, provider UI à l'intérieur)
+- `<ConsentLanguageSync />` placé immédiatement à l'intérieur de `ConsentManagerProvider` (a besoin du Context c15t)
+- `<ConsentBanner>` et `<ConsentDialog>` placés DANS le `ThemeProvider` (pour que les couleurs dark mode soient appliquées correctement via les vars CSS overridées en `.dark`)
+- Pas besoin de `dynamic({ ssr: false })` : c15t v2 gère lui-même la non-render SSR
 
-- [ ] **Step 8.2: Vérifier la compilation**
+- [ ] **Step 5.2: Vérifier la compilation**
 
 Run: `pnpm typecheck`
-Expected: aucune erreur. `useMessages` retourne `IntlMessages` (`AbstractIntlMessages`), à caster en `Record<string, unknown>` pour le mapping.
+Expected: aucune erreur. `useLocale()` retourne directement `'fr' | 'en'` strictement typé grâce à l'augmentation `declare module 'next-intl' { interface AppConfig { Locale: ... } }` déjà présente dans `src/i18n/types.ts` (pattern next-intl 4 idiomatique). Pas de cast nécessaire.
 
 ---
 
-## Task 9: Smoke tests en dev
+## Task 6: Theming via CSS variables dans `globals.css`
+
+**Files:**
+- Modify: `src/app/globals.css`
+
+- [ ] **Step 6.1: Ajouter l'import c15t styles AVANT tailwindcss**
+
+Lire `src/app/globals.css` actuel. La ligne 1 doit être `@import "tailwindcss";`. Ajouter `@import "@c15t/nextjs/styles.css";` AVANT cette ligne (ordering critique pour les layers Tailwind 4 : c15t pose ses defaults dans la cascade en premier, Tailwind les wrap après).
+
+Résultat attendu (4 premières lignes) :
+```css
+@import "@c15t/nextjs/styles.css";
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+```
+
+- [ ] **Step 6.2: Ajouter le bloc d'override des CSS variables c15t**
+
+Ajouter à la fin du fichier `globals.css` (après les déclarations `:root` et `.dark` existantes) :
+
+```css
+/* Theming c15t : mapper les variables c15t aux tokens DESIGN.md (sub 3 conformité légale) */
+:root {
+  --button-primary: var(--primary);
+  --button-primary-hover: var(--primary);
+  --button-text-primary: var(--primary-foreground);
+  --button-border-radius: var(--radius);
+  --button-font: var(--font-sans);
+  --banner-background-color: var(--card);
+  --banner-text-color: var(--foreground);
+  --banner-border-color: var(--border);
+  --banner-border-radius: var(--radius);
+  --dialog-background-color: var(--card);
+  --dialog-text-color: var(--foreground);
+  --dialog-border-radius: var(--radius);
+}
+
+.dark {
+  --button-primary: var(--primary);
+  --button-primary-hover: var(--primary);
+  --button-text-primary: var(--primary-foreground);
+  --banner-background-color: var(--card);
+  --banner-text-color: var(--foreground);
+  --banner-border-color: var(--border);
+  --dialog-background-color: var(--card);
+  --dialog-text-color: var(--foreground);
+}
+```
+
+Note CNIL : si Accept et Reject ne sont pas pixel-perfect identiques après ce premier mapping (cas typique : c15t rend Accept primary plein et Reject outline), **override CSS obligatoire** pour aligner Reject sur Accept (variante, font-size, padding, contraste). C'est une exigence stricte de la délibération CNIL 2020-092 consolidée janvier 2026, pas une finition optionnelle. Customize peut rester en variante outline ou lien plus discret (libre). Vérifier la liste exhaustive des vars exposées via `grep -oE "\-\-[a-z][a-z0-9-]+" node_modules/.pnpm/@c15t+ui@2.0.0_*/node_modules/@c15t/ui/dist/styles.css | sort -u`.
+
+- [ ] **Step 6.3: Vérifier la compilation CSS**
+
+Run: `pnpm dev` puis observer le compile log Turbopack.
+Expected: aucune erreur CSS, pas de warning sur les imports CSS layer ordering.
+
+Stop le dev server : `Ctrl+C`.
+
+---
+
+## Task 7: Smoke tests en dev
 
 **Files:** aucun fichier modifié.
 
-- [ ] **Step 9.1: Démarrer le serveur dev**
+- [ ] **Step 7.1: Démarrer le serveur dev**
 
-Run: `pnpm dev`
-Expected: serveur démarre sans erreur. Note : le redémarrage est nécessaire car les changements dans `Providers.tsx` et `messages/*.json` ne sont pris en compte qu'au boot.
+Run: `just dev` (ou `pnpm dev`)
+Expected: serveur démarre sans erreur sur le port 3000.
 
-- [ ] **Step 9.2: Premier chargement de `/fr` en navigation privée**
+- [ ] **Step 7.2: Premier chargement de `/fr` en navigation privée**
 
-Ouvrir `http://localhost:3000/fr` dans Chrome ou Firefox en mode incognito (DevTools console + Network ouvertes).
+Ouvrir `http://localhost:3000/fr` dans Chrome ou Firefox en mode incognito (DevTools console + Application > Cookies ouvertes).
 Expected:
-- Le banner cookies apparaît en bas de l'écran après FCP (slide-up 200ms motion/react).
-- Le banner contient "Cookies & confidentialité" en titre, la description courte FR, 3 boutons "Tout accepter" / "Tout refuser" / "Personnaliser" même taille (Tailwind `w-full sm:w-auto`).
+- Le banner c15t apparaît en bottom-left avec le titre "Nous respectons votre vie privée" (FR par défaut de `baseTranslations.fr`).
+- 3 boutons côte à côte : "Tout rejeter", "Accepter tout", "Personnaliser".
+- **Symétrie Accept/Reject à valider** : DevTools > Inspecter "Accepter tout" et "Tout rejeter". `font-size`, `font-weight`, `padding`, `background-color`, `border`, hauteur tactile (≥44px) doivent être strictement égaux entre ces 2 boutons (exigence CNIL délibération 2020-092). Customize peut rester en variante outline ou lien plus discret. Si c15t v2 rend Accept en `primary` plein et Reject en `outline` par défaut, compléter le bloc CSS de `globals.css` avec un override forçant Reject en variante identique à Accept (ex: mapper `--button-secondary-background` à `var(--primary)` et `--button-secondary-text` à `var(--primary-foreground)`).
+- Aucun badge "Secured by c15t" (`hideBranding` ✅).
+- Couleurs primary, card, border et radius matchent les tokens DESIGN.md (vert sauge OKLCH).
 - Aucun message d'erreur en console (ni hydration mismatch, ni CSP violation, ni warning React).
-- Network panel ne montre pas le bundle vanilla-cookieconsent dans le First Load JS de `/fr` (chargé après FCP en chunk séparé).
+- Pas de layout shift CLS (banner position fixed).
 
-- [ ] **Step 9.3: Test "Tout accepter"**
+- [ ] **Step 7.3: Test "Accepter tout"**
 
-Cliquer sur "Tout accepter".
-Expected:
-- Le banner se ferme avec animation slide-down (`AnimatePresence` exit transition).
-- Un cookie `cc_consent` est créé dans Application > Cookies (DevTools), avec `expires` ~13 mois dans le futur.
-- En console, un log JSON apparaît du type `{"level":"info","service":"thibaud-geisler-portfolio","context":"client","time":"2026-04-28T...","msg":"consent:accepted","marketing":true}`.
-- Recharger la page : le banner ne réapparaît PAS.
-
-- [ ] **Step 9.4: Test "Tout refuser"**
-
-Vider les cookies (DevTools > Application > Cookies > Clear all), recharger.
-Cliquer sur "Tout refuser".
+Cliquer sur "Accepter tout".
 Expected:
 - Le banner se ferme.
-- Cookie `cc_consent` créé, mais sans `marketing` dans les categories.
-- Log JSON `consent:rejected` avec `marketing:false`.
+- Un cookie c15t est créé dans Application > Cookies (DevTools), avec `expires` ~13 mois dans le futur.
+- Recharger la page : le banner ne réapparaît PAS.
 
-- [ ] **Step 9.5: Test "Personnaliser" + Save avec marketing on**
+- [ ] **Step 7.4: Test "Tout rejeter"**
 
-Vider les cookies, recharger.
+Vider les cookies (DevTools > Application > Cookies > Clear all + localStorage), recharger.
+Cliquer sur "Tout rejeter".
+Expected:
+- Le banner se ferme.
+- Cookie c15t créé avec `marketing: false`.
+
+- [ ] **Step 7.5: Test "Personnaliser" + Save avec marketing on**
+
+Vider les cookies + localStorage, recharger.
 Cliquer sur "Personnaliser".
 Expected:
-- Une modale Dialog shadcn s'ouvre avec :
-  - Titre "Préférences de cookies"
-  - Description courte
-  - 2 cards : "Cookies essentiels" (toggle disabled+true) et "Cookies marketing" (toggle interactive)
-  - 3 boutons en footer : "Sauvegarder mes préférences", "Tout accepter", "Tout refuser"
-- Le banner reste visible derrière (overlay).
-- Toggler le checkbox marketing à `on`, cliquer "Sauvegarder mes préférences".
+- La modale `ConsentDialog` s'ouvre par-dessus la page.
+- 2 catégories listées : "Strictement nécessaires" (toggle disabled, true read-only) + "Marketing" (toggle interactif, default false).
+- Toggler le switch marketing à `on`, cliquer "Enregistrer" (ou "Save preferences" selon translation).
 - La modale se ferme, le banner se ferme aussi.
-- Cookie `cc_consent` créé avec `marketing` dans les categories.
-- Logs JSON dans cet ordre : `consent:customized` (au clic Personnaliser), puis `consent:accepted` (au save avec marketing on, car la lib dispatch `cc:onConsent`).
+- Cookie c15t persiste avec `marketing: true`.
 
-- [ ] **Step 9.6: Test page `/en/contact`**
+- [ ] **Step 7.6: Test page `/en/contact`**
 
-Charger `http://localhost:3000/en/contact` (mode incognito, cookies vides).
+Vider les cookies + localStorage. Charger `http://localhost:3000/en/contact` (mode incognito).
 Expected:
-- Le banner s'affiche en EN ("Cookies & Privacy", "Accept all", etc.).
-- vanilla-cookieconsent détecte la locale via `<html lang="en">` set par next-intl.
+- Le banner s'affiche en EN ("We value your privacy", "Reject All", "Accept All", "Customize") car `useLocale()` retourne `'en'` et `<ConsentLanguageSync />` appelle `setLanguage('en')` au mount.
 - L'iframe Calendly se charge (sub 5 pas encore mergé donc widget actif inconditionnel, comportement normal à ce stade).
 
-- [ ] **Step 9.7: Vérifier CLS (Cumulative Layout Shift)**
+- [ ] **Step 7.7: Test switch FR ↔ EN à chaud**
 
-Run: ouvrir Lighthouse via DevTools, lancer un audit Performance sur `http://localhost:3000/fr`.
-Expected: score CLS < 0.1. Le banner étant `position: fixed`, il n'introduit pas de layout shift sur le contenu existant.
+Vider les cookies. Charger `/fr`. Banner FR visible.
+Cliquer sur le LocaleSwitcher pour passer en `/en`.
+Expected:
+- Navigation Next.js vers `/en`.
+- Le banner reste visible (pas encore d'interaction).
+- Les textes du banner basculent en EN (effet `setLanguage('en')` via `<ConsentLanguageSync />`).
+- Si on ouvre la modale "Customize" maintenant, elle est en EN.
+- Re-switch vers `/fr` : textes rebasculent en FR.
 
-- [ ] **Step 9.8: Arrêter le serveur dev**
+- [ ] **Step 7.8: Vérifier l'absence de layout shift au mount du banner (smoke test)**
+
+Ouvrir Chrome DevTools > Performance > **Live Metrics** (Chrome 124+). Recharger `/fr` en navigation privée et observer le track "Layout Shifts" pendant les 2 premières secondes.
+Expected: aucun shift signalé au mount du banner (CLS = 0). Le banner étant `position: fixed` (géré nativement par c15t), il sort du flux normal et ne peut pas pousser le contenu.
+
+Note : un Lighthouse complet en `pnpm dev` produit des Performance scores médiocres trompeurs (HMR + Turbopack overhead), à réserver au build prod (Step 8.4). Pour CLS spécifiquement, l'overlay DevTools en dev est suffisant et plus précis (identifie l'élément coupable au clic).
+
+- [ ] **Step 7.9: Arrêter le serveur dev**
 
 Run : `Ctrl+C` dans le terminal du serveur dev.
 Expected : libération du port 3000.
 
 ---
 
-## Task 10: Smoke tests en build prod
+## Task 8: Smoke tests en build prod
 
 **Files:** aucun fichier modifié.
 
-- [ ] **Step 10.1: Builder l'app en production**
+- [ ] **Step 8.1: Builder l'app en production**
 
-Run: `pnpm build`
+Run: `pnpm build` (ou `just build`)
 Expected: build réussi. Vérifier dans le rapport `next build` que :
-- Le bundle initial des routes publiques (`/fr`, `/en`, `/fr/services`, etc.) NE contient PAS `vanilla-cookieconsent` ni `motion/react` du banner (chunks séparés grâce à `dynamic({ ssr: false })`).
-- Vérifier la taille `First Load JS` des pages : pas d'augmentation significative (target : < 200 KB).
+- La taille `First Load JS` des pages publiques (`/fr`, `/en`, `/fr/services`, etc.) ne montre pas d'augmentation excessive (target : reste < 250 KB par route, c15t lui-même ~30 KB minified gzipped).
+- Aucun warning critique de compilation.
 
-- [ ] **Step 10.2: Démarrer le serveur prod**
+- [ ] **Step 8.2: Démarrer le serveur prod**
 
 Run: `pnpm start`
 Expected: serveur démarre en mode production sur `http://localhost:3000`.
 
-- [ ] **Step 10.3: Refaire les smoke tests Step 9.2 à 9.6 en prod**
+- [ ] **Step 8.3: Refaire les smoke tests Step 7.2 à 7.7 en prod**
 
-Refaire les 5 mêmes tests qu'en dev, en mode incognito :
-- Banner s'affiche `/fr` et `/en`
+Refaire les 6 mêmes tests qu'en dev, en mode incognito :
+- Banner s'affiche `/fr` et `/en` avec textes corrects
 - Accept / Reject / Customize fonctionnent
 - Cookies persistent
-- Logs JSON OK
+- Switch FR ↔ EN propage les textes du banner
 
 Expected : comportement identique à dev. Aucune divergence dev/prod.
 
-- [ ] **Step 10.4: Vérifier les Core Web Vitals en prod**
+- [ ] **Step 8.4: Vérifier les Core Web Vitals en prod**
 
 Run: lancer Lighthouse Performance audit sur `http://localhost:3000/fr` (mode prod, simulation Mobile).
 Expected:
 - LCP < 2.5s
 - CLS < 0.1
 - INP < 200ms (au clic des boutons banner)
-- Performance score >= baseline pré-feature 7 (à comparer avec une prod précédente avant ce sub-project)
+- Performance score >= baseline pré-feature 7
 
-- [ ] **Step 10.5: Arrêter le serveur prod**
+- [ ] **Step 8.5: Arrêter le serveur prod**
 
 Run : `Ctrl+C`.
 
 ---
 
-## Task 11: Vérifications finales et préparation commit
+## Task 9: Vérifications finales et préparation commit
 
-- [ ] **Step 11.1: Lancer le typecheck global**
+- [ ] **Step 9.1: Lancer le typecheck global**
 
-Run: `pnpm typecheck`
+Run: `pnpm typecheck` (ou `just typecheck`)
 Expected: aucune erreur.
 
-- [ ] **Step 11.2: Lancer le lint**
+- [ ] **Step 9.2: Lancer le lint**
 
-Run: `pnpm lint`
-Expected: aucune erreur. Si ESLint warne sur `react-hooks/exhaustive-deps` à propos du `useMemo` du Provider, le commentaire `eslint-disable-next-line` est déjà présent (le `openPreferences` n'a volontairement pas `clientLogger` en deps car il est stable et non capturé).
+Run: `pnpm lint` (ou `just lint`)
+Expected: aucune erreur ni warning sur les nouveaux fichiers.
 
-- [ ] **Step 11.3: Lancer la suite de tests complète**
+- [ ] **Step 9.3: Lancer la suite de tests complète**
 
-Run: `pnpm test`
-Expected: tous les tests verts. Les 12 nouveaux tests `use-consent-status.integration.test.ts` passent. Aucune régression sur les tests existants (`about.integration.test.ts`, `projects.integration.test.ts`, `seo.test.ts`, etc.).
+Run: `pnpm test` (ou `just test`)
+Expected: tous les tests verts. Les 3 nouveaux tests `consent-language-sync.integration.test.tsx` passent. Aucune régression sur les tests existants (`about.integration.test.ts`, `projects.integration.test.ts`, `seo.test.ts`, etc.).
 
-- [ ] **Step 11.4: Lancer un build final**
+- [ ] **Step 9.4: Lancer un build final**
 
 Run: `pnpm build`
 Expected: build réussi sans warning critique.
 
-- [ ] **Step 11.5: Vérifier le diff git**
+- [ ] **Step 9.5: Vérifier le diff git**
 
 Run: `git status`
 Expected output (les fichiers attendus) :
 - modified: `package.json`
 - modified: `pnpm-lock.yaml`
-- new file: `src/lib/cookies/client-logger.ts`
-- new file: `src/lib/cookies/consent-config.ts`
-- new file: `src/lib/cookies/use-consent-status.ts`
-- new file: `src/lib/cookies/use-consent-status.integration.test.ts`
-- new file: `src/components/layout/CookieConsent.tsx`
-- new file: `src/components/layout/CookiePreferencesModal.tsx`
+- modified: `src/app/globals.css`
 - modified: `src/components/providers/Providers.tsx`
 - modified: `messages/fr.json`
 - modified: `messages/en.json`
+- new file: `src/lib/cookies/build-legal-links.ts`
+- new file: `src/lib/cookies/consent-language-sync.tsx`
+- new file: `src/lib/cookies/consent-language-sync.integration.test.tsx`
+- new file: `docs/knowledges/c15t.md` (déjà créé hors plan, à inclure dans le commit)
 
-Vérifier qu'il n'y a pas de fichier inattendu.
+Vérifier qu'il n'y a pas de fichier inattendu (ex: pas de `src/lib/cookies/use-consent-status.ts` résiduel de l'ancienne approche).
 
-- [ ] **Step 11.6: DEMANDER VALIDATION USER avant tout `git add` / `git commit`**
+- [ ] **Step 9.6: DEMANDER VALIDATION USER avant tout `git add` / `git commit`**
 
 NE PAS lancer `git commit` directement. La discipline projet (CLAUDE.md projet § Workflow Git > Discipline commit) interdit les commits auto-initiés.
 
 Présenter à l'utilisateur :
 1. La liste des fichiers modifiés/créés (output `git status`)
-2. Un résumé : "Sub-project 3/7 implémenté : vanilla-cookieconsent v3 headless intégré, banner motion/react slide-up, modale Dialog shadcn, hook useConsentStatus + Provider, 12 tests integration verts, smoke tests dev + prod OK, CLS < 0.1, banner et modale fonctionnels en FR et EN"
+2. Un résumé : "Sub-project 3/7 implémenté : c15t v2.0.0 mode offline intégré, banner + dialog avec hideBranding, sync runtime FR/EN via ConsentLanguageSync, theming CSS vars aux tokens DESIGN.md, 3 tests integration verts, smoke tests dev + prod OK, CLS < 0.1, banner fonctionnel en FR et EN avec switch dynamique"
 3. Une proposition de message de commit Conventional :
    ```
-   feat(cookies): add vanilla-cookieconsent v3 headless with motion banner and shadcn modal
+   feat(cookies): add c15t v2 offline mode with consent banner, dialog and locale sync
 
-   - vanilla-cookieconsent v3.1.0 installé en mode headless (UI custom)
-   - Banner motion/react slide-up CWV-friendly (fixed bottom, CLS = 0, dynamic ssr:false)
-   - Modale Dialog shadcn + 2 Card par catégorie + toggles checkbox
-   - Hook useConsentStatus() + CookieConsentProvider Context React, sync via DOM events cc:onConsent / cc:onChange
-   - clientLogger format JSON Pino-like (level, service, time, msg, context: 'client'), no PII
-   - i18n FR/EN namespace Cookies, CNIL 2025-2026 compliant (equalWeightButtons, 13 mois, granularité)
-   - 12 tests integration (jsdom) couvrant persistance, hook, listeners cleanup, format log
+   - @c15t/nextjs ^2.0.0 + @c15t/translations ^2.0.0 installés (Apache 2.0)
+   - Mode offline (zéro backend, zéro account), overrides.country FR pour CNIL/GDPR forcé
+   - ConsentBanner + ConsentDialog mountés dans Providers.tsx avec hideBranding
+   - <ConsentLanguageSync /> sync useLocale next-intl → setLanguage c15t (switch FR/EN dynamique)
+   - Translations FR/EN built-in via @c15t/translations/all
+   - Theming via override CSS vars c15t aux tokens DESIGN.md (vert sauge OKLCH, --radius)
+   - 3 tests integration jsdom sur ConsentLanguageSync (mount, change locale, cleanup)
+   - API exposée aux subs 4/5/7 : useConsentManager().has({ category }) et setActiveUI('dialog')
+   - Knowledge fiche docs/knowledges/c15t.md ajoutée
 
    Refs: docs/superpowers/specs/conformite-legale/03-bandeau-consentement-cookies-design.md
    ```
 
 Attendre l'accord explicite de l'utilisateur avant de lancer `git add` puis `git commit`.
 
-- [ ] **Step 11.7: Après validation user uniquement, commiter**
+- [ ] **Step 9.7: Après validation user uniquement, commiter**
 
 Run (uniquement après accord explicite user) :
 ```bash
-git add package.json pnpm-lock.yaml src/lib/cookies/ src/components/layout/CookieConsent.tsx src/components/layout/CookiePreferencesModal.tsx src/components/providers/Providers.tsx messages/fr.json messages/en.json
+git add package.json pnpm-lock.yaml src/lib/cookies/ src/components/providers/Providers.tsx src/app/globals.css messages/fr.json messages/en.json docs/knowledges/c15t.md
 git commit -m "$(cat <<'EOF'
-feat(cookies): add vanilla-cookieconsent v3 headless with motion banner and shadcn modal
+feat(cookies): add c15t v2 offline mode with consent banner, dialog and locale sync
 
-- vanilla-cookieconsent v3.1.0 installé en mode headless (UI custom)
-- Banner motion/react slide-up CWV-friendly (fixed bottom, CLS = 0, dynamic ssr:false)
-- Modale Dialog shadcn + 2 Card par catégorie + toggles checkbox
-- Hook useConsentStatus() + CookieConsentProvider Context React, sync via DOM events cc:onConsent / cc:onChange
-- clientLogger format JSON Pino-like (level, service, time, msg, context: 'client'), no PII
-- i18n FR/EN namespace Cookies, CNIL 2025-2026 compliant (equalWeightButtons, 13 mois, granularité)
-- 12 tests integration (jsdom) couvrant persistance, hook, listeners cleanup, format log
+- @c15t/nextjs ^2.0.0 + @c15t/translations ^2.0.0 installés (Apache 2.0)
+- Mode offline (zéro backend, zéro account), overrides.country FR pour CNIL/GDPR forcé
+- ConsentBanner + ConsentDialog mountés dans Providers.tsx avec hideBranding
+- <ConsentLanguageSync /> sync useLocale next-intl → setLanguage c15t (switch FR/EN dynamique)
+- Translations FR/EN built-in via @c15t/translations/all
+- Theming via override CSS vars c15t aux tokens DESIGN.md (vert sauge OKLCH, --radius)
+- 3 tests integration jsdom sur ConsentLanguageSync (mount, change locale, cleanup)
+- API exposée aux subs 4/5/7 : useConsentManager().has({ category }) et setActiveUI('dialog')
+- Knowledge fiche docs/knowledges/c15t.md ajoutée
 
 Refs: docs/superpowers/specs/conformite-legale/03-bandeau-consentement-cookies-design.md
 EOF
@@ -1209,7 +639,7 @@ EOF
 Run: `git status`
 Expected: working tree clean.
 
-- [ ] **Step 11.8: Mettre à jour le statut du spec**
+- [ ] **Step 9.8: Mettre à jour le statut du spec**
 
 Modifier le frontmatter de `docs/superpowers/specs/conformite-legale/03-bandeau-consentement-cookies-design.md` :
 - Changer `status: "draft"` en `status: "implemented"`
@@ -1224,26 +654,36 @@ Cette modification peut être commitée séparément en `chore(specs): mark band
 
 | Spec section | Task(s) couvrant |
 |---|---|
-| Premier chargement banner après FCP (Scénario 1) | Task 9 Step 9.2 + Task 10 Step 10.3 |
-| Clic Tout accepter (Scénario 2) | Task 9 Step 9.3 + Task 4 test "synchronise marketing=true" |
-| Clic Tout refuser (Scénario 3) | Task 9 Step 9.4 + Task 4 test "consent:rejected" |
-| Personnaliser + Save marketing on (Scénario 4) | Task 9 Step 9.5 + Task 6 modale custom |
-| Rechargement persistant (Scénario 5) | Task 9 Step 9.3 fin (recharger) + Task 10 prod |
-| `openPreferences()` ré-ouvre la modale (Scénario 6) | Task 4 tests "openPreferences()" + Task 5 implémentation |
-| Détection automatique locale (Scénario 7) | Task 9 Step 9.6 (test EN) + Task 3 `autoDetect: 'document'` |
-| Tests intégration verts (Scénario 8) | Task 4 + Task 5 + Task 11 Step 11.3 |
-| Hook `useConsentStatus()` exposé via Context | Task 5 |
-| `clientLogger` format Pino-like | Task 2 + Task 4 tests format JSON |
-| 2 catégories CNIL conformes | Task 3 + Task 6 modale 2 cards |
-| Lazy load `dynamic({ ssr: false })` | Task 8 Step 8.1 |
-| Pattern `mounted` anti-hydration | Task 7 Step 7.1 (`if (!mounted) return null`) |
-| CLS = 0 (position fixed) | Task 7 Step 7.1 + Task 9 Step 9.7 + Task 10 Step 10.4 |
+| Premier chargement banner FR thémé bottom-left (Scénario 1) | Task 5 (Provider) + Task 6 (theming) + Task 7.2 (smoke dev) |
+| Clic Accepter tout (Scénario 2) | Task 7.3 (smoke dev) + Task 8.3 (smoke prod) |
+| Clic Tout rejeter (Scénario 3) | Task 7.4 + Task 8.3 |
+| Personnaliser + Save marketing on (Scénario 4) | Task 7.5 + Task 8.3 |
+| Rechargement persistant (Scénario 5) | Task 7.3 fin (recharger) + Task 8.3 |
+| Switch FR→EN propage banner via ConsentLanguageSync (Scénario 6) | Task 3 (TDD red) + Task 4 (TDD green) + Task 7.7 (smoke dev) + Task 8.3 |
+| `setActiveUI('dialog')` programmatique (Scénario 7) | Task 5 (mount Provider qui expose hook) — testé end-to-end par sub 4 (OpenCookiePreferencesButton) |
+| Tests intégration verts (Scénario 8) | Task 3 + Task 4 + Task 9.3 |
+| API exposée aux subs 4/5/7 | Task 5 (Provider mounté wrap toute l'arbre) |
+| Translations FR/EN built-in `@c15t/translations/all` | Task 1.1 (install) + Task 5.1 (Provider config) |
+| `hideBranding` retire le badge | Task 5.1 |
+| Theming via CSS vars aux tokens DESIGN.md | Task 6 |
+| `overrides.country: 'FR'` force GDPR | Task 5.1 |
+| 2 catégories `necessary + marketing` | Task 5.1 |
+| `legalLinks` calculé par locale | Task 2 + Task 5.1 |
+| Sync runtime FR/EN via setLanguage | Task 4 + Task 7.7 |
+| CLS = 0 (banner position fixed natif c15t) | Task 7.8 + Task 8.4 |
 
 Aucun gap identifié.
 
-**Placeholder scan :** aucun TBD/TODO/à définir dans le plan. Code complet à chaque step. Les sections "description vide" dans le mapping `vanilla-cookieconsent.translations` (Task 8) sont volontaires et documentées (la lib exige un objet translations même en mode headless, mais ne render pas ces strings).
+**Placeholder scan :** aucun TBD/TODO/à définir dans le plan. Code complet à chaque step.
 
-**Type consistency :** `ConsentTranslations` défini dans Task 3, importé dans Task 5 (Provider) et Task 8 (mapping). `ConsentContextValue` défini dans Task 5, retourné par `useConsentStatus()`. `consentCookieName` défini dans Task 3, importé dans Task 4 (tests). Cohérent.
+**Type consistency :** `Locale` défini dans Task 2 (`'fr' | 'en'`), réutilisé implicitement via `as 'fr' | 'en'` dans Task 5. `ConsentManagerProvider` types fournis par la lib. `useConsentManager()` return type fourni par la lib (`{ setLanguage, consents, has, setActiveUI, ... }`). Cohérent.
+
+**Comparatif vs ancien plan vanilla-cookieconsent :**
+- Tasks : 9 (vs 11)
+- Files créés : 3 (vs 5)
+- Files modifiés : 4 (vs 3)
+- Lignes de code projet à écrire : ~70 (vs ~250)
+- Tests intégration : 3 (vs 12, no-lib-test strict appliqué)
 
 ---
 
@@ -1253,4 +693,12 @@ Aucun gap identifié.
 
 Ce plan sera consommé par `/implement-subproject conformite-legale 03` lors de l'implémentation effective.
 
-**Pas d'implémentation tout de suite** : on est dans le workflow `/decompose-feature` qui boucle sur les 7 sub-projects. Le sub-project 4/7 (`pages-mentions-confidentialite`) est le suivant dans l'ordre topologique.
+**Pré-requis avant exécution :**
+- Branche `feature/conformite-legale` checkout, à jour avec `develop`
+- Worktree POC `.claude/worktrees/poc-c15t-evaluation` cleanup recommandé (`git worktree remove`) pour éviter confusion
+- Spec sub 3 statut `draft` → à passer `approved` après validation user
+
+**Impacts sur les autres sub-projects (à patcher AVANT leur implémentation) :**
+- sub 4 : `<OpenCookiePreferencesButton>` consomme `useConsentManager().setActiveUI('dialog')` au lieu de `useConsentStatus().openPreferences()`
+- sub 5 : gating Calendly via `useConsentManager().has({ category: 'marketing' })` au lieu de `useConsentStatus().marketing`
+- sub 7 : footer réutilise `<OpenCookiePreferencesButton>` (changement transparent côté footer)

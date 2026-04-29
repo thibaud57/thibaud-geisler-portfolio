@@ -510,7 +510,7 @@ Expected: aucune erreur.
 - [ ] **Step 6.3: Lancer la suite de tests complète**
 
 Run: `pnpm test`
-Expected: tous les tests verts. Les 18 tests `json-ld.test.ts` (14 existants + 4 nouveaux) passent. Aucune régression sur les tests existants des autres modules (sub 1 `legal.integration.test.ts`, sub 3 `use-consent-status.integration.test.ts`, sub 4 `format-siret.test.ts`, sub 5 `CalendlyWidget.integration.test.tsx`).
+Expected: tous les tests verts. Les 18 tests `json-ld.test.ts` (14 existants + 4 nouveaux) passent. Aucune régression sur les tests existants des autres modules (sub 1 `legal.integration.test.ts`, sub 3 `consent-language-sync.integration.test.tsx`, sub 4 `format-siret.test.ts`, sub 5 `CalendlyWidget.integration.test.tsx`).
 
 - [ ] **Step 6.4: Lancer un build final**
 

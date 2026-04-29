@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Livrer 2 pages publiques bilingues Server Components (`/mentions-legales` LCEN art. 6-III + `/confidentialite` RGPD art. 13/14) qui consomment `getPublisher()` + `getDataProcessors()` du sub 1 et exposent un bouton client réutilisable `<OpenCookiePreferencesButton>` qui ouvre la modale du sub 3.
+**Goal:** Livrer 2 pages publiques bilingues Server Components (`/mentions-legales` LCEN art. 6-III + `/confidentialite` RGPD art. 13/14) qui consomment `getPublisher()` + `getDataProcessors()` du sub 1 et exposent un bouton client réutilisable `<OpenCookiePreferencesButton>` qui ouvre la modale `ConsentDialog` c15t du sub 3.
 
-**Architecture:** 2 Server Components asynchrones avec `generateMetadata` aligné `/a-propos/page.tsx` existant. Layout via `<PageShell>` + `prose prose-invert max-w-none`. Lecture data via queries cachées du sub 1. Section Cookies de `/confidentialite` utilise un Client Component leaf `<OpenCookiePreferencesButton>` qui consomme `useConsentStatus()` du sub 3. Helper pur `formatSiret` colocalisé `src/lib/legal/` réutilisable au sub 7.
+**Architecture:** 2 Server Components asynchrones avec `generateMetadata` aligné `/a-propos/page.tsx` existant. Layout via `<PageShell>` + `prose prose-invert max-w-none`. Lecture data via queries cachées du sub 1. Section Cookies de `/confidentialite` utilise un Client Component leaf `<OpenCookiePreferencesButton>` qui consomme `useConsentManager().setActiveUI('dialog')` (de `@c15t/nextjs`) pour ouvrir la modale `ConsentDialog` c15t du sub 3. Helper pur `formatSiret` colocalisé `src/lib/legal/` réutilisable au sub 7.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript 6 strict, Tailwind 4 + @tailwindcss/typography v0.5.19, next-intl 4, shadcn/ui (Button), Vitest 4 (project unit), pnpm 10.
 
@@ -368,32 +368,46 @@ Create `src/components/features/legal/OpenCookiePreferencesButton.tsx` :
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { useConsentManager } from '@c15t/nextjs'
 
 import { Button } from '@/components/ui/button'
-import { useConsentStatus } from '@/lib/cookies/use-consent-status'
 import { cn } from '@/lib/utils'
 
 type Props = {
   className?: string
   variant?: 'default' | 'outline' | 'link'
+  label?: string
 }
 
-export function OpenCookiePreferencesButton({ className, variant = 'outline' }: Props) {
-  const { openPreferences } = useConsentStatus()
-  const t = useTranslations('Cookies.banner')
+export function OpenCookiePreferencesButton({
+  className,
+  variant = 'outline',
+  label,
+}: Props) {
+  const { setActiveUI } = useConsentManager()
+  const t = useTranslations('Cookies')
 
   return (
-    <Button variant={variant} onClick={openPreferences} className={cn(className)}>
-      {t('customize')}
+    <Button
+      variant={variant}
+      onClick={() => setActiveUI('dialog')}
+      className={cn(className)}
+    >
+      {label ?? t('openManagerLabel')}
     </Button>
   )
 }
 ```
 
+Notes :
+- `useConsentManager` exposé par `<ConsentManagerProvider>` du sub 3 (mounté dans `Providers.tsx`)
+- `setActiveUI('dialog')` ouvre la modale `ConsentDialog` c15t (équivalent v2 de `showPreferences()` v1)
+- Prop optionnelle `label?: string` permet le custom (ex: sub 5 "Activer Calendly"). Texte par défaut : `Cookies.openManagerLabel` (FR "Gérer mes cookies" / EN "Manage cookies")
+
 - [ ] **Step 5.2: Vérifier la compilation**
 
 Run: `pnpm typecheck`
-Expected: aucune erreur. `useConsentStatus` est importé du sub 3 (`src/lib/cookies/use-consent-status.ts`), assume-t implémenté avant ce sub.
+Expected: aucune erreur. `useConsentManager` et `setActiveUI` typés via `@c15t/nextjs` (installé au sub 3).
 
 ---
 
@@ -781,7 +795,7 @@ Expected: aucune erreur. Si TypeScript proteste sur `entry.processing.outsideEuF
 - [ ] **Step 8.1: Démarrer le serveur dev**
 
 Run: `pnpm dev`
-Expected: serveur démarre sans erreur sur `http://localhost:3000`. Note : nécessite que sub 1 (DB seedée avec publisher + 3 processors) et sub 3 (CookieConsentProvider mounté dans Providers) soient déjà implémentés et mergés.
+Expected: serveur démarre sans erreur sur `http://localhost:3000`. Note : nécessite que sub 1 (DB seedée avec publisher + 3 processors) et sub 3 (`<ConsentManagerProvider>` mounté dans `Providers.tsx`) soient déjà implémentés et mergés.
 
 - [ ] **Step 8.2: Charger /fr/mentions-legales**
 
@@ -814,12 +828,13 @@ Expected:
 - Section 6 (Transferts hors UE) : 1 ligne pour Calendly avec mention `Data Privacy Framework (décision d'adéquation US 2023)`.
 - Section 7 (Cookies) : récap des 2 catégories + bouton "Personnaliser" cliquable.
 
-- [ ] **Step 8.5: Cliquer sur le bouton "Personnaliser" de la section Cookies**
+- [ ] **Step 8.5: Cliquer sur le bouton "Gérer mes cookies" de la section Cookies**
 
 Cliquer sur le bouton.
 Expected:
-- La modale Dialog shadcn du sub 3 s'ouvre, affichant les 2 cards (necessary + marketing) et leurs toggles.
-- Console DevTools logue un événement `consent:customized` au format JSON Pino-like (clientLogger sub 3).
+- La modale `ConsentDialog` c15t du sub 3 s'ouvre, affichant les 2 catégories (necessary read-only + marketing toggle interactif).
+- Aucune erreur en console DevTools.
+- Si l'utilisateur a déjà interagi avec le banner, l'état des toggles reflète le dernier choix persisté.
 
 - [ ] **Step 8.6: Charger /en/confidentialite**
 
@@ -977,7 +992,7 @@ Aucun gap identifié.
 
 **Placeholder scan :** aucun TBD/TODO/à définir dans le plan. Code complet à chaque step. Textes i18n FR + EN intégraux fournis dans Tasks 1 et 2.
 
-**Type consistency :** `formatSiret(siret: string): string` cohérent entre Task 3 (test) et Task 4 (impl) et Task 6 (usage). `OpenCookiePreferencesButton` props `{ className?, variant? }` cohérent entre Task 5 (impl) et Task 7 (usage `variant="outline"`). `useConsentStatus()` retour cohérent avec la définition du sub 3. Queries Prisma `getPublisher`, `getHostingProvider`, `getDataProcessors` consommées en lecture seule, types inférés.
+**Type consistency :** `formatSiret(siret: string): string` cohérent entre Task 3 (test) et Task 4 (impl) et Task 6 (usage). `OpenCookiePreferencesButton` props `{ className?, variant?, label? }` cohérent entre Task 5 (impl) et Task 7 (usage `variant="outline"`). `useConsentManager()` retour fourni par `@c15t/nextjs` (sub 3). Queries Prisma `getPublisher`, `getHostingProvider`, `getDataProcessors` consommées en lecture seule, types inférés.
 
 ---
 

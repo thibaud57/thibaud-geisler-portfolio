@@ -4,7 +4,7 @@
 
 **Goal:** Compléter le Footer global (TODO ligne 38) avec une nav légale row bottom (3 liens : Mentions légales, Politique de confidentialité, Gérer mes cookies) et étendre la ligne copyright avec le SIRET formaté lu via `getPublisher` du sub 1.
 
-**Architecture:** Modification chirurgicale d'un Server Component existant. Parallélisation de `getTranslations('Footer')` et `getPublisher()` via `Promise.all`. Réutilisation du helper `formatSiret` (sub 4) + composant `<OpenCookiePreferencesButton>` (sub 4 + sub 5 prop `label?`) + `Link` next-intl localisé. Aucun nouveau fichier créé.
+**Architecture:** Modification chirurgicale d'un Server Component existant. Parallélisation de `getTranslations('Footer')` et `getPublisher()` via `Promise.all`. Réutilisation du helper `formatSiret` (sub 4) + composant `<OpenCookiePreferencesButton>` (sub 4, prop `label?` déjà exposée nativement) + `Link` next-intl localisé. Aucun nouveau fichier créé.
 
 **Tech Stack:** Next.js 16, React 19, TypeScript 6 strict, next-intl 4, pnpm 10. Pas de test : `tdd_scope = none`.
 
@@ -186,7 +186,7 @@ Expected: aucune erreur. Le composant respecte les conventions React 19 (Server 
 
 **Files:** aucun fichier modifié.
 
-Note prérequis : sub 1 (DB seedée avec publisher Thibaud + siret), sub 3 (`<CookieConsentProvider>` mounté dans Providers), sub 4 (pages mentions/confidentialité existantes + composants livrés) doivent déjà être implémentés et mergés.
+Note prérequis : sub 1 (DB seedée avec publisher Thibaud + siret), sub 3 (`<ConsentManagerProvider>` c15t mounté dans Providers), sub 4 (pages mentions/confidentialité existantes + composants livrés avec prop `label?`) doivent déjà être implémentés et mergés.
 
 - [ ] **Step 3.1: Démarrer le serveur dev**
 
@@ -220,8 +220,9 @@ Expected:
 
 Retourner sur `/fr/`, cliquer sur "Gérer mes cookies" du footer.
 Expected:
-- La modale Dialog shadcn du sub 3 s'ouvre, affichant les 2 cards (necessary disabled+true, marketing toggle interactive)
-- En console DevTools, un log JSON apparaît du type `{"level":"info","service":"thibaud-geisler-portfolio","context":"client","time":"...","msg":"consent:customized"}`
+- La modale `ConsentDialog` c15t du sub 3 s'ouvre, affichant les 2 catégories (necessary read-only + marketing toggle interactif)
+- Aucune erreur en console DevTools
+- Si l'utilisateur a déjà interagi avec le banner précédemment, l'état des toggles reflète le dernier choix persisté
 
 - [ ] **Step 3.6: Charger /en/ et vérifier la version EN**
 
@@ -299,7 +300,7 @@ Expected: aucune erreur.
 - [ ] **Step 5.3: Lancer la suite de tests complète (régression)**
 
 Run: `pnpm test`
-Expected: tous les tests verts. Aucune régression sur les tests existants (sub 1 `legal.integration.test.ts`, sub 3 `use-consent-status.integration.test.ts`, sub 4 `format-siret.test.ts`, sub 5 `CalendlyWidget.integration.test.tsx`, sub 6 `json-ld.test.ts`).
+Expected: tous les tests verts. Aucune régression sur les tests existants (sub 1 `legal.integration.test.ts`, sub 3 `consent-language-sync.integration.test.tsx`, sub 4 `format-siret.test.ts`, sub 5 `CalendlyWidget.integration.test.tsx`, sub 6 `json-ld.test.ts`).
 
 Note : ce sub-project n'introduit aucun nouveau test (tdd_scope = none, justifié au spec). Les règles métier critiques sont déjà couvertes transversement par les tests des dépendances.
 

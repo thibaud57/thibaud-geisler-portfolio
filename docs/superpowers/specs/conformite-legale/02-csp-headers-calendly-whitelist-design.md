@@ -11,6 +11,14 @@ date: "2026-04-28"
 
 # Content-Security-Policy statique avec whitelist Calendly day-1
 
+> **Post-migration notice (sub 03 migré vers `@c15t/nextjs` v2.0 mode offline le 2026-04-29)** : ce spec décrit l'état initial implémenté à cette date, dont les justifications de `'unsafe-inline'` mentionnent `vanilla-cookieconsent`. La lib de consentement a depuis été remplacée par c15t v2 mode offline (cf. sub 03). Impact CSP :
+>
+> - **`script-src 'unsafe-inline'`** : justification historique `vanilla-cookieconsent` n'est plus pertinente (c15t v2 n'injecte pas de script inline). La directive reste **justifiée** pour next-themes (script anti-FOUC inline obligatoire) et React 19 hydration scripts. Pas de durcissement immédiat possible sans nonces dynamiques (hors scope MVP).
+> - **`style-src 'unsafe-inline'`** : justification historique `vanilla-cookieconsent` reste **valide** car c15t v2 utilise des CSS modules + variables CSS sans inline styles, MAIS Magic UI / Aceternity continuent à styler en inline runtime via motion/react. Directive toujours nécessaire.
+> - **`frame-src https://calendly.com`** : inchangée, sub 03 + sub 05 continuent à charger l'iframe Calendly.
+>
+> Conclusion : la CSP actuelle reste correcte post-migration. Durcissement post-MVP via nonces dynamiques facilité par c15t (vs vanilla-cookieconsent qui rendait les nonces problématiques avec son script inline auto-généré).
+
 ## Scope
 
 Ajouter un header `Content-Security-Policy` au tableau `securityHeaders` de `next.config.ts` (lignes 6-14, déjà existant pour 6 autres headers). Définir 11 directives strictes adaptées à `react-calendly@^4.4.0` (version installée du projet, utilise `<InlineWidget>` qui rend une iframe directement sans charger de script externe) : `default-src 'self'`, `script-src 'self' 'unsafe-inline'`, `style-src 'self' 'unsafe-inline'`, `img-src 'self' data: https:`, `frame-src https://calendly.com https://*.calendly.com`, `connect-src 'self' https://*.calendly.com`, `font-src 'self' data:`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, `object-src 'none'`. Implémentation : tableau TypeScript structuré `cspDirectives: ReadonlyArray<readonly [string, string]>` + helper `.map().join('; ')` pour produire la chaîne finale (lisibilité accrue vs string monolithique). CSP appliquée en dev ET prod (parité, repérage précoce des violations). **Exclut** : directive `report-uri`/`report-to` (post-MVP avec Sentry ou endpoint custom), origines Umami (post-MVP analytics), nonces dynamiques (overkill MVP), désactivation conditionnelle en dev, séparation par route (CSP unique pour `'/(.*)'` comme les autres headers), `script-src https://assets.calendly.com` (non utilisé par `react-calendly` v4, nécessaire uniquement si bascule vers widget JS officiel `assets.calendly.com/assets/external/widget.js`).

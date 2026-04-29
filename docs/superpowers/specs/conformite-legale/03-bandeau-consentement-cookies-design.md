@@ -1,235 +1,215 @@
 ---
 feature: "Feature 7 — Conformité légale"
-subproject: "Bandeau consentement cookies vanilla-cookieconsent v3 headless + modale Dialog shadcn + hook useConsentStatus"
-goal: "Installer vanilla-cookieconsent v3 self-hosted en mode headless, exposer un bandeau motion/react slide-up CWV-friendly + une modale Dialog shadcn de préférences granulaires conformes CNIL 2025-2026, et un hook useConsentStatus consommable par les autres surfaces de la feature 7"
+subproject: "Bandeau consentement cookies via c15t mode offline + sync next-intl + theming CSS vars"
+goal: "Installer @c15t/nextjs v2.0.0 en mode offline (zéro backend), monter ConsentManagerProvider + ConsentBanner + ConsentDialog dans Providers.tsx avec translations FR/EN built-in et hideBranding, exposer un sync runtime entre useLocale next-intl et setLanguage c15t, themer via CSS variables aux tokens DESIGN.md, et fournir aux subs 4/5/7 l'API useConsentManager (has(category), setActiveUI('dialog')) pour gating Calendly et bouton Gérer mes cookies"
 status: "draft"
-complexity: "L"
+complexity: "M"
 tdd_scope: "partial"
 depends_on: []
-date: "2026-04-28"
+date: "2026-04-29"
 ---
 
-# Bandeau consentement cookies vanilla-cookieconsent v3 headless + modale Dialog shadcn + hook useConsentStatus
+# Bandeau consentement cookies via c15t mode offline + sync next-intl + theming CSS vars
 
 ## Scope
 
-Installer `vanilla-cookieconsent@^3.1.0` (~30 KB MIT, vanilla JS, ESM) pour gérer la persistance localStorage du consentement et les événements DOM `cc:onConsent` / `cc:onChange`, en mode **headless** : on remplace le banner et la modale built-in de la lib par des composants custom (banner `motion/react` slide-up et modale `Dialog` shadcn) pour cohérence avec le DESIGN.md du projet. Configuration CNIL 2025-2026 : 2 catégories (`necessary` toujours actif read-only + `marketing` opt-in granulaire), Accept all / Reject all / Customize au même niveau visuel (`equalWeightButtons`), durée du cookie de consentement 13 mois max (`expiresAfterDays: 395`), retrait aussi simple que l'acceptation. Hook `useConsentStatus()` retourne `{ marketing: boolean, hasInteracted: boolean }` + méthode `openPreferences()` exposés via `<CookieConsentProvider>` injecté dans `<Providers>` au root layout `[locale]/layout.tsx`. Lazy load via `dynamic({ ssr: false })` pour ne pas bloquer FCP. i18n FR/EN namespace `Cookies` dans `messages/{fr,en}.json`. Logger côté client `clientLogger.info(event, payload)` aligné format Pino server-side, sans PII (events `consent:accepted | consent:rejected | consent:customized | consent:changed`). **Exclut** : page Cookie Manager dédiée (post-MVP), tracking Umami (post-MVP), mutation côté serveur, branding custom au-delà des tokens DESIGN.md, support de plus de 2 catégories.
+Installer `@c15t/nextjs@^2.0.0` (Apache 2.0) + `@c15t/translations@^2.0.0` (peer transitif à exposer explicitement, sinon `Module not found '@c15t/translations/all'`). Wrapper `<ConsentManagerProvider options={{ mode: 'offline', overrides: { country: 'FR' }, consentCategories: ['necessary', 'marketing'], i18n: { locale: 'fr', detectBrowserLanguage: false, messages: baseTranslations }, legalLinks: { privacyPolicy: { href: <calculé selon locale>, target: '_self' } } }}>` autour des children dans `src/components/providers/Providers.tsx` (Client Component existant déjà `'use client'`), à l'intérieur du `<NextIntlClientProvider>` parent et autour du `<ThemeProvider>` next-themes existant. Mount `<ConsentBanner hideBranding />` + `<ConsentDialog hideBranding />` à l'intérieur du Provider (pas en `dynamic` car la lib gère elle-même la non-render SSR). Créer `<ConsentLanguageSync />` Client Component leaf (~15 lignes) qui appelle `setLanguage(useLocale())` via `useEffect` quand la locale next-intl change, mounté entre `<ConsentManagerProvider>` et les composants UI. Theming via override des CSS variables c15t (`--button-primary`, `--banner-*`, `--dialog-*`, `--accordion-*`) dans `globals.css` après `@import "@c15t/nextjs/styles.css"` (placement strict AVANT `@import "tailwindcss"` pour layer ordering Tailwind 4). Helper `buildLegalLinks(locale)` colocalisé `src/lib/cookies/` qui retourne `{ privacyPolicy: { href: \`/${locale}/confidentialite\`, target: '_self' } }` consommé par le Provider. Ajouter 2 clés i18n `Cookies.openManagerLabel` (FR: "Gérer mes cookies", EN: "Manage cookies") dans `messages/{fr,en}.json` namespace `Cookies` (réservé aux textes spécifiques projet : labels boutons custom, placeholder Calendly du sub 5, lien footer du sub 7 ; les textes du banner et de la modale sont gérés intégralement par `@c15t/translations/all`). Tests intégration partial (3 cas justifiés métier : `<ConsentLanguageSync />` appelle `setLanguage` au mount + au changement de locale + cleanup au unmount). **Exclut** : page Cookie Manager dédiée (post-MVP), tracking `onConsentChanged` vers Umami (post-MVP, Umami est cookie-less en MVP), mode `hosted` (pas d'audit trail serveur requis pour single-user MVP), CMP IAB TCF (pas d'éditeur de pub), cross-tab sync via BroadcastChannel (limitation acceptée MVP, c15t v2 le supporte nativement mais on ne le configure pas explicitement), composants custom maison (motion/react banner ou Dialog shadcn dédié) car c15t fournit les composants UI conformes CNIL out-of-the-box.
 
 ### État livré
 
-À la fin de ce sub-project, on peut : (a) charger n'importe quelle page publique (`/fr`, `/en/contact`, etc.) en navigation privée, voir le banner motion/react apparaître en bas (slide-up 200ms ease-out) après FCP avec les 3 CTAs au même niveau visuel ; (b) cliquer Accept all → cookie `cc_consent` persisté 13 mois avec marketing=true, banner se ferme avec animation slide-down, événement `consent:accepted` loggé en console au format JSON Pino-like ; (c) cliquer Reject all → idem mais marketing=false, événement `consent:rejected` ; (d) cliquer Customize → Dialog shadcn s'ouvre avec 2 cards (necessary toggle disabled+true, marketing toggle interactive), bouton Save persiste l'état, événement `consent:customized` ; (e) recharger la page → banner ne réapparaît pas, le cookie est toujours là, hook `useConsentStatus()` retourne `{ marketing, hasInteracted: true }` ; (f) `pnpm test src/lib/cookies/use-consent-status.integration.test.ts` retourne vert sur tous les scénarios listés ; (g) Lighthouse Performance score reste >= baseline pré-banner, CLS < 0.1, LCP < 2.5s.
+À la fin de ce sub-project, on peut : (a) charger `/fr` en navigation privée (cookie consent absent), voir le banner c15t apparaître en bottom-left avec le titre "Nous respectons votre vie privée", la description par défaut FR, et 3 boutons même niveau visuel "Tout rejeter" / "Accepter tout" / "Personnaliser" (rendu thémé aux couleurs DESIGN.md vert sauge OKLCH + radius `--radius` projet, sans badge "Secured by c15t") ; (b) cliquer "Accepter tout" → cookie c15t persisté ~13 mois (durée par défaut alignée GDPR), banner se ferme, `useConsentManager().has({ category: 'marketing' })` retourne `true` ; (c) cliquer "Personnaliser" → modale `ConsentDialog` s'ouvre avec 2 cards (necessary read-only + marketing toggle interactif), le clic sur Save ferme la modale et persiste le choix granulaire ; (d) recharger la page → banner ne réapparaît pas, hook retourne immédiatement l'état persisté ; (e) switcher de `/fr` à `/en` via le LocaleSwitcher → `<ConsentLanguageSync />` appelle `setLanguage('en')`, si le banner ou la modale est ouvert(e) les textes basculent en EN ("We value your privacy" / "Reject All" / "Accept All" / "Customize") ; (f) appel programmatique `useConsentManager().setActiveUI('dialog')` (consommé par sub 4 OpenCookiePreferencesButton et sub 7 footer) ré-ouvre la modale sans recharger ; (g) `pnpm test src/lib/cookies/consent-language-sync.integration.test.tsx` retourne vert sur les 3 cas listés ; (h) Lighthouse Performance reste >= baseline pré-c15t sur `/fr` en build prod (CLS < 0.1 car le banner est position fixed ; LCP < 2.5s).
 
 ## Dependencies
 
-Aucune. Ce sub-project est autoporté. Il introduit `vanilla-cookieconsent` comme nouvelle dépendance npm, mais ne dépend d'aucun autre sub-project de la feature 7. Il sera consommé en lecture par sub 5 (`gating-calendly-marketing` qui utilise `useConsentStatus().marketing` pour conditionner le rendu Calendly) et sub 7 (`footer-extension-nav-legale-siret` qui utilise `openPreferences()` pour le bouton "Gérer mes cookies"). Mais ces consommateurs ne sont pas requis pour valider l'état livré de ce sub.
+Aucune — ce sub-project est autoporté. Il introduit `@c15t/nextjs` et `@c15t/translations` comme nouvelles dépendances npm. Les autres sub-projects de la feature 7 le consommeront (sub 4 utilise `useConsentManager` pour `<OpenCookiePreferencesButton>` ; sub 5 utilise `useConsentManager().has({ category: 'marketing' })` pour gating Calendly ; sub 7 footer utilise le même bouton). Sub 4 a besoin que ses paths `/{locale}/confidentialite` existent à l'exécution pour que le lien `legalLinks.privacyPolicy` du banner ne 404 pas, mais c'est une dépendance d'exécution post-merge, pas de build : sub 3 peut être implémenté et mergé avant sub 4 (le lien retournera 404 temporairement, sans crash).
 
 ## Files touched
 
-- **À modifier** : `package.json` (ajout `"vanilla-cookieconsent": "^3.1.0"` aux dependencies)
-- **À créer** : `src/lib/cookies/consent-config.ts` (config typée `CookieConsentConfig`, helper `buildConsentConfig(translations)`, constantes `consentCookieName = 'cc_consent'`, `consentCookieMaxDays = 395`)
-- **À créer** : `src/lib/cookies/use-consent-status.ts` (Context Provider `CookieConsentProvider` + Hook `useConsentStatus`, sync via DOM events `cc:onConsent` / `cc:onChange`)
-- **À créer** : `src/lib/cookies/use-consent-status.integration.test.ts` (tests jsdom : persistance localStorage, hook getStatus, callback openPreferences, listener cleanup, throw hors Provider)
-- **À créer** : `src/lib/cookies/client-logger.ts` (wrapper `console.info/warn/error` au format JSON Pino-like, `service`, `context: 'client'`, `time` ISO, `msg`, payload spread)
-- **À créer** : `src/components/layout/CookieConsent.tsx` (Client Component `'use client'`, mount lazy de la lib, render conditionnel du banner motion + modale, écoute events DOM)
-- **À créer** : `src/components/layout/CookiePreferencesModal.tsx` (Dialog shadcn + Card par catégorie + toggles `<input type="checkbox">` stylisé via classes Tailwind tokens)
-- **À modifier** : `src/components/providers/Providers.tsx` (ajout `<CookieConsentProvider>` autour des children, mount lazy `<CookieConsent>` via `dynamic` import + `ssr: false`)
-- **À modifier** : `messages/fr.json` (extension namespace `Cookies` : `banner.title`, `banner.description`, `banner.acceptAll`, `banner.rejectAll`, `banner.customize`, `modal.title`, `modal.description`, `modal.categories.necessary.title`, `modal.categories.necessary.description`, `modal.categories.marketing.title`, `modal.categories.marketing.description`, `modal.save`, `modal.acceptAll`, `modal.rejectAll`)
-- **À modifier** : `messages/en.json` (idem traductions EN exactes)
+- **À modifier** : `package.json` (ajout `"@c15t/nextjs": "^2.0.0"` et `"@c15t/translations": "^2.0.0"` aux `dependencies`)
+- **À modifier** : `src/components/providers/Providers.tsx` (Client Component existant : ajouter imports `ConsentManagerProvider`, `ConsentBanner`, `ConsentDialog` depuis `@c15t/nextjs`, `baseTranslations` depuis `@c15t/translations/all`, `ConsentLanguageSync` local, `useLocale` depuis `next-intl`, helper `buildLegalLinks`. Wrapper `<ConsentManagerProvider>` autour du `<ThemeProvider>` existant. Mount `<ConsentLanguageSync />` + `<ConsentBanner hideBranding />` + `<ConsentDialog hideBranding />` à l'intérieur du Provider, après les children)
+- **À modifier** : `src/app/globals.css` (ajout `@import "@c15t/nextjs/styles.css"` avant `@import "tailwindcss"` ; nouveau bloc CSS d'override des variables c15t dans `:root` et `.dark` mappées sur les tokens projet `--primary`, `--card`, `--foreground`, `--border`, `--radius`, `--font-sans` : minimum 12 vars couvrant `--button-primary`, `--button-primary-hover`, `--button-text-primary`, `--button-border-radius`, `--button-font`, `--banner-background-color`, `--banner-text-color`, `--banner-border-color`, `--banner-border-radius`, `--dialog-background-color`, `--dialog-text-color`, `--dialog-border-radius` ; vars outline/secondary à compléter si décalage visuel observé sur Reject All / Customize après PR review visuelle)
+- **À créer** : `src/lib/cookies/build-legal-links.ts` (helper pur ~10 lignes : `buildLegalLinks(locale: 'fr' | 'en'): { privacyPolicy: { href: string, target: '_self' } }`. Retourne `{ privacyPolicy: { href: \`/${locale}/confidentialite\`, target: '_self' } }`. Pas de `cookiePolicy` séparée car la section cookies vit dans la page `/confidentialite` du sub 4)
+- **À créer** : `src/lib/cookies/consent-language-sync.tsx` (Client Component leaf `'use client'`, ~15 lignes : `useConsentManager().setLanguage` appelé dans un `useEffect([locale, setLanguage])` qui synchronise la locale c15t avec la locale next-intl (`useLocale()`). Retourne `null`)
+- **À créer** : `src/lib/cookies/consent-language-sync.integration.test.tsx` (tests jsdom Vitest project `integration`, 3 cas : sync au mount, sync au changement de locale via re-render, cleanup propre)
+- **À modifier** : `messages/fr.json` (ajout namespace `Cookies` avec 1 clé : `openManagerLabel: "Gérer mes cookies"`. Toute la mécanique du banner et de la modale est gérée par `baseTranslations` de c15t, ce namespace ne contient que les libellés boutons custom du projet réutilisés par sub 5 et sub 7)
+- **À modifier** : `messages/en.json` (idem EN : `openManagerLabel: "Manage cookies"`)
 
-**Non touchés** : `next.config.ts` (sub 2 CSP), `prisma/schema.prisma` (sub 1 BDD), pages App Router (sub 4), `src/components/features/contact/CalendlyWidget.tsx` (sub 5), `src/components/layout/Footer.tsx` (sub 7), `src/lib/seo/json-ld.ts` (sub 6), `src/lib/logger.ts` (Pino server-only inchangé).
+**Non touchés** : `next.config.ts` (sub 2 CSP déjà mergée), `prisma/schema.prisma` (sub 1 BDD), `src/app/[locale]/layout.tsx` (Providers est wrappé tel quel), pages App Router publiques (sub 4), `src/components/features/contact/CalendlyWidget.tsx` (sub 5), `src/components/layout/Footer.tsx` (sub 7), `src/lib/seo/json-ld.ts` (sub 6), `src/lib/logger.ts` (Pino server-only inchangé, pas de clientLogger custom car c15t expose `onConsentChanged` callback pour MVP+1 si besoin).
 
 ## Architecture approach
 
-- **Mode headless de `vanilla-cookieconsent` v3** : la lib gère uniquement la persistance localStorage du cookie `cc_consent` (durée 13 mois), expose une API JS (`acceptCategory`, `acceptedCategory`, `validConsent`, `showPreferences`) et émet 2 events DOM (`cc:onConsent` au premier consentement, `cc:onChange` aux modifications ultérieures). On désactive le rendu UI built-in de la lib via `disablePageInteraction: false` + `guiOptions` minimaux et on rend nos propres composants `<CookieConsent>` (banner) + `<CookiePreferencesModal>` (modale Dialog shadcn). Voir `Architectural decisions` ci-dessous pour le rationale de ce choix.
-- **`<CookieConsentProvider>` Context React** : wrappe les children dans `Providers.tsx`, expose `{ marketing: boolean, hasInteracted: boolean, openPreferences: () => void }` via `createContext` + `useContext`. Le state local `useState<ConsentState>` est synchronisé avec l'API vanilla-cookieconsent via 2 `useEffect` listeners (`cc:onConsent` + `cc:onChange`) avec cleanup obligatoire au unmount (`return () => removeEventListener(...)`). Voir `.claude/rules/react/hooks.md` (Rules of Hooks, useEffect cleanup, deps exhaustives, Context value memoizé via `useMemo`).
-- **Hook `useConsentStatus()`** : custom hook qui appelle `useContext(ConsentContext)` et throw une erreur explicite si appelé hors Provider (`throw new Error('useConsentStatus must be used within CookieConsentProvider')`). Pattern aligné avec les hooks de Context shadcn/Radix existants. Cohérent avec `.claude/rules/react/hooks.md` (custom hooks `useXxx`, throw explicite plutôt que retourner null silencieusement).
-- **Lazy load via `dynamic({ ssr: false })`** : `<CookieConsent>` (qui importe `vanilla-cookieconsent` ~30 KB et bundle motion/react banner) est mounté dans `Providers` via `next/dynamic` avec `ssr: false`. La lib n'est PAS dans le bundle initial des pages → FCP non impacté. Voir `.claude/rules/nextjs/server-client-components.md` (`'use client'` au plus bas, dynamic mount). Voir aussi `.claude/rules/nextjs/configuration.md` (Next 16 cacheComponents compatible).
-- **Détection automatique de la locale via `language.autoDetect: 'document'`** : vanilla-cookieconsent v3 lit l'attribut `<html lang>` qui est déjà set par next-intl à `fr` ou `en` via le layout `[locale]/layout.tsx`. Pas besoin de prop locale explicite. Les 2 langues sont injectées d'un coup au build de la config via `language.translations: { fr, en }`. Voir `.claude/rules/next-intl/translations.md` (`useTranslations` Client Component, namespaces).
-- **Banner motion/react custom** : composant Client `'use client'` qui rend un `<motion.div>` avec `initial={{ y: 100, opacity: 0 }}`, `animate={{ y: 0, opacity: 1 }}`, `exit={{ y: 100, opacity: 0 }}`, `transition={{ duration: 0.2, ease: 'easeOut' }}`. Position `fixed bottom-0 left-0 right-0 z-50` (CLS = 0, ne push pas le contenu). Affiché conditionnellement quand `state.hasInteracted === false`. Wrappé dans `<AnimatePresence>` pour l'animation de fermeture. Voir `.claude/rules/tailwind/conventions.md` (cn(), tokens sémantiques `bg-card`, `text-foreground`, `border-border`).
-- **Modale Dialog shadcn** : utilise le composant `Dialog` existant de `src/components/ui/dialog.tsx` (Radix UI sous-jacent, déjà accessible et `'use client'`). Contenu : `DialogHeader` avec titre, `DialogContent` avec 2 `Card` shadcn (necessary + marketing), chacune avec un `<input type="checkbox">` stylisé via classes Tailwind (token `--primary` pour l'état actif). `DialogFooter` avec 3 boutons même variant `default` (Save, Accept all, Reject all). Voir `.claude/rules/shadcn-ui/components.md` (Dialog primitive interactive, mapping composants), `.claude/rules/tailwind/conventions.md` (variants Tailwind tokens).
-- **Configuration `vanilla-cookieconsent` typée** : on utilise les types officiels de la lib (`CookieConsentConfig` exporté). Le helper `buildConsentConfig(translations: { fr: Translation, en: Translation }): CookieConsentConfig` retourne l'objet complet avec `cookie.expiresAfterDays = 395` (~13 mois), `categories: { necessary: { readOnly: true, enabled: true }, marketing: { enabled: false } }`, `language.default = 'fr'`, `language.autoDetect = 'document'`, `language.translations = { fr, en }`. Voir `.claude/rules/typescript/conventions.md` (alias `@/*`, types via `z.infer` ou type natifs lib).
-- **`clientLogger` aligné format Pino server-side** : helper minimaliste qui produit `{ level, service, context: 'client', time, msg, ...payload }` et appelle `console.info` / `console.warn` / `console.error` selon le niveau. Format strictement identique aux logs serveur Pino (mêmes clés `level`, `service`, `time`, `msg`) avec `context: 'client'` pour distinguer dans les futurs systèmes d'agrégation (post-MVP : Sentry CSP report, Umami events). Pas de PII : la fonction prend un `payload: Record<string, unknown>` mais la convention projet interdit d'y mettre IP, email, contenu cookie, ID utilisateur. Vérifié par les tests intégration. Voir `.claude/rules/pino/logger.md` pour le format serveur de référence.
-- **Tests intégration jsdom** : project Vitest `integration` (env node mais avec `'jsdom'` override pour ce fichier via `// @vitest-environment jsdom` en tête, ou via inclusion explicite côté config). En jsdom, `localStorage` et `document.cookie` sont disponibles, vanilla-cookieconsent fonctionne. On NE mocke PAS la lib (no-lib-test = on ne teste pas la lib elle-même mais notre intégration via Hook + Context). On mock uniquement `next/navigation` si nécessaire. Factory `renderWithProvider(children, options?)` qui wrap le children dans `<CookieConsentProvider>` + permet de pré-seed un cookie via `document.cookie = 'cc_consent=...'`. Voir `.claude/rules/vitest/setup.md` (project integration séparé), `.claude/rules/nextjs/tests.md` (factory pattern, mock `next/navigation`).
-- **Mount conditionnel anti-hydration mismatch** : pattern `mounted` (similaire à next-themes), on ne render le banner motion qu'après `useEffect(() => setMounted(true), [])` pour éviter un mismatch hydration React 19 (le banner depend de `localStorage` qui n'existe que côté client). Voir `.claude/rules/next-themes/theming.md` (pattern `mounted`).
-- **i18n FR/EN strict via next-intl** : pas de fallback hardcodé. Les traductions injectées dans `vanilla-cookieconsent` viennent du namespace `Cookies` de `messages/{fr,en}.json`. La modale Dialog shadcn utilise directement `useTranslations('Cookies')` côté Client Component. ADR-010.
-- **ADRs liés** : ADR-001 (monolithe Next.js), ADR-005 (Dokploy self-hosted, lib ~30 KB acceptable bundle), ADR-007 (Umami post-MVP, ne nécessite PAS de catégorie analytics car cookie-less). Pas de nouvel ADR à créer.
+- **Mode `offline` de `@c15t/nextjs`** : la lib stocke le consentement en localStorage + cookie sans appel réseau ni API key. Combiné à `overrides.country: 'FR'`, force la juridiction GDPR/CNIL inconditionnellement (pas de géo-détection IP requise, dispensable en mode offline). Voir `.claude/rules/...` à compléter si la règle est extraite (sinon référence directe à `docs/knowledges/c15t.md` § "ConsentManagerProvider en mode offline"). Voir aussi rationale `Architectural decisions` ci-dessous.
+- **`<ConsentManagerProvider>` à l'intérieur de `<NextIntlClientProvider>`** : le provider c15t doit pouvoir être mounté à n'importe quel niveau Client. On le place dans `Providers.tsx` qui est lui-même wrappé par `<NextIntlClientProvider>` côté `[locale]/layout.tsx`. Le `<ThemeProvider>` next-themes existant reste à l'intérieur du c15t Provider (pas d'ordre critique entre les deux, mais convention "providers globaux à l'extérieur, providers UI à l'intérieur" → c15t comporte un Context global, donc à l'extérieur de ThemeProvider). Voir `.claude/rules/nextjs/server-client-components.md` (`'use client'` au plus bas, leaf client components).
+- **Composants `<ConsentBanner>` et `<ConsentDialog>` mountés directement** : pas de `dynamic({ ssr: false })` nécessaire car c15t v2 gère lui-même l'absence de localStorage côté SSR (rien n'est rendu jusqu'au mount client). Pattern plus simple que la spec précédente (vanilla-cookieconsent v1) qui imposait `dynamic`. `hideBranding` retire le badge "Secured by c15t" de manière gratuite en mode offline (testé visuellement au POC).
+- **Sync next-intl ↔ c15t via `<ConsentLanguageSync />`** : composant Client leaf qui consomme `useLocale()` de next-intl + `useConsentManager()` de c15t et appelle `setLanguage(locale)` dans un `useEffect([locale, setLanguage])`. Mounté à l'intérieur du Provider, juste avant les composants UI. Le composant retourne `null` (no UI). Sans ce sync, c15t reste figé sur sa `i18n.locale` initiale ('fr') et le switch FR→EN du `LocaleSwitcher` projet ne propage pas dans le banner/modale. Voir `.claude/rules/react/hooks.md` (Rules of Hooks, deps exhaustives, cleanup) et `.claude/rules/next-intl/translations.md` (`useLocale` Client side).
+- **Translations FR/EN built-in via `@c15t/translations/all`** : import `baseTranslations` depuis `@c15t/translations/all` (sub-export du package, doit être installé EXPLICITEMENT en dépendance directe sinon `Module not found`). `baseTranslations` est un `Record<string, CompleteTranslations>` qui contient les 30+ langues UE (dont FR et EN complètes : "Nous respectons votre vie privée" / "Tout rejeter" / "Accepter tout" / "Personnaliser" pour FR ; "We value your privacy" / "Reject All" / "Accept All" / "Customize" pour EN). On le passe tel quel dans `i18n.messages` du Provider, c15t pioche dedans selon la locale active. Pas de namespace `Cookies` projet pour ces strings. Voir `docs/knowledges/c15t.md` § "Translations FR/EN via @c15t/translations/all".
+- **`overrides.country: 'FR'`** : force la juridiction GDPR/CNIL côté Provider, sans dépendre d'une géo-détection IP (qui en mode offline n'existe pas). C'est plus strict (et plus prudent) que de laisser c15t deviner : tous les visiteurs voient le banner CNIL, même si techniquement un visiteur US n'y est pas obligé. Conforme à l'esprit "single-user portfolio FR-first". Voir `docs/knowledges/c15t.md` § "Bonnes Pratiques".
+- **`consentCategories: ['necessary', 'marketing']`** : 2 catégories. `necessary` toujours read-only true (cookie de consentement lui-même, theme préférence next-themes, session). `marketing` opt-in pour Calendly (cookies tiers). Pas de catégorie `measurement` car Umami sera cookie-less en MVP (cf ADR-007). Pas de `experience` ni `functionality` (YAGNI). Voir Architectural decisions ci-dessous.
+- **`legalLinks` calculé par locale via `buildLegalLinks(locale)`** : helper pur qui retourne `{ privacyPolicy: { href: \`/${locale}/confidentialite\`, target: '_self' } }`. Le href dépend de la locale active : depuis `Providers.tsx` qui est Client, on lit `useLocale()` et on appelle le helper au render. Le Provider re-évalue les options à chaque re-render de Providers.tsx (acceptable, c15t mémoïse en interne). Pas de `cookiePolicy` car la section cookies vit dans la page `/confidentialite` du sub 4 (pas de page séparée). Voir `docs/knowledges/c15t.md` § "Liens légaux dans le banner".
+- **Theming via CSS variables override dans `globals.css`** : `@import "@c15t/nextjs/styles.css"` placé AVANT `@import "tailwindcss"` (ordering Tailwind 4 layers : c15t pose ses defaults, Tailwind les wrap dans la cascade). Bloc d'override dans `:root` et `.dark` mappant les vars c15t (`--button-primary`, `--banner-background-color`, etc.) sur les tokens projet (`--primary`, `--card`, `--foreground`, `--radius`, `--font-sans`) déjà déclarés au sub-projet 0 (DESIGN.md baseline). Couvre les principales surfaces (boutons primary, banner, dialog) ; les variants outline/secondary (Reject All, Customize) à mapper finement après PR review visuelle si décalage observé. Voir `docs/knowledges/c15t.md` § "Theming via CSS variables".
+- **API exposée aux subs 4/5/7** : c15t expose `useConsentManager()` qui retourne `{ consents, has, setActiveUI, setLanguage, ... }`. Sub 4 utilise `setActiveUI('dialog')` dans `<OpenCookiePreferencesButton>`. Sub 5 utilise `has({ category: 'marketing' })` dans `<CalendlyWidget>`. Sub 7 réutilise `<OpenCookiePreferencesButton>` du sub 4. Cette API est documentée dans `docs/knowledges/c15t.md` § "Hook useConsentManager", les subs 4/5/7 sont mis à jour en parallèle (cf section "Open questions" de leur spec).
+- **Pas de tests sur le Provider, les composants c15t, le format cookie, la persistance** : règle no-lib-test (cf `~/.claude/CLAUDE.md` § Code > Tests). Le seul test justifié est sur `<ConsentLanguageSync />` car c'est du code projet (logique de sync) et non du plumbing lib. Voir `.claude/rules/vitest/setup.md` (project integration séparé) et `.claude/rules/nextjs/tests.md` (factory pattern, mock `next/navigation`).
+- **ADRs liés** : ADR-001 (monolithe Next.js, lib client-side ajoutée au bundle global), ADR-005 (Dokploy self-hosted, lib ~30 KB acceptable), ADR-007 (Umami post-MVP cookie-less, ne nécessite PAS de catégorie analytics/measurement dans le banner), ADR-010 (i18n FR/EN strict via next-intl pour le contenu projet ; les translations c15t sont fournies par `@c15t/translations` et sync via `setLanguage`). Pas de nouvel ADR à créer (le choix c15t vs custom est tracé dans `Architectural decisions` ci-dessous, pas assez structurant pour un ADR formel).
 
 ## Acceptance criteria
 
-### Scénario 1 : Premier chargement, banner s'affiche après FCP
+### Scénario 1 : Premier chargement `/fr`, banner FR thémé apparaît en bottom-left
 
-**GIVEN** un visiteur en navigation privée arrive sur `/fr` (DB seedée, cookie `cc_consent` absent)
+**GIVEN** un visiteur en navigation privée arrive sur `/fr` (cookie c15t absent, localStorage vide)
 **WHEN** la page charge complètement (HTML + bundle JS hydrate)
-**THEN** le banner cookies apparaît en bas de l'écran avec une animation slide-up 200ms ease-out (motion/react)
-**AND** le banner contient un titre i18n FR (ex: "Cookies & confidentialité"), une description courte i18n FR, et 3 boutons côte à côte de même taille (Tailwind `w-full sm:w-auto`) : "Tout accepter", "Tout refuser", "Personnaliser"
-**AND** la position du banner est `fixed bottom-0 left-0 right-0 z-50`, n'introduit pas de layout shift (CLS = 0)
-**AND** Lighthouse Performance reste >= baseline pré-banner (le banner étant `dynamic({ ssr: false })`, il ne bloque pas le bundle initial)
+**THEN** le banner c15t apparaît en bottom-left avec le titre "Nous respectons votre vie privée" et la description FR par défaut de `baseTranslations.fr`
+**AND** 3 boutons sont rendus côte à côte : "Tout rejeter", "Accepter tout", "Personnaliser". **Accept all et Reject all sont visuellement strictement symétriques** (même variante, même taille, même contraste, même padding) conformément à la délibération CNIL 2020-092 consolidée janvier 2026. **Customize peut rester en variante outline ou lien plus discret** (CNIL n'exige pour ce 3e bouton que sa présence au 1er niveau, pas sa symétrie pixel-perfect avec Accept/Reject)
+**AND** aucun badge "Secured by c15t" n'est visible (`hideBranding` ✅)
+**AND** les couleurs primary, card, border et le radius matchent les tokens DESIGN.md (vert sauge OKLCH `--primary`, `--card`, `--border`, `--radius: 0.625rem`)
+**AND** position `fixed bottom-left z-XX` géré par c15t, n'introduit aucun layout shift (CLS = 0)
 
-### Scénario 2 : Clic "Tout accepter"
+### Scénario 2 : Clic "Accepter tout"
+
+**GIVEN** le banner est visible en `/fr`
+**WHEN** je clique "Accepter tout"
+**THEN** le cookie de consentement c15t est créé avec un payload incluant `marketing: true` et `necessary: true`, expire ~13 mois (durée par défaut alignée GDPR de la lib)
+**AND** le banner se ferme automatiquement
+**AND** un appel ultérieur à `useConsentManager().has({ category: 'marketing' })` retourne `true`
+**AND** un appel ultérieur à `useConsentManager().has({ category: 'necessary' })` retourne `true`
+
+### Scénario 3 : Clic "Tout rejeter"
 
 **GIVEN** le banner est visible
-**WHEN** je clique "Tout accepter"
-**THEN** le cookie `cc_consent` est créé avec un payload incluant `categories: ['necessary', 'marketing']`, expire dans 395 jours (~13 mois)
-**AND** le banner se ferme avec animation slide-down (`AnimatePresence` exit transition)
-**AND** un événement `consent:accepted` est loggé en console au format JSON `{ level: 'info', service: 'thibaud-geisler-portfolio', context: 'client', time: '<ISO>', msg: 'consent:accepted', marketing: true }`
-**AND** le hook `useConsentStatus()` retourne désormais `{ marketing: true, hasInteracted: true }`
-
-### Scénario 3 : Clic "Tout refuser"
-
-**GIVEN** le banner est visible
-**WHEN** je clique "Tout refuser"
-**THEN** le cookie `cc_consent` est créé avec `categories: ['necessary']` (marketing absent), expire 395 jours
+**WHEN** je clique "Tout rejeter"
+**THEN** le cookie est créé avec `marketing: false` et `necessary: true` (necessary reste toujours true par design CNIL)
 **AND** le banner se ferme
-**AND** un événement `consent:rejected` est loggé avec `marketing: false`
-**AND** le hook retourne `{ marketing: false, hasInteracted: true }`
+**AND** `useConsentManager().has({ category: 'marketing' })` retourne `false`
 
 ### Scénario 4 : Clic "Personnaliser" puis Save avec marketing toggled on
 
 **GIVEN** le banner est visible
 **WHEN** je clique "Personnaliser"
-**THEN** une modale Dialog shadcn s'ouvre, le banner reste affiché derrière (overlay)
-**AND** la modale contient un titre i18n, 2 Card (necessary disabled+true read-only, marketing toggle interactive default false), et un footer avec 3 boutons (Save, Accept all, Reject all)
-**WHEN** je toggle marketing à on et je clique "Save"
-**THEN** le cookie `cc_consent` est créé avec `categories: ['necessary', 'marketing']`
-**AND** la modale se ferme, le banner se ferme aussi
-**AND** un événement `consent:customized` est loggé avec `marketing: true`
+**THEN** la modale `ConsentDialog` s'ouvre par-dessus la page (overlay accessible via Radix focus trap natif c15t), pas de badge branding
+**AND** la modale liste 2 catégories : "Strictement nécessaires" (toggle disabled, true read-only) + "Marketing" (toggle interactif, default `false`)
+**WHEN** je toggle marketing à `on` puis clique "Enregistrer"
+**THEN** la modale se ferme, le banner se ferme aussi, le cookie persiste `marketing: true`
 
-### Scénario 5 : Rechargement persistant
+### Scénario 5 : Rechargement avec consentement persisté
 
-**GIVEN** un visiteur a déjà accepté (cookie `cc_consent` présent, marketing=true)
-**WHEN** il recharge la page ou revient ultérieurement (cookie encore valide < 13 mois)
+**GIVEN** un visiteur a déjà accepté (cookie c15t valide < 13 mois, marketing=true)
+**WHEN** il recharge la page ou revient ultérieurement
 **THEN** le banner ne réapparaît PAS
-**AND** le hook `useConsentStatus()` retourne immédiatement `{ marketing: true, hasInteracted: true }` (sans attendre une interaction)
+**AND** `useConsentManager()` retourne immédiatement l'état persisté (`consents.marketing === true`) sans attendre une nouvelle interaction
 
-### Scénario 6 : `openPreferences()` ré-ouvre la modale
+### Scénario 6 : Switch FR→EN propage dans le banner via ConsentLanguageSync
+
+**GIVEN** un visiteur arrive sur `/fr` et le banner est visible (cookie absent)
+**WHEN** il clique le LocaleSwitcher pour passer en `/en`
+**THEN** Next.js navigue vers `/en` avec la même page
+**AND** `useLocale()` retourne désormais `'en'`, le `useEffect` de `<ConsentLanguageSync />` se déclenche et appelle `consentManager.setLanguage('en')`
+**AND** les textes du banner basculent en EN ("We value your privacy" / "Reject All" / "Accept All" / "Customize")
+**AND** si la modale `ConsentDialog` était ouverte, ses textes basculent aussi en EN
+
+### Scénario 7 : `setActiveUI('dialog')` programmatique ouvre la modale (consommé par sub 4 et sub 7)
 
 **GIVEN** un visiteur a déjà interagi (banner fermé, cookie persisté)
-**WHEN** un Client Component tiers (par ex. le futur bouton footer "Gérer mes cookies" du sub 7) appelle `useConsentStatus().openPreferences()`
-**THEN** la modale Dialog shadcn s'ouvre directement, sans réafficher le banner
-**AND** les toggles reflètent l'état actuel persisté (marketing on/off selon le dernier choix)
-
-### Scénario 7 : Détection automatique de la locale
-
-**GIVEN** un visiteur arrive sur `/en/contact` (next-intl set `<html lang="en">`)
-**WHEN** le banner s'affiche (premier hit)
-**THEN** les textes du banner et de la modale sont en EN (lus depuis `messages/en.json` namespace `Cookies`)
-**AND** vanilla-cookieconsent détecte la locale via `language.autoDetect: 'document'` qui lit `document.documentElement.lang === 'en'`
-**WHEN** le visiteur switch en `/fr` (cookie persiste cross-locale)
-**THEN** le banner ne réapparaît pas mais si on appelle `openPreferences()` la modale est en FR
+**WHEN** un Client Component descendant du Provider appelle `useConsentManager().setActiveUI('dialog')` (typiquement le `<OpenCookiePreferencesButton>` du sub 4 cliqué depuis la section Cookies de `/confidentialite` ou depuis le footer du sub 7)
+**THEN** la modale `ConsentDialog` s'ouvre directement sans recharger la page
+**AND** les toggles de la modale reflètent l'état persisté actuel (marketing on/off selon le dernier choix)
+**AND** le banner ne réapparaît pas (consentement déjà persisté dans le cookie c15t)
 
 ### Scénario 8 : Tests intégration verts
 
 **GIVEN** le sub-project complètement implémenté
-**WHEN** je lance `pnpm test src/lib/cookies/use-consent-status.integration.test.ts`
-**THEN** Vitest exécute le fichier dans le project `integration`, environment jsdom
-**AND** les 12 cas listés dans la section Tests passent (vert)
-**AND** la console n'émet aucun warning React (hydration mismatch, deps useEffect manquante, etc.)
+**WHEN** je lance `pnpm test src/lib/cookies/consent-language-sync.integration.test.tsx`
+**THEN** Vitest exécute le fichier dans le project `integration` (env jsdom)
+**AND** les 3 cas listés dans la section Tests passent (vert)
+**AND** la console n'émet aucun warning React (deps useEffect manquante, hydration mismatch, etc.)
 
 ## Tests à écrire
 
 ### Integration
 
-`src/lib/cookies/use-consent-status.integration.test.ts` (jsdom env via `// @vitest-environment jsdom` en tête de fichier ou via config Vitest project) :
+`src/lib/cookies/consent-language-sync.integration.test.tsx` (env jsdom via `// @vitest-environment jsdom` en tête de fichier ou via config Vitest project) :
 
-- **`useConsentStatus()` hors Provider lance une erreur explicite** : render un composant qui appelle `useConsentStatus()` SANS wrapper, attend `expect(...).toThrow('useConsentStatus must be used within CookieConsentProvider')`
-- **State initial avant interaction utilisateur** : render `<CookieConsentProvider>` avec localStorage vide, lire le hook → `{ marketing: false, hasInteracted: false }`
-- **Cookie pré-existant marketing=true** : pré-seed `document.cookie = 'cc_consent={"categories":["necessary","marketing"]}'`, render Provider, attendre `useEffect` du Provider qui lit le cookie via `cc.acceptedCategory('marketing')`, lire le hook → `{ marketing: true, hasInteracted: true }`
-- **Cookie pré-existant marketing=false** : idem mais `categories: ['necessary']`, hook → `{ marketing: false, hasInteracted: true }`
-- **Accept all programmatique synchronise le state** : render Provider, simuler `cc.acceptCategory('all')` (API vanilla-cookieconsent), dispatch event `cc:onConsent`, hook → `{ marketing: true, hasInteracted: true }`, vérifier que `clientLogger.info('consent:accepted', { marketing: true })` a été appelé (spy sur `console.info`)
-- **Reject all programmatique synchronise le state** : render Provider, simuler `cc.acceptCategory([])`, dispatch `cc:onConsent`, hook → `{ marketing: false, hasInteracted: true }`, log `consent:rejected`
-- **Change ultérieur via `cc:onChange`** : render Provider avec cookie pré-existant marketing=false, dispatch `cc:onChange` après `cc.acceptCategory(['necessary', 'marketing'])`, hook → `{ marketing: true, hasInteracted: true }`, log `consent:changed`
-- **`openPreferences()` appelle `cc.showPreferences()`** : render Provider, spy sur `cc.showPreferences`, appeler `useConsentStatus().openPreferences()`, attendre que le spy soit appelé une fois
-- **Cleanup des event listeners au unmount** : render Provider puis unmount, vérifier via spy `removeEventListener` que `cc:onConsent` et `cc:onChange` ont été supprimés
-- **Cookie expire bien à 395 jours** : après accept simulé, lire `document.cookie` ou utiliser une factory pour vérifier que le `expires` du cookie est ~395 jours dans le futur (tolérance 1 jour)
-- **`clientLogger` ne loggue jamais de PII** : appeler `clientLogger.info('test', { ip: '1.2.3.4', email: 'a@b.c' })` (test d'usage incorrect), vérifier que la convention de tests s'assure qu'aucun appel dans le sub-project ne contient ces clés sensibles. Note : c'est un test de **convention** (regex sur les fichiers du sub) plutôt qu'un test runtime.
-- **Format JSON Pino-like** : appeler `clientLogger.info('test:event', { foo: 'bar' })`, intercepter `console.info`, parser le JSON émis, vérifier les clés `level === 'info'`, `service === 'thibaud-geisler-portfolio'`, `context === 'client'`, `time` est un ISO valide, `msg === 'test:event'`, `foo === 'bar'`
+- **`<ConsentLanguageSync />` appelle `setLanguage(locale)` au mount** : render `<ConsentLanguageSync />` à l'intérieur d'un `<ConsentManagerProvider options={{ mode: 'offline', i18n: { locale: 'fr', messages: baseTranslations } }}>`, avec un wrapper qui injecte `useLocale` retournant `'fr'`. Spy sur `consentManager.setLanguage`. Au mount, vérifier que `setLanguage` a été appelé une fois avec `'fr'`.
+- **Re-render avec nouvelle locale déclenche un nouvel appel `setLanguage`** : après le mount initial avec `'fr'`, simuler un changement de locale en re-render avec un wrapper qui retourne `'en'` depuis `useLocale`. Vérifier que `setLanguage` a été appelé une 2e fois avec `'en'`. (Ce test valide que le `useEffect` a bien `locale` dans ses deps.)
+- **Cleanup propre au unmount** : render puis unmount le composant. Vérifier qu'aucune erreur ou warning React n'est émis (notamment "state update on unmounted component"). Comme `<ConsentLanguageSync />` n'a pas d'effet asynchrone à annuler, ce test est principalement un sanity check de Rules of Hooks deps.
 
 Setup commun :
 - `// @vitest-environment jsdom` en tête de fichier
-- `beforeEach(() => { document.cookie = 'cc_consent=; expires=Thu, 01 Jan 1970 00:00:00 GMT'; localStorage.clear(); vi.clearAllMocks() })` reset complet
-- Factory `renderWithProvider(children, { initialCookie?: string })` qui pré-seed le cookie puis render le Provider
-- Spy sur `console.info` / `console.warn` / `console.error` via `vi.spyOn(console, 'info').mockImplementation(() => {})`
-- Pas de mock de `vanilla-cookieconsent` (vraie lib utilisée en jsdom)
-- Mock `next/navigation` si un composant testé l'utilise (probablement pas pour ce sub)
+- `beforeEach` : `localStorage.clear(); document.cookie = ''; vi.clearAllMocks()`
+- Factory `renderWithProvider(children, { locale: 'fr' | 'en' })` qui mock `useLocale` via `vi.mock('next-intl', ...)` et wrap dans `<ConsentManagerProvider>`
+- Spy sur `setLanguage` via `vi.spyOn(consentManager, 'setLanguage')` ou via mock du hook `useConsentManager`
+- Pas de mock de `@c15t/nextjs` (vraie lib utilisée en jsdom, mode offline n'a pas besoin de réseau)
+- Mock de `next-intl` pour `useLocale` uniquement (le reste de next-intl n'est pas utilisé)
 
-Tests délibérément exclus (no-lib-test) :
-- Test unitaire des composants `<CookieConsent>` et `<CookiePreferencesModal>` au niveau React (testerait le rendu motion/react + Dialog Radix = libs)
-- Test du contenu de `messages/{fr,en}.json` namespace `Cookies` (testerait next-intl)
-- Test de `dynamic({ ssr: false })` côté Providers (testerait Next.js)
-- Test de l'API `vanilla-cookieconsent.run()` ou `cc.acceptedCategory()` (testerait la lib elle-même)
-- Test E2E de l'animation slide-up motion/react (testerait motion + jsdom ne supporte pas les CSS animations correctement)
-- Test du clic sur le bouton Save de la modale (testerait Dialog Radix + Tailwind = libs)
+Tests délibérément exclus (no-lib-test, cf `~/.claude/CLAUDE.md` § Code > Tests) :
+
+- Test du rendu visuel de `<ConsentBanner>` ou `<ConsentDialog>` (testerait c15t lui-même)
+- Test de la persistance du cookie c15t (testerait c15t)
+- Test du clic sur les boutons "Accepter tout" / "Tout rejeter" / "Personnaliser" (testerait c15t)
+- Test du format JSON du cookie ou de sa durée 13 mois (testerait c15t)
+- Test des translations FR/EN de `baseTranslations` (testerait `@c15t/translations`)
+- Test du theming CSS vars (testerait CSS, et il n'y a aucune logique projet : juste des `var(--xxx)`)
+- Test du Provider lui-même (Provider standard React, déjà couvert par les tests d'intégration de c15t en amont)
+- Test E2E du switch de locale propagé dans le banner (couvert par scénario 6 acceptance manuel et par les tests intégration de c15t)
 
 ## Edge cases
 
-- **Hydration mismatch React 19 si banner rendu côté serveur** : impossible car `dynamic({ ssr: false })` exclut le composant du SSR. Le banner ne render qu'après mount client. Pattern `mounted` redondant mais sûr.
-- **Visiteur revient après expiration du cookie 13 mois** : `vanilla-cookieconsent` détecte le cookie absent au mount, `validConsent()` retourne false, banner réapparaît automatiquement. Couvert par scénario 1.
-- **Visiteur supprime manuellement le cookie via DevTools** : prochaine page navigation, lib détecte cookie absent, banner réapparaît. Pas de bug.
-- **`useConsentStatus()` appelé depuis un Server Component** : impossible car le hook est côté Client Component (le Provider lui-même est `'use client'`). Erreur de compilation si tenté.
-- **Animation motion/react cassée si `prefers-reduced-motion`** : motion respecte automatiquement `prefers-reduced-motion: reduce` (standard depuis motion 11). Pas de patch nécessaire.
-- **2 onglets ouverts simultanément** : si l'utilisateur accepte dans l'onglet 1, l'onglet 2 a un cookie obsolète en mémoire JS jusqu'au reload. Cas accepté MVP (pas de sync cross-tab via `BroadcastChannel`). Documenter comme limitation connue.
-- **Cookie corrompu (parse JSON fail)** : `vanilla-cookieconsent` v3 gère le cas, considère le cookie absent, banner réapparaît. Pas de crash.
-- **`document.documentElement.lang` non encore set au moment du mount lib** : peu probable car next-intl set le lang dans `<html lang>` au render serveur. Mais si race condition, fallback sur `language.default = 'fr'` configuré.
-- **PII accidentelle dans `clientLogger.info(event, payload)`** : convention projet interdit IP/email/cookie content. Test de convention dans le sub-project (regex check sur les appels). Si un dev futur fait l'erreur, ce test casse.
-- **Bundle size impact** : `vanilla-cookieconsent` ~30 KB minified gzipped. Lazy load via `dynamic({ ssr: false })` exclut du bundle initial. Vérifier post-implémentation que le report `next build` ne montre pas d'inflation du bundle de la home (par ex. `/fr` ne doit PAS inclure cookies-related JS dans son First Load JS).
-- **Calendly iframe avant consent (sub 5 pas encore mergé)** : pendant la phase de dev où sub 3 est mergé mais pas sub 5, le widget Calendly se charge inconditionnellement. Aucune CSP violation (sub 2 autorise déjà `frame-src calendly.com`). Pas de blocker MVP, juste à avoir en tête lors du sequencing des merges.
-- **Modale Dialog shadcn focus trap** : Radix UI gère automatiquement le focus trap (focus ne sort pas de la modale au Tab). Couvert nativement par `Dialog`.
+- **Cookie c15t corrompu (parse JSON fail ou format invalide)** : c15t v2 traite le cookie comme absent et ré-affiche le banner. Pas de crash, comportement attendu.
+- **Visiteur supprime manuellement le cookie via DevTools** : à la prochaine navigation, c15t détecte l'absence et ré-affiche le banner. Comportement standard.
+- **Visiteur revient après expiration du cookie ~13 mois** : c15t détecte expiration via `Date.now() > expiresAt`, considère le consentement caduc, banner réapparaît. Couvert par scénario 1.
+- **`useConsentManager()` appelé hors Provider** : c15t throw une erreur explicite côté lib. Aucun composant projet ne fait ça (Providers wrap tout l'arbre `[locale]/layout.tsx`).
+- **Hydration mismatch React 19** : c15t v2 gère nativement la non-render SSR du banner et de la modale (rien n'est rendu jusqu'au mount client). Pas besoin de pattern `mounted` custom.
+- **`prefers-reduced-motion`** : c15t respecte les préférences système nativement (pas de paramétrage projet requis).
+- **2 onglets ouverts simultanément** : c15t v2 supporte le sync cross-tab via `BroadcastChannel` mais on ne le configure pas explicitement en MVP. Si user accepte dans onglet 1, onglet 2 voit le changement à la prochaine navigation/reload (limitation acceptée MVP, à upgrader si besoin user post-MVP).
+- **Locale non supportée par `baseTranslations`** : `baseTranslations` couvre 30+ langues UE dont `'fr'` et `'en'`. Si une locale non listée est passée à `setLanguage`, c15t fallback sur sa locale par défaut configurée (`'fr'` côté Provider). Pour le projet (FR + EN uniquement), pas de cas réel.
+- **Lien `legalLinks.privacyPolicy` 404 si sub 4 pas encore mergé** : pendant la phase de dev où sub 3 est mergé mais pas sub 4, le clic sur le lien depuis le banner produit un 404. Pas de crash, juste une 404 page Next.js standard. À documenter dans la PR de sub 3 et à régler côté merge order : merger sub 4 juste après sub 3 (ou les deux dans la même PR).
+- **Calendly iframe avant consent (sub 5 pas encore mergé)** : pendant la phase de dev où sub 3 est mergé mais pas sub 5, le widget Calendly se charge inconditionnellement (pas encore gated). Aucune CSP violation (sub 2 autorise déjà `frame-src calendly.com`). Pas de blocker MVP, juste à avoir en tête lors du sequencing des merges.
+- **Symétrie Accept all / Reject all à valider visuellement au smoke test** : la délibération CNIL 2020-092 (consolidée janvier 2026) exige *"boutons et police de même taille, offrant la même facilité de lecture, mis en évidence de manière identique"* entre **Accept et Reject UNIQUEMENT** (pas Customize). Si c15t v2 rend Accept en `primary` plein et Reject en `outline` par défaut, **non-conforme CNIL**. Override CSS obligatoire dans `globals.css` pour aligner Reject sur Accept (ou inversement, mais identiques entre eux). Customize reste libre (peut rester `outline` plus discret ou lien hypertexte au 1er niveau, conforme CNIL).
 
 ## Architectural decisions
 
-### Décision : Mode headless vs UI built-in `vanilla-cookieconsent`
+### Décision : c15t headless lib vs implémentation custom (motion + Dialog shadcn + clientLogger)
 
 **Options envisagées :**
-- **A. UI built-in vanilla-cookieconsent** : utiliser le banner et la modale par défaut de la lib, avec un éventuel restyle via overrides CSS. Zéro composant React custom. La lib s'occupe de tout.
-- **B. Mode headless** : utiliser uniquement l'API JS et la persistance localStorage de la lib, remplacer banner et modale par des composants custom (banner motion/react slide-up + modale Dialog shadcn). Cohérence design system.
-- **C. Hybride** : utiliser le banner built-in (restylé via CSS pour matcher tokens DESIGN.md) + modale custom Dialog shadcn (besoin de plus de contrôle UX).
 
-**Choix : B**
-
-**Rationale :**
-- L'option A demande un restyle CSS substantiel pour matcher le DESIGN.md (couleurs OKLCH vert sauge, typographie Sansation/Geist, border-radius `--radius`, `prefers-reduced-motion` respecté). Le selector ladder de la lib est complexe et évolue à chaque version. Combat CSS récurrent.
-- L'option C mélange 2 styles différents pour banner et modale, incohérent. De plus le banner built-in n'a pas d'animation motion/react cohérente avec le reste du projet (animations sub-projects précédents).
-- L'option B donne le contrôle total : banner motion/react aligné sur les patterns du projet, modale Dialog shadcn déjà présente et accessible (Radix), tokens Tailwind cohérents. Coût : ~80 lignes React supplémentaires pour les 2 composants. Coût acceptable pour MVP solo, et c'est du code maintenable. La lib est utilisée uniquement pour ce qu'elle fait bien : persistance cookie + events DOM.
-- Trade-off accepté : si la lib ajoute des features (ex: GPC support, gestion granulaire des services), il faudra les exposer manuellement dans nos composants. Mais MVP scope limité (2 catégories, pas de GPC), donc OK.
-
-### Décision : Hook + Context React vs callback subscription global
-
-**Options envisagées :**
-- **A. Context React + state local synchronisé via DOM events** : `<CookieConsentProvider>` qui écoute `cc:onConsent` / `cc:onChange`, expose `useConsentStatus()` aux descendants via `useContext`.
-- **B. Singleton global `window.cookieConsent`** : la lib pose une variable globale, les Client Components y accèdent directement sans hook. Pas de Provider.
-- **C. Callback prop drilling** : passer `useConsentStatus` en prop des composants qui en ont besoin, depuis un parent qui écoute la lib.
+- **A. c15t en mode offline + composants UI built-in thémés** : utiliser `@c15t/nextjs` qui fournit Provider + ConsentBanner + ConsentDialog conformes CNIL out-of-the-box. Theming via CSS variables. ~80 lignes projet (Provider config + sync next-intl + theming + helper legal links + 1 test intégration).
+- **B. Implémentation custom maison** : `vanilla-cookieconsent` v3 en mode headless + banner motion/react slide-up + modale Dialog shadcn dédiée + Hook `useConsentStatus()` + Provider Context maison + `clientLogger` Pino-like + 12 tests intégration. ~250 lignes projet (cf version précédente de cette spec).
+- **C. Tarteaucitron.js** : lib FR éprouvée 10 ans CNIL, mais styling rigide, pas pensée React, intégration via `<script>` global et tarteaucitron.user.calendlyId. ~100 lignes projet mais look custom limité.
 
 **Choix : A**
 
 **Rationale :**
-- L'option B (global) viole les patterns React idiomatiques (pas de re-render automatique sur changement de l'état global, nécessite forceUpdate ou abonnement manuel). De plus, `window.X` est mal typé et complique les tests unitaires.
-- L'option C (prop drilling) devient pénible quand le hook est consommé par 2-3 composants à des niveaux différents (sub 5 CalendlyWidget, sub 7 Footer button). Provider + hook scale mieux.
-- L'option A est le pattern React canonical pour partager un state global accessible. Re-render automatique sur changement via `useState` du Provider qui se met à jour via les listeners DOM. Tests faciles via `renderWithProvider`. Cohérent avec d'autres providers du projet (`ThemeProvider` next-themes, `NextIntlClientProvider`).
+- L'option B duplique 80% de ce que c15t fait déjà (persistance, granularité, equalWeightButtons, gestion catégories) en plus du custom UI. Coût maintenance élevé pour aucun bénéfice fonctionnel : la modale Dialog shadcn maison est juste une ré-écriture de ce que c15t propose nativement.
+- L'option C est moins flexible côté React (pas de hook, pas de Context, pattern script global) et le styling matchant tokens DESIGN.md serait plus laborieux que les CSS vars de c15t.
+- L'option A est la plus efficace : ~3x moins de code projet, pattern React natif (Provider + hook), theming via CSS vars cohérent avec shadcn, conformité CNIL gérée par la lib (testée par sa communauté), 30+ traductions FR/EN built-in, hideBranding gratuit, switch dynamique langue via setLanguage. POC validé en pratique sur Next.js 16.2.4 + React 19 + Turbopack (cf `docs/knowledges/c15t.md`).
+- Trade-off accepté : dépendance externe Apache 2.0 active, risque modéré (v2 sortie 2026-04-13, communauté en croissance, VC-backed Robotostudio). Si la lib se stoppe ou change de licence, migration vers Tarteaucitron faisable en quelques heures (l'API métier projet `useConsentManager().has()` peut être ré-implémentée avec n'importe quel CMP).
 
-### Décision : 2 catégories `necessary + marketing` vs 3 `necessary + analytics + marketing`
+### Décision : Mode `offline` vs `hosted` vs `custom backend`
 
 **Options envisagées :**
+
+- **A. Mode `offline`** : localStorage + cookie côté navigateur, zéro backend, zéro account, zéro coût opérationnel.
+- **B. Mode `hosted`** (cloud c15t.dev managé) : SaaS gratuit/payant selon plan, fournit audit trail serveur, geo-detection auto, dashboard analytics consentement.
+- **C. Mode `custom`** (self-hosted backend) : full contrôle des données de consentement, audit trail complet, mais nécessite déployer un service supplémentaire.
+
+**Choix : A**
+
+**Rationale :**
+- Option B introduit une dépendance SaaS (account c15t.dev requis, API key), un appel réseau bloquant à chaque hit, et un coût potentiel selon traffic. Pour un portfolio single-user à faible traffic, disproportionné.
+- Option C nécessite un service backend supplémentaire à déployer/maintenir sur Dokploy. Pour un portfolio MVP qui n'a pas d'audit trail légal formel à fournir, sur-engineering.
+- Option A répond exactement au besoin : la conformité CNIL n'exige PAS un audit trail serveur datable par utilisateur en l'absence d'enquête formelle. Le cookie navigateur suffit comme preuve "j'ai consenti à telle date" du côté visiteur. `overrides.country: 'FR'` force GDPR sans avoir besoin de geo-detection auto.
+- Limite acceptée : si un audit CNIL formel exigeait un jour la preuve datée par utilisateur côté serveur, basculement vers `hosted` ou `custom` faisable en ~30 lignes (changement de `mode` + ajout backendURL ou customHandlers). C'est documenté dans `docs/knowledges/c15t.md` § "Bonnes Pratiques".
+- **Risque résiduel assumé MVP** : la persistance navigateur (cookie + localStorage horodaté) constitue une preuve de consentement faible côté éditeur (l'utilisateur peut purger son storage et nier le consentement, charge de la preuve difficile à contrer). Aucun texte (RGPD art. 7, ePrivacy, recommandation CNIL 2020-092 consolidée janvier 2026) n'exige *expressis verbis* un log serveur, et aucune sanction CNIL connue ne porte sur un site single-user sans adtech pour ce seul motif (cf. précédent `gouv.fr` utilisant `tarteaucitron` OSS sans audit trail). Risque jugé acceptable pour un portfolio à faible trafic sans tracker publicitaire majeur. Upgrade vers mode `hosted` ou table Postgres `consent_log` (~30 LOC) à reconsidérer si : montée en charge significative, ajout d'analytics non exemptés, ou enjeu B2B où la traçabilité opposable devient un argument commercial.
+
+### Décision : 2 catégories `necessary + marketing` vs 3 `necessary + measurement + marketing`
+
+**Options envisagées :**
+
 - **A. 2 catégories** : `necessary` (toujours actif) + `marketing` (Calendly opt-in).
-- **B. 3 catégories** : `necessary` + `analytics` + `marketing`. Préparer Umami pour post-MVP.
-- **C. 1 catégorie** : `necessary` uniquement, accept all/reject all binaire global.
+- **B. 3 catégories** : `necessary` + `measurement` (Umami pré-configuré) + `marketing`.
+- **C. 1 catégorie globale** : accept/reject binaire.
 
 **Choix : A**
 
 **Rationale :**
-- L'option C ne permet pas la granularité CNIL (l'utilisateur ne peut pas accepter le strict nécessaire et refuser le marketing séparément). Non conforme.
-- L'option B anticipe Umami mais introduit une catégorie fantôme MVP (rien à gater dedans tant qu'Umami n'est pas mergé). Et Umami est cookie-less par design (pas besoin de catégorie analytics dans le banner). YAGNI.
-- L'option A est le minimum CNIL conforme pour MVP : `necessary` couvre les cookies fonctionnels du site (session, theme préférence next-themes, consentement lui-même), `marketing` couvre Calendly (cookies tiers). Si Umami nécessite un consent post-MVP (peu probable car cookie-less), on ajoutera la catégorie à ce moment-là. 1 ligne dans la config.
-
-### Décision : Dialog shadcn custom pour la modale vs DialogPrimitive Radix direct
-
-**Options envisagées :**
-- **A. Dialog shadcn existant** (`src/components/ui/dialog.tsx`) : composant déjà présent, utilise Radix Primitives sous le capot, déjà accessible et stylé selon DESIGN.md.
-- **B. Radix UI DialogPrimitive direct** : importer directement `@radix-ui/react-dialog`, custom le styling.
-- **C. Nouvelle modale custom from scratch** : composant React custom sans dépendance UI lib.
-
-**Choix : A**
-
-**Rationale :**
-- L'option C casse l'accessibilité (focus trap, escape key handler, ARIA). Inacceptable pour une modale conformité.
-- L'option B duplique le travail déjà fait dans `dialog.tsx` shadcn (variants, classes Tailwind, structure). Anti-DRY.
-- L'option A réutilise le composant shadcn existant. La modale Cookie Preferences est juste un consommateur de plus du Dialog, comme n'importe quelle autre modale future. Cohérence design system, accessibility gérée, maintenance déléguée à shadcn/Radix.
+- Option C ne permet pas la granularité CNIL (l'utilisateur ne peut pas accepter le strict nécessaire et refuser le marketing séparément). Non conforme.
+- Option B anticipe Umami post-MVP, mais Umami est cookie-less par design (cf ADR-007), donc n'a pas besoin de catégorie `measurement` dans le banner. Catégorie fantôme MVP. YAGNI.
+- Option A est le minimum CNIL conforme : `necessary` couvre les cookies fonctionnels du site (cookie c15t lui-même, theme préférence next-themes, session future), `marketing` couvre Calendly (cookies tiers déposés par calendly.com lors de l'inline embed). Si Umami nécessitait un consent post-MVP (peu probable car cookie-less), ajout 1 ligne dans `consentCategories` à ce moment-là.
