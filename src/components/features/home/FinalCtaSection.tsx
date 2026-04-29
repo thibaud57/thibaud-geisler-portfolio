@@ -31,30 +31,27 @@ type Props = {
 }
 
 export async function FinalCtaSection({ locale }: Props) {
-  const [tFinalCta, tStack] = await Promise.all([
-    getTranslations('HomePage.finalCta'),
-    getTranslations('HomePage.signatureSection'),
-  ])
+  const t = await getTranslations('HomePage')
 
-  const rotateWords = tFinalCta.raw('rotateWords') as string[]
+  const rotateWords = t.raw('finalCta.rotateWords') as string[]
 
   return (
     <section className="flex flex-col items-center gap-8 rounded-xl border bg-card px-6 py-12 text-center sm:py-16">
       <h2 className="flex flex-wrap items-center justify-center gap-x-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-        <span>{tFinalCta('titlePrefix')}</span>
+        <span>{t('finalCta.titlePrefix')}</span>
         <WordRotate words={rotateWords} className="text-primary" />
-        <span>{tFinalCta('titleSuffix')}</span>
+        <span>{t('finalCta.titleSuffix')}</span>
       </h2>
       <p className="max-w-2xl text-lg text-muted-foreground">
-        {tFinalCta('subtitle')}
+        {t('finalCta.subtitle')}
       </p>
       <Button asChild size="lg">
-        <Link href="/contact">{tFinalCta('ctaLabel')}</Link>
+        <Link href="/contact">{t('finalCta.ctaLabel')}</Link>
       </Button>
 
       <div className="mt-6 flex w-full flex-col items-center gap-4">
         <p className="text-sm uppercase tracking-widest text-muted-foreground">
-          {tStack('title')}
+          {t('signatureSection.title')}
         </p>
         <Suspense fallback={<StackMarqueeSkeleton />}>
           <StackMarquee locale={locale} />

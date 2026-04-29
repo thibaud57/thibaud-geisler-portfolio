@@ -135,16 +135,6 @@
         "ETI": "ETI (250-5000)",
         "GROUPE": "Groupe (5000+)"
       },
-      "companyLocation": {
-        "LUXEMBOURG": "Luxembourg",
-        "PARIS": "Paris",
-        "GRAND_EST": "Grand Est",
-        "FRANCE": "France",
-        "BELGIQUE": "Belgique",
-        "SUISSE": "Suisse",
-        "EUROPE": "Europe",
-        "MONDE": "Monde"
-      },
       "kind": {
         "EXPERTISE": "Expertises",
         "LANGUAGE": "Langages",

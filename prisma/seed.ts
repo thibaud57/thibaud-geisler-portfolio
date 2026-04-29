@@ -10,11 +10,14 @@ import { tags } from './seed-data/tags.js'
 import { companies } from './seed-data/companies.js'
 import { projects } from './seed-data/projects.js'
 import {
-  AddressSchema,
+  DataProcessingSchema,
+  LegalEntitySchema,
+  PublisherSchema,
   legalEntities,
   publisher,
   dataProcessings,
 } from './seed-data/legal.js'
+import { parseOrThrow } from './utils.js'
 
 nextEnv.loadEnvConfig(process.cwd())
 
@@ -51,56 +54,32 @@ function readCaseStudy(
   }
 }
 
-async function seedLegal(prisma: PrismaClient) {
-  console.log(
-    `→ Seed legal: ${legalEntities.length} LegalEntity, 1 Publisher, ${dataProcessings.length} DataProcessing.`,
-  )
-
+async function seedLegalEntities(prisma: PrismaClient) {
   for (const entity of legalEntities) {
-    const addressParse = AddressSchema.safeParse(entity.address)
-    if (!addressParse.success) {
-      throw new Error(
-        `LegalEntity "${entity.slug}" address invalide: ${addressParse.error.issues[0]?.message ?? 'format invalide'}`,
-      )
-    }
-
-    const entityCommon = {
-      name: entity.name,
-      legalStatusKey: entity.legalStatusKey,
-      siret: entity.siret,
-      vatNumber: entity.vatNumber,
-      rcsCity: entity.rcsCity,
-      rcsNumber: entity.rcsNumber,
-      phone: entity.phone,
-      capitalAmount: entity.capitalAmount,
-      capitalCurrency: entity.capitalCurrency,
-    }
+    const { slug, address, ...entityCommon } = parseOrThrow(
+      LegalEntitySchema,
+      entity,
+      `LegalEntity "${entity.slug}"`,
+    )
 
     await prisma.legalEntity.upsert({
-      where: { slug: entity.slug },
-      create: {
-        slug: entity.slug,
-        ...entityCommon,
-        address: { create: addressParse.data },
-      },
-      update: {
-        ...entityCommon,
-        address: { update: addressParse.data },
-      },
+      where: { slug },
+      create: { slug, ...entityCommon, address: { create: address } },
+      update: { ...entityCommon, address: { update: address } },
     })
   }
   console.log(`✔ ${legalEntities.length} LegalEntity (+ Address) upsertés`)
+}
 
+async function seedPublisherAndProcessings(prisma: PrismaClient) {
+  const { legalEntitySlug, ...publisherCommon } = parseOrThrow(
+    PublisherSchema,
+    publisher,
+    'Publisher',
+  )
   const publisherEntity = await prisma.legalEntity.findUniqueOrThrow({
-    where: { slug: publisher.legalEntitySlug },
+    where: { slug: legalEntitySlug },
   })
-  const publisherCommon = {
-    siren: publisher.siren,
-    apeCode: publisher.apeCode,
-    registrationType: publisher.registrationType,
-    vatRegime: publisher.vatRegime,
-    publicEmail: publisher.publicEmail,
-  }
   await prisma.publisher.upsert({
     where: { legalEntityId: publisherEntity.id },
     create: { legalEntityId: publisherEntity.id, ...publisherCommon },
@@ -109,22 +88,21 @@ async function seedLegal(prisma: PrismaClient) {
   console.log(`✔ 1 Publisher upserté`)
 
   for (const processing of dataProcessings) {
-    const ownerEntity = await prisma.legalEntity.findUniqueOrThrow({
-      where: { slug: processing.legalEntitySlug },
+    const { slug, processorLegalEntitySlug, ...processingFields } = parseOrThrow(
+      DataProcessingSchema,
+      processing,
+      `DataProcessing "${processing.slug}"`,
+    )
+    const processorEntity = await prisma.legalEntity.findUniqueOrThrow({
+      where: { slug: processorLegalEntitySlug },
     })
     const processingCommon = {
-      legalEntityId: ownerEntity.id,
-      kind: processing.kind,
-      purposeFr: processing.purposeFr,
-      purposeEn: processing.purposeEn,
-      retentionPolicyKey: processing.retentionPolicyKey,
-      legalBasis: processing.legalBasis,
-      outsideEuFramework: processing.outsideEuFramework,
-      displayOrder: processing.displayOrder,
+      processorLegalEntityId: processorEntity.id,
+      ...processingFields,
     }
     await prisma.dataProcessing.upsert({
-      where: { slug: processing.slug },
-      create: { slug: processing.slug, ...processingCommon },
+      where: { slug },
+      create: { slug, ...processingCommon },
       update: processingCommon,
     })
   }
@@ -137,8 +115,10 @@ async function main() {
 
   try {
     console.log(
-      `→ Seed démarré. ${tags.length} tags, ${companies.length} companies, ${projects.length} projets.`,
+      `→ Seed démarré. ${legalEntities.length} legal entities, ${tags.length} tags, ${companies.length} companies, ${projects.length} projets.`,
     )
+
+    await seedLegalEntities(prisma)
 
     await Promise.all(
       tags.map((t) => {
@@ -175,7 +155,9 @@ async function main() {
           websiteUrl: c.websiteUrl,
           sectors: c.sectors,
           size: c.size,
-          locations: c.locations,
+          legalEntity: c.legalEntitySlug
+            ? { connect: { slug: c.legalEntitySlug } }
+            : undefined,
         }
 
         return prisma.company.upsert({
@@ -203,6 +185,7 @@ async function main() {
               teamSize: p.clientMeta.teamSize,
               contractStatus: p.clientMeta.contractStatus,
               workMode: p.clientMeta.workMode,
+              deliverablesCount: p.clientMeta.deliverablesCount,
               company: { connect: { slug: p.clientMeta.companySlug } },
             }
           : undefined
@@ -228,7 +211,6 @@ async function main() {
           caseStudyMarkdownFr,
           caseStudyMarkdownEn,
           displayOrder: p.displayOrder,
-          deliverablesCount: p.deliverablesCount,
         }
 
         return prisma.project.upsert({
@@ -252,7 +234,7 @@ async function main() {
       }),
     )
 
-    await seedLegal(prisma)
+    await seedPublisherAndProcessings(prisma)
 
     if (missingEnStubs.length > 0) {
       console.warn(

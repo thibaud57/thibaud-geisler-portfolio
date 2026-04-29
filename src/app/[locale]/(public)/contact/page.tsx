@@ -55,29 +55,24 @@ export default async function ContactPage({
   const rawService = resolvedSearchParams?.service
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
 
-  const [tHeader, tCalendly, tForm, tTabs] = await Promise.all([
-    getTranslations('ContactPage.header'),
-    getTranslations('ContactPage.calendly'),
-    getTranslations('ContactPage.form'),
-    getTranslations('ContactPage.tabs'),
-  ])
+  const t = await getTranslations('ContactPage')
 
-  const defaultSubject = isPrefillSlug(serviceParam) ? tForm(`subjectPrefill.${serviceParam}`) : ''
+  const defaultSubject = isPrefillSlug(serviceParam) ? t(`form.subjectPrefill.${serviceParam}`) : ''
 
   const formLabels = {
-    name: tForm('fields.name'),
-    company: tForm('fields.company'),
-    email: tForm('fields.email'),
-    subject: tForm('fields.subject'),
-    message: tForm('fields.message'),
-    namePlaceholder: tForm('placeholders.name'),
-    companyPlaceholder: tForm('placeholders.company'),
-    emailPlaceholder: tForm('placeholders.email'),
-    subjectPlaceholder: tForm('placeholders.subject'),
-    messagePlaceholder: tForm('placeholders.message'),
-    submit: tForm('submit'),
-    submitting: tForm('submitting'),
-    successToast: tForm('success.toast'),
+    name: t('form.fields.name'),
+    company: t('form.fields.company'),
+    email: t('form.fields.email'),
+    subject: t('form.fields.subject'),
+    message: t('form.fields.message'),
+    namePlaceholder: t('form.placeholders.name'),
+    companyPlaceholder: t('form.placeholders.company'),
+    emailPlaceholder: t('form.placeholders.email'),
+    subjectPlaceholder: t('form.placeholders.subject'),
+    messagePlaceholder: t('form.placeholders.message'),
+    submit: t('form.submit'),
+    submitting: t('form.submitting'),
+    successToast: t('form.success.toast'),
   }
 
   const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
@@ -86,20 +81,20 @@ export default async function ContactPage({
   }
 
   return (
-    <PageShell title={tHeader('h1')} subtitle={tHeader('tagline')}>
+    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
       <div className="flex flex-wrap items-center justify-center mb-10 -mt-2 gap-4 md:justify-between">
         <LocationLine />
         <SocialLinks className="md:justify-end" />
       </div>
 
       <ContactTabs
-        formLabel={tTabs('form')}
-        calendlyLabel={tTabs('calendly')}
+        formLabel={t('tabs.form')}
+        calendlyLabel={t('tabs.calendly')}
         formContent={
           <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
         }
         calendlyContent={
-          <CalendlyWidget url={calendlyUrl} placeholderLabel={tCalendly('placeholder')} />
+          <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
         }
       />
     </PageShell>

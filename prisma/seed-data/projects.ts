@@ -22,7 +22,6 @@ export type ProjectInput = {
   demoUrl: string | null
   coverFilename: string | null
   displayOrder: number
-  deliverablesCount: number
   // L'index du slug dans tagSlugs[] pilote ProjectTag.displayOrder au seed (0 en premier)
   tagSlugs: string[]
   clientMeta: {
@@ -30,6 +29,7 @@ export type ProjectInput = {
     teamSize: number | null
     contractStatus: ContractStatus | null
     workMode: WorkMode
+    deliverablesCount: number
   } | null
 }
 
@@ -51,7 +51,6 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/foyer/cover.webp',
     displayOrder: 1,
-    deliverablesCount: 3,
     tagSlugs: [
       'scala',
       'angular',
@@ -74,6 +73,7 @@ export const projects: ProjectInput[] = [
       teamSize: 6,
       contractStatus: 'CDI',
       workMode: 'HYBRIDE',
+      deliverablesCount: 3,
     },
   },
   {
@@ -93,7 +93,6 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/wanted-design/cover.webp',
     displayOrder: 0,
-    deliverablesCount: 0,
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -109,6 +108,7 @@ export const projects: ProjectInput[] = [
       teamSize: 3,
       contractStatus: 'FREELANCE',
       workMode: 'REMOTE',
+      deliverablesCount: 0,
     },
   },
   {
@@ -128,7 +128,6 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/paysystem/cover.webp',
     displayOrder: 7,
-    deliverablesCount: 1,
     tagSlugs: [
       'developpement-fullstack',
       'angular',
@@ -144,6 +143,7 @@ export const projects: ProjectInput[] = [
       teamSize: 4,
       contractStatus: 'CDI',
       workMode: 'HYBRIDE',
+      deliverablesCount: 1,
     },
   },
   {
@@ -163,13 +163,13 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/client/cloudsmart/cover.webp',
     displayOrder: 8,
-    deliverablesCount: 2,
     tagSlugs: ['python', 'odoo', 'android', 'java'],
     clientMeta: {
       companySlug: 'cloudsmart',
       teamSize: 5,
       contractStatus: 'ALTERNANCE',
       workMode: 'PRESENTIEL',
+      deliverablesCount: 2,
     },
   },
   {
@@ -189,8 +189,7 @@ export const projects: ProjectInput[] = [
     demoUrl: 'https://thibaud-geisler.com',
     coverFilename: 'projets/personal/portfolio/cover.webp',
     displayOrder: 2,
-    deliverablesCount: 1,
-    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: [
       'nextjs',
       'typescript',
@@ -219,8 +218,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/techno-scraper/cover.webp',
     displayOrder: 5,
-    deliverablesCount: 1,
-    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: [
       'python',
       'scraping',
@@ -250,8 +248,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/crm-leads-n8n/cover.webp',
     displayOrder: 4,
-    deliverablesCount: 1,
-    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: [
       'agents-ia',
       'automatisation',
@@ -278,8 +275,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/flight-search-api/cover.webp',
     displayOrder: 3,
-    deliverablesCount: 1,
-    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: [
       'scraping',
       'anti-bot',
@@ -308,8 +304,7 @@ export const projects: ProjectInput[] = [
     demoUrl: null,
     coverFilename: 'projets/personal/skill-prof/cover.webp',
     displayOrder: 6,
-    deliverablesCount: 1,
-    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE' },
+    clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: ['skills', 'anthropic', 'local'],
   },
 ]

@@ -70,17 +70,6 @@ enum CompanySector {
   AUTRE
 }
 
-enum CompanyLocation {
-  LUXEMBOURG
-  PARIS
-  GRAND_EST
-  FRANCE
-  BELGIQUE
-  SUISSE
-  EUROPE
-  MONDE
-}
-
 enum VatRegime {
   FRANCHISE
   ASSUJETTI
@@ -109,6 +98,15 @@ enum LegalBasis {
   LEGITIMATE_INTERESTS
 }
 
+enum DataCategory {
+  IDENTITY
+  CONTACT
+  IP_ADDRESS
+  USAGE_DATA
+  TECHNICAL_LOGS
+  COOKIE_DATA
+}
+
 model Project {
   id                  String          @id @default(uuid(7))
   slug                String          @unique
@@ -127,7 +125,6 @@ model Project {
   caseStudyMarkdownFr String?
   caseStudyMarkdownEn String?
   displayOrder        Int             @default(0)
-  deliverablesCount   Int             @default(1)
   tags                ProjectTag[]
   clientMeta          ClientMeta?
   createdAt           DateTime        @default(now()) @db.Timestamptz
@@ -135,27 +132,27 @@ model Project {
 }
 
 model ClientMeta {
-  id             String          @id @default(uuid(7))
-  projectId      String          @unique
-  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  companyId      String
-  company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  teamSize       Int?
-  contractStatus ContractStatus?
-  workMode       WorkMode
-  createdAt      DateTime        @default(now()) @db.Timestamptz
-  updatedAt      DateTime        @updatedAt @db.Timestamptz
+  id                String          @id @default(uuid(7))
+  projectId         String          @unique
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  companyId         String
+  company           Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  teamSize          Int?
+  contractStatus    ContractStatus?
+  workMode          WorkMode
+  deliverablesCount Int             @default(1)
+  createdAt         DateTime        @default(now()) @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @db.Timestamptz
 }
 
 model Company {
-  id           String            @id @default(uuid(7))
-  slug         String            @unique
+  id           String          @id @default(uuid(7))
+  slug         String          @unique
   name         String
   logoFilename String?
   websiteUrl   String?
   sectors      CompanySector[]
   size         CompanySize?
-  locations    CompanyLocation[]
 
   legalEntityId String?      @unique
   legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
@@ -209,7 +206,6 @@ model LegalEntity {
   siret           String? @unique
   vatNumber       String?
   rcsCity         String?
-  rcsNumber       String?
   phone           String?
   capitalAmount   Int?
   capitalCurrency String?
@@ -218,7 +214,7 @@ model LegalEntity {
   address   Address @relation(fields: [addressId], references: [id], onDelete: Cascade)
 
   publisher   Publisher?
-  processings DataProcessing[]
+  processings DataProcessing[] @relation("DataProcessingProcessor")
   company     Company?
 
   createdAt DateTime @default(now()) @db.Timestamptz
@@ -230,7 +226,6 @@ model Publisher {
   legalEntityId String      @unique
   legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
 
-  siren            String    @unique
   apeCode          String
   registrationType String
   vatRegime        VatRegime
@@ -241,14 +236,15 @@ model Publisher {
 }
 
 model DataProcessing {
-  id            String      @id @default(uuid(7))
-  slug          String      @unique
-  legalEntityId String
-  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
+  id                       String      @id @default(uuid(7))
+  slug                     String      @unique
+  processorLegalEntityId   String
+  processor                LegalEntity @relation("DataProcessingProcessor", fields: [processorLegalEntityId], references: [id], onDelete: Cascade)
 
   kind               ProcessingKind
   purposeFr          String
   purposeEn          String
+  dataCategories     DataCategory[]
   retentionPolicyKey String
   legalBasis         LegalBasis
   outsideEuFramework OutsideEuFramework?

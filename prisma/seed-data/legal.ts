@@ -25,42 +25,74 @@ const OutsideEuFrameworkSchema = z.enum([
   'BINDING_CORPORATE_RULES',
 ])
 
+const DataCategorySchema = z.enum([
+  'IDENTITY',
+  'CONTACT',
+  'IP_ADDRESS',
+  'USAGE_DATA',
+  'TECHNICAL_LOGS',
+  'COOKIE_DATA',
+])
+
+export const LEGAL_STATUS_KEYS = [
+  'entrepreneurIndividuel',
+  'sarl',
+  'sas',
+  'sa',
+  'incorporated',
+] as const
+const LegalStatusKeySchema = z.enum(LEGAL_STATUS_KEYS)
+
+const RegistrationTypeSchema = z.enum(['RCS', 'RNE', 'RM', 'RSAC'])
+
+const SiretSchema = z.string().regex(/^\d{14}$/, 'SIRET: 14 chiffres')
+const VatNumberSchema = z
+  .string()
+  .regex(/^[A-Z]{2}\d{9,12}$/, 'TVA: ISO pays + 9 à 12 chiffres')
+const ApeCodeSchema = z.string().regex(/^\d{4}[A-Z]$/, 'APE: 4 chiffres + 1 lettre majuscule')
+const CountryIsoSchema = z.string().regex(/^[A-Z]{2}$/, 'ISO 3166-1 alpha-2 (ex: FR, LU, US)')
+const CurrencyIsoSchema = z.string().regex(/^[A-Z]{3}$/, 'ISO 4217 (ex: EUR, USD)')
+
 export const AddressSchema = z.object({
   street: z.string().min(1),
   postalCode: z.string().min(1),
   city: z.string().min(1),
-  country: z.string().min(1),
+  country: CountryIsoSchema,
 })
 
-export const LegalEntitySchema = z.object({
-  slug: z.string().min(1),
-  name: z.string().min(1),
-  legalStatusKey: z.string().min(1),
-  siret: z.string().nullable(),
-  vatNumber: z.string().nullable(),
-  rcsCity: z.string().nullable(),
-  rcsNumber: z.string().nullable(),
-  phone: z.string().nullable(),
-  capitalAmount: z.number().int().positive().nullable(),
-  capitalCurrency: z.string().nullable(),
-  address: AddressSchema,
-})
+export const LegalEntitySchema = z
+  .object({
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    legalStatusKey: LegalStatusKeySchema,
+    siret: SiretSchema.nullable(),
+    vatNumber: VatNumberSchema.nullable(),
+    rcsCity: z.string().min(1).nullable(),
+    phone: z.string().min(1).nullable(),
+    capitalAmount: z.number().int().positive().nullable(),
+    capitalCurrency: CurrencyIsoSchema.nullable(),
+    address: AddressSchema,
+  })
+  .refine(
+    (d) => (d.capitalAmount === null) === (d.capitalCurrency === null),
+    { message: 'capitalAmount et capitalCurrency doivent être co-définis ou co-null' },
+  )
 
 export const PublisherSchema = z.object({
   legalEntitySlug: z.string().min(1),
-  siren: z.string().min(1),
-  apeCode: z.string().min(1),
-  registrationType: z.string().min(1),
+  apeCode: ApeCodeSchema,
+  registrationType: RegistrationTypeSchema,
   vatRegime: VatRegimeSchema,
   publicEmail: z.email(),
 })
 
 export const DataProcessingSchema = z.object({
   slug: z.string().min(1),
-  legalEntitySlug: z.string().min(1),
+  processorLegalEntitySlug: z.string().min(1),
   kind: ProcessingKindSchema,
   purposeFr: z.string().min(1),
   purposeEn: z.string().min(1),
+  dataCategories: z.array(DataCategorySchema).min(1),
   retentionPolicyKey: z.string().min(1),
   legalBasis: LegalBasisSchema,
   outsideEuFramework: OutsideEuFrameworkSchema.nullable(),
@@ -80,7 +112,6 @@ export const legalEntities: LegalEntityInput[] = [
     siret: '88041912200036',
     vatNumber: null,
     rcsCity: null,
-    rcsNumber: null,
     phone: null,
     capitalAmount: null,
     capitalCurrency: null,
@@ -88,7 +119,7 @@ export const legalEntities: LegalEntityInput[] = [
       street: '11 rue Gouvy',
       postalCode: '57000',
       city: 'Metz',
-      country: 'France',
+      country: 'FR',
     },
   },
   {
@@ -98,7 +129,6 @@ export const legalEntities: LegalEntityInput[] = [
     siret: '43130377500016',
     vatNumber: 'FR13431303775',
     rcsCity: 'Sarreguemines',
-    rcsNumber: '431 303 775',
     phone: '+33 9 70 80 89 11',
     capitalAmount: 100000,
     capitalCurrency: 'EUR',
@@ -106,7 +136,7 @@ export const legalEntities: LegalEntityInput[] = [
       street: '7 place de la Gare',
       postalCode: '57200',
       city: 'Sarreguemines',
-      country: 'France',
+      country: 'FR',
     },
   },
   {
@@ -116,7 +146,6 @@ export const legalEntities: LegalEntityInput[] = [
     siret: null,
     vatNumber: null,
     rcsCity: null,
-    rcsNumber: null,
     phone: null,
     capitalAmount: null,
     capitalCurrency: null,
@@ -124,14 +153,64 @@ export const legalEntities: LegalEntityInput[] = [
       street: '271 17th St NW, Suite 1000',
       postalCode: '30363',
       city: 'Atlanta',
-      country: 'United States',
+      country: 'US',
+    },
+  },
+  {
+    slug: 'foyer-group-sa',
+    name: 'Foyer S.A.',
+    legalStatusKey: 'sa',
+    siret: null,
+    vatNumber: null,
+    rcsCity: 'Luxembourg',
+    phone: null,
+    capitalAmount: null,
+    capitalCurrency: null,
+    address: {
+      street: '12 rue Léon Laval',
+      postalCode: 'L-3372',
+      city: 'Leudelange',
+      country: 'LU',
+    },
+  },
+  {
+    slug: 'cloudsmart-sarl',
+    name: 'CloudSmart S.à r.l.',
+    legalStatusKey: 'sarl',
+    siret: null,
+    vatNumber: null,
+    rcsCity: 'Luxembourg',
+    phone: null,
+    capitalAmount: null,
+    capitalCurrency: null,
+    address: {
+      street: '44 rue du Commerce',
+      postalCode: 'L-3540',
+      city: 'Dudelange',
+      country: 'LU',
+    },
+  },
+  {
+    slug: 'wantedesign-sas',
+    name: 'Wantedesign SAS',
+    legalStatusKey: 'sas',
+    siret: '94775459400010',
+    vatNumber: null,
+    rcsCity: 'Paris',
+    phone: null,
+    capitalAmount: 15000,
+    capitalCurrency: 'EUR',
+    address: {
+      street: '10 rue de la Bourse',
+      postalCode: '75002',
+      city: 'Paris',
+      country: 'FR',
     },
   },
 ]
 
 export const publisher: PublisherInput = {
   legalEntitySlug: 'thibaud',
-  siren: '880419122',
   apeCode: '6201Z',
   registrationType: 'RNE',
   vatRegime: 'FRANCHISE',
@@ -141,10 +220,11 @@ export const publisher: PublisherInput = {
 export const dataProcessings: DataProcessingInput[] = [
   {
     slug: 'ionos-hosting',
-    legalEntitySlug: 'ionos-sarl',
+    processorLegalEntitySlug: 'ionos-sarl',
     kind: 'HOSTING',
     purposeFr: 'Hébergement infrastructure VPS et base de données PostgreSQL',
     purposeEn: 'VPS infrastructure and PostgreSQL database hosting',
+    dataCategories: ['IP_ADDRESS', 'TECHNICAL_LOGS'],
     retentionPolicyKey: 'logs3Years',
     legalBasis: 'LEGITIMATE_INTERESTS',
     outsideEuFramework: null,
@@ -152,10 +232,11 @@ export const dataProcessings: DataProcessingInput[] = [
   },
   {
     slug: 'calendly-embedded',
-    legalEntitySlug: 'calendly-inc',
+    processorLegalEntitySlug: 'calendly-inc',
     kind: 'EMBEDDED_SERVICE',
     purposeFr: 'Affichage du widget de prise de rendez-vous embarqué (iframe Calendly)',
     purposeEn: 'Display of embedded scheduling widget (Calendly iframe)',
+    dataCategories: ['IDENTITY', 'CONTACT', 'USAGE_DATA', 'COOKIE_DATA'],
     retentionPolicyKey: 'session13Months',
     legalBasis: 'CONSENT',
     outsideEuFramework: 'DATA_PRIVACY_FRAMEWORK',
@@ -163,10 +244,11 @@ export const dataProcessings: DataProcessingInput[] = [
   },
   {
     slug: 'ionos-smtp',
-    legalEntitySlug: 'ionos-sarl',
+    processorLegalEntitySlug: 'ionos-sarl',
     kind: 'EMAIL_PROVIDER',
     purposeFr: 'Envoi des emails transactionnels du formulaire de contact via serveur SMTP authentifié',
     purposeEn: 'Transactional email delivery from contact form via authenticated SMTP server',
+    dataCategories: ['IDENTITY', 'CONTACT'],
     retentionPolicyKey: 'logs30Days',
     legalBasis: 'LEGITIMATE_INTERESTS',
     outsideEuFramework: null,

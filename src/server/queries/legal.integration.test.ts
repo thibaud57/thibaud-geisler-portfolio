@@ -56,7 +56,6 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
         siret: entity.siret,
         vatNumber: entity.vatNumber,
         rcsCity: entity.rcsCity,
-        rcsNumber: entity.rcsNumber,
         phone: entity.phone,
         capitalAmount: entity.capitalAmount,
         capitalCurrency: entity.capitalCurrency,
@@ -76,7 +75,6 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
     await prisma.publisher.create({
       data: {
         legalEntityId: publisherEntityId,
-        siren: publisher.siren,
         apeCode: publisher.apeCode,
         registrationType: publisher.registrationType,
         vatRegime: publisher.vatRegime,
@@ -87,15 +85,16 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
 
   for (const processing of dataProcessings) {
     if (!processingFilter[processing.slug]) continue
-    const ownerId = slugToId.get(processing.legalEntitySlug)
-    if (!ownerId) continue
+    const processorId = slugToId.get(processing.processorLegalEntitySlug)
+    if (!processorId) continue
     await prisma.dataProcessing.create({
       data: {
         slug: processing.slug,
-        legalEntityId: ownerId,
+        processorLegalEntityId: processorId,
         kind: processing.kind,
         purposeFr: processing.purposeFr,
         purposeEn: processing.purposeEn,
+        dataCategories: processing.dataCategories,
         retentionPolicyKey: processing.retentionPolicyKey,
         legalBasis: processing.legalBasis,
         outsideEuFramework: processing.outsideEuFramework,
@@ -126,7 +125,6 @@ describe('getPublisher', () => {
     expect(result.address.street).toBe('11 rue Gouvy')
     expect(result.address.city).toBe('Metz')
     expect(result.publisher).not.toBeNull()
-    expect(result.publisher?.siren).toBe('880419122')
     expect(result.publisher?.apeCode).toBe('6201Z')
     expect(result.publisher?.registrationType).toBe('RNE')
     expect(result.publisher?.vatRegime).toBe('FRANCHISE')
