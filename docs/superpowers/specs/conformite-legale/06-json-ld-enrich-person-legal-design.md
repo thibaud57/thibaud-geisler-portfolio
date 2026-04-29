@@ -72,7 +72,7 @@ Modifier `src/lib/seo/json-ld.ts` (livré par sub-project SEO 05 existant) pour 
 
 ### Scénario 4 : Helper `buildPostalAddress` mappe correctement Prisma → Schema.org
 
-**GIVEN** un objet d'entrée `{ street: '7 place de la Gare', postalCode: '57200', city: 'Sarreguemines', country: 'France' }` (correspond à l'adresse IONOS hosting du sub 1, exemple représentatif d'une autre entité légale)
+**GIVEN** un objet d'entrée `{ street: '7 place de la Gare', postalCode: '57200', city: 'Sarreguemines', country: 'FR' }` (correspond à l'adresse IONOS hosting du sub 1 post-`schema_cleanup`, exemple représentatif d'une autre entité légale)
 **WHEN** j'appelle `buildPostalAddress(input)`
 **THEN** le retour est `{ '@type': 'PostalAddress', streetAddress: '7 place de la Gare', postalCode: '57200', addressLocality: 'Sarreguemines', addressCountry: 'France' }` (mapping `street → streetAddress` et `city → addressLocality` validés)
 
