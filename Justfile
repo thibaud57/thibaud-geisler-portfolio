@@ -55,7 +55,7 @@ test-watch:
 # ─── Infrastructure ──────────────────────────────────────────────────
 [group('infra')]
 docker-up:
-    docker compose up -d
+    docker compose --profile validation up -d
 
 [group('infra')]
 docker-down:
