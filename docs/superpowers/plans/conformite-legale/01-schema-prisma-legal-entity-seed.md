@@ -189,7 +189,7 @@ Expected: `The schema at "prisma/schema.prisma" is valid 🚀`
 - [ ] **Step 2.1: Vérifier que Postgres tourne**
 
 Run: `docker ps | grep postgres` (ou `just check`)
-Expected: container Postgres up. Sinon : `just docker-up`.
+Expected: container Postgres up. Sinon : `just db`.
 
 - [ ] **Step 2.2: Générer la migration**
 

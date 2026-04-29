@@ -17,12 +17,12 @@ L'utilisateur précise : **install**, **setup**, ou **check**. Par défaut : `ch
 | Action | Commande | Description |
 |---|---|---|
 | install | `just install` | `pnpm install` idempotent (réinstalle si lockfile changé) |
-| setup | `just setup` | install + docker-up + migrate deploy (premier démarrage) |
+| setup | `just setup` | install + db (Postgres up + migrate deploy) au premier démarrage. Recette : `setup: install db`. |
 | check | `just check` | Diagnostics Node, pnpm, Docker, .env, Postgres |
 
 ## Règles
 
-- `setup` safe à relancer (install idempotent, migrate deploy idempotent)
+- `setup` safe à relancer (install idempotent, db readiness idempotent)
 - `check` diagnostique uniquement, jamais d'opération d'écriture
 - Si `check` signale `⚠️  .env manquant` → suggérer `cp .env.example .env` + remplir les secrets
-- Si `check` signale `⚠️  PostgreSQL non accessible` → suggérer `just docker-up`
+- Si `check` signale `⚠️  PostgreSQL non accessible` → suggérer `just db` (Postgres up + migrate deploy). NE PAS suggérer `just docker-up` (réservé validation image).

@@ -1,5 +1,5 @@
-set dotenv-load := true
-set dotenv-required := true
+set dotenv-load
+set dotenv-required
 set windows-shell := ["bash", "-cu"]
 
 PORT := env("PORT", "3000")
@@ -112,4 +112,4 @@ check:
     @echo "→ pnpm: $(pnpm --version)"
     @docker info > /dev/null 2>&1 && echo "✓ Docker opérationnel" || echo "⚠️  Docker non disponible"
     @test -f .env && echo "✓ .env présent" || echo "⚠️  .env manquant (copier .env.example)"
-    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' && echo "✓ PostgreSQL accessible" || echo "⚠️  PostgreSQL non accessible (just docker-up)"
+    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' && echo "✓ PostgreSQL accessible" || echo "⚠️  PostgreSQL non accessible (just db)"
