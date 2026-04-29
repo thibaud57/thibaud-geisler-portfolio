@@ -3,7 +3,7 @@
 import 'server-only'
 
 import { MAIL_FROM, MAIL_TO, transporter } from '@/lib/mailer'
-import { checkRateLimit } from '@/lib/rate-limiter'
+import { rateLimiter } from '@/lib/rate-limiter'
 import { contactSchema, type ContactInput } from '@/lib/schemas/contact'
 import { createActionLogger } from '@/lib/server-utils'
 
@@ -51,7 +51,7 @@ export async function submitContact(
     message: String(formData.get('message') ?? ''),
   }
 
-  const rateLimit = checkRateLimit(ip, {
+  const rateLimit = rateLimiter.check(ip, {
     max: RATE_LIMIT_MAX,
     windowMs: RATE_LIMIT_WINDOW_MS,
   })

@@ -1,12 +1,6 @@
 import type { Metadata } from 'next'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/env', () => ({
-  env: {
-    NEXT_PUBLIC_SITE_URL: 'https://thibaud-geisler.com',
-  },
-}))
-
 import { buildPageMetadata, type BuildPageMetadataInput } from './seo'
 
 function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetadataInput {

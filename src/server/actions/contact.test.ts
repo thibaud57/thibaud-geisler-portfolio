@@ -1,18 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { headers } from 'next/headers'
 import { transporter } from '@/lib/mailer'
-import { __resetRateLimiter, checkRateLimit } from '@/lib/rate-limiter'
+import { rateLimiter } from '@/lib/rate-limiter'
 import { logger } from '@/lib/logger'
 
 vi.mock('@/lib/mailer', () => ({
   transporter: { sendMail: vi.fn() },
   MAIL_FROM: 'from@test.local',
   MAIL_TO: 'to@test.local',
-}))
-
-vi.mock('@/lib/rate-limiter', () => ({
-  checkRateLimit: vi.fn(),
-  __resetRateLimiter: vi.fn(),
 }))
 
 vi.mock('next/headers', () => ({
@@ -71,14 +66,15 @@ const getChildLog = (): ChildLog => {
 
 describe('submitContact', () => {
   beforeEach(() => {
-    vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, retryAfterSeconds: 0 })
+    vi.spyOn(rateLimiter, 'check').mockReturnValue({ allowed: true, retryAfterSeconds: 0 })
     vi.mocked(headers).mockResolvedValue(new Headers({ 'x-forwarded-for': '1.2.3.4' }) as never)
     vi.mocked(transporter.sendMail).mockResolvedValue(undefined as never)
-    __resetRateLimiter()
+    rateLimiter.reset()
   })
 
   afterEach(() => {
     vi.clearAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('exporte un initialContactFormState idle (ok=null, errors vides, message null)', () => {
@@ -122,7 +118,7 @@ describe('submitContact', () => {
     )
 
     expect(transporter.sendMail).not.toHaveBeenCalled()
-    expect(checkRateLimit).not.toHaveBeenCalled()
+    expect(rateLimiter.check).not.toHaveBeenCalled()
     expect(result).toEqual({ ok: true, errors: {}, message: null })
 
     const childLog = getChildLog()
@@ -175,8 +171,8 @@ describe('submitContact', () => {
     expect(result.errors.message).toEqual(['message_too_short'])
   })
 
-  it('rejette quand checkRateLimit retourne allowed:false (message rate_limit + log warn)', async () => {
-    vi.mocked(checkRateLimit).mockReturnValue({
+  it('rejette quand rateLimiter.check retourne allowed:false (message rate_limit + log warn)', async () => {
+    vi.mocked(rateLimiter.check).mockReturnValue({
       allowed: false,
       retryAfterSeconds: 240,
     })
@@ -223,7 +219,7 @@ describe('submitContact', () => {
 
     await submitContact(initialContactFormState, buildFormData())
 
-    expect(checkRateLimit).toHaveBeenCalledWith('unknown', {
+    expect(rateLimiter.check).toHaveBeenCalledWith('unknown', {
       max: RATE_LIMIT_MAX,
       windowMs: RATE_LIMIT_WINDOW_MS,
     })
@@ -236,7 +232,7 @@ describe('submitContact', () => {
 
     await submitContact(initialContactFormState, buildFormData())
 
-    expect(checkRateLimit).toHaveBeenCalledWith('1.2.3.4', {
+    expect(rateLimiter.check).toHaveBeenCalledWith('1.2.3.4', {
       max: RATE_LIMIT_MAX,
       windowMs: RATE_LIMIT_WINDOW_MS,
     })
@@ -249,7 +245,7 @@ describe('submitContact', () => {
 
     await submitContact(initialContactFormState, buildFormData())
 
-    expect(checkRateLimit).toHaveBeenCalledWith('1.2.3.4', {
+    expect(rateLimiter.check).toHaveBeenCalledWith('1.2.3.4', {
       max: RATE_LIMIT_MAX,
       windowMs: RATE_LIMIT_WINDOW_MS,
     })
