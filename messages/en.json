@@ -310,6 +310,9 @@
     "breadcrumbServices": "Services",
     "breadcrumbProjects": "Projects"
   },
+  "Cookies": {
+    "openManagerLabel": "Manage cookies"
+  },
   "Legal": {
     "legalStatus": {
       "entrepreneurIndividuel": "Sole proprietorship",
