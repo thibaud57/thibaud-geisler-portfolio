@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Content-Security-Policy statique avec whitelist Calendly day-1"
 goal: "Compléter la Content-Security-Policy manquante (TODO next.config.ts ligne 13) avec une politique statique qui autorise Calendly et bloque tout le reste, conforme aux 6 autres security headers déjà en place"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []
