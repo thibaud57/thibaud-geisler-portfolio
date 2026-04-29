@@ -57,6 +57,7 @@ export const projects: ProjectInput[] = [
       'kafka',
       'developpement-fullstack',
       'microservices',
+      'programmation-fonctionnelle',
       'typescript',
       'play',
       'mongodb',
