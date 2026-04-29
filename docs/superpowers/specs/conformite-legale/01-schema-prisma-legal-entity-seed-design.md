@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Schema Prisma LegalEntity + Publisher + DataProcessing + Address, seed idempotent et queries cachées"
 goal: "Modéliser et seeder en Postgres l'identité légale du site (éditeur LCEN + sous-traitants RGPD avec adresses réutilisables) et exposer des queries cachées comme source unique pour les surfaces consommatrices (pages mentions/confidentialité, footer SIRET, JSON-LD enrichi)"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []
