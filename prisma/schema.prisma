@@ -81,6 +81,34 @@ enum CompanyLocation {
   MONDE
 }
 
+enum VatRegime {
+  FRANCHISE
+  ASSUJETTI
+}
+
+enum ProcessingKind {
+  HOSTING
+  EMBEDDED_SERVICE
+  EMAIL_PROVIDER
+  ANALYTICS
+}
+
+enum OutsideEuFramework {
+  DATA_PRIVACY_FRAMEWORK
+  STANDARD_CONTRACTUAL_CLAUSES
+  ADEQUACY_DECISION
+  BINDING_CORPORATE_RULES
+}
+
+enum LegalBasis {
+  CONSENT
+  CONTRACT
+  LEGAL_OBLIGATION
+  VITAL_INTERESTS
+  PUBLIC_TASK
+  LEGITIMATE_INTERESTS
+}
+
 model Project {
   id                  String          @id @default(uuid(7))
   slug                String          @unique
@@ -128,9 +156,13 @@ model Company {
   sectors      CompanySector[]
   size         CompanySize?
   locations    CompanyLocation[]
-  clientMetas  ClientMeta[]
-  createdAt    DateTime          @default(now()) @db.Timestamptz
-  updatedAt    DateTime          @updatedAt @db.Timestamptz
+
+  legalEntityId String?      @unique
+  legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
+
+  clientMetas ClientMeta[]
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
 }
 
 model Tag {
@@ -155,4 +187,73 @@ model ProjectTag {
 
   @@id([projectId, tagId])
   @@index([projectId, displayOrder])
+}
+
+model Address {
+  id         String   @id @default(uuid(7))
+  street     String
+  postalCode String
+  city       String
+  country    String
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+
+  legalEntity LegalEntity?
+}
+
+model LegalEntity {
+  id              String  @id @default(uuid(7))
+  slug            String  @unique
+  name            String
+  legalStatusKey  String
+  siret           String? @unique
+  vatNumber       String?
+  rcsCity         String?
+  rcsNumber       String?
+  phone           String?
+  capitalAmount   Int?
+  capitalCurrency String?
+
+  addressId String  @unique
+  address   Address @relation(fields: [addressId], references: [id], onDelete: Cascade)
+
+  publisher   Publisher?
+  processings DataProcessing[]
+  company     Company?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+}
+
+model Publisher {
+  id            String      @id @default(uuid(7))
+  legalEntityId String      @unique
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
+
+  siren            String    @unique
+  apeCode          String
+  registrationType String
+  vatRegime        VatRegime
+  publicEmail      String
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+}
+
+model DataProcessing {
+  id            String      @id @default(uuid(7))
+  slug          String      @unique
+  legalEntityId String
+  legalEntity   LegalEntity @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
+
+  kind               ProcessingKind
+  purposeFr          String
+  purposeEn          String
+  retentionPolicyKey String
+  legalBasis         LegalBasis
+  outsideEuFramework OutsideEuFramework?
+  displayOrder       Int                 @default(0)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 }

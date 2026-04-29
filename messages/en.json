@@ -319,5 +319,40 @@
     "breadcrumbHome": "Home",
     "breadcrumbServices": "Services",
     "breadcrumbProjects": "Projects"
+  },
+  "Legal": {
+    "legalStatus": {
+      "entrepreneurIndividuel": "Sole proprietorship",
+      "sarl": "LLC",
+      "incorporated": "Incorporated (US)"
+    },
+    "ape": {
+      "6201Z": "Computer programming"
+    },
+    "retention": {
+      "logs3Years": "Duration of hosting service, plus 3 years (logs)",
+      "logs30Days": "30 days (SMTP logs), automatic deletion",
+      "session13Months": "Session duration, plus 13 months (consent cookie)"
+    },
+    "legalBasis": {
+      "CONSENT": "Consent (GDPR art. 6-1-a)",
+      "CONTRACT": "Contract performance (GDPR art. 6-1-b)",
+      "LEGAL_OBLIGATION": "Legal obligation (GDPR art. 6-1-c)",
+      "VITAL_INTERESTS": "Vital interests (GDPR art. 6-1-d)",
+      "PUBLIC_TASK": "Public interest task (GDPR art. 6-1-e)",
+      "LEGITIMATE_INTERESTS": "Legitimate interests (GDPR art. 6-1-f)"
+    },
+    "outsideEuFramework": {
+      "DATA_PRIVACY_FRAMEWORK": "Data Privacy Framework (US adequacy decision 2023)",
+      "STANDARD_CONTRACTUAL_CLAUSES": "Standard Contractual Clauses (SCC)",
+      "ADEQUACY_DECISION": "European Commission adequacy decision",
+      "BINDING_CORPORATE_RULES": "Binding Corporate Rules (BCR)"
+    },
+    "processingKind": {
+      "HOSTING": "Hosting",
+      "EMBEDDED_SERVICE": "Embedded service",
+      "EMAIL_PROVIDER": "Email provider",
+      "ANALYTICS": "Analytics"
+    }
   }
 }

@@ -34,6 +34,7 @@ function createCompany(overrides?: Partial<Company>): Company {
     sectors: [],
     size: null,
     locations: [],
+    legalEntityId: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,

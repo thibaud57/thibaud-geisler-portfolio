@@ -319,5 +319,40 @@
     "breadcrumbHome": "Accueil",
     "breadcrumbServices": "Services",
     "breadcrumbProjects": "Projets"
+  },
+  "Legal": {
+    "legalStatus": {
+      "entrepreneurIndividuel": "Entrepreneur Individuel",
+      "sarl": "SARL",
+      "incorporated": "Incorporated (US)"
+    },
+    "ape": {
+      "6201Z": "Programmation informatique"
+    },
+    "retention": {
+      "logs3Years": "Durée de la prestation d'hébergement, plus 3 ans (logs)",
+      "logs30Days": "30 jours (logs SMTP), suppression automatique",
+      "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)"
+    },
+    "legalBasis": {
+      "CONSENT": "Consentement (RGPD art. 6-1-a)",
+      "CONTRACT": "Exécution d'un contrat (RGPD art. 6-1-b)",
+      "LEGAL_OBLIGATION": "Obligation légale (RGPD art. 6-1-c)",
+      "VITAL_INTERESTS": "Intérêts vitaux (RGPD art. 6-1-d)",
+      "PUBLIC_TASK": "Mission d'intérêt public (RGPD art. 6-1-e)",
+      "LEGITIMATE_INTERESTS": "Intérêt légitime (RGPD art. 6-1-f)"
+    },
+    "outsideEuFramework": {
+      "DATA_PRIVACY_FRAMEWORK": "Data Privacy Framework (décision d'adéquation US 2023)",
+      "STANDARD_CONTRACTUAL_CLAUSES": "Clauses contractuelles types (CCT)",
+      "ADEQUACY_DECISION": "Décision d'adéquation de la Commission européenne",
+      "BINDING_CORPORATE_RULES": "Règles d'entreprise contraignantes (BCR)"
+    },
+    "processingKind": {
+      "HOSTING": "Hébergement",
+      "EMBEDDED_SERVICE": "Service embarqué",
+      "EMAIL_PROVIDER": "Fournisseur d'emails",
+      "ANALYTICS": "Analytics"
+    }
   }
 }
