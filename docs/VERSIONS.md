@@ -39,8 +39,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 14 | Zod | `4.3.6` | ✅ | Validateurs string déplacés en top-level |
 | 15 | nodemailer | `8.0.5` | ✅ | CVE CRLF corrigée en 8.0.5 (obligatoire) |
 | 16 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages` requis dans `next.config.ts` |
-| 17 | @next/env | `16.2.4` | ✅ | Chargement `.env` dans `prisma.config.ts` (recommandation officielle Next.js pour env hors runtime Next) |
-| 18 | dotenv | `17.4.2` | ✅ | Chargement `.env` pour scripts hors runtime Next (Vitest, seed Prisma) |
+| 17 | @next/env | `16.2.4` | ✅ | Chargement `.env` dans `prisma.config.ts`, `prisma/seed.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
+| 18 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
 | 19 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | 20 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
 
@@ -1069,8 +1069,7 @@ import Script from 'next/script'
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/user-event": "^14.0.0",
     "jsdom": "^26.0.0",
-    "eslint": "^9.0.0",
-    "dotenv": "^16.0.0"
+    "eslint": "^9.0.0"
   }
 }
 ```
@@ -1265,6 +1264,7 @@ pnpm test
 - [ ] `prisma.config.ts` présent avec driver adapter `PrismaPg`
 - [ ] Champ `output` défini dans le bloc `generator` de `schema.prisma`
 - [ ] `prisma.config.ts` charge la `DATABASE_URL` via `@next/env` (Prisma 7 ne la charge plus auto)
+- [ ] `src/env.ts` valide les env vars runtime via `@t3-oss/env-nextjs` + Zod (server vs client séparés, `skipValidation: !!process.env.SKIP_ENV_VALIDATION` pour tests/build)
 - [ ] `moduleResolution: "bundler"` dans `tsconfig.json`
 - [ ] `preserveSymlinks: false` (ou omis) dans `tsconfig.json`
 - [ ] nodemailer >= 8.0.5 dans `package.json`

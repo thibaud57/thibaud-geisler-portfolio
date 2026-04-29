@@ -1,6 +1,4 @@
-import { config } from 'dotenv'
+import nextEnv from '@next/env'
 
-// Doit s'exécuter avant toute résolution de `@/lib/prisma` par les tests :
-// l'hoisting des `import` ES modules empêche un `dotenv.config()` en tête de fichier
-// de prendre effet avant l'instanciation du singleton PrismaClient.
-config({ path: '.env.test', override: true })
+process.env.SKIP_ENV_VALIDATION = 'true'
+nextEnv.loadEnvConfig(process.cwd())

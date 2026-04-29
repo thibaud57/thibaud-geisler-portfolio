@@ -1,6 +1,8 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 
+import { env } from '@/env'
+
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 
@@ -33,7 +35,7 @@ export async function Footer({ locale }: Props) {
 
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto flex flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6 lg:px-8">
-          <p>© {process.env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler</p>
+          <p>© {env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler</p>
 
           {/* TODO(feature-7-conformite-legale): nav légale (mentions, confidentialité, cookies) */}
         </div>

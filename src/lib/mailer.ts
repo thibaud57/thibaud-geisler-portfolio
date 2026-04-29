@@ -1,16 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer'
-import { z } from 'zod'
 
-const envSchema = z.object({
-  SMTP_HOST: z.string().min(1),
-  SMTP_PORT: z.coerce.number().int().positive(),
-  SMTP_USER: z.string().min(1),
-  SMTP_PASS: z.string().min(1),
-  SMTP_FROM: z.email(),
-  MAIL_TO: z.email(),
-})
-
-const env = envSchema.parse(process.env)
+import { env } from '@/env'
 
 export const transporter: Transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,

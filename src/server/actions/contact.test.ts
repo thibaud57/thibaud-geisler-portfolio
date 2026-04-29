@@ -10,13 +10,10 @@ vi.mock('@/lib/mailer', () => ({
   MAIL_TO: 'to@test.local',
 }))
 
-vi.mock('@/lib/rate-limiter', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/rate-limiter')>('@/lib/rate-limiter')
-  return {
-    ...actual,
-    checkRateLimit: vi.fn(),
-  }
-})
+vi.mock('@/lib/rate-limiter', () => ({
+  checkRateLimit: vi.fn(),
+  __resetRateLimiter: vi.fn(),
+}))
 
 vi.mock('next/headers', () => ({
   headers: vi.fn(),

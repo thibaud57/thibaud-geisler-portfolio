@@ -101,6 +101,8 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 ## Variables d'Environnement
 
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var server requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`). `NEXT_PUBLIC_SITE_URL` côté client a un fallback `http://localhost:3000`. Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
+
 ### Variables Communes
 
 ```bash

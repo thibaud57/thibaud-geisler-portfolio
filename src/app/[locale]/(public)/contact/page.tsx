@@ -2,6 +2,7 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 
+import { env } from '@/env'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { logger } from '@/lib/logger'
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
@@ -21,8 +22,8 @@ function isPrefillSlug(value: string | undefined): value is PrefillSlug {
 }
 
 const CALENDLY_URL_BY_LOCALE = {
-  fr: process.env.NEXT_PUBLIC_CALENDLY_URL_FR,
-  en: process.env.NEXT_PUBLIC_CALENDLY_URL_EN,
+  fr: env.NEXT_PUBLIC_CALENDLY_URL_FR,
+  en: env.NEXT_PUBLIC_CALENDLY_URL_EN,
 } as const satisfies Record<Locale, string | undefined>
 
 export async function generateMetadata(
