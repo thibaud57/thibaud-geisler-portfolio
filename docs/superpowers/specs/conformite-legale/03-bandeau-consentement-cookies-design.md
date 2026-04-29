@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Bandeau consentement cookies via c15t mode offline + sync next-intl + theming CSS vars"
 goal: "Installer @c15t/nextjs v2.0.0 en mode offline (zéro backend), monter ConsentManagerProvider + ConsentBanner + ConsentDialog dans Providers.tsx avec translations FR/EN built-in et hideBranding, exposer un sync runtime entre useLocale next-intl et setLanguage c15t, themer via CSS variables aux tokens DESIGN.md, et fournir aux subs 4/5/7 l'API useConsentManager (has(category), setActiveUI('dialog')) pour gating Calendly et bouton Gérer mes cookies"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []
