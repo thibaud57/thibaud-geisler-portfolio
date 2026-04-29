@@ -67,7 +67,7 @@ Aucune. Ce sub-project est autoporté. Il introduit son propre schéma sans dép
 
 ### Scénario 1 : Migration Prisma applicable et idempotente
 
-**GIVEN** un repo `thibaud-geisler-portfolio` à jour avec PostgreSQL local lancé via `just docker-up`
+**GIVEN** un repo `thibaud-geisler-portfolio` à jour avec PostgreSQL local lancé via `just db`
 **WHEN** je lance `pnpm prisma migrate dev --name add_legal_entity`
 **THEN** Prisma génère un fichier `prisma/migrations/<timestamp>_add_legal_entity/migration.sql` versionnable
 **AND** Postgres contient 4 nouvelles tables `Address`, `LegalEntity`, `Publisher`, `DataProcessing` avec les colonnes attendues, FK et contraintes UNIQUE
