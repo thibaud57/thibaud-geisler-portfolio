@@ -66,6 +66,12 @@ jobs:
           cat > .env <<'EOF'
           DATABASE_URL=postgresql://test:test@localhost:5432/test_db
           NEXT_PUBLIC_SITE_URL=http://localhost:3000
+          SMTP_HOST=smtp.test.local
+          SMTP_PORT=587
+          SMTP_USER=ci@test.local
+          SMTP_PASS=ci-dummy
+          SMTP_FROM=ci@test.local
+          MAIL_TO=ci@test.local
           EOF
 
       - uses: pnpm/action-setup@v6
