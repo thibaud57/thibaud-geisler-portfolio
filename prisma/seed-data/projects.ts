@@ -35,7 +35,7 @@ export type ProjectInput = {
 
 export const projects: ProjectInput[] = [
   {
-    slug: 'digiclaims',
+    slug: 'webapp-gestion-sinistres',
     titleFr: 'Webapp Gestion Sinistres',
     titleEn: 'Claims Management Web App',
     descriptionFr:

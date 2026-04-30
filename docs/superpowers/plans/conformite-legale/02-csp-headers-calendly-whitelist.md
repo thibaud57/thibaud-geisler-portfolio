@@ -136,7 +136,7 @@ Ouvrir dans un navigateur (Chrome/Firefox) avec DevTools console ouverte :
 1. `http://localhost:3000/fr` (Home)
 2. `http://localhost:3000/fr/services`
 3. `http://localhost:3000/fr/projets`
-4. `http://localhost:3000/fr/projets/<un-slug-publié>` (ex: `digiclaims` si seedé)
+4. `http://localhost:3000/fr/projets/<un-slug-publié>` (ex: `webapp-gestion-sinistres` si seedé)
 5. `http://localhost:3000/fr/a-propos`
 6. `http://localhost:3000/fr/contact` (page avec `<CalendlyWidget>` inline)
 7. Idem en EN : `http://localhost:3000/en`, `http://localhost:3000/en/contact`, etc.

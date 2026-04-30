@@ -469,14 +469,14 @@ Expected : 0 erreur.
 
 Run : `pnpm prisma studio` (s'ouvre dans le navigateur sur le port 5555).
 
-Naviguer dans la table `Project`, identifier un projet avec `status: 'PUBLISHED'`, noter son `slug` exact (ex : `digiclaims`).
+Naviguer dans la table `Project`, identifier un projet avec `status: 'PUBLISHED'`, noter son `slug` exact (ex : `webapp-gestion-sinistres`).
 
 Fermer Prisma Studio.
 
 Alternative (sans Prisma Studio) :
 
 Run : `pnpm tsx -e "import { prisma } from './src/lib/prisma'; const p = await prisma.project.findFirst({ where: { status: 'PUBLISHED' }, select: { slug: true } }); console.log(p?.slug); await prisma.\$disconnect();"`
-Expected : un slug s'affiche (ex : `digiclaims`).
+Expected : un slug s'affiche (ex : `webapp-gestion-sinistres`).
 
 - [ ] **Step 4 : Tester l'image dynamique en mode dev**
 

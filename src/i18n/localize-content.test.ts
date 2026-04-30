@@ -14,7 +14,7 @@ const baseTag = {
 
 const baseProject = {
   id: 'proj-1',
-  slug: 'digiclaims',
+  slug: 'webapp-gestion-sinistres',
   titleFr: 'Webapp Gestion Sinistres',
   titleEn: 'Claims Management Web App',
   descriptionFr: 'Description FR',

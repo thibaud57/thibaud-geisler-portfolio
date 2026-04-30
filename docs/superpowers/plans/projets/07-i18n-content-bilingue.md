@@ -27,7 +27,7 @@
 | `src/server/queries/projects.integration.test.ts` | Modify | Fixtures bilingues + 3 nouveaux cas (locale FR, locale EN, tags nested) |
 | `prisma/seed-data/tags.ts` | Modify | Remplace `name` par `nameFr` + `nameEn` sur les 41 tags |
 | `prisma/seed-data/projects.ts` | Modify | Remplace `title`/`description` par `titleFr`/`titleEn` + `descriptionFr`/`descriptionEn` sur les 9 projets |
-| `prisma/seed-data/case-studies/client/<slug>.md` | Rename → `<slug>.fr.md` | 4 fichiers CLIENT (digiclaims, saas-gestion-paie, erp-odoo-android, referent-ia-automatisation) |
+| `prisma/seed-data/case-studies/client/<slug>.md` | Rename → `<slug>.fr.md` | 4 fichiers CLIENT (webapp-gestion-sinistres, saas-gestion-paie, erp-odoo-android, referent-ia-automatisation) |
 | `prisma/seed-data/case-studies/client/<slug>.en.md` | Create | 4 fichiers EN (copies des FR à traduire) |
 | `prisma/seed-data/case-studies/personal/<slug>.md` | Rename → `<slug>.fr.md` | 5 fichiers PERSONAL (portfolio, techno-scraper, crm-leads-n8n, flight-search-api, skill-prof) |
 | `prisma/seed-data/case-studies/personal/<slug>.en.md` | Create | 5 fichiers EN (copies des FR à traduire) |
@@ -276,9 +276,9 @@ const baseTag = {
 
 const baseProject = {
   id: 'proj-1',
-  slug: 'digiclaims',
-  titleFr: 'Digiclaims - Gestion Sinistres',
-  titleEn: 'Digiclaims - Claims Management',
+  slug: 'webapp-gestion-sinistres',
+  titleFr: 'Webapp Gestion Sinistres',
+  titleEn: 'Claims Management Web App',
   descriptionFr: 'Description FR',
   descriptionEn: 'Description EN',
   caseStudyMarkdownFr: '# Contexte FR',
@@ -318,7 +318,7 @@ describe('localizeTag', () => {
 describe('localizeProject', () => {
   it('résout title/description/caseStudyMarkdown depuis les champs FR quand locale = fr', () => {
     const result = localizeProject(baseProject, 'fr')
-    expect(result.title).toBe('Digiclaims - Gestion Sinistres')
+    expect(result.title).toBe('Webapp Gestion Sinistres')
     expect(result.description).toBe('Description FR')
     expect(result.caseStudyMarkdown).toBe('# Contexte FR')
     expect(result).not.toHaveProperty('titleFr')
@@ -329,7 +329,7 @@ describe('localizeProject', () => {
 
   it('résout title/description/caseStudyMarkdown depuis les champs EN quand locale = en', () => {
     const result = localizeProject(baseProject, 'en')
-    expect(result.title).toBe('Digiclaims - Claims Management')
+    expect(result.title).toBe('Claims Management Web App')
     expect(result.description).toBe('Description EN')
     expect(result.caseStudyMarkdown).toBe('# Context EN')
   })
@@ -676,9 +676,9 @@ export type ProjectInput = {
 
 export const projects: ProjectInput[] = [
   {
-    slug: 'digiclaims',
-    titleFr: 'Digiclaims - Gestion Sinistres',
-    titleEn: 'Digiclaims - Claims Management',
+    slug: 'webapp-gestion-sinistres',
+    titleFr: 'Webapp Gestion Sinistres',
+    titleEn: 'Claims Management Web App',
     descriptionFr:
       'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction de 50% du temps de traitement, utilisée par 100+ courtiers.',
     descriptionEn:
@@ -946,7 +946,7 @@ git commit -m "refactor(seed-data): tags et projects bilingues (nameFr/nameEn, t
 ## Task 7: Renommer les case studies `.md` → `.fr.md` + créer les stubs `.en.md`
 
 **Files:**
-- Rename: `prisma/seed-data/case-studies/client/{digiclaims,saas-gestion-paie,erp-odoo-android,referent-ia-automatisation}.md` → `<slug>.fr.md`
+- Rename: `prisma/seed-data/case-studies/client/{webapp-gestion-sinistres,saas-gestion-paie,erp-odoo-android,referent-ia-automatisation}.md` → `<slug>.fr.md`
 - Rename: `prisma/seed-data/case-studies/personal/{portfolio,techno-scraper,crm-leads-n8n,flight-search-api,skill-prof}.md` → `<slug>.fr.md`
 - Create: `prisma/seed-data/case-studies/client/<slug>.en.md` (×4)
 - Create: `prisma/seed-data/case-studies/personal/<slug>.en.md` (×5)
@@ -955,7 +955,7 @@ git commit -m "refactor(seed-data): tags et projects bilingues (nameFr/nameEn, t
 
 Run:
 ```bash
-git mv prisma/seed-data/case-studies/client/digiclaims.md                 prisma/seed-data/case-studies/client/digiclaims.fr.md
+git mv prisma/seed-data/case-studies/client/webapp-gestion-sinistres.md                 prisma/seed-data/case-studies/client/webapp-gestion-sinistres.fr.md
 git mv prisma/seed-data/case-studies/client/saas-gestion-paie.md          prisma/seed-data/case-studies/client/saas-gestion-paie.fr.md
 git mv prisma/seed-data/case-studies/client/erp-odoo-android.md           prisma/seed-data/case-studies/client/erp-odoo-android.fr.md
 git mv prisma/seed-data/case-studies/client/referent-ia-automatisation.md prisma/seed-data/case-studies/client/referent-ia-automatisation.fr.md
@@ -971,7 +971,7 @@ Expected : 9 fichiers renommés, aucune erreur. `git status` doit les afficher e
 
 Run:
 ```bash
-cp prisma/seed-data/case-studies/client/digiclaims.fr.md                 prisma/seed-data/case-studies/client/digiclaims.en.md
+cp prisma/seed-data/case-studies/client/webapp-gestion-sinistres.fr.md                 prisma/seed-data/case-studies/client/webapp-gestion-sinistres.en.md
 cp prisma/seed-data/case-studies/client/saas-gestion-paie.fr.md          prisma/seed-data/case-studies/client/saas-gestion-paie.en.md
 cp prisma/seed-data/case-studies/client/erp-odoo-android.fr.md           prisma/seed-data/case-studies/client/erp-odoo-android.en.md
 cp prisma/seed-data/case-studies/client/referent-ia-automatisation.fr.md prisma/seed-data/case-studies/client/referent-ia-automatisation.en.md
@@ -1233,11 +1233,11 @@ Expected : `✔ 41 tags upsertés (dont 8 expertises)` + `✔ 9 projets upserté
 
 Run:
 ```bash
-docker compose exec -T postgres psql -U portfolio -d portfolio -c 'SELECT slug, "titleFr", "titleEn" FROM "Project" WHERE slug IN (E'\''digiclaims'\'', E'\''referent-ia-automatisation'\'');'
+docker compose exec -T postgres psql -U portfolio -d portfolio -c 'SELECT slug, "titleFr", "titleEn" FROM "Project" WHERE slug IN (E'\''webapp-gestion-sinistres'\'', E'\''referent-ia-automatisation'\'');'
 docker compose exec -T postgres psql -U portfolio -d portfolio -c 'SELECT slug, "nameFr", "nameEn" FROM "Tag" WHERE slug IN (E'\''automatisation'\'', E'\''agents-ia'\'');'
 ```
 Expected :
-- `digiclaims` → `Digiclaims - Gestion Sinistres` / `Digiclaims - Claims Management`
+- `webapp-gestion-sinistres` → `Webapp Gestion Sinistres` / `Claims Management Web App`
 - `referent-ia-automatisation` → `Référent Technique IA & Automatisation` / `Technical Lead AI & Automation`
 - `automatisation` → `Automatisation` / `Automation`
 - `agents-ia` → `Agents IA` / `AI Agents`
@@ -1542,8 +1542,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Digiclaims - Gestion Sinistres',
-        titleEn: 'Digiclaims - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -1553,7 +1553,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'fr' })
 
-    expect(result[0]?.title).toBe('Digiclaims - Gestion Sinistres')
+    expect(result[0]?.title).toBe('Webapp Gestion Sinistres')
     expect(result[0]?.description).toBe('Desc FR')
     expect(result[0]).not.toHaveProperty('titleFr')
     expect(result[0]).not.toHaveProperty('titleEn')
@@ -1563,8 +1563,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Digiclaims - Gestion Sinistres',
-        titleEn: 'Digiclaims - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -1574,7 +1574,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'en' })
 
-    expect(result[0]?.title).toBe('Digiclaims - Claims Management')
+    expect(result[0]?.title).toBe('Claims Management Web App')
     expect(result[0]?.description).toBe('Desc EN')
   })
 
@@ -1732,8 +1732,8 @@ Run:
 just dev
 ```
 Expected : serveur disponible sur `http://localhost:3000`. Ouvrir :
-- `http://localhost:3000/fr/projets` → voir "Digiclaims - Gestion Sinistres", "Référent Technique IA & Automatisation", tag "Automatisation"
-- `http://localhost:3000/en/projets` → voir "Digiclaims - Claims Management", "Technical Lead AI & Automation", tag "Automation"
+- `http://localhost:3000/fr/projets` → voir "Webapp Gestion Sinistres", "Référent Technique IA & Automatisation", tag "Automatisation"
+- `http://localhost:3000/en/projets` → voir "Claims Management Web App", "Technical Lead AI & Automation", tag "Automation"
 
 Vérifier que la bascule entre les deux URLs change bien les titres/descriptions/tags visibles. Si UI identique : inspecter la réponse réseau `/en/projets` et chercher "Claims Management" dans le HTML SSR (si absent, bug de la chaîne locale → query).
 

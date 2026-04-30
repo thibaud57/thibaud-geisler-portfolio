@@ -30,7 +30,7 @@
 - ✅ Pas d'ajout de projets (option a)
 - ✅ `php` (LANGUAGE) en queue (`displayOrder: 4`)
 - ✅ `elasticsearch` à insérer entre `datadog` (5) et `sentry` (7), donc `elasticsearch: 6`
-- ✅ Linker `elasticsearch` à `digiclaims.tagSlugs`
+- ✅ Linker `elasticsearch` à `webapp-gestion-sinistres.tagSlugs`
 - ✅ NE PAS ajouter `mcp` à `referent-ia-automatisation.tagSlugs` (laisser intact)
 - ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0` (conseil, rien en prod)
 
@@ -198,7 +198,7 @@ Insérer dans la section INFRA, position 6 (entre `datadog` et `sentry`) :
 { slug: 'elasticsearch', nameFr: 'Elasticsearch', nameEn: 'Elasticsearch', kind: 'INFRA', icon: 'simple-icons:elasticsearch', displayOrder: 6 },
 ```
 
-Aussi : ajouter `'elasticsearch'` dans `digiclaims.tagSlugs` (`prisma/seed-data/projects.ts`), pour qu'il apparaisse sur /a-propos via la query `findPublishedTags`.
+Aussi : ajouter `'elasticsearch'` dans `webapp-gestion-sinistres.tagSlugs` (`prisma/seed-data/projects.ts`), pour qu'il apparaisse sur /a-propos via la query `findPublishedTags`.
 
 - [ ] **Step 3.4 : Définir `displayOrder` sur tous les tags (incréments de 1)**
 
@@ -288,7 +288,7 @@ Valeurs par défaut :
 
 | Project slug | `deliverablesCount` | Justification |
 |--------------|---------------------|---------------|
-| `digiclaims` | **3** | Mission Foyer = 3 applications distinctes |
+| `webapp-gestion-sinistres` | **3** | Mission Foyer = 3 applications distinctes |
 | `referent-ia-automatisation` | **0** | Mission de conseil chez Wanted Design, rien en prod à ce jour |
 | `saas-gestion-paie` | **1** | Mission Paysystem = 1 livrable |
 | `erp-odoo-android` | **2** | Mission Cloudsmart = ERP Odoo + App Android |

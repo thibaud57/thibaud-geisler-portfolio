@@ -222,7 +222,7 @@ describe('buildBreadcrumbList', () => {
         items: [
           { name: 'Home', path: '' },
           { name: 'Projects', path: '/projets' },
-          { name: 'Digiclaims', path: '/projets/digiclaims' },
+          { name: 'Webapp Gestion Sinistres', path: '/projets/webapp-gestion-sinistres' },
         ],
       }),
     )
@@ -268,7 +268,7 @@ describe('buildBreadcrumbList', () => {
         items: [
           { name: 'Home', path: '' },
           { name: 'Projects', path: '/projets' },
-          { name: 'Digiclaims', path: '/projets/digiclaims' },
+          { name: 'Webapp Gestion Sinistres', path: '/projets/webapp-gestion-sinistres' },
         ],
       }),
     )
@@ -276,7 +276,7 @@ describe('buildBreadcrumbList', () => {
     expect(result.itemListElement.map((e) => e.name)).toEqual([
       'Home',
       'Projects',
-      'Digiclaims',
+      'Webapp Gestion Sinistres',
     ])
   })
 })

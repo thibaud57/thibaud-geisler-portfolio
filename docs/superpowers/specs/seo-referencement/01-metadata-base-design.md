@@ -67,14 +67,14 @@ Aucune — ce sub-project est autoporté. L'infrastructure utilisée (`src/lib/s
 **AND** `<link rel="canonical" href="https://thibaud-geisler.com/en/services">`
 
 ### Scénario 3 : Page case study `/projets/[slug]` (og:type article)
-**GIVEN** un projet publié avec `slug = "digiclaims"` en base
-**WHEN** un visiteur charge `/fr/projets/digiclaims`
+**GIVEN** un projet publié avec `slug = "webapp-gestion-sinistres"` en base
+**WHEN** un visiteur charge `/fr/projets/webapp-gestion-sinistres`
 **THEN** la page contient `<title>` reprenant `project.title` (locale FR) appliqué au template `%s | <siteTitle>`
 **AND** `<meta name="description">` reprenant `project.description` (locale FR)
 **AND** `og:type="article"` (et non `"website"`)
-**AND** `og:url="https://thibaud-geisler.com/fr/projets/digiclaims"`
-**AND** `<link rel="canonical" href="https://thibaud-geisler.com/fr/projets/digiclaims">`
-**AND** `<link rel="alternate" hreflang="en" href="https://thibaud-geisler.com/en/projets/digiclaims">`
+**AND** `og:url="https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres"`
+**AND** `<link rel="canonical" href="https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres">`
+**AND** `<link rel="alternate" hreflang="en" href="https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres">`
 
 ### Scénario 4 : Slug projet inexistant
 **GIVEN** un slug `inconnu` qui n'existe pas en base
@@ -99,7 +99,7 @@ Aucune — ce sub-project est autoporté. L'infrastructure utilisée (`src/lib/s
   - **openGraph.locale mappée** : `locale: 'fr'` ⇒ `metadata.openGraph.locale === 'fr_FR'` ; `locale: 'en'` ⇒ `'en_US'`
   - **openGraph.url absolue** : `path: '/services'`, `locale: 'fr'` ⇒ `metadata.openGraph.url === 'https://thibaud-geisler.com/fr/services'` (avec `siteUrl` stubbé via `vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')`)
   - **openGraph.url home** : `path: ''`, `locale: 'fr'` ⇒ `metadata.openGraph.url === 'https://thibaud-geisler.com/fr'` (sans slash final)
-  - **openGraph.url nested** : `path: '/projets/digiclaims'`, `locale: 'en'` ⇒ `metadata.openGraph.url === 'https://thibaud-geisler.com/en/projets/digiclaims'`
+  - **openGraph.url nested** : `path: '/projets/webapp-gestion-sinistres'`, `locale: 'en'` ⇒ `metadata.openGraph.url === 'https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres'`
   - **Twitter card** : `metadata.twitter.card === 'summary_large_image'`, `metadata.twitter.title === title`, `metadata.twitter.description === description`
   - **Canonical absolue** : `metadata.alternates.canonical === metadata.openGraph.url` (cohérence)
   - **Languages alternates** : `metadata.alternates.languages` contient les clés `'fr'`, `'en'`, `'x-default'` pointant vers les paths préfixés (vérifie l'intégration avec `buildLanguageAlternates`)

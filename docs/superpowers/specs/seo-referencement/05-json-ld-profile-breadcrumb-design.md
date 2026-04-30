@@ -85,10 +85,10 @@ Aucune — ce sub-project est autoporté. Il consomme en lecture seule des modul
 **AND** Google Rich Results Test retourne "Breadcrumbs" éligible sans erreur
 
 ### Scénario 4 : BreadcrumbList dynamique sur /fr/projets/[slug]
-**GIVEN** un projet publié avec `slug: "digiclaims"` et `titleFr: "Digiclaims - Gestion Sinistres"`
-**WHEN** on charge `/fr/projets/digiclaims` et inspecte le JSON-LD
+**GIVEN** un projet publié avec `slug: "webapp-gestion-sinistres"` et `titleFr: "Webapp Gestion Sinistres"`
+**WHEN** on charge `/fr/projets/webapp-gestion-sinistres` et inspecte le JSON-LD
 **THEN** la page contient un BreadcrumbList avec 3 ListItems
-**AND** ListItem 3 : `position: 3`, `name: "Digiclaims - Gestion Sinistres"` (titre projet localisé), `item: "https://thibaud-geisler.com/fr/projets/digiclaims"`
+**AND** ListItem 3 : `position: 3`, `name: "Webapp Gestion Sinistres"` (titre projet localisé), `item: "https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres"`
 
 ### Scénario 5 : Échappement de `</script>` dans le JSON
 **GIVEN** une description Person ou un titre projet contenant accidentellement la chaîne `</script>` (édition utilisateur en post-MVP via dashboard)
