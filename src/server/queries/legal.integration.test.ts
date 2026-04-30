@@ -119,19 +119,20 @@ describe('getPublisher', () => {
 
     const result = await getPublisher()
 
-    expect(result.slug).toBe('thibaud')
-    expect(result.siret).toBe('88041912200036')
-    expect(result.legalStatusKey).toBe('entrepreneurIndividuel')
-    expect(result.address.street).toBe('11 rue Gouvy')
-    expect(result.address.city).toBe('Metz')
-    expect(result.publisher).not.toBeNull()
-    expect(result.publisher?.apeCode).toBe('6201Z')
-    expect(result.publisher?.registrationType).toBe('RNE')
-    expect(result.publisher?.vatRegime).toBe('FRANCHISE')
+    expect(result).not.toBeNull()
+    expect(result?.slug).toBe('thibaud')
+    expect(result?.siret).toBe('88041912200036')
+    expect(result?.legalStatusKey).toBe('entrepreneurIndividuel')
+    expect(result?.address.street).toBe('11 rue Gouvy')
+    expect(result?.address.city).toBe('Metz')
+    expect(result?.publisher).not.toBeNull()
+    expect(result?.publisher?.apeCode).toBe('6201Z')
+    expect(result?.publisher?.registrationType).toBe('RNE')
+    expect(result?.publisher?.vatRegime).toBe('FRANCHISE')
   })
 
-  it('lance NotFoundError si pas de publisher seedé (DB vide)', async () => {
-    await expect(getPublisher()).rejects.toThrow()
+  it('retourne null si pas de publisher seedé (DB vide)', async () => {
+    await expect(getPublisher()).resolves.toBeNull()
   })
 })
 
@@ -189,14 +190,15 @@ describe('getHostingProvider', () => {
 
     const result = await getHostingProvider()
 
-    expect(result.slug).toBe('ionos-sarl')
-    expect(result.name).toBe('IONOS SARL')
-    expect(result.address.city).toBe('Sarreguemines')
-    expect(result.processing.kind).toBe('HOSTING')
-    expect(result.processing.purposeFr).toContain('Hébergement')
+    expect(result).not.toBeNull()
+    expect(result?.slug).toBe('ionos-sarl')
+    expect(result?.name).toBe('IONOS SARL')
+    expect(result?.address.city).toBe('Sarreguemines')
+    expect(result?.processing.kind).toBe('HOSTING')
+    expect(result?.processing.purposeFr).toContain('Hébergement')
   })
 
-  it('lance si aucun HOSTING seedé (uniquement Calendly)', async () => {
+  it('retourne null si aucun HOSTING seedé (uniquement Calendly)', async () => {
     await seedLegalForTest({
       withPublisher: false,
       withIonosHosting: false,
@@ -204,6 +206,6 @@ describe('getHostingProvider', () => {
       withCalendly: true,
     })
 
-    await expect(getHostingProvider()).rejects.toThrow()
+    await expect(getHostingProvider()).resolves.toBeNull()
   })
 })

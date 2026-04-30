@@ -56,8 +56,8 @@ export default async function ConfidentialitePage({
       loadLegalContent(locale, 'confidentialite-cookies'),
     ])
 
+  if (!publisher?.publisher) notFound()
   const pub = publisher.publisher
-  if (!pub) notFound()
 
   const regionFormatter = new Intl.DisplayNames([locale], { type: 'region' })
 

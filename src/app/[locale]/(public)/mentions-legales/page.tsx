@@ -46,8 +46,8 @@ export default async function MentionsLegalesPage({
     loadLegalContent(locale, 'mentions'),
   ])
 
+  if (!publisher?.publisher || !hosting) notFound()
   const pub = publisher.publisher
-  if (!pub) notFound()
   const siret = publisher.siret ?? ''
   const siren = siret.slice(0, 9)
 
