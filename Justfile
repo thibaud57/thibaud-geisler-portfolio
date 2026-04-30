@@ -104,7 +104,7 @@ install:
     pnpm install
 
 [group('setup')]
-setup: install db
+setup: install db seed
 
 [group('setup')]
 check:
