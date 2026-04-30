@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Pages /mentions-legales et /confidentialite Server Components bilingues"
 goal: "Livrer 2 pages publiques bilingues Server Components (mentions légales LCEN art. 6-III + politique de confidentialité RGPD art. 13/14) qui consomment getPublisher et getDataProcessors du sub 1 et exposent un bouton client réutilisable OpenCookiePreferencesButton qui ouvre la modale du sub 3"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-legal-entity-seed-design.md", "03-bandeau-consentement-cookies-design.md"]
