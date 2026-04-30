@@ -31,6 +31,7 @@ import {
   findAllTags,
   getYearsOfExperience,
 } from '@/server/queries/about'
+import { getPublisher } from '@/server/queries/legal'
 
 export async function generateMetadata(
   { params }: PageProps<'/[locale]/a-propos'>,
@@ -56,8 +57,11 @@ export default async function AProposPage({
   params,
 }: PageProps<'/[locale]/a-propos'>) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations('AboutPage')
-  const tMeta = await getTranslations({ locale, namespace: 'Metadata' })
+  const [t, tMeta, publisher] = await Promise.all([
+    getTranslations('AboutPage'),
+    getTranslations({ locale, namespace: 'Metadata' }),
+    getPublisher(),
+  ])
 
   const sameAs = SOCIAL_LINKS.filter((link) => link.slug !== 'email').map(
     (link) => link.url,
@@ -75,6 +79,9 @@ export default async function AProposPage({
     image: `${siteUrl}${buildAssetUrl('branding/portrait.jpg')}`,
     sameAs,
     expertise: EXPERTISE,
+    legal: publisher?.siret
+      ? { siret: publisher.siret, address: publisher.address }
+      : undefined,
   })
 
   return (
