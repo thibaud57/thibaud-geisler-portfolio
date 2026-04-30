@@ -6,6 +6,15 @@ import { useConsentManager } from '@c15t/nextjs'
 
 import { Button, buttonVariants } from '@/components/ui/button'
 
+function useOpenCookiePreferences() {
+  const { setActiveUI } = useConsentManager()
+  const t = useTranslations('Cookies')
+  return {
+    open: () => setActiveUI('dialog'),
+    defaultLabel: t('openManagerLabel'),
+  }
+}
+
 type Props = {
   className?: string
   variant?: VariantProps<typeof buttonVariants>['variant']
@@ -17,16 +26,11 @@ export function OpenCookiePreferencesButton({
   variant = 'outline',
   label,
 }: Props) {
-  const { setActiveUI } = useConsentManager()
-  const t = useTranslations('Cookies')
+  const { open, defaultLabel } = useOpenCookiePreferences()
 
   return (
-    <Button
-      variant={variant}
-      onClick={() => setActiveUI('dialog')}
-      className={className}
-    >
-      {label ?? t('openManagerLabel')}
+    <Button variant={variant} onClick={open} className={className}>
+      {label ?? defaultLabel}
     </Button>
   )
 }
@@ -37,16 +41,11 @@ type LinkProps = {
 }
 
 export function OpenCookiePreferencesLink({ className, label }: LinkProps) {
-  const { setActiveUI } = useConsentManager()
-  const t = useTranslations('Cookies')
+  const { open, defaultLabel } = useOpenCookiePreferences()
 
   return (
-    <button
-      type="button"
-      onClick={() => setActiveUI('dialog')}
-      className={className}
-    >
-      {label ?? t('openManagerLabel')}
+    <button type="button" onClick={open} className={className}>
+      {label ?? defaultLabel}
     </button>
   )
 }
