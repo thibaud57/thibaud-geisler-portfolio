@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.7.0...v0.8.0) (2026-04-30)
+
+
+### Features
+
+* **legal:** conformite RGPD/LCEN (feature 7) ([#39](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/39)) ([2a577cd](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2a577cdf681645c3e94ffc964c1e704bafbaecdc))
+* release 0.8.0 - conformite legale + fixes infra ([cc6d000](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cc6d000304d119ce56eca0f45cf1f2984f678ed6))
+* release 0.8.0 - conformite legale RGPD/LCEN + footer SIRET + fixes infra ([9b19088](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/9b19088ba70cbcab5d00cd55491d6f3295b06fff))
+
 ## [0.7.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.6.0...v0.7.0) (2026-04-28)
 
 
