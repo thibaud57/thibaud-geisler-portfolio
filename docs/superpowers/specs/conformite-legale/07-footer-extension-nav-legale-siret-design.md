@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Footer extension nav légale + SIRET copyright"
 goal: "Compléter le Footer global (TODO ligne 38) avec une nav légale row bottom (3 liens : Mentions légales, Politique de confidentialité, Gérer mes cookies) et étendre la ligne copyright avec le SIRET formaté lu via getPublisher du sub 1, en réutilisant les helpers et composants des sub 4 et sub 5"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "none"
 depends_on: ["01-schema-prisma-legal-entity-seed-design.md", "03-bandeau-consentement-cookies-design.md", "04-pages-mentions-confidentialite-design.md"]
