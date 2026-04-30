@@ -4,6 +4,7 @@ set windows-shell := ["bash", "-cu"]
 
 PORT := env("PORT", "3000")
 DOTENV_TEST := "set -a && . ./.env.test && set +a"
+DOTENV_TEST_OPT := "if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi"
 
 default:
     @just --list
@@ -46,11 +47,11 @@ test-unit:
 
 [group('quality')]
 test-integration:
-    @{{DOTENV_TEST}} && pnpm vitest run --project integration --no-file-parallelism
+    @{{DOTENV_TEST_OPT}} && pnpm vitest run --project integration --no-file-parallelism
 
 [group('quality')]
 test-watch:
-    @{{DOTENV_TEST}} && pnpm test:watch
+    @{{DOTENV_TEST_OPT}} && pnpm test:watch
 
 # ─── Infrastructure ──────────────────────────────────────────────────
 [group('infra')]
