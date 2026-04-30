@@ -289,7 +289,7 @@ export type ProjectInput = {
  * Exemple d'entrée valide :
  *   {
  *     slug: 'webapp-gestion-sinistres',
- *     title: 'Portail Sinistres - Gestion Sinistres',
+ *     title: 'Webapp Gestion Sinistres',
  *     description: 'Webapp Scala/Angular de gestion des dossiers sinistres pour Acme.',
  *     type: 'CLIENT',
  *     status: 'PUBLISHED',

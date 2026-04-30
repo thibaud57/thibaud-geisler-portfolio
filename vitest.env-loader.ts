@@ -1,6 +1,10 @@
-import { config } from 'dotenv'
+import nextEnv from '@next/env'
 
-// Doit s'exécuter avant toute résolution de `@/lib/prisma` par les tests :
-// l'hoisting des `import` ES modules empêche un `dotenv.config()` en tête de fichier
-// de prendre effet avant l'instanciation du singleton PrismaClient.
-config({ path: '.env.test', override: true })
+process.env.SKIP_ENV_VALIDATION = 'true'
+nextEnv.loadEnvConfig(process.cwd())
+
+// Valeur fixe pour les assertions SEO (canonical, openGraph.url, languages alternates) :
+// override systématique du .env dev (qui pointe sur localhost) afin que `@/env` retourne
+// une URL stable, et que `seo.test.ts` puisse retirer `vi.mock('@/env')` (fragile sous
+// Vitest 4 + projects, cf. vitest#6258).
+process.env.NEXT_PUBLIC_SITE_URL = 'https://thibaud-geisler.com'

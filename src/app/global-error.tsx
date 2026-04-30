@@ -59,9 +59,7 @@ export default function GlobalError({ error, reset }: Props) {
             className="size-16 text-destructive"
             strokeWidth={1.5}
           />
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            {t.title}
-          </h1>
+          <h1>{t.title}</h1>
           <p className="text-base text-muted-foreground">{t.description}</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <button

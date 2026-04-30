@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl'
 import type { TagKind } from '@/generated/prisma/client'
+import { KIND_ORDER } from '@/lib/tags'
 import type { LocalizedProjectTag } from '@/types/project'
 import { TagBadge } from './TagBadge'
 
@@ -7,18 +8,8 @@ type Props = {
   tags: LocalizedProjectTag[]
 }
 
-const KIND_ORDER: TagKind[] = [
-  'EXPERTISE',
-  'LANGUAGE',
-  'FRAMEWORK',
-  'DATABASE',
-  'AI',
-  'INFRA',
-]
-
 export function TagStackGrouped({ tags }: Props) {
-  const tCaseStudy = useTranslations('Projects.caseStudy')
-  const tKind = useTranslations('Projects.caseStudy.kind')
+  const t = useTranslations('Projects.caseStudy')
 
   if (tags.length === 0) return null
 
@@ -39,19 +30,16 @@ export function TagStackGrouped({ tags }: Props) {
   })
 
   return (
-    <section className="my-16" aria-labelledby="case-study-stack-title">
-      <h2
-        id="case-study-stack-title"
-        className="mb-8 text-3xl font-semibold tracking-tight"
-      >
-        {tCaseStudy('stackTitle')}
+    <section aria-labelledby="case-study-stack-title">
+      <h2 id="case-study-stack-title" className="mb-6">
+        {t('stackTitle')}
       </h2>
 
       <div className="flex flex-col gap-8">
         {orderedGroups.map(([kind, groupTags]) => (
           <div key={kind} className="grid gap-3 sm:grid-cols-[9rem_1fr] sm:gap-6">
             <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground sm:pt-1.5">
-              {tKind(kind)}
+              {t(`kind.${kind}`)}
             </h3>
             <div className="flex flex-wrap items-center gap-2">
               {groupTags.map((projectTag) => (

@@ -30,7 +30,7 @@ Workflow déployé sur n8n self-hosted (VPS + Dokploy) et versionné dans un rep
 
 ## Résultats
 
-- **Gain de temps** : relance automatique en < 10 secondes vs 3-5 minutes manuelles
+- **Gain de temps** : relance automatique en ~ 30 secondes vs 3-5 minutes manuelles
 - **Fin des oublis** : le rappel TickTick garantit qu'aucune relance planifiée n'est ratée
 - **Qualité** : messages contextualisés, cohérents avec l'historique de la relation
 

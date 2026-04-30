@@ -42,7 +42,7 @@ export function ProjectCard({ project }: Props) {
           />
 
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <h3 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            <h3 className="font-display">
               {project.title}
             </h3>
 
@@ -90,7 +90,7 @@ function CoverArea({
   const { showImage, onError } = useImageFallback(coverFilename)
 
   return (
-    <div className="relative h-56 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-accent/20">
+    <div className="relative h-56 w-full overflow-hidden rounded-t-lg bg-linear-to-br from-primary/20 to-accent/20">
       {showImage && coverFilename ? (
         <>
           <Image
@@ -101,7 +101,7 @@ function CoverArea({
             className="object-cover"
             onError={onError}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
         </>
       ) : null}
       {showInProgress ? (

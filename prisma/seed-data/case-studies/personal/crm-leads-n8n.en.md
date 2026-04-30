@@ -30,7 +30,7 @@ Dedicated **alerting workflow** that notifies on execution failures (crash, time
 
 ## Results
 
-- **Time savings**: automatic follow-up in < 10 seconds vs 3-5 minutes manually
+- **Time savings**: automatic follow-up in ~ 30 seconds vs 3-5 minutes manually
 - **No more forgotten follow-ups**: the TickTick reminder guarantees that no scheduled follow-up is missed
 - **Quality**: contextualized messages consistent with the relationship history
 

@@ -17,7 +17,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 ### État livré
 
-À la fin de ce sub-project, on peut : accéder à `/en/projets` et voir les 9 projets seedés affichés avec **titre anglais** (ex: "Portail Sinistres - Claims Management" au lieu de "Portail Sinistres - Gestion Sinistres"), **description anglaise** et **noms de tags anglais** (ex: "Automation" au lieu de "Automatisation"). Accéder à `/fr/projets` et retrouver les mêmes projets avec leurs labels français d'origine. Les 2 tests intégration `findManyPublished` et `findPublishedBySlug` vérifient que le helper de localisation pick le bon champ selon la locale passée. La page `/[locale]/projets/[slug]` (sub-project 06, à venir) rendra le bon markdown case study selon la locale en lisant `caseStudyMarkdownFr` ou `caseStudyMarkdownEn` (bilingue prête côté schema).
+À la fin de ce sub-project, on peut : accéder à `/en/projets` et voir les 9 projets seedés affichés avec **titre anglais** (ex: "Claims Management Web App" au lieu de "Webapp Gestion Sinistres"), **description anglaise** et **noms de tags anglais** (ex: "Automation" au lieu de "Automatisation"). Accéder à `/fr/projets` et retrouver les mêmes projets avec leurs labels français d'origine. Les 2 tests intégration `findManyPublished` et `findPublishedBySlug` vérifient que le helper de localisation pick le bon champ selon la locale passée. La page `/[locale]/projets/[slug]` (sub-project 06, à venir) rendra le bon markdown case study selon la locale en lisant `caseStudyMarkdownFr` ou `caseStudyMarkdownEn` (bilingue prête côté schema).
 
 ## Dependencies
 
@@ -103,7 +103,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 **GIVEN** la BDD migrée et re-seedée avec les 9 projets bilingues, visiteur accède à `/fr/projets`
 **WHEN** la page est rendue
-**THEN** les cards affichent les titres FR (ex: "Portail Sinistres - Gestion Sinistres", "Référent Technique IA & Automatisation")
+**THEN** les cards affichent les titres FR (ex: "Webapp Gestion Sinistres", "Référent Technique IA & Automatisation")
 **AND** les descriptions sont en FR
 **AND** les noms de tags sont en FR (ex: "Automatisation", "Scraping")
 
@@ -111,7 +111,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 **GIVEN** la BDD migrée et re-seedée avec les 9 projets bilingues, visiteur accède à `/en/projets`
 **WHEN** la page est rendue
-**THEN** les cards affichent les titres EN (ex: "Portail Sinistres - Claims Management", "Technical Lead AI & Automation")
+**THEN** les cards affichent les titres EN (ex: "Claims Management Web App", "Technical Lead AI & Automation")
 **AND** les descriptions sont en EN
 **AND** les noms de tags sont en EN (ex: "Automation", "Scraping" — certains noms techniques restent identiques)
 
@@ -158,7 +158,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 - `src/server/queries/projects.integration.test.ts` (existant, à étendre) :
   - **Test existant** : renommer les fixtures en `titleFr`/`titleEn` + pass `locale: 'fr'` aux appels existants
   - **Test nouveau** : `findManyPublished({ locale: 'en' })` retourne un array où `result[0].title === <titleEn de la fixture>`
-  - **Test nouveau** : `findPublishedBySlug('webapp-gestion-sinistres', 'en')` retourne `result.title === 'Portail Sinistres - Claims Management'` (ou équivalent depuis la fixture)
+  - **Test nouveau** : `findPublishedBySlug('webapp-gestion-sinistres', 'en')` retourne `result.title === 'Claims Management Web App'` (ou équivalent depuis la fixture)
   - **Test nouveau** : les tags nested dans le retour sont aussi localisés (vérifie que `tags[0].tag.name === tag.nameEn` quand `locale='en'`)
 
 → `tdd_scope = partial` : les tests du helper `localizeProject` couvrent la logique métier critique, les tests intégration valident le pipe query + helper, les composants front sont couverts indirectement par la re-exécution du test existant `ProjectsList.test.tsx` (qui consomme le nouveau type `LocalizedProject` via fixtures adaptées).

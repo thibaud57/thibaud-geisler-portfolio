@@ -13,11 +13,6 @@ type Props = {
 
 export function CaseStudyHeader({ project }: Props) {
   const t = useTranslations('Projects.caseStudy')
-  const tContract = useTranslations('Projects.caseStudy.contractStatus')
-  const tWorkMode = useTranslations('Projects.caseStudy.workMode')
-  const tSector = useTranslations('Projects.caseStudy.sector')
-  const tSize = useTranslations('Projects.caseStudy.companySize')
-  const tLocation = useTranslations('Projects.caseStudy.companyLocation')
 
   const timeline = getProjectTimeline(project.startedAt, project.endedAt)
   const { startYear, endYear, inProgress } = timeline
@@ -27,21 +22,19 @@ export function CaseStudyHeader({ project }: Props) {
   const durationValue = formatDurationRange(timeline, t('inProgress'))
 
   return (
-    <header className="mb-8">
+    <header>
       {startYear !== null ? (
         <div className="mb-6 flex items-center gap-3" aria-label={t('meta.duration')}>
           <TimelineMarker label={String(startYear)} />
           <span
-            className="h-px flex-1 max-w-24 bg-gradient-to-r from-primary/60 to-primary/10"
+            className="h-px flex-1 max-w-24 bg-linear-to-r from-primary/60 to-primary/10"
             aria-hidden="true"
           />
           <TimelineMarker label={endLabel} variant={inProgress ? 'active' : 'default'} />
         </div>
       ) : null}
 
-      <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-        {project.title}
-      </h1>
+      <h1>{project.title}</h1>
 
       <FormatBadges formats={project.formats} className="mt-5" />
 
@@ -63,7 +56,7 @@ export function CaseStudyHeader({ project }: Props) {
       ) : (
         <div
           aria-hidden="true"
-          className="mt-10 aspect-[16/7] w-full rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-accent/10 to-background"
+          className="mt-10 aspect-[16/7] w-full rounded-2xl border border-border bg-linear-to-br from-primary/15 via-accent/10 to-background"
         />
       )}
 
@@ -97,12 +90,9 @@ export function CaseStudyHeader({ project }: Props) {
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
               {company.sectors.length > 0 ? (
-                <span>{company.sectors.map((s) => tSector(s)).join(' / ')}</span>
+                <span>{company.sectors.map((s) => t(`sector.${s}`)).join(' / ')}</span>
               ) : null}
-              {company.size ? <span>{tSize(company.size)}</span> : null}
-              {company.locations.length > 0 ? (
-                <span>{company.locations.map((l) => tLocation(l)).join(' / ')}</span>
-              ) : null}
+              {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
             </div>
           </div>
         </div>
@@ -112,8 +102,8 @@ export function CaseStudyHeader({ project }: Props) {
         {teamSize ? (
           <MetaItem label={t('meta.teamSize')} value={t('meta.teamSizeValue', { count: teamSize })} />
         ) : null}
-        {contract ? <MetaItem label={t('meta.contract')} value={tContract(contract)} /> : null}
-        {workMode ? <MetaItem label={t('meta.workMode')} value={tWorkMode(workMode)} /> : null}
+        {contract ? <MetaItem label={t('meta.contract')} value={t(`contractStatus.${contract}`)} /> : null}
+        {workMode ? <MetaItem label={t('meta.workMode')} value={t(`workMode.${workMode}`)} /> : null}
         {durationValue ? <MetaItem label={t('meta.duration')} value={durationValue} /> : null}
       </dl>
     </header>

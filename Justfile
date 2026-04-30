@@ -1,9 +1,10 @@
-set dotenv-load := true
-set dotenv-required := true
+set dotenv-load
+set dotenv-required
 set windows-shell := ["bash", "-cu"]
 
 PORT := env("PORT", "3000")
 DOTENV_TEST := "set -a && . ./.env.test && set +a"
+DOTENV_TEST_OPT := "if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi"
 
 default:
     @just --list
@@ -46,16 +47,16 @@ test-unit:
 
 [group('quality')]
 test-integration:
-    pnpm vitest run --project integration --no-file-parallelism
+    @{{DOTENV_TEST_OPT}} && pnpm vitest run --project integration --no-file-parallelism
 
 [group('quality')]
 test-watch:
-    pnpm test:watch
+    @{{DOTENV_TEST_OPT}} && pnpm test:watch
 
 # ─── Infrastructure ──────────────────────────────────────────────────
 [group('infra')]
 docker-up:
-    docker compose up -d
+    docker compose --profile validation up -d
 
 [group('infra')]
 docker-down:
@@ -104,7 +105,7 @@ install:
     pnpm install
 
 [group('setup')]
-setup: install db
+setup: install db seed
 
 [group('setup')]
 check:
@@ -112,4 +113,4 @@ check:
     @echo "→ pnpm: $(pnpm --version)"
     @docker info > /dev/null 2>&1 && echo "✓ Docker opérationnel" || echo "⚠️  Docker non disponible"
     @test -f .env && echo "✓ .env présent" || echo "⚠️  .env manquant (copier .env.example)"
-    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' && echo "✓ PostgreSQL accessible" || echo "⚠️  PostgreSQL non accessible (just docker-up)"
+    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' && echo "✓ PostgreSQL accessible" || echo "⚠️  PostgreSQL non accessible (just db)"

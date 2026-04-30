@@ -277,8 +277,8 @@ const baseTag = {
 const baseProject = {
   id: 'proj-1',
   slug: 'webapp-gestion-sinistres',
-  titleFr: 'Portail Sinistres - Gestion Sinistres',
-  titleEn: 'Portail Sinistres - Claims Management',
+  titleFr: 'Webapp Gestion Sinistres',
+  titleEn: 'Claims Management Web App',
   descriptionFr: 'Description FR',
   descriptionEn: 'Description EN',
   caseStudyMarkdownFr: '# Contexte FR',
@@ -318,7 +318,7 @@ describe('localizeTag', () => {
 describe('localizeProject', () => {
   it('résout title/description/caseStudyMarkdown depuis les champs FR quand locale = fr', () => {
     const result = localizeProject(baseProject, 'fr')
-    expect(result.title).toBe('Portail Sinistres - Gestion Sinistres')
+    expect(result.title).toBe('Webapp Gestion Sinistres')
     expect(result.description).toBe('Description FR')
     expect(result.caseStudyMarkdown).toBe('# Contexte FR')
     expect(result).not.toHaveProperty('titleFr')
@@ -329,7 +329,7 @@ describe('localizeProject', () => {
 
   it('résout title/description/caseStudyMarkdown depuis les champs EN quand locale = en', () => {
     const result = localizeProject(baseProject, 'en')
-    expect(result.title).toBe('Portail Sinistres - Claims Management')
+    expect(result.title).toBe('Claims Management Web App')
     expect(result.description).toBe('Description EN')
     expect(result.caseStudyMarkdown).toBe('# Context EN')
   })
@@ -677,8 +677,8 @@ export type ProjectInput = {
 export const projects: ProjectInput[] = [
   {
     slug: 'webapp-gestion-sinistres',
-    titleFr: 'Portail Sinistres - Gestion Sinistres',
-    titleEn: 'Portail Sinistres - Claims Management',
+    titleFr: 'Webapp Gestion Sinistres',
+    titleEn: 'Claims Management Web App',
     descriptionFr:
       'Webapp Scala/Angular de gestion des sinistres chez Acme (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction de 50% du temps de traitement, utilisée par 100+ courtiers.',
     descriptionEn:
@@ -1237,7 +1237,7 @@ docker compose exec -T postgres psql -U portfolio -d portfolio -c 'SELECT slug, 
 docker compose exec -T postgres psql -U portfolio -d portfolio -c 'SELECT slug, "nameFr", "nameEn" FROM "Tag" WHERE slug IN (E'\''automatisation'\'', E'\''agents-ia'\'');'
 ```
 Expected :
-- `webapp-gestion-sinistres` → `Portail Sinistres - Gestion Sinistres` / `Portail Sinistres - Claims Management`
+- `webapp-gestion-sinistres` → `Webapp Gestion Sinistres` / `Claims Management Web App`
 - `referent-ia-automatisation` → `Référent Technique IA & Automatisation` / `Technical Lead AI & Automation`
 - `automatisation` → `Automatisation` / `Automation`
 - `agents-ia` → `Agents IA` / `AI Agents`
@@ -1542,8 +1542,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Portail Sinistres - Gestion Sinistres',
-        titleEn: 'Portail Sinistres - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -1553,7 +1553,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'fr' })
 
-    expect(result[0]?.title).toBe('Portail Sinistres - Gestion Sinistres')
+    expect(result[0]?.title).toBe('Webapp Gestion Sinistres')
     expect(result[0]?.description).toBe('Desc FR')
     expect(result[0]).not.toHaveProperty('titleFr')
     expect(result[0]).not.toHaveProperty('titleEn')
@@ -1563,8 +1563,8 @@ describe('findManyPublished', () => {
     await prisma.project.create({
       data: {
         slug: 'bi',
-        titleFr: 'Portail Sinistres - Gestion Sinistres',
-        titleEn: 'Portail Sinistres - Claims Management',
+        titleFr: 'Webapp Gestion Sinistres',
+        titleEn: 'Claims Management Web App',
         descriptionFr: 'Desc FR',
         descriptionEn: 'Desc EN',
         type: 'CLIENT',
@@ -1574,7 +1574,7 @@ describe('findManyPublished', () => {
 
     const result = await findManyPublished({ locale: 'en' })
 
-    expect(result[0]?.title).toBe('Portail Sinistres - Claims Management')
+    expect(result[0]?.title).toBe('Claims Management Web App')
     expect(result[0]?.description).toBe('Desc EN')
   })
 
@@ -1732,8 +1732,8 @@ Run:
 just dev
 ```
 Expected : serveur disponible sur `http://localhost:3000`. Ouvrir :
-- `http://localhost:3000/fr/projets` → voir "Portail Sinistres - Gestion Sinistres", "Référent Technique IA & Automatisation", tag "Automatisation"
-- `http://localhost:3000/en/projets` → voir "Portail Sinistres - Claims Management", "Technical Lead AI & Automation", tag "Automation"
+- `http://localhost:3000/fr/projets` → voir "Webapp Gestion Sinistres", "Référent Technique IA & Automatisation", tag "Automatisation"
+- `http://localhost:3000/en/projets` → voir "Claims Management Web App", "Technical Lead AI & Automation", tag "Automation"
 
 Vérifier que la bascule entre les deux URLs change bien les titres/descriptions/tags visibles. Si UI identique : inspecter la réponse réseau `/en/projets` et chercher "Claims Management" dans le HTML SSR (si absent, bug de la chaîne locale → query).
 
