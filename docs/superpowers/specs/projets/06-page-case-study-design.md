@@ -2,7 +2,7 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "page-case-study"
 goal: "Afficher la page case study /[locale]/(public)/projets/[slug] avec generateStaticParams + contenu markdown riche + stack groupé + meta structurées"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-project-design.md", "02-client-prisma-queries-design.md", "03-seed-projets-design.md", "04-route-api-assets-design.md"]
