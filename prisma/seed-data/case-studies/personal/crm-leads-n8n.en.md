@@ -21,7 +21,11 @@ Event-driven n8n workflow that listens to Notion DB updates and orchestrates 3 s
 
 ### Notion → Claude → TickTick pipeline without duplicates
 
-Connecting **Notion ↔ Claude ↔ TickTick** in a single pipeline. Handling edge cases: repeated edits on the same lead (no duplicates), TickTick API without native upsert (match by title → update or create), network errors.
+Connecting **Notion ↔ Claude ↔ TickTick** in a single pipeline. The Notion "Page Updated in Database" trigger only returns the row's **DB properties**, never its markdown body. Yet that's where the rich narrative context of a lead lives (mission, timeline of exchanges, next action).
+
+**Solution**: a Notion MCP Server attached to the AI agent via an `MCP Client Tool` node, calling `notion-fetch` on the page ID at the start of execution to fetch the enriched markdown body before drafting.
+
+Handling edge cases: repeated edits on the same lead (no duplicates), TickTick API without native upsert (match by title → update or create), network errors.
 
 ### Self-hosted deployment
 
