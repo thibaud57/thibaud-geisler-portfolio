@@ -59,7 +59,11 @@ export async function Footer({ locale }: Props) {
               <Link href="/confidentialite" className="hover:text-foreground transition-colors">
                 {t('legalNav.privacy')}
               </Link>
-              <OpenCookiePreferencesButton variant="link" label={t('legalNav.cookies')} />
+              <OpenCookiePreferencesButton
+                variant="link"
+                label={t('legalNav.cookies')}
+                className="h-auto px-0 py-0 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground hover:no-underline"
+              />
             </nav>
           </Suspense>
         </div>
