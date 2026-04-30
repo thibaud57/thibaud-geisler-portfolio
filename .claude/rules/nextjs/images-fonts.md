@@ -20,7 +20,7 @@ paths:
   - **`Geist Sans`** → corps de texte, UI, titres H2-H6, navigation, boutons (variable `--font-sans`)
   - **`Sansation`** → titres hero H1, éléments de marque, logo (variable `--font-display`, mappée à la classe custom `font-display`)
   - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (variable `--font-mono`)
-- Respecter la scale typographique DESIGN.md : H1 `text-5xl font-bold font-display` (Sansation), H2 `text-4xl font-semibold`, H3 `text-2xl font-semibold`, Lead `text-xl`, Body `text-base`, Caption `text-sm`
+- Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css` — voir `tailwind/conventions.md`)
 - Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
 - Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec une URL absolue (`${NEXT_PUBLIC_APP_URL}/api/assets/projets/client/foyer/cover.webp`) et déclarer le domaine du projet dans `images.remotePatterns` pour que `next/image` les optimise
 

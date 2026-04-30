@@ -18,6 +18,7 @@ paths:
 - Déclarer les volumes persistants en **volumes nommés** (section `volumes:` top-level), jamais en bind mount pour les données Postgres (permissions, portabilité)
 - Définir **`restart: unless-stopped`** sur tous les services de production : redémarrage automatique après un crash (OOM, exception non gérée) ou un reboot du VPS, tout en respectant un `docker compose stop` manuel (contrairement à `restart: always`)
 - **Séparer config prod et overrides dev via `compose.yaml` + `compose.override.yaml`** : `compose.yaml` prod-ready (volumes nommés persistants, pas de bind mount host, pas d'exposition de port interne, pas de safe net `DATABASE_URL`). Les overrides dev (exposition port DB pour DBeaver/psql, bind-mount `./assets`, override `DATABASE_URL` si `.env` contient `localhost`) vont dans `compose.override.yaml`, auto-chargé par `docker compose up` en local et ignoré par Dokploy en prod
+- **Profile `validation` si dev natif + container app** : placer le service app sous `profiles: [validation]` dans `compose.override.yaml` (port app libre en dev pour le natif, container lancé seulement avec `--profile validation`)
 - Pour la **config runtime du service app Next.js** (`output: standalone`, `HOSTNAME`, health endpoint, env vars) : voir `nextjs/production-deployment.md`
 - Pour le **build multi-stage du service app** (base image, cache, USER non-root) : voir `docker/dockerfile.md`
 

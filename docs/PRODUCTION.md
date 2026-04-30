@@ -101,6 +101,8 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 ## Variables d'Environnement
 
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var server requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`). `NEXT_PUBLIC_SITE_URL` côté client a un fallback `http://localhost:3000`. Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
+
 ### Variables Communes
 
 ```bash
@@ -213,6 +215,7 @@ Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le
 
 À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).
 
+- [ ] **Seed BDD initial** — `docker exec -it <container_nextjs> node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy. Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
 - [ ] **Search Console + Bing Webmaster** — vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [ ] **Validation rich results JSON-LD** — [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [ ] **Accessibilité `/llms.txt`** — `curl` sur l'URL prod retourne le markdown attendu

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildBreadcrumbList,
+  buildPostalAddress,
   buildProfilePagePerson,
   type ProfilePagePersonInput,
   type BreadcrumbListInput,
@@ -149,6 +150,49 @@ describe('buildProfilePagePerson', () => {
     expect(result.dateModified).toBeDefined()
     expect(new Date(result.dateModified).toISOString()).toBe(result.dateModified)
   })
+
+  const LEGAL_FIXTURE = {
+    siret: '88041912200036',
+    address: {
+      street: '11 rue Gouvy',
+      postalCode: '57000',
+      city: 'Metz',
+      country: 'France',
+    },
+  } as const
+
+  it('quand legal est fourni, mainEntity contient address PostalAddress, taxID, identifier PropertyValue', () => {
+    const result = buildProfilePagePerson(
+      buildProfileInput({ legal: LEGAL_FIXTURE }),
+    )
+    expect(result.mainEntity.address).toEqual({
+      '@type': 'PostalAddress',
+      streetAddress: '11 rue Gouvy',
+      postalCode: '57000',
+      addressLocality: 'Metz',
+      addressCountry: 'France',
+    })
+    expect(result.mainEntity.taxID).toBe('88041912200036')
+    expect(result.mainEntity.identifier).toEqual({
+      '@type': 'PropertyValue',
+      propertyID: 'SIRET',
+      value: '88041912200036',
+    })
+  })
+
+  it('quand legal est absent, mainEntity n\'a pas address, taxID, identifier (rétro-compat sub SEO 05)', () => {
+    const result = buildProfilePagePerson(buildProfileInput())
+    expect(result.mainEntity.address).toBeUndefined()
+    expect(result.mainEntity.taxID).toBeUndefined()
+    expect(result.mainEntity.identifier).toBeUndefined()
+  })
+
+  it('garde-fou cohérence : taxID est strictement égal à identifier.value (même SIRET)', () => {
+    const result = buildProfilePagePerson(
+      buildProfileInput({ legal: LEGAL_FIXTURE }),
+    )
+    expect(result.mainEntity.taxID).toBe(result.mainEntity.identifier?.value)
+  })
 })
 
 function buildBreadcrumbInput(
@@ -178,7 +222,7 @@ describe('buildBreadcrumbList', () => {
         items: [
           { name: 'Home', path: '' },
           { name: 'Projects', path: '/projets' },
-          { name: 'Digiclaims', path: '/projets/digiclaims' },
+          { name: 'Webapp Gestion Sinistres', path: '/projets/webapp-gestion-sinistres' },
         ],
       }),
     )
@@ -224,7 +268,7 @@ describe('buildBreadcrumbList', () => {
         items: [
           { name: 'Home', path: '' },
           { name: 'Projects', path: '/projets' },
-          { name: 'Digiclaims', path: '/projets/digiclaims' },
+          { name: 'Webapp Gestion Sinistres', path: '/projets/webapp-gestion-sinistres' },
         ],
       }),
     )
@@ -232,7 +276,25 @@ describe('buildBreadcrumbList', () => {
     expect(result.itemListElement.map((e) => e.name)).toEqual([
       'Home',
       'Projects',
-      'Digiclaims',
+      'Webapp Gestion Sinistres',
     ])
+  })
+})
+
+describe('buildPostalAddress', () => {
+  it('mappe les 4 champs Prisma (street, postalCode, city, country) vers le format Schema.org PostalAddress (streetAddress, postalCode, addressLocality, addressCountry)', () => {
+    const result = buildPostalAddress({
+      street: '7 place de la Gare',
+      postalCode: '57200',
+      city: 'Sarreguemines',
+      country: 'France',
+    })
+    expect(result).toEqual({
+      '@type': 'PostalAddress',
+      streetAddress: '7 place de la Gare',
+      postalCode: '57200',
+      addressLocality: 'Sarreguemines',
+      addressCountry: 'France',
+    })
   })
 })

@@ -179,6 +179,7 @@ src/
 ├── components/
 │   ├── ui/                 # Composants UI primitifs
 │   └── features/           # Composants métier
+├── env.ts                  # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── lib/                    # Utilitaires, config, logger (Pino)
 ├── server/                 # Server Actions + queries Prisma
 │   ├── actions/

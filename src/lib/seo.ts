@@ -3,6 +3,7 @@ import { hasLocale, type Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
+import { env } from '@/env'
 import { routing } from '@/i18n/routing'
 
 type OpenGraphImages = NonNullable<NonNullable<Metadata['openGraph']>['images']>
@@ -17,12 +18,7 @@ export async function resolveParentOgImages(
   return { og, twitter }
 }
 
-// TODO: déplacer vers src/env.ts (t3-env + Zod) quand la config env centralisée sera mise en place.
-function resolveSiteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-}
-
-export const siteUrl = resolveSiteUrl()
+export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
 
 export const localeToOgLocale = {
   fr: 'fr_FR',
@@ -69,7 +65,7 @@ export function buildPageMetadata({
   parentOpenGraphImages,
   parentTwitterImages,
 }: BuildPageMetadataInput): Metadata {
-  const url = `${resolveSiteUrl()}/${locale}${path}`
+  const url = `${siteUrl}/${locale}${path}`
   const isProduction = process.env.NODE_ENV === 'production'
 
   return {

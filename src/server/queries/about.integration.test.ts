@@ -14,6 +14,45 @@ import {
   HIDDEN_ON_ABOUT_TAG_SLUGS,
 } from '@/server/queries/about'
 
+async function ensureCompany(slug: string) {
+  await prisma.company.upsert({
+    where: { slug },
+    create: { slug, name: slug, sectors: [], size: null },
+    update: {},
+  })
+}
+
+async function createProjectWithMeta(input: {
+  slug: string
+  type: 'CLIENT' | 'PERSONAL'
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  endedAt: Date | null
+  deliverablesCount: number
+  companySlug?: string
+}) {
+  const companySlug = input.companySlug ?? 'co-' + input.slug
+  await ensureCompany(companySlug)
+  await prisma.project.create({
+    data: {
+      slug: input.slug,
+      titleFr: input.slug,
+      titleEn: input.slug,
+      descriptionFr: 'd',
+      descriptionEn: 'd',
+      type: input.type,
+      status: input.status,
+      endedAt: input.endedAt,
+      clientMeta: {
+        create: {
+          workMode: 'REMOTE',
+          deliverablesCount: input.deliverablesCount,
+          company: { connect: { slug: companySlug } },
+        },
+      },
+    },
+  })
+}
+
 describe('countMissionsDelivered', () => {
   beforeEach(async () => {
     await resetDatabase()
@@ -26,12 +65,8 @@ describe('countMissionsDelivered', () => {
   })
 
   it('somme deliverablesCount des projets PUBLISHED + CLIENT + endedAt:not null', async () => {
-    await prisma.project.createMany({
-      data: [
-        { slug: 'a', titleFr: 'A', titleEn: 'A', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 3 },
-        { slug: 'b', titleFr: 'B', titleEn: 'B', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 2 },
-      ],
-    })
+    await createProjectWithMeta({ slug: 'a', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 3 })
+    await createProjectWithMeta({ slug: 'b', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 2 })
 
     const result = await countMissionsDelivered()
 
@@ -39,13 +74,9 @@ describe('countMissionsDelivered', () => {
   })
 
   it('exclut les projets DRAFT et ARCHIVED', async () => {
-    await prisma.project.createMany({
-      data: [
-        { slug: 'pub',   titleFr: 'P', titleEn: 'P', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 5 },
-        { slug: 'draft', titleFr: 'D', titleEn: 'D', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'DRAFT',     endedAt: new Date(), deliverablesCount: 100 },
-        { slug: 'arch',  titleFr: 'A', titleEn: 'A', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'ARCHIVED',  endedAt: new Date(), deliverablesCount: 100 },
-      ],
-    })
+    await createProjectWithMeta({ slug: 'pub',   type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 5 })
+    await createProjectWithMeta({ slug: 'draft', type: 'CLIENT', status: 'DRAFT',     endedAt: new Date(), deliverablesCount: 100 })
+    await createProjectWithMeta({ slug: 'arch',  type: 'CLIENT', status: 'ARCHIVED',  endedAt: new Date(), deliverablesCount: 100 })
 
     const result = await countMissionsDelivered()
 
@@ -53,12 +84,8 @@ describe('countMissionsDelivered', () => {
   })
 
   it('exclut les projets PERSONAL', async () => {
-    await prisma.project.createMany({
-      data: [
-        { slug: 'cli',   titleFr: 'C', titleEn: 'C', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT',   status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 3 },
-        { slug: 'perso', titleFr: 'P', titleEn: 'P', descriptionFr: 'd', descriptionEn: 'd', type: 'PERSONAL', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 100 },
-      ],
-    })
+    await createProjectWithMeta({ slug: 'cli',   type: 'CLIENT',   status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 3 })
+    await createProjectWithMeta({ slug: 'perso', type: 'PERSONAL', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 100 })
 
     const result = await countMissionsDelivered()
 
@@ -66,12 +93,8 @@ describe('countMissionsDelivered', () => {
   })
 
   it('exclut les projets en cours (endedAt: null)', async () => {
-    await prisma.project.createMany({
-      data: [
-        { slug: 'done', titleFr: 'D', titleEn: 'D', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(), deliverablesCount: 4 },
-        { slug: 'wip',  titleFr: 'W', titleEn: 'W', descriptionFr: 'd', descriptionEn: 'd', type: 'CLIENT', status: 'PUBLISHED', endedAt: null,        deliverablesCount: 100 },
-      ],
-    })
+    await createProjectWithMeta({ slug: 'done', type: 'CLIENT', status: 'PUBLISHED', endedAt: new Date(),   deliverablesCount: 4 })
+    await createProjectWithMeta({ slug: 'wip',  type: 'CLIENT', status: 'PUBLISHED', endedAt: null,         deliverablesCount: 100 })
 
     const result = await countMissionsDelivered()
 
@@ -93,8 +116,8 @@ describe('countClientsSupported', () => {
   it('compte les Company distinctes liées à un projet PUBLISHED + CLIENT', async () => {
     await prisma.company.createMany({
       data: [
-        { slug: 'foyer',     name: 'Foyer',     sectors: ['ASSURANCE'], size: 'ETI', locations: ['LUXEMBOURG'] },
-        { slug: 'paysystem', name: 'PaySystem', sectors: ['SAAS'],      size: 'TPE', locations: ['LUXEMBOURG'] },
+        { slug: 'foyer',     name: 'Foyer',     sectors: ['ASSURANCE'], size: 'ETI' },
+        { slug: 'paysystem', name: 'PaySystem', sectors: ['SAAS'],      size: 'TPE' },
       ],
     })
     await prisma.project.create({
@@ -119,7 +142,7 @@ describe('countClientsSupported', () => {
 
   it('compte une seule fois une Company avec plusieurs projets clients', async () => {
     await prisma.company.create({
-      data: { slug: 'foyer', name: 'Foyer', sectors: ['ASSURANCE'], size: 'ETI', locations: ['LUXEMBOURG'] },
+      data: { slug: 'foyer', name: 'Foyer', sectors: ['ASSURANCE'], size: 'ETI' },
     })
     await prisma.project.create({
       data: {
@@ -143,7 +166,7 @@ describe('countClientsSupported', () => {
 
   it("exclut les Company qui n'ont que des projets PERSONAL", async () => {
     await prisma.company.create({
-      data: { slug: 'personnel', name: 'Personnel', sectors: [], size: null, locations: [] },
+      data: { slug: 'personnel', name: 'Personnel', sectors: [], size: null },
     })
     await prisma.project.create({
       data: {
@@ -160,7 +183,7 @@ describe('countClientsSupported', () => {
 
   it('exclut les Company sans clientMetas', async () => {
     await prisma.company.create({
-      data: { slug: 'orphan', name: 'Orphan', sectors: [], size: null, locations: [] },
+      data: { slug: 'orphan', name: 'Orphan', sectors: [], size: null },
     })
 
     const result = await countClientsSupported()

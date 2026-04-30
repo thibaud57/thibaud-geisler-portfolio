@@ -5,6 +5,10 @@ services:
       - '5432:5432'
 
   nextjs:
+    # Profile dev : nextjs lancé uniquement avec `--profile validation` (just docker-up).
+    # En dev quotidien, `just db` ne lance que postgres, le port 3000 reste libre pour `just dev` natif.
+    # Dokploy (prod) ignore l'override → service lancé sans profile, comportement normal.
+    profiles: [validation]
     # Override du .env host (DATABASE_URL pointe vers localhost pour `just dev` natif) :
     # dans le container, Postgres est résolu via DNS compose, pas localhost.
     environment:

@@ -288,8 +288,8 @@ export type ProjectInput = {
  * Il doit être non-vide AVANT d'exécuter le plan 03 (cf. section "Prérequis externes").
  * Exemple d'entrée valide :
  *   {
- *     slug: 'digiclaims',
- *     title: 'Digiclaims - Gestion Sinistres',
+ *     slug: 'webapp-gestion-sinistres',
+ *     title: 'Webapp Gestion Sinistres',
  *     description: 'Webapp Scala/Angular de gestion des dossiers sinistres pour Foyer.',
  *     type: 'CLIENT',
  *     status: 'PUBLISHED',
@@ -298,7 +298,7 @@ export type ProjectInput = {
  *     endedAt: new Date('2025-10-16'),
  *     githubUrl: null,
  *     demoUrl: null,
- *     coverFilename: 'digiclaims-cover.png',
+ *     coverFilename: 'webapp-gestion-sinistres-cover.png',
  *     displayOrder: 0,
  *     tagSlugs: ['scala', 'angular', 'kafka', 'mongodb', 'docker'],
  *     clientMeta: {
@@ -309,7 +309,7 @@ export type ProjectInput = {
  *     },
  *   }
  * Le case study narratif du projet ci-dessus serait lu depuis
- * `prisma/seed-data/case-studies/client/digiclaims.md` (car type='CLIENT').
+ * `prisma/seed-data/case-studies/client/webapp-gestion-sinistres.md` (car type='CLIENT').
  */
 export const projects: ProjectInput[] = []
 ```

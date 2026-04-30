@@ -4,7 +4,7 @@ import { Geist, Geist_Mono, Sansation } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
-import { Providers } from '@/components/providers/Providers'
+import { Providers } from '@/app/providers'
 import { routing } from '@/i18n/routing'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import {

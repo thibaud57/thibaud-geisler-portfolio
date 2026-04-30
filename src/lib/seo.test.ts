@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
 import { buildPageMetadata, type BuildPageMetadataInput } from './seo'
 
 function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetadataInput {
@@ -16,10 +17,6 @@ function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetad
 function ogType(meta: Metadata): string | undefined {
   return (meta.openGraph as { type?: string } | undefined)?.type
 }
-
-afterEach(() => {
-  vi.unstubAllEnvs()
-})
 
 describe('buildPageMetadata', () => {
   it('passe title et description tels quels (le template est appliqué par Next.js via le root layout)', () => {
@@ -49,23 +46,20 @@ describe('buildPageMetadata', () => {
 
   it('compose openGraph.url absolue depuis siteUrl + locale + path', () => {
     vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')
     const meta = buildPageMetadata(buildInput({ locale: 'fr', path: '/services' }))
     expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/fr/services')
   })
 
   it('home (path vide) : openGraph.url = siteUrl + /<locale> sans slash trailing', () => {
     vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')
     const meta = buildPageMetadata(buildInput({ locale: 'fr', path: '' }))
     expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/fr')
   })
 
   it('case study (path nested) : openGraph.url couvre /<locale>/projets/<slug>', () => {
     vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')
-    const meta = buildPageMetadata(buildInput({ locale: 'en', path: '/projets/digiclaims' }))
-    expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/en/projets/digiclaims')
+    const meta = buildPageMetadata(buildInput({ locale: 'en', path: '/projets/webapp-gestion-sinistres' }))
+    expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres')
   })
 
   it('expose siteName, title et description dans openGraph', () => {
@@ -90,7 +84,6 @@ describe('buildPageMetadata', () => {
 
   it('canonical absolu = openGraph.url (cohérence interne)', () => {
     vi.stubEnv('NODE_ENV', 'production')
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')
     const meta = buildPageMetadata(buildInput({ locale: 'fr', path: '/services' }))
     expect(meta.alternates?.canonical).toBe('https://thibaud-geisler.com/fr/services')
     expect(meta.alternates?.canonical).toBe(meta.openGraph?.url)

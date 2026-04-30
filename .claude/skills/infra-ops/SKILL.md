@@ -15,14 +15,14 @@ Ta mission est d'exécuter des opérations Docker et Database selon la demande e
 
 | Action | Commande |
 |---|---|
-| Lancer postgres + nextjs en détaché | `just docker-up` |
+| Lancer tout le compose (validation image) | `just docker-up` |
 | Stopper et retirer les containers | `just docker-down` |
 
 ### Database (dev)
 
 | Action | Commande | Notes |
 |---|---|---|
-| Readiness (docker-up + migrate deploy) | `just db` | Idempotent, safe à relancer |
+| Readiness (Postgres up + migrate deploy) | `just db` | Idempotent, safe à relancer |
 | Créer une migration dev | `just db-migrate <LABEL>` | LABEL obligatoire (snake-case, ex: `add-project-slug`) |
 | Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation |
 | Ouvrir Prisma Studio | `just db-studio` | Background (UI locale, http://localhost:5555) |

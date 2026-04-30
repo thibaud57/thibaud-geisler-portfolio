@@ -58,12 +58,13 @@ export const tags: TagInput[] = [
   { slug: 'local', nameFr: 'Local', nameEn: 'Local', kind: 'INFRA', icon: 'lucide:monitor', displayOrder: 9 },
   { slug: 'vercel', nameFr: 'Vercel', nameEn: 'Vercel', kind: 'INFRA', icon: 'simple-icons:vercel', displayOrder: 10 },
 
-  // === EXPERTISE (7) ===
+  // === EXPERTISE (8) ===
   { slug: 'agents-ia', nameFr: 'Agents IA', nameEn: 'AI Agents', kind: 'EXPERTISE', icon: 'lucide:brain-circuit', displayOrder: 0 },
   { slug: 'automatisation', nameFr: 'Automatisation', nameEn: 'Automation', kind: 'EXPERTISE', icon: 'lucide:workflow', displayOrder: 1 },
   { slug: 'developpement-fullstack', nameFr: 'Développement Full-Stack', nameEn: 'Full-Stack Development', kind: 'EXPERTISE', icon: 'lucide:laptop', displayOrder: 2 },
   { slug: 'microservices', nameFr: 'Microservices', nameEn: 'Microservices', kind: 'EXPERTISE', icon: 'lucide:network', displayOrder: 3 },
-  { slug: 'scraping', nameFr: 'Scraping', nameEn: 'Scraping', kind: 'EXPERTISE', icon: 'lucide:bug', displayOrder: 4 },
-  { slug: 'anonymisation', nameFr: 'Anonymisation', nameEn: 'Anonymization', kind: 'EXPERTISE', icon: 'lucide:ghost', displayOrder: 5 },
-  { slug: 'anti-bot', nameFr: 'Anti-bot', nameEn: 'Anti-bot', kind: 'EXPERTISE', icon: 'lucide:shield-ban', displayOrder: 6 },
+  { slug: 'programmation-fonctionnelle', nameFr: 'Programmation fonctionnelle', nameEn: 'Functional Programming', kind: 'EXPERTISE', icon: 'lucide:function-square', displayOrder: 4 },
+  { slug: 'scraping', nameFr: 'Scraping', nameEn: 'Scraping', kind: 'EXPERTISE', icon: 'lucide:bug', displayOrder: 5 },
+  { slug: 'anonymisation', nameFr: 'Anonymisation', nameEn: 'Anonymization', kind: 'EXPERTISE', icon: 'lucide:ghost', displayOrder: 6 },
+  { slug: 'anti-bot', nameFr: 'Anti-bot', nameEn: 'Anti-bot', kind: 'EXPERTISE', icon: 'lucide:shield-ban', displayOrder: 7 },
 ]
