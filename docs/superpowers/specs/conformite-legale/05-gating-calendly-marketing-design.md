@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Gating du widget Calendly inline derrière le consentement marketing"
 goal: "Conditionner le rendu du iframe Calendly au consentement marketing du sub 3 via useConsentManager().has({ category: 'marketing' }), avec un placeholder gated CTA qui ouvre la modale ConsentDialog c15t pour activer Calendly sans recharger la page"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "partial"
 depends_on: ["03-bandeau-consentement-cookies-design.md", "04-pages-mentions-confidentialite-design.md"]
