@@ -308,7 +308,72 @@
     "jobTitle": "IA & développement full-stack",
     "breadcrumbHome": "Accueil",
     "breadcrumbServices": "Services",
-    "breadcrumbProjects": "Projets"
+    "breadcrumbProjects": "Projets",
+    "legalMentionsTitle": "Mentions légales",
+    "legalMentionsDescription": "Mentions légales du site thibaud-geisler.com : identité de l'éditeur, hébergeur, propriété intellectuelle, conformité LCEN article 6-III.",
+    "privacyPolicyTitle": "Politique de confidentialité",
+    "privacyPolicyDescription": "Politique de confidentialité du site thibaud-geisler.com : finalités, sous-traitants, durées de conservation, droits utilisateur (RGPD article 13)."
+  },
+  "LegalMentions": {
+    "title": "Mentions légales",
+    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "identity": {
+      "title": "1. Identité de l'éditeur",
+      "intro": "Le présent site est édité par :",
+      "legalNameLabel": "Nom",
+      "statusLabel": "Statut juridique",
+      "sirenLabel": "SIREN",
+      "siretLabel": "SIRET",
+      "registrationLabel": "Inscription",
+      "registrationValue": "Inscrit au {type} sous le n° SIREN {siren}",
+      "apeLabel": "Activité (code APE)",
+      "apeValue": "{code} - {label}",
+      "addressLabel": "Adresse",
+      "emailLabel": "Contact",
+      "directorLabel": "Directeur de la publication",
+      "vatNotApplicable": "TVA non applicable, article 293 B du Code général des impôts (régime de la franchise en base).",
+      "vatNumberLabel": "Numéro de TVA intracommunautaire"
+    },
+    "hosting": {
+      "title": "2. Hébergeur",
+      "intro": "Le site est hébergé par :",
+      "nameLabel": "Nom",
+      "legalFormLabel": "Forme juridique",
+      "capitalLine": "{legalStatus} au capital de {amount} {currency}",
+      "addressLabel": "Adresse",
+      "rcsLabel": "RCS",
+      "phoneLabel": "Téléphone"
+    }
+  },
+  "PrivacyPolicy": {
+    "title": "Politique de confidentialité",
+    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "recipients": {
+      "title": "3. Destinataires et sous-traitants",
+      "intro": "Les données personnelles peuvent être transmises aux sous-traitants suivants pour les finalités décrites :",
+      "tableHeaders": {
+        "name": "Sous-traitant",
+        "role": "Rôle",
+        "purpose": "Finalité",
+        "country": "Pays"
+      }
+    },
+    "retention": {
+      "title": "4. Durées de conservation",
+      "intro": "Vos données sont conservées selon les durées suivantes :",
+      "tableHeaders": {
+        "processor": "Traitement",
+        "duration": "Durée"
+      }
+    },
+    "rights": {
+      "title": "5. Vos droits",
+      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
+    },
+    "transfers": {
+      "title": "6. Transferts de données hors Union européenne",
+      "intro": "Certains sous-traitants traitent vos données en dehors de l'Union européenne. Ces transferts sont encadrés par des garanties appropriées :"
+    }
   },
   "Cookies": {
     "openManagerLabel": "Gérer mes cookies"

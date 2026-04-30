@@ -308,7 +308,72 @@
     "jobTitle": "AI & full-stack development",
     "breadcrumbHome": "Home",
     "breadcrumbServices": "Services",
-    "breadcrumbProjects": "Projects"
+    "breadcrumbProjects": "Projects",
+    "legalMentionsTitle": "Legal notice",
+    "legalMentionsDescription": "Legal notice of thibaud-geisler.com: publisher identity, hosting provider, intellectual property, LCEN article 6-III compliance.",
+    "privacyPolicyTitle": "Privacy policy",
+    "privacyPolicyDescription": "Privacy policy of thibaud-geisler.com: purposes, processors, retention periods, user rights (GDPR article 13)."
+  },
+  "LegalMentions": {
+    "title": "Legal notice",
+    "lastUpdated": "Last updated: April 28, 2026",
+    "identity": {
+      "title": "1. Publisher identity",
+      "intro": "This site is published by:",
+      "legalNameLabel": "Name",
+      "statusLabel": "Legal status",
+      "sirenLabel": "SIREN",
+      "siretLabel": "SIRET",
+      "registrationLabel": "Registration",
+      "registrationValue": "Registered with {type} under SIREN no. {siren}",
+      "apeLabel": "Activity (APE code)",
+      "apeValue": "{code} - {label}",
+      "addressLabel": "Address",
+      "emailLabel": "Contact",
+      "directorLabel": "Publication director",
+      "vatNotApplicable": "VAT not applicable, article 293 B of the French General Tax Code (basic exemption regime).",
+      "vatNumberLabel": "Intra-Community VAT number"
+    },
+    "hosting": {
+      "title": "2. Hosting provider",
+      "intro": "The site is hosted by:",
+      "nameLabel": "Name",
+      "legalFormLabel": "Legal form",
+      "capitalLine": "{legalStatus} with capital of {amount} {currency}",
+      "addressLabel": "Address",
+      "rcsLabel": "Trade and Companies Register",
+      "phoneLabel": "Phone"
+    }
+  },
+  "PrivacyPolicy": {
+    "title": "Privacy policy",
+    "lastUpdated": "Last updated: April 28, 2026",
+    "recipients": {
+      "title": "3. Recipients and processors",
+      "intro": "Personal data may be shared with the following processors for the described purposes:",
+      "tableHeaders": {
+        "name": "Processor",
+        "role": "Role",
+        "purpose": "Purpose",
+        "country": "Country"
+      }
+    },
+    "retention": {
+      "title": "4. Retention periods",
+      "intro": "Your data is retained for the following periods:",
+      "tableHeaders": {
+        "processor": "Processing",
+        "duration": "Duration"
+      }
+    },
+    "rights": {
+      "title": "5. Your rights",
+      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
+    },
+    "transfers": {
+      "title": "6. Data transfers outside the European Union",
+      "intro": "Some processors handle your data outside the European Union. These transfers are subject to appropriate safeguards:"
+    }
   },
   "Cookies": {
     "openManagerLabel": "Manage cookies"

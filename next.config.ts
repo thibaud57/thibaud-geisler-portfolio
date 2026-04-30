@@ -37,6 +37,10 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   poweredByHeader: false,
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  outputFileTracingIncludes: {
+    '/[locale]/mentions-legales': ['./content/legal/**/*.md'],
+    '/[locale]/confidentialite': ['./content/legal/**/*.md'],
+  },
   env: {
     NEXT_PUBLIC_BUILD_YEAR: String(new Date().getFullYear()),
   },
