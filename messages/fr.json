@@ -376,7 +376,11 @@
     }
   },
   "Cookies": {
-    "openManagerLabel": "Gérer mes cookies"
+    "openManagerLabel": "Gérer mes cookies",
+    "calendlyGated": {
+      "label": "L'affichage du widget Calendly nécessite votre accord pour les cookies marketing.",
+      "cta": "Activer Calendly"
+    }
   },
   "Legal": {
     "legalStatus": {
