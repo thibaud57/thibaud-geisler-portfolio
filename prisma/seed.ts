@@ -1,14 +1,25 @@
-import 'dotenv/config'
+import nextEnv from '@next/env'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { PrismaClient, type ProjectType } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { routing } from '../src/i18n/routing.js'
+import { routing } from '@/i18n/routing'
 import { tags } from './seed-data/tags.js'
 import { companies } from './seed-data/companies.js'
 import { projects } from './seed-data/projects.js'
+import {
+  DataProcessingSchema,
+  LegalEntitySchema,
+  PublisherSchema,
+  legalEntities,
+  publisher,
+  dataProcessings,
+} from './seed-data/legal.js'
+import { parseOrThrow } from './utils.js'
+
+nextEnv.loadEnvConfig(process.cwd())
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -43,14 +54,71 @@ function readCaseStudy(
   }
 }
 
+async function seedLegalEntities(prisma: PrismaClient) {
+  for (const entity of legalEntities) {
+    const { slug, address, ...entityCommon } = parseOrThrow(
+      LegalEntitySchema,
+      entity,
+      `LegalEntity "${entity.slug}"`,
+    )
+
+    await prisma.legalEntity.upsert({
+      where: { slug },
+      create: { slug, ...entityCommon, address: { create: address } },
+      update: { ...entityCommon, address: { update: address } },
+    })
+  }
+  console.log(`✔ ${legalEntities.length} LegalEntity (+ Address) upsertés`)
+}
+
+async function seedPublisherAndProcessings(prisma: PrismaClient) {
+  const { legalEntitySlug, ...publisherCommon } = parseOrThrow(
+    PublisherSchema,
+    publisher,
+    'Publisher',
+  )
+  const publisherEntity = await prisma.legalEntity.findUniqueOrThrow({
+    where: { slug: legalEntitySlug },
+  })
+  await prisma.publisher.upsert({
+    where: { legalEntityId: publisherEntity.id },
+    create: { legalEntityId: publisherEntity.id, ...publisherCommon },
+    update: publisherCommon,
+  })
+  console.log(`✔ 1 Publisher upserté`)
+
+  for (const processing of dataProcessings) {
+    const { slug, processorLegalEntitySlug, ...processingFields } = parseOrThrow(
+      DataProcessingSchema,
+      processing,
+      `DataProcessing "${processing.slug}"`,
+    )
+    const processorEntity = await prisma.legalEntity.findUniqueOrThrow({
+      where: { slug: processorLegalEntitySlug },
+    })
+    const processingCommon = {
+      processorLegalEntityId: processorEntity.id,
+      ...processingFields,
+    }
+    await prisma.dataProcessing.upsert({
+      where: { slug },
+      create: { slug, ...processingCommon },
+      update: processingCommon,
+    })
+  }
+  console.log(`✔ ${dataProcessings.length} DataProcessing upsertés`)
+}
+
 async function main() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
   const prisma = new PrismaClient({ adapter })
 
   try {
     console.log(
-      `→ Seed démarré. ${tags.length} tags, ${companies.length} companies, ${projects.length} projets.`,
+      `→ Seed démarré. ${legalEntities.length} legal entities, ${tags.length} tags, ${companies.length} companies, ${projects.length} projets.`,
     )
+
+    await seedLegalEntities(prisma)
 
     await Promise.all(
       tags.map((t) => {
@@ -87,7 +155,9 @@ async function main() {
           websiteUrl: c.websiteUrl,
           sectors: c.sectors,
           size: c.size,
-          locations: c.locations,
+          legalEntity: c.legalEntitySlug
+            ? { connect: { slug: c.legalEntitySlug } }
+            : undefined,
         }
 
         return prisma.company.upsert({
@@ -115,6 +185,7 @@ async function main() {
               teamSize: p.clientMeta.teamSize,
               contractStatus: p.clientMeta.contractStatus,
               workMode: p.clientMeta.workMode,
+              deliverablesCount: p.clientMeta.deliverablesCount,
               company: { connect: { slug: p.clientMeta.companySlug } },
             }
           : undefined
@@ -140,7 +211,6 @@ async function main() {
           caseStudyMarkdownFr,
           caseStudyMarkdownEn,
           displayOrder: p.displayOrder,
-          deliverablesCount: p.deliverablesCount,
         }
 
         return prisma.project.upsert({
@@ -163,6 +233,8 @@ async function main() {
         })
       }),
     )
+
+    await seedPublisherAndProcessings(prisma)
 
     if (missingEnStubs.length > 0) {
       console.warn(

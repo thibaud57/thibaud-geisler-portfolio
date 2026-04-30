@@ -17,7 +17,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 ### État livré
 
-À la fin de ce sub-project, on peut : accéder à `/en/projets` et voir les 9 projets seedés affichés avec **titre anglais** (ex: "Digiclaims - Claims Management" au lieu de "Digiclaims - Gestion Sinistres"), **description anglaise** et **noms de tags anglais** (ex: "Automation" au lieu de "Automatisation"). Accéder à `/fr/projets` et retrouver les mêmes projets avec leurs labels français d'origine. Les 2 tests intégration `findManyPublished` et `findPublishedBySlug` vérifient que le helper de localisation pick le bon champ selon la locale passée. La page `/[locale]/projets/[slug]` (sub-project 06, à venir) rendra le bon markdown case study selon la locale en lisant `caseStudyMarkdownFr` ou `caseStudyMarkdownEn` (bilingue prête côté schema).
+À la fin de ce sub-project, on peut : accéder à `/en/projets` et voir les 9 projets seedés affichés avec **titre anglais** (ex: "Claims Management Web App" au lieu de "Webapp Gestion Sinistres"), **description anglaise** et **noms de tags anglais** (ex: "Automation" au lieu de "Automatisation"). Accéder à `/fr/projets` et retrouver les mêmes projets avec leurs labels français d'origine. Les 2 tests intégration `findManyPublished` et `findPublishedBySlug` vérifient que le helper de localisation pick le bon champ selon la locale passée. La page `/[locale]/projets/[slug]` (sub-project 06, à venir) rendra le bon markdown case study selon la locale en lisant `caseStudyMarkdownFr` ou `caseStudyMarkdownEn` (bilingue prête côté schema).
 
 ## Dependencies
 
@@ -103,7 +103,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 **GIVEN** la BDD migrée et re-seedée avec les 9 projets bilingues, visiteur accède à `/fr/projets`
 **WHEN** la page est rendue
-**THEN** les cards affichent les titres FR (ex: "Digiclaims - Gestion Sinistres", "Référent Technique IA & Automatisation")
+**THEN** les cards affichent les titres FR (ex: "Webapp Gestion Sinistres", "Référent Technique IA & Automatisation")
 **AND** les descriptions sont en FR
 **AND** les noms de tags sont en FR (ex: "Automatisation", "Scraping")
 
@@ -111,7 +111,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 **GIVEN** la BDD migrée et re-seedée avec les 9 projets bilingues, visiteur accède à `/en/projets`
 **WHEN** la page est rendue
-**THEN** les cards affichent les titres EN (ex: "Digiclaims - Claims Management", "Technical Lead AI & Automation")
+**THEN** les cards affichent les titres EN (ex: "Claims Management Web App", "Technical Lead AI & Automation")
 **AND** les descriptions sont en EN
 **AND** les noms de tags sont en EN (ex: "Automation", "Scraping" — certains noms techniques restent identiques)
 
@@ -131,8 +131,8 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 ### Scénario 5 : Page case study bilingue (prérequis pour sub-project 06)
 
-**GIVEN** un projet avec `caseStudyMarkdownFr` et `caseStudyMarkdownEn` seedés depuis `digiclaims.fr.md` et `digiclaims.en.md`
-**WHEN** visiteur accède à `/en/projets/digiclaims` (page case study du sub-project 06)
+**GIVEN** un projet avec `caseStudyMarkdownFr` et `caseStudyMarkdownEn` seedés depuis `webapp-gestion-sinistres.fr.md` et `webapp-gestion-sinistres.en.md`
+**WHEN** visiteur accède à `/en/projets/webapp-gestion-sinistres` (page case study du sub-project 06)
 **THEN** le markdown EN est rendu
 **AND** le pattern `prisma/seed-data/case-studies/<type>/<slug>.<locale>.md` permet d'ajouter une nouvelle langue sans changer le code, juste en créant un nouveau fichier + une nouvelle colonne `caseStudyMarkdown<Locale>` (extension future, hors scope immédiat)
 
@@ -158,7 +158,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 - `src/server/queries/projects.integration.test.ts` (existant, à étendre) :
   - **Test existant** : renommer les fixtures en `titleFr`/`titleEn` + pass `locale: 'fr'` aux appels existants
   - **Test nouveau** : `findManyPublished({ locale: 'en' })` retourne un array où `result[0].title === <titleEn de la fixture>`
-  - **Test nouveau** : `findPublishedBySlug('digiclaims', 'en')` retourne `result.title === 'Digiclaims - Claims Management'` (ou équivalent depuis la fixture)
+  - **Test nouveau** : `findPublishedBySlug('webapp-gestion-sinistres', 'en')` retourne `result.title === 'Claims Management Web App'` (ou équivalent depuis la fixture)
   - **Test nouveau** : les tags nested dans le retour sont aussi localisés (vérifie que `tags[0].tag.name === tag.nameEn` quand `locale='en'`)
 
 → `tdd_scope = partial` : les tests du helper `localizeProject` couvrent la logique métier critique, les tests intégration valident le pipe query + helper, les composants front sont couverts indirectement par la re-exécution du test existant `ProjectsList.test.tsx` (qui consomme le nouveau type `LocalizedProject` via fixtures adaptées).
@@ -204,8 +204,8 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 ### Décision : Case studies markdown en fichiers `.fr.md` / `.en.md` séparés
 
 **Options envisagées :**
-- **A. Fichiers séparés par locale** : `digiclaims.fr.md` + `digiclaims.en.md` dans le même dossier. Seed lit les 2 et hydrate 2 colonnes DB
-- **B. Un seul fichier avec délimiteurs de section** : `digiclaims.md` contenant `<!-- [fr] -->...<!-- [en] -->`. Seed parse les sections
+- **A. Fichiers séparés par locale** : `webapp-gestion-sinistres.fr.md` + `webapp-gestion-sinistres.en.md` dans le même dossier. Seed lit les 2 et hydrate 2 colonnes DB
+- **B. Un seul fichier avec délimiteurs de section** : `webapp-gestion-sinistres.md` contenant `<!-- [fr] -->...<!-- [en] -->`. Seed parse les sections
 - **C. Tout dans la BDD via un éditeur dashboard post-MVP** : zéro fichier markdown en dev, tout est en table
 
 **Choix : A**

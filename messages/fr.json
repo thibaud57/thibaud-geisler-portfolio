@@ -135,16 +135,6 @@
         "ETI": "ETI (250-5000)",
         "GROUPE": "Groupe (5000+)"
       },
-      "companyLocation": {
-        "LUXEMBOURG": "Luxembourg",
-        "PARIS": "Paris",
-        "GRAND_EST": "Grand Est",
-        "FRANCE": "France",
-        "BELGIQUE": "Belgique",
-        "SUISSE": "Suisse",
-        "EUROPE": "Europe",
-        "MONDE": "Monde"
-      },
       "kind": {
         "EXPERTISE": "Expertises",
         "LANGUAGE": "Langages",
@@ -262,6 +252,12 @@
     "location": "Grand Est · Luxembourg · Remote",
     "cv": {
       "label": "Mon CV au format PDF :"
+    },
+    "legalNav": {
+      "ariaLabel": "Liens légaux",
+      "mentions": "Mentions légales",
+      "privacy": "Politique de confidentialité",
+      "cookies": "Gérer mes cookies"
     }
   },
   "NotFound": {
@@ -318,6 +314,113 @@
     "jobTitle": "IA & développement full-stack",
     "breadcrumbHome": "Accueil",
     "breadcrumbServices": "Services",
-    "breadcrumbProjects": "Projets"
+    "breadcrumbProjects": "Projets",
+    "legalMentionsTitle": "Mentions légales",
+    "legalMentionsDescription": "Mentions légales du site thibaud-geisler.com : identité de l'éditeur, hébergeur, propriété intellectuelle, conformité LCEN article 6-III.",
+    "privacyPolicyTitle": "Politique de confidentialité",
+    "privacyPolicyDescription": "Politique de confidentialité du site thibaud-geisler.com : finalités, sous-traitants, durées de conservation, droits utilisateur (RGPD article 13)."
+  },
+  "LegalMentions": {
+    "title": "Mentions légales",
+    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "identity": {
+      "title": "1. Identité de l'éditeur",
+      "intro": "Le présent site est édité par :",
+      "legalNameLabel": "Nom",
+      "statusLabel": "Statut juridique",
+      "sirenLabel": "SIREN",
+      "siretLabel": "SIRET",
+      "registrationLabel": "Inscription",
+      "registrationValue": "Inscrit au {type} sous le n° SIREN {siren}",
+      "apeLabel": "Activité (code APE)",
+      "apeValue": "{code} - {label}",
+      "addressLabel": "Adresse",
+      "emailLabel": "Contact",
+      "directorLabel": "Directeur de la publication",
+      "vatNotApplicable": "TVA non applicable, article 293 B du Code général des impôts (régime de la franchise en base).",
+      "vatNumberLabel": "Numéro de TVA intracommunautaire"
+    },
+    "hosting": {
+      "title": "2. Hébergeur",
+      "intro": "Le site est hébergé par :",
+      "nameLabel": "Nom",
+      "legalFormLabel": "Forme juridique",
+      "capitalLine": "{legalStatus} au capital de {amount} {currency}",
+      "addressLabel": "Adresse",
+      "rcsLabel": "RCS",
+      "phoneLabel": "Téléphone"
+    }
+  },
+  "PrivacyPolicy": {
+    "title": "Politique de confidentialité",
+    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "recipients": {
+      "title": "3. Destinataires et sous-traitants",
+      "intro": "Les données personnelles peuvent être transmises aux sous-traitants suivants pour les finalités décrites :",
+      "tableHeaders": {
+        "name": "Sous-traitant",
+        "role": "Rôle",
+        "purpose": "Finalité",
+        "country": "Pays"
+      }
+    },
+    "retention": {
+      "title": "4. Durées de conservation",
+      "intro": "Vos données sont conservées selon les durées suivantes :",
+      "tableHeaders": {
+        "processor": "Traitement",
+        "duration": "Durée"
+      }
+    },
+    "rights": {
+      "title": "5. Vos droits",
+      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
+    },
+    "transfers": {
+      "title": "6. Transferts de données hors Union européenne",
+      "intro": "Certains sous-traitants traitent vos données en dehors de l'Union européenne. Ces transferts sont encadrés par des garanties appropriées :"
+    }
+  },
+  "Cookies": {
+    "openManagerLabel": "Gérer mes cookies",
+    "calendlyGated": {
+      "label": "L'affichage du widget Calendly nécessite votre accord pour les cookies marketing.",
+      "cta": "Activer Calendly"
+    }
+  },
+  "Legal": {
+    "legalStatus": {
+      "entrepreneurIndividuel": "Entrepreneur Individuel",
+      "sarl": "SARL",
+      "incorporated": "Incorporated (US)"
+    },
+    "ape": {
+      "6201Z": "Programmation informatique"
+    },
+    "retention": {
+      "logs3Years": "Durée de la prestation d'hébergement, plus 3 ans (logs)",
+      "logs30Days": "30 jours (logs SMTP), suppression automatique",
+      "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)"
+    },
+    "legalBasis": {
+      "CONSENT": "Consentement (RGPD art. 6-1-a)",
+      "CONTRACT": "Exécution d'un contrat (RGPD art. 6-1-b)",
+      "LEGAL_OBLIGATION": "Obligation légale (RGPD art. 6-1-c)",
+      "VITAL_INTERESTS": "Intérêts vitaux (RGPD art. 6-1-d)",
+      "PUBLIC_TASK": "Mission d'intérêt public (RGPD art. 6-1-e)",
+      "LEGITIMATE_INTERESTS": "Intérêt légitime (RGPD art. 6-1-f)"
+    },
+    "outsideEuFramework": {
+      "DATA_PRIVACY_FRAMEWORK": "Data Privacy Framework (décision d'adéquation US 2023)",
+      "STANDARD_CONTRACTUAL_CLAUSES": "Clauses contractuelles types (CCT)",
+      "ADEQUACY_DECISION": "Décision d'adéquation de la Commission européenne",
+      "BINDING_CORPORATE_RULES": "Règles d'entreprise contraignantes (BCR)"
+    },
+    "processingKind": {
+      "HOSTING": "Hébergement",
+      "EMBEDDED_SERVICE": "Service embarqué",
+      "EMAIL_PROVIDER": "Fournisseur d'emails",
+      "ANALYTICS": "Analytics"
+    }
   }
 }

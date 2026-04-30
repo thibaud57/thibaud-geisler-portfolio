@@ -67,7 +67,6 @@ describe('findManyPublished', () => {
         name: 'Airbus',
         sectors: ['LOGICIELS_ENTREPRISE'],
         size: 'GROUPE',
-        locations: ['FRANCE'],
       },
     })
 

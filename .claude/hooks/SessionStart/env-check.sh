@@ -27,7 +27,7 @@ $WARNINGS
 
 AVANT d'exécuter TOUTE tâche touchant DB/Prisma/Docker/infra, tu DOIS :
 1. Énumérer les blocages à l'utilisateur
-2. Proposer les actions correctives (just docker-up, cp .env.example .env, etc.)
+2. Proposer les actions correctives (just db, cp .env.example .env, etc. ; just docker-up réservé validation image)
 3. Attendre confirmation avant de lancer la tâche
 
 Si la tâche ne touche pas DB/infra (doc, UI, refactor), signaler les warnings et continuer." '{

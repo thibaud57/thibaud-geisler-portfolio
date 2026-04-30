@@ -1,8 +1,4 @@
-import type {
-  CompanyLocation,
-  CompanySector,
-  CompanySize,
-} from '@/generated/prisma/client'
+import type { CompanySector, CompanySize } from '@/generated/prisma/client'
 
 export const PERSONAL_COMPANY_SLUG = 'personnel'
 
@@ -13,18 +9,18 @@ export type CompanyInput = {
   websiteUrl: string | null
   sectors: CompanySector[]
   size: CompanySize | null
-  locations: CompanyLocation[]
+  legalEntitySlug: string | null
 }
 
 export const companies: CompanyInput[] = [
   {
     slug: 'foyer',
-    name: 'Foyer Group',
+    name: 'Foyer',
     logoFilename: 'projets/client/foyer/logo.png',
     websiteUrl: 'https://www.foyer.lu',
     sectors: ['ASSURANCE'],
     size: 'ETI',
-    locations: ['LUXEMBOURG', 'BELGIQUE'],
+    legalEntitySlug: 'foyer-group-sa',
   },
   {
     slug: 'cloudsmart',
@@ -33,7 +29,7 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://cloudsmart.lu',
     sectors: ['SAAS', 'LOGICIELS_ENTREPRISE'],
     size: 'TPE',
-    locations: ['LUXEMBOURG'],
+    legalEntitySlug: 'cloudsmart-sarl',
   },
   {
     slug: 'paysystem',
@@ -42,7 +38,8 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://www.paysystem.eu',
     sectors: ['SAAS', 'SERVICES_RH'],
     size: 'TPE',
-    locations: ['LUXEMBOURG'],
+    // TODO: site web inactif (paysystem.eu en vente sur Sedo), entité juridique LU à compléter manuellement
+    legalEntitySlug: null,
   },
   {
     slug: 'wanted-design',
@@ -51,7 +48,7 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://www.wanteddesign.fr',
     sectors: ['EMARKETING', 'IA_AUTOMATISATION'],
     size: 'TPE',
-    locations: ['GRAND_EST'],
+    legalEntitySlug: 'wantedesign-sas',
   },
   {
     slug: PERSONAL_COMPANY_SLUG,
@@ -60,6 +57,6 @@ export const companies: CompanyInput[] = [
     websiteUrl: null,
     sectors: [],
     size: null,
-    locations: [],
+    legalEntitySlug: null,
   },
 ]

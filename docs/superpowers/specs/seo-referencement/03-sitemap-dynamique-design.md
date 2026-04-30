@@ -63,9 +63,9 @@ Aucune — ce sub-project est autoporté. Il réutilise des modules livrés ant�
 **AND** trois `<xhtml:link rel="alternate" hreflang="...">` pour `fr`, `en` et `x-default` pointant vers les bonnes URLs
 
 ### Scénario 3 : Page projet dynamique avec lastmod issu d'`updatedAt`
-**GIVEN** un projet publié avec `slug: "digiclaims"` et `updatedAt: 2026-03-15T10:00:00Z`
+**GIVEN** un projet publié avec `slug: "webapp-gestion-sinistres"` et `updatedAt: 2026-03-15T10:00:00Z`
 **WHEN** on inspecte l'entrée du projet dans `sitemap.xml`
-**THEN** l'entrée contient `<loc>https://thibaud-geisler.com/fr/projets/digiclaims</loc>`
+**THEN** l'entrée contient `<loc>https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres</loc>`
 **AND** `<lastmod>2026-03-15T10:00:00.000Z</lastmod>` (sérialisé depuis `updatedAt`, pas `new Date()`)
 **AND** trois `<xhtml:link rel="alternate" hreflang="...">` pointant vers les versions FR/EN/x-default du projet
 
@@ -89,7 +89,7 @@ Aucune — ce sub-project est autoporté. Il réutilise des modules livrés ant�
   - **Home (path vide)** : `path: ''` produit `url === 'https://thibaud-geisler.com/fr'` sans slash trailing
   - **Alternates statiques** : chaque entrée statique expose `alternates.languages` avec les clés `fr`, `en`, `x-default` mappant les bonnes URLs
   - **Projets uniquement** : `buildSitemapEntries({ staticPaths: [], projects: [project1, project2], siteUrl })` retourne 2 entrées
-  - **URL canonical projet** : un projet `{ slug: 'digiclaims', updatedAt }` produit `url === 'https://thibaud-geisler.com/fr/projets/digiclaims'`
+  - **URL canonical projet** : un projet `{ slug: 'webapp-gestion-sinistres', updatedAt }` produit `url === 'https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres'`
   - **lastModified projet = `updatedAt`** : un projet avec `updatedAt: new Date('2026-03-15T10:00:00Z')` produit `lastModified === new Date('2026-03-15T10:00:00Z')` (pas `new Date()`)
   - **Alternates projets** : chaque entrée projet expose `alternates.languages` avec `fr`, `en`, `x-default` pointant vers `/fr/projets/<slug>`, `/en/projets/<slug>`, `/fr/projets/<slug>`
   - **Composition** : avec `staticPaths` complets + 3 projets, retourne `5 + 3 = 8` entrées

@@ -736,7 +736,7 @@ Attendu : build Next.js OK, route `/[locale]/a-propos` listée (`○ Static` ou 
 3. Vérifier :
    - Hero : portrait visible, H1 en `font-display`, tagline en `text-muted-foreground`, bouton CV pleine largeur.
    - Bio : 3 paragraphes affichés.
-   - Stats : 3 compteurs animés (`NumberTicker`). Valeurs cohérentes : années XP = 6 (en 2026), missions ≥ 3 (4 projets clients CLIENT+endedAt≠null dans le seed : Digiclaims, SaaS Paie, ERP Odoo, + éventuels autres), clients ≥ 3 (Foyer, Paysystem, Cloudsmart). Le chiffre exact dépend du seed actuel.
+   - Stats : 3 compteurs animés (`NumberTicker`). Valeurs cohérentes : années XP = 6 (en 2026), missions ≥ 3 (4 projets clients CLIENT+endedAt≠null dans le seed : Webapp Gestion Sinistres, SaaS Paie, ERP Odoo, + éventuels autres), clients ≥ 3 (Foyer, Paysystem, Cloudsmart). Le chiffre exact dépend du seed actuel.
    - Stack : sections dans l'ordre `AI → EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → INFRA`, badges avec icônes Simple Icons/Lucide lorsque `tag.icon` est défini.
 4. Vérifier le `<head>` DevTools : `<title>` = `À propos | ...`, `<meta name="description">` = `Metadata.aboutDescription`, `<meta property="og:locale" content="fr_FR">`, `<link rel="alternate" hreflang="fr|en|x-default" ...>`.
 5. Redimensionner : mobile (portrait au-dessus, bio single col, stats single col), desktop `lg:` (portrait à droite, stats 3 cols).

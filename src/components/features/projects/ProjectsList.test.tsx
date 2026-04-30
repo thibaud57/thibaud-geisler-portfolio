@@ -1,16 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { NextIntlClientProvider } from 'next-intl'
+import type { ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+
+import frMessages from '../../../../messages/fr.json'
 import type { LocalizedProjectWithRelations } from '@/types/project'
 import { ProjectsList } from './ProjectsList'
-
-vi.mock('next-intl', async (orig) => {
-  const actual = await orig<typeof import('next-intl')>()
-  return {
-    ...actual,
-    useTranslations: () => (key: string) => key,
-  }
-})
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, ...props }: { children: React.ReactNode }) => <a {...props}>{children}</a>,
@@ -20,6 +16,14 @@ vi.mock('@/components/magicui/bento-grid', () => ({
   BentoGrid: ({ children }: { children: React.ReactNode }) => <div data-testid="bento-grid">{children}</div>,
   BentoCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
+
+function renderWithIntl(ui: ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="fr" messages={frMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  )
+}
 
 type Company = NonNullable<NonNullable<LocalizedProjectWithRelations['clientMeta']>['company']>
 
@@ -33,7 +37,7 @@ function createCompany(overrides?: Partial<Company>): Company {
     websiteUrl: null,
     sectors: [],
     size: null,
-    locations: [],
+    legalEntityId: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -58,7 +62,6 @@ function createProject(overrides?: Partial<LocalizedProjectWithRelations>): Loca
     coverFilename: null,
     caseStudyMarkdown: null,
     displayOrder: 0,
-    deliverablesCount: 1,
     createdAt: now,
     updatedAt: now,
     tags: [],
@@ -69,6 +72,7 @@ function createProject(overrides?: Partial<LocalizedProjectWithRelations>): Loca
       teamSize: null,
       contractStatus: null,
       workMode: 'REMOTE',
+      deliverablesCount: 1,
       createdAt: now,
       updatedAt: now,
       company,
@@ -92,6 +96,7 @@ describe('ProjectsList filter', () => {
           teamSize: 6,
           contractStatus: 'CDI',
           workMode: 'HYBRIDE',
+          deliverablesCount: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
           company: createCompany({ id: 'c-foyer', slug: 'foyer', name: 'Foyer Group' }),
@@ -110,6 +115,7 @@ describe('ProjectsList filter', () => {
           teamSize: null,
           contractStatus: null,
           workMode: 'REMOTE',
+          deliverablesCount: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
           company: createCompany({ id: 'c-acme', slug: 'acme', name: 'Acme' }),
@@ -117,17 +123,17 @@ describe('ProjectsList filter', () => {
       }),
     ]
     const user = userEvent.setup()
-    render(<ProjectsList projects={fixtures} />)
+    renderWithIntl(<ProjectsList projects={fixtures} />)
 
     expect(screen.getAllByRole('article')).toHaveLength(3)
 
     await user.click(screen.getByRole('tab', { name: /client/i }))
     expect(screen.getAllByRole('article')).toHaveLength(2)
 
-    await user.click(screen.getByRole('tab', { name: /personal/i }))
+    await user.click(screen.getByRole('tab', { name: /personnel/i }))
     expect(screen.getAllByRole('article')).toHaveLength(1)
 
-    await user.click(screen.getByRole('tab', { name: /all/i }))
+    await user.click(screen.getByRole('tab', { name: /tous/i }))
     expect(screen.getAllByRole('article')).toHaveLength(3)
   })
 })

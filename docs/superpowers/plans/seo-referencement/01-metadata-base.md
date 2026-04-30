@@ -181,8 +181,8 @@ Expected : PASS (1 test).
   it('case study (path nested) : openGraph.url couvre /<locale>/projets/<slug>', () => {
     vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://thibaud-geisler.com')
-    const meta = buildPageMetadata(buildInput({ locale: 'en', path: '/projets/digiclaims' }))
-    expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/en/projets/digiclaims')
+    const meta = buildPageMetadata(buildInput({ locale: 'en', path: '/projets/webapp-gestion-sinistres' }))
+    expect(meta.openGraph?.url).toBe('https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres')
   })
 
   it('expose siteName, title et description dans openGraph', () => {
