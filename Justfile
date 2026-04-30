@@ -46,11 +46,11 @@ test-unit:
 
 [group('quality')]
 test-integration:
-    pnpm vitest run --project integration --no-file-parallelism
+    @{{DOTENV_TEST}} && pnpm vitest run --project integration --no-file-parallelism
 
 [group('quality')]
 test-watch:
-    pnpm test:watch
+    @{{DOTENV_TEST}} && pnpm test:watch
 
 # ─── Infrastructure ──────────────────────────────────────────────────
 [group('infra')]
