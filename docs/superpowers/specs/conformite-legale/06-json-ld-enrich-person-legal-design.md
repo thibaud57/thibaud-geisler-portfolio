@@ -2,7 +2,7 @@
 feature: "Feature 7 — Conformité légale"
 subproject: "Enrichissement JSON-LD Person sur /a-propos avec address PostalAddress + taxID + identifier SIRET"
 goal: "Étendre buildProfilePagePerson du sub-project SEO 05 existant pour ajouter les champs Schema.org address (PostalAddress), taxID (SIRET) et identifier (PropertyValue) au mainEntity Person sur /a-propos, lus via getPublisher du sub 1, avec extraction d'un helper réutilisable buildPostalAddress préparant Organization JSON-LD post-MVP"
-status: "draft"
+status: "implemented"
 complexity: "S"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-legal-entity-seed-design.md"]
