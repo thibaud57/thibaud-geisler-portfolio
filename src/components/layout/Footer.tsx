@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import { env } from '@/env'
 
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
-import { OpenCookiePreferencesButton } from '@/components/features/legal/OpenCookiePreferencesButton'
+import { OpenCookiePreferencesLink } from '@/components/features/legal/OpenCookiePreferencesButton'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
@@ -17,6 +17,8 @@ import { BrandLogo } from './BrandLogo'
 type Props = {
   locale: Locale
 }
+
+const legalNavLinkClass = 'transition-colors hover:text-foreground'
 
 export async function Footer({ locale }: Props) {
   const [t, publisher] = await Promise.all([
@@ -53,16 +55,15 @@ export async function Footer({ locale }: Props) {
               aria-label={t('legalNav.ariaLabel')}
               className="flex flex-wrap items-center gap-x-4 gap-y-2"
             >
-              <Link href="/mentions-legales" className="hover:text-foreground transition-colors">
+              <Link href="/mentions-legales" className={legalNavLinkClass}>
                 {t('legalNav.mentions')}
               </Link>
-              <Link href="/confidentialite" className="hover:text-foreground transition-colors">
+              <Link href="/confidentialite" className={legalNavLinkClass}>
                 {t('legalNav.privacy')}
               </Link>
-              <OpenCookiePreferencesButton
-                variant="link"
+              <OpenCookiePreferencesLink
                 label={t('legalNav.cookies')}
-                className="h-auto px-0 py-0 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground hover:no-underline"
+                className={legalNavLinkClass}
               />
             </nav>
           </Suspense>

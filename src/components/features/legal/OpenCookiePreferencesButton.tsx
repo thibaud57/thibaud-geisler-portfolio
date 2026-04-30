@@ -30,3 +30,23 @@ export function OpenCookiePreferencesButton({
     </Button>
   )
 }
+
+type LinkProps = {
+  className?: string
+  label?: string
+}
+
+export function OpenCookiePreferencesLink({ className, label }: LinkProps) {
+  const { setActiveUI } = useConsentManager()
+  const t = useTranslations('Cookies')
+
+  return (
+    <button
+      type="button"
+      onClick={() => setActiveUI('dialog')}
+      className={className}
+    >
+      {label ?? t('openManagerLabel')}
+    </button>
+  )
+}
