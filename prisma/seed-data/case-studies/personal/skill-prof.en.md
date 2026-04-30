@@ -45,3 +45,7 @@ Two complementary audit agents: `lesson/auditor` (format + technical accuracy pe
 - Multi-step workflows with quality gates
 - Pedagogical structuring of complex technical content
 - The anti-redundancy matrix in plans is critical for dense lessons without repetition
+
+## Links
+
+- [LinkedIn: Claude Skills for up-to-date technical cheat sheets](https://www.linkedin.com/posts/thibaud-geisler_ia-claudeai-claudecode-share-7449846804663304192-asUx)
