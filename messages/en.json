@@ -252,6 +252,12 @@
     "location": "Grand Est · Luxembourg · Remote",
     "cv": {
       "label": "My résumé (PDF):"
+    },
+    "legalNav": {
+      "ariaLabel": "Legal links",
+      "mentions": "Legal notice",
+      "privacy": "Privacy policy",
+      "cookies": "Manage my cookies"
     }
   },
   "NotFound": {
