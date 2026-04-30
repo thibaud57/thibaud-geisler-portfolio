@@ -19,9 +19,7 @@ export async function ProjectsTeaserSection({ locale }: Props) {
   return (
     <section className="flex flex-col gap-8">
       <header className="flex flex-col items-center gap-3 text-center">
-        <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          {t('title')}
-        </h2>
+        <h2 className="font-display">{t('title')}</h2>
         <p className="max-w-2xl text-base text-muted-foreground">
           {t('subtitle')}
         </p>

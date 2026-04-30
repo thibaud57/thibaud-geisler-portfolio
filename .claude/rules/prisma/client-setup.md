@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/prisma.ts"
+  - "src/env.ts"
   - "prisma.config.ts"
 ---
 
@@ -10,6 +11,7 @@ paths:
 - Instancier `PrismaClient` en **singleton global** pour éviter l'épuisement du pool de connexions pendant le HMR Next.js en dev
 - Utiliser `@prisma/adapter-pg` : driver adapter **obligatoire** pour PostgreSQL en Prisma 7
 - Charger `.env` dans `prisma.config.ts` via **`@next/env`** (`loadEnvConfig(process.cwd())` en tête de fichier) — recommandation officielle Next.js pour charger les env vars hors runtime Next, pas de dep dotenv supplémentaire à ajouter (déjà transitif via `next`)
+- Lire `DATABASE_URL` dans `src/lib/prisma.ts` via **`env.DATABASE_URL`** importé depuis `@/env` (createEnv `@t3-oss/env-nextjs` + Zod, voir `nextjs/configuration.md`) — Next.js charge automatiquement `.env*` au runtime, pas besoin de `dotenv/config` dans le module Prisma
 - Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via **`process.env.DATABASE_URL!`**, `migrations.path`). L'**adapter** (`PrismaPg`) n'est **pas** dans ce fichier — il se configure à l'instanciation du `PrismaClient` (dans `src/lib/prisma.ts`)
 - Déclarer `"type": "module"` dans `package.json` : Prisma 7 est **ESM-only**
 - Ajouter `"postinstall": "prisma generate"` dans `package.json` (convention standard Prisma 7)
@@ -21,12 +23,13 @@ paths:
 - Instancier `new PrismaClient()` dans chaque module : multiplie les pools de connexions, épuise Postgres
 - Utiliser `$use()` pour les middlewares : **supprimé** en Prisma 7, migrer vers `$extends()`
 - Compter sur le chargement auto de `.env` au runtime : supprimé en Prisma 7, charger explicitement via `@next/env` dans `prisma.config.ts`
+- Importer `dotenv/config` dans `src/lib/prisma.ts` ou tout autre module runtime Next.js : redondant (Next.js charge déjà `.env*` automatiquement au boot du serveur), source d'incohérence avec le pattern `@/env` t3-env. Réservé aux scripts standalone hors Next sans `@next/env`
 - Laisser `provider = "prisma-client-js"` : **renommé** `prisma-client` en v7 dans le generator
 - Omettre le champ `output` dans le generator : **obligatoire** en v7
 - Utiliser le helper **`env('DATABASE_URL')`** de `prisma/config` dans `prisma.config.ts` : cette fonction throw `PrismaConfigEnvError` **au chargement du fichier config**, ce qui casse toute commande CLI (y compris `prisma generate` qui n'a pas besoin de l'URL) sans `DATABASE_URL` set. Utiliser `process.env.DATABASE_URL!` à la place (lecture paresseuse, seules les commandes qui utilisent vraiment l'URL échouent si absente)
 
 ## Gotchas
-- Prisma 7 + Better Auth + Next 16 : erreur P1010 "User was denied access" vient presque toujours d'une `DATABASE_URL` non chargée (pas d'un bug Prisma), vérifier `dotenv.config()` au runtime
+- Prisma 7 + Better Auth + Next 16 : erreur P1010 "User was denied access" vient presque toujours d'une `DATABASE_URL` non chargée (pas d'un bug Prisma). Vérifier que `prisma.config.ts` charge bien `.env` via `loadEnvConfig` (`@next/env`), que `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env`, et que la var est définie dans Dokploy en prod
 - **Prisma 7 + Turbopack build** : issue WASM connue (`query_compiler_fast_bg.postgresql.mjs` not found) — Turbopack est le défaut en Next 16 pour `next build`. Workaround jusqu'à correction : opt-out via `next build --webpack` dans le Dockerfile
 - Pas concerné par l'issue CI hash mismatch (#29025) : Dokploy build directement sur le serveur, pas de split CI/deploy
 - Client Rust-free v7 : bundle ~90% plus petit, queries ~3x plus rapides, perf TS ~70% plus rapide
@@ -36,13 +39,14 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ singleton via globalThis + driver adapter PG (chemins critiques v7)
-import 'dotenv/config'
+// ✅ singleton via globalThis + driver adapter PG + env validé via @/env (chemins critiques v7)
+import 'server-only'
 import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { env } from '@/env'
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL })
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

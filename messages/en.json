@@ -135,16 +135,6 @@
         "ETI": "Mid-large (250-5000)",
         "GROUPE": "Enterprise (5000+)"
       },
-      "companyLocation": {
-        "LUXEMBOURG": "Luxembourg",
-        "PARIS": "Paris",
-        "GRAND_EST": "Grand Est",
-        "FRANCE": "France",
-        "BELGIQUE": "Belgium",
-        "SUISSE": "Switzerland",
-        "EUROPE": "Europe",
-        "MONDE": "Worldwide"
-      },
       "kind": {
         "EXPERTISE": "Expertise",
         "LANGUAGE": "Languages",
@@ -262,6 +252,12 @@
     "location": "Grand Est · Luxembourg · Remote",
     "cv": {
       "label": "My résumé (PDF):"
+    },
+    "legalNav": {
+      "ariaLabel": "Legal links",
+      "mentions": "Legal notice",
+      "privacy": "Privacy policy",
+      "cookies": "Manage my cookies"
     }
   },
   "NotFound": {
@@ -318,6 +314,113 @@
     "jobTitle": "AI & full-stack development",
     "breadcrumbHome": "Home",
     "breadcrumbServices": "Services",
-    "breadcrumbProjects": "Projects"
+    "breadcrumbProjects": "Projects",
+    "legalMentionsTitle": "Legal notice",
+    "legalMentionsDescription": "Legal notice of thibaud-geisler.com: publisher identity, hosting provider, intellectual property, LCEN article 6-III compliance.",
+    "privacyPolicyTitle": "Privacy policy",
+    "privacyPolicyDescription": "Privacy policy of thibaud-geisler.com: purposes, processors, retention periods, user rights (GDPR article 13)."
+  },
+  "LegalMentions": {
+    "title": "Legal notice",
+    "lastUpdated": "Last updated: April 28, 2026",
+    "identity": {
+      "title": "1. Publisher identity",
+      "intro": "This site is published by:",
+      "legalNameLabel": "Name",
+      "statusLabel": "Legal status",
+      "sirenLabel": "SIREN",
+      "siretLabel": "SIRET",
+      "registrationLabel": "Registration",
+      "registrationValue": "Registered with {type} under SIREN no. {siren}",
+      "apeLabel": "Activity (APE code)",
+      "apeValue": "{code} - {label}",
+      "addressLabel": "Address",
+      "emailLabel": "Contact",
+      "directorLabel": "Publication director",
+      "vatNotApplicable": "VAT not applicable, article 293 B of the French General Tax Code (basic exemption regime).",
+      "vatNumberLabel": "Intra-Community VAT number"
+    },
+    "hosting": {
+      "title": "2. Hosting provider",
+      "intro": "The site is hosted by:",
+      "nameLabel": "Name",
+      "legalFormLabel": "Legal form",
+      "capitalLine": "{legalStatus} with capital of {amount} {currency}",
+      "addressLabel": "Address",
+      "rcsLabel": "Trade and Companies Register",
+      "phoneLabel": "Phone"
+    }
+  },
+  "PrivacyPolicy": {
+    "title": "Privacy policy",
+    "lastUpdated": "Last updated: April 28, 2026",
+    "recipients": {
+      "title": "3. Recipients and processors",
+      "intro": "Personal data may be shared with the following processors for the described purposes:",
+      "tableHeaders": {
+        "name": "Processor",
+        "role": "Role",
+        "purpose": "Purpose",
+        "country": "Country"
+      }
+    },
+    "retention": {
+      "title": "4. Retention periods",
+      "intro": "Your data is retained for the following periods:",
+      "tableHeaders": {
+        "processor": "Processing",
+        "duration": "Duration"
+      }
+    },
+    "rights": {
+      "title": "5. Your rights",
+      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
+    },
+    "transfers": {
+      "title": "6. Data transfers outside the European Union",
+      "intro": "Some processors handle your data outside the European Union. These transfers are subject to appropriate safeguards:"
+    }
+  },
+  "Cookies": {
+    "openManagerLabel": "Manage cookies",
+    "calendlyGated": {
+      "label": "Displaying the Calendly widget requires your consent to marketing cookies.",
+      "cta": "Enable Calendly"
+    }
+  },
+  "Legal": {
+    "legalStatus": {
+      "entrepreneurIndividuel": "Sole proprietorship",
+      "sarl": "LLC",
+      "incorporated": "Incorporated (US)"
+    },
+    "ape": {
+      "6201Z": "Computer programming"
+    },
+    "retention": {
+      "logs3Years": "Duration of hosting service, plus 3 years (logs)",
+      "logs30Days": "30 days (SMTP logs), automatic deletion",
+      "session13Months": "Session duration, plus 13 months (consent cookie)"
+    },
+    "legalBasis": {
+      "CONSENT": "Consent (GDPR art. 6-1-a)",
+      "CONTRACT": "Contract performance (GDPR art. 6-1-b)",
+      "LEGAL_OBLIGATION": "Legal obligation (GDPR art. 6-1-c)",
+      "VITAL_INTERESTS": "Vital interests (GDPR art. 6-1-d)",
+      "PUBLIC_TASK": "Public interest task (GDPR art. 6-1-e)",
+      "LEGITIMATE_INTERESTS": "Legitimate interests (GDPR art. 6-1-f)"
+    },
+    "outsideEuFramework": {
+      "DATA_PRIVACY_FRAMEWORK": "Data Privacy Framework (US adequacy decision 2023)",
+      "STANDARD_CONTRACTUAL_CLAUSES": "Standard Contractual Clauses (SCC)",
+      "ADEQUACY_DECISION": "European Commission adequacy decision",
+      "BINDING_CORPORATE_RULES": "Binding Corporate Rules (BCR)"
+    },
+    "processingKind": {
+      "HOSTING": "Hosting",
+      "EMBEDDED_SERVICE": "Embedded service",
+      "EMAIL_PROVIDER": "Email provider",
+      "ANALYTICS": "Analytics"
+    }
   }
 }

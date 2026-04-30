@@ -84,13 +84,15 @@ Nouveau fichier de configuration centralisé en v7, remplace la dispersion des f
 
 ```ts
 // prisma.config.ts
-import 'dotenv/config'
-import { defineConfig, env } from 'prisma/config'
+import { loadEnvConfig } from '@next/env'
+loadEnvConfig(process.cwd())
+
+import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: env('DATABASE_URL'),
+    url: process.env.DATABASE_URL!,
   },
   migrations: {
     path: 'prisma/migrations',
@@ -101,8 +103,8 @@ export default defineConfig({
 
 ### Points Importants
 
-- Importer `dotenv/config` explicitement (Prisma 7 ne charge plus `.env` automatiquement)
-- `env('DATABASE_URL')` lit depuis `process.env` au moment de l'exécution CLI
+- Charger `.env` via `@next/env` (`loadEnvConfig(process.cwd())`) — recommandation officielle Next.js, pas de dep `dotenv` à ajouter (transitif via `next`)
+- Utiliser `process.env.DATABASE_URL!` plutôt que le helper `env('DATABASE_URL')` de `prisma/config` : ce dernier throw `PrismaConfigEnvError` au chargement du fichier config et casse `prisma generate` (issue #28590). `process.env.X!` est lu paresseusement
 - Les flags `--schema` et `--url` sont supprimés en v7
 - Configurer `seed: 'tsx prisma/seed.ts'` pour `prisma db seed`
 
@@ -118,15 +120,16 @@ En v7, toute connexion passe par un driver adapter explicite. Pour PostgreSQL : 
 
 ```ts
 // src/lib/prisma.ts
-import 'dotenv/config'
-import { PrismaPg } from '@prisma/adapter-pg'
+import 'server-only'
 import { PrismaClient } from '@/generated/prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { env } from '@/env'
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-  return new PrismaClient({ adapter })
+  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL })
+  return new PrismaClient({ adapter, log: ['warn', 'error'] })
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()
@@ -141,6 +144,8 @@ if (process.env.NODE_ENV !== 'production') {
 - Pattern singleton via `globalThis` pour éviter les multiples instances en dev (hot reload Next.js)
 - Importer depuis le chemin `output` du generator (`@/generated/prisma/client`)
 - `@prisma/adapter-pg` et `pg` sont des dépendances runtime obligatoires
+- Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (validation Zod runtime via `@t3-oss/env-nextjs`) — Next.js charge `.env*` automatiquement au boot, pas besoin de `dotenv/config` dans le module
+- `import 'server-only'` empêche tout import accidentel depuis un Client Component
 - En prod (Next.js build), une seule instance est créée par worker
 
 ---
@@ -206,7 +211,10 @@ Pattern pour peupler la base avec des données de test. Le script est référenc
 
 ```ts
 // prisma/seed.ts
-import 'dotenv/config'
+import nextEnv from '@next/env'
+
+nextEnv.loadEnvConfig(process.cwd())
+
 import { PrismaClient } from '@/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
@@ -316,7 +324,8 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 ## ✅ Recommandations
 
 - Utiliser le driver adapter `@prisma/adapter-pg` (obligatoire en v7)
-- Importer `dotenv/config` explicitement dans le code serveur
+- Charger `.env` via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` et les scripts standalone (`prisma/seed.ts`)
+- Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs` + Zod) dans le code Next.js runtime (`src/lib/prisma.ts`)
 - Pattern singleton `globalThis` pour éviter les instances multiples en dev
 - Séparer `src/server/queries/` (lecture) et `src/server/actions/` (mutations)
 - `import 'server-only'` dans les modules qui accèdent à Prisma
@@ -325,7 +334,8 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 ## ❌ Anti-Patterns
 
 - Ne pas instancier `PrismaClient` dans un Client Component
-- Ne pas oublier `dotenv/config` en v7 (sinon `DATABASE_URL` undefined)
+- Ne pas importer `dotenv/config` dans `src/lib/prisma.ts` ou autre module runtime Next.js (redondant : Next.js charge `.env*` au boot, pattern `@/env` t3-env attendu)
+- Ne pas utiliser le helper `env('DATABASE_URL')` de `prisma/config` (throw `PrismaConfigEnvError` au load, casse `prisma generate` — issue #28590). Utiliser `process.env.DATABASE_URL!` à la place
 - Ne pas utiliser `db push` en production
 - Ne pas exécuter `migrate dev` dans une CI/CD (utiliser `migrate deploy`)
 - Ne pas compter sur l'ancien provider `prisma-client-js` (déprécié)

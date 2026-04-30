@@ -37,7 +37,7 @@ export async function AboutHero({ locale, className, children }: Props) {
       </div>
 
       <div className="order-2 flex flex-col items-start gap-6 text-left lg:order-1">
-        <h1 className="font-display text-4xl font-bold tracking-tight text-balance text-center sm:text-5xl lg:text-left">
+        <h1 className="text-balance text-center lg:text-left">
           {t('headline')}
         </h1>
         <p className="text-lg text-muted-foreground">{t('tagline')}</p>

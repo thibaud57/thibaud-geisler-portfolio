@@ -26,6 +26,7 @@ export function WordRotate({
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
+    if (words.length <= 1) return
     const interval = setInterval(() => {
       setIndex((prevIndex) => (prevIndex + 1) % words.length)
     }, duration)
@@ -35,13 +36,13 @@ export function WordRotate({
   return (
     <div className="overflow-hidden py-2">
       <AnimatePresence mode="wait">
-        <motion.h1
+        <motion.span
           key={words[index]}
-          className={cn(className)}
+          className={cn('inline-block', className)}
           {...motionProps}
         >
           {words[index]}
-        </motion.h1>
+        </motion.span>
       </AnimatePresence>
     </div>
   )

@@ -1,8 +1,16 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
+
+import { env } from '@/env'
 
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
+import { OpenCookiePreferencesLink } from '@/components/features/legal/OpenCookiePreferencesButton'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from '@/i18n/navigation'
+import { formatSiret } from '@/lib/legal/format-siret'
+import { getPublisher } from '@/server/queries/legal'
 
 import { BrandLogo } from './BrandLogo'
 
@@ -10,8 +18,13 @@ type Props = {
   locale: Locale
 }
 
+const legalNavLinkClass = 'transition-colors hover:text-foreground'
+
 export async function Footer({ locale }: Props) {
-  const t = await getTranslations('Footer')
+  const [t, publisher] = await Promise.all([
+    getTranslations('Footer'),
+    getPublisher(),
+  ])
 
   return (
     <footer className="border-t border-border mt-auto">
@@ -33,9 +46,27 @@ export async function Footer({ locale }: Props) {
 
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto flex flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6 lg:px-8">
-          <p>© {process.env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler</p>
-
-          {/* TODO(feature-7-conformite-legale): nav légale (mentions, confidentialité, cookies) */}
+          <p>
+            © {env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler
+            {publisher?.siret && ` - SIRET ${formatSiret(publisher.siret)}`}
+          </p>
+          <Suspense fallback={<Skeleton className="h-5 w-72" />}>
+            <nav
+              aria-label={t('legalNav.ariaLabel')}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2"
+            >
+              <Link href="/mentions-legales" className={legalNavLinkClass}>
+                {t('legalNav.mentions')}
+              </Link>
+              <Link href="/confidentialite" className={legalNavLinkClass}>
+                {t('legalNav.privacy')}
+              </Link>
+              <OpenCookiePreferencesLink
+                label={t('legalNav.cookies')}
+                className={legalNavLinkClass}
+              />
+            </nav>
+          </Suspense>
         </div>
       </div>
     </footer>

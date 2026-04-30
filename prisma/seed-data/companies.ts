@@ -1,8 +1,4 @@
-import type {
-  CompanyLocation,
-  CompanySector,
-  CompanySize,
-} from '@/generated/prisma/client'
+import type { CompanySector, CompanySize } from '@/generated/prisma/client'
 
 export const PERSONAL_COMPANY_SLUG = 'personnel'
 
@@ -13,7 +9,7 @@ export type CompanyInput = {
   websiteUrl: string | null
   sectors: CompanySector[]
   size: CompanySize | null
-  locations: CompanyLocation[]
+  legalEntitySlug: string | null
 }
 
 export const companies: CompanyInput[] = [
@@ -24,7 +20,7 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://acme.example',
     sectors: ['ASSURANCE'],
     size: 'ETI',
-    locations: ['LUXEMBOURG', 'BELGIQUE'],
+    legalEntitySlug: 'acme-sa',
   },
   {
     slug: 'soylent',
@@ -33,7 +29,7 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://soylent.example',
     sectors: ['SAAS', 'LOGICIELS_ENTREPRISE'],
     size: 'TPE',
-    locations: ['LUXEMBOURG'],
+    legalEntitySlug: 'soylent-sarl',
   },
   {
     slug: 'umbrella',
@@ -42,7 +38,8 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://umbrella.example',
     sectors: ['SAAS', 'SERVICES_RH'],
     size: 'TPE',
-    locations: ['LUXEMBOURG'],
+    // TODO: site web inactif (umbrella.example en vente sur Sedo), entité juridique LU à compléter manuellement
+    legalEntitySlug: null,
   },
   {
     slug: 'initech',
@@ -51,7 +48,7 @@ export const companies: CompanyInput[] = [
     websiteUrl: 'https://initech.example',
     sectors: ['EMARKETING', 'IA_AUTOMATISATION'],
     size: 'TPE',
-    locations: ['GRAND_EST'],
+    legalEntitySlug: 'initech-sas',
   },
   {
     slug: PERSONAL_COMPANY_SLUG,
@@ -60,6 +57,6 @@ export const companies: CompanyInput[] = [
     websiteUrl: null,
     sectors: [],
     size: null,
-    locations: [],
+    legalEntitySlug: null,
   },
 ]

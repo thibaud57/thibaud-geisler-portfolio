@@ -18,6 +18,7 @@ paths:
 - Utiliser les **opacity modifiers** (`bg-black/50`, `text-foreground/80`) au lieu de `bg-opacity-*` / `text-opacity-*` (supprimés en v4)
 - **Border radius via `--radius`** : modifier uniquement `--radius` dans `globals.css` pour ajuster proportionnellement toute l'échelle (sm/md/lg/xl dérivés via `calc()`)
 - **`cursor-pointer` v4** : preflight v4 retire le default sur `<button>` → restaurer via snippet officiel (`button:not(:disabled), [role="button"]:not(:disabled)`) dans `@layer base` + ajouter `cursor-pointer` dans les CVA des items shadcn cliquables (`DropdownMenuItem`, `SelectItem`, etc.). Pas de `:is()` custom étendu.
+- **Scale typo H1/H2/H3 via `@layer base`** : la scale DESIGN.md est appliquée globalement dans `globals.css` (`@layer base { h1, h2, h3 }` mobile-first responsive). Ne pas répéter les classes de taille sur chaque heading. Override local autorisé pour exceptions (`font-display` cards marketing, `text-xs uppercase` visual labels). Garder `prose-h2:*` / `prose-h3:*` dans `MarkdownContent` (spécificité `.prose`).
 
 ## À éviter
 - **Couleurs en dur** : `bg-green-600`, `text-[#8FA68E]`, `text-red-500` → toujours via tokens (`bg-primary`, `text-destructive`) sinon le dark mode ne fonctionne pas

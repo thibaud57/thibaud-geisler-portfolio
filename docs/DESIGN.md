@@ -266,7 +266,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 **Container** : `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8` (1280px max, padding responsive)
 
-**Section padding** : `py-16 sm:py-20 lg:py-24` (espacement vertical entre sections)
+**Section padding** : `py-16 sm:py-20 lg:py-24` (espacement vertical entre sections marketing)
+
+**Spacing pages documentaires** : `space-y-12` (48px fixe) sur le wrapper interne — pour pages denses en lecture continue (mentions légales, politique de confidentialité, case studies projets). Rythme typographique plus serré que le marketing pour préserver le flux de lecture. Combiné avec `gap-6` interne pour les sections coded et `prose-h2:mt-12 prose-h2:mb-6` pour les sections markdown afin d'aligner sur le même rythme.
 
 **Grid principal** : CSS Grid ou Flexbox selon le contexte, pas de librairie de grid externe
 

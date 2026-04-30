@@ -21,6 +21,10 @@ export type ProfilePagePersonInput = {
   image: string
   sameAs: readonly string[]
   expertise: readonly Expertise[]
+  legal?: {
+    siret: string
+    address: AddressInput
+  }
 }
 
 export type ProfilePagePerson = {
@@ -38,6 +42,13 @@ export type ProfilePagePerson = {
     image: string
     sameAs: readonly string[]
     knowsAbout: KnowsAboutEntry[]
+    address?: SchemaOrgPostalAddress
+    taxID?: string
+    identifier?: {
+      '@type': 'PropertyValue'
+      propertyID: 'SIRET'
+      value: string
+    }
   }
 }
 
@@ -58,8 +69,33 @@ export type BreadcrumbList = {
   }[]
 }
 
+export type AddressInput = {
+  street: string
+  postalCode: string
+  city: string
+  country: string
+}
+
+export type SchemaOrgPostalAddress = {
+  '@type': 'PostalAddress'
+  streetAddress: string
+  postalCode: string
+  addressLocality: string
+  addressCountry: string
+}
+
 function normalizeBase(siteUrl: string): string {
   return siteUrl.replace(/\/$/, '')
+}
+
+export function buildPostalAddress(address: AddressInput): SchemaOrgPostalAddress {
+  return {
+    '@type': 'PostalAddress',
+    streetAddress: address.street,
+    postalCode: address.postalCode,
+    addressLocality: address.city,
+    addressCountry: address.country,
+  }
 }
 
 function mapExpertise(entry: Expertise): KnowsAboutEntry {
@@ -93,6 +129,15 @@ export function buildProfilePagePerson(
       image: input.image,
       sameAs: input.sameAs,
       knowsAbout: input.expertise.map(mapExpertise),
+      ...(input.legal && {
+        address: buildPostalAddress(input.legal.address),
+        taxID: input.legal.siret,
+        identifier: {
+          '@type': 'PropertyValue' as const,
+          propertyID: 'SIRET' as const,
+          value: input.legal.siret,
+        },
+      }),
     },
   }
 }

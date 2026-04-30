@@ -16,12 +16,14 @@ export async function countMissionsDelivered(): Promise<number> {
   'use cache'
   cacheLife('hours')
   cacheTag('projects')
-  const result = await prisma.project.aggregate({
+  const result = await prisma.clientMeta.aggregate({
     _sum: { deliverablesCount: true },
     where: {
-      status: 'PUBLISHED',
-      type: 'CLIENT',
-      endedAt: { not: null },
+      project: {
+        status: 'PUBLISHED',
+        type: 'CLIENT',
+        endedAt: { not: null },
+      },
     },
   })
   return result._sum.deliverablesCount ?? 0

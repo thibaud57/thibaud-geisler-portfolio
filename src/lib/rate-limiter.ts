@@ -13,7 +13,7 @@ export type RateLimitResult = {
 const DEFAULT_CAP = 1000
 const buckets = new Map<string, number[]>()
 
-export function checkRateLimit(key: string, options: RateLimitOptions): RateLimitResult {
+function check(key: string, options: RateLimitOptions): RateLimitResult {
   const { max, windowMs, cap = DEFAULT_CAP } = options
   const now = Date.now()
   const cutoff = now - windowMs
@@ -42,6 +42,15 @@ export function checkRateLimit(key: string, options: RateLimitOptions): RateLimi
   return { allowed: true, retryAfterSeconds: 0 }
 }
 
-export function __resetRateLimiter(): void {
+function reset(): void {
   buckets.clear()
+}
+
+// Export en objet (pas en fonctions plates) pour permettre `vi.spyOn(rateLimiter, 'check')`
+// dans les tests : les namespace ESM (`import * as`) sont readonly, mais une const objet est
+// patchable. Évite `vi.mock('@/lib/rate-limiter')` qui souffre du module cache cross-fichier
+// sous Vitest 4 + projects (cf. vitest#6258).
+export const rateLimiter = {
+  check,
+  reset,
 }
