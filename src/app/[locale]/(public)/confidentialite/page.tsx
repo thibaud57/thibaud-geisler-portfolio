@@ -68,11 +68,11 @@ export default async function ConfidentialitePage({
 
   return (
     <PageShell title={t('title')} subtitle={t('lastUpdated')}>
-      <div className="flex flex-col gap-16 sm:gap-20 lg:gap-24">
+      <div className="space-y-12">
         <MarkdownContent markdown={introContent} />
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2>
             {t('recipients.title')}
           </h2>
           <p className="text-muted-foreground">{t('recipients.intro')}</p>
@@ -112,7 +112,7 @@ export default async function ConfidentialitePage({
         </section>
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2>
             {t('retention.title')}
           </h2>
           <p className="text-muted-foreground">{t('retention.intro')}</p>
@@ -141,7 +141,7 @@ export default async function ConfidentialitePage({
         </section>
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2>
             {t('rights.title')}
           </h2>
           <p className="text-muted-foreground">
@@ -170,7 +170,7 @@ export default async function ConfidentialitePage({
 
         {transfersOutsideEu.length > 0 ? (
           <section className="flex flex-col gap-6">
-            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2>
               {t('transfers.title')}
             </h2>
             <p className="text-muted-foreground">{t('transfers.intro')}</p>
@@ -191,11 +191,10 @@ export default async function ConfidentialitePage({
           </section>
         ) : null}
 
-        <MarkdownContent markdown={cookiesContent} />
-
-        <div>
-          <OpenCookiePreferencesButton variant="outline" />
-        </div>
+        <section>
+          <MarkdownContent markdown={cookiesContent} />
+          <OpenCookiePreferencesButton variant="outline" className="mt-4" />
+        </section>
       </div>
     </PageShell>
   )

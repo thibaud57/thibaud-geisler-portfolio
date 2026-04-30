@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import type { Tag, TagKind } from '@/generated/prisma/client'
 import type { LocalizedTag } from '@/i18n/localize-content'
 import { resolveTagIcon } from '@/lib/icons'
+import { KIND_ORDER } from '@/lib/tags'
 import { cn } from '@/lib/utils'
-
-import { KIND_ORDER } from './tag-kind-order'
 
 type Props = {
   tags: LocalizedTag<Tag>[]

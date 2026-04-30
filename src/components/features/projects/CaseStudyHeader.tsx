@@ -22,21 +22,19 @@ export function CaseStudyHeader({ project }: Props) {
   const durationValue = formatDurationRange(timeline, t('inProgress'))
 
   return (
-    <header className="mb-8">
+    <header>
       {startYear !== null ? (
         <div className="mb-6 flex items-center gap-3" aria-label={t('meta.duration')}>
           <TimelineMarker label={String(startYear)} />
           <span
-            className="h-px flex-1 max-w-24 bg-gradient-to-r from-primary/60 to-primary/10"
+            className="h-px flex-1 max-w-24 bg-linear-to-r from-primary/60 to-primary/10"
             aria-hidden="true"
           />
           <TimelineMarker label={endLabel} variant={inProgress ? 'active' : 'default'} />
         </div>
       ) : null}
 
-      <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-        {project.title}
-      </h1>
+      <h1>{project.title}</h1>
 
       <FormatBadges formats={project.formats} className="mt-5" />
 
@@ -58,7 +56,7 @@ export function CaseStudyHeader({ project }: Props) {
       ) : (
         <div
           aria-hidden="true"
-          className="mt-10 aspect-[16/7] w-full rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-accent/10 to-background"
+          className="mt-10 aspect-[16/7] w-full rounded-2xl border border-border bg-linear-to-br from-primary/15 via-accent/10 to-background"
         />
       )}
 

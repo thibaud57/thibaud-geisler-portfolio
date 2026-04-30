@@ -1,20 +1,12 @@
 import { useTranslations } from 'next-intl'
 import type { TagKind } from '@/generated/prisma/client'
+import { KIND_ORDER } from '@/lib/tags'
 import type { LocalizedProjectTag } from '@/types/project'
 import { TagBadge } from './TagBadge'
 
 type Props = {
   tags: LocalizedProjectTag[]
 }
-
-const KIND_ORDER: TagKind[] = [
-  'EXPERTISE',
-  'LANGUAGE',
-  'FRAMEWORK',
-  'DATABASE',
-  'AI',
-  'INFRA',
-]
 
 export function TagStackGrouped({ tags }: Props) {
   const t = useTranslations('Projects.caseStudy')
@@ -38,11 +30,8 @@ export function TagStackGrouped({ tags }: Props) {
   })
 
   return (
-    <section className="my-16" aria-labelledby="case-study-stack-title">
-      <h2
-        id="case-study-stack-title"
-        className="mb-8 text-3xl font-semibold tracking-tight"
-      >
+    <section aria-labelledby="case-study-stack-title">
+      <h2 id="case-study-stack-title" className="mb-6">
         {t('stackTitle')}
       </h2>
 

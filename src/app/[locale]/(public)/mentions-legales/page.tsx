@@ -75,9 +75,9 @@ export default async function MentionsLegalesPage({
 
   return (
     <PageShell title={t('title')} subtitle={t('lastUpdated')}>
-      <div className="flex flex-col gap-16 sm:gap-20 lg:gap-24">
+      <div className="space-y-12">
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2>
             {t('identity.title')}
           </h2>
           <p className="text-muted-foreground">{t('identity.intro')}</p>
@@ -152,7 +152,7 @@ export default async function MentionsLegalesPage({
         </section>
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h2>
             {t('hosting.title')}
           </h2>
           <p className="text-muted-foreground">{t('hosting.intro')}</p>

@@ -37,7 +37,7 @@ export async function FinalCtaSection({ locale }: Props) {
 
   return (
     <section className="flex flex-col items-center gap-8 rounded-xl border bg-card px-6 py-12 text-center sm:py-16">
-      <h2 className="flex flex-wrap items-center justify-center gap-x-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+      <h2 className="flex flex-wrap items-center justify-center gap-x-3 font-display">
         <span>{t('finalCta.titlePrefix')}</span>
         <WordRotate words={rotateWords} className="text-primary" />
         <span>{t('finalCta.titleSuffix')}</span>

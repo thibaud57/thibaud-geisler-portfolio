@@ -35,9 +35,7 @@ export function Hero({
       <BackgroundRippleEffect />
 
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center sm:px-6">
-        <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-          {h1}
-        </h1>
+        <h1>{h1}</h1>
         <div className="relative max-w-2xl overflow-hidden">
           <p
             aria-hidden

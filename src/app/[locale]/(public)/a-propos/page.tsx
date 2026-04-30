@@ -109,9 +109,7 @@ export default async function AProposPage({
         </section>
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {t('stack.title')}
-          </h2>
+          <h2>{t('stack.title')}</h2>
           <Suspense fallback={<StackSkeleton />}>
             <StackAsync locale={locale} />
           </Suspense>

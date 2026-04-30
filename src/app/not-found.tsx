@@ -34,9 +34,7 @@ export default async function RootNotFound() {
             className="size-16 text-muted-foreground"
             strokeWidth={1.5}
           />
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            {t('title')}
-          </h1>
+          <h1>{t('title')}</h1>
           <p className="text-base text-muted-foreground">{t('description')}</p>
           <Link
             href={`/${routing.defaultLocale}`}
