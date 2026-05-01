@@ -199,7 +199,7 @@ Pages légales et consentement cookies obligatoires avant mise en production pub
 
 * Page `/mentions-legales` (identification responsable + hébergeur, base légale LCEN art 6-III)
 * Page `/confidentialite` (politique RGPD art 13/14 — traitement du formulaire de contact, base légale intérêt légitime art 6-1-f, rétention 3 ans maximum, droits utilisateur, transfert hors UE Calendly via Data Privacy Framework)
-* Bandeau consentement cookies (`vanilla-cookieconsent` self-hosted, MIT, ~30 KB) — conforme CNIL 2025 : Accept all / Reject all même niveau visuel, opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
+* Bandeau consentement cookies (`@c15t/nextjs` v2 mode offline, MIT, React Provider natif, theming CSS vars, conformité CNIL out-of-the-box) — conforme CNIL 2025 : Accept all / Reject all même niveau visuel (override CSS pour symétrie 2020-092), opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
 * Gating du script Calendly inline (Feature 1 sub 04) : `widget.js` ne charge qu'après consentement de la catégorie marketing (Calendly pose des cookies tiers Segment, Google Analytics, Google Ads, Hotjar, LinkedIn Insight Tag, Facebook Pixel)
 * CSP (Content-Security-Policy) finalisé en synchronisation avec le gating cookies (origines `*.calendly.com` MVP + Umami post-MVP autorisées seulement après consentement marketing)
 * Banner cookies non-bloquant pour les Core Web Vitals : lazy load après FCP, position `fixed` pour CLS = 0, contenu indexable servi avant consentement (Googlebot ne consent jamais)
