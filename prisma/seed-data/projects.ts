@@ -203,9 +203,9 @@ export const projects: ProjectInput[] = [
     ],
   },
   {
-    slug: 'techno-scraper',
-    titleFr: 'Techno Scraper',
-    titleEn: 'Techno Scraper',
+    slug: 'music-scraper',
+    titleFr: 'Music Scraper',
+    titleEn: 'Music Scraper',
     descriptionFr:
       'API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données via REST puis via un serveur MCP pour intégration native avec des agents IA.',
     descriptionEn:
@@ -217,7 +217,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date('2025-04-21'),
     githubUrl: 'https://github.com/thibaud57/techno-scraper',
     demoUrl: null,
-    coverFilename: 'projets/personal/techno-scraper/cover.webp',
+    coverFilename: 'projets/personal/music-scraper/cover.webp',
     displayOrder: 6,
     clientMeta: { companySlug: PERSONAL_COMPANY_SLUG, teamSize: 1, contractStatus: null, workMode: 'REMOTE', deliverablesCount: 1 },
     tagSlugs: [
