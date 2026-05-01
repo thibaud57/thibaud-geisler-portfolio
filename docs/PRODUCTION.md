@@ -194,23 +194,34 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 
 ## Checklist Pré-MEP
 
-Notes de bootstrap non bloquantes en dev local. À activer **une fois** avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
+Items à valider avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
+
+### Bootstrap technique
 
 - [x] **Dockerfile `output: 'standalone'`** — activé dans `next.config.ts`, stage `runner` copie `.next/standalone` + `.next/static` + `public/` + `CMD ["node", "server.js"]`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
 - [x] **Opt-out Turbopack build (Prisma WASM)** — `next build --webpack` actif dans le Dockerfile. À surveiller : [Prisma issue #29025](https://github.com/prisma/prisma/issues/29025) pour retirer quand le bug upstream est corrigé.
 - [x] **Migrations auto au startup container** — stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** — favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
-> Ces items étaient des optimisations et workarounds techniques (pas des ADRs : pas de décision architecturale structurelle). Implémentés au bootstrap Phase 6 et validés empiriquement.
+> Items techniques et assets de bootstrap, implémentés et validés empiriquement. Pas d'ADR : pas de décision architecturale structurelle, juste des optimisations, workarounds Docker/Next.js et assets de branding.
 
 > **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
 
-### Cohérence documentaire (alignement specs ↔ implémentation)
+### Validation technique finale
+
+- [ ] **`just check`** — diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
+- [ ] **`just lint`** + **`just typecheck`** — code sain (déjà couverts en CI, sécu finale en local)
+- [ ] **`just test`** — tous les tests passent en local
+- [ ] **`just build`** — build Next.js standalone passe sans erreur
+- [ ] **Test container Docker local** — `docker compose up --build` → vérifier que `prisma migrate deploy` s'exécute au startup + smoke test sur `localhost`. Évite de découvrir un crash de migration ou un timeout healthcheck en prod.
+
+### Cohérence documentaire
 
 - [ ] **BRAINSTORM.md** — auditer le doc dans son ensemble et identifier les écarts entre la vision/features livrées et l'impl
 - [ ] **ARCHITECTURE.md** — auditer le doc dans son ensemble et identifier les écarts entre l'architecture documentée et l'impl
 - [ ] **DESIGN.md** — auditer le doc dans son ensemble et identifier les écarts entre le design system et l'UI livrée
 - [ ] **PRODUCTION.md** — auditer le doc dans son ensemble et vérifier que toutes les procédures opérationnelles documentées sont effectivement en place
+- [ ] **README.md** — compléter la racine projet (présentation, stack, getting started, liens docs) une fois les autres docs auditées, pour refléter l'état stabilisé
 
 ## Checklist Post-MEP
 
