@@ -1,4 +1,4 @@
-# JSON-LD ProfilePage + Person + BreadcrumbList — Plan d'implémentation (sub-project 05 / Feature 5 SEO)
+# JSON-LD ProfilePage + Person + BreadcrumbList: Plan d'implémentation (sub-project 05 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,7 +6,7 @@
 
 **Goal :** Injecter du JSON-LD `ProfilePage` + `Person` (avec `sameAs`, `email`, `image`, `knowsAbout` au format Thing+Wikidata) sur `/a-propos`, et `BreadcrumbList` sur `/services`, `/projets`, `/projets/[slug]` (avec segment dynamique = titre projet localisé) pour activer les rich results "Profile page" et "Breadcrumbs" dans les SERPs Google.
 
-**Architecture :** Quatre unités séparées par responsabilité — (1) constante typée `EXPERTISE` (4 disciplines avec mapping Wikidata) dans `src/config/expertise.ts`, (2) helpers purs `buildProfilePagePerson()` + `buildBreadcrumbList()` dans `src/lib/seo/json-ld.ts` (testables sans mock), (3) Server Component `<JsonLd>` générique dans `src/components/seo/json-ld.tsx` (5 lignes, échappement `</script>`), (4) intégration dans 4 pages (a-propos avec ProfilePage+Person, services/projets liste/projets[slug] avec BreadcrumbList).
+**Architecture :** Quatre unités séparées par responsabilité, (1) constante typée `EXPERTISE` (4 disciplines avec mapping Wikidata) dans `src/config/expertise.ts`, (2) helpers purs `buildProfilePagePerson()` + `buildBreadcrumbList()` dans `src/lib/seo/json-ld.ts` (testables sans mock), (3) Server Component `<JsonLd>` générique dans `src/components/seo/json-ld.tsx` (5 lignes, échappement `</script>`), (4) intégration dans 4 pages (a-propos avec ProfilePage+Person, services/projets liste/projets[slug] avec BreadcrumbList).
 
 **Tech Stack :** Next.js 16.2.4 App Router · TypeScript 6 strict · React 19.2.5 · next-intl 4.9.1 (`localePrefix: 'always'`, FR/EN) · Vitest 4 (project unit jsdom).
 
@@ -356,7 +356,7 @@ describe('buildBreadcrumbList', () => {
 - [ ] **Step 2 : Lancer les tests pour vérifier qu'ils échouent (red)**
 
 Run : `pnpm vitest run --project unit src/lib/seo/json-ld.test.ts`
-Expected : FAIL — les 15 tests échouent tous (`buildProfilePagePerson` et `buildBreadcrumbList` non implémentées).
+Expected : FAIL, les 15 tests échouent tous (`buildProfilePagePerson` et `buildBreadcrumbList` non implémentées).
 
 ---
 
@@ -498,7 +498,7 @@ export function buildBreadcrumbList(input: BreadcrumbListInput): BreadcrumbList 
 - [ ] **Step 2 : Lancer les tests pour vérifier qu'ils passent (green)**
 
 Run : `pnpm vitest run --project unit src/lib/seo/json-ld.test.ts`
-Expected : PASS — les 15 tests passent.
+Expected : PASS, les 15 tests passent.
 
 - [ ] **Step 3 : Quality gate intermédiaire**
 
@@ -827,7 +827,7 @@ Expected : build complet sans erreur. Vérifier qu'aucun warning sur les nouveau
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV` = `production`.
 
-- [ ] **Step 2 : Scénario 1 spec — ProfilePage+Person sur /fr/a-propos**
+- [ ] **Step 2 : Scénario 1 spec: ProfilePage+Person sur /fr/a-propos**
 
 Run : `curl -s http://localhost:3000/fr/a-propos | grep -A 1 'application/ld+json'`
 Expected : présence de la balise `<script type="application/ld+json">` suivie d'un JSON contenant `"@type":"ProfilePage"`, `"@type":"Person"`, `"name":"Thibaud Geisler"`, `"jobTitle":"IA & développement full-stack"`, `"url":"http://localhost:3000/fr/a-propos"`, `"sameAs":[...linkedin..., ...github...]`, `"knowsAbout":[...]`.
@@ -837,7 +837,7 @@ Pour inspection complète :
 Run : `curl -s http://localhost:3000/fr/a-propos | grep -oE '<script type="application/ld\+json">[^<]+</script>' | head -1`
 Expected : ligne unique avec le JSON-LD complet sans `</script>` non échappé (présence de `<` si le contenu contient des `<`).
 
-- [ ] **Step 3 : Scénario 2 spec — même page en EN**
+- [ ] **Step 3 : Scénario 2 spec: même page en EN**
 
 Run : `curl -s http://localhost:3000/en/a-propos | grep -oE '"jobTitle":"[^"]+"'`
 Expected : `"jobTitle":"AI & full-stack development"` (traduction EN).
@@ -845,19 +845,19 @@ Expected : `"jobTitle":"AI & full-stack development"` (traduction EN).
 Run : `curl -s http://localhost:3000/en/a-propos | grep -oE '"url":"[^"]+"' | head -1`
 Expected : `"url":"http://localhost:3000/en/a-propos"` (locale EN dans l'URL).
 
-- [ ] **Step 4 : Scénario 3 spec — BreadcrumbList sur /fr/services**
+- [ ] **Step 4 : Scénario 3 spec: BreadcrumbList sur /fr/services**
 
 Run : `curl -s http://localhost:3000/fr/services | grep -oE '<script type="application/ld\+json">[^<]+</script>'`
 Expected : ligne contenant `"@type":"BreadcrumbList"`, `"position":1,"name":"Accueil"`, `"position":2,"name":"Services"`, URLs `http://localhost:3000/fr` et `http://localhost:3000/fr/services`.
 
-- [ ] **Step 5 : Scénario 4 spec — BreadcrumbList dynamique sur /fr/projets/[slug]**
+- [ ] **Step 5 : Scénario 4 spec: BreadcrumbList dynamique sur /fr/projets/[slug]**
 
 Identifier un slug PUBLISHED via `pnpm tsx -e "import { prisma } from './src/lib/prisma'; const p = await prisma.project.findFirst({ where: { status: 'PUBLISHED' }, select: { slug: true, titleFr: true } }); console.log(p); await prisma.\$disconnect();"`. Noter le slug et le titre FR.
 
 Run : `curl -s http://localhost:3000/fr/projets/<slug-relevé> | grep -oE '<script type="application/ld\+json">[^<]+</script>'`
 Expected : 3 ListItems, position 1 = "Accueil", position 2 = "Projets", position 3 = `<titre-projet-FR>`, dernier `item` = `http://localhost:3000/fr/projets/<slug>`.
 
-- [ ] **Step 6 : Scénario 5 spec — échappement `</script>`**
+- [ ] **Step 6 : Scénario 5 spec: échappement `</script>`**
 
 Run : `curl -s http://localhost:3000/fr/a-propos | grep -c '\\u003c'`
 Expected : `> 0` (au moins une occurrence d'échappement, prouvant que le mécanisme est actif).
@@ -869,7 +869,7 @@ Expected : `1` (le `</script>` de fermeture du tag, mais aucun à l'intérieur d
 
 > Cette étape valide définitivement les rich results. Elle nécessite que l'URL soit accessible publiquement (Google ne peut pas tester `localhost`).
 
-**Option A — Tunneling pour tester en local :**
+**Option A: Tunneling pour tester en local :**
 ```bash
 # ngrok (compte gratuit requis)
 ngrok http 3000
@@ -884,7 +884,7 @@ Soumettre les URLs tunnelées à [https://search.google.com/test/rich-results](h
 - `<tunnel>/fr/projets` → idem
 - `<tunnel>/fr/projets/<slug>` → idem
 
-**Option B — Déférer au déploiement prod :**
+**Option B: Déférer au déploiement prod :**
 Faire la même validation après merge sur `develop` puis `main` et auto-déploiement Dokploy. Soumettre `https://thibaud-geisler.com/fr/a-propos` etc. à Google Rich Results Test directement.
 
 - [ ] **Step 8 : Stopper le serveur prod**
@@ -919,7 +919,7 @@ Run : `just stop`.
 3. **Type consistency** :
    - `ProfilePagePersonInput` (Task 4) consommé tel quel dans Task 7 (`/a-propos`).
    - `BreadcrumbListInput` (Task 4) consommé tel quel dans Tasks 8-10 (`/services`, `/projets`, `/projets/[slug]`).
-   - `ExpertiseEntry` (interne à Task 4) compatible avec le type `Expertise` exporté depuis `src/config/expertise.ts` (Task 1) — les deux ont `name: string`, `wikidataId?: string`, `wikipediaUrl?: string`.
+   - `ExpertiseEntry` (interne à Task 4) compatible avec le type `Expertise` exporté depuis `src/config/expertise.ts` (Task 1), les deux ont `name: string`, `wikidataId?: string`, `wikipediaUrl?: string`.
    - `KnowsAboutEntry` union `string | Thing` cohérente entre les tests (Task 2) et l'implémentation (Task 4).
    - `Locale` importé depuis `next-intl` dans Task 4, propagé via les inputs des helpers, cohérent avec `setupLocalePage` du sub-project 01.
    - Clés i18n `Metadata.jobTitle`, `Metadata.breadcrumbHome`, `Metadata.breadcrumbServices`, `Metadata.breadcrumbProjects` ajoutées en Task 6, consommées en Tasks 7-10.

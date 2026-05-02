@@ -1,4 +1,4 @@
-# Plan d'implémentation — `03-page-accueil`
+# Plan d'implémentation: `03-page-accueil`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -93,7 +93,7 @@ Attendu : aucune erreur.
 
 ---
 
-## Task 3 : Addendum DESIGN.md — Background Ripple Effect
+## Task 3 : Addendum DESIGN.md: Background Ripple Effect
 
 **Files:**
 - Modify: `docs/DESIGN.md`
@@ -717,7 +717,7 @@ La mise à jour du `status` du spec de `draft` vers `implemented` (frontmatter d
 - `TEASER_LIMIT = 3` (Task 7) ↔ spec scénario 5 (max 3 cards) : cohérent.
 - `SERVICE_SLUGS` (sub 01) ↔ import dans Task 5 : cohérent (prérequis ordre topologique).
 - Namespaces i18n :
-  - `HomePage.hero.{h1, tagline, ctaPrimary, ctaSecondary}` (Task 10) ↔ Task 9 page (Task 4 props : `h1`, `tagline`, `ctaPrimaryLabel`, `ctaSecondaryLabel`) — cohérent mais les labels i18n sont des sous-clés différentes des props, OK car la page map les deux.
+  - `HomePage.hero.{h1, tagline, ctaPrimary, ctaSecondary}` (Task 10) ↔ Task 9 page (Task 4 props : `h1`, `tagline`, `ctaPrimaryLabel`, `ctaSecondaryLabel`), cohérent mais les labels i18n sont des sous-clés différentes des props, OK car la page map les deux.
   - `HomePage.servicesTeaser.{title, subtitle, seeAll}` (Task 10) ↔ Task 5 consumer : cohérent.
   - `HomePage.projectsTeaser.{title, subtitle, seeAll}` (Task 10) ↔ Task 9 page (`title`, `subtitle`) + Task 7 (`seeAll`) : cohérent.
   - `HomePage.finalCta.{title, subtitle, ctaLabel}` (Task 10) ↔ Task 8 consumer : cohérent.
@@ -732,7 +732,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/03-page
 
 Deux options d'exécution lorsqu'on passera à l'implémentation (après implémentation du sub 01 qui est prérequis topologique) :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée via `/implement-subproject pages-publiques-portfolio 03` (après `01`).

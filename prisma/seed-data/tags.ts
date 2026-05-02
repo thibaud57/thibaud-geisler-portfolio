@@ -31,19 +31,22 @@ export const tags: TagInput[] = [
   { slug: 'android', nameFr: 'Android', nameEn: 'Android', kind: 'FRAMEWORK', icon: 'simple-icons:android', displayOrder: 10 },
   { slug: 'odoo', nameFr: 'Odoo', nameEn: 'Odoo', kind: 'FRAMEWORK', icon: 'simple-icons:odoo', displayOrder: 11 },
 
-  // === DATABASE (2) ===
+  // === DATABASE (4) ===
   { slug: 'mongodb', nameFr: 'MongoDB', nameEn: 'MongoDB', kind: 'DATABASE', icon: 'simple-icons:mongodb', displayOrder: 0 },
   { slug: 'postgresql', nameFr: 'PostgreSQL', nameEn: 'PostgreSQL', kind: 'DATABASE', icon: 'simple-icons:postgresql', displayOrder: 1 },
+  { slug: 'qdrant', nameFr: 'Qdrant', nameEn: 'Qdrant', kind: 'DATABASE', icon: 'lucide:database-zap', displayOrder: 2 },
+  { slug: 'pgvector', nameFr: 'pgvector', nameEn: 'pgvector', kind: 'DATABASE', icon: 'simple-icons:postgresql', displayOrder: 3 },
 
-  // === AI (8) ===
+  // === AI (9) ===
   { slug: 'n8n', nameFr: 'n8n', nameEn: 'n8n', kind: 'AI', icon: 'simple-icons:n8n', displayOrder: 0 },
   { slug: 'rag', nameFr: 'RAG', nameEn: 'RAG', kind: 'AI', icon: 'lucide:database', displayOrder: 1 },
   { slug: 'mcp', nameFr: 'MCP', nameEn: 'MCP', kind: 'AI', icon: 'lucide:plug', displayOrder: 2 },
   { slug: 'skills', nameFr: 'Skills', nameEn: 'Skills', kind: 'AI', icon: 'simple-icons:anthropic', displayOrder: 3 },
   { slug: 'anthropic', nameFr: 'Claude', nameEn: 'Claude', kind: 'AI', icon: 'simple-icons:claude', displayOrder: 4 },
   { slug: 'openai', nameFr: 'ChatGPT', nameEn: 'ChatGPT', kind: 'AI', icon: 'lucide:message-circle', displayOrder: 5 },
-  { slug: 'perplexity', nameFr: 'Perplexity', nameEn: 'Perplexity', kind: 'AI', icon: 'simple-icons:perplexity', displayOrder: 6 },
-  { slug: 'piagent', nameFr: 'PiAgent', nameEn: 'PiAgent', kind: 'AI', icon: 'lucide:bot', displayOrder: 7 },
+  { slug: 'gemini', nameFr: 'Gemini', nameEn: 'Gemini', kind: 'AI', icon: 'simple-icons:googlegemini', displayOrder: 6 },
+  { slug: 'perplexity', nameFr: 'Perplexity', nameEn: 'Perplexity', kind: 'AI', icon: 'simple-icons:perplexity', displayOrder: 7 },
+  { slug: 'piagent', nameFr: 'PiAgent', nameEn: 'PiAgent', kind: 'AI', icon: 'lucide:bot', displayOrder: 8 },
 
   // === INFRA (11) ===
   { slug: 'kafka', nameFr: 'Kafka', nameEn: 'Kafka', kind: 'INFRA', icon: 'simple-icons:apachekafka', displayOrder: 0 },
@@ -55,8 +58,6 @@ export const tags: TagInput[] = [
   { slug: 'elasticsearch', nameFr: 'Elasticsearch', nameEn: 'Elasticsearch', kind: 'INFRA', icon: 'simple-icons:elasticsearch', displayOrder: 6 },
   { slug: 'sentry', nameFr: 'Sentry', nameEn: 'Sentry', kind: 'INFRA', icon: 'simple-icons:sentry', displayOrder: 7 },
   { slug: 'sonarqube', nameFr: 'SonarQube', nameEn: 'SonarQube', kind: 'INFRA', icon: 'simple-icons:sonarqubeserver', displayOrder: 8 },
-  { slug: 'local', nameFr: 'Local', nameEn: 'Local', kind: 'INFRA', icon: 'lucide:monitor', displayOrder: 9 },
-  { slug: 'vercel', nameFr: 'Vercel', nameEn: 'Vercel', kind: 'INFRA', icon: 'simple-icons:vercel', displayOrder: 10 },
 
   // === EXPERTISE (8) ===
   { slug: 'agents-ia', nameFr: 'Agents IA', nameEn: 'AI Agents', kind: 'EXPERTISE', icon: 'lucide:brain-circuit', displayOrder: 0 },

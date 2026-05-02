@@ -21,7 +21,7 @@ Créer une constante `EXPERTISE` (4 disciplines avec mapping Wikidata best pract
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il consomme en lecture seule des modules livrés antérieurement (`siteUrl` dans `src/lib/seo.ts`, `SOCIAL_LINKS` dans `src/config/social-links.ts`, `findPublishedBySlug` dans `src/server/queries/projects.ts`, `buildAssetUrl` dans `src/lib/assets.ts`, `setupLocalePage` dans `src/i18n/locale-guard.ts`) sans modification de leur signature. Le sub-project ne touche pas non plus aux helpers SEO du sub-project 01 ni aux fichiers OG du sub-project 02.
+Aucune, ce sub-project est autoporté. Il consomme en lecture seule des modules livrés antérieurement (`siteUrl` dans `src/lib/seo.ts`, `SOCIAL_LINKS` dans `src/config/social-links.ts`, `findPublishedBySlug` dans `src/server/queries/projects.ts`, `buildAssetUrl` dans `src/lib/assets.ts`, `setupLocalePage` dans `src/i18n/locale-guard.ts`) sans modification de leur signature. Le sub-project ne touche pas non plus aux helpers SEO du sub-project 01 ni aux fichiers OG du sub-project 02.
 
 ## Files touched
 
@@ -34,7 +34,7 @@ Aucune — ce sub-project est autoporté. Il consomme en lecture seule des modul
 - **À modifier** : `src/app/[locale]/(public)/a-propos/page.tsx` (importer et utiliser `buildProfilePagePerson` + `<JsonLd>` dans le composant default export, après `setupLocalePage(params)`)
 - **À modifier** : `src/app/[locale]/(public)/services/page.tsx` (idem avec `buildBreadcrumbList` items `[Accueil/Home, Services]`)
 - **À modifier** : `src/app/[locale]/(public)/projets/page.tsx` (idem avec items `[Accueil/Home, Projets/Projects]`)
-- **À modifier** : `src/app/[locale]/(public)/projets/[slug]/page.tsx` (idem avec items `[Accueil/Home, Projets/Projects, project.title]` — segment dynamique réutilisant la query `findPublishedBySlug` déjà appelée par la page)
+- **À modifier** : `src/app/[locale]/(public)/projets/[slug]/page.tsx` (idem avec items `[Accueil/Home, Projets/Projects, project.title]`, segment dynamique réutilisant la query `findPublishedBySlug` déjà appelée par la page)
 
 **Non touchés** : `src/lib/seo.ts` (sub-project 01 read-only), `src/server/queries/projects.ts` (réutilise `findPublishedBySlug` existante), `src/config/social-links.ts` (read-only pour `sameAs`), `src/lib/assets.ts` (read-only pour `buildAssetUrl`), `next.config.ts`, `package.json`, `prisma/schema.prisma`.
 
@@ -42,7 +42,7 @@ Aucune — ce sub-project est autoporté. Il consomme en lecture seule des modul
 
 - **Séparation en 4 unités** : (1) constante de configuration `EXPERTISE` dans `src/config/expertise.ts`, (2) helpers purs dans `src/lib/seo/json-ld.ts` (testables sans mock), (3) Server Component d'injection dans `src/components/seo/json-ld.tsx` (5 lignes, single responsibility), (4) intégration dans 4 pages. Chaque unité a une responsabilité unique. Voir `.claude/rules/typescript/conventions.md` (alias `@/*`, types via `z.infer`/`typeof`).
 - **Constante `EXPERTISE`** dans `src/config/expertise.ts` : 4 entrées `{ name, wikidataId?, wikipediaUrl? }` (3 avec Wikidata `Q11660`/`Q638608`/`Q386275` + 1 sans `AI Training`). Format `as const` typé strict. Cohérent avec le pattern `src/config/social-links.ts` (constante chrome stable, locale-agnostic, source de vérité unique). Les disciplines sont en anglais international (Google et AI engines indexent en anglais pour les concepts, recommandation [Will Scott 2025](https://willscott.me/2025/07/30/sameas-versus-knowsabout-in-schema/)).
-- **Helper pur `buildProfilePagePerson({ locale, siteUrl, name, jobTitle, description, email, image, sameAs, expertise }): ProfilePagePerson`** : signature étroite, reçoit toutes les valeurs résolues (aucun appel `getTranslations` ni Prisma à l'intérieur). Compose un objet `{ '@context': 'https://schema.org', '@type': 'ProfilePage', dateModified: <ISO 8601>, mainEntity: { '@type': 'Person', '@id': '<siteUrl>/#person', name, jobTitle, description, url, email, image, sameAs, knowsAbout } }`. Le `Person['@id']` est volontairement **locale-agnostic** (`${siteUrl}/#person`) car c'est la même entité quel que soit la version FR/EN visitée — permet de référencer la Person depuis d'autres schémas futurs (ex: `Article` post-MVP avec `author: { '@id': '<siteUrl>/#person' }` au lieu de redéclarer Person) pour un linking propre dans le Knowledge Graph. Le mapping `expertise → knowsAbout` produit un `Thing` complet `{ '@type': 'Thing', name, '@id': 'https://www.wikidata.org/wiki/<wikidataId>', sameAs: <wikipediaUrl> }` quand `wikidataId` est présent, sinon une string simple (`'AI Training'`). Schema.org accepte le mix `string | Thing` dans `knowsAbout`. Voir `.claude/rules/nextjs/server-client-components.md` (composant Server pur).
+- **Helper pur `buildProfilePagePerson({ locale, siteUrl, name, jobTitle, description, email, image, sameAs, expertise }): ProfilePagePerson`** : signature étroite, reçoit toutes les valeurs résolues (aucun appel `getTranslations` ni Prisma à l'intérieur). Compose un objet `{ '@context': 'https://schema.org', '@type': 'ProfilePage', dateModified: <ISO 8601>, mainEntity: { '@type': 'Person', '@id': '<siteUrl>/#person', name, jobTitle, description, url, email, image, sameAs, knowsAbout } }`. Le `Person['@id']` est volontairement **locale-agnostic** (`${siteUrl}/#person`) car c'est la même entité quel que soit la version FR/EN visitée, permet de référencer la Person depuis d'autres schémas futurs (ex: `Article` post-MVP avec `author: { '@id': '<siteUrl>/#person' }` au lieu de redéclarer Person) pour un linking propre dans le Knowledge Graph. Le mapping `expertise → knowsAbout` produit un `Thing` complet `{ '@type': 'Thing', name, '@id': 'https://www.wikidata.org/wiki/<wikidataId>', sameAs: <wikipediaUrl> }` quand `wikidataId` est présent, sinon une string simple (`'AI Training'`). Schema.org accepte le mix `string | Thing` dans `knowsAbout`. Voir `.claude/rules/nextjs/server-client-components.md` (composant Server pur).
 - **Helper pur `buildBreadcrumbList({ locale, siteUrl, items }): BreadcrumbList`** : `items: Array<{ name: string; path: string }>` ordonnés du parent vers l'enfant. Compose `{ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name, item: '<siteUrl>/<locale><path>' }, ...] }`. URLs absolues construites via `siteUrl` (sub-project 01). Position 1-based conforme schema.org.
 - **Server Component `<JsonLd>`** dans `src/components/seo/json-ld.tsx` : signature `{ data: object }`. Sérialise via `JSON.stringify(data)` puis échappe `</script>` en remplaçant `<` par `<` (cf. `.claude/rules/nextjs/metadata-seo.md` qui interdit explicitement l'injection de `</script>` non échappée). Retourne `<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />`. Pas de `'use client'`, aucun hook, ~5 lignes.
 - **Pages async `Server Component`** : chaque page modifiée appelle `setupLocalePage(params)` (déjà utilisé) puis `getTranslations({ locale, namespace: 'Metadata' })` (cf. `.claude/rules/next-intl/translations.md` pour `getTranslations` async côté serveur), construit l'objet JSON-LD via les helpers, et place `<JsonLd data={...} />` à la fin du JSX (le placement n'a pas d'impact SEO, le `<script>` est hoist par React 19 dans le `<head>` automatiquement, voir `.claude/rules/react/hooks.md`).
@@ -101,21 +101,21 @@ Aucune — ce sub-project est autoporté. Il consomme en lecture seule des modul
 ### Unit
 
 - `src/lib/seo/json-ld.test.ts` :
-  - **`buildProfilePagePerson` — structure ProfilePage** : retour contient `'@context': 'https://schema.org'` et `'@type': 'ProfilePage'`
-  - **`buildProfilePagePerson` — Person imbriqué** : `mainEntity` est un objet avec `'@type': 'Person'` et toutes les propriétés `'@id'`, `name`, `jobTitle`, `description`, `url`, `email`, `image`, `sameAs`, `knowsAbout` présentes
-  - **`buildProfilePagePerson` — Person.@id locale-agnostic** : `mainEntity['@id'] === '<siteUrl>/#person'` quel que soit `locale: 'fr'` ou `locale: 'en'` (même valeur pour les 2 locales)
-  - **`buildProfilePagePerson` — URL absolue locale** : `mainEntity.url === '<siteUrl>/fr/a-propos'` quand `locale: 'fr'`, et `'<siteUrl>/en/a-propos'` quand `locale: 'en'`
-  - **`buildProfilePagePerson` — image absolue** : `mainEntity.image` commence par `https://` ou `http://`, jamais une URL relative
-  - **`buildProfilePagePerson` — sameAs filtre l'email** : si `sameAs: ['https://linkedin.com/x', 'https://github.com/x']` est passé, le retour ne contient pas `mailto:` (le test passe la liste déjà filtrée pour vérifier que le helper ne ré-injecte rien)
-  - **`buildProfilePagePerson` — knowsAbout Thing avec wikidataId** : entrée `{ name: 'Artificial Intelligence', wikidataId: 'Q11660', wikipediaUrl: 'https://en.wikipedia.org/wiki/Artificial_intelligence' }` produit `{ '@type': 'Thing', name: 'Artificial Intelligence', '@id': 'https://www.wikidata.org/wiki/Q11660', sameAs: 'https://en.wikipedia.org/wiki/Artificial_intelligence' }`
-  - **`buildProfilePagePerson` — knowsAbout string sans wikidataId** : entrée `{ name: 'AI Training' }` produit la string `'AI Training'`
-  - **`buildProfilePagePerson` — knowsAbout préserve l'ordre** : 4 entrées passées dans un ordre donné restent dans le même ordre dans `knowsAbout`
-  - **`buildProfilePagePerson` — dateModified ISO 8601** : `dateModified` est une string parseable par `new Date()` et `.toISOString()` retourne la même valeur
-  - **`buildBreadcrumbList` — structure** : retour contient `'@context': 'https://schema.org'` et `'@type': 'BreadcrumbList'`
-  - **`buildBreadcrumbList` — itemListElement length** : N items passés produisent N ListItems
-  - **`buildBreadcrumbList` — position 1-based** : les positions sont `1, 2, 3, ...` (pas 0-based)
-  - **`buildBreadcrumbList` — item URL absolue avec locale** : `items: [{ name: 'Home', path: '' }, { name: 'Services', path: '/services' }]` avec `locale: 'fr'` produit URLs `<siteUrl>/fr` et `<siteUrl>/fr/services`
-  - **`buildBreadcrumbList` — préserve l'ordre des items**
+  - **`buildProfilePagePerson`, structure ProfilePage** : retour contient `'@context': 'https://schema.org'` et `'@type': 'ProfilePage'`
+  - **`buildProfilePagePerson`, Person imbriqué** : `mainEntity` est un objet avec `'@type': 'Person'` et toutes les propriétés `'@id'`, `name`, `jobTitle`, `description`, `url`, `email`, `image`, `sameAs`, `knowsAbout` présentes
+  - **`buildProfilePagePerson`, Person.@id locale-agnostic** : `mainEntity['@id'] === '<siteUrl>/#person'` quel que soit `locale: 'fr'` ou `locale: 'en'` (même valeur pour les 2 locales)
+  - **`buildProfilePagePerson`, URL absolue locale** : `mainEntity.url === '<siteUrl>/fr/a-propos'` quand `locale: 'fr'`, et `'<siteUrl>/en/a-propos'` quand `locale: 'en'`
+  - **`buildProfilePagePerson`, image absolue** : `mainEntity.image` commence par `https://` ou `http://`, jamais une URL relative
+  - **`buildProfilePagePerson`, sameAs filtre l'email** : si `sameAs: ['https://linkedin.com/x', 'https://github.com/x']` est passé, le retour ne contient pas `mailto:` (le test passe la liste déjà filtrée pour vérifier que le helper ne ré-injecte rien)
+  - **`buildProfilePagePerson`, knowsAbout Thing avec wikidataId** : entrée `{ name: 'Artificial Intelligence', wikidataId: 'Q11660', wikipediaUrl: 'https://en.wikipedia.org/wiki/Artificial_intelligence' }` produit `{ '@type': 'Thing', name: 'Artificial Intelligence', '@id': 'https://www.wikidata.org/wiki/Q11660', sameAs: 'https://en.wikipedia.org/wiki/Artificial_intelligence' }`
+  - **`buildProfilePagePerson`, knowsAbout string sans wikidataId** : entrée `{ name: 'AI Training' }` produit la string `'AI Training'`
+  - **`buildProfilePagePerson`, knowsAbout préserve l'ordre** : 4 entrées passées dans un ordre donné restent dans le même ordre dans `knowsAbout`
+  - **`buildProfilePagePerson`, dateModified ISO 8601** : `dateModified` est une string parseable par `new Date()` et `.toISOString()` retourne la même valeur
+  - **`buildBreadcrumbList`, structure** : retour contient `'@context': 'https://schema.org'` et `'@type': 'BreadcrumbList'`
+  - **`buildBreadcrumbList`, itemListElement length** : N items passés produisent N ListItems
+  - **`buildBreadcrumbList`, position 1-based** : les positions sont `1, 2, 3, ...` (pas 0-based)
+  - **`buildBreadcrumbList`, item URL absolue avec locale** : `items: [{ name: 'Home', path: '' }, { name: 'Services', path: '/services' }]` avec `locale: 'fr'` produit URLs `<siteUrl>/fr` et `<siteUrl>/fr/services`
+  - **`buildBreadcrumbList`, préserve l'ordre des items**
 
 Setup : factories `buildProfileInput(overrides?)` et `buildBreadcrumbInput(overrides?)` (convention vue dans `.claude/rules/nextjs/tests.md`). Constante `SITE_URL_FIXTURE = 'https://thibaud-geisler.com'` réutilisée. Aucun mock de `next-intl`, `next/cache`, Prisma, `next/navigation` : les helpers sont 100% purs.
 
@@ -136,7 +136,7 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 
 ## Architectural decisions
 
-### Décision : Format `knowsAbout` — strings simples vs Thing+Wikidata
+### Décision : Format `knowsAbout` : strings simples vs Thing+Wikidata
 
 **Options envisagées :**
 - **A. Tableau de strings** : `["Artificial Intelligence", "Software Engineering", "Web Development", "AI Training"]`. Format minimal, valide schema.org.
@@ -151,7 +151,7 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 - L'option B oblige à inventer ou forcer un Wikidata `@id` pour `AI Training` qui n'a pas de page Wikipedia/Wikidata propre. Risque de pointer vers un terme inexact ("Training" générique vs "AI Training" spécifique).
 - L'option C est la plus propre : 3 disciplines avec page Wikidata existante (AI Q11660, Software Engineering Q638608, Web Development Q386275) en `Thing` complet, et `AI Training` en string simple comme fallback honnête. Schema.org accepte explicitement le mix `string | Thing` dans le même tableau. Les tests valident les deux branches.
 
-### Décision : Emplacement de la liste `EXPERTISE` — DB Prisma vs Config typée hardcodée
+### Décision : Emplacement de la liste `EXPERTISE` : DB Prisma vs Config typée hardcodée
 
 **Options envisagées :**
 - **A. `src/config/expertise.ts`** : constante typée `as const` avec mapping Wikidata, suit le pattern `src/config/social-links.ts`.

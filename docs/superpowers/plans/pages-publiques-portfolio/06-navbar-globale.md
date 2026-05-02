@@ -1,4 +1,4 @@
-# Plan d'implémentation — `06-navbar-globale`
+# Plan d'implémentation: `06-navbar-globale`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -482,7 +482,7 @@ Attendu : 0 erreur.
 Commande : `just build`
 Attendu : build Next.js OK, toutes les routes listées sans erreur.
 
-- [ ] **Step 8.4 : Smoke test desktop FR — état actif sur chaque route**
+- [ ] **Step 8.4 : Smoke test desktop FR: état actif sur chaque route**
 
 1. `just dev` (serveur sur `http://localhost:3000`).
 2. Ouvrir `http://localhost:3000/` → la navbar doit afficher : `BrandLogo` (light) à gauche, "Accueil" en `text-primary` (vert sauge), les 4 autres liens en `text-foreground`.
@@ -611,7 +611,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/06-navb
 
 Deux options d'exécution lorsqu'on passera à l'implémentation :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée via `/implement-subproject pages-publiques-portfolio 06`.

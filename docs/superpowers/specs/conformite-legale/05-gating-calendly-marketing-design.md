@@ -21,8 +21,8 @@ Modifier `src/components/features/contact/CalendlyWidget.tsx` (Client Component 
 
 ## Dependencies
 
-- `03-bandeau-consentement-cookies-design.md` (statut: draft) — fournit le hook `useConsentManager()` (de `@c15t/nextjs`) qui retourne `{ consents, has, setActiveUI, setLanguage, ... }` et le `<ConsentManagerProvider>` mounté dans `Providers.tsx` qui wrap toute l'arbre. Sans le sub 3, le `useConsentManager()` lève une erreur explicite et le composant ne peut pas fonctionner.
-- `04-pages-mentions-confidentialite-design.md` (statut: draft) — fournit le composant `<OpenCookiePreferencesButton>` (avec prop `label?: string` déjà exposée pour customiser le texte) réutilisé pour le CTA "Activer Calendly".
+- `03-bandeau-consentement-cookies-design.md` (statut: draft), fournit le hook `useConsentManager()` (de `@c15t/nextjs`) qui retourne `{ consents, has, setActiveUI, setLanguage, ... }` et le `<ConsentManagerProvider>` mounté dans `Providers.tsx` qui wrap toute l'arbre. Sans le sub 3, le `useConsentManager()` lève une erreur explicite et le composant ne peut pas fonctionner.
+- `04-pages-mentions-confidentialite-design.md` (statut: draft), fournit le composant `<OpenCookiePreferencesButton>` (avec prop `label?: string` déjà exposée pour customiser le texte) réutilisé pour le CTA "Activer Calendly".
 
 ## Files touched
 

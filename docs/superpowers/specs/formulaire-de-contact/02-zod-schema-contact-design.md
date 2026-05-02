@@ -15,7 +15,7 @@ date: "2026-04-26"
 
 Création de `src/lib/schemas/contact.ts` exposant `contactSchema` (Zod object des 5 champs métier avec longueurs alignées sur la prod : `name` 1-120, `company` 0-200, `email` 1-200 + format, `subject` 1-200, `message` 20-5000) et le type inféré `ContactInput = z.infer<typeof contactSchema>`. Tous les champs string sont `trim()` directement dans le schéma. Les messages d'erreur sont des codes snake_case stables (`'name_required'`, `'email_invalid'`, etc.) destinés à être mappés vers les traductions next-intl par le sub 04.
 
-**Exclu** : champ honeypot `website` (orthogonal à la validation métier — vérifié séparément par la Server Action sub 03 via `formData.get('website')` avant le `safeParse`), helper `sanitizeContactInput` autonome (`.trim()` est intégré dans le schéma, pas besoin d'abstraction supplémentaire), utilisation du schéma dans une Server Action (sub 03), localisation des codes d'erreur (sub 04 via `t('ContactPage.form.errors.<code>')`), tests sur les comportements internes de Zod (no-lib-test : pas de test « Zod rejette un email mal formé »).
+**Exclu** : champ honeypot `website` (orthogonal à la validation métier, vérifié séparément par la Server Action sub 03 via `formData.get('website')` avant le `safeParse`), helper `sanitizeContactInput` autonome (`.trim()` est intégré dans le schéma, pas besoin d'abstraction supplémentaire), utilisation du schéma dans une Server Action (sub 03), localisation des codes d'erreur (sub 04 via `t('ContactPage.form.errors.<code>')`), tests sur les comportements internes de Zod (no-lib-test : pas de test « Zod rejette un email mal formé »).
 
 ### État livré
 
@@ -23,7 +23,7 @@ Création de `src/lib/schemas/contact.ts` exposant `contactSchema` (Zod object d
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. `zod` est déjà installé dans le projet.
+Aucune, ce sub-project est autoporté. `zod` est déjà installé dans le projet.
 
 ## Files touched
 
@@ -37,7 +37,7 @@ Aucune — ce sub-project est autoporté. `zod` est déjà installé dans le pro
 - **Codes d'erreur snake_case** : chaque contrainte Zod reçoit un message qui est un code stable (`'name_required'`, `'name_too_long'`, `'email_invalid'`, `'message_too_short'`, etc.). Ces codes sont la « clé » que sub 04 mappe ensuite vers les traductions next-intl via `t('ContactPage.form.errors.<code>')`. Découplage backend↔i18n strict.
 - **Trim natif Zod** : `z.string().trim()` au lieu d'un helper externe. Conforme au principe « pas de sur-ingénierie anticipatoire » (CLAUDE.md). Avantage : le `data` retourné par `safeParse` contient déjà les valeurs nettoyées, sub 03 n'a rien à pré-traiter.
 - **Pas de `.strict()`** sur le schéma : laisser le default (champs inconnus ignorés silencieusement). Le champ `website` (honeypot) sera présent dans le `formData` mais ignoré par `safeParse`. C'est sub 03 qui le lit séparément.
-- **`company` optional** : `.optional()` (renvoie `string | undefined` côté typage). Le champ peut être absent ou présent vide après trim — la longueur max 200 reste appliquée s'il est rempli.
+- **`company` optional** : `.optional()` (renvoie `string | undefined` côté typage). Le champ peut être absent ou présent vide après trim, la longueur max 200 reste appliquée s'il est rempli.
 - **Pas de `.email()` sur les autres champs** : seul `email` utilise `z.string().email('email_invalid')`. Conforme à la rule zod/schemas.
 - **Type inféré exporté** : `export type ContactInput = z.infer<typeof contactSchema>`, jamais typé à la main, conforme à `.claude/rules/zod/validation.md` ligne 15-16.
 - **Conventions TypeScript** : `.claude/rules/typescript/conventions.md` (export nommé pour `contactSchema`, type inféré nommé `ContactInput`).
@@ -104,7 +104,7 @@ Aucune — ce sub-project est autoporté. `zod` est déjà installé dans le pro
 ### Unit
 - `src/lib/schemas/contact.test.ts` :
   - `contactSchema` accepte un payload valide minimal (sans `company`) et retourne `data` typé `ContactInput`
-  - `contactSchema` trim les 4 champs string requis (`name`, `email`, `subject`, `message`) — vérifié via `data.name === 'Alice'` quand l'input est `'  Alice  '`
+  - `contactSchema` trim les 4 champs string requis (`name`, `email`, `subject`, `message`), vérifié via `data.name === 'Alice'` quand l'input est `'  Alice  '`
   - `contactSchema` retourne le code `'name_required'` quand `name` est vide après trim
   - `contactSchema` retourne le code `'name_too_long'` quand `name` dépasse 120 caractères
   - `contactSchema` retourne le code `'email_invalid'` quand `email` ne matche pas le format Zod
@@ -121,7 +121,7 @@ Aucune — ce sub-project est autoporté. `zod` est déjà installé dans le pro
 - **`message` exactement 20 caractères** : passe (`min(20)` est inclusif).
 - **Tous les champs sont des chaînes contenant uniquement des espaces** : après `.trim()`, deviennent `''` → tous les codes `_required` se déclenchent en cascade (`name_required`, `subject_required`, `message_too_short` puisque 0 < 20). Comportement attendu, sub 04 affiche les erreurs sous chaque champ.
 - **Email avec espaces autour** : `' alice@acme.fr '` est trim'é avant validation `.email()` → passe normalement (Zod applique les transformations dans l'ordre déclaré).
-- **`company` vide après trim** : `optional()` permet `undefined` mais une chaîne vide passée explicitement passe le test `max(200)` — `data.company === ''`. Acceptable, sub 03 utilisera `data.company || undefined` si besoin.
+- **`company` vide après trim** : `optional()` permet `undefined` mais une chaîne vide passée explicitement passe le test `max(200)`, `data.company === ''`. Acceptable, sub 03 utilisera `data.company || undefined` si besoin.
 
 ## Architectural decisions
 
@@ -149,7 +149,7 @@ Aucune — ce sub-project est autoporté. `zod` est déjà installé dans le pro
 **Rationale :**
 - Les codes d'erreur sont des **string littéraux** au sens API/protocole, pas des identifiants TypeScript. Le snake_case est neutre et résiste aux automatismes de tooling (ex: linter qui veut renommer un identifiant camelCase).
 - Les clés i18n côté sub 04 seront `ContactPage.form.errors.name_required` (mapping 1-1 trivial). Pas de transformation à faire entre code et clé.
-- Cohérence avec les codes d'événements Pino du projet (`email:sent`, `email:failed`) — même registre « string littérale dans les logs/erreurs ».
+- Cohérence avec les codes d'événements Pino du projet (`email:sent`, `email:failed`), même registre « string littérale dans les logs/erreurs ».
 
 ### Décision : `trim()` dans le schéma vs helper séparé
 

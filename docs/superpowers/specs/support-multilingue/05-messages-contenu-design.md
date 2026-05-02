@@ -21,7 +21,7 @@ Peupler `messages/fr.json` et `messages/en.json` avec des namespaces organisés 
 
 ## Dependencies
 
-- `03-layout-locale-design.md` (statut: implemented) — fournit le layout `[locale]` avec `NextIntlClientProvider` et `setRequestLocale`
+- `03-layout-locale-design.md` (statut: implemented), fournit le layout `[locale]` avec `NextIntlClientProvider` et `setRequestLocale`
 
 ## Files touched
 

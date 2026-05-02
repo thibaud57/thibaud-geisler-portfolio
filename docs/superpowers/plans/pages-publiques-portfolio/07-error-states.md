@@ -1,4 +1,4 @@
-# Pages d'erreur — Plan d'implémentation (sub-project 07 / Feature 1 Pages publiques)
+# Pages d'erreur: Plan d'implémentation (sub-project 07 / Feature 1 Pages publiques)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -41,13 +41,13 @@
 
 ---
 
-## Task 1 : Extension i18n — `messages/fr.json` et `messages/en.json`
+## Task 1 : Extension i18n: `messages/fr.json` et `messages/en.json`
 
 **Files :**
 - Modify: `messages/fr.json` (namespaces `NotFound` et `ErrorPage`)
 - Modify: `messages/en.json` (parité)
 
-**Pourquoi en premier :** les tasks 2, 3, 4 consomment ces clés via `t('NotFound.description')` etc. — elles doivent exister avant le refactor des pages sinon le typecheck `next-intl` (clés typées) tombera.
+**Pourquoi en premier :** les tasks 2, 3, 4 consomment ces clés via `t('NotFound.description')` etc., elles doivent exister avant le refactor des pages sinon le typecheck `next-intl` (clés typées) tombera.
 
 - [ ] **Step 1 : Étendre `messages/fr.json` namespace `NotFound`**
 
@@ -189,7 +189,7 @@ export default async function NotFound() {
 ```
 
 Notes :
-- `metadata` static suffit (pas de `generateMetadata` async). Le titre `'Page introuvable'` est le titre HTML default — le `title.template` du root layout `[locale]/layout.tsx` lui appliquera `Page introuvable | <siteTitle>` automatiquement. `robots: { index: false, follow: false }` empêche l'indexation accidentelle d'une 404.
+- `metadata` static suffit (pas de `generateMetadata` async). Le titre `'Page introuvable'` est le titre HTML default, le `title.template` du root layout `[locale]/layout.tsx` lui appliquera `Page introuvable | <siteTitle>` automatiquement. `robots: { index: false, follow: false }` empêche l'indexation accidentelle d'une 404.
 - `Link` from `@/i18n/navigation` préfixe automatiquement avec la locale active (cf. `.claude/rules/next-intl/setup.md`).
 - `Button asChild` (slot pattern shadcn) wrappe le `Link` pour appliquer les classes du bouton tout en gardant le bon `<a>` natif.
 - Icône `SearchX` 64px (`size-16`) en `text-muted-foreground` strokeWidth 1.5 pour effet doux.
@@ -273,7 +273,7 @@ Expected : 0 erreur.
 **Files :**
 - Modify: `src/app/global-error.tsx` (refactor design minimal stylé)
 
-⚠️ Contrainte critique : `global-error.tsx` vit **hors** `NextIntlClientProvider`, **hors** fonts `next/font`, **hors** theme provider. Conserver strictement le pattern `useSyncExternalStore` + messages FR/EN hardcodés (garde-fou si next-intl crash). Ne pas importer `Button` shadcn (dépend de tokens CSS injectés via `globals.css` du `[locale]/layout.tsx` — risque de casse en mode crash). Utiliser `<button type="button">` natif stylé manuellement avec classes Tailwind sur tokens utilitaires neutres (`bg-foreground text-background`, etc.).
+⚠️ Contrainte critique : `global-error.tsx` vit **hors** `NextIntlClientProvider`, **hors** fonts `next/font`, **hors** theme provider. Conserver strictement le pattern `useSyncExternalStore` + messages FR/EN hardcodés (garde-fou si next-intl crash). Ne pas importer `Button` shadcn (dépend de tokens CSS injectés via `globals.css` du `[locale]/layout.tsx`, risque de casse en mode crash). Utiliser `<button type="button">` natif stylé manuellement avec classes Tailwind sur tokens utilitaires neutres (`bg-foreground text-background`, etc.).
 
 - [ ] **Step 1 : Remplacer le contenu intégral du fichier**
 
@@ -368,7 +368,7 @@ Notes :
 - Conserve `useSyncExternalStore` + `getClientLocale` + `getServerLocale` + `subscribe` (pattern existant).
 - Conserve le commentaire d'invariant sur `messages` hardcodés.
 - Ajoute `description` et `home` aux messages FR/EN.
-- Body avec `min-h-dvh bg-background text-foreground antialiased` (les tokens CSS sont disponibles via `globals.css` injecté par Next.js même hors `[locale]/layout.tsx` — c'est CSS root layer, pas dépendant des providers).
+- Body avec `min-h-dvh bg-background text-foreground antialiased` (les tokens CSS sont disponibles via `globals.css` injecté par Next.js même hors `[locale]/layout.tsx`, c'est CSS root layer, pas dépendant des providers).
 - `<button>` natif stylé pour retry (pas de `Button` shadcn pour éviter dépendance à `cva` + `Slot` qui peuvent crasher).
 - `<a href="/${locale}">` natif (pas de `Link` next-intl, hors providers).
 - Icône Lucide OK (Lucide est zero-dep côté provider, fonctionne hors NextIntlClientProvider).
@@ -431,7 +431,7 @@ export default function RootNotFound() {
 
 Notes :
 - `<html>` + `<body>` autonomes (App Router : un not-found racine doit fournir son propre wrapper si pas de layout parent applicable).
-- Texte FR hardcodé (locale par défaut, pas de fallback EN — c'est un dernier recours pour URLs jamais légitimes).
+- Texte FR hardcodé (locale par défaut, pas de fallback EN, c'est un dernier recours pour URLs jamais légitimes).
 - `<a href="/fr">` hardcoded (pas de `Link` next-intl).
 - Mêmes classes Tailwind utilitaires que `global-error.tsx` pour cohérence (tokens CSS disponibles via `globals.css`).
 - `metadata` avec `robots: noindex,nofollow` (cohérent avec la version locale).
@@ -485,7 +485,7 @@ Expected : exit 0. Vérifier dans le report `next build` que toutes les routes s
 Run : `just stop && pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV=production` automatique.
 
-- [ ] **Step 2 : Scénario 1 — Slug projet inexistant FR**
+- [ ] **Step 2 : Scénario 1: Slug projet inexistant FR**
 
 Action : ouvrir `http://localhost:3000/fr/projets/inconnu-xxx-yyy` dans un navigateur (ou via curl pour récupérer le HTML).
 
@@ -502,7 +502,7 @@ Expected (visuel) :
 Run check meta robots : `curl -s http://localhost:3000/fr/projets/inconnu-aaa-bbb | grep -oE '<meta name="robots"[^>]*>'`
 Expected : `<meta name="robots" content="noindex,nofollow"/>`.
 
-- [ ] **Step 3 : Scénario 2 — Slug inexistant EN**
+- [ ] **Step 3 : Scénario 2: Slug inexistant EN**
 
 Action : ouvrir `http://localhost:3000/en/projets/inconnu-xxx-yyy`.
 
@@ -510,7 +510,7 @@ Expected :
 - tous les textes (`title`, `message`, `description`, `ctaLabel`) en anglais (issus de `messages/en.json`) ;
 - bouton "Back to home" → `/en`.
 
-- [ ] **Step 4 : Scénario 3 — URL hors locale → not-found racine**
+- [ ] **Step 4 : Scénario 3: URL hors locale → not-found racine**
 
 Action : ouvrir `http://localhost:3000/foo-random-1234` ou `http://localhost:3000/wp-admin`.
 
@@ -524,7 +524,7 @@ Expected :
 Optionnel (vérification status code) : `curl -sI http://localhost:3000/foo-random-1234 | head -1`
 Note : selon le comportement Next.js 16 + `localePrefix: 'always'`, le status peut être 404 ou 200. Le 404 status est préférable mais pas bloquant pour ce sub-project (sujet framework indépendant tracé en hors-scope).
 
-- [ ] **Step 5 : Scénario 4 — Erreur runtime → error stylé**
+- [ ] **Step 5 : Scénario 4: Erreur runtime → error stylé**
 
 Action : pour tester, modifier temporairement une page (ex: `src/app/[locale]/(public)/services/page.tsx`) en ajoutant `throw new Error('test')` au tout début de la fonction async, puis builder et ouvrir `/fr/services`.
 
@@ -537,7 +537,7 @@ Expected :
 
 Important : revert la modification après le test (`git checkout -- src/app/[locale]/\(public\)/services/page.tsx`).
 
-- [ ] **Step 6 : Scénario 5 — Crash next-intl → global-error stylé**
+- [ ] **Step 6 : Scénario 5: Crash next-intl → global-error stylé**
 
 ⚠️ Difficile à reproduire en conditions réelles (next-intl ne crash pas tout seul). Validation acceptée :
 - vérification visuelle directe via React DevTools en forçant le composant à rendre, OU

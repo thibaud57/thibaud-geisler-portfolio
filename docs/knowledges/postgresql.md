@@ -251,11 +251,11 @@ pg_dump -s -h localhost portfolio > schema.sql
 
 ## Documentation Officielle
 
-- [PostgreSQL 18 — Documentation](https://www.postgresql.org/docs/18/)
+- [PostgreSQL 18 : Documentation](https://www.postgresql.org/docs/18/)
 - [Release notes 18](https://www.postgresql.org/docs/current/release-18.html)
 - [JSON Types](https://www.postgresql.org/docs/current/datatype-json.html)
 
 ## Ressources Complémentaires
 
-- [Docker Hub — postgres](https://hub.docker.com/_/postgres/)
-- [Crunchy Data — Checksums v18](https://www.crunchydata.com/blog/postgres-18-new-default-for-data-checksums-and-how-to-deal-with-upgrades)
+- [Docker Hub : postgres](https://hub.docker.com/_/postgres/)
+- [Crunchy Data : Checksums v18](https://www.crunchydata.com/blog/postgres-18-new-default-for-data-checksums-and-how-to-deal-with-upgrades)

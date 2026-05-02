@@ -1,4 +1,4 @@
-# Plan d'implémentation — `02-page-a-propos`
+# Plan d'implémentation: `02-page-a-propos`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -58,7 +58,7 @@ Comportement attendu :
 
 Commande : `ls src/components/magicui/number-ticker.tsx && head -30 src/components/magicui/number-ticker.tsx`
 
-Attendu : le fichier existe, on voit la signature exportée. Noter la shape exacte des props (`value`, `startValue?`, `direction?`, `delay?`, `decimalPlaces?`, `className?`). Les noms de props peuvent varier selon la version du registry — ajuster les appels dans Task 5 si nécessaire.
+Attendu : le fichier existe, on voit la signature exportée. Noter la shape exacte des props (`value`, `startValue?`, `direction?`, `delay?`, `decimalPlaces?`, `className?`). Les noms de props peuvent varier selon la version du registry, ajuster les appels dans Task 5 si nécessaire.
 
 ---
 
@@ -126,7 +126,7 @@ export async function findPublishedTags(): Promise<Tag[]> {
 
 Notes :
 - `import 'server-only'` = garde-fou build-time : si un Client Component importe ce module, build fail (voir `.claude/rules/nextjs/data-fetching.md`).
-- `type: 'CLIENT'` remplace la formulation `companySlug != 'personnel'` du spec (même résultat, plus propre, pas de magic string — projets perso pointent aussi sur `personnel` via `clientMeta`, donc le filtre par `type` est plus direct).
+- `type: 'CLIENT'` remplace la formulation `companySlug != 'personnel'` du spec (même résultat, plus propre, pas de magic string, projets perso pointent aussi sur `personnel` via `clientMeta`, donc le filtre par `type` est plus direct).
 - `findPublishedTags` ne filtre pas par `type: 'CLIENT'` volontairement : la stack affichée couvre **tout ce qui est dans des projets visibles**, perso inclus (ex: techno utilisée dans un projet perso = compétence affichable).
 - Pas besoin de `await connection()` (les queries sont dans un scope `'use cache'` qui absorbe le `new Date()` Prisma, cf. `.claude/rules/nextjs/data-fetching.md`).
 
@@ -413,7 +413,7 @@ export function TechStackBadges({ tags, locale, kindLabels, className }: Props) 
 ```
 
 Notes :
-- Même stratégie de résolution d'icône que `TagBadge` (`src/components/features/projects/TagBadge.tsx`) pour rester cohérent — sans réimporter directement (couplage inutile inter-features).
+- Même stratégie de résolution d'icône que `TagBadge` (`src/components/features/projects/TagBadge.tsx`) pour rester cohérent, sans réimporter directement (couplage inutile inter-features).
 - Typage `Tag[]` depuis Prisma generated client.
 - Rend `null` pour une catégorie vide → pas de `<h3>` orphelin.
 
@@ -570,7 +570,7 @@ Notes :
 - 2 Suspense indépendants → stats et stack streament en parallèle sans bloquer le shell hero+bio.
 - `Promise.all` dans `StatsAsync` parallélise les 2 counts Prisma (évite waterfall, cf. `.claude/rules/nextjs/data-fetching.md`).
 - Les skeletons sont triviaux, layout identique au rendu final pour éviter le CLS.
-- `kindLabels` construit via `getTranslations('AboutPage.stack.kindLabels')` puis mappage explicite vers le `Record<TagKind, string>` — safer qu'un cast.
+- `kindLabels` construit via `getTranslations('AboutPage.stack.kindLabels')` puis mappage explicite vers le `Record<TagKind, string>`, safer qu'un cast.
 
 - [ ] **Step 7.2 : Typecheck**
 
@@ -668,7 +668,7 @@ Attendu : `OK` sur stdout.
 
 ---
 
-## Task 9 : Ops — Upload du portrait dans le volume assets
+## Task 9 : Ops: Upload du portrait dans le volume assets
 
 **Files:**
 - External (Docker volume) : `assets/branding/portrait.webp`
@@ -727,7 +727,7 @@ Attendu : 0 erreur.
 - [ ] **Step 10.4 : Build**
 
 Commande : `just build`
-Attendu : build Next.js OK, route `/[locale]/a-propos` listée (`○ Static` ou `ƒ Dynamic` acceptable — en présence de 2 Suspense + queries dynamiques cached, probablement un mix statique/streamé).
+Attendu : build Next.js OK, route `/[locale]/a-propos` listée (`○ Static` ou `ƒ Dynamic` acceptable, en présence de 2 Suspense + queries dynamiques cached, probablement un mix statique/streamé).
 
 - [ ] **Step 10.5 : Smoke test FR**
 
@@ -796,7 +796,7 @@ La mise à jour du `status` du spec de `draft` vers `implemented` (frontmatter d
 - Architectural decision B (DB vs i18n pour stats/stack) → Task 2 + Task 7.
 - Architectural decision C (XP calcul auto) → Task 3 + Task 7.
 
-**Placeholder scan** : aucun `TBD` / `TODO` / `à définir` / `implement later`. Tous les snippets code sont complets. Seule la note sur l'API exacte de `NumberTicker` (Task 5 Step 5.1) invite à ajuster après Task 1 Step 1.2 — c'est légitime car la shape dépend du registry téléchargé, pas d'un manque de rigueur du plan.
+**Placeholder scan** : aucun `TBD` / `TODO` / `à définir` / `implement later`. Tous les snippets code sont complets. Seule la note sur l'API exacte de `NumberTicker` (Task 5 Step 5.1) invite à ajuster après Task 1 Step 1.2, c'est légitime car la shape dépend du registry téléchargé, pas d'un manque de rigueur du plan.
 
 **Type consistency** :
 - `Stat` (Task 5) ↔ `stats: Stat[]` (Task 7) : cohérent (`slug, value, label, suffix?`).
@@ -814,7 +814,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/02-page
 
 Deux options d'exécution lorsqu'on passera à l'implémentation :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée ultérieurement par `/implement-subproject pages-publiques-portfolio 02`.

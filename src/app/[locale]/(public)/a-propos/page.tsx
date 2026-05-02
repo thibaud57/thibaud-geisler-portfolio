@@ -57,32 +57,7 @@ export default async function AProposPage({
   params,
 }: PageProps<'/[locale]/a-propos'>) {
   const { locale } = await setupLocalePage(params)
-  const [t, tMeta, publisher] = await Promise.all([
-    getTranslations('AboutPage'),
-    getTranslations({ locale, namespace: 'Metadata' }),
-    getPublisher(),
-  ])
-
-  const sameAs = SOCIAL_LINKS.filter((link) => link.slug !== 'email').map(
-    (link) => link.url,
-  )
-  const emailEntry = SOCIAL_LINKS.find((link) => link.slug === 'email')
-  const email = emailEntry?.url.replace(/^mailto:/, '') ?? ''
-
-  const profileJsonLd = await getCachedProfileJsonLd({
-    locale,
-    siteUrl,
-    name: 'Thibaud Geisler',
-    jobTitle: tMeta('jobTitle'),
-    description: tMeta('aboutDescription'),
-    email,
-    image: `${siteUrl}${buildAssetUrl('branding/portrait.jpg')}`,
-    sameAs,
-    expertise: EXPERTISE,
-    legal: publisher?.siret
-      ? { siret: publisher.siret, address: publisher.address }
-      : undefined,
-  })
+  const t = await getTranslations('AboutPage')
 
   return (
     <PageShell>
@@ -122,9 +97,41 @@ export default async function AProposPage({
           </Suspense>
         </section>
       </div>
-      <JsonLd data={profileJsonLd} />
+      <Suspense fallback={null}>
+        <ProfileJsonLdAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
+}
+
+async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
+  const [tMeta, publisher] = await Promise.all([
+    getTranslations({ locale, namespace: 'Metadata' }),
+    getPublisher(),
+  ])
+
+  const sameAs = SOCIAL_LINKS.filter((link) => link.slug !== 'email').map(
+    (link) => link.url,
+  )
+  const emailEntry = SOCIAL_LINKS.find((link) => link.slug === 'email')
+  const email = emailEntry?.url.replace(/^mailto:/, '') ?? ''
+
+  const profileJsonLd = await getCachedProfileJsonLd({
+    locale,
+    siteUrl,
+    name: 'Thibaud Geisler',
+    jobTitle: tMeta('jobTitle'),
+    description: tMeta('aboutDescription'),
+    email,
+    image: `${siteUrl}${buildAssetUrl('branding/portrait.jpg')}`,
+    sameAs,
+    expertise: EXPERTISE,
+    legal: publisher?.siret
+      ? { siret: publisher.siret, address: publisher.address }
+      : undefined,
+  })
+
+  return <JsonLd data={profileJsonLd} />
 }
 
 async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {

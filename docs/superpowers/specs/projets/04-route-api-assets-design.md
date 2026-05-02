@@ -9,7 +9,7 @@ depends_on: []
 date: "2026-04-21"
 ---
 
-# Route API /api/assets/[filename] — Service des images du portfolio
+# Route API /api/assets/[filename] : Service des images du portfolio
 
 ## Scope
 
@@ -21,7 +21,7 @@ Créer un Route Handler Next.js `src/app/api/assets/[filename]/route.ts` (GET un
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté.
+Aucune, ce sub-project est autoporté.
 
 ## Files touched
 
@@ -29,8 +29,8 @@ Aucune — ce sub-project est autoporté.
 - **À créer** : `src/app/api/assets/[filename]/route.ts` (Route Handler GET)
 - **À créer** : `tests/integration/assets-route.integration.test.ts` (6 tests Vitest)
 - **À créer** : `assets/.gitkeep` (tracker le dossier vide en dev)
-- **À vérifier** : `.env.example` ligne 3 `ASSETS_PATH=` déjà présente (commentaire `dev: ./assets | prod: /app/assets`) — aucune modif si OK
-- **À vérifier** : `compose.yaml` ligne 33-34 volume `portfolio_assets:/app/assets` monté sur le service nextjs — aucune modif si OK
+- **À vérifier** : `.env.example` ligne 3 `ASSETS_PATH=` déjà présente (commentaire `dev: ./assets | prod: /app/assets`), aucune modif si OK
+- **À vérifier** : `compose.yaml` ligne 33-34 volume `portfolio_assets:/app/assets` monté sur le service nextjs, aucune modif si OK
 - **À vérifier** : `.gitignore` couvre-t-il `assets/*` (sauf `.gitkeep`) pour éviter de tracker des fichiers binaires ? Ajouter si absent :
   ```
   # Assets locaux (servis par /api/assets en dev, volume Docker en prod)
@@ -42,7 +42,7 @@ Aucune — ce sub-project est autoporté.
 
 ### Helper pur `src/server/config/assets.ts`
 
-- **Validation via Zod** : un schéma `FilenameSchema` (type `z.string()` avec contrainte regex) qui applique simultanément trois règles — (1) premier caractère obligatoirement alphanumérique (jamais `.`, `-`, ou séparateur), (2) corps du nom restreint à l'ensemble `a-z 0-9 . _ -`, (3) extension terminale dans la whitelist `png | jpg | jpeg | webp | svg`. Validation case-insensitive. Le pattern exact est décrit dans le plan d'implémentation. Conforme à [.claude/rules/zod/validation.md](../../../../.claude/rules/zod/validation.md).
+- **Validation via Zod** : un schéma `FilenameSchema` (type `z.string()` avec contrainte regex) qui applique simultanément trois règles, (1) premier caractère obligatoirement alphanumérique (jamais `.`, `-`, ou séparateur), (2) corps du nom restreint à l'ensemble `a-z 0-9 . _ -`, (3) extension terminale dans la whitelist `png | jpg | jpeg | webp | svg`. Validation case-insensitive. Le pattern exact est décrit dans le plan d'implémentation. Conforme à [.claude/rules/zod/validation.md](../../../../.claude/rules/zod/validation.md).
 - **Interface typée** : `validateFilename(raw: string): { ok: true; filename: string } | { ok: false; error: string }`. Discriminated union pour narrowing TypeScript côté caller (cf. [.claude/rules/typescript/conventions.md](../../../../.claude/rules/typescript/conventions.md)).
 - **Résolution path avec défense en profondeur** : `resolveAssetPath(filename: string): string` fait `path.join(ASSETS_PATH, filename)` puis `path.resolve(...)`, puis vérifie que le résultat commence bien par `path.resolve(ASSETS_PATH)` (garde-fou même si la regex Zod a laissé passer quelque chose d'inattendu). Si non, lance une `Error` (ce cas ne devrait jamais se produire avec la validation amont, mais la défense en profondeur est gratuite).
 - **Lecture de `ASSETS_PATH`** : lu depuis `process.env.ASSETS_PATH` avec fallback `./assets` en dev. Pas de Zod env schema custom ici (on s'appuie sur la convention projet existante). Conforme à [.claude/rules/nextjs/configuration.md](../../../../.claude/rules/nextjs/configuration.md).
@@ -54,7 +54,7 @@ Aucune — ce sub-project est autoporté.
 - **Route Handler Next.js 16 App Router** : export `async function GET(request, { params })`. `params` est async depuis Next 15 (`await params`). Conforme à [.claude/rules/nextjs/api-routes.md](../../../../.claude/rules/nextjs/api-routes.md).
 - **Séquence** : `await params` → `validateFilename(filename)` → si !ok : `logger.warn({ raw, error }, 'assets: invalid filename')` + `return new Response(error, { status: 400 })` → sinon `resolveAssetPath` + `fs.readFile` → `return new Response(data, { status: 200, headers: { 'Content-Type': ..., 'Cache-Control': 'public, max-age=31536000, immutable' } })`.
 - **Gestion du 404** : `fs.readFile` lève `ENOENT` si le fichier n'existe pas. Catch ciblé sur `err.code === 'ENOENT'` → `logger.debug({ filename }, 'assets: not found')` + `return new Response('Not found', { status: 404 })`. Autres erreurs (permission, IO) → re-throw pour que Next.js gère via `error.tsx`.
-- **Logger Pino** : import depuis `@/lib/logger` (doit exister ou être créé dans un sub-project voisin, ou ici si manquant). Niveau `warn` pour 400 (signal de tentative suspecte potentielle), `debug` pour 404 (volume de liens morts acceptable, on veut debug ciblé). Conforme à [.claude/rules/pino/logger.md](../../../../.claude/rules/pino/logger.md) — ne jamais logger le contenu du fichier (uniquement le filename tenté).
+- **Logger Pino** : import depuis `@/lib/logger` (doit exister ou être créé dans un sub-project voisin, ou ici si manquant). Niveau `warn` pour 400 (signal de tentative suspecte potentielle), `debug` pour 404 (volume de liens morts acceptable, on veut debug ciblé). Conforme à [.claude/rules/pino/logger.md](../../../../.claude/rules/pino/logger.md), ne jamais logger le contenu du fichier (uniquement le filename tenté).
 - **Pas de cache Next.js côté serveur** : la route est dynamique (lit le filesystem à chaque requête), mais le `Cache-Control: immutable` en header garantit que le navigateur cache 1 an. Pour un portfolio avec ~20 assets, le volume de requêtes réelles au serveur sera minime.
 
 ### Tests `tests/integration/assets-route.integration.test.ts`
@@ -63,11 +63,11 @@ Aucune — ce sub-project est autoporté.
 - **Approche** : appel direct du Route Handler `GET(request, { params })` importé comme module. Pas de serveur HTTP réel (plus simple, plus rapide, teste bien le handler isolé).
 - **Fixtures** : `beforeAll` crée un dossier de test temporaire (`./assets-test/`) avec 2 fichiers (`test.png`, `test.svg`), surcharge `ASSETS_PATH` via `process.env` pour pointer dessus. `afterAll` nettoie.
 - **Objet `Request` minimal** : Web Fetch API standard, `new Request('http://localhost/api/assets/test.png')` suffit.
-- **Pas de mock `fs`** : on teste contre un vrai filesystem (dossier de fixtures) — c'est le but du test d'intégration.
+- **Pas de mock `fs`** : on teste contre un vrai filesystem (dossier de fixtures), c'est le but du test d'intégration.
 
 ## Acceptance criteria
 
-### Scénario 1 : Path traversal via slash — rejeté 400
+### Scénario 1 : Path traversal via slash : rejeté 400
 
 **GIVEN** la route `/api/assets/[filename]` active
 **WHEN** un attaquant envoie `GET /api/assets/..%2F..%2Fetc%2Fpasswd` (URL-encoded `../../etc/passwd`)
@@ -75,28 +75,28 @@ Aucune — ce sub-project est autoporté.
 **AND** le corps n'inclut PAS le contenu de `/etc/passwd`
 **AND** un log Pino `warn` est émis avec le raw filename tenté
 
-### Scénario 2 : Path traversal via caractères invalides — rejeté 400
+### Scénario 2 : Path traversal via caractères invalides : rejeté 400
 
 **GIVEN** la route active
 **WHEN** on envoie un filename contenant `/`, `\`, ou un null byte (ex: `foo%00.png`)
 **THEN** la réponse a status 400
 **AND** aucun accès au filesystem n'est tenté
 
-### Scénario 3 : Extension non whitelist — rejeté 400
+### Scénario 3 : Extension non whitelist : rejeté 400
 
 **GIVEN** la route active et un fichier `malware.exe` hypothétique dans `assets/`
 **WHEN** on envoie `GET /api/assets/malware.exe`
 **THEN** la réponse a status 400 (extension `.exe` hors whitelist png/jpg/jpeg/webp/svg)
 **AND** `fs.readFile` n'est jamais appelé
 
-### Scénario 4 : Fichier valide mais absent — 404
+### Scénario 4 : Fichier valide mais absent : 404
 
 **GIVEN** la route active, `assets/absent.png` n'existe pas dans le filesystem
 **WHEN** on envoie `GET /api/assets/absent.png`
 **THEN** la réponse a status 404
 **AND** un log Pino `debug` est émis
 
-### Scénario 5 : Fichier PNG existant — 200 + Content-Type correct + cache
+### Scénario 5 : Fichier PNG existant : 200 + Content-Type correct + cache
 
 **GIVEN** la route active, `assets/test.png` existe (fixture de test)
 **WHEN** on envoie `GET /api/assets/test.png`
@@ -105,7 +105,7 @@ Aucune — ce sub-project est autoporté.
 **AND** header `Cache-Control: public, max-age=31536000, immutable`
 **AND** le corps contient les bytes du fichier
 
-### Scénario 6 : Fichier SVG existant — Content-Type `image/svg+xml`
+### Scénario 6 : Fichier SVG existant : Content-Type `image/svg+xml`
 
 **GIVEN** la route active, `assets/test.svg` existe (fixture)
 **WHEN** on envoie `GET /api/assets/test.svg`
@@ -149,11 +149,11 @@ Les tests unit valident la **logique pure** en isolation (ARCHITECTURE.md : fonc
 - **Filename avec majuscules** (`Test.PNG`) : la regex a flag `i` donc autorisé. Le lookup Content-Type utilise `.toLowerCase()` sur l'extension. Accepté.
 - **Filename avec `__tests__` ou double underscore** : regex `[a-z0-9._-]+` accepte underscore simple. Double underscore `__` passe. Accepté (pas un vecteur d'attaque connu).
 - **Filename commençant par point** (`.htaccess`, `.env`) : la regex exige qu'il commence par `[a-z0-9]`, rejette ces cas. Bloqué par design.
-- **Fichier dans sous-dossier** (`sub/folder/image.png`) : le `/` est interdit par la regex. Bloqué — si besoin plus tard, on refactorisera pour supporter des sous-chemins explicitement.
+- **Fichier dans sous-dossier** (`sub/folder/image.png`) : le `/` est interdit par la regex. Bloqué, si besoin plus tard, on refactorisera pour supporter des sous-chemins explicitement.
 - **Fichier > 10 Mo** : aucune limite explicite dans ce sub-project. `fs.readFile` charge en mémoire, potentiel risque RAM. Pour le MVP (screenshots ~500 Ko max), acceptable. Suivi dans open questions pour R2 post-MVP (streaming natif).
 - **`ASSETS_PATH` absent** : si `.env` ne définit pas `ASSETS_PATH`, fallback sur `./assets` dans le helper. Aucun crash au démarrage.
-- **Fichier corrompu ou 0 bytes** : `fs.readFile` réussit, la route retourne 200 avec un Buffer vide. Pas de validation de contenu — responsabilité de l'upload (futur). Acceptable pour MVP.
-- **Unicode / emoji dans filename** (`📷.png`) : la regex `[a-z0-9._-]` rejette. Bloqué — convention stricte ASCII only.
+- **Fichier corrompu ou 0 bytes** : `fs.readFile` réussit, la route retourne 200 avec un Buffer vide. Pas de validation de contenu, responsabilité de l'upload (futur). Acceptable pour MVP.
+- **Unicode / emoji dans filename** (`📷.png`) : la regex `[a-z0-9._-]` rejette. Bloqué, convention stricte ASCII only.
 
 ## Architectural decisions
 
@@ -167,7 +167,7 @@ Les tests unit valident la **logique pure** en isolation (ARCHITECTURE.md : fonc
 
 **Rationale :**
 - YAGNI strict : 1 seul consommateur en MVP (la route `/api/assets`), pas besoin de polymorphisme.
-- ADR-011 prévoit migration R2 post-MVP. À ce moment-là, remplacer le corps du helper (ajouter un `readAsset(filename): Promise<Buffer>` si besoin) sans toucher à la signature côté route — refactor trivial.
+- ADR-011 prévoit migration R2 post-MVP. À ce moment-là, remplacer le corps du helper (ajouter un `readAsset(filename): Promise<Buffer>` si besoin) sans toucher à la signature côté route, refactor trivial.
 - L'interface ajoute ~50 lignes de boilerplate (interface TS + implémentation fs + export) pour zéro bénéfice MVP.
 
 ### Décision : Zod + whitelist stricte d'extensions plutôt que blacklist ou regex libre
@@ -180,7 +180,7 @@ Les tests unit valident la **logique pure** en isolation (ARCHITECTURE.md : fonc
 **Choix : A**
 
 **Rationale :**
-- Zod fournit un message d'erreur structuré et une API type-safe (cf. convention projet — Zod utilisé pour le formulaire contact, etc.).
+- Zod fournit un message d'erreur structuré et une API type-safe (cf. convention projet, Zod utilisé pour le formulaire contact, etc.).
 - Whitelist = sécurité par défaut. Une extension inattendue (`.wasm`, `.pdf`, `.mp4`) est **refusée par défaut**. Blacklist = vulnérable aux oublis (toute nouvelle extension dangereuse = faille).
 - Les 5 extensions couvrent 100% des besoins portfolio (images statiques). Ajout futur trivial (modifier la regex).
 - Message d'erreur explicite côté dev ("filename must match [a-z0-9][a-z0-9._-]* and end with .png/.jpg/.jpeg/.webp/.svg").
@@ -194,7 +194,7 @@ Les tests unit valident la **logique pure** en isolation (ARCHITECTURE.md : fonc
 **Choix : A**
 
 **Rationale :**
-- Les URLs servies sont publiques par nature (le portfolio est un site public). Masquer la différence entre "tu as mal formé ta requête" et "le fichier n'existe pas" n'apporte aucune sécurité additionnelle — un attaquant peut toujours tester les deux cas.
+- Les URLs servies sont publiques par nature (le portfolio est un site public). Masquer la différence entre "tu as mal formé ta requête" et "le fichier n'existe pas" n'apporte aucune sécurité additionnelle, un attaquant peut toujours tester les deux cas.
 - 400 aide le debug dev et un éventuel client légitime (lien cassé dans un e-mail, typo manuelle). 404 = case standard.
 - Conforme à la sémantique HTTP (RFC 7231).
 
@@ -224,7 +224,7 @@ Les tests unit valident la **logique pure** en isolation (ARCHITECTURE.md : fonc
 - Les captures d'écran de projets ne bougent pas souvent. Cache long = UX fluide (chargement instantané lors de navigations).
 - Si besoin de remplacer une image, convention : changer le filename (ex: `capture-v2.png` au lieu d'`capture.png`). Invalidation via rename, pas via cache-bust.
 - `immutable` = directive HTTP qui dit au navigateur de ne PAS revalider, même si l'utilisateur fait un reload. Cohérent avec la convention de rename.
-- Pour les SVG qui sont le logo ou similaires, cache long aussi OK — si logo change, nouveau filename.
+- Pour les SVG qui sont le logo ou similaires, cache long aussi OK, si logo change, nouveau filename.
 
 ### Décision : Logging Pino asymétrique 400/warn + 404/debug
 

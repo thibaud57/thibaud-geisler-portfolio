@@ -216,11 +216,11 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 
 ## Documentation Officielle
 
-- [Zod — Documentation](https://zod.dev/)
-- [Zod v4 — Changelog](https://zod.dev/v4)
+- [Zod : Documentation](https://zod.dev/)
+- [Zod v4 : Changelog](https://zod.dev/v4)
 - [Basic usage](https://zod.dev/basics)
 
 ## Ressources Complémentaires
 
-- [Zod + Next.js Server Actions — freeCodeCamp](https://www.freecodecamp.org/news/handling-forms-nextjs-server-actions-zod/)
+- [Zod + Next.js Server Actions, freeCodeCamp](https://www.freecodecamp.org/news/handling-forms-nextjs-server-actions-zod/)
 - [Migrating to Zod 4](https://dev.to/pockit_tools/migrating-to-zod-4-the-complete-guide-to-breaking-changes-performance-gains-and-new-features-3ll0)

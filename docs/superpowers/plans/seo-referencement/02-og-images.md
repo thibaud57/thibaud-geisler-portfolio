@@ -1,4 +1,4 @@
-# Génération des images Open Graph et Twitter — Plan d'implémentation (sub-project 02 / Feature 5 SEO)
+# Génération des images Open Graph et Twitter: Plan d'implémentation (sub-project 02 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -585,7 +585,7 @@ Vérifier aussi qu'aucun warning sur la taille du bundle `ImageResponse` n'est l
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV` = `production` automatique.
 
-- [ ] **Step 2 : Scénario 1 spec — image statique FR + EN**
+- [ ] **Step 2 : Scénario 1 spec: image statique FR + EN**
 
 Ouvrir `http://localhost:3000/fr/opengraph-image` puis `http://localhost:3000/en/opengraph-image` dans le navigateur.
 
@@ -593,7 +593,7 @@ Expected :
 - Réponse `image/png` 1200×630.
 - Visuel `kind: 'site'` : kicker `PORTFOLIO · FR` (puis `EN`), titre `Metadata.siteTitle`, sous-titre `Metadata.siteDescription`, liseré et signature sauge `thibaud-geisler.com`.
 
-- [ ] **Step 3 : Scénario 2 spec — image case study FR + EN**
+- [ ] **Step 3 : Scénario 2 spec: image case study FR + EN**
 
 Ouvrir `http://localhost:3000/fr/projets/<slug-relevé>/opengraph-image` puis `http://localhost:3000/en/projets/<slug-relevé>/opengraph-image`.
 
@@ -601,12 +601,12 @@ Expected :
 - Réponse `image/png` 1200×630.
 - Visuel `kind: 'case-study'` : kicker `CASE STUDY · FR` (puis `EN`), titre = `project.title` localisé, sous-titre = `project.description` localisé (clamp 4 lignes max), signature `Thibaud Geisler · IA & dev full-stack`.
 
-- [ ] **Step 4 : Scénario 3 spec — slug inexistant 404**
+- [ ] **Step 4 : Scénario 3 spec: slug inexistant 404**
 
 Run : `curl -sI http://localhost:3000/fr/projets/inconnu-aaa-bbb/opengraph-image`
 Expected : `HTTP/1.1 404 Not Found`. La route appelle `notFound()` et n'émet pas d'image.
 
-- [ ] **Step 5 : Scénario 4 spec — auto-merge metadata HTML**
+- [ ] **Step 5 : Scénario 4 spec: auto-merge metadata HTML**
 
 Run : `curl -s http://localhost:3000/fr/services | grep -E 'og:image|twitter:image'`
 Expected : `og:image`, `og:image:width=1200`, `og:image:height=630`, `twitter:image` tous présents et pointant vers une URL absolue contenant `/opengraph-image`.
@@ -614,7 +614,7 @@ Expected : `og:image`, `og:image:width=1200`, `og:image:height=630`, `twitter:im
 Run : `curl -s http://localhost:3000/fr/projets/<slug-relevé> | grep -E 'og:image|twitter:image'`
 Expected : idem, pointant vers `/fr/projets/<slug>/opengraph-image`.
 
-- [ ] **Step 6 : Scénario 5 spec — validation outils sociaux (optionnel, recommandé)**
+- [ ] **Step 6 : Scénario 5 spec: validation outils sociaux (optionnel, recommandé)**
 
 Pré-requis pour ce step : exposer `localhost:3000` via tunneling (ngrok ou cloudflared).
 

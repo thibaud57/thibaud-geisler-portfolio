@@ -206,12 +206,12 @@ const logger = pino({
 
 ## Documentation Officielle
 
-- [Pino — Site officiel](https://getpino.io)
-- [Pino — API docs](https://github.com/pinojs/pino/blob/main/docs/api.md)
-- [Pino — Transports](https://github.com/pinojs/pino/blob/main/docs/transports.md)
+- [Pino : Site officiel](https://getpino.io)
+- [Pino : API docs](https://github.com/pinojs/pino/blob/main/docs/api.md)
+- [Pino : Transports](https://github.com/pinojs/pino/blob/main/docs/transports.md)
 
 ## Ressources Complémentaires
 
-- [Next.js — serverExternalPackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages)
+- [Next.js : serverExternalPackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages)
 - [pino-pretty](https://github.com/pinojs/pino-pretty)
-- [Better Stack — Pino guide](https://betterstack.com/community/guides/logging/how-to-install-setup-and-use-pino-to-log-node-js-applications/)
+- [Better Stack : Pino guide](https://betterstack.com/community/guides/logging/how-to-install-setup-and-use-pino-to-log-node-js-applications/)

@@ -1,4 +1,4 @@
-# Sub 05 — Refactor CalendlyWidget : lib `react-calendly` + custom hook `useCalendlyInline` — Implementation Plan
+# Sub 05: Refactor CalendlyWidget : lib `react-calendly` + custom hook `useCalendlyInline`: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -521,7 +521,7 @@ Aucun autre fichier ne doit apparaître. Si oui, investiguer (probablement un fi
 - `.env` (ou `.env.local`) configuré avec `NEXT_PUBLIC_CALENDLY_URL=https://calendly.com/<slug>/<event-type>` (URL nue, sans query string)
 - Dev server lancé : `just dev` (port 3000)
 
-- [ ] **Step 9.1: Scénario 1 — widget Calendly chargé avec params gratuits**
+- [ ] **Step 9.1: Scénario 1: widget Calendly chargé avec params gratuits**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/fr/contact`
 2. `mcp__playwright__browser_click` sur l'onglet "Réservez un créneau"
@@ -544,7 +544,7 @@ Aucun autre fichier ne doit apparaître. Si oui, investiguer (probablement un fi
    - `iframeSrc` contient `embed_domain=localhost%3A3000` ET `embed_type=Inline` ET `hide_event_type_details=1` ET `hide_gdpr_banner=1`
    - `iframeHeight ≈ 750` (peut être plus si auto-resize a déjà fait grandir l'iframe)
 
-- [ ] **Step 9.2: Scénario 2 — iframe conservée au switch d'onglets**
+- [ ] **Step 9.2: Scénario 2: iframe conservée au switch d'onglets**
 
 1. Depuis l'onglet Calendly chargé (état Step 9.1)
 2. `mcp__playwright__browser_click` sur l'onglet "Écrivez-moi"
@@ -554,7 +554,7 @@ Aucun autre fichier ne doit apparaître. Si oui, investiguer (probablement un fi
 6. Re-mesurer l'iframe avec le même `mcp__playwright__browser_evaluate` que Step 9.1
 7. Expected : `iframeExists: true`, l'iframe est immédiatement présente sans phase de blanc transitoire (test du fix de remount)
 
-- [ ] **Step 9.3: Scénario 3 — placeholder fallback avec URL vide**
+- [ ] **Step 9.3: Scénario 3: placeholder fallback avec URL vide**
 
 1. Modifier temporairement `.env` (ou `.env.local`) : commenter `NEXT_PUBLIC_CALENDLY_URL=...` ou la mettre à vide
 2. `just stop && just dev` (restart obligatoire car `NEXT_PUBLIC_*` est compile-time)
@@ -577,7 +577,7 @@ Aucun autre fichier ne doit apparaître. Si oui, investiguer (probablement un fi
    - `noIframe: true`
 7. **Restaurer** la valeur de `NEXT_PUBLIC_CALENDLY_URL` dans `.env` après ce test, et restart `just dev`
 
-- [ ] **Step 9.4: Scénario 4 — log Pino sur réservation réelle**
+- [ ] **Step 9.4: Scénario 4: log Pino sur réservation réelle**
 
 ⚠️ Ce scénario nécessite une vraie réservation, donc un calendrier Calendly disponible et une boîte mail accessible. À faire **une seule fois** pour valider le pipeline.
 
@@ -658,7 +658,7 @@ Prêt à commit sur feature/formulaire-de-contact, attends ton go.
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/05-refactor-calendly-widget-react-lib.md`. Ce plan complète la Feature 4 — Formulaire de contact (sub 5/5, amélioration post-MVP du widget Calendly hérité du sub 04 layout).
+Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/05-refactor-calendly-widget-react-lib.md`. Ce plan complète la Feature 4, Formulaire de contact (sub 5/5, amélioration post-MVP du widget Calendly hérité du sub 04 layout).
 
 L'exécution sera lancée plus tard via `/implement-subproject formulaire-de-contact 05`, qui orchestrera `superpowers:subagent-driven-development` (Tasks 1-8) + validation Playwright manuelle (Task 9) + demande de commit explicite (Task 10).
 

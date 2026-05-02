@@ -1,4 +1,4 @@
-# Metadata SEO localisées et sitemap multilingue — Implementation Plan
+# Metadata SEO localisées et sitemap multilingue: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -128,7 +128,7 @@ export async function generateMetadata({
 
 Points clés :
 - `metadataBase` : résout toutes les URLs relatives (OG images, canonical)
-- `title.template` : appliqué automatiquement aux pages enfants (ex: "Projets | Thibaud Geisler — IA & Full-Stack")
+- `title.template` : appliqué automatiquement aux pages enfants (ex: "Projets | Thibaud Geisler, IA & Full-Stack")
 - `title.default` : utilisé si une page enfant ne définit pas de title
 - `process.env.NEXT_PUBLIC_SITE_URL` : variable d'environnement pour l'URL canonique du site
 

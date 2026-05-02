@@ -21,7 +21,7 @@ Créer `src/i18n/navigation.ts` via `createNavigation(routing)` exportant `Link`
 
 ## Dependencies
 
-- `01-config-routing-types-design.md` (statut: implemented) — fournit `routing` pour `createNavigation`
+- `01-config-routing-types-design.md` (statut: implemented), fournit `routing` pour `createNavigation`
 
 ## Files touched
 

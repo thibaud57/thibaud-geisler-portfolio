@@ -9,7 +9,7 @@ depends_on: ["04-page-contact-layout-design.md"]
 date: "2026-04-24"
 ---
 
-# Footer global — Logo, tagline, réseaux, CV, copyright
+# Footer global : Logo, tagline, réseaux, CV, copyright
 
 ## Scope
 
@@ -17,7 +17,7 @@ date: "2026-04-24"
 
 Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/components/features/contact/social-links-config.ts` vers un module partagé `src/config/social-links.ts` : footer et page contact consomment la même source de vérité.
 
-**Exclu** : création des pages légales (`/mentions-legales`, `/confidentialite`) et du bandeau consentement cookies (`vanilla-cookieconsent`) — entièrement **Feature 7 conformité-legale** à décomposer séparément. Nav secondaire répétant les liens de la navbar primaire (intentionnellement abandonnée : la navbar sticky suffit, dupliquer en footer serait bruit visuel sans valeur SEO puisque le maillage interne est déjà couvert par navbar + sitemap.xml Feature 5).
+**Exclu** : création des pages légales (`/mentions-legales`, `/confidentialite`) et du bandeau consentement cookies (`vanilla-cookieconsent`), entièrement **Feature 7 conformité-legale** à décomposer séparément. Nav secondaire répétant les liens de la navbar primaire (intentionnellement abandonnée : la navbar sticky suffit, dupliquer en footer serait bruit visuel sans valeur SEO puisque le maillage interne est déjà couvert par navbar + sitemap.xml Feature 5).
 
 ### État livré
 
@@ -25,9 +25,9 @@ Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/compo
 
 ## Dependencies
 
-- `04-page-contact-layout-design.md` (statut: draft) — ce sub-project promeut la constante `SOCIAL_LINKS` créée par sub 04 (`src/components/features/contact/social-links-config.ts`) vers un module partagé `src/config/social-links.ts`, et met à jour l'import dans `src/components/features/contact/SocialLinks.tsx`. L'ordre topologique (04 puis 05) garantit que le fichier source existe au moment de la promotion.
+- `04-page-contact-layout-design.md` (statut: draft), ce sub-project promeut la constante `SOCIAL_LINKS` créée par sub 04 (`src/components/features/contact/social-links-config.ts`) vers un module partagé `src/config/social-links.ts`, et met à jour l'import dans `src/components/features/contact/SocialLinks.tsx`. L'ordre topologique (04 puis 05) garantit que le fichier source existe au moment de la promotion.
 
-Éléments déjà livrés hors feature, réutilisés sans modification : `DownloadCvButton` (Feature 3 `gestion-et-exposition-des-assets`, sub 02, statut : implemented), `Link` localisé `@/i18n/navigation` (non utilisé ici — pas de liens internes dans la version MVP, seulement des liens externes), `ThemeProvider` de `next-themes` (déjà monté dans `src/components/providers/Providers.tsx`).
+Éléments déjà livrés hors feature, réutilisés sans modification : `DownloadCvButton` (Feature 3 `gestion-et-exposition-des-assets`, sub 02, statut : implemented), `Link` localisé `@/i18n/navigation` (non utilisé ici, pas de liens internes dans la version MVP, seulement des liens externes), `ThemeProvider` de `next-themes` (déjà monté dans `src/components/providers/Providers.tsx`).
 
 ## Files touched
 
@@ -42,15 +42,15 @@ Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/compo
 
 ## Architecture approach
 
-- **Server Component par défaut** : `Footer.tsx` et `FooterSocialLinks.tsx` restent Server Components (aucun hook, aucune interactivité). Le switch logo dark/light se fait via CSS Tailwind (`dark:hidden` / `hidden dark:block`) sur 2 balises `<Image>` côte à côte — next-themes applique la classe `.dark` sur `<html>` via script inline avant hydratation React, les classes utilitaires fonctionnent donc dès le premier render. Cette approche évite un îlot client, pas de `useTheme`, pas de pattern `mounted`, pas de risque d'hydration mismatch. Voir `.claude/rules/nextjs/server-client-components.md` et `.claude/rules/next-themes/theming.md` (« pattern `mounted` uniquement si l'UI change selon `resolvedTheme` — le CSS-only est préférable quand possible »).
+- **Server Component par défaut** : `Footer.tsx` et `FooterSocialLinks.tsx` restent Server Components (aucun hook, aucune interactivité). Le switch logo dark/light se fait via CSS Tailwind (`dark:hidden` / `hidden dark:block`) sur 2 balises `<Image>` côte à côte, next-themes applique la classe `.dark` sur `<html>` via script inline avant hydratation React, les classes utilitaires fonctionnent donc dès le premier render. Cette approche évite un îlot client, pas de `useTheme`, pas de pattern `mounted`, pas de risque d'hydration mismatch. Voir `.claude/rules/nextjs/server-client-components.md` et `.claude/rules/next-themes/theming.md` (« pattern `mounted` uniquement si l'UI change selon `resolvedTheme`, le CSS-only est préférable quand possible »).
 - **Promotion `SOCIAL_LINKS`** : le fichier `src/components/features/contact/social-links-config.ts` créé par sub 04 est déplacé vers `src/config/social-links.ts`. Le contenu (constante `SOCIAL_LINKS` + type `SocialSlug`) est identique, seul le chemin change. Justification : deux consommateurs cross-feature (footer layout + page contact) → source unique de vérité dans un module `src/config/` partagé, conforme à la logique de séparation `config` vs `features` de `.claude/rules/typescript/conventions.md` (alias `@/` imports propres). L'import `src/components/features/contact/SocialLinks.tsx` (sub 04) est ajusté en conséquence dans la même task.
-- **`FooterSocialLinks.tsx`** (Server) : reçoit `title: string | undefined` (optionnel — version footer compacte sans titre) + `ariaLabels: Record<SocialSlug, string>`. Itère sur `SOCIAL_LINKS`, rend pour chaque entrée un `<a>` externe (`target="_blank" rel="noopener noreferrer"` pour éviter le reverse tabnabbing) de taille 40×40 `rounded-lg bg-card border border-border`, icône Simple Icons résolue via le même pattern que `SocialLinks` du sub 04 (lookup `simple-icons:<slug>` → `Si<PascalCase>` dans `@icons-pack/react-simple-icons`). Hover `scale-105 shadow-sm transition` (plus discret que le 56×56 de la page contact). Voir `.claude/rules/shadcn-ui/components.md` pour les conventions d'icônes.
+- **`FooterSocialLinks.tsx`** (Server) : reçoit `title: string | undefined` (optionnel, version footer compacte sans titre) + `ariaLabels: Record<SocialSlug, string>`. Itère sur `SOCIAL_LINKS`, rend pour chaque entrée un `<a>` externe (`target="_blank" rel="noopener noreferrer"` pour éviter le reverse tabnabbing) de taille 40×40 `rounded-lg bg-card border border-border`, icône Simple Icons résolue via le même pattern que `SocialLinks` du sub 04 (lookup `simple-icons:<slug>` → `Si<PascalCase>` dans `@icons-pack/react-simple-icons`). Hover `scale-105 shadow-sm transition` (plus discret que le 56×56 de la page contact). Voir `.claude/rules/shadcn-ui/components.md` pour les conventions d'icônes.
 - **Logo horizontal via `next/image`** : 2 `<Image>` rendues simultanément, une masquée par CSS selon le thème. Sources `/api/assets/branding/logo-horizontal-{dark,light}.svg` (silo `branding/` introduit par sub 02, servi par la route catch-all `/api/assets/[...path]` de Feature 2). `width` + `height` explicites (ex: 180×40 selon les dimensions réelles du logo du user), `alt="Thibaud Geisler"` sur les deux (l'un des deux est toujours visible → un seul `alt` annoncé par les lecteurs d'écran). `preload` **non nécessaire** (le logo du footer n'est pas LCP). `buildAssetUrl('branding/logo-horizontal-dark.svg')` depuis `src/lib/assets.ts` (helper existant). Voir `.claude/rules/nextjs/images-fonts.md`.
 - **Layout 2 colonnes + row copyright** : container standard `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`. Wrapper footer `border-t border-border mt-auto`. Grid interne `grid gap-8 lg:grid-cols-2 py-12`, puis row bottom `border-t border-border pt-6 flex flex-col sm:flex-row justify-between gap-4 text-xs text-muted-foreground`. Mobile : stack vertical (logo+tagline → réseaux+CV → copyright). Voir `.claude/rules/tailwind/conventions.md` (container, section padding, tokens sémantiques).
 - **Copyright dynamique** : réutilise `process.env.NEXT_PUBLIC_BUILD_YEAR` déjà hoist module-level (commit `9753cc4`). Aucun `new Date()` côté render (compatible avec `cacheComponents: true` de Next 16). Voir `.claude/rules/nextjs/rendering-caching.md`.
 - **Emplacement Feature 7** : commentaire JSX **verbatim** dans la row bottom, contenant la structure complète de la nav légale pour que Feature 7 la décommente et remplace les appels `t(...)` par les vraies clés i18n :
   ```tsx
-  {/* Feature 7 (conformité-legale) — décommenter quand pages livrées :
+  {/* Feature 7 (conformité-legale), décommenter quand pages livrées :
   <nav className="flex flex-wrap gap-4">
     <Link href="/mentions-legales">{t('legal.mentions')}</Link>
     <Link href="/confidentialite">{t('legal.privacy')}</Link>
@@ -121,14 +121,14 @@ Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/compo
 
 ## Edge cases
 
-- **Logo `.svg` introuvable dans le volume branding** : `next/image` affichera l'erreur de chargement côté client. **Décision** : l'upload des 2 fichiers `logo-horizontal-{dark,light}.svg` est une étape ops runbook (documenter dans le PR body, comme pour le portrait sub 02). Si absent en dev, la page charge mais le footer affiche un logo cassé — acceptable MVP single-user.
+- **Logo `.svg` introuvable dans le volume branding** : `next/image` affichera l'erreur de chargement côté client. **Décision** : l'upload des 2 fichiers `logo-horizontal-{dark,light}.svg` est une étape ops runbook (documenter dans le PR body, comme pour le portrait sub 02). Si absent en dev, la page charge mais le footer affiche un logo cassé, acceptable MVP single-user.
 - **`NEXT_PUBLIC_BUILD_YEAR` non défini** : déjà hoist module-level (commit `9753cc4`) avec fallback raisonnable dans la codebase existante (à vérifier dans `.env` / build system). Le footer actuel fonctionne déjà avec cette variable, comportement inchangé.
 - **URLs réseaux placeholder** non remplies avant merge : même gate que sub 04 (smoke test de la PR qui vérifie manuellement les liens). Si sub 04 a déjà remplacé les placeholders, sub 05 en hérite automatiquement via le module partagé.
 - **Utilisateur sans JavaScript** : footer rendu côté serveur, liens fonctionnels, logo switch via CSS pur → aucune dégradation. CV déjà téléchargeable en no-JS (ancre `<a href download>`).
 
 ## Architectural decisions
 
-### Décision : nav secondaire du footer — duplicata complet de la navbar vs liens légaux en row bottom vs skip total
+### Décision : nav secondaire du footer : duplicata complet de la navbar vs liens légaux en row bottom vs skip total
 
 **Options envisagées :**
 - **A. Skip nav secondaire, liens légaux en row bottom sous le copyright** : 2 colonnes (logo+tagline / réseaux+CV) + row `border-t` avec copyright + emplacement commenté pour Feature 7. Pattern web standard (gov, gros e-commerce, SaaS).
@@ -143,7 +143,7 @@ Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/compo
 - **Mentions légales en row bottom** = pattern web standard (legifrance.gouv.fr, CNIL, sites e-commerce). Discret, répond à l'obligation sans prendre la lumière. Les légaux ne sont pas des éléments de séduction mais du compliance.
 - **Option B** rejeté = bruit visuel redondant. **Option C** rejeté = donne trop de poids à des éléments de conformité vs contenu business.
 
-### Décision : switch logo dark/light — CSS Tailwind vs hook `useTheme` + Client wrapper
+### Décision : switch logo dark/light : CSS Tailwind vs hook `useTheme` + Client wrapper
 
 **Options envisagées :**
 - **A. CSS Tailwind pur** : 2 `<Image>` avec classes `dark:hidden` / `hidden dark:block`, rendues simultanément, une seule visible selon `.dark` sur `<html>`. Footer reste Server Component.
@@ -154,10 +154,10 @@ Promotion de la constante `SOCIAL_LINKS` créée par le sub 04 depuis `src/compo
 **Rationale :**
 - Aucun Client Component introduit → footer 100 % SSR, aucun JavaScript envoyé pour ce widget.
 - Aucun risque d'hydration mismatch (pattern `mounted` devient inutile puisque le CSS s'applique dès le premier render SSR + script inline next-themes qui applique `.dark` avant hydratation).
-- 0 ligne de JS côté client, 2 `<Image>` HTML standard — next/image optimise les deux mais un seul est affiché (l'autre `display: none`, non rendu à l'écran, bandwidth perdu minime pour 2 SVG).
+- 0 ligne de JS côté client, 2 `<Image>` HTML standard, next/image optimise les deux mais un seul est affiché (l'autre `display: none`, non rendu à l'écran, bandwidth perdu minime pour 2 SVG).
 - Alternative B correcte mais sur-ingénierie pour un cas où le CSS suffit. Aligne sur `.claude/rules/next-themes/theming.md` qui dit explicitement « render conditionnellement selon `resolvedTheme` **sans le pattern `mounted`** → hydration mismatch » et recommande de retarder uniquement quand le CSS-only ne peut pas.
 
-### Décision : emplacement de `SOCIAL_LINKS` — module partagé `src/config/` vs dep cross-feature vs duplication
+### Décision : emplacement de `SOCIAL_LINKS` : module partagé `src/config/` vs dep cross-feature vs duplication
 
 **Options envisagées :**
 - **A. Module partagé `src/config/social-links.ts`** : promu depuis sub 04, consommé par footer (sub 05) et page contact (sub 04) via `@/config/social-links`. Source unique de vérité.
