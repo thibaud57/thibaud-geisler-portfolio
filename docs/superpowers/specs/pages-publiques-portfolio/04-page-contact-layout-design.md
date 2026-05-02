@@ -9,13 +9,13 @@ depends_on: []
 date: "2026-04-24"
 ---
 
-# Page `/contact` — Header, Calendly, réseaux et form UI (stub submit)
+# Page `/contact` : Header, Calendly, réseaux et form UI (stub submit)
 
 ## Scope
 
-Remplacer le placeholder de `src/app/[locale]/(public)/contact/page.tsx` par une page à header centré (badge icône `Mail` + H1 `font-display` + tagline + localisation "Luxembourg · France · Remote") suivi d'une grille 2 colonnes desktop, empilée sur mobile. Colonne gauche : H2 "Réservez un créneau" + widget Calendly inline officiel (chargé via `<Script>` Next.js en `lazyOnload`, URL pilotée par `NEXT_PUBLIC_CALENDLY_URL`) + section "Ou retrouvez-moi" avec 2 badges carrés (LinkedIn + GitHub, icônes Simple Icons, hover `scale-105 shadow-md`). Colonne droite : H2 "Envoyez-moi un message" + formulaire dans `Card` shadcn avec 5 champs (Nom complet, Entreprise optionnel, Email, Sujet, Message) et un bouton Submit. Le **submit est stubé** (handler local qui affiche un toast `sonner` "Merci, message bientôt transmis — fonctionnalité complète en cours" + `console.log` des données), Feature 4 remplacera ce stub par une vraie Server Action SMTP. Le sujet est **pré-rempli** depuis le query param `?service=<slug>` (CTAs des cards services du sub 01/03) via un mapping i18n slug → label. En pied de page, lien CV discret (`DownloadCvButton variant="ghost"`).
+Remplacer le placeholder de `src/app/[locale]/(public)/contact/page.tsx` par une page à header centré (badge icône `Mail` + H1 `font-display` + tagline + localisation "Luxembourg · France · Remote") suivi d'une grille 2 colonnes desktop, empilée sur mobile. Colonne gauche : H2 "Réservez un créneau" + widget Calendly inline officiel (chargé via `<Script>` Next.js en `lazyOnload`, URL pilotée par `NEXT_PUBLIC_CALENDLY_URL`) + section "Ou retrouvez-moi" avec 2 badges carrés (LinkedIn + GitHub, icônes Simple Icons, hover `scale-105 shadow-md`). Colonne droite : H2 "Envoyez-moi un message" + formulaire dans `Card` shadcn avec 5 champs (Nom complet, Entreprise optionnel, Email, Sujet, Message) et un bouton Submit. Le **submit est stubé** (handler local qui affiche un toast `sonner` "Merci, message bientôt transmis, fonctionnalité complète en cours" + `console.log` des données), Feature 4 remplacera ce stub par une vraie Server Action SMTP. Le sujet est **pré-rempli** depuis le query param `?service=<slug>` (CTAs des cards services du sub 01/03) via un mapping i18n slug → label. En pied de page, lien CV discret (`DownloadCvButton variant="ghost"`).
 
-**Exclu** : logique métier du form (validation Zod stricte côté serveur, Server Action `submitContact` avec nodemailer SMTP IONOS, rate limiting IP in-memory, tests d'intégration TDD `full`) — entièrement **Feature 4**, qui remplacera uniquement le handler stub par un `useActionState(submitContact, ...)` sans refactorer le layout ni les champs. Carte du monde SVG (prévu initialement en brainstorming, abandonnée car visuel trop lourd pour le bénéfice MVP, remplacée par un texte sobre de localisation). Abonnement Aceternity PRO (blocs payants abandonnés, reconstruction shadcn pur).
+**Exclu** : logique métier du form (validation Zod stricte côté serveur, Server Action `submitContact` avec nodemailer SMTP IONOS, rate limiting IP in-memory, tests d'intégration TDD `full`), entièrement **Feature 4**, qui remplacera uniquement le handler stub par un `useActionState(submitContact, ...)` sans refactorer le layout ni les champs. Carte du monde SVG (prévu initialement en brainstorming, abandonnée car visuel trop lourd pour le bénéfice MVP, remplacée par un texte sobre de localisation). Abonnement Aceternity PRO (blocs payants abandonnés, reconstruction shadcn pur).
 
 **Modifications documentaires** (addendum DESIGN.md § Mapping Composants mentionnant la reconstruction shadcn du pattern "Contact Grid" + ajout `NEXT_PUBLIC_CALENDLY_URL` dans PRODUCTION.md § Variables d'Environnement) **différées au sync docs global** de fin de `/decompose-feature`, pas dans le plan de ce sub-project.
 
@@ -25,7 +25,7 @@ Remplacer le placeholder de `src/app/[locale]/(public)/contact/page.tsx` par une
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Éléments déjà livrés réutilisés sans modification : `DownloadCvButton` (Feature 3, sub 02 implemented, accepte `variant` et `size`), `Input`, `Textarea`, `Button`, `Card`, `Label` (shadcn primitives installés), `Sonner` toast shadcn (installé, visible dans `src/components/ui/sonner.tsx`), helpers `setupLocalePage`, `setupLocaleMetadata`, `buildLanguageAlternates`, `localeToOgLocale`, clés `Metadata.contactTitle` et `Metadata.contactDescription`.
+Aucune, ce sub-project est autoporté. Éléments déjà livrés réutilisés sans modification : `DownloadCvButton` (Feature 3, sub 02 implemented, accepte `variant` et `size`), `Input`, `Textarea`, `Button`, `Card`, `Label` (shadcn primitives installés), `Sonner` toast shadcn (installé, visible dans `src/components/ui/sonner.tsx`), helpers `setupLocalePage`, `setupLocaleMetadata`, `buildLanguageAlternates`, `localeToOgLocale`, clés `Metadata.contactTitle` et `Metadata.contactDescription`.
 
 ## Files touched
 
@@ -47,22 +47,22 @@ Aucune — ce sub-project est autoporté. Éléments déjà livrés réutilisés
 - **`CalendlyWidget`** (`'use client'`) : reçoit `url: string` + optional `className`. Rend `<Script src="https://assets.calendly.com/assets/external/widget.js" strategy="lazyOnload" />` suivi de `<div className="calendly-inline-widget min-h-[700px] w-full" data-url={url} />`. Si `url` est vide, rend un fallback `<div>` `border-dashed border-muted min-h-[700px]` avec le message `ContactPage.calendly.fallback`. Voir `.claude/rules/react/hooks.md`.
 - **`SocialLinks`** (Server) : reçoit `title: string` + `ariaLabels: { linkedin: string; github: string }`. Itère sur `SOCIAL_LINKS` (config TS), rend pour chaque entrée un `<a>` externe (`target="_blank" rel="noopener noreferrer"`) avec `aria-label` localisé, contenant une icône Simple Icons résolue via le format `simple-icons:<slug>` (pattern identique à `src/components/features/projects/TagBadge.tsx` pour cohérence). Style du badge : `size-14` (56×56 px), `rounded-lg bg-card border border-border flex items-center justify-center`, hover `scale-105 shadow-md transition`. Voir `.claude/rules/shadcn-ui/components.md` et `.claude/rules/tailwind/conventions.md`.
 - **`social-links-config.ts`** : exporte `SOCIAL_LINKS` en constante TS `as const`, chaque entrée `{ slug: 'linkedin' | 'github', url: string, icon: 'simple-icons:linkedin' | 'simple-icons:github' }`. Les URLs seront fournies par l'utilisateur au moment de l'implémentation (PR check obligatoire pour éviter placeholders laissés en prod). Typage via `typeof` conformément à `.claude/rules/typescript/conventions.md`.
-- **`ContactForm`** (`'use client'`) : composant client autonome qui encapsule les 5 champs, gère l'état local via `useState` ou `useActionState` (approche React 19 déjà utilisée ailleurs — permet à Feature 4 de juste remplacer le handler). Reçoit les labels/placeholders/texte submit/toast traduits en props depuis le Server parent, plus `defaultSubject: string` pour pré-remplir le champ Sujet. Le handler submit **stub** affiche un toast `sonner` avec le message `ContactPage.form.stubToast` puis `console.log({ name, company, email, subject, message })`. Aucune Server Action n'est appelée, aucune validation Zod (validation HTML5 native `required`, `type="email"` uniquement). Feature 4 remplacera exclusivement la fonction submit handler par un `useActionState(submitContact, ...)` sans toucher aux champs ni au layout.
-- **Pattern `useActionState` (optionnel mais recommandé ici)** : structurer le form avec `useActionState` dès ce sub-project permet à Feature 4 de juste swap l'action, sans refactor. Voir `.claude/rules/react/hooks.md` (pattern `useActionState` + `useFormStatus` dans un enfant). Si trop précoce, fallback à un `useState` + `onSubmit` classique — challenge à trancher pendant l'implémentation.
+- **`ContactForm`** (`'use client'`) : composant client autonome qui encapsule les 5 champs, gère l'état local via `useState` ou `useActionState` (approche React 19 déjà utilisée ailleurs, permet à Feature 4 de juste remplacer le handler). Reçoit les labels/placeholders/texte submit/toast traduits en props depuis le Server parent, plus `defaultSubject: string` pour pré-remplir le champ Sujet. Le handler submit **stub** affiche un toast `sonner` avec le message `ContactPage.form.stubToast` puis `console.log({ name, company, email, subject, message })`. Aucune Server Action n'est appelée, aucune validation Zod (validation HTML5 native `required`, `type="email"` uniquement). Feature 4 remplacera exclusivement la fonction submit handler par un `useActionState(submitContact, ...)` sans toucher aux champs ni au layout.
+- **Pattern `useActionState` (optionnel mais recommandé ici)** : structurer le form avec `useActionState` dès ce sub-project permet à Feature 4 de juste swap l'action, sans refactor. Voir `.claude/rules/react/hooks.md` (pattern `useActionState` + `useFormStatus` dans un enfant). Si trop précoce, fallback à un `useState` + `onSubmit` classique, challenge à trancher pendant l'implémentation.
 - **Champs du form** :
   - `name` : `<Input type="text" name="name" required placeholder="Votre nom complet" />`
-  - `company` : `<Input type="text" name="company" placeholder="Nom de votre entreprise (optionnel)" />` — pas de `required`
+  - `company` : `<Input type="text" name="company" placeholder="Nom de votre entreprise (optionnel)" />`, pas de `required`
   - `email` : `<Input type="email" name="email" required placeholder="vous@exemple.com" />`
   - `subject` : `<Input type="text" name="subject" required defaultValue={defaultSubject} placeholder="Sujet de votre message" />`
   - `message` : `<Textarea name="message" required rows={6} placeholder="Décrivez votre besoin, votre contexte, vos questions..." />`
   - `submit` : `<Button type="submit">Envoyer</Button>` (variant default)
-- **Pré-remplissage `defaultSubject`** : `page.tsx` lit `searchParams.service`, appelle `getTranslations('ContactPage.form.subjectPrefill')`, tente `t(slug)` si le slug est dans la liste connue (`ia`, `fullstack`, `formation`), sinon chaîne vide. La page passe le résultat en prop à `ContactForm`. Pas de validation stricte côté sub 04 — Feature 4 renforcera via Zod.
+- **Pré-remplissage `defaultSubject`** : `page.tsx` lit `searchParams.service`, appelle `getTranslations('ContactPage.form.subjectPrefill')`, tente `t(slug)` si le slug est dans la liste connue (`ia`, `fullstack`, `formation`), sinon chaîne vide. La page passe le résultat en prop à `ContactForm`. Pas de validation stricte côté sub 04, Feature 4 renforcera via Zod.
 - **Toast `sonner`** : le composant `Toaster` doit être monté dans un layout parent (probablement `src/app/[locale]/(public)/layout.tsx` ou `src/app/[locale]/layout.tsx`, à vérifier lors de l'implémentation). Si absent, le plan inclura une étape pour l'ajouter (voir `src/components/ui/sonner.tsx` pour l'export `Toaster`). Voir `.claude/rules/shadcn-ui/components.md`.
 - **Layout `page.tsx`** : conteneur standard `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24`. Structure : `<ContactHeader>` centré pleine largeur, puis `<div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mt-12">`. Colonne gauche = stack `flex flex-col gap-8` avec H2 + CalendlyWidget + section "Ou retrouvez-moi" (H3 petit + SocialLinks). Colonne droite = stack `flex flex-col gap-8` avec H2 + `<Card>` contenant le ContactForm. Footer de section = `<div className="mt-16 flex justify-center"><DownloadCvButton variant="ghost" /></div>`.
 - **i18n `ContactPage`** : structure nested conforme à `.claude/rules/next-intl/translations.md`. Les clés `Metadata.contactTitle` et `Metadata.contactDescription` déjà remplies sont réutilisées inchangées.
 - **Metadata SEO** : `generateMetadata` suit le pattern des subs 01/02/03 (`setupLocaleMetadata`, `localeToOgLocale`, `buildLanguageAlternates('/contact')`). Voir `.claude/rules/nextjs/metadata-seo.md`.
 - **Env var `NEXT_PUBLIC_CALENDLY_URL`** : ajoutée à `.env.example` avec valeur exemple commentée. Formalisation dans PRODUCTION.md § Variables d'Environnement → sync docs global.
-- **Sécurité** : `target="_blank" rel="noopener noreferrer"` obligatoire sur les liens réseaux externes. Script Calendly chargé depuis `assets.calendly.com` — vérifier CSP `next.config.ts` à l'implémentation (hors scope spec strict).
+- **Sécurité** : `target="_blank" rel="noopener noreferrer"` obligatoire sur les liens réseaux externes. Script Calendly chargé depuis `assets.calendly.com`, vérifier CSP `next.config.ts` à l'implémentation (hors scope spec strict).
 
 ## Acceptance criteria
 
@@ -91,7 +91,7 @@ Aucune — ce sub-project est autoporté. Éléments déjà livrés réutilisés
 ### Scénario 4 : submit stub
 **GIVEN** un visiteur a rempli les 4 champs requis (Nom, Email, Sujet, Message) et clique sur "Envoyer"
 **WHEN** le form est soumis
-**THEN** un toast `sonner` apparaît avec le message `ContactPage.form.stubToast` (ex: "Merci, message bientôt transmis — fonctionnalité complète en cours")
+**THEN** un toast `sonner` apparaît avec le message `ContactPage.form.stubToast` (ex: "Merci, message bientôt transmis, fonctionnalité complète en cours")
 **AND** les données `{ name, company, email, subject, message }` sont loguées via `console.log` côté client
 **AND** aucune Server Action n'est invoquée, aucun email n'est envoyé
 **AND** le form ne se réinitialise pas (les valeurs saisies restent visibles pour que le visiteur puisse copier/modifier si besoin)
@@ -158,7 +158,7 @@ Aucune — ce sub-project est autoporté. Éléments déjà livrés réutilisés
 
 ## Architectural decisions
 
-### Décision : scope form UI — inclus dans sub 04 vs entièrement Feature 4
+### Décision : scope form UI : inclus dans sub 04 vs entièrement Feature 4
 
 **Options envisagées :**
 - **A. Form UI dans sub 04 + logique métier dans Feature 4** : layout complet, champs, validation HTML5 et stub submit en sub 04. Feature 4 remplace uniquement le handler par `useActionState(submitContact)`, ajoute Zod serveur, SMTP nodemailer, rate limiting, tests TDD `full`.
@@ -202,7 +202,7 @@ Aucune — ce sub-project est autoporté. Éléments déjà livrés réutilisés
 - Feature 4 pourra conserver ce pattern (prop `defaultSubject` restant).
 - Aligne sur le pattern Server-first du projet.
 
-### Décision : submit stub — `sonner` toast + `console.log` vs Server Action vide vs `alert()`
+### Décision : submit stub : `sonner` toast + `console.log` vs Server Action vide vs `alert()`
 
 **Options envisagées :**
 - **A. `sonner.toast()` + `console.log`** : UX polie (toast aligné sur design system), traçabilité dev (log en console).

@@ -189,11 +189,11 @@ CONTACT_TO=thibaud@thibaud-geisler.com
 
 ## Documentation Officielle
 
-- [nodemailer — Documentation](https://nodemailer.com/)
+- [nodemailer : Documentation](https://nodemailer.com/)
 - [SMTP transport](https://nodemailer.com/smtp)
-- [GitHub — nodemailer](https://github.com/nodemailer/nodemailer)
+- [GitHub : nodemailer](https://github.com/nodemailer/nodemailer)
 
 ## Ressources Complémentaires
 
 - [Advisory GHSA-vvjj-xcjg-gr5g](https://github.com/nodemailer/nodemailer/security/advisories/GHSA-vvjj-xcjg-gr5g)
-- [Next.js + nodemailer guide — Mailtrap](https://mailtrap.io/blog/nextjs-send-email/)
+- [Next.js + nodemailer guide, Mailtrap](https://mailtrap.io/blog/nextjs-send-email/)

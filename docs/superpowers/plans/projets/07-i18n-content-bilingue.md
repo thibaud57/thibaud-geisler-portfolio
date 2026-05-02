@@ -1,4 +1,4 @@
-# Content bilingue FR/EN — Implementation Plan
+# Content bilingue FR/EN: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -37,7 +37,7 @@
 | `src/components/features/projects/ProjectsList.tsx` | Modify | `projects: LocalizedProject[]` |
 | `src/components/features/projects/ProjectsList.test.tsx` | Modify | Fixture `LocalizedProject` (pas `ProjectWithRelations`) |
 | `src/app/[locale]/(public)/projets/page.tsx` | Modify | Passe `locale` à `findManyPublished({ locale })` |
-| `docs/adrs/010-i18n.md` | Modify | Ajoute section "Content bilingue — colonnes jumelées" |
+| `docs/adrs/010-i18n.md` | Modify | Ajoute section "Content bilingue, colonnes jumelées" |
 | `.claude/rules/prisma/schema-migrations.md` | Modify | Mentionne convention `champFr`/`champEn` |
 | `.claude/rules/next-intl/translations.md` | Modify | Mentionne "UI chrome via messages/*.json vs content DB via colonnes jumelées" + pattern `localize*()` |
 | `docs/superpowers/specs/projets/06-page-case-study-design.md` | Modify | Aligne les sections Architecture approach + Files touched sur `LocalizedProject` |
@@ -45,7 +45,7 @@
 
 ---
 
-## Task 1: Prérequis — vérifier l'environnement
+## Task 1: Prérequis: vérifier l'environnement
 
 **Files:** (aucune modif)
 
@@ -134,7 +134,7 @@ Run:
 ```bash
 grep -rn "\.title\b\|\.description\b\|\.caseStudyMarkdown\b\|tag\.name\b" prisma/ src/ --include="*.ts" --include="*.tsx" --include="*.prisma"
 ```
-Expected : lister les occurrences à mettre à jour dans les tâches suivantes (attendu : `prisma/seed.ts`, `src/server/queries/projects.ts`, `src/types/project.ts`, `src/components/features/projects/*.tsx`, tests). Pas d'occurrence en dehors — si surprise (ex: action `/admin`), noter pour Task 10.
+Expected : lister les occurrences à mettre à jour dans les tâches suivantes (attendu : `prisma/seed.ts`, `src/server/queries/projects.ts`, `src/types/project.ts`, `src/components/features/projects/*.tsx`, tests). Pas d'occurrence en dehors, si surprise (ex: action `/admin`), noter pour Task 10.
 
 - [ ] **Step 4: Commit schema-only (migration générée au step suivant)**
 
@@ -156,7 +156,7 @@ Run:
 ```bash
 pnpm prisma migrate dev --create-only --name content_bilingual
 ```
-Expected : création de `prisma/migrations/<timestamp>_content_bilingual/migration.sql` avec des `ALTER TABLE` qui ajoutent directement les colonnes `*Fr`/`*En` en NOT NULL + drops des anciennes. Cette version brute ferait perdre les données existantes — on la remplace au step suivant.
+Expected : création de `prisma/migrations/<timestamp>_content_bilingual/migration.sql` avec des `ALTER TABLE` qui ajoutent directement les colonnes `*Fr`/`*En` en NOT NULL + drops des anciennes. Cette version brute ferait perdre les données existantes, on la remplace au step suivant.
 
 - [ ] **Step 2: Remplacer intégralement le contenu du `migration.sql` par la version avec backfill**
 
@@ -362,7 +362,7 @@ describe('localizeProject', () => {
 })
 ```
 
-- [ ] **Step 2: Lancer les tests — ils doivent tous échouer en RED**
+- [ ] **Step 2: Lancer les tests: ils doivent tous échouer en RED**
 
 Run:
 ```bash
@@ -444,7 +444,7 @@ export function localizeProject<
 }
 ```
 
-- [ ] **Step 4: Lancer les tests — tous GREEN**
+- [ ] **Step 4: Lancer les tests: tous GREEN**
 
 Run:
 ```bash
@@ -536,7 +536,7 @@ export async function findPublishedBySlug(
 }
 ```
 
-- [ ] **Step 3: Vérifier typecheck — les call-sites existants doivent afficher les bonnes erreurs**
+- [ ] **Step 3: Vérifier typecheck: les call-sites existants doivent afficher les bonnes erreurs**
 
 Run:
 ```bash
@@ -546,10 +546,10 @@ Expected : erreurs TypeScript qui révèlent les call-sites à adapter :
 - `src/app/[locale]/(public)/projets/page.tsx` : `findManyPublished()` appelé sans `locale`
 - `src/components/features/projects/ProjectsList.tsx` : `projects: ProjectWithRelations[]` à renommer en `LocalizedProjectWithRelations[]`
 - `src/components/features/projects/ProjectCard.tsx` : `project: ProjectWithRelations` idem
-- `src/components/features/projects/ProjectsList.test.tsx` : fixture utilise `title`/`description` (OK après adaptation mais sans `titleFr` actuellement — à refactorer)
+- `src/components/features/projects/ProjectsList.test.tsx` : fixture utilise `title`/`description` (OK après adaptation mais sans `titleFr` actuellement, à refactorer)
 - `src/server/queries/projects.integration.test.ts` : `findManyPublished()` sans `locale`, fixtures utilisent `title` / `description` / `name`
 
-Noter la liste — elle est corrigée aux Tasks 8, 9, 10.
+Noter la liste, elle est corrigée aux Tasks 8, 9, 10.
 
 - [ ] **Step 4: Commit types + queries (les call-sites cassés seront corrigés dans les tâches suivantes)**
 
@@ -566,7 +566,7 @@ git commit -m "refactor(queries): locale obligatoire sur findManyPublished / fin
 - Modify: `prisma/seed-data/tags.ts`
 - Modify: `prisma/seed-data/projects.ts`
 
-- [ ] **Step 1: Réécrire `prisma/seed-data/tags.ts` — renommer `name` → `nameFr` + ajouter `nameEn`**
+- [ ] **Step 1: Réécrire `prisma/seed-data/tags.ts`: renommer `name` → `nameFr` + ajouter `nameEn`**
 
 Remplacer intégralement le contenu de `prisma/seed-data/tags.ts` par :
 
@@ -637,7 +637,7 @@ export const tags: TagInput[] = [
 ]
 ```
 
-- [ ] **Step 2: Réécrire `prisma/seed-data/projects.ts` — `title` → `titleFr`+`titleEn`, `description` → `descriptionFr`+`descriptionEn`**
+- [ ] **Step 2: Réécrire `prisma/seed-data/projects.ts`: `title` → `titleFr`+`titleEn`, `description` → `descriptionFr`+`descriptionEn`**
 
 Remplacer intégralement le contenu de `prisma/seed-data/projects.ts` par :
 
@@ -1279,7 +1279,7 @@ type Props = {
 }
 ```
 
-Le reste du fichier (`resolveTagIcon`, render) reste identique — il consommait déjà `tag.name` et `tag.icon`.
+Le reste du fichier (`resolveTagIcon`, render) reste identique, il consommait déjà `tag.name` et `tag.icon`.
 
 - [ ] **Step 2: Adapter `ProjectCard.tsx` pour typer un projet localisé**
 
@@ -1301,7 +1301,7 @@ type Props = {
 }
 ```
 
-Le reste du fichier reste identique — `project.title`, `project.description`, `project.tags[n].tag.name` sont déjà lus tels quels (le helper `localizeProject` les expose avec les mêmes noms).
+Le reste du fichier reste identique, `project.title`, `project.description`, `project.tags[n].tag.name` sont déjà lus tels quels (le helper `localizeProject` les expose avec les mêmes noms).
 
 - [ ] **Step 3: Adapter `ProjectsList.tsx` pour typer un array localisé**
 
@@ -1351,7 +1351,7 @@ Run:
 ```bash
 pnpm typecheck
 ```
-Expected : zéro erreur liée aux composants/page. S'il reste des erreurs, elles concernent uniquement le test (`ProjectsList.test.tsx`) et l'intégration (`projects.integration.test.ts`) — corrigés au Task 10.
+Expected : zéro erreur liée aux composants/page. S'il reste des erreurs, elles concernent uniquement le test (`ProjectsList.test.tsx`) et l'intégration (`projects.integration.test.ts`), corrigés au Task 10.
 
 - [ ] **Step 6: Commit composants + page**
 
@@ -1415,7 +1415,7 @@ const baseProject: LocalizedProjectWithRelations = {
 }
 ```
 
-Le reste du fichier (fixtures `fixtures`, `describe('ProjectsList filter', ...)`, test click sur tabs) reste identique — `title`, `type`, `slug` existent toujours sur `LocalizedProjectWithRelations`.
+Le reste du fichier (fixtures `fixtures`, `describe('ProjectsList filter', ...)`, test click sur tabs) reste identique, `title`, `type`, `slug` existent toujours sur `LocalizedProjectWithRelations`.
 
 - [ ] **Step 2: Réécrire `projects.integration.test.ts` avec fixtures bilingues + cas FR/EN**
 
@@ -1678,7 +1678,7 @@ Run:
 ```bash
 pnpm test
 ```
-Expected : tous les tests PASS (unit helpers + ProjectsList filter + integration queries). Si un test async timeout sur l'intégration : vérifier que `docker compose ps postgres_test` est UP et que la DB de test est migrée (`just db-migrate-test` ou équivalent — cf. `prisma-test-setup.ts`).
+Expected : tous les tests PASS (unit helpers + ProjectsList filter + integration queries). Si un test async timeout sur l'intégration : vérifier que `docker compose ps postgres_test` est UP et que la DB de test est migrée (`just db-migrate-test` ou équivalent, cf. `prisma-test-setup.ts`).
 
 - [ ] **Step 4: Commit tests adaptés**
 
@@ -1755,7 +1755,7 @@ git commit -m "chore: validation content bilingue FR/EN end-to-end"
 
 ---
 
-## Task 12: Documenter — ADR-010 + rules + spec/plan 06
+## Task 12: Documenter: ADR-010 + rules + spec/plan 06
 
 **Files:**
 - Modify: `docs/adrs/010-i18n.md`
@@ -1834,11 +1834,11 @@ Dans `docs/superpowers/specs/projets/06-page-case-study-design.md`, relire la se
 - Si `caseStudyMarkdownEn` est `null` en BDD (trou de traduction), afficher un banner "Traduction à venir — version FR ci-dessous" et rendre `project.caseStudyMarkdown` en FR en fallback explicite (décision de sub-project 07, edge case).
 ```
 
-3. Dans **Files touched**, la ligne `src/app/[locale]/(public)/projets/[slug]/page.tsx` précise désormais : "appelle `findPublishedBySlug(slug, locale)` — la locale vient de `setupLocalePage`".
+3. Dans **Files touched**, la ligne `src/app/[locale]/(public)/projets/[slug]/page.tsx` précise désormais : "appelle `findPublishedBySlug(slug, locale)`, la locale vient de `setupLocalePage`".
 
 - [ ] **Step 5: Aligner le plan 06 sur `LocalizedProjectWithRelations`**
 
-Ouvrir `docs/superpowers/plans/projets/06-page-case-study.md`, chercher toutes les occurrences de `ProjectWithRelations` et remplacer par `LocalizedProjectWithRelations`. Chercher les call-sites de `findPublishedBySlug(slug)` et remplacer par `findPublishedBySlug(slug, locale)` en ajoutant une étape "obtenir `locale` via `setupLocalePage`". Si le plan n'a pas encore été implémenté (fichier en draft), l'alignement du spec suffit et cette étape se limite à un pointer mentionnant : "Voir sub-project 07 — les queries retournent désormais `LocalizedProjectWithRelations`".
+Ouvrir `docs/superpowers/plans/projets/06-page-case-study.md`, chercher toutes les occurrences de `ProjectWithRelations` et remplacer par `LocalizedProjectWithRelations`. Chercher les call-sites de `findPublishedBySlug(slug)` et remplacer par `findPublishedBySlug(slug, locale)` en ajoutant une étape "obtenir `locale` via `setupLocalePage`". Si le plan n'a pas encore été implémenté (fichier en draft), l'alignement du spec suffit et cette étape se limite à un pointer mentionnant : "Voir sub-project 07, les queries retournent désormais `LocalizedProjectWithRelations`".
 
 Commande de recherche pour locate rapidement :
 ```bash
@@ -1888,7 +1888,7 @@ git add docs/superpowers/specs/projets/07-i18n-content-bilingue-design.md
 git commit -m "docs(specs): sub-project 07 i18n-content-bilingue status=implemented"
 ```
 
-- [ ] **Step 4: Audit final — `git log` et `git status`**
+- [ ] **Step 4: Audit final: `git log` et `git status`**
 
 Run:
 ```bash
@@ -1899,7 +1899,7 @@ Expected : 11-12 commits logiquement ordonnés (schema → migration → helpers
 
 ---
 
-## Validation finale (checklist mentale — à cocher avant de proposer un PR)
+## Validation finale (checklist mentale: à cocher avant de proposer un PR)
 
 - [ ] `pnpm typecheck` → 0 erreur
 - [ ] `pnpm lint` → 0 erreur

@@ -21,7 +21,7 @@ Créer `src/proxy.ts` avec `createMiddleware(routing)` de next-intl pour interce
 
 ## Dependencies
 
-- `01-config-routing-types-design.md` (statut: implemented) — fournit `routing` (defineRouting avec locales, defaultLocale, localePrefix)
+- `01-config-routing-types-design.md` (statut: implemented), fournit `routing` (defineRouting avec locales, defaultLocale, localePrefix)
 
 ## Files touched
 

@@ -21,7 +21,7 @@ Créer `src/app/llms.txt/route.ts` (route handler Next.js GET) qui retourne un m
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il consomme `siteUrl` du sub-project 01 (statut `draft`) et référence l'URL du sitemap produite par le sub-project 03 (statut `draft`), mais peut être implémenté en parallèle car le contenu est du chrome statique : `siteUrl` a un fallback `'http://localhost:3000'` déjà en place dans `src/lib/seo.ts`, et l'URL `${siteUrl}/sitemap.xml` reste valide au moins en string même si `app/sitemap.ts` n'est pas encore livré.
+Aucune, ce sub-project est autoporté. Il consomme `siteUrl` du sub-project 01 (statut `draft`) et référence l'URL du sitemap produite par le sub-project 03 (statut `draft`), mais peut être implémenté en parallèle car le contenu est du chrome statique : `siteUrl` a un fallback `'http://localhost:3000'` déjà en place dans `src/lib/seo.ts`, et l'URL `${siteUrl}/sitemap.xml` reste valide au moins en string même si `app/sitemap.ts` n'est pas encore livré.
 
 ## Files touched
 
@@ -29,7 +29,7 @@ Aucune — ce sub-project est autoporté. Il consomme `siteUrl` du sub-project 0
 
 **Non touchés** :
 - `src/lib/seo.ts` (consommé read-only via import `siteUrl`)
-- `src/config/social-links.ts` (URLs LinkedIn/GitHub hardcodées dans le template string, pas d'import dynamique — cohérent avec le caractère statique du chrome)
+- `src/config/social-links.ts` (URLs LinkedIn/GitHub hardcodées dans le template string, pas d'import dynamique, cohérent avec le caractère statique du chrome)
 - `messages/{fr,en}.json` (markdown en EN uniquement, pas de localisation via next-intl)
 - `src/app/robots.ts` (sub-project 04 inchangé, le `User-agent: *` + `Allow: /` autorise déjà GPTBot, ClaudeBot, PerplexityBot, et tout autre AI crawler)
 - `next.config.ts`, `package.json`, `prisma/schema.prisma`

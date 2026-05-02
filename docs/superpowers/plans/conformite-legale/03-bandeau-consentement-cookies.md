@@ -112,7 +112,7 @@ Expected: aucune erreur.
 
 ---
 
-## Task 3: TDD red — écrire les tests d'intégration de `<ConsentLanguageSync />`
+## Task 3: TDD red: écrire les tests d'intégration de `<ConsentLanguageSync />`
 
 **Files:**
 - Create: `src/lib/cookies/consent-language-sync.integration.test.tsx`
@@ -232,7 +232,7 @@ Expected: échec d'import `Cannot find module './consent-language-sync'` (le fic
 
 ---
 
-## Task 4: TDD green — implémenter `<ConsentLanguageSync />`
+## Task 4: TDD green: implémenter `<ConsentLanguageSync />`
 
 **Files:**
 - Create: `src/lib/cookies/consent-language-sync.tsx`
@@ -660,7 +660,7 @@ Cette modification peut être commitée séparément en `chore(specs): mark band
 | Personnaliser + Save marketing on (Scénario 4) | Task 7.5 + Task 8.3 |
 | Rechargement persistant (Scénario 5) | Task 7.3 fin (recharger) + Task 8.3 |
 | Switch FR→EN propage banner via ConsentLanguageSync (Scénario 6) | Task 3 (TDD red) + Task 4 (TDD green) + Task 7.7 (smoke dev) + Task 8.3 |
-| `setActiveUI('dialog')` programmatique (Scénario 7) | Task 5 (mount Provider qui expose hook) — testé end-to-end par sub 4 (OpenCookiePreferencesButton) |
+| `setActiveUI('dialog')` programmatique (Scénario 7) | Task 5 (mount Provider qui expose hook), testé end-to-end par sub 4 (OpenCookiePreferencesButton) |
 | Tests intégration verts (Scénario 8) | Task 3 + Task 4 + Task 9.3 |
 | API exposée aux subs 4/5/7 | Task 5 (Provider mounté wrap toute l'arbre) |
 | Translations FR/EN built-in `@c15t/translations/all` | Task 1.1 (install) + Task 5.1 (Provider config) |

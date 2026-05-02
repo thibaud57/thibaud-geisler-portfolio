@@ -76,7 +76,7 @@ Expected: aucune erreur. Les nouvelles clés `Cookies.calendlyGated.label` et `C
 
 ---
 
-## Task 2: TDD red — écrire les tests integration du gating
+## Task 2: TDD red: écrire les tests integration du gating
 
 **Files:**
 - Create: `src/components/features/contact/CalendlyWidget.integration.test.tsx`
@@ -226,7 +226,7 @@ C'est la phase red du TDD.
 
 ---
 
-## Task 3: TDD green — modifier CalendlyWidget.tsx avec la branche gated
+## Task 3: TDD green: modifier CalendlyWidget.tsx avec la branche gated
 
 **Files:**
 - Modify: `src/components/features/contact/CalendlyWidget.tsx`

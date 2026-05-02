@@ -21,7 +21,7 @@ Créer `src/app/robots.ts` (Next.js 16 Metadata file convention, retourne `Metad
 
 ## Dependencies
 
-- `03-sitemap-dynamique-design.md` (statut: draft) — la directive `Sitemap:` du robots.txt pointe vers `/sitemap.xml` dont le contenu est généré au sub-project 03. Le robots.txt fonctionne techniquement sans le sitemap (la directive `Sitemap:` reste valide même si l'URL retourne 404 au moment du crawl), mais la valeur opérationnelle ne se concrétise qu'avec les deux livrés ensemble.
+- `03-sitemap-dynamique-design.md` (statut: draft), la directive `Sitemap:` du robots.txt pointe vers `/sitemap.xml` dont le contenu est généré au sub-project 03. Le robots.txt fonctionne techniquement sans le sitemap (la directive `Sitemap:` reste valide même si l'URL retourne 404 au moment du crawl), mais la valeur opérationnelle ne se concrétise qu'avec les deux livrés ensemble.
 
 ## Files touched
 
@@ -32,7 +32,7 @@ Créer `src/app/robots.ts` (Next.js 16 Metadata file convention, retourne `Metad
 ## Architecture approach
 
 - **Convention Next.js 16 `app/robots.ts`** : export default d'une fonction synchrone retournant `MetadataRoute.Robots`. Next.js sérialise automatiquement l'objet en réponse `text/plain` au format robots.txt standard, route accessible à `/robots.txt`. Voir `.claude/rules/nextjs/metadata-seo.md` (`app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts` retournent les types `MetadataRoute.*`).
-- **Une seule règle générique `User-agent: *`** : couvre tous les crawlers (Googlebot, Bingbot, etc.) sans distinction. Pas d'agents spécifiques en MVP — ajustable post-MVP si un crawler problématique nécessite un traitement particulier (ex: rate limit ciblé via `Crawl-delay` non honoré par Google).
+- **Une seule règle générique `User-agent: *`** : couvre tous les crawlers (Googlebot, Bingbot, etc.) sans distinction. Pas d'agents spécifiques en MVP, ajustable post-MVP si un crawler problématique nécessite un traitement particulier (ex: rate limit ciblé via `Crawl-delay` non honoré par Google).
 - **`Allow: /` + `Disallow: /api/`** : autorise le crawl de toutes les pages publiques (`/fr/...`, `/en/...`, `/sitemap.xml`, `/opengraph-image`, etc.), bloque les endpoints internes (`/api/health`, `/api/contact`, `/api/assets/*`). Convention SEO standard : on signale aux crawlers que `/api/` ne contient pas de contenu indexable. Bénéfice : évite que des URLs comme `/api/assets/projets/.../cover.webp` apparaissent par accident dans Google et générent du bruit dans la Search Console (ex: avertissements "Indexed though blocked").
 - **Directive `Sitemap:` avec URL absolue** : convention robots.txt impose une URL absolue (pas relative) pour la directive `Sitemap:`. Le helper `siteUrl` exporté par `src/lib/seo.ts` (sub-project 01) lit `process.env.NEXT_PUBLIC_SITE_URL` avec fallback `http://localhost:3000`. Cette URL est cohérente avec celle utilisée par le helper `buildPageMetadata` (canonical, OG), le sitemap (`buildSitemapEntries`), les images OG (`og-template`). Source unique de vérité.
 - **Pas de logique conditionnelle par environnement dans le robots.txt** : le `noindex` hors prod est délibérément géré côté HTML par `buildPageMetadata` du sub-project 01 (`<meta name="robots" content="noindex,nofollow">` quand `NODE_ENV !== 'production'`). Le robots.txt reste permissif tout le temps. Trade-off acté dans le sub-project 01 : le meta tag est plus fiable car appliqué par page et inspectable visuellement, alors qu'un robots.txt conditionnel exige de gérer un mécanisme de switch propre. YAGNI sur le robots.txt conditionnel.

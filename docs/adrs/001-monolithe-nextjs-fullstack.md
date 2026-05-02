@@ -22,7 +22,7 @@ Quelle organisation architecturale choisir pour un projet fullstack solo, en ter
 
 # 🛠️ Options Envisagées
 
-## Option A — Monolithe Next.js (Server Actions + API Routes)
+## Option A : Monolithe Next.js (Server Actions + API Routes)
 
 **Description :** Une seule application Next.js couvrant frontend (App Router), logique serveur (Server Actions), API (API Routes) et accès BDD (Prisma).
 
@@ -39,9 +39,9 @@ Quelle organisation architecturale choisir pour un projet fullstack solo, en ter
 - Scalabilité limitée si la partie backend devient très intensive (peu probable pour un portfolio)
 - Moins adapté si plusieurs frontends devaient consommer la même API
 
-**Coût estimé :** 0 — approche par défaut de Next.js
+**Coût estimé :** 0, approche par défaut de Next.js
 
-## Option B — Séparation frontend Next.js + backend Express/NestJS
+## Option B : Séparation frontend Next.js + backend Express/NestJS
 
 **Description :** Deux applications distinctes : Next.js pour le frontend (SSR/SSG), un backend Express ou NestJS pour l'API REST.
 
@@ -60,7 +60,7 @@ Quelle organisation architecturale choisir pour un projet fullstack solo, en ter
 
 # 🎉 Décision
 
-**Option A — Monolithe Next.js fullstack.**
+**Option A : Monolithe Next.js fullstack.**
 
 Choix naturel pour un projet solo avec Next.js App Router. La colocation Server Actions/composants élimine la friction inter-services. Aucune complexité ajoutée sans bénéfice identifié.
 
@@ -76,7 +76,7 @@ Choix naturel pour un projet solo avec Next.js App Router. La colocation Server 
 
 ## Négatives
 
-- Couplage présentation/logique — à mitiger via organisation en `server/actions/` et `server/queries/`
+- Couplage présentation/logique, à mitiger via organisation en `server/actions/` et `server/queries/`
 - Si une API publique est un jour nécessaire, les routes API devront être exposées explicitement
 
 ---

@@ -21,9 +21,9 @@ Modifier `src/components/layout/Footer.tsx` (Server Component async existant qui
 
 ## Dependencies
 
-- `01-schema-prisma-legal-entity-seed-design.md` (statut: draft) — fournit la query `getPublisher()` consommée par le Server Component pour récupérer `publisher.siret` (= `"88041912200036"` pour Thibaud, formaté ensuite). Sans cette query, le footer ne peut pas afficher le SIRET.
-- `03-bandeau-consentement-cookies-design.md` (statut: draft) — fournit le `<ConsentManagerProvider>` (de `@c15t/nextjs`) mounté dans `Providers.tsx` qui wrap toute l'arbre, indispensable pour que `<OpenCookiePreferencesButton>` (Client Component descendant) puisse consommer `useConsentManager().setActiveUI('dialog')` sans lever d'erreur.
-- `04-pages-mentions-confidentialite-design.md` (statut: draft) — fournit `<OpenCookiePreferencesButton>` (Client Component créé au sub 4 avec prop `label?` exposée nativement pour customisation contextuelle, ici on l'utilise avec `variant="link"` + `label={t('Footer.legalNav.cookies')}`) ET le helper `formatSiret()` (créé au sub 4 dans `src/lib/legal/format-siret.ts`, mappe `"88041912200036"` → `"880 419 122 00036"`). Les pages cibles `/mentions-legales` et `/confidentialite` sont également livrées par ce sub 4.
+- `01-schema-prisma-legal-entity-seed-design.md` (statut: draft), fournit la query `getPublisher()` consommée par le Server Component pour récupérer `publisher.siret` (= `"88041912200036"` pour Thibaud, formaté ensuite). Sans cette query, le footer ne peut pas afficher le SIRET.
+- `03-bandeau-consentement-cookies-design.md` (statut: draft), fournit le `<ConsentManagerProvider>` (de `@c15t/nextjs`) mounté dans `Providers.tsx` qui wrap toute l'arbre, indispensable pour que `<OpenCookiePreferencesButton>` (Client Component descendant) puisse consommer `useConsentManager().setActiveUI('dialog')` sans lever d'erreur.
+- `04-pages-mentions-confidentialite-design.md` (statut: draft), fournit `<OpenCookiePreferencesButton>` (Client Component créé au sub 4 avec prop `label?` exposée nativement pour customisation contextuelle, ici on l'utilise avec `variant="link"` + `label={t('Footer.legalNav.cookies')}`) ET le helper `formatSiret()` (créé au sub 4 dans `src/lib/legal/format-siret.ts`, mappe `"88041912200036"` → `"880 419 122 00036"`). Les pages cibles `/mentions-legales` et `/confidentialite` sont également livrées par ce sub 4.
 
 ## Files touched
 

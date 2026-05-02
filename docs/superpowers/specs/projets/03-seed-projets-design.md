@@ -9,7 +9,7 @@ depends_on: ["01-schema-prisma-project-design.md"]
 date: "2026-04-22"
 ---
 
-# Seed Prisma — Upsert projets + tags + companies depuis fichiers TS
+# Seed Prisma : Upsert projets + tags + companies depuis fichiers TS
 
 ## Scope
 
@@ -31,14 +31,14 @@ La curation est conduite en session dédiée avec validation manuelle du user (s
 
 ## Dependencies
 
-- `01-schema-prisma-project-design.md` (statut: draft) — seed dépend des 5 modèles `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` (table de jointure explicite portant `displayOrder` par-projet) et des 10 enums (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `ContractStatus`, `WorkMode`, `TagKind`, `CompanySize`, `CompanySector`, `CompanyLocation`)
+- `01-schema-prisma-project-design.md` (statut: draft), seed dépend des 5 modèles `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` (table de jointure explicite portant `displayOrder` par-projet) et des 10 enums (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `ContractStatus`, `WorkMode`, `TagKind`, `CompanySize`, `CompanySector`, `CompanyLocation`)
 
 ## Files touched
 
 - **À créer** : `prisma/seed.ts` (orchestration : upsert tags + companies puis projects avec clientMeta nested + synchronisation ProjectTag ordonné + lecture des fichiers `.md` via `readFileSync` en routant selon `project.type`)
-- **À créer** : `prisma/seed-data/tags.ts` (array constant `TagInput[]` typé, couvre technos + infra + outils + expertises métier via `kind`, pas de champ `displayOrder` — l'ordre est par-projet via `tagSlugs[]`)
+- **À créer** : `prisma/seed-data/tags.ts` (array constant `TagInput[]` typé, couvre technos + infra + outils + expertises métier via `kind`, pas de champ `displayOrder`, l'ordre est par-projet via `tagSlugs[]`)
 - **À créer** : `prisma/seed-data/companies.ts` (array constant `CompanyInput[]` typé, entreprises clientes avec logo/website/sectors/size/locations)
-- **À créer** : `prisma/seed-data/projects.ts` (array constant `ProjectInput[]` typé, avec `formats`, `clientMeta` imbriqué référençant une Company par `companySlug`, `tagSlugs: string[]` **ordonné** — pas de champ `caseStudyMarkdown` inline, résolu au seed depuis `./case-studies/<type>/<slug>.md`)
+- **À créer** : `prisma/seed-data/projects.ts` (array constant `ProjectInput[]` typé, avec `formats`, `clientMeta` imbriqué référençant une Company par `companySlug`, `tagSlugs: string[]` **ordonné** : pas de champ `caseStudyMarkdown` inline, résolu au seed depuis `./case-studies/<type>/<slug>.md`)
 - **À créer** : `prisma/seed-data/case-studies/client/` + `prisma/seed-data/case-studies/personal/` (deux sous-dossiers miroirs de `ProjectType`, contenant chacun un fichier `<slug>.md` par projet ayant un case study à publier ; fichiers peuplés lors de la curation pré-plan)
 - **À modifier** : `package.json` (ajout clé `"prisma": { "seed": "tsx prisma/seed.ts" }` ; `tsx` en devDependencies si absent)
 - **À modifier** : `Justfile` (ajout recette `seed:` sous `[group('db')]` qui exécute `pnpm prisma db seed`)
@@ -65,7 +65,7 @@ Array constant TypeScript typé. Chaque entrée est un `CompanyInput` avec `slug
 
 ### Fichier `prisma/seed-data/projects.ts`
 
-Array constant TypeScript typé. Chaque entrée est un `ProjectInput` avec tous les champs scalaires de `Project` (slug, title, description, type, status, `formats: ProjectFormat[]`, dates, URLs, coverFilename, displayOrder) — **sans** `caseStudyMarkdown` (résolu au seed depuis `./case-studies/<slug>.md`). Plus `tagSlugs: string[]` (référence au référentiel `tags.ts`, mélange libre de technos + expertises ; **tableau ordonné** : le premier slug est rendu en premier sur la card, le seed crée les rows `ProjectTag` avec `displayOrder = index`) et `clientMeta` imbriqué nullable pour les projets CLIENT. Le `clientMeta` contient `companySlug: string` (référence à une entrée de `companies.ts`), `teamSize: number | null`, `contractStatus: ContractStatus | null`, `workMode: WorkMode` (required : présentiel/hybride/remote). Plus de champ `companyName` (remplacé par la relation Company via `companySlug`).
+Array constant TypeScript typé. Chaque entrée est un `ProjectInput` avec tous les champs scalaires de `Project` (slug, title, description, type, status, `formats: ProjectFormat[]`, dates, URLs, coverFilename, displayOrder), **sans** `caseStudyMarkdown` (résolu au seed depuis `./case-studies/<slug>.md`). Plus `tagSlugs: string[]` (référence au référentiel `tags.ts`, mélange libre de technos + expertises ; **tableau ordonné** : le premier slug est rendu en premier sur la card, le seed crée les rows `ProjectTag` avec `displayOrder = index`) et `clientMeta` imbriqué nullable pour les projets CLIENT. Le `clientMeta` contient `companySlug: string` (référence à une entrée de `companies.ts`), `teamSize: number | null`, `contractStatus: ContractStatus | null`, `workMode: WorkMode` (required : présentiel/hybride/remote). Plus de champ `companyName` (remplacé par la relation Company via `companySlug`).
 
 ### Dossier `prisma/seed-data/case-studies/` (deux sous-dossiers `client/` + `personal/`)
 
@@ -98,7 +98,7 @@ function readCaseStudy(slug: string, type: ProjectType): string | null {
 }
 ```
 
-Le seed appelle `readCaseStudy(project.slug, project.type)` pour remplir le champ `caseStudyMarkdown` au moment de l'upsert `Project`. Le champ reste un `String?` sur `Project` côté Prisma — aucun changement de schéma. Le routage par-type garantit qu'un slug `foo` en CLIENT et un slug `foo` en PERSONAL (hypothétiquement, puisque `slug` est unique côté `Project` toutes collections confondues) seraient lus depuis leurs dossiers respectifs — le routage reste sans ambiguïté même en cas de futurs partitionnements éditoriaux.
+Le seed appelle `readCaseStudy(project.slug, project.type)` pour remplir le champ `caseStudyMarkdown` au moment de l'upsert `Project`. Le champ reste un `String?` sur `Project` côté Prisma, aucun changement de schéma. Le routage par-type garantit qu'un slug `foo` en CLIENT et un slug `foo` en PERSONAL (hypothétiquement, puisque `slug` est unique côté `Project` toutes collections confondues) seraient lus depuis leurs dossiers respectifs, le routage reste sans ambiguïté même en cas de futurs partitionnements éditoriaux.
 
 ### Où viennent les données ?
 
@@ -218,7 +218,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 
 **GIVEN** un projet `p2 (slug='mon-cli', type='PERSONAL')` et un fichier `prisma/seed-data/case-studies/personal/mon-cli.md` contenant `## Objectif\n\n...`
 **WHEN** on exécute le seed
-**THEN** `p2.caseStudyMarkdown` en BDD contient le contenu du fichier `personal/mon-cli.md` (pas le fichier `client/mon-cli.md` même s'il existe par erreur — le routage suit strictement `project.type`)
+**THEN** `p2.caseStudyMarkdown` en BDD contient le contenu du fichier `personal/mon-cli.md` (pas le fichier `client/mon-cli.md` même s'il existe par erreur, le routage suit strictement `project.type`)
 
 ## Edge cases
 
@@ -228,7 +228,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 - **Slug collision** (2 projets avec le même slug, ou 2 tags avec le même slug) : Prisma lève une erreur unique constraint dès le 2e upsert. Documenter : slugs doivent être uniques au sein de leur table.
 - **`startedAt` null** : projet sans date début (rare). `Project.displayOrder` explicite dans le TS évite de dépendre de la date.
 - **Tag sans `icon`** : `null` valide. La card UI affiche le badge avec fallback texte (pas de glyphe).
-- **Tag avec `kind: EXPERTISE` mais `icon` au format `simple-icons:*`** : techniquement valide côté Zod (les 2 libs sont acceptées pour tout kind), mais incohérent sémantiquement. Pas de validation croisée — responsabilité du remplisseur de choisir la lib appropriée (Lucide pour les expertises, Simple Icons pour les technos).
+- **Tag avec `kind: EXPERTISE` mais `icon` au format `simple-icons:*`** : techniquement valide côté Zod (les 2 libs sont acceptées pour tout kind), mais incohérent sémantiquement. Pas de validation croisée, responsabilité du remplisseur de choisir la lib appropriée (Lucide pour les expertises, Simple Icons pour les technos).
 - **Tag dupliqué dans `tagSlugs`** (ex: `['react', 'react']`) : la clé primaire composite `(projectId, tagId)` empêche le doublon en BDD ; Prisma lève une erreur unique constraint lors du `create`. Documenter : les slugs dans `tagSlugs[]` doivent être distincts.
 - **Fichier `.md` présent mais projet absent de `projects.ts`** : le `.md` orphelin n'est jamais lu. Pas d'erreur. Utile si le user prépare un case study en amont d'un projet pas encore formalisé.
 - **Fichier `.md` vide** (`""`) : `caseStudyMarkdown` en BDD = chaîne vide. Côté UI (sub-project 06), `CaseStudyMarkdown` vérifie `if (project.caseStudyMarkdown)` → la chaîne vide est falsy, section omise. Comportement OK.
@@ -269,7 +269,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 
 **Options envisagées :**
 - **A. `tags: { deleteMany: {}, create: tagSlugs.map((slug, index) => ({ displayOrder: index, tag: { connect: { slug } } })) }`** : supprime toutes les rows `ProjectTag` du projet puis les re-crée dans l'ordre du tableau TS. Re-seed = sync complet avec ordre garanti.
-- **B. `tags: { connect: tagSlugs.map(...) }`** : ajoute seulement les liaisons manquantes. Re-seed n'enlève pas les liaisons anciennes si un tag a été retiré du TS **et** ne peut pas re-ordonner — inadapté à une table de jointure explicite avec `displayOrder`.
+- **B. `tags: { connect: tagSlugs.map(...) }`** : ajoute seulement les liaisons manquantes. Re-seed n'enlève pas les liaisons anciennes si un tag a été retiré du TS **et** ne peut pas re-ordonner, inadapté à une table de jointure explicite avec `displayOrder`.
 - **C. Boucle `upsert` par row `ProjectTag`** : upsert par `(projectId, tagId)`, update `displayOrder` si diffère. Plus fin mais complexe (gérer les suppressions nécessite un diff explicite).
 
 **Choix : A**
@@ -296,7 +296,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 - L'option C conserve tous les bénéfices de B et ajoute un **partitionnement éditorial** par-type : les case studies clients (potentiellement sous NDA, ton plus corporate) sont rangées à part des case studies perso (ton plus libre, souvent plus techniques). Ce sépartement reflète aussi le discriminant principal du modèle (`ProjectType`) et facilite la navigation dans l'arbre de fichiers.
 - Naming anglais `client/` + `personal/` : miroir direct de l'enum Prisma `ProjectType.CLIENT` / `ProjectType.PERSONAL`, évite un mapping FR/EN supplémentaire dans le helper.
 - Le helper `readCaseStudy(slug, type)` résout chaque fichier via `existsSync` + `readFileSync` au moment de l'upsert. Si le fichier n'existe pas → `null` → section markdown omise sur la page case study (sub-project 06).
-- Le champ en BDD reste `caseStudyMarkdown String?` sur `Project` — **aucun changement de schéma Prisma**, seul le chemin d'alimentation change (fichier `.md` rangé par `type` au lieu de string inline).
+- Le champ en BDD reste `caseStudyMarkdown String?` sur `Project`, **aucun changement de schéma Prisma**, seul le chemin d'alimentation change (fichier `.md` rangé par `type` au lieu de string inline).
 - Bénéfice éditorial : un projet peut avoir sa case study éditée indépendamment (commit dédié `docs(projets): réécrit le case study Foyer`) sans toucher au fichier TS des metadata.
 - Coût : +2 sous-dossiers, +1 helper de ~6 lignes (avec dérivation `folder = type === 'CLIENT' ? 'client' : 'personal'`), +N fichiers `.md`. Acceptable pour le gain de lisibilité et de partitionnement.
 
@@ -311,7 +311,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 
 **Rationale :**
 - Le champ `icon` est une string formatée : TypeScript ne peut pas catcher `"heroicons:spider"` (lib non supportée) ou `"simple-iconsreact"` (séparateur manquant) à la compilation. Une regex Zod le catche avant que le composant `TagBadge` tombe en fallback silencieux.
-- Tous les autres champs sont des scalaires typés par Prisma (`TagKind`, `string`, `number`, `null`) — TS strict les garantit.
+- Tous les autres champs sont des scalaires typés par Prisma (`TagKind`, `string`, `number`, `null`), TS strict les garantit.
 - Coût : 1 schéma Zod de 3 lignes + 1 parse par tag à l'upsert. Overhead négligeable sur ~30 tags.
 - Alternative considérée : template literal type TypeScript `type IconRef = `simple-icons:${string}` | `lucide:${string}``. Trop restrictif côté IDE pour les éditions manuelles (suggère un backtick interpolé au lieu d'une string brute). Zod runtime = meilleur DX.
 

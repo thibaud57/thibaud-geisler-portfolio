@@ -1,4 +1,4 @@
-# Sitemap dynamique avec slugs projets et hreflang FR/EN — Plan d'implémentation (sub-project 03 / Feature 5 SEO)
+# Sitemap dynamique avec slugs projets et hreflang FR/EN: Plan d'implémentation (sub-project 03 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,7 +6,7 @@
 
 **Goal :** Étendre `/sitemap.xml` pour inclure tous les projets `PUBLISHED` (canonical FR + alternates hreflang FR/EN/x-default + lastmod issu d'`updatedAt`) en plus des 5 pages statiques déjà couvertes, avec invalidation atomique via `cacheTag('projects')`.
 
-**Architecture :** Trois unités séparées par responsabilité — (1) query Prisma allégée `findAllPublishedSlugs()` ajoutée dans `src/server/queries/projects.ts` (mêmes params cache que les fonctions sœurs), (2) helper pur `buildSitemapEntries()` colocalisé dans `src/lib/sitemap.ts` + tests unitaires, (3) route handler `src/app/sitemap.ts` réécrit en fichier mince qui orchestre query + helper.
+**Architecture :** Trois unités séparées par responsabilité, (1) query Prisma allégée `findAllPublishedSlugs()` ajoutée dans `src/server/queries/projects.ts` (mêmes params cache que les fonctions sœurs), (2) helper pur `buildSitemapEntries()` colocalisé dans `src/lib/sitemap.ts` + tests unitaires, (3) route handler `src/app/sitemap.ts` réécrit en fichier mince qui orchestre query + helper.
 
 **Tech Stack :** Next.js 16.2.4 App Router · TypeScript 6 strict · Prisma 7.7.0 · next-intl 4.9.1 (`localePrefix: 'always'`, FR/EN) · Vitest 4 (project unit jsdom).
 
@@ -412,7 +412,7 @@ Expected : un nombre N s'affiche (ex : `PUBLISHED projects: 3`). Noter ce nombre
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV` = `production` automatique.
 
-- [ ] **Step 3 : Scénario 1 spec — XML structurel valide**
+- [ ] **Step 3 : Scénario 1 spec: XML structurel valide**
 
 Run : `curl -s http://localhost:3000/sitemap.xml | xmllint --noout -`
 Expected : exit code 0 (XML valide, pas d'output d'erreur).
@@ -425,7 +425,7 @@ Expected : `HTTP/1.1 200 OK` + `Content-Type: application/xml` (ou `text/xml`).
 Run : `curl -s http://localhost:3000/sitemap.xml | grep -c '<url>'`
 Expected : `5 + N` (où N = nombre relevé au Step 1). Exemple : si `PUBLISHED projects: 3`, le résultat est `8`.
 
-- [ ] **Step 5 : Scénario 2 spec — page statique avec hreflang**
+- [ ] **Step 5 : Scénario 2 spec: page statique avec hreflang**
 
 Run : `curl -s http://localhost:3000/sitemap.xml | grep -A 6 'fr/services'`
 Expected : extrait montrant l'entrée `/fr/services` avec :
@@ -433,14 +433,14 @@ Expected : extrait montrant l'entrée `/fr/services` avec :
 - `<lastmod>...</lastmod>` (date ISO 8601)
 - 3 lignes `<xhtml:link rel="alternate" hreflang="...">` pour `fr`, `en`, `x-default`
 
-- [ ] **Step 6 : Scénario 3 spec — page projet avec lastmod issu d'updatedAt**
+- [ ] **Step 6 : Scénario 3 spec: page projet avec lastmod issu d'updatedAt**
 
 Identifier un slug de projet PUBLISHED (déjà connu via les tests des sub-projects précédents, ex : un slug seedé).
 
 Run : `curl -s http://localhost:3000/sitemap.xml | grep -A 6 'fr/projets/<slug-relevé>'`
 Expected : entrée avec `<loc>http://localhost:3000/fr/projets/<slug-relevé></loc>`, `<lastmod>` correspondant à `updatedAt` du projet (vérifiable via `pnpm tsx`), et les 3 alternates hreflang.
 
-- [ ] **Step 7 : Scénario 4 spec — projet non publié exclu**
+- [ ] **Step 7 : Scénario 4 spec: projet non publié exclu**
 
 Run : `pnpm tsx -e "import { prisma } from './src/lib/prisma'; const draft = await prisma.project.findFirst({ where: { status: 'DRAFT' }, select: { slug: true } }); console.log('DRAFT slug:', draft?.slug ?? 'none'); await prisma.\$disconnect();"`
 
@@ -451,7 +451,7 @@ Expected : `0` (slug absent du sitemap).
 
 Si aucun projet DRAFT n'existe, créer en temporairement un via Prisma Studio ou skip ce step (couvert par le test unit "ordre" et la query `where: { status: 'PUBLISHED' }` qui filtre déjà).
 
-- [ ] **Step 8 : Scénario 5 spec — invalidation par cacheTag (optionnel pour MVP)**
+- [ ] **Step 8 : Scénario 5 spec: invalidation par cacheTag (optionnel pour MVP)**
 
 > **Note** : ce scénario teste le mécanisme d'invalidation. Il sera vraiment exercé en prod par le dashboard admin post-MVP qui appellera `revalidateTag('projects')` après chaque mutation. En MVP, on se contente de vérifier que le mécanisme est branché (présence de `cacheTag('projects')` dans `src/app/sitemap.ts`).
 
@@ -491,6 +491,6 @@ Run : `just stop`.
    - `BuildSitemapEntriesInput` (Task 2) consommé tel quel dans `src/app/sitemap.ts` (Task 4) avec les 3 propriétés `staticPaths`, `projects`, `siteUrl`.
    - `MetadataRoute.Sitemap` (type Next.js) utilisé en retour de `buildSitemapEntries` (Task 2) et de `sitemap()` (Task 4), cohérent.
    - `PUBLIC_STATIC_PATHS` exporté en Task 2, importé en Task 4.
-   - `siteUrl` et `buildLanguageAlternates` réutilisés depuis `src/lib/seo.ts` (sub-project 01) — signatures vérifiées dans Task 2.
+   - `siteUrl` et `buildLanguageAlternates` réutilisés depuis `src/lib/seo.ts` (sub-project 01), signatures vérifiées dans Task 2.
 
 Plan complet.

@@ -13,7 +13,7 @@ date: "2026-04-24"
 
 ## Scope
 
-Étendre la whitelist de la route catch-all assets au type MIME `application/pdf` pour débloquer la publication du CV et des documents publics, et documenter la convention de sous-dossiers `documents/<slug>/<filename>` (avec `cv/` comme slug réservé pour le CV). La whitelist des extensions est dérivée des clés de `CONTENT_TYPE_MAP` dans `src/server/config/assets.ts` (single source of truth) : une seule entrée à ajouter cascade automatiquement à `AssetPathSchema`, `validateAssetPath`, `getContentType`, et la route handler. **Exclu** : autres extensions (`docx`, `md`, `zip`), rate limiting `/api/assets` (ADR-014 `proposed`), migration Cloudflare R2 (ADR-011 trigger post-MVP), composant bouton CV côté UI (sub-project 02), matérialisation versionnée du dossier `assets/documents/` (aligné sur le pattern existant — voir Architectural decisions).
+Étendre la whitelist de la route catch-all assets au type MIME `application/pdf` pour débloquer la publication du CV et des documents publics, et documenter la convention de sous-dossiers `documents/<slug>/<filename>` (avec `cv/` comme slug réservé pour le CV). La whitelist des extensions est dérivée des clés de `CONTENT_TYPE_MAP` dans `src/server/config/assets.ts` (single source of truth) : une seule entrée à ajouter cascade automatiquement à `AssetPathSchema`, `validateAssetPath`, `getContentType`, et la route handler. **Exclu** : autres extensions (`docx`, `md`, `zip`), rate limiting `/api/assets` (ADR-014 `proposed`), migration Cloudflare R2 (ADR-011 trigger post-MVP), composant bouton CV côté UI (sub-project 02), matérialisation versionnée du dossier `assets/documents/` (aligné sur le pattern existant, voir Architectural decisions).
 
 ### État livré
 
@@ -21,14 +21,14 @@ date: "2026-04-24"
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté.
+Aucune, ce sub-project est autoporté.
 
 ## Files touched
 
 - **À modifier** : `src/server/config/assets.ts` (ajouter `pdf: 'application/pdf'` dans `CONTENT_TYPE_MAP`)
 - **À modifier** : `src/server/config/assets.test.ts` (ajouter cas `getContentType('foo.pdf')` et `validateAssetPath(['documents', 'cv', 'cv-thibaud-geisler-fr.pdf'])`)
 - **À modifier** : `src/app/api/assets/[...path]/route.integration.test.ts` (ajouter scénario GET PDF sous `documents/cv/` → 200 + `Content-Type` + `Cache-Control`)
-- **À modifier** : `.claude/rules/nextjs/assets.md` (étendre la whitelist à `pdf`, ajouter la section convention `documents/<slug>/<filename>` avec `cv/` réservé, exemples concrets ; préciser que `documents/` n'est pas matérialisé par un `.gitkeep` versionné — même pattern que `projets/`)
+- **À modifier** : `.claude/rules/nextjs/assets.md` (étendre la whitelist à `pdf`, ajouter la section convention `documents/<slug>/<filename>` avec `cv/` réservé, exemples concrets ; préciser que `documents/` n'est pas matérialisé par un `.gitkeep` versionné, même pattern que `projets/`)
 
 ## Architecture approach
 
@@ -36,7 +36,7 @@ Aucune — ce sub-project est autoporté.
 - **Convention sous-dossiers documents** : adopter `documents/<slug>/<filename>` en miroir du pattern existant `projets/{client,personal}/<slug>/<filename>` documenté dans ADR-011. Le slug `cv` est réservé pour le CV (deux locales : `cv-thibaud-geisler-fr.pdf`, `cv-thibaud-geisler-en.pdf`). Profondeur = 3 segments, largement sous le max 5 segments imposé par `AssetPathSchema`. Chaque segment reste conforme au regex `^[a-z0-9][a-z0-9._-]*$` (kebab-case lower, cf. `.claude/rules/nextjs/assets.md`).
 - **Rule update** : `.claude/rules/nextjs/assets.md` doit (1) étendre la whitelist mentionnée dans le "À faire" (png/jpg/jpeg/webp/svg **+ pdf**) et dans l'exemple `CONTENT_TYPE_MAP`, (2) ajouter un paragraphe "Organisation documents" en miroir de "Organisation en sous-dossiers" (projets), (3) lister `cv/` comme slug réservé avec pattern de nommage `cv-thibaud-geisler-<locale>.pdf`. Pas de duplication avec BRAINSTORM/ARCHITECTURE : la rule reste la source opérationnelle.
 - **Route handler invariant** : le handler existant retourne déjà `Cache-Control: public, max-age=31536000, immutable` en production et `no-cache, no-store, must-revalidate` en dev (voir `src/app/api/assets/[...path]/route.ts`). Cette logique s'applique telle quelle aux PDF : pas d'effet secondaire du côté caching. Cohérent avec `.claude/rules/nextjs/api-routes.md` (route dynamique par défaut en Next 16, pas de `export const dynamic`) et `.claude/rules/nextjs/rendering-caching.md` (`cacheComponents: true` incompatible avec `dynamic` segment config).
-- **Pas de `.gitkeep` versionné pour `documents/`** : le pattern existant (`git ls-files assets/` ne retourne que `assets/.gitkeep`) montre que `assets/projets/`, `assets/projets/client/`, `assets/projets/personal/` ne sont pas matérialisés dans le repo — ils sont créés automatiquement lors du premier dépôt de fichier en dev. On applique le même pattern à `documents/<slug>/` : aucune modification de `.gitignore`, aucun `.gitkeep` additionnel. La rule doit l'indiquer explicitement pour éviter la confusion. Voir "Architectural decisions" pour la justification.
+- **Pas de `.gitkeep` versionné pour `documents/`** : le pattern existant (`git ls-files assets/` ne retourne que `assets/.gitkeep`) montre que `assets/projets/`, `assets/projets/client/`, `assets/projets/personal/` ne sont pas matérialisés dans le repo, ils sont créés automatiquement lors du premier dépôt de fichier en dev. On applique le même pattern à `documents/<slug>/` : aucune modification de `.gitignore`, aucun `.gitkeep` additionnel. La rule doit l'indiquer explicitement pour éviter la confusion. Voir "Architectural decisions" pour la justification.
 - **Zod schemas stability** : `AssetPathSchema` reste module-level, dérivé via `z.infer` côté consommateurs. Aucun refactor requis (cf. `.claude/rules/zod/schemas.md`). L'extension automatique par dérivation des clés illustre le pattern "single source of truth" préconisé.
 - **Tests** : Vitest existant couvre déjà les chemins nominaux images et les cas 400/404. Ajouter uniquement les cas PDF (unit + integration), dans les deux fichiers de test existants. Pas de nouveau fichier. Cohérent avec `.claude/rules/vitest/setup.md` et `.claude/rules/typescript/conventions.md` (alias `@/*`, `z.infer`, `strict: true`).
 
@@ -121,4 +121,4 @@ Justification no-lib-test : on teste trois règles métier du projet (la whiteli
 
 ## Open questions
 
-*(Aucune — toutes les décisions nécessaires à l'implémentation ont été prises.)*
+*(Aucune, toutes les décisions nécessaires à l'implémentation ont été prises.)*

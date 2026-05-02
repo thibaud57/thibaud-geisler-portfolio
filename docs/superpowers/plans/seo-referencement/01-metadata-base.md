@@ -1,4 +1,4 @@
-# Metadata Open Graph & Twitter — Plan d'implémentation (sub-project 01 / Feature 5 SEO)
+# Metadata Open Graph & Twitter: Plan d'implémentation (sub-project 01 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -42,7 +42,7 @@
 
 ---
 
-## Task 1 : Étendre `src/lib/seo.ts` — squelette + premier test (red)
+## Task 1 : Étendre `src/lib/seo.ts`: squelette + premier test (red)
 
 **Files :**
 - Modify: `src/lib/seo.ts` (ajouter type + fonction stub à la fin du fichier)
@@ -137,7 +137,7 @@ Expected : PASS (1 test).
 
 ---
 
-## Task 3 : openGraph (type, locale, url, siteName, title, description) — tests + impl
+## Task 3 : openGraph (type, locale, url, siteName, title, description): tests + impl
 
 **Files :**
 - Modify: `src/lib/seo.test.ts`
@@ -236,7 +236,7 @@ Expected : PASS (8 tests).
 
 ---
 
-## Task 4 : Twitter Cards — tests + impl
+## Task 4 : Twitter Cards: tests + impl
 
 **Files :**
 - Modify: `src/lib/seo.test.ts`
@@ -280,7 +280,7 @@ Expected : PASS (9 tests).
 
 ---
 
-## Task 5 : Alternates (canonical absolu + languages) — tests + impl
+## Task 5 : Alternates (canonical absolu + languages): tests + impl
 
 **Files :**
 - Modify: `src/lib/seo.test.ts`
@@ -333,7 +333,7 @@ Expected : PASS (11 tests).
 
 ---
 
-## Task 6 : Robots noindex hors prod — tests + impl
+## Task 6 : Robots noindex hors prod: tests + impl
 
 **Files :**
 - Modify: `src/lib/seo.test.ts`
@@ -411,7 +411,7 @@ Expected : 0 erreur (le helper est correctement typé `Metadata`).
 
 ---
 
-## Task 7 : Root layout `[locale]/layout.tsx` — twitter racine + siteName
+## Task 7 : Root layout `[locale]/layout.tsx`: twitter racine + siteName
 
 **Files :**
 - Modify: `src/app/[locale]/layout.tsx` (lignes 38-58, fonction `generateMetadata`)
@@ -784,14 +784,14 @@ Expected : suites integration vertes (le sub-project ne touche ni `src/server/qu
 
 **Files :** aucun, vérification visuelle. Lancer le serveur en mode prod pour reproduire le comportement réel d'indexation.
 
-> **Pré-requis** : `docker compose up -d --wait postgres` (postgres up + Prisma migrate déjà fait), `.env` rempli (`NEXT_PUBLIC_SITE_URL=http://localhost:3000` en dev local, ce qui sera utilisé pour calculer les URLs absolues — la valeur exacte pour la prod sera substituée via Dokploy au déploiement).
+> **Pré-requis** : `docker compose up -d --wait postgres` (postgres up + Prisma migrate déjà fait), `.env` rempli (`NEXT_PUBLIC_SITE_URL=http://localhost:3000` en dev local, ce qui sera utilisé pour calculer les URLs absolues, la valeur exacte pour la prod sera substituée via Dokploy au déploiement).
 
 - [ ] **Step 1 : Build prod local**
 
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV` = `production` automatique.
 
-- [ ] **Step 2 : Scénario 1 — page statique FR (services)**
+- [ ] **Step 2 : Scénario 1: page statique FR (services)**
 
 Run : `curl -s http://localhost:3000/fr/services | grep -E '<title>|name="description"|property="og:|name="twitter:|rel="(canonical|alternate)"'`
 
@@ -810,7 +810,7 @@ Expected (extraits attendus) :
 - `<link rel="alternate" hreflang="x-default" href="/fr/services"/>`
 - **Pas** de `<meta name="robots" content="noindex...">` (mode production).
 
-- [ ] **Step 3 : Scénario 2 — même page en EN**
+- [ ] **Step 3 : Scénario 2: même page en EN**
 
 Run : `curl -s http://localhost:3000/en/services | grep -E 'og:locale|og:url|canonical'`
 Expected :
@@ -818,7 +818,7 @@ Expected :
 - `og:url = http://localhost:3000/en/services`
 - `canonical = http://localhost:3000/en/services`
 
-- [ ] **Step 4 : Scénario 3 — case study `/projets/[slug]` (og:type article)**
+- [ ] **Step 4 : Scénario 3: case study `/projets/[slug]` (og:type article)**
 
 Choisir un slug existant publié en base (ex : un slug déjà seedé via `prisma/seed-data/projects.ts`).
 
@@ -830,12 +830,12 @@ Expected :
 - `canonical = http://localhost:3000/fr/projets/<slug>`
 - `<title>` reprenant `project.title` (locale FR) suivi de `| Thibaud Geisler : IA & Développement`.
 
-- [ ] **Step 5 : Scénario 4 — slug projet inexistant → 404**
+- [ ] **Step 5 : Scénario 4: slug projet inexistant → 404**
 
 Run : `curl -sI http://localhost:3000/fr/projets/inconnu-aaa-bbb`
 Expected : `HTTP/1.1 404 Not Found`. Vérifier dans les logs `next start` que `notFound()` est bien atteint depuis `generateMetadata` (et non un dump de metadata avec `title: 'Not found'`).
 
-- [ ] **Step 6 : Scénario 5 — noindex auto en mode dev**
+- [ ] **Step 6 : Scénario 5: noindex auto en mode dev**
 
 Arrêter `next start` (Ctrl+C ou `just stop`). Lancer `pnpm dev` puis :
 

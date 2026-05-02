@@ -306,7 +306,7 @@ pnpm exec next info                   # infos système pour bug reports
 
 ## Documentation Officielle
 
-- [Next.js — Documentation](https://nextjs.org/docs/app)
+- [Next.js : Documentation](https://nextjs.org/docs/app)
 - [App Router fundamentals](https://nextjs.org/docs/app/getting-started/layouts-and-pages)
 - [Upgrade to v16](https://nextjs.org/docs/app/guides/upgrading/version-16)
 

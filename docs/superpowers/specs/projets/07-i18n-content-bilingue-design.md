@@ -9,11 +9,11 @@ depends_on: ["01-schema-prisma-project-design.md", "02-client-prisma-queries-des
 date: "2026-04-22"
 ---
 
-# Content bilingue FR/EN — Schéma Prisma + helper locale + seed bilingue
+# Content bilingue FR/EN : Schéma Prisma + helper locale + seed bilingue
 
 ## Scope
 
-Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonnes jumelées `*Fr` + `*En` : `Project.titleFr/titleEn`, `Project.descriptionFr/descriptionEn`, `Project.caseStudyMarkdownFr/caseStudyMarkdownEn`, `Tag.nameFr/nameEn`. Introduire un helper pur `localizeProject(project, locale)` et `localizeTag(tag, locale)` qui renvoie une version du record avec les champs `title`/`description`/`caseStudyMarkdown`/`name` localisés (pick FR ou EN selon la locale d'appel). Adapter les queries (`findManyPublished`, `findPublishedBySlug`) pour accepter un paramètre `locale` et appliquer la localisation avant retour au caller. Mettre à jour le seed pour fournir les 2 versions (FR déjà écrite + EN à traduire : 9 projets + 41 tags + 9 case studies en fichiers `.fr.md` / `.en.md`). Mettre à jour les composants qui affichent du content DB (`ProjectCard`, `TagBadge`) pour consommer les champs localisés déjà résolus. Amender l'ADR-010 pour documenter la stratégie content bilingue (complément au slug bilingue déjà traité). **Exclus** : i18n des enums Prisma (`CompanySector`, `CompanyLocation`, `WorkMode`, `ContractStatus` — à traiter séparément via map i18n dans `messages/{fr,en}.json` au moment où un composant affichera ces enums, probablement dans sub-project 06), traduction automatique via LLM (rejeté), gestion de locales supplémentaires au-delà de FR/EN (post-MVP via abstraction cacheHandler si besoin), UI de traduction dans le dashboard (post-MVP).
+Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonnes jumelées `*Fr` + `*En` : `Project.titleFr/titleEn`, `Project.descriptionFr/descriptionEn`, `Project.caseStudyMarkdownFr/caseStudyMarkdownEn`, `Tag.nameFr/nameEn`. Introduire un helper pur `localizeProject(project, locale)` et `localizeTag(tag, locale)` qui renvoie une version du record avec les champs `title`/`description`/`caseStudyMarkdown`/`name` localisés (pick FR ou EN selon la locale d'appel). Adapter les queries (`findManyPublished`, `findPublishedBySlug`) pour accepter un paramètre `locale` et appliquer la localisation avant retour au caller. Mettre à jour le seed pour fournir les 2 versions (FR déjà écrite + EN à traduire : 9 projets + 41 tags + 9 case studies en fichiers `.fr.md` / `.en.md`). Mettre à jour les composants qui affichent du content DB (`ProjectCard`, `TagBadge`) pour consommer les champs localisés déjà résolus. Amender l'ADR-010 pour documenter la stratégie content bilingue (complément au slug bilingue déjà traité). **Exclus** : i18n des enums Prisma (`CompanySector`, `CompanyLocation`, `WorkMode`, `ContractStatus`, à traiter séparément via map i18n dans `messages/{fr,en}.json` au moment où un composant affichera ces enums, probablement dans sub-project 06), traduction automatique via LLM (rejeté), gestion de locales supplémentaires au-delà de FR/EN (post-MVP via abstraction cacheHandler si besoin), UI de traduction dans le dashboard (post-MVP).
 
 ### État livré
 
@@ -21,36 +21,36 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 
 ## Dependencies
 
-- `01-schema-prisma-project-design.md` (statut: implemented) — migration du schéma Prisma existant (Project + Tag). Les champs `title`, `description`, `caseStudyMarkdown`, `name` actuels sont renommés/doublés ; aucun ajout de nouveau modèle
-- `02-client-prisma-queries-design.md` (statut: implemented) — update de `findManyPublished` et `findPublishedBySlug` pour accepter un paramètre `locale` obligatoire et pipe le résultat à travers les helpers `localizeProject` / `localizeTag`
-- `03-seed-projets-design.md` (statut: implemented) — seed étendu avec les 2 colonnes par champ texte, les case studies splittés en `.fr.md` et `.en.md`
-- `05-page-liste-projets-filtres-design.md` (statut: implemented) — `ProjectCard` et `TagBadge` consomment les champs résolus (`project.title`, `tag.name`) sans connaître la locale eux-mêmes
+- `01-schema-prisma-project-design.md` (statut: implemented), migration du schéma Prisma existant (Project + Tag). Les champs `title`, `description`, `caseStudyMarkdown`, `name` actuels sont renommés/doublés ; aucun ajout de nouveau modèle
+- `02-client-prisma-queries-design.md` (statut: implemented), update de `findManyPublished` et `findPublishedBySlug` pour accepter un paramètre `locale` obligatoire et pipe le résultat à travers les helpers `localizeProject` / `localizeTag`
+- `03-seed-projets-design.md` (statut: implemented), seed étendu avec les 2 colonnes par champ texte, les case studies splittés en `.fr.md` et `.en.md`
+- `05-page-liste-projets-filtres-design.md` (statut: implemented), `ProjectCard` et `TagBadge` consomment les champs résolus (`project.title`, `tag.name`) sans connaître la locale eux-mêmes
 
 ## Files touched
 
-- **À modifier** : `prisma/schema.prisma` — remplacer `Project.title: String` par `titleFr: String` + `titleEn: String`, idem `description`, `caseStudyMarkdown` ; remplacer `Tag.name: String` par `nameFr: String` + `nameEn: String` ; ne pas toucher à `Company.name` (nom de marque, non traduit)
-- **À créer** : `prisma/migrations/<timestamp>_content_bilingual/migration.sql` — migration générée via `prisma migrate dev --name content-bilingual` (DROP puis ADD COLUMN avec backfill depuis l'ancienne colonne vers `*Fr` avant DROP de l'ancienne)
-- **À modifier** : `src/types/project.ts` — `ProjectWithRelations` devient le type Prisma brut avec colonnes jumelées ; ajouter `LocalizedProject` et `LocalizedTag` pour le résultat après passage par le helper (seuls les champs `title`, `description`, `caseStudyMarkdown`, `name` sont exposés, sans les colonnes `*Fr`/`*En`)
-- **À créer** : `src/lib/i18n/localize-content.ts` (+ `.test.ts`) — helper pur `localizeProject(project, locale)` et `localizeTag(tag, locale)`. Importe le type `Locale` depuis `next-intl`. Pure fonction, zéro dépendance DB/I/O
-- **À modifier** : `src/server/queries/projects.ts` — `findManyPublished({ type?, locale })` et `findPublishedBySlug(slug, locale)` reçoivent `locale: Locale` obligatoire. Le corps reste la même query Prisma mais le résultat est mappé via `localizeProject` avant retour. Idem pour les tags nested (relation `tags.tag` → `localizeTag`)
-- **À modifier** : `prisma/seed-data/projects.ts` — chaque entrée du tableau `projects` remplace `title` par `titleFr` + `titleEn`, `description` par `descriptionFr` + `descriptionEn`. Le champ `caseStudyMarkdown` n'est plus dans le seed : lu depuis fichiers `.md` à l'exécution du seed (voir ci-dessous)
-- **À modifier** : `prisma/seed-data/tags.ts` — chaque entrée du tableau `tags` remplace `name` par `nameFr` + `nameEn`
+- **À modifier** : `prisma/schema.prisma`, remplacer `Project.title: String` par `titleFr: String` + `titleEn: String`, idem `description`, `caseStudyMarkdown` ; remplacer `Tag.name: String` par `nameFr: String` + `nameEn: String` ; ne pas toucher à `Company.name` (nom de marque, non traduit)
+- **À créer** : `prisma/migrations/<timestamp>_content_bilingual/migration.sql`, migration générée via `prisma migrate dev --name content-bilingual` (DROP puis ADD COLUMN avec backfill depuis l'ancienne colonne vers `*Fr` avant DROP de l'ancienne)
+- **À modifier** : `src/types/project.ts`, `ProjectWithRelations` devient le type Prisma brut avec colonnes jumelées ; ajouter `LocalizedProject` et `LocalizedTag` pour le résultat après passage par le helper (seuls les champs `title`, `description`, `caseStudyMarkdown`, `name` sont exposés, sans les colonnes `*Fr`/`*En`)
+- **À créer** : `src/lib/i18n/localize-content.ts` (+ `.test.ts`), helper pur `localizeProject(project, locale)` et `localizeTag(tag, locale)`. Importe le type `Locale` depuis `next-intl`. Pure fonction, zéro dépendance DB/I/O
+- **À modifier** : `src/server/queries/projects.ts`, `findManyPublished({ type?, locale })` et `findPublishedBySlug(slug, locale)` reçoivent `locale: Locale` obligatoire. Le corps reste la même query Prisma mais le résultat est mappé via `localizeProject` avant retour. Idem pour les tags nested (relation `tags.tag` → `localizeTag`)
+- **À modifier** : `prisma/seed-data/projects.ts`, chaque entrée du tableau `projects` remplace `title` par `titleFr` + `titleEn`, `description` par `descriptionFr` + `descriptionEn`. Le champ `caseStudyMarkdown` n'est plus dans le seed : lu depuis fichiers `.md` à l'exécution du seed (voir ci-dessous)
+- **À modifier** : `prisma/seed-data/tags.ts`, chaque entrée du tableau `tags` remplace `name` par `nameFr` + `nameEn`
 - **À modifier** : `prisma/seed-data/case-studies/client/<slug>.md` → à renommer `<slug>.fr.md` pour les 4 projets CLIENT, créer `<slug>.en.md` en parallèle ; idem pour `personal/<slug>.md` sur les 5 projets PERSONAL. Convention : le fichier de traduction EN démarre en copie FR que l'utilisateur adapte manuellement
-- **À modifier** : `prisma/seed.ts` — lire les 2 versions du markdown (`<slug>.fr.md` + `<slug>.en.md`) et hydrater `caseStudyMarkdownFr` + `caseStudyMarkdownEn` sur chaque Project
-- **À modifier** : `src/components/features/projects/ProjectCard.tsx` — consomme `project.title`, `project.description` directement (déjà résolus côté query) ; zéro changement d'API, zéro lookup i18n
-- **À modifier** : `src/components/features/projects/TagBadge.tsx` — consomme `tag.name` directement (déjà résolu)
-- **À modifier** : `src/app/[locale]/(public)/projets/page.tsx` — passe `locale` à `findManyPublished({ locale })` (le Server Component a déjà accès à `locale` via les params route)
-- **À modifier** : `src/components/features/projects/ProjectsList.test.tsx` — fixtures adaptées aux champs `titleFr`/`titleEn` sur `ProjectWithRelations` brut OU simplifiées au type `LocalizedProject` si le mock suit le flux post-helper
-- **À modifier** : `src/server/queries/projects.integration.test.ts` — 2 nouveaux cas : `findManyPublished({ locale: 'fr' })` retourne les titres FR, `findManyPublished({ locale: 'en' })` retourne les titres EN ; idem pour les tags. Les fixtures DB créées dans les tests utilisent les colonnes jumelées
-- **À modifier** : `docs/adrs/010-i18n.md` — ajouter une section "Content bilingue : colonnes jumelées `*Fr`/`*En` sur les modèles Prisma concernés" en complément de la décision existante sur le slug bilingue
-- **À modifier** : `.claude/rules/prisma/schema-migrations.md` (optionnel) — mentionner la convention `champFr`/`champEn` pour les modèles multilingues
-- **À modifier** : `.claude/rules/next-intl/translations.md` — mentionner la distinction "UI chrome via `messages/*.json`" vs "content DB via colonnes jumelées Prisma" + pattern du helper `localize*()`
-- **À modifier** : `docs/superpowers/specs/projets/06-page-case-study-design.md` (draft) — aligner le spec 06 pour consommer le content déjà localisé (impact sur les sections Architecture approach et Files touched)
-- **À modifier** : `docs/superpowers/plans/projets/06-page-case-study.md` (draft) — idem
+- **À modifier** : `prisma/seed.ts`, lire les 2 versions du markdown (`<slug>.fr.md` + `<slug>.en.md`) et hydrater `caseStudyMarkdownFr` + `caseStudyMarkdownEn` sur chaque Project
+- **À modifier** : `src/components/features/projects/ProjectCard.tsx`, consomme `project.title`, `project.description` directement (déjà résolus côté query) ; zéro changement d'API, zéro lookup i18n
+- **À modifier** : `src/components/features/projects/TagBadge.tsx`, consomme `tag.name` directement (déjà résolu)
+- **À modifier** : `src/app/[locale]/(public)/projets/page.tsx`, passe `locale` à `findManyPublished({ locale })` (le Server Component a déjà accès à `locale` via les params route)
+- **À modifier** : `src/components/features/projects/ProjectsList.test.tsx`, fixtures adaptées aux champs `titleFr`/`titleEn` sur `ProjectWithRelations` brut OU simplifiées au type `LocalizedProject` si le mock suit le flux post-helper
+- **À modifier** : `src/server/queries/projects.integration.test.ts`, 2 nouveaux cas : `findManyPublished({ locale: 'fr' })` retourne les titres FR, `findManyPublished({ locale: 'en' })` retourne les titres EN ; idem pour les tags. Les fixtures DB créées dans les tests utilisent les colonnes jumelées
+- **À modifier** : `docs/adrs/010-i18n.md`, ajouter une section "Content bilingue : colonnes jumelées `*Fr`/`*En` sur les modèles Prisma concernés" en complément de la décision existante sur le slug bilingue
+- **À modifier** : `.claude/rules/prisma/schema-migrations.md` (optionnel), mentionner la convention `champFr`/`champEn` pour les modèles multilingues
+- **À modifier** : `.claude/rules/next-intl/translations.md`, mentionner la distinction "UI chrome via `messages/*.json`" vs "content DB via colonnes jumelées Prisma" + pattern du helper `localize*()`
+- **À modifier** : `docs/superpowers/specs/projets/06-page-case-study-design.md` (draft), aligner le spec 06 pour consommer le content déjà localisé (impact sur les sections Architecture approach et Files touched)
+- **À modifier** : `docs/superpowers/plans/projets/06-page-case-study.md` (draft), idem
 
 ## Architecture approach
 
-### Schéma Prisma — colonnes jumelées
+### Schéma Prisma : colonnes jumelées
 
 - Pattern `<champ>Fr` + `<champ>En` sur les modèles contenant du texte traduisible. Règle : un champ texte court ou long destiné à être affiché à l'utilisateur final doit être bilingue si la page consommatrice est routée sous `/[locale]/`. Les champs techniques (slugs, enums, identifiants externes) restent non-localisés
 - `Company.name` volontairement non-traduit : marques commerciales (ex: "Foyer Group", "PaySystem") conservent leur orthographe d'origine quelle que soit la locale
@@ -64,15 +64,15 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 - Réutilisable pour les tags nested : `localizeProject` appelle `localizeTag` récursivement sur `project.tags[n].tag`
 - Conforme à [`.claude/rules/typescript/conventions.md`](../../../../.claude/rules/typescript/conventions.md) : pas de `any`, narrowing via discriminant, types dérivés depuis Prisma (`Prisma.ProjectGetPayload`)
 
-### Queries — API `locale` obligatoire
+### Queries : API `locale` obligatoire
 
-- `findManyPublished({ type?, locale })` : `locale` devient un paramètre obligatoire. Pas de valeur par défaut — force le caller (Server Component de la page) à passer la locale de la route explicitement
+- `findManyPublished({ type?, locale })` : `locale` devient un paramètre obligatoire. Pas de valeur par défaut, force le caller (Server Component de la page) à passer la locale de la route explicitement
 - Le corps reste la même query Prisma (include `tags.tag` et `clientMeta.company` via `PROJECT_INCLUDE`), mais `.then(projects => projects.map(p => localizeProject(p, locale)))` en sortie
-- Idem `findPublishedBySlug(slug, locale)` — retourne `LocalizedProject | null`
+- Idem `findPublishedBySlug(slug, locale)`, retourne `LocalizedProject | null`
 - Les types returned changent : `Promise<LocalizedProject[]>` au lieu de `Promise<ProjectWithRelations[]>`
 - Conforme à [`.claude/rules/nextjs/data-fetching.md`](../../../../.claude/rules/nextjs/data-fetching.md) : query Prisma unique, `include` nested, pas de N+1
 
-### Case studies markdown — fichiers séparés `.fr.md` + `.en.md`
+### Case studies markdown : fichiers séparés `.fr.md` + `.en.md`
 
 - Convention : `prisma/seed-data/case-studies/<type>/<slug>.<locale>.md`
 - Le seed (`prisma/seed.ts`) lit les deux fichiers par projet, hydrate `caseStudyMarkdownFr` et `caseStudyMarkdownEn` de l'entité Project
@@ -113,7 +113,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 **WHEN** la page est rendue
 **THEN** les cards affichent les titres EN (ex: "Claims Management Web App", "Technical Lead AI & Automation")
 **AND** les descriptions sont en EN
-**AND** les noms de tags sont en EN (ex: "Automation", "Scraping" — certains noms techniques restent identiques)
+**AND** les noms de tags sont en EN (ex: "Automation", "Scraping", certains noms techniques restent identiques)
 
 ### Scénario 3 : Bascule FR ↔ EN sans reload serveur
 
@@ -186,7 +186,7 @@ Migrer le schéma Prisma pour dupliquer les champs texte longs/courts en colonne
 - Portfolio single-user visant 2 locales (FR, EN) stables. Pas de roadmap vers 5+ locales. Surcoût structurel (B) non justifié
 - Queries restent simples (pas de JOIN translation), types Prisma auto-générés cleanly, IDE autocomplete sur `titleFr` / `titleEn`
 - Le helper `localizeProject` isole l'implémentation : si on migre vers B post-MVP, l'API publique côté queries reste stable (elles continuent à retourner `LocalizedProject` avec `title`)
-- Prisma 7 support natif JSON mais typage faible en bout de chaîne (JSON → any sans Zod validation runtime) — (C) rejeté pour cette raison
+- Prisma 7 support natif JSON mais typage faible en bout de chaîne (JSON → any sans Zod validation runtime), (C) rejeté pour cette raison
 
 ### Décision : Paramètre `locale` obligatoire sur les queries (pas de default)
 

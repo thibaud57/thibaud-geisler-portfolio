@@ -103,7 +103,7 @@ export default defineConfig({
 
 ### Points Importants
 
-- Charger `.env` via `@next/env` (`loadEnvConfig(process.cwd())`) — recommandation officielle Next.js, pas de dep `dotenv` à ajouter (transitif via `next`)
+- Charger `.env` via `@next/env` (`loadEnvConfig(process.cwd())`), recommandation officielle Next.js, pas de dep `dotenv` à ajouter (transitif via `next`)
 - Utiliser `process.env.DATABASE_URL!` plutôt que le helper `env('DATABASE_URL')` de `prisma/config` : ce dernier throw `PrismaConfigEnvError` au chargement du fichier config et casse `prisma generate` (issue #28590). `process.env.X!` est lu paresseusement
 - Les flags `--schema` et `--url` sont supprimés en v7
 - Configurer `seed: 'tsx prisma/seed.ts'` pour `prisma db seed`
@@ -144,7 +144,7 @@ if (process.env.NODE_ENV !== 'production') {
 - Pattern singleton via `globalThis` pour éviter les multiples instances en dev (hot reload Next.js)
 - Importer depuis le chemin `output` du generator (`@/generated/prisma/client`)
 - `@prisma/adapter-pg` et `pg` sont des dépendances runtime obligatoires
-- Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (validation Zod runtime via `@t3-oss/env-nextjs`) — Next.js charge `.env*` automatiquement au boot, pas besoin de `dotenv/config` dans le module
+- Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (validation Zod runtime via `@t3-oss/env-nextjs`), Next.js charge `.env*` automatiquement au boot, pas besoin de `dotenv/config` dans le module
 - `import 'server-only'` empêche tout import accidentel depuis un Client Component
 - En prod (Next.js build), une seule instance est créée par worker
 
@@ -335,7 +335,7 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 
 - Ne pas instancier `PrismaClient` dans un Client Component
 - Ne pas importer `dotenv/config` dans `src/lib/prisma.ts` ou autre module runtime Next.js (redondant : Next.js charge `.env*` au boot, pattern `@/env` t3-env attendu)
-- Ne pas utiliser le helper `env('DATABASE_URL')` de `prisma/config` (throw `PrismaConfigEnvError` au load, casse `prisma generate` — issue #28590). Utiliser `process.env.DATABASE_URL!` à la place
+- Ne pas utiliser le helper `env('DATABASE_URL')` de `prisma/config` (throw `PrismaConfigEnvError` au load, casse `prisma generate`, issue #28590). Utiliser `process.env.DATABASE_URL!` à la place
 - Ne pas utiliser `db push` en production
 - Ne pas exécuter `migrate dev` dans une CI/CD (utiliser `migrate deploy`)
 - Ne pas compter sur l'ancien provider `prisma-client-js` (déprécié)
@@ -346,7 +346,7 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 
 ## Documentation Officielle
 
-- [Prisma — Documentation](https://www.prisma.io/docs/orm)
+- [Prisma : Documentation](https://www.prisma.io/docs/orm)
 - [Prisma 7 Upgrade Guide](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)
 - [CRUD Reference](https://www.prisma.io/docs/orm/prisma-client/queries/crud)
 

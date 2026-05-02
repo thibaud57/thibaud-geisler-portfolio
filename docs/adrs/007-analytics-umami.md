@@ -22,14 +22,14 @@ Quelle solution d'analytics choisir en accord avec les contraintes RGPD, le budg
 
 # 🛠️ Options Envisagées
 
-## Option A — Umami self-hosted
+## Option A : Umami self-hosted
 
 **Description :** Umami est un outil d'analytics open-source léger, RGPD-friendly (sans cookies, sans collecte de données personnelles), compatible PostgreSQL.
 
 **Avantages :**
-- Open-source et self-hosted — pas de coût, données sur le VPS
-- Sans cookies — pas de bannière RGPD nécessaire
-- Compatible PostgreSQL — peut utiliser la même infrastructure existante
+- Open-source et self-hosted, pas de coût, données sur le VPS
+- Sans cookies, pas de bannière RGPD nécessaire
+- Compatible PostgreSQL, peut utiliser la même infrastructure existante
 - Interface simple et claire
 - Script analytics léger (< 2kb)
 
@@ -39,7 +39,7 @@ Quelle solution d'analytics choisir en accord avec les contraintes RGPD, le budg
 
 **Coût estimé :** Nul (inclus dans VPS)
 
-## Option B — Plausible (cloud)
+## Option B : Plausible (cloud)
 
 **Description :** Solution analytics RGPD-friendly cloud, sans cookies.
 
@@ -48,13 +48,13 @@ Quelle solution d'analytics choisir en accord avec les contraintes RGPD, le budg
 - Interface claire et efficace
 
 **Inconvénients :**
-- 9-19€/mois (cloud) — coût non négligeable pour un portfolio
+- 9-19€/mois (cloud), coût non négligeable pour un portfolio
 - Données hébergées chez un tiers
 - Plausible self-hosted existe (open-source) mais est plus complexe à opérer qu'Umami (configuration, maintenance)
 
 **Coût estimé :** ~9-19€/mois (cloud) / 0€ self-hosted mais overhead opérationnel réel
 
-## Option C — PostHog
+## Option C : PostHog
 
 **Description :** Analytics + product analytics, open-source.
 
@@ -63,7 +63,7 @@ Quelle solution d'analytics choisir en accord avec les contraintes RGPD, le budg
 
 **Inconvénients :**
 - Beaucoup trop lourd pour les besoins d'un portfolio
-- Self-hosted nécessite ~4 GB RAM minimum — incompatible avec un VPS entrée de gamme
+- Self-hosted nécessite ~4 GB RAM minimum, incompatible avec un VPS entrée de gamme
 
 **Coût estimé :** ~0€ cloud jusqu'à 1M événements/mois, mais self-hosted = ressources VPS importantes
 
@@ -71,7 +71,7 @@ Quelle solution d'analytics choisir en accord avec les contraintes RGPD, le budg
 
 # 🎉 Décision
 
-**Option A actée — Umami self-hosted (post-MVP).**
+**Option A actée : Umami self-hosted (post-MVP).**
 
 La combinaison self-hosted + RGPD-friendly + compatible PostgreSQL en fait le choix idéal. Plausible est trop cher en cloud et plus complexe à opérer en self-hosted. PostHog est surdimensionné pour un portfolio et trop gourmand en RAM.
 

@@ -1,4 +1,4 @@
-# Fichier llms.txt pour AI engines — Plan d'implémentation (sub-project 06 / Feature 5 SEO)
+# Fichier llms.txt pour AI engines: Plan d'implémentation (sub-project 06 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -121,7 +121,7 @@ Expected : build complet sans erreur. Vérifier que `next build` liste `/llms.tx
 
 **Files :** aucun, vérification HTTP.
 
-- [ ] **Step 1 : Mode dev — contenu attendu**
+- [ ] **Step 1 : Mode dev: contenu attendu**
 
 Run : `pnpm dev` (laisser tourner en arrière-plan).
 
@@ -155,7 +155,7 @@ Expected :
 - `Content-Type: text/plain; charset=utf-8`
 - `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`
 
-- [ ] **Step 3 : Couvre Scénario 1 spec — structure valide**
+- [ ] **Step 3 : Couvre Scénario 1 spec: structure valide**
 
 Run : `curl -s http://localhost:3000/llms.txt | head -1`
 Expected : `# Thibaud Geisler`
@@ -166,7 +166,7 @@ Expected : `2` (sections `## Pages` et `## Optional`)
 Run : `curl -s http://localhost:3000/llms.txt | grep -c '^- \['`
 Expected : `8` (5 liens Pages + 3 liens Optional)
 
-- [ ] **Step 4 : Couvre Scénario 2 spec — URLs absolues**
+- [ ] **Step 4 : Couvre Scénario 2 spec: URLs absolues**
 
 Run : `curl -s http://localhost:3000/llms.txt | grep -E 'http://localhost:3000/sitemap.xml'`
 Expected : ligne avec le lien sitemap absolu présent.
@@ -178,7 +178,7 @@ Expected : `5` (5 pages préfixées `/fr/`).
 
 Run : `just stop` (ou `Ctrl+C` sur le terminal `pnpm dev`).
 
-- [ ] **Step 6 : Mode prod — Scénario 3 spec confirmé**
+- [ ] **Step 6 : Mode prod: Scénario 3 spec confirmé**
 
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV=production` automatique.

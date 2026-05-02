@@ -22,7 +22,7 @@ Faut-il stocker les articles de blog en base de données (via dashboard admin) o
 
 # 🛠️ Options Envisagées
 
-## Option A — Base de données PostgreSQL
+## Option A : Base de données PostgreSQL
 
 **Description :** Articles stockés en BDD, gérés via le dashboard admin (CRUD avec éditeur Markdown).
 
@@ -32,12 +32,12 @@ Faut-il stocker les articles de blog en base de données (via dashboard admin) o
 - Pas de redéploiement nécessaire pour publier un article
 
 **Inconvénients :**
-- Éditeur Markdown à implémenter dans le dashboard (preview, upload images, gestion frontmatter) — chantier non trivial dans un contexte solo, d'autant que le dashboard admin lui-même est post-MVP
+- Éditeur Markdown à implémenter dans le dashboard (preview, upload images, gestion frontmatter), chantier non trivial dans un contexte solo, d'autant que le dashboard admin lui-même est post-MVP
 - Plus complexe à setup
 
-**Coût estimé :** Élevé — éditeur à développer dans un dashboard qui n'existe pas encore
+**Coût estimé :** Élevé, éditeur à développer dans un dashboard qui n'existe pas encore
 
-## Option B — Fichiers MDX dans le repo
+## Option B : Fichiers MDX dans le repo
 
 **Description :** Articles écrits en MDX, versionnés dans le repo Git, rendus via `next-mdx-remote` ou similaire.
 
@@ -57,7 +57,7 @@ Faut-il stocker les articles de blog en base de données (via dashboard admin) o
 
 # 🎉 Décision
 
-**Option A — Base de données PostgreSQL.**
+**Option A : Base de données PostgreSQL.**
 
 Décision actée. La Feature 6 (génération IA de contenu, brouillons `status: draft`) implique de toute façon un dashboard admin et une table `Article` en BDD. MDX est incompatible avec ce workflow (pas de commit Git pour des brouillons IA, redéploiement requis pour publier). La BDD est déjà présente, le paradigme est cohérent avec la gestion des projets.
 
@@ -67,8 +67,8 @@ Décision actée. La Feature 6 (génération IA de contenu, brouillons `status: 
 
 ## Positives
 
-- Si Option A (BDD) : publication sans redéploiement ni accès Git — workflow accessible depuis n'importe quel appareil
-- Si Option B (MDX) : versioning Git natif, composants React intégrables (blocs de code interactifs, démos inline) — adapté aux articles techniques
+- Si Option A (BDD) : publication sans redéploiement ni accès Git, workflow accessible depuis n'importe quel appareil
+- Si Option B (MDX) : versioning Git natif, composants React intégrables (blocs de code interactifs, démos inline), adapté aux articles techniques
 - Quelle que soit l'option : contenu indexable et favorable au SEO via `generateStaticParams` ou ISR
 
 ## Négatives
@@ -85,8 +85,8 @@ Décision actée. La Feature 6 (génération IA de contenu, brouillons `status: 
 - Type d'articles : blocs de code, démos React inline (→ MDX), ou contenu narratif simple (→ les deux conviennent) ?
 - Fréquence de publication : rare (→ MDX suffisant) ou régulière sans accès Git systématique (→ BDD)
 
-**Alternatives non retenues :** Contentlayer (MDX typé, mais projet moins maintenu), Keystatic (CMS Git-based avec UI admin, sans BDD — exclu : incompatible avec la Feature 6, brouillons IA non commitables dans Git), Notion headless via API (exclu : aucune API Notion dans le scope du projet, voir décision actée dans BRAINSTORM).
+**Alternatives non retenues :** Contentlayer (MDX typé, mais projet moins maintenu), Keystatic (CMS Git-based avec UI admin, sans BDD, exclu : incompatible avec la Feature 6, brouillons IA non commitables dans Git), Notion headless via API (exclu : aucune API Notion dans le scope du projet, voir décision actée dans BRAINSTORM).
 
-**Redis écarté pour les brouillons IA (Feature 6) :** Redis a été envisagé pour stocker temporairement les ébauches générées par l'IA avant publication, avec expiration automatique (TTL). Écarté : le volume est trop faible (~10 articles/semaine) pour justifier un service supplémentaire. PostgreSQL avec une colonne `status: draft | published | archived` couvre le besoin — les brouillons non retenus sont supprimés manuellement ou via un job de nettoyage périodique. Redis se justifie pour du stockage éphémère à très haute fréquence (cache sessions, pub/sub temps réel) : aucun de ces besoins n'est présent ici.
+**Redis écarté pour les brouillons IA (Feature 6) :** Redis a été envisagé pour stocker temporairement les ébauches générées par l'IA avant publication, avec expiration automatique (TTL). Écarté : le volume est trop faible (~10 articles/semaine) pour justifier un service supplémentaire. PostgreSQL avec une colonne `status: draft | published | archived` couvre le besoin, les brouillons non retenus sont supprimés manuellement ou via un job de nettoyage périodique. Redis se justifie pour du stockage éphémère à très haute fréquence (cache sessions, pub/sub temps réel) : aucun de ces besoins n'est présent ici.
 
-La cohérence avec ADR-004 (PostgreSQL dès le MVP) donne un avantage naturel à l'Option A — la BDD est déjà là.
+La cohérence avec ADR-004 (PostgreSQL dès le MVP) donne un avantage naturel à l'Option A, la BDD est déjà là.

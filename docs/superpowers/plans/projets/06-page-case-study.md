@@ -1,4 +1,4 @@
-# Page `/projets/[slug]` — Case Study — Implementation Plan
+# Page `/projets/[slug]`: Case Study: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -661,7 +661,7 @@ Penser à ajouter une virgule après la clé `cardAriaLabel` précédente avant 
 
 - [ ] **Step 2: Ajouter la sous-clé `caseStudy` dans `messages/en.json`**
 
-Même procédure qu'à Step 1 (la clé `formats` est déjà présente via le sub-project 05), fragment EN à fusionner — ajouter uniquement `caseStudy` :
+Même procédure qu'à Step 1 (la clé `formats` est déjà présente via le sub-project 05), fragment EN à fusionner, ajouter uniquement `caseStudy` :
 
 ```json
     "caseStudy": {
@@ -788,7 +788,7 @@ describe('generateStaticParams — case study', () => {
 })
 ```
 
-- [ ] **Step 2: Run le test — doit FAIL (page.tsx pas créé)**
+- [ ] **Step 2: Run le test: doit FAIL (page.tsx pas créé)**
 
 Run:
 ```bash
@@ -877,7 +877,7 @@ export default async function CaseStudyPage({ params }: PageProps) {
 }
 ```
 
-- [ ] **Step 2: Run le test — doit PASS**
+- [ ] **Step 2: Run le test: doit PASS**
 
 Run:
 ```bash
@@ -925,7 +925,7 @@ Vérifier visuellement :
 - Cover image affichée en grand (ou gradient fallback si null)
 - Titre H1 et description en lead
 - Meta structurées (entreprise CLIENT + équipe + contrat + durée)
-- Contenu markdown rendu avec prose (titres, paragraphes, listes, images inline avec légendes) — lu depuis le fichier `.md` correspondant au type dans `prisma/seed-data/case-studies/`
+- Contenu markdown rendu avec prose (titres, paragraphes, listes, images inline avec légendes), lu depuis le fichier `.md` correspondant au type dans `prisma/seed-data/case-studies/`
 - Section "Stack & Expertises" groupée par kind dans l'ordre fixe EXPERTISE (en tête, badges légèrement plus grands) → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA, chaque groupe listant ses tags dans l'ordre `ProjectTag.displayOrder` asc (pas alphabétique)
 - Footer avec boutons Démo + GitHub (si URLs présentes) et lien "← Retour aux projets"
 
@@ -952,7 +952,7 @@ Expected : `HTTP/1.1 404 Not Found`.
 
 - [ ] **Step 6: Vérifier la version EN**
 
-Ouvrir http://localhost:3000/en/projets/<slug> — titres/labels traduits en anglais.
+Ouvrir http://localhost:3000/en/projets/<slug>, titres/labels traduits en anglais.
 
 - [ ] **Step 7: Inspect metadata HTML + hreflang**
 
@@ -1081,14 +1081,14 @@ Expected : commit listant les fichiers attendus.
 **3. Type consistency** :
 - `LocalizedProjectWithRelations` (sub-project 02) : importé T7/T8/T9/T12, cohérent partout. Les tags y sont un array de `ProjectTag` incluant la relation `tag` (via `include: { tags: { include: { tag: true } } }`), déjà trié `displayOrder asc` côté query.
 - `TagKind` : importé Task 4+5 depuis Prisma client, énuméré dans `KIND_ORDER` dans l'ordre spec'é `[EXPERTISE, LANGUAGE, FRAMEWORK, DATABASE, AI, INFRA]`.
-- `ProjectTagWithTag` : type local dans TagStackGrouped (Task 4+5), dérivé via `Prisma.ProjectTagGetPayload<{ include: { tag: true } }>` — correspond exactement au shape retourné par `findPublishedBySlug`.
+- `ProjectTagWithTag` : type local dans TagStackGrouped (Task 4+5), dérivé via `Prisma.ProjectTagGetPayload<{ include: { tag: true } }>`, correspond exactement au shape retourné par `findPublishedBySlug`.
 - `findPublishedBySlug` : signature défendue sub-project 02, appelée T12 (generateMetadata + page)
 - `generateStaticParams` : signature `() => Promise<{ locale: string; slug: string }[]>` cohérente T11 test + T12 impl
-- Clés i18n : `Projects.caseStudy.stackTitle`, `.backToList`, `.inProgress`, `.meta.*`, `.contractStatus.*`, `.kind.*` (incl. `EXPERTISE`), `.links.*` — définies T10, utilisées Task 4+5/T6/T7/T8. Plus de clé `expertiseTitle` (fusionnée dans `kind.EXPERTISE`).
+- Clés i18n : `Projects.caseStudy.stackTitle`, `.backToList`, `.inProgress`, `.meta.*`, `.contractStatus.*`, `.kind.*` (incl. `EXPERTISE`), `.links.*`, définies T10, utilisées Task 4+5/T6/T7/T8. Plus de clé `expertiseTitle` (fusionnée dans `kind.EXPERTISE`).
 - `TagBadge` : réutilisé Task 4+5 depuis sub-project 05 (pas redéfini).
 
 ---
 
 ## Prochaine étape
 
-Après exécution de ce plan : la Feature 2 — Projets est fonctionnellement complète (visiteur navigue de `/projets` vers `/projets/[slug]`, SEO pré-généré, i18n FR/EN). Pour lancer l'implémentation de ce plan : `/implement-subproject projets 06`.
+Après exécution de ce plan : la Feature 2, Projets est fonctionnellement complète (visiteur navigue de `/projets` vers `/projets/[slug]`, SEO pré-généré, i18n FR/EN). Pour lancer l'implémentation de ce plan : `/implement-subproject projets 06`.
