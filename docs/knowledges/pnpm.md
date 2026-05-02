@@ -237,7 +237,7 @@ pnpm outdated                         # liste les deps obsolètes
 
 ## Documentation Officielle
 
-- [pnpm — Site](https://pnpm.io)
+- [pnpm : Site](https://pnpm.io)
 - [CLI Reference](https://pnpm.io/pnpm-cli)
 - [Continuous Integration](https://pnpm.io/continuous-integration)
 

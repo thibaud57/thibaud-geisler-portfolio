@@ -1,4 +1,4 @@
-# Plan d'implémentation — `05-footer-global`
+# Plan d'implémentation: `05-footer-global`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -333,13 +333,13 @@ Attendu : `OK`.
 
 ---
 
-## Task 5 : (réservée pour Ops runbook) — voir Task 6
+## Task 5 : (réservée pour Ops runbook): voir Task 6
 
-Pas de code à écrire ici — placeholder renommé. Passer directement à Task 6.
+Pas de code à écrire ici, placeholder renommé. Passer directement à Task 6.
 
 ---
 
-## Task 6 : Ops — Upload des logos horizontaux dans le volume Docker
+## Task 6 : Ops: Upload des logos horizontaux dans le volume Docker
 
 **Files:**
 - External (volume Docker) : `assets/branding/logo-horizontal-dark.svg`, `assets/branding/logo-horizontal-light.svg`
@@ -512,7 +512,7 @@ La mise à jour du `status` du spec de `draft` vers `implemented` (frontmatter d
 - Décision archi B (switch logo CSS) → Task 3 (`dark:hidden` / `hidden dark:block`).
 - Décision archi C (SOCIAL_LINKS dans `src/config/`) → Task 1 (promotion complète).
 
-**Placeholder scan** : aucun `TBD` / `TODO` / `à définir` / `implement later`. Les références `<replace-with-real-slug>` et `<replace-with-real-username>` dans Task 1 Step 1.1 sont des **commentaires explicatifs** (le contenu du fichier peut contenir ces placeholders si sub 04 n'a pas encore remplacé par les vraies URLs — dans ce cas sub 04 doit être finalisé avant sub 05). Le contenu copié dans `src/config/social-links.ts` sera ce qui est présent dans le fichier source au moment de la Task 1, pas un placeholder nouveau.
+**Placeholder scan** : aucun `TBD` / `TODO` / `à définir` / `implement later`. Les références `<replace-with-real-slug>` et `<replace-with-real-username>` dans Task 1 Step 1.1 sont des **commentaires explicatifs** (le contenu du fichier peut contenir ces placeholders si sub 04 n'a pas encore remplacé par les vraies URLs, dans ce cas sub 04 doit être finalisé avant sub 05). Le contenu copié dans `src/config/social-links.ts` sera ce qui est présent dans le fichier source au moment de la Task 1, pas un placeholder nouveau.
 
 **Type consistency** :
 - `SocialSlug = 'linkedin' | 'github'` (Task 1 = fichier promu) ↔ `Record<SocialSlug, string>` (Task 2 ariaLabels) : cohérent.
@@ -530,7 +530,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/05-foot
 
 Deux options d'exécution lorsqu'on passera à l'implémentation (après implémentation du sub 04 qui est prérequis topologique) :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée via `/implement-subproject pages-publiques-portfolio 05` (après `04`).

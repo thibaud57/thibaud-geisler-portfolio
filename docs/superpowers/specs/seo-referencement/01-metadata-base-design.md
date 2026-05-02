@@ -21,7 +21,7 @@ date: "2026-04-27"
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. L'infrastructure utilisée (`src/lib/seo.ts` actuel avec `siteUrl`, `localeToOgLocale`, `buildLanguageAlternates`, `setupLocaleMetadata` ; namespace `Metadata` complet dans `messages/fr.json` et `messages/en.json` ; query `findPublishedBySlug` cachée via `'use cache'` dans `src/server/queries/projects.ts`) est déjà livrée par le travail antérieur sur le portfolio.
+Aucune, ce sub-project est autoporté. L'infrastructure utilisée (`src/lib/seo.ts` actuel avec `siteUrl`, `localeToOgLocale`, `buildLanguageAlternates`, `setupLocaleMetadata` ; namespace `Metadata` complet dans `messages/fr.json` et `messages/en.json` ; query `findPublishedBySlug` cachée via `'use cache'` dans `src/server/queries/projects.ts`) est déjà livrée par le travail antérieur sur le portfolio.
 
 ## Files touched
 
@@ -109,7 +109,7 @@ Aucune — ce sub-project est autoporté. L'infrastructure utilisée (`src/lib/s
 Setup : factory `buildInput(overrides?)` (convention vue dans `.claude/rules/nextjs/tests.md`) initialisant locale `'fr'`, path `''`, title et description bidons, `afterEach(() => vi.unstubAllEnvs())`. Aucun mock de `next-intl`, `next/navigation` ou Prisma : le helper est pur.
 
 Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
-- Les `generateMetadata` des 6 pages (testerait l'intégration Next.js, pas une règle métier projet) — couvert par les scénarios end-to-end visuels (View Source).
+- Les `generateMetadata` des 6 pages (testerait l'intégration Next.js, pas une règle métier projet), couvert par les scénarios end-to-end visuels (View Source).
 - `metadataBase`, `title.template`, `viewport.themeColor` du root layout `[locale]/layout.tsx` (config Next.js, no-lib-test).
 - `setupLocaleMetadata`, `localeToOgLocale`, `buildLanguageAlternates` (helpers déjà existants non modifiés par ce sub-project ; `buildLanguageAlternates` est utilisé indirectement dans le test "Languages alternates" via le retour du helper).
 - Le runtime next-intl (`hasLocale`, `getTranslations`, `notFound`).

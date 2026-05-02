@@ -11,6 +11,20 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
 FROM base AS builder
+# .env exclu par .dockerignore (vars injectées par Dokploy au runtime) → bypass la validation
+# t3-env au build, sinon Zod crashe au chargement des modules qui importent @/env et la
+# collecte de page data Next échoue (ex: opengraph-image).
+ENV SKIP_ENV_VALIDATION=true
+# NEXT_PUBLIC_* sont inlinées dans le bundle JS au moment de `next build` (cf. doc Next.js
+# environment-variables). Sans ces ARG → `process.env.NEXT_PUBLIC_*` = undefined littéral
+# dans le bundle final, sitemap/canonicals/OG cassés en prod. Propagation via compose.yaml
+# build.args (cf. doc Dokploy core/docker-compose/example).
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_CALENDLY_URL_FR
+ARG NEXT_PUBLIC_CALENDLY_URL_EN
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_CALENDLY_URL_FR=$NEXT_PUBLIC_CALENDLY_URL_FR
+ENV NEXT_PUBLIC_CALENDLY_URL_EN=$NEXT_PUBLIC_CALENDLY_URL_EN
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Prisma 7 génère le client dans src/generated/ (gitignored), non ramené par `COPY . .`.

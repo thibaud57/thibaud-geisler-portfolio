@@ -708,7 +708,7 @@ SELECT COUNT(*) FROM "DataProcessing"; -- doit retourner 3
 
 ---
 
-## Task 7: TDD red — créer le test d'intégration des queries
+## Task 7: TDD red: créer le test d'intégration des queries
 
 **Files:**
 - Create: `src/server/queries/legal.integration.test.ts`
@@ -1027,7 +1027,7 @@ Expected: échec d'import ou erreur similaire `Cannot find module '@/server/quer
 
 ---
 
-## Task 8: TDD green — implémenter `src/server/queries/legal.ts`
+## Task 8: TDD green: implémenter `src/server/queries/legal.ts`
 
 **Files:**
 - Create: `src/server/queries/legal.ts`

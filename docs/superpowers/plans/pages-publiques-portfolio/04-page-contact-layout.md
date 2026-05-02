@@ -1,4 +1,4 @@
-# Plan d'implémentation — `04-page-contact-layout`
+# Plan d'implémentation: `04-page-contact-layout`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -632,7 +632,7 @@ Notes :
 - `await searchParams` obligatoire Next 16 (hard error sinon, cf. `.claude/rules/nextjs/routing.md`).
 - Si `service` est un tableau (URL mal formée `?service=a&service=b`), on prend le premier élément par sécurité, puis le `isPrefillSlug` filtre.
 - Le typage `PREFILL_SLUGS` côté page évite de dépendre d'un import cross-feature.
-- Double `getTranslations('ContactPage.form')` évité en factorisant dans `formLabels`. Le second appel pour `tForm('title')` est déjà dans `tForm`. (Remarque : le snippet ci-dessus contient un appel redondant `await getTranslations('ContactPage.form')` pour le H2 form title — le corriger en `{tForm('title')}`.)
+- Double `getTranslations('ContactPage.form')` évité en factorisant dans `formLabels`. Le second appel pour `tForm('title')` est déjà dans `tForm`. (Remarque : le snippet ci-dessus contient un appel redondant `await getTranslations('ContactPage.form')` pour le H2 form title, le corriger en `{tForm('title')}`.)
 
 - [ ] **Step 7.2 : Corriger le doublon `getTranslations` pour le H2 du form**
 
@@ -939,7 +939,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/04-page
 
 Deux options d'exécution lorsqu'on passera à l'implémentation :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligné avec `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée via `/implement-subproject pages-publiques-portfolio 04`.

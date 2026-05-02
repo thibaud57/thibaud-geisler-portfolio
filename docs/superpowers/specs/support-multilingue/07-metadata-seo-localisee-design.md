@@ -21,7 +21,7 @@ Ajouter `generateMetadata` utilisant `getTranslations` dans chaque page pour loc
 
 ## Dependencies
 
-- `05-messages-contenu-design.md` (statut: implemented) — les messages et le layout locale sont en place
+- `05-messages-contenu-design.md` (statut: implemented), les messages et le layout locale sont en place
 
 ## Files touched
 

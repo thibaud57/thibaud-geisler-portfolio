@@ -219,7 +219,7 @@ dokploy env push .env.production             # envoie les vars vers le serveur
 
 ## Documentation Officielle
 
-- [Dokploy — Documentation](https://docs.dokploy.com/docs/core)
+- [Dokploy : Documentation](https://docs.dokploy.com/docs/core)
 - [CLI reference](https://docs.dokploy.com/docs/cli)
 - [Installation guide](https://docs.dokploy.com/docs/core/installation)
 

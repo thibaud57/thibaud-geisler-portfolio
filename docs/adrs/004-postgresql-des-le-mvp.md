@@ -22,7 +22,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 
 # 🛠️ Options Envisagées
 
-## Option A — PostgreSQL + Prisma dès le MVP
+## Option A : PostgreSQL + Prisma dès le MVP
 
 **Description :** PostgreSQL conteneurisé (Docker), Prisma comme ORM, migrations versionnées dès le premier commit.
 
@@ -36,9 +36,9 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 - Légèrement plus lourd à setup qu'une solution file-based
 - Requiert un container Docker en plus en dev et prod
 
-**Coût estimé :** Faible — quelques heures de setup initial, évité ensuite
+**Coût estimé :** Faible, quelques heures de setup initial, évité ensuite
 
-## Option B — SQLite pour le MVP, migration plus tard
+## Option B : SQLite pour le MVP, migration plus tard
 
 **Description :** SQLite (via Prisma) pour le MVP, migration vers PostgreSQL pour le dashboard/chatbot.
 
@@ -47,7 +47,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 - Démarrage ultra-rapide
 
 **Inconvénients :**
-- Migration inévitable vers PostgreSQL — coût différé mais certain
+- Migration inévitable vers PostgreSQL, coût différé mais certain
 - SQLite ne supporte pas pgvector (chatbot RAG futur)
 - Comportements légèrement différents entre SQLite et PostgreSQL (à tester deux fois)
 
@@ -57,7 +57,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 
 # 🎉 Décision
 
-**Option A — PostgreSQL + Prisma dès le MVP.**
+**Option A : PostgreSQL + Prisma dès le MVP.**
 
 Le contenu dynamique (projets) est nécessaire dès le MVP. PostgreSQL est la DB cible finale (dashboard, pgvector pour RAG). Introduire SQLite puis migrer serait un coût différé sans bénéfice réel.
 

@@ -1,4 +1,4 @@
-# Sub 03 — Server Action submitContact (Zod + rate limit + honeypot + nodemailer) — Implementation Plan
+# Sub 03: Server Action submitContact (Zod + rate limit + honeypot + nodemailer): Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 **Spec source:** `docs/superpowers/specs/formulaire-de-contact/03-server-action-submit-contact-design.md`
 
-**Stratégie TDD `full`** : red→green par groupe cohérent (tests qui vérifient une responsabilité distincte du pipeline). Aucun test ne tape SMTP réel ni n'appelle `headers()` Next réel — tout est mocké. Les commits sont laissés à la discrétion du user (pas de `git commit` automatique).
+**Stratégie TDD `full`** : red→green par groupe cohérent (tests qui vérifient une responsabilité distincte du pipeline). Aucun test ne tape SMTP réel ni n'appelle `headers()` Next réel, tout est mocké. Les commits sont laissés à la discrétion du user (pas de `git commit` automatique).
 
 ---
 
@@ -27,7 +27,7 @@ Aucun autre fichier touché. Logger Pino, mailer (sub 01) et schéma Zod (sub 02
 
 ---
 
-# Bloc 1 — Rate-limiter (autoporté, plus simple)
+# Bloc 1: Rate-limiter (autoporté, plus simple)
 
 ## Task 1: Squelette `rate-limiter.ts` + premier test (1ère requête autorisée)
 
@@ -124,13 +124,13 @@ export function __resetRateLimiter(): void {
 
 **Notes pour le worker** :
 - `__resetRateLimiter` est exporté volontairement avec le préfixe `__` pour signaler qu'il s'agit d'une API test-only. Pas d'`if (process.env.NODE_ENV === 'test')` autour : la fonction est triviale et n'a pas d'impact en prod si non appelée.
-- Le `cap` LRU n'évince jamais la key qui vient d'être insérée (`firstKey !== key`) — protège contre le cas pathologique où une seule key spam exactement `cap` requêtes différentes.
+- Le `cap` LRU n'évince jamais la key qui vient d'être insérée (`firstKey !== key`), protège contre le cas pathologique où une seule key spam exactement `cap` requêtes différentes.
 
 - [ ] **Step 1.4: Vérifier que le test passe (green)**
 
 Run: `pnpm test src/lib/rate-limiter.test.ts -t "autorise la première"`
 
-Expected: PASS — 1 test.
+Expected: PASS, 1 test.
 
 ---
 
@@ -243,7 +243,7 @@ Expected: aucune erreur sur `src/lib/rate-limiter.ts` et `src/lib/rate-limiter.t
 
 ---
 
-# Bloc 2 — Server Action `submitContact`
+# Bloc 2: Server Action `submitContact`
 
 ## Task 4: Squelette `contact.ts` + types exportés + 1er test (idle state)
 
@@ -462,14 +462,14 @@ export async function submitContact(
 
 **Notes pour le worker** :
 - L'implémentation est livrée d'un coup (pas test par test) car le pipeline est un seul flux ordonné. Les tasks suivantes ajoutent les TESTS qui valident chaque étape du pipeline déjà en place.
-- `import 'server-only'` au top — empêche tout import accidentel côté client.
+- `import 'server-only'` au top, empêche tout import accidentel côté client.
 - Le cast `as ContactFormState['errors']` sur `flatten().fieldErrors` est nécessaire car Zod retourne un type plus large (`Record<string, string[] | undefined>`). Le cast est sûr puisque les clés correspondent au schéma sub 02.
 
 - [ ] **Step 4.4: Vérifier que le 1er test passe (green)**
 
 Run: `pnpm test src/server/actions/contact.test.ts -t "exporte un initialContactFormState"`
 
-Expected: PASS — 1 test (idle state).
+Expected: PASS, 1 test (idle state).
 
 ---
 
@@ -514,7 +514,7 @@ Ajouter dans le `describe('submitContact', ...)` après le test précédent :
 
 Run: `pnpm test src/server/actions/contact.test.ts -t "envoie l'email"`
 
-Expected: PASS — implémentation déjà en place via Task 4.3.
+Expected: PASS, implémentation déjà en place via Task 4.3.
 
 ---
 
@@ -794,7 +794,7 @@ Run: `pnpm build`
 
 Expected: build réussit. Comme `src/server/actions/contact.ts` n'est pas encore importé par un Client Component (sub 04 le fera), aucun warning de bundling client. Si erreur sur `net`/`tls`/`dns` ou `crypto` côté client → un import accidentel s'est glissé, à corriger avant de continuer.
 
-**Note** : si `pnpm build` échoue parce que les vars `.env.local` ne sont pas définies (sub 01 a un schéma Zod fail-fast au top du module mailer), c'est attendu. Le build ne peut s'exécuter qu'avec un environnement valide. Pour tester ce sub-project sans `.env.local`, ne pas exécuter `pnpm build` à cette étape — les tests Vitest mockent déjà le module `mailer`.
+**Note** : si `pnpm build` échoue parce que les vars `.env.local` ne sont pas définies (sub 01 a un schéma Zod fail-fast au top du module mailer), c'est attendu. Le build ne peut s'exécuter qu'avec un environnement valide. Pour tester ce sub-project sans `.env.local`, ne pas exécuter `pnpm build` à cette étape, les tests Vitest mockent déjà le module `mailer`.
 
 ---
 
@@ -908,4 +908,4 @@ Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/03-serv
 
 L'exécution sera lancée plus tard via `/implement-subproject formulaire-de-contact 03`, qui orchestrera `superpowers:subagent-driven-development` + quality gates + demande de commit explicite.
 
-Pour l'instant, le workflow parent (`/decompose-feature`) doit reprendre la main pour enchaîner sur le **sub-project 4** (`branchement-contact-form-action`) — le dernier de la boucle.
+Pour l'instant, le workflow parent (`/decompose-feature`) doit reprendre la main pour enchaîner sur le **sub-project 4** (`branchement-contact-form-action`), le dernier de la boucle.

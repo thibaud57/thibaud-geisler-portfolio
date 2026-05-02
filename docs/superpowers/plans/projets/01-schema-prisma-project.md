@@ -1,4 +1,4 @@
-# Schéma Prisma — Modèles Project, ClientMeta, Company, Tag, ProjectTag — Implementation Plan
+# Schéma Prisma: Modèles Project, ClientMeta, Company, Tag, ProjectTag: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -28,7 +28,7 @@
 
 ### Task 1: Créer `prisma.config.ts` (config Prisma v7)
 
-Règle appliquée : [.claude/rules/prisma/client-setup.md](../../../../.claude/rules/prisma/client-setup.md) — "Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via helper `env()`, `migrations.path`)". L'adapter `PrismaPg` n'est **pas** dans ce fichier (il sera configuré dans `src/lib/prisma.ts` au sub-project 02).
+Règle appliquée : [.claude/rules/prisma/client-setup.md](../../../../.claude/rules/prisma/client-setup.md), "Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via helper `env()`, `migrations.path`)". L'adapter `PrismaPg` n'est **pas** dans ce fichier (il sera configuré dans `src/lib/prisma.ts` au sub-project 02).
 
 **Files:**
 - Create: `prisma.config.ts`
@@ -103,7 +103,7 @@ Si absente ou vide, la copier depuis `.env.example` et adapter le host/port selo
 
 ### Task 3: Écrire le schéma Prisma complet
 
-Règle appliquée : [.claude/rules/prisma/schema-migrations.md](../../../../.claude/rules/prisma/schema-migrations.md) — provider `prisma-client`, `output` obligatoire, `@default(uuid(7))`, `@db.Timestamptz`, `datasource db` sans `url`.
+Règle appliquée : [.claude/rules/prisma/schema-migrations.md](../../../../.claude/rules/prisma/schema-migrations.md), provider `prisma-client`, `output` obligatoire, `@default(uuid(7))`, `@db.Timestamptz`, `datasource db` sans `url`.
 
 **Files:**
 - Modify: `prisma/schema.prisma` (remplace le contenu actuel qui n'a que le squelette + TODO commentaire)
@@ -371,7 +371,7 @@ Run:
 ls prisma/migrations/
 cat prisma/migrations/*_add_project_schema/migration.sql
 ```
-Expected : le fichier doit contenir tous les enums (`CREATE TYPE "ProjectType"`, `"ProjectStatus"`, `"ProjectFormat"` avec 6 valeurs dont `IA`, `"ContractStatus"`, `"WorkMode"` avec 3 valeurs dont `REMOTE`, `"TagKind"` avec 6 valeurs dont `EXPERTISE`, `"CompanySize"` avec `TPE`/`PME`/`ETI`/`GROUPE`, `"CompanySector"` avec 11 valeurs, `"CompanyLocation"` avec 8 valeurs), toutes les tables (`CREATE TABLE "Project"`, `"ClientMeta"`, `"Company"`, `"Tag"`, `"ProjectTag"` — table de jointure **explicite** avec colonne `displayOrder INTEGER NOT NULL DEFAULT 0`), PK composite `PRIMARY KEY ("projectId", "tagId")` sur ProjectTag, index `CREATE INDEX ... ON "ProjectTag"("projectId", "displayOrder")`, la contrainte `FOREIGN KEY ... ON DELETE CASCADE` pour `ClientMeta.projectId` et `ProjectTag.projectId`, et `FOREIGN KEY ... ON DELETE RESTRICT` pour `ClientMeta.companyId` et `ProjectTag.tagId`.
+Expected : le fichier doit contenir tous les enums (`CREATE TYPE "ProjectType"`, `"ProjectStatus"`, `"ProjectFormat"` avec 6 valeurs dont `IA`, `"ContractStatus"`, `"WorkMode"` avec 3 valeurs dont `REMOTE`, `"TagKind"` avec 6 valeurs dont `EXPERTISE`, `"CompanySize"` avec `TPE`/`PME`/`ETI`/`GROUPE`, `"CompanySector"` avec 11 valeurs, `"CompanyLocation"` avec 8 valeurs), toutes les tables (`CREATE TABLE "Project"`, `"ClientMeta"`, `"Company"`, `"Tag"`, `"ProjectTag"`, table de jointure **explicite** avec colonne `displayOrder INTEGER NOT NULL DEFAULT 0`), PK composite `PRIMARY KEY ("projectId", "tagId")` sur ProjectTag, index `CREATE INDEX ... ON "ProjectTag"("projectId", "displayOrder")`, la contrainte `FOREIGN KEY ... ON DELETE CASCADE` pour `ClientMeta.projectId` et `ProjectTag.projectId`, et `FOREIGN KEY ... ON DELETE RESTRICT` pour `ClientMeta.companyId` et `ProjectTag.tagId`.
 
 **Note** : pas de table `_ProjectToTag` implicite (on a migré vers la jointure explicite `ProjectTag`).
 
@@ -388,7 +388,7 @@ Run:
 ```bash
 just db-studio &
 ```
-(équivalent : `pnpm prisma studio` en arrière-plan — ouvre http://localhost:5555)
+(équivalent : `pnpm prisma studio` en arrière-plan, ouvre http://localhost:5555)
 
 Expected : navigateur ouvre Prisma Studio avec 5 tables visibles dans la sidebar : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` (table de jointure explicite).
 
@@ -400,7 +400,7 @@ Dans Prisma Studio, cliquer sur `Project`. Vérifier la présence exacte des col
 - `title`, `description` (String)
 - `type` (ProjectType)
 - `status` (ProjectStatus, default DRAFT)
-- `formats` (ProjectFormat[], array — visible comme `TEXT[]` dans Studio)
+- `formats` (ProjectFormat[], array, visible comme `TEXT[]` dans Studio)
 - `startedAt`, `endedAt` (DateTime nullable)
 - `githubUrl`, `demoUrl` (String nullable)
 - `coverFilename`, `caseStudyMarkdown` (String nullable)
@@ -427,7 +427,7 @@ Dans Prisma Studio, cliquer sur `Company`. Vérifier :
 - `size` (CompanySize, nullable)
 - `locations` (CompanyLocation[], array)
 - `createdAt`, `updatedAt`
-- onglet `clientMetas` (reverse relation — liste des missions liées)
+- onglet `clientMetas` (reverse relation, liste des missions liées)
 
 - [ ] **Step 5: Valider les colonnes de `Tag`**
 
@@ -444,7 +444,7 @@ Dans Prisma Studio, cliquer sur `Tag`. Vérifier :
 Dans Prisma Studio, cliquer sur `ProjectTag`. Vérifier :
 - `projectId` (String, part of composite PK, FK vers Project avec onDelete Cascade)
 - `tagId` (String, part of composite PK, FK vers Tag avec onDelete Restrict)
-- `displayOrder` (Int, défaut 0) — pilote l'ordre d'affichage **par-projet**
+- `displayOrder` (Int, défaut 0), pilote l'ordre d'affichage **par-projet**
 - onglets `project` et `tag` (relations vers les deux côtés)
 - Pas de colonne `id` (la PK est composite `(projectId, tagId)`)
 
@@ -463,7 +463,7 @@ just stop 2>/dev/null || true
 Justification : la modélisation finale diverge de la description initiale dans BRAINSTORM (`published boolean` → `status enum`, ajout de `clientMeta` enfant, modèle référentiel `Company` séparé avec relation depuis ClientMeta, relation unifiée `tags` avec discriminant `kind` incluant `EXPERTISE`, nouvelle dimension `formats ProjectFormat[]` multi-valeurs, champ required `workMode` sur ClientMeta). On garde BRAINSTORM comme source vivante de la vision produit alignée sur l'implémentation.
 
 **Files:**
-- Modify: `docs/BRAINSTORM.md` (section "Feature 2 — Projets (liste + case studies)")
+- Modify: `docs/BRAINSTORM.md` (section "Feature 2, Projets (liste + case studies)")
 
 - [ ] **Step 1: Localiser la section Feature 2 dans BRAINSTORM.md**
 
@@ -471,7 +471,7 @@ Run:
 ```bash
 grep -n "Feature 2" docs/BRAINSTORM.md
 ```
-Expected : au moins une ligne pointant vers la section "Feature 2 — Projets (liste + case studies)".
+Expected : au moins une ligne pointant vers la section "Feature 2, Projets (liste + case studies)".
 
 - [ ] **Step 2: Remplacer le bloc "Modèle BDD (`Project`)" par la modélisation élargie**
 

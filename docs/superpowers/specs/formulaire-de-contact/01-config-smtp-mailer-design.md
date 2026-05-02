@@ -23,7 +23,7 @@ Création du module `src/lib/mailer.ts` qui (1) valide les 6 variables SMTP au b
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. `nodemailer@^8.0.5` et `@types/nodemailer@^8.0.0` sont déjà installés dans `package.json`.
+Aucune, ce sub-project est autoporté. `nodemailer@^8.0.5` et `@types/nodemailer@^8.0.0` sont déjà installés dans `package.json`.
 
 ## Files touched
 
@@ -55,7 +55,7 @@ Aucune — ce sub-project est autoporté. `nodemailer@^8.0.5` et `@types/nodemai
 **WHEN** le module `src/lib/mailer.ts` est importé
 **THEN** une erreur Zod (`ZodError`) est levée immédiatement avec un message identifiant la clé `SMTP_PASS`
 **AND** aucun `transporter` n'est créé
-**AND** l'application crash au boot Next (fail fast — visible dans les logs Dokploy avant tout traitement de requête)
+**AND** l'application crash au boot Next (fail fast, visible dans les logs Dokploy avant tout traitement de requête)
 
 ### Scénario 3 : SMTP_PORT non numérique
 **GIVEN** `SMTP_PORT="abc"`, les 5 autres vars valides

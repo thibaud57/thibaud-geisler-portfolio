@@ -1,4 +1,4 @@
-# Plan d'implémentation — `08-migration-tags-et-seed-realiste`
+# Plan d'implémentation: `08-migration-tags-et-seed-realiste`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -103,7 +103,7 @@ Attendu : types `Tag` et `Project` mis à jour avec les nouveaux champs.
 
 Commande : `pnpm exec tsc --noEmit`
 
-Attendu : aucune erreur (sauf si fichiers consommateurs n'ont pas encore été mis à jour, ce qui est normal à ce stade — voir Tasks 2-3).
+Attendu : aucune erreur (sauf si fichiers consommateurs n'ont pas encore été mis à jour, ce qui est normal à ce stade, voir Tasks 2-3).
 
 ---
 
@@ -440,5 +440,5 @@ Plan sauvegardé dans [`docs/superpowers/plans/projets/08-migration-tags-et-seed
 **Préalable obligatoire** : résoudre les 4 Open questions restantes avec le user (cf. spec § Open questions et top de ce plan) AVANT de lancer `/implement-subproject projets 08`.
 
 Une fois ces points tranchés, l'implémentation peut démarrer via :
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.

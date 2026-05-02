@@ -21,7 +21,11 @@ Workflow n8n event-driven qui écoute les mises à jour de la DB Notion et orche
 
 ### Pipeline Notion → Claude → TickTick sans doublons
 
-Connexion **Notion ↔ Claude ↔ TickTick** dans un seul pipeline. Gestion des cas limites : modifications répétées du même lead (pas de doublons), API TickTick sans upsert natif (match par titre → update ou create), erreurs réseau.
+Connexion **Notion ↔ Claude ↔ TickTick** dans un seul pipeline. Le Trigger Notion sur "Page Updated in Database" ne renvoie que les **propriétés DB** d'une row, jamais le body markdown. Or c'est dans le body que vit le contexte narratif riche d'un lead (mission, timeline des échanges, prochaine action).
+
+**Solution** : MCP Server Notion attaché à l'agent IA via un node `MCP Client Tool`, qui appelle `notion-fetch` sur l'ID de page en début d'exécution pour récupérer le body markdown enrichi avant rédaction.
+
+Gestion des cas limites : modifications répétées du même lead (pas de doublons), API TickTick sans upsert natif (match par titre → update ou create), erreurs réseau.
 
 ### Déploiement self-hosted
 

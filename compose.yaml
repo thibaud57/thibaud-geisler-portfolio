@@ -1,39 +1,19 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-portfolio}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portfolio}
-      POSTGRES_DB: ${POSTGRES_DB:-portfolio}
-    volumes:
-      - portfolio_pgdata:/var/lib/postgresql
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'pg_isready -U ${POSTGRES_USER:-portfolio} -d ${POSTGRES_DB:-portfolio}',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-      start_interval: 2s
-
   nextjs:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_CALENDLY_URL_FR: ${NEXT_PUBLIC_CALENDLY_URL_FR}
+        NEXT_PUBLIC_CALENDLY_URL_EN: ${NEXT_PUBLIC_CALENDLY_URL_EN}
     restart: unless-stopped
     env_file: .env
     environment:
       ASSETS_PATH: /app/assets
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - portfolio_assets:/app/assets
     ports:
       - '3000:3000'
 
 volumes:
-  portfolio_pgdata:
   portfolio_assets:

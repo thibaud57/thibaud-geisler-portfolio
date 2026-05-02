@@ -275,7 +275,7 @@ export default async function LocaleLayout({
 
 ## Documentation Officielle
 
-- [next-intl — Documentation](https://next-intl.dev/docs/getting-started/app-router)
+- [next-intl : Documentation](https://next-intl.dev/docs/getting-started/app-router)
 - [i18n routing setup](https://next-intl.dev/docs/routing/setup)
 - [Translations](https://next-intl.dev/docs/usage/translations)
 - [TypeScript augmentation](https://next-intl.dev/docs/workflows/typescript)

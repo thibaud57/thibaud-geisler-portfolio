@@ -19,11 +19,11 @@ Refactor du composant `src/components/features/contact/CalendlyWidget.tsx` qui u
 
 ### État livré
 
-À la fin de ce sub-project, on peut : naviguer sur `/contact` (FR ou EN) → cliquer onglet "Réservez un créneau" → voir le widget Calendly chargé sans bandeau cookies natif et avec calendrier directement (pas de section descriptive intermédiaire) ; switcher onglet "Écrivez-moi" → revenir sur "Réservez un créneau" → constater que l'iframe est conservée (pas de reload visible, pas de blanc transitoire — bug Tabs unmount fixé) ; vider la var d'environnement Calendly (URL vide) + restart dev → voir le placeholder fallback (icône `CalendarClock` + label i18n + bordure dashed) ; réserver un vrai créneau → voir un log Pino côté serveur avec `event: "calendly:event_scheduled"`, `event_uri`, `ip_hash`, `requestId`, sans aucune PII (pas d'`invitee_uri`).
+À la fin de ce sub-project, on peut : naviguer sur `/contact` (FR ou EN) → cliquer onglet "Réservez un créneau" → voir le widget Calendly chargé sans bandeau cookies natif et avec calendrier directement (pas de section descriptive intermédiaire) ; switcher onglet "Écrivez-moi" → revenir sur "Réservez un créneau" → constater que l'iframe est conservée (pas de reload visible, pas de blanc transitoire, bug Tabs unmount fixé) ; vider la var d'environnement Calendly (URL vide) + restart dev → voir le placeholder fallback (icône `CalendarClock` + label i18n + bordure dashed) ; réserver un vrai créneau → voir un log Pino côté serveur avec `event: "calendly:event_scheduled"`, `event_uri`, `ip_hash`, `requestId`, sans aucune PII (pas d'`invitee_uri`).
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Le sub 04 (`branchement-contact-form-action`) a laissé `CalendlyWidget` avec son implémentation pré-existante (pattern autoscan + placeholder fallback) ; ce sub 05 le refactor sans rien casser ailleurs.
+Aucune, ce sub-project est autoporté. Le sub 04 (`branchement-contact-form-action`) a laissé `CalendlyWidget` avec son implémentation pré-existante (pattern autoscan + placeholder fallback) ; ce sub 05 le refactor sans rien casser ailleurs.
 
 ## Files touched
 
@@ -100,7 +100,7 @@ Aucune — ce sub-project est autoporté. Le sub 04 (`branchement-contact-form-a
 - **Multiple instances** : si plusieurs `CalendlyWidget` montés simultanément (ex: page mosaïque future), la Promise singleton garantit un seul script chargé, et chaque instance a son propre `containerRef` indépendant.
 - **Réservation rapide après mount** : si l'utilisateur réserve avant que le hook `useCalendlyEventListener` soit attaché (timing très court), l'event peut être manqué. Acceptable : le booking est confirmé côté Calendly de toute façon, le tracking Pino est best-effort pour analytics.
 - **Cleanup interrompu** : si le composant unmount alors que `loadCalendlyScript()` est en cours, un flag `cancelled` boolean dans le hook empêche `initInlineWidget` de s'exécuter sur un node détaché.
-- **`window.Calendly` indisponible (script bloqué par adblocker)** : la Promise rejette ou ne résout jamais. Le widget reste vide. Acceptable pour MVP : aucun message d'erreur affiché à l'utilisateur (le widget vide est un signal suffisant que ça ne marche pas — adblocker = problème côté user).
+- **`window.Calendly` indisponible (script bloqué par adblocker)** : la Promise rejette ou ne résout jamais. Le widget reste vide. Acceptable pour MVP : aucun message d'erreur affiché à l'utilisateur (le widget vide est un signal suffisant que ça ne marche pas, adblocker = problème côté user).
 
 ## Architectural decisions
 
@@ -115,7 +115,7 @@ Aucune — ce sub-project est autoporté. Le sub 04 (`branchement-contact-form-a
 **Rationale :**
 - Le bug de remount Radix Tabs (iframe disparaît au retour sur l'onglet Calendly) a été observé en live sur ce projet. `<InlineWidget>` de `react-calendly` utilise en interne le même pattern autoscan (`<div className="calendly-inline-widget" data-url={url}>`) que le composant actuel et **ne résout pas ce bug** car `widget.js` ne re-scanne pas le DOM au remount.
 - L'option A serait suffisante uniquement si le widget vivait sur une page dédiée sans Tabs / sans conditional rendering. Ce n'est pas notre cas (Tabs `Écrivez-moi` / `Réservez un créneau` shadcn).
-- Le pattern callback ref de l'option B garantit que `initInlineWidget()` est rappelé à chaque attach DOM, ce qui résout définitivement le bug de remount sans dépendre de `forceMount` Radix Tabs (qui casse le widget si le parent est `display:none` au mount initial — déjà testé et constaté donnant 0px).
+- Le pattern callback ref de l'option B garantit que `initInlineWidget()` est rappelé à chaque attach DOM, ce qui résout définitivement le bug de remount sans dépendre de `forceMount` Radix Tabs (qui casse le widget si le parent est `display:none` au mount initial, déjà testé et constaté donnant 0px).
 - Le coût en lignes (+75 lignes) est acceptable vu la complexité du bug à fixer et la robustesse gagnée (HMR Turbopack, StrictMode, multi-instance, navigation client-side).
 - Source : recherches multi-agents communauté 2026 (issues `tcampb/react-calendly` #74 #102, Calendly community thread "Inline embed on SPA - second display dead").
 

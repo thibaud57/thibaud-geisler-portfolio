@@ -1,4 +1,4 @@
-# Support PDF dans `/api/assets/[...path]` + convention `documents/<slug>/` — Implementation Plan
+# Support PDF dans `/api/assets/[...path]` + convention `documents/<slug>/`: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -27,7 +27,7 @@ Aucune création de fichier, aucune suppression, aucune modification de `.gitign
 
 ---
 
-### Task 1 : Tests unit — PDF accepté + Content-Type
+### Task 1 : Tests unit: PDF accepté + Content-Type
 
 **Files:**
 - Modify: `src/server/config/assets.test.ts`
@@ -104,7 +104,7 @@ git commit -m "test(assets): ajoute cas PDF attendus (documents/cv + Content-Typ
 
 ---
 
-### Task 2 : Implémentation — ajout `pdf` dans `CONTENT_TYPE_MAP`
+### Task 2 : Implémentation: ajout `pdf` dans `CONTENT_TYPE_MAP`
 
 **Files:**
 - Modify: `src/server/config/assets.ts`
@@ -141,7 +141,7 @@ git commit -m "feat(assets): autorise PDF dans CONTENT_TYPE_MAP"
 
 ---
 
-### Task 3 : Test d'intégration — GET PDF sous `documents/cv/`
+### Task 3 : Test d'intégration: GET PDF sous `documents/cv/`
 
 **Files:**
 - Modify: `src/app/api/assets/[...path]/route.integration.test.ts`

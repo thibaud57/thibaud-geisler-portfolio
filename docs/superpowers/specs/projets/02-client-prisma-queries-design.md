@@ -21,7 +21,7 @@ Créer le singleton PrismaClient partagé (`src/lib/prisma.ts`) avec driver adap
 
 ## Dependencies
 
-- `01-schema-prisma-project-design.md` (statut: draft) — les queries dépendent des 5 modèles Prisma `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` (table de jointure explicite avec `displayOrder` par-projet) et des 10 enums (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `ContractStatus`, `WorkMode`, `TagKind`, `CompanySize`, `CompanySector`, `CompanyLocation`). Le client Prisma généré (`src/generated/prisma/client`) est l'import source.
+- `01-schema-prisma-project-design.md` (statut: draft), les queries dépendent des 5 modèles Prisma `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` (table de jointure explicite avec `displayOrder` par-projet) et des 10 enums (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `ContractStatus`, `WorkMode`, `TagKind`, `CompanySize`, `CompanySector`, `CompanyLocation`). Le client Prisma généré (`src/generated/prisma/client`) est l'import source.
 
 ## Files touched
 
@@ -33,15 +33,15 @@ Créer le singleton PrismaClient partagé (`src/lib/prisma.ts`) avec driver adap
 - **À créer** : `__mocks__/server-only.ts` (no-op exporté, ciblé par l'alias Vitest pour permettre l'import des queries depuis les tests)
 - **À créer ou modifier** : `vitest.config.ts` (ajouter l'alias `server-only` → `__mocks__/server-only.ts` sous `test.resolve.alias`, et config Vitest avec env `.env.test`, pattern test, setupFiles si fichier absent)
 - **À créer** : `.env.test` (variable `DATABASE_URL` pointant sur `portfolio_test`)
-- **À modifier** : `docker-compose.yml` (ajouter BDD `portfolio_test` OU variable `POSTGRES_MULTIPLE_DATABASES=portfolio,portfolio_test` avec script init — à trancher à l'implémentation selon l'existant du compose file)
-- **À modifier** : `.gitignore` (s'assurer que `.env.test` n'est pas tracké — normalement déjà couvert par `.env*` ligne 34)
+- **À modifier** : `docker-compose.yml` (ajouter BDD `portfolio_test` OU variable `POSTGRES_MULTIPLE_DATABASES=portfolio,portfolio_test` avec script init, à trancher à l'implémentation selon l'existant du compose file)
+- **À modifier** : `.gitignore` (s'assurer que `.env.test` n'est pas tracké, normalement déjà couvert par `.env*` ligne 34)
 - **À modifier** : `Justfile` (ajout éventuel d'une recette `db-test-reset` et adaptation de `db-migrate` si nécessaire pour appliquer le schema à la BDD test)
 
 ## Architecture approach
 
 ### Singleton PrismaClient
 
-- **Pattern singleton via `globalThis`** conformément à [.claude/rules/prisma/client-setup.md](../../../../.claude/rules/prisma/client-setup.md) — évite la multiplication des pools de connexions pendant le HMR Next.js en dev. En production, une nouvelle instance est créée au démarrage sans cache global.
+- **Pattern singleton via `globalThis`** conformément à [.claude/rules/prisma/client-setup.md](../../../../.claude/rules/prisma/client-setup.md), évite la multiplication des pools de connexions pendant le HMR Next.js en dev. En production, une nouvelle instance est créée au démarrage sans cache global.
 - **Driver adapter `@prisma/adapter-pg` obligatoire** en Prisma v7 (règle v7). Instancié avec `new PrismaPg({ connectionString: process.env.DATABASE_URL! })` et passé à `new PrismaClient({ adapter })`.
 - **Import du client depuis le chemin `output`** : `import { PrismaClient, Prisma } from '@/generated/prisma/client'` (règle v7, plus depuis `@prisma/client`).
 - **Chargement explicite de `.env`** via `import 'dotenv/config'` en tête de fichier (Prisma v7 ne charge plus `.env` automatiquement au runtime).
@@ -51,11 +51,11 @@ Créer le singleton PrismaClient partagé (`src/lib/prisma.ts`) avec driver adap
 
 ### Type alias central
 
-Conformément à la décision architecturale ci-dessous, un type unique `ProjectWithRelations` est défini dans `src/types/project.ts` via `Prisma.ProjectGetPayload` avec un `include` des relations `tags: { include: { tag: true } }` (passant par `ProjectTag`) et `clientMeta` (lui-même imbriquant `company`). Le shape est inféré par Prisma, pas redéclaré à la main. Ce type sert de contrat de sortie aux queries et d'input aux composants UI (sub-projects 05, 06). Les consommateurs accèdent aux tags via `project.tags.map(pt => pt.tag)` — chaque row `ProjectTag` porte son `displayOrder` + la relation `tag` complète (`slug`, `name`, `kind`, `icon`). Pas de DTO, pas de mapping.
+Conformément à la décision architecturale ci-dessous, un type unique `ProjectWithRelations` est défini dans `src/types/project.ts` via `Prisma.ProjectGetPayload` avec un `include` des relations `tags: { include: { tag: true } }` (passant par `ProjectTag`) et `clientMeta` (lui-même imbriquant `company`). Le shape est inféré par Prisma, pas redéclaré à la main. Ce type sert de contrat de sortie aux queries et d'input aux composants UI (sub-projects 05, 06). Les consommateurs accèdent aux tags via `project.tags.map(pt => pt.tag)`, chaque row `ProjectTag` porte son `displayOrder` + la relation `tag` complète (`slug`, `name`, `kind`, `icon`). Pas de DTO, pas de mapping.
 
 ### Queries de lecture
 
-- **`findManyPublished({ type? })`** : `where: { status: 'PUBLISHED', ...(type && { type }) }`, `include: { tags: { include: { tag: true }, orderBy: { displayOrder: 'asc' } }, clientMeta: { include: { company: true } } }`, `orderBy: { displayOrder: 'asc' }` (au niveau Project — contrôle l'ordre des projets sur la page liste). Signature explicite, pas d'options `include` paramétrables (décision architecturale). Tri ASC des tags (0 en premier) piloté par le rédacteur via `ProjectTag.displayOrder` (par-projet), tri ASC des projets piloté par `Project.displayOrder` (global).
+- **`findManyPublished({ type? })`** : `where: { status: 'PUBLISHED', ...(type && { type }) }`, `include: { tags: { include: { tag: true }, orderBy: { displayOrder: 'asc' } }, clientMeta: { include: { company: true } } }`, `orderBy: { displayOrder: 'asc' }` (au niveau Project, contrôle l'ordre des projets sur la page liste). Signature explicite, pas d'options `include` paramétrables (décision architecturale). Tri ASC des tags (0 en premier) piloté par le rédacteur via `ProjectTag.displayOrder` (par-projet), tri ASC des projets piloté par `Project.displayOrder` (global).
 - **`findPublishedBySlug(slug)`** : utilise `findFirst` (pas `findUnique`) pour pouvoir combiner `where: { slug, status: 'PUBLISHED' }`. Include identique (tags via ProjectTag triés par `displayOrder` asc + clientMeta.company nested). Retourne `null` si slug inexistant OU projet non publié (DRAFT/ARCHIVED invisible du public).
 - **Typage strict** : le retour est explicitement annoté `Promise<ProjectWithRelations[]>` et `Promise<ProjectWithRelations | null>`. Conforme à [.claude/rules/typescript/conventions.md](../../../../.claude/rules/typescript/conventions.md).
 - **`'server-only'` guard** : `import 'server-only'` en tête de `src/server/queries/projects.ts` pour empêcher l'import côté client. Conforme à [.claude/rules/nextjs/data-fetching.md](../../../../.claude/rules/nextjs/data-fetching.md) (queries BDD restent côté serveur).
@@ -103,7 +103,7 @@ Conformément à la décision architecturale ci-dessous, un type unique `Project
 
 **GIVEN** un projet CLIENT PUBLISHED lié à 3 tags via ProjectTag (un FRAMEWORK "React" avec `displayOrder=1`, une EXPERTISE "Scraping anti-bot" avec `displayOrder=0`, un INFRA "Docker" avec `displayOrder=2`), un ClientMeta avec `workMode: REMOTE`, et une Company `Airbus` (sectors: [LOGICIELS_ENTREPRISE], size: GROUPE, locations: [FRANCE])
 **WHEN** on appelle `findManyPublished()`
-**THEN** chaque élément du résultat a `tags: ProjectTag[]` (array non null, 3 rows ProjectTag triés par `displayOrder` ASC — scraping puis React puis Docker) où chaque `ProjectTag.tag` expose `slug`, `name`, `kind`, `icon` ; et `clientMeta: ClientMeta | null`
+**THEN** chaque élément du résultat a `tags: ProjectTag[]` (array non null, 3 rows ProjectTag triés par `displayOrder` ASC, scraping puis React puis Docker) où chaque `ProjectTag.tag` expose `slug`, `name`, `kind`, `icon` ; et `clientMeta: ClientMeta | null`
 **AND** si `clientMeta !== null`, il contient `clientMeta.company: Company` non-null avec le nom "Airbus", `clientMeta.workMode === 'REMOTE'`, `clientMeta.company.sectors === ['LOGICIELS_ENTREPRISE']`, `clientMeta.company.size === 'GROUPE'`
 
 ### Scénario 6 : `findPublishedBySlug` retourne le projet avec relations (Company nested, tags ordonnés)
@@ -156,7 +156,7 @@ Chaque test suit le pattern `arrange → act → assert` avec :
 - **Projet PUBLISHED sans `clientMeta`** (PERSONAL) : `clientMeta: null` dans le résultat. Le consommateur UI doit gérer `null` (conditionnellement afficher les champs CLIENT-only).
 - **Projet PUBLISHED sans `tags`** (edge case improbable mais possible) : `tags: []` (array de `ProjectTag` vide). Les composants UI doivent supporter un tableau vide (pas de crash sur `.map`).
 - **Trim / case-sensitivity sur `slug`** : `findPublishedBySlug` utilise une comparaison stricte Postgres (case-sensitive). Si un consommateur passe `'Mon-Projet'` vs `'mon-projet'`, il reçoit `null`. Pas de normalisation interne (responsabilité du consommateur qui reçoit le slug depuis l'URL).
-- **Connexion PG perdue en runtime** : PrismaClient lève une erreur (`P1017` ou similaire). Non géré ici (pas de retry, pas de fallback — la page catchera via `error.tsx` de Next.js côté UI).
+- **Connexion PG perdue en runtime** : PrismaClient lève une erreur (`P1017` ou similaire). Non géré ici (pas de retry, pas de fallback, la page catchera via `error.tsx` de Next.js côté UI).
 
 ## Architectural decisions
 
@@ -184,7 +184,7 @@ Chaque test suit le pattern `arrange → act → assert` avec :
 **Choix : A**
 
 **Rationale :**
-- L'utilisateur pilote manuellement `Project.displayOrder` (0, 1, 2, ...) — tri ASC = le 0 s'affiche en premier, intuitif.
+- L'utilisateur pilote manuellement `Project.displayOrder` (0, 1, 2, ...), tri ASC = le 0 s'affiche en premier, intuitif.
 - Volume faible (~10 projets) : re-sort côté client instantané si un tri alternatif est proposé, pas de flash significatif à l'hydratation.
 - Simplicité API : pas d'options à maintenir, pas de matrice de tests `sort × type` à écrire.
 - Peut évoluer vers l'option B si le volume explose ou si un besoin SEO de tri serveur spécifique apparaît.
@@ -200,7 +200,7 @@ Chaque test suit le pattern `arrange → act → assert` avec :
 
 **Rationale :**
 - Site vitrine single-user : 1 seule vue publique (pas d'admin MVP). Pas de nécessité de découplage BDD/UI.
-- Schéma Prisma déjà UI-friendly (`title`, `description`, `slug` — conçus avec l'UI en tête).
+- Schéma Prisma déjà UI-friendly (`title`, `description`, `slug`, conçus avec l'UI en tête).
 - DTO = mapping à chaque évolution sans gain réel. Le gain "changer le schéma sans toucher l'UI" est faux : un changement d'UX implique un changement d'UI de toute façon.
 - Type alias = zéro boilerplate, type-safety totale, nom stable. Si un jour un dashboard admin ou une API REST publique s'ajoute, on introduira des DTO pour ces nouveaux consommateurs aux contraintes différentes.
 
@@ -230,7 +230,7 @@ Chaque test suit le pattern `arrange → act → assert` avec :
 **Rationale :**
 - Sémantique alignée : on veut "le projet publié dont le slug est X, ou null". `findFirst` exprime ça directement en SQL.
 - 1 seule requête BDD au lieu de 2.
-- Prisma ne supporte pas `findUnique({ where: { slug, status } })` car `status` n'est pas unique — tentative refusée au typage.
+- Prisma ne supporte pas `findUnique({ where: { slug, status } })` car `status` n'est pas unique, tentative refusée au typage.
 
 ### Décision : Logging Prisma minimal (`['warn', 'error']`)
 

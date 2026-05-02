@@ -1,18 +1,39 @@
 services:
   postgres:
-    # Exposition dev local pour clients SQL (DBeaver, psql).
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-portfolio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portfolio}
+      POSTGRES_DB: ${POSTGRES_DB:-portfolio}
     ports:
       - '5432:5432'
+    volumes:
+      - portfolio_pgdata:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-portfolio} -d ${POSTGRES_DB:-portfolio}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 2s
 
   nextjs:
     # Profile dev : nextjs lancé uniquement avec `--profile validation` (just docker-up).
     # En dev quotidien, `just db` ne lance que postgres, le port 3000 reste libre pour `just dev` natif.
-    # Dokploy (prod) ignore l'override → service lancé sans profile, comportement normal.
+    # Dokploy (prod) ignore l'override → service lancé sans profile, postgres externe via DB Dokploy.
     profiles: [validation]
-    # Override du .env host (DATABASE_URL pointe vers localhost pour `just dev` natif) :
-    # dans le container, Postgres est résolu via DNS compose, pas localhost.
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-portfolio}:${POSTGRES_PASSWORD:-portfolio}@postgres:5432/${POSTGRES_DB:-portfolio}
-    # Bind-mount host : modifs sur ./assets visibles en direct dans le container.
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - ./assets:/app/assets:ro
+
+volumes:
+  portfolio_pgdata:

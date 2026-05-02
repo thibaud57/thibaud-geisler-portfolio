@@ -30,7 +30,7 @@ export function MarkdownContent({ markdown, className, components }: Props) {
     <div
       className={cn(
         'prose dark:prose-invert max-w-none',
-        'prose-h2:mt-12 prose-h2:mb-6 prose-h2:text-3xl prose-h2:font-semibold prose-h2:tracking-tight sm:prose-h2:text-4xl',
+        'prose-h2:mt-12 prose-h2:mb-6 prose-h2:text-3xl prose-h2:font-semibold prose-h2:tracking-tight prose-h2:text-balance sm:prose-h2:text-4xl',
         'prose-h3:text-2xl prose-h3:font-semibold prose-h3:tracking-tight',
         '[&>:first-child]:mt-0 [&>:last-child]:mb-0',
         className,

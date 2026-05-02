@@ -22,7 +22,7 @@ Faut-il utiliser une bibliothèque de composants prête à l'emploi (shadcn/ui) 
 
 # 🛠️ Options Envisagées
 
-## Option A — shadcn/ui + Tailwind CSS
+## Option A : shadcn/ui + Tailwind CSS
 
 **Description :** Composants copiables basés sur Radix UI + Tailwind, personnalisables à 100%.
 
@@ -33,12 +33,12 @@ Faut-il utiliser une bibliothèque de composants prête à l'emploi (shadcn/ui) 
 - Dark/light mode natif
 
 **Inconvénients :**
-- Base visuelle reconnaissable — risque de ressembler à "un autre site shadcn"
+- Base visuelle reconnaissable, risque de ressembler à "un autre site shadcn"
 - La différenciation visuelle demande un effort de personnalisation
 
 **Coût estimé :** Faible
 
-## Option B — Design entièrement custom (Tailwind uniquement)
+## Option B : Design entièrement custom (Tailwind uniquement)
 
 **Description :** Composants écrits from scratch avec Tailwind, sans librairie de composants.
 
@@ -50,11 +50,11 @@ Faut-il utiliser une bibliothèque de composants prête à l'emploi (shadcn/ui) 
 - Temps de développement plus long (accessibilité, comportements, animations)
 - Risque de dettes techniques sur les composants complexes (combobox, dialog, etc.)
 
-**Coût estimé :** Significatif — plusieurs semaines supplémentaires
+**Coût estimé :** Significatif, plusieurs semaines supplémentaires
 
-## Option C — shadcn/ui + personnalisation visuelle poussée (hybride)
+## Option C : shadcn/ui + personnalisation visuelle poussée (hybride)
 
-**Description :** shadcn/ui comme socle de composants fonctionnels (dialog, combobox, etc.), avec une couche d'effets visuels et de design custom sur les éléments exposés (couleurs, typographie, animations, sections hero). La couche d'effets visuels est assurée par **Magic UI** et/ou **Aceternity UI** — deux bibliothèques copy-paste (même modèle que shadcn/ui : pas de dépendance package, on copie uniquement les effets nécessaires) compatibles et combinables sans conflit.
+**Description :** shadcn/ui comme socle de composants fonctionnels (dialog, combobox, etc.), avec une couche d'effets visuels et de design custom sur les éléments exposés (couleurs, typographie, animations, sections hero). La couche d'effets visuels est assurée par **Magic UI** et/ou **Aceternity UI**, deux bibliothèques copy-paste (même modèle que shadcn/ui : pas de dépendance package, on copie uniquement les effets nécessaires) compatibles et combinables sans conflit.
 
 **Avantages :**
 - Composants complexes (accessibilité, comportements) délégués à shadcn/Radix UI
@@ -72,7 +72,7 @@ Faut-il utiliser une bibliothèque de composants prête à l'emploi (shadcn/ui) 
 
 # 🎉 Décision
 
-**Option C actée — shadcn/ui hybride avec effets visuels.**
+**Option C actée : shadcn/ui hybride avec effets visuels.**
 
 shadcn/ui comme socle fonctionnel pour tous les composants complexes (dialog, combobox, select, tables, forms...). Couche d'effets visuels via Magic UI et/ou Aceternity UI (copy-paste, combinables) sur les surfaces marketing du site public (hero, cards projets, typographie, identité de marque). Les effets spécifiques à retenir sont à définir lors de l'implémentation UI.
 
@@ -99,12 +99,12 @@ Cette décision doit être prise avant de commencer le développement UI. Elle i
 
 L'Option C (hybride) est souvent le choix pragmatique en pratique : shadcn/ui pour les composants fonctionnels complexes, personnalisation visuelle poussée sur les sections marketing (hero, cards projets) et l'identité de marque.
 
-**Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles — on copie uniquement les effets nécessaires depuis l'une ou l'autre. Exploration en cours pour définir les effets retenus pour le hero et les surfaces visuelles clés du portfolio. Ces deux libs sont les candidates pour la couche effets de l'Option C.
+**Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles, on copie uniquement les effets nécessaires depuis l'une ou l'autre. Exploration en cours pour définir les effets retenus pour le hero et les surfaces visuelles clés du portfolio. Ces deux libs sont les candidates pour la couche effets de l'Option C.
 
-**Dashboard admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas au dashboard — leur usage est réservé aux surfaces marketing du site public.
+**Dashboard admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas au dashboard, leur usage est réservé aux surfaces marketing du site public.
 
 **Références :**
 - [shadcn/ui](https://ui.shadcn.com)
 - [Magic UI](https://magicui.design)
 - [Aceternity UI](https://ui.aceternity.com)
-- [Radix UI](https://www.radix-ui.com) — primitives accessibles sous-jacentes à shadcn/ui
+- [Radix UI](https://www.radix-ui.com), primitives accessibles sous-jacentes à shadcn/ui

@@ -277,8 +277,8 @@ npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --minify
 
 ## Documentation Officielle
 
-- [Tailwind CSS — Documentation](https://tailwindcss.com/docs)
-- [Tailwind v4 — Blog officiel](https://tailwindcss.com/blog/tailwindcss-v4)
+- [Tailwind CSS : Documentation](https://tailwindcss.com/docs)
+- [Tailwind v4 : Blog officiel](https://tailwindcss.com/blog/tailwindcss-v4)
 - [Upgrade guide v3 → v4](https://tailwindcss.com/docs/upgrade-guide)
 
 ## Ressources Complémentaires
