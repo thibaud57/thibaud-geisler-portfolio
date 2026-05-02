@@ -13,9 +13,9 @@ date: "2026-04-26"
 
 ## Scope
 
-Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-contact-layout-design.md` (cross-feature, Feature 1 — Pages publiques) pour : (1) remplacer le handler stub `(toast + console.log)` par `useActionState(submitContact, initialContactFormState)`, (2) brancher `<form action={formAction}>` au lieu de `onSubmit`, (3) ajouter un input honeypot `name="website"` caché en CSS (`sr-only` + `aria-hidden` + `tabIndex={-1}` + `autoComplete="off"`), (4) afficher les codes d'erreur Zod sub 02 sous chaque champ via `t(\`form.errors.${code}\`)` next-intl, (5) afficher un toast `sonner` succès quand `state.ok === true` (reset le form via `useRef`) et un toast erreur quand `state.ok === false` avec `state.message` non null (rate_limit/smtp_error), (6) extraire un sous-composant `SubmitButton.tsx` avec `useFormStatus` pour disabled + label « Envoi… » pendant la transition, (7) ajouter ~14 clés i18n exhaustivement listées dans `messages/fr.json` et `messages/en.json` avec parité stricte.
+Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-contact-layout-design.md` (cross-feature, Feature 1, Pages publiques) pour : (1) remplacer le handler stub `(toast + console.log)` par `useActionState(submitContact, initialContactFormState)`, (2) brancher `<form action={formAction}>` au lieu de `onSubmit`, (3) ajouter un input honeypot `name="website"` caché en CSS (`sr-only` + `aria-hidden` + `tabIndex={-1}` + `autoComplete="off"`), (4) afficher les codes d'erreur Zod sub 02 sous chaque champ via `t(\`form.errors.${code}\`)` next-intl, (5) afficher un toast `sonner` succès quand `state.ok === true` (reset le form via `useRef`) et un toast erreur quand `state.ok === false` avec `state.message` non null (rate_limit/smtp_error), (6) extraire un sous-composant `SubmitButton.tsx` avec `useFormStatus` pour disabled + label « Envoi… » pendant la transition, (7) ajouter ~14 clés i18n exhaustivement listées dans `messages/fr.json` et `messages/en.json` avec parité stricte.
 
-**Exclu** : modification du layout 2 colonnes, du widget Calendly, des SocialLinks, du DownloadCvButton (intacts depuis sub 04 du layout), tests Vitest RTL (validation par Playwright via `mcp__playwright__browser_*`), modification des champs métier visibles (5 champs identiques au sub 04 du layout : `name`, `company`, `email`, `subject`, `message`), modification de la prop `defaultSubject` (préservée tel quel — `useActionState` la consomme via `defaultValue` du `<input name="subject">`).
+**Exclu** : modification du layout 2 colonnes, du widget Calendly, des SocialLinks, du DownloadCvButton (intacts depuis sub 04 du layout), tests Vitest RTL (validation par Playwright via `mcp__playwright__browser_*`), modification des champs métier visibles (5 champs identiques au sub 04 du layout : `name`, `company`, `email`, `subject`, `message`), modification de la prop `defaultSubject` (préservée tel quel, `useActionState` la consomme via `defaultValue` du `<input name="subject">`).
 
 ### État livré
 
@@ -23,9 +23,9 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 
 ## Dependencies
 
-- `03-server-action-submit-contact-design.md` (statut: `draft`) — fournit la Server Action `submitContact`, le type `ContactFormState` et la constante `initialContactFormState` importés depuis `@/server/actions/contact`.
+- `03-server-action-submit-contact-design.md` (statut: `draft`), fournit la Server Action `submitContact`, le type `ContactFormState` et la constante `initialContactFormState` importés depuis `@/server/actions/contact`.
 
-**Dépendance cross-feature** (hors `depends_on` qui ne référence que la feature courante) : le fichier `src/components/features/contact/ContactForm.tsx` est **créé par** `docs/superpowers/specs/pages-publiques-portfolio/04-page-contact-layout-design.md` (Feature 1 — Pages publiques portfolio, sub 04). Ce sub-project doit être **implémenté avant** sub 04 de Feature 4 (le présent), sinon le fichier à modifier n'existe pas. L'ordre topologique global est : Feature 1 sub 04 (layout) → Feature 4 sub 01 (mailer) → Feature 4 sub 02 (schema) → Feature 4 sub 03 (server action) → Feature 4 sub 04 (le présent).
+**Dépendance cross-feature** (hors `depends_on` qui ne référence que la feature courante) : le fichier `src/components/features/contact/ContactForm.tsx` est **créé par** `docs/superpowers/specs/pages-publiques-portfolio/04-page-contact-layout-design.md` (Feature 1, Pages publiques portfolio, sub 04). Ce sub-project doit être **implémenté avant** sub 04 de Feature 4 (le présent), sinon le fichier à modifier n'existe pas. L'ordre topologique global est : Feature 1 sub 04 (layout) → Feature 4 sub 01 (mailer) → Feature 4 sub 02 (schema) → Feature 4 sub 03 (server action) → Feature 4 sub 04 (le présent).
 
 ## Files touched
 
@@ -38,7 +38,7 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 
 - **Pattern `useActionState` natif React 19** : `const [state, formAction, isPending] = useActionState<ContactFormState, FormData>(submitContact, initialContactFormState)`. Conforme à `.claude/rules/nextjs/server-actions.md` ligne 72 et `.claude/rules/react/hooks.md`. Le 3e élément `isPending` peut être omis si `useFormStatus` est utilisé dans le SubmitButton enfant (préféré).
 - **`<form action={formAction}>`** : remplace `onSubmit` du stub. La Server Action reçoit le `FormData` natif sans handler manuel (progressive enhancement). Conforme rule server-actions ligne 19 + 44-46.
-- **Champs non contrôlés avec `defaultValue`** : préserve `defaultSubject` (prop existante du sub 04 layout) via `<input name="subject" defaultValue={defaultSubject} required />`. Pas de `useState` par champ — `useActionState` gère le state via le `state` retourné. Conforme à la philo React 19 (« uncontrolled by default, action via FormData »).
+- **Champs non contrôlés avec `defaultValue`** : préserve `defaultSubject` (prop existante du sub 04 layout) via `<input name="subject" defaultValue={defaultSubject} required />`. Pas de `useState` par champ, `useActionState` gère le state via le `state` retourné. Conforme à la philo React 19 (« uncontrolled by default, action via FormData »).
 - **Champ honeypot caché** : ajout d'un `<input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="sr-only" />` placé en début de form (avant les champs visibles, pour que les bots qui remplissent dans l'ordre du DOM le remplissent en premier). Le `sr-only` Tailwind est le standard utility-class accessibility-first (visuellement caché, lecteurs d'écran ignorent grâce à `aria-hidden`, focus exclu via `tabIndex={-1}`). Conforme `.claude/rules/tailwind/conventions.md`.
 - **Affichage erreurs sous champs** : pour chaque input, ajouter sous le `<Input>`/`<Textarea>` shadcn :
   ```
@@ -67,7 +67,7 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 **THEN** le bouton submit affiche « Envoi… » pendant la transition (disabled)
 **AND** un toast `sonner` success vert apparaît avec le message localisé `ContactPage.form.success.toast`
 **AND** les 5 champs visibles sont vidés (le champ Sujet revient au `defaultSubject` si applicable)
-**AND** un email arrive sur la boîte `MAIL_TO` avec sujet `Contact: Alice — Projet IA` et le body text contenant les 4 champs (sub 03 a déjà testé l'envoi)
+**AND** un email arrive sur la boîte `MAIL_TO` avec sujet `Contact: Alice, Projet IA` et le body text contenant les 4 champs (sub 03 a déjà testé l'envoi)
 
 ### Scénario 2 : happy path EN (parité i18n)
 **GIVEN** un visiteur sur `/en/contact`
@@ -128,10 +128,10 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 - **`useActionState` initial render** : `state.ok === null` au premier render → aucun toast ni reset (le `useEffect` ne déclenche que sur transition vers `true` ou `false`).
 - **Re-soumission rapide** : `useFormStatus().pending === true` désactive le bouton, empêche le double-submit.
 - **Erreurs Zod multi-codes par champ** : `flatten().fieldErrors` peut retourner plusieurs codes pour un même champ (ex: `name: ['name_required', 'name_too_long']` ne se produit pas en pratique car les contraintes sont mutuellement exclusives, mais le rendu via `.map()` supporte le cas). Affichage en cascade.
-- **Erreurs Zod sur champ inconnu** : si un nouveau champ est ajouté côté schéma sans clé i18n correspondante, `t(\`form.errors.${code}\`)` retournera la clé brute en absence de fallback. Ajouter une clé `generic` (`ContactPage.form.errors.generic` : « Une erreur est survenue. ») et un wrapper `getErrorLabel(code, t) = hasKey(code) ? t(code) : t('generic')` est une amélioration possible **post-MVP** — pour le sub-project présent, on s'engage à lister exhaustivement les 11 codes des sub 02/03 dans les fichiers i18n, donc le cas n'arrive pas.
+- **Erreurs Zod sur champ inconnu** : si un nouveau champ est ajouté côté schéma sans clé i18n correspondante, `t(\`form.errors.${code}\`)` retournera la clé brute en absence de fallback. Ajouter une clé `generic` (`ContactPage.form.errors.generic` : « Une erreur est survenue. ») et un wrapper `getErrorLabel(code, t) = hasKey(code) ? t(code) : t('generic')` est une amélioration possible **post-MVP** : pour le sub-project présent, on s'engage à lister exhaustivement les 11 codes des sub 02/03 dans les fichiers i18n, donc le cas n'arrive pas.
 - **Reset au succès et `defaultSubject`** : si le visiteur arrive via `/contact?service=ia`, le champ Sujet a `defaultValue="Projet IA & Automatisation"`. Après reset post-succès, le `defaultValue` est réappliqué (comportement natif `form.reset()`). Acceptable et cohérent.
 - **Toaster non monté dans le layout parent** : si `<Toaster />` (sonner) n'est pas monté dans `src/app/[locale]/(public)/layout.tsx` ou parent, `toast.success`/`toast.error` ne s'affichent pas mais ne throw pas. À vérifier au plan d'implémentation que le `Toaster` du sub 04 layout est bien en place (Open question résolue par sub 04 layout).
-- **Bot qui désactive JS** : `useActionState` est progressive enhancement — le `<form action={formAction}>` fonctionne sans JS via Next.js Server Actions natives. Le bot envoie un `FormData` POST classique, le serveur le traite, retourne un HTML refresh. Accepté.
+- **Bot qui désactive JS** : `useActionState` est progressive enhancement, le `<form action={formAction}>` fonctionne sans JS via Next.js Server Actions natives. Le bot envoie un `FormData` POST classique, le serveur le traite, retourne un HTML refresh. Accepté.
 
 ## Architectural decisions
 
@@ -146,7 +146,7 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 **Rationale :**
 - Notre form est entièrement non-contrôlé (`useActionState` gère le state externe, les inputs ont juste `defaultValue` et `name`). `form.reset()` est la méthode standard pour ce pattern.
 - A est plus simple : 1 `useRef` + 1 ligne dans le `useEffect`, vs B qui demande un state local `resetKey` et un re-mount qui peut être perçu comme un flash visuel sur des forms longs.
-- B serait obligatoire avec react-hook-form ou state contrôlé par `useState` par champ — pas notre cas.
+- B serait obligatoire avec react-hook-form ou state contrôlé par `useState` par champ, pas notre cas.
 
 ### Décision : honeypot CSS via `sr-only` Tailwind vs absolute -9999px
 
@@ -160,7 +160,7 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 **Rationale :**
 - `sr-only` est le standard documenté Tailwind (utility incluse par défaut), reconnu par la communauté a11y.
 - Cohérent avec `.claude/rules/tailwind/conventions.md` (utility-classes plutôt que styles inline).
-- A et B sont fonctionnellement équivalents pour les bots peu sophistiqués (le honeypot rempli quoi qu'il arrive). Pour les bots avancés, ni A ni B ne piège — on accepte 95% de capture (PRODUCTION.md ne tranche pas, on a choisi honeypot + rate limit comme suffisant pour MVP).
+- A et B sont fonctionnellement équivalents pour les bots peu sophistiqués (le honeypot rempli quoi qu'il arrive). Pour les bots avancés, ni A ni B ne piège, on accepte 95% de capture (PRODUCTION.md ne tranche pas, on a choisi honeypot + rate limit comme suffisant pour MVP).
 - C est explicitement contre-productif (bots ignorent les `display:none`).
 
 ### Décision : `SubmitButton` extrait vs hooks dans le ContactForm parent

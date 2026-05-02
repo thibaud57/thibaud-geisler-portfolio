@@ -21,7 +21,7 @@ date: "2026-04-27"
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il réutilise des modules livrés antérieurement (`siteUrl` et `buildLanguageAlternates` dans `src/lib/seo.ts`, `routing` dans `src/i18n/routing.ts`, modèle Prisma `Project` avec `slug`/`updatedAt`/`status`) sans modification de leur signature.
+Aucune, ce sub-project est autoporté. Il réutilise des modules livrés antérieurement (`siteUrl` et `buildLanguageAlternates` dans `src/lib/seo.ts`, `routing` dans `src/i18n/routing.ts`, modèle Prisma `Project` avec `slug`/`updatedAt`/`status`) sans modification de leur signature.
 
 ## Files touched
 

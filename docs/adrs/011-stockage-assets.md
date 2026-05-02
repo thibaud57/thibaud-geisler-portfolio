@@ -24,7 +24,7 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 # 🛠️ Options Envisagées
 
-## Option A — Volumes Docker (MVP)
+## Option A : Volumes Docker (MVP)
 
 **Description :** Assets stockés dans un volume Docker persistant, montés dans le container Next.js. Servis exclusivement via route API (`/api/assets/[...path]` → lecture fs → stream de la réponse).
 
@@ -36,19 +36,19 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 **Inconvénients :**
 - Non adapté si le volume de fichiers grossit significativement
-- Pas de CDN — performance dégradée pour des assets lourds servis depuis le VPS IONOS
+- Pas de CDN, performance dégradée pour des assets lourds servis depuis le VPS IONOS
 - Upload d'assets via dashboard admin nécessite la gestion du volume Docker (montage, chemins)
-- Backup à gérer manuellement — si le volume est perdu (crash disque, manipulation), les assets sont irrécupérables sans stratégie de sauvegarde explicite
+- Backup à gérer manuellement, si le volume est perdu (crash disque, manipulation), les assets sont irrécupérables sans stratégie de sauvegarde explicite
 - Incompatible avec un déploiement multi-instance (volumes non partagés entre replicas)
 
 **Coût estimé :** Nul
 
-## Option B — Cloudflare R2 (object storage cloud)
+## Option B : Cloudflare R2 (object storage cloud)
 
 **Description :** Assets stockés dans un bucket Cloudflare R2. Accès via SDK S3-compatible depuis la route API Next.js. CDN Cloudflare inclus.
 
 **Avantages :**
-- CDN global — performances optimales
+- CDN global, performances optimales
 - Scalable à l'infini
 - Indépendant du serveur applicatif (haute dispo)
 - Zero egress cost (spécificité R2 vs S3)
@@ -60,20 +60,20 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 **Coût estimé :** ~0-3€/mois selon usage
 
-## Option C — Minio self-hosted (object storage sur VPS)
+## Option C : Minio self-hosted (object storage sur VPS)
 
 **Description :** Instance Minio déployée sur le même VPS IONOS via Dokploy. Interface S3-compatible, accès via SDK depuis la route API Next.js.
 
 **Avantages :**
-- Zéro coût cloud — tout sur le VPS IONOS existant
+- Zéro coût cloud, tout sur le VPS IONOS existant
 - Cohérent avec la philosophie self-hosted (Dokploy, PostgreSQL, n8n)
-- API S3-compatible — migration vers R2 possible sans changer le code applicatif
+- API S3-compatible, migration vers R2 possible sans changer le code applicatif
 - Interface admin Minio pour gérer les fichiers sans dashboard custom
 
 **Inconvénients :**
 - Service supplémentaire à opérer et maintenir sur le VPS
 - Ressources VPS partagées (RAM, CPU) avec Next.js + PostgreSQL
-- Pas de CDN natif — même limitation de performance que l'Option A pour les assets lourds
+- Pas de CDN natif, même limitation de performance que l'Option A pour les assets lourds
 - Backup toujours à gérer (les données Minio sont sur le VPS, pas sauvegardées automatiquement)
 
 **Coût estimé :** Nul (inclus dans le VPS IONOS existant)
@@ -82,7 +82,7 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 # 🎉 Décision
 
-**Option A actée pour le MVP — Volumes Docker.**
+**Option A actée pour le MVP : Volumes Docker.**
 
 Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV PDF, screenshots projets). Cohérent avec la philosophie self-hosted.
 
@@ -97,12 +97,12 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 - Si Option A (Volumes Docker) : zéro coût et zéro infrastructure supplémentaire pour le MVP
 - Si Option B (Cloudflare R2) : CDN global, performances optimales, scalabilité infinie
 - Si Option C (Minio) : self-hosted complet, API S3-compatible facilitant une future migration vers R2
-- Quelle que soit l'option : la contrainte "route API uniquement" (pas de `public/`) est déjà actée — l'implémentation applicative est identique pour toutes les options
+- Quelle que soit l'option : la contrainte "route API uniquement" (pas de `public/`) est déjà actée, l'implémentation applicative est identique pour toutes les options
 
 ## Négatives
 
 - Si Option A : backup des volumes Docker à mettre en place manuellement (risque de perte)
-- Si Option A : pas de CDN — performance moindre pour des assets lourds servis hors Europe
+- Si Option A : pas de CDN, performance moindre pour des assets lourds servis hors Europe
 - Si Option B : dépendance cloud externe, coût variable
 - Si Option C : service supplémentaire à opérer, ressources VPS partagées
 
@@ -115,10 +115,10 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 **Workflow dev local / prod :**
 - Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env.local`
 - Prod Docker : volume `assets_data` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` dans les variables Dokploy
-- Le volume Docker persiste entre les redéploiements — remplacer le container ne supprime pas les fichiers
+- Le volume Docker persiste entre les redéploiements, remplacer le container ne supprime pas les fichiers
 
 **Trigger migration vers R2 :** dès l'implémentation de l'upload depuis le dashboard admin. R2 est préféré à Minio : zéro service à opérer, free tier 10 Go, zéro frais de sortie (egress), SDK S3-compatible.
 
 Voir ADR-005 pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
 
-**Évolution post-implémentation — route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque suit la convention `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.
+**Évolution post-implémentation, route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque suit la convention `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.

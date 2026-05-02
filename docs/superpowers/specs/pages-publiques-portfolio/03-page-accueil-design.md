@@ -9,7 +9,7 @@ depends_on: ["01-page-services-design.md"]
 date: "2026-04-24"
 ---
 
-# Page `/` — Hero interactif, teasers Services et Projets, CTA final
+# Page `/` : Hero interactif, teasers Services et Projets, CTA final
 
 ## Scope
 
@@ -23,7 +23,7 @@ Remplacer le placeholder actuel de `src/app/[locale]/(public)/page.tsx` par une 
 
 ## Dependencies
 
-- `01-page-services-design.md` (statut: draft) — le teaser Services réutilise le composant `ServiceCard` et la constante `SERVICE_SLUGS` créés dans ce sub-project, ainsi que les clés i18n `ServicesPage.offers.<slug>.*`.
+- `01-page-services-design.md` (statut: draft), le teaser Services réutilise le composant `ServiceCard` et la constante `SERVICE_SLUGS` créés dans ce sub-project, ainsi que les clés i18n `ServicesPage.offers.<slug>.*`.
 
 Éléments déjà livrés hors feature (pas besoin d'y toucher) : composant `ProjectCard` de Feature 2 (`src/components/features/projects/ProjectCard.tsx`), query `findManyPublished({ locale })` (`src/server/queries/projects.ts`), helpers `setupLocalePage`, `setupLocaleMetadata`, `buildLanguageAlternates`, `localeToOgLocale`.
 
@@ -51,7 +51,7 @@ Remplacer le placeholder actuel de `src/app/[locale]/(public)/page.tsx` par une 
 - **`ProjectsTeaserSkeleton.tsx`** : skeleton léger identique au layout (grid 3 cards placeholder `bg-muted`) pour éviter le CLS pendant le streaming.
 - **`FinalCtaSection.tsx`** Server : H2 (`HomePage.finalCta.title`), phrase (`HomePage.finalCta.subtitle`), `Button variant="default"` "Parlons de votre projet" (label `HomePage.finalCta.ctaLabel`) pointant vers `/contact`. Pas de ShimmerButton ici pour respecter la règle "max 1 par page" déjà prise par le Hero.
 - **i18n `HomePage`** : structure nested conforme à `.claude/rules/next-intl/translations.md` (labels d'interface → `messages/*.json`). `Metadata.homeTitle` / `homeDescription` déjà remplis, pas à recréer. Pour le séparateur dans le H1 ("Thibaud Geisler - IA & Développement Full-Stack"), utilisation du hyphen-minus ASCII simple `-` (le em dash `—` est exclu par préférence utilisateur actée dans le brainstorming).
-- **Metadata SEO** : `generateMetadata` suit exactement le pattern des subs 01 et 02 (`setupLocaleMetadata`, `localeToOgLocale`, `buildLanguageAlternates('')` — chemin vide car home = racine locale). Voir `.claude/rules/nextjs/metadata-seo.md`.
+- **Metadata SEO** : `generateMetadata` suit exactement le pattern des subs 01 et 02 (`setupLocaleMetadata`, `localeToOgLocale`, `buildLanguageAlternates('')`, chemin vide car home = racine locale). Voir `.claude/rules/nextjs/metadata-seo.md`.
 - **Styling** : tokens sémantiques uniquement (`bg-card`, `text-muted-foreground`, `text-primary`), container standard `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`, section padding `py-16 sm:py-20 lg:py-24`. Hero probablement plus haut (full viewport ou `min-h-[70vh]` pour laisser respirer le Ripple Effect). Typo Sansation via `font-display` sur H1, `font-semibold` sur les H2 de section. Voir `.claude/rules/tailwind/conventions.md`.
 - **Extension DESIGN.md** : addendum à insérer dans `docs/DESIGN.md` § "Mapping Composants" (ligne Hero effects) et § "Stack UI" → ajouter `Background Ripple Effect` à côté de `Background Beams` dans la liste Aceternity, avec mention "Fond interactif hero (grille de cellules qui ripplent au clic), recommandé hero + CTA sections par Aceternity". Modification mineure (~3-5 lignes), co-commit avec l'implémentation.
 
@@ -131,11 +131,11 @@ Remplacer le placeholder actuel de `src/app/[locale]/(public)/page.tsx` par une 
 - **Moins de 3 projets publiés en DB** : `.slice(0, 3)` retourne 0, 1 ou 2 cards. Le composant `ProjectsTeaserSection` rend simplement la grille avec les cards disponibles sans placeholder de remplissage. Le Button "Voir tous les projets" reste visible (il pointera sur `/projets` qui gère son propre empty state, responsabilité Feature 2).
 - **ShimmerButton non installé** au moment de l'implémentation : le plan inclut une étape CLI pour l'installer si absent (`pnpm dlx shadcn@latest add @magicui/shimmer-button`). Pas de fallback code, la dépendance est prérequis.
 - **Background Ripple Effect version CLI incompatible** (ex: shadcn CLI < 3.0 ne supporterait pas `@aceternity/...`) : le plan impose shadcn CLI ≥ 3.0. Si l'install échoue, fallback = copier-coller depuis la page Aceternity, mais l'API du composant resterait équivalente.
-- **Interactivité Ripple Effect désactivée** (prop `interactive={false}`) : non prévu en MVP, le comportement par défaut reste cliquable. Si des visiteurs accessibilité-first signalent une gêne, on pourra exposer une prop ou désactiver ciblement — hors scope.
+- **Interactivité Ripple Effect désactivée** (prop `interactive={false}`) : non prévu en MVP, le comportement par défaut reste cliquable. Si des visiteurs accessibilité-first signalent une gêne, on pourra exposer une prop ou désactiver ciblement, hors scope.
 
 ## Architectural decisions
 
-### Décision : fond Hero — Background Ripple Effect vs Background Beams
+### Décision : fond Hero : Background Ripple Effect vs Background Beams
 
 **Options envisagées :**
 - **A. Background Ripple Effect** (Aceternity, interactif cliquable) : grille 8×27 de cellules avec ripple au clic. Recommandé par Aceternity pour "hero + CTA sections". Plus engageant, marque le côté "expertise tech" dès l'accueil. Non listé dans DESIGN.md actuel → nécessite un addendum documentaire (`~3-5 lignes dans § Mapping Composants et § Stack UI`).
@@ -149,7 +149,7 @@ Remplacer le placeholder actuel de `src/app/[locale]/(public)/page.tsx` par une 
 - Coût d'extension DESIGN.md faible (~3-5 lignes co-committables avec l'implémentation), aligné sur la règle projet "chaque complexité ajoutée uniquement si le besoin réel apparaît" : ici le besoin est identifié (user-driven) et la doc est mise à jour en conséquence.
 - Budget effets page respecté (1 Aceternity + 1 Magic UI ShimmerButton = 2/3 autorisés).
 
-### Décision : teaser Projets — réutiliser `findManyPublished + slice(0, 3)` vs créer `findLatestPublished({ limit })`
+### Décision : teaser Projets : réutiliser `findManyPublished + slice(0, 3)` vs créer `findLatestPublished({ limit })`
 
 **Options envisagées :**
 - **A. Réutilisation** : `findManyPublished({ locale })` puis `.slice(0, 3)` côté page. Zero nouvelle query, zero modification de `src/server/queries/projects.ts`.

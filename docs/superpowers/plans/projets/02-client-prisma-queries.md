@@ -1,4 +1,4 @@
-# Client Prisma Singleton + Queries Projects — Implementation Plan
+# Client Prisma Singleton + Queries Projects: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -32,7 +32,7 @@ Note : la directive `// @vitest-environment node` reste en tête de chaque fichi
 
 ---
 
-### Task 1: Prérequis — s'assurer que le sub-project 01 est implémenté
+### Task 1: Prérequis: s'assurer que le sub-project 01 est implémenté
 
 **Files:** (vérifications uniquement)
 
@@ -425,7 +425,7 @@ describe('findManyPublished', () => {
 })
 ```
 
-- [ ] **Step 2: Run les tests — ils doivent FAIL (fonction non implémentée)**
+- [ ] **Step 2: Run les tests: ils doivent FAIL (fonction non implémentée)**
 
 Run:
 ```bash
@@ -467,7 +467,7 @@ export async function findManyPublished(
 }
 ```
 
-- [ ] **Step 4: Run les tests — ils doivent tous PASS**
+- [ ] **Step 4: Run les tests: ils doivent tous PASS**
 
 Run:
 ```bash
@@ -483,7 +483,7 @@ Run:
 ```bash
 git add tests/integration/setup.ts tests/integration/projects-queries.integration.test.ts src/lib/prisma.ts src/types/project.ts src/server/queries/projects.ts .env.test
 ```
-(note : `.env.test` est ignoré par git via `.env*`, donc `git add .env.test` sera refusé sauf `git add -f`. Ne PAS le forcer — le fichier reste local, non versionné.)
+(note : `.env.test` est ignoré par git via `.env*`, donc `git add .env.test` sera refusé sauf `git add -f`. Ne PAS le forcer, le fichier reste local, non versionné.)
 
 Run plutôt :
 ```bash
@@ -576,7 +576,7 @@ describe('findPublishedBySlug', () => {
 })
 ```
 
-- [ ] **Step 2: Run les tests — les 2 nouveaux doivent FAIL**
+- [ ] **Step 2: Run les tests: les 2 nouveaux doivent FAIL**
 
 Run:
 ```bash
@@ -600,7 +600,7 @@ export async function findPublishedBySlug(
 }
 ```
 
-- [ ] **Step 4: Run les tests — tous doivent PASS**
+- [ ] **Step 4: Run les tests: tous doivent PASS**
 
 Run:
 ```bash
@@ -645,7 +645,7 @@ Run:
 ```bash
 just test
 ```
-Expected : tous les tests passent (unit + intégration). Si l'ancien test unit échoue, inspecter — ce n'est pas du scope du sub-project 02 à priori.
+Expected : tous les tests passent (unit + intégration). Si l'ancien test unit échoue, inspecter, ce n'est pas du scope du sub-project 02 à priori.
 
 - [ ] **Step 4: Vérifier que les modules queries sont compilables via typecheck**
 
@@ -653,7 +653,7 @@ Run:
 ```bash
 pnpm typecheck
 ```
-Expected : 0 erreur — confirme que `src/server/queries/projects.ts` s'importe correctement avec le type `ProjectWithRelations` de `src/types/project.ts` et que le singleton `src/lib/prisma.ts` exporte bien les fonctions attendues. Le smoke live `findManyPublished()` contre `portfolio_dev` est couvert au sub-project 05 Task 1 (vérification rows BDD) puis par le SSR de la page `/projets`.
+Expected : 0 erreur, confirme que `src/server/queries/projects.ts` s'importe correctement avec le type `ProjectWithRelations` de `src/types/project.ts` et que le singleton `src/lib/prisma.ts` exporte bien les fonctions attendues. Le smoke live `findManyPublished()` contre `portfolio_dev` est couvert au sub-project 05 Task 1 (vérification rows BDD) puis par le SSR de la page `/projets`.
 
 ---
 

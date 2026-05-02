@@ -1,4 +1,4 @@
-# Robots.txt avec déclaration du sitemap — Plan d'implémentation (sub-project 04 / Feature 5 SEO)
+# Robots.txt avec déclaration du sitemap: Plan d'implémentation (sub-project 04 / Feature 5 SEO)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -108,7 +108,7 @@ Expected : build complet sans erreur. Vérifier que `next build` liste `/robots.
 
 > **Pré-requis** : `.env` rempli avec `NEXT_PUBLIC_SITE_URL=http://localhost:3000` en local (la valeur exacte de prod sera substituée via Dokploy au déploiement).
 
-- [ ] **Step 1 : Mode dev — contenu exact attendu**
+- [ ] **Step 1 : Mode dev: contenu exact attendu**
 
 Run : `pnpm dev` (laisser tourner en arrière-plan).
 
@@ -131,7 +131,7 @@ Sitemap: http://localhost:3000/sitemap.xml
 Run : `curl -sI http://localhost:3000/robots.txt | grep -i 'content-type'`
 Expected : `Content-Type: text/plain` (avec ou sans `; charset=utf-8`).
 
-- [ ] **Step 3 : Couvre Scénario 2 spec — URL Sitemap absolue**
+- [ ] **Step 3 : Couvre Scénario 2 spec: URL Sitemap absolue**
 
 Run : `curl -s http://localhost:3000/robots.txt | grep ^Sitemap:`
 Expected : `Sitemap: http://localhost:3000/sitemap.xml` (URL absolue, commence par `http://` ou `https://`, jamais relative).
@@ -140,7 +140,7 @@ Expected : `Sitemap: http://localhost:3000/sitemap.xml` (URL absolue, commence p
 
 Run : `just stop` (ou `Ctrl+C` sur le terminal qui tient `pnpm dev`).
 
-- [ ] **Step 5 : Mode prod — Scénario 1 spec confirmé**
+- [ ] **Step 5 : Mode prod: Scénario 1 spec confirmé**
 
 Run : `pnpm build && pnpm start`
 Expected : `next start` écoute sur `http://localhost:3000`. `NODE_ENV` = `production` automatique.
@@ -164,7 +164,7 @@ Expected : `HTTP/1.1 200 OK` + `Content-Type: application/xml` (ou équivalent).
 
 Run : `just stop`.
 
-- [ ] **Step 9 : Scénario 3 spec — validation Search Console (déférable post-déploiement)**
+- [ ] **Step 9 : Scénario 3 spec: validation Search Console (déférable post-déploiement)**
 
 > **Note** : ce scénario nécessite un déploiement réel sur le domaine `https://thibaud-geisler.com`. À effectuer une fois la PR mergée et déployée via Dokploy. Hors scope du plan local.
 

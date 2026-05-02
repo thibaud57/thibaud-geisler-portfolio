@@ -400,7 +400,7 @@ Aucun gap identifié.
 
 **Plan complet et sauvegardé dans `docs/superpowers/plans/conformite-legale/07-footer-extension-nav-legale-siret.md`.**
 
-**Sub-project 7/7 — DERNIER de la Feature 7 Conformité légale.**
+**Sub-project 7/7: DERNIER de la Feature 7 Conformité légale.**
 
 Ce plan sera consommé par `/implement-subproject conformite-legale 07` lors de l'implémentation effective, après que les sub-projects précédents (01 → 02 → 03 → 04 → 05 → 06) soient tous implémentés dans l'ordre topologique.
 

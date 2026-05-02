@@ -1,4 +1,4 @@
-# Sub 04 — Branchement ContactForm ↔ Server Action submitContact — Implementation Plan
+# Sub 04: Branchement ContactForm ↔ Server Action submitContact: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 **Spec source:** `docs/superpowers/specs/formulaire-de-contact/04-branchement-contact-form-action-design.md`
 
-**Stratégie validation** : `tdd_scope: none`. Aucun test Vitest RTL — la couche `useActionState`/`useFormStatus`/`toast`/i18n est entièrement du plumbing lib React/shadcn (no-lib-test). Validation par session Playwright manuelle via `mcp__playwright__browser_*` documentée en Task 7.
+**Stratégie validation** : `tdd_scope: none`. Aucun test Vitest RTL, la couche `useActionState`/`useFormStatus`/`toast`/i18n est entièrement du plumbing lib React/shadcn (no-lib-test). Validation par session Playwright manuelle via `mcp__playwright__browser_*` documentée en Task 7.
 
 **⚠️ Prérequis cross-feature** : ce plan suppose que `pages-publiques-portfolio/04-page-contact-layout-design.md` (Feature 1, layout `/contact`) est **déjà implémenté**. Le fichier `src/components/features/contact/ContactForm.tsx` est créé par ce sub layout avec un handler stub. Si non implémenté, lancer ce plan échoue à Task 2. Vérifier au préalable : `ls src/components/features/contact/ContactForm.tsx`.
 
@@ -62,7 +62,7 @@ export function SubmitButton({ label, submittingLabel }: SubmitButtonProps) {
 ```
 
 **Notes pour le worker** :
-- `useFormStatus` vient de `'react-dom'` (pas `'react'`) — c'est la signature React 19 documentée.
+- `useFormStatus` vient de `'react-dom'` (pas `'react'`), c'est la signature React 19 documentée.
 - `'use client'` obligatoire (utilise un hook).
 - Pas de variant `Button` spécifique : on hérite du variant default shadcn déjà utilisé par le sub 04 layout. Si le layout a stylé le bouton en `<Button variant="..." size="...">`, **conserver** la même configuration en l'ajoutant ici (vérifier le code existant de `ContactForm.tsx` avant de coder).
 
@@ -74,10 +74,10 @@ Expected: pas d'erreur. Le hook `useFormStatus` est typé natif React 19 (pas de
 
 ---
 
-## Task 2: Modifier `ContactForm.tsx` — swap stub vers `useActionState`
+## Task 2: Modifier `ContactForm.tsx`: swap stub vers `useActionState`
 
 **Files:**
-- Modify: `src/components/features/contact/ContactForm.tsx` (créé par sub 04 layout — vérifier l'état du fichier avant)
+- Modify: `src/components/features/contact/ContactForm.tsx` (créé par sub 04 layout, vérifier l'état du fichier avant)
 
 - [ ] **Step 2.1: Lire l'état actuel du fichier**
 
@@ -97,13 +97,13 @@ Identifier les éléments à **préserver** :
 
 Identifier les éléments à **remplacer** :
 - Le handler stub (toast + console.log) → branchement Server Action
-- Tout `useState` par champ (uniquement si présent — incompatible avec `useActionState`)
+- Tout `useState` par champ (uniquement si présent, incompatible avec `useActionState`)
 
 - [ ] **Step 2.2: Réécrire `ContactForm.tsx` avec le pattern useActionState**
 
 Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/components/features/contact/ContactForm.tsx`
 
-Cible — adapter selon le code existant en préservant la structure visuelle (Card, classes Tailwind, ordre des champs) et les clés i18n existantes (`fields.*`, `placeholders.*`, `submit`) :
+Cible, adapter selon le code existant en préservant la structure visuelle (Card, classes Tailwind, ordre des champs) et les clés i18n existantes (`fields.*`, `placeholders.*`, `submit`) :
 
 ```typescript
 'use client'
@@ -241,11 +241,11 @@ export function ContactForm({ defaultSubject }: ContactFormProps) {
 ```
 
 **Notes pour le worker** :
-- **Préserver** strictement les classes Tailwind, l'ordre des champs, et les clés i18n `fields.*` / `placeholders.*` / `submit` du sub 04 layout. Le code ci-dessus est une cible illustrative — adapter aux conventions exactes du fichier existant.
+- **Préserver** strictement les classes Tailwind, l'ordre des champs, et les clés i18n `fields.*` / `placeholders.*` / `submit` du sub 04 layout. Le code ci-dessus est une cible illustrative, adapter aux conventions exactes du fichier existant.
 - **Supprimer** complètement tout import / usage de `console.log` qui était dans le stub.
 - **Supprimer** la clé i18n `stubToast` lue par l'ancien handler (réfèrera bientôt à une clé inexistante après Task 5).
 - **Ne pas** ajouter de `key` au form (`form.reset()` natif suffit pour les inputs non-contrôlés).
-- **Ne pas** appeler `useFormStatus()` ici dans le ContactForm parent — uniquement dans `SubmitButton` (rule server-actions).
+- **Ne pas** appeler `useFormStatus()` ici dans le ContactForm parent, uniquement dans `SubmitButton` (rule server-actions).
 - L'import `useActionState` vient de `'react'` (React 19), pas `'react-dom'` (qui est `useFormStatus`).
 - Si le sub 04 layout utilisait déjà `useActionState(stubAction, initialState)`, la modif se réduit à : (1) swap `stubAction` → `submitContact`, (2) swap initial state → `initialContactFormState` importé, (3) ajout du `useEffect` toasts + reset, (4) ajout du honeypot input, (5) ajout du rendu `state.errors[fieldName]?.map()` sous chaque input.
 
@@ -350,7 +350,7 @@ Repérer et supprimer `ContactPage.form.stubToast` dans `messages/en.json`.
 
 - [ ] **Step 4.3: Vérifier la parité FR/EN**
 
-Run: `pnpm exec tsx scripts/check-i18n-parity.ts` (si le projet a un tel script — sinon comparaison manuelle via `diff <(jq 'paths(scalars)' messages/fr.json) <(jq 'paths(scalars)' messages/en.json)` ou équivalent).
+Run: `pnpm exec tsx scripts/check-i18n-parity.ts` (si le projet a un tel script, sinon comparaison manuelle via `diff <(jq 'paths(scalars)' messages/fr.json) <(jq 'paths(scalars)' messages/en.json)` ou équivalent).
 
 Expected: 0 différence sur les clés (seules les valeurs diffèrent).
 
@@ -366,7 +366,7 @@ Si le projet n'a pas de tooling i18n parity, vérifier visuellement que les 14 c
 
 Run: `grep -rn "stubToast" src/ messages/`
 
-Expected: **aucun résultat**. Si un résultat apparaît dans `src/components/features/contact/ContactForm.tsx`, c'est une oubli de Task 2.2 — supprimer la référence (probablement un `t('stubToast')` ou similaire).
+Expected: **aucun résultat**. Si un résultat apparaît dans `src/components/features/contact/ContactForm.tsx`, c'est une oubli de Task 2.2, supprimer la référence (probablement un `t('stubToast')` ou similaire).
 
 ---
 
@@ -411,7 +411,7 @@ Expected: build réussit. Pas d'erreur de bundling sur `useActionState`/`useForm
 - `pnpm dev` lancé en background sur `http://localhost:3000`.
 - Boîte mail `MAIL_TO` ouverte pour vérifier la réception.
 
-- [ ] **Step 7.1: Test 1 — happy path FR**
+- [ ] **Step 7.1: Test 1: happy path FR**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/fr/contact`
 2. `mcp__playwright__browser_snapshot` → vérifier visuellement que le form s'affiche avec 5 champs visibles + SubmitButton « Envoyer »
@@ -424,7 +424,7 @@ Expected: build réussit. Pas d'erreur de bundling sur `useActionState`/`useForm
 
 Expected: tous les checks PASS.
 
-- [ ] **Step 7.2: Test 2 — happy path EN (parité)**
+- [ ] **Step 7.2: Test 2: happy path EN (parité)**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/en/contact`
 2. `mcp__playwright__browser_fill_form` (mêmes valeurs que Test 1)
@@ -433,7 +433,7 @@ Expected: tous les checks PASS.
 
 Expected: même comportement qu'en FR mais textes EN.
 
-- [ ] **Step 7.3: Test 3 — email invalide → message localisé sous le champ**
+- [ ] **Step 7.3: Test 3: email invalide → message localisé sous le champ**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/fr/contact`
 2. `mcp__playwright__browser_fill_form` → name=`Alice`, email=`pas-un-email`, subject=`Test`, message=`Au moins vingt caractères dans le message.`
@@ -446,7 +446,7 @@ Expected: tous les checks PASS.
 
 **Note** : `<input type="email" required>` HTML5 peut bloquer la soumission côté client avec un message natif du navigateur AVANT que la Server Action soit appelée. Pour bypasser et tester la validation Zod serveur : utiliser `mcp__playwright__browser_evaluate` pour `document.querySelector('input[name="email"]').setAttribute('type', 'text')` AVANT le submit.
 
-- [ ] **Step 7.4: Test 4 — rate limit dépassé**
+- [ ] **Step 7.4: Test 4: rate limit dépassé**
 
 1. Soumettre 5 fois consécutivement le form valide depuis la même session (Tests 1 répétés)
 2. À la 6e tentative, `mcp__playwright__browser_click` sur « Envoyer »
@@ -458,7 +458,7 @@ Expected: tous les checks PASS.
 
 **Note** : pour reset le rate limit après ce test (et continuer les tests), redémarrer `pnpm dev` (le rate-limiter est in-memory, redémarrage = reset).
 
-- [ ] **Step 7.5: Test 5 — honeypot bypass DevTools**
+- [ ] **Step 7.5: Test 5: honeypot bypass DevTools**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/fr/contact`
 2. `mcp__playwright__browser_evaluate` →
@@ -473,7 +473,7 @@ Expected: tous les checks PASS.
 
 Expected: toast success affiché côté UI, mais aucun mail effectivement envoyé (sub 03 a déjà testé le honeypot côté serveur).
 
-- [ ] **Step 7.6: Test 6 — Tab navigation skip honeypot**
+- [ ] **Step 7.6: Test 6: Tab navigation skip honeypot**
 
 1. `mcp__playwright__browser_navigate` → `http://localhost:3000/fr/contact`
 2. `mcp__playwright__browser_press_key` → `Tab` plusieurs fois depuis le début de la page jusqu'à atteindre les inputs du form
@@ -529,7 +529,7 @@ Prêt à commit sur chore/specs-formulaire-contact, attends ton go.
   - Scénario 2 (happy path EN) → Task 7.2
   - Scénario 3 (Zod email invalide) → Task 7.3
   - Scénario 4 (rate limit) → Task 7.4
-  - Scénario 5 (SMTP fail) → couvert implicitement par sub 03 (test mocké). Pas de Playwright test parce que demande de simuler un crash SMTP en runtime — peut être ajouté en mode debug si besoin
+  - Scénario 5 (SMTP fail) → couvert implicitement par sub 03 (test mocké). Pas de Playwright test parce que demande de simuler un crash SMTP en runtime, peut être ajouté en mode debug si besoin
   - Scénario 6 (honeypot bypass DevTools) → Task 7.5
   - Scénario 7 (honeypot caché Tab navigation) → Task 7.6
   - Scénario 8 (SubmitButton transition) → Task 7.1 step 5
@@ -543,7 +543,7 @@ Prêt à commit sur chore/specs-formulaire-contact, attends ton go.
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/04-branchement-contact-form-action.md`. Ce plan **clôt la boucle** `/decompose-feature` (sub 4/4 de Feature 4 — Formulaire de contact).
+Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/04-branchement-contact-form-action.md`. Ce plan **clôt la boucle** `/decompose-feature` (sub 4/4 de Feature 4, Formulaire de contact).
 
 L'exécution sera lancée plus tard via `/implement-subproject formulaire-de-contact 04`, qui orchestrera `superpowers:subagent-driven-development` (Task 1-6) + validation Playwright (Task 7) + demande de commit explicite (Task 8).
 

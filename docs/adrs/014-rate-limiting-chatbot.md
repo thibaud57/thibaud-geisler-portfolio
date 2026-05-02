@@ -22,7 +22,7 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 # 🛠️ Options Envisagées
 
-## Option A — Rate limiting IP-based in-memory (middleware Next.js)
+## Option A : Rate limiting IP-based in-memory (middleware Next.js)
 
 **Description :** Compteur par IP en mémoire Node.js (Map avec TTL), implémenté dans le middleware Next.js ou dans la route API. Fenêtre temporelle configurable (ex : 10 requêtes/heure/IP).
 
@@ -38,23 +38,23 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 **Coût estimé :** Nul
 
-## Option B — Rate limiting IP-based persisté en PostgreSQL
+## Option B : Rate limiting IP-based persisté en PostgreSQL
 
 **Description :** Compteur par IP stocké en PostgreSQL avec horodatage, incrémenté à chaque requête chatbot et vérifié en amont de l'appel LLM.
 
 **Avantages :**
 - Persistance entre redémarrages du container
 - Historique consultable (audit, détection d'abus répétés)
-- PostgreSQL déjà présent dans l'infra — pas de nouveau service
+- PostgreSQL déjà présent dans l'infra, pas de nouveau service
 
 **Inconvénients :**
 - Latence ajoutée sur chaque requête chatbot (query BDD supplémentaire)
 - Schéma BDD supplémentaire à maintenir (`rate_limit_entries`)
 - Charge sur PostgreSQL proportionnelle au trafic chatbot
 
-**Coût estimé :** Faible — quelques heures d'implémentation
+**Coût estimé :** Faible, quelques heures d'implémentation
 
-## Option C — Upstash Rate Limit (@upstash/ratelimit)
+## Option C : Upstash Rate Limit (@upstash/ratelimit)
 
 **Description :** Service Redis-as-a-service cloud avec la librairie `@upstash/ratelimit`. Algorithme sliding window, SDK TypeScript officiel.
 
@@ -74,7 +74,7 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 # 🎉 Décision
 
-**À décider** au moment de l'implémentation du chatbot (post-MVP). L'Option A (in-memory) est le candidat favori : adapté à un trafic faible, zéro coût, zéro latence — suffisant pour protéger contre les abus simples sur un portfolio single-instance.
+**À décider** au moment de l'implémentation du chatbot (post-MVP). L'Option A (in-memory) est le candidat favori : adapté à un trafic faible, zéro coût, zéro latence, suffisant pour protéger contre les abus simples sur un portfolio single-instance.
 
 ---
 
@@ -82,13 +82,13 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 ## Positives
 
-- Si Option A (in-memory) : implémentation minimale, zéro coût, zéro dépendance — suffisant pour dissuader les abus simples à faible trafic
-- Si Option B (PostgreSQL) : persistance et auditabilité sans service supplémentaire — PostgreSQL déjà là
+- Si Option A (in-memory) : implémentation minimale, zéro coût, zéro dépendance, suffisant pour dissuader les abus simples à faible trafic
+- Si Option B (PostgreSQL) : persistance et auditabilité sans service supplémentaire, PostgreSQL déjà là
 - Si Option C (Upstash) : robustesse maximale avec sliding window, résistant à la mise à l'échelle
 
 ## Négatives
 
-- Si Option A : compteurs non persistés entre redémarrages, bypassable via VPN — protection partielle
+- Si Option A : compteurs non persistés entre redémarrages, bypassable via VPN, protection partielle
 - Si Option B : latence BDD sur chaque appel chatbot, schéma de compteurs à maintenir
 - Si Option C : dépendance externe, coût variable, over-engineered pour ce contexte
 

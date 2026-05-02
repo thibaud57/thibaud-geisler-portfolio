@@ -1,4 +1,4 @@
-# Sub 02 — Schéma Zod du formulaire de contact — Implementation Plan
+# Sub 02: Schéma Zod du formulaire de contact: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -90,7 +90,7 @@ export type ContactInput = z.infer<typeof contactSchema>
 
 Run: `pnpm test src/lib/schemas/contact.test.ts -t "accepte un payload valide minimal"`
 
-Expected: PASS — 1 test passé.
+Expected: PASS, 1 test passé.
 
 ---
 
@@ -126,7 +126,7 @@ Ajouter dans le `describe('contactSchema', ...)` après le test précédent :
 
 Run: `pnpm test src/lib/schemas/contact.test.ts -t "trim les champs"`
 
-Expected: PASS — `.trim()` est déjà dans le schéma de la Task 1, donc le test passe sans modifier `contact.ts`. Si FAIL, vérifier que `.trim()` est bien le PREMIER chainage avant `.min()` / `.email()` sur chaque champ string.
+Expected: PASS, `.trim()` est déjà dans le schéma de la Task 1, donc le test passe sans modifier `contact.ts`. Si FAIL, vérifier que `.trim()` est bien le PREMIER chainage avant `.min()` / `.email()` sur chaque champ string.
 
 ---
 
@@ -173,7 +173,7 @@ Ajouter après le test précédent :
 
 Run: `pnpm test src/lib/schemas/contact.test.ts -t "_required"`
 
-Expected: 2 tests PASS — les codes `'name_required'` et `'subject_required'` sont déjà dans le schéma Task 1.
+Expected: 2 tests PASS, les codes `'name_required'` et `'subject_required'` sont déjà dans le schéma Task 1.
 
 ---
 
@@ -266,7 +266,7 @@ Ajouter après les tests précédents :
 
 Run: `pnpm test src/lib/schemas/contact.test.ts -t "_too_long"`
 
-Expected: 5 tests PASS — les codes sont déjà dans le schéma Task 1.
+Expected: 5 tests PASS, les codes sont déjà dans le schéma Task 1.
 
 ---
 
@@ -383,7 +383,7 @@ Décompte attendu :
 - Task 5 : 2 tests (`email_invalid`, `message_too_short`)
 - Task 6 : 2 tests (`company` absente, champ inconnu ignoré)
 
-Total : **13 tests** (le spec listait 11 — la séparation `email_too_long` + `email_invalid` et le trim global comptent comme tests distincts ici, c'est bénin et reste cohérent).
+Total : **13 tests** (le spec listait 11, la séparation `email_too_long` + `email_invalid` et le trim global comptent comme tests distincts ici, c'est bénin et reste cohérent).
 
 - [ ] **Step 7.2: Typecheck**
 

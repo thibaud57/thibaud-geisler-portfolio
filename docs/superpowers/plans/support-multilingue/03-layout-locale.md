@@ -1,4 +1,4 @@
-# Restructuration app sous segment [locale] — Implementation Plan
+# Restructuration app sous segment [locale]: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -313,11 +313,11 @@ Expected: le serveur démarre sans erreur.
 - [ ] **Step 3: Tester les pages sous /fr**
 
 Ouvrir dans le navigateur :
-- `http://localhost:3000/fr` — page accueil
-- `http://localhost:3000/fr/services` — page services
-- `http://localhost:3000/fr/projets` — page projets
-- `http://localhost:3000/fr/a-propos` — page à propos
-- `http://localhost:3000/fr/contact` — page contact
+- `http://localhost:3000/fr`, page accueil
+- `http://localhost:3000/fr/services`, page services
+- `http://localhost:3000/fr/projets`, page projets
+- `http://localhost:3000/fr/a-propos`, page à propos
+- `http://localhost:3000/fr/contact`, page contact
 
 Expected: toutes les pages s'affichent correctement. Vérifier `<html lang="fr">` dans le code source (Ctrl+U).
 

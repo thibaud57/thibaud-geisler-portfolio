@@ -21,8 +21,8 @@ Créer un composant Client `LanguageSwitcher` utilisant `DropdownMenu` de shadcn
 
 ## Dependencies
 
-- `04-navigation-localisee-design.md` (statut: implemented) — fournit `useRouter`, `usePathname` localisés
-- `03-layout-locale-design.md` (statut: implemented) — fournit le layout `[locale]` avec `NextIntlClientProvider`
+- `04-navigation-localisee-design.md` (statut: implemented), fournit `useRouter`, `usePathname` localisés
+- `03-layout-locale-design.md` (statut: implemented), fournit le layout `[locale]` avec `NextIntlClientProvider`
 
 ## Files touched
 

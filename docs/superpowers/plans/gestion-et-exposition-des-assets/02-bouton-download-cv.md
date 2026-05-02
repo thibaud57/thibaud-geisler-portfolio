@@ -1,4 +1,4 @@
-# Bouton "Télécharger mon CV" sur /a-propos et dans le footer — Implementation Plan
+# Bouton "Télécharger mon CV" sur /a-propos et dans le footer: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript 6 strict, Next.js 16 App Router (Server Components async, `params` Promise), next-intl 4 (`getTranslations`, `getLocale`, type `Locale` déclaré via `declare module 'next-intl'` dans `src/i18n/types.ts`), shadcn/ui `Button` avec variants et `asChild`, Lucide React (`FileDown`).
 
-**Prérequis d'exécution** : sub-project 01 (`support-pdf-route-assets`) mergé ou implémenté auparavant — sans quoi le PDF retournera 400 à l'exécution manuelle. Docker/Postgres non requis pour ce sub-project (pas de dépendance DB, pas de tests d'intégration).
+**Prérequis d'exécution** : sub-project 01 (`support-pdf-route-assets`) mergé ou implémenté auparavant, sans quoi le PDF retournera 400 à l'exécution manuelle. Docker/Postgres non requis pour ce sub-project (pas de dépendance DB, pas de tests d'intégration).
 
 ---
 
@@ -65,7 +65,7 @@ export function buildCvUrl(locale: Locale): string {
 }
 ```
 
-**Note** : le `satisfies Record<Locale, string>` force TypeScript à vérifier que toutes les locales déclarées dans `src/i18n/routing.ts` ont une entrée. Si une locale est ajoutée (`de`, `es`) sans entrée ici, le build échoue — fail-fast volontaire. `Locale` est importé depuis `next-intl` (le type est dérivé via `declare module 'next-intl'` dans `src/i18n/types.ts`).
+**Note** : le `satisfies Record<Locale, string>` force TypeScript à vérifier que toutes les locales déclarées dans `src/i18n/routing.ts` ont une entrée. Si une locale est ajoutée (`de`, `es`) sans entrée ici, le build échoue, fail-fast volontaire. `Locale` est importé depuis `next-intl` (le type est dérivé via `declare module 'next-intl'` dans `src/i18n/types.ts`).
 
 - [ ] **Step 1.2 : Vérifier le typecheck**
 
@@ -403,7 +403,7 @@ printf '%%PDF-1.4\n%%%%EOF\n' > assets/documents/cv/cv-thibaud-geisler-en.pdf
 ls -la assets/documents/cv/
 ```
 
-Expected: les deux fichiers sont présents. Ces PDFs sont des stubs valides de 15 octets — suffisants pour déclencher le téléchargement navigateur et vérifier le nom du fichier. Ils ne s'ouvrent pas comme un vrai CV mais valident la chaîne end-to-end. Ces fichiers sont gitignorés (`/assets/*`) donc ne partiront pas sur le repo.
+Expected: les deux fichiers sont présents. Ces PDFs sont des stubs valides de 15 octets, suffisants pour déclencher le téléchargement navigateur et vérifier le nom du fichier. Ils ne s'ouvrent pas comme un vrai CV mais valident la chaîne end-to-end. Ces fichiers sont gitignorés (`/assets/*`) donc ne partiront pas sur le repo.
 
 - [ ] **Step 6.6 : Démarrer le dev server**
 

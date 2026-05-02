@@ -203,7 +203,7 @@ En v19, `<Context>` peut être utilisé directement comme provider sans la synta
 
 ## Documentation Officielle
 
-- [React — Documentation](https://react.dev)
+- [React : Documentation](https://react.dev)
 - [React 19 Release](https://react.dev/blog/2024/12/05/react-19)
 - [Server Components](https://react.dev/reference/rsc/server-components)
 

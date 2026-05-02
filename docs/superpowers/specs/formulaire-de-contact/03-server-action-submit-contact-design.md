@@ -19,12 +19,12 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 
 ### État livré
 
-À la fin de ce sub-project, on peut : appeler `submitContact(initialContactFormState, formData)` depuis un test Vitest avec un FormData valide → reçoit `{ ok: true, errors: {}, message: null }`, vérifie qu'`transporter.sendMail` (mocké) a bien été appelé avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo=<email user>`, `subject="Contact: <name> — <subject>"` et un body text contenant les 4 champs ; les 15+ tests Vitest passent vert ; aucun log ne contient l'email ou le contenu du message en clair.
+À la fin de ce sub-project, on peut : appeler `submitContact(initialContactFormState, formData)` depuis un test Vitest avec un FormData valide → reçoit `{ ok: true, errors: {}, message: null }`, vérifie qu'`transporter.sendMail` (mocké) a bien été appelé avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo=<email user>`, `subject="Contact: <name>, <subject>"` et un body text contenant les 4 champs ; les 15+ tests Vitest passent vert ; aucun log ne contient l'email ou le contenu du message en clair.
 
 ## Dependencies
 
-- `01-config-smtp-mailer-design.md` (statut: `draft`) — fournit `transporter`, `MAIL_FROM`, `MAIL_TO` importés depuis `@/lib/mailer`.
-- `02-zod-schema-contact-design.md` (statut: `draft`) — fournit `contactSchema` et `ContactInput` importés depuis `@/lib/schemas/contact`.
+- `01-config-smtp-mailer-design.md` (statut: `draft`), fournit `transporter`, `MAIL_FROM`, `MAIL_TO` importés depuis `@/lib/mailer`.
+- `02-zod-schema-contact-design.md` (statut: `draft`), fournit `contactSchema` et `ContactInput` importés depuis `@/lib/schemas/contact`.
 
 ## Files touched
 
@@ -37,9 +37,9 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 
 - **Server Action `'use server'`** déclaré au top du fichier conformément à `.claude/rules/nextjs/server-actions.md`. Signature `(prevState: ContactFormState, formData: FormData) => Promise<ContactFormState>` compatible `useActionState`.
 - **`ContactFormState` type explicite** :
-  - `ok: boolean | null` — `null` initial, `true` succès, `false` échec
-  - `errors: Partial<Record<'name'|'company'|'email'|'subject'|'message'|'_global', string[]>>` — codes par champ + clé `_global` pour les erreurs hors-formulaire (rate limit)
-  - `message: string | null` — code top-level pour les **toasts globaux d'erreur uniquement** : `'rate_limit'` | `'smtp_error'` | `null` (au succès, à l'idle, ou quand seules des erreurs Zod par champ sont retournées). Reste un code (snake_case) que sub 04 mappe via i18n. Le toast success est piloté par `ok === true` indépendamment de `message`.
+  - `ok: boolean | null` : `null` initial, `true` succès, `false` échec
+  - `errors: Partial<Record<'name'|'company'|'email'|'subject'|'message'|'_global', string[]>>` : codes par champ + clé `_global` pour les erreurs hors-formulaire (rate limit)
+  - `message: string | null` : code top-level pour les **toasts globaux d'erreur uniquement** : `'rate_limit'` | `'smtp_error'` | `null` (au succès, à l'idle, ou quand seules des erreurs Zod par champ sont retournées). Reste un code (snake_case) que sub 04 mappe via i18n. Le toast success est piloté par `ok === true` indépendamment de `message`.
 - **`initialContactFormState` constante exportée** : `{ ok: null, errors: {}, message: null }`. Sub 04 l'importera pour passer à `useActionState(submitContact, initialContactFormState)`.
 - **Child logger Pino** : `const log = logger.child({ action: 'submitContact', requestId: crypto.randomUUID() })`. Conforme à `.claude/rules/pino/logger.md` ligne 56-65.
 - **Extraction IP** : `await headers()` (Next 16 async) → header `x-forwarded-for`. Si présent, prendre la première valeur (chaîne reverse-proxy : `client-ip, proxy1, proxy2`). Fallback `'unknown'`. Conforme au gotcha de la rule server-actions (ligne 35).
@@ -50,10 +50,10 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 - **Envoi SMTP** : try/catch autour de `await transporter.sendMail({...})`. Conforme à `.claude/rules/nodemailer/email.md`. Args :
   - `from: MAIL_FROM`
   - `to: MAIL_TO`
-  - `replyTo: result.data.email` — permet de répondre directement à l'expéditeur (rule nodemailer ligne 15)
-  - `subject: \`Contact: ${result.data.name} — ${result.data.subject}\`` — format sobre suivant l'exemple de la rule
+  - `replyTo: result.data.email` : permet de répondre directement à l'expéditeur (rule nodemailer ligne 15)
+  - `subject: \`Contact: ${result.data.name}, ${result.data.subject}\``, format sobre suivant l'exemple de la rule
   - `text: <body plain text>` (voir Body email ci-dessous)
-- **Body email** (text plain, pas HTML — YAGNI MVP) :
+- **Body email** (text plain, pas HTML, YAGNI MVP) :
   ```
   De : ${name} <${email}>
   [Société : ${company}]    ← uniquement si company présente
@@ -65,8 +65,8 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
   Reçu via thibaud-geisler.com (formulaire de contact)
   ```
 - **Logs Pino RGPD** :
-  - Succès : `log.info({ event: 'email:sent', has_company: Boolean(data.company), message_length: data.message.length })` — JAMAIS `email`, `name`, `subject`, `message` en clair (rule pino ligne 29 + rule nodemailer ligne 21).
-  - Échec SMTP : `log.error({ err, event: 'email:failed' })` — Pino capture `message`, `stack`, `type` automatiquement via `err` en premier argument (rule pino ligne 16).
+  - Succès : `log.info({ event: 'email:sent', has_company: Boolean(data.company), message_length: data.message.length })`, JAMAIS `email`, `name`, `subject`, `message` en clair (rule pino ligne 29 + rule nodemailer ligne 21).
+  - Échec SMTP : `log.error({ err, event: 'email:failed' })`, Pino capture `message`, `stack`, `type` automatiquement via `err` en premier argument (rule pino ligne 16).
 - **Server-only** : `import 'server-only'` au top de `src/server/actions/contact.ts` pour empêcher tout import accidentel côté client.
 - **Conventions tests** : `.test.ts` (pas `.integration.test.ts`) puisque tous les services externes sont mockés (SMTP via `vi.mock('@/lib/mailer')`, rate-limiter via `vi.mock('@/lib/rate-limiter')`, headers via `vi.mock('next/headers')`). Aligné avec le pattern projet (cf `src/server/config/assets.test.ts`).
 - **Rate-limiter pure-fonction** (`src/lib/rate-limiter.ts`) :
@@ -83,7 +83,7 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 **GIVEN** un `FormData` avec `name="Alice"`, `company="Acme"`, `email="alice@acme.fr"`, `subject="Projet IA"`, `message="<≥20 chars>"`, sans `website`
 **AND** la 1ère requête depuis l'IP `1.2.3.4`
 **WHEN** `submitContact(initialState, formData)` est appelée
-**THEN** `transporter.sendMail` est invoqué avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo="alice@acme.fr"`, `subject="Contact: Alice — Projet IA"`, `text` contenant les 4 champs et le footer
+**THEN** `transporter.sendMail` est invoqué avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo="alice@acme.fr"`, `subject="Contact: Alice, Projet IA"`, `text` contenant les 4 champs et le footer
 **AND** un log `info` est émis avec `event: 'email:sent'`, `has_company: true`, `message_length: <int>`, `ip_hash: <8 chars hex>`
 **AND** le log NE contient PAS `email`, `name`, `subject` ni `message` en clair
 **AND** la fonction retourne `{ ok: true, errors: {}, message: null }`
@@ -210,7 +210,7 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 **Rationale :**
 - Niveau `info` (pas `warn`) : c'est un comportement attendu, pas une dégradation.
 - `ip_hash` (pas IP en clair) : conforme RGPD.
-- Permet de monitorer si le honeypot devient inefficace (chute du `honeypot:caught`/heure alors que le trafic monte) — signal d'alerte pour passer à Turnstile.
+- Permet de monitorer si le honeypot devient inefficace (chute du `honeypot:caught`/heure alors que le trafic monte), signal d'alerte pour passer à Turnstile.
 - Coût négligeable (1 log par requête bot, le honeypot est censé bloquer ≥ 99% du spam).
 
 ### Décision : `ip_hash` SHA256 partiel vs IP brute vs aucun identifiant

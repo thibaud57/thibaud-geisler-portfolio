@@ -1,4 +1,4 @@
-# États de chargement — Plan d'implémentation (sub-project 08 / Feature 1 Pages publiques)
+# États de chargement: Plan d'implémentation (sub-project 08 / Feature 1 Pages publiques)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -315,7 +315,7 @@ Expected : exit 0. Toutes les routes prerendered (`○` ou `◐`).
 Run : `just dev`
 Expected : serveur sur `http://localhost:3000`.
 
-- [ ] **Step 2 : Scénario 1 — Refactor skeletons identique visuellement**
+- [ ] **Step 2 : Scénario 1: Refactor skeletons identique visuellement**
 
 Action : ouvrir `/fr/projets` (Network throttle "Slow 3G" via DevTools) → observer le `ProjectsListSkeleton` pendant le chargement.
 
@@ -323,13 +323,13 @@ Expected : skeleton 3 chips (filtres) + grid 6 cards `h-64`. Animation de pulse 
 
 Action similaire sur `/fr/a-propos` (StatsSkeleton + StackSkeleton dans Suspense in-page) et `/` (ProjectsTeaserSkeleton + StackMarqueeSkeleton).
 
-- [ ] **Step 3 : Scénario 2 — Loading dédié `/projets/[slug]`**
+- [ ] **Step 3 : Scénario 2: Loading dédié `/projets/[slug]`**
 
 Action : ouvrir `/fr/projets/<slug-existant>` avec Network throttle → observer le skeleton dédié `CaseStudyLayout` (header + 5 lignes content + 2 boutons) pendant la transition de route.
 
 Expected : pas de `Loader2` global brut, mais bien le skeleton structuré.
 
-- [ ] **Step 4 : Scénario 3 — Loading global redesigné**
+- [ ] **Step 4 : Scénario 3: Loading global redesigné**
 
 Action : naviguer entre 2 pages publiques (ex: `/fr` → `/fr/services`) avec Network throttle.
 

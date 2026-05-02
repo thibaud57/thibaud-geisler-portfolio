@@ -28,11 +28,11 @@ Quatre changements complémentaires, regroupés car ils touchent le couple `pris
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Les éléments réutilisés sont déjà livrés :
-- `01-schema-prisma-project-design.md` (statut: implemented) — model `Tag` + `Project` + `Company` + `ClientMeta` + `ProjectTag`.
-- `03-seed-projets-design.md` (statut: implemented) — pattern de seed dans `prisma/seed-data/{tags,companies,projects}.ts` et convention case studies markdown bilingues.
-- `02-client-prisma-queries-design.md` (statut: implemented) — pattern queries Prisma cachées avec `'use cache'` + `cacheTag('projects')`.
-- Query `findPublishedTags` + `countMissionsDelivered` + `countClientsServed` livrées dans Feature 1 sub 02 (`src/server/queries/about.ts`, statut: implemented) — à mettre à jour.
+Aucune, ce sub-project est autoporté. Les éléments réutilisés sont déjà livrés :
+- `01-schema-prisma-project-design.md` (statut: implemented), model `Tag` + `Project` + `Company` + `ClientMeta` + `ProjectTag`.
+- `03-seed-projets-design.md` (statut: implemented), pattern de seed dans `prisma/seed-data/{tags,companies,projects}.ts` et convention case studies markdown bilingues.
+- `02-client-prisma-queries-design.md` (statut: implemented), pattern queries Prisma cachées avec `'use cache'` + `cacheTag('projects')`.
+- Query `findPublishedTags` + `countMissionsDelivered` + `countClientsServed` livrées dans Feature 1 sub 02 (`src/server/queries/about.ts`, statut: implemented), à mettre à jour.
 
 ## Files touched
 
@@ -156,7 +156,7 @@ Toutes résolues. Aucun blocker pour démarrer l'implémentation.
 - ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0` (mission de conseil sans livrable mis en prod à ce jour).
 - ✅ Label "clients servis" → "clients accompagnés" (FR) / "clients supported" (EN).
 - ✅ Label "projets clients livrés" : conservé, chiffre derrière = SUM(deliverablesCount).
-- ✅ Pas d'ajout de nouveaux projets (option a — 1 row = 1 mission).
+- ✅ Pas d'ajout de nouveaux projets (option a, 1 row = 1 mission).
 
 ## Suite envisagée (hors scope)
 

@@ -21,7 +21,7 @@ Modifier `src/lib/seo/json-ld.ts` (livré par sub-project SEO 05 existant) pour 
 
 ## Dependencies
 
-- `01-schema-prisma-legal-entity-seed-design.md` (statut: draft) — fournit la query `getPublisher()` qui retourne `LegalEntity & { address: Address, publisher: Publisher }`. Le caller `/a-propos/page.tsx` consomme cette query pour extraire les données légales (siret, address) et les passer au helper JSON-LD. Le type `Address` Prisma a exactement les 4 champs `street, postalCode, city, country` qui matchent `AddressInput` introduit ici, donc le caller passe `publisher.address` directement sans aplatissement.
+- `01-schema-prisma-legal-entity-seed-design.md` (statut: draft), fournit la query `getPublisher()` qui retourne `LegalEntity & { address: Address, publisher: Publisher }`. Le caller `/a-propos/page.tsx` consomme cette query pour extraire les données légales (siret, address) et les passer au helper JSON-LD. Le type `Address` Prisma a exactement les 4 champs `street, postalCode, city, country` qui matchent `AddressInput` introduit ici, donc le caller passe `publisher.address` directement sans aplatissement.
 
 ## Files touched
 

@@ -9,13 +9,13 @@ depends_on: ["05-footer-global-design.md"]
 date: "2026-04-26"
 ---
 
-# Navbar globale — Logo, nav links localisés, mobile menu
+# Navbar globale : Logo, nav links localisés, mobile menu
 
 ## Scope
 
 Étendre `src/components/layout/Navbar.tsx` existant (actuellement minimal : sticky header + `LanguageSwitcher` + `ThemeToggle` + un TODO commenté `logo + nav links`) pour livrer une navbar complète sur toutes les pages publiques. Layout desktop : `[BrandLogo] [NavLinks horizontal] ... [LanguageSwitcher] [ThemeToggle]`. Layout mobile : `[BrandLogo] ... [LanguageSwitcher] [ThemeToggle] [MobileMenu hamburger]`. Le hamburger ouvre un Sheet shadcn (déjà câblé dans `MobileMenu.tsx`) qui contient les mêmes nav links en vertical. État actif des liens via `usePathname` localisé : couleur `text-primary` (vert sauge) sur le lien correspondant à la route courante, `text-foreground hover:text-primary transition` sur les autres.
 
-Promotion du pattern logo light/dark vers un composant partagé `src/components/layout/BrandLogo.tsx` (2× `<Image>` avec `dark:hidden` / `hidden dark:block`), refactoré dans le même sub-project depuis `Footer.tsx` (sub 05) — Navbar et Footer consomment la même source de vérité.
+Promotion du pattern logo light/dark vers un composant partagé `src/components/layout/BrandLogo.tsx` (2× `<Image>` avec `dark:hidden` / `hidden dark:block`), refactoré dans le même sub-project depuis `Footer.tsx` (sub 05), Navbar et Footer consomment la même source de vérité.
 
 Promotion de la liste des nav items vers une constante TS `src/config/nav-items.ts` (cohérent avec `@/config/social-links` introduit par sub 05) : source unique de vérité pour la navbar desktop ET le mobile menu.
 
@@ -27,7 +27,7 @@ Promotion de la liste des nav items vers une constante TS `src/config/nav-items.
 
 ## Dependencies
 
-- `05-footer-global-design.md` (statut: implemented) — ce sub-project refacto `Footer.tsx` pour consommer le nouveau `BrandLogo`. L'ordre topologique (05 puis 06) garantit que la duplication light/dark à refactorer existe au moment de la promotion.
+- `05-footer-global-design.md` (statut: implemented), ce sub-project refacto `Footer.tsx` pour consommer le nouveau `BrandLogo`. L'ordre topologique (05 puis 06) garantit que la duplication light/dark à refactorer existe au moment de la promotion.
 
 Éléments déjà livrés hors feature, réutilisés sans modification : `LanguageSwitcher.tsx` (sub-project `support-multilingue/06-selecteur-langue`, statut: implemented), `ThemeToggle.tsx` (bootstrap layout, opérationnel), `Sheet` shadcn (`src/components/ui/sheet.tsx`), `Link` localisé `@/i18n/navigation`, `usePathname` localisé `@/i18n/navigation`, `next/image`, `cn()` `@/lib/utils`. Helper `buildAssetUrl` `src/lib/assets.ts` réutilisé par `BrandLogo`.
 
@@ -44,11 +44,11 @@ Promotion de la liste des nav items vers une constante TS `src/config/nav-items.
 
 ## Architecture approach
 
-- **`BrandLogo.tsx` (Server)** : sans props (taille fixe MVP, prop `size?: 'sm' | 'md' | 'lg'` ajoutable plus tard si besoin — YAGNI). Rend 2 `<Image>` côte à côte, l'une masquée par CSS selon le thème. Sources `/api/assets/branding/logo-horizontal-{dark,light}.png` (mêmes assets que ceux uploadés par sub 05). `width=180`, `height=40`, `className="h-10 w-auto max-w-[200px] object-contain"` + `dark:hidden` / `hidden dark:block`. `alt="Thibaud Geisler"` sur le visible (light), `alt=""` sur le caché (dark, décoratif — un seul est annoncé par les lecteurs d'écran à un instant T grâce à la classe `.dark` qui swap les visibilités). `buildAssetUrl()` depuis `src/lib/assets.ts`. Voir `.claude/rules/nextjs/server-client-components.md` et `.claude/rules/next-themes/theming.md` (CSS-only switch, pas de pattern `mounted`, pas de hydration mismatch).
+- **`BrandLogo.tsx` (Server)** : sans props (taille fixe MVP, prop `size?: 'sm' | 'md' | 'lg'` ajoutable plus tard si besoin, YAGNI). Rend 2 `<Image>` côte à côte, l'une masquée par CSS selon le thème. Sources `/api/assets/branding/logo-horizontal-{dark,light}.png` (mêmes assets que ceux uploadés par sub 05). `width=180`, `height=40`, `className="h-10 w-auto max-w-[200px] object-contain"` + `dark:hidden` / `hidden dark:block`. `alt="Thibaud Geisler"` sur le visible (light), `alt=""` sur le caché (dark, décoratif, un seul est annoncé par les lecteurs d'écran à un instant T grâce à la classe `.dark` qui swap les visibilités). `buildAssetUrl()` depuis `src/lib/assets.ts`. Voir `.claude/rules/nextjs/server-client-components.md` et `.claude/rules/next-themes/theming.md` (CSS-only switch, pas de pattern `mounted`, pas de hydration mismatch).
 - **`NavLinks.tsx` (Client `'use client'`)** : reçoit `orientation: 'horizontal' | 'vertical'` + `labels: Record<NavSlug, string>` + optional `onLinkClick?: () => void`. Le hook `usePathname` (depuis `@/i18n/navigation`, retourne le path SANS préfixe locale) est requis → composant Client. Itère sur `NAV_ITEMS`, rend pour chaque entrée un `<Link href={item.href}>` localisé. Détection actif : `pathname === item.href` pour `/` exact, `pathname.startsWith(item.href)` pour les autres (couvre `/projets/[slug]` qui doit garder "Projets" actif). Style actif : `text-primary`. Style par défaut : `text-foreground hover:text-primary transition`. Layout horizontal : `flex items-center gap-6 text-sm font-medium`. Layout vertical : `flex flex-col gap-4 text-base font-medium pt-6` (tap target plus large pour mobile). Le callback `onLinkClick` est invoqué dans le `onClick` de chaque Link (utilisé par `MobileMenu` pour fermer le Sheet à la sélection). Voir `.claude/rules/react/hooks.md` et `.claude/rules/next-intl/translations.md`.
 - **`src/config/nav-items.ts`** : exporte `NAV_ITEMS` en constante TS `as const`, chaque entrée `{ slug: 'home' | 'services' | 'projects' | 'about' | 'contact', href: '/' | '/services' | '/projets' | '/a-propos' | '/contact' }`. Type `NavSlug = (typeof NAV_ITEMS)[number]['slug']` exporté pour le typage de `labels` dans `NavLinks`. Cohérent avec `src/config/social-links.ts` introduit par sub 05 (convention `src/config/` pour les constantes partagées cross-feature). Voir `.claude/rules/typescript/conventions.md`.
-- **`Navbar.tsx`** : reste Server Component. Récupère les labels via `getTranslations('Nav')` côté serveur, les passe en prop à `NavLinks`. Layout : `<header className="sticky top-0 z-50 backdrop-blur border-b border-border bg-background/80">` (le `bg-background/80` ajouté pour que le backdrop blur ait quelque chose à blur — la version actuelle n'en a pas). Container `nav` standard `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16`. Structure interne : `<BrandLogo />` (gauche, prend `<Link href="/">` autour pour cliquable retour accueil), puis `<NavLinks orientation="horizontal" labels={...} className="hidden md:flex" />` (caché en mobile), puis le bloc de droite `<div className="flex items-center gap-2">` qui contient `LanguageSwitcher` + `ThemeToggle` + `MobileMenu` (le hamburger est déjà `md:hidden` dans MobileMenu.tsx, OK). Suppression du TODO ligne 10. Voir `.claude/rules/tailwind/conventions.md` (container, tokens sémantiques) et `.claude/rules/nextjs/server-client-components.md`.
-- **`MobileMenu.tsx`** : devient stateful (`useState` pour controller le Sheet `open`). Le `SheetContent` reçoit le bloc `<NavLinks orientation="vertical" labels={...} onLinkClick={() => setOpen(false)} />`. Les labels sont passés en props (le composant reste Client mais reçoit les traductions du parent Server `MobileMenu` ? Non — `MobileMenu` est déjà Client, il appelle `useTranslations('Nav')` directement). `SheetTitle` accessible (requis par Radix pour a11y) : ajouter un titre visuellement masqué via `<VisuallyHidden>` ou `<SheetHeader>` `<SheetTitle>` avec `sr-only`. Voir `.claude/rules/react/hooks.md` (`useState` + `useTranslations` patterns).
+- **`Navbar.tsx`** : reste Server Component. Récupère les labels via `getTranslations('Nav')` côté serveur, les passe en prop à `NavLinks`. Layout : `<header className="sticky top-0 z-50 backdrop-blur border-b border-border bg-background/80">` (le `bg-background/80` ajouté pour que le backdrop blur ait quelque chose à blur, la version actuelle n'en a pas). Container `nav` standard `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16`. Structure interne : `<BrandLogo />` (gauche, prend `<Link href="/">` autour pour cliquable retour accueil), puis `<NavLinks orientation="horizontal" labels={...} className="hidden md:flex" />` (caché en mobile), puis le bloc de droite `<div className="flex items-center gap-2">` qui contient `LanguageSwitcher` + `ThemeToggle` + `MobileMenu` (le hamburger est déjà `md:hidden` dans MobileMenu.tsx, OK). Suppression du TODO ligne 10. Voir `.claude/rules/tailwind/conventions.md` (container, tokens sémantiques) et `.claude/rules/nextjs/server-client-components.md`.
+- **`MobileMenu.tsx`** : devient stateful (`useState` pour controller le Sheet `open`). Le `SheetContent` reçoit le bloc `<NavLinks orientation="vertical" labels={...} onLinkClick={() => setOpen(false)} />`. Les labels sont passés en props (le composant reste Client mais reçoit les traductions du parent Server `MobileMenu` ? Non, `MobileMenu` est déjà Client, il appelle `useTranslations('Nav')` directement). `SheetTitle` accessible (requis par Radix pour a11y) : ajouter un titre visuellement masqué via `<VisuallyHidden>` ou `<SheetHeader>` `<SheetTitle>` avec `sr-only`. Voir `.claude/rules/react/hooks.md` (`useState` + `useTranslations` patterns).
 - **Refacto `Footer.tsx`** : remplacer le bloc des 2 `<Image>` light/dark (lignes ~19-32) par un simple `<BrandLogo />`. Aucun changement de comportement visuel (mêmes assets, mêmes classes). Le `Link` href="/" autour du logo dans le footer reste à voir : aujourd'hui le logo Footer n'est pas cliquable, donc on garde `<BrandLogo />` nu (cohérence avec le comportement existant). Si on veut le rendre cliquable plus tard, ce sera un changement à part.
 - **i18n `Nav`** : structure flat `{ home, services, projects, about, contact }` dans `messages/{fr,en}.json` au même niveau que `Footer`, `ContactPage`, etc. Valeurs FR : "Accueil", "Services", "Projets", "À propos", "Contact". Valeurs EN : "Home", "Services", "Projects", "About", "Contact". Voir `.claude/rules/next-intl/translations.md`.
 - **Aucune modification de `DESIGN.md` dans ce sub-project** : la navbar est déjà documentée dans le mapping composants (`Navbar, Mobile Menu | shadcn/ui (NavigationMenu, Sheet)`) et le layout sticky avec backdrop blur est mentionné dans § Layout & Espacement. Le composant `BrandLogo` est une factorisation interne, pas une nouvelle entrée du design system.
@@ -90,7 +90,7 @@ Promotion de la liste des nav items vers une constante TS `src/config/nav-items.
 **AND** les nav links horizontaux sont masqués (`hidden md:flex` actif)
 **AND** aucun lien n'est dupliqué visuellement (les nav links sont uniquement dans le Sheet, ouvrable au clic)
 
-### Scénario 6 : MobileMenu — ouverture, navigation, fermeture
+### Scénario 6 : MobileMenu : ouverture, navigation, fermeture
 **GIVEN** un visiteur sur mobile clique sur le hamburger
 **WHEN** le `Sheet` s'ouvre depuis la droite
 **THEN** le `SheetContent` affiche les 5 nav links en vertical (`flex flex-col gap-4`) avec l'état actif identique à la version desktop
@@ -126,10 +126,10 @@ Promotion de la liste des nav items vers une constante TS `src/config/nav-items.
 ## Edge cases
 
 - **Route inconnue (404)** : `usePathname` retourne le path de la page 404 (`/_not-found` ou similaire). Aucun nav link ne match → tous restent en `text-foreground`. Comportement cohérent (pas de fausse mise en avant).
-- **Lien externe ou anchor (#section)** : non couvert MVP — `NAV_ITEMS` ne contient que des routes internes. Si on ajoute plus tard un lien externe (blog post-MVP), ajouter une prop `external?: boolean` à l'item config et conditionner le rendu (`<a target="_blank">` au lieu de `<Link>`).
+- **Lien externe ou anchor (#section)** : non couvert MVP, `NAV_ITEMS` ne contient que des routes internes. Si on ajoute plus tard un lien externe (blog post-MVP), ajouter une prop `external?: boolean` à l'item config et conditionner le rendu (`<a target="_blank">` au lieu de `<Link>`).
 - **JS désactivé côté visiteur** : `NavLinks` est Client mais le HTML rendu côté SSR contient déjà les bons liens et les bonnes classes. L'état actif est calculé au render serveur (le composant Client reçoit le HTML pré-rendu avec `text-primary` sur le bon lien). Pas de dégradation. Le `MobileMenu` Sheet ne s'ouvre pas sans JS (Radix requiert JS), mais en mobile sans JS le visiteur peut quand même voir le logo et les contrôles thème/langue, et naviguer en passant par les liens en pied de page (footer non couvert ici).
 - **next-themes flash initial avant hydratation** : le pattern `BrandLogo` 2 images CSS-only est immune (déjà validé par sub 05 footer). Pas de risque hydration mismatch.
-- **NAV_ITEMS muté à chaud (HMR dev)** : aucun impact runtime — `NAV_ITEMS` est `as const`, les composants se re-render normalement au save.
+- **NAV_ITEMS muté à chaud (HMR dev)** : aucun impact runtime, `NAV_ITEMS` est `as const`, les composants se re-render normalement au save.
 - **Locale fallback (visiteur sans header Accept-Language)** : le middleware next-intl redirige vers `/fr` (locale par défaut). Aucun impact sur la nav active.
 
 ## Architectural decisions
@@ -176,7 +176,7 @@ Promotion de la liste des nav items vers une constante TS `src/config/nav-items.
 - La navbar mobile n'est pas surchargée : `[Logo (180px max)] [Globe (36px)] [Sun/Moon (36px)] [Hamburger (36px)]` tient bien dans 375px (iPhone min).
 - Cohérence visuelle desktop/mobile : les contrôles transverses sont toujours au même endroit.
 
-### Décision : état actif — couleur primary vs underline vs pill
+### Décision : état actif : couleur primary vs underline vs pill
 
 **Options envisagées :**
 - **A. Couleur primary** : `text-primary` sur l'actif, `text-foreground hover:text-primary transition` sur les autres.

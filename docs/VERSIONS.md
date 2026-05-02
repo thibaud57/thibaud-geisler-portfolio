@@ -13,7 +13,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 1 | Node.js | `24.14.1` | ✅ LTS Active | Node 20 EOL le 30 avril 2026 — migrer en urgence |
+| 1 | Node.js | `24.14.1` | ✅ LTS Active | Node 20 EOL le 30 avril 2026, migrer en urgence |
 | 2 | pnpm | `10.33.0` | ✅ | Lifecycle scripts désactivés par défaut en v10 |
 | 3 | TypeScript | `6.0.2` | ✅ | `strict: true` et `module: esnext` par défaut |
 
@@ -49,7 +49,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
 | 21 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
-| 22 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest) — JSX transform (Babel, pas SWC) |
+| 22 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
 | 23 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
 
 ## Base de données
@@ -58,7 +58,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 |---|---|---|---|---|
 | 24 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
 | 25 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
-| 26 | pgvector | `0.8.2` | ✅ | **(post-MVP)** — CVE-2026-3172 corrigée en 0.8.2 |
+| 26 | pgvector | `0.8.2` | ✅ | **(post-MVP)**, CVE-2026-3172 corrigée en 0.8.2 |
 
 ## Auth (post-MVP)
 
@@ -91,7 +91,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 ### 1. Node.js
 
-**Version actuelle** : `24.14.1` (LTS Active — "Krypton")
+**Version actuelle** : `24.14.1` (LTS Active, "Krypton")
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v22 → v24)** :
@@ -125,7 +125,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v9 → v10)** :
-- Lifecycle scripts des dépendances désactivés par défaut (sécurité) → `allowBuilds` dans `pnpm-workspace.yaml` (package.json **silencieusement ignoré** en 10.33+, lister chaque package explicitement car wildcard `"*": true` non supporté — voir [issue #11171](https://github.com/pnpm/pnpm/issues/11171))
+- Lifecycle scripts des dépendances désactivés par défaut (sécurité) → `allowBuilds` dans `pnpm-workspace.yaml` (package.json **silencieusement ignoré** en 10.33+, lister chaque package explicitement car wildcard `"*": true` non supporté, voir [issue #11171](https://github.com/pnpm/pnpm/issues/11171))
 - `public-hoist-pattern` : rien hissé par défaut (eslint/prettier inclus)
 - `pnpm link -g` supprimé → `pnpm self-update`
 - v10.33 : `onlyBuiltDependencies`, `neverBuiltDependencies` supprimés → remplacés par `allowBuilds` (map pattern → boolean)
@@ -144,7 +144,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Issues connues** :
 - ~1-2% des packages supposent un `node_modules` plat (utiliser `public-hoist-pattern` si besoin)
 
-**Recommandation** : ✅ pnpm 10.33.0 (ADR-008 — package manager du projet).
+**Recommandation** : ✅ pnpm 10.33.0 (ADR-008, package manager du projet).
 
 ### 3. TypeScript
 
@@ -153,7 +153,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 **Breaking Changes Majeurs (v5 → v6)** :
 - `strict: true` par **défaut** (ne pas le forcer à `false`)
-- `module` passe à `esnext` par défaut (plus `commonjs`) — peut casser les projets CJS
+- `module` passe à `esnext` par défaut (plus `commonjs`), peut casser les projets CJS
 - `target` passe à `es2025` par défaut
 - `--moduleResolution node` (node10) déprécié → `bundler` ou `nodenext`
 - `--moduleResolution classic` supprimé
@@ -190,7 +190,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v15 → v16)** :
-- **Async Request APIs** : accès synchrone à `cookies()`, `headers()`, `params`, `searchParams` supprimé — tout est `async`/`await`
+- **Async Request APIs** : accès synchrone à `cookies()`, `headers()`, `params`, `searchParams` supprimé, tout est `async`/`await`
 - **`middleware.ts` → `proxy.ts`** : fichier renommé, fonction exportée renommée `proxy`, runtime `edge` non supporté (uniquement `nodejs`)
 - **Turbopack par défaut pour `next dev` ET `next build`** (stable depuis Next 16.0 pour le build de production, opt-out via `--webpack` si besoin)
 - **`revalidateTag`** : 2e argument requis, nouvelle API `updateTag`
@@ -210,7 +210,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - React 19.2 : ✅ (inclus)
 - shadcn/ui : ✅
 - next-intl : ✅ (>= 4.4 requis, 4.9.1 recommandé)
-- Prisma 7 : ⚠️ (setup standard fonctionne en dev, mais issue WASM active avec Turbopack build — voir Issues connues section 17)
+- Prisma 7 : ⚠️ (setup standard fonctionne en dev, mais issue WASM active avec Turbopack build, voir Issues connues section 17)
 - Pino : ⚠️ `serverExternalPackages` obligatoire
 
 **Recommandation** : ✅ Next.js 16.2.4. Suivre le guide officiel Prisma + Next.js pour la config client/adapter.
@@ -227,7 +227,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - **Legacy Context API** (`contextTypes`, `getChildContext`) : retirée
 - **`useFormState`** (ReactDOM) → renommé `useActionState` (React)
 - **`<Context.Provider>`** déprécié → utiliser `<Context>` directement
-- **`forwardRef`** : **déprécié** (fonctionne encore) — `ref` est désormais une prop normale des function components. `element.ref` aussi déprécié → utiliser `element.props.ref`
+- **`forwardRef`** : **déprécié** (fonctionne encore), `ref` est désormais une prop normale des function components. `element.ref` aussi déprécié → utiliser `element.props.ref`
 - **`useRef()`** sans argument : interdit en TypeScript (doit être `useRef(null)`)
 - **`ReactElement` props** : type par défaut passe de `any` à `unknown`
 - **Erreurs de rendu** : ne sont plus re-throw, rapportées via `window.reportError` / `console.error`
@@ -236,17 +236,17 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - **`react-dom/test-utils`** : `act` déplacé dans `react`, le reste supprimé
 
 **Nouvelles Features Pertinentes** :
-- **v19.0** — **Actions / async transitions** : support des fonctions `async` dans `startTransition` avec gestion automatique pending/erreurs/reset
-- **v19.0** — `useActionState`, `useOptimistic`, `useFormStatus`
-- **v19.0** — `use()` : lire une Promise ou un contexte directement dans le rendu (avec Suspense)
-- **v19.0** — Métadonnées document dans les composants (`<title>`, `<meta>`, `<link>` hoistés vers `<head>`)
-- **v19.0** — APIs de préchargement : `preload`, `preinit`, `prefetchDNS`, `preconnect`
-- **v19.0** — Support des Custom Elements, stylesheets avec `precedence`, scripts async dédupliqués
-- **v19.2** — `useEffectEvent` stable (extraire la logique "événement" d'un `useEffect` sans polluer les deps)
-- **v19.2** — `Activity` component stable (mode `visible`/`hidden` pour pré-rendre ou sauvegarder l'état de routes cachées)
-- **v19.2** — `cacheSignal` (Server Components uniquement)
-- **v19.2** — Performance Tracks (pistes custom Chrome DevTools : Scheduler, Components)
-- **v19.2** — Partial Pre-rendering stable : `prerender()`, `resume()`, `resumeAndPrerender()`
+- **v19.0** : **Actions / async transitions** : support des fonctions `async` dans `startTransition` avec gestion automatique pending/erreurs/reset
+- **v19.0** : `useActionState`, `useOptimistic`, `useFormStatus`
+- **v19.0** : `use()` : lire une Promise ou un contexte directement dans le rendu (avec Suspense)
+- **v19.0** : Métadonnées document dans les composants (`<title>`, `<meta>`, `<link>` hoistés vers `<head>`)
+- **v19.0** : APIs de préchargement : `preload`, `preinit`, `prefetchDNS`, `preconnect`
+- **v19.0** : Support des Custom Elements, stylesheets avec `precedence`, scripts async dédupliqués
+- **v19.2** : `useEffectEvent` stable (extraire la logique "événement" d'un `useEffect` sans polluer les deps)
+- **v19.2** : `Activity` component stable (mode `visible`/`hidden` pour pré-rendre ou sauvegarder l'état de routes cachées)
+- **v19.2** : `cacheSignal` (Server Components uniquement)
+- **v19.2** : Performance Tracks (pistes custom Chrome DevTools : Scheduler, Components)
+- **v19.2** : Partial Pre-rendering stable : `prerender()`, `resume()`, `resumeAndPrerender()`
 
 **À noter** :
 - **`<ViewTransition>`** : **uniquement en Canary/Experimental** en 19.2 stable, pas encore GA
@@ -257,7 +257,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - Magic UI / Aceternity UI : ✅
 - `eslint-plugin-react-hooks` v6 requis pour le lint `useEffectEvent`
 
-**Recommandation** : ✅ Ne pas installer React manuellement — laisser Next.js gérer la version.
+**Recommandation** : ✅ Ne pas installer React manuellement, laisser Next.js gérer la version.
 
 ### 6. Tailwind CSS
 
@@ -295,7 +295,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Version actuelle** : `shadcn@4.2.0` (CLI)
 **Stabilité** : ✅
 
-shadcn/ui n'est pas une lib npm classique — les composants sont copiés localement dans le projet.
+shadcn/ui n'est pas une lib npm classique, les composants sont copiés localement dans le projet.
 
 **Breaking Changes Majeurs** :
 - Style par défaut : **new-york** (ancien style "default" déprécié)
@@ -328,7 +328,7 @@ pnpm dlx shadcn@latest init
 **Stabilité** : ✅ actif et maintenu
 
 **Breaking Changes Majeurs** :
-- Tailwind v4 + React 19 par défaut depuis avril 2025 — `tailwind.config.ts` n'est plus requis
+- Tailwind v4 + React 19 par défaut depuis avril 2025, `tailwind.config.ts` n'est plus requis
 - Site `v3.magicui.design` conserve la variante Tailwind v3 pour l'ancienne méthode
 
 **Nouvelles Features Pertinentes** :
@@ -342,7 +342,7 @@ pnpm dlx shadcn@latest init
 
 **Issues connues** :
 - shadcn CLI > 2.8.0 peut générer des imports sans alias `@/` dans certains composants Magic UI → vérifier/ajuster les imports après ajout
-- Package npm `magicui-cli` abandonné — ne pas l'utiliser
+- Package npm `magicui-cli` abandonné, ne pas l'utiliser
 
 **Installation** :
 ```bash
@@ -375,7 +375,7 @@ pnpm dlx shadcn@latest add "https://magicui.design/r/<component>.json"
 - shadcn CLI : ✅
 
 **Issues connues** :
-- Package npm `aceternity-ui` (v0.2.2) abandonné — ne pas l'utiliser
+- Package npm `aceternity-ui` (v0.2.2) abandonné, ne pas l'utiliser
 
 **Installation** :
 ```bash
@@ -409,7 +409,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 - TypeScript : ✅ (types ré-exportés depuis v0.4.2)
 
 **Issues connues** :
-- `useTheme().theme` toujours `undefined` côté serveur — retarder l'UI théme-dépendante avec `isMounted`
+- `useTheme().theme` toujours `undefined` côté serveur, retarder l'UI théme-dépendante avec `isMounted`
 - `suppressHydrationWarning` **obligatoire** sur `<html>`
 - Projet peu maintenu (≈1 release/an, mais stable)
 
@@ -466,7 +466,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Breaking Changes Majeurs (v3 → v4)** :
 - **Validateurs string déplacés en top-level** : `.email()`, `.uuid()`, `.url()` → `z.email()`, `z.uuid()`
-- `z.uuid()` enforce RFC 9562 — utiliser `z.guid()` pour l'ancien comportement
+- `z.uuid()` enforce RFC 9562, utiliser `z.guid()` pour l'ancien comportement
 - Erreurs : `message`, `invalid_type_error`, `required_error` → `error` unique
 - `.strict()`, `.passthrough()`, `.strip()`, `.merge()` sur les objets dépréciés → `z.strictObject()`, `z.looseObject()`, `.extend()`
 - Les infinis ne sont plus des nombres valides
@@ -532,7 +532,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 - TypeScript : ✅ (types plus stricts en v10)
 - Next.js App Router : ⚠️ bundling à contourner
 
-**Issue — Next.js App Router** :
+**Issue : Next.js App Router** :
 Next.js tente de bundler Pino incorrectement. Solution dans `next.config.ts` :
 
 ```ts
@@ -567,7 +567,7 @@ serverExternalPackages: ['pino', 'pino-pretty']
 - `@testing-library/react 16.x` : ✅ (combo officiel)
 - `@testing-library/jest-dom`, `@testing-library/user-event` : ✅
 - TypeScript : ✅ (support natif via Vite/Oxc)
-- Next.js : ✅ — **limitation** : les async Server Components ne sont pas testables en unit tests (passer en E2E via Playwright)
+- Next.js : ✅, **limitation** : les async Server Components ne sont pas testables en unit tests (passer en E2E via Playwright)
 
 **Setup minimal** :
 ```bash
@@ -620,7 +620,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - **Output obligatoire** : champ `output` requis dans le `generator`
 - **Driver adapter obligatoire** : `@prisma/adapter-pg` pour PostgreSQL
 - **`prisma.config.ts`** : fichier centralisé, `url` dans `schema.prisma` déprécié
-- **`.env` non chargé automatiquement** : utiliser `@next/env` (`loadEnvConfig(process.cwd())`) en tête de `prisma.config.ts` — recommandation officielle Next.js pour charger les env vars hors runtime Next
+- **`.env` non chargé automatiquement** : utiliser `@next/env` (`loadEnvConfig(process.cwd())`) en tête de `prisma.config.ts`, recommandation officielle Next.js pour charger les env vars hors runtime Next
 - **`prisma migrate dev`** ne lance plus `prisma generate` automatiquement
 - **Seeding automatique supprimé** : lancer `pnpm prisma db seed` explicitement
 - **API `$use()` supprimée** → `$extends()`
@@ -641,7 +641,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - Better Auth : ✅ (charger `.env` explicitement au runtime, voir section Better Auth)
 
 **Issues connues & gotchas** :
-- **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts` — recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
+- **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts`, recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
 - **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). Issue active : la résolution du module WASM `query_compiler_fast_bg.postgresql.mjs` échoue en build Turbopack avec le provider `prisma-client` v7. **Workaround** : opt-out via `next build --webpack` dans le Dockerfile/CI jusqu'à correction upstream. Surveiller l'état de l'issue avant chaque upgrade.
 - **CI/CD avec build séparé du déploiement** (issue #29025) : si tu buildes en CI puis déploies les artifacts ailleurs en relançant `prisma generate`, hash mismatch possible. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Dokploy build directement sur le serveur**, donc non concerné.
 - **Server Components** : après upgrade v6→v7, ajouter `await connection()` dans les pages utilisant Prisma
@@ -667,7 +667,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 
 **Compatibilité Écosystème** :
 - PostgreSQL 18 : ✅ (depuis 0.8.1)
-- Prisma 7 : ⚠️ support partiel — `Unsupported("vector")` + migrations SQL manuelles (`CREATE EXTENSION IF NOT EXISTS vector`) + TypedSQL pour les queries. Pas de support natif GA.
+- Prisma 7 : ⚠️ support partiel : `Unsupported("vector")` + migrations SQL manuelles (`CREATE EXTENSION IF NOT EXISTS vector`) + TypedSQL pour les queries. Pas de support natif GA.
 - Docker : ✅ image `pgvector/pgvector:pg18`
 
 **Recommandation** : ✅ pgvector 0.8.2 au moment de l'activation du chatbot RAG.
@@ -696,7 +696,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 
 **Compatibilité Écosystème** :
 - Next.js 15 : ✅
-- Next.js 16 : ✅ (workaround `use cache` + `getServerSession` : extraire les cookies avant le scope cache et les passer en argument — Issue #5584 fermée NOT_PLANNED, c'est une contrainte Next.js pas un bug Better Auth)
+- Next.js 16 : ✅ (workaround `use cache` + `getServerSession` : extraire les cookies avant le scope cache et les passer en argument, Issue #5584 fermée NOT_PLANNED, c'est une contrainte Next.js pas un bug Better Auth)
 - PostgreSQL : ✅
 - Prisma v7 + `@prisma/adapter-pg` : ✅ à condition de **charger `.env` explicitement** dans `prisma.config.ts` via `@next/env` (`loadEnvConfig(process.cwd())`). L'erreur P1010 "User was denied access" vient d'une `DATABASE_URL` manquante, pas d'un bug Prisma 7
 - Google OAuth : ✅ (provider built-in)
@@ -753,7 +753,7 @@ export default defineConfig({
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v2 → v5)** :
-- **Docker Compose v1** (`docker-compose`) entièrement supprimé depuis avril 2025 — utiliser `docker compose` (plugin CLI)
+- **Docker Compose v1** (`docker-compose`) entièrement supprimé depuis avril 2025, utiliser `docker compose` (plugin CLI)
 - **Build délégué à Docker Bake** (v5.0) : le builder interne est retiré
 - **Champ `version:` dans le YAML** désormais ignoré
 - **Numérotation v2 → v5** : saut direct pour éviter la confusion avec les formats de fichier v2/v3
@@ -775,7 +775,7 @@ export default defineConfig({
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs** :
-- v0.26.0 : **rollbacks registry-based uniquement** — un registre externe (Docker Hub, Quay.io, etc.) est obligatoire pour la fonctionnalité de rollback
+- v0.26.0 : **rollbacks registry-based uniquement**, un registre externe (Docker Hub, Quay.io, etc.) est obligatoire pour la fonctionnalité de rollback
 - v0.26.6 : script de sécurité obligatoire à exécuter **avant tout upgrade vers v0.28.x** (sinon mismatch mot de passe PostgreSQL au démarrage)
 - v0.25.0 : Traefik interne upgradé à **v3.5.0** (la mise à jour n'est PAS automatique à l'upgrade Dokploy)
 - v0.28.6 → v0.28.8 : fix du bug healthcheck Docker au démarrage (PR #4167)
@@ -808,9 +808,9 @@ export default defineConfig({
 **Breaking Changes Majeurs** :
 - **Runner Ubuntu** :
   - `ubuntu-latest` repointé sur `ubuntu-24.04` le **17 janvier 2025** (rollout initié le 5 décembre 2024)
-  - `ubuntu-20.04` retiré définitivement le **15 avril 2025** — toute référence à ce label échoue
+  - `ubuntu-20.04` retiré définitivement le **15 avril 2025**, toute référence à ce label échoue
   - Différences de packages pré-installés sur ubuntu-24.04 vs 22.04 (certains outils retirés pour respecter le SLA de disk space)
-- **actions/setup-node v5 → v6** : **cache automatique retiré pour pnpm/yarn** — le cache auto est désormais limité à npm uniquement. Pour pnpm, ajouter `cache: 'pnpm'` explicitement. Source : [PR #1374](https://github.com/actions/setup-node/pull/1374). Retrait aussi de `always-auth`. Runtime Node 20 → Node 24
+- **actions/setup-node v5 → v6** : **cache automatique retiré pour pnpm/yarn**, le cache auto est désormais limité à npm uniquement. Pour pnpm, ajouter `cache: 'pnpm'` explicitement. Source : [PR #1374](https://github.com/actions/setup-node/pull/1374). Retrait aussi de `always-auth`. Runtime Node 20 → Node 24
 - **actions/checkout v5 → v6** : credentials ne sont plus écrits inline dans `.git/config`, stockés dans un fichier séparé (impact potentiel sur les outils qui lisent `.git/config` directement)
 - **pnpm/action-setup v3 → v4** : erreur levée si la version `packageManager` du `package.json` contredit celle spécifiée dans l'action (avant : conflit ignoré silencieusement)
 - **Immutable Actions (février 2025)** : nouveaux domaines à autoriser pour les self-hosted runners (`pkg.actions.githubusercontent.com`, `ghcr.io`)
@@ -827,7 +827,7 @@ export default defineConfig({
 - PostgreSQL 18 : ✅ via service container (image Docker `postgres:18`)
 
 **Points d'attention** :
-- `ubuntu-latest` pointe actuellement sur `ubuntu-24.04` mais peut basculer sans préavis — **épingler explicitement la version**
+- `ubuntu-latest` pointe actuellement sur `ubuntu-24.04` mais peut basculer sans préavis, **épingler explicitement la version**
 - Node 24 **pas défaut** sur ubuntu-24.04 : Node 20.20.2 est le défaut au lancement du runner (issue ouverte GitHub), utiliser `setup-node@v6` avec `node-version: 24`
 - Node.js 20 EOL sur runner le 30 avril 2026
 
@@ -869,7 +869,7 @@ export default defineConfig({
 - PostgreSQL pg_dump : ✅
 
 **Points d'attention** :
-- Configurer une règle de lifecycle R2 (Bucket → Settings → Lifecycle rules → delete after 7 days) — plus fiable que `rclone delete --min-age 7d`
+- Configurer une règle de lifecycle R2 (Bucket → Settings → Lifecycle rules → delete after 7 days), plus fiable que `rclone delete --min-age 7d`
 - API tokens à gérer dans Dokploy (variables d'env)
 - Endpoint : `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
 - Pas de versioning S3 natif : la rotation des backups doit être gérée côté rclone ou lifecycle rules
@@ -885,7 +885,7 @@ export default defineConfig({
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v1 → v2)** :
-- **MySQL et MariaDB supprimés** — PostgreSQL obligatoire en production
+- **MySQL et MariaDB supprimés**, PostgreSQL obligatoire en production
 - SQLite legacy supprimé (déconseillé en prod)
 - Mode binaire en mémoire supprimé
 - Task runner retiré de l'image Docker principale → image séparée `n8nio/runners`
@@ -912,7 +912,7 @@ export default defineConfig({
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v2 → v3)** :
-- **MySQL/MariaDB supprimés** — PostgreSQL obligatoire
+- **MySQL/MariaDB supprimés**, PostgreSQL obligatoire
 - Dashboard unifié retiré (remplacé par système "Boards")
 - Changements API `/metrics/` non documentés (clients v2 → 400)
 - Migration automatique peut perdre des event data (seuls les websites préservés)
@@ -954,7 +954,7 @@ import Script from 'next/script'
 
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
-| Next.js 16.2.4 | Prisma 7.7.0 | ⚠️ | Setup standard fonctionne en dev. En build : Turbopack est le défaut Next 16, issue WASM active avec `prisma-client` v7 (`query_compiler_fast_bg.postgresql.mjs` not found) — workaround `next build --webpack` |
+| Next.js 16.2.4 | Prisma 7.7.0 | ⚠️ | Setup standard fonctionne en dev. En build : Turbopack est le défaut Next 16, issue WASM active avec `prisma-client` v7 (`query_compiler_fast_bg.postgresql.mjs` not found), workaround `next build --webpack` |
 | Next.js 16.2.4 | next-intl 4.9.1 | ✅ | Nécessite Next.js >= 16.2 pour `use cache` |
 | Next.js 16.2.4 | TypeScript 6.0.2 | ✅ | TypeScript >= 5.1 requis |
 | Next.js 16.2.4 | Pino 10.3.1 | ⚠️ | `serverExternalPackages` requis |
@@ -981,7 +981,7 @@ import Script from 'next/script'
 | Dokploy 0.28.8 | Traefik 3.5 | ✅ | Upgrade Traefik non automatique |
 | PostgreSQL 18.3 | pgvector 0.8.2 | ✅ | Support PG 18 depuis 0.8.1 |
 | PostgreSQL 18.3 | n8n 2.15.1 | ⚠️ | PG 18 non officiellement testé (doc n8n : PG 13-17) |
-| PostgreSQL 18.3 | Umami 3.0.3 | ⚠️ | Issue #3888 ouverte avec PG 17.6 — vérifier PG 18 |
+| PostgreSQL 18.3 | Umami 3.0.3 | ⚠️ | Issue #3888 ouverte avec PG 17.6, vérifier PG 18 |
 
 ---
 
@@ -992,12 +992,12 @@ import Script from 'next/script'
 | nodemailer < 8.0.5 + CRLF injection | 🔴 Critique | Pinner nodemailer >= 8.0.5 dans `package.json` |
 | pgvector < 0.8.2 + CVE-2026-3172 | 🔴 Critique | Utiliser pgvector 0.8.2 minimum dès l'activation du RAG |
 | Node.js 20 EOL (30 avril 2026) | 🔴 Critique | Migrer vers Node.js 24 LTS avant cette date (image Docker) |
-| Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` — recommandation Next.js. Cause de l'erreur P1010 si oublié |
+| Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, recommandation Next.js. Cause de l'erreur P1010 si oublié |
 | Pino + Next.js App Router (bundling) | 🟡 Moyen | `serverExternalPackages: ['pino', 'pino-pretty']` dans `next.config.ts` |
 | next-intl + `use cache` (Next 16.0/16.1) | 🟡 Moyen | Utiliser Next.js >= 16.2.4 (version cible du projet) |
-| TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS — migrer les `require()` si présents |
+| TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS, migrer les `require()` si présents |
 | Umami + PostgreSQL 18 | 🟡 Moyen | Valider en staging avant prod post-MVP (issue #3888 sur PG 17.6) |
-| n8n + PostgreSQL 18 | 🟡 Moyen | Doc officielle limite à PG 17 — tester avant prod post-MVP |
+| n8n + PostgreSQL 18 | 🟡 Moyen | Doc officielle limite à PG 17, tester avant prod post-MVP |
 | Docker 29 + Dokploy | 🟡 Moyen | Vérifier que Dokploy est à jour avant d'upgrader Docker |
 | Better Auth + `use cache` (Next.js 16) | 🟢 Faible | Extraire les cookies via `(await cookies()).toString()` **avant** le scope cache, passer en argument à `getServerSession` (Issue #5584) |
 | Prisma 7 + Turbopack build (défaut Next 16) | 🟡 Moyen | Turbopack est le **défaut** de `next build` en Next 16. Issue WASM active avec `prisma-client` v7 : opt-out via `next build --webpack` dans le Dockerfile jusqu'à correction upstream |
@@ -1293,9 +1293,9 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 1. **Node.js 20 EOL (30 avril 2026)** : basculer l'image Docker sur `node:24-alpine` avant cette date
 2. **nodemailer < 8.0.5** : vulnérabilité CRLF, ne jamais déployer une version antérieure
 3. **pgvector CVE-2026-3172** : pinner >= 0.8.2 dès l'activation du RAG
-4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` — la cause principale de l'erreur P1010 "User was denied access"
+4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, la cause principale de l'erreur P1010 "User was denied access"
 5. **Umami + n8n + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (bases séparées de celle du portfolio)
-6. **Dokploy 0.26+** : rollbacks registry-based — configurer un registre externe (Docker Hub / GHCR) dès le MVP pour garder la fonctionnalité
+6. **Dokploy 0.26+** : rollbacks registry-based, configurer un registre externe (Docker Hub / GHCR) dès le MVP pour garder la fonctionnalité
 7. **Pino + Next.js App Router** : `serverExternalPackages: ['pino', 'pino-pretty']` obligatoire dans `next.config.ts`
 
 ## ROI / Avantages
@@ -1316,81 +1316,81 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 
 ### Runtime & Tooling
 
-- [Node.js — Releases](https://nodejs.org/en/about/previous-releases)
+- [Node.js : Releases](https://nodejs.org/en/about/previous-releases)
 - [Node.js v22 → v24 Migration Guide](https://nodejs.org/en/blog/migrations/v22-to-v24)
-- [pnpm — Installation](https://pnpm.io/installation)
-- [pnpm — Working with TypeScript](https://pnpm.io/next/typescript)
+- [pnpm : Installation](https://pnpm.io/installation)
+- [pnpm : Working with TypeScript](https://pnpm.io/next/typescript)
 - [TypeScript 6.0 Release](https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/)
 
 ### Framework & UI
 
-- [Next.js — Upgrade v16](https://nextjs.org/docs/app/guides/upgrading/version-16)
+- [Next.js : Upgrade v16](https://nextjs.org/docs/app/guides/upgrading/version-16)
 - [Next.js 16 Blog](https://nextjs.org/blog/next-16)
 - [React 19 Release Notes](https://react.dev/blog/2024/12/05/react-19)
-- [Tailwind CSS — Upgrade Guide v4](https://tailwindcss.com/docs/upgrade-guide)
-- [shadcn/ui — Installation Next.js](https://ui.shadcn.com/docs/installation/next)
-- [shadcn/ui — Tailwind v4](https://ui.shadcn.com/docs/tailwind-v4)
-- [shadcn/ui — React 19](https://ui.shadcn.com/docs/react-19)
-- [Magic UI — Docs](https://magicui.design/docs)
-- [Aceternity UI — Install Next.js](https://ui.aceternity.com/docs/install-nextjs)
-- [next-themes — GitHub](https://github.com/pacocoursey/next-themes)
+- [Tailwind CSS : Upgrade Guide v4](https://tailwindcss.com/docs/upgrade-guide)
+- [shadcn/ui : Installation Next.js](https://ui.shadcn.com/docs/installation/next)
+- [shadcn/ui : Tailwind v4](https://ui.shadcn.com/docs/tailwind-v4)
+- [shadcn/ui : React 19](https://ui.shadcn.com/docs/react-19)
+- [Magic UI : Docs](https://magicui.design/docs)
+- [Aceternity UI : Install Next.js](https://ui.aceternity.com/docs/install-nextjs)
+- [next-themes : GitHub](https://github.com/pacocoursey/next-themes)
 - [next-intl 4.0 Blog](https://next-intl.dev/blog/next-intl-4-0)
 
 ### Librairies applicatives
 
 - [Zod v4 Migration](https://zod.dev/v4/changelog)
-- [nodemailer — Documentation](https://nodemailer.com/)
-- [nodemailer — GitHub Releases](https://github.com/nodemailer/nodemailer/releases)
-- [Pino — getpino.io](https://getpino.io)
+- [nodemailer : Documentation](https://nodemailer.com/)
+- [nodemailer : GitHub Releases](https://github.com/nodemailer/nodemailer/releases)
+- [Pino : getpino.io](https://getpino.io)
 - [pino-nextjs-example](https://github.com/pinojs/pino-nextjs-example)
 
 ### Tests
 
 - [Vitest 4.0 Blog](https://vitest.dev/blog/vitest-4)
-- [Vitest — Migration Guide](https://main.vitest.dev/guide/migration)
+- [Vitest : Migration Guide](https://main.vitest.dev/guide/migration)
 - [Testing: Vitest | Next.js](https://nextjs.org/docs/app/guides/testing/vitest)
 
 ### Base de données
 
-- [PostgreSQL 18 — Release Notes](https://www.postgresql.org/docs/current/release-18.html)
-- [Prisma — Migration v7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)
+- [PostgreSQL 18 : Release Notes](https://www.postgresql.org/docs/current/release-18.html)
+- [Prisma : Migration v7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7)
 - [Prisma + Next.js](https://www.prisma.io/docs/guides/frameworks/nextjs)
-- [Prisma — Supported Databases](https://www.prisma.io/docs/orm/reference/supported-databases)
-- [prisma/nextjs-auth-starter](https://github.com/prisma/nextjs-auth-starter) — starter officiel Prisma 7 + Next.js 16 + Better Auth
-- [pgvector — GitHub](https://github.com/pgvector/pgvector)
+- [Prisma : Supported Databases](https://www.prisma.io/docs/orm/reference/supported-databases)
+- [prisma/nextjs-auth-starter](https://github.com/prisma/nextjs-auth-starter), starter officiel Prisma 7 + Next.js 16 + Better Auth
+- [pgvector : GitHub](https://github.com/pgvector/pgvector)
 - [pgvector 0.8.2 Release](https://www.postgresql.org/about/news/pgvector-082-released-3245/)
 
 ### Auth (post-MVP)
 
-- [Better Auth — Changelog](https://better-auth.com/changelog)
+- [Better Auth : Changelog](https://better-auth.com/changelog)
 - [Better Auth + Prisma + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
-- [Google Cloud Console — OAuth 2.0](https://console.cloud.google.com/apis/credentials)
+- [Google Cloud Console : OAuth 2.0](https://console.cloud.google.com/apis/credentials)
 
 ### Infrastructure
 
 - [Docker Engine v29](https://docs.docker.com/engine/release-notes/29/)
 - [Docker Compose v5 Release Notes](https://docs.docker.com/compose/releases/release-notes/)
-- [Dokploy — Installation](https://docs.dokploy.com/docs/core/installation)
-- [Dokploy — Troubleshooting](https://docs.dokploy.com/docs/core/troubleshooting)
-- [Dokploy v0.28.8 — Release](https://github.com/Dokploy/dokploy/releases/tag/v0.28.8)
-- [GitHub Actions — ubuntu-24.04 runner](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md)
+- [Dokploy : Installation](https://docs.dokploy.com/docs/core/installation)
+- [Dokploy : Troubleshooting](https://docs.dokploy.com/docs/core/troubleshooting)
+- [Dokploy v0.28.8 : Release](https://github.com/Dokploy/dokploy/releases/tag/v0.28.8)
+- [GitHub Actions : ubuntu-24.04 runner](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md)
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
-- [rclone — Cloudflare R2](https://rclone.org/s3/#cloudflare-r2)
+- [rclone : Cloudflare R2](https://rclone.org/s3/#cloudflare-r2)
 
 ### Services externes (post-MVP)
 
-- [n8n — Self-hosting Docker](https://docs.n8n.io/hosting/installation/docker/)
+- [n8n : Self-hosting Docker](https://docs.n8n.io/hosting/installation/docker/)
 - [n8n v2.0 Breaking Changes](https://docs.n8n.io/2-0-breaking-changes/)
-- [Umami — Installation](https://docs.umami.is/docs/install)
+- [Umami : Installation](https://docs.umami.is/docs/install)
 - [Umami v3 Blog](https://umami.is/blog/umami-v3)
 
 ## Ressources Complémentaires
 
-- [endoflife.date — Node.js](https://endoflife.date/nodejs)
-- [endoflife.date — PostgreSQL](https://endoflife.date/postgresql)
-- [endoflife.date — Docker Engine](https://endoflife.date/docker-engine)
-- [endoflife.date — pnpm](https://endoflife.date/pnpm)
-- [Docker Hub — node:24-alpine](https://hub.docker.com/_/node)
-- [Docker Hub — postgres:18](https://hub.docker.com/_/postgres)
-- [GHSA-vvjj-xcjg-gr5g — nodemailer CRLF](https://github.com/advisories/GHSA-vvjj-xcjg-gr5g)
+- [endoflife.date : Node.js](https://endoflife.date/nodejs)
+- [endoflife.date : PostgreSQL](https://endoflife.date/postgresql)
+- [endoflife.date : Docker Engine](https://endoflife.date/docker-engine)
+- [endoflife.date : pnpm](https://endoflife.date/pnpm)
+- [Docker Hub : node:24-alpine](https://hub.docker.com/_/node)
+- [Docker Hub : postgres:18](https://hub.docker.com/_/postgres)
+- [GHSA-vvjj-xcjg-gr5g : nodemailer CRLF](https://github.com/advisories/GHSA-vvjj-xcjg-gr5g)
 - [The Twelve-Factor App](https://12factor.net/)

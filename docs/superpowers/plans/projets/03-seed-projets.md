@@ -1,10 +1,10 @@
-# Seed Prisma — Upsert projets + tags + companies — Implementation Plan
+# Seed Prisma: Upsert projets + tags + companies: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Peupler `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag` depuis des fichiers TypeScript déclaratifs + des fichiers markdown séparés (case studies), via un script `prisma/seed.ts` idempotent exécutable par `pnpm prisma db seed`. Le plan est **100% automatisable** par subagent-driven-development une fois les prérequis externes (curation pré-plan) satisfaits.
 
-**Architecture:** 3 fichiers TypeScript + 1 dossier markdown scindé en 2 sous-dossiers. `prisma/seed-data/tags.ts` (array `TagInput[]`, sans `displayOrder`). `prisma/seed-data/companies.ts` (array `CompanyInput[]` avec sectors/size/locations multi-enums FR). `prisma/seed-data/projects.ts` (array `ProjectInput[]` avec `formats`, `clientMeta` nested référençant une Company par `companySlug`, `tagSlugs: string[]` **ordonné** — pas de champ `caseStudyMarkdown` inline). `prisma/seed-data/case-studies/client/<slug>.md` + `prisma/seed-data/case-studies/personal/<slug>.md` (deux sous-dossiers miroirs de `ProjectType`, contenu narratif par projet). `prisma/seed.ts` (orchestration : PrismaClient dédié + upsert tags + upsert companies PUIS upsert projets avec synchronisation `ProjectTag` via `tags: { deleteMany: {}, create: tagSlugs.map((slug, index) => ({ displayOrder: index, tag: { connect: { slug } } })) }` + `clientMeta.upsert` nested qui connecte la company via `company: { connect: { slug: ... } }` + résolution `caseStudyMarkdown` via helper `readCaseStudy(slug, type)` qui lit le `.md` correspondant).
+**Architecture:** 3 fichiers TypeScript + 1 dossier markdown scindé en 2 sous-dossiers. `prisma/seed-data/tags.ts` (array `TagInput[]`, sans `displayOrder`). `prisma/seed-data/companies.ts` (array `CompanyInput[]` avec sectors/size/locations multi-enums FR). `prisma/seed-data/projects.ts` (array `ProjectInput[]` avec `formats`, `clientMeta` nested référençant une Company par `companySlug`, `tagSlugs: string[]` **ordonné**, pas de champ `caseStudyMarkdown` inline). `prisma/seed-data/case-studies/client/<slug>.md` + `prisma/seed-data/case-studies/personal/<slug>.md` (deux sous-dossiers miroirs de `ProjectType`, contenu narratif par projet). `prisma/seed.ts` (orchestration : PrismaClient dédié + upsert tags + upsert companies PUIS upsert projets avec synchronisation `ProjectTag` via `tags: { deleteMany: {}, create: tagSlugs.map((slug, index) => ({ displayOrder: index, tag: { connect: { slug } } })) }` + `clientMeta.upsert` nested qui connecte la company via `company: { connect: { slug: ... } }` + résolution `caseStudyMarkdown` via helper `readCaseStudy(slug, type)` qui lit le `.md` correspondant).
 
 **Tech Stack:** Prisma 7 ESM-only, PostgreSQL 18, Node.js 24, TypeScript 6, `tsx` pour exécution directe TS.
 
@@ -49,7 +49,7 @@ Run:
 ```bash
 docker compose exec postgres psql -U portfolio -d portfolio -c "\dt"
 ```
-Expected : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag`, `_prisma_migrations` présents (pas de `_ProjectToTag` — on a migré vers `ProjectTag` explicite).
+Expected : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag`, `_prisma_migrations` présents (pas de `_ProjectToTag`, on a migré vers `ProjectTag` explicite).
 
 ---
 
@@ -148,7 +148,7 @@ Run:
 ```bash
 pnpm typecheck
 ```
-Expected : 0 erreur (même avec tableau vide — TypeScript accepte `TagInput[]`).
+Expected : 0 erreur (même avec tableau vide, TypeScript accepte `TagInput[]`).
 
 ---
 
@@ -402,7 +402,7 @@ Run:
 ```bash
 ls prisma/seed-data/case-studies/client/*.md prisma/seed-data/case-studies/personal/*.md 2>/dev/null | wc -l
 ```
-Expected : au moins 1 fichier `.md` (hors `.gitkeep`). Un 0 n'est pas bloquant (le seed accepte `caseStudyMarkdown = null`), mais suggère que la curation est encore incomplète — poursuivre avec prudence.
+Expected : au moins 1 fichier `.md` (hors `.gitkeep`). Un 0 n'est pas bloquant (le seed accepte `caseStudyMarkdown = null`), mais suggère que la curation est encore incomplète, poursuivre avec prudence.
 
 - [ ] **Step 5: Vérifier la cohérence `tagSlugs[]` ↔ `tags.ts`**
 
@@ -660,7 +660,7 @@ grep -c "slug:" prisma/seed-data/tags.ts
 grep -c "slug:" prisma/seed-data/projects.ts
 grep -c "slug:" prisma/seed-data/companies.ts
 ```
-Expected : > 0 pour les 3 fichiers. Si 0, retour Task 6 (prérequis externe non satisfait — la curation pré-plan doit être menée).
+Expected : > 0 pour les 3 fichiers. Si 0, retour Task 6 (prérequis externe non satisfait, la curation pré-plan doit être menée).
 
 - [ ] **Step 2: Première exécution**
 
@@ -797,10 +797,10 @@ Expected : 1 commit récent listant les fichiers attendus.
   - Scénario 12 (case study `.md` manquant) → helper `readCaseStudy` retourne `null` via `existsSync`
   - Scénario 13-14 (case study `.md` présent dans `client/` ou `personal/`) → routage par `project.type` dans le helper
 - ✅ `Edge cases` : fichiers vides (T3/T4/T5 acceptent tableau vide), projet PERSO sans clientMeta (T7 conditionnel), coverFilename/logoFilename null (T4/T5 acceptés), slug collision (erreur Prisma unique), tag sans icon (T7 `IconSchema.nullable()`), tag dupliqué dans `tagSlugs` (PK composite rejette), `.md` manquant → null
-- ✅ `Architectural decisions` : fichiers TS en dur (pas snapshot), 3 fichiers TS éclatés + dossier `case-studies/` en 2 sous-dossiers, synchro `ProjectTag` via deleteMany+create ordonné (remplace l'ancien `tags.set`), validation Zod ciblée sur `icon`, curation `caseStudyMarkdown` désormais hors scope du plan (prérequis externe T6) — tous reflétés dans T3/T4/T5/T5bis/T6/T7
+- ✅ `Architectural decisions` : fichiers TS en dur (pas snapshot), 3 fichiers TS éclatés + dossier `case-studies/` en 2 sous-dossiers, synchro `ProjectTag` via deleteMany+create ordonné (remplace l'ancien `tags.set`), validation Zod ciblée sur `icon`, curation `caseStudyMarkdown` désormais hors scope du plan (prérequis externe T6), tous reflétés dans T3/T4/T5/T5bis/T6/T7
 - ✅ `tdd_scope = none` → pas de section Tests dans le plan, correctement omise
 
-**2. Placeholder scan** : aucun TBD/TODO. T3, T4, T5 créent les fichiers avec des tableaux initialement vides (pas de commentaire `// À remplir` inline). T5bis crée les dossiers case-studies + `.gitkeep`. T6 ne modifie rien — elle vérifie uniquement que la curation pré-plan est terminée (prérequis externe). Les `.md` eux-mêmes ne font pas partie du plan (ils arrivent via la session de curation séparée).
+**2. Placeholder scan** : aucun TBD/TODO. T3, T4, T5 créent les fichiers avec des tableaux initialement vides (pas de commentaire `// À remplir` inline). T5bis crée les dossiers case-studies + `.gitkeep`. T6 ne modifie rien, elle vérifie uniquement que la curation pré-plan est terminée (prérequis externe). Les `.md` eux-mêmes ne font pas partie du plan (ils arrivent via la session de curation séparée).
 
 **3. Type consistency** :
 - `TagInput` défini T3 (sans `displayOrder`), importé T7 via `tags.js`
