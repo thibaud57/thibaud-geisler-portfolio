@@ -65,10 +65,11 @@ pnpm
 
 - **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + Dashboard admin (post-MVP)
 - **Backend** : Server Actions + API Routes Next.js
-- **Données** : PostgreSQL + Prisma (projets, assets, leads post-MVP)
+- **Données** : PostgreSQL externe via Dokploy Database (changement récent, plus de service `postgres` dans `docker-compose.yml`) + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy `portfolio-db-1jdouq:5432`
 - **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`), jamais depuis `public/`
-- **Sécurité** : Middleware Next.js (headers, protection routes admin) + Better Auth avec Google OAuth (dashboard post-MVP)
-- **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV)
+- **Sécurité** : Middleware Next.js (`src/proxy.ts`, headers + locale routing + protection routes admin) + Better Auth avec Google OAuth (dashboard post-MVP)
+- **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
+- **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
 ## Diagrammes d'Architecture
 
@@ -79,11 +80,11 @@ graph TB
     end
 
     subgraph "Dokploy — VPS IONOS"
-        subgraph "Docker"
+        subgraph "Docker (app)"
             Next["Next.js App\n(App Router)"]
-            PG["PostgreSQL\n(Docker volume)"]
-            Assets["Assets\n(Docker volume — MVP acté,\nvoir ADR-011)"]
+            Assets["Assets\n(Docker volume, MVP acté,\nvoir ADR-011)"]
         end
+        PG["PostgreSQL\n(Dokploy Database,\nDNS interne portfolio-db-1jdouq:5432)"]
     end
 
     subgraph "Services Externes"
@@ -164,32 +165,47 @@ Routing file-based via Next.js App Router, pas de librairie de navigation extern
 
 ```
 src/
-├── app/                    # App Router
-│   ├── (public)/           # Route group pages publiques
-│   │   ├── page.tsx        # Accueil
-│   │   ├── services/
-│   │   ├── projets/
-│   │   │   └── [slug]/     # Case study
-│   │   ├── a-propos/
-│   │   └── contact/
-│   ├── (admin)/            # Route group dashboard (post-MVP)
-│   │   └── dashboard/
-│   ├── api/                # API routes
+├── app/                          # App Router
+│   ├── [locale]/                 # Segment dynamique next-intl (FR/EN), obligatoire pour routing localisé
+│   │   ├── (public)/             # Route group pages publiques
+│   │   │   ├── page.tsx          # Accueil
+│   │   │   ├── services/
+│   │   │   ├── projets/
+│   │   │   │   └── [slug]/       # Case study
+│   │   │   ├── a-propos/
+│   │   │   └── contact/
+│   │   ├── (admin)/              # Route group dashboard (post-MVP)
+│   │   │   └── dashboard/
+│   │   ├── error.tsx
+│   │   ├── loading.tsx
+│   │   └── not-found.tsx
+│   ├── api/                      # API routes (hors [locale])
+│   ├── providers.tsx             # Providers client (theme, c15t Consent Manager)
 │   └── layout.tsx
 ├── components/
-│   ├── ui/                 # Composants UI primitifs
-│   └── features/           # Composants métier
-├── env.ts                  # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
-├── lib/                    # Utilitaires, config, logger (Pino)
-├── server/                 # Server Actions + queries Prisma
+│   ├── ui/                       # Composants UI primitifs (shadcn)
+│   ├── magicui/                  # Effets visuels Magic UI
+│   ├── aceternity/               # Effets visuels Aceternity UI
+│   ├── cookies/                  # Composants liés au consentement c15t
+│   ├── layout/                   # Navbar, footer, switchers
+│   └── features/                 # Composants métier par domaine
+├── config/                       # Données de config statiques (nav-items, social-links, expertise)
+├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
+├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, types)
+├── lib/                          # Utilitaires, schemas Zod, logger (Pino), helpers SEO/cookies
+├── server/                       # Server Actions + queries Prisma + config serveur
 │   ├── actions/
+│   ├── config/
 │   └── queries/
-└── types/                  # Types TypeScript partagés
+├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
+├── types/                        # Types TypeScript partagés
+└── proxy.ts                      # Middleware Next.js (renommé `proxy.ts` côté code, sert de middleware i18n + headers)
 ```
 
 ### Services Externes (côté client)
 
-- **Calendly** : widget embed sur la page Contact
+- **Calendly** : widget embed sur la page Contact, chargé conditionnellement via `react-calendly` uniquement après consentement de la catégorie `marketing` (CMP c15t, voir section Conformité cookies)
+- **c15t Consent Manager** (`@c15t/nextjs`) : bannière + dialog de gestion des cookies, mode `offline` (état persisté côté client), i18n FR/EN synchronisé avec next-intl via `ConsentLanguageSync`
 
 ## 💻 Backend
 
@@ -203,7 +219,7 @@ Next.js (App Router, Server Actions + API Routes). Caching opt-in granulaire (co
 
 ### Structure du Code
 
-Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier est simple (CRUD sur Project et Asset), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation `actions/` + `queries/` + `types/` fournit le découplage utile sans overhead.
+Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier est simple (CRUD sur `Project` et entités liées, plus métadonnées légales statiques), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation `actions/` + `queries/` + `config/` + `types/` fournit le découplage utile sans overhead.
 
 ### API
 
@@ -228,11 +244,16 @@ Monolithe modulaire : logique serveur dans `src/server/` (actions et queries sé
 
 ### Base de Données Principale
 
-PostgreSQL, conteneurisé via Docker, volume persistant. Extension pgvector prévue post-MVP pour le RAG du chatbot. Voir [ADR-004](adrs/004-postgresql-des-le-mvp.md).
+PostgreSQL géré comme service Dokploy Database autonome (changement récent : plus de service `postgres` dans le `docker-compose.yml` applicatif). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy `portfolio-db-1jdouq:5432`. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP pour le RAG du chatbot. Voir [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
 ### Approche Modélisation
 
-Relationnelle classique, entités simples pour le MVP (`Project`, `Asset`)
+Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
+
+- **Domaine projets** : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag`
+- **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
+
+Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés sur disque (volume Docker) et référencés par filename depuis `Project.coverFilename` ou `Company.logoFilename` (voir [ADR-011](adrs/011-stockage-assets.md)).
 
 ### ORM/ODM
 
@@ -328,7 +349,7 @@ VPS IONOS, Dokploy self-hosted. Déploiement automatique via webhook GitHub sur 
 
 ### Conteneurisation
 
-Docker + Docker Compose, services : `nextjs`, `postgres`
+Docker + Docker Compose côté application (service `nextjs` uniquement). Postgres n'est plus dans le compose applicatif : il est provisionné comme Dokploy Database séparée et joint via le réseau interne Dokploy.
 
 ### CI/CD
 
@@ -377,7 +398,20 @@ Middleware Next.js : protection des routes `(admin)/` par vérification de sessi
 ### Protection Données
 
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
-- **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker uniquement)
+- **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
+
+### Conformité Cookies / RGPD
+
+Gestion du consentement via `@c15t/nextjs` (Consent Manager Provider monté dans `src/app/providers.tsx`). Catégories utilisées : `necessary` (toujours actif) et `marketing` (opt-in explicite). Mode `offline` : aucun appel à un backend c15t, l'état de consentement est persisté côté client.
+
+Flow de gating Calendly :
+
+1. La page `/contact` rend `CalendlyWidget` côté client
+2. Le composant lit l'état de consentement via les hooks c15t et n'instancie `react-calendly` que si la catégorie `marketing` est accordée
+3. Tant que le consentement n'est pas donné, un fallback invite l'utilisateur à ouvrir `ConsentDialog` pour accepter les cookies marketing
+4. Au refus ou révocation, le widget est démonté, aucun cookie tiers Calendly n'est posé
+
+Composants associés : `src/app/providers.tsx` (provider racine), `src/components/cookies/consent-language-sync.tsx` (sync locale next-intl ↔ c15t), `src/lib/cookies/build-legal-links.ts` (liens mentions / politique). Les modèles BDD `Publisher` et `DataProcessing` documentent le côté éditorial (mentions légales, registre des sous-traitants).
 
 ## 📊 Observabilité
 

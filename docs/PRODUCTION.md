@@ -88,7 +88,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 | Env | URL | Branch | Auto-deploy |
 |-----|-----|--------|-------------|
-| development | `http://localhost:3000` (`pnpm dev`) | - | Non |
+| development | `http://localhost:3000` (`just dev`) | - | Non |
 | production | `https://thibaud-geisler.com` | `main` | Oui (webhook Dokploy) |
 
 ### Accès Dashboard Dokploy
@@ -101,30 +101,37 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var server requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`). `NEXT_PUBLIC_SITE_URL` côté client a un fallback `http://localhost:3000`. Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
 
 ### Variables Communes
 
 ```bash
 # Application
 NODE_ENV=                           # development | production
+NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, sitemap, JSON-LD, OG)
+                                    # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
+                                    # ⚠️ Inlinée dans le bundle JS au build → propagée via build args (compose.yaml + Dockerfile)
 
 # Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
 
 # Calendly (widget inline /contact, exposé au navigateur — une URL par locale, event types FR/EN distincts)
+# ⚠️ Inlinées dans le bundle JS au build → propagées via build args (compose.yaml + Dockerfile)
 NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
 NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
 ```
+
+> **Dev local uniquement (`POSTGRES_*`)** : `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` sont consommés par `compose.override.yaml` pour initialiser le Postgres local et ne sont pas utilisés en prod (Dokploy gère sa propre Database avec ses credentials). Voir `.env.example` pour les valeurs par défaut dev.
 
 ### Variables Secrets
 
 ```bash
 # Via Dokploy → Application → Environment Variables
 
-# Base de données
-DATABASE_URL=                       # URL connexion PostgreSQL (ex: postgresql://user:pass@postgres:5432/db)
-                                    # ⚠️ Utiliser le nom du service Docker comme host : "postgres", jamais "localhost"
+# Base de données (Postgres séparée Dokploy Database — DNS interne au réseau Dokploy)
+DATABASE_URL=                       # ex prod : postgresql://portfolio:<pass>@portfolio-db-<suffix>:5432/portfolio
+                                    # ex dev local : postgresql://portfolio:portfolio@localhost:5432/portfolio (override compose)
+                                    # ⚠️ En prod, le host est le `appName` Dokploy de la Database (visible dans Dokploy UI), pas "localhost"
                                     # ⚠️ Prisma 7 : la CLI ne charge plus .env automatiquement. En prod Dokploy, aucun impact (var injectée par Docker). En dev local : `@next/env` dans `prisma.config.ts` charge le .env.
 
 # SMTP IONOS (formulaire contact)
@@ -155,7 +162,7 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 ### Anti-Patterns
 
 - ❌ **Ne jamais commiter de secrets** dans le dépôt (`.env`, `.env.local`, `.env.production`)
-- ❌ **Ne pas mettre `DATABASE_URL` avec host `localhost`** en production, utiliser le nom du service Docker (`postgres`)
+- ❌ **Ne pas mettre `DATABASE_URL` avec host `localhost`** en production, utiliser le `appName` Dokploy de la Database (DNS interne du réseau Dokploy)
 - ❌ **Ne pas exposer `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET` ou `SMTP_PASS`** via `NEXT_PUBLIC_`
 
 ---
@@ -209,26 +216,26 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 ### Validation technique finale
 
-- [ ] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
-- [ ] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
-- [ ] **`just test`** : tous les tests passent en local
-- [ ] **`just build`** : build Next.js standalone passe sans erreur
-- [ ] **Test container Docker local** : `docker compose up --build` → vérifier que `prisma migrate deploy` s'exécute au startup + smoke test sur `localhost`. Évite de découvrir un crash de migration ou un timeout healthcheck en prod.
+- [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
+- [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
+- [x] **`just test`** : tous les tests passent en local (177 tests : 128 unit + 49 integration)
+- [x] **`just build`** : build Next.js standalone passe sans erreur
+- [x] **Test container Docker local** : `just docker-up` → ⚠️ **non représentatif depuis le switch vers Postgres Dokploy externe** (DB joignable au build sur Dokploy mais pas en local — limitation Docker Compose qui ne network pas les services pendant `build`). Validation faite via le déploiement Dokploy réel à la place (DB séparée Dokploy, build avec accès DB).
 
 ### Cohérence documentaire
 
-- [ ] **BRAINSTORM.md** : auditer le doc dans son ensemble et identifier les écarts entre la vision/features livrées et l'impl
-- [ ] **ARCHITECTURE.md** : auditer le doc dans son ensemble et identifier les écarts entre l'architecture documentée et l'impl
-- [ ] **DESIGN.md** : auditer le doc dans son ensemble et identifier les écarts entre le design system et l'UI livrée
-- [ ] **PRODUCTION.md** : auditer le doc dans son ensemble et vérifier que toutes les procédures opérationnelles documentées sont effectivement en place
-- [ ] **README.md** : compléter la racine projet (présentation, stack, getting started, liens docs) une fois les autres docs auditées, pour refléter l'état stabilisé
+- [x] **BRAINSTORM.md** : audité (verdict OK pour MEP — écarts mineurs doc-only, deps non listées, à compléter post-MEP)
+- [x] **ARCHITECTURE.md** : audité (verdict OK avec 3 corrections doc-only recommandées : structure `[locale]/`, `@c15t/nextjs`, modèles Prisma réels — à corriger post-MEP)
+- [x] **DESIGN.md** : audité (verdict À corriger non bloquant : radius scale, scale typo responsive, shadow v3→v4, composants Aceternity non installés — à corriger post-MEP)
+- [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le switch Postgres Dokploy externe)
+- [x] **README.md** : réécrit (stack, prérequis, getting started, scripts `just *`, vars d'env, archi, i18n, assets, déploiement, docs, workflow git)
 
 ## Checklist Post-MEP
 
 À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).
 
-- [ ] **Seed BDD initial** : `docker exec -it <container_nextjs> node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy. Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
-- [ ] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets`) une fois après le 1er rebuild Dokploy. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
+- [ ] **Seed BDD initial** : `docker exec -it portfolio-zfij1k node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy (le Compose nextjs joint la Postgres Database Dokploy via DNS interne). Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
+- [ ] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du container Compose nextjs) une fois après le 1er rebuild Dokploy. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
 - [ ] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [ ] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [ ] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
@@ -245,7 +252,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | Dépendances npm | Mensuelle | `pnpm update` en local → vérifier build + tests → merge sur main | Dev |
 | Next.js (major) | Sur release majeure | Suivre migration guide officiel → PR dédiée → smoke test prod | Dev |
 | Image Docker Node | Trimestrielle | Mettre à jour le `FROM` dans `Dockerfile` → rebuild Dokploy | Dev |
-| Image Docker Postgres | Trimestrielle | Mettre à jour la version dans `docker-compose.yml` → tester migration | Dev |
+| Image Docker Postgres | Trimestrielle | Mettre à jour `dockerImage` dans Dokploy UI (Postgres Database) → redeploy | Dev |
 
 > ✅ **Toujours vérifier le build et les tests avant de merger une mise à jour de dépendances**
 > ❌ **Ne jamais mettre à jour Next.js et Prisma simultanément** : isoler les mises à jour critiques
@@ -275,7 +282,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `SMTP_PASS` | En cas de compromission ou changement de mot de passe IONOS | Mettre à jour dans Dokploy → redéploiement automatique |
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → invalide toutes les sessions actives |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Régénérer dans Google Cloud Console → mettre à jour dans Dokploy → redéploiement |
-| `DATABASE_URL` (mot de passe) | En cas de compromission | `ALTER ROLE <user> PASSWORD 'newpass'` sur le container Postgres → mettre à jour dans Dokploy |
+| `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password depuis Dokploy UI (Postgres Database) → la nouvelle URL est propagée au compose au prochain deploy |
 
 ## Security Headers
 
@@ -340,7 +347,7 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 
 | Alerte | Condition | Canal |
 |--------|-----------|-------|
-| Service down | Conteneur Next.js ou Postgres arrêté | Notification Dokploy (email) |
+| Service down | Container Compose Portfolio (nextjs) ou Postgres Database Dokploy arrêté | Notification Dokploy (email) |
 | Échec de déploiement | Build échoué ou crash au démarrage | Notification Dokploy (email) |
 | Erreur BDD répétée | `"cannot connect to database"` dans les logs Pino | Vérification manuelle : `docker ps` sur le VPS |
 | Échec SMTP répété | > 3 erreurs `email:failed` consécutives | Vérification manuelle : credentials SMTP IONOS |
@@ -400,7 +407,7 @@ JSON structuré via Pino, output stdout, visible dans l'onglet Logs de Dokploy.
 | Env | Rétention | Gestion |
 |-----|-----------|---------|
 | development | Terminal local, pas de rétention | - |
-| production | Logs Docker sur disque VPS | À configurer dès le premier déploiement dans `docker-compose.yml`, Dokploy ne gère pas la rotation automatiquement. Valeurs recommandées : `max-size: "100m"`, `max-file: "10"` par service |
+| production | Logs Docker sur disque VPS | À configurer dès le premier déploiement dans `compose.yaml` (logging driver `json-file` avec options), Dokploy ne gère pas la rotation automatiquement. Valeurs recommandées : `max-size: "100m"`, `max-file: "10"` par service |
 
 ## Règles Logging
 
@@ -434,9 +441,9 @@ JSON structuré via Pino, output stdout, visible dans l'onglet Logs de Dokploy.
 Avant de déployer un fix, diagnostiquer la cause :
 
 1. **Logs Dokploy** → onglet "Logs" → filtrer par `"level":"error"` → lire les 50 lignes autour du timestamp de l'incident
-2. **Statut des containers** → SSH sur le VPS → `docker ps`, vérifier que `nextjs` et `postgres` sont `Up`
-3. **Logs Docker bruts** → `docker logs <container_id> --tail 100`
-4. **Connexion BDD** → `docker exec <postgres_container> psql -U postgres -d <db> -c "SELECT 1;"`, vérifier que Postgres répond
+2. **Statut des containers** → SSH sur le VPS → `docker ps`, vérifier que les containers Compose Portfolio (nextjs) et Postgres Database Dokploy (`portfolio-db-<suffix>`) sont `Up`
+3. **Logs Docker bruts** → `docker logs <container_id> --tail 100` (ou via Dokploy UI → Logs)
+4. **Connexion BDD** → `docker exec portfolio-db-<suffix> psql -U portfolio -d portfolio -c "SELECT 1;"`, vérifier que Postgres répond
 5. **Dernier déploiement** → Dokploy → onglet Deployments → quel commit a précédé l'incident ?
 6. **Rollback** si la cause est un commit récent → voir section Déploiement, Rollback
 
@@ -510,24 +517,26 @@ rclone config
 
 ### 3. Créer le script `/opt/backup.sh`
 
-> **Noms des containers** : Docker Compose nomme les containers `{COMPOSE_PROJECT}-{service}-{instance}`. `COMPOSE_PROJECT` = valeur du champ `name:` dans `docker-compose.yml`, ou par défaut le nom du répertoire. Vérifier avec `docker ps` après le premier déploiement.
+> **Noms des containers Dokploy** : la Postgres Database et le Compose Portfolio (nextjs) tournent dans des containers Dokploy avec un `appName` suffixé (ex: `portfolio-db-1jdouq`, `portfolio-zfij1k`). Vérifier les noms exacts via `docker ps` ou Dokploy UI avant de figer le script.
 
 ```bash
 #!/bin/bash
 set -e
 BACKUP_DIR=/tmp/backups
-DB_CONTAINER=<COMPOSE_PROJECT>-postgres-1  # vérifier : docker ps | grep postgres
-DB_NAME=<DB_NAME>                           # nom de la base PostgreSQL (défini dans docker-compose.yml)
+DB_CONTAINER=portfolio-db-<suffix>          # appName Postgres Database Dokploy (docker ps | grep portfolio-db)
+DB_USER=portfolio
+DB_NAME=portfolio
+ASSETS_VOLUME=<compose_volume_name>         # volume du Compose nextjs (docker volume ls | grep portfolio_assets)
 R2_BUCKET=<R2_BUCKET_NAME>                  # nom du bucket Cloudflare R2
 
 mkdir -p $BACKUP_DIR
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# Dump PostgreSQL
-docker exec $DB_CONTAINER pg_dump -U postgres $DB_NAME | gzip > $BACKUP_DIR/db_$TIMESTAMP.sql.gz
+# Dump PostgreSQL (Postgres Database Dokploy)
+docker exec $DB_CONTAINER pg_dump -U $DB_USER $DB_NAME | gzip > $BACKUP_DIR/db_$TIMESTAMP.sql.gz
 
-# Backup du volume assets (si applicable)
-docker run --rm -v <COMPOSE_PROJECT>_assets:/data -v $BACKUP_DIR:/backup alpine \
+# Backup du volume assets (du service nextjs Compose Portfolio)
+docker run --rm -v $ASSETS_VOLUME:/data -v $BACKUP_DIR:/backup alpine \
   tar czf /backup/assets_$TIMESTAMP.tar.gz /data 2>/dev/null || true
 
 # Upload vers R2
@@ -578,13 +587,13 @@ rclone ls r2:<R2_BUCKET_NAME>/backups/ | grep db_ | sort
 rclone copy r2:<R2_BUCKET_NAME>/backups/db_YYYYMMDD_HHMMSS.sql.gz /tmp/
 
 # 3. Mettre l'app en pause pour éviter les writes pendant la restauration
-docker pause <COMPOSE_PROJECT>-nextjs-1     # vérifier : docker ps | grep nextjs
+docker pause portfolio-<suffix>             # container Compose nextjs (docker ps | grep portfolio | grep -v db)
 
-# 4. Restaurer
-gunzip -c /tmp/db_YYYYMMDD_HHMMSS.sql.gz | docker exec -i <COMPOSE_PROJECT>-postgres-1 psql -U postgres <DB_NAME>
+# 4. Restaurer (DB Database Dokploy)
+gunzip -c /tmp/db_YYYYMMDD_HHMMSS.sql.gz | docker exec -i portfolio-db-<suffix> psql -U portfolio portfolio
 
 # 5. Relancer
-docker unpause <COMPOSE_PROJECT>-nextjs-1
+docker unpause portfolio-<suffix>
 
 # 6. Smoke test
 curl -I https://thibaud-geisler.com
