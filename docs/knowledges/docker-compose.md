@@ -241,11 +241,11 @@ docker compose exec db psql -U portfolio portfolio
 
 ## Documentation Officielle
 
-- [Docker Compose — Documentation](https://docs.docker.com/compose/)
+- [Docker Compose : Documentation](https://docs.docker.com/compose/)
 - [compose.yaml reference](https://docs.docker.com/reference/compose-file/)
 - [Startup order](https://docs.docker.com/compose/how-tos/startup-order/)
 
 ## Ressources Complémentaires
 
 - [docker compose up](https://docs.docker.com/reference/cli/docker/compose/up/)
-- [Dokploy — Docker Compose](https://docs.dokploy.com/docs/core/docker-compose)
+- [Dokploy : Docker Compose](https://docs.dokploy.com/docs/core/docker-compose)

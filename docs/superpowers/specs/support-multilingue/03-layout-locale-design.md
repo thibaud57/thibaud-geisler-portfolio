@@ -21,7 +21,7 @@ Migrer le root layout existant (`src/app/layout.tsx`) dans `src/app/[locale]/lay
 
 ## Dependencies
 
-- `01-config-routing-types-design.md` (statut: implemented) — fournit `routing` (defineRouting), `setRequestLocale`, `NextIntlClientProvider`, `hasLocale`, `generateStaticParams`
+- `01-config-routing-types-design.md` (statut: implemented), fournit `routing` (defineRouting), `setRequestLocale`, `NextIntlClientProvider`, `hasLocale`, `generateStaticParams`
 
 ## Files touched
 

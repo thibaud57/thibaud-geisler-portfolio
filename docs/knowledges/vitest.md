@@ -280,7 +280,7 @@ pnpm add -D jsdom \
 
 ### Description
 
-`vitest init` existe mais **uniquement** pour le browser mode (valeur supportée : `browser`). Pas de commande `init` générique pour la config standard — il faut créer `vitest.config.mts` manuellement.
+`vitest init` existe mais **uniquement** pour le browser mode (valeur supportée : `browser`). Pas de commande `init` générique pour la config standard, il faut créer `vitest.config.mts` manuellement.
 
 ### Syntaxe
 
@@ -347,9 +347,9 @@ pnpm exec vitest -t "sendContact"  # filtrer par nom de test
 
 ## Documentation Officielle
 
-- [Vitest — Guide](https://vitest.dev/guide/)
-- [Vitest — API expect](https://vitest.dev/api/expect.html)
-- [Vitest — Mocking](https://vitest.dev/guide/mocking)
+- [Vitest : Guide](https://vitest.dev/guide/)
+- [Vitest : API expect](https://vitest.dev/api/expect.html)
+- [Vitest : Mocking](https://vitest.dev/guide/mocking)
 
 ## Ressources Complémentaires
 

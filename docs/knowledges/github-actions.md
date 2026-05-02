@@ -270,7 +270,7 @@ jobs:
 
 ## Documentation Officielle
 
-- [GitHub Actions — Documentation](https://docs.github.com/en/actions)
+- [GitHub Actions : Documentation](https://docs.github.com/en/actions)
 - [Workflow syntax](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions)
 - [Service containers](https://docs.github.com/actions/using-containerized-services/creating-postgresql-service-containers)
 

@@ -9,7 +9,7 @@ depends_on: []
 date: "2026-04-24"
 ---
 
-# Page `/services` — 3 offres avec CTA
+# Page `/services` : 3 offres avec CTA
 
 ## Scope
 
@@ -23,7 +23,7 @@ Remplacer le placeholder actuel de `src/app/[locale]/(public)/services/page.tsx`
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Les helpers SEO réutilisés (`setupLocaleMetadata`, `setupLocalePage`, `buildLanguageAlternates`, `localeToOgLocale`) et les clés `Metadata.servicesTitle` / `Metadata.servicesDescription` existent déjà dans le projet (livrés par Feature 6 `support-multilingue`).
+Aucune, ce sub-project est autoporté. Les helpers SEO réutilisés (`setupLocaleMetadata`, `setupLocalePage`, `buildLanguageAlternates`, `localeToOgLocale`) et les clés `Metadata.servicesTitle` / `Metadata.servicesDescription` existent déjà dans le projet (livrés par Feature 6 `support-multilingue`).
 
 ## Files touched
 
@@ -97,7 +97,7 @@ Aucune — ce sub-project est autoporté. Les helpers SEO réutilisés (`setupLo
 
 ## Architectural decisions
 
-### Décision : pattern d'animation scroll — wrapper ad hoc vs composant motion générique
+### Décision : pattern d'animation scroll : wrapper ad hoc vs composant motion générique
 
 **Options envisagées :**
 - **A. `ServicesGrid` ad hoc dans `src/components/features/services/`** : un Client Component dédié au scope de ce sub-project, qui encapsule la grid + motion. Si un autre sub-project (ex: `/a-propos`, `/`) a besoin du même pattern plus tard, on promeut en composant générique `ScrollFadeIn` à ce moment-là.

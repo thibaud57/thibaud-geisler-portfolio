@@ -1,4 +1,4 @@
-# Plan d'implémentation — `01-page-services`
+# Plan d'implémentation: `01-page-services`
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -14,7 +14,7 @@
 - `tdd_scope: none` → pas de tests à écrire dans ce sub-project (règle no-lib-test : pas de règle métier projet testable ici).
 - Discipline commit CLAUDE.md : **aucun commit intermédiaire** dans ce plan. Proposer au user un unique commit après Task 6 (verification complète OK).
 - Helpers existants à réutiliser **sans modification** : `setupLocalePage` ([src/i18n/locale-guard.ts](../../../../src/i18n/locale-guard.ts)), `setupLocaleMetadata`, `buildLanguageAlternates`, `localeToOgLocale` ([src/lib/seo.ts](../../../../src/lib/seo.ts)).
-- `Link` localisé = `@/i18n/navigation` (pas `next/link`) — next-intl expose un wrapper qui ajoute le prefix locale.
+- `Link` localisé = `@/i18n/navigation` (pas `next/link`), next-intl expose un wrapper qui ajoute le prefix locale.
 - Convention nommage : composants features en PascalCase (`ServiceCard.tsx`), constantes en kebab-case (`service-slugs.ts`).
 
 ---
@@ -64,7 +64,7 @@ Attendu : aucune erreur rapportée pour `src/components/features/services/servic
 
 ---
 
-## Task 2 : Messages i18n — namespace `ServicesPage` étoffé
+## Task 2 : Messages i18n: namespace `ServicesPage` étoffé
 
 **Files:**
 - Modify: `messages/fr.json`
@@ -477,7 +477,7 @@ Plan sauvegardé dans [`docs/superpowers/plans/pages-publiques-portfolio/01-page
 
 Deux options d'exécution lorsqu'on passera à l'implémentation :
 
-1. **Subagent-Driven (recommandé)** — `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks, cadence rapide. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
-2. **Inline Execution** — `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
+1. **Subagent-Driven (recommandé)**, `superpowers:subagent-driven-development` dispatch un subagent frais par task, review entre tasks, cadence rapide. Aligne avec la commande projet `/implement-subproject` qui intègre `/simplify` et `code/code-reviewer` comme gates de sortie.
+2. **Inline Execution**, `superpowers:executing-plans`, batch avec checkpoints dans la session courante.
 
 Pas d'exécution dans le cadre de `/decompose-feature` : la phase d'implémentation est déclenchée ultérieurement par `/implement-subproject pages-publiques-portfolio 01`.

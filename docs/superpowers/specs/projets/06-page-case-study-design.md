@@ -2,18 +2,18 @@
 feature: "Feature 2 — Projets (liste + case studies)"
 subproject: "page-case-study"
 goal: "Afficher la page case study /[locale]/(public)/projets/[slug] avec generateStaticParams + contenu markdown riche + stack groupé + meta structurées"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-schema-prisma-project-design.md", "02-client-prisma-queries-design.md", "03-seed-projets-design.md", "04-route-api-assets-design.md"]
 date: "2026-04-21"
 ---
 
-# Page `/projets/[slug]` — Case Study détaillé
+# Page `/projets/[slug]` : Case Study détaillé
 
 ## Scope
 
-Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.tsx` qui charge un projet via `findPublishedBySlug` (sub-project 02), retourne `notFound()` si slug inexistant ou projet non publié, et rend un layout case study complet. Implémenter `generateStaticParams` qui retourne tous les slugs `status = PUBLISHED` × 2 locales (FR/EN). Implémenter `generateMetadata` localisée avec title/description depuis les champs Project + `hreflang alternates`. Créer les composants `CaseStudyLayout` (orchestration), `CaseStudyHeader` (cover image + titre + sous-titre + meta structurées depuis ClientMeta/dates), `TagStackGrouped` (tous les tags du projet groupés par `kind` dans l'ordre fixe `EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA` ; dans chaque groupe, tri par `ProjectTag.displayOrder asc` — pas alphabétique), `CaseStudyMarkdown` (rendu markdown via `react-markdown` + Tailwind Typography + wrapper custom pour images), `CaseStudyFooter` (liens démo/GitHub si présents + lien retour vers `/projets`). Installer `react-markdown` et `@tailwindcss/typography` si absents. Ajouter clés i18n `Projects.caseStudy.*`. Écrire 2 tests d'intégration ciblés (`generateStaticParams`, `notFound` sur slug absent/DRAFT). **Exclus** : commentaires, partage social dynamique (Twitter/LinkedIn share buttons), table des matières auto, navigation projet suivant/précédent, scroll progress indicator, related projects section.
+Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.tsx` qui charge un projet via `findPublishedBySlug` (sub-project 02), retourne `notFound()` si slug inexistant ou projet non publié, et rend un layout case study complet. Implémenter `generateStaticParams` qui retourne tous les slugs `status = PUBLISHED` × 2 locales (FR/EN). Implémenter `generateMetadata` localisée avec title/description depuis les champs Project + `hreflang alternates`. Créer les composants `CaseStudyLayout` (orchestration), `CaseStudyHeader` (cover image + titre + sous-titre + meta structurées depuis ClientMeta/dates), `TagStackGrouped` (tous les tags du projet groupés par `kind` dans l'ordre fixe `EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA` ; dans chaque groupe, tri par `ProjectTag.displayOrder asc`, pas alphabétique), `CaseStudyMarkdown` (rendu markdown via `react-markdown` + Tailwind Typography + wrapper custom pour images), `CaseStudyFooter` (liens démo/GitHub si présents + lien retour vers `/projets`). Installer `react-markdown` et `@tailwindcss/typography` si absents. Ajouter clés i18n `Projects.caseStudy.*`. Écrire 2 tests d'intégration ciblés (`generateStaticParams`, `notFound` sur slug absent/DRAFT). **Exclus** : commentaires, partage social dynamique (Twitter/LinkedIn share buttons), table des matières auto, navigation projet suivant/précédent, scroll progress indicator, related projects section.
 
 ### État livré
 
@@ -21,10 +21,10 @@ Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.t
 
 ## Dependencies
 
-- `01-schema-prisma-project-design.md` (statut: draft) — utilise les champs `Project.caseStudyMarkdown`, `Project.coverFilename`, `Project.tags` (array de `ProjectTag` avec `displayOrder` par-projet, chaque row expose `tag.kind` incluant `EXPERTISE`), `Project.clientMeta`
-- `02-client-prisma-queries-design.md` (statut: draft) — utilise `findPublishedBySlug` qui retourne `LocalizedProjectWithRelations` (type alias qui inclut automatiquement les scalaires + `tags: ProjectTag[]` triés `displayOrder asc` + clientMeta.company)
-- `03-seed-projets-design.md` (statut: draft) — au moins 1-2 projets PUBLISHED avec `caseStudyMarkdown` rempli (depuis `prisma/seed-data/case-studies/<slug>.md`) sont nécessaires pour valider visuellement
-- `04-route-api-assets-design.md` (statut: implemented, évolué catch-all) — la cover image et les images inline du markdown sont servies via `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`)
+- `01-schema-prisma-project-design.md` (statut: draft), utilise les champs `Project.caseStudyMarkdown`, `Project.coverFilename`, `Project.tags` (array de `ProjectTag` avec `displayOrder` par-projet, chaque row expose `tag.kind` incluant `EXPERTISE`), `Project.clientMeta`
+- `02-client-prisma-queries-design.md` (statut: draft), utilise `findPublishedBySlug` qui retourne `LocalizedProjectWithRelations` (type alias qui inclut automatiquement les scalaires + `tags: ProjectTag[]` triés `displayOrder asc` + clientMeta.company)
+- `03-seed-projets-design.md` (statut: draft), au moins 1-2 projets PUBLISHED avec `caseStudyMarkdown` rempli (depuis `prisma/seed-data/case-studies/<slug>.md`) sont nécessaires pour valider visuellement
+- `04-route-api-assets-design.md` (statut: implemented, évolué catch-all), la cover image et les images inline du markdown sont servies via `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`)
 
 ## Files touched
 
@@ -58,17 +58,17 @@ Créer la page Server Component `src/app/[locale]/(public)/projets/[slug]/page.t
 
 Orchestre les sections principales dans un `<article>` container Tailwind responsive, dans cet ordre :
 1. `CaseStudyHeader` (cover + titre + meta structurées)
-2. `CaseStudyMarkdown` — rendue conditionnellement si `caseStudyMarkdown` non null
-3. `TagStackGrouped` (tous les tags du projet groupés par kind dans l'ordre fixe EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA) — omise si le projet n'a aucun tag
+2. `CaseStudyMarkdown`, rendue conditionnellement si `caseStudyMarkdown` non null
+3. `TagStackGrouped` (tous les tags du projet groupés par kind dans l'ordre fixe EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA), omise si le projet n'a aucun tag
 4. `CaseStudyFooter` (liens + retour)
 
 La hiérarchie de lecture est : header (contexte immédiat) → narration libre (contexte métier et apprentissages) → stack & expertises groupées (preuve technique structurée). Le groupe `EXPERTISE` en tête de la section Stack met en avant la valeur métier du projet, les autres groupes descendent de la base applicative (LANGUAGE) vers les surfaces périphériques (INFRA). Chaque section est auto-omise si son contenu est vide, pas de bloc blanc.
 
 ### Composant `CaseStudyHeader` (Server Component)
 
-- **Cover image** : identique au pattern de `ProjectCard` du sub-project 05 — `<Image src="/api/assets/<coverFilename>">` où `coverFilename` est un chemin relatif nested `projets/{client,personal}/<slug>/cover.webp` (route catch-all, convention dans `.claude/rules/nextjs/assets.md`). Gradient fallback si null. Affichée en grand (hauteur ~400px desktop, responsive).
+- **Cover image** : identique au pattern de `ProjectCard` du sub-project 05, `<Image src="/api/assets/<coverFilename>">` où `coverFilename` est un chemin relatif nested `projets/{client,personal}/<slug>/cover.webp` (route catch-all, convention dans `.claude/rules/nextjs/assets.md`). Gradient fallback si null. Affichée en grand (hauteur ~400px desktop, responsive).
 - **Titre H1** : `project.title` (classes Tailwind typography pour grand titre).
-- **Badges Format** sous le titre : `project.formats.map(format => <Badge variant="outline">{t(`Projects.formats.${format}`)}</Badge>)` — étiquettes catégoriques sans icône (cohérent avec la card liste). Omis si `formats.length === 0`.
+- **Badges Format** sous le titre : `project.formats.map(format => <Badge variant="outline">{t(`Projects.formats.${format}`)}</Badge>)`, étiquettes catégoriques sans icône (cohérent avec la card liste). Omis si `formats.length === 0`.
 - **Sous-titre** : `project.description` (teaser court en lead texte).
 - **Meta structurées** : grille 2x2/3x2 ou colonnes compactes sur desktop, stack verticale sur mobile. Structure en 2 blocs :
   - **Bloc Entreprise** (si `clientMeta.company` présent, projet CLIENT) : logo + nom en grand (pas 20px comme la card, plutôt 40-48px), lien vers le site web si `websiteUrl` présent, meta secondaires en dessous en texte `text-sm text-muted-foreground` : secteurs (join "/", ex: "Assurance / Banque"), taille (enum `CompanySize` localisée : "TPE", "PME", "ETI", "Groupe"), locations (join "/", ex: "Luxembourg / Europe").
@@ -76,20 +76,20 @@ La hiérarchie de lecture est : header (contexte immédiat) → narration libre 
     - `clientMeta.teamSize` → `t('Projects.caseStudy.meta.teamSizeValue', { count: teamSize })` ("3 personnes" / "People: 3" via ICU plural)
     - `clientMeta.contractStatus` → label traduit via `Projects.caseStudy.contractStatus.*` (FREELANCE / CDI / STAGE / ALTERNANCE)
     - `clientMeta.workMode` → label traduit via `Projects.caseStudy.workMode.*` (PRESENTIEL → "Présentiel" / "On-site", HYBRIDE → "Hybride" / "Hybrid", REMOTE → "Remote")
-    - Durée : formaté depuis `startedAt` + `endedAt` (ex: "2022 — 2024" ou "2022 — En cours" si `endedAt` null)
+    - Durée : formaté depuis `startedAt` + `endedAt` (ex: "2022, 2024" ou "2022, En cours" si `endedAt` null)
 - **Lien retour** : `<Link href="/projets">← {t('backToList')}</Link>` en haut à gauche (mobile-friendly).
 
 ### Composant `TagStackGrouped` (Server Component)
 
 - **Props** : `{ tags: ProjectTag[] }` où chaque `ProjectTag` expose `displayOrder` + relation `tag` (type Prisma `{ slug, name, kind, icon }`). Le tableau arrive déjà trié `displayOrder asc` côté query (sub-project 02).
-- **Filtrage** : aucun — tous les tags du projet (y compris `EXPERTISE`) sont affichés ; c'est le groupement par `kind` qui structure le rendu.
+- **Filtrage** : aucun, tous les tags du projet (y compris `EXPERTISE`) sont affichés ; c'est le groupement par `kind` qui structure le rendu.
 - **Regroupement par `TagKind`** via `Array.reduce` (compat large ; `Object.groupBy` ES2024 reste une option si target projet = es2024). Le résultat est un objet `Partial<Record<TagKind, ProjectTag[]>>`.
 - **Ordre d'affichage fixe des groupes** : `EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → AI → INFRA`. Le groupe `EXPERTISE` est en tête car il raconte la valeur métier (ce que tu maîtrises via ce projet), puis la stack descend de la base applicative (LANGUAGE / FRAMEWORK / DATABASE) vers l'IA applicative puis les outils périphériques et l'infra.
-- **Ordre d'affichage dans chaque groupe** : tri par `displayOrder ASC` (pas alphabétique). Comme le tableau en props est déjà trié par la query Prisma, aucun re-tri côté composant — le groupement par `reduce` en parcourant le tableau ordonné préserve naturellement l'ordre.
+- **Ordre d'affichage dans chaque groupe** : tri par `displayOrder ASC` (pas alphabétique). Comme le tableau en props est déjà trié par la query Prisma, aucun re-tri côté composant, le groupement par `reduce` en parcourant le tableau ordonné préserve naturellement l'ordre.
 - **Rendu** : titre principal de section `t('Projects.caseStudy.stackTitle')` (ex: "Stack & Expertises" en FR), puis pour chaque kind non-vide un sous-titre localisé via `t('Projects.caseStudy.kind.<KIND>')` (ex: "Expertises", "Langages", "Frameworks", "Bases de données", "IA", "Outils", "Infrastructure") + grille de `TagBadge` (réutilisé du sub-project 05).
 - **Mise en valeur visuelle du groupe `EXPERTISE`** : même composant `TagBadge` mais classe optionnelle pour badge un peu plus grand (ex: `className="text-base px-3 py-1"` pour le seul groupe EXPERTISE), sans introduire un composant dédié. Les autres groupes utilisent la taille standard.
 - **Skip si kind absent** : si un projet n'utilise pas de `DATABASE`, la section Databases n'apparaît pas.
-- **Composant entier retourne `null`** si `tags.length === 0` (projet sans tag — très rare).
+- **Composant entier retourne `null`** si `tags.length === 0` (projet sans tag, très rare).
 
 ### Composant `CaseStudyMarkdown` (Server Component)
 
@@ -211,14 +211,14 @@ Les autres scénarios (2, 3, 6, 7) sont validés par le smoke test visuel dans l
 
 - **Projet sans cover** (`coverFilename = null`) : gradient fallback affiché en header, comme sur la card de la liste. Cohérent sub-project 05.
 - **Projet sans `clientMeta`** (PERSONAL) : la grille meta n'affiche que les infos disponibles (durée, pas d'entreprise ni équipe). Display conditionnel.
-- **Projet PUBLISHED avec `endedAt = null`** (mission en cours) : durée affichée "2023 — En cours" (via label traduit).
+- **Projet PUBLISHED avec `endedAt = null`** (mission en cours) : durée affichée "2023, En cours" (via label traduit).
 - **Markdown vide** (`''` ou `null`) : section markdown omise totalement. Page valide sans elle.
 - **Markdown avec images cassées** : `react-markdown` rend un `<img>` ; si l'URL retourne 404 côté serveur (`/api/assets/...`), le navigateur affiche l'alt text seul. Pas de crash.
 - **Markdown très long** : pas de pagination ni scroll lock. Responsive via prose.
 - **Projet sans tags** (peu probable mais possible) : `TagStackGrouped` retourne `null`. Le layout rend Header + Markdown + Footer sans bloc vide.
 - **Projet avec uniquement des tags EXPERTISE (pas de technos)** : `TagStackGrouped` affiche uniquement le groupe `EXPERTISE`, pas de groupes LANGUAGE/FRAMEWORK/etc.
 - **Projet avec uniquement des tags non-EXPERTISE (pas de expertises)** : le groupe `EXPERTISE` est skippé, les autres groupes s'affichent normalement. Couvert par Scénario 8.
-- **Slug avec caractères spéciaux** (`é`, `à`) : la route Next.js les accepte. `findPublishedBySlug` compare strictement — le slug en BDD doit matcher. Si typo de slug dans l'URL : 404.
+- **Slug avec caractères spéciaux** (`é`, `à`) : la route Next.js les accepte. `findPublishedBySlug` compare strictement, le slug en BDD doit matcher. Si typo de slug dans l'URL : 404.
 - **Locale invalide dans l'URL** (`/de/projets/foo`) : `hasLocale` renvoie false → `notFound()`.
 - **Build timeout** sur `generateStaticParams` avec trop de slugs : non applicable en MVP (~10 projets), à revoir si le volume explose.
 

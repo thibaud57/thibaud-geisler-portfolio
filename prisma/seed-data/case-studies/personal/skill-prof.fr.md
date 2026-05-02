@@ -45,3 +45,7 @@ Deux agents d'audit complémentaires : `lesson/auditor` (format + exactitude tec
 - Design de workflows multi-étapes avec quality gates
 - Structuration pédagogique de contenus techniques complexes
 - La matrice anti-redondance dans les plans est critique pour des leçons denses sans répétition
+
+## Liens
+
+- [LinkedIn : Claude Skills pour fiches techniques à jour](https://www.linkedin.com/posts/thibaud-geisler_ia-claudeai-claudecode-share-7449846804663304192-asUx)

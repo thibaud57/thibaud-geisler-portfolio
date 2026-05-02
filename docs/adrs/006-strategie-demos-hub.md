@@ -22,7 +22,7 @@ Faut-il héberger et intégrer les démos directement dans le portfolio, ou lais
 
 # 🛠️ Options Envisagées
 
-## Option A — Hub : portfolio pointe vers démos autonomes
+## Option A : Hub, portfolio pointe vers démos autonomes
 
 **Description :** Chaque application est hébergée sur son propre domaine/sous-domaine. Le portfolio liste les projets avec un champ `demo_url` pointant vers la démo externe.
 
@@ -30,15 +30,15 @@ Faut-il héberger et intégrer les démos directement dans le portfolio, ou lais
 - Chaque application est indépendante (stack, déploiement, domaine propres)
 - Le portfolio n'est pas alourdi par des applications tierces
 - Les démos peuvent être partagées indépendamment du portfolio
-- Architecture découplée — une démo down n'impacte pas le portfolio
+- Architecture découplée, une démo down n'impacte pas le portfolio
 
 **Inconvénients :**
 - Expérience de navigation fragmentée (ouverture de nouveaux onglets)
 - Coût potentiel si plusieurs sous-domaines nécessitent des certificats TLS séparés
 
-**Coût estimé :** Faible — chaque démo gère sa propre infra
+**Coût estimé :** Faible, chaque démo gère sa propre infra
 
-## Option B — Démos intégrées dans le portfolio (iframes, sous-routes)
+## Option B : Démos intégrées dans le portfolio (iframes, sous-routes)
 
 **Description :** Les démos sont embarquées dans le portfolio (iframes, sous-routes, ou déploiements dans la même infra).
 
@@ -47,17 +47,17 @@ Faut-il héberger et intégrer les démos directement dans le portfolio, ou lais
 - Tout au même endroit
 
 **Inconvénients :**
-- Couplage fort — le portfolio doit héberger des stacks potentiellement très différentes
+- Couplage fort, le portfolio doit héberger des stacks potentiellement très différentes
 - Complexité de déploiement et maintenance
 - Performances impactées par les applications embarquées
 
-**Coût estimé :** Élevé — maintenance et infra significativement plus complexes
+**Coût estimé :** Élevé, maintenance et infra significativement plus complexes
 
 ---
 
 # 🎉 Décision
 
-**Option A — Hub pointant vers démos autonomes.**
+**Option A : Hub pointant vers démos autonomes.**
 
 Le portfolio est un répertoire central. Chaque application démo a sa propre logique, son propre cycle de vie et potentiellement sa propre stack. Le découplage est la bonne approche architecturale.
 

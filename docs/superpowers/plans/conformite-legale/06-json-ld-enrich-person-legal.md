@@ -22,7 +22,7 @@
 
 ---
 
-## Task 1: TDD red — étendre les tests unit avec 4 nouveaux cas
+## Task 1: TDD red: étendre les tests unit avec 4 nouveaux cas
 
 **Files:**
 - Modify: `src/lib/seo/json-ld.test.ts` (ajout de 4 cas + extension de la factory `buildProfileInput` pour supporter `legal?` via Partial<>)
@@ -142,7 +142,7 @@ Expected:
 
 ---
 
-## Task 2: TDD green — étendre `json-ld.ts` avec types + helper + extension
+## Task 2: TDD green: étendre `json-ld.ts` avec types + helper + extension
 
 **Files:**
 - Modify: `src/lib/seo/json-ld.ts`

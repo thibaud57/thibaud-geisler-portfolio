@@ -9,11 +9,11 @@ depends_on: []
 date: "2026-04-22"
 ---
 
-# Schéma Prisma — modèles Project, ClientMeta, Company, Tag, ProjectTag
+# Schéma Prisma : modèles Project, ClientMeta, Company, Tag, ProjectTag
 
 ## Scope
 
-Déclarer les cinq modèles Prisma qui structurent la donnée des projets du portfolio : `Project` (table principale), `ClientMeta` (relation 1:1 optionnelle — métadonnées propres à la mission CLIENT), `Company` (référentiel 1:N pour les entreprises clientes, réutilisable entre projets), `Tag` (référentiel m:n unifié qui couvre technos / infra / outils / expertises métier, distingués par un discriminant `kind`) et `ProjectTag` (table de jointure explicite Project ↔ Tag portant un `displayOrder` par-projet — permet qu'un même tag soit en position 1 sur un projet et en position 3 sur un autre). Déclarer les huit enums associés : `ProjectType`, `ProjectStatus`, `ProjectFormat` (multi sur Project : API / Web App / App Mobile / Desktop App / CLI / IA), `ContractStatus`, `WorkMode` (présentiel / hybride / remote), `TagKind` (6 valeurs dont `EXPERTISE`), `CompanySize` (TPE / PME / ETI / GROUPE), `CompanySector` (11 valeurs FR), `CompanyLocation` (8 valeurs FR). Générer la migration initiale via `prisma migrate dev --name add_project_schema`, créer `prisma.config.ts` (règle Prisma 7), et mettre à jour `docs/BRAINSTORM.md` pour refléter la modélisation élargie. **Exclus** : singleton PrismaClient et queries (sub-project 02), seed des données (sub-project 03), route API assets (04), pages UI (05, 06), mutations admin (post-MVP).
+Déclarer les cinq modèles Prisma qui structurent la donnée des projets du portfolio : `Project` (table principale), `ClientMeta` (relation 1:1 optionnelle, métadonnées propres à la mission CLIENT), `Company` (référentiel 1:N pour les entreprises clientes, réutilisable entre projets), `Tag` (référentiel m:n unifié qui couvre technos / infra / outils / expertises métier, distingués par un discriminant `kind`) et `ProjectTag` (table de jointure explicite Project ↔ Tag portant un `displayOrder` par-projet, permet qu'un même tag soit en position 1 sur un projet et en position 3 sur un autre). Déclarer les huit enums associés : `ProjectType`, `ProjectStatus`, `ProjectFormat` (multi sur Project : API / Web App / App Mobile / Desktop App / CLI / IA), `ContractStatus`, `WorkMode` (présentiel / hybride / remote), `TagKind` (6 valeurs dont `EXPERTISE`), `CompanySize` (TPE / PME / ETI / GROUPE), `CompanySector` (11 valeurs FR), `CompanyLocation` (8 valeurs FR). Générer la migration initiale via `prisma migrate dev --name add_project_schema`, créer `prisma.config.ts` (règle Prisma 7), et mettre à jour `docs/BRAINSTORM.md` pour refléter la modélisation élargie. **Exclus** : singleton PrismaClient et queries (sub-project 02), seed des données (sub-project 03), route API assets (04), pages UI (05, 06), mutations admin (post-MVP).
 
 ### État livré
 
@@ -21,7 +21,7 @@ Déclarer les cinq modèles Prisma qui structurent la donnée des projets du por
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté.
+Aucune, ce sub-project est autoporté.
 
 ## Files touched
 
@@ -34,9 +34,9 @@ Aucune — ce sub-project est autoporté.
 
 ## Architecture approach
 
-- **Provider Prisma v7** : `generator client { provider = "prisma-client"; output = "../src/generated/prisma" }`, pas `prisma-client-js` (retiré en v7). Conforme à [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md) — `provider = "prisma-client"` + champ `output` obligatoire.
+- **Provider Prisma v7** : `generator client { provider = "prisma-client"; output = "../src/generated/prisma" }`, pas `prisma-client-js` (retiré en v7). Conforme à [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md), `provider = "prisma-client"` + champ `output` obligatoire.
 - **Configuration URL via `prisma.config.ts`** : le bloc `datasource db` ne garde que `provider = "postgresql"`, l'URL vient de `prisma.config.ts` (règle v7, déprécié dans `schema.prisma`). Voir [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md).
-- **IDs UUID v7** : tous les `@id` utilisent `@default(uuid(7))` — ordonnés temporellement, meilleure localité B-tree que UUID v4 ou cuid. Voir [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md).
+- **IDs UUID v7** : tous les `@id` utilisent `@default(uuid(7))`, ordonnés temporellement, meilleure localité B-tree que UUID v4 ou cuid. Voir [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md).
 - **Types colonnes** : `String` mappe vers `TEXT` par défaut (pas de `VARCHAR(n)`), les timestamps sont explicitement typés `@db.Timestamptz` pour utiliser `TIMESTAMPTZ` plutôt que `TIMESTAMP`. Voir [.claude/rules/prisma/schema-migrations.md](../../../.claude/rules/prisma/schema-migrations.md).
 - **Relation m:n Project ↔ Tag via table de jointure explicite `ProjectTag`** : table explicite nécessaire car l'ordre d'affichage des tags varie par-projet (un même tag peut être en 1ʳᵉ position sur un projet et en 3ᵉ sur un autre). Le modèle porte `projectId`, `tagId`, `displayOrder Int @default(0)`, clé primaire composite `@@id([projectId, tagId])`, et index `@@index([projectId, displayOrder])` pour accélérer le tri par-projet. `onDelete: Cascade` côté Project (supprimer le projet retire ses liaisons), `onDelete: Restrict` côté Tag (protège le référentiel). Côté Project et Tag, la relation est `tags ProjectTag[]` / `projects ProjectTag[]` (plus de many-to-many implicite).
 - **Relation 1:1 optionnelle Project ↔ ClientMeta** : `clientMeta ClientMeta?` côté Project, `projectId String @unique` + `project Project @relation(...)` côté ClientMeta. Cascade delete : `onDelete: Cascade` pour supprimer ClientMeta automatiquement si le Project est supprimé.
@@ -47,10 +47,10 @@ Aucune — ce sub-project est autoporté.
 - **Client généré non versionné** : le dossier `src/generated/prisma/` est ajouté au `.gitignore` (règle Prisma v7). Voir [.claude/rules/typescript/conventions.md](../../../.claude/rules/typescript/conventions.md).
 - **Champs par modèle** :
   - `Project` : `id` UUID v7, `slug` unique, `title`, `description`, `type` (enum `ProjectType`), `status` (enum `ProjectStatus`, défaut `DRAFT`), `formats` (enum `ProjectFormat[]`, array multi-valeurs), `startedAt`/`endedAt` nullable, `githubUrl`/`demoUrl` nullable, `coverFilename` nullable, `caseStudyMarkdown` nullable, `displayOrder` int défaut 0 (ordre du projet sur la page liste, **pas** l'ordre des tags du projet), relation `tags` (`ProjectTag[]`) + `clientMeta` (1:1 opt), timestamps `createdAt`/`updatedAt`
-  - `ClientMeta` : `id` UUID v7, `projectId` unique FK vers Project avec `onDelete: Cascade`, `companyId` FK required vers Company avec `onDelete: Restrict`, `teamSize` int nullable, `contractStatus` (enum `ContractStatus`, nullable), `workMode` (enum `WorkMode`, required — présentiel/hybride/remote), timestamps. **Note** : plus de champ `companyName` (remplacé par relation `Company`).
+  - `ClientMeta` : `id` UUID v7, `projectId` unique FK vers Project avec `onDelete: Cascade`, `companyId` FK required vers Company avec `onDelete: Restrict`, `teamSize` int nullable, `contractStatus` (enum `ContractStatus`, nullable), `workMode` (enum `WorkMode`, required, présentiel/hybride/remote), timestamps. **Note** : plus de champ `companyName` (remplacé par relation `Company`).
   - `Company` : `id` UUID v7, `slug` unique (dérivé du nom), `name`, `logoFilename` nullable (image placée manuellement dans `/assets`), `websiteUrl` nullable, `sectors` (enum `CompanySector[]`, array multi-valeurs), `size` (enum `CompanySize`, nullable), `locations` (enum `CompanyLocation[]`, array multi-valeurs), reverse relation `clientMetas`, timestamps
   - `Tag` : `id` UUID v7, `slug` unique, `name`, `kind` (enum `TagKind` à 6 valeurs : `LANGUAGE`, `FRAMEWORK`, `DATABASE`, `INFRA`, `AI`, `EXPERTISE`), `icon` nullable (format string `"<lib>:<slug>"`, ex: `"simple-icons:react"` pour les technos ou `"lucide:spider"` pour les expertises ; validation du format reportée au seed sub-project 03 via Zod), relation inverse `projects ProjectTag[]`, timestamps. **Note** : plus de champ `displayOrder` global, l'ordre d'affichage est porté par `ProjectTag.displayOrder` par-projet.
-  - `ProjectTag` : table de jointure explicite Project ↔ Tag. `projectId` FK vers Project avec `onDelete: Cascade`, `tagId` FK vers Tag avec `onDelete: Restrict`, `displayOrder Int @default(0)` (tri ASC — 0 en premier — pour piloter l'ordre des tags **de ce projet** sur la card liste et dans chaque groupe de la case study). Clé primaire composite `@@id([projectId, tagId])` (un même tag ne peut être lié qu'une fois à un projet). Index `@@index([projectId, displayOrder])` pour accélérer la query typique `orderBy: { displayOrder: 'asc' }` filtrée par projet.
+  - `ProjectTag` : table de jointure explicite Project ↔ Tag. `projectId` FK vers Project avec `onDelete: Cascade`, `tagId` FK vers Tag avec `onDelete: Restrict`, `displayOrder Int @default(0)` (tri ASC, 0 en premier, pour piloter l'ordre des tags **de ce projet** sur la card liste et dans chaque groupe de la case study). Clé primaire composite `@@id([projectId, tagId])` (un même tag ne peut être lié qu'une fois à un projet). Index `@@index([projectId, displayOrder])` pour accélérer la query typique `orderBy: { displayOrder: 'asc' }` filtrée par projet.
 - **Valeurs enum** :
   - `ProjectFormat { API, WEB_APP, MOBILE_APP, DESKTOP_APP, CLI, IA }`
   - `WorkMode { PRESENTIEL, HYBRIDE, REMOTE }` (mixte FR/anglicisme standard)
@@ -127,13 +127,13 @@ Aucune — ce sub-project est autoporté.
 - **Mismatch ESM** : Prisma v7 est ESM-only (`"type": "module"` requis dans `package.json`). Vérifier que le projet est bien en ESM avant d'exécuter les commandes Prisma.
 - **Slug vide** : aucune contrainte applicative ici (le check passera par Zod dans le sub-project 02). Le schéma ne garantit que l'unicité, pas la validité du format slug.
 - **Suppression d'un `Tag` référencé** : bloquée par `onDelete: Restrict` sur `ProjectTag.tagId`. Pour supprimer un Tag : d'abord retirer les rows `ProjectTag` qui le référencent (suppression manuelle ou retrait du tag des `tagSlugs[]` de tous les projets + re-seed). Comportement voulu : évite les suppressions accidentelles qui videraient silencieusement les tags d'un projet.
-- **Deux projets donnent un `displayOrder` identique à leurs `ProjectTag`** : acceptable (c'est la valeur par-projet). Un tag peut être en position 0 sur le projet A et en position 3 sur le projet B — le modèle explicite le supporte nativement. La clé primaire composite `(projectId, tagId)` empêche uniquement le doublon exact d'une liaison projet-tag.
+- **Deux projets donnent un `displayOrder` identique à leurs `ProjectTag`** : acceptable (c'est la valeur par-projet). Un tag peut être en position 0 sur le projet A et en position 3 sur le projet B, le modèle explicite le supporte nativement. La clé primaire composite `(projectId, tagId)` empêche uniquement le doublon exact d'une liaison projet-tag.
 - **Tag avec `icon = null`** : acceptable. Le rendu badge côté UI (sub-projects 05/06) utilisera alors un fallback texte seul (pas de glyphe). Cas typique : une techno sans logo Simple Icons connu (ex: un framework confidentiel), ou une expertise que l'on veut afficher textuellement.
 - **Format `icon` invalide** : le schéma Prisma n'impose pas le format `<lib>:<slug>`. La validation est appliquée au seed (sub-project 03) via Zod (`z.string().regex(/^(simple-icons|lucide):[a-z0-9-]+$/).nullable()`). Si un icon invalide atteint la BDD (import direct SQL), le badge UI tombe en fallback texte.
-- **Projet avec `formats` vide** (`[]`) : acceptable (ex: donnée historique pas encore catégorisée). Le badge Format sur la card/case study est simplement absent. Le seed devrait toujours remplir au moins 1 format — un lint manuel peut attraper les oublis.
+- **Projet avec `formats` vide** (`[]`) : acceptable (ex: donnée historique pas encore catégorisée). Le badge Format sur la card/case study est simplement absent. Le seed devrait toujours remplir au moins 1 format, un lint manuel peut attraper les oublis.
 - **Company sans `size` / `locations` / `sectors`** : tous les champs métier de Company sont optionnels sauf `slug` et `name`. Un projet très ancien peut avoir une entreprise minimale. L'UI case study affiche conditionnellement ces champs (si `null` / `[]` → masqué).
 - **`companyId` required sur ClientMeta** : si le seed oublie de lier une `Company`, Prisma rejette l'insertion au seed (contrainte FK). Au workflow : toujours créer la `Company` AVANT le `Project` qui la référence (ordre d'upsert dans seed.ts).
-- **Suppression d'une `Company` référencée** : bloquée par `onDelete: Restrict`. Pour supprimer : d'abord supprimer les projets CLIENT liés (ou réassigner `ClientMeta.companyId`). Comportement voulu — évite les orphelins silencieux.
+- **Suppression d'une `Company` référencée** : bloquée par `onDelete: Restrict`. Pour supprimer : d'abord supprimer les projets CLIENT liés (ou réassigner `ClientMeta.companyId`). Comportement voulu, évite les orphelins silencieux.
 
 ## Architectural decisions
 
@@ -147,7 +147,7 @@ Aucune — ce sub-project est autoporté.
 
 **Rationale :**
 - Le contenu riche case study (contexte, défis, solution, screenshots) prend du temps à rédiger. Un état `DRAFT` permet de préparer un projet en BDD sans l'exposer publiquement.
-- Un projet client qui devient conflictuel (fin de mission, repositionnement) gagne à être `ARCHIVED` plutôt que supprimé — la data et les assets restent récupérables.
+- Un projet client qui devient conflictuel (fin de mission, repositionnement) gagne à être `ARCHIVED` plutôt que supprimé, la data et les assets restent récupérables.
 - Coût d'ajout maintenant = ~15 min (1 enum + 1 champ). Coût d'une migration `boolean` → `enum` plus tard = migration de données + refactor de toutes les queries.
 - `BRAINSTORM.md` sera mis à jour pour refléter la décision (modélisation vivante, pas figée).
 
@@ -231,7 +231,7 @@ Aucune — ce sub-project est autoporté.
 
 **Options envisagées :**
 - **A. Afficher les tags dans l'ordre de la relation (ordre d'insertion Prisma)** : aucune garantie d'ordre stable entre environnements, l'affichage "aléatoire" des 3 premiers tags sur la card est problématique.
-- **B. Champ `displayOrder Int @default(0)` sur `Tag`, tri `orderBy: { displayOrder: 'asc' }` à la query** : ordre contrôlé globalement (ex: les technos ou expertises "phares" ont un `displayOrder` bas — 0, 1, 2 — pour apparaître en premier si présentes sur un projet). Jointure Prisma implicite (`_ProjectToTag`).
+- **B. Champ `displayOrder Int @default(0)` sur `Tag`, tri `orderBy: { displayOrder: 'asc' }` à la query** : ordre contrôlé globalement (ex: les technos ou expertises "phares" ont un `displayOrder` bas, 0, 1, 2, pour apparaître en premier si présentes sur un projet). Jointure Prisma implicite (`_ProjectToTag`).
 - **C. Ordre défini par projet via table de jointure explicite `ProjectTag { projectId, tagId, displayOrder }`** : ordre par (projet, tag) plutôt que global. Plus flexible : un même tag peut être en position 0 sur le projet A et en position 3 sur le projet B.
 
 **Choix : C**

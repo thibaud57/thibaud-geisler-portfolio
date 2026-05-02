@@ -37,16 +37,18 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 ### Scale Typographique
 
-| Usage | Taille | Poids | Classe Tailwind |
-|-------|--------|-------|-----------------|
-| H1 (display) | 3rem (48px) | 700 (Bold) | `text-5xl font-bold font-display` |
-| H2 | 2.25rem (36px) | 600 (SemiBold) | `text-4xl font-semibold` |
-| H3 | 1.5rem (24px) | 600 (SemiBold) | `text-2xl font-semibold` |
-| Lead / Subtitle | 1.25rem (20px) | 400 (Regular) | `text-xl` |
-| Body | 1rem (16px) | 400 (Regular) | `text-base` |
-| Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
+| Usage | Taille mobile | Taille ≥ sm (640px) | Poids | Classe Tailwind |
+|-------|---------------|----------------------|-------|-----------------|
+| H1 (display) | 2.25rem (36px) | 3rem (48px) | 700 (Bold) | `font-display text-4xl font-bold sm:text-5xl` |
+| H2 | 1.875rem (30px) | 2.25rem (36px) | 600 (SemiBold) | `text-3xl font-semibold sm:text-4xl` |
+| H3 | 1.5rem (24px) | 1.5rem (24px) | 600 (SemiBold) | `text-2xl font-semibold` |
+| Lead / Subtitle | 1.25rem (20px) | 1.25rem (20px) | 400 (Regular) | `text-xl` |
+| Body | 1rem (16px) | 1rem (16px) | 400 (Regular) | `text-base` |
+| Small / Caption | 0.875rem (14px) | 0.875rem (14px) | 400 (Regular) | `text-sm` |
 
-> `font-display` est une classe Tailwind custom mappée sur Sansation. Les autres tailles utilisent Geist Sans par défaut.
+> Les styles de base H1/H2 sont appliqués globalement via `@layer base` dans `globals.css` (mobile-first, palier `sm:` pour le desktop). Pas besoin de répéter ces classes sur chaque balise, sauf override ponctuel.
+
+> `font-display` est une classe Tailwind custom mappée sur Sansation (appliquée par défaut sur H1 via `@layer base`). Les autres tailles utilisent Geist Sans par défaut.
 
 > **Exception** : sur les surfaces marketing, les titres de cards ajoutent aussi `font-display` au H3 (`font-display text-2xl font-semibold`) pour la cohérence éditoriale avec les H1 hero. Les pages internes (admin post-MVP, formulaires) gardent Geist Sans en H3.
 
@@ -86,7 +88,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--success` | `#16A34A` | `#22C55E` | Confirmation formulaire, actions réussies |
 | `--warning` | `#CA8A04` | `#EAB308` | Avertissements, états attention |
 | `--info` | `#2563EB` | `#3B82F6` | Messages informatifs, aide contextuelle |
-| `--shine` | `#FFFFFF / 0.95` | `#FFFFFF / 0.95` | Reflet lumineux constant (BorderBeam, effets shimmer) — volontairement non-thémé pour conserver l'effet de brillance en dark mode |
+| `--shine` | `#FFFFFF / 0.95` | `#FFFFFF / 0.95` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode |
 
 ### Règles
 
@@ -99,14 +101,17 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 ### Border Radius
 
-**Base** : `--radius: 0.625rem` (10px) — les variants sont dérivées automatiquement via `calc()`.
+**Base** : `--radius: 0.625rem` (10px), les variants sont dérivées proportionnellement via `calc()` (multiplicateurs).
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
-| `--radius-sm` | `calc(var(--radius) - 4px)` → 6px | Badges, tags, petits éléments |
-| `--radius-md` | `calc(var(--radius) - 2px)` → 8px | Boutons, inputs, éléments UI courants |
+| `--radius-sm` | `calc(var(--radius) * 0.6)` → 6px | Badges, tags, petits éléments |
+| `--radius-md` | `calc(var(--radius) * 0.8)` → 8px | Boutons, inputs, éléments UI courants |
 | `--radius-lg` | `var(--radius)` → 10px | Cards, conteneurs, modales |
-| `--radius-xl` | `calc(var(--radius) + 4px)` → 14px | Sections, éléments larges |
+| `--radius-xl` | `calc(var(--radius) * 1.4)` → 14px | Sections, éléments larges |
+| `--radius-2xl` | `calc(var(--radius) * 1.8)` → 18px | Conteneurs visuels marketing |
+| `--radius-3xl` | `calc(var(--radius) * 2.2)` → 22px | Cards hero, blocs display |
+| `--radius-4xl` | `calc(var(--radius) * 2.6)` → 26px | Surfaces décoratives très arrondies |
 
 > Convention shadcn/ui : modifier uniquement `--radius` pour ajuster proportionnellement toute l'échelle. Style arrondi doux, moderne et accueillant.
 
@@ -114,12 +119,12 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
-| `shadow-sm` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Petits éléments, boutons |
-| `shadow` | `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)` | Dropdowns, menus |
+| `shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Petits éléments, boutons (anciennement `shadow-sm` en Tailwind v3) |
+| `shadow-sm` | `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)` | Dropdowns, menus (anciennement `shadow` en Tailwind v3) |
 | `shadow-md` | `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)` | Cards custom au hover |
 | `shadow-lg` | `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)` | Modales, popovers |
 
-> Valeurs par défaut Tailwind CSS. Les composants shadcn/ui (Card, Dialog, Popover) utilisent des **bordures** (`--border`) par défaut, pas des ombres. Les ombres sont réservées aux composants custom ou aux effets de hover. En dark mode, privilégier les bordures et les différences de fond (`--card` vs `--background`) pour la hiérarchie visuelle.
+> Valeurs par défaut Tailwind CSS v4 (utilitaires renommés depuis v3 : `shadow-sm` → `shadow-xs`, `shadow` → `shadow-sm`). Les composants shadcn/ui (Card, Dialog, Popover) utilisent des **bordures** (`--border`) par défaut, pas des ombres. Les ombres sont réservées aux composants custom ou aux effets de hover. En dark mode, privilégier les bordures et les différences de fond (`--card` vs `--background`) pour la hiérarchie visuelle.
 
 ## Dark / Light Mode
 
@@ -129,7 +134,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 ### Règles
 
-- ✅ Le thème suit la préférence OS du visiteur (`defaultTheme="system"`) — approche inclusive et respectueuse, pas de surprise pour les visiteurs non-dev
+- ✅ Le thème suit la préférence OS du visiteur (`defaultTheme="system"`), approche inclusive et respectueuse, pas de surprise pour les visiteurs non-dev
 - ✅ Le toggle dark/light est accessible depuis la navbar pour permettre de forcer un mode
 - ✅ Le design doit fonctionner aussi bien en light qu'en dark (pas optimisé pour un seul mode)
 - ✅ Toutes les couleurs passent par les tokens CSS variables : un seul endroit à modifier par mode
@@ -155,13 +160,17 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables — toute l'UI fonctionnelle |
+| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : text effects, typographie animée, bento grid, marquee, particles, borders animés |
-| Aceternity UI | Effets visuels copy-paste | Effets hero premium : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect |
+| Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé en MVP : Background Ripple Effect. Candidats post-MVP : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies (`prose prose-lg dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
 > Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. Le dashboard admin (post-MVP) utilise shadcn/ui seul.
+
+### Consentement cookies (CMP)
+
+Le site utilise **`@c15t/nextjs`** comme Consent Management Platform : bandeau de consentement cookies (RGPD), gating du widget Calendly tant que les cookies marketing ne sont pas acceptés, bouton "Préférences cookies" dans le footer. Voir [knowledges/c15t.md](knowledges/c15t.md) pour le détail d'intégration. Le styling du banner et de la modale de préférences hérite des tokens CSS du design system (couleurs, radius, typo) pour rester cohérent avec le reste de l'UI.
 
 ### Convention de structure
 
@@ -177,11 +186,11 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Navigation | Navbar, Mobile Menu | shadcn/ui (NavigationMenu, Sheet) | — |
+| Navigation | Navbar, Mobile Menu | shadcn/ui (NavigationMenu, Sheet) | - |
 | Language Switcher | DropdownMenu + icône Globe (Lucide) | shadcn/ui | Switch FR / EN dans navbar (Feature 6 i18n) |
 | Theme Toggle | AnimatedThemeToggler | Magic UI + next-themes | Toggle dark/light animé dans navbar, morphing soleil/lune |
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero / landing uniquement, effet shimmer, max 1 par page |
-| Boutons | Button (variants selon contexte) | shadcn/ui | default, outline, ghost, destructive, icon — variant choisi selon l'usage |
+| Boutons | Button (variants selon contexte) | shadcn/ui | default, outline, ghost, destructive, icon, variant choisi selon l'usage |
 | Formulaires | Input, Textarea, Select | shadcn/ui | Formulaire contact |
 | Cards services | Card service | shadcn/ui (Card) | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
 | Cards projets | Card projet | Magic UI (BentoCard) | Showcase visuel dans BentoGrid asymétrique (landing + /projects) |
@@ -189,12 +198,12 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Badges Tag (technos/infra/outils/expertises) | Badge + Simple Icons / Lucide | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | Tags projets avec icône : Simple Icons pour technos/infra/outils (ex: React, Python, Docker) ou Lucide pour expertises (ex: Scraping, RAG, MCP). `variant="secondary"` par défaut. Délégation du renderer d'icône selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`) |
 | Badges Format (type de projet) | Badge sans icône | shadcn/ui | Types de projet (API, Web App, App Mobile, Desktop App, CLI, IA) affichés à côté ou sous le titre (card + case study). `variant="outline"` pour distinguer visuellement des Tags (étiquette catégorique, pas de glyphe). Valeur en texte uniquement |
 | Feedback | Toast, Alert | shadcn/ui (Sonner, Alert) | Confirmation formulaire |
-| Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | — |
-| Hero effects | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect | Aceternity UI | Effets hero premium, sections clés uniquement (MacbookScroll = showcase projet dev principal, Background Ripple Effect = fond interactif hero/CTA — grille de cellules qui ripplent au clic) |
+| Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | - |
+| Hero effects | Background Ripple Effect | Aceternity UI | Fond interactif hero/CTA, grille de cellules qui ripplent au clic. Seul effet hero Aceternity installé en MVP. Candidats post-MVP : MacbookScroll (showcase projet dev), Spotlight, Hero Parallax, Aurora Background, Background Beams |
 | Formulaire contact | Form shadcn pur (Card + Input + Textarea + Button + Label) | shadcn/ui | Layout 2 cols (form / Calendly + réseaux) reconstruit en shadcn sans bloc Aceternity PRO. UI livrée par Feature 1 sub 04, logique métier (Zod + Server Action + SMTP + rate limiting) par Feature 4 |
-| Effets visuels enrichis | Border Beam, Shine Border, Particles, Meteors, Magic Card | Magic UI | Enrichissement visuel des sections marketing |
-| Typographie display | Hyper Text, Text Reveal, Word Rotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots, reveal au scroll) |
-| Typographie display (alt) | Text Generate Effect, Flip Words | Aceternity UI | Alternatives premium pour génération de texte (style IA) ou flip de phrases sur sections clés |
+| Effets visuels enrichis | Border Beam | Magic UI | Enrichissement visuel des sections marketing. Candidats post-MVP : Shine Border, Particles, Meteors, Magic Card |
+| Typographie display | Hyper Text, Word Rotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots). Candidat post-MVP : Text Reveal (au scroll) |
+| Typographie display (alt) | (aucun installé en MVP) | Aceternity UI | Candidats post-MVP : Text Generate Effect (génération style IA), Flip Words (flip de phrases sur sections clés) |
 | Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique pour les cards projets (landing + /projects) |
 | Marquee | Marquee | Magic UI | Défilement horizontal (logos techs, clients, projets) |
@@ -234,19 +243,19 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
 | Motion (package `motion`, import `motion/react`) | Animations UI et transitions | Fade-in au scroll, transitions de page, hover states |
-| Magic UI | Text effects et effets visuels enrichis | Text reveals, aurora text, border beam, particles — 2-3 effets max par page |
-| Aceternity UI | Hero effects premium | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams, Background Ripple Effect — hero / sections clés uniquement |
+| Magic UI | Text effects et effets visuels enrichis | Text reveals, aurora text, border beam, particles, 2-3 effets max par page |
+| Aceternity UI | Hero effects premium | Background Ripple Effect (seul effet installé en MVP), hero / sections clés. Autres effets premium (MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams) candidats post-MVP |
 
 ## Principes Directeurs
 
-- **Intensité** : `subtile` — chaque animation a un but fonctionnel (guider l'attention, confirmer une action)
+- **Intensité** : `subtile`, chaque animation a un but fonctionnel (guider l'attention, confirmer une action)
 - **Durée standard** : `200-400ms`
 - **Easing** : `ease-out` (entrées), `ease-in-out` (transitions)
 - **Intention** : renforcer la sensation de qualité et de fluidité sans distraire. Le contenu prime sur l'effet.
 
 ## Composants Animés
 
-> Ce tableau liste uniquement les animations **implémentées manuellement** (Motion, Tailwind transitions, CSS) sur des composants custom ou sur des composants shadcn non animés par défaut. Les composants Magic UI et Aceternity UI listés dans `§ Mapping Composants` (ShimmerButton, AnimatedThemeToggler, NumberTicker, MacbookScroll, Spotlight, Text Reveal, BentoCard, Marquee, Tabs, etc.) ont leurs animations **intégrées** et ne sont pas dupliqués ici.
+> Ce tableau liste uniquement les animations **implémentées manuellement** (Motion, Tailwind transitions, CSS) sur des composants custom ou sur des composants shadcn non animés par défaut. Les composants Magic UI et Aceternity UI listés dans `§ Mapping Composants` (ShimmerButton, AnimatedThemeToggler, NumberTicker, BentoCard, Marquee, BorderBeam, HyperText, WordRotate, BackgroundRippleEffect, etc.) ont leurs animations **intégrées** et ne sont pas dupliqués ici.
 
 | Composant | Type d'animation | Librairie | Trigger |
 |-----------|-----------------|-----------|---------|
@@ -254,7 +263,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Cards custom | Scale + shadow au hover | Tailwind transitions | Hover |
 | Boutons CTA standards | Défaut shadcn (`hover:bg-primary/90`) | Tailwind transitions | Hover |
 | Navigation | Transition smooth underline | Tailwind transitions | Hover / Active |
-| Page transitions | Fade cross-dissolve (expérimental — nécessite View Transitions API) | Motion | Route change |
+| Page transitions | Fade cross-dissolve (expérimental, nécessite View Transitions API) | Motion | Route change |
 | Badge "En cours" (indicateur live) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (signale les cards de projets actifs) |
 | CTA "Voir la démo" (case study) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s` | Magic UI | Always-on (mise en valeur du CTA principal, uniquement sur bouton démo, pas github) |
 
@@ -268,7 +277,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 **Section padding** : `py-16 sm:py-20 lg:py-24` (espacement vertical entre sections marketing)
 
-**Spacing pages documentaires** : `space-y-12` (48px fixe) sur le wrapper interne — pour pages denses en lecture continue (mentions légales, politique de confidentialité, case studies projets). Rythme typographique plus serré que le marketing pour préserver le flux de lecture. Combiné avec `gap-6` interne pour les sections coded et `prose-h2:mt-12 prose-h2:mb-6` pour les sections markdown afin d'aligner sur le même rythme.
+**Spacing pages documentaires** : `space-y-12` (48px fixe) sur le wrapper interne, pour pages denses en lecture continue (mentions légales, politique de confidentialité, case studies projets). Rythme typographique plus serré que le marketing pour préserver le flux de lecture. Combiné avec `gap-6` interne pour les sections coded et `prose-h2:mt-12 prose-h2:mb-6` pour les sections markdown afin d'aligner sur le même rythme.
 
 **Grid principal** : CSS Grid ou Flexbox selon le contexte, pas de librairie de grid externe
 
@@ -294,7 +303,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Composition de Styles
 
-**Utilitaire** : `cn()` (shadcn/ui) — wrapper autour de `clsx` + `tailwind-merge` pour composer les classes Tailwind sans conflit.
+**Utilitaire** : `cn()` (shadcn/ui), wrapper autour de `clsx` + `tailwind-merge` pour composer les classes Tailwind sans conflit.
 
 **Ordre d'application** : `layout → spacing → typography → colors → effects → responsive`
 
@@ -320,7 +329,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Anti-Patterns
 
-- ❌ **Couleurs en dur** : ne jamais utiliser `bg-green-600` ou `text-[#8FA68E]` — toujours passer par les tokens (`bg-primary`, `text-primary`)
+- ❌ **Couleurs en dur** : ne jamais utiliser `bg-green-600` ou `text-[#8FA68E]`, toujours passer par les tokens (`bg-primary`, `text-primary`)
 - ❌ **CSS modules / styled-components** : tout le styling passe par Tailwind. Pas de fichiers CSS custom sauf cas exceptionnel (ex: animations keyframes complexes)
 - ❌ **`!important`** : ne jamais utiliser `!important`. Si un style ne s'applique pas, corriger la cascade avec `cn()` ou revoir la structure du composant
 - ❌ **Inline styles** : ne jamais utiliser `style={{}}` sauf pour des valeurs dynamiques calculées (ex: positions, dimensions variables)
@@ -338,8 +347,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - [next-themes](https://github.com/pacocoursey/next-themes)
 
 ## Ressources Complémentaires
-- [Magic UI](https://magicui.design) — effets visuels copy-paste (ADR-009)
-- [Aceternity UI](https://ui.aceternity.com) — effets visuels copy-paste (ADR-009)
-- [Radix UI](https://www.radix-ui.com) — primitives accessibles sous-jacentes à shadcn/ui
-- [Geist Font](https://vercel.com/font) — polices Geist Sans et Geist Mono (Vercel)
-- [Realtime Colors](https://www.realtimecolors.com) — visualisation palette en contexte réel
+- [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
+- [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
+- [Radix UI](https://www.radix-ui.com) : primitives accessibles sous-jacentes à shadcn/ui
+- [Geist Font](https://vercel.com/font) : polices Geist Sans et Geist Mono (Vercel)
+- [Realtime Colors](https://www.realtimecolors.com) : visualisation palette en contexte réel

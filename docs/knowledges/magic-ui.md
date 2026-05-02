@@ -172,11 +172,11 @@ export function CTASection() {
 
 ## Documentation Officielle
 
-- [Magic UI — Documentation](https://magicui.design/docs)
-- [Magic UI — Components](https://magicui.design/docs/components)
+- [Magic UI : Documentation](https://magicui.design/docs)
+- [Magic UI : Components](https://magicui.design/docs/components)
 - [Installation](https://magicui.design/docs/installation)
 
 ## Ressources Complémentaires
 
-- [Magic UI — GitHub](https://github.com/magicuidesign/magicui)
+- [Magic UI : GitHub](https://github.com/magicuidesign/magicui)
 - [motion (ex-framer-motion)](https://motion.dev/docs/react)

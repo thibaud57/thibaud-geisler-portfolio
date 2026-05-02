@@ -179,11 +179,11 @@ node -v                                # version courante
 
 ## Documentation Officielle
 
-- [Node.js v24 — Documentation](https://nodejs.org/docs/latest-v24.x/api/index.html)
+- [Node.js v24 : Documentation](https://nodejs.org/docs/latest-v24.x/api/index.html)
 - [Command-line API](https://nodejs.org/docs/latest-v24.x/api/cli.html)
 - [TypeScript natif](https://nodejs.org/learn/typescript/run-natively)
 
 ## Ressources Complémentaires
 
 - [Node.js 24 release](https://nodejs.org/en/blog/release/v24.0.0)
-- [AppSignal — What's new in Node.js 24](https://blog.appsignal.com/2025/05/09/whats-new-in-nodejs-24.html)
+- [AppSignal, What's new in Node.js 24](https://blog.appsignal.com/2025/05/09/whats-new-in-nodejs-24.html)

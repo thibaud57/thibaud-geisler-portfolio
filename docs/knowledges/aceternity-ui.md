@@ -165,8 +165,8 @@ export function cn(...inputs: ClassValue[]) {
 
 ## Documentation Officielle
 
-- [Aceternity UI — Site](https://ui.aceternity.com/)
-- [Aceternity UI — Components](https://ui.aceternity.com/components)
+- [Aceternity UI : Site](https://ui.aceternity.com/)
+- [Aceternity UI : Components](https://ui.aceternity.com/components)
 - [CLI Reference](https://ui.aceternity.com/docs/cli)
 
 ## Ressources Complémentaires
