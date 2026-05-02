@@ -199,7 +199,7 @@ type ProjectWithAssets = Prisma.ProjectGetPayload<{
 
 ### Description
 
-`tsc --init` génère un `tsconfig.json` initial. En v6, les nouveaux défauts sont breaking par rapport à v5 : `strict: true`, `module: esnext`, `target: es2025`, `moduleResolution: bundler`, `types: []`. Dans un projet Next.js 16, `create-next-app` génère déjà un `tsconfig.json` adapté — `tsc --init` sert surtout pour des projets TS purs.
+`tsc --init` génère un `tsconfig.json` initial. En v6, les nouveaux défauts sont breaking par rapport à v5 : `strict: true`, `module: esnext`, `target: es2025`, `moduleResolution: bundler`, `types: []`. Dans un projet Next.js 16, `create-next-app` génère déjà un `tsconfig.json` adapté, `tsc --init` sert surtout pour des projets TS purs.
 
 ### Syntaxe
 
@@ -215,7 +215,7 @@ pnpm exec tsc --init
 - **Breaking v6** : nouveaux défauts `strict: true`, `target: es2025`, `module: esnext`, `moduleResolution: bundler`, `types: []`
 - `types: []` signifie que `@types/node` doit être déclaré explicitement si besoin (plus d'auto-discovery)
 - `moduleResolution: bundler` est aligné avec les attentes de Next.js 16+ et Turbopack
-- Pour un projet Next.js, `create-next-app` génère le `tsconfig.json` correct — pas besoin de `tsc --init`
+- Pour un projet Next.js, `create-next-app` génère le `tsconfig.json` correct, pas besoin de `tsc --init`
 - Pour supprimer les warnings de dépréciation des anciennes options : `"ignoreDeprecations": "6.0"`
 
 ---
@@ -274,7 +274,7 @@ pnpm exec tsc --ignoreConfig foo.ts
 
 ## Documentation Officielle
 
-- [TypeScript — Documentation](https://www.typescriptlang.org/docs/)
+- [TypeScript : Documentation](https://www.typescriptlang.org/docs/)
 - [TypeScript 6.0 Release Notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html)
 
 ## Ressources Complémentaires

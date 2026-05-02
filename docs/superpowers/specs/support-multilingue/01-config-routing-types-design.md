@@ -21,7 +21,7 @@ Mettre en place la fondation i18n du projet : `defineRouting` centralisant les l
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Premier sub-project de la feature i18n.
+Aucune, ce sub-project est autoporté. Premier sub-project de la feature i18n.
 
 ## Files touched
 

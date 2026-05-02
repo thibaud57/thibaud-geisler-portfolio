@@ -1,4 +1,4 @@
-# Sub 01 — Config SMTP & transporter nodemailer — Implementation Plan
+# Sub 01: Config SMTP & transporter nodemailer: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 **Spec source:** `docs/superpowers/specs/formulaire-de-contact/01-config-smtp-mailer-design.md`
 
-**Gating de qualité:** pas de TDD (`tdd_scope: none` — la rule `.claude/rules/nodemailer/email.md` justifie le pattern singleton, le test reviendrait à tester nodemailer = lib externe). Validation par `pnpm typecheck` + `pnpm lint` + `pnpm build` + 1 vérif manuelle ciblée.
+**Gating de qualité:** pas de TDD (`tdd_scope: none`, la rule `.claude/rules/nodemailer/email.md` justifie le pattern singleton, le test reviendrait à tester nodemailer = lib externe). Validation par `pnpm typecheck` + `pnpm lint` + `pnpm build` + 1 vérif manuelle ciblée.
 
 ---
 
@@ -112,15 +112,15 @@ export const MAIL_TO = env.MAIL_TO
 - `z.coerce.number()` accepte string ou number depuis `process.env` (toujours string en runtime Node, mais `.coerce` convertit proprement).
 - Le `parse()` au top-level **throw** si une var manque ou est invalide → application crash au boot Next, comportement voulu (fail fast).
 - Aucun `try/catch` ici : le crash doit remonter pour être visible dans les logs Dokploy.
-- **Ne PAS** créer de fonction `getMailer()` ni de cache `let cachedTransporter` — anti-pattern explicite (rule nodemailer + spec décision archi A).
-- **Ne PAS** créer de wrapper `sendMail()` ici — la Server Action sub 03 appellera `transporter.sendMail()` directement (spec décision archi A).
-- **Ne PAS** ajouter `import 'server-only'` au top — pas nécessaire au sub 01 puisque le module n'est pas encore importé par un caller. Si le sub 03 introduit un risque d'import accidentel client, il l'ajoutera lui-même.
+- **Ne PAS** créer de fonction `getMailer()` ni de cache `let cachedTransporter`, anti-pattern explicite (rule nodemailer + spec décision archi A).
+- **Ne PAS** créer de wrapper `sendMail()` ici, la Server Action sub 03 appellera `transporter.sendMail()` directement (spec décision archi A).
+- **Ne PAS** ajouter `import 'server-only'` au top, pas nécessaire au sub 01 puisque le module n'est pas encore importé par un caller. Si le sub 03 introduit un risque d'import accidentel client, il l'ajoutera lui-même.
 
 - [ ] **Step 2.2: Vérifier que les imports sont reconnus**
 
 Run: `pnpm typecheck`
 
-Expected: `tsc --noEmit` passe sans erreur, en particulier sur `import nodemailer, { type Transporter } from 'nodemailer'` (nécessite `esModuleInterop: true` dans `tsconfig.json` qui est déjà configuré projet — voir `.claude/rules/typescript/conventions.md`).
+Expected: `tsc --noEmit` passe sans erreur, en particulier sur `import nodemailer, { type Transporter } from 'nodemailer'` (nécessite `esModuleInterop: true` dans `tsconfig.json` qui est déjà configuré projet, voir `.claude/rules/typescript/conventions.md`).
 
 Si erreur d'import : vérifier `tsconfig.json` projet, `@types/nodemailer` installé (vérifié dans `package.json`).
 
@@ -146,7 +146,7 @@ Expected: pas d'erreur ni warning bloquant sur `src/lib/mailer.ts`.
 
 Run: `pnpm build`
 
-Expected: build réussit. Comme `src/lib/mailer.ts` n'est encore importé nulle part (sub 03 ajoutera l'import), le tree-shaking l'exclut du bundle. Si la commande échoue avec une erreur sur `net`/`tls`/`dns`, c'est qu'un autre fichier du repo a déjà importé `mailer.ts` côté client par erreur — investiguer avant de continuer.
+Expected: build réussit. Comme `src/lib/mailer.ts` n'est encore importé nulle part (sub 03 ajoutera l'import), le tree-shaking l'exclut du bundle. Si la commande échoue avec une erreur sur `net`/`tls`/`dns`, c'est qu'un autre fichier du repo a déjà importé `mailer.ts` côté client par erreur, investiguer avant de continuer.
 
 **Note** : si le build échoue parce que les vars SMTP ne sont pas définies dans l'environnement de build, c'est un effet de bord du `parse()` top-level. Solution : ne pas exécuter `pnpm build` sans `.env.local` valide pendant le développement local, ou attendre l'étape 4 (test manuel) qui suppose un `.env.local` valide. Pour la CI/Dokploy, les vars doivent être définies dans la config de l'environnement avant build.
 
@@ -204,7 +204,7 @@ Expected: le processus crash avec un `ZodError` mentionnant `MAIL_TO` (ex: `Requ
 
 Restaurer `MAIL_TO` dans `.env.local`. Supprimer `scripts/check-mailer.ts` si encore présent.
 
-**Note** : ce test manuel n'est PAS automatisé volontairement — `tdd_scope: none` (no-lib-test). L'utilisateur le fait une seule fois pour valider le sub-project.
+**Note** : ce test manuel n'est PAS automatisé volontairement, `tdd_scope: none` (no-lib-test). L'utilisateur le fait une seule fois pour valider le sub-project.
 
 ---
 
@@ -254,7 +254,7 @@ Prêt à commit sur chore/specs-formulaire-contact, attends ton go.
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/01-config-smtp-mailer.md`. Ce plan fait partie d'une boucle `/decompose-feature` (sub 1/4 de Feature 4 — Formulaire de contact).
+Plan complete and saved to `docs/superpowers/plans/formulaire-de-contact/01-config-smtp-mailer.md`. Ce plan fait partie d'une boucle `/decompose-feature` (sub 1/4 de Feature 4, Formulaire de contact).
 
 L'exécution sera lancée plus tard via `/implement-subproject formulaire-de-contact 01`, qui orchestrera `superpowers:subagent-driven-development` + quality gates (`/simplify` + `code/code-reviewer`) + demande de commit explicite.
 

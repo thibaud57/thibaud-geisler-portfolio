@@ -10,7 +10,7 @@ technologies: ["Better Auth", "Next.js", "Google OAuth"]
 
 # 🎯 Contexte
 
-Le dashboard admin est un espace privé single-user. Le site est self-hosted sur un VPS. L'utilisateur est Thibaud Geisler, qui dispose d'un compte Google professionnel (Gmail pro) avec 2FA activée — un seul compte autorisé, jamais de multi-utilisateur prévu.
+Le dashboard admin est un espace privé single-user. Le site est self-hosted sur un VPS. L'utilisateur est Thibaud Geisler, qui dispose d'un compte Google professionnel (Gmail pro) avec 2FA activée, un seul compte autorisé, jamais de multi-utilisateur prévu.
 
 Contexte écosystème (avril 2026) : Auth.js (ex-NextAuth.js) est désormais maintenu par l'équipe Better Auth en mode security-only. La v5 de NextAuth est restée en beta indéfiniment. Better Auth est devenu la solution d'authentification de référence pour Next.js App Router.
 
@@ -24,14 +24,14 @@ Quel mécanisme d'authentification mettre en place pour protéger le dashboard a
 
 # 🛠️ Options Envisagées
 
-## Option A — Better Auth + Google OAuth uniquement
+## Option A : Better Auth + Google OAuth uniquement
 
 **Description :** Better Auth avec Google comme unique provider social. Whitelist email via un hook `databaseHooks.user.create.before` qui rejette toute création de compte dont l'email ne correspond pas au Gmail pro autorisé. Aucun provider Credentials activé.
 
 **Avantages :**
-- Brute force éliminé : aucun endpoint de login direct à attaquer — l'authentification est déléguée à Google
+- Brute force éliminé : aucun endpoint de login direct à attaquer, l'authentification est déléguée à Google
 - Aucun credential stocké en BDD : une fuite de la base expose au pire un `accountId` Google inutilisable seul
-- 2FA héritée du compte Google — protection renforcée sans effort supplémentaire
+- 2FA héritée du compte Google, protection renforcée sans effort supplémentaire
 - Phishing réduit : un attaquant devrait reproduire une fausse page Google crédible ET contourner le redirect URI whitelist de la Google Cloud Console
 - Better Auth : version stable 1.6+, TypeScript natif, adaptateur Prisma first-class, écosystème actif en 2026
 - Setup simple pour un cas single-user
@@ -40,9 +40,9 @@ Quel mécanisme d'authentification mettre en place pour protéger le dashboard a
 - Dépendance à Google pour la connexion : si Google est inaccessible ou le compte suspendu, accès admin bloqué (acceptable pour un outil personnel)
 - Nécessite de configurer un projet dans la Google Cloud Console (OAuth client ID + secret)
 
-**Coût estimé :** Faible — quelques heures d'intégration et configuration Google Cloud
+**Coût estimé :** Faible, quelques heures d'intégration et configuration Google Cloud
 
-## Option B — Better Auth Credentials (email/mot de passe)
+## Option B : Better Auth Credentials (email/mot de passe)
 
 **Description :** Better Auth avec le provider `emailAndPassword`, credentials stockés en variable d'environnement ou en BDD (hash bcrypt/scrypt).
 
@@ -56,11 +56,11 @@ Quel mécanisme d'authentification mettre en place pour protéger le dashboard a
 - Pas de 2FA native sans configuration supplémentaire (plugin Better Auth requis)
 - Responsabilité de la gestion/rotation du mot de passe côté utilisateur
 
-**Coût estimé :** Faible — équivalent à l'Option A
+**Coût estimé :** Faible, équivalent à l'Option A
 
-## Option C — Magic link (email token)
+## Option C : Magic link (email token)
 
-**Description :** Better Auth avec un provider d'email OTP/magic link — un lien de connexion envoyé à chaque tentative via SMTP IONOS.
+**Description :** Better Auth avec un provider d'email OTP/magic link, un lien de connexion envoyé à chaque tentative via SMTP IONOS.
 
 **Avantages :**
 - Pas de mot de passe à gérer
@@ -71,13 +71,13 @@ Quel mécanisme d'authentification mettre en place pour protéger le dashboard a
 - Latence à chaque connexion (attente de l'email)
 - Surface d'attaque sur le SMTP et sur la boîte mail (moins protégée qu'un compte Google avec 2FA avancée)
 
-**Coût estimé :** Moyen — dépendance SMTP non négligeable
+**Coût estimé :** Moyen, dépendance SMTP non négligeable
 
 ---
 
 # 🎉 Décision
 
-**Option A actée — Better Auth + Google OAuth uniquement.**
+**Option A actée : Better Auth + Google OAuth uniquement.**
 
 Pour un dashboard single-user protégeant un compte admin unique, déléguer l'authentification à Google est objectivement plus sécurisé qu'une implémentation locale : brute force éliminé, aucun credential stocké localement, 2FA Google héritée. Better Auth est la librairie de référence en 2026 (Auth.js v5 est en beta indéfinie et maintenu en mode security-only par la même équipe).
 
@@ -111,4 +111,4 @@ Cette décision s'applique uniquement au dashboard admin (post-MVP). Les pages p
 
 **Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Générées automatiquement via la CLI Better Auth (`npx @better-auth/cli generate`). Cohabitent avec les tables applicatives (`Project`, `Asset`) dans la même base PostgreSQL.
 
-**Historique de la décision :** la version précédente de cet ADR (datée 2026-03-31) avait acté NextAuth.js Credentials provider. Révision en avril 2026 pour deux raisons : (1) changement d'écosystème — Auth.js passé sous maintenance Better Auth, (2) analyse de sécurité — OAuth Google objectivement plus sûr qu'un hash bcrypt local pour un compte admin unique. Better Auth + Google OAuth remplace NextAuth.js Credentials comme choix retenu.
+**Historique de la décision :** la version précédente de cet ADR (datée 2026-03-31) avait acté NextAuth.js Credentials provider. Révision en avril 2026 pour deux raisons : (1) changement d'écosystème, Auth.js passé sous maintenance Better Auth, (2) analyse de sécurité, OAuth Google objectivement plus sûr qu'un hash bcrypt local pour un compte admin unique. Better Auth + Google OAuth remplace NextAuth.js Credentials comme choix retenu.

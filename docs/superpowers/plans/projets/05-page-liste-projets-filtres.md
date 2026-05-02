@@ -1,4 +1,4 @@
-# Page `/projets` — Liste BentoGrid filtrable — Implementation Plan
+# Page `/projets`: Liste BentoGrid filtrable: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -30,7 +30,7 @@
 
 ---
 
-### Task 1: Prérequis — vérifier l'environnement
+### Task 1: Prérequis: vérifier l'environnement
 
 - [ ] **Step 1: Vérifier que les sub-projects 01/02/03 sont implémentés**
 
@@ -413,7 +413,7 @@ export function ProjectFilters({ value, onChange }: Props) {
 }
 ```
 
-Note : l'implémentation ci-dessus est un Tabs minimaliste custom qui garantit la sémantique `role="tablist"` + `role="tab"` + `aria-selected` (requis par le test `ProjectsList.test.tsx` Task 7) et s'appuie sur les tokens Tailwind du projet (`border-primary`, `text-muted-foreground`). Aceternity UI n'est volontairement pas installé pour ce sub-project — si un style animé plus riche est souhaité ultérieurement, envelopper ce composant dans un wrapper Aceternity plutôt que de remplacer la structure ARIA.
+Note : l'implémentation ci-dessus est un Tabs minimaliste custom qui garantit la sémantique `role="tablist"` + `role="tab"` + `aria-selected` (requis par le test `ProjectsList.test.tsx` Task 7) et s'appuie sur les tokens Tailwind du projet (`border-primary`, `text-muted-foreground`). Aceternity UI n'est volontairement pas installé pour ce sub-project, si un style animé plus riche est souhaité ultérieurement, envelopper ce composant dans un wrapper Aceternity plutôt que de remplacer la structure ARIA.
 
 - [ ] **Step 2: Typecheck**
 
@@ -597,7 +597,7 @@ describe('ProjectsList filter', () => {
 })
 ```
 
-- [ ] **Step 2: Run le test — doit FAIL (ProjectsList pas créé)**
+- [ ] **Step 2: Run le test: doit FAIL (ProjectsList pas créé)**
 
 Run:
 ```bash
@@ -607,7 +607,7 @@ Expected : FAIL avec `Cannot find module '../ProjectsList'`.
 
 ---
 
-### Task 8: Créer `ProjectsList` (Client Component) — faire passer le test
+### Task 8: Créer `ProjectsList` (Client Component): faire passer le test
 
 **Files:**
 - Create: `src/components/features/projects/ProjectsList.tsx`
@@ -656,7 +656,7 @@ export function ProjectsList({ projects }: Props) {
 
 Note : `ProjectCard` (Task 4) et `TagBadge` (Task 3) sont déjà Client Components, donc leur rendu dans ce `ProjectsList` via `.map()` est direct et valide.
 
-- [ ] **Step 2: Run le test — doit PASS**
+- [ ] **Step 2: Run le test: doit PASS**
 
 Run:
 ```bash
@@ -764,7 +764,7 @@ Vérifier visuellement :
 - Le titre "Mes projets" et le sous-titre sont affichés
 - Les 3 onglets "Tous / Clients / Personnels" sont visibles, "Tous" actif
 - Au moins 1 card projet est visible (si le seed a été exécuté)
-- Chaque card a : cover image (ou gradient fallback), titre, description, 3 premiers badges Tag du projet (ordre `ProjectTag.displayOrder` asc pré-trié côté query — 0 en premier, mélange expertises + technos), badge "+N" si plus de 3 tags, badge entreprise si CLIENT, badge "En cours" si applicable
+- Chaque card a : cover image (ou gradient fallback), titre, description, 3 premiers badges Tag du projet (ordre `ProjectTag.displayOrder` asc pré-trié côté query, 0 en premier, mélange expertises + technos), badge "+N" si plus de 3 tags, badge entreprise si CLIENT, badge "En cours" si applicable
 - Clic sur "Clients" : seuls les CLIENT visibles
 - Clic sur "Personnels" : seuls les PERSONAL visibles
 - Clic sur "Tous" : tous visibles à nouveau
@@ -885,10 +885,10 @@ Expected : commit récent listant les fichiers attendus.
   - Scénario 6 (empty state) → couvert par code `ProjectsList` (T8) qui affiche `emptyState` si `visible.length === 0`
   - Scénario 7 (cover absente) → couvert par `ProjectCard` (T4) avec gradient fallback
 - ✅ `tdd_scope = partial` → 1 test (T7), ok
-- ✅ **Alignement spec ↔ plan** : `ProjectCard` + `TagBadge` sont Client Components dans le spec 05 et dans le plan (Task 3 + Task 4), créés directement avec `'use client'` sans conversion tardive. `ProjectFilters` est un Tabs custom minimaliste — Aceternity UI n'est pas installé ni importé pour ce sub-project (cohérent avec `Tech Stack` header et File Structure).
+- ✅ **Alignement spec ↔ plan** : `ProjectCard` + `TagBadge` sont Client Components dans le spec 05 et dans le plan (Task 3 + Task 4), créés directement avec `'use client'` sans conversion tardive. `ProjectFilters` est un Tabs custom minimaliste, Aceternity UI n'est pas installé ni importé pour ce sub-project (cohérent avec `Tech Stack` header et File Structure).
 
 **2. Placeholder scan** : aucun TBD/TODO. Exception assumée :
-- T2 mentionne "si le registry est différent, fallback manuel" — c'est un fallback CLI documenté, pas un placeholder applicatif.
+- T2 mentionne "si le registry est différent, fallback manuel", c'est un fallback CLI documenté, pas un placeholder applicatif.
 
 **3. Type consistency** :
 - `ProjectWithRelations` : défini sub-project 02 (`src/types/project.ts`), importé dans T4, T7, T8.

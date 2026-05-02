@@ -295,13 +295,13 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background
 
 ## Documentation Officielle
 
-- [shadcn/ui — Documentation](https://ui.shadcn.com/docs)
+- [shadcn/ui : Documentation](https://ui.shadcn.com/docs)
 - [CLI Reference](https://ui.shadcn.com/docs/cli)
 - [Installation Next.js](https://ui.shadcn.com/docs/installation/next)
 - [Tailwind v4 guide](https://ui.shadcn.com/docs/tailwind-v4)
 
 ## Ressources Complémentaires
 
-- [Radix UI — Primitives](https://www.radix-ui.com/primitives)
+- [Radix UI : Primitives](https://www.radix-ui.com/primitives)
 - [class-variance-authority](https://cva.style/docs)
 - [tailwind-merge](https://github.com/dcastil/tailwind-merge)

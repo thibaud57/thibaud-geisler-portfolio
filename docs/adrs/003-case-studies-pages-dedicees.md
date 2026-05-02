@@ -22,7 +22,7 @@ Comment présenter le détail d'un projet de manière optimale pour le SEO, le p
 
 # 🛠️ Options Envisagées
 
-## Option A — Pages dédiées `/projets/[slug]`
+## Option A : Pages dédiées `/projets/[slug]`
 
 **Description :** Chaque projet a sa propre page Next.js avec une URL unique de type `/projets/mon-projet`.
 
@@ -35,9 +35,9 @@ Comment présenter le détail d'un projet de manière optimale pour le SEO, le p
 **Inconvénients :**
 - Nécessite un layout/template de page dédié
 
-**Coût estimé :** Faible — une route dynamique Next.js standard
+**Coût estimé :** Faible, une route dynamique Next.js standard
 
-## Option B — Modales / Drawers
+## Option B : Modales / Drawers
 
 **Description :** Cliquer sur un projet ouvre une modale ou un drawer au-dessus de la liste.
 
@@ -46,17 +46,17 @@ Comment présenter le détail d'un projet de manière optimale pour le SEO, le p
 - Pas de route dédiée à gérer
 
 **Inconvénients :**
-- URL non partageable (ou URL avec hash/query param — complexe)
+- URL non partageable (ou URL avec hash/query param, complexe)
 - Contenu non indexable par les moteurs de recherche
 - Difficulté à afficher beaucoup de contenu (captures, texte long)
 
-**Coût estimé :** Moyen — gestion d'état modale, UX complexe pour du contenu riche
+**Coût estimé :** Moyen, gestion d'état modale, UX complexe pour du contenu riche
 
 ---
 
 # 🎉 Décision
 
-**Option A — Pages dédiées `/projets/[slug]`.**
+**Option A : Pages dédiées `/projets/[slug]`.**
 
 Le SEO et le partage de lien sont des critères primaires pour un portfolio professionnel. Chaque page projet doit être indexable et partageable individuellement pour maximiser la visibilité.
 

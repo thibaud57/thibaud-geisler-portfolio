@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ---
 
-## useTheme — Hook client
+## useTheme : Hook client
 
 ### Description
 
@@ -177,8 +177,8 @@ Props principales du `ThemeProvider` pour configurer le comportement du thème (
 
 ## Documentation Officielle
 
-- [next-themes — GitHub](https://github.com/pacocoursey/next-themes)
-- [next-themes — Releases](https://github.com/pacocoursey/next-themes/releases)
+- [next-themes : GitHub](https://github.com/pacocoursey/next-themes)
+- [next-themes : Releases](https://github.com/pacocoursey/next-themes/releases)
 
 ## Ressources Complémentaires
 

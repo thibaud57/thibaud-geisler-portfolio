@@ -21,7 +21,7 @@ Installer `@c15t/nextjs@^2.0.0` (Apache 2.0) + `@c15t/translations@^2.0.0` (peer
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il introduit `@c15t/nextjs` et `@c15t/translations` comme nouvelles dépendances npm. Les autres sub-projects de la feature 7 le consommeront (sub 4 utilise `useConsentManager` pour `<OpenCookiePreferencesButton>` ; sub 5 utilise `useConsentManager().has({ category: 'marketing' })` pour gating Calendly ; sub 7 footer utilise le même bouton). Sub 4 a besoin que ses paths `/{locale}/confidentialite` existent à l'exécution pour que le lien `legalLinks.privacyPolicy` du banner ne 404 pas, mais c'est une dépendance d'exécution post-merge, pas de build : sub 3 peut être implémenté et mergé avant sub 4 (le lien retournera 404 temporairement, sans crash).
+Aucune, ce sub-project est autoporté. Il introduit `@c15t/nextjs` et `@c15t/translations` comme nouvelles dépendances npm. Les autres sub-projects de la feature 7 le consommeront (sub 4 utilise `useConsentManager` pour `<OpenCookiePreferencesButton>` ; sub 5 utilise `useConsentManager().has({ category: 'marketing' })` pour gating Calendly ; sub 7 footer utilise le même bouton). Sub 4 a besoin que ses paths `/{locale}/confidentialite` existent à l'exécution pour que le lien `legalLinks.privacyPolicy` du banner ne 404 pas, mais c'est une dépendance d'exécution post-merge, pas de build : sub 3 peut être implémenté et mergé avant sub 4 (le lien retournera 404 temporairement, sans crash).
 
 ## Files touched
 

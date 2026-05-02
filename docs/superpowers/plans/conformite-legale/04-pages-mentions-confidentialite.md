@@ -284,7 +284,7 @@ Expected: aucune erreur. Les nouvelles clés sont accessibles via `t('LegalMenti
 
 ---
 
-## Task 3: TDD red — écrire les tests unit du helper formatSiret
+## Task 3: TDD red: écrire les tests unit du helper formatSiret
 
 **Files:**
 - Create: `src/lib/legal/format-siret.test.ts`
@@ -328,7 +328,7 @@ Expected: échec d'import `Cannot find module './format-siret'`. C'est attendu, 
 
 ---
 
-## Task 4: TDD green — implémenter formatSiret
+## Task 4: TDD green: implémenter formatSiret
 
 **Files:**
 - Create: `src/lib/legal/format-siret.ts`

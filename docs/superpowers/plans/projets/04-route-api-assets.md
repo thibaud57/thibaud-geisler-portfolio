@@ -1,4 +1,4 @@
-# Route API /api/assets/[filename] — Implementation Plan
+# Route API /api/assets/[filename]: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -110,7 +110,7 @@ Expected :
 
 ---
 
-### Task 3: Écrire les 6 tests unit sur le helper (TDD — test avant impl)
+### Task 3: Écrire les 6 tests unit sur le helper (TDD: test avant impl)
 
 Règles appliquées : [.claude/rules/vitest/setup.md](../../../../.claude/rules/vitest/setup.md) (fichier `*.test.ts` sans `.integration.` → matché par `just test-unit`).
 
@@ -208,7 +208,7 @@ describe('resolveAssetPath (défense en profondeur)', () => {
 })
 ```
 
-- [ ] **Step 2: Run les tests — ils doivent FAIL (helper non créé)**
+- [ ] **Step 2: Run les tests: ils doivent FAIL (helper non créé)**
 
 Run:
 ```bash
@@ -300,7 +300,7 @@ export function getContentType(filename: string): string {
 }
 ```
 
-- [ ] **Step 2: Run les tests unit — ils doivent tous PASS**
+- [ ] **Step 2: Run les tests unit: ils doivent tous PASS**
 
 Run:
 ```bash
@@ -318,7 +318,7 @@ Expected : 0 erreur.
 
 ---
 
-### Task 5: Écrire les 6 tests d'intégration (TDD — test avant impl)
+### Task 5: Écrire les 6 tests d'intégration (TDD: test avant impl)
 
 Règle appliquée : [.claude/rules/vitest/setup.md](../../../../.claude/rules/vitest/setup.md) (environnement node pour tests d'intégration).
 
@@ -412,7 +412,7 @@ describe('GET /api/assets/[filename]', () => {
 })
 ```
 
-- [ ] **Step 2: Run les tests — ils doivent FAIL (handler non créé)**
+- [ ] **Step 2: Run les tests: ils doivent FAIL (handler non créé)**
 
 Run:
 ```bash
@@ -493,7 +493,7 @@ pnpm typecheck
 ```
 Expected : 0 erreur.
 
-- [ ] **Step 3: Run les tests — ils doivent tous PASS**
+- [ ] **Step 3: Run les tests: ils doivent tous PASS**
 
 Run:
 ```bash
@@ -656,7 +656,7 @@ Expected : 1 commit récent listant les 6 fichiers (5 nouveaux + 1 modifié).
 - ✅ `Architectural decisions` : toutes appliquées dans le code (helper simple pas d'interface, Zod + whitelist, 400/404 explicites, pas de rate-limit, cache 1 an immutable, log asymétrique warn/debug)
 - ✅ `tdd_scope = full` → 12 tests (6 unit + 6 integration, section Tests à écrire avec sous-sections Unit + Integration)
 
-**2. Placeholder scan** : aucun TBD/TODO. Exception assumée : Task 1 step 1 mentionne "si absent, créer logger (hors scope)" — c'est un fallback conditionnel documenté, pas un placeholder.
+**2. Placeholder scan** : aucun TBD/TODO. Exception assumée : Task 1 step 1 mentionne "si absent, créer logger (hors scope)", c'est un fallback conditionnel documenté, pas un placeholder.
 
 **3. Type consistency** :
 - `ValidateFilenameResult` discriminated union défini T4, utilisé par les tests T3 (via `.ok`) et par la route T6 (via `validation.ok`).

@@ -22,14 +22,14 @@ Quelle plateforme d'hébergement choisir pour déployer l'application Next.js av
 
 # 🛠️ Options Envisagées
 
-## Option A — Dokploy self-hosted (VPS IONOS)
+## Option A : Dokploy self-hosted (VPS IONOS)
 
 **Description :** Dokploy (PaaS self-hosted open-source) installé sur un VPS IONOS. Déploiement automatique via webhook GitHub sur merge sur `main`. Docker Compose pour orchestrer les services.
 
 **Avantages :**
 - Coût fixe et prévisible (VPS IONOS déjà payé)
 - Contrôle total sur les données et l'infrastructure
-- Support natif Docker Compose — Next.js + PostgreSQL + Umami + n8n dans la même infra
+- Support natif Docker Compose, Next.js + PostgreSQL + Umami + n8n dans la même infra
 - HTTPS automatique (Let's Encrypt intégré)
 - Interface Dokploy pour logs, déploiements, variables d'env
 
@@ -39,7 +39,7 @@ Quelle plateforme d'hébergement choisir pour déployer l'application Next.js av
 
 **Coût estimé :** VPS IONOS déjà inclus dans le budget existant
 
-## Option B — Vercel
+## Option B : Vercel
 
 **Description :** Déploiement Next.js directement sur Vercel (plateforme officielle Next.js).
 
@@ -49,7 +49,7 @@ Quelle plateforme d'hébergement choisir pour déployer l'application Next.js av
 - Preview deployments automatiques sur PR
 
 **Inconvénients :**
-- PostgreSQL doit être hébergé séparément (Neon, Supabase) — coût supplémentaire
+- PostgreSQL doit être hébergé séparément (Neon, Supabase), coût supplémentaire
 - Limites du plan gratuit (bande passante, storage, exécution)
 - Contrôle limité sur l'infrastructure
 - Coût mensuel potentiellement élevé si le trafic augmente
@@ -60,7 +60,7 @@ Quelle plateforme d'hébergement choisir pour déployer l'application Next.js av
 
 # 🎉 Décision
 
-**Option A — Dokploy self-hosted.**
+**Option A : Dokploy self-hosted.**
 
 Le VPS IONOS est déjà payé. Dokploy permet d'héberger l'ensemble de la stack (Next.js, PostgreSQL, Umami, n8n) à coût nul supplémentaire, avec un contrôle total. L'overhead de maintenance est acceptable pour un projet solo.
 
