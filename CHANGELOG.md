@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.0.0...v1.1.0) (2026-05-03)
+
+
+### Features
+
+* **home:** rich-text accent on hero h1 ([11ef7e7](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/11ef7e7b2fe160e3055e85febea02378eddfa3a7))
+* post-MEP polish (compose port fix + hero accent + content polish) ([2180d3c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2180d3cc45b4cd5ad899e7170f1aa805cfe64229))
+
+
+### Bug Fixes
+
+* **compose:** move host port binding from prod to dev override ([743734c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/743734cff04fd2ef895eeb62a0612825a979db5a))
+
 ## [1.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.8.0...v1.0.0) (2026-05-03)
 
 
