@@ -2,6 +2,7 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { PageShell } from '@/components/layout/PageShell'
@@ -53,6 +54,7 @@ export default async function MentionsLegalesPage({
 }
 
 async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
+  await connection()
   const [t, tLegal, publisher, hosting, legalContent] = await Promise.all([
     getTranslations('LegalMentions'),
     getTranslations('Legal'),
