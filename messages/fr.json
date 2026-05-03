@@ -2,7 +2,7 @@
   "HomePage": {
     "title": "Accueil",
     "hero": {
-      "h1": "Thibaud Geisler - IA & Développement Full-Stack",
+      "h1": "Thibaud Geisler - <accent>IA</accent> & Développement Full-Stack",
       "tagline": "IA, développement d'applications sur mesure et formation.\nDe l'idée à la mise en production.",
       "ctaPrimary": "Parlons de votre projet",
       "ctaSecondary": "Voir mes projets",
@@ -15,7 +15,7 @@
     },
     "projectsTeaser": {
       "title": "Projets récents",
-      "subtitle": "Une sélection de missions et de projets qui illustrent concrètement ma manière de travailler.",
+      "subtitle": "Une sélection de missions et de projets qui illustrent mon expertise.",
       "seeAll": "Voir tous les projets"
     },
     "finalCta": {
@@ -162,8 +162,8 @@
     },
     "bio": {
       "intro": "Développeur full-stack spécialisé IA et automatisation, je travaille en freelance et j'interviens auprès d'entreprises (de la TPE au groupe) pour livrer des produits concrets, mesurables et maintenables. Basé entre la France et le Luxembourg, j'opère en remote ou hybride.",
-      "positioning": "Mon positionnement : l'IA au service d'un cas d'usage business précis, pas un gadget. Je combine LLM, automatisations et développement full-stack pour livrer la solution la plus simple qui résout le problème.",
-      "approach": "Mon approche : cadrer le besoin réel avec vous, prototyper vite, itérer sur des livrables concrets, documenter pour la maintenance. J'avance par jalons courts pour livrer régulièrement et m'adapter à vos retours."
+      "positioning": "Mon positionnement : l'IA au service d'un cas d'usage business précis, pas un gadget. Je combine LLM, automatisations et développement full-stack pour livrer une solution simple et scalable qui résout le problème.",
+      "approach": "Mon approche : cadrer le besoin réel avec vous, réaliser un prototype rapide, itérer sur des livrables concrets, documenter pour la maintenance. J'avance en mode Agile pour livrer régulièrement et m'adapter à vos retours."
     },
     "stats": {
       "years": { "label": "années d'expérience" },
@@ -187,7 +187,7 @@
     "title": "Contact",
     "header": {
       "h1": "Contact",
-      "tagline": "Parlons de votre projet IA, de votre application sur mesure ou d'une formation pour vos équipes."
+      "tagline": "Parlons de vos projets IA, de vos applications sur mesure ou d'une formation pour vos équipes."
     },
     "tabs": {
       "calendly": "Réservez un créneau",
