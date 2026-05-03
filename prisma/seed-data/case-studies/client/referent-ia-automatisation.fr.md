@@ -2,7 +2,7 @@
 
 Mission **freelance en cours** chez **Wanted Design**, agence digitale (e-marketing et IA/automatisation). Intervention en tant qu'**expert technique et stratégique IA/automatisation**, contribuant à l'alignement entre offres et réalité technique.
 
-Mission en cours depuis Janvier 2026, démarrée en consulting (offres IA & support conférence) puis évoluée en référent technique IA & automatisation.
+Début en Janvier 2026, démarrée en consulting (offres IA & support conférence) puis évoluée en référent technique IA & automatisation.
 
 **Mon rôle** : intervention sur 3 axes principaux (structuration d'offres, mentorat technique, vulgarisation), complétée par le maintien de l'infrastructure technique.
 

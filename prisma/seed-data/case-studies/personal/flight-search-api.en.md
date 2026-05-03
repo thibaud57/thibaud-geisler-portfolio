@@ -1,8 +1,8 @@
 ## Context
 
-While planning a multi-destination trip (South America), I realized that flight comparators (Google Flights, Kayak) **don't support dynamic date ranges in multi-city mode**.
+While planning a multi-destination trip (South America), I realized that flight aggregators (Google Flights, Kayak) **don't support dynamic date ranges in multi-city mode**.
 
-Concretely: for a **Paris → Rio → Buenos Aires → Paris** trip with flexible dates (departure between June 1st and 15th, then Rio → Buenos Aires between June 20th and 30th), **impossible** with these comparators. I have to enter a fixed date for each flight.
+Concretely: for a **Paris → Rio → Buenos Aires → Paris** trip with flexible dates (departure between June 1st and 15th, then Rio → Buenos Aires between June 20th and 30th), **impossible** with these aggregators. I have to enter a fixed date for each flight.
 
 With 3-4-5 flights and flexible date windows, that adds up to **hundreds of combinations to test manually**. Only Kiwi offers this feature, but its prices are systematically higher.
 

@@ -1,6 +1,6 @@
 ## Context
 
-Long-term engagement at **Foyer**, Luxembourg's leading insurance group, via **H2H Services**. Contribution to the development of two strategic applications for the Belgian market in a microservices architecture, with a focus on quality and clean code.
+Long-term engagement at **Foyer**, Luxembourg's leading insurance group, via **H2H Services**. Contributed to the development of two strategic applications for the Belgian market in a microservices architecture, with a focus on quality and clean code.
 
 **My role**: fullstack developer.
 
@@ -8,7 +8,7 @@ Long-term engagement at **Foyer**, Luxembourg's leading insurance group, via **H
 
 ### Claims management application
 
-Replacement of a legacy system with a modern application letting Belgian-market claim handlers manage their case files. Automation of repetitive tasks, full case tracking, integration with external sector-specific services.
+Replacement of a legacy system with a modern application enabling the Belgian-market claim handlers manage their case files. Automation of repetitive tasks, full case tracking, integration with external sector-specific services.
 
 Active contribution across every module: technical and functional analysis, API integration, producing and consuming events via Kafka, release and follow-up.
 
@@ -20,7 +20,7 @@ Active contribution across every module: technical and functional analysis, API 
 
 Platform allowing brokers to create DAB or Auto claims for their clients, with automatic generation of an attachment and creation of a pre-filled case file in the claims management application.
 
-Major contribution across the whole project, from the technical foundation to the latest features. Led the complex **Angular 15 to 17** migration (Signals, standalone components, replacement of the translation library with native i18n).
+Major contribution across the whole project, from the technical foundation to the latest features. Led the **Angular 15 to 17** migration (Signals, standalone components, replacement of the translation library with native i18n).
 
 **Technical challenges**: screens that adapt to the case type (DAB/Auto), multilingual support (FR/NL), Angular 15 to 17 migration with Signals and standalone components.
 

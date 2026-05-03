@@ -35,7 +35,7 @@ Sous-workflow qui répond aux questions utilisateur en 2 étapes : d'abord **val
 ## Résultats
 
 - **Collection `rag_appart`** : ~30 documents indexés (acte notarié, crédit immobilier, contrats d'assurance, AG copropriété, manuels électroménagers, factures travaux)
-- **Coût d'embedding one-shot** : ~5-10 € pour l'indexation initiale, requêtes quasi-gratuites (embeddings = poste de coût principal)
+- **Coût d'embedding one-shot** : ~5-10 € pour l'indexation initiale, requêtes peu coûteuses (embeddings = poste de coût principal)
 - **Indexation incrémentale** : un nouveau document Drive → 1 commande Telegram suffit pour mettre à jour la collection sans doublon
 - **Recherche tracée** : chaque réponse cite ses sources (fileName + fileId), zéro information fabriquée
 - **Usage réel** : POC personnel utilisé ponctuellement (quelques requêtes par mois), pas un usage intensif
