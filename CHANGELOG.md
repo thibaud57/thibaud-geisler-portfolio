@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.8.0...v1.0.0) (2026-05-03)
+
+
+### Features
+
+* **branding:** add custom favicon set (ico + svg + apple-icon) ([71fea51](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/71fea51b7bde13f449ea7c3978ef9081acb2c44a))
+* first production release (MEP v1.0.0) ([a90ba3d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a90ba3d5aaa8dc7efb1297b207c3882180dd5838))
+* **seed:** add LinkedIn link to skill-prof case study (FR + EN) ([6bdc2f8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6bdc2f864690096b5795cf8b2254bb910cca9df0))
+* **seed:** add rag-drive-agent project + pre-MEP polish ([80c2ad8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/80c2ad87852dc8e43c9c96128e67f3d3f9fba6f6))
+
+
+### Bug Fixes
+
+* **deploy:** make production build dokploy-ready + align docs ([d320c36](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d320c36317c557a2eca0999727c153cbd2375d27))
+* **layout:** mobile-first typo scale + min-w-0 main for table overflow ([2b3d8f3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2b3d8f36c4aca49591210553344e94dbc412fb1e))
+
+
+### Miscellaneous Chores
+
+* release v1.0.0 ([fa41ece](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/fa41ecee10dc293152d6227bd6c6686c40de7174))
+
 ## [0.8.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.7.0...v0.8.0) (2026-04-30)
 
 
