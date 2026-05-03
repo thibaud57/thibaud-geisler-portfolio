@@ -35,7 +35,9 @@ export default async function HomePage({ params }: PageProps<'/[locale]'>) {
   return (
     <main className="flex flex-col gap-20 pb-20 sm:gap-24 sm:pb-24 lg:gap-28 lg:pb-28">
       <Hero
-        h1={tHero('h1')}
+        h1={tHero.rich('h1', {
+          accent: (chunks) => <span className="text-primary">{chunks}</span>,
+        })}
         tagline={tHero('tagline')}
         ctaPrimaryLabel={tHero('ctaPrimary')}
         ctaSecondaryLabel={tHero('ctaSecondary')}
