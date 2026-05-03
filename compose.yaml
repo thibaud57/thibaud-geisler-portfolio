@@ -12,8 +12,6 @@ services:
       ASSETS_PATH: /app/assets
     volumes:
       - portfolio_assets:/app/assets
-    ports:
-      - '3000:3000'
 
 volumes:
   portfolio_assets:
