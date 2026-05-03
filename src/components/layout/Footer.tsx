@@ -1,5 +1,6 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { env } from '@/env'
@@ -21,10 +22,7 @@ type Props = {
 const legalNavLinkClass = 'transition-colors hover:text-foreground'
 
 export async function Footer({ locale }: Props) {
-  const [t, publisher] = await Promise.all([
-    getTranslations('Footer'),
-    getPublisher(),
-  ])
+  const t = await getTranslations('Footer')
 
   return (
     <footer className="border-t border-border mt-auto">
@@ -46,10 +44,9 @@ export async function Footer({ locale }: Props) {
 
       <div className="border-t border-border">
         <div className="max-w-7xl mx-auto flex flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6 lg:px-8">
-          <p>
-            © {env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler
-            {publisher?.siret && ` - SIRET ${formatSiret(publisher.siret)}`}
-          </p>
+          <Suspense fallback={<Skeleton className="h-5 w-64" />}>
+            <FooterCopyrightAsync />
+          </Suspense>
           <Suspense fallback={<Skeleton className="h-5 w-72" />}>
             <nav
               aria-label={t('legalNav.ariaLabel')}
@@ -70,5 +67,16 @@ export async function Footer({ locale }: Props) {
         </div>
       </div>
     </footer>
+  )
+}
+
+async function FooterCopyrightAsync() {
+  await connection()
+  const publisher = await getPublisher()
+  return (
+    <p>
+      © {env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler
+      {publisher?.siret && ` - SIRET ${formatSiret(publisher.siret)}`}
+    </p>
   )
 }

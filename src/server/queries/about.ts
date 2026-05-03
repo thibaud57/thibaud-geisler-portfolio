@@ -8,7 +8,7 @@ const START_YEAR = 2020
 
 export async function getYearsOfExperience(): Promise<number> {
   'use cache'
-  cacheLife('hours')
+  cacheLife('max')
   return new Date().getFullYear() - START_YEAR
 }
 
