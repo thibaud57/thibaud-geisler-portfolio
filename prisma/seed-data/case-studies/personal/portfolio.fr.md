@@ -42,9 +42,9 @@ Pages légales (`/mentions-legales` LCEN, `/confidentialite` RGPD), bandeau de c
 
 Hébergement Dokploy sur VPS, Docker Compose (Next.js + Postgres), CI GitHub Actions, déploiement automatique via webhook GitHub sur merge `main`, image Docker `output: 'standalone'` (~250 MB), logs structurés Pino, security headers (HSTS + CSP) + rate limiting en mémoire.
 
-**Défis techniques** : Dokploy plutôt que Vercel (VPS déjà payé, contrôle total, stack post-MVP complète sur la même infra), image Docker légère, migrations BDD au startup container, rate limiting sans Redis.
+**Défis techniques** : Dokploy plutôt que Vercel (VPS déjà payé, contrôle total, stack post-MVP complète sur la même infra), image Docker légère, migrations BDD au startup container, rate limiting sans Redis, build Docker sans accès DB (sandbox builder isolé du réseau du compose).
 
-**Solutions** : Dockerfile multi-stage pour produire une image runtime minimale, migrations Prisma exécutées atomiquement au démarrage de chaque container (avant le serveur Next.js), compteur IP en mémoire côté Server Action.
+**Solutions** : Dockerfile multi-stage pour produire une image runtime minimale, migrations Prisma exécutées atomiquement au démarrage de chaque container (avant le serveur Next.js), compteur IP en mémoire côté Server Action, couple `'use cache'` + `await connection()` côté data-fetching pour passer le build sans toucher la DB (pages publiques en Partial Prerender : shell statique au build + contenu DB streamé au runtime depuis le Data Cache).
 
 ## Résultats
 

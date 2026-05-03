@@ -74,7 +74,7 @@ Toutes les recettes passent par `just`. La liste complète est disponible via `j
 Le fichier `.env.example` liste toutes les variables nécessaires, regroupées par bloc :
 
 - **App** : `NEXT_PUBLIC_SITE_URL`, `ASSETS_PATH`
-- **Database** : `DATABASE_URL` (les credentials par défaut `portfolio:portfolio@portfolio` sont fournis par les fallbacks `compose.override.yaml`)
+- **Database (dev local)** : `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (credentials init Postgres local lus par `compose.override.yaml`), `DATABASE_URL` (URL connexion Prisma). En prod Dokploy, ces vars sont ignorées (la Postgres Database Dokploy a ses propres credentials, `DATABASE_URL` injectée via Dokploy UI).
 - **SMTP** (formulaire de contact) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `MAIL_TO`
 - **Calendly** (event types FR/EN distincts) : `NEXT_PUBLIC_CALENDLY_URL_FR`, `NEXT_PUBLIC_CALENDLY_URL_EN`
 

@@ -2,6 +2,7 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { OpenCookiePreferencesButton } from '@/components/features/legal/OpenCookiePreferencesButton'
@@ -61,6 +62,7 @@ export default async function ConfidentialitePage({
 }
 
 async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
+  await connection()
   const [t, tLegal, publisher, processors, introContent, cookiesContent] =
     await Promise.all([
       getTranslations('PrivacyPolicy'),
