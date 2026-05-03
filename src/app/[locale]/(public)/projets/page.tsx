@@ -1,5 +1,6 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import { getTranslations } from 'next-intl/server'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -40,7 +41,7 @@ export async function generateMetadata(
 export default async function ProjetsPage({ params }: PageProps<'/[locale]/projets'>) {
   const { locale } = await setupLocalePage(params)
   const t = await getTranslations('Projects')
-  const tMeta = await getTranslations({ locale, namespace: 'Metadata' })
+  const tMeta = await getTranslations('Metadata')
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,
@@ -61,6 +62,7 @@ export default async function ProjetsPage({ params }: PageProps<'/[locale]/proje
 }
 
 async function ProjectsListAsync({ locale }: { locale: Locale }) {
+  await connection()
   const projects = await findManyPublished({ locale })
   return <ProjectsList projects={projects} />
 }
