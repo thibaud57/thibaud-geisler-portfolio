@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.0...v1.1.1) (2026-05-03)
+
+
+### Bug Fixes
+
+* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([d4875e6](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d4875e6ed004934a8b3e53c648973c41bb6a03e1))
+* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([6d82794](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6d82794bdb8c4a7c936d573d70a4661661d288ef))
+
 ## [1.1.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.0.0...v1.1.0) (2026-05-03)
 
 
