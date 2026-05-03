@@ -40,6 +40,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Usage | Taille mobile | Taille ≥ sm (640px) | Poids | Classe Tailwind |
 |-------|---------------|----------------------|-------|-----------------|
 | H1 (display) | 2.25rem (36px) | 3rem (48px) | 700 (Bold) | `font-display text-4xl font-bold sm:text-5xl` |
+| H1 hero (landing) | 2.25rem (36px) | 3rem (48px) sm / 3.75rem (60px) lg | 700 (Bold) | + override local `lg:text-6xl` sur le seul H1 du hero (impact marketing) |
 | H2 | 1.875rem (30px) | 2.25rem (36px) | 600 (SemiBold) | `text-3xl font-semibold sm:text-4xl` |
 | H3 | 1.5rem (24px) | 1.5rem (24px) | 600 (SemiBold) | `text-2xl font-semibold` |
 | Lead / Subtitle | 1.25rem (20px) | 1.25rem (20px) | 400 (Regular) | `text-xl` |

@@ -2,9 +2,9 @@
 
 **Ongoing freelance engagement** at **Wanted Design**, a digital agency (e-marketing and AI/automation). Acting as **technical and strategic AI/automation expert**, contributing to alignment between offerings and technical reality.
 
-Ongoing engagement since January 2026, starting as consulting (AI offerings & conference support) and evolving into AI & Automation Technical Lead.
+Beginning in January 2026, I started as a consultant (AI offerings & conference support) and evolved into an AI & Automation Technical Lead.
 
-**My role**: three main axes (shaping offerings, technical mentoring, public outreach), complemented by maintenance of the technical infrastructure.
+**My role**: three main areas (shaping offerings, technical mentoring, public outreach), this is complemented by maintenance of the technical infrastructure.
 
 ## Key achievements
 
@@ -20,11 +20,11 @@ Acting as architect and technical analyst on various pre-sales projects: client-
 
 ### Technical mentoring
 
-Supporting the technical team on AI/automation projects: passing on architecture best practices, validating technical choices, pre-production reviews.
+Leading the technical team on AI/automation projects: passing on architecture best practices, validating technical choices, pre-production reviews.
 
 ### Infrastructure & Ops
 
-Setup and maintenance of the production technical infrastructure (orchestration, automated workflows, monitoring).
+Responsible for the setup and maintenance of the production technical infrastructure (orchestration, automated workflows, monitoring).
 
 ## Takeaways
 

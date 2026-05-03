@@ -1,6 +1,6 @@
 ## Context
 
-7-month permanent contract at **PaySystem**, a Luxembourg startup publishing a SaaS payroll-management platform. Contribution to the development of frontend and backend features, as well as product maintenance.
+7-month permanent contract at **PaySystem**, a Luxembourg startup publishing a SaaS payroll-management platform. Contributed to the development of frontend and backend features, as well as product maintenance.
 
 **My role**: junior fullstack developer, first real experience with Angular in a business setting.
 
@@ -20,7 +20,7 @@ Development of an automated scraping module to gather the data required to gener
 
 **Technical challenges**: first exposure to PHP and Puppeteer, poorly structured government website.
 
-**Impact**: significant time savings for users, a nicer experience than manual entry on the government site.
+**Impact**: significant time savings for users, a more seamless experience than manual entry on the government site.
 
 ## Takeaways
 

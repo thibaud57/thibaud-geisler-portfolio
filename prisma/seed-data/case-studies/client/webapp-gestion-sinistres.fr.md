@@ -20,7 +20,7 @@ Participation active sur tous les modules : analyse technique et fonctionnelle, 
 
 Plateforme permettant aux courtiers de créer des sinistres DAB ou Auto pour leurs clients, avec génération automatique d'une pièce jointe et création d'un dossier pré-rempli dans l'application de gestion des sinistres.
 
-Contribution majeure sur l'ensemble du projet, du socle technique aux dernières features. Pilotage de la migration complexe **Angular 15 vers 17** (Signals, standalone components, remplacement de la lib de traduction par i18n natif).
+Contribution majeure sur l'ensemble du projet, du socle technique aux dernières features. Pilotage de la migration **Angular 15 vers 17** (Signals, standalone components, remplacement de la lib de traduction par i18n natif).
 
 **Défis techniques** : écrans évolutifs selon type de dossier (DAB/Auto), gestion multilingue (FR/NL), migration Angular 15 vers 17 avec Signals et standalone components.
 
