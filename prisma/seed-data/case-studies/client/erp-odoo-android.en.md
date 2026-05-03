@@ -1,6 +1,6 @@
 ## Context
 
-First professional contract, an apprenticeship at **CloudSmart**, a Luxembourg SME publishing ERP software (Odoo) and associated mobile applications. Contribution to the development of custom ERP solutions for clients across various sectors, and design of an Android application for medication scanning integrated with the ERP.
+First professional contract, an apprenticeship at **CloudSmart**, a Luxembourg SME publishing ERP software (Odoo) and associated mobile applications. I contributed to the development of custom ERP solutions for clients across various sectors, and design of an Android application for medication scanning integrated with the ERP.
 
 **My role**: versatile apprentice developer (Python/Odoo and Android), autonomous on full-scope missions.
 

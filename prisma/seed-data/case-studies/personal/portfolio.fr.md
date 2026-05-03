@@ -24,7 +24,7 @@ Stack UI en 3 couches : shadcn/ui comme socle fonctionnel, Magic UI + Aceternity
 
 ### SEO & GEO 2026 (Generative Engine Optimization)
 
-Stratégie SEO + GEO actualisée 2026 pour les moteurs traditionnels (Google, Bing) et les AI engines (ChatGPT, Perplexity, Claude search) : metadata Open Graph par locale, sitemap dynamique avec hreflang FR/EN, JSON-LD `Person` enrichi Wikidata + SIRET, OG Images dynamiques générées via ImageResponse, robots.txt et `/llms.txt`.
+Stratégie SEO + GEO actualisée 2026 pour les moteurs traditionnels (Google, Bing) et les AI engines (ChatGPT, Perplexity, Claude search) : metadata Open Graph par locale, sitemap dynamique avec hreflang FR/EN, JSON-LD `Person` enrichi Wikidata + SIRET, OG Images dynamiques générées via ImageResponse, `robots.txt` et `/llms.txt`.
 
 **Défis techniques** : best-practice GEO 2026 non encore documentée comme le SEO classique, signal E-E-A-T identité freelance via JSON-LD `Person` (SIRET, adresse postale), OG Images dynamiques sur Edge runtime (contraintes spécifiques sur les fonts et la palette).
 
@@ -36,7 +36,7 @@ Pages légales (`/mentions-legales` LCEN, `/confidentialite` RGPD), bandeau de c
 
 **Défis techniques** : choisir entre une lib clé-en-main et une implémentation custom maison (`vanilla-cookieconsent` v3 + Provider Context + tests intégration ~250 LOC) pour gagner du contrôle, respecter la **symétrie CNIL 2020-092 Accept/Reject** (les libs ne le font pas par défaut, override CSS requis), gating Calendly conditionné au consent marketing (cookies tiers Segment, Google Analytics, Hotjar, LinkedIn Insight Tag), banner non-bloquant pour Core Web Vitals.
 
-**Solutions** : adoption de **`@c15t/nextjs` v2 (mode offline)** après écartement de l'implémentation custom (3x plus de code à maintenir), gating côté React qui empêche le rendu du widget Calendly tant que le consent marketing n'est pas accordé, IP hashing serveur partagé entre Server Actions, jamais de PII en logs Pino.
+**Solutions** : adoption de **`@c15t/nextjs` v2 (mode offline)** après écartement de l'implémentation custom (3x plus de code à maintenir), gating côté React qui empêche le rendu du widget Calendly tant que le consent marketing n'est pas accordé, IP hashing serveur partagé entre Server Actions, aucune donnée personnelle identifiante (IP brute, email, contenu de message) loggée en clair.
 
 ### Infrastructure self-hosted & Ops
 

@@ -41,10 +41,10 @@ Deux agents d'audit complémentaires : `lesson/auditor` (format + exactitude tec
 ## Apprentissages
 
 - Orchestration d'agents Claude (parallélisme, checkpoints, consolidation atomique)
-- Conception de prompts système denses et contraignants
-- Design de workflows multi-étapes avec quality gates
+- Prompts système denses et rigoureux (format strict, validation bloquante avant action)
+- Workflows IA multi-étapes avec quality gates
 - Structuration pédagogique de contenus techniques complexes
-- La matrice anti-redondance dans les plans est critique pour des leçons denses sans répétition
+- Architecture extensible : contenu (plans pédagogiques) séparé du code (skill)
 
 ## Liens
 
