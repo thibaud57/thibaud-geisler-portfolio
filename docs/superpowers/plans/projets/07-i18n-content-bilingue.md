@@ -887,9 +887,9 @@ export const projects: ProjectInput[] = [
     titleFr: 'Flight Search API',
     titleEn: 'Flight Search API',
     descriptionFr:
-      'API Python/FastAPI pour trouver les vols multi-destinations les moins chers en testant toutes les combinaisons de dates possibles, avec anti-détection avancé (Crawl4AI, Patchright, proxies résidentiels) face aux protections anti-bot de Google Flights et Kayak.',
+      'API Python/FastAPI pour trouver les vols multi-destinations les moins chers en testant toutes les combinaisons de dates possibles, avec anti-détection avancé face aux protections anti-bot de Google Flights et Kayak.',
     descriptionEn:
-      'Python / FastAPI API finding the cheapest multi-destination flights by testing every possible date combination, with advanced anti-detection (Crawl4AI, Patchright, residential proxies) against Google Flights and Kayak anti-bot protections.',
+      'Python / FastAPI API finding the cheapest multi-destination flights by testing every possible date combination, with advanced anti-detection against Google Flights and Kayak anti-bot protections.',
     type: 'PERSONAL',
     status: 'PUBLISHED',
     formats: ['API'],
