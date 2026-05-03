@@ -2,6 +2,8 @@ allowBuilds:
   "@parcel/watcher": true
   "@prisma/engines": true
   "@swc/core": true
+  # esbuild requis par tsx (passé en `dependencies` pour `prisma db seed` en prod). Voir prisma.config.ts.
+  esbuild: true
   msw: true
   prisma: true
   sharp: true
