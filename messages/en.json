@@ -2,7 +2,7 @@
   "HomePage": {
     "title": "Home",
     "hero": {
-      "h1": "Thibaud Geisler - AI & Full-Stack Development",
+      "h1": "Thibaud Geisler - <accent>AI</accent> & Full-Stack Development",
       "tagline": "AI, custom application development and training.\nFrom idea to production.",
       "ctaPrimary": "Let's talk about your project",
       "ctaSecondary": "See my projects",
@@ -15,7 +15,7 @@
     },
     "projectsTeaser": {
       "title": "Recent projects",
-      "subtitle": "A selection of missions and projects that concretely illustrate the way I work.",
+      "subtitle": "A selection of missions and projects that concretely illustrate my expertise.",
       "seeAll": "See all projects"
     },
     "finalCta": {
@@ -161,16 +161,16 @@
       "portraitAlt": "Portrait of Thibaud Geisler"
     },
     "bio": {
-      "intro": "Full-stack developer specialized in AI and automation. I work as a freelancer with companies from small businesses to large groups, delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
-      "positioning": "My positioning: AI in service of a precise business use case, not a gimmick. I combine LLMs, automations and full-stack development to deliver the simplest solution that actually solves the problem.",
-      "approach": "My approach: scope the real need with you, prototype fast, iterate on concrete deliverables, document for maintenance. I work in short milestones to ship regularly and adapt to your feedback."
+      "intro": "As a Full-stack developer specializing in AI and automation. I work as a freelancer with a diverse group of companies from small businesses to large enterprises. My expertise is in delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
+      "positioning": "My positioning: AI in service of precise business use cases. I combine LLMs, automations and full-stack development to deliver simple and scalable solutions that actually solves the problem.",
+      "approach": "My approach: Scope your requirements with you, deliver quick prototype, iterate on tangible deliverables, and document for maintenance. I work in Agile mode to ship regularly and continously adapt to your feedback."
     },
     "stats": {
       "years": { "label": "years of experience" },
       "missions": { "label": "client projects delivered" },
       "clients": { "label": "clients supported" }
     },
-    "transition": "AI moves fast. I watch continuously, I test, and I bring into your projects what holds up in production.",
+    "transition": "AI moves fast. I watch constantly, I keep testing, and I bring into your projects what holds up in production.",
     "stack": {
       "title": "Stack & Expertise",
       "kindLabels": {
@@ -187,7 +187,7 @@
     "title": "Contact",
     "header": {
       "h1": "Contact",
-      "tagline": "Let's talk about your AI project, your custom application or a training session for your team."
+      "tagline": "Let's talk about your AI projects, your custom applications or a training session for your team."
     },
     "tabs": {
       "calendly": "Book a slot",
