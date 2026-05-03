@@ -39,7 +39,7 @@ export async function generateMetadata(
 export default async function ServicesPage({ params }: PageProps<'/[locale]/services'>) {
   const { locale } = await setupLocalePage(params)
   const t = await getTranslations('ServicesPage')
-  const tMeta = await getTranslations({ locale, namespace: 'Metadata' })
+  const tMeta = await getTranslations('Metadata')
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,

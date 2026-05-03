@@ -1,5 +1,6 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { StackMarqueeSkeleton } from '@/components/features/home/StackMarqueeSkeleton'
@@ -62,6 +63,7 @@ export async function FinalCtaSection({ locale }: Props) {
 }
 
 async function StackMarquee({ locale }: Props) {
+  await connection()
   const stackTags = await findTagsBySlugs({ slugs: STACK_TAG_SLUGS, locale })
 
   return (

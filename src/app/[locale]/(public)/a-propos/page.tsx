@@ -1,16 +1,20 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import { cacheLife } from 'next/cache'
+import { connection } from 'next/server'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import { AboutHero } from '@/components/features/about/AboutHero'
+import {
+  StackSkeleton,
+  StatsSkeleton,
+} from '@/components/features/about/AboutSectionSkeletons'
 import { NumberTickerStats } from '@/components/features/about/NumberTickerStats'
 import { TechStackBadges } from '@/components/features/about/TechStackBadges'
 import { PageShell } from '@/components/layout/PageShell'
 import { JsonLd } from '@/components/seo/json-ld'
 import { LabeledText } from '@/components/ui/labeled-text'
-import { Skeleton } from '@/components/ui/skeleton'
 import { EXPERTISE } from '@/config/expertise'
 import { SOCIAL_LINKS } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -105,8 +109,9 @@ export default async function AProposPage({
 }
 
 async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
+  await connection()
   const [tMeta, publisher] = await Promise.all([
-    getTranslations({ locale, namespace: 'Metadata' }),
+    getTranslations('Metadata'),
     getPublisher(),
   ])
 
@@ -141,6 +146,7 @@ async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
 }
 
 async function StatsAsync() {
+  await connection()
   const [t, years, missions, clients] = await Promise.all([
     getTranslations('AboutPage.stats'),
     getYearsOfExperience(),
@@ -155,37 +161,8 @@ async function StatsAsync() {
   return <NumberTickerStats stats={stats} />
 }
 
-function StatsSkeleton() {
-  return (
-    <div className="grid gap-10 sm:grid-cols-3" aria-hidden>
-      {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="flex flex-col items-center gap-2 text-center">
-          <Skeleton className="h-14 w-20" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 async function StackAsync({ locale }: { locale: Locale }) {
+  await connection()
   const tags = await findAllTags(locale)
   return <TechStackBadges tags={tags} />
-}
-
-function StackSkeleton() {
-  return (
-    <div className="flex flex-col gap-8" aria-hidden>
-      {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="flex flex-col gap-3">
-          <Skeleton className="h-6 w-40" />
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 4 }, (_, j) => (
-              <Skeleton key={j} className="h-6 w-20" />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
 }
