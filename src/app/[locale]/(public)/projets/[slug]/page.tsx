@@ -3,6 +3,7 @@ import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { CaseStudyFooter } from '@/components/features/projects/CaseStudyFooter'
@@ -67,10 +68,11 @@ async function CaseStudyContentAsync({
   locale: Locale
   slug: string
 }) {
+  await connection()
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 
-  const tMeta = await getTranslations({ locale, namespace: 'Metadata' })
+  const tMeta = await getTranslations('Metadata')
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,

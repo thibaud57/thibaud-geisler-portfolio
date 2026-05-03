@@ -1,5 +1,6 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { TEASER_LIMIT } from '@/components/features/home/constants'
@@ -39,6 +40,7 @@ export async function ProjectsTeaserSection({ locale }: Props) {
 }
 
 async function ProjectsTeaserGrid({ locale }: Props) {
+  await connection()
   const projects = await findManyPublished({ locale })
   const featured = projects.slice(0, TEASER_LIMIT)
 

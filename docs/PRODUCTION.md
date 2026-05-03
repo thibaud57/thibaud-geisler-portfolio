@@ -220,7 +220,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 - [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
 - [x] **`just test`** : tous les tests passent en local (177 tests : 128 unit + 49 integration)
 - [x] **`just build`** : build Next.js standalone passe sans erreur
-- [x] **Test container Docker local** : `just docker-up` → ⚠️ **non représentatif depuis le switch vers Postgres Dokploy externe** (DB joignable au build sur Dokploy mais pas en local — limitation Docker Compose qui ne network pas les services pendant `build`). Validation faite via le déploiement Dokploy réel à la place (DB séparée Dokploy, build avec accès DB).
+- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
 ### Cohérence documentaire
 

@@ -133,7 +133,8 @@ Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages déd
 | Pattern | Contexte d'application |
 |---------|------------------------|
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
-| **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours')` + `cacheTag('projects')`) : Data Cache persistant, revalidation ciblée via `revalidateTag` |
+| **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days')` + `cacheTag`) : Data Cache persistant en self-hosted, revalidation ciblée via `revalidateTag` |
+| **`await connection()`** | Marqueur dynamic dans les composants async qui appellent des queries DB (sous `<Suspense>`) : empêche le prerender de toucher la DB au build, le contenu est rendu au runtime puis servi par le Data Cache |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
