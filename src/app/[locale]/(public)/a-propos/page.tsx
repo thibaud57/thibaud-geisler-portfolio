@@ -65,42 +65,41 @@ export default async function AProposPage({
 
   return (
     <PageShell>
-      <div className="flex flex-col gap-16 sm:gap-20 lg:gap-24">
-        <AboutHero locale={locale}>
-          <div className="mt-2 flex flex-col gap-4">
-            <p className="text-base leading-relaxed">
-              <LabeledText text={t('bio.intro')} />
-            </p>
-            <p className="text-base leading-relaxed">
-              <LabeledText text={t('bio.positioning')} />
-            </p>
-            <p className="text-base leading-relaxed">
-              <LabeledText text={t('bio.approach')} />
-            </p>
-          </div>
-        </AboutHero>
-
-        <blockquote className="mx-auto max-w-4xl text-center">
-          <p className="text-2xl italic leading-relaxed text-muted-foreground sm:text-3xl">
-            <span aria-hidden className="text-primary">«&nbsp;</span>
-            {t('transition')}
-            <span aria-hidden className="text-primary">&nbsp;»</span>
+      <AboutHero locale={locale}>
+        <div className="mt-2 flex flex-col gap-4">
+          <p className="text-base leading-relaxed">
+            <LabeledText text={t('bio.intro')} />
           </p>
-        </blockquote>
+          <p className="text-base leading-relaxed">
+            <LabeledText text={t('bio.positioning')} />
+          </p>
+          <p className="text-base leading-relaxed">
+            <LabeledText text={t('bio.approach')} />
+          </p>
+        </div>
+      </AboutHero>
 
-        <section className="border-y border-border py-16 sm:py-20 lg:py-24">
-          <Suspense fallback={<StatsSkeleton />}>
-            <StatsAsync />
-          </Suspense>
-        </section>
+      <blockquote className="mx-auto max-w-4xl text-center">
+        <p className="text-2xl italic leading-relaxed text-muted-foreground sm:text-3xl">
+          <span aria-hidden className="text-primary">«&nbsp;</span>
+          {t('transition')}
+          <span aria-hidden className="text-primary">&nbsp;»</span>
+        </p>
+      </blockquote>
 
-        <section className="flex flex-col gap-6">
-          <h2>{t('stack.title')}</h2>
-          <Suspense fallback={<StackSkeleton />}>
-            <StackAsync locale={locale} />
-          </Suspense>
-        </section>
-      </div>
+      <section className="border-y border-border py-16 sm:py-20 lg:py-24">
+        <Suspense fallback={<StatsSkeleton />}>
+          <StatsAsync />
+        </Suspense>
+      </section>
+
+      <section className="flex flex-col gap-6">
+        <h2>{t('stack.title')}</h2>
+        <Suspense fallback={<StackSkeleton />}>
+          <StackAsync locale={locale} />
+        </Suspense>
+      </section>
+
       <Suspense fallback={null}>
         <ProfileJsonLdAsync locale={locale} />
       </Suspense>

@@ -15,7 +15,7 @@ export function PageShell({ title, subtitle, children }: Props) {
           ) : null}
         </header>
       ) : null}
-      {children}
+      <div className="flex flex-col gap-16 sm:gap-20 lg:gap-24">{children}</div>
     </main>
   )
 }

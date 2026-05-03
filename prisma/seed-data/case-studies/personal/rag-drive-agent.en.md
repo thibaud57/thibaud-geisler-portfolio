@@ -35,7 +35,7 @@ Sub-workflow answering user questions in 2 stages: first **target collection val
 ## Results
 
 - **`rag_appart` collection**: ~30 documents indexed (notarial deed, mortgage, insurance contracts, condo association meetings, appliance manuals, renovation invoices)
-- **One-shot embedding cost**: ~€5-10 for the initial indexing, queries nearly free (embeddings are the main cost driver)
+- **One-shot embedding cost**: ~€5-10 for the initial indexing, queries not expensive (embeddings are the main cost driver)
 - **Incremental indexing**: a new document in Drive → a single Telegram command updates the collection without duplicates
 - **Traced search**: every answer cites its sources (fileName + fileId), zero fabricated information
 - **Real usage**: personal POC used occasionally (a few queries per month), not heavy usage
@@ -48,7 +48,7 @@ Sub-workflow answering user questions in 2 stages: first **target collection val
 - Structured output parsers + auto-fixing with a secondary LLM to harden JSON output
 - **Constant LLM-models watch**: pick the right model for each use case (router vs summarizer vs complex Q&A), trade off cost vs quality, re-evaluate at each major release
 - Generic design from day one: 1 Drive folder = 1 Postgres collection + 1 Qdrant collection, parameterized by name
-- **n8n is excellent to validate a RAG POC quickly** (functional multi-agent architecture in a few hours), **but for a robust production at real load** (low latency, fine-grained observability, automated tests), rewriting in a proper API remains preferable
+- **n8n is excellent to validate a RAG POC quickly** (functional multi-agent architecture in a few hours), **but for a robust production at real load** (low latency, fine-grained observability, automated tests), rewriting in a proper API is preferable.
 
 ## Planned evolutions
 

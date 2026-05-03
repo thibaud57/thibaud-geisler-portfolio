@@ -1,8 +1,8 @@
 ## Contexte
 
-API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données à des workflows n8n, puis **migration vers un serveur MCP** (Model Context Protocol) pour intégration native avec des agents IA (Claude Desktop, n8n MCP Server Trigger).
+API Python/FastAPI pour scraper 3 plateformes musicales (Soundcloud, Beatport, Bandcamp) et exposer les données à des workflows n8n, **complétée par un serveur MCP** (Model Context Protocol) qui expose les mêmes fonctionnalités comme tools natifs pour agents IA (Claude Desktop, n8n MCP Server Trigger). Les deux interfaces **coexistent** sur le même code métier.
 
-**Objectif business** : disposer d'une interface unifiée pour extraire automatiquement les métadonnées musicales de plusieurs plateformes, utilisable à la fois par des workflows classiques et par des agents IA.
+**Objectif business** : disposer d'une interface unifiée pour extraire automatiquement les métadonnées musicales de plusieurs plateformes, utilisable à la fois par des workflows classiques (REST) et par des agents IA (MCP).
 
 **Mon rôle** : conception, développement et déploiement de bout en bout en autonomie.
 
@@ -16,13 +16,13 @@ Scrapers robustes pour 3 plateformes : **Soundcloud** (via API officielle après
 
 **Solutions** : architecture async avec retry et backoff, gestion distincte des erreurs temporaires (retry automatique) et permanentes (remontée), parallélisation des requêtes liées.
 
-### API REST puis serveur MCP
+### Double interface : REST + MCP en parallèle
 
-Exposition des scrapers via une API REST authentifiée, puis **migration vers un serveur MCP** exposant les scrapers comme **tools natifs** pour agents IA (Claude Desktop, n8n MCP).
+Scrapers exposés via une **API REST authentifiée** (workflows n8n classiques, scripts, dashboards) et via un **serveur MCP** (tools natifs pour agents IA : Claude Desktop, n8n MCP). Les deux interfaces partagent le même code métier — pas de réécriture, pas de remplacement.
 
-**Défis techniques** : premier serveur MCP implémenté, plusieurs itérations pour stabiliser la communication, coexistence REST + MCP avec code métier partagé.
+**Défis techniques** : premier serveur MCP implémenté, plusieurs itérations pour stabiliser la communication, mutualiser le code métier sans dupliquer la logique des scrapers entre les deux interfaces.
 
-**Solutions** : 1 tool MCP = 1 ex-route REST, code métier partagé entre les deux interfaces, images Docker distinctes pour REST et MCP.
+**Solutions** : 1 tool MCP correspond à 1 endpoint REST équivalent, scrapers factorisés dans une couche métier réutilisée par les deux interfaces, images Docker distinctes pour déployer REST et MCP indépendamment selon le besoin.
 
 ### Déploiement self-hosted
 
@@ -30,9 +30,9 @@ Déploiement initial via GitHub Actions + SSH, puis migration vers **Dokploy** p
 
 ## Résultats
 
-- 3 plateformes musicales scrapeables via une interface unifiée
-- Phases 1-3 MCP complètes (tous les scrapers exposés en tools)
-- Intégration native avec les agents IA de l'écosystème (Claude Desktop, n8n)
+- 3 plateformes (Soundcloud, Beatport, Bandcamp) accessibles via REST + MCP
+- Tous les scrapers exposés comme MCP tools, utilisables nativement par les agents IA (Claude Desktop, n8n)
+- Code métier mutualisé entre les deux interfaces, zéro duplication
 
 ## Apprentissages
 
@@ -46,7 +46,7 @@ Déploiement initial via GitHub Actions + SSH, puis migration vers **Dokploy** p
 
 - Refactor du serveur MCP (première implémentation à revoir)
 - Scraper Discogs et Songstats
-- Monitoring et cache pour requêtes fréquentes
+- Monitoring (alerte si scrapers cassés suite à changement de structure des pages)
 
 ## Liens
 
