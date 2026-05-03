@@ -82,21 +82,23 @@ export default async function ContactPage({
 
   return (
     <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
-      <div className="flex flex-wrap items-center justify-center mb-10 -mt-2 gap-4 md:justify-between">
-        <LocationLine />
-        <SocialLinks className="md:justify-end" />
-      </div>
+      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
+        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
+          <LocationLine />
+          <SocialLinks className="md:justify-end" />
+        </div>
 
-      <ContactTabs
-        formLabel={t('tabs.form')}
-        calendlyLabel={t('tabs.calendly')}
-        formContent={
-          <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
-        }
-        calendlyContent={
-          <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
-        }
-      />
+        <ContactTabs
+          formLabel={t('tabs.form')}
+          calendlyLabel={t('tabs.calendly')}
+          formContent={
+            <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
+          }
+          calendlyContent={
+            <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
+          }
+        />
+      </div>
     </PageShell>
   )
 }
