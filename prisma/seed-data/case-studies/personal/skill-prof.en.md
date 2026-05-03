@@ -41,10 +41,10 @@ Two complementary audit agents: `lesson/auditor` (format + technical accuracy pe
 ## Takeaways
 
 - Claude agent orchestration (parallelism, checkpoints, atomic consolidation)
-- Designing dense and constraining system prompts
-- Multi-step workflows with quality gates
+- Dense and rigorous system prompts (strict output format, blocking validation before action)
+- AI multi-step workflows with quality gates
 - Pedagogical structuring of complex technical content
-- The anti-redundancy matrix in plans is critical for dense lessons without repetition
+- Extensible architecture: content (pedagogical plans) decoupled from code (skill)
 
 ## Links
 
