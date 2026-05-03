@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { HeroPrimaryCta } from './HeroPrimaryCta'
 
 type Props = {
-  h1: string
+  h1: React.ReactNode
   tagline: string
   ctaPrimaryLabel: string
   ctaSecondaryLabel: string
@@ -35,7 +35,7 @@ export function Hero({
       <BackgroundRippleEffect />
 
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center sm:px-6">
-        <h1>{h1}</h1>
+        <h1 className="lg:text-6xl">{h1}</h1>
         <div className="relative max-w-2xl overflow-hidden">
           <p
             aria-hidden
