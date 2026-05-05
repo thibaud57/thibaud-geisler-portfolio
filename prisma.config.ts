@@ -10,9 +10,12 @@ export default defineConfig({
   },
   migrations: {
     path: 'prisma/migrations',
-    // tsx doit rester en `dependencies` (pas devDependencies) tant qu'on lance
-    // `prisma db seed` depuis le container prod (Dokploy). Quand le CRUD admin
-    // post-MVP remplacera le seed manuel, tsx pourra revenir en devDependencies.
-    seed: 'tsx prisma/seed.ts',
+    // Prod (Docker) : seed.js bundlé par esbuild au build → spawn `node` (binaire système, dans $PATH).
+    // Dev local : tsx via pnpm exec qui hisse node_modules/.bin dans $PATH.
+    // tsx reste 100% devDep, jamais shippé en prod.
+    seed:
+      process.env.NODE_ENV === 'production'
+        ? 'node prisma/seed.js'
+        : 'tsx prisma/seed.ts',
   },
 })
