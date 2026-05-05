@@ -1,9 +1,7 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { Suspense } from 'react'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -14,7 +12,6 @@ import { buildBreadcrumbList } from '@/lib/seo/json-ld'
 import type { Locale } from 'next-intl'
 import { findManyPublished } from '@/server/queries/projects'
 import { ProjectsList } from '@/components/features/projects/ProjectsList'
-import { ProjectsListSkeleton } from '@/components/features/projects/ProjectsListSkeleton'
 import { PageShell } from '@/components/layout/PageShell'
 import { JsonLd } from '@/components/seo/json-ld'
 
@@ -53,16 +50,13 @@ export default async function ProjetsPage({ params }: PageProps<'/[locale]/proje
 
   return (
     <PageShell title={t('pageTitle')} subtitle={t('pageSubtitle')}>
-      <Suspense fallback={<ProjectsListSkeleton />}>
-        <ProjectsListAsync locale={locale} />
-      </Suspense>
+      <ProjectsListAsync locale={locale} />
       <JsonLd data={breadcrumbJsonLd} />
     </PageShell>
   )
 }
 
 async function ProjectsListAsync({ locale }: { locale: Locale }) {
-  await buildOnlyConnection()
   const projects = await findManyPublished({ locale })
   return <ProjectsList projects={projects} />
 }
