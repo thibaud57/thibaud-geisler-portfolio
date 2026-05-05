@@ -2,13 +2,13 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { formatSiret } from '@/lib/legal/format-siret'
 import { loadLegalContent } from '@/lib/legal/load-legal-content'
 import {
@@ -54,7 +54,7 @@ export default async function MentionsLegalesPage({
 }
 
 async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
-  await connection()
+  await buildOnlyConnection()
   const [t, tLegal, publisher, hosting, legalContent] = await Promise.all([
     getTranslations('LegalMentions'),
     getTranslations('Legal'),

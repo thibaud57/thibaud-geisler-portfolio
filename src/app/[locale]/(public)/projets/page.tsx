@@ -1,9 +1,9 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -62,7 +62,7 @@ export default async function ProjetsPage({ params }: PageProps<'/[locale]/proje
 }
 
 async function ProjectsListAsync({ locale }: { locale: Locale }) {
-  await connection()
+  await buildOnlyConnection()
   const projects = await findManyPublished({ locale })
   return <ProjectsList projects={projects} />
 }
