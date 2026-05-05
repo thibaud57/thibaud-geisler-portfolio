@@ -87,8 +87,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - name: Apply Prisma migrations to test DB
-        run: pnpm prisma migrate deploy
+      - name: Apply Prisma migrations + minimal seed to test DB
+        run: |
+          pnpm prisma migrate deploy
+          pnpm prisma db seed
 
       - run: just lint
       - run: just typecheck
