@@ -1,10 +1,13 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
 import { TEASER_LIMIT } from '@/components/features/home/constants'
 import { ProjectCard } from '@/components/features/projects/ProjectCard'
+import { ProjectsTeaserSkeleton } from '@/components/features/home/ProjectsTeaserSkeleton'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { findManyPublished } from '@/server/queries/projects'
 
 type Props = {
@@ -23,7 +26,9 @@ export async function ProjectsTeaserSection({ locale }: Props) {
         </p>
       </header>
 
-      <ProjectsTeaserGrid locale={locale} />
+      <Suspense fallback={<ProjectsTeaserSkeleton />}>
+        <ProjectsTeaserGrid locale={locale} />
+      </Suspense>
 
       <div className="flex justify-center">
         <Button asChild variant="ghost" size="lg">
@@ -35,6 +40,7 @@ export async function ProjectsTeaserSection({ locale }: Props) {
 }
 
 async function ProjectsTeaserGrid({ locale }: Props) {
+  await buildOnlyConnection()
   const projects = await findManyPublished({ locale })
   const featured = projects.slice(0, TEASER_LIMIT)
 
