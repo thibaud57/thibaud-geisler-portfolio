@@ -27,18 +27,25 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 FROM base AS builder
 
 # --- Env de build ----------------------------------------------------------
-# Vars server (DATABASE_URL, SMTP_*, MAIL_TO) injectées par Dokploy au runtime,
-# absentes au build → bypass validation t3-env.
+# Vars server runtime (SMTP_*, MAIL_TO, NEXT_SERVER_ACTIONS_ENCRYPTION_KEY)
+# injectées par Dokploy au runtime, absentes au build → bypass validation t3-env.
 ENV SKIP_ENV_VALIDATION=true
 
 # NEXT_PUBLIC_* inlinées dans le bundle JS au build (sans ARG → undefined dans
-# sitemap/canonicals/OG). Propagées via compose.yaml build.args.
+# sitemap/canonicals/OG). Propagées via le workflow GitHub Actions au build CI.
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_CALENDLY_URL_FR
 ARG NEXT_PUBLIC_CALENDLY_URL_EN
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_CALENDLY_URL_FR=$NEXT_PUBLIC_CALENDLY_URL_FR
 ENV NEXT_PUBLIC_CALENDLY_URL_EN=$NEXT_PUBLIC_CALENDLY_URL_EN
+
+# DATABASE_URL au build = connection string vers Postgres ephemeral GitHub Actions
+# (vit pendant le job CI uniquement, ~5 min). Permet à Prisma 'use cache' d'exécuter
+# les queries au prerender pour générer le static shell. Le runtime utilise la vraie
+# DB Dokploy (DATABASE_URL injectée via env_file: .env du compose).
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 
 # --- Sources + node_modules ------------------------------------------------
 COPY --from=deps /app/node_modules ./node_modules
