@@ -86,8 +86,6 @@ jobs:
           network: host
           allow: |
             network.host
-          add-hosts: |
-            host.docker.internal:host-gateway
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
