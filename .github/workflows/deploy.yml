@@ -77,6 +77,9 @@ jobs:
             type=sha,prefix=sha-
 
       - uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: |
+            network=host
 
       - name: Build & push image
         uses: docker/build-push-action@v7
@@ -86,8 +89,6 @@ jobs:
           network: host
           allow: |
             network.host
-          add-hosts: |
-            host.docker.internal:host-gateway
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -100,8 +101,13 @@ jobs:
 
       - name: Trigger Dokploy compose redeploy
         run: |
-          curl -fsSL --max-time 30 -X POST \
-            "${{ secrets.DOKPLOY_URL }}/api/compose.redeploy" \
-            -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"composeId":"${{ secrets.DOKPLOY_COMPOSE_ID }}"}'
+          for i in 1 2 3; do
+            curl -fsSL --max-time 30 -X POST \
+              "${{ secrets.DOKPLOY_URL }}/api/compose.redeploy" \
+              -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d '{"composeId":"${{ secrets.DOKPLOY_COMPOSE_ID }}"}' && exit 0
+            echo "Attempt $i failed, retrying in $((i*5))s..."
+            sleep $((i*5))
+          done
+          exit 1
