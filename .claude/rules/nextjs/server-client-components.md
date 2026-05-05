@@ -12,7 +12,7 @@ paths:
 - Placer `'use client'` le plus bas possible dans l'arbre (pattern "leaf client component") pour minimiser le bundle JS client
 - Passer un Server Component en `children` d'un Client Component pour le maintenir côté serveur tout en ayant de l'interactivité autour
 - Faire des Server Components `async` et `await` directement dans le corps du composant, sans `useEffect` ni state de chargement
-- Wrapper dans `<Suspense fallback={...}>` UNIQUEMENT les Server Components async qui accèdent à des runtime APIs (`cookies()`, `headers()`, `searchParams`, `connection()`) ou font des fetches non cachés. Pour les composants entièrement en `'use cache'`, le `<Suspense>` est redondant — le contenu est inclus dans le static shell au prerender (cf. règle XOR dans `nextjs/rendering-caching.md`)
+- Wrapper les zones async lentes dans `<Suspense fallback={...}>` pour afficher des fallbacks granulaires pendant le streaming
 - Installer le package `server-only` sur les modules qui accèdent à la DB/secrets, `client-only` sur ceux qui utilisent `window`/`document`
 - Activer `experimental: { taint: true }` et tainter les objets sensibles (user avec `passwordHash`, tokens) avec `experimental_taintObjectReference` / `experimental_taintUniqueValue`
 - S'assurer que les props passées d'un Server vers Client Component sont sérialisables (`string`, `number`, `Date`, `Map`, `Set`, `Promise`, `FormData`, Server Actions)
