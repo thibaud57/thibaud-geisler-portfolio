@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.1...v1.2.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* **deploy:** make GHA + GHCR + Dokploy pull-only pipeline actually work end-to-end ([#73](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/73)) ([404fa63](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/404fa630c30e2b07438620495d5db9ec02c9d697))
+
 ## [1.2.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.0...v1.2.1) (2026-05-05)
 
 
