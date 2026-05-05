@@ -234,12 +234,12 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).
 
-- [ ] **Seed BDD initial** : `docker exec -it portfolio-zfij1k node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy (le Compose nextjs joint la Postgres Database Dokploy via DNS interne). Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
-- [ ] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du container Compose nextjs) une fois après le 1er rebuild Dokploy. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
-- [ ] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
-- [ ] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
-- [ ] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
-- [ ] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline
+- [x] **Seed BDD initial** : `docker exec -it portfolio-zfij1k node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy (le Compose nextjs joint la Postgres Database Dokploy via DNS interne). Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
+- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du container Compose nextjs) une fois après le 1er rebuild Dokploy. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
+- [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
+- [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
+- [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
+- [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/cwv-2026-05-05.md](baselines/cwv-2026-05-05.md))
 
 ---
 

@@ -12,6 +12,11 @@ services:
       ASSETS_PATH: /app/assets
     volumes:
       - portfolio_assets:/app/assets
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "10"
 
 volumes:
   portfolio_assets:
