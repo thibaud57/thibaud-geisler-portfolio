@@ -13,7 +13,6 @@ import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
 import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
-import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -68,7 +67,6 @@ async function CaseStudyContentAsync({
   locale: Locale
   slug: string
 }) {
-  await buildOnlyConnection()
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 

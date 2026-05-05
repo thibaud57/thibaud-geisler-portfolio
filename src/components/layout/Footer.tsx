@@ -9,7 +9,6 @@ import { OpenCookiePreferencesLink } from '@/components/features/legal/OpenCooki
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
-import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { formatSiret } from '@/lib/legal/format-siret'
 import { getPublisher } from '@/server/queries/legal'
 
@@ -77,7 +76,6 @@ export async function Footer({ locale }: Props) {
 }
 
 async function FooterCopyrightAsync() {
-  await buildOnlyConnection()
   const publisher = await getPublisher()
   return (
     <p>
