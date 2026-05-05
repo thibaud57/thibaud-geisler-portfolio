@@ -1,6 +1,5 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { StackMarqueeSkeleton } from '@/components/features/home/StackMarqueeSkeleton'
@@ -8,6 +7,7 @@ import { Marquee } from '@/components/magicui/marquee'
 import { WordRotate } from '@/components/magicui/word-rotate'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { resolveTagIcon } from '@/lib/icons'
 import { findTagsBySlugs } from '@/server/queries/tags'
 
@@ -63,7 +63,7 @@ export async function FinalCtaSection({ locale }: Props) {
 }
 
 async function StackMarquee({ locale }: Props) {
-  await connection()
+  await buildOnlyConnection()
   const stackTags = await findTagsBySlugs({ slugs: STACK_TAG_SLUGS, locale })
 
   return (
