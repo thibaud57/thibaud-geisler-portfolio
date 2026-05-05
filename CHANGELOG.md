@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.2...v1.1.3) (2026-05-05)
+
+
+### Bug Fixes
+
+* **cookies:** prevent ConsentLanguageSync infinite loop with c15t 2.0.4 ([#61](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/61)) ([03d2012](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/03d201205d34bc2a41530ed686cf8d2a66c7623e))
+
 ## [1.1.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.1...v1.1.2) (2026-05-05)
 
 
