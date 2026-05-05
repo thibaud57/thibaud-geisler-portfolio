@@ -15,7 +15,7 @@ Workflow n8n event-driven qui écoute les mises à jour de la DB Notion et orche
 2. **Rédaction par agent IA** (Claude) d'un message de relance personnalisé et adapté au contexte du lead (statut, intérêt, historique)
 3. **Planification automatique** d'une tâche TickTick rappelant la relance au bon moment
 
-**Défis** : générer des messages **réellement personnalisés** (ton, contexte, ancienneté de la relation) sans tomber dans les formules commerciales creuses.
+**Défis techniques** : générer des messages **réellement personnalisés** (ton, contexte, ancienneté de la relation) sans tomber dans les formules commerciales creuses.
 
 **Solutions** : prompt engineering avancé (règles strictes sur ton, dates relatives, style bref), sortie structurée pour fiabilité.
 

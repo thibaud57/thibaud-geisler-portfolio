@@ -31,6 +31,7 @@ Déploiement initial via GitHub Actions + SSH, puis migration vers **Dokploy** p
 ## Résultats
 
 - 3 plateformes (Soundcloud, Beatport, Bandcamp) accessibles via REST + MCP
+- **Performance** : 100+ pages traitées en <30s (architecture async + parallélisation contrôlée)
 - Tous les scrapers exposés comme MCP tools, utilisables nativement par les agents IA (Claude Desktop, n8n)
 - Code métier mutualisé entre les deux interfaces, zéro duplication
 

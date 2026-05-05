@@ -10,3 +10,4 @@ docs
 coverage
 .playwright-mcp
 src/generated
+prisma/seed.js
