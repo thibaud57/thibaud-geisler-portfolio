@@ -15,7 +15,7 @@ Event-driven n8n workflow that listens to Notion DB updates and orchestrates 3 s
 2. **Message drafting by an AI agent** (Claude) producing a personalized follow-up tailored to the lead context (status, interest, history)
 3. **Automatic scheduling** of a TickTick task that reminds the follow-up at the right time
 
-**Challenges**: generating messages that are **genuinely personalized** (tone, context, length of the relationship) without falling into empty sales clichés.
+**Technical challenges**: generating messages that are **genuinely personalized** (tone, context, length of the relationship) without falling into empty sales clichés.
 
 **Solutions**: advanced prompt engineering (strict rules on tone, relative dates, concise style), structured output for reliability.
 

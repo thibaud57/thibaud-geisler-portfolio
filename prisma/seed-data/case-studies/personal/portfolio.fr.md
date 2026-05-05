@@ -8,51 +8,51 @@ Plateforme personnelle servant de **vitrine professionnelle** (offres, projets, 
 
 ### Portfolio public (pages, projets, contact, SEO, i18n)
 
-Pages publiques avec narration ordonnée (Accueil → Services → Projets → À propos → Contact), liste projets avec filtres, case studies dédiées, formulaire contact SMTP, SEO (metadata Open Graph, sitemap, robots.txt) et i18n FR/EN câblé dès J1.
+Pages publiques avec narration ordonnée (Accueil → Services → Projets → À propos → Contact), liste projets filtrable, case studies dédiées, formulaire contact SMTP, SEO (Open Graph, sitemap, robots.txt) et bilingue FR/EN câblé dès J1.
 
-**Défis techniques** : ordonnancer la narration publique (offre, preuve, personne, action), servir des assets dynamiques sans couplage au build Next.js, câbler i18n dès le début pour éviter la réécriture du contenu, modéliser le content bilingue en BDD sans casser l'UI chrome.
+**Défis techniques** : éviter la réécriture du contenu en câblant l'i18n dès le début, modéliser le contenu bilingue en BDD sans casser l'UI, servir des assets dynamiques sans dépendre du build Next.js.
 
-**Solutions** : route group isolée pour le site public (dashboard admin futur séparé), assets servis via route API dédiée (volume Docker, migration R2 post-MVP), next-intl avec middleware de détection langue navigateur, **PPR (Partial Prerendering) Next.js 16 + cache opt-in granulaire** plutôt que SSG/SSR/ISR classiques, colonnes jumelées Fr/En sur Prisma + helper de localisation côté query.
+**Impact** : narration publique livrée en cohérence avec l'offre commerciale, **PPR Next.js 16** retenu après benchmark vs SSG/SSR/ISR pour un MVP rapide qui scale, contenu bilingue jumelé en BDD pour absorber les futurs case studies sans refacto.
 
 ### Design System hybride (shadcn/ui + Magic UI + Aceternity UI)
 
-Stack UI en 3 couches : shadcn/ui comme socle fonctionnel, Magic UI + Aceternity UI pour les effets visuels marketing (spotlight, glows, reveals, bento, marquee), Tailwind CSS 4 pour le styling. Palette custom vert sauge, Dark/Light mode suivant la préférence OS, typographie Geist Sans + Sansation + Geist Mono.
+Stack UI en 3 couches : shadcn/ui (socle fonctionnel), Magic UI + Aceternity UI (effets visuels marketing : spotlight, glows, reveals, bento), Tailwind CSS 4. Palette custom vert sauge, Dark/Light mode suivant la préférence OS, typographie Geist Sans + Sansation + Geist Mono.
 
-**Défis techniques** : composer 3 librairies UI sans conflit de structure, design tokens en **OKLCH** via CSS variables pour support Dark/Light automatique.
+**Défis techniques** : composer 3 librairies UI sans conflit de structure, tokens sémantiques avec support Dark/Light automatique.
 
-**Solutions** : sous-dossiers dédiés par librairie UI, utilitaire de composition de classes sans conflit, tokens sémantiques CSS pour primary/muted/accent.
+**Impact** : design system cohérent et maintenable, sous-dossiers dédiés par librairie pour éviter les collisions futures, basculement Dark/Light sans flash visible.
 
 ### SEO & GEO 2026 (Generative Engine Optimization)
 
-Stratégie SEO + GEO actualisée 2026 pour les moteurs traditionnels (Google, Bing) et les AI engines (ChatGPT, Perplexity, Claude search) : metadata Open Graph par locale, sitemap dynamique avec hreflang FR/EN, JSON-LD `Person` enrichi Wikidata + SIRET, OG Images dynamiques générées via ImageResponse, `robots.txt` et `/llms.txt`.
+Stratégie SEO + GEO 2026 ciblant à la fois les moteurs classiques (Google, Bing) et les AI engines (ChatGPT, Perplexity, Claude search) : Open Graph par locale, sitemap dynamique avec hreflang FR/EN, JSON-LD `Person` enrichi Wikidata + SIRET, OG Images dynamiques, `robots.txt` et `/llms.txt`.
 
-**Défis techniques** : best-practice GEO 2026 non encore documentée comme le SEO classique, signal E-E-A-T identité freelance via JSON-LD `Person` (SIRET, adresse postale), OG Images dynamiques sur Edge runtime (contraintes spécifiques sur les fonts et la palette).
+**Défis techniques** : best-practice GEO 2026 encore peu documentée, signal E-E-A-T identité freelance, OG Images dynamiques avec contraintes Edge runtime.
 
-**Solutions** : JSON-LD `ProfilePage` + `Person` avec entrées `knowsAbout` enrichies Wikidata reconnues par les AI engines (vs simples strings), `/llms.txt` servi via route handler pour consommer dynamiquement l'URL du site, OG Images via ImageResponse Satori (fonts custom + palette light hardcodée Edge runtime).
+**Impact** : référencement opérationnel sur 2 fronts (SEO + GEO 2026), entrées Wikidata reconnues par les AI engines pour mieux ressortir dans les recherches assistées par IA.
 
 ### Conformité légale & RGPD
 
-Pages légales (`/mentions-legales` LCEN, `/confidentialite` RGPD), bandeau de consentement cookies, gating du widget Calendly inline conditionné au consent marketing, CSP whitelist Calendly + IP hashing pour tracking RGPD-friendly. Bloquante avant prod publique : LCEN, RGPD, directive ePrivacy, CNIL.
+Mise en conformité RGPD/CNIL bloquante avant prod publique : pages légales bilingues (LCEN, RGPD), bandeau de consentement avec symétrie Accept/Reject (recommandation CNIL), gating du widget Calendly conditionné au consent marketing, IP hashing serveur pour tracking RGPD-friendly.
 
-**Défis techniques** : choisir entre une lib clé-en-main et une implémentation custom maison (`vanilla-cookieconsent` v3 + Provider Context + tests intégration ~250 LOC) pour gagner du contrôle, respecter la **symétrie CNIL 2020-092 Accept/Reject** (les libs ne le font pas par défaut, override CSS requis), gating Calendly conditionné au consent marketing (cookies tiers Segment, Google Analytics, Hotjar, LinkedIn Insight Tag), banner non-bloquant pour Core Web Vitals.
+**Défis techniques** : choix entre lib clé-en-main et implémentation custom (~250 LOC), banner non-bloquant pour Core Web Vitals, gating de cookies tiers (Segment, Google Analytics, Hotjar, LinkedIn).
 
-**Solutions** : adoption de **`@c15t/nextjs` v2 (mode offline)** après écartement de l'implémentation custom (3x plus de code à maintenir), gating côté React qui empêche le rendu du widget Calendly tant que le consent marketing n'est pas accordé, IP hashing serveur partagé entre Server Actions, aucune donnée personnelle identifiante (IP brute, email, contenu de message) loggée en clair.
+**Impact** : **CNIL-ready dès la mise en prod**, choix `@c15t/nextjs` validé après benchmark (3x moins de code à maintenir vs custom), aucune donnée personnelle identifiante loggée en clair.
 
 ### Infrastructure self-hosted & Ops
 
-Hébergement Dokploy sur VPS, Docker Compose (Next.js + Postgres), CI GitHub Actions, déploiement automatique via webhook GitHub sur merge `main`, image Docker `output: 'standalone'` (~250 MB), logs structurés Pino, security headers (HSTS + CSP) + rate limiting en mémoire.
+Hébergement Dokploy sur VPS, Docker Compose (Next.js + Postgres), CI GitHub Actions, déploiement automatique via webhook GitHub sur merge `main`, image Docker standalone, logs structurés Pino, security headers (HSTS + CSP) + rate limiting en mémoire.
 
-**Défis techniques** : Dokploy plutôt que Vercel (VPS déjà payé, contrôle total, stack post-MVP complète sur la même infra), image Docker légère, migrations BDD au startup container, rate limiting sans Redis, build Docker sans accès DB (sandbox builder isolé du réseau du compose).
+**Défis techniques** : Dokploy retenu plutôt que Vercel (VPS déjà payé, stack post-MVP complète sur la même infra), image Docker légère, migrations BDD au startup container, build Docker sans accès DB (sandbox builder isolé du réseau Compose), rate limiting sans Redis.
 
-**Solutions** : Dockerfile multi-stage pour produire une image runtime minimale, migrations Prisma exécutées atomiquement au démarrage de chaque container (avant le serveur Next.js), compteur IP en mémoire côté Server Action, couple `'use cache'` + `await connection()` côté data-fetching pour passer le build sans toucher la DB (pages publiques en Partial Prerender : shell statique au build + contenu DB streamé au runtime depuis le Data Cache).
+**Impact** : image Docker **~250 MB** (vs ~1.2 GB sans standalone), **self-hosting zéro coût récurrent vs Vercel**, migrations Prisma atomiques au démarrage de chaque container, build qui passe sans toucher la DB grâce à un cache opt-in côté data-fetching.
 
 ## Résultats
 
 - **MVP livré en ~2 semaines** (5 features publiques + 14 ADRs + bilingue FR/EN dès J1)
 - Site bilingue FR/EN opérationnel sans réécriture (hreflang SEO + content éditorial Fr/En jumelé en BDD)
-- Conformité légale **CNIL-ready dès la mise en prod** (banner cookies, gating Calendly, IP hashing, pages légales bilingues)
+- Conformité légale **CNIL-ready dès la mise en prod**
 - Référencement **GEO 2026** opérationnel (JSON-LD Wikidata + SIRET, `/llms.txt`, OG Images dynamiques)
-- Image Docker **~250 MB** (vs ~1.2 GB sans standalone), self-hosting zéro coût récurrent vs Vercel
+- Image Docker **~250 MB**, self-hosting zéro coût récurrent vs Vercel
 
 ## Apprentissages
 
@@ -60,7 +60,7 @@ Hébergement Dokploy sur VPS, Docker Compose (Next.js + Postgres), CI GitHub Act
 - Migration mentale depuis Angular : logique "backend-in-front"
 - Design system moderne via libs hybrides (shadcn + Magic UI + Aceternity)
 - TypeScript strict + Prisma type-safe
-- SEO moderne + GEO 2026 (JSON-LD Wikidata, schema.org Person/SIRET, OG Images dynamiques, llms.txt)
+- SEO moderne + GEO 2026 (JSON-LD, schema.org, OG Images dynamiques, llms.txt)
 - Conformité RGPD / CNIL (consent management, gating cookies tiers, IP hashing serveur, CSP)
 - Self-hosting moderne (Dokploy + Docker multi-stage standalone)
 - Discipline documentaire : 14 ADRs + docs projet structurées (brainstorm, architecture, design, production)
