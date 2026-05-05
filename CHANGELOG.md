@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.0...v1.2.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **deploy:** trigger on tag only + network host for build CI ([#71](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/71)) ([5d83ee0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5d83ee06d0d1a94bfca4c642620f06ac5743c921))
+
 ## [1.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.4...v1.2.0) (2026-05-05)
 
 
