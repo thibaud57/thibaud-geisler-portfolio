@@ -31,7 +31,7 @@ paths:
 ## Gotchas
 - Prisma 7 + Better Auth + Next 16 : erreur P1010 "User was denied access" vient presque toujours d'une `DATABASE_URL` non chargée (pas d'un bug Prisma). Vérifier que `prisma.config.ts` charge bien `.env` via `loadEnvConfig` (`@next/env`), que `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env`, et que la var est définie dans Dokploy en prod
 - **Prisma 7 + Turbopack build** : issue WASM connue (`query_compiler_fast_bg.postgresql.mjs` not found) — Turbopack est le défaut en Next 16 pour `next build`. Workaround jusqu'à correction : opt-out via `next build --webpack` dans le Dockerfile
-- Pas concerné par l'issue CI hash mismatch (#29025) : Dokploy build directement sur le serveur, pas de split CI/deploy
+- Issue CI hash mismatch (#29025) à surveiller : maintenant que le build se fait côté GHA (split CI/deploy), figer la version Prisma + même image base Node entre CI et runtime pour éviter le drift
 - Client Rust-free v7 : bundle ~90% plus petit, queries ~3x plus rapides, perf TS ~70% plus rapide
 - Generation **dans le code source** en v7 (plus dans `node_modules`) : ajouter le dossier `output` au `.gitignore`
 - Datasource v7 sans `url` : le bloc `datasource db` ne contient plus que `provider = "postgresql"`, l'URL vient de `prisma.config.ts`
