@@ -103,7 +103,7 @@ Détails (validation Zod, defense-in-depth, headers cache) : [`.claude/rules/nex
 
 ## Déploiement
 
-Déploiement continu via Dokploy self-hosted (VPS IONOS) : tout push sur `main` déclenche un build et un déploiement automatique. Les versions sont gérées par release-please (tags `vX.Y.Z` automatiques sur merge des release PRs). PostgreSQL est provisionné séparément côté Dokploy Database.
+Pipeline GHA → GHCR → Dokploy pull-only. Les tags `vX.Y.Z` (release-please) déclenchent le build Docker côté GitHub Actions et le push vers GHCR, puis trigger un redeploy Dokploy via API. Dokploy pull l'image GHCR sur le VPS, sans rebuild local. PostgreSQL est provisionné séparément côté Dokploy Database.
 
 Détails (release flow, hotfix, monitoring, incidents) : [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 

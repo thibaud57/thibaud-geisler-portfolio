@@ -19,7 +19,7 @@ paths:
 - **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v4` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
 
 ## À éviter
-- **Pas de deploy job** GitHub Actions : Dokploy gère tout le déploiement via webhook natif sur merge `main` (ARCHITECTURE.md)
+- **Workflow `deploy.yml` séparé** : déclenché sur push tag `v*` (release-please via PAT), build Docker → push GHCR → curl trigger Dokploy redeploy. Dokploy en mode pull-only (pas de rebuild local). Voir PRODUCTION.md.
 - Valeurs sensibles en clair : toujours `${{ secrets.NAME }}`, ne jamais `echo` un secret dans les logs (cf. `nodemailer/email.md` pour le pattern de mock SMTP en tests)
 - Omettre `permissions:` au niveau workflow : par défaut GitHub accorde toutes les permissions, toujours restreindre explicitement
 
