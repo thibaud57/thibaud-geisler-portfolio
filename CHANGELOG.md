@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.1...v1.1.2) (2026-05-05)
+
+
+### Bug Fixes
+
+* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([82e44a2](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/82e44a2abdac96311ede4618b87cdbacc6fdd1bf))
+* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([a1e1543](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a1e154384b357a8ffbcf61c127ee4270939acb8d))
+
 ## [1.1.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.0...v1.1.1) (2026-05-03)
 
 
