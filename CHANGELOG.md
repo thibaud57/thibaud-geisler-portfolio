@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.3...v1.1.4) (2026-05-05)
+
+
+### Bug Fixes
+
+* **rendering:** gate connection() to build-only to prevent PPR Activity race ([#63](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/63)) ([c531a11](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c531a11e9ebe708849af5a02d48fe016491e2e0b))
+
 ## [1.1.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.2...v1.1.3) (2026-05-05)
 
 
