@@ -1,11 +1,7 @@
 services:
   nextjs:
-    build:
-      context: .
-      args:
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
-        NEXT_PUBLIC_CALENDLY_URL_FR: ${NEXT_PUBLIC_CALENDLY_URL_FR}
-        NEXT_PUBLIC_CALENDLY_URL_EN: ${NEXT_PUBLIC_CALENDLY_URL_EN}
+    image: ghcr.io/thibaud57/thibaud-geisler-portfolio:latest
+    pull_policy: always
     restart: unless-stopped
     env_file: .env
     environment:

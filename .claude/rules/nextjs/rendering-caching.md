@@ -31,11 +31,13 @@ paths:
 - Laisser le Router Cache à ses valeurs par défaut sans comprendre l'impact : Next 15 a supprimé le `staleTime` par défaut pour les segments dynamiques
 
 ## Gotchas
+- **`'use cache'` XOR `<Suspense>` (règle binaire Next 16)** : un Server Component async doit être SOIT entièrement cacheable via `'use cache'` (inclus dans le static shell au prerender) SOIT sous `<Suspense>` (streamed runtime). Jamais les deux. Wrapper un composant `'use cache'` dans `<Suspense>` est redondant (le contenu est déjà dans le shell, le fallback ne s'affichera jamais en prod sur cache hit)
 - Avec `cacheComponents: true`, un composant qui accède à des données dynamiques sans `<Suspense>` ni `'use cache'` déclenche l'erreur `"Uncached data was accessed outside of <Suspense>"`
-- Les dynamic functions (`cookies()`, `headers()`, `searchParams`, `connection()`) forcent le rendu dynamique de toute la route si non isolées dans un `<Suspense>`
+- Les dynamic functions (`cookies()`, `headers()`, `searchParams`, `connection()`) forcent le rendu dynamique → exigent un `<Suspense>` parent (pas compatibles avec `'use cache'`)
+- `connection()` runtime + multi-Suspense + `cacheComponents: true` = bug HierarchyRequestError au reveal côté client sur pages denses (cf. issue [vercel/next.js#86577](https://github.com/vercel/next.js/issues/86577) Open). Préférer le pattern `'use cache'` qui n'introduit pas de zone dynamique
 - `revalidateTag(tag, 'max')` = recommandation par défaut pour la plupart des cas
 - Next 15 breaking : `staleTimes` par défaut supprimé pour les segments dynamiques, configurer explicitement si besoin (`{ dynamic: 30, static: 180 }`)
-- `'use cache: private'` (expérimental) autorise l'accès à `cookies()`/`headers()` dans le scope cache, résultat caché uniquement dans le navigateur (pas sur le serveur)
+- `'use cache: private'` (expérimental) autorise l'accès à `cookies()`/`headers()` dans le scope cache, résultat caché uniquement dans le navigateur (pas sur le serveur). N'autorise PAS `connection()`
 
 ## Exemples
 ```typescript
