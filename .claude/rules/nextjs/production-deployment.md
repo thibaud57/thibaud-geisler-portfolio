@@ -37,7 +37,7 @@ paths:
 - **Prisma 7 + Turbopack build** : issue WASM connue (`query_compiler_fast_bg.postgresql.mjs` not found). Workaround : opt-out via `next build --webpack` dans le Dockerfile jusqu'à correction upstream. Surveiller l'état de l'issue Prisma avant chaque upgrade
 - Next 15 : `serverComponentsExternalPackages` renommé `serverExternalPackages`, l'ancien nom provoque un warning
 - `sharp` auto-installé depuis Next 15 : vérifier sa présence dans les deps de production en self-hosted
-- Dokploy build directement sur le serveur, donc pas concerné par l'issue Prisma #29025 (hash mismatch CI séparé du déploiement)
+- Build Docker côté GitHub Actions (`deploy.yml`) avec service Postgres CI éphémère (pour les queries `'use cache'` au prerender) → push GHCR → Dokploy pull-only. L'issue Prisma #29025 (hash mismatch) reste possible si le build CI et le runtime divergent : toujours figer la version Prisma + même image base Node.
 - Codemod automatique disponible : `next upgrade latest` (Next 16.1+) applique les migrations
 
 ## Exemples
