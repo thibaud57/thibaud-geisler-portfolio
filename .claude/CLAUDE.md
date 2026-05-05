@@ -33,7 +33,7 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 
 ### Workflow Git
 
-Branches : `feature/*` → `develop` → `main` (Dokploy auto-deploy) → tag `vX.Y.Z` (auto via release-please) | `hotfix/*` → `main`
+Branches : `feature/*` → `develop` → `main` → tag `vX.Y.Z` (auto via release-please) → deploy auto sur tag (GHA → GHCR → Dokploy pull) | `hotfix/*` → `main`
 Commits : `type(scope): description`, types `feat | fix | docs | refactor | test | chore`
 Fin de feature : lancer `Skill[superpowers:finishing-a-development-branch]` avant de créer la PR — il vérifie les tests, propose merge local / push+PR / keep / discard, et pilote le workflow proprement.
 PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer — release-please et Dokploy en dépendent)

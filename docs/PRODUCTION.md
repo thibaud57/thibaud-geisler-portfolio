@@ -89,7 +89,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 | Env | URL | Branch | Auto-deploy |
 |-----|-----|--------|-------------|
 | development | `http://localhost:3000` (`just dev`) | - | Non |
-| production | `https://thibaud-geisler.com` | `main` | Oui (webhook Dokploy) |
+| production | `https://thibaud-geisler.com` | `main` (tag `v*` créé par release-please) | Oui (GHA → GHCR → API Dokploy redeploy) |
 
 ### Accès Dashboard Dokploy
 
@@ -110,13 +110,13 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 NODE_ENV=                           # development | production
 NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, sitemap, JSON-LD, OG)
                                     # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
-                                    # ⚠️ Inlinée dans le bundle JS au build → propagée via build args (compose.yaml + Dockerfile)
+                                    # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
 
 # Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
 
 # Calendly (widget inline /contact, exposé au navigateur — une URL par locale, event types FR/EN distincts)
-# ⚠️ Inlinées dans le bundle JS au build → propagées via build args (compose.yaml + Dockerfile)
+# ⚠️ Inlinées dans le bundle JS au build → propagées via build args du workflow GHA `deploy.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
 NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
 NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
 ```
@@ -173,20 +173,22 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 
 | Trigger | Étapes | Cible |
 |---------|--------|-------|
-| Push / PR sur n'importe quelle branche | lint, typecheck, tests (GitHub Actions) | - |
-| Merge sur `main` | rebuild Docker + redéploiement (Dokploy webhook) | Production |
+| Push / PR sur `main` ou `develop` | lint, typecheck, tests, build (workflow `ci.yml`) | - |
+| Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
+| Merge de la PR release-please | tag `vX.Y.Z` créé via `RELEASE_PLEASE_PAT` | - |
+| Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
 
-> GitHub Actions ne déploie pas : il garantit uniquement la qualité du code. Dokploy prend le relais dès que le merge atterrit sur `main`.
+> GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
-## Étapes de Déploiement Dokploy (Automatiques)
+## Étapes de Déploiement (Automatiques)
 
-1. **Webhook reçu** → Dokploy démarre le rebuild
-2. **Build Docker** → `docker build` exécute `pnpm build`, génère les artefacts Next.js
-3. **Démarrage container** → `prisma migrate deploy` s'exécute via le `CMD` du Dockerfile avant le démarrage de Next.js (Prisma 7 : les vars d'env sont lues depuis l'environnement Docker, pas depuis `.env`, aucun impact en prod Dokploy)
-4. **Health check** → Dokploy attend que le container écoute sur le port configuré (timeout ~30s)
-5. **Bascule trafic** → si health check ✅, l'ancien container est arrêté et le trafic bascule
+**Côté GHA (`deploy.yml`)** : tag `v*` push → Postgres CI éphémère + migrate + seed → build Docker (`driver-opts: network=host` pour atteindre la Postgres CI) → push GHCR (`latest` + `vX.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×.
+
+**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js` → health check → bascule trafic.
 
 > ⚠️ **Migration longue** : si `prisma migrate deploy` dure plusieurs secondes (ex: `ALTER TABLE` sur table volumineuse), le health check peut timeout. Dans ce cas, augmenter le timeout de démarrage dans Dokploy ou exécuter la migration manuellement avant le déploiement.
+
+> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Si tu rajoutes un `build:`, Dokploy reconstruira localement et échouera (BuildKit sandbox + Postgres inaccessible).
 
 ## Rollback
 
@@ -274,6 +276,8 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
 | `LLM_API_KEY` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (chatbot RAG + génération IA dashboard) |
+| `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
+| `RELEASE_PLEASE_PAT` | GitHub : Repository Secrets | Workflow `release-please.yml` (PAT fine-grained, scopes Contents/PR/Workflows RW + Actions R, indispensable pour que le tag push déclenche `deploy.yml` via chaînage workflows GHA) |
 
 ### Rotation
 
@@ -283,6 +287,8 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → invalide toutes les sessions actives |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Régénérer dans Google Cloud Console → mettre à jour dans Dokploy → redéploiement |
 | `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password depuis Dokploy UI (Postgres Database) → la nouvelle URL est propagée au compose au prochain deploy |
+| `RELEASE_PLEASE_PAT` | Expiration annuelle (renouveler avant expiration) ou compromission | Régénérer un PAT fine-grained sur GitHub Settings → Personal Access Tokens → mettre à jour le secret repo |
+| `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
 
 ## Security Headers
 

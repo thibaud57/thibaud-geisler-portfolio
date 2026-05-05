@@ -90,7 +90,8 @@ graph TB
     subgraph "Services Externes"
         SMTP["SMTP IONOS\n(email contact)"]
         Calendly["Calendly\n(prise de RDV)"]
-        GitHub["GitHub\n(webhook CI/CD)"]
+        GHA["GitHub Actions\n(build + push)"]
+        GHCR["GHCR\n(image registry)"]
     end
 
     Browser -->|HTTPS| Next
@@ -98,8 +99,10 @@ graph TB
     Next -->|Prisma| PG
     Next -->|File I/O| Assets
     Next -->|nodemailer| SMTP
-    GitHub -->|webhook| Dokploy
-    Dokploy -->|deploy| Next
+    GHA -->|push image| GHCR
+    GHA -->|trigger redeploy API| Dokploy
+    Dokploy -->|docker compose pull| GHCR
+    Dokploy -->|run container| Next
 ```
 
 ## Flux Fonctionnels (Use-cases critiques)
@@ -107,8 +110,8 @@ graph TB
 ### Use-case 1 : Affichage de la liste des projets
 
 1. Visiteur accède à `/projets`
-2. Shell statique (header, filtre) pré-rendu au build ; contenu listing wrapped `<Suspense>` (fallback skeleton)
-3. Next.js Server Component async exécute la query Prisma (`findMany`) au runtime et streame le résultat
+2. Page entièrement pré-rendue au build (Server Component async wrapped `'use cache'` + `cacheTag('projects')`), aucun Suspense (règle `'use cache'` XOR `<Suspense>`)
+3. Le static shell complet est servi depuis le Data Cache, premier hit ultra-rapide
 4. Chaque projet affiche titre, stack, lien GitHub, lien démo externe
 5. Filtrage par type (client / personnel) disponible sur la page
 
@@ -345,7 +348,7 @@ sequenceDiagram
 
 ### Hébergement
 
-VPS IONOS, Dokploy self-hosted. Déploiement automatique via webhook GitHub sur merge sur `main`. Voir [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md).
+VPS IONOS, Dokploy self-hosted, en mode **pull-only** : Dokploy ne build pas l'image, il pull `ghcr.io/thibaud57/thibaud-geisler-portfolio:latest` depuis GHCR et lance le container via `docker compose pull && docker compose up`. Provider Dokploy configuré sur `Raw` (compose.yaml stocké dans Dokploy lui-même, pas de clone git ni de `--build`). Voir [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md).
 
 ### Conteneurisation
 
@@ -353,7 +356,12 @@ Docker + Docker Compose côté application (service `nextjs` uniquement). Postgr
 
 ### CI/CD
 
-GitHub Actions : lint + tests uniquement. Le déploiement est entièrement géré par Dokploy (webhook GitHub sur merge `main` → rebuild + redéploiement automatique).
+3 workflows GitHub Actions :
+- **`ci.yml`** : lint + typecheck + tests + build sur PR/push `main`/`develop` (Postgres CI éphémère).
+- **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. Utilise `RELEASE_PLEASE_PAT` pour que le tag déclenche `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
+- **`deploy.yml`** : sur push tag `v*` → build Docker (Postgres CI + `driver-opts: network=host`) → push GHCR → trigger Dokploy redeploy.
+
+Déploiement piloté uniquement par les tags release-please, pas par merge `main` direct.
 
 ### Environnements
 
