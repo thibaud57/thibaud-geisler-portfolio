@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.4...v1.2.0) (2026-05-05)
+
+
+### Features
+
+* Next 16 PPR modernization + GitHub Actions + GHCR + Dokploy pull-only ([#68](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/68)) ([801e83f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/801e83ff5c1c5f6d2f1d9a018fc4c0e062bda186))
+
 ## [1.1.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.3...v1.1.4) (2026-05-05)
 
 
