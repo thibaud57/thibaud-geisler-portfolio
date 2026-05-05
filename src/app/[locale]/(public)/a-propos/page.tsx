@@ -1,6 +1,5 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import { cacheLife } from 'next/cache'
-import { connection } from 'next/server'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
@@ -19,6 +18,7 @@ import { EXPERTISE } from '@/config/expertise'
 import { SOCIAL_LINKS } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { buildAssetUrl } from '@/lib/assets'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -108,7 +108,7 @@ export default async function AProposPage({
 }
 
 async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
-  await connection()
+  await buildOnlyConnection()
   const [tMeta, publisher] = await Promise.all([
     getTranslations('Metadata'),
     getPublisher(),
@@ -145,7 +145,7 @@ async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
 }
 
 async function StatsAsync() {
-  await connection()
+  await buildOnlyConnection()
   const [t, years, missions, clients] = await Promise.all([
     getTranslations('AboutPage.stats'),
     getYearsOfExperience(),
@@ -161,7 +161,7 @@ async function StatsAsync() {
 }
 
 async function StackAsync({ locale }: { locale: Locale }) {
-  await connection()
+  await buildOnlyConnection()
   const tags = await findAllTags(locale)
   return <TechStackBadges tags={tags} />
 }

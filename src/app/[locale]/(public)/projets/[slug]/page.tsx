@@ -3,7 +3,6 @@ import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { CaseStudyFooter } from '@/components/features/projects/CaseStudyFooter'
@@ -14,6 +13,7 @@ import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
 import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -68,7 +68,7 @@ async function CaseStudyContentAsync({
   locale: Locale
   slug: string
 }) {
-  await connection()
+  await buildOnlyConnection()
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 

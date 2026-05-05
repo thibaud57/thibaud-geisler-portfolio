@@ -1,6 +1,5 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 
 import { env } from '@/env'
@@ -10,6 +9,7 @@ import { OpenCookiePreferencesLink } from '@/components/features/legal/OpenCooki
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { formatSiret } from '@/lib/legal/format-siret'
 import { getPublisher } from '@/server/queries/legal'
 
@@ -26,19 +26,25 @@ export async function Footer({ locale }: Props) {
 
   return (
     <footer className="border-t border-border mt-auto">
-      <div className="max-w-7xl mx-auto grid gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
-        <div className="flex flex-col gap-3">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 gap-x-8 gap-y-3 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:grid-rows-[auto_auto_auto] lg:items-center lg:px-8">
+        <div className="lg:col-start-1 lg:row-start-1">
           <BrandLogo />
-          <p className="text-sm text-muted-foreground">{t('tagline')}</p>
-          <p className="text-sm text-muted-foreground">{t('location')}</p>
         </div>
+        <p className="text-sm text-muted-foreground lg:col-start-1 lg:row-start-2">
+          {t('tagline')}
+        </p>
+        <p className="text-sm text-muted-foreground lg:col-start-1 lg:row-start-3">
+          {t('location')}
+        </p>
 
-        <div className="flex flex-col gap-6 lg:items-end">
+        <div className="mt-5 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:justify-self-end">
           <SocialLinks />
-          <div className="flex flex-col items-start gap-2 lg:items-end">
-            <p className="text-sm text-muted-foreground">{t('cv.label')}</p>
-            <DownloadCvButton locale={locale} variant="outline" size="sm" />
-          </div>
+        </div>
+        <p className="text-sm text-muted-foreground lg:col-start-2 lg:row-start-2 lg:text-right">
+          {t('cv.label')}
+        </p>
+        <div className="lg:col-start-2 lg:row-start-3 lg:justify-self-end">
+          <DownloadCvButton locale={locale} variant="outline" size="sm" />
         </div>
       </div>
 
@@ -71,7 +77,7 @@ export async function Footer({ locale }: Props) {
 }
 
 async function FooterCopyrightAsync() {
-  await connection()
+  await buildOnlyConnection()
   const publisher = await getPublisher()
   return (
     <p>
