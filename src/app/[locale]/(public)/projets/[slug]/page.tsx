@@ -3,6 +3,7 @@ import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 
 import { CaseStudyFooter } from '@/components/features/projects/CaseStudyFooter'
 import { CaseStudyHeader } from '@/components/features/projects/CaseStudyHeader'
@@ -10,7 +11,9 @@ import { TagStackGrouped } from '@/components/features/projects/TagStackGrouped'
 import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
+import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -18,12 +21,7 @@ import {
   siteUrl,
 } from '@/lib/seo'
 import { buildBreadcrumbList } from '@/lib/seo/json-ld'
-import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
-
-export async function generateStaticParams() {
-  const slugs = await findAllPublishedSlugs()
-  return slugs.map(({ slug }) => ({ slug }))
-}
+import { findPublishedBySlug } from '@/server/queries/projects'
 
 export async function generateMetadata(
   { params }: PageProps<'/[locale]/projets/[slug]'>,
@@ -56,7 +54,9 @@ export default async function CaseStudyPage({
 
   return (
     <PageShell>
-      <CaseStudyContentAsync locale={locale} slug={slug} />
+      <Suspense fallback={<StackedSkeleton heights={['h-48', 'h-96', 'h-32']} />}>
+        <CaseStudyContentAsync locale={locale} slug={slug} />
+      </Suspense>
     </PageShell>
   )
 }
@@ -68,6 +68,7 @@ async function CaseStudyContentAsync({
   locale: Locale
   slug: string
 }) {
+  await buildOnlyConnection()
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 

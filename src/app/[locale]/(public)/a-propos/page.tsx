@@ -2,8 +2,13 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import { cacheLife } from 'next/cache'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
 import { AboutHero } from '@/components/features/about/AboutHero'
+import {
+  StackSkeleton,
+  StatsSkeleton,
+} from '@/components/features/about/AboutSectionSkeletons'
 import { NumberTickerStats } from '@/components/features/about/NumberTickerStats'
 import { TechStackBadges } from '@/components/features/about/TechStackBadges'
 import { PageShell } from '@/components/layout/PageShell'
@@ -13,6 +18,7 @@ import { EXPERTISE } from '@/config/expertise'
 import { SOCIAL_LINKS } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { buildAssetUrl } from '@/lib/assets'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -82,20 +88,27 @@ export default async function AProposPage({
       </blockquote>
 
       <section className="border-y border-border py-16 sm:py-20 lg:py-24">
-        <StatsAsync />
+        <Suspense fallback={<StatsSkeleton />}>
+          <StatsAsync />
+        </Suspense>
       </section>
 
       <section className="flex flex-col gap-6">
         <h2>{t('stack.title')}</h2>
-        <StackAsync locale={locale} />
+        <Suspense fallback={<StackSkeleton />}>
+          <StackAsync locale={locale} />
+        </Suspense>
       </section>
 
-      <ProfileJsonLdAsync locale={locale} />
+      <Suspense fallback={null}>
+        <ProfileJsonLdAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
 }
 
 async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
+  await buildOnlyConnection()
   const [tMeta, publisher] = await Promise.all([
     getTranslations('Metadata'),
     getPublisher(),
@@ -132,6 +145,7 @@ async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
 }
 
 async function StatsAsync() {
+  await buildOnlyConnection()
   const [t, years, missions, clients] = await Promise.all([
     getTranslations('AboutPage.stats'),
     getYearsOfExperience(),
@@ -147,6 +161,7 @@ async function StatsAsync() {
 }
 
 async function StackAsync({ locale }: { locale: Locale }) {
+  await buildOnlyConnection()
   const tags = await findAllTags(locale)
   return <TechStackBadges tags={tags} />
 }

@@ -2,10 +2,12 @@ import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 
 import { OpenCookiePreferencesButton } from '@/components/features/legal/OpenCookiePreferencesButton'
 import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
+import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import {
   Table,
   TableBody,
@@ -15,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { loadLegalContent } from '@/lib/legal/load-legal-content'
 import {
   buildPageMetadata,
@@ -51,12 +54,15 @@ export default async function ConfidentialitePage({
 
   return (
     <PageShell title={t('title')} subtitle={t('lastUpdated')}>
-      <ConfidentialiteContentAsync locale={locale} />
+      <Suspense fallback={<StackedSkeleton heights={['h-32', 'h-64', 'h-48']} />}>
+        <ConfidentialiteContentAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
 }
 
 async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
+  await buildOnlyConnection()
   const [t, tLegal, publisher, processors, introContent, cookiesContent] =
     await Promise.all([
       getTranslations('PrivacyPolicy'),

@@ -1,10 +1,13 @@
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
+import { StackMarqueeSkeleton } from '@/components/features/home/StackMarqueeSkeleton'
 import { Marquee } from '@/components/magicui/marquee'
 import { WordRotate } from '@/components/magicui/word-rotate'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
+import { buildOnlyConnection } from '@/lib/build-only-connection'
 import { resolveTagIcon } from '@/lib/icons'
 import { findTagsBySlugs } from '@/server/queries/tags'
 
@@ -51,13 +54,16 @@ export async function FinalCtaSection({ locale }: Props) {
         <p className="text-sm uppercase tracking-widest text-muted-foreground">
           {t('signatureSection.title')}
         </p>
-        <StackMarquee locale={locale} />
+        <Suspense fallback={<StackMarqueeSkeleton />}>
+          <StackMarquee locale={locale} />
+        </Suspense>
       </div>
     </section>
   )
 }
 
 async function StackMarquee({ locale }: Props) {
+  await buildOnlyConnection()
   const stackTags = await findTagsBySlugs({ slugs: STACK_TAG_SLUGS, locale })
 
   return (

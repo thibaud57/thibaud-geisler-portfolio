@@ -1,7 +1,6 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-import { Suspense } from 'react'
 
 import { env } from '@/env'
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -11,7 +10,6 @@ import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@
 import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
 import { ContactForm } from '@/components/features/contact/ContactForm'
 import { ContactTabs } from '@/components/features/contact/ContactTabs'
-import { ContactTabsSkeleton } from '@/components/features/contact/ContactTabsSkeleton'
 import { LocationLine } from '@/components/features/contact/LocationLine'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { PageShell } from '@/components/layout/PageShell'
@@ -53,41 +51,12 @@ export default async function ContactPage({
   searchParams,
 }: PageProps<'/[locale]/contact'>) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations('ContactPage')
-
-  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
-  if (!calendlyUrl) {
-    logger.warn({ event: 'calendly:url_missing', locale }, 'NEXT_PUBLIC_CALENDLY_URL_<locale> absent')
-  }
-
-  return (
-    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
-      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
-        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
-          <LocationLine />
-          <SocialLinks className="md:justify-end" />
-        </div>
-
-        <Suspense fallback={<ContactTabsSkeleton />}>
-          <ContactTabsAsync searchParams={searchParams} calendlyUrl={calendlyUrl} />
-        </Suspense>
-      </div>
-    </PageShell>
-  )
-}
-
-async function ContactTabsAsync({
-  searchParams,
-  calendlyUrl,
-}: {
-  searchParams: PageProps<'/[locale]/contact'>['searchParams']
-  calendlyUrl: string
-}) {
   const resolvedSearchParams = await searchParams
   const rawService = resolvedSearchParams?.service
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
 
   const t = await getTranslations('ContactPage')
+
   const defaultSubject = isPrefillSlug(serviceParam) ? t(`form.subjectPrefill.${serviceParam}`) : ''
 
   const formLabels = {
@@ -106,16 +75,30 @@ async function ContactTabsAsync({
     successToast: t('form.success.toast'),
   }
 
+  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
+  if (!calendlyUrl) {
+    logger.warn({ event: 'calendly:url_missing', locale }, 'NEXT_PUBLIC_CALENDLY_URL_<locale> absent')
+  }
+
   return (
-    <ContactTabs
-      formLabel={t('tabs.form')}
-      calendlyLabel={t('tabs.calendly')}
-      formContent={
-        <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
-      }
-      calendlyContent={
-        <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
-      }
-    />
+    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
+      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
+        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
+          <LocationLine />
+          <SocialLinks className="md:justify-end" />
+        </div>
+
+        <ContactTabs
+          formLabel={t('tabs.form')}
+          calendlyLabel={t('tabs.calendly')}
+          formContent={
+            <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
+          }
+          calendlyContent={
+            <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
+          }
+        />
+      </div>
+    </PageShell>
   )
 }
