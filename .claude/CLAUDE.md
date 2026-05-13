@@ -37,6 +37,7 @@ Branches : `feature/*` → `develop` → `main` → tag `vX.Y.Z` (auto via relea
 Commits : `type(scope): description`, types `feat | fix | docs | refactor | test | chore`
 Fin de feature : lancer `Skill[superpowers:finishing-a-development-branch]` avant de créer la PR — il vérifie les tests, propose merge local / push+PR / keep / discard, et pilote le workflow proprement.
 PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer — release-please et Dokploy en dépendent)
+PR develop → main : titre obligatoirement Conventional bumping (`feat:` / `fix:` / `feat!:`) sinon release-please skip → pas de tag → pas de deploy. Détails : [PRODUCTION.md § Convention Commits](../docs/PRODUCTION.md#convention-commits)
 Après merge PR : `/git-sync-develop` pour aligner develop local + supprimer la feature branch
 
 **Discipline commit (obligatoire)** :
