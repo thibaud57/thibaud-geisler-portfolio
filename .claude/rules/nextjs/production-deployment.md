@@ -15,7 +15,6 @@ paths:
 - Lancer le serveur avec `node server.js` en mode standalone (pas `next start`)
 - Définir `HOSTNAME="0.0.0.0"` dans le container Docker pour écouter sur toutes les interfaces
 - Installer `libc6-compat` via `apk add --no-cache libc6-compat` dans le Dockerfile alpine pour que `sharp` fonctionne
-- Activer `optimizePackageImports` pour les barrel files (`lucide-react`, `date-fns`, `@heroicons/react`)
 - Créer `instrumentation.ts` à la racine avec `register()` et `onRequestError()` pour bootstrap observabilité (Pino, Sentry, etc.)
 - Exposer `GET /api/health` en s'appuyant sur le dynamic par défaut (aucun `export const dynamic` — incompatible avec `cacheComponents: true`) + `Cache-Control: no-cache, no-store, must-revalidate`, exclure du matcher proxy auth
 - Valider les variables d'environnement au build via `@t3-oss/env-nextjs` + Zod pour bloquer les builds invalides
