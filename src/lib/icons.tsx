@@ -1,7 +1,109 @@
-import * as SimpleIcons from '@icons-pack/react-simple-icons'
-import * as LucideIcons from 'lucide-react'
+import {
+  SiAndroid,
+  SiAngular,
+  SiAnthropic,
+  SiApachekafka,
+  SiClaude,
+  SiDatadog,
+  SiDocker,
+  SiElasticsearch,
+  SiExpress,
+  SiFastapi,
+  SiGithub,
+  SiGithubactions,
+  SiGooglegemini,
+  SiKubernetes,
+  SiMongodb,
+  SiN8n,
+  SiNestjs,
+  SiNextdotjs,
+  SiNodedotjs,
+  SiOdoo,
+  SiOpenjdk,
+  SiPerplexity,
+  SiPhp,
+  SiPostgresql,
+  SiPython,
+  SiReact,
+  SiScala,
+  SiSentry,
+  SiSonarqubeserver,
+  SiSpring,
+  SiSpringboot,
+  SiTypescript,
+} from '@icons-pack/react-simple-icons'
+import {
+  Bot,
+  BrainCircuit,
+  Bug,
+  ChevronRight,
+  Database,
+  DatabaseZap,
+  FunctionSquare,
+  Ghost,
+  Laptop,
+  MessageCircle,
+  Network,
+  Plug,
+  ShieldBan,
+  Ship,
+  Workflow,
+} from 'lucide-react'
 
 export type IconComponent = React.ComponentType<{ size?: number; className?: string }>
+
+const SIMPLE_ICONS: Record<string, IconComponent> = {
+  android: SiAndroid,
+  angular: SiAngular,
+  anthropic: SiAnthropic,
+  apachekafka: SiApachekafka,
+  claude: SiClaude,
+  datadog: SiDatadog,
+  docker: SiDocker,
+  elasticsearch: SiElasticsearch,
+  express: SiExpress,
+  fastapi: SiFastapi,
+  github: SiGithub,
+  githubactions: SiGithubactions,
+  googlegemini: SiGooglegemini,
+  kubernetes: SiKubernetes,
+  mongodb: SiMongodb,
+  n8n: SiN8n,
+  nestjs: SiNestjs,
+  nextdotjs: SiNextdotjs,
+  nodedotjs: SiNodedotjs,
+  odoo: SiOdoo,
+  openjdk: SiOpenjdk,
+  perplexity: SiPerplexity,
+  php: SiPhp,
+  postgresql: SiPostgresql,
+  python: SiPython,
+  react: SiReact,
+  scala: SiScala,
+  sentry: SiSentry,
+  sonarqubeserver: SiSonarqubeserver,
+  spring: SiSpring,
+  springboot: SiSpringboot,
+  typescript: SiTypescript,
+}
+
+const LUCIDE_ICONS: Record<string, IconComponent> = {
+  bot: Bot,
+  'brain-circuit': BrainCircuit,
+  bug: Bug,
+  'chevron-right': ChevronRight,
+  database: Database,
+  'database-zap': DatabaseZap,
+  'function-square': FunctionSquare,
+  ghost: Ghost,
+  laptop: Laptop,
+  'message-circle': MessageCircle,
+  network: Network,
+  plug: Plug,
+  'shield-ban': ShieldBan,
+  ship: Ship,
+  workflow: Workflow,
+}
 
 // Simple Icons a retiré le logo LinkedIn pour raisons de licence.
 export function LinkedinIcon({ className }: { className?: string }) {
@@ -18,31 +120,6 @@ export function LinkedinIcon({ className }: { className?: string }) {
   )
 }
 
-function toPascalCase(slug: string): string {
-  return slug
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
-
-// Simple Icons v13 et Lucide exportent leurs composants via React.forwardRef (objets, pas fonctions).
-// Un check `typeof === 'function'` rejette silencieusement toutes les icônes ; on vérifie "component-like" à la place.
-function isComponentLike(value: unknown): value is IconComponent {
-  if (typeof value === 'function') return true
-  return typeof value === 'object' && value !== null && '$$typeof' in value
-}
-
-function resolveSimpleIcon(slug: string): IconComponent | null {
-  const componentName = `Si${toPascalCase(slug)}`
-  const maybeComponent = (SimpleIcons as unknown as Record<string, unknown>)[componentName]
-  return isComponentLike(maybeComponent) ? maybeComponent : null
-}
-
-function resolveLucideIcon(slug: string): IconComponent | null {
-  const maybeComponent = (LucideIcons as unknown as Record<string, unknown>)[toPascalCase(slug)]
-  return isComponentLike(maybeComponent) ? maybeComponent : null
-}
-
 export function resolveTagIcon(icon: string | null): IconComponent | null {
   if (!icon) return null
   const colonIdx = icon.indexOf(':')
@@ -50,7 +127,7 @@ export function resolveTagIcon(icon: string | null): IconComponent | null {
   const lib = icon.slice(0, colonIdx)
   const slug = icon.slice(colonIdx + 1)
   if (!slug) return null
-  if (lib === 'simple-icons') return resolveSimpleIcon(slug)
-  if (lib === 'lucide') return resolveLucideIcon(slug)
+  if (lib === 'simple-icons') return SIMPLE_ICONS[slug] ?? null
+  if (lib === 'lucide') return LUCIDE_ICONS[slug] ?? null
   return null
 }
