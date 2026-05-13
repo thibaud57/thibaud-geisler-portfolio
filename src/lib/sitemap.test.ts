@@ -57,7 +57,7 @@ describe('buildSitemapEntries', () => {
     })
   })
 
-  it('génère une entrée par projet publié au format /projets/<slug>', () => {
+  it('génère une entrée par projet ET par locale au format /<locale>/projets/<slug>', () => {
     const entries = buildSitemapEntries({
       staticPaths: [],
       projects: [
@@ -66,9 +66,13 @@ describe('buildSitemapEntries', () => {
       ],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries).toHaveLength(2)
-    expect(entries[0]?.url).toBe('https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres')
-    expect(entries[1]?.url).toBe('https://thibaud-geisler.com/fr/projets/foyer')
+    expect(entries).toHaveLength(4)
+    expect(entries.map((e) => e.url)).toEqual([
+      'https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres',
+      'https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres',
+      'https://thibaud-geisler.com/fr/projets/foyer',
+      'https://thibaud-geisler.com/en/projets/foyer',
+    ])
   })
 
   it('lastModified projet = updatedAt (pas new Date())', () => {
@@ -95,7 +99,7 @@ describe('buildSitemapEntries', () => {
     })
   })
 
-  it('composition : 5 statiques + 3 projets → 8 entrées', () => {
+  it('composition : (5 statiques + 3 projets) × 2 locales → 16 entrées', () => {
     const entries = buildSitemapEntries({
       staticPaths: PUBLIC_STATIC_PATHS,
       projects: [
@@ -105,26 +109,39 @@ describe('buildSitemapEntries', () => {
       ],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries).toHaveLength(8)
+    expect(entries).toHaveLength(16)
   })
 
-  it('ordre : statiques d\'abord, projets ensuite', () => {
+  it('ordre : pour chaque path, fr d\'abord puis en ; statiques avant projets', () => {
     const entries = buildSitemapEntries({
       staticPaths: ['/services'],
       projects: [buildProject({ slug: 'webapp-gestion-sinistres' })],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries[0]?.url).toBe('https://thibaud-geisler.com/fr/services')
-    expect(entries[1]?.url).toBe('https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres')
+    expect(entries.map((e) => e.url)).toEqual([
+      'https://thibaud-geisler.com/fr/services',
+      'https://thibaud-geisler.com/en/services',
+      'https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres',
+      'https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres',
+    ])
   })
 
-  it('aucun projet : retourne uniquement les entrées statiques', () => {
+  it('aucun projet : retourne uniquement les entrées statiques (5 paths × 2 locales = 10)', () => {
     const entries = buildSitemapEntries({
       staticPaths: PUBLIC_STATIC_PATHS,
       projects: [],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries).toHaveLength(5)
+    expect(entries).toHaveLength(10)
+  })
+
+  it('alternates partagées entre toutes les locales d\'un même path', () => {
+    const entries = buildSitemapEntries({
+      staticPaths: ['/services'],
+      projects: [],
+      siteUrl: SITE_URL_FIXTURE,
+    })
+    expect(entries[0]?.alternates?.languages).toEqual(entries[1]?.alternates?.languages)
   })
 
   it('siteUrl avec trailing slash : ne produit pas de double slash', () => {
