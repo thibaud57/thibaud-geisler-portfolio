@@ -17,6 +17,7 @@ paths:
 - **États hover/focus/disabled intégrés** (DESIGN.md) : ne pas redéfinir manuellement sur les composants shadcn — déjà accessibles et stylés
 - **Bordures plutôt qu'ombres** (DESIGN.md) : `Card`, `Dialog`, `Popover` utilisent `--border` par défaut, pas `shadow-*` — privilégier la hiérarchie via fond (`--card` vs `--background`) et bordures
 - **Icônes** (DESIGN.md) : utiliser **Lucide React** (inclus avec shadcn) pour toutes les icônes d'interface (flèches, menu, settings, mail) ; **Simple Icons** via `@icons-pack/react-simple-icons` pour les logos marques et technologies (Python, React, Docker, LinkedIn). Style stroke uniquement, tailles cohérentes : 16px inline, 20px UI standard, 24px standalone
+- **Imports d'icônes : named uniquement, jamais `import *`** : `import { SiGithub } from '@icons-pack/react-simple-icons'` et `import { Mail } from 'lucide-react'`. `import *` charge les 5700+ icônes entières dans le bundle (5,7 Mo gzip) même si une seule est utilisée — webpack ne peut pas tree-shaker un wildcard. Pour un resolver dynamique (`resolveTagIcon`), maintenir un registre statique explicite dans `src/lib/icons.tsx` avec les named imports des icônes réellement utilisées
 
 ## À éviter
 - Inliner des couleurs Tailwind brutes (`bg-green-600`) ou hex en dur (`text-[#5E7A5D]`) : utiliser les tokens sémantiques (`bg-primary`, `text-foreground`)
