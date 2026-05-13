@@ -30,14 +30,22 @@ export function buildSitemapEntries({
   const base = siteUrl.replace(/\/$/, '')
   const now = new Date()
 
-  const toEntry = (path: string, lastModified: Date): MetadataRoute.Sitemap[number] => ({
-    url: `${base}/${routing.defaultLocale}${path}`,
-    lastModified,
-    alternates: { languages: buildLanguageAlternates(path, base) },
-  })
+  const toEntriesPerLocale = (
+    path: string,
+    lastModified: Date,
+  ): MetadataRoute.Sitemap => {
+    const languages = buildLanguageAlternates(path, base)
+    return routing.locales.map((locale) => ({
+      url: `${base}/${locale}${path}`,
+      lastModified,
+      alternates: { languages },
+    }))
+  }
 
   return [
-    ...staticPaths.map((path) => toEntry(path, now)),
-    ...projects.map((project) => toEntry(`/projets/${project.slug}`, project.updatedAt)),
+    ...staticPaths.flatMap((path) => toEntriesPerLocale(path, now)),
+    ...projects.flatMap((project) =>
+      toEntriesPerLocale(`/projets/${project.slug}`, project.updatedAt),
+    ),
   ]
 }
