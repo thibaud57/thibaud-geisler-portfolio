@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.2...v1.3.0) (2026-05-13)
+
+
+### Features
+
+* **env:** centraliser ASSETS_PATH via createEnv ([#80](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/80)) ([aba610e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/aba610ed9a52339eb9ad008ad54d6980f2b8bac1))
+
 ## [1.2.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.1...v1.2.2) (2026-05-05)
 
 
