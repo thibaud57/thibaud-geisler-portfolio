@@ -39,7 +39,7 @@ export const projects: ProjectInput[] = [
     titleFr: 'Webapp Gestion Sinistres',
     titleEn: 'Claims Management Web App',
     descriptionFr:
-      'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Rréduction significative du temps de traitement des dossiers, 4h ouvrables pour le traitement complet d\'un dossier.',
+      'Webapp Scala/Angular de gestion des sinistres chez Foyer (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction significative du temps de traitement des dossiers, 4h ouvrables pour le traitement complet d\'un dossier.',
     descriptionEn:
       'Scala/Angular web app for claims management at Foyer (Luxembourg insurance), microservices CQRS/Event Sourcing architecture. Significant reduction in case processing time, 4 business hours for the full processing of a case file.',
     type: 'CLIENT',
