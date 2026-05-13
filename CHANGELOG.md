@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.0...v1.3.1) (2026-05-13)
+
+
+### Bug Fixes
+
+* **icons:** remplacer import * par registre statique pour tree-shaking ([#84](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/84)) ([c99e86f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c99e86f5a791a521c5438362778d84fc0c0a0b88))
+
 ## [1.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.2...v1.3.0) (2026-05-13)
 
 
