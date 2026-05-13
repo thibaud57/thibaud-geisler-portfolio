@@ -54,14 +54,17 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 **Format** : `type(scope optionnel): description`
 
-| Type | Usage |
-|------|-------|
-| `feat` | Nouvelle fonctionnalité (`feat(projets): add case study page`) |
-| `fix` | Correction de bug (`fix(contact): handle SMTP timeout`) |
-| `docs` | Documentation uniquement |
-| `refactor` | Refactoring sans changement fonctionnel |
-| `test` | Ajout ou modification de tests |
-| `chore` | Maintenance, dépendances, configuration Docker/Dokploy |
+| Type | Usage | release-please |
+|------|-------|----------------|
+| `feat` | Nouvelle fonctionnalité (`feat(projets): add case study page`) | **MINOR bump** |
+| `feat!` | Breaking change ou refonte majeure (footer `BREAKING CHANGE:` accepté aussi) | **MAJOR bump** |
+| `fix` | Correction de bug (`fix(contact): handle SMTP timeout`) | **PATCH bump** |
+| `docs` | Documentation uniquement | skip |
+| `refactor` | Refactoring sans changement fonctionnel | skip |
+| `test` | Ajout ou modification de tests | skip |
+| `chore` | Maintenance, dépendances, configuration Docker/Dokploy | skip |
+
+> **PR develop → main** : le squash-merge crée 1 commit sur `main` avec le **titre de la PR** comme message. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy. Footer `Release-As: X.Y.Z` dans le body de la PR pour forcer une version spécifique.
 
 ## Checklist Release
 
