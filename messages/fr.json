@@ -383,6 +383,7 @@
   },
   "Cookies": {
     "openManagerLabel": "Gérer mes cookies",
+    "bannerDescription": "Ce site utilise des cookies nécessaires à son fonctionnement et avec votre consentement, des cookies tiers liés au widget de prise de rendez-vous Calendly.",
     "calendlyGated": {
       "label": "L'affichage du widget Calendly nécessite votre accord pour les cookies marketing.",
       "cta": "Activer Calendly"
@@ -398,7 +399,7 @@
       "6201Z": "Programmation informatique"
     },
     "retention": {
-      "logs3Years": "Durée de la prestation d'hébergement, plus 3 ans (logs)",
+      "logs1Year": "Durée de la prestation d'hébergement ; logs techniques conservés 1 an maximum",
       "logs30Days": "30 jours (logs SMTP), suppression automatique",
       "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)"
     },

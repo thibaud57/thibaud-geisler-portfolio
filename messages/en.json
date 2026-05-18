@@ -383,6 +383,7 @@
   },
   "Cookies": {
     "openManagerLabel": "Manage cookies",
+    "bannerDescription": "This site uses cookies required for it to function and with your consent, third-party cookies from the Calendly scheduling widget.",
     "calendlyGated": {
       "label": "Displaying the Calendly widget requires your consent to marketing cookies.",
       "cta": "Enable Calendly"
@@ -398,7 +399,7 @@
       "6201Z": "Computer programming"
     },
     "retention": {
-      "logs3Years": "Duration of hosting service, plus 3 years (logs)",
+      "logs1Year": "Duration of the hosting service; technical logs kept for up to 1 year",
       "logs30Days": "30 days (SMTP logs), automatic deletion",
       "session13Months": "Session duration, plus 13 months (consent cookie)"
     },
