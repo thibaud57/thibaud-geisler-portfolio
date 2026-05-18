@@ -261,7 +261,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 |-----------|-----------|-----------|-------------|
 | Dépendances npm | Mensuelle | `pnpm update` en local → vérifier build + tests → merge sur main | Dev |
 | Next.js (major) | Sur release majeure | Suivre migration guide officiel → PR dédiée → smoke test prod | Dev |
-| Image Docker Node | Trimestrielle | Mettre à jour le `FROM` dans `Dockerfile` → rebuild Dokploy | Dev |
+| Image Docker Node | Trimestrielle | Mettre à jour le `FROM` dans `Dockerfile` → pris en compte au prochain build GHA | Dev |
 | Image Docker Postgres | Trimestrielle | Mettre à jour `dockerImage` dans Dokploy UI (Postgres Database) → redeploy | Dev |
 
 > ✅ **Toujours vérifier le build et les tests avant de merger une mise à jour de dépendances**
