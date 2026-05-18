@@ -104,7 +104,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
 
 ### Variables Communes
 
@@ -114,6 +114,7 @@ NODE_ENV=                           # development | production
 NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, sitemap, JSON-LD, OG)
                                     # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
                                     # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
+LOG_LEVEL=                          # Optionnel — niveau de log Pino (fatal|error|warn|info|debug|trace|silent). Défaut : debug en dev, info en prod
 
 # Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
 ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
@@ -143,6 +144,10 @@ SMTP_PORT=                         # Port SMTP (587 TLS ou 465 SSL)
 SMTP_USER=                         # Compte SMTP (ex: contact@thibaud-geisler.com)
 SMTP_PASS=                         # Mot de passe SMTP IONOS
 SMTP_FROM=                         # Adresse expéditeur affichée
+MAIL_TO=                           # Adresse destinataire des messages du formulaire de contact
+
+# Sécurité (hachage des IP dans les logs — pseudonymisation)
+IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
 
 # Auth (post-MVP — dashboard admin, Better Auth + Google OAuth)
 BETTER_AUTH_URL=                    # URL publique du site (ex: https://thibaud-geisler.com)
@@ -200,7 +205,7 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 **Procédure** :
 1. Ouvrir Dokploy → Application → onglet `Deployments`
 2. Identifier le dernier déploiement stable (timestamp + statut ✅)
-3. Cliquer "Redeploy" sur ce commit, Dokploy rebuilde et redéploie (~2-3 min)
+3. Cliquer "Redeploy" sur ce commit, Dokploy re-pull l'image et redéploie (~2-3 min)
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le backup S3 (voir section Backup & Recovery) avant ou après le rollback.
 
@@ -223,7 +228,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 - [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
 - [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
-- [x] **`just test`** : tous les tests passent en local (177 tests : 128 unit + 49 integration)
+- [x] **`just test`** : tous les tests passent en local
 - [x] **`just build`** : build Next.js standalone passe sans erreur
 - [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
@@ -275,6 +280,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 |------|----------|-------|
 | Credentials SMTP | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (Server Actions) |
 | `DATABASE_URL` | Dokploy : Environment Variables | Via `process.env` (Prisma client) |
+| `IP_HASH_SALT` | Dokploy : Environment Variables | Via `env` côté serveur uniquement (hachage des IP dans les logs) |
 | `BETTER_AUTH_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (Better Auth) |
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
@@ -290,6 +296,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → invalide toutes les sessions actives |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Régénérer dans Google Cloud Console → mettre à jour dans Dokploy → redéploiement |
 | `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password depuis Dokploy UI (Postgres Database) → la nouvelle URL est propagée au compose au prochain deploy |
+| `IP_HASH_SALT` | En cas de compromission | Régénérer (`openssl rand -hex 32`) → Dokploy → les nouveaux logs utilisent le nouveau sel, les hashs déjà écrits restent inchangés |
 | `RELEASE_PLEASE_PAT` | Expiration annuelle (renouveler avant expiration) ou compromission | Régénérer un PAT fine-grained sur GitHub Settings → Personal Access Tokens → mettre à jour le secret repo |
 | `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
 
@@ -616,7 +623,7 @@ curl -I https://thibaud-geisler.com
 2. Installer Dokploy (voir [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
 3. Reconfigurer les variables d'environnement dans Dokploy
 4. Reconfigurer le webhook GitHub → Dokploy
-5. Déclencher un redéploiement, Dokploy rebuild et redémarre automatiquement
+5. Déclencher un redéploiement, Dokploy pull l'image GHCR et redémarre automatiquement
 6. Restaurer la BDD depuis le dernier backup S3 (voir procédure ci-dessus)
 7. Smoke test complet
 

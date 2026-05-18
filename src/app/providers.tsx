@@ -14,6 +14,9 @@ import { baseTranslations } from '@c15t/translations/all'
 // Tailwind 4 ne suit pas la résolution npm transitive ; bundler Next.js le fait correctement.
 import '@c15t/nextjs/styles.css'
 
+import frMessages from '../../messages/fr.json'
+import enMessages from '../../messages/en.json'
+
 import { Toaster } from '@/components/ui/sonner'
 import { ConsentLanguageSync } from '@/components/cookies/consent-language-sync'
 import { buildLegalLinks } from '@/lib/cookies/build-legal-links'
@@ -49,6 +52,13 @@ const themeColors = {
   switchTrackActive: 'var(--primary)',
 } as const
 
+// Override des descriptions par défaut de c15t : sa copie générique mentionne mesure
+// d'audience et contenu personnalisé, deux traitements que ce site ne fait pas.
+// Clone obligatoire : ne pas muter l'objet exporté par la lib.
+const consentMessages = structuredClone(baseTranslations)
+consentMessages.fr.cookieBanner.description = frMessages.Cookies.bannerDescription
+consentMessages.en.cookieBanner.description = enMessages.Cookies.bannerDescription
+
 export function Providers({ children }: { children: ReactNode }) {
   const locale = useLocale()
   const consentOptions = useMemo<ConsentManagerOptions>(
@@ -59,7 +69,7 @@ export function Providers({ children }: { children: ReactNode }) {
       i18n: {
         locale,
         detectBrowserLanguage: false,
-        messages: baseTranslations,
+        messages: consentMessages,
       },
       legalLinks: buildLegalLinks(locale),
       theme: {

@@ -27,8 +27,8 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 FROM base AS builder
 
 # --- Env de build ----------------------------------------------------------
-# Vars server runtime (SMTP_*, MAIL_TO, NEXT_SERVER_ACTIONS_ENCRYPTION_KEY)
-# injectées par Dokploy au runtime, absentes au build → bypass validation t3-env.
+# Vars server runtime (SMTP_*, MAIL_TO, IP_HASH_SALT) injectées par Dokploy
+# au runtime, absentes au build → bypass validation t3-env.
 ENV SKIP_ENV_VALIDATION=true
 
 # NEXT_PUBLIC_* inlinées dans le bundle JS au build (sans ARG → undefined dans
