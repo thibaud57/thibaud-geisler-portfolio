@@ -14,6 +14,7 @@ export const env = createEnv({
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .optional(),
+    IP_HASH_SALT: z.string().min(16),
   },
   client: {
     NEXT_PUBLIC_SITE_URL: z.url(),
@@ -31,6 +32,7 @@ export const env = createEnv({
     MAIL_TO: process.env.MAIL_TO,
     ASSETS_PATH: process.env.ASSETS_PATH,
     LOG_LEVEL: process.env.LOG_LEVEL,
+    IP_HASH_SALT: process.env.IP_HASH_SALT,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_CALENDLY_URL_FR: process.env.NEXT_PUBLIC_CALENDLY_URL_FR,
     NEXT_PUBLIC_CALENDLY_URL_EN: process.env.NEXT_PUBLIC_CALENDLY_URL_EN,
