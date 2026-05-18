@@ -407,6 +407,7 @@ Middleware Next.js : protection des routes `(admin)/` par vérification de sessi
 
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
+- **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`) — observabilité sans donnée personnelle réversible
 
 ### Conformité Cookies / RGPD
 

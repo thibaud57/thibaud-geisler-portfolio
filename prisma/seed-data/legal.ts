@@ -225,7 +225,7 @@ export const dataProcessings: DataProcessingInput[] = [
     purposeFr: 'Hébergement infrastructure VPS et base de données PostgreSQL',
     purposeEn: 'VPS infrastructure and PostgreSQL database hosting',
     dataCategories: ['IP_ADDRESS', 'TECHNICAL_LOGS'],
-    retentionPolicyKey: 'logs3Years',
+    retentionPolicyKey: 'logs1Year',
     legalBasis: 'LEGITIMATE_INTERESTS',
     outsideEuFramework: null,
     displayOrder: 0,
