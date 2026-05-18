@@ -205,7 +205,7 @@ LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4
 **Procédure** :
 1. Ouvrir Dokploy → Application → onglet `Deployments`
 2. Identifier le dernier déploiement stable (timestamp + statut ✅)
-3. Cliquer "Redeploy" sur ce commit, Dokploy rebuilde et redéploie (~2-3 min)
+3. Cliquer "Redeploy" sur ce commit, Dokploy re-pull l'image et redéploie (~2-3 min)
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le backup S3 (voir section Backup & Recovery) avant ou après le rollback.
 
@@ -623,7 +623,7 @@ curl -I https://thibaud-geisler.com
 2. Installer Dokploy (voir [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
 3. Reconfigurer les variables d'environnement dans Dokploy
 4. Reconfigurer le webhook GitHub → Dokploy
-5. Déclencher un redéploiement, Dokploy rebuild et redémarre automatiquement
+5. Déclencher un redéploiement, Dokploy pull l'image GHCR et redémarre automatiquement
 6. Restaurer la BDD depuis le dernier backup S3 (voir procédure ci-dessus)
 7. Smoke test complet
 
