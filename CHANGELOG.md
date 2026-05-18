@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.1...v1.4.0) (2026-05-18)
+
+
+### Features
+
+* hacher les IP en logs et clarifier la rétention RGPD ([#87](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/87)) ([dad2757](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/dad2757ac319180ac42e892a2eb2ec7e44c237bf))
+
 ## [1.3.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.0...v1.3.1) (2026-05-13)
 
 
