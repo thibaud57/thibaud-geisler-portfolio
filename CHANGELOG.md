@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.0...v1.4.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **rgpd:** conformité du point de collecte et registre des traitements ([#90](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/90)) ([a8c9423](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a8c9423e83d357e80a7e32227cc3766c5a181c1c))
+
 ## [1.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.1...v1.4.0) (2026-05-18)
 
 
