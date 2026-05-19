@@ -33,9 +33,10 @@ type Labels = {
 type Props = {
   labels: Labels
   defaultSubject?: string
+  privacyNotice: React.ReactNode
 }
 
-export function ContactForm({ labels, defaultSubject = '' }: Props) {
+export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Props) {
   const tErrors = useTranslations('ContactPage.form.errors')
   const translateError = useCallback(
     (code: string): string => tErrors(code as Parameters<typeof tErrors>[0]),
@@ -153,6 +154,8 @@ export function ContactForm({ labels, defaultSubject = '' }: Props) {
           </Field>
 
           <SubmitButton label={labels.submit} submittingLabel={labels.submitting} />
+
+          {privacyNotice}
         </form>
       </CardContent>
     </Card>
