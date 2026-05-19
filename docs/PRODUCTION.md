@@ -240,6 +240,12 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 - [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le switch Postgres Dokploy externe)
 - [x] **README.md** : réécrit (stack, prérequis, getting started, scripts `just *`, vars d'env, archi, i18n, assets, déploiement, docs, workflow git)
 
+### Conformité légale & RGPD
+
+- [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
+- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
+- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
+
 ## Checklist Post-MEP
 
 À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).

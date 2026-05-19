@@ -15,6 +15,7 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 | [VERSIONS.md](../docs/VERSIONS.md) | Versions exactes, compatibilité | Dépendances, breaking changes, setup |
 | [DESIGN.md](../docs/DESIGN.md) | Design system, typographie, couleurs | Conventions UI et mapping composants |
 | [PRODUCTION.md](../docs/PRODUCTION.md) | Release, déploiement, monitoring | Déployer, déboguer, gérer incidents |
+| [registre-traitements.md](../docs/registre-traitements.md) | Registre RGPD des traitements de données (art. 30) | Conformité données personnelles, document interne |
 | [adrs/](../docs/adrs/) | Architecture Decision Records | Justification des décisions actées |
 | [knowledges/](../docs/knowledges/) | Fiches techniques par techno | Références détaillées par librairie |
 | [.claude/rules/](rules/) | Règles techniques impératives par librairie | Conventions de code chargées dynamiquement |
