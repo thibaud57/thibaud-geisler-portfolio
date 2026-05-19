@@ -207,7 +207,9 @@ Pages légales et consentement cookies obligatoires avant mise en production pub
 
 Justification positionnement MVP : le formulaire de contact (Feature 4) collecte des données personnelles dès le 1er visiteur EU → politique de confidentialité obligatoire. Calendly inline embed (Feature 1 sub 04) pose des cookies tiers marketing → bandeau consentement obligatoire. Risque CNIL jusqu'à 20 M€ ou 4 % CA.
 
-Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur), registre des traitements formel (optionnel < 250 salariés).
+Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur).
+
+Registre des traitements (RGPD art. 30) : obligatoire — la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Doc interne (non publique, non bloquante pour la prod) → à formaliser post-launch.
 
 ---
 

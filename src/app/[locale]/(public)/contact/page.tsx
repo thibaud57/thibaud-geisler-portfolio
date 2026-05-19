@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 
 import { env } from '@/env'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { Link } from '@/i18n/navigation'
 import { logger } from '@/lib/logger'
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
 
@@ -75,6 +76,21 @@ export default async function ContactPage({
     successToast: t('form.success.toast'),
   }
 
+  const privacyNotice = (
+    <p className="text-sm text-muted-foreground">
+      {t.rich('form.privacyNotice', {
+        link: (chunks) => (
+          <Link
+            href="/confidentialite"
+            className="underline underline-offset-2 transition-colors hover:text-foreground"
+          >
+            {chunks}
+          </Link>
+        ),
+      })}
+    </p>
+  )
+
   const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
   if (!calendlyUrl) {
     logger.warn({ event: 'calendly:url_missing', locale }, 'NEXT_PUBLIC_CALENDLY_URL_<locale> absent')
@@ -92,7 +108,12 @@ export default async function ContactPage({
           formLabel={t('tabs.form')}
           calendlyLabel={t('tabs.calendly')}
           formContent={
-            <ContactForm key={defaultSubject} labels={formLabels} defaultSubject={defaultSubject} />
+            <ContactForm
+              key={defaultSubject}
+              labels={formLabels}
+              defaultSubject={defaultSubject}
+              privacyNotice={privacyNotice}
+            />
           }
           calendlyContent={
             <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />

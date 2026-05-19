@@ -224,6 +224,7 @@
       },
       "submit": "Send",
       "submitting": "Sending…",
+      "privacyNotice": "Your information is only used to handle your request. Learn more: <link>Privacy policy</link>.",
       "errors": {
         "name_required": "Your name is required.",
         "name_too_long": "Your name is too long (max 120 characters).",
