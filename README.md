@@ -116,6 +116,7 @@ Détails (release flow, hotfix, monitoring, incidents) : [`docs/PRODUCTION.md`](
 | [`docs/VERSIONS.md`](docs/VERSIONS.md) | Versions exactes, compatibilité |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design system, typographie, couleurs |
 | [`docs/PRODUCTION.md`](docs/PRODUCTION.md) | Release, déploiement, monitoring |
+| [`docs/registre-traitements.md`](docs/registre-traitements.md) | Registre RGPD des traitements (art. 30) |
 | [`docs/adrs/`](docs/adrs/) | Architecture Decision Records |
 | [`docs/knowledges/`](docs/knowledges/) | Fiches techniques par techno |
 | [`CHANGELOG.md`](CHANGELOG.md) | Historique des versions (Keep a Changelog) |

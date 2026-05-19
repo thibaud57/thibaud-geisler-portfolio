@@ -82,6 +82,10 @@ export function Providers({ children }: { children: ReactNode }) {
         typography: {
           fontFamily: 'var(--font-sans)',
         },
+        slots: {
+          consentBannerDescription: '[&_a]:text-primary',
+          consentDialogDescription: '[&_a]:text-primary',
+        },
       },
     }),
     [locale],
@@ -97,8 +101,8 @@ export function Providers({ children }: { children: ReactNode }) {
         disableTransitionOnChange
       >
         {children}
-        <ConsentBanner hideBranding />
-        <ConsentDialog hideBranding />
+        <ConsentBanner hideBranding legalLinks={['privacyPolicy']} />
+        <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
         <Toaster />
       </ThemeProvider>
     </ConsentManagerProvider>
