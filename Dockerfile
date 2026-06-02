@@ -3,7 +3,7 @@
 # =============================================================================
 # Base — Node 24 alpine + libc6-compat (sharp) + pnpm via corepack
 # =============================================================================
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 RUN corepack enable
