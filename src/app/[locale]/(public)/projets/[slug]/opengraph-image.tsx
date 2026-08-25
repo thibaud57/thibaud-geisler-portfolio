@@ -7,8 +7,6 @@ import { loadOgFonts } from '@/lib/seo/og-fonts'
 import { OgTemplate } from '@/lib/seo/og-template'
 import { findPublishedBySlug } from '@/server/queries/projects'
 
-export const runtime = 'nodejs'
-
 export const alt = 'Case study du projet · Thibaud Geisler'
 
 export const size = {
