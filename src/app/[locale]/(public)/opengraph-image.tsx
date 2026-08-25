@@ -4,8 +4,6 @@ import { setupLocaleMetadata } from '@/lib/seo'
 import { loadOgFonts } from '@/lib/seo/og-fonts'
 import { OgTemplate } from '@/lib/seo/og-template'
 
-export const runtime = 'nodejs'
-
 export const alt = 'Thibaud Geisler · Portfolio IA & développement full-stack'
 
 export const size = {

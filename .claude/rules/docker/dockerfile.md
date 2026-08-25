@@ -9,7 +9,7 @@ paths:
 
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` (ex: `deps → builder → runner`) pour isoler toolchain/devDeps du runtime image
-- Image de base **`node:24-alpine`** (Node 20 EOL 30 avril 2026, Alpine pour poids minimum)
+- Image de base **`node:24-alpine`** (ligne 24 « Krypton », LTS active ; Alpine pour poids minimum). Node 26 est Current jusqu'à sa bascule LTS attendue vers octobre 2026 — ne pas migrer avant
 - Activer pnpm via **`corepack enable`** dans le stage `deps` — pas `npm install -g pnpm` (corepack est la voie officielle depuis Node 16.10+)
 - Copier **`package.json`** et **`pnpm-lock.yaml`** AVANT le code source dans le stage `deps` pour maximiser le cache de layers Docker
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
