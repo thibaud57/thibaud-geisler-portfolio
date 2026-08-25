@@ -13,33 +13,33 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 1 | Node.js | `24.14.1` | ✅ LTS Active | Node 20 EOL le 30 avril 2026, migrer en urgence |
+| 1 | Node.js | `24.19.0` | ✅ LTS Active | Ligne 24 « Krypton ». Node 26 est **Current**, pas LTS : bascule LTS attendue vers octobre 2026, ne pas migrer avant |
 | 2 | pnpm | `10.33.0` | ✅ | Lifecycle scripts désactivés par défaut en v10 |
-| 3 | TypeScript | `6.0.2` | ✅ | `strict: true` et `module: esnext` par défaut |
+| 3 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint@8.68.0` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 
 ## Framework & UI
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 4 | Next.js | `16.2.4` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut |
-| 5 | React | `19.2.5` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19 |
-| 6 | Tailwind CSS | `4.2.2` | ✅ | CSS-first config, utilitaires renommés |
-| 7 | shadcn/ui (CLI) | `shadcn@4.2.0` | ✅ | Composants copiés localement, style `new-york` |
+| 4 | Next.js | `16.3.3` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`) |
+| 5 | React | `19.2.8` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19 |
+| 6 | Tailwind CSS | `4.3.3` | ✅ | CSS-first config, utilitaires renommés |
+| 7 | shadcn/ui (CLI) | `shadcn@4.19.0` | ✅ | Composants copiés localement, style `new-york` |
 | 8 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | 9 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
 | 10 | next-themes | `0.4.6` | ✅ | Dark/light mode, `suppressHydrationWarning` requis |
-| 11 | next-intl | `4.9.1` | ✅ | Nécessite Next.js >= 16.2 pour `use cache` |
-| 12 | @icons-pack/react-simple-icons | `13.13.0` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
-| 13 | country-flag-icons | `1.6.16` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
+| 11 | next-intl | `4.13.7` | ✅ | Nécessite Next.js >= 16.2 pour `use cache` |
+| 12 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
+| 13 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
 
 ## Librairies applicatives
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 14 | Zod | `4.3.6` | ✅ | Validateurs string déplacés en top-level |
-| 15 | nodemailer | `8.0.5` | ✅ | CVE CRLF corrigée en 8.0.5 (obligatoire) |
+| 14 | Zod | `4.4.3` | ✅ | Validateurs string déplacés en top-level |
+| 15 | nodemailer | `9.0.5` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v9 le 25 août 2026 |
 | 16 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages` requis dans `next.config.ts` |
-| 17 | @next/env | `16.2.4` | ✅ | Chargement `.env` dans `prisma.config.ts`, `prisma/seed.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
+| 17 | @next/env | `16.3.3` | ✅ | Chargement `.env` dans `prisma.config.ts`, `prisma/seed.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | 18 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
 | 19 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | 20 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
@@ -48,8 +48,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 21 | Vitest | `4.1.4` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x` |
-| 22 | @vitejs/plugin-react | `6.0.1` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
+| 21 | Vitest | `4.1.11` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x`. `jsdom@30`, `@testing-library/jest-dom@7` |
+| 22 | @vitejs/plugin-react | `6.1.0` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
 | 23 | vite-tsconfig-paths | `6.1.1` | ⚠️ | Résolution alias `@/*` depuis tsconfig.json. Peer dep `typescript@^5` mais fonctionne avec TS 6 |
 
 ## Base de données
@@ -57,7 +57,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
 | 24 | PostgreSQL | `18.3` | ✅ | Checksums activés par défaut, volume Docker changé |
-| 25 | Prisma ORM | `7.7.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| 25 | Prisma ORM | `7.10.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
 | 26 | pgvector | `0.8.2` | ✅ | **(post-MVP)**, CVE-2026-3172 corrigée en 0.8.2 |
 
 ## Auth (post-MVP)
@@ -73,7 +73,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 28 | Docker Engine | `29.4.0` | ✅ | containerd image store par défaut, ulimit réduit |
 | 29 | Docker Compose | `v5.1.2` | ✅ | Numérotation v2 → v5 (saut direct), `version:` YAML ignoré |
 | 30 | Dokploy | `0.28.8` | ✅ | Rollbacks registry-based (v0.26+), Traefik 3.5 interne |
-| 31 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions v6 (`checkout`, `setup-node`, `pnpm/action-setup`), `cache: 'pnpm'` explicite |
+| 31 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | `checkout@v7`, `setup-node@v7`, `cache@v6`, `pnpm/action-setup`, `cache: 'pnpm'` explicite |
 | 32 | Cloudflare R2 | managed service | ✅ | Backups pg_dump + assets, API S3-compatible |
 
 ## Services externes (post-MVP)
@@ -1284,14 +1284,30 @@ pnpm test
 
 ---
 
+## Montées Bloquées (état au 25 août 2026)
+
+Ces mises à jour majeures ont été testées puis écartées. Ne pas les rejouer sans que la contrainte listée soit levée.
+
+| Paquet | Actuel | Disponible | Blocage | Levée attendue |
+|---|---|---|---|---|
+| Node.js | `24.19.0` | `26.7.0` | Node 26 est **Current**, pas LTS. Le projet suit la règle « runtime sur LTS uniquement » (`engines.node: >=24.0.0`) | Bascule LTS de la ligne 26, vers octobre 2026 |
+| @types/node | `24.x` | `26.3.0` | Doit rester aligné sur le runtime réellement exécuté | En même temps que Node 26 |
+| ESLint | `9.39.5` | `10.9.1` | `eslint-plugin-react@7.37.5` (dernière version publiée, tirée par `eslint-config-next`) déclare `peerDependencies.eslint: ^3 \|\| ... \|\| ^9.7`. Sous ESLint 10 : `TypeError: contextOrFilename.getFilename is not a function` | Publication d'un `eslint-plugin-react` compatible ESLint 10 |
+| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.68.0` (dernière stable, tirée par `eslint-config-next`) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0`. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent) |
+| Prisma | `7.10.0` | `8.0.0-rc.10` | Release candidate, jamais en production | Publication de la 8.0.0 stable |
+
+> Les blocages ESLint et TypeScript proviennent tous deux de `eslint-config-next`. Monter Next.js de 16.2.4 à 16.3.3 a été tenté pour les débloquer : sans effet, la 16.3.3 tire les mêmes versions de plugins.
+
+---
+
 # Recommandation Finale
 
 Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreSQL fonctionne en setup standard (le starter officiel `prisma/nextjs-auth-starter` valide la combo). Les gotchas principaux sont des points de configuration (chargement `.env`, `serverExternalPackages` Pino, `postinstall prisma generate`), pas des bugs bloquants. Les services post-MVP (n8n, Umami) avec PostgreSQL 18 nécessitent une validation staging compte tenu du décalage de support officiel.
 
 ## Points Critiques
 
-1. **Node.js 20 EOL (30 avril 2026)** : basculer l'image Docker sur `node:24-alpine` avant cette date
-2. **nodemailer < 8.0.5** : vulnérabilité CRLF, ne jamais déployer une version antérieure
+1. **Node.js : rester sur la LTS** : image Docker `node:24-alpine` (ligne 24 « Krypton », LTS active). Node 26 est Current jusqu'à sa bascule LTS attendue vers octobre 2026 — ne pas migrer avant
+2. **nodemailer** : v9 depuis le 25 août 2026. La CVE CRLF (GHSA-vvjj-xcjg-gr5g) est corrigée depuis 8.0.5, ne jamais déployer une version antérieure
 3. **pgvector CVE-2026-3172** : pinner >= 0.8.2 dès l'activation du RAG
 4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, la cause principale de l'erreur P1010 "User was denied access"
 5. **Umami + n8n + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (bases séparées de celle du portfolio)
