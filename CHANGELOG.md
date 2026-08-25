@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.1...v1.4.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **deps:** montée globale des dépendances, Next 16.3.3 et actions GitHub v7 ([#101](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/101)) ([4e3f2de](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4e3f2defeb9df825ee97fbecf7b83d718fdceee2))
+
 ## [1.4.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.0...v1.4.1) (2026-05-19)
 
 
