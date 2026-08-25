@@ -8,9 +8,23 @@ paths:
 
 ## À faire
 - Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
-- Actions en **v6** épinglées (`actions/checkout@v6`, `actions/setup-node@v6`, `pnpm/action-setup@v6`), avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH)
+- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 25 août 2026, toutes sur leur dernière majeure :
+
+| Action | Épinglée |
+|---|---|
+| `actions/checkout` | `@v7` |
+| `actions/setup-node` | `@v7` |
+| `actions/cache` | `@v6` |
+| `pnpm/action-setup` | `@v6` |
+| `docker/build-push-action` | `@v7` |
+| `docker/login-action` | `@v4` |
+| `docker/metadata-action` | `@v6` |
+| `docker/setup-buildx-action` | `@v4` |
+| `dorny/paths-filter` | `@v4` |
+| `extractions/setup-just` | `@v4` |
+| `googleapis/release-please-action` | `@v5` |
 - **Node 24** explicite dans `setup-node` : `node-version: '24'` (Node 20 reste le défaut runner, à overrider car EOL 30 avril 2026)
-- **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node@v6` (le cache auto a été retiré en v6)
+- **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node@v7` (le cache auto a été retiré en v6)
 - Install reproductible : **`pnpm install --frozen-lockfile`** (échoue si lockfile désynchronisé avec `package.json`)
 - **Concurrency** : `concurrency.group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: true` pour annuler les runs redondants sur la même branche
 - **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
@@ -26,7 +40,7 @@ paths:
 ## Gotchas
 - **`actions/setup-node` v5 → v6** : le cache automatique pour pnpm a été retiré, `cache: 'pnpm'` est désormais obligatoire pour bénéficier du cache (VERSIONS.md)
 - **`pnpm/action-setup` v3 → v4** : erreur levée si le champ `packageManager` dans `package.json` contredit la version spécifiée dans l'action (avant : silencieux) (VERSIONS.md)
-- **Node 20 EOL 30 avril 2026** + Node 20 reste le défaut sur `ubuntu-24.04` : override obligatoire via `node-version: '24'` dans `setup-node@v6` (VERSIONS.md)
+- **Node 20 est EOL depuis le 30 avril 2026** et reste le défaut sur `ubuntu-24.04` : override obligatoire via `node-version: '24'` dans `setup-node@v7` (VERSIONS.md)
 
 ## Exemples
 ```yaml
@@ -50,9 +64,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -75,7 +89,7 @@ jobs:
     outputs:
       source: ${{ steps.filter.outputs.source }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
