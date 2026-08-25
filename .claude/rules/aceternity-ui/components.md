@@ -27,7 +27,7 @@ paths:
 
 ## Gotchas
 - **Pas de versioning sémantique** (modèle copy-paste via registry shadcn) : pas de `pnpm update` possible, relancer `shadcn@latest add --overwrite @aceternity/<component>` pour récupérer les updates upstream
-- **`motion` v12+ obligatoire** (ex-`framer-motion`) : Aceternity utilise `motion`, le legacy `framer-motion` n'est **pas compatible avec React 19** sans overrides
+- **`motion` v13 en place** (ex-`framer-motion`, v12+ requis) : Aceternity utilise `motion`, le legacy `framer-motion` n'est **pas compatible avec React 19** sans overrides
 - Tailwind v4 standard documenté : l'ancien standard Tailwind v3 est **déprécié** côté Aceternity
 - **Support shadcn CLI 3.0+** pour la syntaxe namespacée `@aceternity/<component>` (versions antérieures : utiliser l'URL directe)
 - Pour la **philosophie copy-paste** (versionnement, modification, ownership) partagée avec shadcn-ui : voir `shadcn-ui/setup.md`
