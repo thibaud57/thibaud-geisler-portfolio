@@ -22,7 +22,7 @@ paths:
 - Garder **`framer-motion`** comme dépendance : **déprécié**, utiliser **`motion` v12+** (incompatible avec React 19 sans overrides)
 - Dupliquer **`cn()`** à chaque composant : déjà dans `src/lib/utils.ts` (partagé avec shadcn/ui et Magic UI)
 - **Surcharger** tout le site d'effets Aceternity : sobriété recommandée par DESIGN.md (2-3 effets max par page)
-- Utiliser Aceternity dans le **espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
+- Utiliser Aceternity dans l'**espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
 - Oublier **`'use client'`** dans le composant parent qui consomme Aceternity
 
 ## Gotchas

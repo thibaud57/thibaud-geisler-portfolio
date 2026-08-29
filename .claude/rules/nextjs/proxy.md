@@ -61,8 +61,7 @@ export const config = {
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 }
 
-// ❌ Aucun export de fonction : seul cas où Next 16 fait échouer le build
-export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
-}
+// ❌ Seul cas d'échec au build : aucun export de fonction, le handler
+//    n'étant ni exporté par défaut ni sous le nom `proxy`
+const handler = createMiddleware(routing)
 ```

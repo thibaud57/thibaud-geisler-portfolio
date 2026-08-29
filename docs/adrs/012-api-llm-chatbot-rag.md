@@ -1,7 +1,7 @@
 ---
 title: "ADR-012 — API LLM pour le chatbot RAG"
 status: "proposed"
-description: "Décision ouverte : choix de l'API LLM pour le chatbot IA public (post-MVP)"
+description: "Décision ouverte : choix du modèle pour le chatbot RAG public, le mode d'accès étant tranché par l'ADR-016 (post-MVP)"
 date: "2026-03-31"
 keywords: ["architecture", "adr", "llm", "rag", "chatbot", "ia"]
 scope: ["docs", "architecture"]
@@ -10,7 +10,7 @@ technologies: ["PostgreSQL", "pgvector"]
 
 # 🎯 Contexte
 
-Post-MVP, un chatbot public IA (RAG) sera intégré au portfolio comme vitrine de compétences techniques. Il répondra aux questions sur le parcours, les projets et les compétences avec le tone of voice de Thibaud. Contraintes : coût API, latence, qualité des réponses, guardrails, rate limiting.
+Post-MVP, un chatbot public IA (RAG) servira de vitrine de compétences techniques. Écrit quand il devait être une route API de ce dépôt, cet ADR lui est antérieur au découpage : [ADR-015](015-decoupage-services.md) l'a depuis placé dans le service Python `portfolio-chatbot`, dont le portfolio ne porte que l'interface. Il répondra aux questions sur le parcours, les projets et les compétences avec le tone of voice de Thibaud. Contraintes : coût API, latence, qualité des réponses, guardrails, rate limiting.
 
 ---
 
@@ -90,7 +90,7 @@ Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût
 
 ## Négatives
 
-- Coût variable par token à surveiller, rate limiting obligatoire sur l'API route du chatbot (par IP, quotas journaliers)
+- Coût variable par token à surveiller, rate limiting obligatoire côté service chatbot (par IP, quotas journaliers)
 - Dépendance à un service tiers externe (disponibilité, changements de pricing)
 - **Conformité RGPD à traiter avec OpenRouter**, qui devient le sous-traitant direct du chatbot ([ADR-016](016-acces-llm.md)), quel que soit le modèle retenu. Un contrat de sous-traitance signé et opposable y est réservé aux clients enterprise : arbitrage à documenter dans le [registre des traitements](../registre-traitements.md)
 
@@ -100,7 +100,7 @@ Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût
 
 Le RAG sera basé sur pgvector dans PostgreSQL (déjà prévu dans l'infra). Le choix de l'API LLM est indépendant du pipeline RAG.
 
-Voir [ADR-014](014-rate-limiting-chatbot.md) pour la stratégie de rate limiting sur la route API du chatbot, les deux décisions sont interdépendantes : le seuil de rate limiting doit être calibré en fonction du coût par token de l'API LLM retenue.
+Voir [ADR-014](014-rate-limiting-chatbot.md) pour la stratégie de rate limiting du chatbot, les deux décisions sont interdépendantes : le seuil de rate limiting doit être calibré en fonction du coût par token de l'API LLM retenue.
 
 **Sécurité du chatbot (à formaliser avant l'implémentation) :**
 

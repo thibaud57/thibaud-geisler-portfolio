@@ -34,7 +34,7 @@ Le portfolio porte **tous les fronts**, y compris ceux des services Python. C'es
 │    └─ rag        UI seule, proxy HTTP  ──┐                   │
 └──────────────────────────────────────────┼───────────────────┘
        réseau Docker interne, pas de Traefik, pas d'Internet
-   ┌──────────────────────────────────────┴───────────────────┐
+   ┌───────────────────────────────────────┴──────────────────┐
    │ agent-os          cron + file de jobs, forfait Claude    │
    │ portfolio-chatbot RAG public, OpenRouter                 │
    │ rag-documents     base isolée, provider Anthropic direct │

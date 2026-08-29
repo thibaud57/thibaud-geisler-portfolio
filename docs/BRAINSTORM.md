@@ -239,7 +239,7 @@ Savoir quelles pages fonctionnent, d'où viennent les visiteurs et quels projets
 * Sans cookies, donc aucun consentement requis
 * **Restitution dans l'espace admin** : pages les plus vues, projets les plus consultés, sources de trafic, évolution dans le temps. Les données sont lues via l'API Umami, plutôt que d'imposer un aller-retour vers une console tierce
 
-Indépendante de tout le reste, donc livrable dès que l'espace admin et l'infrastructure sont en place.
+L'ingestion est indépendante du reste, la restitution suppose l'espace admin en place.
 
 ### Feature 3 : Domaine freelance
 

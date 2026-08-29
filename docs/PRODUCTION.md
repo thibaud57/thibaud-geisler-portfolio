@@ -290,7 +290,7 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `BETTER_AUTH_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (Better Auth) |
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
-| `LLM_API_KEY` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (chatbot RAG + génération IA dashboard) |
+| `LLM_API_KEY` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (chatbot RAG + génération IA depuis l'espace admin) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `RELEASE_PLEASE_PAT` | GitHub : Repository Secrets | Workflow `release-please.yml` (PAT fine-grained, scopes Contents/PR/Workflows RW + Actions R, indispensable pour que le tag push déclenche `deploy.yml` via chaînage workflows GHA) |
 
@@ -515,7 +515,7 @@ Avant de déployer un fix, diagnostiquer la cause :
 | PostgreSQL (pg_dump) | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (gratuit jusqu'à 10 GB) |
 | Assets Docker volume | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (même bucket) |
 
-> **Assets (MVP)** : stockés en Docker volume (ADR-011 acté). Migration vers Cloudflare R2 prévue lors de l'implémentation de l'upload espace admin.
+> **Assets (MVP)** : stockés en Docker volume (ADR-011 acté). Migration vers Cloudflare R2 prévue lors de l'implémentation de l'upload depuis l'espace admin.
 
 > ✅ **Rétention R2** : configurer une règle de lifecycle dans le dashboard Cloudflare R2 (Bucket → Settings → Lifecycle rules → delete after 7 days). Plus fiable que `rclone delete --min-age 7d` car indépendant du cron, si activée, la ligne `rclone delete` du script peut être supprimée.
 

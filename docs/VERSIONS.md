@@ -1,7 +1,7 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-04-13"
+date: "2026-08-29"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
@@ -298,7 +298,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 shadcn/ui n'est pas une lib npm classique, les composants sont copiés localement dans le projet.
 
 **Breaking Changes Majeurs** :
-- Nouveau système de styles, format `{librairie}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera` et `rhea` sur les bases `radix`, `base` ou `aria`. Ils s'ajoutent à `new-york`, qui reste le style par défaut du CLI ; seul `default` est déprécié. Style retenu par le projet : voir `DESIGN.md` § Style shadcn
+- Nouveau système de styles, format `{base}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera` et `rhea`, sur les bases `radix` ou `base`. Ils s'ajoutent à `new-york`, qui reste le style par défaut du CLI ; seul `default` est déprécié. Style retenu par le projet : voir `DESIGN.md` § Style shadcn
 - Composants mis à jour pour React 19 (`forwardRef` retiré)
 - Couleurs en OKLCH (à la place de HSL)
 - `tailwindcss-animate` remplacé par `tw-animate-css`
@@ -643,7 +643,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 **Issues connues & gotchas** :
 - **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts`, recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
 - **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). Issue active : la résolution du module WASM `query_compiler_fast_bg.postgresql.mjs` échoue en build Turbopack avec le provider `prisma-client` v7. **Workaround** : opt-out via `next build --webpack` dans le Dockerfile/CI jusqu'à correction upstream. Surveiller l'état de l'issue avant chaque upgrade.
-- **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible quand `prisma generate` est relancé au déploiement, sur une machine ou une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Le projet n'est pas concerné** : `prisma generate` ne tourne qu'une fois, dans le stage `deps` du Dockerfile, et le client généré comme les `node_modules` de production viennent de ce même stage sur la même base `node:24-alpine`. Dokploy reçoit un `compose.redeploy` et ne régénère rien. À revérifier si le déploiement cesse d'être en pull-only.
+- **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible quand `prisma generate` est relancé au déploiement, sur une machine ou une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Le projet n'est pas concerné** : le `prisma generate` du runner GitHub Actions (déclenché par `postinstall` lors du `pnpm install` qui précède `migrate deploy`) ne sort jamais de la CI, `.dockerignore` excluant `node_modules` et `src/generated`. Le seul client embarqué est celui du stage `deps` du Dockerfile, réutilisé tel quel par le builder et le runner sur la même base `node:24-alpine`. Dokploy reçoit un `compose.redeploy` et ne régénère rien. À revérifier si `.dockerignore` change ou si le déploiement cesse d'être en pull-only.
 - **Server Components + `'use cache'` au prerender** : la base doit être joignable au build. Assuré structurellement par le build GitHub Actions avec service Postgres éphémère et buildx en `network=host` (`.github/workflows/deploy.yml`), Dokploy restant en pull-only. Voir `.claude/rules/nextjs/data-fetching.md`. **Ne pas** appeler `connection()` directement au runtime avec `cacheComponents: true` (crée des Activity boundaries → `HierarchyRequestError` au reveal sur pages multi-Suspense)
 - **`postinstall: "prisma generate"`** obligatoire dans `package.json` (convention standard Prisma)
 
@@ -848,7 +848,7 @@ export default defineConfig({
 - **Rclone / clients S3** : restent compatibles, mais toute stratégie dépendant du versioning S3 natif ne fonctionne pas
 
 **Nouvelles Features Pertinentes** :
-- **Object Lifecycle Management** (GA depuis **mai 2023**) : règles natives dans l'espace admin pour expirer les objets après N jours et abandonner les uploads multipart incomplets. **Pas** de transition entre classes de stockage via lifecycle rule
+- **Object Lifecycle Management** (GA depuis **mai 2023**) : règles natives dans le dashboard Cloudflare R2 pour expirer les objets après N jours et abandonner les uploads multipart incomplets. **Pas** de transition entre classes de stockage via lifecycle rule
 - **Infrequent Access storage class** (beta mai 2024) : `$0.01/GB-mois` stockage, `$0.01/GB` retrieval, durée minimale 30 jours
 - **Event Notifications** (GA **26 septembre 2024**) : attention, ce ne sont **pas** des webhooks directs. Les notifications passent par Cloudflare Queues → Consumer Worker (pas d'endpoint externe sans Worker)
 - **Bucket Locks** (**6 mars 2025**) : rétention au niveau bucket/préfixe (durée définie, jusqu'à date précise, ou indéfini). Jusqu'à 1 000 règles par bucket. **Ce n'est PAS** le S3 Object Lock WORM natif (pas de mode Compliance/Governance, pas de `x-amz-object-lock-*`)

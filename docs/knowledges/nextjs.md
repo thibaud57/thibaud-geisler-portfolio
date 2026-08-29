@@ -42,7 +42,7 @@ src/app/
 └── layout.tsx                            root layout
 ```
 
-`localePrefix: 'always'` dans `src/i18n/routing.ts` : le préfixe de locale est toujours présent, `/` redirige vers `/fr`. L'asymétrie entre `[locale]/` et `admin/` est voulue, l'espace admin n'étant pas localisé.
+`localePrefix: 'always'` dans `src/i18n/routing.ts` : le préfixe de locale est toujours présent, `/` redirige vers la locale négociée (`localeDetection` vaut `true` par défaut). L'asymétrie entre `[locale]/` et `admin/` est voulue, l'espace admin n'étant pas localisé.
 
 ### Points Importants
 
@@ -102,7 +102,7 @@ export async function generateStaticParams() {
 
 ### Description
 
-Fonctions async côté serveur marquées `'use server'`, invoquées depuis des formulaires ou des Client Components. Remplacent les API routes pour les mutations. Utilisées dans le portfolio pour le formulaire de contact et les CRUD dashboard admin (post-MVP).
+Fonctions async côté serveur marquées `'use server'`, invoquées depuis des formulaires ou des Client Components. Remplacent les API routes pour les mutations. Utilisées dans le portfolio pour le formulaire de contact et les CRUD de l'espace admin (post-MVP).
 
 ### Exemple
 

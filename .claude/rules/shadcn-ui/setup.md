@@ -20,7 +20,7 @@ paths:
 - **Changer la valeur `style` de `components.json`** sans réinstaller les composants existants : les classes diffèrent d'un style à l'autre (hauteurs, rayons, paddings), le projet devient visuellement incohérent. Un seul `components.json` par projet, donc un seul style pour le site public et l'admin
 
 ## Gotchas
-- Nouveau système de styles au format `{librairie}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea` sur les bases `radix`, `base` ou `aria`. Ils **s'ajoutent** à `new-york`, qui reste le style par défaut du CLI ; seul **`default`** est déprécié. Le projet n'utilise ni l'un ni l'autre, il est en `radix-nova`
+- Nouveau système de styles au format `{base}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea`, sur les bases `radix` ou `base`. Ils **s'ajoutent** à `new-york`, qui reste le style par défaut du CLI ; seul **`default`** est déprécié. Le projet n'utilise ni l'un ni l'autre, il est en `radix-nova`
 - Composants shadcn mis à jour pour **React 19** : `forwardRef` **retiré**, les refs sont passées directement en props (pattern R19)
 - Couleurs en **OKLCH** au lieu de HSL (convention shadcn v4 + Tailwind v4)
 - Pour les **composants Magic UI / Aceternity UI** ajoutés via le même CLI shadcn (issue imports `@/`, philosophie partagée) : voir `magic-ui/components.md` et `aceternity-ui/components.md`

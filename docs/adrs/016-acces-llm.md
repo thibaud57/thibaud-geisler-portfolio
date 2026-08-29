@@ -35,7 +35,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 **Inconvénients :**
 - La documentation officielle demande **1 vCPU et 4 Gi de RAM par worker**, avec la mention « 4Gi is a floor rather than a target ». C'est plus que l'application Next.js qu'elle servirait
 - Quatre incidents de sécurité critiques en 2026 : compromission de la chaîne d'approvisionnement PyPI (sans impact sur l'image Docker officielle du proxy, qui épingle ses dépendances), contournement d'authentification OIDC, injection SQL pré-authentification exploitée dans les 36 h suivant sa divulgation, et une chaîne menant à une exécution de code à distance non authentifiée, inscrite au catalogue CISA des vulnérabilités activement exploitées
-- Une fuite mémoire ouverte depuis mai 2026, sans réponse des mainteneurs
+- Une fuite mémoire signalée en mai 2026, toujours ouverte, sans prise en charge annoncée. Un commentaire d'août 2026 la dit disparue en 1.94, sans confirmation des mainteneurs
 - Stocke les prompts en clair dans sa base de logs, ce qui créerait une copie non chiffrée des documents personnels
 
 **Coût estimé :** Une montée en gamme du VPS plus une charge de maintenance permanente
@@ -53,7 +53,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 
 **Inconvénients :**
 - Un contrat de sous-traitance signé et opposable est réservé aux clients enterprise
-- Accord de rachat par Stripe annoncé le 16 août 2026, sans annonce tarifaire à ce jour
+- Accord de rachat par Stripe annoncé le 19 août 2026, sans annonce tarifaire à ce jour
 - Support client critiqué de façon récurrente sur les problèmes de facturation (retours d'utilisateurs, non sourcé)
 
 **Coût estimé :** Environ 9 $/mois pour le seul usage qui en dépend
@@ -124,14 +124,14 @@ Relevées le 29 août 2026.
 - [LiteLLM, dimensionnement production](https://docs.litellm.ai/docs/proxy/prod) : « Give each pod 1 vCPU and 4Gi of memory », « 4Gi is a floor rather than a target »
 - [LiteLLM, compromission PyPI de mars 2026](https://docs.litellm.ai/blog/security-update-march-2026) et [injection SQL pré-authentification](https://docs.litellm.ai/blog/cve-2026-42208-litellm-proxy-sql-injection)
 - [Claude Code, gateways](https://code.claude.com/docs/en/gateways) : « usage is billed to your organization's provider account at API rates, and their claude.ai subscriptions aren't used or charged »
-- [OpenRouter, FAQ](https://openrouter.ai/docs/faq) et [tarifs](https://openrouter.ai/pricing) : zéro markup sur l'inférence, 5,5 % sur les recharges avec un plancher de 0,80 $
+- [OpenRouter, FAQ](https://openrouter.ai/docs/faq) : « We pass through the pricing of the underlying providers without any markup », et « 5.5% ($0.80 minimum) » sur les recharges par carte
 - [Tarifs Claude](https://platform.claude.com/docs/en/about-claude/pricing) : Haiku 4.5 à 1 $ et 5 $ par million de jetons, lecture en cache à 0,10 $
 - [Workspaces Anthropic](https://platform.claude.com/docs/en/manage-claude/workspaces) : plafonds de dépense par workspace, workspace Claude Code créé automatiquement
 - [PydanticAI, provider OpenRouter](https://pydantic.dev/docs/ai/models/openrouter/) : `openrouter_cache_instructions` et `openrouter_provider`, avec la recommandation d'épingler le provider
 - [LiteLLM, chiffrement et stockage](https://docs.litellm.ai/docs/proxy/security_encryption_faq) : `LiteLLM_SpendLogs` classé « NOT Encrypted », « Contains request/response data », `disable_spend_logs` pour couper
 - [LiteLLM, divulgations et durcissement d'avril 2026](https://docs.litellm.ai/blog/security-hardening-april-2026) pour le contournement d'authentification OIDC, et [chaîne vers RCE non authentifiée, CVE-2026-42271](https://horizon3.ai/attack-research/vulnerabilities/cve-2026-42271-chained-with-cve-2026-48710/), inscrite au [catalogue CISA KEV](https://thehackernews.com/2026/06/litellm-flaw-cve-2026-42271-exploited.html), qui donne aussi l'exploitation de CVE-2026-42208 « within 36 hours of the bug becoming public knowledge »
-- [LiteLLM, fuite mémoire](https://github.com/BerriAI/litellm/issues/27954) : issue ouverte le 14 mai 2026, toujours ouverte au 29 août 2026
-- [Stripe, rachat d'OpenRouter](https://stripe.com/newsroom/news/stripe-agrees-to-acquire-openrouter) : accord annoncé le 16 août 2026, sans annonce tarifaire à ce jour
+- [LiteLLM, fuite mémoire](https://github.com/BerriAI/litellm/issues/27954) : issue ouverte le 14 mai 2026, toujours ouverte au 29 août 2026. 11 commentaires, dont un contributeur relayant vers l'équipe le 19 mai et un utilisateur la disant résolue en 1.94 le 22 août
+- [Stripe, rachat d'OpenRouter](https://stripe.com/newsroom/news/stripe-agrees-to-acquire-openrouter) : « Stripe agrees to acquire OpenRouter », communiqué du 19 août 2026
 - [OpenRouter, DPA et RGPD](https://openrouter.zendesk.com/hc/en-us/articles/47828437697051-How-do-I-get-OpenRouter-s-Data-Processing-Agreement-DPA-for-GDPR-compliance) : contrat signé et opposable réservé aux comptes enterprise
 - [OpenRouter, clés provisionnées](https://openrouter.ai/docs/features/provisioning-api-keys) : `limit_reset` en `daily`, `weekly` ou `monthly`
 - [OpenRouter, Batch API](https://openrouter.ai/docs/batch-quickstart) : variantes `:batch` à 50 % du tarif par jeton
