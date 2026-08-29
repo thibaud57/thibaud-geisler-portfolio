@@ -1,7 +1,7 @@
 ---
 title: "ADR-014 — Rate limiting chatbot public"
 status: "proposed"
-description: "Décision ouverte : stratégie de rate limiting sur la route API du chatbot public sans authentification (post-MVP)"
+description: "Décision ouverte : stratégie de rate limiting sur le chatbot public sans authentification (post-MVP)"
 date: "2026-03-31"
 keywords: ["architecture", "adr", "rate-limiting", "chatbot", "security"]
 scope: ["docs", "architecture"]
@@ -10,7 +10,10 @@ technologies: ["Next.js", "PostgreSQL"]
 
 # 🎯 Contexte
 
-Le chatbot RAG public (post-MVP) est accessible sans authentification. Chaque requête déclenche un appel à une API LLM payante. Sans rate limiting, un utilisateur malveillant ou un bot peut générer des coûts API significatifs en quelques minutes. Le seul identifiant disponible côté serveur sans auth est l'adresse IP du client.
+Le chatbot RAG public (post-MVP) est accessible sans authentification.
+
+> **Prémisse révisée.** Cet ADR a été écrit quand le chatbot était une route API de ce dépôt. [ADR-015](015-decoupage-services.md) l'a depuis sorti dans le service Python `portfolio-chatbot`, joint en HTTP interne ([ADR-019](019-communication-inter-services.md)). Le rate limiting appartient donc à ce service, pas au proxy Next.js : les options ci-dessous restent valables sur le fond, leur emplacement d'implémentation non.
+ Chaque requête déclenche un appel à une API LLM payante. Sans rate limiting, un utilisateur malveillant ou un bot peut générer des coûts API significatifs en quelques minutes. Le seul identifiant disponible côté serveur sans auth est l'adresse IP du client.
 
 ---
 
@@ -24,7 +27,7 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 ## Option A : Rate limiting IP-based in-memory (middleware Next.js)
 
-**Description :** Compteur par IP en mémoire Node.js (Map avec TTL), implémenté dans le middleware Next.js ou dans la route API. Fenêtre temporelle configurable (ex : 10 requêtes/heure/IP).
+**Description :** Compteur par IP en mémoire (Map avec TTL), implémenté dans le service qui porte le chatbot. Fenêtre temporelle configurable (ex : 10 requêtes/heure/IP).
 
 **Avantages :**
 - Zéro infrastructure, zéro coût
@@ -74,7 +77,7 @@ Comment implémenter un rate limiting efficace sur la route API du chatbot pour 
 
 # 🎉 Décision
 
-**À décider** au moment de l'implémentation du chatbot (post-MVP). L'Option A (in-memory) est le candidat favori : adapté à un trafic faible, zéro coût, zéro latence, suffisant pour protéger contre les abus simples sur un portfolio single-instance.
+**À décider** au moment de l'implémentation du chatbot (post-MVP), et dans le dépôt `portfolio-chatbot` qui le portera. L'Option A (in-memory) est le candidat favori : adapté à un trafic faible, zéro coût, zéro latence, suffisant pour protéger contre les abus simples sur un service single-instance.
 
 ---
 

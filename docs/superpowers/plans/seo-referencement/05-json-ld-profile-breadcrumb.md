@@ -768,7 +768,7 @@ La page actuelle appelle déjà `findPublishedBySlug(slug, locale)` et le compos
 > **Notes** :
 > - `project.title` est déjà localisé via `localizeProject(project, locale)` à l'intérieur de `findPublishedBySlug`. Pas besoin de retraiter.
 > - `slug` est déjà disponible dans la portée via `await setupLocalePage(params)` qui retourne `{ locale, slug }`.
-> - L'appel `findPublishedBySlug` est cachée `'use cache'` + `cacheTag('projects')` (cf. [src/server/queries/projects.ts:27](../../../src/server/queries/projects.ts#L27)) → l'appel ici hit le cache déjà chaud (`generateMetadata` du sub-project 01 + composant page actuel le rappellent déjà).
+> - L'appel `findPublishedBySlug` est cachée `'use cache'` + `cacheTag('projects')` (cf. [src/server/queries/projects.ts:27](../../../../src/server/queries/projects.ts#L27)) → l'appel ici hit le cache déjà chaud (`generateMetadata` du sub-project 01 + composant page actuel le rappellent déjà).
 
 - [ ] **Step 3 : Injecter `<JsonLd>` à la fin du JSX retourné**
 

@@ -1,6 +1,6 @@
 ---
 title: "shadcn/ui — Composants UI copy-paste"
-version: "4.2.0"
+version: "4.19.0"
 description: "Référence technique pour shadcn/ui : philosophie copy-paste, CLI et patterns pour le portfolio."
 date: "2026-04-13"
 keywords: ["shadcn", "ui", "radix", "tailwind", "components"]
@@ -10,7 +10,7 @@ technologies: ["Next.js", "Tailwind CSS", "React"]
 
 # Description
 
-`shadcn/ui` n'est pas une librairie npm : c'est un ensemble de composants React copiés directement dans le projet via CLI. Les composants appartiennent au code du projet, sont modifiables sans surcharge ni wrapper, et s'appuient sur Radix UI pour les primitifs headless et Tailwind CSS pour le styling. Utilisé dans le portfolio pour tous les composants UI fonctionnels (Button, Form, Dialog, Card) combinés avec Magic UI et Aceternity UI pour les effets visuels. Style retenu : `new-york`.
+`shadcn/ui` n'est pas une librairie npm : c'est un ensemble de composants React copiés directement dans le projet via CLI. Les composants appartiennent au code du projet, sont modifiables sans surcharge ni wrapper, et s'appuient sur Radix UI pour les primitifs headless et Tailwind CSS pour le styling. Utilisé dans le portfolio pour tous les composants UI fonctionnels (Button, Dialog, Card, Table) combinés avec Magic UI et Aceternity UI pour les effets visuels. Style retenu par le projet : voir `DESIGN.md`.
 
 ---
 
@@ -239,7 +239,7 @@ pnpm dlx shadcn@latest init -y -t next --no-monorepo
 ### Points Importants
 
 - `-t next` cible Next.js (valeurs possibles : `next | vite | astro | laravel`)
-- `--defaults` applique les défauts (style `new-york`, couleur `zinc`, CSS variables activées)
+- `--defaults` applique les défauts du CLI (couleur `zinc`, CSS variables activées). Le projet utilise `radix-nova` et `neutral`, donc ne pas initialiser avec `--defaults`
 - Génère `components.json` à la racine, référence de config pour les commandes `add`
 - À relancer avec `-f` uniquement pour forcer une reconfig
 
@@ -274,7 +274,7 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background
 
 ## ✅ Recommandations
 
-- Utiliser le style `new-york` (plus contemporain, border-radius plus large)
+- Utiliser le style déclaré dans `components.json`, sans le modifier (métriques et arbitrage dans `DESIGN.md`)
 - Combiner shadcn/ui (UI fonctionnelle) + Magic UI / Aceternity UI (effets visuels)
 - Versionner `src/components/ui/` dans git
 - Définir les tokens sémantiques dans `globals.css`, pas en inline
@@ -286,7 +286,7 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background
 - Ne pas wrapper un composant shadcn dans un abstraction personnelle (modifier directement)
 - Ne pas importer shadcn/ui comme une lib npm (elle n'existe pas en tant que package)
 - Ne pas inliner des valeurs de couleurs Tailwind arbitraires (utiliser les tokens)
-- Ne pas mixer `new-york` et `default` dans le même projet
+- Ne pas changer la valeur `style` de `components.json` sans réinstaller les composants existants : les classes diffèrent d'un style à l'autre
 - Ne pas utiliser `@apply` pour refactorer : extraire en composants React
 
 ---

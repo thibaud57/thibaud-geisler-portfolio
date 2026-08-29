@@ -29,7 +29,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 **Avantages :**
 - Pas de migration de données à faire plus tard
 - Prisma impose un schéma typé dès le départ
-- PostgreSQL est la DB cible finale de toute façon (dashboard, CRM, chatbot RAG avec pgvector)
+- PostgreSQL est la DB cible finale de toute façon (espace admin, CRM, chatbot RAG avec pgvector)
 - Docker Compose simplifie la mise en place locale
 
 **Inconvénients :**
@@ -40,7 +40,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 
 ## Option B : SQLite pour le MVP, migration plus tard
 
-**Description :** SQLite (via Prisma) pour le MVP, migration vers PostgreSQL pour le dashboard/chatbot.
+**Description :** SQLite (via Prisma) pour le MVP, migration vers PostgreSQL pour l'espace admin/chatbot.
 
 **Avantages :**
 - Zero infrastructure, fichier local
@@ -59,7 +59,7 @@ Faut-il introduire PostgreSQL + Prisma dès le MVP, ou démarrer avec une soluti
 
 **Option A : PostgreSQL + Prisma dès le MVP.**
 
-Le contenu dynamique (projets) est nécessaire dès le MVP. PostgreSQL est la DB cible finale (dashboard, pgvector pour RAG). Introduire SQLite puis migrer serait un coût différé sans bénéfice réel.
+Le contenu dynamique (projets) est nécessaire dès le MVP. PostgreSQL est la DB cible finale (espace admin, pgvector pour RAG). Introduire SQLite puis migrer serait un coût différé sans bénéfice réel.
 
 ---
 

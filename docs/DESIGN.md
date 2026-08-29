@@ -1,8 +1,8 @@
 ---
 title: "DESIGN — Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-04-14"
-keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing"]
+date: "2026-08-29"
+keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin"]
 scope: ["docs", "frontend"]
 technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "Motion", "next-themes", "next-intl"]
 ---
@@ -161,13 +161,17 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle |
+| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, `rounded-lg`, padding 10px) |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : text effects, typographie animée, bento grid, marquee, particles, borders animés |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé en MVP : Background Ripple Effect. Candidats post-MVP : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies (`prose prose-lg dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
-> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. Le dashboard admin (post-MVP) utilise shadcn/ui seul.
+> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui seul.
+
+### Style shadcn
+
+`components.json` déclare **`radix-nova`**, appliqué à tout le projet : site public et espace admin partagent `src/components/ui/`. Ce style a été retenu pour sa compacité, qui sert la densité d'écran d'un espace admin sans desservir les pages marketing. Les autres styles du système `{base}-{style}` (`vega`, `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea`, plus l'ancien `new-york`) restent disponibles, mais **changer de style impose de réinstaller tous les composants** : les hauteurs, rayons et paddings diffèrent, et un projet à moitié migré devient visuellement incohérent. Le choix de shadcn/ui lui-même, face à du custom, est arbitré par [ADR-009](adrs/009-ui-system.md). Commandes CLI et pièges : `.claude/rules/shadcn-ui/setup.md`.
 
 ### Consentement cookies (CMP)
 
@@ -208,6 +212,16 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique pour les cards projets (landing + /projects) |
 | Marquee | Marquee | Magic UI | Défilement horizontal (logos techs, clients, projets) |
+| Navigation admin | Sidebar | shadcn/ui | Post-MVP, non installé. Repliable, gère le mobile nativement |
+| Formulaires admin | Form | shadcn/ui | Post-MVP, non installé. `react-hook-form` + résolveur Zod, réutilise les schémas des Server Actions |
+| Graphiques | Chart | shadcn/ui (Recharts) | Post-MVP, non installé. Audience (pages vues, sources, évolution), indicateurs CRM, chiffre d'affaires, performance des publications. Palette, lisibilité en mode sombre et choix de forme se décident avec le skill `dataviz` de Claude Code, hors dépôt |
+| Tables de données | Table + TanStack Table | shadcn/ui | `Table` installé. Le tri, le filtrage et la pagination sont un **pattern** à implémenter, pas un composant du registry |
+| Actions destructives | AlertDialog | shadcn/ui | Post-MVP, non installé. Confirmation avant suppression |
+| Palette de commandes | Command | shadcn/ui | Post-MVP, non installé. État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026 |
+| Sélecteur de date | Popover + Calendar | shadcn/ui | Post-MVP, non installés. Dates de facture, d'échéance, de mission |
+| Contrôles de formulaire | Switch, Checkbox, RadioGroup | shadcn/ui | Post-MVP, non installés |
+| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Post-MVP, non installés |
+| Primitifs d'interface | Tooltip, Separator, ScrollArea, Avatar, Collapsible | shadcn/ui | Post-MVP, non installés |
 
 ## États des Composants
 
@@ -276,7 +290,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 **Container** : `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8` (1280px max, padding responsive)
 
-**Section padding** : `py-16 sm:py-20 lg:py-24` (espacement vertical entre sections marketing)
+**Section padding** : `py-16 sm:py-20 lg:py-24` (espacement vertical entre sections marketing), `py-6` à `py-8` dans l'espace admin (post-MVP), où la densité prime sur le souffle
+
+**Container admin** (post-MVP) : pleine largeur moins la sidebar, pas de `max-w-7xl` centré
 
 **Spacing pages documentaires** : `space-y-12` (48px fixe) sur le wrapper interne, pour pages denses en lecture continue (mentions légales, politique de confidentialité, case studies projets). Rythme typographique plus serré que le marketing pour préserver le flux de lecture. Combiné avec `gap-6` interne pour les sections coded et `prose-h2:mt-12 prose-h2:mb-6` pour les sections markdown afin d'aligner sur le même rythme.
 
@@ -289,6 +305,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 ## Responsive
 
 > Approche : `mobile-first` (standard Tailwind CSS)
+
+> L'espace admin y est soumis au même titre que les pages publiques : tables, kanban et formulaires se conçoivent mobile-first (voir [ADR-021](adrs/021-notion-vers-postgresql.md)).
 
 | Breakpoint | Notation Tailwind | Largeur | Changements clés |
 |------------|-------------------|---------|------------------|
@@ -334,6 +352,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ❌ **CSS modules / styled-components** : tout le styling passe par Tailwind. Pas de fichiers CSS custom sauf cas exceptionnel (ex: animations keyframes complexes)
 - ❌ **`!important`** : ne jamais utiliser `!important`. Si un style ne s'applique pas, corriger la cascade avec `cn()` ou revoir la structure du composant
 - ❌ **Inline styles** : ne jamais utiliser `style={{}}` sauf pour des valeurs dynamiques calculées (ex: positions, dimensions variables)
+- ❌ **Deux styles shadcn dans le même projet** : `components.json` ne porte qu'une valeur `style`, site public et admin partagent `src/components/ui/`. Maintenir deux jeux de composants pour différencier les surfaces est une sur-ingénierie
 
 ---
 

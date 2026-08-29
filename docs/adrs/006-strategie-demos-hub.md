@@ -10,7 +10,7 @@ technologies: ["Next.js"]
 
 # 🎯 Contexte
 
-Thibaud développe plusieurs applications (gestion de label, flight scraper, etc.) qu'il souhaite présenter dans son portfolio. La question est de savoir comment intégrer ces démos dans la plateforme.
+Thibaud développe plusieurs applications qu'il souhaite présenter dans son portfolio. La question est de savoir comment intégrer ces démos dans la plateforme.
 
 ---
 
@@ -24,7 +24,7 @@ Faut-il héberger et intégrer les démos directement dans le portfolio, ou lais
 
 ## Option A : Hub, portfolio pointe vers démos autonomes
 
-**Description :** Chaque application est hébergée sur son propre domaine/sous-domaine. Le portfolio liste les projets avec un champ `demo_url` pointant vers la démo externe.
+**Description :** Chaque application est hébergée sur son propre domaine/sous-domaine. Le portfolio liste les projets avec un champ `demoUrl` pointant vers la démo externe.
 
 **Avantages :**
 - Chaque application est indépendante (stack, déploiement, domaine propres)
@@ -73,10 +73,10 @@ Le portfolio est un répertoire central. Chaque application démo a sa propre lo
 
 ## Négatives
 
-- Le champ `demo_url` peut être nul si la démo n'est pas encore disponible
+- Le champ `demoUrl` peut être nul si la démo n'est pas encore disponible
 
 ---
 
 # 📝 Notes complémentaires
 
-Le modèle `Project` en BDD inclut un champ `demo_url` nullable pour gérer le cas des projets sans démo live.
+Le modèle `Project` en BDD inclut un champ `demoUrl` nullable pour gérer le cas des projets sans démo live.

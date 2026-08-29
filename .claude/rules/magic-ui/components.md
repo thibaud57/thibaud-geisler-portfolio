@@ -21,7 +21,7 @@ paths:
 - Importer depuis **`framer-motion`** : utiliser **`motion/react`** (Motion v12+, voir VERSIONS.md)
 - Appliquer Magic UI à l'aveugle sur tous les éléments : distraction visuelle, contre les principes DESIGN.md (intensité subtile, intention)
 - Oublier **`'use client'`** dans le composant parent qui consomme Magic UI : erreur de runtime React Server Components
-- Utiliser Magic UI dans le **dashboard admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
+- Utiliser Magic UI dans le **espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
 - Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `tailwind-merge`, `class-variance-authority`)
 
 ## Gotchas

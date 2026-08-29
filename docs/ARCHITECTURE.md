@@ -1,23 +1,23 @@
 ---
 title: "ARCHITECTURE — Thibaud Geisler Portfolio"
 description: "Documentation de l'architecture du portfolio personnel thibaud-geisler.com : vitrine professionnelle, hub de démos et outils internes freelance."
-date: "2026-03-31"
-keywords: ["architecture", "adr", "nextjs", "portfolio"]
+date: "2026-08-29"
+keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy"]
+technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
 
 ## Objectif
 
-Plateforme personnelle servant de vitrine professionnelle et de hub central pour présenter les compétences, projets et services en IA, développement full-stack et formation. Positionnement différenciant : l'IA et l'automatisation constituent la spécialité principale, devant le développement full-stack et la formation IA en entreprise. Conçue pour évoluer vers une plateforme interne de gestion freelance (dashboard, CRM, outils), sans sur-ingénierie initiale.
+Plateforme personnelle servant de vitrine professionnelle et de hub central pour présenter les compétences, projets et services en IA, développement full-stack et formation. Positionnement différenciant : l'IA et l'automatisation constituent la spécialité principale, devant le développement full-stack et la formation IA en entreprise. Conçue pour évoluer vers une plateforme interne de gestion freelance (espace admin, CRM, outils), sans sur-ingénierie initiale.
 
 Le site ne démo pas les applications lui-même : il sert de répertoire central pointant vers des démos autonomes hébergées sur leurs propres domaines.
 
 ## Type de Projet
 
-Monolithe web fullstack : application Next.js unique couvrant le site public et le dashboard admin (post-MVP), hébergée en self-hosted via Dokploy.
+Monolithe web fullstack : application Next.js unique couvrant le site public et l'espace admin (post-MVP), hébergée en self-hosted via Dokploy.
 
 ## Enjeux & Contraintes
 
@@ -25,7 +25,7 @@ Monolithe web fullstack : application Next.js unique couvrant le site public et 
 - **Équipe** : 1 personne (développement, design, contenu)
 - **Timeline MVP** : quelques semaines, portfolio fonctionnel et crédible rapidement
 - **Performance** : temps de chargement rapide pour les pages publiques (SEO, crédibilité)
-- **Sécurité** : pages publiques ouvertes, dashboard privé protégé, chatbot futur soumis à rate limiting
+- **Sécurité** : pages publiques ouvertes, espace admin privé protégé, chatbot futur soumis à rate limiting
 - **Scalabilité** : trafic initial faible, architecture pouvant évoluer sans refonte majeure
 - **Périmètre** : outil personnel single-user, pas un SaaS, pas de multi-tenant, pas de gestion multi-utilisateur prévue
 
@@ -41,7 +41,7 @@ Monolithe web fullstack : application Next.js unique couvrant le site public et 
 
 ## Architecture : Approche Générale
 
-Monolithe modulaire Next.js App Router : une seule application couvrant les pages publiques, les API routes et le dashboard admin futur. Séparation logique par route groups (`(public)/` et `(admin)/`) sans séparation physique frontend/backend.
+Monolithe modulaire Next.js App Router : une seule application couvrant les pages publiques, les API routes et l'espace admin futur. Séparation logique par le route group `(public)/` sous `[locale]/` et le segment `admin/` à la racine de `app/`, sans séparation physique frontend/backend.
 
 Voir [ADR-001](adrs/001-monolithe-nextjs-fullstack.md) pour la justification de ce choix.
 
@@ -49,7 +49,7 @@ Voir [ADR-001](adrs/001-monolithe-nextjs-fullstack.md) pour la justification de 
 
 ### Type de Repo
 
-Single repository (monolithe), pas de monorepo. Voir [ADR-008](adrs/008-single-repository.md).
+Single repository, pas de monorepo. Voir [ADR-008](adrs/008-single-repository.md), dont la portée reste ce dépôt TypeScript : les services Python de l'écosystème ont chacun le leur (voir [ADR-015](adrs/015-decoupage-services.md)).
 
 ### Package Manager
 
@@ -57,17 +57,19 @@ pnpm
 
 ### Apps & Packages
 
-| Nom | Chemin | Rôle | Package Manager |
-|-----|--------|------|------------------|
-| Portfolio App | `/` | Application Next.js unique (pages publiques + API + dashboard) | |
+| Nom | Chemin | Rôle | Langage |
+|-----|--------|------|---------|
+| Portfolio App | `/` | Ce dépôt : site public, espace admin, tous les fronts, auth, CRUD | TypeScript |
+
+**Dépôts voisins** (post-MVP, hors de celui-ci, voir [ADR-015](adrs/015-decoupage-services.md)) : `ai-kit` (socle IA partagé), `agent-os` (exécution de `claude -p` : cycle de dev et jobs de l'espace admin), `portfolio-chatbot` (RAG public), `rag-documents` (documents personnels, base isolée). `ai-kit` est un **package Python** installé par les trois autres, pas un service. Les trois services sont joints en HTTP sur le réseau Docker interne, jamais exposés ([ADR-019](adrs/019-communication-inter-services.md)).
 
 ## Composants Principaux (Haut Niveau)
 
-- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + Dashboard admin (post-MVP)
-- **Backend** : Server Actions + API Routes Next.js
-- **Données** : PostgreSQL externe via Dokploy Database (changement récent, plus de service `postgres` dans `docker-compose.yml`) + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy `portfolio-db-1jdouq:5432`
+- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, voir [ADR-022](adrs/022-routing-espace-admin.md))
+- **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
+- **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine post-MVP ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`), jamais depuis `public/`
-- **Sécurité** : Middleware Next.js (`src/proxy.ts`, headers + locale routing + protection routes admin) + Better Auth avec Google OAuth (dashboard post-MVP)
+- **Sécurité** : `src/proxy.ts` (locale routing, et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth (post-MVP)
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
@@ -84,7 +86,13 @@ graph TB
             Next["Next.js App\n(App Router)"]
             Assets["Assets\n(Docker volume, MVP acté,\nvoir ADR-011)"]
         end
-        PG["PostgreSQL\n(Dokploy Database,\nDNS interne portfolio-db-1jdouq:5432)"]
+        PG["PostgreSQL\n(Dokploy Database)"]
+        subgraph "Réseau interne (post-MVP, ADR-015/019)"
+            Chatbot["portfolio-chatbot\n(Python)"]
+            AgentOS["agent-os\n(Python)"]
+            RagDocs["rag-documents\n(Python)"]
+        end
+        PGPriv["PostgreSQL isolée\n(documents privés, ADR-018)"]
     end
 
     subgraph "Services Externes"
@@ -99,6 +107,12 @@ graph TB
     Next -->|Prisma| PG
     Next -->|File I/O| Assets
     Next -->|nodemailer| SMTP
+    Next -.->|HTTP interne| Chatbot
+    Next -.->|HTTP interne| AgentOS
+    Next -.->|HTTP interne| RagDocs
+    Chatbot -.-> PG
+    AgentOS -.-> PG
+    RagDocs -.-> PGPriv
     GHA -->|push image| GHCR
     GHA -->|trigger redeploy API| Dokploy
     Dokploy -->|docker compose pull| GHCR
@@ -136,7 +150,7 @@ Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages déd
 | Pattern | Contexte d'application |
 |---------|------------------------|
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
-| **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days')` + `cacheTag`) : Data Cache persistant en self-hosted, revalidation ciblée via `revalidateTag` |
+| **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, revalidation ciblée via `revalidateTag` |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
@@ -177,11 +191,10 @@ src/
 │   │   │   │   └── [slug]/       # Case study
 │   │   │   ├── a-propos/
 │   │   │   └── contact/
-│   │   ├── (admin)/              # Route group dashboard (post-MVP)
-│   │   │   └── dashboard/
 │   │   ├── error.tsx
 │   │   ├── loading.tsx
 │   │   └── not-found.tsx
+│   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-022)
 │   ├── api/                      # API routes (hors [locale])
 │   ├── providers.tsx             # Providers client (theme, c15t Consent Manager)
 │   └── layout.tsx
@@ -202,7 +215,8 @@ src/
 │   └── queries/
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Types TypeScript partagés
-└── proxy.ts                      # Middleware Next.js (renommé `proxy.ts` côté code, sert de middleware i18n + headers)
+└── proxy.ts                      # Routing i18n, puis vérification de session sur /admin (post-MVP).
+                                  # Les security headers sont dans next.config.ts
 ```
 
 ### Services Externes (côté client)
@@ -231,23 +245,25 @@ Monolithe modulaire : logique serveur dans `src/server/` (actions et queries sé
 
 ### Sécurité Backend
 
-- **AuthN** : Better Auth avec Google OAuth comme unique provider (Gmail pro + whitelist email single-user), post-MVP dashboard uniquement (voir [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
-- **AuthZ** : Middleware Next.js protégeant les routes `(admin)/` par vérification de session Better Auth
+- **AuthN** : Better Auth avec Google OAuth comme unique provider (Gmail pro + whitelist email single-user), post-MVP, espace admin uniquement (voir [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
+- **AuthZ** : proxy Next.js protégeant les routes `/admin` par vérification du cookie de session, doublé d'un `getCurrentUser()` dans le layout protégé
 - **Durcissement** : Security headers via la configuration Next.js, rate limiting dans les route handlers des endpoints publics (pas dans la couche middleware)
 
 ### Services Externes
 
 - **nodemailer** : envoi SMTP via IONOS (formulaire contact)
-- **API LLM** (post-MVP) : à décider (voir [ADR-012](adrs/012-api-llm-chatbot-rag.md))
-- **n8n** (post-MVP) : couche d'intégration universelle pour workflows externes (contenu, leads, RAG). Toute intégration avec des services tiers (Notion inclus) passe par n8n, pas par une API directe.
-- **Indy API** (post-MVP) : intégration comptabilité freelance (devis, factures)
-- **LinkedIn API** (post-MVP) : synchronisation contenu / automatisation prospection
+- **API LLM** (post-MVP) : mode d'accès tranché par [ADR-016](adrs/016-acces-llm.md), choix du modèle par [ADR-012](adrs/012-api-llm-chatbot-rag.md). Aucun appel direct depuis ce dépôt : les services IA voisins portent ces appels
+- **n8n** (post-MVP) : réservé à l'ingestion de prospects via des API tierces en OAuth. Aucune logique d'agent ni conversationnelle, qui se font en code ([ADR-021](adrs/021-notion-vers-postgresql.md)).
+- **Indy API** (post-MVP, à réévaluer) : la comptabilité freelance est internalisée par [ADR-021](adrs/021-notion-vers-postgresql.md), cette intégration ne garde de sens que pour les déclarations et l'export comptable
+- **LinkedIn API** (post-MVP, à étudier) : publication assistée et prospection, sous réserve des limites de l'API officielle
 
 ## 🗄️ Données (Base de Données)
 
 ### Base de Données Principale
 
-PostgreSQL géré comme service Dokploy Database autonome (changement récent : plus de service `postgres` dans le `docker-compose.yml` applicatif). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy `portfolio-db-1jdouq:5432`. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP pour le RAG du chatbot. Voir [ADR-004](adrs/004-postgresql-des-le-mvp.md).
+PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Voir [ADR-004](adrs/004-postgresql-des-le-mvp.md).
+
+Post-MVP, la base se découpe en schemas par domaine (`public`, `auth`, `freelance`, `dev`, `rag_public`) et une **seconde base isolée** accueille les documents personnels, avec ses propres credentials. Un seul propriétaire par schema. Voir [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
@@ -274,7 +290,7 @@ Data Cache Next 16 opt-in via directive `'use cache'` sur les queries Prisma, av
 
 ### Files / Assets Storage
 
-Volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]` organisée en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment du dashboard upload.
+Volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]` organisée en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment de l'upload depuis l'espace admin.
 
 ### File Processing
 
@@ -282,7 +298,9 @@ Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le
 
 ### Message Queue / Event Streaming
 
-n8n self-hosted (post-MVP) : orchestration de workflows asynchrones (automatisation de leads entrants, pipeline RAG, webhooks inter-services). Déployé comme service indépendant via Docker Compose sur Dokploy, aucun couplage direct avec l'application Next.js (communication par webhooks HTTP).
+Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os` et tiennent en PostgreSQL ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne.
+
+n8n self-hosted (post-MVP) reste cantonné à l'ingestion de prospects via des API tierces en OAuth ([ADR-021](adrs/021-notion-vers-postgresql.md)), déployé comme service indépendant via Docker Compose sur Dokploy, sans couplage direct avec l'application Next.js.
 
 ---
 
@@ -333,7 +351,7 @@ sequenceDiagram
     Prisma-->>SC: Project { title, stack, description, ... }
     alt Projet trouvé
         SC-->>Page: HTML rendu (case study complet)
-        Page-->>Visiteur: Page projet — 1er hit runtime, suivants depuis Data Cache
+        Page-->>Visiteur: Page projet, 1er hit runtime, suivants depuis Data Cache
     else Projet introuvable
         SC-->>Page: notFound()
         Page-->>Visiteur: Page 404
@@ -390,24 +408,24 @@ OWASP Top 10 comme référence : durcissement des headers, validation stricte de
 
 ### Authentification
 
-Better Auth avec Google OAuth comme unique provider. Whitelist email single-user via hook `databaseHooks.user.create.before` (seul le Gmail pro autorisé peut créer un compte). Uniquement pour le dashboard admin (post-MVP). Pages publiques sans auth. Voir [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
+Better Auth avec Google OAuth comme unique provider. Whitelist email single-user via hook `databaseHooks.user.create.before` (seul le Gmail pro autorisé peut créer un compte). Uniquement pour l'espace admin (post-MVP). Pages publiques sans auth. Voir [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
 ### Autorisation
 
-Middleware Next.js : protection des routes `(admin)/` par vérification de session Better Auth.
+Proxy Next.js : protection des routes `/admin` par vérification du cookie de session, sans appel BDD. La validation se fait dans le layout protégé.
 
 ### Protection API
 
 - **Rate limiting formulaire contact** : compteur IP in-memory simple dans la Server Action, décision d'implémentation, pas d'ADR dédié
 - **Rate limiting chatbot** (post-MVP) : décision architecturale à prendre (coût LLM en jeu), voir [ADR-014](adrs/014-rate-limiting-chatbot.md)
-- **CORS** : configuration stricte dans la configuration Next.js
+- **CORS** : aucune configuration, les API routes ne servent que des consommateurs de même origine. À poser si un client tiers apparaît
 - **Validation** : Zod sur toutes les entrées utilisateur (Server Actions + API routes)
 
 ### Protection Données
 
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
-- **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`) — observabilité sans donnée personnelle réversible
+- **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
 
 ### Conformité Cookies / RGPD
 
@@ -430,19 +448,23 @@ Pino, logger JSON structuré. Output stdout, visible dans l'onglet Logs de Dokpl
 
 ### Monitoring
 
-TBD : Umami analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Voir [ADR-007](adrs/007-analytics-umami.md).
+- **Umami** : analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Voir [ADR-007](adrs/007-analytics-umami.md)
+- **Sentry** (post-MVP) : erreurs applicatives, en cloud
+- **Logfire ou Langfuse** (post-MVP) : traces LLM des services IA, en cloud, via OpenTelemetry émis nativement par PydanticAI
+
+Sentry et Logfire ou Langfuse ne sont pas auto-hébergés : leur empreinte mémoire est incompatible avec le VPS. Umami reste self-hosted, son empreinte étant sans commune mesure. Voir [ADR-017](adrs/017-observabilite-cloud.md).
 
 ### Alerts
 
-TBD post-MVP.
+Notifications Dokploy (service arrêté, échec de déploiement) au MVP. Seuils applicatifs à définir post-MVP.
 
 ## 🧪 Tests
 
 ### Stratégie de Tests
 
 - **Tests unitaires** : fonctions pures, helpers, Server Actions critiques, schémas Zod
-- **Tests d'intégration** : routes à effets de bord, formulaire contact (SMTP mock, requêtes Prisma sur PostgreSQL de test), routes CRUD dashboard admin (post-MVP)
-- **Tests e2e** : non prévus pour le MVP (ajout si le dashboard devient complexe)
+- **Tests d'intégration** : routes à effets de bord, formulaire contact (SMTP mock, requêtes Prisma sur PostgreSQL de test), routes CRUD espace admin (post-MVP)
+- **Tests e2e** : non prévus pour le MVP (ajout si l'espace admin devient complexe)
 
 ### Tools
 
@@ -483,25 +505,53 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-009 : UI System : shadcn/ui hybride + effets visuels](adrs/009-ui-system.md)
 - [ADR-010 : i18n : next-intl](adrs/010-i18n.md)
 - [ADR-011 : Stockage assets : volumes Docker MVP, R2 post-MVP](adrs/011-stockage-assets.md)
-- [ADR-013 : Blog : PostgreSQL](adrs/013-blog-stockage.md)
+- [ADR-015 : Découpage en services par frontière d'exécution](adrs/015-decoupage-services.md)
+- [ADR-016 : Accès LLM : OpenRouter, sans gateway auto-hébergée](adrs/016-acces-llm.md)
+- [ADR-017 : Observabilité en cloud, pas en self-hosted](adrs/017-observabilite-cloud.md)
+- [ADR-018 : Cloisonnement des données : deux bases, schemas par domaine](adrs/018-cloisonnement-donnees.md)
+- [ADR-019 : Communication inter-services : HTTP interne, jamais exposé](adrs/019-communication-inter-services.md)
+- [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
+- [ADR-021 : Notion remplacé par PostgreSQL](adrs/021-notion-vers-postgresql.md)
+- [ADR-022 : Routing de l'espace admin, hors du segment de locale](adrs/022-routing-espace-admin.md)
+
+> Les ADR-015 à 021 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
 ### À décider
 
-- [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md)
+- [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
+
+### Dépréciées
+
+- [ADR-013 : Blog : PostgreSQL](adrs/013-blog-stockage.md)
 
 ---
 
 # 🚀 Évolutions Futures (Post-MVP)
 
-- **Dashboard admin** : interface privée single-user (Better Auth + Google OAuth, CRUD projets, gestion assets, suivi leads, gestion articles blog, génération IA de contenu)
-- **Chatbot RAG** : chatbot public IA, vitrine de compétences, alimenté par pgvector + PostgreSQL (voir ADR-012)
-- **Mini-CRM** : suivi prospects/clients, remplacement progressif de Notion (migration one-shot manuelle)
-- **Umami analytics** : self-hosted sur Dokploy, RGPD-friendly (voir ADR-007)
-- **n8n** : orchestration workflows (automatisation leads, pipeline RAG, webhooks entre services) self-hosted sur Dokploy
-- **Blog** : articles techniques/tutoriels pour le SEO, stockés en PostgreSQL, gérés via dashboard (voir ADR-013)
-- **Génération IA de contenu** : outil dashboard, input (sujet/projet/URL), output ébauches d'articles + déclinaisons réseaux, brouillons en table `Article` (status: draft | published | archived)
-- **Intégrations** : Indy API (comptabilité), LinkedIn (contenu/prospection), tout workflow avec des services tiers (Notion inclus) passe par n8n
+> Ce qui suit distingue ce que porte **ce dépôt** de ce qui vit dans les dépôts voisins ([ADR-015](adrs/015-decoupage-services.md), [ADR-020](adrs/020-portfolio-bff.md)).
+
+**Dans ce dépôt**
+
+- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-022](adrs/022-routing-espace-admin.md)). Better Auth + Google OAuth, whitelist d'un email unique
+- **CRUD contenu** : projets, tags, assets, entités légales
+- **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-021](adrs/021-notion-vers-postgresql.md))
+- **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs
+- **Restitution de l'audience** : script de suivi et écrans de synthèse lisant l'API Umami ([ADR-007](adrs/007-analytics-umami.md))
+
+**Dans les dépôts voisins**
+
+- **Chatbot RAG public** : front ici, RAG et appel au modèle dans `portfolio-chatbot`. Principal poste facturé au token ([ADR-016](adrs/016-acces-llm.md))
+- **Rédaction assistée et cycle de développement** : exécutés par `agent-os` via Claude Code, donc sur l'abonnement
+- **Documents personnels** : `rag-documents`, base isolée, jamais exposée ([ADR-018](adrs/018-cloisonnement-donnees.md))
+
+**Hors application**
+
+- **Umami** : instance analytics self-hosted sur Dokploy, service séparé ([ADR-007](adrs/007-analytics-umami.md))
+- **n8n** : réservé à l'ingestion via des API tierces en OAuth, self-hosted sur Dokploy
+- **Intégrations** : LinkedIn (contenu, prospection) et Indy (déclarations), à étudier selon le besoin réel
+
+> **Blog retiré du périmètre** (août 2026) : l'effort de rédaction régulière ne se justifie pas, le SEO repose sur les case studies. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
 
 ---
 

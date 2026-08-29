@@ -1,10 +1,10 @@
 ---
 title: "BRAINSTORM — Vision & Idéation Projet"
 description: "Vision globale du portfolio personnel thibaud-geisler.com : plateforme de crédibilité, hub de démos et outils internes freelance."
-date: "2026-03-31"
-keywords: ["brainstorm", "portfolio", "freelance", "platform", "ia", "rag"]
+date: "2026-08-29"
+keywords: ["brainstorm", "portfolio", "freelance", "platform", "ia", "rag", "admin"]
 scope: ["docs", "planning"]
-technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy"]
+technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Python"]
 ---
 
 # 🎯 Vision Projet
@@ -21,7 +21,7 @@ Plateforme web personnelle : portfolio professionnel + hub de démos d'applicati
 
 ## Description
 
-Plateforme personnelle servant de vitrine professionnelle et de hub central pour présenter mes compétences, mes projets et mes services en IA, développement full-stack et formation. Conçue dès le départ pour évoluer vers une plateforme interne de gestion freelance (dashboard, CRM, outils), mais sans sur-ingénierie initiale.
+Plateforme personnelle servant de vitrine professionnelle et de hub central pour présenter mes compétences, mes projets et mes services en IA, développement full-stack et formation. Conçue dès le départ pour évoluer vers une plateforme interne de gestion freelance (espace admin, CRM, outils), mais sans sur-ingénierie initiale.
 
 Le site ne démo pas les applications lui-même : il sert de répertoire central pointant vers des démos autonomes hébergées sur leurs propres domaines.
 
@@ -38,7 +38,7 @@ Les portfolios classiques montrent des screenshots et du code, mais ne permetten
 
 **Solution** :
 
-Une plateforme personnelle dynamique présentant services, projets et compétences, avec liens vers des démos live d'applications. À terme, intégration d'un chatbot IA (RAG) et d'un dashboard interne freelance, sans jamais devenir un produit SaaS ou multi-utilisateur.
+Une plateforme personnelle dynamique présentant services, projets et compétences, avec liens vers des démos live d'applications. À terme, intégration d'un chatbot IA (RAG) et d'un espace admin interne freelance, sans jamais devenir un produit SaaS ou multi-utilisateur.
 
 ---
 
@@ -46,15 +46,17 @@ Une plateforme personnelle dynamique présentant services, projets et compétenc
 
 ## Type
 
-Monolithe web fullstack avec séparation logique entre partie publique et dashboard privé.
+Monolithe web fullstack avec séparation logique entre partie publique et espace admin privé.
 
 ## Organisation Code
 
-Single repository, application unique. Tout le code (site public, routes admin futures, composants partagés) est dans un seul repo. Ce n'est **pas** un monorepo au sens architectural (pas de `packages/api`, `packages/ui`, etc.).
+Single repository pour l'application Next.js : site public, espace admin, composants partagés. Ce n'est **pas** un monorepo (pas de `packages/api`, `packages/ui`).
+
+Post-MVP, les traitements longs et l'IA sortent dans des dépôts voisins, découpés par frontière d'exécution et non par domaine métier ([ADR-015](adrs/015-decoupage-services.md)).
 
 ## Stratégie de démos
 
-Le portfolio est un **hub** : chaque application développée (ex : app de gestion de label, flight scraper) a sa propre démo sur son propre domaine ou sous-domaine. Le portfolio se contente de lister les projets avec un lien `demo_url`.
+Le portfolio est un **hub** : chaque application développée a sa propre démo sur son propre domaine ou sous-domaine. Le portfolio se contente de lister les projets avec un lien `demo_url`.
 
 ---
 
@@ -76,19 +78,19 @@ Le portfolio est un **hub** : chaque application développée (ex : app de gesti
 ## Infrastructure
 
 * Hébergement : Dokploy (self-hosted)
-* Conteneurisation : Docker + Docker Compose (PostgreSQL via volume Docker)
-* CI/CD : GitHub Actions pour lint/tests uniquement, le déploiement est géré automatiquement par Dokploy via webhook GitHub sur merge
+* Conteneurisation : Docker + Docker Compose. PostgreSQL provisionné comme Dokploy Database autonome, joint par le réseau interne
+* CI/CD : GitHub Actions porte lint, tests et build de l'image, poussée sur GHCR. Dokploy est en pull-only, déclenché par les tags de release
 * Domaine & SMTP : IONOS
 
 ## Services Externes
 
 * **SMTP IONOS** : envoi d'emails via formulaire de contact
 * **Calendly** : prise de rendez-vous intégrée à la page Contact
-* **API LLM** (post-MVP) : chatbot IA avec RAG
-* **n8n** (post-MVP) : orchestration de workflows (automatisation leads, pipeline RAG, webhooks entre services), self-hosted sur Dokploy
-* **Umami** (post-MVP) : analytics self-hosted sur Dokploy, RGPD-friendly, sans cookies, compatible PostgreSQL
-* **Indy API** (optionnel/tardif) : intégration comptabilité freelance
-* **LinkedIn** (très tardif) : génération de contenu ou prospection, à étudier selon les contraintes API
+* **API LLM** (post-MVP) : chatbot IA avec RAG, accès tranché par [ADR-016](adrs/016-acces-llm.md)
+* **Umami** (post-MVP) : analytics self-hosted sur Dokploy, service séparé dont le portfolio n'embarque que le script de suivi
+* **Sentry**, **Logfire ou Langfuse** (post-MVP) : erreurs et traces, en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
+* **n8n** (post-MVP) : self-hosted sur Dokploy, réservé à l'ingestion via API tierces en OAuth
+* **Indy API**, **LinkedIn** (tardifs) : à étudier selon le besoin réel
 
 ---
 
@@ -152,7 +154,7 @@ Chaque projet porte : un titre, une description courte, une stack technique (bad
 * Solution mise en place
 * Captures d'écran ou schémas
 * Lien GitHub et lien démo
-* `generateStaticParams` pour pré-générer les slugs (SEO + perf)
+* Pages rendues à la demande au premier hit puis servies depuis le Data Cache, `generateStaticParams` restant optionnel (voir ARCHITECTURE.md § Use-case 3)
 
 Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 
@@ -164,7 +166,7 @@ Stockage et mise à disposition publique dès le MVP :
 * Images de projets (screenshots, schémas)
 * Documents publics
 
-Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment du dashboard upload. Assets servis exclusivement via route API catch-all `/api/assets/[...path]` (organisation en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, voir ADR-011).
+Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment de l'upload depuis l'espace admin. Assets servis exclusivement via route API catch-all `/api/assets/[...path]` (organisation en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, voir ADR-011).
 
 ### Feature 4 : Formulaire de contact
 
@@ -188,7 +190,7 @@ Transversal, à implémenter avant la mise en production :
 Basculement entre français et anglais pour toucher des clients nationaux et internationaux.
 
 * Langue principale : français
-* Détection automatique de la langue du navigateur via middleware (redirection vers `/fr` ou `/en`)
+* Détection automatique de la langue du navigateur via le proxy (redirection vers `/fr` ou `/en`)
 * Librairie i18n : next-intl (acté, voir ADR-010)
 
 **Important : à câbler dès le début du développement**, ajouter l'i18n après coup oblige à réécrire tout le contenu.
@@ -201,7 +203,7 @@ Pages légales et consentement cookies obligatoires avant mise en production pub
 * Page `/confidentialite` (politique RGPD art 13/14, traitement du formulaire de contact, base légale intérêt légitime art 6-1-f, rétention 3 ans maximum, droits utilisateur, transfert hors UE Calendly via Data Privacy Framework)
 * Bandeau consentement cookies (`@c15t/nextjs` v2 mode offline, MIT, React Provider natif, theming CSS vars, conformité CNIL out-of-the-box), conforme CNIL 2025 : Accept all / Reject all même niveau visuel (override CSS pour symétrie 2020-092), opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
 * Gating du script Calendly inline (Feature 1 sub 04) : `widget.js` ne charge qu'après consentement de la catégorie marketing (Calendly pose des cookies tiers Segment, Google Analytics, Google Ads, Hotjar, LinkedIn Insight Tag, Facebook Pixel)
-* CSP (Content-Security-Policy) finalisé en synchronisation avec le gating cookies (origines `*.calendly.com` MVP + Umami post-MVP autorisées seulement après consentement marketing)
+* CSP (Content-Security-Policy) finalisé en synchronisation avec le gating cookies : `*.calendly.com` autorisé seulement après consentement marketing. Umami, sans cookies, n'exige aucun consentement et sera simplement ajouté à la CSP post-MVP
 * Banner cookies non-bloquant pour les Core Web Vitals : lazy load après FCP, position `fixed` pour CLS = 0, contenu indexable servi avant consentement (Googlebot ne consent jamais)
 * Extension du footer (Feature 1 sub 05) : décommenter la nav légale dans la row bottom déjà préparée (Mentions légales, Politique de confidentialité, Gérer mes cookies)
 
@@ -209,68 +211,83 @@ Justification positionnement MVP : le formulaire de contact (Feature 4) collecte
 
 Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur).
 
-Registre des traitements (RGPD art. 30) : obligatoire — la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Doc interne (non publique, non bloquante pour la prod) → à formaliser post-launch.
+Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Doc interne (non publique, non bloquante pour la prod) → à formaliser post-launch.
 
 ---
 
 ## Post-MVP
 
-### Feature 1 : Dashboard personnel (espace admin)
+> Le post-MVP dépasse le périmètre de ce dépôt. Le portfolio porte **les interfaces, l'authentification et le CRUD synchrone** ; les traitements longs, l'IA et l'exécution d'agents vivent dans des dépôts voisins. Le découpage et son critère sont actés dans [ADR-015](adrs/015-decoupage-services.md), la répartition des responsabilités dans [ADR-020](adrs/020-portfolio-bff.md).
 
-Interface privée **single-user**, authentification via Better Auth + Google OAuth (Gmail pro avec 2FA, whitelist email unique), sans gestion multi-utilisateur. Permettant de :
+### Feature 1 : Espace admin
 
-* Créer et modifier les projets
-* Gérer les contenus et assets du site
-* Gérer les articles de blog (CRUD, éditeur Markdown, publication)
-* Générer du contenu IA (Feature 6, brouillons d'articles et déclinaisons réseaux)
-* Suivre les leads entrants
+Interface privée **single-user**, en français uniquement, accessible au seul compte autorisé. Structure et authentification : [ADR-022](adrs/022-routing-espace-admin.md) et [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
-### Feature 2 : Chatbot IA (RAG), Moyen terme
+Elle pilote l'ensemble de l'écosystème, y compris ce qui s'exécute ailleurs :
 
-Chatbot **public** sur le site, vitrine de compétences techniques, capable de répondre aux questions sur mon parcours, mes projets et mes compétences avec mon tone of voice.
+* Créer et modifier les projets, les tags, les contenus et les assets du site
+* Suivre les leads, les prospects, les contacts et la facturation
+* Consulter l'audience du site
+* Déclencher la rédaction assistée et consulter les brouillons produits
+* Suivre le cycle de développement des projets et les audits automatisés
 
-Basé sur un RAG alimenté par des documents personnels (CV, projets, articles). À étudier : choix de l'API LLM, implémentation pgvector dans PostgreSQL.
+### Feature 2 : Analytics
 
-Contraintes techniques à gérer : guardrails, rate limiting, coût API.
+Savoir quelles pages fonctionnent, d'où viennent les visiteurs et quels projets sont consultés. **Umami**, self-hosted sur Dokploy ([ADR-007](adrs/007-analytics-umami.md)).
 
-### Feature 3 : Mini-CRM interne
+* Service déployé séparément, le portfolio n'embarque que le script de suivi
+* Sans cookies, donc aucun consentement requis
+* **Restitution dans l'espace admin** : pages les plus vues, projets les plus consultés, sources de trafic, évolution dans le temps. Les données sont lues via l'API Umami, plutôt que d'imposer un aller-retour vers une console tierce
 
-Évolution vers un outil de suivi leads pour remplacer progressivement Notion :
+Indépendante de tout le reste, donc livrable dès que l'espace admin et l'infrastructure sont en place.
 
-* Fiches prospects
-* Statut (prospect, en discussion, client)
-* Historique des échanges
+### Feature 3 : Domaine freelance
 
-### Feature 4 : Intégrations externes
+Reprise de l'activité aujourd'hui pilotée depuis Notion : prospects, contacts, entreprises, actions de prospection, facturation, déclarations, publications LinkedIn, entretiens.
 
-Possibles intégrations à étudier selon le besoin réel :
+Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet. Migration domaine par domaine, comptabilité en premier ([ADR-021](adrs/021-notion-vers-postgresql.md)).
 
-* n8n (workflows d'automatisation self-hosted), couche d'intégration universelle pour les workflows futurs (contenu, leads, RAG). Toute intégration avec des services externes (Notion inclus) passe par n8n, jamais par une API directe dans le code du portfolio.
-* Umami (analytics self-hosted)
-* Indy (facturation freelance)
-* LinkedIn (génération de contenu ou prospection, API très limitée et surveillée)
+Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans un service voisin ; ce qui est déterministe (grille de qualification, calculs de cotisations et de TVA, indicateurs) reste du code TypeScript ici.
 
-**Note Notion :** Notion sert de carnet de notes brouillon (projets, CRM actuel). La migration vers le portfolio se fait manuellement en one-shot au moment de l'implémentation du dashboard. Aucune synchro automatique, aucune API Notion dans le code.
+### Feature 4 : Chatbot IA public
 
-### Feature 5 : Section Blog / Articles
+Chatbot sur le site public, vitrine de compétence technique, répondant sur le parcours, les projets et les compétences.
 
-Articles rédigés (tutoriels, retours d'expérience, posts techniques) pour renforcer le SEO et la crédibilité.
+Interface et pilotage ici, RAG et appel au modèle dans un service dédié. C'est le principal poste facturé au token de l'écosystème, aux côtés de l'écran de recherche documentaire et du fournisseur d'embeddings ; ce qu'une personne déclenche passe par l'abonnement ([ADR-016](adrs/016-acces-llm.md)).
 
-Stockage : **PostgreSQL** (voir ADR-013). Articles gérés via le dashboard admin (CRUD, éditeur Markdown). Pas de MDX : incompatible avec le workflow dashboard et avec la Feature 6 (brouillons générés par IA).
+Contraintes : garde-fous contre l'injection de prompt, rate limiting applicatif, plafond de dépense.
 
-Activera les schémas JSON-LD `Article`/`BlogPosting` (rich results SERPs) et l'inclusion des slugs articles dans le `sitemap.xml` existant (extension de la query Prisma du sub-project 03 `sitemap-dynamique`).
+### Feature 5 : Génération de contenu assistée
 
-### Feature 6 : Génération IA de contenu
+Rédaction de publications et de déclinaisons réseaux à partir d'un sujet, d'un projet ou d'une URL.
 
-Outil interne dans le dashboard permettant de générer des ébauches d'articles et de déclinaisons réseaux sociaux à partir d'un input (sujet, projet existant, URL).
+L'écran de commande et le stockage des brouillons sont ici, l'exécution passe par un service voisin qui appelle Claude Code, donc sur l'abonnement plutôt qu'à l'acte.
 
-Workflow :
-* L'utilisateur fournit un input (sujet, projet, URL source)
-* L'IA génère plusieurs ébauches (`status: draft`)
-* L'utilisateur choisit, édite et publie les retenues (`status: published`)
-* Les ébauches non retenues sont supprimées manuellement ou via un job de nettoyage périodique
+### Feature 6 : Suivi du cycle de développement
 
-Stockage : table `Article` dans PostgreSQL standard (même base), colonne `status: draft | published | archived`. Pas de Redis (overkill pour ce volume et cet usage).
+Tableau de suivi des projets et des audits automatisés, alimenté par GitHub et par un orchestrateur qui exécute des agents de code.
+
+Vue et déclenchement ici, exécution ailleurs : cloner des dépôts et lancer des builds n'a pas sa place dans le conteneur qui sert le site public.
+
+### Feature 7 : Documents personnels
+
+Recherche dans des documents privés (contrats, administratif). Deux chemins d'interrogation : depuis Claude Code sur l'abonnement, et depuis l'écran admin via l'API interne du service, au token ([ADR-016](adrs/016-acces-llm.md)). Base isolée avec ses propres credentials, service séparé du chatbot public ([ADR-018](adrs/018-cloisonnement-donnees.md)).
+
+L'écran de recherche est ici, les données jamais.
+
+### Feature 8 : Intégrations externes
+
+Capacités produit à étudier selon le besoin réel :
+
+* **LinkedIn** : publication assistée et prospection. API officielle limitée et surveillée, faisabilité à valider avant de s'engager
+* **Indy** : déclarations et export comptable. La facturation elle-même est internalisée ([ADR-021](adrs/021-notion-vers-postgresql.md)), cette intégration ne couvrirait que le déclaratif
+* **n8n** : réservé à l'ingestion de prospects passant par des API tierces en OAuth, là où réécrire la gestion des jetons ne se justifie pas. Aucune logique d'agent ni conversationnelle, qui se font en code
+
+> La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 2 ci-dessus.
+
+**Note Notion :** la migration se fait manuellement, domaine par domaine, sans synchro ni API dans le code ([ADR-021](adrs/021-notion-vers-postgresql.md)).
+
+> **Blog abandonné.** La Feature « Section Blog / Articles » est retirée du périmètre : l'effort de rédaction régulière ne se justifie pas face aux autres chantiers, et le SEO du portfolio repose sur les case studies de projets. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
 
 ---
 
@@ -286,7 +303,7 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 
 * Performance : temps de chargement rapide pour les pages publiques (SEO-friendly)
 * Scalabilité : trafic initial faible, mais architecture pouvant évoluer
-* Sécurité : pages publiques open, dashboard privé protégé, chatbot futur soumis à rate limiting
+* Sécurité : pages publiques open, espace admin privé protégé, chatbot futur soumis à rate limiting
 
 ---
 
@@ -294,7 +311,7 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 
 ## Techniques
 
-* **API LLM** : quelle API choisir pour le chatbot RAG (coût, latence, qualité, limites) ?
+* **Modèle LLM** : quel modèle pour le chatbot RAG (coût, latence, qualité) ? Le mode d'accès est tranché par l'ADR-016, il ne reste que ce choix
 * **Rate limiting chatbot** : quelle implémentation pour un chatbot public sans auth ?
 * **LinkedIn** : quelles sont les limites réelles de l'API officielle pour publication et prospection ?
 * **Indy API** : quel est le scope exact de l'API (lecture seule ? facturation ?) ?
@@ -303,7 +320,6 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 
 * Quelle part de l'activité sera orientée formation IA à moyen terme ?
 * Est-ce que certains outils internes mériteront d'être transformés en produits séparés ?
-* À quel moment le CRM Notion actuel migre-t-il vers la plateforme interne ? (migration one-shot manuelle, pas de synchro API)
 
 ---
 
@@ -322,12 +338,12 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 - **Décision Chatbot RAG** : Post-MVP vs MVP (priorité au portfolio fonctionnel, chatbot = vitrine compétence non critique au lancement)
 - **Décision Positionnement** : IA & Automatisation en premier vs Full-Stack en premier (différenciation principale, marché plus porteur)
 - **Décision Analytics** : Umami self-hosted vs Plausible vs PostHog (RGPD-friendly, zéro coût, compatible PostgreSQL, voir ADR-007)
-- **Décision Notion API** : Hors scope, aucune synchro directe. Notion = carnet de brouillon personnel. Migration CRM/projets : one-shot manuelle au moment du dashboard. Intégrations futures : via n8n uniquement.
-- **Décision Blog stockage** : PostgreSQL (Option A de l'ADR-013), dashboard admin requis de toute façon pour Feature 6 (génération IA), MDX incompatible avec ce workflow.
-- **Décision Brouillons IA** : PostgreSQL standard (colonne `status: draft | published | archived`), pas Redis, volume trop faible pour justifier un service supplémentaire.
+- **Décision Notion API** : Hors scope, aucune synchro directe. Migration manuelle domaine par domaine (comptabilité, publications, CRM), voir ADR-021. n8n reste cantonné à l'ingestion de prospects via des API tierces en OAuth.
+- **Décision Blog** : feature retirée du périmètre (août 2026) vs section d'articles en PostgreSQL (effort de rédaction non justifié, le SEO repose sur les case studies). ADR-013 marqué `deprecated`.
+- **Décision Brouillons IA** : PostgreSQL standard plutôt que Redis, volume trop faible pour justifier un service supplémentaire. La table `Article` qui portait cette décision a disparu avec le blog, le principe reste valable pour les contenus générés de l'espace admin.
 - **Décision UI System** : shadcn/ui hybride (Option C), shadcn/ui comme socle fonctionnel, Magic UI + Aceternity UI pour les effets visuels du site public (copy-paste, combinables), voir ADR-009.
 - **Décision i18n** : next-intl, standard de facto pour App Router, type safety des clés, middleware de routing intégré, voir ADR-010.
-- **Décision Stockage assets** : volumes Docker pour le MVP, migration vers Cloudflare R2 au moment de l'implémentation du dashboard upload (free tier 10 Go, zéro egress), voir ADR-011.
+- **Décision Stockage assets** : volumes Docker pour le MVP, migration vers Cloudflare R2 au moment de l'implémentation de l'upload depuis l'espace admin (free tier 10 Go, zéro egress), voir ADR-011.
 
 **Ordre de développement MVP :**
 
@@ -349,5 +365,5 @@ Stockage : table `Article` dans PostgreSQL standard (même base), colonne `statu
 * Ce site n'est pas un SaaS, ni une plateforme multi-utilisateur : outil personnel qui peut évoluer
 * Pas de sur-ingénierie initiale : chaque complexité ajoutée uniquement si le besoin réel apparaît
 * Le portfolio est un hub de crédibilité technique, pas une simple vitrine statique
-* Les applications futures (gestion de label, flight scraper, etc.) auront chacune leur propre démo et leur propre logique
+* Les applications futures auront chacune leur propre démo et leur propre logique
 * La complexité (auth avancée, multi-user, storage objet) sera ajoutée uniquement si le besoin se confirme

@@ -22,6 +22,8 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 # 🛠️ Options Envisagées
 
+> Les tarifs de cette section ont été relevés le 31/03/2026 et portent sur des générations de modèles antérieures. Ils sont **périmés** et servent d'ordre de grandeur comparatif, pas de base de chiffrage : le coût réel est estimé dans [ADR-016](016-acces-llm.md) § Notes complémentaires. À revalider contre les grilles tarifaires du jour avant de trancher.
+
 ## Option A : Anthropic Claude API
 
 **Description :** API Claude d'Anthropic (modèle Haiku pour le coût, Sonnet pour la qualité).
@@ -33,9 +35,9 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 **Inconvénients :**
 - Serveurs hors UE (AWS us-east), DPA Anthropic à vérifier pour conformité RGPD
-- Coût par token : ~$0.25/M tokens input (Haiku), négligeable avec rate limiting
+- Coût par token du modèle économique de la gamme, négligeable avec rate limiting (Haiku 4.5 est à 1 $/MTok en entrée et 5 $ en sortie au 29/08/2026)
 
-**Coût estimé :** ~$0.25/M tokens input (modèle économique), quelques centimes/mois à faible trafic
+**Coût estimé :** quelques centimes par mois à très faible trafic. Sur les hypothèses de trafic d'[ADR-016](016-acces-llm.md) (500 conversations mensuelles), le poste tourne autour de 9 $/mois
 
 ## Option B : OpenAI GPT
 
@@ -70,7 +72,11 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 # 🎉 Décision
 
-**À décider** au moment de l'implémentation du chatbot (post-MVP).
+**Périmètre réduit par [ADR-016](016-acces-llm.md).** Le *mode d'accès* est tranché : le chatbot public passe par OpenRouter, les documents personnels par le provider Anthropic en direct, et tout ce qui est déclenché manuellement par l'abonnement Claude via `claude -p`. Partout où un modèle est appelé par API, le framework est PydanticAI et le provider vient de la configuration du package `ai-kit`. Ce qui passe par l'abonnement emprunte le CLI.
+
+Ce qu'il reste à décider ici : **le choix du modèle** pour le chatbot. OpenRouter les rend tous accessibles derrière la même interface, ce qui rend l'arbitrage réversible en une chaîne de caractères.
+
+Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût par modèle. Celui portant sur la maturité du SDK TypeScript est en revanche caduc : le chatbot est un service Python utilisant PydanticAI (voir [ADR-015](015-decoupage-services.md)).
 
 ---
 
@@ -86,7 +92,7 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 - Coût variable par token à surveiller, rate limiting obligatoire sur l'API route du chatbot (par IP, quotas journaliers)
 - Dépendance à un service tiers externe (disponibilité, changements de pricing)
-- Si Option A ou B : vérifier la conformité RGPD (DPA à signer avec Anthropic/OpenAI)
+- **Conformité RGPD à traiter avec OpenRouter**, qui devient le sous-traitant direct du chatbot ([ADR-016](016-acces-llm.md)), quel que soit le modèle retenu. Un contrat de sous-traitance signé et opposable y est réservé aux clients enterprise : arbitrage à documenter dans le [registre des traitements](../registre-traitements.md)
 
 ---
 
