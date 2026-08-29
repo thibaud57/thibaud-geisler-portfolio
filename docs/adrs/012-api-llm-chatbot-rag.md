@@ -10,7 +10,9 @@ technologies: ["PostgreSQL", "pgvector"]
 
 # 🎯 Contexte
 
-Post-MVP, un chatbot public IA (RAG) servira de vitrine de compétences techniques. Écrit quand il devait être une route API de ce dépôt, cet ADR lui est antérieur au découpage : [ADR-015](015-decoupage-services.md) l'a depuis placé dans le service Python `portfolio-chatbot`, dont le portfolio ne porte que l'interface. Il répondra aux questions sur le parcours, les projets et les compétences avec le tone of voice de Thibaud. Contraintes : coût API, latence, qualité des réponses, guardrails, rate limiting.
+Post-MVP, un chatbot public IA (RAG) servira de vitrine de compétences techniques. Il répondra aux questions sur le parcours, les projets et les compétences avec le tone of voice de Thibaud. Contraintes : coût API, latence, qualité des réponses, guardrails, rate limiting.
+
+> **Prémisse révisée.** Cet ADR a été écrit quand le chatbot devait être une route API de ce dépôt. [ADR-015](015-decoupage-services.md) l'a depuis placé dans le service Python `portfolio-chatbot`, dont le portfolio ne porte plus que l'interface. Le choix de modèle arbitré ici reste valable, son lieu d'implémentation non.
 
 ---
 
