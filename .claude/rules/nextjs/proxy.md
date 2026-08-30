@@ -8,7 +8,7 @@ paths:
 
 ## À faire
 - Nommer le fichier `proxy.ts`. Pour un proxy **custom** (logique écrite à la main), exporter la fonction nommée `proxy` (Next 16 remplace `middleware.ts`)
-- Pour un proxy **délégué à un handler tiers** (ex: `createMiddleware(routing)` de next-intl, `clerkMiddleware()` de Clerk), utiliser `export default handler` : pattern recommandé par ces librairies et supporté officiellement par Next 16 (`export default` OU named `proxy`, jamais les deux simultanément)
+- Pour un proxy **délégué à un handler tiers** (ex: `createMiddleware(routing)` de next-intl, `clerkMiddleware()` de Clerk), utiliser `export default handler` : pattern recommandé par ces librairies et supporté officiellement par Next 16
 - Placer `proxy.ts` à la racine du projet ou dans `src/`, au même niveau que `app/`
 - Runtime `nodejs` **implicite** (Edge runtime supprimé pour `proxy.ts` en Next 16). **Ne pas** déclarer `export const runtime = 'nodejs'` : Next rejette tout route segment config dans `proxy.ts` ("Route segment config is not allowed in Proxy file")
 - Configurer un `matcher` strict pour exclure les assets statiques, sinon le proxy s'exécute sur **toutes** les routes (y compris `_next/static`, images, favicon) et dégrade les performances
@@ -26,8 +26,8 @@ paths:
 - Next 16 : le runtime `edge` n'est plus supporté pour `proxy.ts`, utiliser `nodejs` exclusivement
 - Codemod automatique dispo : `npx @next/codemod@canary middleware-to-proxy .`
 - Le proxy s'exécute **avant** le rendering mais **après** les redirects statiques de `next.config.ts`
-- Better Auth : protéger les routes `(admin)/` via check d'existence du cookie de session uniquement, la validation DB se fait dans le layout protégé ou la Server Action
-- Next 16 refuse `export default` + `export const proxy` simultanément : un seul des deux par fichier (`"The file must export a single function, either as a default export or named proxy"`)
+- Better Auth : protéger les routes `admin/` via check d'existence du cookie de session uniquement, la validation DB se fait dans le layout protégé ou la Server Action
+- Next 16 exige **au moins un** des deux exports, default ou nommé `proxy`. Le build échoue seulement si aucun n'existe. Rien n'interdit de garder `export default` en y enveloppant la logique custom
 
 ## Exemples
 ```typescript
@@ -61,7 +61,7 @@ export const config = {
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 }
 
-// ❌ Double export rejeté par Next 16
-export const proxy = createMiddleware(routing)
-export default proxy
+// ❌ Seul cas d'échec au build : aucun export de fonction, le handler
+//    n'étant ni exporté par défaut ni sous le nom `proxy`
+const handler = createMiddleware(routing)
 ```

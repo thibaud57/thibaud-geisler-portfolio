@@ -117,7 +117,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 ### Exemple
 
 ```tsx
-// src/app/[locale]/page.tsx — Server Component async
+// src/app/[locale]/(public)/page.tsx — Server Component async
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 
 export default async function HomePage({
@@ -139,7 +139,7 @@ export default async function HomePage({
 ```
 
 ```tsx
-// src/components/features/nav.tsx — Client Component
+// src/components/layout/Navbar.tsx — Client Component
 'use client'
 import { useTranslations } from 'next-intl'
 

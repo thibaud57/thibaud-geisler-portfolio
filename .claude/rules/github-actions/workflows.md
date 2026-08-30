@@ -30,10 +30,10 @@ paths:
 - **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
 - **`timeout-minutes: 15`** sur chaque job : évite qu'un test qui hang consomme les 6h de timeout par défaut et bloque les minutes CI (15 min suffit largement pour lint + typecheck + tests d'un MVP)
 - **Service container `postgres:18`** pour tests d'intégration : `image: postgres:18`, healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner (pas le nom du service)
+- **Garder `deploy.yml` séparé de `ci.yml`** : déclenché sur push tag `v*` (tag créé par release-please via PAT), il build l'image Docker, la pousse sur GHCR puis déclenche le redeploy Dokploy par curl. Dokploy reste en pull-only, il ne rebuild jamais localement. Voir PRODUCTION.md
 - **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v4` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
 
 ## À éviter
-- **Workflow `deploy.yml` séparé** : déclenché sur push tag `v*` (release-please via PAT), build Docker → push GHCR → curl trigger Dokploy redeploy. Dokploy en mode pull-only (pas de rebuild local). Voir PRODUCTION.md.
 - Valeurs sensibles en clair : toujours `${{ secrets.NAME }}`, ne jamais `echo` un secret dans les logs (cf. `nodemailer/email.md` pour le pattern de mock SMTP en tests)
 - Omettre `permissions:` au niveau workflow : par défaut GitHub accorde toutes les permissions, toujours restreindre explicitement
 

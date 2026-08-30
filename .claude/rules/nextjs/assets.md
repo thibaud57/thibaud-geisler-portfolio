@@ -19,10 +19,10 @@ paths:
 - Retourner `Cache-Control` conditionnel : `public, max-age=31536000, immutable` en production (assets immutables, convention : changer le filename pour invalider, pas le cache) et `no-cache, no-store, must-revalidate` en dev (sinon Chrome garde 1 an le premier fichier servi localement, pénible au moindre remplacement d'asset)
 - Retourner `NextResponse.json({ error }, { status: 400 })` pour path invalide, `{ status: 404 }` pour fichier inexistant (distinction HTTP standard, pas de `security through obscurity` sur des assets publics par nature)
 - Logger warn sur 400 (signal potentiellement hostile), debug sur 404 (bruit normal)
-- Pour référencer un asset dans `next/image`, utiliser une URL absolue `${NEXT_PUBLIC_APP_URL}/api/assets/projets/client/foyer/logo.png` et déclarer le domaine dans `images.remotePatterns` de `next.config.ts`
+- Pour référencer un asset dans `next/image`, utiliser une URL absolue `${NEXT_PUBLIC_SITE_URL}/api/assets/projets/client/foyer/logo.png` et déclarer le domaine dans `images.remotePatterns` de `next.config.ts`
 
 ## À éviter
-- Stocker les assets dynamiques dans `public/` : couplage au build, pas de hashing, incompatible avec un upload dashboard futur (ADR-011 contrainte actée, indépendante du choix de stockage)
+- Stocker les assets dynamiques dans `public/` : couplage au build, pas de hashing, incompatible avec un upload futur depuis l'espace admin (ADR-011 contrainte actée, indépendante du choix de stockage)
 - Accepter des segments contenant `/` ou `\` : chaque entrée du tableau `path` issu du catch-all Next doit être un segment atomique (la regex rejette tout séparateur interne). Rejeter `..` et `.` pour empêcher toute remontée hors de `ASSETS_PATH`
 - Lire `ASSETS_PATH` sans fallback : utiliser `process.env.ASSETS_PATH ?? './assets'` pour que le dev marche même sans `.env` local, la prod reste couverte par les env vars Dokploy
 - Tracker les fichiers binaires dans `assets/` : gitignore `/assets/*` + `!/assets/.gitkeep` obligatoire (le dossier existe en dev via `.gitkeep`, le contenu arrive via volume Docker en prod)
@@ -34,7 +34,7 @@ paths:
 - `fs.readFile` lève `ENOENT` si le fichier n'existe pas : catch spécifique sur `err.code === 'ENOENT'` pour renvoyer 404, re-throw tout autre erreur (permission, IO) pour que Next gère via `error.tsx`
 - `path.extname(filename).slice(1).toLowerCase()` pour extraire l'extension puis lookup dans un `CONTENT_TYPE_MAP` centralisé — dériver la whitelist Zod depuis `Object.keys(CONTENT_TYPE_MAP)` pour single source of truth
 - Le `params.path` d'un segment catch-all Next est toujours `string[]`, jamais `string` : pas besoin de split, passer le tableau directement à Zod
-- **Migration future R2** (post-MVP avec dashboard upload) : remplacer le corps de `resolveAssetPath` par un fetch signé R2 (le path joined sert de clé d'objet) sans changer la signature côté route handler — pas d'interface `AssetStorage` prématurée (YAGNI)
+- **Migration future R2** (post-MVP avec upload depuis l'espace admin) : remplacer le corps de `resolveAssetPath` par un fetch signé R2 (le path joined sert de clé d'objet) sans changer la signature côté route handler ; pas d'interface `AssetStorage` prématurée (YAGNI)
 - Le helper `src/server/config/assets.ts` doit importer `'server-only'` en tête pour empêcher tout import accidentel depuis un Client Component
 
 ## Exemples

@@ -1,7 +1,7 @@
 # Thibaud Geisler Portfolio
 
 Plateforme personnelle (vitrine professionnelle) servant de hub central vers les démos externes en IA, développement full-stack et formation.
-Monolithe Next.js single-user, évolutif vers un dashboard interne freelance post-MVP.
+Monolithe Next.js single-user, évolutif vers un espace admin interne freelance post-MVP.
 Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 
 ## Stack

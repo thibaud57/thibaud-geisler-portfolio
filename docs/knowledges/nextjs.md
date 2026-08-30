@@ -1,6 +1,6 @@
 ---
 title: "Next.js — Framework full-stack"
-version: "16.2.3"
+version: "16.3.3"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
 date: "2026-04-13"
 keywords: ["nextjs", "app-router", "server-components", "server-actions", "turbopack"]
@@ -10,7 +10,7 @@ technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
 
 # Description
 
-`Next.js` 16 est le framework fullstack du portfolio. La v16 rend Turbopack par défaut en dev et build, renomme `middleware.ts` en `proxy.ts`, impose des params async obligatoires (plus de sync access), et active Partial Prerendering via `cacheComponents: true`. Utilisé en monolithe : pages publiques en Server Components, formulaire de contact en Server Action, dashboard admin futur via route groups `(admin)/`.
+`Next.js` 16 est le framework fullstack du portfolio. La v16 rend Turbopack par défaut en dev et build, renomme `middleware.ts` en `proxy.ts`, impose des params async obligatoires (plus de sync access), et active Partial Prerendering via `cacheComponents: true`. Utilisé en monolithe : pages publiques en Server Components, formulaire de contact en Server Action, espace admin futur via le segment `admin/`.
 
 ---
 
@@ -20,25 +20,29 @@ technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
 
 ### Description
 
-Le routing est basé sur le système de fichiers dans `src/app/`. Chaque dossier = segment d'URL, les fichiers spéciaux (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`) définissent l'UI. Les route groups `(public)/` et `(admin)/` organisent le code sans impacter les URLs.
+Le routing est basé sur le système de fichiers dans `src/app/`. Chaque dossier = segment d'URL, les fichiers spéciaux (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`) définissent l'UI. Le route group `(public)/` organise le code sans impacter les URLs ; `admin/` est un segment réel qui produit `/admin`.
 
 ### Exemple
 
 ```
 src/app/
-├── (public)/
-│   ├── page.tsx              → /
-│   ├── services/page.tsx     → /services
-│   ├── projets/
-│   │   ├── page.tsx          → /projets
-│   │   └── [slug]/page.tsx   → /projets/[slug]
-│   └── contact/page.tsx      → /contact
-├── (admin)/
-│   └── dashboard/page.tsx    → /dashboard (post-MVP)
+├── [locale]/                             segment de locale, site public bilingue
+│   ├── layout.tsx
+│   └── (public)/                         route group, ne produit aucun segment
+│       ├── page.tsx                      → /fr, /en
+│       ├── services/page.tsx             → /fr/services
+│       ├── projets/
+│       │   ├── page.tsx                  → /fr/projets
+│       │   └── [slug]/page.tsx           → /fr/projets/[slug]
+│       └── contact/page.tsx              → /fr/contact
+├── admin/                                segment réel, hors [locale] (post-MVP, ADR-021)
+│   └── page.tsx                          → /admin
 ├── api/
-│   └── assets/[...path]/route.ts → /api/assets/projets/client/foyer/logo.png
-└── layout.tsx                → root layout
+│   └── assets/[...path]/route.ts         → /api/assets/projets/client/foyer/logo.png
+└── layout.tsx                            root layout
 ```
+
+`localePrefix: 'always'` dans `src/i18n/routing.ts` : le préfixe de locale est toujours présent, `/` redirige vers la locale négociée (`localeDetection` vaut `true` par défaut). L'asymétrie entre `[locale]/` et `admin/` est voulue, l'espace admin n'étant pas localisé.
 
 ### Points Importants
 
@@ -58,7 +62,7 @@ Par défaut, les composants de l'App Router sont des Server Components. Ils peuv
 ### Exemple
 
 ```tsx
-// src/app/(public)/projets/[slug]/page.tsx
+// src/app/[locale]/(public)/projets/[slug]/page.tsx
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 
@@ -68,27 +72,24 @@ export default async function ProjectPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const project = await prisma.project.findUnique({ where: { slug } })
+  const project = await prisma.project.findFirst({
+    where: { slug, status: 'PUBLISHED' },
+  })
   if (!project) notFound()
 
   return (
     <article>
       <h1>{project.title}</h1>
-      <div dangerouslySetInnerHTML={{ __html: project.content }} />
+      <p>{project.description}</p>
     </article>
   )
-}
-
-export async function generateStaticParams() {
-  const projects = await prisma.project.findMany({ select: { slug: true } })
-  return projects.map((p) => ({ slug: p.slug }))
 }
 ```
 
 ### Points Importants
 
 - `params` est désormais une `Promise` en v16 (await obligatoire)
-- `generateStaticParams` pré-génère les routes dynamiques au build
+- `generateStaticParams` pré-génère les routes dynamiques au build (non utilisé sur `[slug]` ici : le premier hit rend au runtime, les suivants sortent du Data Cache)
 - `notFound()` retourne une 404 propre (rendue par `not-found.tsx`)
 - Les composants `async` ne peuvent être que serveur (pas client)
 
@@ -98,19 +99,19 @@ export async function generateStaticParams() {
 
 ### Description
 
-Fonctions async côté serveur marquées `'use server'`, invoquées depuis des formulaires ou des Client Components. Remplacent les API routes pour les mutations. Utilisées dans le portfolio pour le formulaire de contact et les CRUD dashboard admin (post-MVP).
+Fonctions async côté serveur marquées `'use server'`, invoquées depuis des formulaires ou des Client Components. Remplacent les API routes pour les mutations. Utilisées dans le portfolio pour le formulaire de contact et les CRUD de l'espace admin (post-MVP).
 
 ### Exemple
 
 ```ts
 // src/server/actions/contact.ts
 'use server'
-import { ContactSchema } from '@/lib/schemas/contact'
+import { contactSchema } from '@/lib/schemas/contact'
 import { transporter } from '@/lib/mailer'
 import { logger } from '@/lib/logger'
 
-export async function sendContact(_prev: unknown, formData: FormData) {
-  const result = ContactSchema.safeParse(Object.fromEntries(formData))
+export async function submitContact(_prev: unknown, formData: FormData) {
+  const result = contactSchema.safeParse(Object.fromEntries(formData))
   if (!result.success) {
     return { errors: result.error.flatten().fieldErrors }
   }
@@ -118,7 +119,7 @@ export async function sendContact(_prev: unknown, formData: FormData) {
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM,
-      to: process.env.CONTACT_TO,
+      to: process.env.MAIL_TO,
       replyTo: result.data.email,
       subject: `Contact portfolio — ${result.data.name}`,
       text: result.data.message,
@@ -144,14 +145,14 @@ export async function sendContact(_prev: unknown, formData: FormData) {
 
 ### Description
 
-En v16, le fichier `middleware.ts` est renommé en `proxy.ts` et la fonction exportée s'appelle `proxy`. S'exécute avant le rendu de chaque route. Utilisé pour le routing i18n (next-intl), les headers de sécurité, la protection des routes admin.
+En v16, le fichier `middleware.ts` est renommé en `proxy.ts` et la fonction exportée s'appelle `proxy`. S'exécute avant le rendu de chaque route. Utilisé pour le routing i18n (next-intl) et la protection des routes admin. Les headers de sécurité sont dans `next.config.ts`.
 
 ### Exemple
 
 ```ts
 // src/proxy.ts
 import createMiddleware from 'next-intl/middleware'
-import { routing } from './i18n/routing'
+import { routing } from '@/i18n/routing'
 
 export default createMiddleware(routing)
 
@@ -159,6 +160,8 @@ export const config = {
   matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 }
 ```
+
+Ce matcher est celui du code actuel, où `/admin` n'existe pas encore. ADR-021 impose de l'exclure du routing i18n au moment d'implémenter l'espace admin, faute de quoi `createMiddleware` redirigerait `/admin` vers `/fr/admin`.
 
 ### Points Importants
 
@@ -192,14 +195,17 @@ export default nextConfig
 ```tsx
 // src/server/queries/projects.ts
 import 'server-only'
-import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
-export async function getProjects() {
+export async function findManyPublished() {
   'use cache'
   cacheLife('hours')
   cacheTag('projects')
-  return prisma.project.findMany({ orderBy: { createdAt: 'desc' } })
+  return prisma.project.findMany({
+    where: { status: 'PUBLISHED' },
+    orderBy: { displayOrder: 'asc' },
+  })
 }
 ```
 
@@ -285,7 +291,7 @@ pnpm exec next info                   # infos système pour bug reports
 
 ## ✅ Recommandations
 
-- Organiser les routes par route groups `(public)/`, `(admin)/`
+- Organiser les routes par route group `(public)/`, et par segment réel `admin/`
 - Toujours `await params` et `await searchParams` en v16
 - Utiliser Server Components par défaut, Client Components pour les îlots
 - Valider toutes les entrées Server Action avec Zod

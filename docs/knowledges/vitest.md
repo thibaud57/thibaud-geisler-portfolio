@@ -48,7 +48,7 @@ export default defineConfig({
 ```
 
 ```ts
-// src/test/setup.ts
+// vitest.setup.ts (racine, référencé par setupFiles)
 import '@testing-library/jest-dom/vitest'
 ```
 
@@ -70,13 +70,13 @@ Tests canoniques pour les fonctions pures (helpers, formatters) et les schémas 
 ### Exemple
 
 ```ts
-// src/lib/schemas/__tests__/contact.test.ts
+// src/lib/schemas/contact.test.ts (test colocalisé)
 import { describe, it, expect } from 'vitest'
-import { ContactSchema } from '../contact'
+import { contactSchema } from './contact'
 
-describe('ContactSchema', () => {
+describe('contactSchema', () => {
   it('valide un input correct', () => {
-    const result = ContactSchema.safeParse({
+    const result = contactSchema.safeParse({
       name: 'Alice',
       email: 'alice@example.com',
       message: 'Un message de test suffisamment long',
@@ -85,7 +85,7 @@ describe('ContactSchema', () => {
   })
 
   it('rejette un email invalide', () => {
-    const result = ContactSchema.safeParse({
+    const result = contactSchema.safeParse({
       name: 'Alice',
       email: 'pas-un-email',
       message: 'Un message',
@@ -116,14 +116,14 @@ Tests de composants avec `@testing-library/react` et `@testing-library/user-even
 ### Exemple
 
 ```tsx
-// src/components/features/__tests__/contact-form.test.tsx
+// src/components/features/contact/ContactForm.test.tsx (à écrire : test colocalisé, jamais de dossier __tests__)
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ContactForm } from '../contact-form'
+import { ContactForm } from './ContactForm'
 
 vi.mock('@/server/actions/contact', () => ({
-  sendContact: vi.fn().mockResolvedValue({ success: true }),
+  submitContact: vi.fn().mockResolvedValue({ ok: true, errors: {}, message: null }),
 }))
 
 describe('ContactForm', () => {
@@ -170,9 +170,9 @@ vi.mock('@/lib/mailer', () => ({
 }))
 
 import { transporter } from '@/lib/mailer'
-import { sendContact } from '@/server/actions/contact'
+import { submitContact } from '@/server/actions/contact'
 
-describe('sendContact', () => {
+describe('submitContact', () => {
   afterEach(() => vi.clearAllMocks())
 
   it('appelle sendMail avec les bons params', async () => {
@@ -181,7 +181,7 @@ describe('sendContact', () => {
     formData.set('email', 'alice@example.com')
     formData.set('message', 'Un message de test')
 
-    await sendContact(null, formData)
+    await submitContact(null, formData)
 
     expect(transporter.sendMail).toHaveBeenCalledOnce()
     expect(transporter.sendMail).toHaveBeenCalledWith(
@@ -310,7 +310,7 @@ pnpm exec vitest               # watch mode (dev)
 pnpm exec vitest run           # passe unique (CI)
 pnpm exec vitest --coverage    # avec coverage
 pnpm exec vitest related src/lib/mailer.ts  # tests couvrant ce fichier
-pnpm exec vitest -t "sendContact"  # filtrer par nom de test
+pnpm exec vitest -t "submitContact"  # filtrer par nom de test
 ```
 
 ### Points Importants

@@ -1,7 +1,7 @@
 ---
 title: "ADR-011 — Stockage assets : volumes Docker (MVP) → Cloudflare R2 (post-MVP)"
 status: "accepted"
-description: "Décision actée : volumes Docker pour le MVP, migration vers Cloudflare R2 lors de l'implémentation du dashboard upload"
+description: "Décision actée : volumes Docker pour le MVP, migration vers Cloudflare R2 lors de l'implémentation de l'upload depuis l'espace admin"
 date: "2026-03-31"
 keywords: ["architecture", "adr", "storage", "assets", "docker", "cloudflare-r2"]
 scope: ["docs", "architecture"]
@@ -37,7 +37,7 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 **Inconvénients :**
 - Non adapté si le volume de fichiers grossit significativement
 - Pas de CDN, performance dégradée pour des assets lourds servis depuis le VPS IONOS
-- Upload d'assets via dashboard admin nécessite la gestion du volume Docker (montage, chemins)
+- Upload d'assets via l'espace admin nécessite la gestion du volume Docker (montage, chemins)
 - Backup à gérer manuellement, si le volume est perdu (crash disque, manipulation), les assets sont irrécupérables sans stratégie de sauvegarde explicite
 - Incompatible avec un déploiement multi-instance (volumes non partagés entre replicas)
 
@@ -86,7 +86,7 @@ Où stocker les assets publics du portfolio, en tenant compte du budget, de la s
 
 Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV PDF, screenshots projets). Cohérent avec la philosophie self-hosted.
 
-**Migration post-MVP vers Option B (Cloudflare R2) :** déclenchée par l'implémentation de l'upload d'assets depuis le dashboard admin. À ce moment, la gestion des chemins de volume Docker devient complexe et R2 (SDK S3-compatible, free tier 10 Go, zéro frais de sortie) est la solution naturelle. L'Option C (Minio self-hosted) reste envisageable mais R2 est préféré : zéro opération supplémentaire sur le VPS, free tier largement suffisant.
+**Migration post-MVP vers Option B (Cloudflare R2) :** déclenchée par l'implémentation de l'upload d'assets depuis l'espace admin. À ce moment, la gestion des chemins de volume Docker devient complexe et R2 (SDK S3-compatible, free tier 10 Go, zéro frais de sortie) est la solution naturelle. L'Option C (Minio self-hosted) reste envisageable mais R2 est préféré : zéro opération supplémentaire sur le VPS, free tier largement suffisant.
 
 ---
 
@@ -117,7 +117,7 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 - Prod Docker : volume `assets_data` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` dans les variables Dokploy
 - Le volume Docker persiste entre les redéploiements, remplacer le container ne supprime pas les fichiers
 
-**Trigger migration vers R2 :** dès l'implémentation de l'upload depuis le dashboard admin. R2 est préféré à Minio : zéro service à opérer, free tier 10 Go, zéro frais de sortie (egress), SDK S3-compatible.
+**Trigger migration vers R2 :** dès l'implémentation de l'upload depuis l'espace admin. R2 est préféré à Minio : zéro service à opérer, free tier 10 Go, zéro frais de sortie (egress), SDK S3-compatible.
 
 Voir ADR-005 pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
 

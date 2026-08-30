@@ -65,5 +65,5 @@ scope: ["docs", "legal"]
 
 ## Notes
 
-- Mettre à jour à chaque nouveau traitement (dashboard, chatbot, analytics).
+- Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).
 - Durées « À définir » à fixer par le responsable de traitement.

@@ -10,7 +10,7 @@ technologies: ["Next.js", "TypeScript"]
 
 # 🎯 Contexte
 
-Projet portfolio personnel full-stack développé par une seule personne. Besoin d'un site public (présentation, projets, contact) et d'un dashboard admin futur (gestion contenu). Budget limité, priorité à la livraison rapide d'un MVP fonctionnel.
+Projet portfolio personnel full-stack développé par une seule personne. Besoin d'un site public (présentation, projets, contact) et d'un espace admin futur (gestion contenu). Budget limité, priorité à la livraison rapide d'un MVP fonctionnel.
 
 ---
 
@@ -83,4 +83,4 @@ Choix naturel pour un projet solo avec Next.js App Router. La colocation Server 
 
 # 📝 Notes complémentaires
 
-La séparation logique est maintenue via les route groups `(public)/` et `(admin)/` et la structure `src/server/`. Cette architecture peut évoluer sans refonte si un backend séparé devenait nécessaire.
+La séparation logique est maintenue via le route group `(public)/` sous `[locale]/`, le segment `admin/` à la racine de `app/` (voir [ADR-021](021-routing-espace-admin.md)) et la structure `src/server/`. Cette architecture peut évoluer sans refonte si un backend séparé devenait nécessaire.

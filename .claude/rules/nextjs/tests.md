@@ -22,7 +22,7 @@ paths:
 
 ## Gotchas
 - **SMTP doit toujours être mocké** dans les tests d'intégration (les appels nodemailer ne sont jamais réels) — voir `nodemailer/email.md` pour le pattern de mock du transporter
-- **Tests E2E (Playwright)** : non prévus pour le MVP, à ajouter post-MVP si le dashboard devient complexe
+- **Tests E2E (Playwright)** : non prévus pour le MVP, à ajouter post-MVP si l'espace admin devient complexe
 
 ## Exemples
 ```typescript

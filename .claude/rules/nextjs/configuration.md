@@ -64,7 +64,7 @@ const nextConfig = {
     "module": "esnext",
     "moduleResolution": "bundler",
     "strict": true,
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
@@ -78,10 +78,10 @@ import { z } from 'zod'
 
 export const env = createEnv({
   server: { DATABASE_URL: z.url() },
-  client: { NEXT_PUBLIC_APP_URL: z.url() },
+  client: { NEXT_PUBLIC_SITE_URL: z.url() },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

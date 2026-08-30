@@ -10,7 +10,7 @@ paths:
 - **Composants dans `src/components/aceternity/`** (recommandation projet, cohérent avec `src/components/magicui/`) — customiser via le flag `-p src/components/aceternity` ou les `aliases` dans `components.json`
 - Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy) — installé automatiquement par le CLI
 - Toujours **`'use client'`** sur les composants qui consomment Aceternity : utilisent `useState`, `useEffect`, `useRef`, intersection observer, détection souris
-- **Réservé aux surfaces marketing du site public** (DESIGN.md) : hero, sections clés, transitions visuelles — **JAMAIS** dans le dashboard admin
+- **Réservé aux surfaces marketing du site public** (DESIGN.md) : hero, sections clés, transitions visuelles. **JAMAIS** dans l'espace admin
 - **Périmètre projet** : voir [DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour la répartition exacte entre Aceternity UI, Magic UI et shadcn/ui, et les catégories autorisées pour ce projet
 - **Limiter à 2-3 effets maximum par page** (DESIGN.md) : éviter la surcharge visuelle et la distraction
 - **Intensité subtile** (DESIGN.md) : durée 200-400ms, easing `ease-out` (entrées) ou `ease-in-out` (transitions), intention = renforcer la qualité sans distraire le contenu
@@ -22,7 +22,7 @@ paths:
 - Garder **`framer-motion`** comme dépendance : **déprécié**, utiliser **`motion` v12+** (incompatible avec React 19 sans overrides)
 - Dupliquer **`cn()`** à chaque composant : déjà dans `src/lib/utils.ts` (partagé avec shadcn/ui et Magic UI)
 - **Surcharger** tout le site d'effets Aceternity : sobriété recommandée par DESIGN.md (2-3 effets max par page)
-- Utiliser Aceternity dans le **dashboard admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
+- Utiliser Aceternity dans l'**espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
 - Oublier **`'use client'`** dans le composant parent qui consomme Aceternity
 
 ## Gotchas
@@ -45,7 +45,7 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background -p src/components/acete
 
 ```typescript
 // ✅ Server Component parent + îlot Client pour Aceternity
-// src/app/(public)/page.tsx — Server Component
+// src/app/[locale]/(public)/page.tsx — Server Component
 export default function HomePage() {
   return (
     <main>
@@ -54,7 +54,7 @@ export default function HomePage() {
   )
 }
 
-// src/components/features/hero-section.tsx — Client Component
+// src/components/features/home/HeroSection.tsx — Client Component
 'use client'
 export function HeroSection() {
   return (
