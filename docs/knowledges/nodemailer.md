@@ -63,14 +63,14 @@ export const transporter: Transporter = nodemailer.createTransport({
 import { z } from 'zod'
 import { transporter } from '@/lib/mailer'
 
-const ContactSchema = z.object({
+const contactSchema = z.object({
   name: z.string().min(1),
   email: z.email(),
   message: z.string().min(1),
 })
 
-export async function sendContact(prevState: unknown, formData: FormData) {
-  const result = ContactSchema.safeParse(Object.fromEntries(formData))
+export async function submitContact(prevState: unknown, formData: FormData) {
+  const result = contactSchema.safeParse(Object.fromEntries(formData))
   if (!result.success) {
     return { errors: result.error.flatten().fieldErrors }
   }
@@ -79,7 +79,7 @@ export async function sendContact(prevState: unknown, formData: FormData) {
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
-    to: process.env.CONTACT_TO,
+    to: process.env.MAIL_TO,
     replyTo: email,
     subject: `Contact portfolio — ${name}`,
     text: message,
@@ -110,10 +110,10 @@ Nodemailer utilise les APIs Node.js (`net`, `tls`, `dns`) non disponibles dans l
 // Appel depuis un Client Component
 'use client'
 import { useActionState } from 'react'
-import { sendContact } from '@/server/actions/contact'
+import { submitContact } from '@/server/actions/contact'
 
 export function ContactForm() {
-  const [state, formAction, pending] = useActionState(sendContact, null)
+  const [state, formAction, pending] = useActionState(submitContact, null)
 
   return (
     <form action={formAction}>
@@ -152,7 +152,7 @@ SMTP_PORT=587
 SMTP_USER=contact@thibaud-geisler.com
 SMTP_PASS=••••••••••
 SMTP_FROM="Portfolio <contact@thibaud-geisler.com>"
-CONTACT_TO=thibaud@thibaud-geisler.com
+MAIL_TO=thibaud@thibaud-geisler.com
 ```
 
 ### Points Importants

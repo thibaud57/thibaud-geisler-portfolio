@@ -10,7 +10,7 @@ paths:
 
 ## À faire
 - Exporter un **logger singleton** depuis `src/lib/logger.ts` et le réutiliser dans tout le code serveur (évite la multiplication des transports sous-jacents)
-- Définir le niveau via env var avec fallback `debug` en dev et `info` en prod : `level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info')`
+- Définir le niveau depuis `env` (`@/env`, t3-env) avec fallback `debug` en dev et `info` en prod : `level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info')`. Seul `NODE_ENV` se lit sur `process.env`, il n'est pas dans le schéma
 - Activer le transport `pino-pretty` **uniquement en dev**, output JSON brut en prod (capturé par Dokploy stdout)
 - Créer un **child logger par Server Action / requête** avec bindings statiques (`action`, `requestId: crypto.randomUUID()`) pour tracer le flow d'exécution
 - Logger les erreurs avec `err` en **premier argument** : `logger.error({ err }, 'message')` — Pino capture automatiquement `message`, `stack`, `type`

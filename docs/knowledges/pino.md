@@ -68,9 +68,9 @@ Un child logger hérite de la config du parent et ajoute des bindings statiques 
 'use server'
 import { logger } from '@/lib/logger'
 
-export async function sendContact(prev: unknown, formData: FormData) {
+export async function submitContact(prev: unknown, formData: FormData) {
   const reqLogger = logger.child({
-    action: 'sendContact',
+    action: 'submitContact',
     requestId: crypto.randomUUID(),
   })
 

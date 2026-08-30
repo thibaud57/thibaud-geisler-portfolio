@@ -1,6 +1,6 @@
 ---
 title: "Prisma ORM — Type-safe database toolkit"
-version: "7.7.0"
+version: "7.10.0"
 description: "Référence technique pour Prisma 7 : schéma, driver adapter PostgreSQL, migrations et queries type-safe."
 date: "2026-04-13"
 keywords: ["prisma", "orm", "postgresql", "migrations", "type-safe"]
@@ -10,7 +10,7 @@ technologies: ["PostgreSQL", "Next.js", "TypeScript"]
 
 # Description
 
-`Prisma` 7 est l'ORM TypeScript du portfolio, utilisé pour accéder à PostgreSQL (projets, assets, leads post-MVP). La v7 rend le client Rust-free (TypeScript pur, 90% plus léger, 3x plus rapide), impose les driver adapters (pour PostgreSQL : `@prisma/adapter-pg`), passe en ESM-only, ne charge plus `.env` automatiquement au runtime, et centralise la config dans `prisma.config.ts`.
+`Prisma` 7 est l'ORM TypeScript du portfolio, utilisé pour accéder à PostgreSQL (projets, tags, leads post-MVP). La v7 rend le client Rust-free (TypeScript pur, 90% plus léger, 3x plus rapide), impose les driver adapters (pour PostgreSQL : `@prisma/adapter-pg`), passe en ESM-only, ne charge plus `.env` automatiquement au runtime, et centralise la config dans `prisma.config.ts`.
 
 ---
 
@@ -24,8 +24,9 @@ Le fichier `prisma/schema.prisma` définit les modèles, relations et la datasou
 
 ### Exemple
 
+Extrait illustratif, volontairement réduit. Le schéma réel du projet est `prisma/schema.prisma`, avec ses champs bilingues et ses relations complètes.
+
 ```prisma
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -41,22 +42,29 @@ model Project {
   title       String
   description String
   content     String
-  stack       String[]
   githubUrl   String?
   demoUrl     String?
   type        ProjectType
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  assets      Asset[]
+
+  coverFilename String?
+  tags          ProjectTag[]
 }
 
-model Asset {
-  id        String   @id @default(uuid(7))
-  filename  String
-  mimeType  String
-  project   Project? @relation(fields: [projectId], references: [id])
-  projectId String?
-  createdAt DateTime @default(now())
+model Tag {
+  id       String       @id @default(uuid(7))
+  slug     String       @unique
+  projects ProjectTag[]
+}
+
+model ProjectTag {
+  projectId String
+  tagId     String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Restrict)
+
+  @@id([projectId, tagId])
 }
 
 enum ProjectType {
@@ -96,6 +104,7 @@ export default defineConfig({
   },
   migrations: {
     path: 'prisma/migrations',
+    // En production le seed est pré-bundlé, voir `prisma.config.ts` du projet
     seed: 'tsx prisma/seed.ts',
   },
 })
@@ -162,32 +171,32 @@ Prisma génère des types TypeScript stricts pour tous les modèles. Les queries
 // src/server/queries/projects.ts
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@/generated/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 
-export async function getProjects() {
+export async function findManyPublished() {
   return prisma.project.findMany({
-    orderBy: { createdAt: 'desc' },
+    where: { status: 'PUBLISHED' },
+    orderBy: { displayOrder: 'asc' },
     select: {
       id: true,
       slug: true,
       title: true,
       description: true,
-      stack: true,
       type: true,
     },
   })
 }
 
-export async function getProjectBySlug(slug: string) {
-  return prisma.project.findUnique({
-    where: { slug },
-    include: { assets: true },
+export async function findPublishedBySlug(slug: string) {
+  return prisma.project.findFirst({
+    where: { slug, status: 'PUBLISHED' },
+    include: { tags: { include: { tag: true } } },
   })
 }
 
 // Type avec relations incluses
-type ProjectWithAssets = Prisma.ProjectGetPayload<{
-  include: { assets: true }
+type ProjectWithTags = Prisma.ProjectGetPayload<{
+  include: { tags: { include: { tag: true } } }
 }>
 ```
 
@@ -229,7 +238,6 @@ async function main() {
         title: 'Projet exemple',
         description: 'Description courte',
         content: '## Contexte\n...',
-        stack: ['Next.js', 'Prisma'],
         type: 'PERSONAL',
       },
     ],

@@ -11,7 +11,7 @@ paths:
 - Faire les queries DB/API directement dans les Server Components `async`, pas de layer API intermédiaire
 - Wrapper toute query DB/API avec **`'use cache'`** (Next 16 stable, requiert `cacheComponents: true`) + `cacheLife()` + `cacheTag()` pour participer au Data Cache et être inclus dans le static shell au prerender
 - Utiliser `Promise.all()` pour paralléliser les fetches indépendants (éviter waterfalls TTFB)
-- Pour les routes dynamiques `/[slug]`, exporter **`generateStaticParams`** qui retourne tous les slugs publics au build → tous prerendered en `◐ Partial Prerender`. **Requiert que la DB soit accessible au build** (sinon `EmptyGenerateStaticParamsError`)
+- Pour les routes dynamiques `/[slug]`, `generateStaticParams` retourne tous les slugs publics au build → tous prerendered en `◐ Partial Prerender`. **Requiert que la DB soit accessible au build** (sinon `EmptyGenerateStaticParamsError`). Optionnel avec `cacheComponents: true`, voir l'arbitrage dans `.claude/rules/nextjs/routing.md`
 - `await cookies()`, `await headers()`, `await draftMode()`, `await searchParams`, `await params` : APIs async, hard error si sync en Next 16
 - Utiliser `after(callback)` importé depuis `next/server` pour logging/analytics non bloquants après la réponse
 - Ajouter `import 'server-only'` en haut de tout module qui accède à Prisma (garde-fou : erreur si importé dans un Client Component)
@@ -85,8 +85,8 @@ export async function generateStaticParams() {
 }
 
 export default async function Page({ params }) {
-  const { slug } = await params
-  const project = await findPublishedBySlug(slug) // 'use cache' interne
+  const { locale, slug } = await params
+  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne, locale dans la clé de cache
   return <CaseStudy project={project} />
 }
 ```

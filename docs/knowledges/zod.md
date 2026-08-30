@@ -28,13 +28,13 @@ Définir un schéma Zod fournit à la fois un validateur runtime et un type Type
 // src/lib/schemas/contact.ts
 import { z } from 'zod'
 
-export const ContactSchema = z.object({
+export const contactSchema = z.object({
   name: z.string().min(1, 'Nom requis').max(100),
   email: z.email('Email invalide'),
   message: z.string().min(10, 'Message trop court').max(5000),
 })
 
-export type ContactInput = z.infer<typeof ContactSchema>
+export type ContactInput = z.infer<typeof contactSchema>
 ```
 
 ### Points Importants
@@ -57,11 +57,11 @@ export type ContactInput = z.infer<typeof ContactSchema>
 ```ts
 // src/server/actions/contact.ts
 'use server'
-import { ContactSchema } from '@/lib/schemas/contact'
+import { contactSchema } from '@/lib/schemas/contact'
 import { transporter } from '@/lib/mailer'
 
-export async function sendContact(_prev: unknown, formData: FormData) {
-  const result = ContactSchema.safeParse(Object.fromEntries(formData))
+export async function submitContact(_prev: unknown, formData: FormData) {
+  const result = contactSchema.safeParse(Object.fromEntries(formData))
 
   if (!result.success) {
     return { errors: result.error.flatten().fieldErrors }
@@ -69,7 +69,7 @@ export async function sendContact(_prev: unknown, formData: FormData) {
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
-    to: process.env.CONTACT_TO,
+    to: process.env.MAIL_TO,
     replyTo: result.data.email,
     subject: `Contact portfolio — ${result.data.name}`,
     text: result.data.message,
@@ -97,7 +97,7 @@ En v4, les validateurs de format string sont promus en schémas indépendants to
 ### Exemple
 
 ```ts
-const ContactSchema = z.object({
+const contactSchema = z.object({
   email: z.email(),              // ex z.string().email()
   website: z.url().optional(),
   userId: z.uuid(),              // RFC 4122 strict
@@ -124,29 +124,32 @@ Pattern fail-fast : valider `process.env` au démarrage de l'application pour d�
 ### Exemple
 
 ```ts
-// src/lib/env.ts
+// src/env.ts
+import { createEnv } from '@t3-oss/env-nextjs'
 import { z } from 'zod'
 
-const EnvSchema = z.object({
-  DATABASE_URL: z.url(),
-  SMTP_HOST: z.string().min(1),
-  SMTP_PORT: z.coerce.number().int().positive(),
-  SMTP_USER: z.string().min(1),
-  SMTP_PASS: z.string().min(1),
-  SMTP_FROM: z.string().min(1),
-  CONTACT_TO: z.email(),
-  NODE_ENV: z.enum(['development', 'production', 'test']),
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.url(),
+    SMTP_HOST: z.string().min(1),
+    SMTP_PORT: z.coerce.number().int().positive(),
+    MAIL_TO: z.email(),
+    IP_HASH_SALT: z.string().min(16),
+  },
+  client: {
+    NEXT_PUBLIC_SITE_URL: z.url(),
+  },
+  runtimeEnv: { /* mapping explicite vers process.env */ },
+  skipValidation: process.env.SKIP_ENV_VALIDATION === 'true',
 })
-
-export const env = EnvSchema.parse(process.env)
 ```
 
 ### Points Importants
 
 - `z.coerce.number()` convertit les strings en nombres (toutes les env vars sont des strings)
-- Utiliser `parse` (pas `safeParse`) ici : on veut crasher au démarrage si invalide
-- Ne jamais typer `process.env` à la main : laisser Zod inferer
-- Pour le portfolio : placer dans `src/lib/env.ts`, importer partout où des env vars sont lues
+- `@t3-oss/env-nextjs` sépare `server` et `client` : une variable serveur importée depuis un Client Component échoue au build
+- Validation fail-fast au boot, contournée par `SKIP_ENV_VALIDATION=true` pour le build CI/Docker et Vitest
+- Une exception dans le projet : `ASSETS_PATH` reste lu directement sur `process.env`, lecture dynamique avec fallback (voir `.claude/rules/nextjs/assets.md`)
 
 ---
 

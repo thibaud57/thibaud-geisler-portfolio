@@ -1,10 +1,10 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-04-13"
+date: "2026-08-29"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "Umami"]
 ---
 
 # Vue d'ensemble
@@ -24,7 +24,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | 4 | Next.js | `16.3.3` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`) |
 | 5 | React | `19.2.8` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19 |
 | 6 | Tailwind CSS | `4.3.3` | ✅ | CSS-first config, utilitaires renommés |
-| 7 | shadcn/ui (CLI) | `shadcn@4.19.0` | ✅ | Composants copiés localement, style `new-york` |
+| 7 | shadcn/ui (CLI) | `shadcn@4.19.0` | ✅ | Composants copiés localement, style `radix-nova` |
 | 8 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | 9 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
 | 10 | next-themes | `0.4.6` | ✅ | Dark/light mode, `suppressHydrationWarning` requis |
@@ -80,8 +80,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 33 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
-| 34 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 33 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
 
 ---
 
@@ -284,21 +283,21 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 **Compatibilité Écosystème** :
 - Next.js 16 : ✅
-- shadcn/ui : ✅ (mis à jour pour Tailwind v4, `new-york` par défaut)
+- shadcn/ui : ✅ (mis à jour pour Tailwind v4)
 - Magic UI : ✅ (Tailwind v4 par défaut depuis avril 2025)
 - Aceternity UI : ✅ (Tailwind v4 standard documenté)
 
-**Recommandation** : ✅ Tailwind CSS 4.2.2 avec `@tailwindcss/postcss`.
+**Recommandation** : ✅ Tailwind CSS 4.3.3 avec `@tailwindcss/postcss`.
 
 ### 7. shadcn/ui
 
-**Version actuelle** : `shadcn@4.2.0` (CLI)
+**Version actuelle** : `shadcn@4.19.0` (CLI)
 **Stabilité** : ✅
 
 shadcn/ui n'est pas une lib npm classique, les composants sont copiés localement dans le projet.
 
 **Breaking Changes Majeurs** :
-- Style par défaut : **new-york** (ancien style "default" déprécié)
+- Nouveau système de styles, format `{base}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera` et `rhea`, sur les bases `radix` ou `base`. Ils s'ajoutent à `new-york`, qui reste le style par défaut du CLI ; seul `default` est déprécié. Style retenu par le projet : voir `DESIGN.md` § Style shadcn
 - Composants mis à jour pour React 19 (`forwardRef` retiré)
 - Couleurs en OKLCH (à la place de HSL)
 - `tailwindcss-animate` remplacé par `tw-animate-css`
@@ -604,7 +603,6 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - Prisma 7 : ✅ (support officiel depuis Prisma 7.2.0+)
 - pgvector 0.8.2 : ✅ (post-MVP)
 - Docker : ✅ (`postgres:18`, `postgres:18-alpine`, `postgres:18.3`)
-- n8n 2.15 : ⚠️ doc officielle limite à PG 17 (non testé sur PG 18)
 - Umami 3 : ⚠️ issue #3888 ouverte avec PG 17.6 (vérifier PG 18)
 
 **Recommandation** : ✅ PostgreSQL 18.3. Vérifier le chemin du volume Docker.
@@ -643,11 +641,11 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 **Issues connues & gotchas** :
 - **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts`, recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
 - **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). Issue active : la résolution du module WASM `query_compiler_fast_bg.postgresql.mjs` échoue en build Turbopack avec le provider `prisma-client` v7. **Workaround** : opt-out via `next build --webpack` dans le Dockerfile/CI jusqu'à correction upstream. Surveiller l'état de l'issue avant chaque upgrade.
-- **CI/CD avec build séparé du déploiement** (issue #29025) : si tu buildes en CI puis déploies les artifacts ailleurs en relançant `prisma generate`, hash mismatch possible. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Dokploy build directement sur le serveur**, donc non concerné.
-- **Server Components** : après upgrade v6→v7, ajouter `await buildOnlyConnection()` (helper projet, [src/lib/build-only-connection.ts](../src/lib/build-only-connection.ts)) au top de chaque Server Component async wrappé sous `<Suspense>` qui appelle des queries `'use cache'` (workaround conditionnel build-only pour `ECONNREFUSED` Dokploy/BuildKit, voir `.claude/rules/nextjs/data-fetching.md`). **Ne pas** appeler `connection()` directement au runtime avec `cacheComponents: true` (crée Activity boundaries → `HierarchyRequestError` au reveal sur pages multi-Suspense)
+- **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible quand `prisma generate` est relancé au déploiement, sur une machine ou une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Le projet n'est pas concerné** : le `prisma generate` du runner GitHub Actions (déclenché par `postinstall` lors du `pnpm install` qui précède `migrate deploy`) ne sort jamais de la CI, `.dockerignore` excluant `node_modules` et `src/generated`. Le seul client embarqué est celui du stage `deps` du Dockerfile, réutilisé tel quel par le builder et le runner sur la même base `node:24-alpine`. Dokploy reçoit un `compose.redeploy` et ne régénère rien. À revérifier si `.dockerignore` change ou si le déploiement cesse d'être en pull-only.
+- **Server Components + `'use cache'` au prerender** : la base doit être joignable au build. Assuré structurellement par le build GitHub Actions avec service Postgres éphémère et buildx en `network=host` (`.github/workflows/deploy.yml`), Dokploy restant en pull-only. Voir `.claude/rules/nextjs/data-fetching.md`. **Ne pas** appeler `connection()` directement au runtime avec `cacheComponents: true` (crée des Activity boundaries → `HierarchyRequestError` au reveal sur pages multi-Suspense)
 - **`postinstall: "prisma generate"`** obligatoire dans `package.json` (convention standard Prisma)
 
-**Recommandation** : ✅ Prisma 7.7.0 avec le guide officiel `prisma/nextjs-auth-starter`. **Ne pas upgrader Prisma et Next.js simultanément** (règle PRODUCTION.md).
+**Recommandation** : ✅ Prisma 7.10.0 avec le guide officiel `prisma/nextjs-auth-starter`. **Ne pas upgrader Prisma et Next.js simultanément** (règle PRODUCTION.md).
 
 ### 19. pgvector (post-MVP)
 
@@ -716,7 +714,7 @@ export default defineConfig({
 })
 ```
 
-**Recommandation** : ✅ Better Auth 1.6.2 utilisable dès l'implémentation du dashboard post-MVP. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
+**Recommandation** : ✅ Better Auth 1.6.2 utilisable dès l'implémentation de l'espace admin post-MVP. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
 
 ## Infrastructure
 
@@ -848,7 +846,7 @@ export default defineConfig({
 - **Rclone / clients S3** : restent compatibles, mais toute stratégie dépendant du versioning S3 natif ne fonctionne pas
 
 **Nouvelles Features Pertinentes** :
-- **Object Lifecycle Management** (GA depuis **mai 2023**) : règles natives dans le dashboard pour expirer les objets après N jours et abandonner les uploads multipart incomplets. **Pas** de transition entre classes de stockage via lifecycle rule
+- **Object Lifecycle Management** (GA depuis **mai 2023**) : règles natives dans le dashboard Cloudflare R2 pour expirer les objets après N jours et abandonner les uploads multipart incomplets. **Pas** de transition entre classes de stockage via lifecycle rule
 - **Infrequent Access storage class** (beta mai 2024) : `$0.01/GB-mois` stockage, `$0.01/GB` retrieval, durée minimale 30 jours
 - **Event Notifications** (GA **26 septembre 2024**) : attention, ce ne sont **pas** des webhooks directs. Les notifications passent par Cloudflare Queues → Consumer Worker (pas d'endpoint externe sans Worker)
 - **Bucket Locks** (**6 mars 2025**) : rétention au niveau bucket/préfixe (durée définie, jusqu'à date précise, ou indéfini). Jusqu'à 1 000 règles par bucket. **Ce n'est PAS** le S3 Object Lock WORM natif (pas de mode Compliance/Governance, pas de `x-amz-object-lock-*`)
@@ -879,34 +877,7 @@ export default defineConfig({
 
 ## Services externes (post-MVP)
 
-### 26. n8n (self-hosted)
-
-**Version actuelle** : `2.15.1`
-**Stabilité** : ✅
-
-**Breaking Changes Majeurs (v1 → v2)** :
-- **MySQL et MariaDB supprimés**, PostgreSQL obligatoire en production
-- SQLite legacy supprimé (déconseillé en prod)
-- Mode binaire en mémoire supprimé
-- Task runner retiré de l'image Docker principale → image séparée `n8nio/runners`
-- Node Python (Pyodide) supprimé
-- `--tunnel` CLI supprimé
-- Node Start supprimé
-- Nodes `ExecuteCommand` et `LocalFileTrigger` désactivés par défaut
-- Accès aux variables d'env depuis Code Nodes bloqué par défaut
-
-**Nouvelles Features Pertinentes** :
-- v2.15 : endpoints archivage workflows, canvas-only mode, OpenTelemetry workflow tracing
-- v2.14 : correctifs OAuth/SSO, optimisation cache webhook
-
-**Compatibilité Écosystème** :
-- PostgreSQL 13-17 : ✅ (à confirmer pour PG 18)
-- Node.js 20.19 à 24.x : ✅ (via image Docker)
-- Docker : ✅ (image `n8nio/n8n` + sidecar `n8nio/runners` si Python/Code Nodes)
-
-**Recommandation** : ✅ n8n 2.15.1 avec une **base PostgreSQL dédiée** (pas celle du portfolio). Valider PG 18 en staging avant déploiement post-MVP.
-
-### 27. Umami Analytics (self-hosted)
+### 26. Umami Analytics (self-hosted)
 
 **Version actuelle** : `3.0.3`
 **Stabilité** : ✅
@@ -980,7 +951,6 @@ import Script from 'next/script'
 | Docker Compose v5 | Dokploy 0.28.8 | ✅ | Syntaxe `docker compose` (plus de `docker-compose`) |
 | Dokploy 0.28.8 | Traefik 3.5 | ✅ | Upgrade Traefik non automatique |
 | PostgreSQL 18.3 | pgvector 0.8.2 | ✅ | Support PG 18 depuis 0.8.1 |
-| PostgreSQL 18.3 | n8n 2.15.1 | ⚠️ | PG 18 non officiellement testé (doc n8n : PG 13-17) |
 | PostgreSQL 18.3 | Umami 3.0.3 | ⚠️ | Issue #3888 ouverte avec PG 17.6, vérifier PG 18 |
 
 ---
@@ -997,7 +967,6 @@ import Script from 'next/script'
 | next-intl + `use cache` (Next 16.0/16.1) | 🟡 Moyen | Utiliser Next.js >= 16.2.4 (version cible du projet) |
 | TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS, migrer les `require()` si présents |
 | Umami + PostgreSQL 18 | 🟡 Moyen | Valider en staging avant prod post-MVP (issue #3888 sur PG 17.6) |
-| n8n + PostgreSQL 18 | 🟡 Moyen | Doc officielle limite à PG 17, tester avant prod post-MVP |
 | Docker 29 + Dokploy | 🟡 Moyen | Vérifier que Dokploy est à jour avant d'upgrader Docker |
 | Better Auth + `use cache` (Next.js 16) | 🟢 Faible | Extraire les cookies via `(await cookies()).toString()` **avant** le scope cache, passer en argument à `getServerSession` (Issue #5584) |
 | Prisma 7 + Turbopack build (défaut Next 16) | 🟡 Moyen | Turbopack est le **défaut** de `next build` en Next 16. Issue WASM active avec `prisma-client` v7 : opt-out via `next build --webpack` dans le Dockerfile jusqu'à correction upstream |
@@ -1241,7 +1210,7 @@ pnpm db:generate
 # 3. Initialiser la base de données
 pnpm db:migrate
 
-# 4. Initialiser shadcn/ui (style new-york, Tailwind v4)
+# 4. Initialiser shadcn/ui (style radix-nova, Tailwind v4)
 pnpm dlx shadcn@latest init
 
 # 5. Ajouter des composants Magic UI / Aceternity UI au besoin
@@ -1278,8 +1247,8 @@ pnpm test
 - [ ] Dokploy >= 0.28.8 + script de sécurité v0.26.6 exécuté
 - [ ] Registre externe Docker configuré pour les rollbacks Dokploy (v0.26+)
 - [ ] Si pgvector activé : version >= 0.8.2 (CVE-2026-3172)
-- [ ] Better Auth : `DATABASE_URL` via `process.env` au runtime Next (pas d'action requise, chargement auto) + workaround `cookies()` avant `use cache` si dashboard cache activé
-- [ ] n8n / Umami post-MVP : base PostgreSQL dédiée (pas celle du portfolio), validation PG 18 en staging
+- [ ] Better Auth : `DATABASE_URL` via `process.env` au runtime Next (pas d'action requise, chargement auto) + workaround `cookies()` avant `use cache` si cache activé sur l'espace admin
+- [ ] Umami post-MVP : base PostgreSQL dédiée (pas celle du portfolio), validation PG 18 en staging
 - [ ] Build Docker : utiliser `next build --webpack` (opt-out Turbopack) tant que l'issue Prisma 7 WASM n'est pas corrigée upstream
 
 ---
@@ -1302,7 +1271,7 @@ Ces mises à jour majeures ont été testées puis écartées. Ne pas les rejoue
 
 # Recommandation Finale
 
-Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreSQL fonctionne en setup standard (le starter officiel `prisma/nextjs-auth-starter` valide la combo). Les gotchas principaux sont des points de configuration (chargement `.env`, `serverExternalPackages` Pino, `postinstall prisma generate`), pas des bugs bloquants. Les services post-MVP (n8n, Umami) avec PostgreSQL 18 nécessitent une validation staging compte tenu du décalage de support officiel.
+Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreSQL fonctionne en setup standard (le starter officiel `prisma/nextjs-auth-starter` valide la combo). Les gotchas principaux sont des points de configuration (chargement `.env`, `serverExternalPackages` Pino, `postinstall prisma generate`), pas des bugs bloquants. Umami, prévu post-MVP, demande une validation staging sur PostgreSQL 18 compte tenu du décalage de support officiel.
 
 ## Points Critiques
 
@@ -1310,7 +1279,7 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 2. **nodemailer** : v9 depuis le 25 août 2026. La CVE CRLF (GHSA-vvjj-xcjg-gr5g) est corrigée depuis 8.0.5, ne jamais déployer une version antérieure
 3. **pgvector CVE-2026-3172** : pinner >= 0.8.2 dès l'activation du RAG
 4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, la cause principale de l'erreur P1010 "User was denied access"
-5. **Umami + n8n + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (bases séparées de celle du portfolio)
+5. **Umami + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (base séparée de celle du portfolio)
 6. **Dokploy 0.26+** : rollbacks registry-based, configurer un registre externe (Docker Hub / GHCR) dès le MVP pour garder la fonctionnalité
 7. **Pino + Next.js App Router** : `serverExternalPackages: ['pino', 'pino-pretty']` obligatoire dans `next.config.ts`
 
@@ -1395,8 +1364,6 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 
 ### Services externes (post-MVP)
 
-- [n8n : Self-hosting Docker](https://docs.n8n.io/hosting/installation/docker/)
-- [n8n v2.0 Breaking Changes](https://docs.n8n.io/2-0-breaking-changes/)
 - [Umami : Installation](https://docs.umami.is/docs/install)
 - [Umami v3 Blog](https://umami.is/blog/umami-v3)
 
