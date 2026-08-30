@@ -4,7 +4,7 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-08-29"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "n8n", "Umami"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "pgvector", "Better Auth", "Docker", "Docker Compose", "Dokploy", "GitHub Actions", "Cloudflare R2", "Umami"]
 ---
 
 # Vue d'ensemble
@@ -80,8 +80,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | # | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|---|
-| 33 | n8n (self-hosted) | `2.15.1` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
-| 34 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
+| 33 | Umami (self-hosted) | `3.0.3` | ✅ | PostgreSQL obligatoire (MySQL supprimé) |
 
 ---
 
@@ -604,7 +603,6 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 - Prisma 7 : ✅ (support officiel depuis Prisma 7.2.0+)
 - pgvector 0.8.2 : ✅ (post-MVP)
 - Docker : ✅ (`postgres:18`, `postgres:18-alpine`, `postgres:18.3`)
-- n8n 2.15 : ⚠️ doc officielle limite à PG 17 (non testé sur PG 18)
 - Umami 3 : ⚠️ issue #3888 ouverte avec PG 17.6 (vérifier PG 18)
 
 **Recommandation** : ✅ PostgreSQL 18.3. Vérifier le chemin du volume Docker.
@@ -879,34 +877,7 @@ export default defineConfig({
 
 ## Services externes (post-MVP)
 
-### 26. n8n (self-hosted)
-
-**Version actuelle** : `2.15.1`
-**Stabilité** : ✅
-
-**Breaking Changes Majeurs (v1 → v2)** :
-- **MySQL et MariaDB supprimés**, PostgreSQL obligatoire en production
-- SQLite legacy supprimé (déconseillé en prod)
-- Mode binaire en mémoire supprimé
-- Task runner retiré de l'image Docker principale → image séparée `n8nio/runners`
-- Node Python (Pyodide) supprimé
-- `--tunnel` CLI supprimé
-- Node Start supprimé
-- Nodes `ExecuteCommand` et `LocalFileTrigger` désactivés par défaut
-- Accès aux variables d'env depuis Code Nodes bloqué par défaut
-
-**Nouvelles Features Pertinentes** :
-- v2.15 : endpoints archivage workflows, canvas-only mode, OpenTelemetry workflow tracing
-- v2.14 : correctifs OAuth/SSO, optimisation cache webhook
-
-**Compatibilité Écosystème** :
-- PostgreSQL 13-17 : ✅ (à confirmer pour PG 18)
-- Node.js 20.19 à 24.x : ✅ (via image Docker)
-- Docker : ✅ (image `n8nio/n8n` + sidecar `n8nio/runners` si Python/Code Nodes)
-
-**Recommandation** : ✅ n8n 2.15.1 avec une **base PostgreSQL dédiée** (pas celle du portfolio). Valider PG 18 en staging avant déploiement post-MVP.
-
-### 27. Umami Analytics (self-hosted)
+### 26. Umami Analytics (self-hosted)
 
 **Version actuelle** : `3.0.3`
 **Stabilité** : ✅
@@ -980,7 +951,6 @@ import Script from 'next/script'
 | Docker Compose v5 | Dokploy 0.28.8 | ✅ | Syntaxe `docker compose` (plus de `docker-compose`) |
 | Dokploy 0.28.8 | Traefik 3.5 | ✅ | Upgrade Traefik non automatique |
 | PostgreSQL 18.3 | pgvector 0.8.2 | ✅ | Support PG 18 depuis 0.8.1 |
-| PostgreSQL 18.3 | n8n 2.15.1 | ⚠️ | PG 18 non officiellement testé (doc n8n : PG 13-17) |
 | PostgreSQL 18.3 | Umami 3.0.3 | ⚠️ | Issue #3888 ouverte avec PG 17.6, vérifier PG 18 |
 
 ---
@@ -997,7 +967,6 @@ import Script from 'next/script'
 | next-intl + `use cache` (Next 16.0/16.1) | 🟡 Moyen | Utiliser Next.js >= 16.2.4 (version cible du projet) |
 | TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS, migrer les `require()` si présents |
 | Umami + PostgreSQL 18 | 🟡 Moyen | Valider en staging avant prod post-MVP (issue #3888 sur PG 17.6) |
-| n8n + PostgreSQL 18 | 🟡 Moyen | Doc officielle limite à PG 17, tester avant prod post-MVP |
 | Docker 29 + Dokploy | 🟡 Moyen | Vérifier que Dokploy est à jour avant d'upgrader Docker |
 | Better Auth + `use cache` (Next.js 16) | 🟢 Faible | Extraire les cookies via `(await cookies()).toString()` **avant** le scope cache, passer en argument à `getServerSession` (Issue #5584) |
 | Prisma 7 + Turbopack build (défaut Next 16) | 🟡 Moyen | Turbopack est le **défaut** de `next build` en Next 16. Issue WASM active avec `prisma-client` v7 : opt-out via `next build --webpack` dans le Dockerfile jusqu'à correction upstream |
@@ -1279,7 +1248,7 @@ pnpm test
 - [ ] Registre externe Docker configuré pour les rollbacks Dokploy (v0.26+)
 - [ ] Si pgvector activé : version >= 0.8.2 (CVE-2026-3172)
 - [ ] Better Auth : `DATABASE_URL` via `process.env` au runtime Next (pas d'action requise, chargement auto) + workaround `cookies()` avant `use cache` si cache activé sur l'espace admin
-- [ ] n8n / Umami post-MVP : base PostgreSQL dédiée (pas celle du portfolio), validation PG 18 en staging
+- [ ] Umami post-MVP : base PostgreSQL dédiée (pas celle du portfolio), validation PG 18 en staging
 - [ ] Build Docker : utiliser `next build --webpack` (opt-out Turbopack) tant que l'issue Prisma 7 WASM n'est pas corrigée upstream
 
 ---
@@ -1302,7 +1271,7 @@ Ces mises à jour majeures ont été testées puis écartées. Ne pas les rejoue
 
 # Recommandation Finale
 
-Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreSQL fonctionne en setup standard (le starter officiel `prisma/nextjs-auth-starter` valide la combo). Les gotchas principaux sont des points de configuration (chargement `.env`, `serverExternalPackages` Pino, `postinstall prisma generate`), pas des bugs bloquants. Les services post-MVP (n8n, Umami) avec PostgreSQL 18 nécessitent une validation staging compte tenu du décalage de support officiel.
+Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreSQL fonctionne en setup standard (le starter officiel `prisma/nextjs-auth-starter` valide la combo). Les gotchas principaux sont des points de configuration (chargement `.env`, `serverExternalPackages` Pino, `postinstall prisma generate`), pas des bugs bloquants. Umami, prévu post-MVP, demande une validation staging sur PostgreSQL 18 compte tenu du décalage de support officiel.
 
 ## Points Critiques
 
@@ -1310,7 +1279,7 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 2. **nodemailer** : v9 depuis le 25 août 2026. La CVE CRLF (GHSA-vvjj-xcjg-gr5g) est corrigée depuis 8.0.5, ne jamais déployer une version antérieure
 3. **pgvector CVE-2026-3172** : pinner >= 0.8.2 dès l'activation du RAG
 4. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, la cause principale de l'erreur P1010 "User was denied access"
-5. **Umami + n8n + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (bases séparées de celle du portfolio)
+5. **Umami + PostgreSQL 18** : compatibilité non officiellement validée, tester en staging avant production post-MVP (base séparée de celle du portfolio)
 6. **Dokploy 0.26+** : rollbacks registry-based, configurer un registre externe (Docker Hub / GHCR) dès le MVP pour garder la fonctionnalité
 7. **Pino + Next.js App Router** : `serverExternalPackages: ['pino', 'pino-pretty']` obligatoire dans `next.config.ts`
 
@@ -1395,8 +1364,6 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 
 ### Services externes (post-MVP)
 
-- [n8n : Self-hosting Docker](https://docs.n8n.io/hosting/installation/docker/)
-- [n8n v2.0 Breaking Changes](https://docs.n8n.io/2-0-breaking-changes/)
 - [Umami : Installation](https://docs.umami.is/docs/install)
 - [Umami v3 Blog](https://umami.is/blog/umami-v3)
 

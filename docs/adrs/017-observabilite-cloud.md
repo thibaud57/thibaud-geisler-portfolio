@@ -12,7 +12,7 @@ technologies: ["Sentry", "Langfuse", "Logfire", "OpenTelemetry", "PydanticAI"]
 
 L'écosystème passe d'une application unique à cinq dépôts, dont trois services Python appelant des modèles de langage. Deux besoins d'observabilité distincts apparaissent : les erreurs applicatives classiques, et la traçabilité des appels LLM (prompts, réponses, appels d'outils, coûts).
 
-La philosophie du projet privilégie le self-hosting, déjà appliquée à PostgreSQL, n8n, WireGuard et Umami. La question est de savoir si elle tient ici.
+La philosophie du projet privilégie le self-hosting, déjà appliquée à PostgreSQL, n8n et WireGuard, et prévue pour Umami. La question est de savoir si elle tient ici.
 
 ---
 
@@ -100,7 +100,7 @@ L'instrumentation vit dans `ai-kit`, via une fonction `setup_telemetry()` que ch
 
 # 📝 Notes complémentaires
 
-**La philosophie self-hosted n'est pas abandonnée**, elle est écartée ici sur un critère mesurable et non par principe. Base de données, automatisation, réseau privé et Umami restent auto-hébergés, l'empreinte d'Umami étant sans commune mesure avec celle des plateformes d'observabilité (voir [ADR-007](007-analytics-umami.md), qui écarte PostHog sur un besoin de ~4 Go quand Umami tourne sur un VPS d'entrée de gamme).
+**La philosophie self-hosted n'est pas abandonnée**, elle est écartée ici sur un critère mesurable et non par principe. Base de données, automatisation et réseau privé restent auto-hébergés, et Umami le sera aussi, son empreinte étant sans commune mesure avec celle des plateformes d'observabilité (voir [ADR-007](007-analytics-umami.md), qui écarte PostHog sur un besoin de ~4 Go quand Umami tourne sur un VPS d'entrée de gamme).
 
 **Ce qui reste hors périmètre du kit** : les tableaux de bord, les seuils d'alerte et les politiques de rétention. Ce sont des choix d'exploitation, pas du code.
 

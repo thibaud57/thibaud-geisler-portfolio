@@ -44,7 +44,7 @@ pnpm add magicui-cli
 
 ```typescript
 // ✅ BlurFade en îlot client + Server Component parent
-// src/app/(public)/page.tsx — Server Component
+// src/app/[locale]/(public)/page.tsx — Server Component
 export default function HomePage() {
   return (
     <main>
@@ -53,7 +53,7 @@ export default function HomePage() {
   )
 }
 
-// src/components/features/hero-section.tsx — Client Component
+// src/components/features/home/HeroSection.tsx — Client Component
 'use client'
 export function HeroSection() {
   return (

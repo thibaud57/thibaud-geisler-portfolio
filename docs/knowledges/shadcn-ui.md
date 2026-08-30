@@ -186,17 +186,17 @@ Les composants primitifs shadcn/ui (Button, Card, Input) fonctionnent en Server 
 ### Exemple
 
 ```tsx
-// src/components/features/contact-form.tsx
+// src/components/features/contact/ContactForm.tsx
 'use client'
 
 import { useActionState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { sendContact } from '@/server/actions/contact'
+import { submitContact } from '@/server/actions/contact'
 
 export function ContactForm() {
-  const [state, action, pending] = useActionState(sendContact, null)
+  const [state, action, pending] = useActionState(submitContact, null)
 
   return (
     <form action={action} className="space-y-4">

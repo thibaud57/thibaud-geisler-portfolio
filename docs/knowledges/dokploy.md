@@ -157,6 +157,43 @@ Depuis v0.26, Dokploy supporte les rollbacks en stockant chaque image déployée
 
 ---
 
+## Sauvegardes et destinations S3
+
+### Description
+
+Dokploy sauvegarde nativement PostgreSQL, MySQL, MariaDB, MongoDB et Redis. Il exécute la commande de dump propre au moteur, compresse en `.gz`, puis transfère le fichier via `rclone` vers une destination S3-compatible. La planification est portée par `node-schedule` côté Dokploy.
+
+Une destination doit exister **avant** de pouvoir planifier une sauvegarde : elle se crée dans `Settings → Backup Destinations`, puis se sélectionne dans l'onglet `Backup` de la Database.
+
+### Exemple
+
+```
+# 1. Settings → Backup Destinations → Add Destination
+#    Access Key Id       ← R2 : Access Key ID
+#    Secret Access Key   ← R2 : Secret Access Key (affichée une seule fois)
+#    Region              ← code régional (WNAM, ENAM, WEUR…)
+#    Endpoint            ← https://<account-id>.r2.cloudflarestorage.com
+#                          (sans le nom du bucket)
+#    Bucket              ← nom du bucket de sauvegardes
+#    → tester la connexion avant d'enregistrer
+
+# 2. Database → onglet Backup → planifier (cron, destination, retentionDays)
+```
+
+### Points Importants
+
+- Types de destination : filesystem local, S3-compatible (AWS S3, Cloudflare R2, Backblaze B2, MinIO, Wasabi…), endpoint HTTP custom
+- L'endpoint ne porte **pas** le nom du bucket, qui est un champ distinct
+- Tester la connexion avant d'enregistrer : c'est le seul retour immédiat, une destination invalide ne se signale ensuite qu'à l'échec de la première sauvegarde planifiée
+- Côté rclone, R2 se configure avec le provider `Cloudflare`, `force-path-style` actif et `no_check_bucket=true` si le token est scopé au niveau objet plutôt qu'admin
+- Un token `Object Read & Write` restreint au seul bucket de sauvegardes suffit : ne jamais donner à Dokploy un token qui voit aussi le bucket applicatif (voir [cloudflare-r2.md](cloudflare-r2.md))
+- La rétention se règle par `retentionDays` sur la sauvegarde. Ne pas la doubler d'une lifecycle rule côté R2, la plus courte l'emporterait sans avertissement
+- Sauvegardes de volumes Docker et de bases sont deux mécanismes distincts dans Dokploy
+- API HTTP disponible pour l'automatisation : `POST /api/backup.create` (`databaseType`, `databaseId`, `schedule`, `destinationId`, `retentionDays`) et `POST /api/backup.run` pour un déclenchement manuel
+- Plusieurs incidents ont été rapportés sur R2 spécifiquement (échec `rclone` en automatique alors que la commande manuelle passe, 403 sur serveurs distants) : vérifier qu'une sauvegarde réelle atterrit dans le bucket plutôt que de se fier à l'enregistrement de la configuration. Références dans [cloudflare-r2.md](cloudflare-r2.md)
+
+---
+
 # Commandes Clés
 
 ## CLI Dokploy

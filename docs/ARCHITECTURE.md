@@ -65,7 +65,7 @@ pnpm
 
 ## Composants Principaux (Haut Niveau)
 
-- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, voir [ADR-022](adrs/022-routing-espace-admin.md))
+- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, voir [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine post-MVP ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : volumes Docker pour le MVP (voir [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]` (sous-dossiers `projets/{client,personal}/<slug>/<filename>`), jamais depuis `public/`
@@ -75,48 +75,73 @@ pnpm
 
 ## Diagrammes d'Architecture
 
+Trait plein : en place aujourd'hui. Trait pointillé : prévu post-MVP.
+
+### Runtime
+
 ```mermaid
-graph TB
-    subgraph "Client"
-        Browser["Navigateur"]
-    end
+graph LR
+    Browser["Navigateur"]
 
-    subgraph "Dokploy — VPS IONOS"
-        subgraph "Docker (app)"
-            Next["Next.js App\n(App Router)"]
-            Assets["Assets\n(Docker volume, MVP acté,\nvoir ADR-011)"]
+    subgraph VPS["VPS IONOS"]
+        Dokploy["Dokploy<br/>(reverse proxy)"]
+        subgraph App["Docker (app)"]
+            Next["Next.js App<br/>(App Router)"]
+            Assets["Assets<br/>(Docker volume, MVP acté,<br/>voir ADR-011)"]
         end
-        PG["PostgreSQL\n(Dokploy Database)"]
-        subgraph "Réseau interne (post-MVP, ADR-015/019)"
-            Chatbot["portfolio-chatbot\n(Python)"]
-            AgentOS["agent-os\n(Python)"]
-            RagDocs["rag-documents\n(Python)"]
+        PG["PostgreSQL<br/>(Dokploy Database)"]
+        Umami["Umami<br/>(analytics self-hosted,<br/>post-MVP, ADR-007)"]
+        subgraph Interne["Réseau interne (post-MVP, ADR-015/019)"]
+            Chatbot["portfolio-chatbot<br/>(Python)"]
+            AgentOS["agent-os<br/>(Python)"]
+            RagDocs["rag-documents<br/>(Python)"]
         end
-        PGPriv["PostgreSQL isolée\n(documents privés, ADR-018)"]
+        PGPriv["PostgreSQL isolée<br/>(documents privés, ADR-018)"]
     end
 
-    subgraph "Services Externes"
-        SMTP["SMTP IONOS\n(email contact)"]
-        Calendly["Calendly\n(prise de RDV)"]
-        GHA["GitHub Actions\n(build + push)"]
-        GHCR["GHCR\n(image registry)"]
+    subgraph Ext["Services externes"]
+        Calendly["Calendly<br/>(prise de RDV)"]
+        Sentry["Sentry<br/>(erreurs serveur + client,<br/>tracing serveur, post-MVP,<br/>ADR-017)"]
+        SMTP["SMTP IONOS<br/>(email contact)"]
+        R2["Cloudflare R2<br/>(portfolio-assets, post-MVP)"]
     end
 
-    Browser -->|HTTPS| Next
-    Browser -->|embed widget| Calendly
+    Browser -->|HTTPS| Dokploy -->|reverse proxy| Next
+    Browser -->|embed widget, après consentement c15t| Calendly
+    Browser -.->|script analytics| Umami
+    Browser -.->|erreurs client, ingestion directe| Sentry
     Next -->|Prisma| PG
     Next -->|File I/O| Assets
-    Next -->|nodemailer| SMTP
     Next -.->|HTTP interne| Chatbot
     Next -.->|HTTP interne| AgentOS
     Next -.->|HTTP interne| RagDocs
-    Chatbot -.-> PG
-    AgentOS -.-> PG
-    RagDocs -.-> PGPriv
+    Next -->|nodemailer| SMTP
+    Next -.->|erreurs + spans serveur| Sentry
+    Next -.->|S3, bascule des assets| R2
+    Chatbot -.->|SQL| PG
+    AgentOS -.->|SQL| PG
+    RagDocs -.->|SQL| PGPriv
+```
+
+### Livraison et sauvegarde
+
+```mermaid
+graph LR
+    Tag["Tag vX.Y.Z<br/>(release-please)"]
+    GHA["GitHub Actions<br/>(build + push)"]
+    GHCR["GHCR<br/>(image registry)"]
+    Dokploy["Dokploy<br/>(VPS IONOS)"]
+    Next["Next.js App<br/>(container)"]
+    PG["PostgreSQL<br/>(Dokploy Database)"]
+    R2["Cloudflare R2<br/>(portfolio-backups, post-MVP)"]
+
+    Tag --> GHA
     GHA -->|push image| GHCR
     GHA -->|trigger redeploy API| Dokploy
     Dokploy -->|docker compose pull| GHCR
     Dokploy -->|run container| Next
+    PG -.->|dump| Dokploy
+    Dokploy -.->|sauvegarde quotidienne| R2
 ```
 
 ## Flux Fonctionnels (Use-cases critiques)
@@ -133,9 +158,11 @@ graph TB
 
 1. Visiteur remplit le formulaire sur `/contact`
 2. Soumission via Server Action
-3. Validation des données (Zod)
-4. Envoi email via SMTP IONOS (nodemailer)
-5. Réponse : confirmation ou message d'erreur
+3. Honeypot : si le champ `website` est rempli, succès simulé et aucun envoi
+4. Rate limiting en mémoire, 5 tentatives par IP sur 10 minutes, au-delà retour `rate_limit`
+5. Validation des données (Zod), erreurs renvoyées par champ avec les valeurs saisies
+6. Envoi email via SMTP IONOS (nodemailer)
+7. Réponse : confirmation, ou `smtp_error` si l'envoi échoue
 
 ### Use-case 3 : Affichage d'une page projet (case study)
 
@@ -194,7 +221,7 @@ src/
 │   │   ├── error.tsx
 │   │   ├── loading.tsx
 │   │   └── not-found.tsx
-│   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-022)
+│   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-021)
 │   ├── api/                      # API routes (hors [locale])
 │   ├── providers.tsx             # Providers client (theme, c15t Consent Manager)
 │   └── layout.tsx
@@ -241,7 +268,7 @@ Monolithe modulaire : logique serveur dans `src/server/` (actions et queries sé
 ### API
 
 - **Server Actions** : mutations (formulaire contact, CRUD projets post-MVP)
-- **API Routes** (`/api/`) : endpoints consommés par des clients tiers si besoin (chatbot post-MVP, webhooks n8n)
+- **API Routes** (`/api/`) : endpoints consommés par des clients tiers si besoin (chatbot post-MVP)
 
 ### Sécurité Backend
 
@@ -253,8 +280,7 @@ Monolithe modulaire : logique serveur dans `src/server/` (actions et queries sé
 
 - **nodemailer** : envoi SMTP via IONOS (formulaire contact)
 - **API LLM** (post-MVP) : mode d'accès tranché par [ADR-016](adrs/016-acces-llm.md), choix du modèle par [ADR-012](adrs/012-api-llm-chatbot-rag.md). Aucun appel direct depuis ce dépôt : les services IA voisins portent ces appels
-- **n8n** (post-MVP) : réservé à l'ingestion de prospects via des API tierces en OAuth. Aucune logique d'agent ni conversationnelle, qui se font en code ([ADR-021](adrs/021-notion-vers-postgresql.md)).
-- **Indy API** (post-MVP, à réévaluer) : la comptabilité freelance est internalisée par [ADR-021](adrs/021-notion-vers-postgresql.md), cette intégration ne garde de sens que pour les déclarations et l'export comptable
+- **Indy API** (post-MVP, à réévaluer) : la comptabilité étant tenue en interne, cette intégration ne garde de sens que pour les déclarations et l'export comptable
 - **LinkedIn API** (post-MVP, à étudier) : publication assistée et prospection, sous réserve des limites de l'API officielle
 
 ## 🗄️ Données (Base de Données)
@@ -300,8 +326,6 @@ Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le
 
 Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os` et tiennent en PostgreSQL ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne.
 
-n8n self-hosted (post-MVP) reste cantonné à l'ingestion de prospects via des API tierces en OAuth ([ADR-021](adrs/021-notion-vers-postgresql.md)), déployé comme service indépendant via Docker Compose sur Dokploy, sans couplage direct avec l'application Next.js.
-
 ---
 
 # 🔄 Diagramme de Séquence
@@ -312,24 +336,44 @@ Flux critique : soumission du formulaire de contact.
 sequenceDiagram
     actor Visiteur
     participant Page as Page /contact<br>(Client)
-    participant Action as Server Action<br>(Next.js)
+    participant Action as Server Action<br>submitContact
+    participant Limiter as Rate limiter<br>(mémoire, 5 / 10 min / IP)
     participant Zod as Validation<br>(Zod)
     participant Mailer as nodemailer<br>(SMTP IONOS)
     participant Email as Boîte mail<br>thibaud-geisler.com
 
     Visiteur->>Page: Remplit et soumet le formulaire
     Page->>Action: Appel Server Action avec FormData
-    Action->>Zod: Validation des champs
-    alt Données invalides
-        Zod-->>Action: Erreur validation
-        Action-->>Page: Message d'erreur
-        Page-->>Visiteur: Affiche les erreurs
-    else Données valides
-        Zod-->>Action: OK
-        Action->>Mailer: sendMail(nom, email, message)
-        Mailer->>Email: Email via SMTP IONOS
-        Action-->>Page: Succès
+    alt Honeypot website rempli (bot)
+        Action-->>Page: Succès simulé, aucun envoi
         Page-->>Visiteur: Confirmation envoi
+    else Honeypot vide
+        Action->>Limiter: check(ip, max, windowMs)
+        alt Quota dépassé
+            Limiter-->>Action: refusé + retryAfterSeconds
+            Action-->>Page: message rate_limit
+            Page-->>Visiteur: Trop de tentatives, réessayer plus tard
+        else Quota disponible
+            Limiter-->>Action: autorisé
+            Action->>Zod: Validation des champs
+            alt Données invalides
+                Zod-->>Action: Erreurs par champ
+                Action-->>Page: Erreurs + valeurs saisies conservées
+                Page-->>Visiteur: Affiche les erreurs
+            else Données valides
+                Zod-->>Action: OK
+                Action->>Mailer: sendMail(from, to, replyTo, corps)
+                alt Envoi réussi
+                    Mailer->>Email: Email via SMTP IONOS
+                    Action-->>Page: Succès
+                    Page-->>Visiteur: Confirmation envoi
+                else Échec SMTP
+                    Mailer--xAction: Exception
+                    Action-->>Page: message smtp_error
+                    Page-->>Visiteur: Erreur d'envoi
+                end
+            end
+        end
     end
 ```
 
@@ -338,23 +382,29 @@ Flux secondaire : affichage d'une page projet (case study).
 ```mermaid
 sequenceDiagram
     actor Visiteur
-    participant Page as Page /projets/[slug]<br>(Client)
-    participant SC as Server Component<br>(Next.js)
+    participant Shell as Page /projets/[slug]<br>(Server Component)
+    participant Content as CaseStudyContentAsync<br>(streamé dans Suspense)
+    participant Query as findPublishedBySlug<br>(use cache, cacheTag projects)
     participant Prisma as Prisma ORM
     participant PG as PostgreSQL
 
-    Visiteur->>Page: Accède à /projets/mon-projet
-    Page->>SC: Rendu Server Component
-    SC->>Prisma: findUnique({ where: { slug } })
-    Prisma->>PG: SELECT * FROM Project WHERE slug = ?
-    PG-->>Prisma: Données projet
-    Prisma-->>SC: Project { title, stack, description, ... }
-    alt Projet trouvé
-        SC-->>Page: HTML rendu (case study complet)
-        Page-->>Visiteur: Page projet, 1er hit runtime, suivants depuis Data Cache
-    else Projet introuvable
-        SC-->>Page: notFound()
-        Page-->>Visiteur: Page 404
+    Visiteur->>Shell: Accède à /projets/mon-projet
+    Shell-->>Visiteur: Shell + skeleton envoyés immédiatement (PPR)
+    Shell->>Content: Rend le contenu dans la Suspense boundary
+    Content->>Query: findPublishedBySlug(slug, locale)
+    alt Data Cache chaud
+        Query-->>Content: Projet localisé, sans requête SQL
+    else Data Cache froid
+        Query->>Prisma: findFirst({ slug, status: PUBLISHED })
+        Prisma->>PG: SELECT ... FROM Project WHERE slug = $1 AND status = PUBLISHED
+        PG-->>Prisma: Ligne projet + relations
+        Prisma-->>Query: Project + relations, localisé ensuite
+    end
+    alt Projet publié trouvé
+        Content-->>Visiteur: Contenu du case study streamé
+    else Absent ou en brouillon
+        Content->>Content: notFound()
+        Content-->>Visiteur: Page 404
     end
 ```
 
@@ -426,6 +476,7 @@ Proxy Next.js : protection des routes `/admin` par vérification du cookie de se
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
+- **Données personnelles de tiers** (post-MVP) : le domaine freelance introduira des contacts, prospects et entreprises nominatifs dans le schema `freelance`. Leur reprise impose au préalable une entrée dédiée au [registre des traitements](registre-traitements.md) et une mise à jour de la politique de confidentialité. Le profilage d'équipe cliente n'est pas repris
 
 ### Conformité Cookies / RGPD
 
@@ -511,10 +562,9 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-018 : Cloisonnement des données : deux bases, schemas par domaine](adrs/018-cloisonnement-donnees.md)
 - [ADR-019 : Communication inter-services : HTTP interne, jamais exposé](adrs/019-communication-inter-services.md)
 - [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
-- [ADR-021 : Notion remplacé par PostgreSQL](adrs/021-notion-vers-postgresql.md)
-- [ADR-022 : Routing de l'espace admin, hors du segment de locale](adrs/022-routing-espace-admin.md)
+- [ADR-021 : Routing de l'espace admin, hors du segment de locale](adrs/021-routing-espace-admin.md)
 
-> Les ADR-015 à 021 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
+> Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
 ### À décider
 
@@ -533,9 +583,9 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 **Dans ce dépôt**
 
-- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-022](adrs/022-routing-espace-admin.md)). Better Auth + Google OAuth, whitelist d'un email unique
+- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)). Better Auth + Google OAuth, whitelist d'un email unique
 - **CRUD contenu** : projets, tags, assets, entités légales
-- **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-021](adrs/021-notion-vers-postgresql.md))
+- **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs
 - **Restitution de l'audience** : script de suivi et écrans de synthèse lisant l'API Umami ([ADR-007](adrs/007-analytics-umami.md))
 
@@ -548,7 +598,6 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 **Hors application**
 
 - **Umami** : instance analytics self-hosted sur Dokploy, service séparé ([ADR-007](adrs/007-analytics-umami.md))
-- **n8n** : réservé à l'ingestion via des API tierces en OAuth, self-hosted sur Dokploy
 - **Intégrations** : LinkedIn (contenu, prospection) et Indy (déclarations), à étudier selon le besoin réel
 
 > **Blog retiré du périmètre** (août 2026) : l'effort de rédaction régulière ne se justifie pas, le SEO repose sur les case studies. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.

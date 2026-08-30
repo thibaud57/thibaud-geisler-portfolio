@@ -156,9 +156,9 @@ GOOGLE_CLIENT_ID=                   # Client ID OAuth Google (Google Cloud Conso
 GOOGLE_CLIENT_SECRET=               # Client Secret OAuth Google (Google Cloud Console)
 ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-user, ex: contact@thibaud-geisler.com)
 
-# API LLM (post-MVP — chatbot RAG public + génération IA de contenu depuis l'espace admin)
-LLM_API_KEY=                        # Clé API du fournisseur LLM retenu (voir ADR-012 : Anthropic, OpenAI ou Mistral)
-LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4-5, gpt-4o-mini, mistral-small)
+# Aucune variable LLM ici : ce dépôt n'appelle jamais un modèle directement, les services Python
+# voisins le font (ADR-016, ADR-020). Le jour où le portfolio les appellera en HTTP interne, un jeton
+# de service s'ajoutera à cette liste (ADR-019).
 ```
 
 ### Règles
@@ -290,7 +290,6 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `BETTER_AUTH_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (Better Auth) |
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
-| `LLM_API_KEY` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (chatbot RAG + génération IA depuis l'espace admin) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `RELEASE_PLEASE_PAT` | GitHub : Repository Secrets | Workflow `release-please.yml` (PAT fine-grained, scopes Contents/PR/Workflows RW + Actions R, indispensable pour que le tag push déclenche `deploy.yml` via chaînage workflows GHA) |
 

@@ -19,7 +19,7 @@ paths:
 - Retourner `Cache-Control` conditionnel : `public, max-age=31536000, immutable` en production (assets immutables, convention : changer le filename pour invalider, pas le cache) et `no-cache, no-store, must-revalidate` en dev (sinon Chrome garde 1 an le premier fichier servi localement, pénible au moindre remplacement d'asset)
 - Retourner `NextResponse.json({ error }, { status: 400 })` pour path invalide, `{ status: 404 }` pour fichier inexistant (distinction HTTP standard, pas de `security through obscurity` sur des assets publics par nature)
 - Logger warn sur 400 (signal potentiellement hostile), debug sur 404 (bruit normal)
-- Pour référencer un asset dans `next/image`, utiliser une URL absolue `${NEXT_PUBLIC_APP_URL}/api/assets/projets/client/foyer/logo.png` et déclarer le domaine dans `images.remotePatterns` de `next.config.ts`
+- Pour référencer un asset dans `next/image`, utiliser une URL absolue `${NEXT_PUBLIC_SITE_URL}/api/assets/projets/client/foyer/logo.png` et déclarer le domaine dans `images.remotePatterns` de `next.config.ts`
 
 ## À éviter
 - Stocker les assets dynamiques dans `public/` : couplage au build, pas de hashing, incompatible avec un upload futur depuis l'espace admin (ADR-011 contrainte actée, indépendante du choix de stockage)

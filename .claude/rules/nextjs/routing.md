@@ -13,7 +13,7 @@ paths:
 
 ## À faire
 - Toujours `await params` et `await searchParams` dans les pages, layouts, route handlers et `generateMetadata` (Promise obligatoire)
-- Utiliser le route group `(public)/` pour partager un layout sans affecter l'URL. `admin/` est un **segment réel** : il produit l'URL `/admin` (ADR-022)
+- Utiliser le route group `(public)/` pour partager un layout sans affecter l'URL. `admin/` est un **segment réel** : il produit l'URL `/admin` (ADR-021)
 - `generateStaticParams` sur les routes dynamiques `[slug]` est **optionnel** avec `cacheComponents: true`. La DB est joignable au build (service Postgres éphémère en CI, voir `.claude/rules/nextjs/data-fetching.md`), la contrainte n'est donc pas technique : sans `generateStaticParams`, les pages sont rendues à la demande au premier hit puis cachées via `'use cache'` + `cacheTag` sur la query Prisma, avec le même bénéfice SEO après le premier crawl. C'est le comportement actuel du projet
 - Retourner `notFound()` côté serveur quand une ressource Prisma n'existe pas : consommé par `not-found.tsx` le plus proche
 - Utiliser `redirect()` (307) et `permanentRedirect()` (308) dans Server Components / Server Actions / Route Handlers

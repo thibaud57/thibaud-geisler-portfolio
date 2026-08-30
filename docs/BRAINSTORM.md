@@ -89,7 +89,6 @@ Le portfolio est un **hub** : chaque application développée a sa propre démo 
 * **API LLM** (post-MVP) : chatbot IA avec RAG, accès tranché par [ADR-016](adrs/016-acces-llm.md)
 * **Umami** (post-MVP) : analytics self-hosted sur Dokploy, service séparé dont le portfolio n'embarque que le script de suivi
 * **Sentry**, **Logfire ou Langfuse** (post-MVP) : erreurs et traces, en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
-* **n8n** (post-MVP) : self-hosted sur Dokploy, réservé à l'ingestion via API tierces en OAuth
 * **Indy API**, **LinkedIn** (tardifs) : à étudier selon le besoin réel
 
 ---
@@ -221,7 +220,7 @@ Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salari�
 
 ### Feature 1 : Espace admin
 
-Interface privée **single-user**, en français uniquement, accessible au seul compte autorisé. Structure et authentification : [ADR-022](adrs/022-routing-espace-admin.md) et [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
+Interface privée **single-user**, en français uniquement, accessible au seul compte autorisé. Structure et authentification : [ADR-021](adrs/021-routing-espace-admin.md) et [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
 Elle pilote l'ensemble de l'écosystème, y compris ce qui s'exécute ailleurs :
 
@@ -245,7 +244,7 @@ L'ingestion est indépendante du reste, la restitution suppose l'espace admin en
 
 Reprise de l'activité aujourd'hui pilotée depuis Notion : prospects, contacts, entreprises, actions de prospection, facturation, déclarations, publications LinkedIn, entretiens.
 
-Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet. Migration domaine par domaine, comptabilité en premier ([ADR-021](adrs/021-notion-vers-postgresql.md)).
+Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet ([ADR-020](adrs/020-portfolio-bff.md)).
 
 Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans un service voisin ; ce qui est déterministe (grille de qualification, calculs de cotisations et de TVA, indicateurs) reste du code TypeScript ici.
 
@@ -280,12 +279,9 @@ L'écran de recherche est ici, les données jamais.
 Capacités produit à étudier selon le besoin réel :
 
 * **LinkedIn** : publication assistée et prospection. API officielle limitée et surveillée, faisabilité à valider avant de s'engager
-* **Indy** : déclarations et export comptable. La facturation elle-même est internalisée ([ADR-021](adrs/021-notion-vers-postgresql.md)), cette intégration ne couvrirait que le déclaratif
-* **n8n** : réservé à l'ingestion de prospects passant par des API tierces en OAuth, là où réécrire la gestion des jetons ne se justifie pas. Aucune logique d'agent ni conversationnelle, qui se font en code
+* **Indy** : déclarations et export comptable. La facturation elle-même étant tenue en interne, cette intégration ne couvrirait que le déclaratif
 
 > La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 2 ci-dessus.
-
-**Note Notion :** la migration se fait manuellement, domaine par domaine, sans synchro ni API dans le code ([ADR-021](adrs/021-notion-vers-postgresql.md)).
 
 > **Blog abandonné.** La Feature « Section Blog / Articles » est retirée du périmètre : l'effort de rédaction régulière ne se justifie pas face aux autres chantiers, et le SEO du portfolio repose sur les case studies de projets. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
 
@@ -338,7 +334,7 @@ Capacités produit à étudier selon le besoin réel :
 - **Décision Chatbot RAG** : Post-MVP vs MVP (priorité au portfolio fonctionnel, chatbot = vitrine compétence non critique au lancement)
 - **Décision Positionnement** : IA & Automatisation en premier vs Full-Stack en premier (différenciation principale, marché plus porteur)
 - **Décision Analytics** : Umami self-hosted vs Plausible vs PostHog (RGPD-friendly, zéro coût, compatible PostgreSQL, voir ADR-007)
-- **Décision Notion API** : Hors scope, aucune synchro directe. Migration manuelle domaine par domaine (comptabilité, publications, CRM), voir ADR-021. n8n reste cantonné à l'ingestion de prospects via des API tierces en OAuth.
+- **Décision Notion API** : hors scope, aucune synchro ni API Notion dans le code de ce dépôt.
 - **Décision Blog** : feature retirée du périmètre (août 2026) vs section d'articles en PostgreSQL (effort de rédaction non justifié, le SEO repose sur les case studies). ADR-013 marqué `deprecated`.
 - **Décision Brouillons IA** : PostgreSQL standard plutôt que Redis, volume trop faible pour justifier un service supplémentaire. La table `Article` qui portait cette décision a disparu avec le blog, le principe reste valable pour les contenus générés de l'espace admin.
 - **Décision UI System** : shadcn/ui hybride (Option C), shadcn/ui comme socle fonctionnel, Magic UI + Aceternity UI pour les effets visuels du site public (copy-paste, combinables), voir ADR-009.

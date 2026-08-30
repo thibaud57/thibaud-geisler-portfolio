@@ -1,6 +1,6 @@
 ---
 title: "Espace admin — récap de conception"
-description: "Contexte de conception de l'epic espace admin. Ce n'est pas une spec de sub-project : les décisions font foi dans les ADR-015 à 022, les specs d'implémentation viendront à côté sous NN-<slug>-design.md."
+description: "Contexte de conception de l'epic espace admin. Ce n'est pas une spec de sub-project : les décisions font foi dans les ADR-015 à 021, les specs d'implémentation viendront à côté sous NN-<slug>-design.md."
 date: "2026-08-29"
 keywords: ["admin", "espace-admin", "architecture", "ecosysteme", "freelance"]
 scope: ["docs", "architecture"]
@@ -108,7 +108,6 @@ L'abonnement ne couvre **pas** les appels SDK depuis le code : il ne délivre pa
 4. **Cloisonnement des données.** Base `portfolio` conservée avec des schemas par domaine, base séparée pour les documents personnels. Un seul propriétaire par schema.
 5. **Communication inter-services.** HTTP interne sur le réseau Docker, jamais exposé par Traefik. Un jeton de service suffit tant que le réseau n'est pas public.
 6. **Le portfolio comme BFF.** Fronts et auth ici, métier long ailleurs.
-7. **Notion remplacé par PostgreSQL**, avec la règle « ce qui est déterministe reste du code, pas un prompt ».
 
 ## Migration Notion
 
@@ -132,7 +131,7 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 
 | Écart | État |
 |---|---|
-| Route group `(admin)/` documenté partout, inexistant | ✅ **Tranché : segment réel `admin/`, hors `[locale]/`** ([ADR-022](../../../adrs/022-routing-espace-admin.md)), renvoi ajouté dans l'ADR-010 |
+| Route group `(admin)/` documenté partout, inexistant | ✅ **Tranché : segment réel `admin/`, hors `[locale]/`** ([ADR-021](../../../adrs/021-routing-espace-admin.md)), renvoi ajouté dans l'ADR-010 |
 | `components.json` est en `radix-nova`, six documents disent `new-york` | ✅ **Tranché : Nova conservé**, doc corrigée (VERSIONS, knowledges, rule, DESIGN) |
 | `experimental.authInterrupts` non activé | ⬜ À activer **dans le commit qui introduit `unauthorized()`**, pas avant. Validé : Next 16.3.3 accepte le flag |
 | `experimental.taint` non activé | ⬜ À activer **dans le commit qui introduit `getCurrentUser()`**, pas avant. Validé : Next 16.3.3 accepte le flag |

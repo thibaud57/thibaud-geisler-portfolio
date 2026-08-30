@@ -35,7 +35,7 @@ src/app/
 │       │   ├── page.tsx                  → /fr/projets
 │       │   └── [slug]/page.tsx           → /fr/projets/[slug]
 │       └── contact/page.tsx              → /fr/contact
-├── admin/                                segment réel, hors [locale] (post-MVP, ADR-022)
+├── admin/                                segment réel, hors [locale] (post-MVP, ADR-021)
 │   └── page.tsx                          → /admin
 ├── api/
 │   └── assets/[...path]/route.ts         → /api/assets/projets/client/foyer/logo.png
@@ -62,7 +62,7 @@ Par défaut, les composants de l'App Router sont des Server Components. Ils peuv
 ### Exemple
 
 ```tsx
-// src/app/(public)/projets/[slug]/page.tsx
+// src/app/[locale]/(public)/projets/[slug]/page.tsx
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 
@@ -72,27 +72,24 @@ export default async function ProjectPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const project = await prisma.project.findUnique({ where: { slug } })
+  const project = await prisma.project.findFirst({
+    where: { slug, status: 'PUBLISHED' },
+  })
   if (!project) notFound()
 
   return (
     <article>
       <h1>{project.title}</h1>
-      <div dangerouslySetInnerHTML={{ __html: project.content }} />
+      <p>{project.description}</p>
     </article>
   )
-}
-
-export async function generateStaticParams() {
-  const projects = await prisma.project.findMany({ select: { slug: true } })
-  return projects.map((p) => ({ slug: p.slug }))
 }
 ```
 
 ### Points Importants
 
 - `params` est désormais une `Promise` en v16 (await obligatoire)
-- `generateStaticParams` pré-génère les routes dynamiques au build
+- `generateStaticParams` pré-génère les routes dynamiques au build (non utilisé sur `[slug]` ici : le premier hit rend au runtime, les suivants sortent du Data Cache)
 - `notFound()` retourne une 404 propre (rendue par `not-found.tsx`)
 - Les composants `async` ne peuvent être que serveur (pas client)
 
@@ -109,12 +106,12 @@ Fonctions async côté serveur marquées `'use server'`, invoquées depuis des f
 ```ts
 // src/server/actions/contact.ts
 'use server'
-import { ContactSchema } from '@/lib/schemas/contact'
+import { contactSchema } from '@/lib/schemas/contact'
 import { transporter } from '@/lib/mailer'
 import { logger } from '@/lib/logger'
 
-export async function sendContact(_prev: unknown, formData: FormData) {
-  const result = ContactSchema.safeParse(Object.fromEntries(formData))
+export async function submitContact(_prev: unknown, formData: FormData) {
+  const result = contactSchema.safeParse(Object.fromEntries(formData))
   if (!result.success) {
     return { errors: result.error.flatten().fieldErrors }
   }
@@ -122,7 +119,7 @@ export async function sendContact(_prev: unknown, formData: FormData) {
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM,
-      to: process.env.CONTACT_TO,
+      to: process.env.MAIL_TO,
       replyTo: result.data.email,
       subject: `Contact portfolio — ${result.data.name}`,
       text: result.data.message,
@@ -164,7 +161,7 @@ export const config = {
 }
 ```
 
-Ce matcher est celui du code actuel, où `/admin` n'existe pas encore. ADR-022 impose de l'exclure du routing i18n au moment d'implémenter l'espace admin, faute de quoi `createMiddleware` redirigerait `/admin` vers `/fr/admin`.
+Ce matcher est celui du code actuel, où `/admin` n'existe pas encore. ADR-021 impose de l'exclure du routing i18n au moment d'implémenter l'espace admin, faute de quoi `createMiddleware` redirigerait `/admin` vers `/fr/admin`.
 
 ### Points Importants
 
@@ -198,14 +195,17 @@ export default nextConfig
 ```tsx
 // src/server/queries/projects.ts
 import 'server-only'
-import { unstable_cacheLife as cacheLife, unstable_cacheTag as cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
-export async function getProjects() {
+export async function findManyPublished() {
   'use cache'
   cacheLife('hours')
   cacheTag('projects')
-  return prisma.project.findMany({ orderBy: { createdAt: 'desc' } })
+  return prisma.project.findMany({
+    where: { status: 'PUBLISHED' },
+    orderBy: { displayOrder: 'asc' },
+  })
 }
 ```
 

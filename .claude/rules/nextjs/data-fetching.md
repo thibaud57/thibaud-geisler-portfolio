@@ -85,8 +85,8 @@ export async function generateStaticParams() {
 }
 
 export default async function Page({ params }) {
-  const { slug } = await params
-  const project = await findPublishedBySlug(slug) // 'use cache' interne
+  const { locale, slug } = await params
+  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne, locale dans la clé de cache
   return <CaseStudy project={project} />
 }
 ```

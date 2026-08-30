@@ -171,11 +171,12 @@ Prisma génère des types TypeScript stricts pour tous les modèles. Les queries
 // src/server/queries/projects.ts
 import 'server-only'
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@/generated/prisma'
+import type { Prisma } from '@/generated/prisma/client'
 
-export async function getProjects() {
+export async function findManyPublished() {
   return prisma.project.findMany({
-    orderBy: { createdAt: 'desc' },
+    where: { status: 'PUBLISHED' },
+    orderBy: { displayOrder: 'asc' },
     select: {
       id: true,
       slug: true,
@@ -186,9 +187,9 @@ export async function getProjects() {
   })
 }
 
-export async function getProjectBySlug(slug: string) {
-  return prisma.project.findUnique({
-    where: { slug },
+export async function findPublishedBySlug(slug: string) {
+  return prisma.project.findFirst({
+    where: { slug, status: 'PUBLISHED' },
     include: { tags: { include: { tag: true } } },
   })
 }

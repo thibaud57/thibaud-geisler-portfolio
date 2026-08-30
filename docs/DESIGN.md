@@ -206,6 +206,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Modales | Dialog, Sheet | shadcn/ui (Dialog, Sheet) | - |
 | Hero effects | Background Ripple Effect | Aceternity UI | Fond interactif hero/CTA, grille de cellules qui ripplent au clic. Seul effet hero Aceternity installé en MVP. Candidats post-MVP : MacbookScroll (showcase projet dev), Spotlight, Hero Parallax, Aurora Background, Background Beams |
 | Formulaire contact | Form shadcn pur (Card + Input + Textarea + Button + Label) | shadcn/ui | Layout 2 cols (form / Calendly + réseaux) reconstruit en shadcn sans bloc Aceternity PRO. UI livrée par Feature 1 sub 04, logique métier (Zod + Server Action + SMTP + rate limiting) par Feature 4 |
+| Onglets contact | Tabs | shadcn/ui (Radix) | Bascule formulaire / Calendly sur `/contact` ([ContactTabs](../src/components/features/contact/ContactTabs.tsx)). L'onglet Calendly est monté en `forceMount` et masqué en CSS, pour que le widget ne se réinitialise pas à chaque bascule ; la `key={pathname}` remet l'onglet par défaut au changement de locale |
+| Chargement | Skeleton, StackedSkeleton | shadcn/ui + composant maison | `StackedSkeleton` empile des `Skeleton` aux hauteurs passées en props. Utilisé en fallback de `<Suspense>` sur la page case study et dans son `loading.tsx` |
+| Texte à libellé | LabeledText | composant maison | Met en gras le libellé d'un paragraphe traduit jusqu'aux deux-points, au-delà de 30 caractères le texte est rendu tel quel. Utilisé sur `/a-propos`, où le gras vit dans le composant plutôt que dans les fichiers de traduction |
 | Effets visuels enrichis | Border Beam | Magic UI | Enrichissement visuel des sections marketing. Candidats post-MVP : Shine Border, Particles, Meteors, Magic Card |
 | Typographie display | Hyper Text, Word Rotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots). Candidat post-MVP : Text Reveal (au scroll) |
 | Typographie display (alt) | (aucun installé en MVP) | Aceternity UI | Candidats post-MVP : Text Generate Effect (génération style IA), Flip Words (flip de phrases sur sections clés) |
@@ -213,7 +216,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique pour les cards projets (landing + /projects) |
 | Marquee | Marquee | Magic UI | Défilement horizontal (logos techs, clients, projets) |
 | Navigation admin | Sidebar | shadcn/ui | Post-MVP, non installé. Repliable, gère le mobile nativement |
-| Formulaires admin | Form | shadcn/ui | Post-MVP, non installé. `react-hook-form` + résolveur Zod, réutilise les schémas des Server Actions |
+| Formulaires admin | Input, Label, Textarea, Select | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. Champs shadcn montés directement, erreurs rendues sous chaque champ depuis l'état retourné |
 | Graphiques | Chart | shadcn/ui (Recharts) | Post-MVP, non installé. Audience (pages vues, sources, évolution), indicateurs CRM, chiffre d'affaires, performance des publications. Palette, lisibilité en mode sombre et choix de forme se décident avec le skill `dataviz` de Claude Code, hors dépôt |
 | Tables de données | Table + TanStack Table | shadcn/ui | `Table` installé. Le tri, le filtrage et la pagination sont un **pattern** à implémenter, pas un composant du registry |
 | Actions destructives | AlertDialog | shadcn/ui | Post-MVP, non installé. Confirmation avant suppression |
@@ -306,7 +309,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 > Approche : `mobile-first` (standard Tailwind CSS)
 
-> L'espace admin y est soumis au même titre que les pages publiques : tables, kanban et formulaires se conçoivent mobile-first (voir [ADR-021](adrs/021-notion-vers-postgresql.md)).
+> L'espace admin y est soumis au même titre que les pages publiques : tables, kanban et formulaires se conçoivent mobile-first, l'outil devant rester utilisable au téléphone.
 
 | Breakpoint | Notation Tailwind | Largeur | Changements clés |
 |------------|-------------------|---------|------------------|

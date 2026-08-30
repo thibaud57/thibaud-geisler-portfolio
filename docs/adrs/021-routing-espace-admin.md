@@ -1,5 +1,5 @@
 ---
-title: "ADR-022 — Routing de l'espace admin : hors du segment de locale"
+title: "ADR-021 — Routing de l'espace admin : hors du segment de locale"
 status: "accepted"
 description: "Décision actée : l'espace admin vit sous /admin, hors [locale]/, en français uniquement"
 date: "2026-08-29"
