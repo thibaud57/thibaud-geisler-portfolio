@@ -8,7 +8,7 @@ paths:
 
 ## À faire
 - Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
-- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 25 août 2026, toutes sur leur dernière majeure :
+- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 1er septembre 2026, toutes sur leur dernière majeure :
 
 | Action | Épinglée |
 |---|---|
@@ -23,6 +23,7 @@ paths:
 | `dorny/paths-filter` | `@v4` |
 | `extractions/setup-just` | `@v4` |
 | `googleapis/release-please-action` | `@v5` |
+| `actions/create-github-app-token` | `@v3` |
 - **Node 24** explicite dans `setup-node` : `node-version: '24'` (Node 20 reste le défaut runner, à overrider car EOL 30 avril 2026)
 - **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node@v7` (le cache auto a été retiré en v6)
 - Install reproductible : **`pnpm install --frozen-lockfile`** (échoue si lockfile désynchronisé avec `package.json`)
@@ -30,10 +31,13 @@ paths:
 - **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
 - **`timeout-minutes: 15`** sur chaque job : évite qu'un test qui hang consomme les 6h de timeout par défaut et bloque les minutes CI (15 min suffit largement pour lint + typecheck + tests d'un MVP)
 - **Service container `postgres:18`** pour tests d'intégration : `image: postgres:18`, healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner (pas le nom du service)
-- **Garder `deploy.yml` séparé de `ci.yml`** : déclenché sur push tag `v*` (tag créé par release-please via PAT), il build l'image Docker, la pousse sur GHCR puis déclenche le redeploy Dokploy par curl. Dokploy reste en pull-only, il ne rebuild jamais localement. Voir PRODUCTION.md
+- **Garder `deploy.yml` séparé de `ci.yml`** : déclenché sur push tag `v*` (tag créé par release-please, authentifié par GitHub App), il build l'image Docker, la pousse sur GHCR puis déclenche le redeploy Dokploy par curl. Dokploy reste en pull-only, il ne rebuild jamais localement. Voir PRODUCTION.md
+- **Token de GitHub App quand l'événement produit doit déclencher un autre workflow** : `actions/create-github-app-token@v3` avant le step qui pousse, puis passer `steps.<id>.outputs.token`. Le `id:` du step est **load-bearing** : sans lui l'expression résout à vide, l'action consommatrice retombe sur son défaut `github.token`, le run reste vert et plus rien ne se déclenche. Laisser `owner` et `repositories` vides scope le token au dépôt courant. Le bloc `permissions:` du workflow gouverne le `GITHUB_TOKEN`, plus les droits réels : le mettre à `contents: read` quand rien ne l'utilise, les droits vivant dans les permissions de l'App
 - **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v4` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
+- **Les PR de release échappent au filtre de chemins** : elles touchent `package.json` et le manifest, donc `source` rend `true` et `quality` tournerait pour un diff sans code. Exclure `package.json` du filtre serait le mauvais remède, une PR ne touchant que ce fichier sauterait alors la CI pour de bon. Le skip passe par une condition sur le job `quality` : `&& !startsWith(github.head_ref, 'release-please--')`. `github.head_ref` n'étant renseigné que sur les événements `pull_request`, il est vide au push sur la branche de production et le garde-fou y reste intact
 
 ## À éviter
+- **Compter sur le `GITHUB_TOKEN` intégré quand l'événement produit doit réveiller un autre workflow** : GitHub ne déclenche aucun workflow sur les événements qu'il émet (garde-fou anti-récursion). Un tag poussé ainsi ne lance pas le workflow abonné à `push: tags`, sans la moindre erreur : le run est vert et la chaîne s'arrête. Passer par un token de GitHub App
 - Valeurs sensibles en clair : toujours `${{ secrets.NAME }}`, ne jamais `echo` un secret dans les logs (cf. `nodemailer/email.md` pour le pattern de mock SMTP en tests)
 - Omettre `permissions:` au niveau workflow : par défaut GitHub accorde toutes les permissions, toujours restreindre explicitement
 

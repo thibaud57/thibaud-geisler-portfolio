@@ -831,6 +831,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | `dorny/paths-filter` | `@v4` | 4.0.3 (5 août 2026) |
 | `extractions/setup-just` | `@v4` | v4 (5 avril 2026) |
 | `googleapis/release-please-action` | `@v5` | 5.0.0 (22 avril 2026) |
+| `actions/create-github-app-token` | `@v3` | 3.2.0 (12 mai 2026) |
 | `docker/build-push-action` | `@v7` | 7.3.0 (1er juillet 2026) |
 | `docker/login-action` | `@v4` | 4.6.0 (29 juillet 2026) |
 | `docker/metadata-action` | `@v6` | 6.2.0 (2 juillet 2026) |

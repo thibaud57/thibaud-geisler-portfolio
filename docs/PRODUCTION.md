@@ -183,7 +183,7 @@ ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-u
 |---------|--------|-------|
 | Push / PR sur `main` ou `develop` | lint, typecheck, tests, build (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
-| Merge de la PR release-please | tag `vX.Y.Z` créé via `RELEASE_PLEASE_PAT` | - |
+| Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
 
 > GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
@@ -208,6 +208,16 @@ ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-u
 3. Cliquer "Redeploy" sur ce commit, Dokploy re-pull l'image et redéploie (~2-3 min)
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le backup S3 (voir section Backup & Recovery) avant ou après le rollback.
+
+### Redéployer sans release
+
+`deploy.yml` accepte un `workflow_dispatch`, seul moyen de relancer un déploiement sans créer de tag (image GHCR corrompue, redeploy Dokploy échoué, rollback vers une version antérieure) :
+
+```bash
+gh workflow run deploy.yml --ref vX.Y.Z
+```
+
+> ⚠️ **Dispatcher sur le ref du tag, pas sur `main`** : `docker/metadata-action` lit `type=semver` depuis `github.ref`. Sur `main`, il ne produit que `latest` et `sha-XXX`, sans les tags `X.Y.Z` et `X.Y` dont dépend le rollback par version.
 
 ## Checklist Pré-MEP
 
@@ -320,7 +330,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
-| `RELEASE_PLEASE_PAT` | GitHub : Repository Secrets | Workflow `release-please.yml` (PAT fine-grained, scopes Contents/PR/Workflows RW + Actions R, indispensable pour que le tag push déclenche `deploy.yml` via chaînage workflows GHA) |
+| `RELEASE_APP_CLIENT_ID` (Variable) + clé privée (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 
 ### Rotation
 
@@ -331,7 +341,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Régénérer dans Google Cloud Console → mettre à jour dans Dokploy → redéploiement |
 | `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password depuis Dokploy UI (Postgres Database) → la nouvelle URL est propagée au compose au prochain deploy |
 | `IP_HASH_SALT` | En cas de compromission | Régénérer (`openssl rand -hex 32`) → Dokploy → les nouveaux logs utilisent le nouveau sel, les hashs déjà écrits restent inchangés |
-| `RELEASE_PLEASE_PAT` | Expiration annuelle (renouveler avant expiration) ou compromission | Régénérer un PAT fine-grained sur GitHub Settings → Personal Access Tokens → mettre à jour le secret repo |
+| Clé privée de la GitHub App de release | **Aucune expiration, donc aucune échéance à surveiller.** Rotation sur compromission uniquement | Settings → Developer settings → GitHub Apps → `thibaud-geisler-portfolio` → General → Private keys → Generate a private key, puis remplacer le secret repo par le contenu intégral du `.pem` (lignes `BEGIN`/`END` incluses). Supprimer l'ancienne clé dans l'App et le `.pem` du disque |
 | `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
 
 ## Security Headers
