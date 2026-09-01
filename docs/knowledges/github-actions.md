@@ -10,7 +10,7 @@ technologies: ["Node.js", "pnpm", "Vitest", "Dokploy"]
 
 # Description
 
-`GitHub Actions` est le service CI du portfolio. Le workflow principal exécute lint + tests sur chaque push et pull request, sur un runner `ubuntu-24.04`. Le déploiement est entièrement géré par Dokploy (webhook GitHub sur merge `main` → rebuild + redéploiement automatique), GitHub Actions ne déploie donc pas directement. Pattern canonique : `actions/checkout@v6`, `pnpm/action-setup@v6`, `actions/setup-node@v6` avec `cache: 'pnpm'`.
+`GitHub Actions` est le service CI du portfolio. Le workflow principal exécute lint + tests sur chaque push et pull request, sur un runner `ubuntu-24.04`. Le déploiement est porté par un second workflow, `deploy.yml`, déclenché sur le tag `v*` : build de l'image, push sur GHCR, puis appel de l'API Dokploy qui tire l'image sans rien builder. Pattern canonique : `actions/checkout@v7`, `pnpm/action-setup@v6`, `actions/setup-node@v7` avec `cache: 'pnpm'`.
 
 ---
 
@@ -64,13 +64,13 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfolio_test
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
         with:
           version: 10
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -142,7 +142,7 @@ env:
 
 ### Description
 
-Accélère les installations en cachant le store pnpm entre les runs. Le cache est automatique via `actions/setup-node@v6` avec `cache: 'pnpm'`, ou manuel via `actions/cache@v4`. La clé de cache dépend du hash de `pnpm-lock.yaml`.
+Accélère les installations en cachant le store pnpm entre les runs. Le cache est automatique via `actions/setup-node@v7` avec `cache: 'pnpm'`, ou manuel via `actions/cache@v6`. La clé de cache dépend du hash de `pnpm-lock.yaml`.
 
 ### Exemple
 
@@ -152,7 +152,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
   with:
     version: 10
 
-- uses: actions/setup-node@v6
+- uses: actions/setup-node@v7
   with:
     node-version: '24'
     cache: 'pnpm'
@@ -164,7 +164,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
   shell: bash
   run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-- uses: actions/cache@v4
+- uses: actions/cache@v6
   with:
     path: ${{ env.STORE_PATH }}
     key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -185,7 +185,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 
 ### Description
 
-Dans le portfolio, le déploiement n'est pas géré par GitHub Actions. Dokploy écoute un webhook GitHub sur merge `main` et orchestre le rebuild + redéploiement. GitHub Actions ne fait que lint + tests. Alternative possible : déclencher un deploy explicite via API Dokploy.
+Dans le portfolio, le déploiement **est** porté par GitHub Actions. `deploy.yml` se déclenche sur le push d'un tag `v*`, build l'image, la pousse sur GHCR, puis appelle l'API Dokploy (`compose.redeploy`) par `curl`. Dokploy est en **pull-only** : il tire l'image publiée et ne build jamais sur le VPS.
 
 ### Exemple
 
@@ -208,8 +208,8 @@ jobs:
 
 ### Points Importants
 
-- Pattern actuel : Dokploy webhook natif (pas d'appel depuis GHA)
-- Alternative : pipeline explicite si besoin de build avant deploy
+- Pattern actuel : build en GHA, image sur GHCR, puis appel de l'API Dokploy depuis le workflow
+- Le build est en CI parce que `next build` a besoin d'une base joignable au prerender, ce qu'un build sur le VPS ne garantit pas
 - Secrets stockés dans GitHub Settings > Secrets
 - `needs: [test]` garantit que les tests passent avant le deploy
 
@@ -250,7 +250,7 @@ jobs:
 ## ✅ Recommandations
 
 - Utiliser `ubuntu-24.04` explicitement (pas `ubuntu-latest`)
-- Actions v6 : `checkout@v6`, `setup-node@v6`, `pnpm/action-setup@v6`
+- Actions épinglées : `checkout@v7`, `setup-node@v7`, `cache@v6`, `pnpm/action-setup@v6`
 - `cache: 'pnpm'` dans `setup-node` pour accélérer
 - `concurrency.cancel-in-progress: true` sur les branches feature
 - `permissions: contents: read` par défaut

@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-04-01"
+date: "2026-09-01"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino"]
@@ -224,13 +224,20 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 > **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
 
-### Validation technique finale
+### Revue globale de l'app
 
-- [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
-- [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
-- [x] **`just test`** : tous les tests passent en local
-- [x] **`just build`** : build Next.js standalone passe sans erreur
-- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
+- [x] **`/simplify`** : passe qualité sur toute la branche
+- [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
+- [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
+- [ ] **`/security-review`** : non lancé. À faire seul et en dernier, sur l'état gelé
+
+> Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
+
+### Conformité légale & RGPD
+
+- [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
+- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
+- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
 
 ### Cohérence documentaire
 
@@ -240,11 +247,13 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 - [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le switch Postgres Dokploy externe)
 - [x] **README.md** : réécrit (stack, prérequis, getting started, scripts `just *`, vars d'env, archi, i18n, assets, déploiement, docs, workflow git)
 
-### Conformité légale & RGPD
+### Validation technique finale
 
-- [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
-- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
-- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
+- [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
+- [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
+- [x] **`just test`** : tous les tests passent en local
+- [x] **`just build`** : build Next.js standalone passe sans erreur
+- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
 ## Checklist Post-MEP
 
@@ -273,6 +282,26 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 > ✅ **Toujours vérifier le build et les tests avant de merger une mise à jour de dépendances**
 > ❌ **Ne jamais mettre à jour Next.js et Prisma simultanément** : isoler les mises à jour critiques
 > ✅ **Dependabot** : activer via `.github/dependabot.yml` pour les PRs automatiques de sécurité et patch, la CI tourne sur chaque PR, merger manuellement après validation
+
+## Plateforme d'hébergement
+
+Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare**. Conséquence directe : rien ne signale quand ces valeurs périment, contrairement aux dépendances applicatives que `pnpm-lock.yaml` verrouille. C'est pourquoi elles vivent ici et non dans [VERSIONS.md](VERSIONS.md), dont le périmètre est ce que le dépôt déclare.
+
+| Composant | Version documentée | Dernière publiée | Relevé le |
+|---|---|---|---|
+| Docker Engine | `29.4.0` | `29.7.2` (30 juillet 2026) | à confirmer sur le VPS |
+| Docker Compose | `v5.1.2` | `v5.5.0` (17 août 2026) | à confirmer sur le VPS |
+| Dokploy | `0.28.8` | `0.30.3` (30 août 2026) | à confirmer dans l'UI |
+| Cloudflare R2 | managed service | — | sans objet |
+
+> ⚠️ Les versions documentées datent de la recherche initiale et ont deux mineures de retard. **Relever les versions réelles sur la machine** (`docker version`, `docker compose version`, UI Dokploy → About) et mettre ce tableau à jour avant toute montée.
+
+**Pièges de montée**, à lire avant d'y toucher :
+
+- **Dokploy** : le script de sécurité de la v0.26.6 est **obligatoire avant tout passage en 0.28.x** depuis une v0.25, sinon mismatch du mot de passe PostgreSQL au démarrage. Depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité. L'auto-update par l'UI est parfois défaillant, préférer `curl -sSL https://dokploy.com/install.sh | sh -s update`. Le Traefik interne (3.5 depuis la v0.25) n'est **pas** monté automatiquement.
+- **Docker Engine 29** : API minimale v1.44, les clients antérieurs à la v25 ne parlent plus au daemon. Le containerd image store devient le défaut sur les nouvelles installations, et l'ulimit open files passe de `1048576` à `1024`.
+- **Docker Compose v5** : le build est délégué à Docker Bake, le builder interne a disparu. Le champ `version:` du YAML est ignoré. La numérotation saute de v2 à v5 directement, ce n'est pas un trou dans l'historique.
+- **Cloudflare R2** : service managé, pas de version à suivre. Deux limites structurelles à connaître : **pas de versioning S3 natif** (d'où la lifecycle rule du § Backup & Recovery pour la rétention), et les Bucket Locks ne sont **pas** l'Object Lock WORM de S3, pas de mode Compliance ni Governance. Facturation arrondie à l'unité supérieure.
 
 ---
 

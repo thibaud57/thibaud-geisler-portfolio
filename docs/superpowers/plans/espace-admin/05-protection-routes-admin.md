@@ -17,7 +17,7 @@
 - `isAdminPath` ne doit pas se réduire à `startsWith('/admin')` : `/administration` serait classé à tort comme route admin.
 - `requiresSession` doit exempter `/admin/login`, faute de quoi la redirection boucle indéfiniment.
 - Les drapeaux `experimental.authInterrupts` et `experimental.taint` s'activent dans la **même étape** que le code qui les consomme.
-- **Aucun `'use cache'`** dans l'arbre `/admin`, sous peine de devoir contourner la récupération de session (`docs/VERSIONS.md` § 20).
+- **Aucun `'use cache'`** dans l'arbre `/admin`, sous peine de devoir contourner la récupération de session (`docs/VERSIONS.md` § Post-MVP > Better Auth).
 - **La CSP n'est pas modifiée.** La connexion passe par `authClient.signIn.social()`, donc une navigation JavaScript. Un `<form>` déclencherait `form-action 'self'`, bloqué par Chrome et Safari mais pas par Firefox.
 - Le matcher de `src/proxy.ts` est **conservé tel quel** : il exclut déjà `api`, ce qui garde `/api/auth/*` hors du proxy et protège le callback OAuth.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
