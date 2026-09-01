@@ -207,6 +207,24 @@ export const legalEntities: LegalEntityInput[] = [
       country: 'FR',
     },
   },
+  {
+    // Entite signataire du contrat-cadre ; Theodo Extend est le nom commercial
+    slug: 'that-sas',
+    name: 'ThAT SAS',
+    legalStatusKey: 'sas',
+    siret: '94046052000015',
+    vatNumber: 'FR93940460520',
+    rcsCity: 'Paris',
+    phone: null,
+    capitalAmount: 200000,
+    capitalCurrency: 'EUR',
+    address: {
+      street: '48 boulevard des Batignolles',
+      postalCode: '75017',
+      city: 'Paris',
+      country: 'FR',
+    },
+  },
 ]
 
 export const publisher: PublisherInput = {
