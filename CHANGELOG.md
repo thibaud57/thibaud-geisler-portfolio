@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.0...v1.5.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ui:** thème stable au changement de langue et icônes du registre ([#115](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/115)) ([825cfe1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/825cfe1cf6e5f110a4c78c78075d30ba01922b24))
+
 ## [1.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.2...v1.5.0) (2026-09-01)
 
 
