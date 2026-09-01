@@ -33,6 +33,7 @@ export const tags: TagInput[] = [
   { slug: 'mongodb', nameFr: 'MongoDB', nameEn: 'MongoDB', kind: 'DATABASE', icon: 'simple-icons:mongodb', displayOrder: 0 },
   { slug: 'postgresql', nameFr: 'PostgreSQL', nameEn: 'PostgreSQL', kind: 'DATABASE', icon: 'simple-icons:postgresql', displayOrder: 1 },
   { slug: 'qdrant', nameFr: 'Qdrant', nameEn: 'Qdrant', kind: 'DATABASE', icon: 'lucide:database-zap', displayOrder: 2 },
+  { slug: 'pgvector', nameFr: 'pgvector', nameEn: 'pgvector', kind: 'DATABASE', icon: 'simple-icons:postgresql', displayOrder: 3 },
 
   // === AI (10) ===
   { slug: 'google-adk', nameFr: 'Google ADK', nameEn: 'Google ADK', kind: 'AI', icon: 'simple-icons:google', displayOrder: 0 },
