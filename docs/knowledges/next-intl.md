@@ -246,7 +246,7 @@ export default async function LocaleLayout({
 - `setRequestLocale` obligatoire dans chaque layout et page pour le SSG
 - `generateStaticParams` pré-génère les routes pour toutes les locales
 - `NextIntlClientProvider` hérite automatiquement de la config serveur
-- Combiner avec `suppressHydrationWarning` si `next-themes` est utilisé
+- Combiner avec `suppressHydrationWarning` (le store de thème modifie la classe de `<html>` au mount)
 
 ---
 

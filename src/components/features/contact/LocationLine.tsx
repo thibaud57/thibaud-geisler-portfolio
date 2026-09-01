@@ -18,7 +18,7 @@ export function LocationLine({ className }: Props) {
     >
       <li className="flex items-center gap-2">
         <FR className="h-3.5 w-auto" aria-hidden />
-        <span>Grand Est</span>
+        <span>Grand Est · Paris</span>
       </li>
       <li className="flex items-center gap-2">
         <LU className="h-3.5 w-auto" aria-hidden />
