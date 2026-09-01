@@ -83,4 +83,4 @@ Le VPS IONOS est déjà payé. Dokploy permet d'héberger l'ensemble de la stack
 
 # 📝 Notes complémentaires
 
-GitHub Actions est utilisé uniquement pour lint/tests. Dokploy gère entièrement le déploiement via webhook.
+**Mise à jour depuis la décision initiale** : le build a été déplacé dans GitHub Actions. `deploy.yml` construit l'image sur le tag `v*`, la pousse sur GHCR, puis appelle l'API Dokploy (`compose.redeploy`). Dokploy reste en **pull-only** et ne build plus rien sur le VPS. Le choix d'hébergement tranché par cet ADR est inchangé, seul le lieu du build a bougé.
