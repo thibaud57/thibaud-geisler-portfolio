@@ -3,19 +3,16 @@
 /**
  * Composant Magic UI `AnimatedThemeToggler` modifié localement (philosophie copy-paste shadcn).
  * Diffs vs upstream (https://magicui.design/docs/components/animated-theme-toggler) :
- *   1. Utilise `useTheme()` de next-themes au lieu de manipuler `document.documentElement.classList`
- *      directement → reste sync avec le ThemeProvider (et donc avec <Toaster /> Sonner qui lit le
- *      theme via useTheme()).
- *   2. Pattern `mounted` ajouté pour éviter hydration mismatch en standalone (resolvedTheme
- *      undefined côté SSR avant mount).
- *   3. `<span sr-only>Toggle theme</span>` hardcoded EN supprimé — le caller passe un aria-label
+ *   1. Utilise `useTheme()` du store @/lib/theme au lieu de manipuler `document.documentElement.classList`
+ *      directement → reste sync avec <Toaster /> Sonner qui lit le theme via useTheme().
+ *   2. `<span sr-only>Toggle theme</span>` hardcoded EN supprimé — le caller passe un aria-label
  *      i18n via les props spread (cf. ThemeToggle.tsx).
  */
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef } from "react"
 import { Moon, Sun } from "lucide-react"
 import { flushSync } from "react-dom"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/lib/theme"
 
 import { cn } from "@/lib/utils"
 
@@ -148,13 +145,11 @@ export const AnimatedThemeToggler = ({
 }: AnimatedThemeTogglerProps) => {
   const shape = variant ?? "circle"
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- pattern mounted next-themes, anti hydration mismatch
-  useEffect(() => setMounted(true), [])
-
-  const isDark = mounted && resolvedTheme === "dark"
+  // resolvedTheme est undefined au SSR puis rempli au premier snapshot client :
+  // le store remplace l'ancien pattern mounted (state + effect) de next-themes.
+  const isDark = resolvedTheme === "dark"
 
   const toggleTheme = useCallback(() => {
     const button = buttonRef.current

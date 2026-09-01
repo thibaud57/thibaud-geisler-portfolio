@@ -194,7 +194,7 @@ Next.js (App Router), TypeScript strict
 ### Styling & UI
 
 - **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (voir [ADR-009](adrs/009-ui-system.md))
-- **Dark/Light mode** : prévu via CSS variables / `next-themes`
+- **Dark/Light mode** : CSS variables + store maison `src/lib/theme.ts` (singleton `useSyncExternalStore`, sans provider — survit à React 19 Activity, cf. rule `theming/theme-store.md`)
 - **i18n** : FR/EN, voir [ADR-010](adrs/010-i18n.md)
 
 ### State Management

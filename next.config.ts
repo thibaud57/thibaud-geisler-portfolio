@@ -36,6 +36,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   cacheComponents: true,
+  experimental: {
+    // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
+    // global-not-found.tsx porte le 404 des URLs qui ne matchent aucune route.
+    globalNotFound: true,
+  },
   typedRoutes: true,
   poweredByHeader: false,
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],

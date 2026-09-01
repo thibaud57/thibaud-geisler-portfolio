@@ -14,7 +14,7 @@ export const tags: TagInput[] = [
   { slug: 'typescript', nameFr: 'TypeScript', nameEn: 'TypeScript', kind: 'LANGUAGE', icon: 'simple-icons:typescript', displayOrder: 0 },
   { slug: 'python', nameFr: 'Python', nameEn: 'Python', kind: 'LANGUAGE', icon: 'simple-icons:python', displayOrder: 1 },
   { slug: 'scala', nameFr: 'Scala', nameEn: 'Scala', kind: 'LANGUAGE', icon: 'simple-icons:scala', displayOrder: 2 },
-  { slug: 'java', nameFr: 'Java', nameEn: 'Java', kind: 'LANGUAGE', icon: 'simple-icons:openjdk', displayOrder: 3 },
+  { slug: 'java', nameFr: 'Java', nameEn: 'Java', kind: 'LANGUAGE', icon: 'lucide:coffee', displayOrder: 3 },
 
   // === FRAMEWORK (11) ===
   { slug: 'angular', nameFr: 'Angular', nameEn: 'Angular', kind: 'FRAMEWORK', icon: 'simple-icons:angular', displayOrder: 0 },
