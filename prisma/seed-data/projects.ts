@@ -78,9 +78,9 @@ export const projects: ProjectInput[] = [
     },
   },
   {
-    slug: 'aida-agents-ia',
-    titleFr: 'AIDA — Chatbot & agents IA',
-    titleEn: 'AIDA — AI Chatbot & Agents',
+    slug: 'chatbot-agents-ia',
+    titleFr: 'Chatbot & Agents IA',
+    titleEn: 'AI Chatbot & Agents',
     descriptionFr:
       "Module conversationnel d'un programme R&D chez un grand compte, via Theodo Extend. Systèmes multi-agents sur Vertex AI et Google ADK, exécution de code en environnement isolé, contrôle des hallucinations sur des chaînes LLM métier.",
     descriptionEn:
