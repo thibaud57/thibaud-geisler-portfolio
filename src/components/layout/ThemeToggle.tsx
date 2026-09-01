@@ -2,19 +2,18 @@
 
 import { Moon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
 
 import { AnimatedThemeToggler } from '@/components/magicui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
+import { useTheme } from '@/lib/theme'
 
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
   const t = useTranslations('ThemeToggle')
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- pattern mounted next-themes, anti hydration mismatch
-  useEffect(() => setMounted(true), [])
-
-  if (!mounted) {
+  // resolvedTheme est undefined au SSR et pendant l'hydratation : placeholder stable
+  // jusqu'au premier snapshot client, sans state mounted ni effect.
+  if (!resolvedTheme) {
     return (
       <Button variant="ghost" size="icon">
         <Moon className="size-5" />

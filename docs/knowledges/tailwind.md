@@ -10,7 +10,7 @@ technologies: ["Next.js", "React", "shadcn/ui"]
 
 # Description
 
-`Tailwind CSS` v4 est le framework utility-first utilisé dans le portfolio. La v4 marque un virage majeur : configuration CSS-first via `@theme` (plus de `tailwind.config.js`), support natif des container queries, couleurs OKLCH par défaut, et plugin Vite officiel. Intégration via `@tailwindcss/postcss` dans Next.js 16, avec dark mode par classe pour next-themes et shadcn/ui.
+`Tailwind CSS` v4 est le framework utility-first utilisé dans le portfolio. La v4 marque un virage majeur : configuration CSS-first via `@theme` (plus de `tailwind.config.js`), support natif des container queries, couleurs OKLCH par défaut, et plugin Vite officiel. Intégration via `@tailwindcss/postcss` dans Next.js 16, avec dark mode par classe pour le store de thème du projet et shadcn/ui.
 
 ---
 
@@ -50,7 +50,7 @@ Toute la configuration du design system se fait en CSS dans le fichier d'entrée
 
 ### Description
 
-En v4, le dark mode par classe ne se configure plus via `darkMode: 'class'` dans un fichier JS. Il faut déclarer explicitement un `@custom-variant dark` dans le CSS global, pointant sur la classe `.dark` (ajoutée par next-themes). Sans cette déclaration, les utilitaires `dark:*` ne fonctionnent pas.
+En v4, le dark mode par classe ne se configure plus via `darkMode: 'class'` dans un fichier JS. Il faut déclarer explicitement un `@custom-variant dark` dans le CSS global, pointant sur la classe `.dark` (ajoutée par le store de thème). Sans cette déclaration, les utilitaires `dark:*` ne fonctionnent pas.
 
 ### Exemple
 
@@ -79,7 +79,7 @@ En v4, le dark mode par classe ne se configure plus via `darkMode: 'class'` dans
 
 - Sans `@custom-variant dark`, les utilitaires `dark:*` ne génèrent rien
 - Le sélecteur `&:where(.dark, .dark *)` couvre l'élément et ses descendants
-- Combiner avec `next-themes` qui ajoute/retire la classe `.dark` sur `<html>`
+- Combiner avec le store de thème (`src/lib/theme.ts`) qui ajoute/retire la classe `.dark` sur `<html>`
 - Les tokens CSS sémantiques sont surchargés par `.dark` puis exposés via `@theme inline`
 
 ---
