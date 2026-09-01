@@ -6,8 +6,6 @@ import type { Prisma, Tag } from '@/generated/prisma/client'
 import { localizeTag, type LocalizedTag } from '@/i18n/localize-content'
 import { prisma } from '@/lib/prisma'
 
-export const HIDDEN_ON_ABOUT_TAG_SLUGS = ['piagent', 'php', 'local', 'vercel']
-
 export const TAG_LOGO_SELECT = {
   slug: true,
   nameFr: true,
@@ -24,9 +22,6 @@ export async function findAllTags(
   cacheLife('hours')
   cacheTag('tags')
   const tags = await prisma.tag.findMany({
-    where: {
-      slug: { notIn: HIDDEN_ON_ABOUT_TAG_SLUGS },
-    },
     orderBy: [{ displayOrder: 'asc' }, { slug: 'asc' }],
   })
   return tags.map((tag) => localizeTag(tag, locale))
