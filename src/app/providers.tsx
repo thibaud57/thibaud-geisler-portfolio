@@ -2,7 +2,6 @@
 
 import { useMemo, type ReactNode } from 'react'
 import { useLocale } from 'next-intl'
-import { ThemeProvider } from 'next-themes'
 import {
   ConsentManagerProvider,
   ConsentBanner,
@@ -94,17 +93,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider options={consentOptions}>
       <ConsentLanguageSync />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-        <ConsentBanner hideBranding legalLinks={['privacyPolicy']} />
-        <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
-        <Toaster />
-      </ThemeProvider>
+      {children}
+      <ConsentBanner hideBranding legalLinks={['privacyPolicy']} />
+      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <Toaster />
     </ConsentManagerProvider>
   )
 }
