@@ -11,6 +11,8 @@ import {
   SiFastapi,
   SiGithub,
   SiGithubactions,
+  SiGoogle,
+  SiGooglecloud,
   SiGooglegemini,
   SiKubernetes,
   SiMongodb,
@@ -39,7 +41,6 @@ import {
   ChevronRight,
   Database,
   DatabaseZap,
-  FunctionSquare,
   Ghost,
   Laptop,
   MessageCircle,
@@ -47,6 +48,8 @@ import {
   Plug,
   ShieldBan,
   Ship,
+  Sparkles,
+  SquareFunction,
   Workflow,
 } from 'lucide-react'
 
@@ -65,6 +68,8 @@ const SIMPLE_ICONS: Record<string, IconComponent> = {
   fastapi: SiFastapi,
   github: SiGithub,
   githubactions: SiGithubactions,
+  google: SiGoogle,
+  googlecloud: SiGooglecloud,
   googlegemini: SiGooglegemini,
   kubernetes: SiKubernetes,
   mongodb: SiMongodb,
@@ -94,7 +99,6 @@ const LUCIDE_ICONS: Record<string, IconComponent> = {
   'chevron-right': ChevronRight,
   database: Database,
   'database-zap': DatabaseZap,
-  'function-square': FunctionSquare,
   ghost: Ghost,
   laptop: Laptop,
   'message-circle': MessageCircle,
@@ -102,6 +106,8 @@ const LUCIDE_ICONS: Record<string, IconComponent> = {
   plug: Plug,
   'shield-ban': ShieldBan,
   ship: Ship,
+  sparkles: Sparkles,
+  'square-function': SquareFunction,
   workflow: Workflow,
 }
 
