@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-04-01"
+date: "2026-09-01"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino"]
@@ -149,16 +149,16 @@ MAIL_TO=                           # Adresse destinataire des messages du formul
 # Sécurité (hachage des IP dans les logs — pseudonymisation)
 IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
 
-# Auth (post-MVP — dashboard admin, Better Auth + Google OAuth)
+# Auth (post-MVP — espace admin, Better Auth + Google OAuth)
 BETTER_AUTH_URL=                    # URL publique du site (ex: https://thibaud-geisler.com)
 BETTER_AUTH_SECRET=                 # Secret de signature Better Auth (openssl rand -base64 32)
 GOOGLE_CLIENT_ID=                   # Client ID OAuth Google (Google Cloud Console)
 GOOGLE_CLIENT_SECRET=               # Client Secret OAuth Google (Google Cloud Console)
 ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-user, ex: contact@thibaud-geisler.com)
 
-# API LLM (post-MVP — chatbot RAG public + génération IA de contenu dashboard)
-LLM_API_KEY=                        # Clé API du fournisseur LLM retenu (voir ADR-012 : Anthropic, OpenAI ou Mistral)
-LLM_MODEL=                          # Identifiant du modèle (ex: claude-haiku-4-5, gpt-4o-mini, mistral-small)
+# Aucune variable LLM ici : ce dépôt n'appelle jamais un modèle directement, les services Python
+# voisins le font (ADR-016, ADR-020). Le jour où le portfolio les appellera en HTTP interne, un jeton
+# de service s'ajoutera à cette liste (ADR-019).
 ```
 
 ### Règles
@@ -224,13 +224,20 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 > **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
 
-### Validation technique finale
+### Revue globale de l'app
 
-- [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
-- [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
-- [x] **`just test`** : tous les tests passent en local
-- [x] **`just build`** : build Next.js standalone passe sans erreur
-- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
+- [x] **`/simplify`** : passe qualité sur toute la branche
+- [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
+- [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
+- [ ] **`/security-review`** : non lancé. À faire seul et en dernier, sur l'état gelé
+
+> Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
+
+### Conformité légale & RGPD
+
+- [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
+- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
+- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
 
 ### Cohérence documentaire
 
@@ -240,11 +247,13 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 - [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le switch Postgres Dokploy externe)
 - [x] **README.md** : réécrit (stack, prérequis, getting started, scripts `just *`, vars d'env, archi, i18n, assets, déploiement, docs, workflow git)
 
-### Conformité légale & RGPD
+### Validation technique finale
 
-- [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
-- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
-- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
+- [x] **`just check`** : diagnostics env (Node, pnpm, Docker, `.env`, Postgres)
+- [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
+- [x] **`just test`** : tous les tests passent en local
+- [x] **`just build`** : build Next.js standalone passe sans erreur
+- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
 ## Checklist Post-MEP
 
@@ -274,6 +283,26 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 > ❌ **Ne jamais mettre à jour Next.js et Prisma simultanément** : isoler les mises à jour critiques
 > ✅ **Dependabot** : activer via `.github/dependabot.yml` pour les PRs automatiques de sécurité et patch, la CI tourne sur chaque PR, merger manuellement après validation
 
+## Plateforme d'hébergement
+
+Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare**. Conséquence directe : rien ne signale quand ces valeurs périment, contrairement aux dépendances applicatives que `pnpm-lock.yaml` verrouille. C'est pourquoi elles vivent ici et non dans [VERSIONS.md](VERSIONS.md), dont le périmètre est ce que le dépôt déclare.
+
+| Composant | Version documentée | Dernière publiée | Relevé le |
+|---|---|---|---|
+| Docker Engine | `29.4.0` | `29.7.2` (30 juillet 2026) | à confirmer sur le VPS |
+| Docker Compose | `v5.1.2` | `v5.5.0` (17 août 2026) | à confirmer sur le VPS |
+| Dokploy | `0.28.8` | `0.30.3` (30 août 2026) | à confirmer dans l'UI |
+| Cloudflare R2 | managed service | — | sans objet |
+
+> ⚠️ Les versions documentées datent de la recherche initiale et ont deux mineures de retard. **Relever les versions réelles sur la machine** (`docker version`, `docker compose version`, UI Dokploy → About) et mettre ce tableau à jour avant toute montée.
+
+**Pièges de montée**, à lire avant d'y toucher :
+
+- **Dokploy** : le script de sécurité de la v0.26.6 est **obligatoire avant tout passage en 0.28.x** depuis une v0.25, sinon mismatch du mot de passe PostgreSQL au démarrage. Depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité. L'auto-update par l'UI est parfois défaillant, préférer `curl -sSL https://dokploy.com/install.sh | sh -s update`. Le Traefik interne (3.5 depuis la v0.25) n'est **pas** monté automatiquement.
+- **Docker Engine 29** : API minimale v1.44, les clients antérieurs à la v25 ne parlent plus au daemon. Le containerd image store devient le défaut sur les nouvelles installations, et l'ulimit open files passe de `1048576` à `1024`.
+- **Docker Compose v5** : le build est délégué à Docker Bake, le builder interne a disparu. Le champ `version:` du YAML est ignoré. La numérotation saute de v2 à v5 directement, ce n'est pas un trou dans l'historique.
+- **Cloudflare R2** : service managé, pas de version à suivre. Deux limites structurelles à connaître : **pas de versioning S3 natif** (d'où la lifecycle rule du § Backup & Recovery pour la rétention), et les Bucket Locks ne sont **pas** l'Object Lock WORM de S3, pas de mode Compliance ni Governance. Facturation arrondie à l'unité supérieure.
+
 ---
 
 # 🔐 Sécurité & Configuration
@@ -290,7 +319,6 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 | `BETTER_AUTH_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (Better Auth) |
 | `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
 | `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
-| `LLM_API_KEY` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (chatbot RAG + génération IA dashboard) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `RELEASE_PLEASE_PAT` | GitHub : Repository Secrets | Workflow `release-please.yml` (PAT fine-grained, scopes Contents/PR/Workflows RW + Actions R, indispensable pour que le tag push déclenche `deploy.yml` via chaînage workflows GHA) |
 
@@ -342,6 +370,8 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Dokploy Dashboard → onglet "Logs" |
 | Dokploy Deployments | Historique des builds et déploiements | Dokploy Dashboard → onglet "Deployments" |
 | Umami (post-MVP) | Analytics visiteurs RGPD-friendly, sans cookies | Instance self-hosted Dokploy (voir ADR-007) |
+| Sentry (post-MVP) | Erreurs applicatives de ce dépôt (l'ADR-017 couvre aussi les services Python voisins) | Cloud, jamais self-hosted (voir [ADR-017](adrs/017-observabilite-cloud.md)) |
+| Logfire ou Langfuse (post-MVP) | Traces LLM, émises par les services IA voisins et non par ce dépôt. Exploitation listée ici pour mémoire | Cloud, niveau gratuit (voir [ADR-017](adrs/017-observabilite-cloud.md)) |
 
 ## Métriques Clés
 
@@ -513,7 +543,7 @@ Avant de déployer un fix, diagnostiquer la cause :
 | PostgreSQL (pg_dump) | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (gratuit jusqu'à 10 GB) |
 | Assets Docker volume | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (même bucket) |
 
-> **Assets (MVP)** : stockés en Docker volume (ADR-011 acté). Migration vers Cloudflare R2 prévue lors de l'implémentation de l'upload dashboard admin.
+> **Assets (MVP)** : stockés en Docker volume (ADR-011 acté). Migration vers Cloudflare R2 prévue lors de l'implémentation de l'upload depuis l'espace admin.
 
 > ✅ **Rétention R2** : configurer une règle de lifecycle dans le dashboard Cloudflare R2 (Bucket → Settings → Lifecycle rules → delete after 7 days). Plus fiable que `rclone delete --min-age 7d` car indépendant du cron, si activée, la ligne `rclone delete` du script peut être supprimée.
 
@@ -669,7 +699,7 @@ curl -I https://thibaud-geisler.com
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Next.js Deployment](https://nextjs.org/docs/app/building-your-application/deploying)
 - [Prisma Migrate Deploy](https://www.prisma.io/docs/orm/reference/prisma-cli-reference#migrate-deploy)
-- [Better Auth](https://better-auth.com/docs) : auth dashboard (configuration, variables d'environnement)
+- [Better Auth](https://better-auth.com/docs) : auth de l'espace admin (configuration, variables d'environnement)
 - [Better Auth, Google provider](https://better-auth.com/docs/authentication/google) : setup OAuth Google
 - [Google Cloud Console, OAuth 2.0](https://console.cloud.google.com/apis/credentials) : création du Client ID / Client Secret
 - [Pino](https://getpino.io)

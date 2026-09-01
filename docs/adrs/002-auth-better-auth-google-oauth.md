@@ -10,7 +10,7 @@ technologies: ["Better Auth", "Next.js", "Google OAuth"]
 
 # 🎯 Contexte
 
-Le dashboard admin est un espace privé single-user. Le site est self-hosted sur un VPS. L'utilisateur est Thibaud Geisler, qui dispose d'un compte Google professionnel (Gmail pro) avec 2FA activée, un seul compte autorisé, jamais de multi-utilisateur prévu.
+L'espace admin est privé et single-user. Le site est self-hosted sur un VPS. L'utilisateur est Thibaud Geisler, qui dispose d'un compte Google professionnel (Gmail pro) avec 2FA activée, un seul compte autorisé, jamais de multi-utilisateur prévu.
 
 Contexte écosystème (avril 2026) : Auth.js (ex-NextAuth.js) est désormais maintenu par l'équipe Better Auth en mode security-only. La v5 de NextAuth est restée en beta indéfiniment. Better Auth est devenu la solution d'authentification de référence pour Next.js App Router.
 
@@ -18,7 +18,7 @@ Contexte écosystème (avril 2026) : Auth.js (ex-NextAuth.js) est désormais mai
 
 # 🧩 Problème
 
-Quel mécanisme d'authentification mettre en place pour protéger le dashboard admin, en minimisant la surface d'attaque tout en garantissant la sécurité d'un compte unique ?
+Quel mécanisme d'authentification mettre en place pour protéger l'espace admin, en minimisant la surface d'attaque tout en garantissant la sécurité d'un compte unique ?
 
 ---
 
@@ -79,7 +79,7 @@ Quel mécanisme d'authentification mettre en place pour protéger le dashboard a
 
 **Option A actée : Better Auth + Google OAuth uniquement.**
 
-Pour un dashboard single-user protégeant un compte admin unique, déléguer l'authentification à Google est objectivement plus sécurisé qu'une implémentation locale : brute force éliminé, aucun credential stocké localement, 2FA Google héritée. Better Auth est la librairie de référence en 2026 (Auth.js v5 est en beta indéfinie et maintenu en mode security-only par la même équipe).
+Pour un espace admin single-user protégeant un compte admin unique, déléguer l'authentification à Google est objectivement plus sécurisé qu'une implémentation locale : brute force éliminé, aucun credential stocké localement, 2FA Google héritée. Better Auth est la librairie de référence en 2026 (Auth.js v5 est en beta indéfinie et maintenu en mode security-only par la même équipe).
 
 Aucun provider Credentials n'est activé en fallback : garder un second provider reviendrait à conserver la surface d'attaque que l'on cherche à éliminer. En cas de perte d'accès au compte Google, un accès manuel via SSH Dokploy + requête SQL directe reste possible en dernier recours.
 
@@ -105,10 +105,10 @@ Aucun provider Credentials n'est activé en fallback : garder un second provider
 
 # 📝 Notes complémentaires
 
-Cette décision s'applique uniquement au dashboard admin (post-MVP). Les pages publiques restent sans authentification.
+Cette décision s'applique uniquement à l'espace admin (post-MVP). Les pages publiques restent sans authentification.
 
 **Whitelist email single-user :** implémentée via le hook `databaseHooks.user.create.before` de Better Auth. Toute tentative de création de compte dont l'email diffère de celui stocké dans `ADMIN_EMAIL` est rejetée. Cela garantit qu'un seul compte peut exister dans la base, même si un autre utilisateur tente de s'authentifier via le flow Google OAuth.
 
-**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Générées automatiquement via la CLI Better Auth (`npx @better-auth/cli generate`). Cohabitent avec les tables applicatives (`Project`, `Asset`) dans la même base PostgreSQL.
+**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Générées automatiquement via la CLI Better Auth (`npx @better-auth/cli generate`). Cohabitent avec les tables applicatives dans la même base PostgreSQL, dans un schema `auth` dédié (voir [ADR-018](018-cloisonnement-donnees.md)).
 
 **Historique de la décision :** la version précédente de cet ADR (datée 2026-03-31) avait acté NextAuth.js Credentials provider. Révision en avril 2026 pour deux raisons : (1) changement d'écosystème, Auth.js passé sous maintenance Better Auth, (2) analyse de sécurité, OAuth Google objectivement plus sûr qu'un hash bcrypt local pour un compte admin unique. Better Auth + Google OAuth remplace NextAuth.js Credentials comme choix retenu.

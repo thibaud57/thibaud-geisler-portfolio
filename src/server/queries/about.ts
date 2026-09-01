@@ -2,7 +2,7 @@ import 'server-only'
 import { cacheLife, cacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
-export { findAllTags, HIDDEN_ON_ABOUT_TAG_SLUGS } from '@/server/queries/tags'
+export { findAllTags } from '@/server/queries/tags'
 
 const START_YEAR = 2020
 

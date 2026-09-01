@@ -11,7 +11,6 @@ import {
   countClientsSupported,
   countMissionsDelivered,
   findAllTags,
-  HIDDEN_ON_ABOUT_TAG_SLUGS,
 } from '@/server/queries/about'
 
 async function ensureCompany(slug: string) {
@@ -210,22 +209,6 @@ describe('findAllTags', () => {
 
     expect(result.map((t) => t.slug)).toEqual(['b', 'c', 'a'])
   })
-
-  it.each(HIDDEN_ON_ABOUT_TAG_SLUGS.map((slug) => [slug] as const))(
-    'exclut le tag masqué %s même publié',
-    async (hiddenSlug) => {
-      await prisma.tag.createMany({
-        data: [
-          { slug: hiddenSlug, nameFr: 'H', nameEn: 'H', kind: 'INFRA' },
-          { slug: 'visible',  nameFr: 'V', nameEn: 'V', kind: 'INFRA' },
-        ],
-      })
-
-      const result = await findAllTags('fr')
-
-      expect(result.map((t) => t.slug)).toEqual(['visible'])
-    },
-  )
 
   it("retourne les tags même s'ils ne sont liés à aucun projet (orphelin)", async () => {
     await prisma.tag.create({

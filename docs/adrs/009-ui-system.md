@@ -101,7 +101,7 @@ L'Option C (hybride) est souvent le choix pragmatique en pratique : shadcn/ui po
 
 **Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles, on copie uniquement les effets nécessaires depuis l'une ou l'autre. Exploration en cours pour définir les effets retenus pour le hero et les surfaces visuelles clés du portfolio. Ces deux libs sont les candidates pour la couche effets de l'Option C.
 
-**Dashboard admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas au dashboard, leur usage est réservé aux surfaces marketing du site public.
+**Espace admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas à l'espace admin, leur usage est réservé aux surfaces marketing du site public.
 
 **Références :**
 - [shadcn/ui](https://ui.shadcn.com)

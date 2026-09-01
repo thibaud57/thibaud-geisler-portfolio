@@ -51,6 +51,17 @@ export const companies: CompanyInput[] = [
     legalEntitySlug: 'wantedesign-sas',
   },
   {
+    // Client contractuel de la mission ; le client final reste anonymise tant que
+    // Theodo n'a pas donne son accord ecrit de referencement (contrat-cadre, art. 6)
+    slug: 'theodo-extend',
+    name: 'Theodo Extend',
+    logoFilename: 'projets/client/theodo-extend/logo.png',
+    websiteUrl: 'https://www.theodo.com',
+    sectors: ['ESN_CONSEIL'],
+    size: 'ETI',
+    legalEntitySlug: 'that-sas',
+  },
+  {
     slug: PERSONAL_COMPANY_SLUG,
     name: 'Personnel',
     logoFilename: null,

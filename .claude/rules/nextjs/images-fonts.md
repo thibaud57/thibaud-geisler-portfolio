@@ -22,7 +22,7 @@ paths:
   - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (variable `--font-mono`)
 - Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css` — voir `tailwind/conventions.md`)
 - Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
-- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec une URL absolue (`${NEXT_PUBLIC_APP_URL}/api/assets/projets/client/foyer/cover.webp`) et déclarer le domaine du projet dans `images.remotePatterns` pour que `next/image` les optimise
+- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec une URL absolue (`${NEXT_PUBLIC_SITE_URL}/api/assets/projets/client/foyer/cover.webp`) et déclarer le domaine du projet dans `images.remotePatterns` pour que `next/image` les optimise
 
 ## À éviter
 - Utiliser `images.domains` : **déprécié** Next 16, utiliser `remotePatterns` (plus granulaire et sécurisé)

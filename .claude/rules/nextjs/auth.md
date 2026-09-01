@@ -3,7 +3,7 @@ paths:
   - "src/lib/auth.ts"
   - "src/lib/auth-client.ts"
   - "src/lib/get-current-user.ts"
-  - "src/app/(admin)/**/*.tsx"
+  - "src/app/admin/**/*.tsx"
   - "src/app/api/auth/**/*.ts"
   - "src/app/unauthorized.tsx"
   - "src/app/forbidden.tsx"
@@ -16,7 +16,7 @@ paths:
 - Toujours définir les cookies de session avec `HttpOnly: true`, `Secure: true` (en prod), `SameSite: 'lax'`, `Path: '/'`, `Max-Age` fini
 - Utiliser `jose` pour tout JWT (Edge-compatible), `jsonwebtoken` dépend de `crypto` Node.js et casse en Edge
 - Centraliser la vérification de session dans un helper `getCurrentUser()` reutilisable dans Server Components / Server Actions / Route Handlers
-- Protéger les routes `(admin)/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy (double protection)
+- Protéger les routes `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy (double protection)
 - Utiliser `nextCookies()` comme **dernier** plugin dans la config Better Auth pour gérer automatiquement les `Set-Cookie` des Server Actions
 - Pour Argon2id custom : config minimale OWASP 19 MiB memory, 2 iterations, parallelism 1
 - Activer `experimental: { authInterrupts: true }` pour utiliser `unauthorized()` / `forbidden()` et les fichiers `unauthorized.tsx` / `forbidden.tsx`

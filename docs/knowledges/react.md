@@ -25,7 +25,7 @@ Par défaut dans l'App Router. Exécutés côté serveur, zéro JS envoyé au cl
 ### Exemple
 
 ```tsx
-// src/app/(public)/projets/[slug]/page.tsx
+// src/app/[locale]/(public)/projets/[slug]/page.tsx
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 
@@ -95,10 +95,10 @@ Les Actions sont des fonctions serveur async invoquées depuis un `<form action=
 ```tsx
 'use client'
 import { useActionState } from 'react'
-import { sendContact } from '@/server/actions/contact'
+import { submitContact } from '@/server/actions/contact'
 
 export function ContactForm() {
-  const [state, action, pending] = useActionState(sendContact, null)
+  const [state, action, pending] = useActionState(submitContact, null)
 
   return (
     <form action={action}>
@@ -109,7 +109,7 @@ export function ContactForm() {
         {pending ? 'Envoi...' : 'Envoyer'}
       </button>
       {state?.errors && <p>Erreurs de validation</p>}
-      {state?.success && <p>Message envoyé</p>}
+      {state?.ok && <p>Message envoyé</p>}
     </form>
   )
 }

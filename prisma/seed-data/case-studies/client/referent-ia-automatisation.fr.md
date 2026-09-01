@@ -1,22 +1,28 @@
 ## Contexte
 
-Mission **freelance en cours** chez **Wanted Design**, agence digitale (e-marketing et IA/automatisation). Intervention en tant qu'**expert technique et stratégique IA/automatisation**, contribuant à l'alignement entre offres et réalité technique.
+Mission **freelance** chez **Wanted Design**, agence digitale (e-marketing et IA/automatisation). Intervention en tant qu'**expert technique et stratégique IA/automatisation**, contribuant à l'alignement entre offres et réalité technique.
 
-Début en Janvier 2026, démarrée en consulting (offres IA & support conférence) puis évoluée en référent technique IA & automatisation.
+De janvier à juin 2026. Démarrée en consulting (offres IA et support conférence), puis évoluée en Tech Lead IA & Automatisation.
 
-**Mon rôle** : intervention sur 3 axes principaux (structuration d'offres, mentorat technique, vulgarisation), complétée par le maintien de l'infrastructure technique.
+**Mon rôle** : référent technique sur l'ensemble des sujets IA et automatisation, de l'architecture au cadrage avant-vente, avec le mentorat de l'équipe et le maintien de l'infrastructure.
 
 ## Réalisations marquantes
 
-### Structuration des offres IA/automatisation
+### Plateforme d'agents IA
 
-Structuration d'offres IA/automatisation pour une agence digitale, avec production de supports commerciaux et outillage pour équipes non techniques. Création de **systèmes d'agents IA autonomes** pour automatiser des process internes.
+Conception d'une plateforme propriétaire d'agents IA réutilisable d'une mission à l'autre, en alternative aux solutions SaaS du marché. Socle technique commun et agents spécialisés, isolation des données par mission, garde-fous anti-hallucination et **conformité RGPD / AI Act dès la conception**.
+
+Périmètre : architecture, ADRs et documentation technique, l'implémentation revenant à une équipe dédiée.
+
+### Structuration des offres IA et automatisation
+
+Structuration de gammes d'offres rendues vendables par des commerciaux non techniques, avec les supports commerciaux associés. Industrialisation de la production de ces supports par un outillage d'agents.
 
 **Interventions publiques de vulgarisation IA** : support de conférence sur l'éthique dans l'IA, présentation BNI (30 min + Q&A).
 
-### Architecture et cadrage avant-vente
+### Cadrage technique avant-vente
 
-Rôle d'architecte et analyste technique sur différents projets avant-vente : cadrage des besoins clients, conception d'architectures (pipelines multi-agents IA, intégrations API), ADRs choix techniques, estimations d'effort, accompagnement avant-vente.
+Études de faisabilité et conception d'architectures sur les projets clients : choix des sources de données, modélisation, intégration d'API publiques, ADRs, estimations d'effort et accompagnement en rendez-vous.
 
 ### Mentorat technique
 
@@ -30,7 +36,7 @@ Mise en place et maintien de l'infrastructure technique de production (orchestra
 
 - Architecture IA et automatisation en contexte production
 - Conception d'offres techniques et sales enablement
-- Création de systèmes d'agents IA autonomes
+- Architecture de plateformes multi-agents, garde-fous et conformité RGPD / AI Act
 - Mentorat développeur et transmission technique
 - Prise de parole et vulgarisation technique (BNI, conférences)
 - Vision business : traduction de tech en discours commercial accessible
