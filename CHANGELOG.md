@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.2...v1.5.0) (2026-09-01)
+
+
+### Features
+
+* **projets:** ajoute une mission client et bascule release-please sur une GitHub App ([#111](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/111)) ([1fda717](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/1fda717a90b54ecd94f4e1bf8fd2da8528a1f164))
+
 ## [1.4.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.1...v1.4.2) (2026-08-25)
 
 
