@@ -59,7 +59,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./vitest.env-loader.ts', './vitest.setup.ts'],
     projects: [
       {
         extends: true,

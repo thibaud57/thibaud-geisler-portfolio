@@ -21,7 +21,7 @@ paths:
 - Importer depuis **`framer-motion`** : utiliser **`motion/react`** (Motion v12+, voir VERSIONS.md)
 - Appliquer Magic UI à l'aveugle sur tous les éléments : distraction visuelle, contre les principes DESIGN.md (intensité subtile, intention)
 - Oublier **`'use client'`** dans le composant parent qui consomme Magic UI : erreur de runtime React Server Components
-- Utiliser Magic UI dans le **dashboard admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
+- Utiliser Magic UI dans l'**espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
 - Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `tailwind-merge`, `class-variance-authority`)
 
 ## Gotchas
@@ -44,7 +44,7 @@ pnpm add magicui-cli
 
 ```typescript
 // ✅ BlurFade en îlot client + Server Component parent
-// src/app/(public)/page.tsx — Server Component
+// src/app/[locale]/(public)/page.tsx — Server Component
 export default function HomePage() {
   return (
     <main>
@@ -53,7 +53,7 @@ export default function HomePage() {
   )
 }
 
-// src/components/features/hero-section.tsx — Client Component
+// src/components/features/home/HeroSection.tsx — Client Component
 'use client'
 export function HeroSection() {
   return (

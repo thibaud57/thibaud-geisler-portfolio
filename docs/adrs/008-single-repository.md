@@ -76,6 +76,6 @@ Un seul repo pour une seule application Next.js. Aucun avantage du monorepo ne s
 
 # 📝 Notes complémentaires
 
-Les applications démos futures (gestion de label, flight scraper, etc.) ont chacune leur propre repository distinct, cohérent avec [ADR-006](006-strategie-demos-hub.md) (démos hébergées sur des domaines autonomes, cycle de vie indépendant).
+Les applications démos futures ont chacune leur propre repository distinct, cohérent avec [ADR-006](006-strategie-demos-hub.md) (démos hébergées sur des domaines autonomes, cycle de vie indépendant).
 
 pnpm est le package manager retenu pour sa rapidité d'installation et son efficacité de stockage (liens symboliques vs duplication de `node_modules`).

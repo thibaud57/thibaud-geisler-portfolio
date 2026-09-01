@@ -458,7 +458,7 @@ export default async function Image({
 }
 ```
 
-> **Note** : `findPublishedBySlug` est déjà wrappée `'use cache'` + `cacheTag('projects')` (cf. [src/server/queries/projects.ts:27](../../../src/server/queries/projects.ts)). L'appel ici hit le cache déjà chaud côté `generateMetadata` du sub-project 01 (per-request mutualisation par Next.js).
+> **Note** : `findPublishedBySlug` est déjà wrappée `'use cache'` + `cacheTag('projects')` (cf. [src/server/queries/projects.ts:27](../../../../src/server/queries/projects.ts)). L'appel ici hit le cache déjà chaud côté `generateMetadata` du sub-project 01 (per-request mutualisation par Next.js).
 
 - [ ] **Step 2 : Vérifier que le fichier compile**
 
@@ -668,6 +668,6 @@ Run : `just stop`.
    - `OgFont` (Task 2) consommé tel quel par `ImageResponse` via le retour de `loadOgFonts()` (Task 4 + Task 5).
    - `OgTemplateProps` (Task 3) avec `kind: 'site' | 'case-study'`, `locale: 'fr' | 'en'` consommé tel quel par les 2 fichiers OG (Task 4 + Task 5).
    - `params` typé `Promise<{ locale: string; slug?: string }>` cohérent avec `await params` Next 16.
-   - `findPublishedBySlug(slug, locale)` retourne `LocalizedProjectWithRelations | null` (cf. [src/server/queries/projects.ts:27](../../../src/server/queries/projects.ts#L27)) → `project.title` et `project.description` sont des `string` après narrowing par `if (!project) notFound()`.
+   - `findPublishedBySlug(slug, locale)` retourne `LocalizedProjectWithRelations | null` (cf. [src/server/queries/projects.ts:27](../../../../src/server/queries/projects.ts#L27)) → `project.title` et `project.description` sont des `string` après narrowing par `if (!project) notFound()`.
 
 Plan complet.

@@ -11,8 +11,8 @@ paths:
 ## À faire
 - Utiliser **`safeParse`** dans les Server Actions et route handlers : retourne `{ success: true, data } | { success: false, error }`, pas besoin de try/catch
 - Retourner **`result.error.flatten().fieldErrors`** pour alimenter l'UI formulaire : objet `{ champ: string[] }` directement exploitable par `useActionState`
-- Utiliser **`parse`** (pas `safeParse`) pour valider `process.env` au boot : fail-fast, crash au démarrage = signal explicite qu'une env est manquante/invalide
-- Typer `process.env` via **`z.infer<typeof EnvSchema>`**, jamais à la main
+- Valider les variables d'environnement au boot via **`createEnv` de `@t3-oss/env-nextjs`** (pattern du projet, `src/env.ts`) : fail-fast au démarrage et séparation `server` / `client`. Le `z.parse(process.env)` direct ne vaut que hors Next.js
+- Ne jamais typer `process.env` à la main : le typage vient du schéma
 - Valider **toujours côté serveur** même si une validation client existe déjà : client = feedback UX, serveur = sécurité (seul le serveur est source de vérité)
 - `Object.fromEntries(formData)` avant `safeParse` pour convertir un `FormData` en objet plain
 
@@ -47,17 +47,21 @@ export async function action(_prev: unknown, formData: FormData) {
 ```
 
 ```typescript
-// ✅ Env vars fail-fast avec parse (crash au boot si invalide)
+// ✅ Variables d'environnement fail-fast, pattern du projet (src/env.ts)
+import { createEnv } from '@t3-oss/env-nextjs'
 import { z } from 'zod'
 
-const EnvSchema = z.object({
-  DATABASE_URL: z.url(),
-  SMTP_PORT: z.coerce.number().int().positive(),
-  NODE_ENV: z.enum(['development', 'production', 'test']),
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.url(),
+    SMTP_PORT: z.coerce.number().int().positive(),
+  },
+  client: {
+    NEXT_PUBLIC_SITE_URL: z.url(),
+  },
+  runtimeEnv: { /* mapping explicite */ },
+  skipValidation: process.env.SKIP_ENV_VALIDATION === 'true',
 })
-
-export const env = EnvSchema.parse(process.env)
-export type Env = z.infer<typeof EnvSchema>
 ```
 
 ```typescript

@@ -49,7 +49,7 @@ Magic UI regroupe ses composants par catégorie d'usage. Pour le portfolio, les 
 ### Exemple
 
 ```tsx
-// src/app/(public)/page.tsx — Server Component
+// src/app/[locale]/(public)/page.tsx — Server Component
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Marquee } from '@/components/magicui/marquee'
 

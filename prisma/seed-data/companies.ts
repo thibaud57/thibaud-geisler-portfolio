@@ -51,6 +51,16 @@ export const companies: CompanyInput[] = [
     legalEntitySlug: 'initech-sas',
   },
   {
+    // Client contractuel de la mission
+    slug: 'theodo-extend',
+    name: 'Theodo Extend',
+    logoFilename: 'projets/client/theodo-extend/logo.png',
+    websiteUrl: 'https://www.theodo.com',
+    sectors: ['ESN_CONSEIL'],
+    size: 'ETI',
+    legalEntitySlug: 'that-sas',
+  },
+  {
     slug: PERSONAL_COMPANY_SLUG,
     name: 'Personnel',
     logoFilename: null,

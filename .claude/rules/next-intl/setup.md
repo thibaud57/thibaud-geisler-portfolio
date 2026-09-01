@@ -44,7 +44,7 @@ paths:
 export const routing = defineRouting({
   locales: ['fr', 'en'],
   defaultLocale: 'fr',
-  localePrefix: 'as-needed',
+  localePrefix: 'always', // choix du projet : /fr et /en toujours explicites
 })
 ```
 
