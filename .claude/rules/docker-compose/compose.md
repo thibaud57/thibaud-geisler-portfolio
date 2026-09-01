@@ -29,8 +29,8 @@ paths:
 - `docker compose down --volumes` sans backup : suppression irréversible du volume de données Postgres
 
 ## Gotchas
-- Docker Compose v1 (`docker-compose`) **entièrement supprimé** depuis avril 2025 → utiliser `docker compose` (plugin CLI) (VERSIONS.md)
-- Docker Compose v5 : champ **`version:`** dans le YAML désormais **ignoré** (saut direct v2→v5, plus besoin de déclarer la version) (VERSIONS.md)
+- Docker Compose v1 (`docker-compose`) **entièrement supprimé** depuis avril 2025 → utiliser `docker compose` (plugin CLI) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
+- Docker Compose v5 : champ **`version:`** dans le YAML désormais **ignoré** (saut direct v2→v5, plus besoin de déclarer la version) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
 - **PostgreSQL 18 Docker breaking** : `PGDATA` passe à `/var/lib/postgresql/18/docker`, réutiliser l'ancien mount `/var/lib/postgresql/data` avec l'image `postgres:18` casse le conteneur au démarrage (VERSIONS.md)
 - **`compose.override.yaml` auto-chargé** par `docker compose up` si présent à côté de `compose.yaml` (convention officielle) — mais **Dokploy ne charge que `compose.yaml`** par défaut, donc les overrides dev sont naturellement ignorés en prod sans config Dokploy particulière
 
