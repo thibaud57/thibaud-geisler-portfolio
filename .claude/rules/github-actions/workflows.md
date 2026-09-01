@@ -8,7 +8,7 @@ paths:
 
 ## À faire
 - Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
-- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 25 août 2026, toutes sur leur dernière majeure :
+- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 1er septembre 2026, toutes sur leur dernière majeure :
 
 | Action | Épinglée |
 |---|---|
