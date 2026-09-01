@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { Geist, Geist_Mono, Sansation } from 'next/font/google'
+import { ThemeScript } from '@/components/theme-script'
 import { cn } from '@/lib/utils'
+import '@/app/globals.css'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Providers } from '@/app/providers'
@@ -77,6 +79,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={cn(
         'h-full antialiased scroll-pt-16 motion-safe:scroll-smooth',
         geistSans.variable,
@@ -85,6 +88,7 @@ export default async function LocaleLayout({
       )}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <ThemeScript />
         <NextIntlClientProvider>
           <Providers>
             <Navbar />

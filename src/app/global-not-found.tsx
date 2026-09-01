@@ -4,6 +4,8 @@ import { SearchX } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import { routing } from '@/i18n/routing'
+import { themeInitScript } from '@/lib/theme-script'
+import '@/app/globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations({
@@ -16,10 +18,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// Filet ultra-rare : middleware next-intl redirige /foo → /fr/foo, donc
-// [locale]/not-found.tsx capture quasi tout. Ce fichier vit hors providers
-// (i18n, theme, fonts), d'où locale explicite et Link from 'next/link'.
-export default async function RootNotFound() {
+// Filet ultra-rare (experimental.globalNotFound) : URLs qui ne matchent aucune route.
+// Le middleware next-intl redirige /foo → /fr/foo, donc [locale]/not-found.tsx capture
+// quasi tout. Ce fichier rend son propre document, hors du root layout [locale] et de
+// ses providers, d'où locale explicite, Link from 'next/link' et import CSS local.
+export default async function GlobalNotFound() {
   const t = await getTranslations({
     locale: routing.defaultLocale,
     namespace: 'NotFound',
@@ -28,6 +31,7 @@ export default async function RootNotFound() {
   return (
     <html lang={routing.defaultLocale}>
       <body className="min-h-dvh bg-background text-foreground antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-6 px-4 py-12 text-center">
           <SearchX
             aria-hidden

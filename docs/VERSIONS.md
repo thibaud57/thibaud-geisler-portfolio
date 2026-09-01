@@ -4,7 +4,7 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-09-01"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-themes", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "country-flag-icons", "Zod", "nodemailer", "Pino", "react-calendly", "Vitest", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
 > **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **1er septembre 2026**.
@@ -33,7 +33,6 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | shadcn/ui (CLI) | `shadcn@4.19.0` | ✅ | Composants copiés localement, style `radix-nova` |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
-| next-themes | `0.4.6` | ✅ | Dark/light mode, `suppressHydrationWarning` requis |
 | next-intl | `4.13.7` | ✅ | Nécessite Next.js >= 16.2 pour `use cache` |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
@@ -382,46 +381,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `13.1.1` installée. Utiliser la syntaxe namespacée.
 
-### 7. next-themes
-
-**Version actuelle** : `0.4.6`
-**Stabilité** : ✅
-
-**Breaking Changes Majeurs (v0.2 → v0.4)** :
-- v0.4.0 : support React 19, `children` rendu optionnel dans `ThemeProvider`
-- v0.3.0 : directive `"use client"` ajoutée (plus besoin de wrapper)
-- v0.2.0 : passage de `next/script` vers une balise `<script>` standard (retrait de la dépendance `next/script`)
-
-**Nouvelles Features Pertinentes** :
-- v0.4.6 : correction null check dans `updateDOM` (prévention flashing)
-- v0.4.5 : pré-setting de `resolvedTheme` (moins de renders)
-- v0.4.1 : prop `scriptProps` (contourne Cloudflare Rocket Loader)
-
-**Compatibilité Écosystème** :
-- React 18/19 : ✅
-- Next.js 15/16 : ✅
-- TypeScript : ✅ (types ré-exportés depuis v0.4.2)
-
-**Issues connues** :
-- `useTheme().theme` toujours `undefined` côté serveur, retarder l'UI théme-dépendante avec `isMounted`
-- `suppressHydrationWarning` **obligatoire** sur `<html>`
-- Projet peu maintenu (≈1 release/an, mais stable)
-
-**Setup minimal** :
-```tsx
-// app/layout.tsx
-<html lang="fr" suppressHydrationWarning>
-  <body>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {children}
-    </ThemeProvider>
-  </body>
-</html>
-```
-
-**Recommandation** : ✅ next-themes 0.4.6.
-
-### 8. next-intl
+### 7. next-intl
 
 **Version actuelle** : `4.13.7`
 **Stabilité** : ✅
@@ -451,7 +411,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ next-intl 4.13.7 avec Next.js 16.2+.
 
-### 9. @icons-pack/react-simple-icons
+### 8. @icons-pack/react-simple-icons
 
 **Version actuelle** : `13.15.1`
 **Stabilité** : ✅
@@ -470,7 +430,7 @@ Wrapper React de Simple Icons. Les icônes sont importées nommément depuis le 
 
 **Recommandation** : ✅ 13.15.1.
 
-### 10. country-flag-icons
+### 9. country-flag-icons
 
 **Version actuelle** : `1.6.20`
 **Stabilité** : ✅
@@ -831,6 +791,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | `dorny/paths-filter` | `@v4` | 4.0.3 (5 août 2026) |
 | `extractions/setup-just` | `@v4` | v4 (5 avril 2026) |
 | `googleapis/release-please-action` | `@v5` | 5.0.0 (22 avril 2026) |
+| `actions/create-github-app-token` | `@v3` | 3.2.0 (12 mai 2026) |
 | `docker/build-push-action` | `@v7` | 7.3.0 (1er juillet 2026) |
 | `docker/login-action` | `@v4` | 4.6.0 (29 juillet 2026) |
 | `docker/metadata-action` | `@v6` | 6.2.0 (2 juillet 2026) |
@@ -877,7 +838,6 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Next.js 16.3.3 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.1 requis |
 | Next.js 16.3.3 | Pino 10.3.1 | ⚠️ | `serverExternalPackages` requis |
 | Next.js 16.3.3 | Vitest 4.1.11 | ✅ | Async Server Components non testables en unit |
-| Next.js 16.3.3 | next-themes 0.4.6 | ✅ | `suppressHydrationWarning` obligatoire |
 | Next.js 16.3.3 | Magic UI | ✅ | Via shadcn CLI (vérifier imports `@/`) |
 | Next.js 16.3.3 | Aceternity UI | ✅ | Utiliser `motion` v12+, pas `framer-motion` |
 | Prisma 7.10.0 | PostgreSQL 18.6 | ✅ | Support officiel depuis 7.2.0 |
@@ -908,7 +868,6 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Prisma 7 + CI/CD avec build séparé | 🟢 Faible | Hash mismatch possible si `prisma generate` est rejoué au déploiement sur une base Node différente de celle du build (issue #29025). Le projet **est** en build séparé (GitHub Actions), mais reste non concerné : Dokploy est en pull-only et ne régénère rien. Détail en § Prisma ORM |
 | Magic UI + shadcn CLI > 2.8.0 | 🟢 Faible | Vérifier les imports `@/lib/utils` après ajout des composants |
 | Aceternity UI + framer-motion legacy | 🟢 Faible | Installer `motion` v12+, pas `framer-motion` |
-| next-themes + Server Component | 🟢 Faible | `suppressHydrationWarning` sur `<html>` + pattern `isMounted` |
 
 ---
 
@@ -1166,7 +1125,6 @@ pnpm test
 - [ ] Image Docker Postgres : `postgres:18-alpine` avec PGDATA adapté
 - [ ] `pnpm.allowBuilds` configuré si des packages avec lifecycle scripts sont ajoutés
 - [ ] next-intl >= 4.4 avec Next.js >= 16.2
-- [ ] `suppressHydrationWarning` sur `<html>` pour next-themes
 - [ ] Package `motion` installé (pas `framer-motion`) si Aceternity UI
 - [ ] Runner CI `ubuntu-24.04` (pas `ubuntu-latest`), actions épinglées à la majeure (§ GitHub Actions)
 - [ ] Build Docker : utiliser `next build --webpack` (opt-out Turbopack) tant que l'issue Prisma 7 WASM n'est pas corrigée upstream
@@ -1393,7 +1351,6 @@ import Script from 'next/script'
 - [shadcn/ui : React 19](https://ui.shadcn.com/docs/react-19)
 - [Magic UI : Docs](https://magicui.design/docs)
 - [Aceternity UI : Install Next.js](https://ui.aceternity.com/docs/install-nextjs)
-- [next-themes : GitHub](https://github.com/pacocoursey/next-themes)
 - [next-intl 4.0 Blog](https://next-intl.dev/blog/next-intl-4-0)
 
 ### Librairies applicatives
