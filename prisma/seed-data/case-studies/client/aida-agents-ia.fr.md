@@ -1,6 +1,6 @@
 ## Contexte
 
-Mission **freelance en cours** via **Theodo Extend**, au sein de l'équipe R&D d'un grand compte. L'équipe explore des usages de l'IA générative pour l'entreprise, avec deux objectifs : faire gagner du temps sur des process internes et **fiabiliser les chaînes LLM** en contrôlant les hallucinations.
+Mission **freelance en cours** via **Theodo Extend**, au sein de l'équipe R&D d'un grand compte dans le domaine de la communication. L'équipe explore des usages de l'IA générative pour l'entreprise, avec deux objectifs : faire gagner du temps sur des process internes et **fiabiliser les chaînes LLM** en contrôlant les hallucinations.
 
 Début en juin 2026, sur un module conversationnel embarqué dans un écosystème micro-frontend et micro-services déployé sur Google Cloud.
 

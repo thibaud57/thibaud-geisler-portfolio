@@ -1,6 +1,6 @@
 ## Context
 
-**Ongoing freelance engagement** through **Theodo Extend**, within the R&D team of a large account. The team explores generative AI use cases for the business, with two goals: saving time on internal processes and **making LLM chains reliable** by controlling hallucinations.
+**Ongoing freelance engagement** through **Theodo Extend**, within the R&D team of a large account in the communications sector. The team explores generative AI use cases for the business, with two goals: saving time on internal processes and **making LLM chains reliable** by controlling hallucinations.
 
 Started in June 2026, on a conversational module embedded in a micro-frontend and micro-services ecosystem deployed on Google Cloud.
 
