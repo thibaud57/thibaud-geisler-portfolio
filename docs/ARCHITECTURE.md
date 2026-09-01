@@ -426,7 +426,7 @@ Docker + Docker Compose côté application (service `nextjs` uniquement). Postgr
 
 3 workflows GitHub Actions :
 - **`ci.yml`** : lint + typecheck + tests + build sur PR/push `main`/`develop` (Postgres CI éphémère).
-- **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. Utilise `RELEASE_PLEASE_PAT` pour que le tag déclenche `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
+- **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. S'authentifie par GitHub App (`actions/create-github-app-token@v3`), le tag étant ainsi poussé par un acteur dont les événements déclenchent `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
 - **`deploy.yml`** : sur push tag `v*` → build Docker (Postgres CI + `driver-opts: network=host`) → push GHCR → trigger Dokploy redeploy.
 
 Déploiement piloté uniquement par les tags release-please, pas par merge `main` direct.
