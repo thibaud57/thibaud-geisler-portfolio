@@ -10,26 +10,24 @@ export type TagInput = {
 }
 
 export const tags: TagInput[] = [
-  // === LANGUAGE (5) ===
+  // === LANGUAGE (4) ===
   { slug: 'typescript', nameFr: 'TypeScript', nameEn: 'TypeScript', kind: 'LANGUAGE', icon: 'simple-icons:typescript', displayOrder: 0 },
-  { slug: 'scala', nameFr: 'Scala', nameEn: 'Scala', kind: 'LANGUAGE', icon: 'simple-icons:scala', displayOrder: 1 },
-  { slug: 'python', nameFr: 'Python', nameEn: 'Python', kind: 'LANGUAGE', icon: 'simple-icons:python', displayOrder: 2 },
+  { slug: 'python', nameFr: 'Python', nameEn: 'Python', kind: 'LANGUAGE', icon: 'simple-icons:python', displayOrder: 1 },
+  { slug: 'scala', nameFr: 'Scala', nameEn: 'Scala', kind: 'LANGUAGE', icon: 'simple-icons:scala', displayOrder: 2 },
   { slug: 'java', nameFr: 'Java', nameEn: 'Java', kind: 'LANGUAGE', icon: 'simple-icons:openjdk', displayOrder: 3 },
-  { slug: 'php', nameFr: 'PHP', nameEn: 'PHP', kind: 'LANGUAGE', icon: 'simple-icons:php', displayOrder: 4 },
 
-  // === FRAMEWORK (12) ===
+  // === FRAMEWORK (11) ===
   { slug: 'angular', nameFr: 'Angular', nameEn: 'Angular', kind: 'FRAMEWORK', icon: 'simple-icons:angular', displayOrder: 0 },
-  { slug: 'play', nameFr: 'Play', nameEn: 'Play', kind: 'FRAMEWORK', icon: 'lucide:chevron-right', displayOrder: 1 },
-  { slug: 'nodejs', nameFr: 'Node.js', nameEn: 'Node.js', kind: 'FRAMEWORK', icon: 'simple-icons:nodedotjs', displayOrder: 2 },
-  { slug: 'express', nameFr: 'Express', nameEn: 'Express', kind: 'FRAMEWORK', icon: 'simple-icons:express', displayOrder: 3 },
-  { slug: 'nestjs', nameFr: 'NestJS', nameEn: 'NestJS', kind: 'FRAMEWORK', icon: 'simple-icons:nestjs', displayOrder: 4 },
-  { slug: 'react', nameFr: 'React', nameEn: 'React', kind: 'FRAMEWORK', icon: 'simple-icons:react', displayOrder: 5 },
-  { slug: 'nextjs', nameFr: 'Next.js', nameEn: 'Next.js', kind: 'FRAMEWORK', icon: 'simple-icons:nextdotjs', displayOrder: 6 },
-  { slug: 'fastapi', nameFr: 'FastAPI', nameEn: 'FastAPI', kind: 'FRAMEWORK', icon: 'simple-icons:fastapi', displayOrder: 7 },
-  { slug: 'spring', nameFr: 'Spring', nameEn: 'Spring', kind: 'FRAMEWORK', icon: 'simple-icons:spring', displayOrder: 8 },
-  { slug: 'spring-boot', nameFr: 'Spring Boot', nameEn: 'Spring Boot', kind: 'FRAMEWORK', icon: 'simple-icons:springboot', displayOrder: 9 },
-  { slug: 'android', nameFr: 'Android', nameEn: 'Android', kind: 'FRAMEWORK', icon: 'simple-icons:android', displayOrder: 10 },
-  { slug: 'odoo', nameFr: 'Odoo', nameEn: 'Odoo', kind: 'FRAMEWORK', icon: 'simple-icons:odoo', displayOrder: 11 },
+  { slug: 'fastapi', nameFr: 'FastAPI', nameEn: 'FastAPI', kind: 'FRAMEWORK', icon: 'simple-icons:fastapi', displayOrder: 1 },
+  { slug: 'play', nameFr: 'Play', nameEn: 'Play', kind: 'FRAMEWORK', icon: 'lucide:chevron-right', displayOrder: 2 },
+  { slug: 'nodejs', nameFr: 'Node.js', nameEn: 'Node.js', kind: 'FRAMEWORK', icon: 'simple-icons:nodedotjs', displayOrder: 3 },
+  { slug: 'express', nameFr: 'Express', nameEn: 'Express', kind: 'FRAMEWORK', icon: 'simple-icons:express', displayOrder: 4 },
+  { slug: 'nestjs', nameFr: 'NestJS', nameEn: 'NestJS', kind: 'FRAMEWORK', icon: 'simple-icons:nestjs', displayOrder: 5 },
+  { slug: 'react', nameFr: 'React', nameEn: 'React', kind: 'FRAMEWORK', icon: 'simple-icons:react', displayOrder: 6 },
+  { slug: 'nextjs', nameFr: 'Next.js', nameEn: 'Next.js', kind: 'FRAMEWORK', icon: 'simple-icons:nextdotjs', displayOrder: 7 },
+  { slug: 'spring-boot', nameFr: 'Spring Boot', nameEn: 'Spring Boot', kind: 'FRAMEWORK', icon: 'simple-icons:springboot', displayOrder: 8 },
+  { slug: 'android', nameFr: 'Android', nameEn: 'Android', kind: 'FRAMEWORK', icon: 'simple-icons:android', displayOrder: 9 },
+  { slug: 'odoo', nameFr: 'Odoo', nameEn: 'Odoo', kind: 'FRAMEWORK', icon: 'simple-icons:odoo', displayOrder: 10 },
 
   // === DATABASE (4) ===
   { slug: 'mongodb', nameFr: 'MongoDB', nameEn: 'MongoDB', kind: 'DATABASE', icon: 'simple-icons:mongodb', displayOrder: 0 },
@@ -37,22 +35,24 @@ export const tags: TagInput[] = [
   { slug: 'qdrant', nameFr: 'Qdrant', nameEn: 'Qdrant', kind: 'DATABASE', icon: 'lucide:database-zap', displayOrder: 2 },
   { slug: 'pgvector', nameFr: 'pgvector', nameEn: 'pgvector', kind: 'DATABASE', icon: 'simple-icons:postgresql', displayOrder: 3 },
 
-  // === AI (9) ===
-  { slug: 'n8n', nameFr: 'n8n', nameEn: 'n8n', kind: 'AI', icon: 'simple-icons:n8n', displayOrder: 0 },
-  { slug: 'rag', nameFr: 'RAG', nameEn: 'RAG', kind: 'AI', icon: 'lucide:database', displayOrder: 1 },
-  { slug: 'mcp', nameFr: 'MCP', nameEn: 'MCP', kind: 'AI', icon: 'lucide:plug', displayOrder: 2 },
-  { slug: 'skills', nameFr: 'Skills', nameEn: 'Skills', kind: 'AI', icon: 'simple-icons:anthropic', displayOrder: 3 },
-  { slug: 'anthropic', nameFr: 'Claude', nameEn: 'Claude', kind: 'AI', icon: 'simple-icons:claude', displayOrder: 4 },
-  { slug: 'openai', nameFr: 'ChatGPT', nameEn: 'ChatGPT', kind: 'AI', icon: 'lucide:message-circle', displayOrder: 5 },
+  // === AI (10) ===
+  { slug: 'google-adk', nameFr: 'Google ADK', nameEn: 'Google ADK', kind: 'AI', icon: 'simple-icons:google', displayOrder: 0 },
+  { slug: 'n8n', nameFr: 'n8n', nameEn: 'n8n', kind: 'AI', icon: 'simple-icons:n8n', displayOrder: 1 },
+  { slug: 'skills', nameFr: 'Skills', nameEn: 'Skills', kind: 'AI', icon: 'simple-icons:anthropic', displayOrder: 2 },
+  { slug: 'mcp', nameFr: 'MCP', nameEn: 'MCP', kind: 'AI', icon: 'lucide:plug', displayOrder: 3 },
+  { slug: 'rag', nameFr: 'RAG', nameEn: 'RAG', kind: 'AI', icon: 'lucide:database', displayOrder: 4 },
+  { slug: 'vertex-ai', nameFr: 'Vertex AI', nameEn: 'Vertex AI', kind: 'AI', icon: 'lucide:sparkles', displayOrder: 5 },
   { slug: 'gemini', nameFr: 'Gemini', nameEn: 'Gemini', kind: 'AI', icon: 'simple-icons:googlegemini', displayOrder: 6 },
-  { slug: 'perplexity', nameFr: 'Perplexity', nameEn: 'Perplexity', kind: 'AI', icon: 'simple-icons:perplexity', displayOrder: 7 },
-  { slug: 'piagent', nameFr: 'PiAgent', nameEn: 'PiAgent', kind: 'AI', icon: 'lucide:bot', displayOrder: 8 },
+  { slug: 'anthropic', nameFr: 'Claude', nameEn: 'Claude', kind: 'AI', icon: 'simple-icons:claude', displayOrder: 7 },
+  { slug: 'openai', nameFr: 'ChatGPT', nameEn: 'ChatGPT', kind: 'AI', icon: 'lucide:message-circle', displayOrder: 8 },
+  { slug: 'perplexity', nameFr: 'Perplexity', nameEn: 'Perplexity', kind: 'AI', icon: 'simple-icons:perplexity', displayOrder: 9 },
 
-  // === INFRA (11) ===
+  // === INFRA (10) ===
   { slug: 'kafka', nameFr: 'Kafka', nameEn: 'Kafka', kind: 'INFRA', icon: 'simple-icons:apachekafka', displayOrder: 0 },
   { slug: 'docker', nameFr: 'Docker', nameEn: 'Docker', kind: 'INFRA', icon: 'simple-icons:docker', displayOrder: 1 },
   { slug: 'kubernetes', nameFr: 'Kubernetes', nameEn: 'Kubernetes', kind: 'INFRA', icon: 'simple-icons:kubernetes', displayOrder: 2 },
-  { slug: 'dokploy', nameFr: 'Dokploy', nameEn: 'Dokploy', kind: 'INFRA', icon: 'lucide:ship', displayOrder: 3 },
+  { slug: 'gcp', nameFr: 'Google Cloud', nameEn: 'Google Cloud', kind: 'INFRA', icon: 'simple-icons:googlecloud', displayOrder: 3 },
+  { slug: 'dokploy', nameFr: 'Dokploy', nameEn: 'Dokploy', kind: 'INFRA', icon: 'lucide:ship', displayOrder: 9 },
   { slug: 'github-actions', nameFr: 'GitHub Actions', nameEn: 'GitHub Actions', kind: 'INFRA', icon: 'simple-icons:githubactions', displayOrder: 4 },
   { slug: 'datadog', nameFr: 'Datadog', nameEn: 'Datadog', kind: 'INFRA', icon: 'simple-icons:datadog', displayOrder: 5 },
   { slug: 'elasticsearch', nameFr: 'Elasticsearch', nameEn: 'Elasticsearch', kind: 'INFRA', icon: 'simple-icons:elasticsearch', displayOrder: 6 },
@@ -64,7 +64,7 @@ export const tags: TagInput[] = [
   { slug: 'automatisation', nameFr: 'Automatisation', nameEn: 'Automation', kind: 'EXPERTISE', icon: 'lucide:workflow', displayOrder: 1 },
   { slug: 'developpement-fullstack', nameFr: 'Développement Full-Stack', nameEn: 'Full-Stack Development', kind: 'EXPERTISE', icon: 'lucide:laptop', displayOrder: 2 },
   { slug: 'microservices', nameFr: 'Microservices', nameEn: 'Microservices', kind: 'EXPERTISE', icon: 'lucide:network', displayOrder: 3 },
-  { slug: 'programmation-fonctionnelle', nameFr: 'Programmation fonctionnelle', nameEn: 'Functional Programming', kind: 'EXPERTISE', icon: 'lucide:function-square', displayOrder: 4 },
+  { slug: 'programmation-fonctionnelle', nameFr: 'Programmation fonctionnelle', nameEn: 'Functional Programming', kind: 'EXPERTISE', icon: 'lucide:square-function', displayOrder: 4 },
   { slug: 'scraping', nameFr: 'Scraping', nameEn: 'Scraping', kind: 'EXPERTISE', icon: 'lucide:bug', displayOrder: 5 },
   { slug: 'anonymisation', nameFr: 'Anonymisation', nameEn: 'Anonymization', kind: 'EXPERTISE', icon: 'lucide:ghost', displayOrder: 6 },
   { slug: 'anti-bot', nameFr: 'Anti-bot', nameEn: 'Anti-bot', kind: 'EXPERTISE', icon: 'lucide:shield-ban', displayOrder: 7 },
