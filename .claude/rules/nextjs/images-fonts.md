@@ -54,7 +54,7 @@ paths:
 const font = SomeFont({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // suppressHydrationWarning requis par next-themes (cf. next-themes/theming.md), pas par next/font
+  // suppressHydrationWarning requis par le store de thème (cf. theming/theme-store.md), pas par next/font
   return <html lang="fr" suppressHydrationWarning className={font.variable}>{ ... }</html>
 }
 ```

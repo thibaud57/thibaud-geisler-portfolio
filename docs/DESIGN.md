@@ -4,7 +4,7 @@ description: "Design system : typographie, couleurs, librairies UI, mapping comp
 date: "2026-08-29"
 keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin"]
 scope: ["docs", "frontend"]
-technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "Motion", "next-themes", "next-intl"]
+technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "Motion", "next-intl"]
 ---
 
 # 🎨 Identité Visuelle
@@ -129,9 +129,9 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 ## Dark / Light Mode
 
-**Stratégie** : `next-themes`
+**Stratégie** : store maison `src/lib/theme.ts` (next-themes retiré : abandonné, bug de thème périmé avec React 19 Activity)
 
-**Mécanisme** : CSS variables sur `:root` (light) et `.dark` (dark), switch via `next-themes` avec `attribute="class"`. **Suit la préférence OS du visiteur** (`defaultTheme="system"` + `enableSystem`), avec `prefers-color-scheme` comme source par défaut.
+**Mécanisme** : CSS variables sur `:root` (light) et `.dark` (dark), classe posée sur `<html>` par le store `src/lib/theme.ts` (singleton `useSyncExternalStore` + script inline anti-FOUC). **Suit la préférence OS du visiteur** (`system` par défaut), avec `prefers-color-scheme` comme source par défaut.
 
 ### Règles
 
@@ -193,7 +193,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Navigation | Navbar, Mobile Menu | shadcn/ui (NavigationMenu, Sheet) | - |
 | Language Switcher | DropdownMenu + icône Globe (Lucide) | shadcn/ui | Switch FR / EN dans navbar (Feature 6 i18n) |
-| Theme Toggle | AnimatedThemeToggler | Magic UI + next-themes | Toggle dark/light animé dans navbar, morphing soleil/lune |
+| Theme Toggle | AnimatedThemeToggler | Magic UI + store `src/lib/theme.ts` | Toggle dark/light animé dans navbar, morphing soleil/lune |
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero / landing uniquement, effet shimmer, max 1 par page |
 | Boutons | Button (variants selon contexte) | shadcn/ui | default, outline, ghost, destructive, icon, variant choisi selon l'usage |
 | Formulaires | Input, Textarea, Select | shadcn/ui | Formulaire contact |
@@ -367,7 +367,6 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - [Motion](https://motion.dev)
 - [Lucide Icons](https://lucide.dev)
 - [Simple Icons](https://simpleicons.org)
-- [next-themes](https://github.com/pacocoursey/next-themes)
 
 ## Ressources Complémentaires
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
