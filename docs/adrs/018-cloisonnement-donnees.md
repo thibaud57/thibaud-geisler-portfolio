@@ -86,7 +86,7 @@ Base "documents-prives"           nouvelle, credentials distincts
 └── pgvector : contrats d'assurance, immobilier, administratif
 ```
 
-**Le nom `portfolio` n'est pas renommé.** Il n'apparaît que dans `DATABASE_URL`, renommer imposerait une interruption de service pour un gain purement cosmétique.
+**Le nom `portfolio` n'est pas renommé.** Il n'apparaît que dans les chaînes de connexion, renommer imposerait une interruption de service pour un gain purement cosmétique.
 
 **Un seul propriétaire par schema.** Les services qui calculent et retournent ne persistent rien dans un schema qu'ils ne possèdent pas. Le portfolio est propriétaire de `public`, `auth` et `freelance` ; `agent-os` de `dev` ; `portfolio-chatbot` de `rag_public` ; `rag-documents` de sa base entière.
 
@@ -111,7 +111,7 @@ Base "documents-prives"           nouvelle, credentials distincts
 
 # 📝 Notes complémentaires
 
-**Pourquoi l'isolation des documents personnels n'est pas négociable.** Le reste de l'architecture peut tomber sans conséquence hors ligne. Ici une fuite a des effets réels et irréversibles. L'isolation est appliquée à trois niveaux : base distincte, processus distinct de `portfolio-chatbot`, et absence totale d'exposition réseau.
+**Pourquoi l'isolation des documents personnels n'est pas négociable.** Le reste de l'architecture peut tomber sans conséquence hors ligne. Ici une fuite a des effets réels et irréversibles. L'isolation est appliquée à trois niveaux : base distincte, processus distinct de `portfolio-chatbot`, et aucune exposition hors du réseau Docker interne, où seul le portfolio le joint ([ADR-019](019-communication-inter-services.md)).
 
 **Sauvegardes.** Deux bases signifient deux sauvegardes, celle des documents personnels méritant une rétention et un chiffrement propres. La stratégie opérationnelle appartient à [PRODUCTION.md](../PRODUCTION.md) § Backup & Recovery.
 

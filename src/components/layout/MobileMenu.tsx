@@ -33,20 +33,19 @@ export function MobileMenu({ footerSlot }: Props) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="flex flex-col gap-6 p-6"
+        className="flex flex-col gap-3 p-6 pt-2 pb-4"
       >
-        <SheetHeader className="flex-row items-center justify-between p-0">
+        <SheetHeader className="flex-row items-center justify-between border-b border-border p-0 pb-2">
           <SheetTitle className="sr-only">{t('ariaLabel')}</SheetTitle>
-          <BrandLogo />
+          <BrandLogo className="w-[180px]" />
           <SheetClose asChild>
             <Button variant="ghost" size="icon" aria-label="Close">
               <X className="size-5" />
             </Button>
           </SheetClose>
         </SheetHeader>
-        <div className="border-t border-border" />
         <NavLinks orientation="vertical" onLinkClick={() => setOpen(false)} />
-        <div className="mt-auto flex flex-wrap items-center justify-center gap-3 border-t border-border pt-6">
+        <div className="mt-auto flex flex-wrap items-center justify-center gap-3 border-t border-border pt-4">
           {footerSlot}
         </div>
       </SheetContent>

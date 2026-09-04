@@ -5,7 +5,7 @@ description: "Décision actée : routeur cloud OpenRouter, provider Anthropic en
 date: "2026-08-29"
 keywords: ["architecture", "adr", "llm", "gateway", "openrouter", "anthropic", "couts"]
 scope: ["docs", "architecture"]
-technologies: ["OpenRouter", "Anthropic", "PydanticAI", "LiteLLM"]
+technologies: ["OpenRouter", "Anthropic", "PydanticAI"]
 ---
 
 # 🎯 Contexte
@@ -82,7 +82,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 |---|---|---|
 | `portfolio-chatbot` | **OpenRouter** | Principal poste facturé au token, bénéficie du batch, des budgets quotidiens et du provider PydanticAI |
 | `rag-documents` | **`claude -p`** depuis Claude Code, **PydanticAI + provider Anthropic** depuis l'écran admin, fournisseur d'embeddings **à trancher** | Deux chemins d'interrogation : par Claude Code, donc sur l'abonnement ; par l'API interne que consomme l'écran admin, donc au token et sans routeur intermédiaire. L'indexation exige en plus un fournisseur d'embeddings, **qu'Anthropic ne propose pas** |
-| `agent-os` | **Abonnement Claude, jamais de routeur** | Voir ci-dessous |
+| `agent-os` | **Abonnement Claude, jamais de routeur** | Cf. ci-dessous |
 | Génération de contenu | **Abonnement Claude via `claude -p`** | Déclenchée par une personne identifiée. Le CLI, et non PydanticAI : Claude Code n'est pas une API de modèle mais un agent complet, seul l'appel du binaire charge hooks, skills, MCP et `CLAUDE.md` |
 
 **Règle absolue : jamais de gateway devant Claude Code.** La documentation Anthropic est explicite : passer par une gateway avec un credential facture l'usage au tarif API et **désactive l'abonnement** pour cette session. Router l'orchestrateur reviendrait à transformer un forfait déjà payé en facturation à l'acte.
@@ -115,7 +115,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 
 **Déclencheurs de réévaluation.** Basculer vers une gateway si et seulement si : la facture dépasse 150 $ par mois pendant trois mois consécutifs, un client tiers doit être refacturé à l'usage, ou un point d'appel hors monolithe manipulant des données sensibles apparaît sans contournement possible.
 
-**Ce qui n'est pas un déclencheur :** le nombre de points d'appel. Les quatre passent par la configuration unique d'`ai-kit`, ce n'est pas quatre frontières mais une.
+**Ce qui n'est pas un déclencheur :** le nombre de points d'appel. Tous les appels par API passent par la configuration unique d'`ai-kit`, les autres empruntent le CLI sur l'abonnement : ce n'est pas quatre frontières mais une.
 
 **Sources :**
 

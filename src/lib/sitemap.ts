@@ -9,6 +9,8 @@ export const PUBLIC_STATIC_PATHS = [
   '/projets',
   '/a-propos',
   '/contact',
+  '/mentions-legales',
+  '/confidentialite',
 ] as const
 
 type SitemapProject = {

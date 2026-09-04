@@ -30,7 +30,7 @@ export function ProjectCard({ project }: Props) {
     <article className="h-full">
       <Link
         href={`/projets/${project.slug}`}
-        className="block h-full transition-transform duration-300 ease-out hover:scale-[1.01]"
+        className="block h-full rounded-lg transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl"
         aria-label={t('cardAriaLabel', { title: project.title })}
       >
         <BentoCard>
@@ -46,23 +46,23 @@ export function ProjectCard({ project }: Props) {
               {project.title}
             </h3>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               {company ? (
                 <ContextBadge logoFilename={company.logoFilename} name={company.name} />
               ) : null}
-              <FormatBadges formats={project.formats} size="sm" className="gap-1.5" />
+              <FormatBadges formats={project.formats} />
             </div>
 
             <p className="text-base leading-relaxed text-muted-foreground line-clamp-3">
               {project.description}
             </p>
 
-            <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
+            <div className="mt-auto flex flex-wrap gap-2 pt-4">
               {visibleProjectTags.map((projectTag) => (
                 <TagBadge key={projectTag.tag.slug} tag={projectTag.tag} />
               ))}
               {extraCount > 0 ? (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" meta>
                   +{extraCount}
                 </Badge>
               ) : null}
@@ -107,12 +107,13 @@ function CoverArea({
       {showInProgress ? (
         <Badge
           variant="default"
-          className="absolute right-3 top-3 overflow-visible text-[10px] font-medium uppercase tracking-wider"
+          meta
+          className="absolute right-3 top-3 overflow-visible"
         >
           {inProgressLabel}
           <BorderBeam
             size={30}
-            duration={4}
+            duration={7}
             borderWidth={2}
             colorFrom="var(--shine)"
             colorTo="transparent"
@@ -132,10 +133,7 @@ function ContextBadge({ logoFilename, name }: ContextBadgeProps) {
   const { showImage, onError } = useImageFallback(logoFilename)
 
   return (
-    <Badge
-      variant="outline"
-      className="gap-1.5 text-[10px] font-medium uppercase tracking-wider"
-    >
+    <Badge variant="outline" meta>
       {showImage && logoFilename ? (
         <Image
           src={buildAssetUrl(logoFilename)}

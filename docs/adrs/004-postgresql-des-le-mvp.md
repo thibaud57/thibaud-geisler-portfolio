@@ -80,3 +80,5 @@ Le contenu dynamique (projets) est nécessaire dès le MVP. PostgreSQL est la DB
 # 📝 Notes complémentaires
 
 PostgreSQL est également utilisé par Umami (analytics post-MVP), permettant potentiellement de partager le même cluster.
+
+Provisionnement : Dokploy Database en production (hors du compose applicatif), container local via `compose.override.yaml` en développement.

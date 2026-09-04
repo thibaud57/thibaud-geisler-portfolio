@@ -34,6 +34,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Empêche `next dev` de régénérer AGENTS.md / CLAUDE.md à la racine :
+  // les instructions agent du projet vivent dans .claude/CLAUDE.md.
+  agentRules: false,
   output: 'standalone',
   cacheComponents: true,
   experimental: {

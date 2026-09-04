@@ -6,7 +6,7 @@
 
 **Architecture:** Le proxy trie par préfixe de chemin : `/admin` court-circuite le handler next-intl et reçoit une redirection optimiste si le cookie de session manque, tout le reste est délégué à next-intl comme aujourd'hui. La vérification qui fait autorité est ailleurs, dans le layout, qui valide la session en base et taint l'objet utilisateur.
 
-**Tech Stack:** Next.js 16 App Router, next-intl 4, Better Auth 1.6, Vitest.
+**Tech Stack:** Next.js 16 App Router, next-intl 4, Better Auth, Vitest. Versions exactes : `docs/VERSIONS.md`, à relever au moment de l'installation.
 
 **Spec:** `docs/superpowers/specs/espace-admin/05-protection-routes-admin-design.md`
 
@@ -178,6 +178,7 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/lib/get-current-user.ts`
 - Modify: `next.config.ts`
+- Modify: `tsconfig.json`
 
 **Interfaces:**
 - Consomme : `auth` de `src/lib/auth.ts` (sub-project `04`).
@@ -185,16 +186,23 @@ Expected: aucune erreur.
 
 - [ ] **Step 1: Activer les deux drapeaux**
 
-Dans `next.config.ts`, ajouter au `nextConfig` :
+Dans `next.config.ts`, le bloc `experimental` **existe déjà** et porte `globalNotFound: true`. Compléter, ne pas remplacer :
 
 ```typescript
   experimental: {
+    globalNotFound: true, // existant : le root layout vit sous [locale], ne pas retirer
     authInterrupts: true,
     taint: true,
   },
 ```
 
 `authInterrupts` autorise `unauthorized()` et le fichier `unauthorized.tsx`. `taint` autorise le Taint API. Les deux sont activés ici parce que c'est l'étape qui les consomme : plus tôt, ils seraient une configuration morte ; plus tard, le build échouerait.
+
+- [ ] **Step 1 bis: Rendre le Taint API typable**
+
+`experimental_taintObjectReference` n'est pas déclaré dans les types par défaut de React : il vit dans `@types/react/experimental.d.ts`, que `tsconfig.json` ne charge pas (son champ `types` est explicite depuis TypeScript 6). Sans ce réglage, le runtime fonctionne mais `just typecheck` échoue sur un `TS2305`.
+
+Le champ `types` de `tsconfig.json` porte déjà `react/canary`, qui ne déclare pas le Taint API : y ajouter `"react/experimental"`, puis vérifier que le typecheck passe avant d'écrire la suite.
 
 - [ ] **Step 2: Écrire le helper**
 
@@ -238,7 +246,7 @@ Expected: aucune erreur. Un drapeau `experimental` inconnu de la version install
 - Create: `src/app/admin/layout.tsx`
 - Create: `src/app/admin/page.tsx`
 - Create: `src/app/admin/login/page.tsx`
-- Create: `src/app/unauthorized.tsx`
+- Create: `src/app/admin/unauthorized.tsx`
 
 **Interfaces:**
 - Consomme : `getCurrentUser()` de la Task 3, `authClient` de `src/lib/auth-client.ts` (sub-project `04`).
@@ -246,21 +254,34 @@ Expected: aucune erreur. Un drapeau `experimental` inconnu de la version install
 
 - [ ] **Step 1: Écrire le layout protégé**
 
-```typescript
-import { getCurrentUser } from '@/lib/get-current-user'
+**Ce fichier est un root layout, pas un layout imbriqué.** Le seul root layout du dépôt vit sous `src/app/[locale]/layout.tsx` (contrainte next-intl, c'est la raison d'être de `globalNotFound`). L'arbre `src/app/admin/` est hors de ce segment : il n'a donc aucun `<html>`/`<body>` au-dessus de lui, et Next refuse un arbre sans document. Prendre modèle sur `src/app/global-not-found.tsx`, qui rend son propre document pour la même raison : `<html>`, `<body>`, l'import de `globals.css` et le script d'initialisation du thème.
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+```typescript
+import type { ReactNode } from 'react'
+
+import { fontVariables } from '@/lib/fonts'
+import { getCurrentUser } from '@/lib/get-current-user'
+import { themeInitScript } from '@/lib/theme-script'
+
+import '@/app/globals.css'
+
+export default async function AdminLayout({ children }: { children: ReactNode }) {
   await getCurrentUser()
 
-  return <div className="min-h-screen bg-background">{children}</div>
+  return (
+    <html lang="fr" className={fontVariables} suppressHydrationWarning>
+      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {children}
+      </body>
+    </html>
+  )
 }
 ```
 
-Ce layout ne monte aucune navigation : le `LanguageSwitcher` n'a pas de sens ici, l'espace admin étant monolingue (ADR-021), et la sidebar arrive au sub-project `06`.
+Relire `src/app/global-not-found.tsx` avant d'écrire ce fichier et en reprendre exactement la forme, script de thème compris : sans lui, l'espace admin s'affiche en clair puis bascule, ce que le scénario de bascule de thème du sub-project `06` sanctionnera. `lang="fr"` est figé, l'espace admin étant monolingue (ADR-021).
+
+Ce layout ne monte aucune navigation : le `LanguageSwitcher` n'a pas de sens ici, et la sidebar arrive au sub-project `06`.
 
 Ne jamais ajouter `'use cache'` dans ce fichier ni dans ses descendants.
 
@@ -270,7 +291,7 @@ Ne jamais ajouter `'use cache'` dans ce fichier ni dans ses descendants.
 export default function AdminHomePage() {
   return (
     <main className="p-8">
-      <h1 className="text-3xl font-semibold">Espace admin</h1>
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Espace admin</h1>
     </main>
   )
 }
@@ -289,7 +310,7 @@ import { Button } from '@/components/ui/button'
 export default function AdminLoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-semibold">Connexion</h1>
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Connexion</h1>
       <Button
         onClick={() =>
           authClient.signIn.social({ provider: 'google', callbackURL: '/admin' })
@@ -314,11 +335,11 @@ import Link from 'next/link'
 export default function Unauthorized() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-2xl font-semibold">Accès non autorisé</h1>
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Accès non autorisé</h1>
       <p className="text-muted-foreground">
         Cette page nécessite une session valide.
       </p>
-      <Link className="underline" href="/admin/login">
+      <Link className="text-primary underline underline-offset-2" href="/admin/login">
         Se connecter
       </Link>
     </main>
@@ -326,7 +347,11 @@ export default function Unauthorized() {
 }
 ```
 
-Ce fichier vit à la racine de `src/app/`, hors `[locale]` : il ne peut pas utiliser `useTranslations` et porte donc des libellés français en dur, comme `global-error.tsx` le fait déjà pour la même raison.
+**Le placer sous `src/app/admin/unauthorized.tsx`**, et non à la racine de `src/app/`. La frontière `unauthorized()` est levée par le layout admin : le fichier voisin de ce layout hérite du document qu'il rend (`<html>`/`<body>`, `globals.css`). À la racine de `src/app/`, il n'aurait aucun root layout au-dessus de lui et rendrait une page sans styles, quand il ne ferait pas échouer le build.
+
+Hors `[locale]`, il ne peut pas utiliser `useTranslations` et porte donc des libellés français en dur, comme `global-error.tsx` le fait déjà pour la même raison.
+
+« Se connecter » est un lien de contenu, posé dans une phrase de prose : DESIGN.md § Conventions lui impose `text-primary underline underline-offset-2` en permanence. La famille lien d'interface, distinguée par la seule couleur, est réservée à la navigation et aux CTA.
 
 - [ ] **Step 5: Vérifier typage et lint**
 
@@ -394,14 +419,24 @@ Vérification jetable, à défaire aussitôt. Ajouter temporairement dans `src/a
 
 ```typescript
 // TEMPORAIRE — à supprimer après vérification
+'use client'
+export function TaintProbe(_props: { user: unknown }) {
+  return null
+}
+```
+
+```typescript
+// TEMPORAIRE — à supprimer après vérification
 import { getCurrentUser } from '@/lib/get-current-user'
-import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { TaintProbe } from './taint-probe'
 
 export default async function AdminHomePage() {
   const user = await getCurrentUser()
-  return <ThemeToggle {...({ user } as never)} />
+  return <TaintProbe user={user} />
 }
 ```
+
+Un Client Component jetable, et surtout pas `ThemeToggle` : celui-ci appelle `useTranslations`, or `NextIntlClientProvider` n'est monté que sous `[locale]`. Il échouerait hors de ce segment pour une raison étrangère au Taint API, et la vérification ne prouverait rien.
 
 Expected: le rendu échoue avec l'erreur du Taint API et le message défini dans `getCurrentUser`.
 

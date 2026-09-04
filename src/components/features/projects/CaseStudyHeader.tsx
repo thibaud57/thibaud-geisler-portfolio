@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { buildAssetUrl } from '@/lib/assets'
 import { formatDurationRange, getProjectTimeline } from '@/lib/projects'
 import type { LocalizedProjectWithRelations } from '@/types/project'
+import { LeadParagraph } from '@/components/ui/lead-paragraph'
 import { FormatBadges } from './FormatBadges'
 
 type Props = {
@@ -38,9 +39,7 @@ export function CaseStudyHeader({ project }: Props) {
 
       <FormatBadges formats={project.formats} className="mt-5" />
 
-      <p className="mt-8 border-l-2 border-primary/60 pl-5 text-xl font-light leading-relaxed text-foreground/90 sm:text-2xl">
-        {project.description}
-      </p>
+      <LeadParagraph className="mt-8">{project.description}</LeadParagraph>
 
       {project.coverFilename ? (
         <figure className="relative mt-10 aspect-[16/7] w-full overflow-hidden rounded-2xl border border-border">
@@ -126,7 +125,7 @@ function TimelineMarker({
           variant === 'active' && 'animate-pulse ring-4 ring-primary/20',
         )}
       />
-      <span className="font-mono text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+      <span className="font-mono text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
         {label}
       </span>
     </div>
@@ -136,7 +135,7 @@ function TimelineMarker({
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <dt className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
         {label}
       </dt>
       <dd className="font-medium text-foreground">{value}</dd>

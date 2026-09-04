@@ -6,7 +6,7 @@ status: "draft"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["08-crud-entreprises-design.md", "10-gestion-assets-admin-design.md", "12-ecran-liste-projets-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Formulaire de projet
@@ -37,7 +37,7 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 - **À créer** : `src/components/features/admin/projects/ProjectTagsField.tsx`
 - **À créer** : `src/components/features/admin/projects/ClientMetaFields.tsx`
 - **À créer** : `src/components/layout/AdminBreadcrumb.tsx`
-- **À créer** : `src/components/ui/breadcrumb.tsx` (installé via le CLI shadcn)
+- **À installer** : `src/components/ui/breadcrumb.tsx`, `src/components/ui/dialog.tsx`, `src/components/ui/select.tsx` et `src/components/ui/alert-dialog.tsx` par le CLI shadcn. les quatre sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/`
 
 ## Architecture approach
 
@@ -48,6 +48,8 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 **Le bloc de méta client apparaît selon le type.** Entreprise, mode de travail, statut de contrat, taille d'équipe et nombre de livrables ne s'affichent que pour un projet `CLIENT`. C'est la traduction visuelle de la règle portée par le schéma Zod du sub-project `11`.
 
 **La bascule vers personnel avertit avant de perdre des données.** Passer un projet de `CLIENT` à `PERSONAL` supprime sa méta client, et le sub-project `11` l'assume côté action. L'interface doit le dire au moment du choix, pas le laisser découvrir après enregistrement.
+
+**Composants à installer avant d'écrire.** `dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md` : le formulaire en dépend pour ses cinq selects et, indirectement, pour `CompanyFormDialog`. `alert-dialog` s'y ajoute, le scénario 3 exigeant que l'enregistrement n'ait lieu qu'après confirmation ; l'avertissement lui-même est un `<p className="text-sm text-destructive">`, comme les erreurs de champ du formulaire, `Alert` restant non installé. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé. Les deux pages chargent leurs données sous `<Suspense>`, `cacheComponents: true` refusant une lecture dynamique hors frontière de suspension.
 
 **Les tags se cochent, ils ne se cherchent pas.** Des cases à cocher groupées par catégorie plutôt qu'un champ de recherche : le composant `Command` de shadcn rend `CommandItem` toujours en état sélectionné dans le style `radix-nova`, la faute à un sélecteur Tailwind mal formé (`data-selected:` au lieu de `data-[selected=true]:`). C'est l'issue shadcn-ui#9228, ouverte, avec une PR de correction #9254 en attente. Le regroupement par `TagKind` rend de toute façon la liste navigable sans recherche, donc ce choix tient même une fois l'issue close.
 

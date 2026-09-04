@@ -33,6 +33,9 @@
 
 **Files:**
 - Create: `src/components/ui/breadcrumb.tsx` (via le CLI)
+- Create: `src/components/ui/dialog.tsx` (via le CLI)
+- Create: `src/components/ui/select.tsx` (via le CLI)
+- Create: `src/components/ui/alert-dialog.tsx` (via le CLI)
 - Create: `src/components/layout/AdminBreadcrumb.tsx`
 
 **Interfaces:**
@@ -42,8 +45,10 @@
 - [ ] **Step 1: Installer le composant**
 
 ```bash
-pnpm dlx shadcn@latest add breadcrumb
+pnpm dlx shadcn@latest add breadcrumb dialog select alert-dialog
 ```
+
+`dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md` : le formulaire en dépend directement (selects de statut, type, mode de travail, statut de contrat, entreprise) et indirectement via `CompanyFormDialog`. `alert-dialog` porte la confirmation du scénario 3, où l'enregistrement n'a lieu qu'après accord explicite sur la suppression de la méta client. Passer `--dry-run` d'abord, ne rien écraser. Les cases à cocher des formats et des tags sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé.
 
 - [ ] **Step 2: Écrire le fil d'ariane**
 
@@ -116,7 +121,7 @@ Expected: aucune erreur.
 Composant client. Points imposés :
 
 - les tags sont **groupés par `kind`**, avec le libellé de catégorie en en-tête de chaque groupe
-- chaque tag est une case à cocher, **jamais** un `Command` : son état sélectionné est incorrect en `radix-nova`
+- chaque tag est une case à cocher `<input type="checkbox">`, **jamais** un `Command` : son état sélectionné est incorrect en `radix-nova`. Le libellé affiché est `nameFr`, l'interface d'administration étant en français, et l'en-tête de groupe est un libellé français écrit en dur pour chacune des six valeurs de `TagKind`, que l'enum ne porte pas
 - les identifiants retenus sont émis dans l'**ordre de sélection**, pas dans l'ordre d'affichage. C'est cet ordre qui alimentera `displayOrder`
 - la liste des tags retenus est affichée séparément, dans son ordre, pour que l'ordre soit visible avant enregistrement
 - chaque identifiant retenu est rendu dans un `<input type="hidden" name="tagIds" />`, ce qui produit les valeurs multiples que la Server Action lit avec `getAll`
@@ -133,12 +138,18 @@ Le select d'entreprise est accompagné d'un bouton qui monte `CompanyFormDialog`
 <CompanyFormDialog
   company={null}
   legalEntities={legalEntities}
-  trigger={<Button variant="outline" size="icon" aria-label="Nouvelle entreprise">+</Button>}
+  trigger={
+    <Button variant="outline" size="icon" aria-label="Nouvelle entreprise">
+      <Plus className="size-5" />
+    </Button>
+  }
   onCreated={(id) => setCompanyId(id)}
 />
 ```
 
 C'est l'usage pour lequel ce composant a été écrit au sub-project `08`. `onCreated` sélectionne l'entreprise créée sans rechargement, donc sans perdre la saisie du projet en cours.
+
+L'icône est un `Plus` de `lucide-react`, en import nommé, à 20px (`size-5`) : `docs/DESIGN.md` impose Lucide pour toutes les icônes d'interface, un `+` typographique n'en est pas une.
 
 Le mode de travail est **requis** dès que le type est `CLIENT`, contrairement au statut de contrat et à la taille d'équipe : il n'est pas nullable en base.
 
@@ -158,8 +169,8 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/projects/ProjectForm.tsx`
 
 **Interfaces:**
-- Consomme : `createProject`, `updateProject` (sub-project `11`), `<ProjectTagsField />` et `<ClientMetaFields />` (Task 2), `<AssetPicker />` (sub-project `10`).
-- Produit : `<ProjectForm project={ProjectWithRelations | null} tags={Tag[]} companies={...} legalEntities={...} />`, monté par les pages des Tasks 4 et 5.
+- Consomme : `createProject`, `updateProject` (sub-project `11`), `<ProjectTagsField />` et `<ClientMetaFields />` (Task 2), `<AssetPicker assets={…} />` (sub-project `10`, qui reçoit ses données en prop : sa requête est `server-only`).
+- Produit : `<ProjectForm project={AdminProjectDetail | null} tags={Tag[]} companies={...} legalEntities={...} />`, monté par les pages des Tasks 4 et 5. Le type vient du sub-project `11` : `ProjectWithRelations` décrit la requête publique et ne correspond pas à l'`include` de `findProjectForAdmin`.
 
 - [ ] **Step 1: Écrire le formulaire**
 
@@ -180,10 +191,18 @@ const [state, formAction, pending] = useActionState(action, initialProjectFormSt
 | Classification | type, formats (cases à cocher multiples), tags |
 | Liens | URL de dépôt, URL de démonstration |
 | Dates | début, fin |
-| Couverture | `AssetPicker` restreint au préfixe `projets/` |
+| Couverture | `AssetPicker`, alimenté par la page qui appelle `listAssets('projets/')` et lui passe le résultat en prop, plus un `<input type="hidden" name="coverFilename" />` qui porte la sélection jusqu'à l'action |
 | Méta client | `ClientMetaFields`, affiché seulement si le type vaut `CLIENT` |
 
-**Quatre comportements non négociables :**
+Chaque intitulé de section relève de la famille Label de la scale : `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. Au-delà d'une dizaine de caractères, y ajouter `text-balance` : l'espacement large fait déborder, ce qui s'est déjà produit deux fois sur le site public. « Contenu français » fait seize caractères, « Classification » quatorze.
+
+**Répartition responsive**, mobile-first au même titre que le site public :
+
+- **Base** : une colonne. Les paires de champs courts admettent deux colonnes, ce qui vaut pour la date de début et la date de fin
+- **`md:`** : deux colonnes pour Identification, Classification, Liens, Dates et Méta client. Contenu français, Contenu anglais et Couverture restent sur une colonne pleine largeur, leurs zones de markdown et leurs vignettes n'ayant rien à gagner à être resserrées
+- **`lg:`** : trois colonnes pour Identification et Méta client, les seules sections qui portent assez de champs courts. Les autres gardent leur palier `md:`
+
+**Six comportements non négociables :**
 
 1. **Repeuplement après erreur.** Chaque champ tire son `defaultValue` de `state.values` s'il existe, sinon du projet, sinon vide. Un formulaire de cette taille qui perd la saisie sur une erreur de validation est inutilisable.
 
@@ -191,7 +210,13 @@ const [state, formAction, pending] = useActionState(action, initialProjectFormSt
 
 3. **Avertissement à la bascule vers personnel.** Quand on édite un projet qui avait une méta client et qu'on passe le type sur `PERSONAL`, afficher un avertissement avant enregistrement : la méta sera supprimée définitivement. Le sub-project `11` l'exécute sans broncher, c'est l'interface qui doit prévenir.
 
+   L'avertissement est un `<p className="text-sm text-destructive">` rendu sous le select de type, et non un `Alert` : le composant n'est pas installé, et le formulaire rend déjà toutes ses erreurs de champ sous cette forme. La soumission passe ensuite par un `AlertDialog` : le scénario 3 exige que l'enregistrement n'ait lieu **qu'après confirmation**, ce qu'un message seul ne produit pas.
+
 4. **Le bouton de soumission est désactivé pendant `pending`**, un enregistrement double créerait un conflit de slug.
+
+5. **La couverture rejoint le `FormData` par un champ caché.** `AssetPicker` est un composant contrôlé, sa valeur n'atteint pas l'action toute seule : rendre `<input type="hidden" name="coverFilename" value={selected ?? ''} />` à côté de lui, comme les tags le font avec `tagIds`. Sans lui, `formData.get('coverFilename')` du sub-project `11` lit toujours une chaîne vide et le scénario 8 échoue.
+
+6. **Retour à la liste après enregistrement.** Le scénario 1 de la spec l'exige (« on est redirigé vers la liste, où il figure ») et rien ne le produit aujourd'hui : les actions du sub-project `11` retournent `{ ok: true, savedId }` sans rediriger. Un `useEffect` sur `state.ok` qui appelle `router.push('/admin/projets')`, la redirection appartenant à l'interface et non à l'action, qui doit rester réutilisable.
 
 Les formats sont des cases à cocher partageant `name="formats"`, ce qui produit les valeurs multiples lues par `getAll`.
 
@@ -214,6 +239,8 @@ Expected: aucune erreur.
 - Consomme : `<ProjectForm />` (Task 3), `<AdminBreadcrumb />` (Task 1), les requêtes d'administration des tags et des entreprises.
 - Produit : la page `/admin/projets/nouveau`.
 
+> **Les deux pages de ce sub-project lisent des données dynamiques : leur chargement passe sous `<Suspense>`.** Avec `cacheComponents: true`, une lecture ni cachée ni suspendue lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Le motif est le même dans les deux cas : un sous-composant `async` porte le `Promise.all` et rend le formulaire, la page ne garde que le fil d'Ariane, le `<Suspense>` et son `StackedSkeleton`, aux hauteurs des blocs de champs. `docs/DESIGN.md` en fait le composant de fallback de `<Suspense>` : il empile des `Skeleton` aux hauteurs passées en props, il n'y a pas de squelette à écrire. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Ne pas prendre `(public)/projets/page.tsx` pour modèle : sa query est en `'use cache'`, donc il ne porte aucun `<Suspense>`. Les blocs de code ci-dessous montrent le chargement, pas la structure finale de la page.
+
 - [ ] **Step 1: Remplacer la page d'attente**
 
 ```typescript
@@ -230,14 +257,14 @@ export default async function AdminNouveauProjetPage() {
   ])
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <AdminBreadcrumb
         items={[
           { label: 'Projets', href: '/admin/projets' },
           { label: 'Nouveau projet' },
         ]}
       />
-      <h1 className="mt-4 text-2xl font-semibold">Nouveau projet</h1>
+      <h1 className="mt-4 font-sans text-2xl font-medium tracking-normal">Nouveau projet</h1>
       <div className="mt-6">
         <ProjectForm
           project={null}
@@ -252,6 +279,11 @@ export default async function AdminNouveauProjetPage() {
 ```
 
 Les trois requêtes sont parallélisées : elles ne dépendent pas les unes des autres.
+
+Deux points de style sont imposés par `docs/DESIGN.md` et valent pour les deux pages de ce sub-project :
+
+- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 ---
 
@@ -277,9 +309,7 @@ import { findAllTagsForAdmin } from '@/server/queries/tags'
 
 export default async function AdminEditProjetPage({
   params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+}: PageProps<'/admin/projets/[id]'>) {
   const { id } = await params
 
   const [project, tags, companies, legalEntities] = await Promise.all([
@@ -292,14 +322,14 @@ export default async function AdminEditProjetPage({
   if (!project) notFound()
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <AdminBreadcrumb
         items={[
           { label: 'Projets', href: '/admin/projets' },
           { label: project.titleFr },
         ]}
       />
-      <h1 className="mt-4 text-2xl font-semibold">{project.titleFr}</h1>
+      <h1 className="mt-4 font-sans text-2xl font-medium tracking-normal">{project.titleFr}</h1>
       <div className="mt-6">
         <ProjectForm
           project={project}

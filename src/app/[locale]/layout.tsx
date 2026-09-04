@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
-import { Geist, Geist_Mono, Sansation } from 'next/font/google'
 import { ThemeScript } from '@/components/theme-script'
+import { fontVariables } from '@/lib/fonts'
 import { cn } from '@/lib/utils'
 import '@/app/globals.css'
 import { Footer } from '@/components/layout/Footer'
@@ -15,23 +15,6 @@ import {
   setupLocaleMetadata,
   siteUrl,
 } from '@/lib/seo'
-
-const geistSans = Geist({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-})
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-})
-const sansation = Sansation({
-  subsets: ['latin'],
-  weight: ['700'],
-  variable: '--font-display',
-  display: 'swap',
-})
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
@@ -62,10 +45,12 @@ export async function generateMetadata({
   }
 }
 
+// Copie hors cascade de --background : la balise theme-color est lue par l'OS, pas par CSS,
+// donc ni var() ni oklch (support inconstant dans cette balise). À resynchroniser si le token change.
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f0f0f' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
   ],
 }
 
@@ -82,9 +67,7 @@ export default async function LocaleLayout({
       data-scroll-behavior="smooth"
       className={cn(
         'h-full antialiased scroll-pt-16 motion-safe:scroll-smooth',
-        geistSans.variable,
-        geistMono.variable,
-        sansation.variable,
+        fontVariables,
       )}
     >
       <body className="min-h-full flex flex-col font-sans">

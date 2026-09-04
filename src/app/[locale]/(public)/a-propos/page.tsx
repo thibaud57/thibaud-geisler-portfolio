@@ -9,6 +9,7 @@ import { TechStackBadges } from '@/components/features/about/TechStackBadges'
 import { PageShell } from '@/components/layout/PageShell'
 import { JsonLd } from '@/components/seo/json-ld'
 import { LabeledText } from '@/components/ui/labeled-text'
+import { MotionItem } from '@/components/ui/motion-item'
 import { EXPERTISE } from '@/config/expertise'
 import { SOCIAL_LINKS } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -81,9 +82,11 @@ export default async function AProposPage({
         </p>
       </blockquote>
 
-      <section className="border-y border-border py-16 sm:py-20 lg:py-24">
-        <StatsAsync />
-      </section>
+      <MotionItem>
+        <section className="border-y border-border py-16 sm:py-20 lg:py-24">
+          <StatsAsync />
+        </section>
+      </MotionItem>
 
       <section className="flex flex-col gap-6">
         <h2>{t('stack.title')}</h2>
