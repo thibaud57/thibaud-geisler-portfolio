@@ -11,6 +11,7 @@ import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { routing } from '@/i18n/routing'
 import {
   buildPageMetadata,
   resolveParentOgImages,
@@ -18,7 +19,18 @@ import {
   siteUrl,
 } from '@/lib/seo'
 import { buildBreadcrumbList } from '@/lib/seo/json-ld'
-import { findPublishedBySlug } from '@/server/queries/projects'
+import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
+
+// Sans ça, generateMetadata dépend de params.slug hors du jeu de params connus au build : Next
+// ne peut pas figer title/og/canonical dans le shell statique, ils partent en flux après </head>
+// (invisible aux crawlers sans JS — LinkedIn, Twitter). Slugs finis, connus au build : le bon cas
+// pour generateStaticParams (cf. .claude/rules/nextjs/data-fetching.md).
+export async function generateStaticParams() {
+  const slugs = await findAllPublishedSlugs()
+  return routing.locales.flatMap((locale) =>
+    slugs.map(({ slug }) => ({ locale, slug })),
+  )
+}
 
 export async function generateMetadata(
   { params }: PageProps<'/[locale]/projets/[slug]'>,
