@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["04-auth-better-auth-google-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Protection des routes de l'espace admin
@@ -31,11 +31,12 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 - **À créer** : `src/lib/admin-routes.ts` (fonctions pures de qualification du chemin)
 - **À créer** : `src/lib/admin-routes.test.ts`
 - **À créer** : `src/lib/get-current-user.ts` (vérification réelle de session, avec Taint API)
-- **À créer** : `src/app/admin/layout.tsx` (layout protégé)
+- **À créer** : `src/app/admin/layout.tsx` (layout protégé, et **root layout de l'arbre `/admin`** : le seul autre root layout du dépôt vit sous `[locale]`, celui-ci doit donc rendre son propre `<html>`/`<body>`, importer `globals.css` et le script de thème, comme `global-not-found.tsx`)
 - **À créer** : `src/app/admin/page.tsx` (page d'accueil minimale, remplacée au sub-project `06`)
 - **À créer** : `src/app/admin/login/page.tsx` (page de connexion)
-- **À créer** : `src/app/unauthorized.tsx`
+- **À créer** : `src/app/admin/unauthorized.tsx` (voisin du layout qui lève la frontière, donc couvert par le document qu'il rend)
 - **À modifier** : `next.config.ts` (`experimental.authInterrupts` et `experimental.taint`)
+- **À modifier** : `tsconfig.json` (ajout de `react/experimental` au champ `types`, requis par le Taint API)
 
 ## Architecture approach
 
@@ -43,7 +44,7 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 
 **La vérification du proxy n'est pas une sécurité.** `getSessionCookie(request)`, importée de `better-auth/cookies`, teste la seule présence du cookie sans appel base ni validation de signature. La documentation Better Auth le signale en majuscules dans son propre exemple : c'est une redirection optimiste destinée à l'expérience utilisateur. Elle évite d'afficher un écran vide à un visiteur non connecté, rien de plus. `getSessionCookie` est préférée à `getCookieCache`, qui embarquerait des données de session dans le cookie sans bénéfice pour un simple test de présence.
 
-**La sécurité réelle est dans le layout, et dans chaque Server Action.**  `getCurrentUser()` appelle `auth.api.getSession()` avec les en-têtes de la requête, ce qui valide la session en base. Sans session, il appelle `unauthorized()`. Le layout `/admin` l'invoque, donc toute page de l'arbre en hérite. C'est la double protection voulue par l'ADR-002 : le proxy oriente, le layout autorise.
+**La sécurité réelle est dans le layout, et dans chaque Server Action.**  `getCurrentUser()` appelle `auth.api.getSession()` avec les en-têtes de la requête, ce qui valide la session en base. Sans session, il appelle `unauthorized()`. Le layout `/admin` l'invoque, donc toute page de l'arbre en hérite. C'est la protection en couches décrite par ARCHITECTURE.md § Autorisation : le proxy oriente, le layout autorise, chaque action se garde elle-même.
 
 `getCurrentUser()` sera **aussi** appelée en tête de chaque Server Action de l'espace admin, à partir du sub-project `07`. Le layout ne couvre que le rendu des pages : une Server Action exportée reste un endpoint HTTP joignable sans jamais charger l'écran qui la monte. Ce helper est donc écrit ici pour deux usages, pas un seul.
 

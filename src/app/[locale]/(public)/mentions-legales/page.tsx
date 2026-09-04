@@ -136,7 +136,7 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dd>
             <a
               href={`mailto:${pub.publicEmail}`}
-              className="text-primary hover:underline"
+              className="text-primary underline underline-offset-2"
             >
               {pub.publicEmail}
             </a>

@@ -35,7 +35,7 @@ export function CaseStudyFooter({ project }: Props) {
           {project.githubUrl ? (
             <Button asChild variant="outline">
               <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                <SiGithub className="mr-2 h-4 w-4" size={16} />
+                <SiGithub className="mr-2 size-4" />
                 {t('links.github')}
               </a>
             </Button>

@@ -45,6 +45,11 @@ typecheck:
     pnpm next typegen
     pnpm typecheck
 
+# Vulnérabilités des dépendances (même seuil que la CI, qui ne bloque pas)
+[group('quality')]
+audit:
+    pnpm audit --audit-level=high
+
 # Lance tous les tests (unit + integration)
 [group('quality')]
 test: test-unit test-integration

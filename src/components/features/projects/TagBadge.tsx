@@ -4,7 +4,6 @@
 
 import { Badge } from '@/components/ui/badge'
 import { resolveTagIcon } from '@/lib/icons'
-import { cn } from '@/lib/utils'
 import type { LocalizedTagRecord } from '@/types/project'
 
 type Props = {
@@ -14,7 +13,7 @@ type Props = {
 
 export function TagBadge({ tag, className }: Props) {
   return (
-    <Badge variant="secondary" className={cn('gap-1.5', className)}>
+    <Badge variant="secondary" className={className}>
       <TagIcon icon={tag.icon} />
       <span>{tag.name}</span>
     </Badge>
@@ -24,5 +23,5 @@ export function TagBadge({ tag, className }: Props) {
 function TagIcon({ icon }: { icon: string | null }) {
   const Icon = resolveTagIcon(icon)
   if (!Icon) return null
-  return <Icon size={14} className="shrink-0" />
+  return <Icon className="shrink-0" />
 }

@@ -37,8 +37,8 @@ export function TagStackGrouped({ tags }: Props) {
 
       <div className="flex flex-col gap-8">
         {orderedGroups.map(([kind, groupTags]) => (
-          <div key={kind} className="grid gap-3 sm:grid-cols-[9rem_1fr] sm:gap-6">
-            <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground sm:pt-1.5">
+          <div key={kind} className="grid gap-3 sm:grid-cols-[13rem_1fr] sm:gap-6">
+            <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground sm:pt-1.5">
               {t(`kind.${kind}`)}
             </h3>
             <div className="flex flex-wrap items-center gap-2">

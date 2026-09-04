@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "full"
 depends_on: ["06-shell-admin-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # CRUD des tags
@@ -37,7 +37,8 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 - **À créer** : `src/components/features/admin/tags/TagsTable.tsx`
 - **À créer** : `src/components/features/admin/tags/TagFormDialog.tsx`
 - **À créer** : `src/components/features/admin/tags/DeleteTagDialog.tsx`
-- **À créer** : `src/components/ui/alert-dialog.tsx` (installé via le CLI shadcn)
+- **À créer** : `src/components/ui/alert-dialog.tsx`, `src/components/ui/dialog.tsx` et `src/components/ui/select.tsx` (installés par le CLI shadcn : les deux derniers ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md`)
+- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog`, et `Select` sort de la ligne « Formulaires admin » pour rejoindre la section Formulaires
 
 ## Architecture approach
 
@@ -59,7 +60,7 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 
 `updateTag` plutôt que `revalidateTag` : le premier fait attendre la requête suivante le temps de recharger, le second sert d'abord du contenu périmé. Comme on vérifie l'effet en consultant la page publique juste après la mutation, seule la première sémantique rend le critère observable. `updateTag` n'est utilisable que depuis une Server Action, ce qui est précisément le contexte ici.
 
-**La liste d'administration ne réutilise pas la requête publique.** `findAllTags` filtre sur `HIDDEN_ON_ABOUT_TAG_SLUGS` et applique `'use cache'` : l'administration doit voir tous les tags, sans cache. Une requête distincte est ajoutée plutôt que de paramétrer l'existante, dont le comportement de cache ne se désactive pas au cas par cas.
+**La liste d'administration ne réutilise pas la requête publique.** `findAllTags` applique `'use cache'` : l'administration doit lire la base sans cache, pour voir ses propres mutations. Une requête distincte est ajoutée plutôt que de paramétrer l'existante, dont le comportement de cache ne se désactive pas au cas par cas.
 
 Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/prisma/client-setup.md`, `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/vitest/setup.md`, `.claude/rules/nextjs/tests.md`.
 
@@ -145,5 +146,5 @@ Aucun test n'est écrit sur le rendu des composants : monter une modale shadcn p
 - **Icône silencieusement invalide** : c'est le piège principal de cette entité. `resolveTagIcon` retourne `null` sans rien signaler, donc un tag mal saisi s'afficherait simplement sans icône, et le défaut ne serait découvert qu'à l'œil sur le site public
 - **`displayOrder` en doublon** : rien n'empêche deux tags de porter la même valeur. L'ordre est alors départagé par le tri secondaire déjà présent dans `findAllTags` (`slug` croissant), donc le comportement reste déterministe
 - **Cache non invalidé** : une mutation qui oublie `updateTag('tags')` réussit en base sans que le site public ne change. Le symptôme ressemble à un échec d'enregistrement alors que la donnée est bien écrite
-- **Requête publique filtrante** : `findAllTags` exclut les slugs de `HIDDEN_ON_ABOUT_TAG_SLUGS`. Réutiliser cette requête dans l'administration masquerait des tags existants et donnerait l'impression qu'ils ont disparu
+- **Requête publique cachée** : `findAllTags` porte `'use cache'`. Réutilisée dans l'administration, elle servirait un instantané antérieur à la dernière mutation, qui passerait pour perdue
 - **Suppression concurrente** : un tag rattaché à un projet entre l'affichage de la liste et la confirmation de suppression provoque une erreur de contrainte. C'est le comportement attendu, et le message doit rester compréhensible

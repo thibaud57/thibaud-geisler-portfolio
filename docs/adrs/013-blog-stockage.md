@@ -50,7 +50,7 @@ Faut-il stocker les articles de blog en base de données (via l'espace admin) ou
 
 **Inconvénients :**
 - Redéploiement nécessaire pour publier un article (déclenché par un tag de release, donc contraignant)
-- Gestion des images et assets dans MDX complexe : chemins, optimisation `next/image`, stockage à gérer séparément (voir ADR-011)
+- Gestion des images et assets dans MDX complexe : chemins, optimisation `next/image`, stockage à gérer séparément (cf. [ADR-011](011-stockage-assets.md))
 - Moins adapté si la fréquence de publication est élevée
 
 **Coût estimé :** Faible
@@ -80,6 +80,6 @@ Décision actée à l'époque. La génération de contenu assistée impliquait d
 
 # 📝 Notes complémentaires
 
-**Alternatives non retenues :** Contentlayer (MDX typé, mais projet moins maintenu), Keystatic (CMS Git-based avec UI admin, sans BDD, exclu : brouillons générés par IA non commitables dans Git), Notion headless via API (exclu : aucune API Notion dans le scope du projet, voir décision actée dans BRAINSTORM).
+**Alternatives non retenues :** Contentlayer (MDX typé, mais projet moins maintenu), Keystatic (CMS Git-based avec UI admin, sans BDD, exclu : brouillons générés par IA non commitables dans Git), Notion headless via API (exclu : aucune API Notion dans le scope du projet, cf. décision actée dans BRAINSTORM).
 
 **Redis écarté pour les brouillons générés par IA :** Redis a été envisagé pour stocker temporairement les ébauches générées par l'IA avant publication, avec expiration automatique (TTL). Écarté : le volume envisagé était trop faible pour justifier un service supplémentaire. PostgreSQL avec une colonne `status: draft | published | archived` couvre le besoin, les brouillons non retenus sont supprimés manuellement ou via un job de nettoyage périodique. Redis se justifie pour du stockage éphémère à très haute fréquence (cache sessions, pub/sub temps réel) : aucun de ces besoins n'est présent ici.

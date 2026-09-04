@@ -2,7 +2,7 @@
 title: "Sentry — Monitoring d'erreurs applicatives"
 version: "10.72.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
-date: "2026-08-30"
+date: "2026-09-03"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Pino", "Docker", "GitHub Actions"]
@@ -103,7 +103,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
 - `SENTRY_AUTH_TOKEN` est un secret de **build** : il ne doit pas se retrouver dans les variables d'environnement Dokploy du conteneur, seulement dans le workflow GitHub Actions
 - Le passage par un secret BuildKit plutôt qu'un `ARG` évite qu'il persiste dans une couche de l'image. Ce pattern est une pratique Docker générique, Sentry ne documente pas le cas multi-stage
 - La doc officielle se limite à « Make sure to also add it to your CI »
-- Le projet buildant en Webpack (opt-out déjà en place), l'upload se fait **pendant** le build : pas de `useRunAfterProductionCompileHook` à considérer
+- Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation : `_experimental.useRunAfterProductionCompileHook` est le mode à activer, et il exige Next >= 15.4.1
 - Laisser `deleteSourcemapsAfterUpload` actif : des source maps servies publiquement exposeraient le code source
 
 ---
@@ -223,17 +223,17 @@ Sentry.init({
 
 Next.js 16 fait de Turbopack le bundler par défaut, et Sentry y a eu plusieurs incidents de **perte silencieuse d'événements serveur** : `onRequestError` est appelé, l'API répond 200, et rien n'arrive dans Sentry.
 
-Le portfolio y échappe par un heureux hasard : le build de production est déjà en opt-out Webpack (`next build --webpack` dans le [Dockerfile](../../Dockerfile)), décidé pour une issue WASM de Prisma 7 sans rapport avec Sentry. Les incidents Turbopack ne concernent donc ni l'image de production ni la CI.
+Le portfolio y est exposé : l'opt-out Webpack qui l'en protégeait (`next build --webpack`, posé pour une issue WASM de Prisma 7) a été retiré du [Dockerfile](../../Dockerfile) le 3 septembre 2026, l'erreur n'étant plus reproductible. Dev, CI et image de production tournent désormais tous sous Turbopack : c'est un gain de cohérence, mais l'intégration Sentry devra être validée dans ce contexte, pas dans celui d'un build Webpack.
 
-Ils redeviendraient d'actualité le jour où cet opt-out sautera, une fois l'issue Prisma corrigée upstream. `next dev` tourne en revanche sous Turbopack.
+Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-build**, par le hook Next `runAfterProductionCompile` que le SDK active via `_experimental.useRunAfterProductionCompileHook` (Next >= 15.4.1). Les options du plugin Webpack ne s'appliquent pas.
 
 ### Points Importants
 
-- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée**, version du fix non confirmée. Sans effet sur le build actuel, qui est en Webpack
-- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Même remarque
+- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée**, version du fix non confirmée. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix
+- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Même remarque, et le projet a bien un `proxy.ts`
 - [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`** : c'est celui qui le concerne vraiment. Corrigée par la PR #21351, version de publication non confirmée
 - [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs. À surveiller dès que les Server Actions admin utiliseront `redirect()` ou `notFound()`
-- **Le jour où l'opt-out Webpack est retiré** (voir [Prisma #29025](https://github.com/prisma/prisma/issues/29025)), revalider que les erreurs serveur remontent toujours
+- **L'opt-out Webpack est retiré** depuis le 3 septembre 2026 : les incidents Turbopack ci-dessus sont à traiter comme actifs, pas comme théoriques
 - **Conséquence pratique** : ne pas considérer l'intégration comme acquise parce qu'elle compile. Provoquer une erreur serveur réelle et vérifier qu'elle apparaît dans Sentry
 
 ---
@@ -251,8 +251,8 @@ Le wizard fait l'essentiel de la mise en place : création des fichiers d'instru
 ```bash
 npx @sentry/wizard@latest -i nextjs     # interactif : demande org, projet, options
 
-pnpm build                              # local, Turbopack (défaut Next 16)
-next build --webpack                    # ce que fait le Dockerfile, opt-out déjà en place
+pnpm build                              # local, CI et Dockerfile : Turbopack (défaut Next 16)
+next build --webpack                    # opt-out ponctuel, plus utilisé par le projet
 ```
 
 ### Points Importants

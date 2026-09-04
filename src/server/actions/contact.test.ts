@@ -108,6 +108,7 @@ describe('submitContact', () => {
       event: 'email:sent',
       has_company: true,
       message_length: expect.any(Number),
+      duration_ms: expect.any(Number),
     })
   })
 

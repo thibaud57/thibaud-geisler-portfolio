@@ -24,6 +24,7 @@ export function ThemeToggle() {
   return (
     <AnimatedThemeToggler
       variant="hexagon"
+      duration={200}
       aria-label={t('ariaLabel')}
       className="inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground [&_svg]:size-5"
     />

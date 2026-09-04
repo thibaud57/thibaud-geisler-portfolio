@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["03-multi-schema-prisma-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Authentification Better Auth avec Google OAuth
@@ -28,6 +28,7 @@ Exclut toute protection de route et tout écran : le proxy, `getCurrentUser()`, 
 ## Files touched
 
 - **À modifier** : `package.json` (dépendance `better-auth`)
+- **À modifier** : `docs/ARCHITECTURE.md` (§ Authentification et § Sécurité Backend : l'authentification n'est plus post-MVP ; § Environnements et § Approche Modélisation à compléter)
 - **À modifier** : `prisma/schema.prisma` (ajout de `"auth"` au tableau `schemas`, plus les quatre modèles annotés `@@schema("auth")`)
 - **À créer** : `prisma/migrations/<horodatage>_better_auth/migration.sql`
 - **À créer** : `src/lib/auth.ts` (configuration serveur)
@@ -38,7 +39,7 @@ Exclut toute protection de route et tout écran : le proxy, `getCurrentUser()`, 
 - **À modifier** : `src/env.ts` (cinq variables serveur)
 - **À modifier** : `.env.example`
 - **À modifier** : `src/lib/prisma-test-setup.ts` (extension du reset aux tables d'authentification, avec noms qualifiés)
-- **À modifier** : `docs/PRODUCTION.md` (anti-patterns de logging)
+- **À modifier** : `docs/PRODUCTION.md` (réintroduction des cinq variables d'authentification, retirées le 2026-09-03 parce qu'elles décrivaient une infrastructure inexistante : bloc Variables Secrets, Gestion des Secrets, Rotation, et anti-patterns de logging)
 
 ## Architecture approach
 

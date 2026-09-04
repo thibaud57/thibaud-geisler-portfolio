@@ -83,4 +83,4 @@ Le VPS IONOS est déjà payé. Dokploy permet d'héberger l'ensemble de la stack
 
 # 📝 Notes complémentaires
 
-**Mise à jour depuis la décision initiale** : le build a été déplacé dans GitHub Actions. `deploy.yml` construit l'image sur le tag `v*`, la pousse sur GHCR, puis appelle l'API Dokploy (`compose.redeploy`). Dokploy reste en **pull-only** et ne build plus rien sur le VPS. Le choix d'hébergement tranché par cet ADR est inchangé, seul le lieu du build a bougé.
+**Mise à jour depuis la décision initiale** : le build a été déplacé dans GitHub Actions. `deploy.yml` construit l'image sur le tag `v*`, la pousse sur GHCR, puis appelle l'API Dokploy (`compose.redeploy`). Dokploy reste en **pull-only** et ne build plus rien sur le VPS. Le choix d'hébergement tranché par cet ADR est inchangé, seuls le déclencheur (tag release-please, et non le merge sur `main`) et le lieu du build ont bougé. Les services d'infrastructure (PostgreSQL, puis Umami et n8n) sont des applications Dokploy distinctes : le compose applicatif ne déclare que `nextjs`.

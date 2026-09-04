@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 import { TEASER_LIMIT } from '@/components/features/home/constants'
 import { ProjectCard } from '@/components/features/projects/ProjectCard'
+import { BentoGrid } from '@/components/magicui/bento-grid'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { findManyPublished } from '@/server/queries/projects'
@@ -39,10 +40,10 @@ async function ProjectsTeaserGrid({ locale }: Props) {
   const featured = projects.slice(0, TEASER_LIMIT)
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <BentoGrid>
       {featured.map((project) => (
         <ProjectCard key={project.slug} project={project} />
       ))}
-    </div>
+    </BentoGrid>
   )
 }

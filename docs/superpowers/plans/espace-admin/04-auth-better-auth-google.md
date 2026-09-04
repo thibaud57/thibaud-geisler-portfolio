@@ -6,7 +6,7 @@
 
 **Architecture:** Quatre modèles Prisma transcrits à la main dans le schema `auth`, une configuration serveur qui n'active que le provider Google, et un hook de création qui rejette tout email autre que celui autorisé. La règle d'autorisation est isolée dans une fonction pure testée, seule règle métier du sub-project.
 
-**Tech Stack:** Better Auth 1.6.2, Prisma 7.10, PostgreSQL 18, Next.js 16 App Router, Vitest.
+**Tech Stack:** Better Auth, Prisma 7, PostgreSQL 18, Next.js 16 App Router, Vitest. Versions exactes : `docs/VERSIONS.md`, à relever au moment de l'installation.
 
 **Spec:** `docs/superpowers/specs/espace-admin/04-auth-better-auth-google-design.md`
 
@@ -385,7 +385,7 @@ export const auth = betterAuth({
 })
 ```
 
-Trois points non négociables : aucune clé `emailAndPassword` n'est déclarée, `nextCookies()` est le dernier plugin, et le hook est un `before` — un `after` s'exécuterait hors transaction depuis Better Auth 1.6 et ne pourrait donc plus empêcher la création.
+Trois points non négociables : aucune clé `emailAndPassword` n'est déclarée, `nextCookies()` est le dernier plugin, et le hook est un `before` — seul un `before` peut refuser la création, un `after` n'observe qu'un compte déjà créé. La documentation Better Auth décrit la forme des deux hooks sans garantir le comportement transactionnel du second : raison de plus pour ne pas lui confier la whitelist.
 
 - [ ] **Step 2: Écrire le client navigateur**
 
@@ -480,11 +480,18 @@ Expected: `OK : secret absent du bundle client`.
 
 Aucune des cinq variables ne portant le préfixe `NEXT_PUBLIC_`, elles ne devraient pas être inlinées. Ce contrôle le confirme plutôt que de s'en remettre à la convention, une importation malencontreuse de `src/lib/auth.ts` depuis un Client Component pouvant l'entraîner.
 
-- [ ] **Step 6: Compléter les anti-patterns de logging**
+- [ ] **Step 6: Mettre à jour `docs/PRODUCTION.md`**
 
-Dans `docs/PRODUCTION.md`, la liste des secrets à ne jamais logger mentionne `SMTP_PASS`, `DATABASE_URL`, `BETTER_AUTH_SECRET` et `GOOGLE_CLIENT_SECRET`. Y ajouter `ADMIN_EMAIL`, qui est une donnée personnelle et le seul élément permettant d'identifier la cible d'une tentative d'accès.
+Deux modifications. Le doc a été purgé de tout ce qui n'existait pas encore le 2026-09-03 : les cinq variables d'authentification en ont été **retirées**, ainsi que leurs entrées dans Gestion des Secrets et Rotation. C'est à ce sub-project de les réintroduire, une fois déployées.
 
-- [ ] **Step 7: Demander la validation avant commit**
+- Ajouter `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` et `ADMIN_EMAIL` au bloc des Variables Secrets, une ligne par secret dans Gestion des Secrets (lecture via `env`, jamais `process.env`) et les procédures de rotation correspondantes. Mettre à jour la note « liste exhaustive » et sa date.
+- Dans les anti-patterns de logging, la liste des secrets à ne jamais logger mentionne `SMTP_PASS`, `DATABASE_URL` et `IP_HASH_SALT`. Y ajouter `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET` et `ADMIN_EMAIL`, ce dernier étant une donnée personnelle et le seul élément permettant d'identifier la cible d'une tentative d'accès.
+
+- [ ] **Step 7: Mettre à jour `docs/ARCHITECTURE.md`**
+
+§ Authentification et § Sécurité Backend décrivent Better Auth au post-MVP : passer au présent. Ajouter les cinq variables à § Environnements et les quatre tables du schema `auth` à § Approche Modélisation.
+
+- [ ] **Step 8: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

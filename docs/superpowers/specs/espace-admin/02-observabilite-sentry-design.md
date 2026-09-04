@@ -6,7 +6,7 @@ status: "draft"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: []
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Observabilité applicative avec Sentry
@@ -43,8 +43,8 @@ Aucune — ce sub-project est autoporté. Il précède la fondation admin pour q
 - **À modifier** : `.github/workflows/deploy.yml` (secret `SENTRY_AUTH_TOKEN` passé à `docker/build-push-action`, **et** `NEXT_PUBLIC_SENTRY_DSN` ajouté aux `build-args` existants)
 - **À modifier** : `.gitignore` (`.env.sentry-build-plugin`)
 - **À modifier** : `docs/VERSIONS.md` (entrée Sentry, absente aujourd'hui)
-- **À modifier** : `docs/PRODUCTION.md` (variables d'environnement, stack de monitoring, et remplacement de l'instrumentation manuelle à `Date.now()` prévue pour la durée de la Server Action de contact, désormais couverte par le tracing)
-- **À modifier** : `docs/ARCHITECTURE.md` (section Observabilité, Sentry n'est plus « post-MVP »)
+- **À modifier** : `docs/PRODUCTION.md` (variables d'environnement, stack de monitoring, et mention du tracing comme seconde source pour la durée de la Server Action de contact, déjà mesurée par `duration_ms`)
+- **À modifier** : `docs/ARCHITECTURE.md` (§ Observabilité, et le nœud Sentry du diagramme Runtime : il porte lui aussi la mention « post-MVP »)
 - **À modifier** : `docs/registre-traitements.md` (ajout d'un sous-traitant traitant des données d'erreur)
 
 ## Architecture approach
@@ -59,7 +59,7 @@ Aucune — ce sub-project est autoporté. Il précède la fondation admin pour q
 
 **Intégration Pino native** plutôt qu'un transport maison, avec deux réglages distincts : `log.levels` limité à `['warn', 'error', 'fatal']` pour le contexte, et `error.levels` à `['error', 'fatal']` pour la création d'issues. Sans cette distinction, tous les niveaux partent, `debug` compris, et une même erreur remonte deux fois.
 
-**Tracing activé côté serveur, désactivé côté navigateur.** `tracesSampleRate` est réglé dans `sentry.server.config.ts` et laissé à zéro dans `instrumentation-client.ts`. Cette asymétrie donne les durées des Server Actions, des route handlers et des queries Prisma sans ajouter un octet au bundle client, donc sans peser sur le LCP des pages publiques. Elle remplace l'instrumentation manuelle à `Date.now()` que `docs/PRODUCTION.md` prévoit pour la Server Action de contact.
+**Tracing activé côté serveur, désactivé côté navigateur.** `tracesSampleRate` est réglé dans `sentry.server.config.ts` et laissé à zéro dans `instrumentation-client.ts`. Cette asymétrie donne les durées des Server Actions, des route handlers et des queries Prisma sans ajouter un octet au bundle client, donc sans peser sur le LCP des pages publiques. La durée de la Server Action de contact est déjà mesurée par `duration_ms` sur l'event `email:sent` : le tracing ne la remplace pas, il l'observe côté serveur avec le détail des queries.
 
 **Pas de `tunnelRoute`.** Cette option relaie les événements par une route de l'application pour contourner les bloqueurs de publicité. Elle est écartée parce qu'elle entre en conflit direct avec le tracing qu'on vient d'activer : les requêtes vers la route de tunnel et vers les URLs d'ingestion produisent des spans qui polluent la mesure. S'y ajoutent une charge supplémentaire sur un VPS unique qui porte déjà l'application et PostgreSQL, une route à exclure du matcher de `src/proxy.ts`, et un gain que Sentry lui-même ne chiffre nulle part. L'option reste ajoutable plus tard à faible coût si une perte d'événements clients est constatée.
 
@@ -67,7 +67,7 @@ Aucune — ce sub-project est autoporté. Il précède la fondation admin pour q
 
 **Secret de build cloisonné.** `SENTRY_AUTH_TOKEN` transite par un secret BuildKit monté sur la seule commande de build, donc n'apparaît dans aucune couche de l'image publiée sur GHCR. `DATABASE_URL` conserve son passage par `build-args` : le migrer serait un changement de build sans rapport avec Sentry, à traiter séparément. Le Dockerfile porte donc deux mécanismes, ce qui est assumé et documenté.
 
-**L'upload des source maps se fait pendant le build**, celui-ci étant en Webpack (`next build --webpack`, opt-out posé pour une issue WASM de Prisma 7). Le hook `useRunAfterProductionCompileHook`, propre à Turbopack, ne s'applique pas.
+**L'upload des source maps se fait après la compilation**, le build étant en Turbopack (l'opt-out `next build --webpack` a été retiré du Dockerfile le 3 septembre 2026). Turbopack n'a pas d'autre mode : l'upload passe par le hook Next `runAfterProductionCompile`, que le SDK active via `_experimental.useRunAfterProductionCompileHook` (Next >= 15.4.1). Les options du plugin Webpack sont sans effet.
 
 Rules applicables : `.claude/rules/sentry/instrumentation.md`, `.claude/rules/sentry/build-config.md`, `.claude/rules/nextjs/configuration.md`, `.claude/rules/pino/logger.md`, `.claude/rules/nextjs/production-deployment.md`, `.claude/rules/github-actions/workflows.md`, `.claude/rules/docker/dockerfile.md`. Contrainte d'architecture : ADR-017 impose le service cloud, jamais le self-hosted.
 
@@ -136,7 +136,7 @@ Aucun test n'est écrit sur la configuration du SDK, l'ordre des wrappers ou l'i
 - **Runtime Edge** : `pinoIntegration` exige Node.js. `sentry.edge.config.ts` ne la déclare donc pas
 - **CSP silencieuse** : une directive `connect-src` incomplète ne produit aucune erreur visible côté serveur, seulement une absence d'événements clients, qui ressemble à un site sans bug. La vérification doit être explicite
 - **Token OAuth du CLI et token de CI** : le token du CLI local expire et se rafraîchit automatiquement, il ne convient pas à la CI. Un org auth token distinct doit être créé pour l'upload des source maps
-- **`src/env.ts` est fail-fast** : déclarer `NEXT_PUBLIC_SENTRY_DSN` comme requis casserait le démarrage de tout environnement qui ne le porte pas, à commencer par le dev local. La variable doit être optionnelle, et le SDK ne s'initialiser que si elle est présente. C'est aussi ce qui permet de ne pas polluer le quota avec les erreurs de développement
+- **`src/env.ts` est fail-fast** : déclarer `NEXT_PUBLIC_SENTRY_DSN` comme requis casserait le démarrage de tout environnement qui ne le porte pas, à commencer par le dev local. La variable doit être optionnelle, et lue via `env` : un DSN absent désactive le SDK de lui-même, sans garde conditionnelle à écrire. C'est aussi ce qui permet de ne pas polluer le quota avec les erreurs de développement
 - **`NEXT_PUBLIC_SENTRY_DSN` est inliné dans le bundle au build**, comme les autres variables `NEXT_PUBLIC_` du projet. Elle doit donc figurer dans les `build-args` du workflow de déploiement, faute de quoi le SDK navigateur restera muet en production alors que tout fonctionne en local
 - **Quota du plan gratuit** : 5 000 erreurs, 5 M de spans et 5 Go de logs par mois. Envoyer tous les niveaux Pino l'épuiserait sans bénéfice, d'où la restriction à `warn` et au-dessus. Le trafic du site laisse en revanche une marge confortable sur les spans, ce qui autorise un échantillonnage large côté serveur plutôt qu'une fraction des requêtes
 - **Tracing et cache** : les pages servies depuis le Data Cache ne déclenchent pas de query Prisma. Une transaction courte n'y signifie donc pas une requête rapide mais un cache chaud, à garder en tête avant d'en tirer une conclusion sur les performances de la base
@@ -154,7 +154,7 @@ Aucun test n'est écrit sur la configuration du SDK, l'ordre des wrappers ou l'i
 
 **Rationale :**
 - Le tracing n'est pas tout ou rien : il se règle séparément côté serveur et côté navigateur, ce qui permet de prendre la valeur sans le coût
-- `docs/PRODUCTION.md` prévoit d'instrumenter la durée de la Server Action de contact à la main avec `Date.now()` et des logs Pino. Le tracing serveur rend ce travail inutile et le fait mieux
+- La durée de la Server Action de contact est déjà instrumentée et documentée (`duration_ms` sur l'event `email:sent`). Le tracing serveur n'ajoute pas la mesure, il ajoute le détail : queries Prisma et appel SMTP séparés, là où le log ne donne qu'un total
 - Il y a déjà quelque chose à observer : la Server Action de contact et les queries projets tournent en production. L'espace admin ne fera qu'élargir ce périmètre
 - Une query Prisma lente ne lève aucune erreur : sans tracing, elle reste invisible tout en dégradant l'usage de l'espace admin
 - Le plan gratuit couvre 5 M de spans par mois, très au-delà du trafic de ce site

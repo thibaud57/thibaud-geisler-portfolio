@@ -5,7 +5,7 @@ description: "Décision ouverte : choix du modèle pour le chatbot RAG public, l
 date: "2026-03-31"
 keywords: ["architecture", "adr", "llm", "rag", "chatbot", "ia"]
 scope: ["docs", "architecture"]
-technologies: ["PostgreSQL", "pgvector"]
+technologies: ["OpenRouter", "PydanticAI", "pgvector"]
 ---
 
 # 🎯 Contexte
@@ -78,7 +78,7 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 Ce qu'il reste à décider ici : **le choix du modèle** pour le chatbot. OpenRouter les rend tous accessibles derrière la même interface, ce qui rend l'arbitrage réversible en une chaîne de caractères.
 
-Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût par modèle. Celui portant sur la maturité du SDK TypeScript est en revanche caduc : le chatbot est un service Python utilisant PydanticAI (voir [ADR-015](015-decoupage-services.md)).
+Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût par modèle. Celui portant sur la maturité du SDK TypeScript est en revanche caduc : le chatbot est un service Python utilisant PydanticAI (cf. [ADR-015](015-decoupage-services.md)).
 
 ---
 
@@ -102,7 +102,7 @@ Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût
 
 Le RAG sera basé sur pgvector dans PostgreSQL (déjà prévu dans l'infra). Le choix de l'API LLM est indépendant du pipeline RAG.
 
-Voir [ADR-014](014-rate-limiting-chatbot.md) pour la stratégie de rate limiting du chatbot, les deux décisions sont interdépendantes : le seuil de rate limiting doit être calibré en fonction du coût par token de l'API LLM retenue.
+Cf. [ADR-014](014-rate-limiting-chatbot.md) pour la stratégie de rate limiting du chatbot, les deux décisions sont interdépendantes : le seuil de rate limiting doit être calibré en fonction du coût par token de l'API LLM retenue.
 
 **Sécurité du chatbot (à formaliser avant l'implémentation) :**
 

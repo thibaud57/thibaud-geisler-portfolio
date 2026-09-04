@@ -5,14 +5,14 @@ paths:
   - "src/lib/get-current-user.ts"
   - "src/app/admin/**/*.tsx"
   - "src/app/api/auth/**/*.ts"
-  - "src/app/unauthorized.tsx"
-  - "src/app/forbidden.tsx"
+  - "src/app/admin/unauthorized.tsx"
+  - "src/app/admin/forbidden.tsx"
 ---
 
 # Next.js — Authentification (Better Auth)
 
 ## À faire
-- Utiliser Better Auth 1.6.x avec Google OAuth comme unique provider (whitelist email single-user via hook `databaseHooks.user.create.before`)
+- Utiliser Better Auth avec Google OAuth comme unique provider (version exacte : `docs/VERSIONS.md`) (whitelist email single-user via hook `databaseHooks.user.create.before`)
 - Toujours définir les cookies de session avec `HttpOnly: true`, `Secure: true` (en prod), `SameSite: 'lax'`, `Path: '/'`, `Max-Age` fini
 - Utiliser `jose` pour tout JWT (Edge-compatible), `jsonwebtoken` dépend de `crypto` Node.js et casse en Edge
 - Centraliser la vérification de session dans un helper `getCurrentUser()` reutilisable dans Server Components / Server Actions / Route Handlers
@@ -34,7 +34,7 @@ paths:
 - Passer `user` complet en prop à un Client Component : toujours picker les champs exposables (`name`, `email`), jamais `passwordHash` ni tokens
 
 ## Gotchas
-- Better Auth 1.6 + Next 16 : workaround `use cache` + `getServerSession` = extraire les cookies avant le scope cache et les passer en argument (Issue #5584, contrainte Next.js pas bug Better Auth)
+- Better Auth + Next 16 : workaround `use cache` + `getServerSession` = extraire les cookies avant le scope cache et les passer en argument (Issue #5584, contrainte Next.js pas bug Better Auth)
 - Better Auth + Prisma 7 : `prisma.config.ts` charge `.env` via `loadEnvConfig` (`@next/env`) pour la CLI Prisma, et `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs`) au runtime Next. Sinon erreur P1010 "User was denied access"
 - Cookies API Next 15+ : `const cookieStore = await cookies()` (async), hard error Next 16 si accès synchrone
 - `SameSite: 'strict'` bloque aussi les navigations top-level cross-site (liens entrants) : utiliser `'lax'` sauf besoin spécifique

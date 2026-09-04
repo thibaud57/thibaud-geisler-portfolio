@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["06-shell-admin-design.md", "11-crud-projets-actions-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Écran de liste des projets
@@ -31,6 +31,7 @@ Exclut l'édition, portée par le sub-project `13`. Exclut la pagination : le vo
 - **À modifier** : `src/app/admin/projets/page.tsx` (remplacement de la page d'attente)
 - **À créer** : `src/app/admin/projets/nouveau/page.tsx` (page d'attente, remplacée par le sub-project `13`)
 - **À créer** : `src/app/admin/projets/[id]/page.tsx` (page d'attente, remplacée par le sub-project `13`)
+- **À installer** : `src/components/ui/select.tsx` et `src/components/ui/alert-dialog.tsx` par le CLI shadcn. Les deux sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/`. Ce sub-project ne dépend pas du `07`, il n'hérite donc d'aucune de ses installations
 - **À créer** : `src/components/features/admin/projects/ProjectsTable.tsx`
 - **À créer** : `src/components/features/admin/projects/ProjectsFilters.tsx`
 - **À créer** : `src/components/features/admin/projects/DeleteProjectDialog.tsx`
@@ -43,7 +44,9 @@ Exclut l'édition, portée par le sub-project `13`. Exclut la pagination : le vo
 
 **Le filtrage se fait côté client, sur les données déjà chargées.** À l'échelle de quelques dizaines de projets, filtrer en base imposerait un aller-retour serveur par changement de filtre pour un gain nul. Le jour où le volume l'exigerait, le filtrage remonterait vers la requête, et c'est aussi ce jour-là qu'apparaîtrait le besoin de pagination.
 
-**Le tri et le filtrage sont un pattern, pas un composant.** `docs/DESIGN.md` le note pour la table shadcn : « le tri, le filtrage et la pagination sont un pattern à implémenter, pas un composant du registry ». Aucune librairie de table n'est installée pour ce seul écran.
+**Le chargement de la liste passe sous `<Suspense>`.** L'écran lit sans cache, or `cacheComponents: true` refuse une lecture dynamique qui n'est ni cachée ni suspendue. Un sous-composant `async` porte la requête, la page garde l'ossature et le squelette, comme la page publique d'un case study. Les deux filtres imposent par ailleurs d'installer `select`, retiré du dépôt et rangé en post-MVP dans `docs/DESIGN.md`.
+
+**Le tri et le filtrage sont un pattern, pas un composant.** `docs/DESIGN.md` le note pour la table shadcn : « le tri, le filtrage et la pagination sont un pattern à implémenter, pas un composant du registry ». Aucune librairie de table n'est installée pour ce seul écran, ce qui déroge sciemment au mapping de `docs/DESIGN.md`, lequel associe « Tables de données » à TanStack Table : la dépendance ne se justifie pas pour un unique écran d'administration à volumétrie faible.
 
 **La suppression réutilise la confirmation déjà en place ailleurs.** Même `AlertDialog` que pour les tags, les entreprises et les assets, avec le titre du projet dans le message. Contrairement à ces trois cas, aucune contrainte de base ne s'y oppose : un projet se supprime toujours, sa méta et ses rattachements partant en cascade. La confirmation est donc la seule protection, ce qui rend son libellé important.
 

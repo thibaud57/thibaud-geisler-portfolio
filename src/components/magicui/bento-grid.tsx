@@ -28,8 +28,7 @@ function BentoCard({ children, className, ...props }: BentoCardProps) {
   return (
     <div
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm',
-        'transition-all duration-300 hover:shadow-xl',
+        'relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm',
         className,
       )}
       {...props}

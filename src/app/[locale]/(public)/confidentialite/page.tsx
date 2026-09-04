@@ -92,6 +92,9 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
               <TableHead>{t('recipients.tableHeaders.name')}</TableHead>
               <TableHead>{t('recipients.tableHeaders.role')}</TableHead>
               <TableHead>{t('recipients.tableHeaders.purpose')}</TableHead>
+              <TableHead>
+                {t('recipients.tableHeaders.dataCategories')}
+              </TableHead>
               <TableHead>{t('recipients.tableHeaders.country')}</TableHead>
             </TableRow>
           </TableHeader>
@@ -112,6 +115,11 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
                   </TableCell>
                   <TableCell className="whitespace-normal">
                     {purpose}
+                  </TableCell>
+                  <TableCell className="whitespace-normal">
+                    {entry.processing.dataCategories
+                      .map((category) => tLegal(`dataCategory.${category}`))
+                      .join(', ')}
                   </TableCell>
                   <TableCell>{country}</TableCell>
                 </TableRow>
@@ -159,7 +167,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
             mail: (chunks) => (
               <a
                 href={`mailto:${pub.publicEmail}`}
-                className="text-primary hover:underline"
+                className="text-primary underline underline-offset-2"
               >
                 {chunks}
               </a>
@@ -169,7 +177,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
                 href="https://www.cnil.fr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline"
+                className="text-primary underline underline-offset-2"
               >
                 {chunks}
               </a>

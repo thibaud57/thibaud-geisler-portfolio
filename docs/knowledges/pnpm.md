@@ -2,7 +2,7 @@
 title: "pnpm — Package Manager"
 version: "10.33.0"
 description: "Référence technique pour pnpm 10 : installation, scripts, workspace et CI."
-date: "2026-04-13"
+date: "2026-09-03"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs"]
 scope: ["docs"]
 technologies: ["Node.js", "TypeScript", "Next.js"]
@@ -43,7 +43,7 @@ pnpm store prune     # supprime les packages non utilisés
 
 ### Description
 
-Depuis pnpm 10, les lifecycle scripts (`preinstall`, `install`, `postinstall`) sont désactivés par défaut pour bloquer les attaques supply-chain. Pour les autoriser sur des packages spécifiques, les lister dans `onlyBuiltDependencies` du `pnpm-workspace.yaml` ou utiliser `--allow-build`.
+Depuis pnpm 10, les lifecycle scripts (`preinstall`, `install`, `postinstall`) sont désactivés par défaut pour bloquer les attaques supply-chain. Pour les autoriser sur des packages spécifiques, les déclarer dans `allowBuilds` du `pnpm-workspace.yaml` (map package → booléen, ajoutée en 10.26.0) ou passer `--allow-build` ponctuellement. Les anciennes clés `onlyBuiltDependencies` et `neverBuiltDependencies` restent acceptées sur toute la ligne 10.x et sont supprimées en 11.0.
 
 ### Exemple
 
@@ -52,10 +52,11 @@ Depuis pnpm 10, les lifecycle scripts (`preinstall`, `install`, `postinstall`) s
 packages:
   - '.'
 
-onlyBuiltDependencies:
-  - esbuild
-  - @prisma/client
-  - prisma
+# Chaque package est listé explicitement, les patterns glob ne sont pas supportés
+allowBuilds:
+  esbuild: true
+  "@prisma/engines": true
+  prisma: true
 ```
 
 ### Points Importants
@@ -219,7 +220,7 @@ pnpm outdated                         # liste les deps obsolètes
 
 - Utiliser pnpm 10+ pour bénéficier de la sécurité lifecycle scripts
 - Committer `pnpm-lock.yaml` systématiquement
-- Autoriser explicitement les builds nécessaires via `onlyBuiltDependencies`
+- Autoriser explicitement les builds nécessaires via `allowBuilds`
 - Utiliser `pnpm exec prisma` plutôt que `npx prisma` pour garantir la version du projet
 - `pnpm dlx` pour les CLIs one-shot (shadcn, create-next-app)
 

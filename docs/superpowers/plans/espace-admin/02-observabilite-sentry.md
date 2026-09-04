@@ -12,11 +12,12 @@
 
 ## Global Constraints
 
-- Organisation Sentry : `tg-ws`, région européenne (`https://de.sentry.io`), org id `4511826481774592`. Le CLI `sentry` 0.43.0 est déjà installé et authentifié.
+- Organisation Sentry : `tg-ws`, région européenne (`https://de.sentry.io`), org id `4511826481774592`. Le CLI `sentry` est déjà installé et authentifié.
 - Projet à créer : `thibaud-geisler-portfolio`, plateforme `javascript-nextjs`. Ne pas toucher au projet existant `techno-scraper`.
 - Host d'ingestion : `o4511826481774592.ingest.de.sentry.io`. Le segment de région est **`de`**, pas `eu`.
 - `withSentryConfig` doit être le wrapper **le plus externe** : `withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), options)`.
 - `NEXT_PUBLIC_SENTRY_DSN` est **optionnelle** dans `src/env.ts`, qui est fail-fast, et doit figurer dans les `build-args` du workflow puisqu'elle est inlinée dans le bundle au build.
+- Les trois fichiers de configuration lisent le DSN **via `env`**, jamais `process.env` : c'est la règle de PRODUCTION.md § Gestion des Secrets, et la déclarer dans `src/env.ts` sans l'y lire laisserait la validation Zod inopérante. Aucune garde conditionnelle autour de `Sentry.init` : un DSN absent désactive le SDK de lui-même, c'est le comportement documenté, et l'envelopper dans un `if` n'ajouterait que du bruit.
 - `SENTRY_AUTH_TOKEN` passe par un secret BuildKit, jamais par un `ARG`. `DATABASE_URL` conserve son `build-arg` actuel : sa migration est hors scope.
 - Tracing : `tracesSampleRate` réglé dans `sentry.server.config.ts`, laissé à `0` dans `instrumentation-client.ts`. Pas de Session Replay, pas de `tunnelRoute`.
 - Intégration Pino : `log.levels: ['warn','error','fatal']`, `error.levels: ['error','fatal']`.
@@ -201,10 +202,11 @@ NEXT_PUBLIC_SENTRY_DSN=       # DSN du projet Sentry (Settings → Client Keys)
 ```typescript
 import * as Sentry from '@sentry/nextjs'
 
+import { env } from '@/env'
 import { scrubSentryEvent } from '@/lib/sentry-scrub'
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 1,
   integrations: [
     Sentry.pinoIntegration({
@@ -225,10 +227,11 @@ Sentry.init({
 ```typescript
 import * as Sentry from '@sentry/nextjs'
 
+import { env } from '@/env'
 import { scrubSentryEvent } from '@/lib/sentry-scrub'
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 1,
   beforeSend: scrubSentryEvent,
 })
@@ -279,10 +282,11 @@ L'ordre des deux `await import` n'est pas indifférent : `.claude/rules/sentry/i
 ```typescript
 import * as Sentry from '@sentry/nextjs'
 
+import { env } from '@/env'
 import { scrubSentryEvent } from '@/lib/sentry-scrub'
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0,
   beforeSend: scrubSentryEvent,
 })
@@ -329,11 +333,14 @@ export default withSentryConfig(
     authToken: process.env.SENTRY_AUTH_TOKEN,
     silent: !process.env.CI,
     widenClientFileUpload: true,
+    _experimental: { useRunAfterProductionCompileHook: true },
   },
 )
 ```
 
 L'ordre n'est pas négociable : `withSentryConfig` doit être le plus externe pour que les source maps reflètent les transformations opérées par les autres plugins.
+
+`_experimental.useRunAfterProductionCompileHook` ne l'est pas davantage : le build de production est en Turbopack, où l'upload passe **toujours** par le hook Next `runAfterProductionCompile` (Next >= 15.4.1). Sans ce drapeau, le build réussit et aucune source map n'est envoyée. Les stack traces restent minifiées et le scénario 1 de la spec échoue, sans le moindre message d'erreur pour le signaler.
 
 - [ ] **Step 3: Vérifier que le build local passe**
 
@@ -401,15 +408,24 @@ L'issue getsentry/sentry-javascript#21333 décrit une rupture du prerendering qu
 
 - [ ] **Step 1: Monter le secret sur la commande de build**
 
-Dans le `Dockerfile`, remplacer `RUN pnpm exec next build --webpack` par :
+Dans le `Dockerfile`, remplacer `RUN pnpm exec next build` par :
 
 ```dockerfile
 RUN --mount=type=secret,id=sentry_auth_token \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
-    pnpm exec next build --webpack
+    pnpm exec next build
 ```
 
 Le `|| true` garde le build fonctionnel quand le secret n'est pas fourni, typiquement lors d'un build local : l'upload des source maps est alors simplement ignoré.
+
+Ajouter aussi le DSN au bloc des variables publiques du stage `builder`, à côté des `ARG NEXT_PUBLIC_*` qui s'y trouvent déjà :
+
+```dockerfile
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+```
+
+Sans ce couple, le `build-arg` du workflow n'atteint jamais la compilation : la variable est inlinée dans le bundle navigateur au moment du build, elle vaudrait donc `undefined` en production alors que tout fonctionne en local. Le `Dockerfile` porte déjà ce commentaire pour les autres `NEXT_PUBLIC_*`, la ligne d'à côté fait foi.
 
 - [ ] **Step 2: Passer le secret et la variable dans le workflow**
 
@@ -540,15 +556,15 @@ Si `debug` apparaît, `log.levels` n'a pas été pris en compte et le quota de 5
 
 - [ ] **Step 1: Ajouter Sentry à `docs/VERSIONS.md`**
 
-Ajouter une entrée dans le tableau de vue d'ensemble et une section détaillée, sur le modèle de la section 20 consacrée à Better Auth. Y consigner la version installée de `@sentry/nextjs`, la compatibilité avec Next.js 16 et React 19, et le point suivant : les incidents Sentry liés à Turbopack ne concernent pas ce projet, dont le build est en `next build --webpack`.
+Ajouter une entrée dans le tableau de vue d'ensemble et une section détaillée, sur le modèle de l'entrée Better Auth de l'annexe post-MVP. Y consigner la version installée de `@sentry/nextjs`, la compatibilité avec Next.js 16 et React 19, et le point suivant : le build de production étant en Turbopack, les incidents Sentry liés à ce bundler concernent le projet et doivent être revalidés contre la version du SDK installée.
 
 - [ ] **Step 2: Mettre à jour `docs/PRODUCTION.md`**
 
 Trois modifications :
 
 - Ajouter `NEXT_PUBLIC_SENTRY_DSN` aux Variables Communes et `SENTRY_AUTH_TOKEN` aux secrets, en précisant que ce dernier est un secret de **build** géré dans GitHub, et non une variable d'environnement Dokploy.
-- Dans la Stack Monitoring, retirer la mention « post-MVP » de la ligne Sentry.
-- Remplacer l'instrumentation manuelle de la durée de la Server Action de contact par la lecture de la transaction correspondante dans Sentry, désormais mesurée automatiquement. **Elle apparaît à deux endroits** : § Observabilité › Métriques Clés (« Pino logs instrumentés dans la Server Action ») et § Performance › Benchmarks (« Instrumenter avec `Date.now()` dans la Server Action → Pino logs »). Les deux lignes portent la même cible de 3 s hors SMTP et doivent changer ensemble.
+- Dans la Stack Monitoring, **ajouter** la ligne Sentry. Elle en a été retirée le 2026-09-03 : le tableau ne liste plus que les outils réellement en service, un outil non déployé n'y figure pas. L'ajouter au moment où il tourne, sans mention « post-MVP ».
+- La durée de la Server Action de contact est **déjà** mesurée et documentée : `duration_ms` sur l'event `email:sent`, cité en § Observabilité › Métriques Clés et en § Performance › Benchmarks. Sentry ne la remplace pas, il l'observe autrement. Indiquer que la transaction Sentry devient une seconde source, sans réécrire ces deux lignes.
 
 - [ ] **Step 3: Mettre à jour `docs/ARCHITECTURE.md`**
 
@@ -560,7 +576,7 @@ Ajouter Sentry comme sous-traitant traitant des données d'erreur, en mentionnan
 
 - [ ] **Step 5: Vérifier la cohérence des anti-patterns de logging**
 
-Dans `docs/PRODUCTION.md`, la liste des secrets à ne jamais logger ne mentionne pas encore `SENTRY_AUTH_TOKEN`. L'y ajouter.
+Dans `docs/PRODUCTION.md`, la liste des secrets à ne jamais logger mentionne `SMTP_PASS`, `DATABASE_URL` et `IP_HASH_SALT` (état du 2026-09-03). Y ajouter `SENTRY_AUTH_TOKEN`.
 
 - [ ] **Step 6: Demander la validation avant commit**
 

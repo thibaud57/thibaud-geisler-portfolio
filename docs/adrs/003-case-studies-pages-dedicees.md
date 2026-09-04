@@ -30,7 +30,6 @@ Comment présenter le détail d'un projet de manière optimale pour le SEO, le p
 - URL partageable et indexable par les moteurs de recherche
 - Excellent pour le SEO (balises meta, Open Graph par projet)
 - Structure de navigation claire (breadcrumb, retour en arrière natif)
-- `generateStaticParams` pour pré-générer les pages à la build (performance)
 
 **Inconvénients :**
 - Nécessite un layout/template de page dédié
@@ -78,4 +77,6 @@ Le SEO et le partage de lien sont des critères primaires pour un portfolio prof
 
 # 📝 Notes complémentaires
 
-Les slugs sont dérivés du titre projet. `generateStaticParams` génère les pages statiquement à la build pour les projets existants. La stratégie de slug (language-agnostic vs localisé selon la locale) est une sous-question ouverte documentée dans ADR-010.
+Les slugs sont saisis à la création du projet et uniques en base. La stratégie de slug est tranchée dans [ADR-010](010-i18n.md) § « Sous-décision : slugs et préfixes » : slug unique language-agnostic, préfixes de route non traduits.
+
+Les pages sont rendues à la demande et servies depuis le Data Cache (`'use cache'`), sans `generateStaticParams`. Cf. [ARCHITECTURE.md](../ARCHITECTURE.md) § Use-case 3.

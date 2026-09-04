@@ -24,7 +24,7 @@ paths:
 - Laisser `silent` à sa valeur par défaut en local : le build devient verbeux sans bénéfice, préférer `silent: !process.env.CI`
 
 ## Gotchas
-- Le build de production est en `next build --webpack` (opt-out Turbopack posé pour l'issue WASM de Prisma 7, voir `docs/VERSIONS.md`). Conséquence pour Sentry : l'upload des source maps se fait **pendant** le build, pas après, et `useRunAfterProductionCompileHook` ne s'applique pas
+- Le build de production est en **Turbopack** depuis le retrait de l'opt-out `--webpack` (3 septembre 2026, voir `docs/VERSIONS.md` § Prisma ORM). Conséquence pour Sentry : en Turbopack l'upload des source maps est **toujours post-build**, via le hook Next `runAfterProductionCompile` que le SDK active par l'option `_experimental.useRunAfterProductionCompileHook` de `withSentryConfig` (Next >= 15.4.1). Les options du plugin webpack (`unstable_sentryWebpackPluginOptions`) ne s'appliquent pas dans ce mode
 - La CSP actuelle est stricte (`connect-src 'self' https://*.calendly.com`) : elle bloque Sentry tant qu'elle n'est pas étendue
 - L'organisation du projet est `tg-ws`, en région européenne (Francfort). Son host d'ingestion est `o4511826481774592.ingest.de.sentry.io` : le segment de région est **`de`**, pas `eu`. Vérifiable via `sentry org view tg-ws --json`, champ `links.regionUrl`
 - `tunnelRoute` a fait l'objet d'une CVE de type SSRF sur les versions 7.26.0 à 7.76.x (GHSA-2rmr-xw8m-22q9), corrigée en 7.77.0. Sans objet aujourd'hui, mais la route élargit la surface d'attaque et doit valider sa cible

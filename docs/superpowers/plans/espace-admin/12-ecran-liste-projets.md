@@ -47,8 +47,8 @@ Elles viennent **avant** tout le reste : la table de la Task 2 porte un lien par
 ```typescript
 export default function AdminNouveauProjetPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Nouveau projet</h1>
+    <div className="w-full py-6 lg:py-8">
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Nouveau projet</h1>
       <p className="mt-2 text-muted-foreground">Formulaire à construire.</p>
     </div>
   )
@@ -60,8 +60,8 @@ export default function AdminNouveauProjetPage() {
 ```typescript
 export default function AdminEditProjetPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Projet</h1>
+    <div className="w-full py-6 lg:py-8">
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Projet</h1>
       <p className="mt-2 text-muted-foreground">Formulaire à construire.</p>
     </div>
   )
@@ -69,6 +69,11 @@ export default function AdminEditProjetPage() {
 ```
 
 Le sub-project `13` **remplace** ces deux fichiers, il n'en crée pas de seconds à côté. La page d'édition ne lit pas encore ses `params` : elle n'a rien à afficher, et le sub-project `13` écrira la signature complète.
+
+Deux points de style sont imposés par `docs/DESIGN.md` et valent pour les trois pages de ce sub-project :
+
+- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 - [ ] **Step 2: Écrire les filtres**
 
@@ -92,6 +97,8 @@ Points imposés :
 - [ ] **Step 3: Écrire la confirmation de suppression**
 
 `AlertDialog` shadcn appelant `deleteProject(projectId)`.
+> **Composants shadcn à installer d'abord.** `select` et `alert-dialog` sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/` : `pnpm dlx shadcn@latest add select alert-dialog`, avec `--dry-run` en premier et aucun écrasement des composants existants. Pas de `dialog` : cet écran n'utilise que `AlertDialog`. Ce sub-project ne dépend pas du `07`, il ne peut donc rien hériter de ses installations. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+
 
 Le libellé doit **nommer le projet** et énoncer ce qui disparaît :
 
@@ -116,7 +123,7 @@ Expected: aucune erreur.
 
 **Interfaces:**
 - Consomme : `<ProjectsFilters />` et `<DeleteProjectDialog />` (Task 1), le type retourné par `findAllProjectsForAdmin`.
-- Produit : `<ProjectsTable projects={ProjectWithRelations[]} />`, monté par la page de la Task 3.
+- Produit : `<ProjectsTable projects={AdminProjectListItem[]} />`, monté par la page de la Task 3. Le type vient du sub-project `11` : ne pas réutiliser `ProjectWithRelations`, qui décrit la requête publique et charge une `Company` complète que la requête d'administration ne sélectionne pas.
 
 - [ ] **Step 1: Écrire la liste**
 
@@ -127,13 +134,18 @@ Colonnes de la table, à partir de `md:` :
 | Colonne | Contenu |
 |---|---|
 | Titre | `titleFr`, tronqué, avec le slug en dessous en `text-muted-foreground` |
-| Type | `Badge` client ou personnel |
-| Statut | `Badge`, variante distincte pour brouillon et archivé |
+| Type | `<Badge variant="outline" meta>` client ou personnel |
+| Statut | `<Badge variant="outline" meta>`, libellé distinct pour brouillon et archivé |
 | Entreprise | `clientMeta.company.name`, ou un tiret |
 | Ordre | `displayOrder` |
 | Actions | lien d'édition vers `/admin/projets/[id]`, plus la suppression |
 
 Sous `md:`, chaque projet devient une `Card` empilée reprenant les mêmes informations, l'entreprise et l'ordre passant en ligne secondaire. Le basculement se fait par les classes utilitaires, pas par un rendu conditionnel en JavaScript : les deux structures sont dans le DOM et Tailwind en masque une, ce qui évite un décalage au premier rendu.
+
+Cette carte porte le lien d'édition que la ligne de table porte dans sa colonne d'actions : c'est donc une **surface cliquable**, et `docs/DESIGN.md` lui impose `transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl`. Deux pièges :
+
+- **ne pas écrire de `hover:border-*`** : la `Card` shadcn en `radix-nova` dessine son contour par `ring-1 ring-foreground/10` et sa bordure fait 0px, la classe n'aurait aucun effet visible
+- **ne rien ajouter sur la table** : `src/components/ui/table.tsx` est vendored et applique déjà `hover:bg-muted/50` sur `TableRow`
 
 Trois points à ne pas manquer :
 
@@ -174,9 +186,9 @@ export default async function AdminProjetsPage() {
   const projects = await findAllProjectsForAdmin()
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Projets</h1>
+        <h1 className="font-sans text-2xl font-medium tracking-normal">Projets</h1>
         <Button asChild>
           <Link href="/admin/projets/nouveau">Nouveau projet</Link>
         </Button>
@@ -190,6 +202,8 @@ export default async function AdminProjetsPage() {
 ```
 
 Server Component qui charge et délègue. Aucun `'use cache'`, contrainte héritée de l'espace admin.
+
+**Le chargement passe donc sous `<Suspense>`.** Avec `cacheComponents: true`, une lecture dynamique qui n'est ni cachée ni suspendue lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Extraire un sous-composant `async` qui appelle la requête, le monter dans un `<Suspense>` avec un `StackedSkeleton` en `fallback`, aux hauteurs des lignes de la table, et laisser la page elle-même statique. `docs/DESIGN.md` en fait le composant de fallback de `<Suspense>` : il empile des `Skeleton` aux hauteurs passées en props, il n'y a pas de squelette de table à écrire. C'est le motif déjà employé par `src/app/[locale]/(public)/projets/[slug]/page.tsx` et `contact/page.tsx`, à relire avant d'écrire. Ne pas prendre `(public)/projets/page.tsx` pour modèle : sa query est en `'use cache'`, donc il ne porte aucun `<Suspense>`.
 
 Le bouton pointe vers `/admin/projets/nouveau`, créée en page d'attente à la Task 1. La table de la Task 2 pointe de son côté vers `/admin/projets/[id]`, créée au même endroit. Les deux routes existent donc déjà quand ces liens s'écrivent.
 

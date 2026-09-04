@@ -10,9 +10,9 @@ technologies: ["Next.js", "next-intl"]
 
 # 🎯 Contexte
 
-Le site public est bilingue, servi sous `[locale]/` avec le route group `(public)/` (voir [ADR-010](010-i18n.md)). La documentation projetait initialement de placer l'espace admin sous ce même segment, ce qui l'aurait rendu bilingue lui aussi.
+Le site public est bilingue, servi sous `[locale]/` avec le route group `(public)/` (cf. [ADR-010](010-i18n.md)). La documentation projetait initialement de placer l'espace admin sous ce même segment, ce qui l'aurait rendu bilingue lui aussi.
 
-L'espace admin est single-user (voir [ADR-002](002-auth-better-auth-google-oauth.md)) et son unique utilisateur est francophone.
+L'espace admin est single-user (cf. [ADR-002](002-auth-better-auth-google-oauth.md)) et son unique utilisateur est francophone.
 
 ---
 
@@ -41,7 +41,7 @@ L'espace admin doit-il être soumis au routing localisé, et quelle structure de
 
 ## Option B : Hors `[locale]/`, français uniquement
 
-**Description :** Un dossier `src/app/admin/` à la racine de `app/`, hors du segment de locale. URL `/admin`. Le matcher du proxy exclut ce préfixe du routing i18n.
+**Description :** Un dossier `src/app/admin/` à la racine de `app/`, hors du segment de locale. URL `/admin`. Le proxy soustrait ce préfixe au routing i18n.
 
 **Avantages :**
 - Aucune clé à doubler
@@ -72,7 +72,7 @@ L'espace admin doit-il être soumis au routing localisé, et quelle structure de
 
 - Plusieurs centaines de clés de traduction évitées, et l'économie croît avec chaque écran ajouté
 - Structure de dossiers plus lisible : `[locale]/` pour le public, `admin/` pour le privé
-- Le matcher du proxy exprime directement l'intention, sans avoir à composer avec les préfixes de locale
+- Le test de préfixe dans le proxy exprime directement l'intention, sans avoir à composer avec les préfixes de locale
 
 ## Négatives
 
