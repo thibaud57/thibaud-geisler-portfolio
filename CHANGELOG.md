@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.1...v1.6.0) (2026-09-04)
+
+
+### Features
+
+* audit complet app ([#119](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/119)) ([641b4cc](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/641b4cc1bab946d09f3dc829d739925a020d6e1e))
+
 ## [1.5.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.0...v1.5.1) (2026-09-01)
 
 
