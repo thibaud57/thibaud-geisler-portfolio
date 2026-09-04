@@ -21,10 +21,11 @@ import {
 import { buildBreadcrumbList } from '@/lib/seo/json-ld'
 import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
 
-// Sans ça, generateMetadata dépend de params.slug hors du jeu de params connus au build : Next
-// ne peut pas figer title/og/canonical dans le shell statique, ils partent en flux après </head>
-// (invisible aux crawlers sans JS — LinkedIn, Twitter). Slugs finis, connus au build : le bon cas
-// pour generateStaticParams (cf. .claude/rules/nextjs/data-fetching.md).
+// Prérendre les slugs au build fige title/og/canonical dans le <head> pour TOUS les user-agents.
+// Sans ça, le streaming metadata de Next les envoie après </head>, et seuls les bots de la liste
+// htmlLimitedBots (LinkedIn, Twitter, Slack, Bing…) reçoivent un rendu bloquant qui les protège.
+// Ce qui reste exposé : les crawlers HTML-only absents de cette liste (Telegram, Bluesky, Mastodon).
+// Cf. .claude/rules/nextjs/routing.md pour l'arbitrage complet.
 export async function generateStaticParams() {
   const slugs = await findAllPublishedSlugs()
   return routing.locales.flatMap((locale) =>

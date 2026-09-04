@@ -89,7 +89,7 @@ export default async function ProjectPage({
 ### Points Importants
 
 - `params` est désormais une `Promise` en v16 (await obligatoire)
-- `generateStaticParams` pré-génère les routes dynamiques au build (non utilisé sur `[slug]` ici : le premier hit rend au runtime, les suivants sortent du Data Cache)
+- `generateStaticParams` pré-génère les routes dynamiques au build. Posé sur `/projets/[slug]` : les slugs publiés × locales sont prérendus, métadonnées comprises. Un slug hors liste reste rendu à la demande, `dynamicParams` n'étant pas exportable avec `cacheComponents`
 - `notFound()` retourne une 404 propre (rendue par `not-found.tsx`)
 - Les composants `async` ne peuvent être que serveur (pas client)
 
