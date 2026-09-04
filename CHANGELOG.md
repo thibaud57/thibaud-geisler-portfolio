@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.1...v1.6.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* prérendu SEO des pages projet et allègement du JS d'animation ([#126](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/126)) ([5dddd1c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5dddd1ceac6d58f379126e896e1582adfbc38346))
+
 ## [1.6.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.0...v1.6.1) (2026-09-04)
 
 
