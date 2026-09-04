@@ -42,7 +42,7 @@ Commits : `type(scope): description`, types `feat | fix | docs | refactor | test
 Fin de feature : lancer `Skill[superpowers:finishing-a-development-branch]` avant de créer la PR — il vérifie les tests, propose merge local / push+PR / keep / discard, et pilote le workflow proprement.
 PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer — release-please et Dokploy en dépendent)
 PR develop → main : titre obligatoirement Conventional bumping (`feat:` / `fix:` / `feat!:`) sinon release-please skip → pas de tag → pas de deploy. Détails : [PRODUCTION.md § Convention Commits](../docs/PRODUCTION.md#convention-commits)
-Après merge PR : `/git-sync-develop` pour aligner develop local + supprimer la feature branch
+Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop local et supprimer la feature branch. Après un tag : `git pull origin main` puis `git push origin develop`, le resync ne passe pas par git-sync
 
 **Discipline commit (obligatoire)** :
 - **Attendre la fin complète du workflow d'implémentation** (toutes les phases : impl + verification + quality gates /simplify + code-reviewer + fixes éventuels) **avant tout `git commit`**. Ne JAMAIS committer au milieu d'un workflow, même pour des étapes intermédiaires "qui marchent" : un fix ultérieur peut invalider le state intermédiaire et multiplier les commits à réviser.

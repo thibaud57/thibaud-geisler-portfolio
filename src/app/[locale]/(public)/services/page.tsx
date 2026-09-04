@@ -8,7 +8,7 @@ import {
   setupLocaleMetadata,
   siteUrl,
 } from '@/lib/seo'
-import { buildBreadcrumbList } from '@/lib/seo/json-ld'
+import { buildBreadcrumbList, buildOfferCatalog } from '@/lib/seo/json-ld'
 
 import { MotionItem } from '@/components/ui/motion-item'
 import { ServiceCard } from '@/components/features/services/ServiceCard'
@@ -50,6 +50,17 @@ export default async function ServicesPage({ params }: PageProps<'/[locale]/serv
       { name: tMeta('breadcrumbServices'), path: '/services' },
     ],
   })
+  const offerCatalogJsonLd = buildOfferCatalog({
+    locale,
+    siteUrl,
+    name: t('title'),
+    services: SERVICE_SLUGS.map((slug) => ({
+      slug,
+      name: t(`offers.${slug}.title`),
+      description: t(`offers.${slug}.description`),
+    })),
+    areaServed: ['France', 'Luxembourg'],
+  })
 
   return (
     <PageShell title={t('title')} subtitle={t('subtitle')}>
@@ -72,6 +83,7 @@ export default async function ServicesPage({ params }: PageProps<'/[locale]/serv
         ))}
       </div>
       <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={offerCatalogJsonLd} />
     </PageShell>
   )
 }

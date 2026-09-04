@@ -11,7 +11,7 @@ import { JsonLd } from '@/components/seo/json-ld'
 import { LabeledText } from '@/components/ui/labeled-text'
 import { MotionItem } from '@/components/ui/motion-item'
 import { EXPERTISE } from '@/config/expertise'
-import { SOCIAL_LINKS } from '@/config/social-links'
+import { contactEmail, socialSameAs } from '@/config/social-links'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { buildAssetUrl } from '@/lib/assets'
 import {
@@ -99,26 +99,22 @@ export default async function AProposPage({
 }
 
 async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
-  const [tMeta, publisher] = await Promise.all([
+  const [tMeta, tAbout, publisher] = await Promise.all([
     getTranslations('Metadata'),
+    getTranslations('AboutPage'),
     getPublisher(),
   ])
-
-  const sameAs = SOCIAL_LINKS.filter((link) => link.slug !== 'email').map(
-    (link) => link.url,
-  )
-  const emailEntry = SOCIAL_LINKS.find((link) => link.slug === 'email')
-  const email = emailEntry?.url.replace(/^mailto:/, '') ?? ''
 
   const profileJsonLd = await getCachedProfileJsonLd({
     locale,
     siteUrl,
     name: 'Thibaud Geisler',
     jobTitle: tMeta('jobTitle'),
-    description: tMeta('aboutDescription'),
-    email,
+    // La bio, pas la meta description de la page : Person.description décrit la personne.
+    description: tAbout('bio.intro'),
+    email: contactEmail,
     image: `${siteUrl}${buildAssetUrl('branding/portrait.jpg')}`,
-    sameAs,
+    sameAs: socialSameAs,
     expertise: EXPERTISE,
     legal: publisher?.siret
       ? { siret: publisher.siret, address: publisher.address }

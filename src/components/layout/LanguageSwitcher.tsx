@@ -13,14 +13,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { localeLabels } from '@/i18n/locale-labels'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { cn } from '@/lib/utils'
-
-const localeLabels = {
-  fr: 'Français',
-  en: 'English',
-} satisfies Record<Locale, string>
 
 const localeFlags = {
   fr: FR,

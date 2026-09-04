@@ -12,6 +12,7 @@ type Props = {
   bullets?: string[]
   ctaLabel?: string
   variant?: 'full' | 'teaser'
+  headingLevel?: 'h2' | 'h3'
 }
 
 export function ServiceCard({
@@ -21,6 +22,9 @@ export function ServiceCard({
   bullets,
   ctaLabel,
   variant = 'full',
+  // Sur /services la carte est un titre de section (h2) ; sur l'accueil elle vit sous le h2
+  // de la section teaser (h3). tracking-normal et text-wrap neutralisent la scale globale h2/h3.
+  headingLevel = variant === 'full' ? 'h2' : 'h3',
 }: Props) {
   const Icon = SERVICE_ICONS[slug]
   const isFull = variant === 'full'
@@ -29,7 +33,12 @@ export function ServiceCard({
     <Card className="relative flex h-full flex-col overflow-hidden transition duration-300 ease-out hover:ring-primary/40">
       <CardHeader className="gap-4">
         <Icon className="size-8 text-primary" aria-hidden />
-        <CardTitle className="font-display text-2xl font-bold">{title}</CardTitle>
+        <CardTitle
+          as={headingLevel}
+          className="font-display text-2xl font-bold tracking-normal text-wrap"
+        >
+          {title}
+        </CardTitle>
         <CardDescription className="text-base text-muted-foreground">
           {description}
         </CardDescription>

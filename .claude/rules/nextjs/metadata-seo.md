@@ -36,7 +36,9 @@ paths:
 - Utiliser `display: grid` dans `ImageResponse` : seul `flex` est supporté
 
 ## Gotchas
-- Next 15.2+ : streaming metadata activé sur les pages dynamiques (UI streamé immédiatement, `<meta>` injectés une fois `generateMetadata` résolu), désactivé pour les bots/crawlers
+- Next 15.2+ : streaming metadata activé sur les pages dynamiques (UI streamé immédiatement, `<meta>` injectés dans le `<body>` une fois `generateMetadata` résolu). Next sert un rendu **bloquant** aux user-agents matchant [`htmlLimitedBots`](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots) : LinkedIn, Twitter, Facebook, Slack, Discord, WhatsApp, Bingbot, DuckDuckBot, applebot, yandex. Googlebot en est volontairement exclu, il exécute le JS
+- **Auditer le SEO avec un UA de bot, jamais `curl` nu** : un crawl anonyme déclenche le streaming et fait croire à des métadonnées absentes du `<head>`, alors que les bots concernés reçoivent un rendu bloquant. Comparer les offsets de `<title>` et `</head>` par UA (`curl -A "LinkedInBot/1.0"`) avant de conclure à un problème
+- Ne PAS désactiver le streaming globalement via `htmlLimitedBots: /.*/` : bugs connus avec `cacheComponents` + PPR sur 16.2.x-16.3.0 (mismatch de resume, cache forcé privé, [#96593](https://github.com/vercel/next.js/issues/96593), [#95406](https://github.com/vercel/next.js/issues/95406)). Le levier propre est `generateStaticParams`, qui prérend les métadonnées pour tous les UA
 - Codemod dispo pour migrer viewport : `npx @next/codemod metadata-to-viewport-export`
 - React 19 supporte nativement `<title>`, `<meta>`, `<link>` dans le JSX (hoist auto dans `<head>`) : garder la Metadata API pour le SEO structurel, utiliser les balises natives pour les métadonnées locales (widget, Client Component)
 
