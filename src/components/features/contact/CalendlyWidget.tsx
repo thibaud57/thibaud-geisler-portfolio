@@ -1,6 +1,6 @@
 'use client'
 
-import { useConsentManager } from '@c15t/nextjs'
+import { useConsentManager } from '@c15t/nextjs/headless'
 import { CalendarClock, Cookie } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState, type ReactNode } from 'react'

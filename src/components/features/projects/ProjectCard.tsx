@@ -15,11 +15,12 @@ import { useImageFallback } from './useImageFallback'
 
 type Props = {
   project: LocalizedProjectWithRelations
+  preloadCover?: boolean
 }
 
 const MAX_VISIBLE_TAGS = 3
 
-export function ProjectCard({ project }: Props) {
+export function ProjectCard({ project, preloadCover = false }: Props) {
   const t = useTranslations('Projects')
   const visibleProjectTags = project.tags.slice(0, MAX_VISIBLE_TAGS)
   const extraCount = Math.max(0, project.tags.length - MAX_VISIBLE_TAGS)
@@ -37,6 +38,7 @@ export function ProjectCard({ project }: Props) {
           <CoverArea
             coverFilename={project.coverFilename}
             title={project.title}
+            preload={preloadCover}
             showInProgress={inProgress}
             inProgressLabel={t('inProgress')}
           />
@@ -77,6 +79,7 @@ export function ProjectCard({ project }: Props) {
 type CoverAreaProps = {
   coverFilename: string | null
   title: string
+  preload: boolean
   showInProgress: boolean
   inProgressLabel: string
 }
@@ -84,6 +87,7 @@ type CoverAreaProps = {
 function CoverArea({
   coverFilename,
   title,
+  preload,
   showInProgress,
   inProgressLabel,
 }: CoverAreaProps) {
@@ -98,6 +102,7 @@ function CoverArea({
             alt={title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            preload={preload}
             className="object-cover"
             onError={onError}
           />

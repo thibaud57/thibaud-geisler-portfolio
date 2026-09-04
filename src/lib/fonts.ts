@@ -1,4 +1,5 @@
-import { Geist, Geist_Mono, Sansation } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -10,9 +11,14 @@ const geistMono = Geist_Mono({
   variable: '--font-mono',
   display: 'swap',
 })
-const sansation = Sansation({
-  subsets: ['latin'],
-  weight: ['700'],
+// next/font/local, pas /google : le jeu de métriques figé dans Next (capsize-font-metrics.json)
+// ne contient pas Sansation, donc la @font-face de fallback ajustée n'est jamais générée et le
+// swap décale la mise en page (CLS desktop à 0,28 sur les titres longs). En local, Next mesure
+// le fichier avec fontkit et calcule size-adjust/ascent-override quelle que soit la police.
+// Le .ttf est celui déjà versionné pour les images OG, qui ne savent pas lire next/font.
+const sansation = localFont({
+  src: './seo/fonts/Sansation-Bold.ttf',
+  weight: '700',
   variable: '--font-display',
   display: 'swap',
 })

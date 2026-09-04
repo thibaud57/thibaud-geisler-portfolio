@@ -2,7 +2,7 @@
 
 import type { VariantProps } from 'class-variance-authority'
 import { useTranslations } from 'next-intl'
-import { useConsentManager } from '@c15t/nextjs'
+import { useConsentManager } from '@c15t/nextjs/headless'
 
 import { Button, buttonVariants } from '@/components/ui/button'
 

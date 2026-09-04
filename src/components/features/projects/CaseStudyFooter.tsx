@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { Button } from '@/components/ui/button'
 import { BorderBeam } from '@/components/magicui/border-beam'
+import { safeExternalUrl } from '@/lib/url'
 import type { LocalizedProjectWithRelations } from '@/types/project'
 
 type Props = {
@@ -12,14 +13,16 @@ type Props = {
 
 export function CaseStudyFooter({ project }: Props) {
   const t = useTranslations('Projects.caseStudy')
+  const demoUrl = safeExternalUrl(project.demoUrl)
+  const githubUrl = safeExternalUrl(project.githubUrl)
 
   return (
     <footer className="flex flex-col gap-6 border-t border-border pt-8">
-      {project.demoUrl || project.githubUrl ? (
+      {demoUrl || githubUrl ? (
         <div className="flex flex-wrap gap-3">
-          {project.demoUrl ? (
+          {demoUrl ? (
             <Button asChild variant="default" className="relative">
-              <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">
+              <a href={demoUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 {t('links.demo')}
                 <BorderBeam
@@ -32,9 +35,9 @@ export function CaseStudyFooter({ project }: Props) {
               </a>
             </Button>
           ) : null}
-          {project.githubUrl ? (
+          {githubUrl ? (
             <Button asChild variant="outline">
-              <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+              <a href={githubUrl} target="_blank" rel="noopener noreferrer">
                 <SiGithub className="mr-2 size-4" />
                 {t('links.github')}
               </a>

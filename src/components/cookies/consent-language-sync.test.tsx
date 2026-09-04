@@ -9,7 +9,7 @@ vi.mock('next-intl', () => ({
   useLocale: () => useLocaleMock(),
 }))
 
-vi.mock('@c15t/nextjs', () => ({
+vi.mock('@c15t/nextjs/headless', () => ({
   useConsentManager: () => ({
     setLanguage: setLanguageMock,
     consents: {},

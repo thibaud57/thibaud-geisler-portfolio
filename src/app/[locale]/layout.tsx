@@ -75,7 +75,10 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <Providers>
             <Navbar />
-            {children}
+            {/* Réserve la hauteur du contenu streamé : sans elle, la coquille PPR ne
+                contient que la navbar et le footer, que mt-auto colle alors en bas de
+                fenêtre. L'arrivée du contenu le repousse de plus de 2000 px (CLS 0,28). */}
+            <div className="flex min-h-[calc(100dvh-4rem)] flex-col">{children}</div>
             <Footer locale={locale} />
           </Providers>
         </NextIntlClientProvider>

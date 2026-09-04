@@ -8,6 +8,8 @@ import { MotionItem } from '@/components/ui/motion-item'
 import { ProjectCard } from './ProjectCard'
 import { ProjectFilters, type ProjectsFilter } from './ProjectFilters'
 
+const ABOVE_THE_FOLD_COUNT = 3
+
 type Props = {
   projects: LocalizedProjectWithRelations[]
 }
@@ -27,8 +29,13 @@ export function ProjectsList({ projects }: Props) {
       ) : (
         <BentoGrid>
           {visible.map((project, index) => (
-            <MotionItem key={project.slug} index={index % 3} className="h-full">
-              <ProjectCard project={project} />
+            <MotionItem
+              key={project.slug}
+              index={index % 3}
+              animate={index >= ABOVE_THE_FOLD_COUNT}
+              className="h-full"
+            >
+              <ProjectCard project={project} preloadCover={index === 0} />
             </MotionItem>
           ))}
         </BentoGrid>
