@@ -77,6 +77,16 @@ describe('buildSitemapEntries', () => {
     ])
   })
 
+  it('pages statiques sans lastModified : aucune date de contenu fiable à annoncer', () => {
+    const entries = buildSitemapEntries({
+      staticPaths: ['/services'],
+      projects: [],
+      siteUrl: SITE_URL_FIXTURE,
+    })
+
+    expect(entries.every((entry) => !('lastModified' in entry))).toBe(true)
+  })
+
   it('lastModified projet = updatedAt (pas new Date())', () => {
     const updatedAt = new Date('2026-03-15T10:00:00Z')
     const entries = buildSitemapEntries({

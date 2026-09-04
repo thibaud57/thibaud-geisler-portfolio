@@ -39,7 +39,9 @@ export async function AboutHero({ locale, className, children }: Props) {
 
       <div className="order-2 flex flex-col items-start gap-6 text-left lg:order-1">
         <h1 className="text-balance text-center lg:text-left">
-          {t('headline')}
+          {t.rich('headline', {
+            accent: (chunks) => <span className="text-primary">{chunks}</span>,
+          })}
         </h1>
         <LeadParagraph>{t('tagline')}</LeadParagraph>
         {children}

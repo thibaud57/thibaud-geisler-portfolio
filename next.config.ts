@@ -46,6 +46,9 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   poweredByHeader: false,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
   serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   outputFileTracingIncludes: {
     '/[locale]/mentions-legales': ['./content/legal/**/*.md'],

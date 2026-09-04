@@ -18,7 +18,8 @@ import {
   setupLocaleMetadata,
   siteUrl,
 } from '@/lib/seo'
-import { buildBreadcrumbList } from '@/lib/seo/json-ld'
+import { buildBreadcrumbList, buildProjectCreativeWork } from '@/lib/seo/json-ld'
+import { safeExternalUrl } from '@/lib/url'
 import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
 
 // Prérendre les slugs au build fige title/og/canonical dans le <head> pour TOUS les user-agents.
@@ -89,6 +90,18 @@ async function CaseStudyContentAsync({
       { name: project.title, path: `/projets/${slug}` },
     ],
   })
+  const creativeWorkJsonLd = buildProjectCreativeWork({
+    locale,
+    siteUrl,
+    slug,
+    title: project.title,
+    description: project.description,
+    keywords: project.tags.map(({ tag }) => tag.name),
+    startedAt: project.startedAt,
+    endedAt: project.endedAt,
+    updatedAt: project.updatedAt,
+    githubUrl: safeExternalUrl(project.githubUrl),
+  })
 
   return (
     <>
@@ -125,6 +138,7 @@ async function CaseStudyContentAsync({
         <CaseStudyFooter project={project} />
       </div>
       <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={creativeWorkJsonLd} />
     </>
   )
 }
