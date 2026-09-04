@@ -13,3 +13,13 @@ export async function register() {
     }
   }
 }
+
+// Sans ce hook, une erreur non gérée d'un rendu serveur sort en texte brut et échappe au
+// filtre `"level":"error"` sur lequel repose l'investigation d'incident (PRODUCTION.md).
+// Point d'accroche de Sentry.captureRequestError quand le sub-project observabilité arrivera.
+export async function onRequestError(err: unknown, request: { path: string }) {
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return
+
+  const { logger } = await import('./lib/logger')
+  logger.error({ err, event: 'request:unhandled_error', path: request.path })
+}

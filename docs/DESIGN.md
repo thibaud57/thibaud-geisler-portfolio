@@ -25,7 +25,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 **Famille** : `Sansation`
 
-**Source** : Google Fonts via `next/font/google`, `700` (Bold) uniquement
+**Source** : locale (`next/font/local`, fichier versionné avec les polices des images OG), `700` (Bold) uniquement. Volontairement pas `next/font/google` : la police est absente du jeu de métriques de Next, qui renonce alors au fallback ajusté
 
 **Usage** : titres hero (H1), titres de cards des surfaces marketing, éléments de marque, logo, sections display marketing
 
@@ -464,4 +464,5 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
 - [Radix UI](https://www.radix-ui.com) : primitives accessibles sous-jacentes à shadcn/ui
 - [Geist Font](https://vercel.com/font) : polices Geist Sans et Geist Mono (Vercel)
+- [Sansation](https://fonts.google.com/specimen/Sansation) : police display, par Bernd Montag, sous licence OFL
 - [Realtime Colors](https://www.realtimecolors.com) : visualisation palette en contexte réel

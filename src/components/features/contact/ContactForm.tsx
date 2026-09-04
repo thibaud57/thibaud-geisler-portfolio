@@ -78,6 +78,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               type="text"
               required
               aria-invalid={!!state.errors.name?.length}
+              aria-describedby="name-error"
               defaultValue={state.values?.name ?? ''}
               placeholder={labels.namePlaceholder}
             />
@@ -94,6 +95,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               name="company"
               type="text"
               aria-invalid={!!state.errors.company?.length}
+              aria-describedby="company-error"
               defaultValue={state.values?.company ?? ''}
               placeholder={labels.companyPlaceholder}
             />
@@ -112,6 +114,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               type="email"
               required
               aria-invalid={!!state.errors.email?.length}
+              aria-describedby="email-error"
               defaultValue={state.values?.email ?? ''}
               placeholder={labels.emailPlaceholder}
             />
@@ -130,6 +133,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               type="text"
               required
               aria-invalid={!!state.errors.subject?.length}
+              aria-describedby="subject-error"
               defaultValue={state.values?.subject ?? defaultSubject}
               placeholder={labels.subjectPlaceholder}
             />
@@ -148,6 +152,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               required
               rows={6}
               aria-invalid={!!state.errors.message?.length}
+              aria-describedby="message-error"
               defaultValue={state.values?.message ?? ''}
               placeholder={labels.messagePlaceholder}
             />
@@ -184,11 +189,13 @@ function Field({
         {required ? <span aria-hidden className="ml-0.5 text-destructive">*</span> : null}
       </Label>
       {children}
-      {errors?.map((code) => (
-        <p key={code} className="mt-1 text-sm text-destructive">
-          {tError(code)}
-        </p>
-      ))}
+      <div id={`${id}-error`} aria-live="polite">
+        {errors?.map((code) => (
+          <p key={code} className="mt-1 text-sm text-destructive">
+            {tError(code)}
+          </p>
+        ))}
+      </div>
     </div>
   )
 }
