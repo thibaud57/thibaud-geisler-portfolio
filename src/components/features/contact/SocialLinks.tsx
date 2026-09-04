@@ -3,12 +3,13 @@ import { Mail } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import { SOCIAL_LINKS, type SocialSlug } from '@/config/social-links'
-import { LinkedinIcon } from '@/lib/icons'
+import { LinkedinIcon, MaltIcon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
 const ICONS: Record<SocialSlug, React.ComponentType<{ className?: string }>> = {
   linkedin: LinkedinIcon,
   github: SiGithub,
+  malt: MaltIcon,
   email: Mail,
 }
 
@@ -22,6 +23,7 @@ export async function SocialLinks({ className }: Props) {
   const ariaLabels: Record<SocialSlug, string> = {
     linkedin: t('linkedin'),
     github: t('github'),
+    malt: t('malt'),
     email: t('email'),
   }
 

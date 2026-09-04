@@ -79,4 +79,4 @@ Le SEO et le partage de lien sont des critères primaires pour un portfolio prof
 
 Les slugs sont saisis à la création du projet et uniques en base. La stratégie de slug est tranchée dans [ADR-010](010-i18n.md) § « Sous-décision : slugs et préfixes » : slug unique language-agnostic, préfixes de route non traduits.
 
-Les pages sont rendues à la demande et servies depuis le Data Cache (`'use cache'`), sans `generateStaticParams`. Cf. [ARCHITECTURE.md](../ARCHITECTURE.md) § Use-case 3.
+Les pages sont prérendues au build via `generateStaticParams` (slugs publiés × locales), les queries restant en `'use cache'` pour la revalidation. Un slug hors liste est rendu à la demande. Cf. [ARCHITECTURE.md](../ARCHITECTURE.md) § Use-case 3.

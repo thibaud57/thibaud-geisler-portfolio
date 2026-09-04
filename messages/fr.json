@@ -2,7 +2,7 @@
   "HomePage": {
     "title": "Accueil",
     "hero": {
-      "h1": "Thibaud Geisler - <accent>IA</accent> & Développement Full-Stack",
+      "h1": "Thibaud Geisler, Tech Lead <accent>IA</accent> & Full-Stack freelance",
       "tagline": "IA, développement d'applications sur mesure et formation.\nDe l'idée à la mise en production.",
       "ctaPrimary": "Parlons de votre projet",
       "ctaSecondary": "Voir mes projets",
@@ -156,7 +156,7 @@
   "AboutPage": {
     "title": "À propos",
     "hero": {
-      "headline": "Thibaud Geisler - IA & Développement Full-Stack",
+      "headline": "Thibaud Geisler - <accent>IA</accent> & Développement Full-Stack",
       "tagline": "Je conçois des produits IA et des applications web sur mesure, en équipe réduite ou en solo, avec une approche business-solution.",
       "portraitAlt": "Portrait de Thibaud Geisler"
     },
@@ -202,6 +202,7 @@
       "ariaLabel": {
         "linkedin": "Profil LinkedIn de Thibaud Geisler",
         "github": "Profil GitHub de Thibaud Geisler",
+        "malt": "Profil Malt de Thibaud Geisler",
         "email": "Envoyer un email à Thibaud Geisler"
       }
     },
@@ -249,7 +250,7 @@
     }
   },
   "Footer": {
-    "tagline": "IA & Développement Full-Stack",
+    "tagline": "Tech Lead IA & Full-Stack freelance",
     "location": "Grand Est · Paris · Luxembourg · Remote",
     "cv": {
       "label": "Mon CV au format PDF :"
@@ -298,20 +299,20 @@
     "contact": "Contact"
   },
   "Metadata": {
-    "siteTitle": "Thibaud Geisler\u00a0: IA & Développement",
+    "siteTitle": "Thibaud Geisler",
     "siteDescription": "Portfolio de Thibaud Geisler. Intelligence artificielle, développement full-stack et formation IA.",
-    "homeTitle": "Accueil",
-    "homeDescription": "Découvrez mes services en IA, développement full-stack et formation. Projets et démos disponibles.",
-    "servicesTitle": "Services",
-    "servicesDescription": "IA & automatisation, développement full-stack, formation IA en entreprise.",
-    "projectsTitle": "Projets",
-    "projectsDescription": "Portfolio de projets en intelligence artificielle et développement full-stack.",
+    "homeTitle": "Tech Lead IA & Full-Stack freelance",
+    "homeDescription": "Tech Lead IA & full-stack freelance : agents IA, RAG, MCP et automatisation n8n en production. Python, TypeScript, Scala, Angular. Grands comptes et PME, du cadrage à l'infra.",
+    "servicesTitle": "Services IA, full-stack & formation",
+    "servicesDescription": "Agents IA, RAG, MCP et automatisation n8n en production, développement full-stack Python, TypeScript, Scala et Angular, formation IA en entreprise. Du cadrage à l'infra.",
+    "projectsTitle": "Projets IA et full-stack, études de cas",
+    "projectsDescription": "Études de cas de projets IA et full-stack : agents, RAG, automatisation n8n, applications web. Missions clients et projets personnels, stack et résultats.",
     "projectTitle": "Projet\u00a0: {slug}",
     "projectDescription": "Étude de cas du projet {slug} par Thibaud Geisler.",
     "aboutTitle": "À propos",
-    "aboutDescription": "Parcours, compétences techniques et approche de travail de Thibaud Geisler.",
+    "aboutDescription": "Tech Lead IA & full-stack freelance basé à Metz, Grand Est · Paris · Luxembourg · Remote. Parcours, stack et façon de travailler, de la TPE au grand compte.",
     "contactTitle": "Contact",
-    "contactDescription": "Contactez Thibaud Geisler pour un projet IA, une application ou une formation.",
+    "contactDescription": "Un projet IA, une application ou une formation à cadrer ? Écrivez-moi ou réservez un créneau dans mon agenda, réponse sous 48h ouvrées.",
     "jobTitle": "IA & développement full-stack",
     "breadcrumbHome": "Accueil",
     "breadcrumbServices": "Services",

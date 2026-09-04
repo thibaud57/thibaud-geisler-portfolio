@@ -2,10 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildBreadcrumbList,
+  buildContactPage,
+  buildOfferCatalog,
+  buildPersonId,
   buildPostalAddress,
   buildProfilePagePerson,
+  buildProjectCreativeWork,
+  buildWebSiteGraph,
   type ProfilePagePersonInput,
   type BreadcrumbListInput,
+  type ProjectCreativeWorkInput,
 } from './json-ld'
 
 const SITE_URL_FIXTURE = 'https://thibaud-geisler.com'
@@ -296,5 +302,142 @@ describe('buildPostalAddress', () => {
       addressLocality: 'Sarreguemines',
       addressCountry: 'France',
     })
+  })
+})
+
+describe('buildPersonId', () => {
+  it('@id Person = siteUrl + /#person, slash final absorbé', () => {
+    expect(buildPersonId('https://thibaud-geisler.com/')).toBe('https://thibaud-geisler.com/#person')
+  })
+})
+
+describe('buildWebSiteGraph', () => {
+  const input = {
+    locale: 'fr' as const,
+    siteUrl: SITE_URL_FIXTURE,
+    siteName: 'Thibaud Geisler : IA & Développement',
+    siteDescription: 'Portfolio de Thibaud Geisler.',
+    person: {
+      name: 'Thibaud Geisler',
+      jobTitle: 'IA & développement full-stack',
+      image: 'https://thibaud-geisler.com/api/assets/branding/portrait.jpg',
+      sameAs: ['https://www.linkedin.com/in/thibaud-geisler/'],
+    },
+  }
+
+  it('WebSite.publisher référence le même @id que le nœud Person du graphe', () => {
+    const graph = buildWebSiteGraph(input)
+
+    const [webSite, person] = graph['@graph']
+    expect(webSite.publisher['@id']).toBe(person['@id'])
+    expect(person['@id']).toBe(buildPersonId(SITE_URL_FIXTURE))
+  })
+
+  it('Person.url pointe vers /a-propos de la locale courante, inLanguage suit la locale', () => {
+    const graph = buildWebSiteGraph({ ...input, locale: 'en' })
+
+    const [webSite, person] = graph['@graph']
+    expect(person.url).toBe('https://thibaud-geisler.com/en/a-propos')
+    expect(webSite.inLanguage).toBe('en-US')
+  })
+})
+
+describe('buildOfferCatalog', () => {
+  const input = {
+    locale: 'fr' as const,
+    siteUrl: SITE_URL_FIXTURE,
+    name: 'Services',
+    services: [
+      { slug: 'ia', name: 'IA & Automatisation', description: 'Desc IA' },
+      { slug: 'formation', name: 'Formation IA', description: 'Desc formation' },
+    ],
+    areaServed: ['France', 'Luxembourg'],
+  }
+
+  it('un Offer par service, chaque Service ancré sur /services#<slug> avec provider = Person', () => {
+    const catalog = buildOfferCatalog(input)
+
+    expect(catalog.itemListElement).toHaveLength(2)
+    const service = catalog.itemListElement[1]!.itemOffered
+    expect(service['@id']).toBe('https://thibaud-geisler.com/fr/services#formation')
+    expect(service.provider['@id']).toBe(buildPersonId(SITE_URL_FIXTURE))
+    expect(catalog.provider['@id']).toBe(buildPersonId(SITE_URL_FIXTURE))
+  })
+
+  it('serviceUrl reprend le prefill ?service=<slug> de la page contact, dans la locale courante', () => {
+    const catalog = buildOfferCatalog({ ...input, locale: 'en' })
+
+    expect(catalog.itemListElement[0]!.itemOffered.availableChannel.serviceUrl).toBe(
+      'https://thibaud-geisler.com/en/contact?service=ia',
+    )
+  })
+})
+
+describe('buildContactPage', () => {
+  it('mainEntity est la Person canonique avec un ContactPoint email', () => {
+    const page = buildContactPage({
+      locale: 'fr',
+      siteUrl: SITE_URL_FIXTURE,
+      name: 'Contact',
+      description: 'Desc contact',
+      personName: 'Thibaud Geisler',
+      email: 'contact@thibaud-geisler.com',
+    })
+
+    expect(page.url).toBe('https://thibaud-geisler.com/fr/contact')
+    expect(page.mainEntity['@id']).toBe(buildPersonId(SITE_URL_FIXTURE))
+    expect(page.mainEntity.contactPoint.email).toBe('contact@thibaud-geisler.com')
+  })
+})
+
+describe('buildProjectCreativeWork', () => {
+  function buildInput(overrides?: Partial<ProjectCreativeWorkInput>): ProjectCreativeWorkInput {
+    return {
+      locale: 'fr',
+      siteUrl: SITE_URL_FIXTURE,
+      slug: 'webapp-gestion-sinistres',
+      title: 'Webapp Gestion Sinistres',
+      description: 'Desc',
+      keywords: ['Scala', 'Angular'],
+      startedAt: new Date('2022-05-01T00:00:00Z'),
+      endedAt: new Date('2025-10-01T00:00:00Z'),
+      updatedAt: new Date('2026-09-01T00:00:00Z'),
+      githubUrl: null,
+      ...overrides,
+    }
+  }
+
+  it('projet client sans dépôt : CreativeWork, auteur = Person canonique, période startedAt/endedAt, dateModified = updatedAt comme le sitemap', () => {
+    const work = buildProjectCreativeWork(buildInput())
+
+    expect(work['@type']).toBe('CreativeWork')
+    expect(work.url).toBe('https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres')
+    expect(work.author['@id']).toBe(buildPersonId(SITE_URL_FIXTURE))
+    expect(work.dateCreated).toBe('2022-05-01')
+    expect(work.temporalCoverage).toBe('2022-05-01/2025-10-01')
+    expect(work.dateModified).toBe('2026-09-01')
+    expect(work.codeRepository).toBeUndefined()
+  })
+
+  it('mission en cours : intervalle ouvert en temporalCoverage', () => {
+    const work = buildProjectCreativeWork(buildInput({ endedAt: null }))
+
+    expect(work.temporalCoverage).toBe('2022-05-01/..')
+  })
+
+  it('projet avec dépôt public : SoftwareSourceCode + codeRepository', () => {
+    const work = buildProjectCreativeWork(
+      buildInput({ githubUrl: 'https://github.com/thibaud57/portfolio' }),
+    )
+
+    expect(work['@type']).toBe('SoftwareSourceCode')
+    expect(work.codeRepository).toBe('https://github.com/thibaud57/portfolio')
+  })
+
+  it('sans startedAt : ni dateCreated ni temporalCoverage', () => {
+    const work = buildProjectCreativeWork(buildInput({ startedAt: null, endedAt: null }))
+
+    expect(work.dateCreated).toBeUndefined()
+    expect(work.temporalCoverage).toBeUndefined()
   })
 })

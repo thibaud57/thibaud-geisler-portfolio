@@ -44,6 +44,12 @@ describe('buildPageMetadata', () => {
     expect(buildPageMetadata(buildInput({ locale: 'en' })).openGraph?.locale).toBe('en_US')
   })
 
+  it('openGraph.alternateLocale liste les autres locales au format og (fr → [en_US])', () => {
+    const meta = buildPageMetadata(buildInput({ locale: 'fr' }))
+
+    expect(meta.openGraph?.alternateLocale).toEqual(['en_US'])
+  })
+
   it('compose openGraph.url absolue depuis siteUrl + locale + path', () => {
     vi.stubEnv('NODE_ENV', 'production')
     const meta = buildPageMetadata(buildInput({ locale: 'fr', path: '/services' }))

@@ -93,10 +93,16 @@ jobs:
       - run: just lint
       - run: just typecheck
       - run: just test
+
+      # generateStaticParams des pages projet lit la DB : sans seed il renvoie [],
+      # ce que Cache Components refuse au build. Seed juste avant, pas avant les
+      # tests d'intégration qui partagent cette DB et pourraient la modifier.
+      - run: just seed
+
       - run: just build
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        run: just audit
         continue-on-error: true
 
   ci:
