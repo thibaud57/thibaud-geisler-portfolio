@@ -57,7 +57,7 @@ Faut-il structurer le projet comme un monorepo (Turborepo/pnpm workspaces) ou co
 
 **Option A : Single repository.**
 
-Un seul repo pour une seule application Next.js. Aucun avantage du monorepo ne s'applique ici. Les applications démos futures auront leurs propres repos (voir ADR-006).
+Un seul repo pour une seule application Next.js. Aucun avantage du monorepo ne s'applique ici. Les applications démos futures auront leurs propres repos (cf. [ADR-006](006-strategie-demos-hub.md)).
 
 ---
 

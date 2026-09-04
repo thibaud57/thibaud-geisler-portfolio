@@ -54,10 +54,10 @@ COPY . .
 COPY --from=deps /app/src/generated ./src/generated
 
 # --- Build Next.js ---------------------------------------------------------
-# --webpack : workaround Prisma 7 + Turbopack WASM
-# (query_compiler_fast_bg.postgresql.mjs not found). À retirer quand l'issue
-# upstream sera corrigée.
-RUN pnpm exec next build --webpack
+# Turbopack (défaut Next 16). L'opt-out `--webpack` posé pour l'issue WASM
+# Prisma 7 (query_compiler_fast_bg.postgresql.mjs) a été retiré : build et
+# runtime vérifiés sur Next 16.3.3 + Prisma 7.10.0 (docs/VERSIONS.md § Prisma ORM).
+RUN pnpm exec next build
 
 # --- Bundle du seed Prisma -------------------------------------------------
 # Pre-bundle prisma/seed.ts → prisma/seed.js (deps externes resolues au runtime

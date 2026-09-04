@@ -1,7 +1,7 @@
 ---
 title: "Espace admin — récap de conception"
 description: "Contexte de conception de l'epic espace admin. Ce n'est pas une spec de sub-project : les décisions font foi dans les ADR-015 à 021, les specs d'implémentation viendront à côté sous NN-<slug>-design.md."
-date: "2026-08-29"
+date: "2026-09-03"
 keywords: ["admin", "espace-admin", "architecture", "ecosysteme", "freelance"]
 scope: ["docs", "architecture"]
 ---
@@ -133,8 +133,8 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 |---|---|
 | Route group `(admin)/` documenté partout, inexistant | ✅ **Tranché : segment réel `admin/`, hors `[locale]/`** ([ADR-021](../../../adrs/021-routing-espace-admin.md)), renvoi ajouté dans l'ADR-010 |
 | `components.json` est en `radix-nova`, six documents disent `new-york` | ✅ **Tranché : Nova conservé**, doc corrigée (VERSIONS, knowledges, rule, DESIGN) |
-| `experimental.authInterrupts` non activé | ⬜ À activer **dans le commit qui introduit `unauthorized()`**, pas avant. Validé : Next 16.3.3 accepte le flag |
-| `experimental.taint` non activé | ⬜ À activer **dans le commit qui introduit `getCurrentUser()`**, pas avant. Validé : Next 16.3.3 accepte le flag |
+| `experimental.authInterrupts` non activé | ⬜ À activer **dans le commit qui introduit `unauthorized()`**, pas avant. Validé sur la version de Next installée au moment du relevé |
+| `experimental.taint` non activé | ⬜ À activer **dans le commit qui introduit `getCurrentUser()`**, pas avant. Validé sur la version de Next installée au moment du relevé |
 | `src/proxy.ts` ne protège rien | ⬜ À faire à l'implémentation : envelopper le handler `next-intl` dans une fonction qui teste le préfixe `/admin` avant de vérifier le cookie de session |
 | Variables `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL` absentes de `src/env.ts` et `.env.example` | ⬜ `env.ts` est fail-fast, à ajouter dans le même commit que l'installation de `better-auth` |
 | Tables Better Auth absentes du schéma | ⬜ Première migration à écrire. Le modèle `Asset` fantôme de l'ADR-002 est corrigé |
@@ -143,7 +143,7 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 
 Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
 
-- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Aucune destination configurée à ce jour** : soit le cron manuel du VPS tourne, soit il n'y a aucune sauvegarde. À vérifier en priorité.
+- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Rien n'est sauvegardé à ce jour** : relevé du 2026-09-03, aucune destination, aucune sauvegarde de base, aucun volume backup. Toute perte de la Database est définitive tant que le sub-project `01` n'est pas livré.
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
 - Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers `empiricmind.fr`. **Tout ce qui est authentifié reste sur le domaine du portfolio.** `empiricmind.fr` garde les outils d'infrastructure avec leur propre authentification.
 - Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.

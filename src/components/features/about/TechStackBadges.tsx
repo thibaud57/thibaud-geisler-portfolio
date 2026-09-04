@@ -1,10 +1,10 @@
 import { getTranslations } from 'next-intl/server'
 
+import { TagBadge } from '@/components/features/projects/TagBadge'
 import { BentoCard, BentoGrid } from '@/components/magicui/bento-grid'
-import { Badge } from '@/components/ui/badge'
+import { MotionItem } from '@/components/ui/motion-item'
 import type { Tag, TagKind } from '@/generated/prisma/client'
 import type { LocalizedTag } from '@/i18n/localize-content'
-import { resolveTagIcon } from '@/lib/icons'
 import { KIND_ORDER } from '@/lib/tags'
 import { cn } from '@/lib/utils'
 
@@ -38,39 +38,33 @@ export async function TechStackBadges({ tags, className }: Props) {
   }
 
   return (
-    <BentoGrid className={cn('grid-cols-1 md:grid-cols-3 lg:grid-cols-3', className)}>
-      {KIND_ORDER.map((kind) => {
+    <BentoGrid className={cn('md:grid-cols-3', className)}>
+      {KIND_ORDER.map((kind, index) => {
         const group = byKind.get(kind)
         if (!group || group.length === 0) return null
 
         return (
-          <BentoCard
+          <MotionItem
             key={kind}
-            className={cn(
-              'relative p-6 sm:p-7',
-              KIND_LAYOUT[kind],
-              KIND_ACCENT[kind],
-            )}
+            index={index % 3}
+            className={cn('h-full', KIND_LAYOUT[kind])}
           >
-            <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
-              {t(kind)}
-            </h3>
-            <div className="mt-5 flex flex-1 flex-wrap gap-2">
-              {group.map((tag) => {
-                const Icon = resolveTagIcon(tag.icon)
-                return (
-                  <Badge
-                    key={tag.slug}
-                    variant="outline"
-                    className="gap-1.5 bg-background/60"
-                  >
-                    {Icon ? <Icon size={14} className="shrink-0" /> : null}
-                    <span>{tag.name}</span>
-                  </Badge>
-                )
-              })}
-            </div>
-          </BentoCard>
+            <BentoCard
+              className={cn(
+                'h-full p-6 transition duration-300 ease-out hover:border-primary/40 sm:p-7',
+                KIND_ACCENT[kind],
+              )}
+            >
+              <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
+                {t(kind)}
+              </h3>
+              <div className="mt-5 flex flex-1 flex-wrap content-start gap-2">
+                {group.map((tag) => (
+                  <TagBadge key={tag.slug} tag={tag} />
+                ))}
+              </div>
+            </BentoCard>
+          </MotionItem>
         )
       })}
     </BentoGrid>

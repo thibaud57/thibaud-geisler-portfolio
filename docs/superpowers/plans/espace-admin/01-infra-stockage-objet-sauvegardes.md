@@ -6,7 +6,7 @@
 
 **Architecture:** Trois buckets en juridiction européenne, chacun servi par un token restreint à lui seul, de sorte qu'une compromission de l'application ne donne aucun accès aux sauvegardes et qu'une manipulation locale n'atteigne jamais les assets de production. La sauvegarde s'appuie sur le mécanisme natif Dokploy (`pg_dump` puis transfert rclone), en remplacement d'un script bash documenté mais jamais appliqué. La validation ne repose pas sur l'enregistrement réussi d'une configuration mais sur la présence réelle d'un objet dans le bucket et sur une restauration menée jusqu'à une requête SQL.
 
-**Tech Stack:** Cloudflare R2, Wrangler CLI, Dokploy (Backup Destinations, Database Backup), PostgreSQL 18, rclone (embarqué par Dokploy).
+**Tech Stack:** Cloudflare R2, Wrangler CLI, Dokploy (S3 Destinations, Database Backups), PostgreSQL 18, rclone (embarqué par Dokploy).
 
 **Spec:** `docs/superpowers/specs/espace-admin/01-infra-stockage-objet-sauvegardes-design.md`
 
@@ -17,7 +17,7 @@
 - Le flag `--jurisdiction eu` (alias `--J`) doit être répété sur **chaque** commande Wrangler visant ces buckets, `info` et `lifecycle` compris. Sans lui, la commande cherche dans la juridiction par défaut et ne trouve rien.
 - Endpoint S3 résultant : `https://<account-id>.eu.r2.cloudflarestorage.com`, sans nom de bucket.
 - Trois tokens distincts en `Object Read & Write`, chacun restreint à un seul bucket. Les permissions `Admin` sont interdites ici : elles portent sur le compte entier et ne peuvent pas être restreintes.
-- Rétention : 30 jours via le champ `retentionDays` de Dokploy. **Aucune lifecycle rule R2** ne doit être créée sur `portfolio-backups` : cumuler les deux mécanismes fait silencieusement gagner le plus court.
+- Rétention : le champ s'appelle **`Keep the latest`** (`keepLatestCount`) et compte des **sauvegardes, pas des jours** — sa description dit « only keeps the latest N backups in the cloud ». Avec la planification quotidienne retenue, `30` donne trente sauvegardes, donc trente jours : toute modification de la fréquence change la fenêtre réelle. Laisser le champ vide conserve tout. **Aucune lifecycle rule R2** ne doit être créée sur `portfolio-backups` : cumuler les deux mécanismes fait silencieusement gagner le plus court.
 - Planification : `0 0 * * *` en UTC.
 - Les buckets `portfolio-assets` et `portfolio-assets-dev` sont créés mais restent vides. Aucune variable d'environnement R2 n'est ajoutée à `src/env.ts`, qui est fail-fast et casserait le démarrage sans code consommateur. Ces deux points appartiennent au sub-project `09`.
 - Le volume Docker `portfolio_assets` n'est pas sauvegardé. Risque temporaire assumé et documenté, ce volume disparaissant au sub-project `09`.
@@ -52,7 +52,7 @@ wrangler r2 bucket create portfolio-assets      --jurisdiction eu
 wrangler r2 bucket create portfolio-assets-dev  --jurisdiction eu
 ```
 
-Les sauvegardes, les assets de production, et les assets de développement. Séparer les deux derniers suit le principe déjà appliqué à PostgreSQL, où le développement tourne sur `portfolio_dev` et non sur la base de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
+Les sauvegardes, les assets de production, et les assets de développement. Séparer les deux derniers suit le principe déjà appliqué à PostgreSQL, où le développement tourne sur sa propre base et non sur celle de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
 
 - [ ] **Step 3: Vérifier que les buckets existent bien en juridiction eu**
 
@@ -155,18 +155,19 @@ Attendu : succès, avec un listing vide puisque aucune sauvegarde n'a encore ét
 
 - [ ] **Step 1: Créer la Backup Destination**
 
-Dans Dokploy : **Settings** → **Backup Destinations** → **Add Destination**.
+Dans Dokploy : **Settings** → **S3 Destinations** (`/dashboard/settings/destinations`) → **Add Destination**.
 
 | Champ | Valeur |
 |---|---|
 | Name | `cloudflare-r2-backups` |
+| Provider | `Cloudflare R2 Storage` |
 | Access Key Id | clé du token `portfolio-backups` |
 | Secret Access Key | secret du même token |
+| Bucket | `portfolio-backups` |
 | Region | `auto` |
 | Endpoint | `https://<account-id>.eu.r2.cloudflarestorage.com` |
-| Bucket | `portfolio-backups` |
 
-L'endpoint ne porte **pas** le nom du bucket, qui est un champ distinct.
+L'endpoint ne porte **pas** le nom du bucket, qui est un champ distinct. Le select `Provider` a une entrée dédiée à R2 : ne pas retomber sur `Amazon Web Services (AWS) S3`.
 
 > **Sur le champ Region** : R2 ignore la région, et `auto` est la valeur canonique côté client S3. La documentation Dokploy évoque de son côté des codes régionaux (`WEUR`, `ENAM`…). Commencer par `auto` et ne basculer sur `WEUR` que si le test de connexion du Step 2 échoue sur ce champ. À ne pas confondre avec la juridiction, qui est un mécanisme distinct déjà fixé à la création du bucket.
 
@@ -187,7 +188,7 @@ Ouvrir la Database `portfolio` dans Dokploy, onglet **Backup**, puis créer une 
 | Destination | `cloudflare-r2-backups` |
 | Schedule | `0 0 * * *` |
 | Database | `portfolio` |
-| Retention (days) | `30` |
+| Keep the latest | `30` |
 
 Le planificateur Dokploy travaille en UTC : `0 0 * * *` correspond à 1h du matin à Paris en heure d'hiver et 2h en heure d'été. Cette dérive saisonnière est sans conséquence, les deux horaires précédant le scan antivirus du VPS programmé à 3h.
 
@@ -199,7 +200,7 @@ Vérifier qu'aucune règle n'existe :
 wrangler r2 bucket lifecycle list portfolio-backups --jurisdiction eu
 ```
 
-Attendu : aucune règle. La rétention est portée par `retentionDays` côté Dokploy uniquement. En ajouter une ici ferait doublon, et la plus courte des deux l'emporterait sans avertissement.
+Attendu : aucune règle. La rétention est portée par `Keep the latest` côté Dokploy uniquement. En ajouter une ici ferait doublon, et la plus courte des deux l'emporterait sans avertissement.
 
 ---
 
@@ -274,32 +275,23 @@ DROP DATABASE portfolio_restore_test;
 ### Task 5 : Mettre la documentation en accord avec le réel
 
 **Files:**
-- Modify: `docs/PRODUCTION.md` (section « 💾 Backup & Recovery », lignes 509 à 645 environ, jusqu'au titre `# ⚡ Performance`)
+- Modify: `docs/PRODUCTION.md` (section « 💾 Backup & Recovery »)
 - Modify: `docs/superpowers/specs/espace-admin/README.md` (section Infrastructure)
 
 **Interfaces:**
 - Consomme : la configuration réelle des Tasks 1 à 4. La documentation décrit ce qui a été fait et vérifié, pas ce qui était prévu.
 - Produit : deux fichiers versionnés à jour.
 
-- [ ] **Step 1: Remplacer la section « Backup & Recovery » de `docs/PRODUCTION.md`**
+> ⚠️ **Relire `docs/PRODUCTION.md` avant d'écrire quoi que ce soit.** La section « 💾 Backup & Recovery » a été réécrite le 2026-09-03, hors de ce sub-project : elle annonce déjà le backup natif Dokploy vers R2 avec 30 jours de rétention, et porte des procédures de restauration et de perte VPS plus récentes que celles rédigées ici. **Compléter, jamais remplacer** : coller un bloc entier ferait régresser la procédure de perte VPS (elle mentionnerait un webhook GitHub là où le mécanisme réel est l'appel `compose.redeploy` de `deploy.yml`). Ce qui manque à la section actuelle est la configuration concrète, ci-dessous.
 
-Supprimer intégralement le bloc `## Configuration Backup (Setup initial)` (installation rclone, `rclone config`, script `/opt/backup.sh`, `crontab -e`, vérification du setup) et remplacer la section par le contenu suivant :
+- [ ] **Step 1: Compléter la section « Backup & Recovery » de `docs/PRODUCTION.md`**
+
+Ajouter, après la table de stratégie existante, le bloc de configuration ci-dessous. Les trois encadrés (juridiction, rétention portée d'un seul côté, assets) sont à vérifier avant ajout : si la section les porte déjà, ne pas les dupliquer.
 
 ````markdown
-# 💾 Backup & Recovery
+> **Rétention portée d'un seul côté** : la purge est assurée par le champ `Keep the latest` de Dokploy, qui compte des sauvegardes et non des jours. Aucune lifecycle rule n'est configurée sur le bucket R2. Cumuler les deux mécanismes ferait silencieusement gagner le plus court des deux.
 
-## Stratégie Backup
-
-| Ressource | Fréquence | Rétention | Localisation |
-|-----------|-----------|-----------|--------------|
-| PostgreSQL (`pg_dump` via Dokploy) | Quotidien, `0 0 * * *` UTC | 30 jours (`retentionDays` Dokploy) | Cloudflare R2, bucket `portfolio-backups` (juridiction `eu`) |
-| Assets Docker volume | Non couvert | — | Voir note ci-dessous |
-
-> **Assets** : le volume `portfolio_assets` n'est pas sauvegardé. Il disparaît lors de la migration des assets vers Cloudflare R2 (ADR-011), qui fait de R2 la source de vérité. Mettre en place une sauvegarde de volume pour un composant dont le retrait est planifié n'est pas justifié ; le risque est accepté sur cette période.
-
-> **Rétention portée d'un seul côté** : la purge est assurée par le champ `retentionDays` de Dokploy. Aucune lifecycle rule n'est configurée sur le bucket R2. Cumuler les deux mécanismes ferait silencieusement gagner le plus court des deux.
-
-> **Juridiction** : les buckets sont créés en juridiction `eu`, ce qui garantit la résidence des données dans l'Union européenne. Ce paramètre est définitif après création. Détails dans [cloudflare-r2.md](../../../knowledges/cloudflare-r2.md).
+> **Juridiction** : les buckets sont créés en juridiction `eu`, ce qui garantit la résidence des données dans l'Union européenne. Ce paramètre est définitif après création. Détails dans [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md).
 
 ## Configuration Backup
 
@@ -313,7 +305,7 @@ wrangler r2 bucket create portfolio-assets      --jurisdiction eu
 wrangler r2 bucket create portfolio-assets-dev  --jurisdiction eu
 ```
 
-> Trois buckets : les sauvegardes, les assets de production, les assets de développement. Le développement écrit dans son propre bucket comme il tourne déjà sur `portfolio_dev` et non sur la base de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
+> Trois buckets : les sauvegardes, les assets de production, les assets de développement. Le développement écrit dans son propre bucket comme il tourne déjà sur sa propre base et non sur celle de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
 
 > Le flag `--jurisdiction eu` doit être répété sur **chaque** commande visant ces buckets, `info` et `lifecycle` compris.
 
@@ -331,61 +323,41 @@ Trois tokens créés au dashboard Cloudflare (R2 → Manage API tokens), Wrangle
 
 ### 3. Destination Dokploy
 
-`Settings → Backup Destinations → Add Destination` :
+`Settings → S3 Destinations → Add Destination` :
 
 | Champ | Valeur |
 |---|---|
-| Access Key Id / Secret | token `portfolio-backups` |
+| Name | `cloudflare-r2-backups` |
+| Provider | `Cloudflare R2 Storage` |
+| Access Key Id / Secret Access Key | token `portfolio-backups` |
+| Bucket | `portfolio-backups` |
 | Region | `auto` |
 | Endpoint | `https://<account-id>.eu.r2.cloudflarestorage.com` |
-| Bucket | `portfolio-backups` |
 
-Tester la connexion avant d'enregistrer : c'est le seul retour immédiat, une destination invalide ne se signale sinon qu'à l'échec de la première sauvegarde planifiée.
+Le bouton `Test Connection` avant d'enregistrer : c'est le seul retour immédiat, une destination invalide ne se signale sinon qu'à l'échec de la première sauvegarde planifiée.
 
 ### 4. Planification
 
-Database `portfolio` → onglet `Backup` : destination `cloudflare-r2-backups`, schedule `0 0 * * *`, rétention 30 jours.
+Database `portfolio` → onglet `Backups` → `Create Backup` : `Destination` = `cloudflare-r2-backups`, `Database` = `portfolio`, `Schedule` = `0 0 * * *`, `Keep the latest` = `30`, `Enabled` coché.
+
+> `Keep the latest` compte des **sauvegardes**, pas des jours : trente sauvegardes quotidiennes font trente jours, une autre fréquence changerait la fenêtre.
 
 > Le planificateur Dokploy travaille en UTC, soit 1h à Paris en hiver et 2h en été.
 
 ### 5. Vérifier le setup
 
 Ne pas se fier à l'enregistrement de la configuration : déclencher une sauvegarde manuelle et confirmer qu'un objet horodaté de taille non nulle apparaît dans le bucket. Des incidents Dokploy propres à R2 ont été rapportés, où la commande rclone passe manuellement mais échoue en automatique.
-
-## Recovery
-
-| Scénario | RTO | RPO | Procédure |
-|----------|-----|-----|-----------|
-| Corruption BDD / suppression accidentelle | < 2h | < 24h | Voir procédure ci-dessous |
-| Perte du VPS (crash total) | < 4h | < 24h | Voir procédure ci-dessous |
-| Déploiement cassé (app ne démarre plus) | < 30 min | N/A | Rollback Dokploy, voir section Déploiement |
-
-> **RTO** = Recovery Time Objective (temps max pour restaurer le service)
-> **RPO** = Recovery Point Objective (perte de données max acceptable)
-
-### Procédure : Restauration BDD
-
-1. Dokploy → Database `portfolio` → onglet `Backup` → bouton `Restore`
-2. Sélectionner le bucket `portfolio-backups`, puis le fichier de sauvegarde (autocomplétion)
-3. Saisir la base cible
-
-> ⚠️ Restaurer d'abord vers une base jetable (`portfolio_restore_test`) pour vérifier le contenu avant d'écraser quoi que ce soit. Le champ « base cible » existe précisément pour ça.
-
-> ⚠️ Si l'incident est survenu après la dernière sauvegarde, les modifications récentes sont perdues : c'est le RPO de 24h. Vérifier l'horodatage avant de restaurer.
-
-### Procédure : Perte VPS Totale
-
-1. Créer un nouveau VPS IONOS avec la même spec
-2. Installer Dokploy (voir [ADR-005](../../../adrs/005-hebergement-dokploy-vs-vercel.md))
-3. Reconfigurer les variables d'environnement dans Dokploy
-4. Reconfigurer le webhook GitHub → Dokploy
-5. Recréer la Backup Destination R2 (les tokens Cloudflare survivent à la perte du VPS)
-6. Déclencher un redéploiement, Dokploy pull l'image GHCR et redémarre automatiquement
-7. Restaurer la BDD depuis la dernière sauvegarde (voir procédure ci-dessus)
-8. Smoke test complet
 ````
 
-- [ ] **Step 2: Vérifier qu'aucune référence au script supprimé ne subsiste**
+- [ ] **Step 2: Reprendre les trois points que la section actuelle porte différemment**
+
+Les procédures de restauration et de perte VPS **existent déjà** et sont plus à jour que ce sub-project : ne pas les réécrire. Trois points seulement sont à traiter :
+
+1. **Restauration vers une base jetable** : ajouter à la procédure de restauration existante le passage par une base de contrôle (`portfolio_restore_test`) avant d'écraser la base réelle, c'est ce que la Task 4 a vérifié et le champ « base cible » de Dokploy existe pour ça.
+2. **Recréation de la Backup Destination** dans la procédure de perte VPS : les tokens Cloudflare survivent à la perte du VPS, la destination Dokploy non.
+3. **Volume assets : tranché le 2026-09-03, non couvert.** Les assets migrent vers R2 au sub-project `09` et le volume Docker disparaît alors : configurer une sauvegarde de volume pour la démonter ensuite serait du travail à faire puis à défaire. Jusque-là, la source reste le dossier `assets/` local, celui qui a servi à remplir le volume. `docs/PRODUCTION.md` porte déjà cette décision et sa justification, ne pas la rouvrir ici.
+
+Vérifier ensuite qu'aucune trace de l'ancienne procédure par script ne subsiste :
 
 ```bash
 grep -n "backup.sh\|rclone config\|crontab" docs/PRODUCTION.md
@@ -407,11 +379,15 @@ par :
 - Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 ```
 
-- [ ] **Step 4: Relire la cohérence des deux fichiers**
+- [ ] **Step 4: Mettre à jour `docs/ARCHITECTURE.md`**
 
-Vérifier que la rétention annoncée est bien 30 jours partout, que plus aucune mention de lifecycle rule R2 ne subsiste, et que les noms des trois buckets sont identiques dans les deux documents.
+Dans le diagramme « Livraison et sauvegarde », le nœud R2 porte `(portfolio-backups, post-MVP)`. Retirer la mention post-MVP, la sauvegarde étant en service à l'issue de ce sub-project.
 
-- [ ] **Step 5: Demander la validation avant commit**
+- [ ] **Step 5: Relire la cohérence des trois fichiers**
+
+Vérifier que la rétention est annoncée partout comme « 30 sauvegardes quotidiennes, soit 30 jours », que plus aucune mention de lifecycle rule R2 ne subsiste, et que les noms des trois buckets sont identiques d'un document à l'autre.
+
+- [ ] **Step 6: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message, conformément à la discipline commit du projet. Message proposé :
 

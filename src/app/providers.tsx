@@ -64,7 +64,7 @@ export function Providers({ children }: { children: ReactNode }) {
         },
         slots: {
           consentBannerDescription: '[&_a]:text-primary',
-          consentDialogDescription: '[&_a]:text-primary',
+          consentDialogDescription: '[&_a]:block [&_a]:mt-2 [&_a]:text-primary',
         },
       },
     }),

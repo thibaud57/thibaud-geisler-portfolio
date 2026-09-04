@@ -6,7 +6,7 @@ status: "draft"
 complexity: "S"
 tdd_scope: "none"
 depends_on: []
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Passage du schéma Prisma en multi-schema
@@ -28,14 +28,15 @@ Aucune — ce sub-project est autoporté. Il conditionne le sub-project `04`, qu
 ## Files touched
 
 - **À modifier** : `prisma/schema.prisma` (champ `schemas` sur le datasource, plus `@@schema("public")` sur 22 déclarations)
+- **À modifier** : `docs/ARCHITECTURE.md` (§ Base de Données Principale : le découpage en schemas n'est plus annoncé au post-MVP pour ceux réellement créés)
 
-C'est le seul fichier concerné. Aucune migration n'est attendue, l'annotation ne modifiant rien physiquement — mais cette absence se constate, elle ne se suppose pas (voir Architecture approach).
+`prisma/schema.prisma` est le seul fichier de code concerné. Aucune migration n'est attendue, l'annotation ne modifiant rien physiquement — mais cette absence se constate, elle ne se suppose pas (voir Architecture approach).
 
 `src/lib/prisma.ts`, `prisma.config.ts` et `src/lib/prisma-test-setup.ts` restent inchangés.
 
 ## Architecture approach
 
-**Aucun `previewFeatures` à déclarer.** Le multi-schema est stable depuis Prisma 6.13.0 et le projet est en 7.10. Les guides antérieurs demandent `previewFeatures = ["multiSchema"]` : c'est obsolète et cela produirait un avertissement.
+**Aucun `previewFeatures` à déclarer.** Le multi-schema est stable en Prisma 7. Les guides antérieurs demandent `previewFeatures = ["multiSchema"]` : c'est obsolète et cela produirait un avertissement.
 
 **L'annotation est obligatoire et exhaustive.** Dès que `schemas` figure dans le datasource, chaque modèle **et chaque enum** doit porter un `@@schema`, faute de quoi la validation échoue. Il n'existe pas de valeur par défaut implicite. Les 22 déclarations sont donc concernées, pas seulement les 9 modèles — c'est la principale source d'erreur de ce sub-project.
 

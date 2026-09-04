@@ -33,7 +33,7 @@ paths:
 ## Gotchas
 - **`captureException` dans un Server Component casse le prerendering quand `cacheComponents: true`** — c'est la configuration du projet. Issue getsentry/sentry-javascript#21333, corrigée par la PR #21351, version de publication non confirmée : à tester avant mise en production
 - `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs (issue #10466). Pertinent dès qu'une Server Action utilise `redirect()` ou `notFound()`
-- Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack. Le build de production est en `next build --webpack` (opt-out Prisma WASM), donc hors de portée — à revalider le jour où cet opt-out sautera
+- Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack, qui est **le bundler du build de production depuis le 3 septembre 2026** (opt-out `--webpack` retiré) : les traiter comme actifs, vérifier la version du SDK face à ces fixes et provoquer une erreur serveur réelle pour valider la remontée
 - Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée
 - La région de l'organisation Sentry (États-Unis ou Europe) est **irréversible** : elle se choisit à la création, avant tout code
 

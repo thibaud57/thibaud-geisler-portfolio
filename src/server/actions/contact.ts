@@ -75,6 +75,8 @@ export async function submitContact(
     }
   }
 
+  // Horloge monotone : un ajustement NTP pendant l'envoi fausserait une mesure prise sur Date.now().
+  const startedAt = performance.now()
   try {
     await transporter.sendMail({
       from: MAIL_FROM,
@@ -87,6 +89,7 @@ export async function submitContact(
       event: 'email:sent',
       has_company: Boolean(result.data.company),
       message_length: result.data.message.length,
+      duration_ms: Math.round(performance.now() - startedAt),
     })
     return { ok: true, errors: {}, message: null }
   } catch (err) {

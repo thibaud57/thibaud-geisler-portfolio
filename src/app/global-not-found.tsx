@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { SearchX } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
+import { fontVariables } from '@/lib/fonts'
 import { routing } from '@/i18n/routing'
 import { themeInitScript } from '@/lib/theme-script'
 import '@/app/globals.css'
@@ -29,8 +30,8 @@ export default async function GlobalNotFound() {
   })
 
   return (
-    <html lang={routing.defaultLocale}>
-      <body className="min-h-dvh bg-background text-foreground antialiased">
+    <html lang={routing.defaultLocale} className={fontVariables}>
+      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-6 px-4 py-12 text-center">
           <SearchX

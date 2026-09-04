@@ -47,8 +47,9 @@ export async function FinalCtaSection({ locale }: Props) {
         <Link href="/contact">{t('finalCta.ctaLabel')}</Link>
       </Button>
 
-      <div className="mt-6 flex w-full flex-col items-center gap-4">
-        <p className="text-sm uppercase tracking-widest text-muted-foreground">
+      {/* Écart doublé : la bande stack est d'un autre registre que la séquence d'appel à l'action */}
+      <div className="mt-8 flex w-full flex-col items-center gap-4">
+        <p className="text-balance text-center text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
           {t('signatureSection.title')}
         </p>
         <StackMarquee locale={locale} />

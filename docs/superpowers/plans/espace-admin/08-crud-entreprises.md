@@ -18,7 +18,7 @@
 - Les deux `P2002` possibles se discriminent par **`meta.target`** : slug et entité légale portent chacun une contrainte d'unicité.
 - `size`, `websiteUrl` et `legalEntityId` sont nullables : convertir `''` en `null`. `legalEntityId: ''` violerait la contrainte de clé étrangère.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
-- Invalider **`updateTag('projects')`**, pas une étiquette propre aux entreprises : les pages publiques y accèdent par les projets. `updateTag` et non `revalidateTag`, pour la même raison qu'au sub-project `07` : le scénario 8 vérifie le nouveau nom sur la page publique dès la modification, ce qu'un profil `'max'` ne garantit pas au premier chargement.
+- Invalider **`updateTag('projects')`** puis **`revalidatePath('/admin/entreprises')`** : la première étiquette ne couvre que les pages publiques, l'écran d'administration lit sans cache et sans étiquette, rien ne le rafraîchirait sinon. Pas d'étiquette propre aux entreprises : les pages publiques y accèdent par les projets. `updateTag` et non `revalidateTag`, pour la même raison qu'au sub-project `07` : le scénario 8 vérifie le nouveau nom sur la page publique dès la modification, ce qu'un profil `'max'` ne garantit pas au premier chargement.
 - Ne pas toucher à `logoFilename`, qui devient éditable au sub-project `10`.
 - `src/app/admin/entreprises/page.tsx` existe comme page d'attente : la **remplacer**.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
@@ -100,10 +100,10 @@ export const companySchema = z.object({
     .array(z.enum(SECTORS, { error: 'Secteur inconnu' }))
     .min(1, 'Sélectionne au moins un secteur'),
   size: z
-    .union([z.enum(COMPANY_SIZES), z.literal('')])
+    .union([z.enum(COMPANY_SIZES), z.literal('')], { error: 'Taille inconnue' })
     .transform((value) => (value === '' ? null : value)),
   websiteUrl: z
-    .union([z.url("L'adresse du site n'est pas valide"), z.literal('')])
+    .union([z.url(), z.literal('')], { error: "L'adresse du site n'est pas valide" })
     .transform((value) => (value === '' ? null : value)),
   legalEntityId: z
     .string()
@@ -163,7 +163,7 @@ export const initialCompanyFormState: CompanyFormState = {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/headers', () => ({ headers: vi.fn(() => new Headers()) }))
-vi.mock('next/cache', () => ({ updateTag: vi.fn() }))
+vi.mock('next/cache', () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
@@ -273,6 +273,20 @@ describe('createCompany', () => {
     )
   })
 
+  it('enregistre un site web vide en null', async () => {
+    await createCompany(initialCompanyFormState, buildFormData({ websiteUrl: '' }))
+
+    expect(prisma.company.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ websiteUrl: null }) }),
+    )
+  })
+
+  it('retourne les valeurs saisies en cas d\'échec', async () => {
+    const state = await createCompany(initialCompanyFormState, buildFormData({ slug: '' }))
+
+    expect(state.values?.name).toBe(VALID.name)
+  })
+
   it("invalide l'étiquette projects après une création réussie", async () => {
     await createCompany(initialCompanyFormState, buildFormData())
 
@@ -352,7 +366,7 @@ Expected: FAIL, le module `./companies` n'existe pas.
 'use server'
 
 import 'server-only'
-import { updateTag } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 
 import { getCurrentUser } from '@/lib/get-current-user'
 import { prisma } from '@/lib/prisma'
@@ -437,6 +451,7 @@ export async function createCompany(
   try {
     const company = await prisma.company.create({ data: result.data })
     updateTag('projects')
+    revalidatePath('/admin/entreprises')
     log.info({ event: 'company:created', slug: result.data.slug })
     return { ok: true, errors: {}, message: null, createdId: company.id }
   } catch (err) {
@@ -471,6 +486,7 @@ export async function updateCompany(
   try {
     await prisma.company.update({ where: { id }, data: result.data })
     updateTag('projects')
+    revalidatePath('/admin/entreprises')
     log.info({ event: 'company:updated', slug: result.data.slug })
     return { ok: true, errors: {}, message: null, createdId: id }
   } catch (err) {
@@ -490,6 +506,7 @@ export async function deleteCompany(id: string): Promise<CompanyFormState> {
   try {
     await prisma.company.delete({ where: { id } })
     updateTag('projects')
+    revalidatePath('/admin/entreprises')
     log.info({ event: 'company:deleted', id })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -511,7 +528,7 @@ export async function deleteCompany(id: string): Promise<CompanyFormState> {
 - [ ] **Step 4: Lancer les tests pour vérifier qu'ils passent**
 
 Run: `pnpm vitest run --project unit src/server/actions/companies.test.ts`
-Expected: PASS, dix-huit cas verts.
+Expected: PASS, vingt cas verts.
 
 ---
 
@@ -577,6 +594,8 @@ Expected: aucune erreur.
 - [ ] **Step 1: Écrire le formulaire**
 
 Composant client montant un `Dialog` shadcn. Points imposés :
+> **Aucun composant shadcn à installer.** `dialog`, `select` et `alert-dialog` viennent tous les trois de la même commande du sub-project `07`, dont celui-ci dépend : ils sont déjà présents et ne sont pas réinstallés ici. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+
 
 - **le déclencheur est une prop**, `trigger`, et non un bouton rendu en dur. Sur l'écran de liste ce sera « Nouvelle entreprise », dans le formulaire projet un bouton d'ajout à côté du select
 - **`onCreated` est appelé au succès** avec l'identifiant issu de `state.createdId`. C'est ce qui permettra au formulaire projet de sélectionner l'entreprise sans recharger la page
@@ -614,7 +633,9 @@ Composant client montant un `AlertDialog`. Il appelle `deleteCompany(id)` et aff
 
 - [ ] **Step 2: Écrire la table**
 
-Table shadcn avec les colonnes : nom, slug, secteurs (en `Badge` multiples), taille, entité légale, et une colonne d'actions portant l'édition et la suppression.
+Table shadcn avec les colonnes : nom, slug, secteurs, taille, entité légale, et une colonne d'actions portant l'édition et la suppression.
+
+Les secteurs sont des `<Badge variant="outline" meta>` multiples : un secteur d'activité est une information **sur** l'entreprise, pas un nom de marque, donc une métadonnée au sens de `docs/DESIGN.md`. La prop `meta` applique `uppercase tracking-wider`, ce que le variant `secondary` des badges de tags ne ferait pas.
 
 - [ ] **Step 3: Remplacer la page d'attente**
 
@@ -631,9 +652,9 @@ export default async function AdminEntreprisesPage() {
   ])
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Entreprises</h1>
+        <h1 className="font-sans text-2xl font-medium tracking-normal">Entreprises</h1>
         <CompanyFormDialog
           company={null}
           legalEntities={legalEntities}
@@ -647,6 +668,11 @@ export default async function AdminEntreprisesPage() {
   )
 }
 ```
+
+Deux points de style sont imposés par `docs/DESIGN.md` et ne s'improvisent pas :
+
+- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 - [ ] **Step 4: Vérifier que tout compile**
 

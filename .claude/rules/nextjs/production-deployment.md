@@ -32,8 +32,8 @@ paths:
 - Utiliser `serverRuntimeConfig` / `publicRuntimeConfig` : **supprimés** Next 16, passer par `process.env`
 
 ## Gotchas
-- Next 16 : Turbopack est le bundler **par défaut en dev ET build**. Pour opt-out (ex: si issue avec un plugin webpack custom), utiliser `next build --webpack`
-- **Prisma 7 + Turbopack build** : issue WASM connue (`query_compiler_fast_bg.postgresql.mjs` not found). Workaround : opt-out via `next build --webpack` dans le Dockerfile jusqu'à correction upstream. Surveiller l'état de l'issue Prisma avant chaque upgrade
+- Next 16 : Turbopack est le bundler **par défaut en dev ET build**, y compris dans le Dockerfile de ce projet. L'opt-out `next build --webpack` existe toujours (plugin webpack custom, régression de bundler) mais ne doit pas être posé sans erreur reproduite : dev et prod cessent alors d'utiliser le même bundler
+- **Prisma 7 + Turbopack build** : une erreur de résolution du module WASM (`query_compiler_fast_bg.postgresql.mjs` not found) a justifié un opt-out `--webpack`, **retiré le 3 septembre 2026** faute de reproduction sur Next 16.3.3 + Prisma 7.10.0 (build Docker et runtime vérifiés, voir `docs/VERSIONS.md` § Prisma ORM). Revalider le build de l'image à chaque montée de Next ou de Prisma, le flag se remet en une ligne
 - Next 15 : `serverComponentsExternalPackages` renommé `serverExternalPackages`, l'ancien nom provoque un warning
 - `sharp` auto-installé depuis Next 15 : vérifier sa présence dans les deps de production en self-hosted
 - Build Docker côté GitHub Actions (`deploy.yml`) avec service Postgres CI éphémère (pour les queries `'use cache'` au prerender) → push GHCR → Dokploy pull-only. L'issue Prisma #29025 (hash mismatch) reste possible si le build CI et le runtime divergent : toujours figer la version Prisma + même image base Node.

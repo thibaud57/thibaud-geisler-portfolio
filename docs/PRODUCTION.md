@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-09-01"
+date: "2026-09-03"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino"]
@@ -13,13 +13,11 @@ technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokpl
 
 **Schéma** : SemVer, `MAJOR.MINOR.PATCH`
 
-- `MAJOR` : Breaking change ou refonte majeure de l'interface/BDD
-- `MINOR` : Nouvelle fonctionnalité rétrocompatible (nouvelle page, nouvelle section)
-- `PATCH` : Bugfix ou correction mineure
+- `MAJOR` : rupture de l'interface publique du site ou du schéma de base de données
+- `MINOR` : nouvelle fonctionnalité rétrocompatible (nouvelle page, nouvelle section)
+- `PATCH` : correction de bug ou ajustement mineur
 
-> **Exemple** : `v1.2.0` → 1ère version majeure, 2ème feature ajoutée, aucun bugfix
-
-> **Milestone `v1.0.0`** : atteint après le premier déploiement Dokploy validé + toutes les features MVP livrées (accueil, projets, services, contact). Jusque-là, le projet reste en `0.x.x` (dev initial, API instable). Bump automatique via release-please depuis les commits Conventional (`feat:` → MINOR, `fix:` → PATCH, `feat!:` ou `BREAKING CHANGE` → MAJOR).
+> **Régime `1.x` actif depuis mai 2026**, franchi avec le premier déploiement validé et les features MVP livrées (accueil, projets, services, contact). Toute rupture impose désormais un MAJOR. Les bumps sont calculés par release-please depuis les commits Conventional (`feat:` → MINOR, `fix:` → PATCH, `feat!:` ou `BREAKING CHANGE` → MAJOR) ; la version courante vit dans [CHANGELOG.md](../CHANGELOG.md), jamais dans cette prose.
 
 ## Workflow Release
 
@@ -64,24 +62,33 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 | `test` | Ajout ou modification de tests | skip |
 | `chore` | Maintenance, dépendances, configuration Docker/Dokploy | skip |
 
-> **PR develop → main** : le squash-merge crée 1 commit sur `main` avec le **titre de la PR** comme message. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy. Footer `Release-As: X.Y.Z` dans le body de la PR pour forcer une version spécifique.
+> **PR develop → main** : le squash-merge crée 1 commit sur `main` dont le titre est le **titre de la PR**. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy.
+
+> **Forcer un numéro de version** : release-please lit `Release-As: X.Y.Z` dans le **corps d'un commit** de `main`, jamais dans la description de la PR. Le dépôt étant réglé en `COMMIT_MESSAGES`, ce corps est la liste des commits de `develop` : écrire le footer dans la description de la PR ne produit donc rien, silencieusement. Le poser en l'ajoutant dans l'éditeur de message au moment du squash.
+
+> **Corriger les release notes après coup** : ajouter un bloc `BEGIN_COMMIT_OVERRIDE` / `END_COMMIT_OVERRIDE` dans le corps de la PR **déjà mergée**, contenant les messages Conventional à retenir. release-please les utilise à la place du message du commit. Ne fonctionne qu'en squash-merge, ce qui est le réglage du dépôt.
 
 ## Checklist Release
 
 **Automatisé par GitHub Actions (vérifier le statut CI avant de merger) :**
 - [ ] Tests passent (lint, typecheck, tests unitaires/intégration)
 - [ ] Build sans erreurs TypeScript
+- [ ] `just audit` lu, même s'il ne bloque pas (§ Dépendances)
+
+> ℹ️ Le job `quality` est **sauté** sur un diff purement documentaire et sur les branches `release-please--*` : une PR de release affichée « verte » n'a donc rien exécuté, c'est normal.
 
 **Manuel :**
+Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploiement :
+
 - [ ] Variables d'environnement à jour dans Dokploy
 - [ ] Merge vers `main` validé (develop → main fin d'epic, ou hotfix/* → main pour bug critique)
-- [ ] Déploiement automatique Dokploy confirmé (onglet Deployments → statut ✅)
-- [ ] Migrations Prisma appliquées, vérifier dans les logs Dokploy au démarrage du container
-- [ ] Smoke test manuel : accueil, `/projets`, formulaire contact
-- [ ] Security headers vérifiés si `next.config.ts` modifié (`curl -I https://thibaud-geisler.com`)
-- [ ] PR release-please mergée après validation prod (smoke test + Dokploy ✅) → tag `vX.Y.Z` auto-créé
+- [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
+- [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
+- [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
+- [ ] Smoke test : accueil, `/projets`, formulaire contact
+- [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
-> **Politique de tagging** : les tags sont générés automatiquement par release-please au merge de la PR release sur `main` (fin d'epic ou hotfix critique). Les merges `feature/* → develop` ne déclenchent pas de release. **Merger la PR release-please uniquement après validation prod** (smoke test + Dokploy ✅) pour que le tag ne soit créé qu'après confirmation.
+> **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
 
@@ -96,15 +103,19 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 
 ### Accès Dashboard Dokploy
 
-- **URL** : `https://<IP_VPS_IONOS>:3000` (ou domaine configuré lors de l'installation Dokploy)
-- **Onglets essentiels** :
-  - `Settings → Environment Variables` : gérer les secrets
-  - `Deployments` : historique des builds et logs de déploiement
-  - `Logs` : logs temps réel stdout (Pino)
+- **URL** : `<domaine privé du dashboard Dokploy>`, en HTTPS avec certificat Let's Encrypt. Volontairement non écrite ici, ce dépôt est public
+- **Chemin vers le service** : projet `Portfolio` → Compose `Portfolio-app` (l'application) ou Database `portfolio-db` (Postgres)
+- **Onglets essentiels du Compose** :
+  - `Environment` : variables et secrets du service
+  - `Deployments` : historique des déploiements et leurs logs
+  - `Logs` : sortie stdout en temps réel (JSON Pino)
+  - `Schedules` : tâches ponctuelles, dont `manual-seed`
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass via `SKIP_ENV_VALIDATION=true` pour build CI/Docker et tests Vitest. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose lecture dynamique avec fallback `./assets` pour dev sans `.env`).
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest — **toute valeur non vide suffit**, la variable n'est pas comparée à `true`. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose une lecture dynamique avec fallback `./assets`, pour que le dev fonctionne sans fichier d'environnement).
+
+> **Deux variables ne se configurent pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, et le `DATABASE_URL` passé en build-arg par `deploy.yml` pointe la Postgres CI éphémère, pas la base de production — le prerender des pages publiques a besoin d'une base joignable au build (§ Déploiement).
 
 ### Variables Communes
 
@@ -130,11 +141,12 @@ NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/
 ### Variables Secrets
 
 ```bash
-# Via Dokploy → Application → Environment Variables
+# Via Dokploy → projet Portfolio → Compose Portfolio-app → onglet Environment
 
 # Base de données (Postgres séparée Dokploy Database — DNS interne au réseau Dokploy)
 DATABASE_URL=                       # ex prod : postgresql://portfolio:<pass>@portfolio-db-<suffix>:5432/portfolio
-                                    # ex dev local : postgresql://portfolio:portfolio@localhost:5432/portfolio (override compose)
+                                    # ex dev local : postgresql://portfolio:portfolio@localhost:5432/portfolio
+                                    # ⚠️ Le host change selon le contexte : `localhost` en `just dev` natif, `postgres` pour le service nextjs du compose local
                                     # ⚠️ En prod, le host est le `appName` Dokploy de la Database (visible dans Dokploy UI), pas "localhost"
                                     # ⚠️ Prisma 7 : la CLI ne charge plus .env automatiquement. En prod Dokploy, aucun impact (var injectée par Docker). En dev local : `@next/env` dans `prisma.config.ts` charge le .env.
 
@@ -148,40 +160,30 @@ MAIL_TO=                           # Adresse destinataire des messages du formul
 
 # Sécurité (hachage des IP dans les logs — pseudonymisation)
 IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
-
-# Auth (post-MVP — espace admin, Better Auth + Google OAuth)
-BETTER_AUTH_URL=                    # URL publique du site (ex: https://thibaud-geisler.com)
-BETTER_AUTH_SECRET=                 # Secret de signature Better Auth (openssl rand -base64 32)
-GOOGLE_CLIENT_ID=                   # Client ID OAuth Google (Google Cloud Console)
-GOOGLE_CLIENT_SECRET=               # Client Secret OAuth Google (Google Cloud Console)
-ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-user, ex: contact@thibaud-geisler.com)
-
-# Aucune variable LLM ici : ce dépôt n'appelle jamais un modèle directement, les services Python
-# voisins le font (ADR-016, ADR-020). Le jour où le portfolio les appellera en HTTP interne, un jeton
-# de service s'ajoutera à cette liste (ADR-019).
 ```
+
+> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-03).
 
 ### Règles
 
-- ✅ **Gérer tous les secrets dans Dokploy** : interface Settings → Environment Variables, jamais dans le dépôt Git
-- ✅ **Documenter chaque variable** avec son rôle dans ce fichier
-- ✅ **Préfixer `NEXT_PUBLIC_`** uniquement pour les variables exposées au navigateur
+- ✅ **Les secrets vivent dans l'Environment du Compose Dokploy**, jamais dans le dépôt
+- ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon elle échoue au boot
+- ✅ **`NEXT_PUBLIC_` uniquement pour ce qui est exposé au navigateur**, et à passer en build-arg dans `deploy.yml` puisque la valeur est inlinée au build
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais commiter de secrets** dans le dépôt (`.env`, `.env.local`, `.env.production`)
-- ❌ **Ne pas mettre `DATABASE_URL` avec host `localhost`** en production, utiliser le `appName` Dokploy de la Database (DNS interne du réseau Dokploy)
-- ❌ **Ne pas exposer `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET` ou `SMTP_PASS`** via `NEXT_PUBLIC_`
+- ❌ **Ne pas mettre `DATABASE_URL` avec host `localhost`** en production : le host est le `appName` Dokploy de la Database, résolu par le DNS interne du réseau Dokploy
+- ❌ **Ne pas préfixer `NEXT_PUBLIC_` un secret** : la valeur part dans le bundle JS servi au navigateur et devient publique et irrévocable, une rotation est alors la seule issue
 
 ---
 
-# 🔄 Déploiement
+# 🔄 CI/CD & Déploiement
 
-## Pipeline
+## Pipelines
 
 | Trigger | Étapes | Cible |
 |---------|--------|-------|
-| Push / PR sur `main` ou `develop` | lint, typecheck, tests, build (workflow `ci.yml`) | - |
+| Push sur `main`, PR vers `main` ou `develop` | lint, typecheck, tests, build, `pnpm audit` (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
 | Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
@@ -190,11 +192,13 @@ ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-u
 
 ## Étapes de Déploiement (Automatiques)
 
-**Côté GHA (`deploy.yml`)** : tag `v*` push → Postgres CI éphémère + migrate + seed → build Docker (`driver-opts: network=host` pour atteindre la Postgres CI) → push GHCR (`latest` + `vX.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×.
+**Côté GHA (`deploy.yml`)** : tag `v*` push → Postgres CI éphémère + migrate + seed → build Docker (`driver-opts: network=host` pour atteindre la Postgres CI) → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×.
 
-**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js` → health check → bascule trafic.
+**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js`.
 
-> ⚠️ **Migration longue** : si `prisma migrate deploy` dure plusieurs secondes (ex: `ALTER TABLE` sur table volumineuse), le health check peut timeout. Dans ce cas, augmenter le timeout de démarrage dans Dokploy ou exécuter la migration manuellement avant le déploiement.
+> ⚠️ **Le déploiement coupe brièvement le service** : un Compose recrée le container, il n'y a pas de rolling update. Traefik route vers le nouveau container dès qu'il écoute, sans attendre que l'app soit prête. Le temps du `prisma migrate deploy` puis du démarrage Next, les requêtes échouent. Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la coupure : dans ce cas, l'appliquer manuellement avant le déploiement.
+
+> ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s (`start_period` de 60 s pour couvrir les migrations). Il ne conditionne aucune bascule de trafic, il rend l'état du container observable — `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
 > ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Si tu rajoutes un `build:`, Dokploy reconstruira localement et échouera (BuildKit sandbox + Postgres inaccessible).
 
@@ -202,37 +206,34 @@ ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-u
 
 **Déclencheur** : déploiement cassé, app ne démarre plus, régression critique détectée.
 
+> ⚠️ **Pas de retour arrière par l'historique Dokploy** : `compose.yaml` référence l'image en `:latest` avec `pull_policy: always`. Un « Redeploy » sur un déploiement passé re-pull la **dernière** image publiée, pas celle de l'époque, et Dokploy ne conserve pas d'historique d'images pour un service Compose. Le seul retour arrière réel passe par un redéploiement du tag visé.
+
 **Procédure** :
-1. Ouvrir Dokploy → Application → onglet `Deployments`
-2. Identifier le dernier déploiement stable (timestamp + statut ✅)
-3. Cliquer "Redeploy" sur ce commit, Dokploy re-pull l'image et redéploie (~2-3 min)
+1. Identifier le dernier tag sain (`gh release list`, ou [CHANGELOG.md](../CHANGELOG.md))
+2. `gh workflow run deploy.yml --ref vX.Y.Z` : `deploy.yml` rebuild depuis ce tag, republie `latest` sur cette version et déclenche le redeploy Dokploy (~3-8 min)
+3. Vérifier le statut dans Dokploy → Compose `Portfolio-app` → onglet Deployments, puis smoke test
+4. Corriger la cause sur `hotfix/*` → `main` → nouveau tag : le retour arrière est un roll-*forward* vers un `PATCH` supérieur, jamais une suppression du tag fautif
 
-> ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le backup S3 (voir section Backup & Recovery) avant ou après le rollback.
+> ⚠️ **Dispatcher sur le ref du tag, jamais sur `main`** : `docker/metadata-action` lit `type=semver` depuis `github.ref`. Sur `main`, il ne produit que `latest` et `sha-XXX`, sans les tags `X.Y.Z` et `X.Y`.
 
-### Redéployer sans release
+> ℹ️ **« Redeploy » dans Dokploy** relance la **même** image : utile si le pull a échoué ou si le container est KO, sans effet sur la version déployée. C'est aussi le geste de reprise quand le `curl` de `deploy.yml` a échoué alors que l'image est bien sur GHCR.
 
-`deploy.yml` accepte un `workflow_dispatch`, seul moyen de relancer un déploiement sans créer de tag (image GHCR corrompue, redeploy Dokploy échoué, rollback vers une version antérieure) :
-
-```bash
-gh workflow run deploy.yml --ref vX.Y.Z
-```
-
-> ⚠️ **Dispatcher sur le ref du tag, pas sur `main`** : `docker/metadata-action` lit `type=semver` depuis `github.ref`. Sur `main`, il ne produit que `latest` et `sha-XXX`, sans les tags `X.Y.Z` et `X.Y` dont dépend le rollback par version.
+> ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le dernier backup (voir § Backup & Recovery) avant ou après le rollback.
 
 ## Checklist Pré-MEP
 
-Items à valider avant le tout premier merge `develop → main` qui déclenchera le premier déploiement Dokploy. Ce merge ouvrira la voie vers le milestone `v1.0.0` (MVP complet + prod stable).
+Items validés avant le tout premier merge `develop → main`, celui qui a déclenché le premier déploiement et ouvert le régime `1.x` (mai 2026). Conservés comme trace de ce qui a été vérifié une fois pour toutes ; les vérifications récurrentes vivent dans la Checklist Release.
 
 ### Bootstrap technique
 
-- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, stage `runner` copie `.next/standalone` + `.next/static` + `public/` + `CMD ["node", "server.js"]`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
-- [x] **Opt-out Turbopack build (Prisma WASM)** : `next build --webpack` actif dans le Dockerfile. À surveiller : [Prisma issue #29025](https://github.com/prisma/prisma/issues/29025) pour retirer quand le bug upstream est corrigé.
+- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
+- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible — build de l'image et runtime du conteneur vérifiés contre une base réelle. Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
 > Items techniques et assets de bootstrap, implémentés et validés empiriquement. Pas d'ADR : pas de décision architecturale structurelle, juste des optimisations, workarounds Docker/Next.js et assets de branding.
 
-> **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml` auto-chargé en local et ignoré par Dokploy. Aucune manip manuelle requise avant le premier déploiement.
+> **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml`, auto-chargé en local et ignoré par Dokploy. Rien à désactiver manuellement avant un déploiement, et le port `5432` n'est pas joignable depuis l'extérieur en production (vérifié le 2026-09-03) : l'y voir ouvert un jour serait une anomalie.
 
 ### Revue globale de l'app
 
@@ -246,15 +247,16 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 ### Conformité légale & RGPD
 
 - [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
-- [x] **Bandeau de consentement cookies** : actif (gating Calendly, Feature 7)
+- [x] **Bandeau de consentement cookies** : actif (bandeau c15t, qui conditionne le montage du widget Calendly)
 - [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
 
 ### Cohérence documentaire
 
 - [x] **BRAINSTORM.md** : audité (verdict OK pour MEP — écarts mineurs doc-only, deps non listées, à compléter post-MEP)
-- [x] **ARCHITECTURE.md** : audité (verdict OK avec 3 corrections doc-only recommandées : structure `[locale]/`, `@c15t/nextjs`, modèles Prisma réels — à corriger post-MEP)
-- [x] **DESIGN.md** : audité (verdict À corriger non bloquant : radius scale, scale typo responsive, shadow v3→v4, composants Aceternity non installés — à corriger post-MEP)
-- [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le switch Postgres Dokploy externe)
+- [x] **ARCHITECTURE.md** : audité (verdict OK, corrections doc-only reportées après la MEP)
+- [x] **DESIGN.md** : audité (verdict à corriger, non bloquant)
+- [x] **VERSIONS.md** : audité (périmètre limité à ce que le dépôt déclare, la plateforme d'hébergement est documentée ici)
+- [x] **PRODUCTION.md** : audité (procédures opérationnelles en place, mises à jour pour refléter le passage à une Postgres Dokploy externe). Ré-audité le 2026-09-03, chaque valeur recoupée avec l'infrastructure réelle
 - [x] **README.md** : réécrit (stack, prérequis, getting started, scripts `just *`, vars d'env, archi, i18n, assets, déploiement, docs, workflow git)
 
 ### Validation technique finale
@@ -263,18 +265,20 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 - [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
 - [x] **`just test`** : tous les tests passent en local
 - [x] **`just build`** : build Next.js standalone passe sans erreur
-- [x] **Test container Docker local** : `just docker-up` + `docker compose build nextjs` → ✅ représentatif (build sans accès DB, pages publiques en `◐ Partial Prerender`). Le pattern data-fetching utilisé est documenté dans [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
+- [x] **Smoke test du livrable** : construire l'image localement (`docker build`, en passant les build-args `NEXT_PUBLIC_*` et un `DATABASE_URL` joignable), puis `just docker-up` et une requête sur `localhost:3000/api/health`. Le prerender exige une base accessible **au build**, c'est ce que reproduit la Postgres éphémère de `deploy.yml` (§ Déploiement) : un build sans base n'est pas représentatif. Pattern de data-fetching : [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
 ## Checklist Post-MEP
 
-À effectuer une fois après le premier déploiement Dokploy validé. La majorité de ces items nécessite que le site soit accessible publiquement (`https://thibaud-geisler.com`).
+Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer — sauf le seed, qui reste un geste de reprise.
 
-- [x] **Seed BDD initial** : `docker exec -it portfolio-zfij1k node node_modules/prisma/build/index.js db seed` une fois après le 1er rebuild Dokploy (le Compose nextjs joint la Postgres Database Dokploy via DNS interne). Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`.
-- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du container Compose nextjs) une fois après le 1er rebuild Dokploy. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
+- [x] **Seed BDD initial** : Dokploy → Compose `Portfolio-app` → Schedules → `manual-seed` → **Run manually**. Le Schedule lance `prisma db seed` dans le service `nextjs`. Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`, donc rejouable à volonté tant que le contenu vient du dépôt.
+- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker des assets (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
 - [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
-- [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/cwv-2026-05-05.md](baselines/cwv-2026-05-05.md))
+- [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/](baselines/))
+
+> ⚠️ **Le Schedule `manual-seed` ne doit jamais se déclencher tout seul** : son expression cron est volontairement posée sur une date qui n'existe pas (`0 0 30 2 *`), le seul lancement possible est « Run manually ». Un seed automatique écraserait par `upsert` tout contenu modifié depuis l'espace admin. Le Schedule disparaîtra le jour où le CRUD admin deviendra la source du contenu ; d'ici là, il reste la voie de re-seed après une restauration.
 
 ---
 
@@ -284,14 +288,13 @@ Items à valider avant le tout premier merge `develop → main` qui déclenchera
 
 | Composant | Fréquence | Procédure | Responsable |
 |-----------|-----------|-----------|-------------|
-| Dépendances npm | Mensuelle | `pnpm update` en local → vérifier build + tests → merge sur main | Dev |
-| Next.js (major) | Sur release majeure | Suivre migration guide officiel → PR dédiée → smoke test prod | Dev |
-| Image Docker Node | Trimestrielle | Mettre à jour le `FROM` dans `Dockerfile` → pris en compte au prochain build GHA | Dev |
-| Image Docker Postgres | Trimestrielle | Mettre à jour `dockerImage` dans Dokploy UI (Postgres Database) → redeploy | Dev |
+| Dépendances npm | Mensuelle | PRs Dependabot sur `develop` (cf. § Dépendances) → CI verte → merge | Dev |
+| Next.js, Prisma (major) | Sur release majeure | PR dédiée, jamais groupée : suivre le guide de migration → build de l'image → smoke test prod | Dev |
+| Image Docker Node | Au fil des PRs Dependabot | Le `FROM` du `Dockerfile` est surveillé par l'écosystème `docker` de Dependabot → pris en compte au prochain build GHA | Dev |
+| Image Docker Postgres | Trimestrielle | Non couverte par Dependabot (déclarée dans Dokploy, pas dans le dépôt) : changer `dockerImage` sur la Database → redeploy | Dev |
 
 > ✅ **Toujours vérifier le build et les tests avant de merger une mise à jour de dépendances**
 > ❌ **Ne jamais mettre à jour Next.js et Prisma simultanément** : isoler les mises à jour critiques
-> ✅ **Dependabot** : activer via `.github/dependabot.yml` pour les PRs automatiques de sécurité et patch, la CI tourne sur chaque PR, merger manuellement après validation
 
 ## Plateforme d'hébergement
 
@@ -299,19 +302,19 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 
 | Composant | Version documentée | Dernière publiée | Relevé le |
 |---|---|---|---|
-| Docker Engine | `29.4.0` | `29.7.2` (30 juillet 2026) | à confirmer sur le VPS |
-| Docker Compose | `v5.1.2` | `v5.5.0` (17 août 2026) | à confirmer sur le VPS |
-| Dokploy | `0.28.8` | `0.30.3` (30 août 2026) | à confirmer dans l'UI |
+| Docker Engine | `29.7.2` | `29.7.2` (30 juillet 2026) | 2026-09-03 |
+| Docker Compose | `5.5.0` | `5.5.0` (17 août 2026) | 2026-09-03 |
+| Dokploy | `0.30.4` | `0.30.4` | 2026-09-03 |
 | Cloudflare R2 | managed service | — | sans objet |
 
-> ⚠️ Les versions documentées datent de la recherche initiale et ont deux mineures de retard. **Relever les versions réelles sur la machine** (`docker version`, `docker compose version`, UI Dokploy → About) et mettre ce tableau à jour avant toute montée.
+> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, et son API la renvoie sur `settings.getDokployVersion`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
 
 **Pièges de montée**, à lire avant d'y toucher :
 
-- **Dokploy** : le script de sécurité de la v0.26.6 est **obligatoire avant tout passage en 0.28.x** depuis une v0.25, sinon mismatch du mot de passe PostgreSQL au démarrage. Depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité. L'auto-update par l'UI est parfois défaillant, préférer `curl -sSL https://dokploy.com/install.sh | sh -s update`. Le Traefik interne (3.5 depuis la v0.25) n'est **pas** monté automatiquement.
-- **Docker Engine 29** : API minimale v1.44, les clients antérieurs à la v25 ne parlent plus au daemon. Le containerd image store devient le défaut sur les nouvelles installations, et l'ulimit open files passe de `1048576` à `1024`.
-- **Docker Compose v5** : le build est délégué à Docker Bake, le builder interne a disparu. Le champ `version:` du YAML est ignoré. La numérotation saute de v2 à v5 directement, ce n'est pas un trou dans l'historique.
-- **Cloudflare R2** : service managé, pas de version à suivre. Deux limites structurelles à connaître : **pas de versioning S3 natif** (d'où la lifecycle rule du § Backup & Recovery pour la rétention), et les Bucket Locks ne sont **pas** l'Object Lock WORM de S3, pas de mode Compliance ni Governance. Facturation arrondie à l'unité supérieure.
+- **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité — sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel. Le Traefik interne n'est **pas** monté automatiquement avec Dokploy.
+- **Docker Engine 29** : API minimale v1.44, un client antérieur à la v25 ne parle plus au daemon.
+- **Docker Compose v5** : le build passe par Docker Bake, le builder interne a disparu ; le champ `version:` du YAML est ignoré.
+- **Cloudflare R2** : service managé, aucune version à suivre, donc aucune montée à préparer. Ses limites structurelles (pas de versioning, Bucket Locks ≠ Object Lock WORM, facturation arrondie) conditionnent la stratégie de sauvegarde et sont documentées dans [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md).
 
 ---
 
@@ -323,23 +326,20 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 
 | Type | Stockage | Accès |
 |------|----------|-------|
-| Credentials SMTP | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (Server Actions) |
-| `DATABASE_URL` | Dokploy : Environment Variables | Via `process.env` (Prisma client) |
-| `IP_HASH_SALT` | Dokploy : Environment Variables | Via `env` côté serveur uniquement (hachage des IP dans les logs) |
-| `BETTER_AUTH_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (Better Auth) |
-| `GOOGLE_CLIENT_SECRET` (post-MVP) | Dokploy : Environment Variables | Via `process.env` côté serveur uniquement (flow OAuth) |
-| `ADMIN_EMAIL` (post-MVP) | Dokploy : Environment Variables | Via `process.env` (whitelist single-user dans le hook de création) |
+| Credentials SMTP | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (transporter Nodemailer) |
+| `DATABASE_URL` | Dokploy : Environment du Compose | Via `env` (client Prisma) |
+| `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
-| `RELEASE_APP_CLIENT_ID` (Variable) + clé privée (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+
+> **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` — la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
 
 ### Rotation
 
 | Secret | Fréquence | Procédure |
 |--------|-----------|-----------|
 | `SMTP_PASS` | En cas de compromission ou changement de mot de passe IONOS | Mettre à jour dans Dokploy → redéploiement automatique |
-| `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → invalide toutes les sessions actives |
-| `GOOGLE_CLIENT_SECRET` | En cas de compromission | Régénérer dans Google Cloud Console → mettre à jour dans Dokploy → redéploiement |
-| `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password depuis Dokploy UI (Postgres Database) → la nouvelle URL est propagée au compose au prochain deploy |
+| `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password sur la Database `portfolio-db` → **recopier la nouvelle URL** dans l'Environment du Compose → Redeploy. Rien ne propage automatiquement : Database et Compose sont deux services distincts, l'URL y est un littéral. Sans la recopie, l'app redémarre avec l'ancienne et ne se connecte plus |
 | `IP_HASH_SALT` | En cas de compromission | Régénérer (`openssl rand -hex 32`) → Dokploy → les nouveaux logs utilisent le nouveau sel, les hashs déjà écrits restent inchangés |
 | Clé privée de la GitHub App de release | **Aucune expiration, donc aucune échéance à surveiller.** Rotation sur compromission uniquement | Settings → Developer settings → GitHub Apps → `thibaud-geisler-portfolio` → General → Private keys → Generate a private key, puis remplacer le secret repo par le contenu intégral du `.pem` (lignes `BEGIN`/`END` incluses). Supprimer l'ancienne clé dans l'App et le `.pem` du disque |
 | `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
@@ -356,18 +356,40 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Limite la fuite d'URL vers les sites externes |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Désactive les APIs navigateur inutilisées |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` | Force HTTPS sur 2 ans |
-| `Content-Security-Policy` | Livrée par Feature 7 (cohérence avec gating cookies Calendly) | Whitelist des origines autorisées, protection XSS |
+| `Content-Security-Policy` | Politique complète ci-dessous | Whitelist des origines autorisées, protection XSS |
 
-> ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com`
+```
+default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
+img-src 'self' data: https:; frame-src https://calendly.com https://*.calendly.com;
+connect-src 'self' https://*.calendly.com; font-src 'self' data:; frame-ancestors 'none';
+base-uri 'self'; form-action 'self'; object-src 'none'
+```
+
+> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` et `connect-src` n'ouvrent que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard — Umami, ingestion Sentry — doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
+
+> ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com/fr` et comparer aux valeurs de ce tableau
 > ❌ **Ne pas désactiver HSTS ou CSP en production**, même temporairement
-> ℹ️ **CSP : origines tierces à prévoir** : Calendly (widget embed, MVP) et Umami (analytics, post-MVP) devront être explicitement autorisés. Implémentation livrée par Feature 7, en synchronisation avec le gating cookies Calendly.
+
+## CORS
+
+Aucune politique CORS : le site ne sert que ses propres pages et ses Server Actions, aucun client tiers n'appelle son origine. Next.js protège déjà les Server Actions en comparant `Origin` et `Host`. À définir le jour où une API publique ou un client navigateur externe apparaîtrait.
 
 ## Rate Limiting
 
 | Endpoint / Scope | Limite | Fenêtre | Mécanisme |
 |-----------------|--------|---------|-----------|
-| Formulaire contact (Server Action) | 5 requêtes | 10 min | Compteur IP in-memory (dans la Server Action) |
-| `/api/chat` (post-MVP) | 20 requêtes | 1 h | À définir (voir ADR-014) |
+| Formulaire contact (Server Action) | 5 requêtes | 10 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`, cap 1000 clés). Dépassement → event `rate_limit:exceeded` en `warn` |
+
+> **Chatbot (post-MVP)** : son quota ne se fixe pas ici. La route ne vivra pas dans ce dépôt mais dans le service `portfolio-chatbot`, c'est sa propre documentation d'exploitation qui la portera ([ADR-014](adrs/014-rate-limiting-chatbot.md) pour la décision).
+
+## Dépendances
+
+| Outil | Scope | Fréquence | Config |
+|-------|-------|-----------|--------|
+| Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle | [.github/dependabot.yml](../.github/dependabot.yml) : PRs vers `develop`, 5 ouvertes au plus, mineures et patchs groupés en une PR `minor-patch`, majeures isolées |
+| `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : il signale, il n'arrête pas le pipeline |
+
+> ⚠️ **Les PRs Dependabot visent `develop`, jamais `main`** : elles n'atteignent la production qu'au prochain merge d'epic. Un correctif de sécurité urgent passe par un `hotfix/*`.
 
 ---
 
@@ -377,42 +399,36 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 
 | Outil | Usage | Accès |
 |-------|-------|-------|
-| Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Dokploy Dashboard → onglet "Logs" |
-| Dokploy Deployments | Historique des builds et déploiements | Dokploy Dashboard → onglet "Deployments" |
-| Umami (post-MVP) | Analytics visiteurs RGPD-friendly, sans cookies | Instance self-hosted Dokploy (voir ADR-007) |
-| Sentry (post-MVP) | Erreurs applicatives de ce dépôt (l'ADR-017 couvre aussi les services Python voisins) | Cloud, jamais self-hosted (voir [ADR-017](adrs/017-observabilite-cloud.md)) |
-| Logfire ou Langfuse (post-MVP) | Traces LLM, émises par les services IA voisins et non par ce dépôt. Exploitation listée ici pour mémoire | Cloud, niveau gratuit (voir [ADR-017](adrs/017-observabilite-cloud.md)) |
+| Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
+| Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
+| UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
 
 ## Métriques Clés
 
-### Mesurables avec Dokploy Logs (MVP)
+Seuils sur ce qui est réellement observable avec la stack actuelle : sonde externe et lecture des logs. Les cibles de performance (LCP, TTFB…) n'ont pas de seuil d'alerte et vivent en § Performance.
 
 | Métrique | Seuil Warning | Seuil Critical | Mesure |
 |----------|---------------|----------------|--------|
-| Disponibilité du service | < 99% sur 24h | Service down | Dokploy notifications (email) |
-| Taux d'erreur applicative | > 1% des events | > 5% | Compter `"level":"error"` dans les logs Pino |
-| Échecs envoi email (SMTP) | > 2 erreurs/heure | > 10 erreurs/heure | Logs Pino : event `email:failed` |
-| Rate limit formulaire déclenché | > 5 fois/heure | > 20 fois/heure | Logs Pino : niveau `warn` |
+| Disponibilité du service | < 99% sur 24h | Service down | Sonde externe sur `/api/health` |
+| Taux d'erreur applicative | > 1% des events | > 5% | Filtre `"level":"error"` dans les logs |
+| Échecs envoi email (SMTP) | > 2 erreurs/heure | > 10 erreurs/heure | Event `email:failed` |
+| Rate limit formulaire déclenché | > 5 fois/heure | > 20 fois/heure | Event `rate_limit:exceeded` |
 
-### À mesurer post-déploiement (outils externes)
-
-| Métrique | Target | Outil |
-|----------|--------|-------|
-| LCP pages publiques | < 2.5s | [PageSpeed Insights](https://pagespeed.web.dev/) ou Google Search Console |
-| INP : pages interactives | < 200ms | [PageSpeed Insights](https://pagespeed.web.dev/) ou package `web-vitals` côté client |
-| CLS : pages publiques | < 0.1 | [PageSpeed Insights](https://pagespeed.web.dev/) ou Google Search Console (impacté par le banner cookies de Feature 7) |
-| TTFB page accueil (SSG) | < 200ms | `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com` |
-| TTFB page `/projets` (SSR) | < 500ms | Lighthouse (DevTools → Network) |
-| Durée Server Action formulaire | < 3s (hors SMTP) | Pino logs instrumentés dans la Server Action |
+> ⚠️ **Ces seuils ne sont comptés par personne** : aucun outil n'agrège les logs ni ne calcule de taux. Ils se vérifient à la lecture, dans l'onglet Logs, quand on a une raison de regarder.
 
 ## Alertes
 
 | Alerte | Condition | Canal |
 |--------|-----------|-------|
-| Service down | Container Compose Portfolio (nextjs) ou Postgres Database Dokploy arrêté | Notification Dokploy (email) |
-| Échec de déploiement | Build échoué ou crash au démarrage | Notification Dokploy (email) |
-| Erreur BDD répétée | `"cannot connect to database"` dans les logs Pino | Vérification manuelle : `docker ps` sur le VPS |
-| Échec SMTP répété | > 3 erreurs `email:failed` consécutives | Vérification manuelle : credentials SMTP IONOS |
+| Site injoignable | `/api/health` ne répond pas `200` depuis l'extérieur | Sonde externe (email) |
+| Échec de build | Build de déploiement en erreur | Notification Dokploy (email), option `appBuildError` |
+| Container `unhealthy` | Healthcheck en échec 3 fois de suite | Aucune notification : Dokploy n'émet rien sur l'état d'un container. Détecté par la sonde externe |
+| Erreur BDD répétée | `PrismaClientInitializationError` ou code `P1001` dans les logs du container | Vérification manuelle : Database `portfolio-db` → onglet Logs |
+| Échec SMTP répété | > 3 events `email:failed` consécutifs | Vérification manuelle : credentials SMTP IONOS |
+
+> ⚠️ **Une alerte émise depuis le VPS ne survit pas à la panne du VPS** : les notifications Dokploy partent de la machine surveillée, par son propre SMTP. VPS éteint, réseau coupé ou Traefik cassé, aucun mail ne part et l'incident reste invisible. C'est la raison d'être de la sonde externe : elle seule observe le service depuis l'extérieur.
+
+> ℹ️ **Un déploiement déclenche une alerte** s'il tombe sur un contrôle : le recreate du container coupe le service quelques dizaines de secondes (§ CI/CD & Déploiement). Un « DOWN » suivi d'un « UP » peu après, autour d'une mise en production, n'est pas un faux positif — c'est la coupure réelle, mesurée.
 
 ---
 
@@ -422,69 +438,57 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 
 ### Structure
 
-JSON structuré via Pino, output stdout, visible dans l'onglet Logs de Dokploy.
+JSON structuré via Pino (`src/lib/logger.ts`), une ligne par événement sur stdout, capturée par Docker et lisible dans l'onglet Logs du Compose. `pino-pretty` n'est actif qu'en dev : en production, le format ci-dessous est celui qu'on lit dans Dokploy.
 
 ```json
-{
-  "level": "info | warn | error",
-  "time": 1711929600000,
-  "msg": "Description lisible de l'événement",
-  "req": {
-    "method": "POST",
-    "url": "/api/contact",
-    "id": "uuid"
-  },
-  "err": "stack trace si applicable"
-}
+{"level":"info","time":"2026-09-03T18:09:24.189Z","service":"thibaud-geisler-portfolio","action":"submitContact","requestId":"b4c784fb-398b-44b9-aa06-34564c598fd7","ip_hash":"7a42ebba","event":"email:sent","has_company":true,"message_length":312,"duration_ms":1180}
 ```
 
-### Exemples Réels
+> **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action — `action`, `requestId` (corrèle toutes les lignes d'une même soumission) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
 
-**Envoi email réussi :**
+> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err`.
+
+Un échec porte l'erreur sérialisée par Pino, et c'est **le seul cas où `msg` apparaît** : le sérialiseur y recopie `err.message`. Aucun appel du code ne passe de message.
+
 ```json
-{ "level": "info", "time": 1711929600000, "msg": "Email sent", "event": "email:sent", "recipient": "contact@client.com", "duration_ms": 1200 }
+{"level":"error","time":"2026-09-03T18:09:24.197Z","service":"thibaud-geisler-portfolio","action":"submitContact","requestId":"b4c784fb-398b-44b9-aa06-34564c598fd7","ip_hash":"7a42ebba","err":{"type":"Error","message":"connect ECONNREFUSED 10.0.0.5:587","stack":"…","code":"ECONNREFUSED"},"event":"email:failed","msg":"connect ECONNREFUSED 10.0.0.5:587"}
 ```
 
-**Échec SMTP :**
-```json
-{ "level": "error", "time": 1711929603000, "msg": "SMTP send failed", "event": "email:failed", "err": "Error: connect ECONNREFUSED 127.0.0.1:587" }
-```
-
-**Erreur Prisma :**
-```json
-{ "level": "error", "time": 1711929605000, "msg": "Database query failed", "query": "findUnique Project", "err": "PrismaClientKnownRequestError: ..." }
-```
+> ⚠️ **Prisma ne passe pas par Pino** : `src/lib/prisma.ts` active son propre `log: ['warn', 'error']`, qui sort en texte natif non JSON. Une erreur de connexion BDD ne se cherche donc pas avec un filtre `"level":"error"`.
 
 ## Niveaux
 
 | Level | Usage |
 |-------|-------|
-| `debug` | Développement local uniquement (désactivé en production) |
-| `info` | Événements normaux (email envoyé, page rendue, requête Prisma) |
-| `warn` | Comportements anormaux non bloquants (rate limit déclenché, tentative auth échouée) |
-| `error` | Erreurs bloquantes (échec SMTP, erreur BDD, crash Server Action) |
+| `debug` | Développement local uniquement (défaut en dev, jamais en production) |
+| `info` | Événements normaux : `email:sent`, `honeypot:caught` (soumission piégée, réponse volontairement `ok`), `calendly:event_scheduled` |
+| `warn` | Dégradé non bloquant : `rate_limit:exceeded` |
+| `error` | Échec bloquant : `email:failed` (SMTP injoignable ou refus), exception non gérée d'une Server Action |
 
 ## Rétention
 
 | Env | Rétention | Gestion |
 |-----|-----------|---------|
 | development | Terminal local, pas de rétention | - |
-| production | Logs Docker sur disque VPS | À configurer dès le premier déploiement dans `compose.yaml` (logging driver `json-file` avec options), Dokploy ne gère pas la rotation automatiquement. Valeurs recommandées : `max-size: "100m"`, `max-file: "10"` par service |
+| production (app) | Fenêtre glissante d'environ 1 Go par service | En place dans `compose.yaml` : driver `json-file`, `max-size: "100m"`, `max-file: "10"` |
+| production (Database) | Non bornée | Aucune rotation configurée sur la Database Dokploy. Volume faible (Postgres n'y écrit que `warn` et `error`), à surveiller si ça change |
+
+> ℹ️ **Dokploy ne fait pas la rotation** : son cron de nettoyage quotidien ne touche qu'à ses propres logs de déploiement, pas aux logs Docker des services. C'est le driver `json-file` du Compose qui borne l'app.
 
 ## Règles Logging
 
 ### Règles
 
-- ✅ **Logger les appels SMTP** : succès/échec, destinataire (sans contenu du message)
-- ✅ **Logger les erreurs avec contexte** : route, action, message d'erreur, stack trace
-- ✅ **Utiliser les niveaux Pino** de manière cohérente (`logger.info`, `logger.error`, etc.)
+- ✅ **Un child logger par Server Action** (`createActionLogger`) : toutes les lignes d'une soumission partagent `action`, `requestId` et `ip_hash`, seul moyen de reconstituer un parcours dans un flux Dokploy
+- ✅ **Logger les appels SMTP** : succès et échec, avec des métadonnées non personnelles seulement (`has_company`, `message_length`). Le destinataire est `MAIL_TO`, constant, il n'apporte rien au log
+- ✅ **`err` en premier argument** (`log.error({ err, event })`) : Pino sérialise `type`, `message`, `stack` et le code d'erreur
+- ✅ **Redaction active** dans la config du logger : `*.password`, `*.pass`, `*.secret`, `*.token`, `*.key`, `req.headers.authorization`, `req.headers.cookie` remplacés par `[REDACTED]`. Filet de sécurité, pas une autorisation à logger des objets sensibles
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET`
-- ❌ **Ne jamais logger le contenu des messages de contact** (données personnelles, RGPD)
-- ❌ **Ne pas utiliser `console.log` en production** : passer systématiquement par le logger Pino
-- ❌ **Ne pas logger à niveau `debug` en production** : impact performance
+- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`
+- ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société) : données personnelles, RGPD
+- ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
 ---
 
@@ -500,14 +504,15 @@ JSON structuré via Pino, output stdout, visible dans l'onglet Logs de Dokploy.
 
 ## Investigation Checklist
 
-Avant de déployer un fix, diagnostiquer la cause :
+Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashboard Dokploy, projet `Portfolio` :
 
-1. **Logs Dokploy** → onglet "Logs" → filtrer par `"level":"error"` → lire les 50 lignes autour du timestamp de l'incident
-2. **Statut des containers** → SSH sur le VPS → `docker ps`, vérifier que les containers Compose Portfolio (nextjs) et Postgres Database Dokploy (`portfolio-db-<suffix>`) sont `Up`
-3. **Logs Docker bruts** → `docker logs <container_id> --tail 100` (ou via Dokploy UI → Logs)
-4. **Connexion BDD** → `docker exec portfolio-db-<suffix> psql -U portfolio -d portfolio -c "SELECT 1;"`, vérifier que Postgres répond
-5. **Dernier déploiement** → Dokploy → onglet Deployments → quel commit a précédé l'incident ?
-6. **Rollback** si la cause est un commit récent → voir section Déploiement, Rollback
+1. **Logs applicatifs** → Compose `Portfolio-app` → onglet Logs → filtrer `"level":"error"` → lire autour du timestamp de l'incident
+2. **État du service** → même écran : le Compose est-il up, a-t-il redémarré ? Un container qui crash-loop se voit dans les logs de démarrage
+3. **Base de données** → Database `portfolio-db` → onglet Logs : Postgres et les erreurs Prisma d'initialisation y sortent en texte natif, pas en JSON Pino
+4. **Dernier déploiement** → Compose `Portfolio-app` → onglet Deployments : quel tag a précédé l'incident ?
+5. **Rollback** si la cause est la dernière version déployée → voir § Déploiement, Rollback
+
+> ℹ️ **En SSH sur le VPS**, ne jamais écrire un nom de container en dur : le Compose suffixe ses services (`-nextjs-1`) et la Database Dokploy tourne en Swarm avec un identifiant de tâche qui change à chaque redémarrage. Résoudre par nom partiel : `docker ps -qf name=portfolio-`. Détail du fonctionnement Dokploy : [knowledges/dokploy.md](knowledges/dokploy.md).
 
 ## Contacts
 
@@ -546,87 +551,19 @@ Avant de déployer un fix, diagnostiquer la cause :
 
 # 💾 Backup & Recovery
 
+> ⚠️ **Aucune sauvegarde n'existe à ce jour** (relevé du 2026-09-03 : 0 backup, 0 destination, 0 volume backup côté Dokploy). Toute perte de la Database est aujourd'hui une perte totale des données, et les procédures de restauration ci-dessous n'ont rien à restaurer. C'est le risque ouvert le plus grave de cette documentation.
+
 ## Stratégie Backup
 
-| Ressource | Fréquence | Rétention | Localisation |
-|-----------|-----------|-----------|--------------|
-| PostgreSQL (pg_dump) | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (gratuit jusqu'à 10 GB) |
-| Assets Docker volume | Quotidien (cron VPS) | 7 jours | Cloudflare R2 (même bucket) |
+**Cible actée, pas encore en place.** Mise en œuvre par la spec `espace-admin/01` ; la marche à suivre (création de la destination, planification, rétention, pièges R2) est dans [knowledges/dokploy.md](knowledges/dokploy.md).
 
-> **Assets (MVP)** : stockés en Docker volume (ADR-011 acté). Migration vers Cloudflare R2 prévue lors de l'implémentation de l'upload depuis l'espace admin.
+| Ressource | Mécanisme | Fréquence | Rétention | Localisation |
+|-----------|-----------|-----------|-----------|--------------|
+| PostgreSQL | Backup natif Dokploy (Database → Backups) | Quotidien | 30 sauvegardes (`Keep the latest`) | Cloudflare R2, bucket `portfolio-backups` |
 
-> ✅ **Rétention R2** : configurer une règle de lifecycle dans le dashboard Cloudflare R2 (Bucket → Settings → Lifecycle rules → delete after 7 days). Plus fiable que `rclone delete --min-age 7d` car indépendant du cron, si activée, la ligne `rclone delete` du script peut être supprimée.
+> ⚠️ **`Keep the latest` compte des sauvegardes, pas des jours.** Avec une planification quotidienne, 30 donne trente jours de profondeur ; changer la fréquence change la fenêtre réelle sans toucher au champ. Champ vide = tout est conservé.
 
-## Configuration Backup (Setup initial)
-
-### 1. Installer rclone sur le VPS
-
-```bash
-curl https://rclone.org/install.sh | sudo bash
-```
-
-### 2. Configurer rclone pour Cloudflare R2
-
-```bash
-rclone config
-# Type : s3
-# Provider : Cloudflare
-# Access Key ID : <Cloudflare R2 Dashboard → Manage API Tokens>
-# Secret Access Key : <idem>
-# Endpoint : https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-# Sauvegarder la config
-```
-
-### 3. Créer le script `/opt/backup.sh`
-
-> **Noms des containers Dokploy** : la Postgres Database et le Compose Portfolio (nextjs) tournent dans des containers Dokploy avec un `appName` suffixé (ex: `portfolio-db-1jdouq`, `portfolio-zfij1k`). Vérifier les noms exacts via `docker ps` ou Dokploy UI avant de figer le script.
-
-```bash
-#!/bin/bash
-set -e
-BACKUP_DIR=/tmp/backups
-DB_CONTAINER=portfolio-db-<suffix>          # appName Postgres Database Dokploy (docker ps | grep portfolio-db)
-DB_USER=portfolio
-DB_NAME=portfolio
-ASSETS_VOLUME=<compose_volume_name>         # volume du Compose nextjs (docker volume ls | grep portfolio_assets)
-R2_BUCKET=<R2_BUCKET_NAME>                  # nom du bucket Cloudflare R2
-
-mkdir -p $BACKUP_DIR
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-
-# Dump PostgreSQL (Postgres Database Dokploy)
-docker exec $DB_CONTAINER pg_dump -U $DB_USER $DB_NAME | gzip > $BACKUP_DIR/db_$TIMESTAMP.sql.gz
-
-# Backup du volume assets (du service nextjs Compose Portfolio)
-docker run --rm -v $ASSETS_VOLUME:/data -v $BACKUP_DIR:/backup alpine \
-  tar czf /backup/assets_$TIMESTAMP.tar.gz /data 2>/dev/null || true
-
-# Upload vers R2
-rclone copy $BACKUP_DIR r2:$R2_BUCKET/backups/
-
-# Nettoyage local (> 1 jour) et R2 (> 7 jours)
-find $BACKUP_DIR -name "*.gz" -mtime +1 -delete
-rclone delete r2:$R2_BUCKET/backups/ --min-age 7d
-```
-
-```bash
-chmod +x /opt/backup.sh
-```
-
-### 4. Configurer le cron
-
-```bash
-crontab -e
-# Ajouter :
-2 2 * * * /opt/backup.sh >> /var/log/backup.log 2>&1
-```
-
-### 5. Vérifier le setup
-
-```bash
-/opt/backup.sh
-rclone ls r2:<R2_BUCKET_NAME>/backups/
-```
+> **Le volume des assets n'est pas sauvegardé, et ne le sera pas** : les assets migrent vers Cloudflare R2 avec l'upload depuis l'espace admin, le volume Docker disparaît alors (ADR-011). Configurer une sauvegarde de volume pour la démonter ensuite n'aurait pas de sens. D'ici là, la source reste le dossier `assets/` local, celui-là même qui a servi à remplir le volume : c'est lui qu'il faut garder à jour.
 
 ## Recovery
 
@@ -634,43 +571,28 @@ rclone ls r2:<R2_BUCKET_NAME>/backups/
 |----------|-----|-----|-----------|
 | Corruption BDD / suppression accidentelle | < 2h | < 24h | Voir procédure ci-dessous |
 | Perte du VPS (crash total) | < 4h | < 24h | Voir procédure ci-dessous |
-| Déploiement cassé (app ne démarre plus) | < 30 min | N/A | Rollback Dokploy, voir section Déploiement |
+| Déploiement cassé (app ne démarre plus) | < 30 min | N/A | Redéployer le dernier tag sain, voir § CI/CD & Déploiement > Rollback |
 
 > **RTO** = Recovery Time Objective (temps max pour restaurer le service)
 > **RPO** = Recovery Point Objective (perte de données max acceptable)
 
 ### Procédure : Restauration BDD
 
-```bash
-# 1. Lister les backups disponibles
-rclone ls r2:<R2_BUCKET_NAME>/backups/ | grep db_ | sort
+1. Suspendre les écritures le temps de la restauration, en SSH : `docker pause $(docker ps -qf name=nextjs)`
+2. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
+3. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
+4. Smoke test : accueil, `/projets`, formulaire de contact
 
-# 2. Télécharger le backup cible
-rclone copy r2:<R2_BUCKET_NAME>/backups/db_YYYYMMDD_HHMMSS.sql.gz /tmp/
-
-# 3. Mettre l'app en pause pour éviter les writes pendant la restauration
-docker pause portfolio-<suffix>             # container Compose nextjs (docker ps | grep portfolio | grep -v db)
-
-# 4. Restaurer (DB Database Dokploy)
-gunzip -c /tmp/db_YYYYMMDD_HHMMSS.sql.gz | docker exec -i portfolio-db-<suffix> psql -U portfolio portfolio
-
-# 5. Relancer
-docker unpause portfolio-<suffix>
-
-# 6. Smoke test
-curl -I https://thibaud-geisler.com
-```
-
-> ⚠️ Si l'incident est survenu après le dernier backup (< 24h), les modifications récentes sont perdues, c'est le RPO de 24h. Vérifier le timestamp du backup avant de restaurer.
+> ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
 ### Procédure : Perte VPS Totale
 
-1. Créer un nouveau VPS IONOS avec la même spec
-2. Installer Dokploy (voir [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
-3. Reconfigurer les variables d'environnement dans Dokploy
-4. Reconfigurer le webhook GitHub → Dokploy
-5. Déclencher un redéploiement, Dokploy pull l'image GHCR et redémarre automatiquement
-6. Restaurer la BDD depuis le dernier backup S3 (voir procédure ci-dessus)
+1. Créer un nouveau VPS IONOS avec la même spec, installer Dokploy (procédure : [knowledges/dokploy.md](knowledges/dokploy.md) ; choix de la plateforme : [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
+2. Recréer le projet `Portfolio` : la Database Postgres, puis le Compose `Portfolio-app` (provider GitHub, branche `main`, `compose.yaml`, Trigger Type `tag`), enfin les domaines et leurs certificats
+3. Reposer les variables d'environnement du Compose (§ Environnements), dont `DATABASE_URL` pointant la nouvelle Database
+4. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
+5. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
+6. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus), puis recopier les assets depuis le dossier `assets/` local : le volume n'est pas sauvegardé (§ Stratégie Backup)
 7. Smoke test complet
 
 ---
@@ -679,25 +601,27 @@ curl -I https://thibaud-geisler.com
 
 ## Benchmarks
 
-| Page/Feature | Target | Outil de mesure |
-|--------------|--------|-----------------|
-| Page accueil (SSG) : TTFB | < 200ms | `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com` |
-| Page `/projets` (SSR) : TTFB | < 500ms | Lighthouse (DevTools → Network → TTFB) |
-| Page `/projets/[slug]` (SSR) : TTFB | < 500ms | Lighthouse (DevTools) |
-| LCP : pages publiques | < 2.5s | [PageSpeed Insights](https://pagespeed.web.dev/) ou Google Search Console |
-| Server Action formulaire contact | < 3s (hors SMTP) | Instrumenter avec `Date.now()` dans la Server Action → Pino logs |
+| Page/Feature | Target | Current |
+|--------------|--------|---------|
+| LCP `/fr` mobile | < 2,5 s | 4,1 s |
+| LCP `/fr/projets` mobile | < 2,5 s | 5,4 s |
+| LCP pages publiques desktop | < 2,5 s | 0,8 à 0,9 s |
+| CLS pages publiques | < 0,1 | 0,05 mobile, **0,28 desktop** |
+| TBT (proxy INP en lab) | < 200 ms | 60 à 460 ms selon la page |
+| TTFB pages publiques | < 200 ms | à relever : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (mesurer une URL localisée, la racine ne renvoie qu'une redirection) |
+| Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
-> Prendre une baseline après le premier déploiement production. Mesurer à nouveau après chaque optimisation significative.
+> Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire (Lighthouse via PageSpeed Insights), à ne pas confondre avec du terrain. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
 
 ## Optimisations
 
-- [ ] Surveiller la taille des bundles JS (`next build` → rapport de bundles)
-- [ ] Vérifier les Core Web Vitals après mise en production initiale (Google Search Console)
-- [ ] Baseline LCP/INP/CLS via [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales au premier déploiement
-- [ ] Lazy load du banner cookies (Feature 7) pour préserver INP, position `fixed` pour CLS = 0
-- [ ] `priority` sur l'image LCP above-the-fold (cf. `.claude/rules/nextjs/images-fonts.md`)
+- [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) — le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
+- [x] Baseline LCP/INP/CLS prise sur les pages clés × 2 locales
+- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
+- [ ] **CLS desktop à 0,28**, très au-dessus de la cible : cause à identifier avant toute autre optimisation
+- [ ] Charger le bandeau de consentement en lazy pour soulager l'INP (il est aujourd'hui importé statiquement dans les providers)
 
-> La revalidation type ISR est déjà en place via `cacheComponents: true` + `'use cache'` + `cacheTag('projects')` sur les queries mises en cache. Invalidation ciblée via `revalidateTag('projects')` depuis les Server Actions admin (post-MVP).
+> La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` — le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
 
 ---
 
@@ -705,17 +629,12 @@ curl -I https://thibaud-geisler.com
 
 ## Documentation Officielle
 
-- [Dokploy](https://dokploy.com/docs)
+- [Dokploy](https://docs.dokploy.com/docs/core)
 - [Docker Compose](https://docs.docker.com/compose/)
-- [Next.js Deployment](https://nextjs.org/docs/app/building-your-application/deploying)
+- [Next.js Deployment](https://nextjs.org/docs/app/getting-started/deploying)
 - [Prisma Migrate Deploy](https://www.prisma.io/docs/orm/reference/prisma-cli-reference#migrate-deploy)
-- [Better Auth](https://better-auth.com/docs) : auth de l'espace admin (configuration, variables d'environnement)
-- [Better Auth, Google provider](https://better-auth.com/docs/authentication/google) : setup OAuth Google
-- [Google Cloud Console, OAuth 2.0](https://console.cloud.google.com/apis/credentials) : création du Client ID / Client Secret
 - [Pino](https://getpino.io)
 - [Cloudflare R2](https://developers.cloudflare.com/r2/)
-- [rclone, Cloudflare R2](https://rclone.org/s3/#cloudflare-r2)
-- [PostgreSQL pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html)
 
 ## Ressources Complémentaires
 
