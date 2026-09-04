@@ -49,17 +49,24 @@ Toutes les recettes passent par `just`. La liste complète est disponible via `j
 | `just lint` | ESLint sur `src/` |
 | `just typecheck` | `next typegen` puis `tsc --noEmit` |
 | `just test` | Tests unit + intégration (Vitest) |
+| `just test-unit` | Tests unitaires seuls |
+| `just test-integration` | Tests d'intégration seuls (base de test) |
+| `just test-watch` | Tests en mode watch |
 | `just build` | Build de production Next.js |
+| `just audit` | Vulnérabilités des dépendances (seuil high, non bloquant) |
 
 ### Database
 
 | Commande | Description |
 |----------|-------------|
 | `just db` | Démarre Postgres (Docker) puis applique les migrations |
-| `just db-migrate <name>` | Crée et applique une nouvelle migration |
+| `just db-migrate LABEL` | Crée et applique une nouvelle migration |
 | `just db-studio` | Ouvre Prisma Studio |
 | `just seed` | Exécute le seed Prisma |
+| `just db-reset` | **Destructif** : drop, recreate, migrate et seed de la base de dev |
 | `just db-test` | Prépare la base de test (`.env.test`) |
+| `just db-test-reset` | **Destructif** : drop de la base de test, sans seed |
+| `just db-test-studio` | Prisma Studio sur la base de test |
 
 ### Infrastructure
 
@@ -67,6 +74,8 @@ Toutes les recettes passent par `just`. La liste complète est disponible via `j
 |----------|-------------|
 | `just docker-up` | Démarre les services Docker Compose (profil `validation`) |
 | `just docker-down` | Arrête les services Docker Compose |
+| `just install` | Installe les dépendances pnpm |
+| `just setup` | Bootstrap complet : install, base prête, seed |
 | `just check` | Diagnostics Node / pnpm / Docker / `.env` / Postgres |
 
 ## Variables d'environnement
@@ -77,6 +86,8 @@ Le fichier `.env.example` liste toutes les variables nécessaires, regroupées p
 - **Database (dev local)** : `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (credentials init Postgres local lus par `compose.override.yaml`), `DATABASE_URL` (URL connexion Prisma). En prod Dokploy, ces vars sont ignorées (la Postgres Database Dokploy a ses propres credentials, `DATABASE_URL` injectée via Dokploy UI).
 - **SMTP** (formulaire de contact) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `MAIL_TO`
 - **Calendly** (event types FR/EN distincts) : `NEXT_PUBLIC_CALENDLY_URL_FR`, `NEXT_PUBLIC_CALENDLY_URL_EN`
+- **Sécurité** : `IP_HASH_SALT` (sel du hash SHA-256 des IP journalisées, 16 caractères minimum, **requis** — l'application refuse de démarrer sans lui). Générer : `openssl rand -hex 32`
+- **Logs** : `LOG_LEVEL` (optionnel, `fatal` à `trace` ou `silent` ; défaut `debug` en dev, `info` en production)
 
 Validation runtime via `@t3-oss/env-nextjs` + Zod (cf. `src/env.ts`).
 
@@ -119,6 +130,8 @@ Détails (release flow, hotfix, monitoring, incidents) : [`docs/PRODUCTION.md`](
 | [`docs/registre-traitements.md`](docs/registre-traitements.md) | Registre RGPD des traitements (art. 30) |
 | [`docs/adrs/`](docs/adrs/) | Architecture Decision Records |
 | [`docs/knowledges/`](docs/knowledges/) | Fiches techniques par techno |
+| [`docs/baselines/`](docs/baselines/) | Relevés Core Web Vitals datés |
+| [`docs/reports/`](docs/reports/) | Audits ponctuels (SEO, etc.) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Historique des versions (Keep a Changelog) |
 
 ## Workflow Git
