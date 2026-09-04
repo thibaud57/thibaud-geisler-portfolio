@@ -16,13 +16,13 @@ paths:
 - Déclarer `images.remotePatterns` dans `next.config.ts` avec `protocol`, `hostname`, `pathname` pour chaque domaine externe autorisé
 - Utiliser `next/font/google` ou `next/font/local` avec `variable: '--font-xxx'` + `display: 'swap'` pour self-hosting des polices et éviter le FOIT
 - Pour `next/font` + Tailwind v4 : mapper les variables CSS dans `@theme inline` du `globals.css`
-- **Polices du projet (DESIGN.md)** : charger les 3 polices via `next/font/google` dans le root layout
-  - **`Geist Sans`** → corps de texte, UI, titres H2-H6, navigation, boutons (variable `--font-sans`)
-  - **`Sansation`** → titres hero H1, éléments de marque, logo (variable `--font-display`, mappée à la classe custom `font-display`)
-  - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (variable `--font-mono`)
+- **Polices du projet (DESIGN.md)**, chargées dans `src/lib/fonts.ts`, exposées par `fontVariables` et posées sur le `<html>`
+  - **`Geist Sans`** → corps de texte, UI, titres H2-H6, navigation, boutons (`next/font/google`, variable `--font-sans`)
+  - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (`next/font/google`, variable `--font-mono`)
+  - **`Sansation`** → titres hero H1, éléments de marque, logo (`next/font/local` sur `src/lib/seo/fonts/Sansation-Bold.ttf`, variable `--font-display`, mappée à la classe `font-display`)
 - Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css` — voir `tailwind/conventions.md`)
 - Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
-- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec une URL absolue (`${NEXT_PUBLIC_SITE_URL}/api/assets/projets/client/foyer/cover.webp`) et déclarer le domaine du projet dans `images.remotePatterns` pour que `next/image` les optimise
+- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec le **chemin relatif** que construit `buildAssetUrl()`. Ne PAS préfixer par `NEXT_PUBLIC_SITE_URL` ni déclarer le domaine dans `images.remotePatterns` — une URL absolue ferait traiter comme distante une image servie par la même origine, sans aucun gain
 
 ## À éviter
 - Utiliser `images.domains` : **déprécié** Next 16, utiliser `remotePatterns` (plus granulaire et sécurisé)
@@ -32,8 +32,13 @@ paths:
 - Servir des images dynamiques depuis `public/` : pas de hashing, pas de cache-busting, couplage au build. Utiliser une route API dédiée
 - Utiliser des SVG en `<Image>` sans `unoptimized` : l'optimisation n'apporte rien pour les SVG
 - Importer `next/font` dans `ImageResponse` : **ne fonctionne pas**, charger manuellement les fichiers `.ttf`/`.woff` via `readFile`
+- Charger une police Google **peu répandue** via `next/font/google` sans vérifier sa couverture métriques (cf. Gotchas) : le fallback ajusté est abandonné en silence et le swap provoque du CLS
 
 ## Gotchas
+- **`adjustFontFallback` échoue en silence sur une police Google absente du jeu de métriques.** Next embarque un snapshot figé (`next/dist/server/capsize-font-metrics.json`, ~1750 entrées, épinglé sur `@capsizecss/metrics`). Police absente → un `Log.error` au build, aucune `@font-face` de fallback, aucun `size-adjust` : le swap décale la mise en page. Sansation était dans ce cas (CLS desktop 0,28 sur les titres longs, invisible sur les titres courts)
+  - **Vérifier avant d'adopter une police Google** : `node -e "console.log('<nom-minuscules>' in require('next/dist/server/capsize-font-metrics.json'))"`
+  - **Si absente → `next/font/local`** : il parse le fichier réel avec `fontkit` et calcule les overrides quelle que soit la police, sans dépendre du snapshot
+  - **Contrôler après coup** : le CSS de build doit porter `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`/`ascent-override`
 - Next 16 : `images.minimumCacheTTL` passe de 60s à **4h** (14400s), réduit le coût de revalidation
 - Next 16 : `images.qualities` restreint à `[75]` par défaut, toute autre valeur est coercée sauf déclaration explicite (`qualities: [25, 50, 75, 100]`)
 - Next 16 : `images.imageSizes` perd la valeur `16` par défaut (retina fetch 32px minimum)

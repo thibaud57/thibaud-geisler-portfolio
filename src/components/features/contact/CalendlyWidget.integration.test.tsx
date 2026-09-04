@@ -5,7 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 
-vi.mock('@c15t/nextjs', () => ({
+vi.mock('@c15t/nextjs/headless', () => ({
   useConsentManager: vi.fn(),
 }))
 
@@ -21,7 +21,7 @@ vi.mock('@/server/actions/calendly', () => ({
 }))
 
 import { CalendlyWidget } from './CalendlyWidget'
-import { useConsentManager } from '@c15t/nextjs'
+import { useConsentManager } from '@c15t/nextjs/headless'
 
 const messages = {
   Cookies: {

@@ -3,7 +3,6 @@ import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
 
 import { CaseStudyFooter } from '@/components/features/projects/CaseStudyFooter'
 import { CaseStudyHeader } from '@/components/features/projects/CaseStudyHeader'
@@ -11,7 +10,6 @@ import { TagStackGrouped } from '@/components/features/projects/TagStackGrouped'
 import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
-import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import {
   buildPageMetadata,
@@ -53,9 +51,7 @@ export default async function CaseStudyPage({
 
   return (
     <PageShell>
-      <Suspense fallback={<StackedSkeleton heights={['h-48', 'h-96', 'h-32']} />}>
-        <CaseStudyContentAsync locale={locale} slug={slug} />
-      </Suspense>
+      <CaseStudyContentAsync locale={locale} slug={slug} />
     </PageShell>
   )
 }

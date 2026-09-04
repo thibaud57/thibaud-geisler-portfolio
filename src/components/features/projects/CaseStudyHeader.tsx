@@ -1,3 +1,4 @@
+import { safeExternalUrl } from '@/lib/url'
 import Image from 'next/image'
 import { User } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -19,6 +20,7 @@ export function CaseStudyHeader({ project }: Props) {
   const { startYear, endYear, inProgress } = timeline
   const endLabel = endYear?.toString() ?? (inProgress ? t('inProgress') : '')
   const { company, teamSize, contractStatus: contract, workMode } = project.clientMeta ?? {}
+  const companyUrl = safeExternalUrl(company?.websiteUrl)
 
   const durationValue = formatDurationRange(timeline, t('inProgress'))
 
@@ -75,9 +77,9 @@ export function CaseStudyHeader({ project }: Props) {
             </div>
           )}
           <div className="flex flex-col gap-1">
-            {company.websiteUrl ? (
+            {companyUrl ? (
               <a
-                href={company.websiteUrl}
+                href={companyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xl font-semibold hover:text-primary"

@@ -5,11 +5,17 @@ import { motion, useReducedMotion } from 'motion/react'
 type Props = {
   index?: number
   className?: string
+  animate?: boolean
   children: React.ReactNode
 }
 
-export function MotionItem({ index = 0, className, children }: Props) {
+// animate={false} pour tout élément above-the-fold : l'état initial opacity 0 n'est levé
+// qu'après hydratation et détection d'intersection, ce qui repousse d'autant l'instant où
+// le navigateur peut arrêter le LCP sur l'élément.
+export function MotionItem({ index = 0, className, animate = true, children }: Props) {
   const reduceMotion = useReducedMotion()
+
+  if (!animate) return <div className={className}>{children}</div>
 
   return (
     <motion.div

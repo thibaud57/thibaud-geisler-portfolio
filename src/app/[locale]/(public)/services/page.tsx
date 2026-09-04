@@ -36,6 +36,8 @@ export async function generateMetadata(
   })
 }
 
+const ABOVE_THE_FOLD_COUNT = 3
+
 export default async function ServicesPage({ params }: PageProps<'/[locale]/services'>) {
   const { locale } = await setupLocalePage(params)
   const t = await getTranslations('ServicesPage')
@@ -53,7 +55,12 @@ export default async function ServicesPage({ params }: PageProps<'/[locale]/serv
     <PageShell title={t('title')} subtitle={t('subtitle')}>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {SERVICE_SLUGS.map((slug, index) => (
-          <MotionItem key={slug} index={index % 3} className="h-full">
+          <MotionItem
+            key={slug}
+            index={index % 3}
+            animate={index >= ABOVE_THE_FOLD_COUNT}
+            className="h-full"
+          >
             <ServiceCard
               slug={slug}
               title={t(`offers.${slug}.title`)}

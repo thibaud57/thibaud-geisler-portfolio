@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-09-03"
+date: "2026-09-04"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **3 septembre 2026**.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **4 septembre 2026**.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -49,6 +49,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
 | @c15t/nextjs | `2.2.1` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
+| react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
+| remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
 
 ## Tests
 
@@ -286,6 +288,10 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - shadcn/ui : ✅ (mis à jour pour Tailwind v4)
 - Magic UI : ✅ (Tailwind v4 par défaut depuis avril 2025)
 - Aceternity UI : ✅ (Tailwind v4 standard documenté)
+
+**Plugins montés** :
+- `@tailwindcss/typography` (`0.5.20`) : fournit la classe `prose`, qui stylise en bloc le HTML produit par react-markdown (§ Librairies applicatives). Indispensable là où le balisage est généré et ne peut pas porter de classes utilitaires. Chargé par `@plugin "@tailwindcss/typography"` dans `src/app/globals.css`
+- `tw-animate-css` (`1.4.0`) : remplaçant de `tailwindcss-animate`, incompatible v4
 
 **Recommandation** : ✅ Tailwind CSS 4.3.3 avec `@tailwindcss/postcss`.
 
@@ -637,6 +643,23 @@ Configuration retenue (mode `offline`, `overrides.country: 'FR'`) et gotcha de t
 - next-intl : ✅ traductions FR/EN via `@c15t/translations/all`
 
 **Recommandation** : ✅ 2.2.1. Monter `@c15t/nextjs` et `@c15t/translations` ensemble, ils partagent la numérotation.
+
+### 9. react-markdown
+
+**Version actuelle** : `10.1.0` (avec `remark-gfm` en `4.0.1`)
+**Stabilité** : ✅
+
+Moteur de rendu du contenu éditorial : il transforme le markdown des case studies (`project.caseStudyMarkdown`, stocké en base) et des pages légales en éléments React. Monté dans `src/components/markdown/MarkdownContent.tsx`, stylé par le plugin `@tailwindcss/typography` (§ Tailwind CSS).
+
+`remark-gfm` est un paquet **distinct**, à installer et monter séparément : react-markdown embarque le cœur de remark mais pas cette extension. Elle active tableaux, listes à cocher, liens automatiques et texte barré — sans elle, un tableau markdown en base se rend en texte brut.
+
+**Sécurité** : react-markdown applique `defaultUrlTransform` à tout `href`/`src` avant d'appeler les composants custom, avec une allowlist de protocoles. Un `[texte](javascript:…)` présent en base est donc neutralisé sans configuration. Le rendu de HTML brut est désactivé par défaut, `rehype-raw` n'est pas installé. **Ne pas passer de prop `urlTransform` ni ajouter `rehype-raw` sans revalider ces deux garanties.**
+
+**Compatibilité Écosystème** :
+- Next.js 16 / React 19 : ✅ en Server Component
+- Tailwind 4 : ✅ via `@tailwindcss/typography` (classe `prose`)
+
+**Recommandation** : ✅ 10.1.0 + `remark-gfm` 4.0.1. Les monter ensemble, `remark-gfm` suivant les majeures de react-markdown.
 
 ## Tests
 

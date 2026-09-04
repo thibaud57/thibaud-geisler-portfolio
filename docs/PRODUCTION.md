@@ -200,6 +200,8 @@ IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées.
 
 > ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s (`start_period` de 60 s pour couvrir les migrations). Il ne conditionne aucune bascule de trafic, il rend l'état du container observable — `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
+> ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
+
 > ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Si tu rajoutes un `build:`, Dokploy reconstruira localement et échouera (BuildKit sandbox + Postgres inaccessible).
 
 ## Rollback
@@ -240,7 +242,7 @@ Items validés avant le tout premier merge `develop → main`, celui qui a décl
 - [x] **`/simplify`** : passe qualité sur toute la branche
 - [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
 - [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
-- [ ] **`/security-review`** : non lancé. À faire seul et en dernier, sur l'état gelé
+- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. Seule dette ouverte, non exploitable en single-user faute de chemin d'écriture non-trusté : trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`) — **à corriger avant le premier formulaire d'édition de l'espace admin**, où ils deviendraient un XSS stocké
 
 > Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
 
@@ -302,8 +304,8 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 
 | Composant | Version documentée | Dernière publiée | Relevé le |
 |---|---|---|---|
-| Docker Engine | `29.7.2` | `29.7.2` (30 juillet 2026) | 2026-09-03 |
-| Docker Compose | `5.5.0` | `5.5.0` (17 août 2026) | 2026-09-03 |
+| Docker Engine | `29.8.0` | `29.8.0` | 2026-09-04 |
+| Docker Compose | `5.5.1` | `5.5.1` | 2026-09-04 |
 | Dokploy | `0.30.4` | `0.30.4` | 2026-09-03 |
 | Cloudflare R2 | managed service | — | sans objet |
 
@@ -331,6 +333,8 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+
+> ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre — le stage `runner` repart de `FROM base` et ne copie que des fichiers — mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
 
 > **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` — la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
 
@@ -446,9 +450,11 @@ JSON structuré via Pino (`src/lib/logger.ts`), une ligne par événement sur st
 
 > **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action — `action`, `requestId` (corrèle toutes les lignes d'une même soumission) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
 
-> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err`.
+> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `request:unhandled_error` → `err`, `path`.
 
-Un échec porte l'erreur sérialisée par Pino, et c'est **le seul cas où `msg` apparaît** : le sérialiseur y recopie `err.message`. Aucun appel du code ne passe de message.
+> **`calendly:url_missing` est le seul event émis hors Server Action** (rendu de la page contact, quand `NEXT_PUBLIC_CALENDLY_URL_<LOCALE>` manque). Il ne porte donc ni `action`, ni `requestId`, ni `ip_hash` : inutile de chercher à le corréler à une soumission.
+
+Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message` recopié par le sérialiseur. Le seul autre event à porter un `msg` est `calendly:url_missing`, dont le message est passé explicitement à l'appel.
 
 ```json
 {"level":"error","time":"2026-09-03T18:09:24.197Z","service":"thibaud-geisler-portfolio","action":"submitContact","requestId":"b4c784fb-398b-44b9-aa06-34564c598fd7","ip_hash":"7a42ebba","err":{"type":"Error","message":"connect ECONNREFUSED 10.0.0.5:587","stack":"…","code":"ECONNREFUSED"},"event":"email:failed","msg":"connect ECONNREFUSED 10.0.0.5:587"}
@@ -462,8 +468,8 @@ Un échec porte l'erreur sérialisée par Pino, et c'est **le seul cas où `msg`
 |-------|-------|
 | `debug` | Développement local uniquement (défaut en dev, jamais en production) |
 | `info` | Événements normaux : `email:sent`, `honeypot:caught` (soumission piégée, réponse volontairement `ok`), `calendly:event_scheduled` |
-| `warn` | Dégradé non bloquant : `rate_limit:exceeded` |
-| `error` | Échec bloquant : `email:failed` (SMTP injoignable ou refus), exception non gérée d'une Server Action |
+| `warn` | Dégradé non bloquant : `rate_limit:exceeded`, `calendly:url_missing` (variable d'environnement manquante, la page rend un placeholder) |
+| `error` | Échec bloquant : `email:failed` (SMTP injoignable ou refus), `request:unhandled_error` (exception non gérée d'un rendu serveur, captée par `onRequestError` dans `src/instrumentation.ts`) |
 
 ## Rétention
 
@@ -471,9 +477,11 @@ Un échec porte l'erreur sérialisée par Pino, et c'est **le seul cas où `msg`
 |-----|-----------|---------|
 | development | Terminal local, pas de rétention | - |
 | production (app) | Fenêtre glissante d'environ 1 Go par service | En place dans `compose.yaml` : driver `json-file`, `max-size: "100m"`, `max-file: "10"` |
-| production (Database) | Non bornée | Aucune rotation configurée sur la Database Dokploy. Volume faible (Postgres n'y écrit que `warn` et `error`), à surveiller si ça change |
+| production (Database) | Environ 30 Mo | Hérité du défaut posé dans `/etc/docker/daemon.json` du VPS (`json-file`, `max-size: "10m"`, `max-file: "3"`), qui s'applique à tout container sans config explicite. Relevé du 2026-09-04 |
 
-> ℹ️ **Dokploy ne fait pas la rotation** : son cron de nettoyage quotidien ne touche qu'à ses propres logs de déploiement, pas aux logs Docker des services. C'est le driver `json-file` du Compose qui borne l'app.
+> ℹ️ **Dokploy ne fait pas la rotation** : son cron de nettoyage quotidien ne touche qu'à ses propres logs de déploiement, pas aux logs Docker des services. Deux mécanismes bornent le reste : le `json-file` déclaré dans `compose.yaml` pour l'app, et le défaut de `/etc/docker/daemon.json` pour tout container qui n'en déclare aucun.
+
+> ⚠️ **Le driver `json-file` ne borne que le volume** : ses options sont `max-size`, `max-file`, `compress`, `labels`, `labels-regex`, `env`, `env-regex`, il n'a pas de `max-age`. La borne temporelle est assurée par `/etc/logrotate.d/docker-containers` sur le VPS (quotidien, 180 archives, `copytruncate`, `dateext`), déclenché par `logrotate.timer`. **Cette configuration ne vit pas dans le dépôt** : la revérifier après toute réinstallation de la machine (§ Perte VPS Totale). Finalité RGPD : [registre-traitements.md](registre-traitements.md)
 
 ## Règles Logging
 
@@ -593,7 +601,8 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 4. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
 5. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
 6. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus), puis recopier les assets depuis le dossier `assets/` local : le volume n'est pas sauvegardé (§ Stratégie Backup)
-7. Smoke test complet
+7. Reposer `/etc/logrotate.d/docker-containers` et le défaut de log dans `/etc/docker/daemon.json` : aucun fichier du dépôt ne les porte (§ Rétention)
+8. Smoke test complet
 
 ---
 
@@ -618,8 +627,10 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 - [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) — le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
 - [x] Baseline LCP/INP/CLS prise sur les pages clés × 2 locales
 - [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
-- [ ] **CLS desktop à 0,28**, très au-dessus de la cible : cause à identifier avant toute autre optimisation
-- [ ] Charger le bandeau de consentement en lazy pour soulager l'INP (il est aujourd'hui importé statiquement dans les providers)
+- [x] **CLS desktop** : 0,288 en prod (Lighthouse 13.4.1, 2026-09-04), stable depuis mai. Cause : la coquille PPR ne contient que la navbar et le footer, que `mt-auto` colle en bas de fenêtre ; l'arrivée du contenu streamé le repousse de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. Mesuré sur build local, mêmes conditions avant/après : **0,29 → 0,012** (score perf 82 → 95) ; `/fr/projets` à 0,0008 et `/fr/contact` à 0. **À reconfirmer en prod après déploiement**
+- [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md)
+- [x] Bandeau de consentement sorti du chemin critique : provider depuis `@c15t/nextjs/headless`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte aussi leur CSS. Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu — un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
+- [ ] **Reprendre une baseline Core Web Vitals** : la dernière date du 13 mai 2026, trois releases avant l'état courant. Tant qu'elle n'est pas refaite, la colonne `Current` ci-dessus décrit une application qui n'existe plus
 
 > La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` — le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
 
