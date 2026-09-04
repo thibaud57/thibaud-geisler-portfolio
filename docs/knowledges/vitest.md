@@ -1,8 +1,8 @@
 ---
 title: "Vitest — Framework de test"
-version: "4.1.4"
+version: "4.1.11"
 description: "Référence technique pour Vitest 4 : config Next.js, mocks, coverage et Testing Library."
-date: "2026-04-13"
+date: "2026-09-03"
 keywords: ["vitest", "testing", "mocks", "coverage", "react"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
@@ -28,10 +28,11 @@ Configuration minimale pour tester une application Next.js avec React 19 et Type
 // vitest.config.ts
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [react()],
+  // Résolution des alias `@/*` par l'option native Vitest 4, sans plugin dédié
+  resolve: { tsconfigPaths: true },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -255,8 +256,8 @@ Installation de Vitest dans un projet Next.js 16 avec Testing Library. 6 package
 ### Syntaxe
 
 ```bash
-# 1. Core Vitest + plugin React + alias TypeScript
-pnpm add -D vitest @vitejs/plugin-react vite-tsconfig-paths
+# 1. Core Vitest + plugin React (les alias `@/*` passent par resolve.tsconfigPaths, natif en Vitest 4)
+pnpm add -D vitest @vitejs/plugin-react
 
 # 2. Testing Library (pour tester les composants React)
 pnpm add -D jsdom \
@@ -280,7 +281,7 @@ pnpm add -D jsdom \
 
 ### Description
 
-`vitest init` existe mais **uniquement** pour le browser mode (valeur supportée : `browser`). Pas de commande `init` générique pour la config standard, il faut créer `vitest.config.mts` manuellement.
+`vitest init` existe mais **uniquement** pour le browser mode (valeur supportée : `browser`). Pas de commande `init` générique pour la config standard, il faut créer le fichier de configuration manuellement.
 
 ### Syntaxe
 
@@ -291,8 +292,8 @@ pnpm exec vitest init browser
 
 ### Points Importants
 
-- Pour le portfolio (tests React + unit), `vitest init` n'est **pas nécessaire** : créer `vitest.config.mts` manuellement
-- Le fichier `vitest.config.mts` doit déclarer `plugins: [tsconfigPaths(), react()]` + `test.environment: 'jsdom'`
+- Pour le portfolio (tests React + unit), `vitest init` n'est **pas nécessaire** : le projet a un `vitest.config.ts` écrit à la main
+- Le fichier de config doit déclarer `plugins: [react()]`, `resolve.tsconfigPaths: true` et `test.environment: 'jsdom'` (le projet utilise `vitest.config.ts`)
 - Créer aussi `vitest.setup.ts` avec `import '@testing-library/jest-dom/vitest'` pour les matchers étendus
 
 ---

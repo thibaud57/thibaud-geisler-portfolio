@@ -1,6 +1,7 @@
 import type { Metadata, ResolvingMetadata } from 'next'
 import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
 import { env } from '@/env'
 import { setupLocalePage } from '@/i18n/locale-guard'
@@ -14,6 +15,7 @@ import { ContactTabs } from '@/components/features/contact/ContactTabs'
 import { LocationLine } from '@/components/features/contact/LocationLine'
 import { SocialLinks } from '@/components/features/contact/SocialLinks'
 import { PageShell } from '@/components/layout/PageShell'
+import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 
 const PREFILL_SLUGS = ['ia', 'fullstack', 'formation'] as const
 type PrefillSlug = (typeof PREFILL_SLUGS)[number]
@@ -52,6 +54,31 @@ export default async function ContactPage({
   searchParams,
 }: PageProps<'/[locale]/contact'>) {
   const { locale } = await setupLocalePage(params)
+  const t = await getTranslations('ContactPage')
+
+  return (
+    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
+      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
+        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
+          <LocationLine />
+          <SocialLinks className="md:justify-end" />
+        </div>
+
+        <Suspense fallback={<StackedSkeleton heights={['h-10', 'h-96']} />}>
+          <ContactTabsAsync locale={locale} searchParams={searchParams} />
+        </Suspense>
+      </div>
+    </PageShell>
+  )
+}
+
+async function ContactTabsAsync({
+  locale,
+  searchParams,
+}: {
+  locale: Locale
+  searchParams: PageProps<'/[locale]/contact'>['searchParams']
+}) {
   const resolvedSearchParams = await searchParams
   const rawService = resolvedSearchParams?.service
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
@@ -82,7 +109,7 @@ export default async function ContactPage({
         link: (chunks) => (
           <Link
             href="/confidentialite"
-            className="underline underline-offset-2 transition-colors hover:text-foreground"
+            className="text-primary underline underline-offset-2"
           >
             {chunks}
           </Link>
@@ -97,29 +124,20 @@ export default async function ContactPage({
   }
 
   return (
-    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
-      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
-        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
-          <LocationLine />
-          <SocialLinks className="md:justify-end" />
-        </div>
-
-        <ContactTabs
-          formLabel={t('tabs.form')}
-          calendlyLabel={t('tabs.calendly')}
-          formContent={
-            <ContactForm
-              key={defaultSubject}
-              labels={formLabels}
-              defaultSubject={defaultSubject}
-              privacyNotice={privacyNotice}
-            />
-          }
-          calendlyContent={
-            <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
-          }
+    <ContactTabs
+      formLabel={t('tabs.form')}
+      calendlyLabel={t('tabs.calendly')}
+      formContent={
+        <ContactForm
+          key={defaultSubject}
+          labels={formLabels}
+          defaultSubject={defaultSubject}
+          privacyNotice={privacyNotice}
         />
-      </div>
-    </PageShell>
+      }
+      calendlyContent={
+        <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
+      }
+    />
   )
 }

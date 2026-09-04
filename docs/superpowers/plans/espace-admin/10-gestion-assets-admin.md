@@ -15,13 +15,13 @@
 - `serverActions.bodySizeLimit` relevé à **8 Mo**. Le défaut de 1 Mo est trop bas pour une capture PNG, et la mise en garde de Next sur les ressources ne s'applique pas derrière l'authentification.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
 - **Pas d'URL présignée** : la Server Action garde l'avantage que le serveur voit le fichier et peut le valider avant écriture.
-- Les clés suivent la convention existante : `projets/{client,personal}/<slug>/<filename>` et `documents/<slug>/<filename>`.
+- Les clés suivent la convention existante : `projets/{client,personal}/<slug>/<filename>`, `documents/cv/<filename>` et `branding/<filename>`.
 - Le chemin complet passe par **`validateAssetPath`** avant écriture : un fichier qu'on ne pourrait pas relire n'a aucune raison d'être écrit.
 - **Taille et type MIME sont vérifiés côté serveur**, `.claude/rules/nextjs/server-actions.md` l'imposant explicitement : « valider taille et type MIME des fichiers `FormData` côté serveur, ne pas se fier au `accept` HTML ». Le MIME annoncé doit correspondre à l'extension, faute de quoi un `.png` renommé serait servi plus tard avec un `Content-Type` qui ne décrit pas son contenu.
 - La suppression est **refusée** si l'asset est référencé par `Project.coverFilename` ou `Company.logoFilename`, et le message nomme les éléments concernés.
 - Le listing suit le **jeton de continuation** : `ListObjectsV2` plafonne à mille objets par appel.
 - R2 **écrase sans avertir** un objet de même clé : l'écrasement doit être confirmé explicitement.
-- Aucun modèle Prisma ajouté. L'ADR-011 pose que « les assets binaires ne sont pas modélisés en BDD ».
+- Aucun modèle Prisma ajouté : un asset est un objet du bucket, référencé par son nom depuis `Project` ou `Company`, conformément à l'ADR-011.
 - Les dépôts locaux vont dans `portfolio-assets-dev`, la production dans `portfolio-assets`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
@@ -46,6 +46,7 @@ Dans `next.config.ts`, compléter le bloc `experimental` existant :
 
 ```typescript
   experimental: {
+    globalNotFound: true, // antérieur à l'espace admin, ne jamais retirer
     authInterrupts: true,
     taint: true,
     serverActions: {
@@ -54,7 +55,7 @@ Dans `next.config.ts`, compléter le bloc `experimental` existant :
   },
 ```
 
-Les deux premiers drapeaux viennent du sub-project `05` : les conserver.
+Relire le bloc réel avant d'écrire : `globalNotFound` y est depuis longtemps et porte le 404 des URLs hors segment de locale, `authInterrupts` et `taint` viennent du sub-project `05`. Recopier ce snippet sans vérifier écraserait le premier.
 
 - [ ] **Step 2: Écrire le schéma de dépôt**
 
@@ -67,10 +68,10 @@ export const MAX_ASSET_BYTES = 8 * 1024 * 1024
 
 // L'arborescence réelle porte trois profondeurs, relevées dans le dossier assets/ :
 //   branding/<fichier>                            → logos et portrait
-//   documents/<slug>/<fichier>                    → CV et documents publics
+//   documents/cv/<fichier>                        → CV par locale
 //   projets/{client,personal}/<slug>/<fichier>    → couvertures et logos de projets
-export const FOLDERS_WITH_SLUG = ['projets/client', 'projets/personal', 'documents'] as const
-export const FOLDERS_WITHOUT_SLUG = ['branding'] as const
+export const FOLDERS_WITH_SLUG = ['projets/client', 'projets/personal'] as const
+export const FOLDERS_WITHOUT_SLUG = ['branding', 'documents/cv'] as const
 export const ASSET_FOLDERS = [...FOLDERS_WITH_SLUG, ...FOLDERS_WITHOUT_SLUG] as const
 
 const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
@@ -128,7 +129,7 @@ export function buildAssetKey(input: AssetUploadInput): string {
 }
 ```
 
-Le slug est **conditionnel** : `branding/` reçoit ses fichiers directement, alors que `projets/client` et `documents` attendent un sous-dossier. Cette asymétrie n'est pas un choix mais un constat de l'arborescence existante, où `branding/portrait.jpg` voisine avec `documents/cv/cv-thibaud-geisler-fr.pdf`. Un schéma imposant un slug partout rendrait impossible le dépôt d'un logo de marque.
+Le slug est **conditionnel** : `branding/` reçoit ses fichiers directement, alors que `projets/client` et `projets/personal` attendent un sous-dossier. Cette asymétrie n'est pas un choix mais un constat de l'arborescence existante, où `branding/portrait.jpg` voisine avec `documents/cv/cv-thibaud-geisler-fr.pdf`. Un schéma imposant un slug partout rendrait impossible le dépôt d'un logo de marque.
 
 `buildAssetKey` centralise la composition de la clé pour que la règle du slug conditionnel ne soit écrite qu'une fois.
 
@@ -198,6 +199,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 vi.mock('@/lib/get-current-user', () => ({ getCurrentUser: vi.fn() }))
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 
 import { prisma } from '@/lib/prisma'
@@ -319,6 +321,19 @@ describe('uploadAsset', () => {
     expect(r2.send).not.toHaveBeenCalled()
   })
 
+  it('accepte un fichier dont le type MIME est vide', async () => {
+    const data = new FormData()
+    data.set('folder', 'projets/client')
+    data.set('slug', 'acme')
+    data.set('filename', 'cover.webp')
+    data.set('file', new File([new Uint8Array(1024)], 'cover.webp', { type: '' }))
+
+    const state = await uploadAsset(initialAssetFormState, data)
+
+    expect(state.ok).toBe(true)
+    expect(r2.send).toHaveBeenCalled()
+  })
+
   it('compose la clé à partir du dossier, du slug et du nom', async () => {
     await uploadAsset(initialAssetFormState, buildUpload({ slug: 'foyer', filename: 'logo.png' }))
 
@@ -390,6 +405,7 @@ Expected: FAIL, le module `./assets` n'existe pas.
 
 import 'server-only'
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { revalidatePath } from 'next/cache'
 
 import { getCurrentUser } from '@/lib/get-current-user'
 import { prisma } from '@/lib/prisma'
@@ -456,6 +472,7 @@ export async function uploadAsset(
         ContentType: getContentType(key),
       }),
     )
+    revalidatePath('/admin/assets')
     log.info({ event: 'asset:uploaded', key, size: file.size })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -482,6 +499,7 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
 
   try {
     await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }))
+    revalidatePath('/admin/assets')
     log.info({ event: 'asset:deleted', key, filename })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -500,7 +518,7 @@ Le format exact stocké dans `coverFilename` et `logoFilename` doit être confir
 - [ ] **Step 4: Lancer les tests pour vérifier qu'ils passent**
 
 Run: `pnpm vitest run --project unit src/server/actions/assets.test.ts`
-Expected: PASS, quinze cas verts.
+Expected: PASS, seize cas verts.
 
 ---
 
@@ -508,6 +526,7 @@ Expected: PASS, quinze cas verts.
 
 **Files:**
 - Create: `src/server/queries/assets.ts`
+- Create: `src/server/queries/assets.test.ts`
 
 **Interfaces:**
 - Consomme : `r2`, `R2_BUCKET`.
@@ -555,7 +574,17 @@ export async function listAssets(prefix?: string): Promise<AssetEntry[]> {
 
 La boucle sur le jeton de continuation n'est pas de l'anticipation : sans elle, la liste s'arrêterait à mille objets **en paraissant complète**. C'est le genre de défaut qui n'apparaît que le jour où il est coûteux.
 
-- [ ] **Step 2: Vérifier le typage**
+- [ ] **Step 2: Écrire le test de pagination**
+
+Un seul cas, et c'est le seul de ce sub-project qui vérifie la boucle elle-même. Mocker `@/lib/r2` et faire renvoyer à `r2.send` deux réponses successives : la première `{ Contents: [{ Key: 'a' }], IsTruncated: true, NextContinuationToken: 't' }`, la seconde `{ Contents: [{ Key: 'b' }], IsTruncated: false }`. Assertions : `listAssets()` retourne deux entrées, et `r2.send` a été appelée deux fois, la seconde avec `ContinuationToken: 't'`.
+
+```bash
+pnpm vitest run --project unit src/server/queries/assets.test.ts
+```
+
+Expected: PASS, un cas vert. Sans ce test, une régression sur la boucle rend la liste silencieusement tronquée, ce que le scénario 7 de la spec ne détecterait qu'au-delà de mille objets.
+
+- [ ] **Step 3: Vérifier le typage**
 
 ```bash
 just typecheck
@@ -571,8 +600,8 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/assets/AssetPicker.tsx`
 
 **Interfaces:**
-- Consomme : `listAssets` (Task 3).
-- Produit : `<AssetPicker value={string | null} onChange={(key: string | null) => void} prefix={string} />`, consommé par les sub-projects `08` et `13`.
+- Consomme : rien côté serveur. `listAssets` porte `import 'server-only'` : un composant client ne peut pas l'importer, c'est le parent Server Component qui appelle la requête et passe le résultat en prop.
+- Produit : `<AssetPicker value={string | null} onChange={(key: string | null) => void} assets={AssetEntry[]} />`, consommé par le sub-project `13` (le `08` passe avant et n'édite pas le logo). Le filtrage par préfixe est fait par l'appelant, au moment de la requête.
 
 > Ce composant ne sert à rien dans ce sub-project. Il est écrit ici parce que c'est le moment où l'on connaît la forme des données, plutôt que d'être improvisé dans un formulaire déjà chargé.
 
@@ -584,6 +613,8 @@ Composant client affichant les assets d'un préfixe sous forme de vignettes sél
 - les vignettes s'affichent via `/api/assets/<clé>`, seul point d'accès au bucket
 - une option permet de revenir à l'absence de sélection, `coverFilename` et `logoFilename` étant nullables
 - le préfixe restreint la liste au dossier pertinent, pour ne pas proposer un CV comme couverture de projet
+- la grille suit les paliers de `docs/DESIGN.md` : une colonne par défaut, `md:grid-cols-2`, `lg:grid-cols-3`
+- une vignette est **sélectionnable, donc cliquable** : elle porte `transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl`, l'affordance de survol des surfaces cliquables custom. Ne pas écrire de `hover:border-*` : la `Card` shadcn en `radix-nova` dessine son contour par `ring-1 ring-foreground/10` et sa bordure fait 0px, la classe n'aurait aucun effet visible
 
 - [ ] **Step 2: Vérifier typage et lint**
 
@@ -612,6 +643,8 @@ Expected: aucune erreur.
 Composant client en `useActionState`. Points imposés :
 
 - un select du dossier alimenté par `ASSET_FOLDERS`, un champ de slug, un champ de fichier
+> **Composants shadcn à installer d'abord.** `dialog`, `select` et `alert-dialog` sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/` : `pnpm dlx shadcn@latest add dialog select alert-dialog`, avec `--dry-run` en premier et aucun écrasement des composants existants. Ce sub-project ne dépend pas du `07`, il ne peut donc rien hériter de ses installations. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+
 - le nom du fichier est pré-rempli depuis le fichier choisi, en minuscules, et reste modifiable
 - **la taille est vérifiée côté client avant l'envoi** : au-delà de `bodySizeLimit`, la requête est rejetée par le framework avant d'atteindre l'action, et le message par défaut n'explique rien
 - si la clé existe déjà dans le listing, une confirmation est demandée avant envoi, R2 écrasant sans avertir
@@ -624,7 +657,11 @@ Composant client en `useActionState`. Points imposés :
 
 Liste groupée par préfixe, chaque entrée montrant la vignette, la clé, la taille et la date de modification, avec une action de suppression.
 
+La grille de vignettes de chaque groupe suit les paliers de `docs/DESIGN.md` : une colonne par défaut, `md:grid-cols-2`, `lg:grid-cols-3`. Ces entrées ne sont pas cliquables, l'action vivant dans le bouton de suppression : elles ne portent donc pas le survol des surfaces cliquables, contrairement aux vignettes de l'`AssetPicker`.
+
 - [ ] **Step 4: Remplacer la page d'attente**
+
+**Le chargement passe sous `<Suspense>`.** `listAssets` lit R2 sans cache, or `cacheComponents: true` refuse une lecture dynamique qui n'est ni cachée ni suspendue : elle lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Extraire un sous-composant `async` qui appelle la requête et rend le dépôt et le navigateur, le monter dans un `<Suspense>` avec un `StackedSkeleton` en `fallback`, et laisser la page elle-même statique. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Le bloc ci-dessous montre le chargement, pas la structure finale de la page.
 
 ```typescript
 import { AssetsBrowser } from '@/components/features/admin/assets/AssetsBrowser'
@@ -635,9 +672,9 @@ export default async function AdminAssetsPage() {
   const assets = await listAssets()
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Assets</h1>
+        <h1 className="font-sans text-2xl font-medium tracking-normal">Assets</h1>
         <AssetUploadDialog existingKeys={assets.map((a) => a.key)} />
       </div>
       <div className="mt-6">
@@ -649,6 +686,11 @@ export default async function AdminAssetsPage() {
 ```
 
 `existingKeys` est ce qui permet à la modale de détecter un écrasement avant l'envoi.
+
+Deux points de style sont imposés par `docs/DESIGN.md` et ne s'improvisent pas :
+
+- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 - [ ] **Step 5: Vérifier que tout compile**
 
@@ -752,7 +794,7 @@ Ajouter les trois structures valides à la règle de convention de chemins :
 | Structure | Segments | Exemple |
 |---|---|---|
 | `branding/<fichier>` | 2 | `branding/portrait.jpg` |
-| `documents/<slug>/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
+| `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
 | `projets/{client,personal}/<slug>/<fichier>` | 4 | `projets/client/foyer/logo.png` |
 
 Sans cet ajout, la rule décrit `branding/` comme interdit alors qu'il est en place, et c'est elle qui est chargée automatiquement à la prochaine édition d'un fichier d'assets. C'est aussi ce constat d'arborescence qui justifie le slug conditionnel du schéma de la Task 1 : le documenter ailleurs que dans le plan est ce qui empêche qu'on le « corrige » plus tard en croyant à une incohérence.

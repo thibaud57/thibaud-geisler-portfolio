@@ -83,4 +83,4 @@ Choix naturel pour un projet solo avec Next.js App Router. La colocation Server 
 
 # 📝 Notes complémentaires
 
-La séparation logique est maintenue via le route group `(public)/` sous `[locale]/`, le segment `admin/` à la racine de `app/` (voir [ADR-021](021-routing-espace-admin.md)) et la structure `src/server/`. Cette architecture peut évoluer sans refonte si un backend séparé devenait nécessaire.
+La séparation logique est maintenue via le route group `(public)/` sous `[locale]/`, le segment `admin/` à la racine de `app/` (cf. [ADR-021](021-routing-espace-admin.md)) et la structure `src/server/`. Cette architecture peut évoluer sans refonte si un backend séparé devenait nécessaire.

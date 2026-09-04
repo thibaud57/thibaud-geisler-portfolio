@@ -6,7 +6,7 @@ status: "draft"
 complexity: "L"
 tdd_scope: "full"
 depends_on: ["07-crud-tags-design.md", "08-crud-entreprises-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Server Actions des projets
@@ -52,7 +52,7 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 
 **Les dates sont optionnelles et peuvent être incohérentes.** Rien n'empêche en base une date de fin antérieure à la date de début. Le schéma le refuse, la base ne le ferait pas.
 
-**Invalidation par `updateTag('projects')`**, l'étiquette portée par les requêtes publiques de `src/server/queries/projects.ts`. `updateTag` et non `revalidateTag` : il fait attendre la requête suivante plutôt que de servir du contenu périmé, ce qui rend immédiatement visible un projet passé en publié.
+**Invalidation par `updateTag('projects')`**, l'étiquette portée par les requêtes publiques de `src/server/queries/projects.ts`. `updateTag` et non `revalidateTag` : il fait attendre la requête suivante plutôt que de servir du contenu périmé, ce qui rend immédiatement visible un projet passé en publié. **Elle ne suffit pas côté administration** : ces écrans lisent sans cache, donc sans étiquette. Chaque mutation appelle aussi `revalidatePath` sur l'écran concerné, faute de quoi la liste continue d'afficher ce qui vient d'être supprimé.
 
 **La requête d'administration ignore le statut.** `findManyPublished` filtre sur `PUBLISHED` et applique `'use cache'` : l'administration doit voir les brouillons et les archivés, sans cache. Même raisonnement qu'aux sub-projects `07` et `08`.
 

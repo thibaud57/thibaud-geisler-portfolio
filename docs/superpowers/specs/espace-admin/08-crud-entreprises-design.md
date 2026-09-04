@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "full"
 depends_on: ["07-crud-tags-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # CRUD des entreprises
@@ -33,6 +33,7 @@ Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10
 - **À créer** : `src/server/actions/companies.types.ts`
 - **À créer** : `src/server/queries/companies.ts`
 - **À modifier** : `src/app/admin/entreprises/page.tsx` (remplacement de la page d'attente)
+- **Aucun composant shadcn à installer** : `dialog`, `select` et `alert-dialog` sont posés par le sub-project `07`, dont celui-ci dépend
 - **À créer** : `src/components/features/admin/companies/CompanyFormDialog.tsx`
 - **À créer** : `src/components/features/admin/companies/CompaniesTable.tsx`
 - **À créer** : `src/components/features/admin/companies/DeleteCompanyDialog.tsx`

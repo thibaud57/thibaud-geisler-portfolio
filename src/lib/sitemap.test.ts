@@ -12,13 +12,15 @@ function buildProject(overrides?: { slug?: string; updatedAt?: Date }) {
 }
 
 describe('PUBLIC_STATIC_PATHS', () => {
-  it('expose les 5 paths publics du portfolio', () => {
+  it('expose les 7 paths publics du portfolio', () => {
     expect(PUBLIC_STATIC_PATHS).toEqual([
       '',
       '/services',
       '/projets',
       '/a-propos',
       '/contact',
+      '/mentions-legales',
+      '/confidentialite',
     ])
   })
 })
@@ -99,7 +101,7 @@ describe('buildSitemapEntries', () => {
     })
   })
 
-  it('composition : (5 statiques + 3 projets) × 2 locales → 16 entrées', () => {
+  it('composition : (7 statiques + 3 projets) × 2 locales → 20 entrées', () => {
     const entries = buildSitemapEntries({
       staticPaths: PUBLIC_STATIC_PATHS,
       projects: [
@@ -109,7 +111,7 @@ describe('buildSitemapEntries', () => {
       ],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries).toHaveLength(16)
+    expect(entries).toHaveLength(20)
   })
 
   it('ordre : pour chaque path, fr d\'abord puis en ; statiques avant projets', () => {
@@ -126,13 +128,13 @@ describe('buildSitemapEntries', () => {
     ])
   })
 
-  it('aucun projet : retourne uniquement les entrées statiques (5 paths × 2 locales = 10)', () => {
+  it('aucun projet : retourne uniquement les entrées statiques (7 paths × 2 locales = 14)', () => {
     const entries = buildSitemapEntries({
       staticPaths: PUBLIC_STATIC_PATHS,
       projects: [],
       siteUrl: SITE_URL_FIXTURE,
     })
-    expect(entries).toHaveLength(10)
+    expect(entries).toHaveLength(14)
   })
 
   it('alternates partagées entre toutes les locales d\'un même path', () => {

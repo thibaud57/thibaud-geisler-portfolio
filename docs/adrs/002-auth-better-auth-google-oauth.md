@@ -2,7 +2,7 @@
 title: "ADR-002 — Authentification Better Auth + Google OAuth"
 status: "accepted"
 description: "Décision actée : Better Auth avec Google OAuth comme unique provider, whitelist email single-user"
-date: "2026-04-09"
+date: "2026-03-31"
 keywords: ["architecture", "adr", "auth", "better-auth", "oauth", "google"]
 scope: ["docs", "architecture"]
 technologies: ["Better Auth", "Next.js", "Google OAuth"]
@@ -99,7 +99,7 @@ Aucun provider Credentials n'est activé en fallback : garder un second provider
 
 - Dépendance à Google pour la connexion admin (risque acceptable pour un outil personnel)
 - Configuration initiale supplémentaire : créer un projet Google Cloud Console, activer l'API OAuth, gérer les redirect URIs par environnement
-- Variables d'environnement supplémentaires à gérer dans Dokploy (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `ADMIN_EMAIL`)
+- Variables d'environnement supplémentaires à gérer dans Dokploy (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ADMIN_EMAIL`)
 
 ---
 
@@ -109,6 +109,6 @@ Cette décision s'applique uniquement à l'espace admin (post-MVP). Les pages pu
 
 **Whitelist email single-user :** implémentée via le hook `databaseHooks.user.create.before` de Better Auth. Toute tentative de création de compte dont l'email diffère de celui stocké dans `ADMIN_EMAIL` est rejetée. Cela garantit qu'un seul compte peut exister dans la base, même si un autre utilisateur tente de s'authentifier via le flow Google OAuth.
 
-**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Générées automatiquement via la CLI Better Auth (`npx @better-auth/cli generate`). Cohabitent avec les tables applicatives dans la même base PostgreSQL, dans un schema `auth` dédié (voir [ADR-018](018-cloisonnement-donnees.md)).
+**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Les modèles Prisma correspondants sont écrits à la main : `@better-auth/cli generate` écrase le `schema.prisma` du projet et produit un schéma incompatible Prisma 7. Elles cohabitent avec les tables applicatives dans la même base PostgreSQL, dans un schema `auth` dédié (cf. [ADR-018](018-cloisonnement-donnees.md)).
 
 **Historique de la décision :** la version précédente de cet ADR (datée 2026-03-31) avait acté NextAuth.js Credentials provider. Révision en avril 2026 pour deux raisons : (1) changement d'écosystème, Auth.js passé sous maintenance Better Auth, (2) analyse de sécurité, OAuth Google objectivement plus sûr qu'un hash bcrypt local pour un compte admin unique. Better Auth + Google OAuth remplace NextAuth.js Credentials comme choix retenu.

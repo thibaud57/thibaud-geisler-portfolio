@@ -1,8 +1,8 @@
 ---
 title: "Dokploy — Self-hosted PaaS"
-version: "0.28.8"
+version: "0.30.4"
 description: "Référence technique pour Dokploy : déploiement, auto-deploy webhook, Traefik et environments."
-date: "2026-04-13"
+date: "2026-09-03"
 keywords: ["dokploy", "paas", "self-hosted", "traefik", "deployment"]
 scope: ["docs"]
 technologies: ["Docker", "Docker Compose", "Traefik", "GitHub"]
@@ -163,21 +163,31 @@ Depuis v0.26, Dokploy supporte les rollbacks en stockant chaque image déployée
 
 Dokploy sauvegarde nativement PostgreSQL, MySQL, MariaDB, MongoDB et Redis. Il exécute la commande de dump propre au moteur, compresse en `.gz`, puis transfère le fichier via `rclone` vers une destination S3-compatible. La planification est portée par `node-schedule` côté Dokploy.
 
-Une destination doit exister **avant** de pouvoir planifier une sauvegarde : elle se crée dans `Settings → Backup Destinations`, puis se sélectionne dans l'onglet `Backup` de la Database.
+Une destination doit exister **avant** de pouvoir planifier une sauvegarde : elle se crée dans `Settings → S3 Destinations`, puis se sélectionne dans l'onglet `Backups` de la Database.
 
 ### Exemple
 
 ```
-# 1. Settings → Backup Destinations → Add Destination
+# 1. Settings → S3 Destinations (/dashboard/settings/destinations) → Add Destination
+#    Name                ← libellé libre de la destination
+#    Provider            ← select, entrée dédiée « Cloudflare R2 Storage »
 #    Access Key Id       ← R2 : Access Key ID
 #    Secret Access Key   ← R2 : Secret Access Key (affichée une seule fois)
-#    Region              ← code régional (WNAM, ENAM, WEUR…)
+#    Bucket              ← nom du bucket de sauvegardes
+#    Region              ← code régional
 #    Endpoint            ← https://<account-id>.r2.cloudflarestorage.com
 #                          (sans le nom du bucket)
-#    Bucket              ← nom du bucket de sauvegardes
-#    → tester la connexion avant d'enregistrer
+#    → bouton « Test Connection », succès signalé par « Connection Success »
 
-# 2. Database → onglet Backup → planifier (cron, destination, retentionDays)
+# 2. Database → onglet Backups → Create Backup
+#    Database Type / Destination / Database / Prefix Destination (placeholder « dokploy/ »)
+#    Schedule (cron) / Keep the latest / Enabled
+#    → bouton « Test » pour déclencher une sauvegarde de contrôle
+
+# 3. Restauration : onglet Backups → bouton « Restore »
+#    Select Source S3 Bucket / Search for Backup File (autocomplétion sur les préfixes)
+#    Database Name  ← base cible, c'est ce champ qui permet de restaurer à côté
+#                     plutôt que d'écraser la base réelle
 ```
 
 ### Points Importants
@@ -187,9 +197,9 @@ Une destination doit exister **avant** de pouvoir planifier une sauvegarde : ell
 - Tester la connexion avant d'enregistrer : c'est le seul retour immédiat, une destination invalide ne se signale ensuite qu'à l'échec de la première sauvegarde planifiée
 - Côté rclone, R2 se configure avec le provider `Cloudflare`, `force-path-style` actif et `no_check_bucket=true` si le token est scopé au niveau objet plutôt qu'admin
 - Un token `Object Read & Write` restreint au seul bucket de sauvegardes suffit : ne jamais donner à Dokploy un token qui voit aussi le bucket applicatif (voir [cloudflare-r2.md](cloudflare-r2.md))
-- La rétention se règle par `retentionDays` sur la sauvegarde. Ne pas la doubler d'une lifecycle rule côté R2, la plus courte l'emporterait sans avertissement
+- La rétention se règle par le champ **`Keep the latest`** (`keepLatestCount`), qui garde les **N dernières sauvegardes**, pas N jours : sa description dit « only keeps the latest N backups in the cloud », et laissé vide il conserve tout. La fenêtre temporelle dépend donc de la fréquence planifiée. Ne pas la doubler d'une lifecycle rule côté R2, la plus courte l'emporterait sans avertissement
 - Sauvegardes de volumes Docker et de bases sont deux mécanismes distincts dans Dokploy
-- API HTTP disponible pour l'automatisation : `POST /api/backup.create` (`databaseType`, `databaseId`, `schedule`, `destinationId`, `retentionDays`) et `POST /api/backup.run` pour un déclenchement manuel
+- API HTTP disponible pour l'automatisation : `POST /api/backup.create` (`databaseType`, `databaseId`, `schedule`, `destinationId`, `keepLatestCount`) et `POST /api/backup.run` pour un déclenchement manuel
 - Plusieurs incidents ont été rapportés sur R2 spécifiquement (échec `rclone` en automatique alors que la commande manuelle passe, 403 sur serveurs distants) : vérifier qu'une sauvegarde réelle atterrit dans le bucket plutôt que de se fier à l'enregistrement de la configuration. Références dans [cloudflare-r2.md](cloudflare-r2.md)
 
 ---

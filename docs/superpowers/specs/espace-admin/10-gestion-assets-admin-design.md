@@ -6,7 +6,7 @@ status: "draft"
 complexity: "L"
 tdd_scope: "full"
 depends_on: ["06-shell-admin-design.md", "09-stockage-assets-r2-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Gestion des assets depuis l'espace admin
@@ -34,7 +34,9 @@ C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les
 - **À créer** : `src/server/actions/assets.test.ts`
 - **À créer** : `src/server/actions/assets.types.ts`
 - **À créer** : `src/server/queries/assets.ts` (listing et détection des rattachements)
+- **À créer** : `src/server/queries/assets.test.ts` (boucle sur le jeton de continuation)
 - **À modifier** : `src/app/admin/assets/page.tsx` (remplacement de la page d'attente)
+- **À installer** : `src/components/ui/dialog.tsx`, `src/components/ui/select.tsx` et `src/components/ui/alert-dialog.tsx` par le CLI shadcn. Les trois sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/`. Ce sub-project ne dépend pas du `07`, il n'hérite donc d'aucune de ses installations
 - **À créer** : `src/components/features/admin/assets/AssetsBrowser.tsx`
 - **À créer** : `src/components/features/admin/assets/AssetUploadDialog.tsx`
 - **À créer** : `src/components/features/admin/assets/DeleteAssetDialog.tsx`
@@ -57,24 +59,24 @@ La mise en garde de Next sur cette limite — consommation de ressources et dén
 | Structure | Segments | Exemple |
 |---|---|---|
 | `branding/<fichier>` | 2 | `branding/portrait.jpg` |
-| `documents/<slug>/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
+| `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
 | `projets/{client,personal}/<slug>/<fichier>` | 4 | `projets/client/foyer/logo.png` |
 
 Le formulaire ne demande donc pas un chemin libre mais un dossier choisi parmi les emplacements valides, un sous-dossier **conditionnel** selon ce dossier, et le nom du fichier. Imposer un sous-dossier partout rendrait impossible le dépôt d'un logo de marque.
 
-**`branding/` n'est documenté nulle part.** Il est pourtant utilisé par le logo de la navbar, le portrait de la page à propos et le JSON-LD, mais `.claude/rules/nextjs/assets.md` ne décrit que `projets/` et `documents/`. Cet écart est comblé par ce sub-project, faute de quoi la prochaine personne à lire la rule croirait cette structure interdite.
+**`branding/` est absent de la rule.** Il est pourtant utilisé par le logo de la navbar, le portrait de la page à propos et le JSON-LD, mais `.claude/rules/nextjs/assets.md` ne décrit que `projets/` et `documents/`. Cet écart est comblé par ce sub-project, faute de quoi la prochaine personne à lire la rule croirait cette structure interdite.
 
 **Le type MIME annoncé doit correspondre à l'extension.** La rule des Server Actions impose de valider taille **et** type MIME côté serveur. Un type vide est toléré, certains navigateurs ne le renseignant pas, mais un type renseigné qui contredit l'extension trahit un fichier renommé : l'accepter reviendrait à servir plus tard un `Content-Type` qui ne décrit pas le contenu, puisque la route déduit ce dernier de l'extension seule.
 
 **Le nom de fichier passe par la même validation que la lecture.** `validateAssetPath` s'applique au chemin complet avant écriture : mêmes segments, même liste blanche d'extensions, même profondeur maximale. Un fichier qu'on ne pourrait pas relire n'a aucune raison d'être écrit.
 
-**La suppression est refusée si l'asset est référencé.** Deux requêtes vérifient si le nom apparaît dans `Project.coverFilename` ou `Company.logoFilename`, et l'échec nomme les éléments concernés. C'est le comportement déjà retenu pour les tags et les entreprises : dans tout l'espace admin, on ne supprime pas ce qui est utilisé.
+**La suppression est refusée si l'asset est référencé.** Deux requêtes vérifient si la clé apparaît dans `Project.coverFilename` ou `Company.logoFilename`, qui stockent le chemin complet et non le seul nom de fichier, et l'échec nomme les éléments concernés. C'est le comportement déjà retenu pour les tags et les entreprises : dans tout l'espace admin, on ne supprime pas ce qui est utilisé.
 
 **Le listing est paginé dès le départ.** `ListObjectsV2` renvoie au maximum mille objets par appel et se paie en opération Class A, la plus chère. Le volume actuel est très en deçà, mais consommer le jeton de continuation dès l'écriture évite une liste silencieusement tronquée le jour où le nombre d'assets grandit.
 
-**Le sélecteur est un composant à part.** `AssetPicker` sert ici à rien : il est écrit pour les sub-projects `08` et `13`, qui rattacheront un logo et une couverture. L'écrire maintenant, au moment où l'on connaît la forme des données, évite de le bricoler dans un formulaire déjà chargé.
+**Le sélecteur est un composant à part.** `AssetPicker` ne sert à rien ici : il est écrit pour le sub-project `13`, qui rattache une couverture de projet. Le `08` s'exécute avant celui-ci et exclut explicitement l'édition du logo pour cette raison. L'écrire maintenant, au moment où l'on connaît la forme des données, évite de le bricoler dans un formulaire déjà chargé.
 
-**Aucune écriture en base.** Un asset n'a pas d'existence en base : il est un objet dans le bucket, référencé par son nom depuis `Project` ou `Company`. Ce sub-project n'ajoute donc aucun modèle Prisma, conformément à l'ADR-011 qui pose que « les assets binaires ne sont pas modélisés en BDD ».
+**Aucune écriture en base.** Un asset n'a pas d'existence en base : il est un objet dans le bucket, référencé par sa clé depuis `Project` ou `Company`. Ce sub-project n'ajoute donc aucun modèle Prisma, conformément à l'ADR-011.
 
 Rules applicables : `.claude/rules/nextjs/assets.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/configuration.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/vitest/setup.md`.
 

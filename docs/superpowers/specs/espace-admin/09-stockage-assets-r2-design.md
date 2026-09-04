@@ -6,7 +6,7 @@ status: "draft"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-infra-stockage-objet-sauvegardes-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Bascule du stockage des assets vers Cloudflare R2
@@ -36,9 +36,10 @@ Les URLs publiques ne changent pas : la route `/api/assets/[...path]` reste le s
 - **À modifier** : `src/env.ts` (variables R2)
 - **À modifier** : `.env.example`
 - **À modifier** : `compose.yaml` (retrait du volume `portfolio_assets`)
+- **À modifier** : `compose.override.yaml` (retrait du bind-mount de développement `./assets:/app/assets:ro`)
 - **À modifier** : `.claude/rules/nextjs/assets.md`
 - **À modifier** : `docs/adrs/011-stockage-assets.md` (la migration est faite)
-- **À modifier** : `docs/ARCHITECTURE.md` (section Files / Assets Storage)
+- **À modifier** : `docs/ARCHITECTURE.md` (§ Files / Assets Storage, mais aussi les quatre autres passages qui décrivent encore un volume Docker : § Composants Principaux, § Backend > API, § Approche Modélisation et le diagramme Runtime)
 - **À modifier** : `docs/PRODUCTION.md` (variables d'environnement)
 
 ## Architecture approach
@@ -49,11 +50,11 @@ Les URLs publiques ne changent pas : la route `/api/assets/[...path]` reste le s
 
 **Aucune abstraction de stockage n'est introduite.** `.claude/rules/nextjs/assets.md` l'anticipait déjà : « pas d'interface `AssetStorage` prématurée (YAGNI) ». Il n'y a qu'une implémentation, elle s'écrit directement.
 
-**R2 est utilisé en développement comme en production, mais sur des buckets distincts.** `portfolio-assets` en production, `portfolio-assets-dev` en local, chacun servi par son propre token. C'est exactement la logique déjà appliquée à PostgreSQL : un vrai serveur plutôt qu'un substitut, mais des bases séparées (`portfolio_dev`, `portfolio_test`). Un défaut propre à R2 se manifeste ainsi pendant le développement, sans qu'une manipulation locale puisse atteindre les données de production.
+**R2 est utilisé en développement comme en production, mais sur des buckets distincts.** `portfolio-assets` en production, `portfolio-assets-dev` en local, chacun servi par son propre token. C'est exactement la logique déjà appliquée à PostgreSQL : un vrai serveur plutôt qu'un substitut, mais des instances séparées (container local en développement, Dokploy Database en production, base dédiée pour les tests). Un défaut propre à R2 se manifeste ainsi pendant le développement, sans qu'une manipulation locale puisse atteindre les données de production.
 
 Le free tier R2 est un forfait d'usage mensuel, exprimé par la grille tarifaire sans référence au bucket : cette séparation ne coûte rien. Le bucket de développement se peuple par une copie depuis la production quand on veut des données représentatives.
 
-**Le client S3 doit désactiver le calcul de checksum.** Depuis `@aws-sdk/client-s3` 3.729.0, le SDK calcule un CRC32 par défaut que R2 ne supporte pas. `requestChecksumCalculation: 'WHEN_REQUIRED'` est obligatoire. Ce point n'est documenté ni par Cloudflare ni par AWS, seulement dans leur forum et une issue du SDK, et il produit des échecs au message peu parlant. Détails dans `docs/knowledges/cloudflare-r2.md`.
+**Le client S3 doit désactiver le calcul de checksum.** Les versions récentes de `@aws-sdk/client-s3` calculent un CRC32 par défaut que R2 ne supporte pas. `requestChecksumCalculation: 'WHEN_REQUIRED'` est obligatoire. Ce point n'est documenté ni par Cloudflare ni par AWS, seulement dans leur forum et une issue du SDK, et il produit des échecs au message peu parlant. Détails dans `docs/knowledges/cloudflare-r2.md`.
 
 **La réponse relaie le corps de l'objet en flux.** `GetObjectCommand` retourne un corps en flux, transmis directement à la `Response` plutôt que chargé en mémoire. Le CV en PDF étant le plus lourd des assets, cela évite de le tamponner entièrement à chaque requête.
 
@@ -129,6 +130,6 @@ La migration des fichiers ne fait l'objet d'aucun test automatisé : elle s'exé
 - **`NoSuchKey` non traduit** : chaque asset manquant produirait un 500 au lieu d'un 404, ce qui polluerait le monitoring d'erreurs installé au sub-project `02`
 - **Migration incomplète** : un asset oublié ne se manifeste que par une image absente sur une page peu visitée. La vérification doit comparer les inventaires, pas se fier à un coup d'œil
 - **Suppression prématurée du volume** : ne retirer le volume qu'après avoir constaté que les pages se chargent depuis R2. Les fichiers du volume sont la seule copie tant que la migration n'est pas vérifiée
-- **`ASSETS_PATH` résiduelle** : cette variable était lue directement via `process.env` par exception documentée dans la rule. Elle disparaît, et la rule doit suivre, sans quoi elle décrirait un mécanisme qui n'existe plus
+- **`ASSETS_PATH` résiduelle** : elle n'est pas déclarée dans la validation d'environnement, seulement lue en direct dans `src/server/config/assets.ts`, plus deux fichiers de test qui la posent eux-mêmes. Cette lecture disparaît, et la rule doit suivre, sans quoi elle décrirait un mécanisme qui n'existe plus
 - **Coût des opérations** : chaque asset servi devient un `GetObject`, facturé en Class B. Le plan gratuit couvre 10 millions de requêtes mensuelles, largement au-delà du trafic du site, mais la politique de cache d'un an reste ce qui maintient ce nombre bas
 - **Latence ajoutée** : la lecture passe d'un accès disque local à un appel réseau. Sur des assets servis avec un cache d'un an, l'effet reste marginal, mais le premier chargement d'une page est concerné
