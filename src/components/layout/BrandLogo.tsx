@@ -25,7 +25,7 @@ export function BrandLogo({ className, priority }: Props) {
       />
       <Image
         src={buildAssetUrl('branding/logo-horizontal-dark.png')}
-        alt=""
+        alt="Thibaud Geisler"
         width={256}
         height={23}
         preload={priority}

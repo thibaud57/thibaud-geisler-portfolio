@@ -3,11 +3,19 @@ import type { Locale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import { Suspense } from 'react'
 
+import { contactEmail } from '@/config/social-links'
 import { env } from '@/env'
 import { setupLocalePage } from '@/i18n/locale-guard'
 import { Link } from '@/i18n/navigation'
 import { logger } from '@/lib/logger'
-import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from '@/lib/seo'
+import {
+  buildPageMetadata,
+  resolveParentOgImages,
+  setupLocaleMetadata,
+  siteUrl,
+} from '@/lib/seo'
+import { buildContactPage } from '@/lib/seo/json-ld'
+import { JsonLd } from '@/components/seo/json-ld'
 
 import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
 import { ContactForm } from '@/components/features/contact/ContactForm'
@@ -54,10 +62,22 @@ export default async function ContactPage({
   searchParams,
 }: PageProps<'/[locale]/contact'>) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations('ContactPage')
+  const [t, tMeta] = await Promise.all([
+    getTranslations('ContactPage'),
+    getTranslations('Metadata'),
+  ])
+  const contactJsonLd = buildContactPage({
+    locale,
+    siteUrl,
+    name: t('header.h1'),
+    description: tMeta('contactDescription'),
+    personName: 'Thibaud Geisler',
+    email: contactEmail,
+  })
 
   return (
     <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
+      <JsonLd data={contactJsonLd} />
       <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
         <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
           <LocationLine />

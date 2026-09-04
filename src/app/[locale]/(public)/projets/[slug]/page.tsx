@@ -11,14 +11,28 @@ import { PageShell } from '@/components/layout/PageShell'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { JsonLd } from '@/components/seo/json-ld'
 import { setupLocalePage } from '@/i18n/locale-guard'
+import { routing } from '@/i18n/routing'
 import {
   buildPageMetadata,
   resolveParentOgImages,
   setupLocaleMetadata,
   siteUrl,
 } from '@/lib/seo'
-import { buildBreadcrumbList } from '@/lib/seo/json-ld'
-import { findPublishedBySlug } from '@/server/queries/projects'
+import { buildBreadcrumbList, buildProjectCreativeWork } from '@/lib/seo/json-ld'
+import { safeExternalUrl } from '@/lib/url'
+import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
+
+// Prérendre les slugs au build fige title/og/canonical dans le <head> pour TOUS les user-agents.
+// Sans ça, le streaming metadata de Next les envoie après </head>, et seuls les bots de la liste
+// htmlLimitedBots (LinkedIn, Twitter, Slack, Bing…) reçoivent un rendu bloquant qui les protège.
+// Ce qui reste exposé : les crawlers HTML-only absents de cette liste (Telegram, Bluesky, Mastodon).
+// Cf. .claude/rules/nextjs/routing.md pour l'arbitrage complet.
+export async function generateStaticParams() {
+  const slugs = await findAllPublishedSlugs()
+  return routing.locales.flatMap((locale) =>
+    slugs.map(({ slug }) => ({ locale, slug })),
+  )
+}
 
 export async function generateMetadata(
   { params }: PageProps<'/[locale]/projets/[slug]'>,
@@ -76,6 +90,18 @@ async function CaseStudyContentAsync({
       { name: project.title, path: `/projets/${slug}` },
     ],
   })
+  const creativeWorkJsonLd = buildProjectCreativeWork({
+    locale,
+    siteUrl,
+    slug,
+    title: project.title,
+    description: project.description,
+    keywords: project.tags.map(({ tag }) => tag.name),
+    startedAt: project.startedAt,
+    endedAt: project.endedAt,
+    updatedAt: project.updatedAt,
+    githubUrl: safeExternalUrl(project.githubUrl),
+  })
 
   return (
     <>
@@ -112,6 +138,7 @@ async function CaseStudyContentAsync({
         <CaseStudyFooter project={project} />
       </div>
       <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={creativeWorkJsonLd} />
     </>
   )
 }

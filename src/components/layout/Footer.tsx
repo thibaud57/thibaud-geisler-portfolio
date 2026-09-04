@@ -13,6 +13,7 @@ import { formatSiret } from '@/lib/legal/format-siret'
 import { getPublisher } from '@/server/queries/legal'
 
 import { BrandLogo } from './BrandLogo'
+import { FooterLanguageLink } from './FooterLanguageLink'
 
 type Props = {
   locale: Locale
@@ -67,6 +68,7 @@ export async function Footer({ locale }: Props) {
                 label={t('legalNav.cookies')}
                 className={legalNavLinkClass}
               />
+              <FooterLanguageLink className={legalNavLinkClass} />
             </nav>
           </Suspense>
         </div>

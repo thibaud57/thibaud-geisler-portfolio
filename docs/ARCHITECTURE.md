@@ -166,9 +166,9 @@ graph LR
 
 ### Use-case 3 : Affichage d'une page projet (case study)
 
-1. Visiteur accède à `/projets/[slug]`
-2. Next.js query Prisma sur le slug, en `'use cache'` + `cacheTag('projects')`
-3. Rendu dynamique à la demande au premier hit, puis servi depuis le Data Cache jusqu'à revalidation
+1. `generateStaticParams` liste les slugs publiés × locales, prérendus au build (métadonnées comprises)
+2. Visiteur accède à `/projets/[slug]`, servi depuis le prérendu
+3. Next.js query Prisma sur le slug, en `'use cache'` + `cacheTag('projects')`, pour la revalidation et les slugs hors liste rendus à la demande
 
 Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 

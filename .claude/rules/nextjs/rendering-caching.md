@@ -17,7 +17,7 @@ paths:
 - Utiliser `cacheTag('tag-1', 'tag-2')` pour permettre l'invalidation ciblée depuis les Server Actions
 - Utiliser `revalidateTag(tag, 'max')` pour l'eventual consistency (visiteurs suivants), `updateTag(tag)` pour read-your-writes (l'auteur immédiat)
 - Importer `cacheLife` et `cacheTag` depuis `next/cache` sans le préfixe `unstable_` : stables en Next 16 (plus `unstable_cacheLife as cacheLife`)
-- Utiliser `generateStaticParams` avec `dynamicParams = false` pour retourner 404 sur les slugs non pré-générés
+- Utiliser `generateStaticParams` pour prérendre les slugs connus au build. **`dynamicParams` n'est PAS exportable avec `cacheComponents: true`** : le build échoue sur *"Route segment config `dynamicParams` is not compatible with `nextConfig.cacheComponents`"* (vérifié sur Next 16.3.3). Un slug hors liste est rendu à la demande, il n'y a pas de 404 strict par cette voie
 - Activer `logging: { fetches: { fullUrl: true } }` dans `next.config.ts` pour débugger HIT/MISS en dev
 
 ## À éviter
@@ -65,11 +65,12 @@ revalidateTag('resources')
 ```
 
 ```typescript
-// ✅ generateStaticParams + dynamicParams false pour 404 strict
+// ✅ generateStaticParams seul : prérend les slugs connus au build
 export async function generateStaticParams() {
   const items = await getItems()
   return items.map(item => ({ slug: item.slug }))
 }
 
-export const dynamicParams = false
+// ❌ dynamicParams : build cassé avec cacheComponents
+// export const dynamicParams = false
 ```
