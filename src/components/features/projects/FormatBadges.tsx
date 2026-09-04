@@ -5,25 +5,18 @@ import type { LocalizedProjectWithRelations } from '@/types/project'
 
 type Props = {
   formats: LocalizedProjectWithRelations['formats']
-  size?: 'sm' | 'md'
   className?: string
 }
 
-export function FormatBadges({ formats, size = 'md', className }: Props) {
+export function FormatBadges({ formats, className }: Props) {
   const tFormats = useTranslations('Projects.formats')
 
   if (formats.length === 0) return null
 
-  const textSize = size === 'sm' ? 'text-[10px]' : 'text-xs'
-
   return (
     <div className={cn('flex flex-wrap gap-2', className)}>
       {formats.map((format) => (
-        <Badge
-          key={format}
-          variant="outline"
-          className={cn(textSize, 'font-medium uppercase tracking-wider')}
-        >
+        <Badge key={format} variant="outline" meta>
           {tFormats(format)}
         </Badge>
       ))}

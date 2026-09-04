@@ -39,14 +39,14 @@ export function Hero({
         <div className="relative max-w-2xl overflow-hidden">
           <p
             aria-hidden
-            className="invisible whitespace-pre-line text-lg text-muted-foreground sm:text-xl"
+            className="invisible whitespace-pre-line text-xl text-muted-foreground"
           >
             {tagline}
           </p>
           <HyperText
             as="p"
             revealOrder="random"
-            className="absolute inset-0 py-0 text-lg font-normal text-muted-foreground sm:text-xl"
+            className="absolute inset-0 py-0 text-xl font-normal text-muted-foreground"
           >
             {tagline}
           </HyperText>

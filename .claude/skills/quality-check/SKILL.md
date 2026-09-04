@@ -1,7 +1,7 @@
 ---
 name: quality-check
-description: Lance les vérifications qualité du code (lint, typecheck, tests, build). Appelle `just lint`, `just typecheck`, `just test` (ou granulaires `just test-unit`, `just test-integration`, `just test-watch`), et `just build` pour vérifier que le bundle Next.js compile. À invoquer après modification de code, avant commit/PR, ou sur demande ("lance les tests", "check le code", "valide le build").
-allowed-tools: Bash(just lint), Bash(just typecheck), Bash(just test), Bash(just test-unit), Bash(just test-integration), Bash(just test-watch), Bash(just build)
+description: Lance les vérifications qualité du code (lint, typecheck, tests, build, audit des dépendances). Appelle `just lint`, `just typecheck`, `just test` (ou granulaires `just test-unit`, `just test-integration`, `just test-watch`), `just build` pour vérifier que le bundle Next.js compile, et `just audit` pour les vulnérabilités des dépendances. À invoquer après modification de code, avant commit/PR, ou sur demande ("lance les tests", "check le code", "valide le build", "audit les deps").
+allowed-tools: Bash(just lint), Bash(just typecheck), Bash(just test), Bash(just test-unit), Bash(just test-integration), Bash(just test-watch), Bash(just build), Bash(just audit)
 ---
 
 # quality-check - Vérifications qualité
@@ -10,7 +10,7 @@ Ta mission est de lancer les vérifications qualité du projet et reporter les r
 
 ## Input
 
-Optionnel : l'utilisateur peut préciser quel check (`lint`, `typecheck`, `test`, `test-unit`, `test-integration`, `test-watch`, `build`). Sinon, enchaîner les 3 principaux (`lint` + `typecheck` + `test`). `build` est plus lourd et ne fait PAS partie du workflow par défaut — à lancer à la demande ou avant PR sur `main`.
+Optionnel : l'utilisateur peut préciser quel check (`lint`, `typecheck`, `test`, `test-unit`, `test-integration`, `test-watch`, `build`, `audit`). Sinon, enchaîner les 3 principaux (`lint` + `typecheck` + `test`). `build` et `audit` ne font PAS partie du workflow par défaut — à lancer à la demande ou avant PR sur `main`.
 
 ## Workflow
 
@@ -33,10 +33,12 @@ Stopper au premier échec, afficher l'erreur brute sans troncature.
 | test-integration | `just test-integration` (uniquement `.integration.test.*`) |
 | test-watch | `just test-watch` (background, watch mode) |
 | build | `just build` (bundle Next.js complet — plus lourd, pas enchaîné par défaut) |
+| audit | `just audit` (`pnpm audit --audit-level=high`, pas enchaîné par défaut) |
 
 ## Règles
 
 - Stopper au premier échec, afficher l'output brut
 - `test-watch` toujours en background
 - `build` à ne pas enchaîner automatiquement dans le workflow par défaut (lourd, utile avant PR `main` ou pour vérifier un bundle)
+- `audit` à ne pas enchaîner automatiquement non plus : il **sort en code 1 dès qu'une vulnérabilité est trouvée**, ce qui déclencherait le « stopper au premier échec » sur des CVE que la CI elle-même ne bloque pas (`continue-on-error`). Le rapporter comme une information à lire, pas comme un échec : préciser la sévérité, le paquet concerné, et si ce paquet est une dépendance de développement ou un transitif jamais chargé en production
 - Si `typecheck` échoue sur `PageProps` / `LayoutProps` → suggérer `pnpm exec next typegen` pour régénérer les types Next

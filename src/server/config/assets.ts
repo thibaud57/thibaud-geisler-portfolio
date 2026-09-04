@@ -43,7 +43,9 @@ export function validateAssetPath(raw: string[]): ValidateAssetPathResult {
 }
 
 export function resolveAssetPath(joined: string): string {
-  const root = path.resolve(process.env.ASSETS_PATH ?? './assets')
+  // ASSETS_PATH est une racine fixe côté OS, pas un chemin projet : turbopackIgnore évite que
+  // Next trace tout le repo (dont public/) dans le bundle serveur de la route.
+  const root = path.resolve(/*turbopackIgnore: true*/ process.env.ASSETS_PATH ?? './assets')
   const candidate = path.resolve(root, joined)
   if (!candidate.startsWith(root + path.sep) && candidate !== root) {
     throw new Error(`Path traversal detected: "${joined}"`)

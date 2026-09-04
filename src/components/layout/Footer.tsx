@@ -25,24 +25,24 @@ export async function Footer({ locale }: Props) {
 
   return (
     <footer className="border-t border-border mt-auto">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 gap-x-8 gap-y-3 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:grid-rows-[auto_auto_auto] lg:items-center lg:px-8">
-        <div className="lg:col-start-1 lg:row-start-1">
+      <div className="max-w-7xl mx-auto grid grid-cols-2 grid-rows-[auto_auto_auto] items-center gap-x-4 gap-y-3 px-4 py-8 sm:gap-x-8 sm:px-6 lg:px-8 lg:py-12">
+        <div className="col-start-1 row-start-1">
           <BrandLogo />
         </div>
-        <p className="text-sm text-muted-foreground lg:col-start-1 lg:row-start-2">
+        <p className="text-sm text-muted-foreground col-start-1 row-start-2">
           {t('tagline')}
         </p>
-        <p className="text-sm text-muted-foreground lg:col-start-1 lg:row-start-3">
+        <p className="text-sm text-muted-foreground col-start-1 row-start-3">
           {t('location')}
         </p>
 
-        <div className="mt-5 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:justify-self-end">
+        <div className="col-start-2 row-start-1 justify-self-end">
           <SocialLinks />
         </div>
-        <p className="text-sm text-muted-foreground lg:col-start-2 lg:row-start-2 lg:text-right">
+        <p className="text-sm text-muted-foreground col-start-2 row-start-2 text-right">
           {t('cv.label')}
         </p>
-        <div className="lg:col-start-2 lg:row-start-3 lg:justify-self-end">
+        <div className="col-start-2 row-start-3 justify-self-end">
           <DownloadCvButton locale={locale} variant="outline" size="sm" />
         </div>
       </div>

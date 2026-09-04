@@ -94,31 +94,29 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 
 ## Positives
 
-- Si Option A (Volumes Docker) : zéro coût et zéro infrastructure supplémentaire pour le MVP
-- Si Option B (Cloudflare R2) : CDN global, performances optimales, scalabilité infinie
-- Si Option C (Minio) : self-hosted complet, API S3-compatible facilitant une future migration vers R2
-- Quelle que soit l'option : la contrainte "route API uniquement" (pas de `public/`) est déjà actée, l'implémentation applicative est identique pour toutes les options
+- Zéro coût et zéro infrastructure supplémentaire pour le MVP
+- Volume persistant entre les redéploiements, sans opération supplémentaire sur le VPS
+- La contrainte "route API uniquement" (pas de `public/`) étant actée, une migration ultérieure ne touche que la couche d'accès au fichier
 
 ## Négatives
 
-- Si Option A : backup des volumes Docker à mettre en place manuellement (risque de perte)
-- Si Option A : pas de CDN, performance moindre pour des assets lourds servis hors Europe
-- Si Option B : dépendance cloud externe, coût variable
-- Si Option C : service supplémentaire à opérer, ressources VPS partagées
+- Backup du volume Docker à mettre en place manuellement (risque de perte)
+- Pas de CDN, performance moindre pour des assets lourds servis hors Europe
+- Migration vers R2 à prévoir dès l'upload depuis l'espace admin, avec sa dépendance cloud et son coût variable
 
 ---
 
 # 📝 Notes complémentaires
 
-**Pattern commun aux trois options :** route API `/api/assets/[...path]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier, configurée via une variable d'environnement `ASSETS_PATH`.
+**Pattern commun aux trois options :** route API `/api/assets/[...path]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier : un chemin disque configuré par `ASSETS_PATH` pour l'Option A, des credentials et un fetch signé pour B et C.
 
 **Workflow dev local / prod :**
-- Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env.local`
-- Prod Docker : volume `assets_data` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` dans les variables Dokploy
+- Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env`
+- Prod Docker : volume `portfolio_assets` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` fixé dans `compose.yaml`
 - Le volume Docker persiste entre les redéploiements, remplacer le container ne supprime pas les fichiers
 
 **Trigger migration vers R2 :** dès l'implémentation de l'upload depuis l'espace admin. R2 est préféré à Minio : zéro service à opérer, free tier 10 Go, zéro frais de sortie (egress), SDK S3-compatible.
 
-Voir ADR-005 pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
+Cf. [ADR-005](005-hebergement-dokploy-vs-vercel.md) pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
 
-**Évolution post-implémentation, route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque suit la convention `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.
+**Évolution post-implémentation, route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque compte trois racines : `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL), `documents/cv/` (CV PDF par locale) et `branding/` (logo, portrait). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.

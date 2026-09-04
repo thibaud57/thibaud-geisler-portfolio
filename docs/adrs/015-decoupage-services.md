@@ -111,4 +111,4 @@ Le domaine freelance n'a **pas** de dépôt : ce n'est pas un produit, c'est un 
 
 **Point de bascule.** Si le domaine freelance devenait un produit détachable et vendable, son extraction serait nécessaire et coûteuse. Tant qu'il s'agit d'un outil personnel, l'intégration reste le bon choix.
 
-Voir [ADR-020](020-portfolio-bff.md) pour le rôle du portfolio comme Backend For Frontend, et [ADR-018](018-cloisonnement-donnees.md) pour la répartition des bases, des schemas et la règle « un seul propriétaire par schema ».
+Cf. [ADR-020](020-portfolio-bff.md) pour le rôle du portfolio comme Backend For Frontend, et [ADR-018](018-cloisonnement-donnees.md) pour la répartition des bases, des schemas et la règle « un seul propriétaire par schema ».

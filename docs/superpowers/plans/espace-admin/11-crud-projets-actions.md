@@ -21,6 +21,8 @@
 - Le passage de `CLIENT` à `PERSONAL` **supprime la méta client**. C'est assumé, et le formulaire du sub-project `13` devra avertir.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
 - `updateTag('projects')` après chaque mutation réussie. `updateTag` fait attendre la requête suivante le temps de recharger, quand `revalidateTag(tag, 'max')` servirait d'abord du contenu périmé : c'est ce que le sub-project `13` vérifie en passant un projet en publié puis en consultant `/fr/projets`.
+- **`revalidatePath('/admin/projets')` en plus**, dans les mêmes mutations. L'étiquette `projects` n'est portée que par les requêtes publiques : les écrans d'administration lisent sans cache et sans étiquette, rien ne les rafraîchirait. Sans cet appel, une ligne supprimée reste affichée, et le scénario correspondant du sub-project `12` échoue.
+- Renommer l'import de cache si le fichier exporte une action homonyme : `import { updateTag as updateCacheTag } from 'next/cache'`.
 - La requête d'administration ignore le statut et n'utilise pas `'use cache'`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
@@ -197,7 +199,7 @@ export const initialProjectFormState: ProjectFormState = {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/headers', () => ({ headers: vi.fn(() => new Headers()) }))
-vi.mock('next/cache', () => ({ updateTag: vi.fn() }))
+vi.mock('next/cache', () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
@@ -458,7 +460,7 @@ Expected: FAIL, le module `./projects` n'existe pas.
 'use server'
 
 import 'server-only'
-import { updateTag } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 
 import { getCurrentUser } from '@/lib/get-current-user'
 import { prisma } from '@/lib/prisma'
@@ -567,6 +569,7 @@ export async function createProject(
     })
 
     updateTag('projects')
+    revalidatePath('/admin/projets')
     log.info({ event: 'project:created', slug: input.slug })
     return { ok: true, errors: {}, message: null, savedId: project.id }
   } catch (err) {
@@ -646,6 +649,7 @@ export async function updateProject(
     })
 
     updateTag('projects')
+    revalidatePath('/admin/projets')
     log.info({ event: 'project:updated', slug: input.slug })
     return { ok: true, errors: {}, message: null, savedId: id }
   } catch (err) {
@@ -670,6 +674,7 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
   try {
     await prisma.project.delete({ where: { id } })
     updateTag('projects')
+    revalidatePath('/admin/projets')
     log.info({ event: 'project:deleted', id })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -688,7 +693,9 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
 - [ ] **Step 4: Lancer les tests pour vérifier qu'ils passent**
 
 Run: `pnpm vitest run --project unit src/server/actions/projects.test.ts`
-Expected: PASS, vingt-deux cas verts.
+Expected: PASS, vingt-quatre cas verts.
+
+Deux cas que la spec exige et qui manquaient à cette liste : un `status` absent de `ProjectStatus` est refusé, et un échec de validation renvoie les valeurs saisies dans l'état. Le second n'est pas cosmétique : c'est le repeuplement du formulaire après erreur, que le sub-project `13` tient pour non négociable.
 
 ---
 
@@ -726,6 +733,15 @@ export async function findProjectForAdmin(id: string) {
 ```
 
 Ni `'use cache'` ni filtre sur le statut, contrairement à `findManyPublished`. L'administration doit voir les brouillons et les archivés, et les voir immédiatement après une mutation.
+
+**Exporter le type de retour de chacune, ne jamais réutiliser `ProjectWithRelations`.** Ce dernier dérive de `PROJECT_INCLUDE` (`src/types/project.ts`), qui charge la `Company` entière ; les deux requêtes ci-dessus n'en prennent qu'une projection, voire rien. Les types ne sont pas assignables et `just typecheck` le refusera. Déclarer, à côté des requêtes :
+
+```typescript
+export type AdminProjectListItem = Awaited<ReturnType<typeof findAllProjectsForAdmin>>[number]
+export type AdminProjectDetail = NonNullable<Awaited<ReturnType<typeof findProjectForAdmin>>>
+```
+
+Ce sont ces deux types que consomment les écrans des sub-projects `12` et `13`. Ils suivent automatiquement toute évolution de l'`include`.
 
 Pas de localisation : l'écran affiche les champs français et anglais côte à côte, puisqu'il sert à les éditer.
 
