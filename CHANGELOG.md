@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.0...v1.6.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* CLS des pages publiques, validation des URL externes et cohérence documentaire ([#122](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/122)) ([52d1571](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/52d1571c4d0ef9693ad52923aae2412141d41a43))
+
 ## [1.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.1...v1.6.0) (2026-09-04)
 
 
