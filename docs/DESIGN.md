@@ -276,7 +276,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Hero effects | Background Ripple Effect | Aceternity UI | Fond interactif hero/CTA, grille de cellules qui ripplent au clic |
 | Effets visuels enrichis | Border Beam | Magic UI | Enrichissement visuel des surfaces marketing, always-on sur 3 emplacements (badge "En cours", CTA démo, card service mise en avant) |
-| Entrée au scroll | MotionItem | composant maison (Motion) | Props `index` (rang dans la rangée) et `className` : inséré dans une grille il en devient l'élément, les classes du parent (`col-span`, `h-full`) doivent lui être portées |
+| Entrée au scroll | MotionItem | composant maison (`IntersectionObserver`) | Props `index` (rang dans la rangée) et `className` : inséré dans une grille il en devient l'élément, les classes du parent (`col-span`, `h-full`) doivent lui être portées |
 
 ### Identité
 
@@ -344,7 +344,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| Motion (package `motion`, import `motion/react`) | Animations UI et transitions | Fade-in au scroll, transitions de page, hover states |
+| Motion (package `motion`, import `motion/react`) | Animations avancées sur composants Magic UI | `BorderBeam`, `HyperText`, `NumberTicker`, `WordRotate` |
 | Magic UI | Text effects et effets visuels enrichis | Text reveals, aurora text, border beam, particles, 2-3 effets max par page |
 | Aceternity UI | Hero effects premium | Background Ripple Effect (seul effet installé en MVP), hero / sections clés. Autres effets premium (MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams) candidats post-MVP |
 
@@ -363,8 +363,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Composant | Type d'animation | Librairie | Trigger |
 |-----------|-----------------|-----------|---------|
-| Sections marketing | Fade-in + slide-up 20px, `400ms ease-out` | Motion (`MotionItem`) | Scroll (viewport entry à 20%) |
-| Cards en grille | Idem, en cascade `100ms` par colonne (`index % colonnes`, plafonnée à une rangée) | Motion (`MotionItem`) | Scroll (viewport entry à 20%) |
+| Sections marketing | Fade-in + slide-up 20px, `400ms ease-out` | CSS + IntersectionObserver (`MotionItem`) | Scroll (viewport entry à 20%) |
+| Cards en grille | Idem, en cascade `100ms` par colonne (`index % colonnes`, plafonnée à une rangée) | CSS + IntersectionObserver (`MotionItem`) | Scroll (viewport entry à 20%) |
 | Surfaces cliquables custom | Scale `1.01` + ombre, `300ms ease-out` | Tailwind transitions | Hover |
 | Surfaces custom non cliquables | Contour porté à `primary/40`, `300ms ease-out` | Tailwind transitions | Hover |
 | Boutons CTA standards | Défaut shadcn (`hover:bg-primary/90`) | Tailwind transitions | Hover |
