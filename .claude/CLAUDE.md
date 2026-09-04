@@ -18,6 +18,9 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 | [registre-traitements.md](../docs/registre-traitements.md) | Registre RGPD des traitements de données (art. 30) | Conformité données personnelles, document interne |
 | [adrs/](../docs/adrs/) | Architecture Decision Records | Justification des décisions actées |
 | [knowledges/](../docs/knowledges/) | Fiches techniques par techno | Références détaillées par librairie |
+| [baselines/](../docs/baselines/) | Relevés Core Web Vitals datés | Comparer les perfs avant/après une optimisation |
+| [reports/](../docs/reports/) | Audits ponctuels (SEO, etc.) | Retrouver le constat d'un audit passé |
+| [superpowers/](../docs/superpowers/) | Specs et plans d'implémentation par sub-project | Savoir ce qui est prévu, décomposé ou déjà spécifié |
 | [.claude/rules/](rules/) | Règles techniques impératives par librairie | Conventions de code chargées dynamiquement |
 
 ## Must-do
@@ -50,6 +53,8 @@ Après merge PR : `/git-sync-develop` pour aligner develop local + supprimer la 
 
 ## Gotchas
 
+- **Suspendre Kaspersky avant toute mesure de perf locale** : il injecte 212 Ko de JS bloquant dans chaque page, au niveau réseau, donc dans tout navigateur. Vérifier son absence des requêtes avant d'interpréter un chiffre
+- **Lighthouse simule le throttling, il ne l'applique pas** : jusqu'à 5× d'écart sur le LCP avec une mesure sous throttling réel. Chiffre opposable = [PageSpeed Insights](https://pagespeed.web.dev/) sur l'URL de production, via son interface web (l'API refuse l'accès anonyme)
 - **Formation IA intégrée dans `/services`** : pas de sous-page `/services/formation` dédiée tant que l'offre n'est pas stabilisée. Réévaluer uniquement si l'offre formation grossit significativement
 
 ## Commandes

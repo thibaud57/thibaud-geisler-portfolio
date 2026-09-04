@@ -15,7 +15,7 @@ paths:
 - Créer un **child logger par Server Action / requête** avec bindings statiques (`action`, `requestId: crypto.randomUUID()`) pour tracer le flow d'exécution
 - Logger les erreurs avec `err` en **premier argument** : `logger.error({ err }, 'message')` — Pino capture automatiquement `message`, `stack`, `type`
 - Respecter les niveaux : `info` événements normaux, `warn` dégradés non bloquants (rate limit, retry), `error` échecs bloquants
-- Activer `redact: { paths: [...], remove: true }` pour masquer automatiquement les champs sensibles (`*.authorization`, `req.headers.cookie`, `smtp.pass`)
+- Activer `redact` pour masquer automatiquement les champs sensibles (`*.authorization`, `req.headers.cookie`, `smtp.pass`). Préférer `censor: '[REDACTED]'` à `remove: true` : la clé reste visible dans la ligne, ce qui permet de constater au débogage qu'un champ sensible a bien été intercepté, là où `remove` le fait disparaître sans laisser de trace
 - Déclarer `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : les 3 packages sont **obligatoires**, `thread-stream` est le worker thread sous-jacent que Next.js doit traiter comme module externe
 - Installer explicitement **`thread-stream`** : `pnpm add thread-stream` (dépendance runtime de Pino, pas toujours résolue automatiquement)
 - Charger le logger au démarrage côté serveur uniquement via **`instrumentation.ts`** : `if (process.env.NEXT_RUNTIME === 'nodejs') await import('./lib/logger')` dans `register()`
@@ -79,7 +79,7 @@ export async function register() {
 export const logger = pino({
   redact: {
     paths: ['*.authorization', 'req.headers.cookie', '*.password', 'smtp.pass'],
-    remove: true,
+    censor: '[REDACTED]',
   },
 })
 ```

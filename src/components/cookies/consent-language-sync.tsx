@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useLocale } from 'next-intl'
-import { useConsentManager } from '@c15t/nextjs'
+import { useConsentManager } from '@c15t/nextjs/headless'
 
 export function ConsentLanguageSync() {
   const locale = useLocale()

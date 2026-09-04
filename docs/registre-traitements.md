@@ -31,7 +31,7 @@ scope: ["docs", "legal"]
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | IONOS (acheminement email SMTP) |
 | Transferts hors UE | Aucun |
-| Conservation | À définir |
+| Conservation | Boîte du destinataire, sans purge automatisée. Aucune copie côté site |
 | Stockage | Aucune persistance en base, données acheminées par email |
 | Sécurité | HTTPS/TLS, validation Zod, rate limiting (5 / 10 min par IP), SMTP chiffré |
 
@@ -46,8 +46,8 @@ scope: ["docs", "legal"]
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | IONOS (hébergeur du VPS) |
 | Transferts hors UE | Aucun |
-| Conservation | 12 mois maximum |
-| Sécurité | IP pseudonymisée, aucun secret ni contenu de message journalisé |
+| Conservation | 180 jours maximum |
+| Sécurité | IP pseudonymisée, aucun secret journalisé. Ni le contenu des messages ni l'identité de leur auteur, hors message d'erreur d'un rejet SMTP |
 
 ## Traitement 3 : prise de rendez-vous (Calendly)
 
@@ -66,4 +66,4 @@ scope: ["docs", "legal"]
 ## Notes
 
 - Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).
-- Durées « À définir » à fixer par le responsable de traitement.
+- Les 180 jours des logs sont tenus par un `logrotate` sur le VPS, hors du dépôt : à revérifier après toute réinstallation du serveur. Mécanisme : [PRODUCTION.md](PRODUCTION.md) § Rétention.

@@ -2,16 +2,12 @@
 
 import { useMemo, type ReactNode } from 'react'
 import { useLocale } from 'next-intl'
+import dynamic from 'next/dynamic'
 import {
   ConsentManagerProvider,
-  ConsentBanner,
-  ConsentDialog,
   type ConsentManagerOptions,
-} from '@c15t/nextjs'
+} from '@c15t/nextjs/headless'
 import { baseTranslations } from '@c15t/translations/all'
-// Importé ici (pas dans globals.css) car c15t chaîne 3 packages CSS via @import et Lightning CSS
-// Tailwind 4 ne suit pas la résolution npm transitive ; bundler Next.js le fait correctement.
-import '@c15t/nextjs/styles.css'
 
 import frMessages from '../../messages/fr.json'
 import enMessages from '../../messages/en.json'
@@ -19,6 +15,19 @@ import enMessages from '../../messages/en.json'
 import { Toaster } from '@/components/ui/sonner'
 import { ConsentLanguageSync } from '@/components/cookies/consent-language-sync'
 import { buildLegalLinks } from '@/lib/cookies/build-legal-links'
+
+// Le provider vient de /headless (sans UI) et les surfaces du module consent-ui, qui porte
+// aussi leur CSS : c'est ce couple qui crée une vraie frontière de chunk. Les importer du
+// même point d'entrée remettrait l'UI dans le bundle synchrone, dynamic() ou pas.
+// ssr: false assumé : overlays purement interactifs, aucun contenu indexable.
+const ConsentBanner = dynamic(
+  () => import('@/components/cookies/consent-ui').then((m) => m.ConsentBanner),
+  { ssr: false },
+)
+const ConsentDialog = dynamic(
+  () => import('@/components/cookies/consent-ui').then((m) => m.ConsentDialog),
+  { ssr: false },
+)
 
 const themeColors = {
   primary: 'var(--primary)',
