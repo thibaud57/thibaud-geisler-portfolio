@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import { env } from '@/env'
+import { localeToOgLocale } from '@/i18n/locale-tags'
 import { routing } from '@/i18n/routing'
 
 type OpenGraphImages = NonNullable<NonNullable<Metadata['openGraph']>['images']>
@@ -20,10 +21,13 @@ export async function resolveParentOgImages(
 
 export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
 
-export const localeToOgLocale = {
-  fr: 'fr_FR',
-  en: 'en_US',
-} as const satisfies Record<Locale, string>
+export { localeToOgLocale }
+
+export function buildOgAlternateLocales(locale: Locale): string[] {
+  return routing.locales
+    .filter((other) => other !== locale)
+    .map((other) => localeToOgLocale[other])
+}
 
 export function buildLanguageAlternates(path: string, base = ''): Record<string, string> {
   return {
@@ -74,6 +78,7 @@ export function buildPageMetadata({
     openGraph: {
       type: ogType,
       locale: localeToOgLocale[locale],
+      alternateLocale: buildOgAlternateLocales(locale),
       url,
       siteName,
       title,

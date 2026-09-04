@@ -2,7 +2,7 @@
   "HomePage": {
     "title": "Home",
     "hero": {
-      "h1": "Thibaud Geisler - <accent>AI</accent> & Full-Stack Development",
+      "h1": "Thibaud Geisler, freelance <accent>GenAI</accent> & Full-Stack Tech Lead",
       "tagline": "AI, custom application development and training.\nFrom idea to production.",
       "ctaPrimary": "Let's talk about your project",
       "ctaSecondary": "See my projects",
@@ -156,7 +156,7 @@
   "AboutPage": {
     "title": "About",
     "hero": {
-      "headline": "Thibaud Geisler - AI & Full-Stack Development",
+      "headline": "Thibaud Geisler - <accent>AI</accent> & Full-Stack Development",
       "tagline": "I design AI products and custom web apps, in small teams or solo, with a business-solution mindset.",
       "portraitAlt": "Portrait of Thibaud Geisler"
     },
@@ -202,6 +202,7 @@
       "ariaLabel": {
         "linkedin": "Thibaud Geisler's LinkedIn profile",
         "github": "Thibaud Geisler's GitHub profile",
+        "malt": "Thibaud Geisler's Malt profile",
         "email": "Send an email to Thibaud Geisler"
       }
     },
@@ -249,7 +250,7 @@
     }
   },
   "Footer": {
-    "tagline": "AI & Full-Stack Development",
+    "tagline": "Freelance GenAI & Full-Stack Tech Lead",
     "location": "Grand Est · Paris · Luxembourg · Remote",
     "cv": {
       "label": "My résumé (PDF):"
@@ -298,20 +299,20 @@
     "contact": "Contact"
   },
   "Metadata": {
-    "siteTitle": "Thibaud Geisler: AI & Development",
+    "siteTitle": "Thibaud Geisler",
     "siteDescription": "Thibaud Geisler's portfolio. Artificial intelligence, full-stack development, and AI training.",
-    "homeTitle": "Home",
-    "homeDescription": "Explore my services in AI, full-stack development, and training. Projects and live demos available.",
-    "servicesTitle": "Services",
-    "servicesDescription": "AI & automation, full-stack development, corporate AI training.",
-    "projectsTitle": "Projects",
-    "projectsDescription": "Portfolio of artificial intelligence and full-stack development projects.",
+    "homeTitle": "Freelance GenAI & Full-Stack Tech Lead",
+    "homeDescription": "Freelance GenAI & full-stack tech lead: AI agents, RAG, MCP and n8n automation in production. Python, TypeScript, Scala, Angular. Enterprises and SMBs, from scoping to infra.",
+    "servicesTitle": "AI, full-stack & training services",
+    "servicesDescription": "AI agents, RAG, MCP and n8n automation in production, full-stack development in Python, TypeScript, Scala and Angular, corporate AI training. From scoping to infra.",
+    "projectsTitle": "AI and full-stack projects, case studies",
+    "projectsDescription": "Case studies of AI and full-stack projects: agents, RAG, n8n automation, web apps. Client work and personal projects, with stack and results.",
     "projectTitle": "Project: {slug}",
     "projectDescription": "Case study of the {slug} project by Thibaud Geisler.",
     "aboutTitle": "About",
-    "aboutDescription": "Background, technical skills, and working approach of Thibaud Geisler.",
+    "aboutDescription": "Freelance GenAI & full-stack tech lead based in Metz, Grand Est · Paris · Luxembourg · Remote. Background, stack and way of working, from small businesses to large accounts.",
     "contactTitle": "Contact",
-    "contactDescription": "Get in touch with Thibaud Geisler for an AI project, an application, or training.",
+    "contactDescription": "An AI project, an application or a training to scope? Write to me or book a slot in my calendar, reply within 2 business days.",
     "jobTitle": "AI & full-stack development",
     "breadcrumbHome": "Home",
     "breadcrumbServices": "Services",

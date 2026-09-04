@@ -33,9 +33,9 @@ export function MobileMenu({ footerSlot }: Props) {
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="flex flex-col gap-3 p-6 pt-2 pb-4"
+        className="flex flex-col gap-3 p-6 pt-4 pb-4"
       >
-        <SheetHeader className="flex-row items-center justify-between border-b border-border p-0 pb-2">
+        <SheetHeader className="flex-row items-center justify-between border-b border-border p-0 pb-4">
           <SheetTitle className="sr-only">{t('ariaLabel')}</SheetTitle>
           <BrandLogo className="w-[180px]" />
           <SheetClose asChild>
