@@ -2,7 +2,7 @@
 title: "Cloudflare R2 — Stockage objet S3-compatible"
 version: "n/a (service managé, sans versioning)"
 description: "Référence technique pour Cloudflare R2 : buckets, endpoint S3, tokens scopés, classes d'opérations et lifecycle."
-date: "2026-08-30"
+date: "2026-09-03"
 keywords: ["cloudflare", "r2", "stockage-objet", "s3", "assets", "sauvegardes"]
 scope: ["docs"]
 technologies: ["AWS SDK for JavaScript v3", "Dokploy", "rclone", "Next.js", "PostgreSQL"]
@@ -238,7 +238,7 @@ wrangler r2 bucket lifecycle add portfolio-backups \
 - Deux effets possibles : transition de classe de stockage, ou expiration (suppression)
 - Si une règle de transition et une règle d'expiration tombent dans la même fenêtre de 24 h, **l'expiration l'emporte**
 - L'application n'est pas instantanée : compter environ 24 h après le déclenchement
-- Une rétention côté Dokploy (`retentionDays` sur la sauvegarde) et une lifecycle rule côté R2 font le même travail. En choisir **une seule**, sinon la plus courte gagne silencieusement
+- Une rétention côté Dokploy (`Keep the latest` sur la sauvegarde, qui compte des sauvegardes et non des jours) et une lifecycle rule côté R2 font le même travail. En choisir **une seule**, sinon la plus courte gagne silencieusement
 - Une règle implicite d'expiration des multipart uploads incomplets après 7 jours est mentionnée par des résultats de recherche mais n'a pas été confirmée sur une page officielle
 
 ---
@@ -310,7 +310,7 @@ wrangler r2 object delete <bucket>/<clé>
 
 ## ✅ Recommandations
 
-- **Deux buckets, deux tokens** : `portfolio-assets` pour l'application, `portfolio-backups` pour Dokploy, chacun avec un token `Object Read & Write` restreint à son seul bucket. Une compromission de l'application ne doit pas permettre d'effacer les sauvegardes
+- **Un bucket par usage, un token par bucket**, chacun en `Object Read & Write` restreint à son seul bucket : une compromission de l'application ne doit pas permettre d'effacer les sauvegardes, et une manipulation locale ne doit pas atteindre la production. Le découpage retenu par le projet est de trois buckets (`portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`), décidé dans `docs/superpowers/specs/espace-admin/01-infra-stockage-objet-sauvegardes-design.md` : le forfait gratuit étant mensuel et non par bucket, la séparation ne coûte rien
 - **Garder les buckets privés** : les assets transitent par `/api/assets/[...path]`, qui conserve la validation de chemin et la politique de cache déjà en place
 - Fixer `requestChecksumCalculation: 'WHEN_REQUIRED'` sur le client S3 dès la première ligne écrite, avant de perdre du temps sur des uploads qui échouent
 - Choisir la juridiction à la création en connaissance de cause : c'est le seul paramètre définitivement figé

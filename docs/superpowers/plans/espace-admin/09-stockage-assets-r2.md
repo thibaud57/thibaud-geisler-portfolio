@@ -13,10 +13,10 @@
 ## Global Constraints
 
 - **Les URLs publiques ne changent pas.** `/api/assets/[...path]` reste le seul point d'accès et le bucket demeure privé.
-- **`requestChecksumCalculation: 'WHEN_REQUIRED'` sur le client S3.** Depuis `@aws-sdk/client-s3` 3.729.0, le SDK calcule par défaut un checksum CRC32 que R2 ne supportait pas, ce qui faisait échouer `PutObject` et `UploadPart` avec un message peu parlant. Cloudflare a depuis annoncé l'incident comme résolu de son côté : le réglage n'est donc peut-être plus indispensable, mais il reste sans effet de bord et couvre le cas où la compatibilité régresserait. Le garder, et ne le retirer qu'après avoir constaté qu'un upload passe sans lui.
+- **`requestChecksumCalculation: 'WHEN_REQUIRED'` sur le client S3.** Les versions récentes de `@aws-sdk/client-s3` calculent par défaut un checksum CRC32 que R2 ne supportait pas, ce qui faisait échouer `PutObject` et `UploadPart` avec un message peu parlant. Cloudflare a depuis annoncé l'incident comme résolu de son côté : le réglage n'est donc peut-être plus indispensable, mais il reste sans effet de bord et couvre le cas où la compatibilité régresserait. Le garder, et ne le retirer qu'après avoir constaté qu'un upload passe sans lui.
 - `NoSuchKey` doit être traduit en 404. Sans cela, chaque asset manquant produit un 500 et pollue le monitoring.
 - Aucune abstraction de stockage : une seule implémentation, écrite directement. La rule le pose déjà, « pas d'interface `AssetStorage` prématurée (YAGNI) ».
-- R2 est utilisé en développement comme en production, mais sur des **buckets distincts** : `portfolio-assets` en production, `portfolio-assets-dev` en local, chacun avec son propre token. Même principe que `portfolio_dev` face à la base de production.
+- R2 est utilisé en développement comme en production, mais sur des **buckets distincts** : `portfolio-assets` en production, `portfolio-assets-dev` en local, chacun avec son propre token. Même principe que la base de développement face à celle de production.
 - **Ne retirer le volume qu'après vérification** : tant que la migration n'est pas constatée, il porte la seule copie des fichiers.
 - Les en-têtes `Cache-Control` sont conservés à l'identique, distinction développement et production comprise.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
@@ -63,9 +63,7 @@ et dans `runtimeEnv`, en miroir :
     R2_BUCKET: process.env.R2_BUCKET,
 ```
 
-**Retirer `ASSETS_PATH` dans le même mouvement**, aux deux endroits où elle figure : la section `server`, qui la déclare en `z.string().optional()`, et `runtimeEnv`. La laisser déclarerait une variable que plus aucun code ne lit, `resolveAssetPath` étant supprimée à la Task 3.
-
-C'est le point le plus facile à manquer de ce sub-project : la documentation présente `ASSETS_PATH` comme une exception « lue en direct via `process.env` », ce qui laisse croire qu'elle vit hors de la validation. Elle est en réalité **aussi** déclarée dans `src/env.ts`. Les deux déclarations disparaissent ensemble.
+**`ASSETS_PATH` n'est pas dans `src/env.ts`**, rien n'y est donc à retirer : elle est lue en direct dans `src/server/config/assets.ts`, et c'est cette lecture qui disparaît avec `resolveAssetPath` à la Task 3. Ses seules autres occurrences sont deux fichiers de test, `route.integration.test.ts` et `assets.test.ts`, qui la posent et la restaurent eux-mêmes : ils tombent avec la route de disque.
 
 Ces variables sont **requises** et non optionnelles : sans elles, plus aucun asset ne peut être servi. `src/env.ts` étant fail-fast, l'application refusera de démarrer plutôt que de servir un site aux images manquantes.
 
@@ -332,6 +330,7 @@ Expected: tous les tests verts.
 
 **Files:**
 - Modify: `compose.yaml`
+- Modify: `compose.override.yaml`
 - Modify: `.claude/rules/nextjs/assets.md`
 - Modify: `docs/adrs/011-stockage-assets.md`
 - Modify: `docs/ARCHITECTURE.md`
@@ -343,9 +342,11 @@ Expected: tous les tests verts.
 
 > Cette tâche vient **après** la vérification de la Task 6. Retirer le volume avant d'avoir constaté que R2 sert les fichiers supprimerait la seule copie disponible.
 
-- [ ] **Step 1: Retirer le volume de `compose.yaml`**
+- [ ] **Step 1: Retirer le volume des deux compose**
 
-Supprimer la ligne `- portfolio_assets:/app/assets` du service, la variable `ASSETS_PATH` si elle y figure, et l'entrée `portfolio_assets` de la section `volumes`.
+Dans `compose.yaml` : supprimer la ligne `- portfolio_assets:/app/assets` du service, la variable `ASSETS_PATH` si elle y figure, et l'entrée `portfolio_assets` de la section `volumes`.
+
+Dans `compose.override.yaml` : supprimer le bind-mount de développement `- ./assets:/app/assets:ro`. Oublié, il survit à la bascule et pointe vers un dossier devenu mort, ce qui donne un développement qui lit encore le disque là où la production lit R2.
 
 Ne pas supprimer le volume Docker lui-même sur le VPS avant plusieurs jours de fonctionnement : il reste une sauvegarde gratuite le temps de s'assurer que rien ne manque.
 
@@ -359,6 +360,7 @@ Dans `.claude/rules/nextjs/assets.md` :
 - supprimer la mention « Migration future R2 » des gotchas : elle est faite
 - supprimer l'exemple `compose.yaml` du volume
 - conserver toutes les règles de validation de chemin, qui n'ont pas changé
+- retirer `assets/**` du champ `paths:` de son frontmatter : ce dossier n'a plus de raison d'exister, et la rule ne doit plus s'auto-injecter sur lui
 
 - [ ] **Step 3: Acter la migration dans l'ADR-011**
 
@@ -379,10 +381,12 @@ Compléter la liste des secrets à ne jamais logger avec `R2_SECRET_ACCESS_KEY`.
 - [ ] **Step 6: Vérifier qu'aucune référence résiduelle ne subsiste**
 
 ```bash
-grep -rn "ASSETS_PATH\|portfolio_assets\|resolveAssetPath" src/ docs/ .claude/ compose.yaml Dockerfile
+grep -rn "ASSETS_PATH\|portfolio_assets\|resolveAssetPath" src/ docs/ .claude/ compose.yaml compose.override.yaml Dockerfile
 ```
 
 Expected: aucun résultat, hors mentions historiques assumées dans l'ADR.
+
+Le volume Docker du VPS devient mort et se supprime une fois la migration vérifiée. **Le dossier `assets/` local, lui, se garde** : R2 n'a ni versioning ni corbeille (`knowledges/cloudflare-r2.md`) et le bucket `portfolio-assets` n'est sauvegardé par rien, alors que le sub-project `10` ouvre la suppression d'assets depuis l'admin. Cette copie ne coûte rien, elle est déjà là et gitignorée. Elle se périme au premier upload fait depuis l'admin, ce qui est acceptable : elle couvre la fenêtre où le risque est le plus élevé.
 
 ---
 

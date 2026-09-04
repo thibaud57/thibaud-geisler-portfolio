@@ -100,6 +100,8 @@ Comment implémenter un rate limiting efficace sur le chatbot pour des utilisate
 
 # 📝 Notes complémentaires
 
-Le rate limiting est indépendant du choix de l'API LLM (voir ADR-012). Quelle que soit l'option retenue, les paramètres à définir lors de l'implémentation sont : quota par IP (ex : 10 req/heure), message d'erreur utilisateur (HTTP 429), et stratégie de fenêtre (rolling ou fixed).
+Le rate limiting est indépendant du choix de l'API LLM (cf. [ADR-012](012-api-llm-chatbot-rag.md)). Quelle que soit l'option retenue, les paramètres à définir lors de l'implémentation sont : quota par IP (ex : 10 req/heure), message d'erreur utilisateur (HTTP 429), et stratégie de fenêtre (rolling ou fixed).
+
+Le limiter du formulaire contact (`src/lib/rate-limiter.ts`, sliding log en mémoire) ne relève pas de cet ADR et ne s'appliquera pas au chatbot, service Python distinct.
 
 Approche complémentaire recommandée : quota global journalier côté provider LLM (alerte si seuil de dépense dépassé), indépendamment du rate limiting applicatif. Ces deux mécanismes sont cumulables.

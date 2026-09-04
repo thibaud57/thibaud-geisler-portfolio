@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 
 import { DownloadCvButton } from '@/components/features/about/DownloadCvButton'
+import { LeadParagraph } from '@/components/ui/lead-paragraph'
 import { buildAssetUrl } from '@/lib/assets'
 import { cn } from '@/lib/utils'
 
@@ -40,7 +41,7 @@ export async function AboutHero({ locale, className, children }: Props) {
         <h1 className="text-balance text-center lg:text-left">
           {t('headline')}
         </h1>
-        <p className="text-lg text-muted-foreground">{t('tagline')}</p>
+        <LeadParagraph>{t('tagline')}</LeadParagraph>
         {children}
       </div>
     </section>

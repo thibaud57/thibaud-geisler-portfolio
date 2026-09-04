@@ -362,6 +362,7 @@
         "name": "Sous-traitant",
         "role": "Rôle",
         "purpose": "Finalité",
+        "dataCategories": "Catégories de données",
         "country": "Pays"
       }
     },
@@ -423,6 +424,14 @@
       "EMBEDDED_SERVICE": "Service embarqué",
       "EMAIL_PROVIDER": "Fournisseur d'emails",
       "ANALYTICS": "Analytics"
+    },
+    "dataCategory": {
+      "IDENTITY": "Identité",
+      "CONTACT": "Coordonnées",
+      "IP_ADDRESS": "Adresse IP",
+      "USAGE_DATA": "Données d'usage",
+      "TECHNICAL_LOGS": "Logs techniques",
+      "COOKIE_DATA": "Données de cookies"
     }
   }
 }

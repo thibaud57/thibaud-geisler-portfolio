@@ -36,7 +36,7 @@ export async function SocialLinks({ className }: Props) {
             href={link.url}
             {...(isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
             aria-label={ariaLabels[link.slug]}
-            className="flex size-9 items-center justify-center rounded-md border border-border bg-card transition hover:scale-105 hover:shadow-md"
+            className="flex size-9 items-center justify-center rounded-md border border-border bg-card transition duration-300 ease-out hover:scale-[1.01] hover:shadow-md"
           >
             <Icon className="size-4" />
           </a>

@@ -16,14 +16,14 @@
 - **Les quatre pages d'attente sont obligatoires.** Avec `typedRoutes: true`, un lien vers une route inexistante **fait échouer le build**, il ne produit pas une 404.
 - L'objet `user` est tainté : extraire les champs côté serveur, ne jamais le passer entier à un composant client.
 - Conteneur admin en pleine largeur moins la sidebar, **pas** de `max-w-7xl` centré. Padding vertical de `py-6` à `py-8`.
-- Titres en Geist Sans, **jamais** `font-display`, réservé aux surfaces marketing.
+- Titres en Geist Sans, **jamais** `font-display`, réservé aux surfaces marketing. Sur un `<h1>`, cela impose `font-sans font-medium tracking-normal` : `@layer base` y pose `font-display text-4xl font-bold tracking-tight`, qu'une utilitaire de taille seule n'écrase pas.
 - Tokens CSS uniquement (`bg-primary`, `text-muted-foreground`), jamais de couleur en dur. `cn()` pour composer les classes.
 - Icônes Lucide, taille standard 20px. Mobile-first, bascule au breakpoint `md:`.
 - Pas de fil d'ariane (sub-project `13`), pas de `LanguageSwitcher` (ADR-021), pas de `'use cache'` dans l'arbre admin.
 - Installation via `pnpm dlx shadcn@latest add`, jamais `pnpm add shadcn-ui` qui est un package déprécié.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
-**Rules :** `.claude/rules/shadcn-ui/components.md`, `.claude/rules/shadcn-ui/setup.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/next-themes/theming.md`, `.claude/rules/nextjs/auth.md`.
+**Rules :** `.claude/rules/shadcn-ui/components.md`, `.claude/rules/shadcn-ui/setup.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/theming/theme-store.md`, `.claude/rules/nextjs/auth.md`.
 
 ---
 
@@ -33,6 +33,7 @@
 - Create: `src/components/ui/sidebar.tsx`, `separator.tsx`, `tooltip.tsx`, `avatar.tsx`, `collapsible.tsx`, `scroll-area.tsx` (générés par le CLI)
 - Create: `src/config/admin-nav-items.ts`
 - Create: `src/app/admin/projets/page.tsx`, `src/app/admin/tags/page.tsx`, `src/app/admin/entreprises/page.tsx`, `src/app/admin/assets/page.tsx`
+- Modify: `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Navigation admin → Sidebar » rejoint la section Navigation, la ligne « Primitifs d'interface » se vide entièrement (Tooltip, Separator, ScrollArea, Avatar, Collapsible installés) et disparaît de la section Post-MVP
 
 **Interfaces:**
 - Consomme : rien.
@@ -47,6 +48,10 @@ pnpm dlx shadcn@latest add sidebar separator tooltip avatar collapsible scroll-a
 ```
 
 Le CLI lit `components.json`, applique le style `radix-nova` et installe les dépendances Radix nécessaires. Il peut ajouter `src/hooks/use-mobile.ts`, dont la sidebar se sert pour détecter le format : c'est attendu.
+
+**Passer d'abord `--dry-run`.** Le composant `sidebar` du registry tire `sheet`, `button`, `input` et `skeleton`, tous déjà présents dans `src/components/ui/`. Le CLI proposera de les écraser, ce qui effacerait les ajustements du design system. Refuser leur écrasement et ne laisser passer que les composants réellement nouveaux.
+
+Deux raisons de plus de ne jamais lancer un `shadcn add --overwrite` non filtré sur ce dossier : `badge.tsx` porte une prop CVA maison (`meta`), absente du registry ; et `motion-item.tsx`, `lead-paragraph.tsx`, `labeled-text.tsx` et `stacked-skeleton.tsx` sont des composants **maison** logés dans `src/components/ui/`, que le CLI traiterait comme du vendored.
 
 - [ ] **Step 2: Déclarer les entrées de navigation**
 
@@ -74,8 +79,8 @@ Le même squelette pour chacune, en adaptant le titre :
 ```typescript
 export default function AdminProjetsPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Projets</h1>
+    <div className="w-full py-6 lg:py-8">
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Projets</h1>
       <p className="mt-2 text-muted-foreground">Écran à construire.</p>
     </div>
   )
@@ -84,7 +89,9 @@ export default function AdminProjetsPage() {
 
 À décliner en `AdminTagsPage` (« Tags »), `AdminEntreprisesPage` (« Entreprises ») et `AdminAssetsPage` (« Assets »).
 
-`text-2xl font-semibold` correspond au H3 du design system, sans `font-display` puisque les pages internes gardent Geist Sans.
+**Les trois classes du `h1` sont toutes nécessaires.** `src/app/globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une utilitaire de taille écrase la taille et la graisse, jamais la famille : un `<h1 className="text-2xl font-semibold">` rendrait en Sansation à 600, graisse qui n'est pas chargée (Sansation est importée en `700` seul), et garderait le `tracking-tight`. `font-sans` rétablit Geist Sans, que les pages internes gardent, `font-medium` la graisse, `tracking-normal` l'interlettrage.
+
+Le conteneur suit le design system admin : pleine largeur, sans `max-w-7xl` centré, rythme vertical `py-6` à `py-8`.
 
 - [ ] **Step 4: Vérifier que le projet compile**
 
@@ -131,12 +138,14 @@ export function AdminSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-3 text-sm font-semibold">
+      <SidebarHeader className="px-4 py-3 text-sm font-medium tracking-[0.25em] text-balance text-muted-foreground uppercase">
         Espace admin
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{ADMIN_NAV_SECTION}</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
+            {ADMIN_NAV_SECTION}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
@@ -160,6 +169,8 @@ export function AdminSidebar() {
 
 `collapsible="icon"` garde les icônes visibles une fois repliée, ce qui reste navigable au lieu de disparaître complètement. Le `tooltip` sur chaque bouton n'apparaît que dans cet état replié, quand le libellé est masqué.
 
+Le `SidebarHeader` et le `SidebarGroupLabel` sont des intitulés de section : ils prennent la famille Label de la scale, `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. `text-balance` s'ajoute au-delà d'une dizaine de caractères, l'interlettrage large faisant vite déborder : « Espace admin » en compte 12, « Portfolio » 9.
+
 Ce composant est client parce qu'il lit `usePathname()` pour surligner l'entrée active.
 
 - [ ] **Step 2: Vérifier le typage**
@@ -177,9 +188,10 @@ Expected: aucune erreur. Un échec sur les `href` signifierait qu'une page d'att
 **Files:**
 - Create: `src/components/layout/AdminHeader.tsx`
 - Create: `src/components/layout/AdminUserMenu.tsx`
+- Create: `src/components/layout/AdminThemeToggle.tsx`
 
 **Interfaces:**
-- Consomme : `authClient` de `src/lib/auth-client.ts`, le `ThemeToggle` existant.
+- Consomme : `authClient` de `src/lib/auth-client.ts`, `useTheme` de `src/lib/theme.ts`.
 - Produit : `<AdminHeader email={string} />`, monté par le layout de la Task 4. Le layout lui passe **uniquement l'email**, jamais l'objet `user`.
 
 - [ ] **Step 1: Écrire le menu du compte**
@@ -243,7 +255,7 @@ Ce composant reçoit une chaîne, pas un objet utilisateur. C'est ce qui satisfa
 ```typescript
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { AdminThemeToggle } from '@/components/layout/AdminThemeToggle'
 import { AdminUserMenu } from '@/components/layout/AdminUserMenu'
 
 export function AdminHeader({ email }: { email: string }) {
@@ -252,7 +264,7 @@ export function AdminHeader({ email }: { email: string }) {
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-6" />
       <div className="ml-auto flex items-center gap-2">
-        <ThemeToggle />
+        <AdminThemeToggle />
         <AdminUserMenu email={email} />
       </div>
     </header>
@@ -264,7 +276,11 @@ Ce fichier n'a pas de directive `'use client'` : il reste un Server Component qu
 
 `SidebarTrigger` est ce qui ouvre le tiroir sur mobile et replie la sidebar sur écran large.
 
-- [ ] **Step 3: Vérifier typage et lint**
+- [ ] **Step 3: Écrire `AdminThemeToggle`**
+
+**Le `ThemeToggle` public ne se réutilise pas ici.** Deux raisons, chacune suffisante : il appelle `useTranslations`, or `NextIntlClientProvider` n'est monté que sous `[locale]` et l'admin est hors de ce segment, donc il lèverait au rendu ; et il s'appuie sur `AnimatedThemeToggler` de Magic UI, que ce sub-project s'interdit dans l'admin. En écrire une version courte : le hook `useTheme` de `src/lib/theme.ts`, un `Button` shadcn, un `aria-label` français en dur, et le même placeholder tant que `resolvedTheme` est indéfini, sans quoi le rendu serveur et le client divergent.
+
+- [ ] **Step 4: Vérifier typage et lint**
 
 ```bash
 just typecheck && just lint
@@ -286,11 +302,17 @@ Expected: aucune erreur.
 
 - [ ] **Step 1: Monter le shell dans le layout**
 
+Ce layout **est le root layout de l'arbre `/admin`** : il rend son propre document, le seul autre root layout du dépôt vivant sous `[locale]`. Reprendre le `<html>`/`<body>`, l'import de `globals.css` et le script de thème posés au sub-project `05`, et n'insérer le shell qu'à l'intérieur du `<body>`.
+
 ```typescript
 import { AdminHeader } from '@/components/layout/AdminHeader'
 import { AdminSidebar } from '@/components/layout/AdminSidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { fontVariables } from '@/lib/fonts'
 import { getCurrentUser } from '@/lib/get-current-user'
+import { themeInitScript } from '@/lib/theme-script'
+
+import '@/app/globals.css'
 
 export default async function AdminLayout({
   children,
@@ -301,20 +323,25 @@ export default async function AdminLayout({
   const email = user.email
 
   return (
-    <SidebarProvider>
-      <AdminSidebar />
-      <SidebarInset>
-        <AdminHeader email={email} />
-        <main className="px-4 py-6 md:px-6 md:py-8">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <html lang="fr" className={fontVariables} suppressHydrationWarning>
+      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <SidebarProvider>
+          <AdminSidebar />
+          <SidebarInset>
+            <AdminHeader email={email} />
+            <main className="px-4 md:px-6">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
+      </body>
+    </html>
   )
 }
 ```
 
 La ligne `const email = user.email` est ce qui rend le reste possible : elle extrait la donnée côté serveur. Écrire `<AdminHeader user={user} />` ferait échouer le rendu, l'objet étant tainté.
 
-`SidebarInset` occupe la largeur restante sans conteneur centré, conformément au design system. Le padding suit `py-6` sur mobile et `py-8` au-delà.
+`SidebarInset` occupe la largeur restante sans conteneur centré, conformément au design system. Le `<main>` ne porte que le retrait horizontal : le rythme vertical `py-6` à `py-8` appartient à chaque page, qui l'applique sur son conteneur racine.
 
 Aucun `'use cache'` ici ni dans les descendants.
 
@@ -328,12 +355,12 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function AdminHomePage() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Espace admin</h1>
+    <div className="w-full py-6 lg:py-8">
+      <h1 className="font-sans text-2xl font-medium tracking-normal">Espace admin</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href}>
-            <Card className="transition-colors hover:border-primary">
+            <Card className="transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl">
               <CardHeader className="flex flex-row items-center gap-3">
                 <Icon className="size-5 text-muted-foreground" />
                 <CardTitle className="text-base">{label}</CardTitle>
@@ -346,6 +373,8 @@ export default function AdminHomePage() {
   )
 }
 ```
+
+**Le survol est un scale plus une ombre, pas un accent de contour.** La `Card` shadcn en `radix-nova` dessine son cadre avec `ring-1 ring-foreground/10` et garde une bordure de 0px : un `hover:border-*` n'a aucun effet visible. Et la card entière est enveloppée d'un `<Link>`, donc cliquable, ce qui range son survol dans les surfaces cliquables de DESIGN.md § États des Composants, `scale-[1.01]` plus ombre en `300ms ease-out`.
 
 Des raccourcis, pas un tableau de bord : les chiffres d'audience appartiennent à la feature Analytics et les indicateurs CRM au domaine freelance.
 

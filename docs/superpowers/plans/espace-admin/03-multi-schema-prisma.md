@@ -6,14 +6,14 @@
 
 **Architecture:** Un champ `schemas` sur le datasource et un `@@schema("public")` sur chaque modèle et chaque enum. L'annotation déclare un état déjà vrai — les tables vivent déjà dans `public` — donc aucune migration n'est attendue. Cette absence se vérifie en lisant ce que Prisma produit, elle ne se présume pas.
 
-**Tech Stack:** Prisma 7.10, PostgreSQL 18, Vitest, Docker Compose, Just.
+**Tech Stack:** Prisma 7, PostgreSQL 18, Vitest, Docker Compose, Just. Versions exactes : `docs/VERSIONS.md`.
 
 **Spec:** `docs/superpowers/specs/espace-admin/03-multi-schema-prisma-design.md`
 
 ## Global Constraints
 
 - `schemas = ["public"]` uniquement. **Le schema `auth` n'est pas créé ici** : il appartient au sub-project `04`, qui l'ajoutera au datasource en même temps qu'il y déclarera les tables Better Auth.
-- **Aucun `previewFeatures`** : `multiSchema` est stable depuis Prisma 6.13.0 et le projet est en 7.10. Les guides antérieurs qui demandent `previewFeatures = ["multiSchema"]` sont obsolètes.
+- **Aucun `previewFeatures`** : `multiSchema` est stable en Prisma 7. Les guides antérieurs qui demandent `previewFeatures = ["multiSchema"]` sont obsolètes.
 - `@@schema("public")` est obligatoire sur les **9 modèles ET les 13 enums**, soit 22 déclarations. Aucune valeur par défaut implicite n'existe.
 - Depuis Prisma 7, `migrate dev` ne déclenche plus `prisma generate` : la régénération est explicite.
 - `src/lib/prisma.ts`, `prisma.config.ts` et `src/lib/prisma-test-setup.ts` restent inchangés. Aucun paramètre `search_path` n'est ajouté au `DATABASE_URL`.
@@ -40,7 +40,7 @@
 just check
 ```
 
-Le diagnostic de démarrage a signalé Docker et PostgreSQL comme indisponibles. Si c'est encore le cas :
+Si Docker ou PostgreSQL ne tournent pas :
 
 ```bash
 just db
@@ -224,7 +224,7 @@ just db-test-reset
 just test-integration
 ```
 
-Expected: `projects.integration.test.ts`, `legal.integration.test.ts`, `about.integration.test.ts` et `route.integration.test.ts` passent.
+Expected: les tests d'intégration des queries (`projects`, `legal`, `about`) et ceux des routes (`api/assets`, `api/health`) passent.
 
 Ces tests exercent le helper `resetDatabase()`, dont le `TRUNCATE` n'est pas qualifié. Leur réussite confirme que le `search_path` résout toujours les tables correctement, et qu'il n'y avait donc pas lieu de modifier ce helper.
 
@@ -236,7 +236,11 @@ just test
 
 Expected: tests unitaires et d'intégration verts.
 
-- [ ] **Step 6: Demander la validation avant commit**
+- [ ] **Step 6: Mettre à jour `docs/ARCHITECTURE.md`**
+
+§ Base de Données Principale annonce le découpage en schemas au post-MVP. Le réécrire au présent pour les schemas réellement créés par ce sub-project, en gardant au futur ceux qui ne le sont pas encore.
+
+- [ ] **Step 7: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

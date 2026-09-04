@@ -95,11 +95,9 @@ shadcn/ui comme socle fonctionnel pour tous les composants complexes (dialog, co
 
 # 📝 Notes complémentaires
 
-Cette décision doit être prise avant de commencer le développement UI. Elle impacte l'ensemble de la base de composants.
-
 L'Option C (hybride) est souvent le choix pragmatique en pratique : shadcn/ui pour les composants fonctionnels complexes, personnalisation visuelle poussée sur les sections marketing (hero, cards projets) et l'identité de marque.
 
-**Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles, on copie uniquement les effets nécessaires depuis l'une ou l'autre. Exploration en cours pour définir les effets retenus pour le hero et les surfaces visuelles clés du portfolio. Ces deux libs sont les candidates pour la couche effets de l'Option C.
+**Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles, on copie uniquement les effets nécessaires depuis l'une ou l'autre. Les effets retenus et leur mapping par composant sont dans [DESIGN.md](../DESIGN.md) § Composants Animés.
 
 **Espace admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas à l'espace admin, leur usage est réservé aux surfaces marketing du site public.
 

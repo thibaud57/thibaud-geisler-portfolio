@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Infrastructure de stockage objet et sauvegardes vérifiées
@@ -15,7 +15,7 @@ date: "2026-08-30"
 
 Provisionner un compte Cloudflare R2 avec trois buckets cloisonnés — `portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev` — chacun servi par un token restreint à lui seul, puis configurer dans Dokploy une destination de sauvegarde et une sauvegarde quotidienne de la base `portfolio`, dont la restauration est effectivement vérifiée.
 
-Les deux buckets d'assets sont créés ici mais restent vides : la bascule du stockage applicatif leur appartient au sub-project `09`. Ce sub-project ne touche à aucun code, n'ajoute aucune variable à `src/env.ts` et ne modifie que deux fichiers de documentation.
+Les deux buckets d'assets sont créés ici mais restent vides : la bascule du stockage applicatif leur appartient au sub-project `09`. Ce sub-project ne touche à aucun code, n'ajoute aucune variable à `src/env.ts` et ne modifie que trois fichiers de documentation.
 
 ### État livré
 
@@ -27,8 +27,10 @@ Aucune — ce sub-project est autoporté.
 
 ## Files touched
 
-- **À modifier** : `docs/PRODUCTION.md` (réécriture complète de la section « Backup & Recovery », qui documente aujourd'hui une procédure par script bash et cron VPS jamais appliquée)
+- **À modifier** : `docs/PRODUCTION.md` (compléter la section « Backup & Recovery » avec la configuration réelle : buckets, tokens, destination Dokploy, planification. La section a été réécrite le 2026-09-03 hors de ce sub-project et annonce déjà la voie Dokploy vers R2 ; ses procédures de restauration et de perte VPS y sont plus à jour que celles rédigées ici, ne pas les écraser)
 - **À modifier** : `docs/superpowers/specs/espace-admin/README.md` (la ligne « Aucune destination configurée à ce jour » de la section Infrastructure devient caduque)
+
+- **À modifier** : `docs/ARCHITECTURE.md` (diagramme « Livraison et sauvegarde » : le bucket `portfolio-backups` n'est plus post-MVP)
 
 Aucun autre fichier du dépôt n'est touché. Le reste des opérations vit hors du dépôt : console Cloudflare, CLI Wrangler, interface Dokploy.
 
@@ -44,7 +46,7 @@ Le free tier R2 est un forfait d'usage mensuel — 10 Go-mois, 1 M d'opérations
 
 **Sauvegarde par le mécanisme natif Dokploy**, qui exécute `pg_dump`, compresse en `.gz` et transfère via rclone. Aucun script maison sur le VPS, aucun fichier non versionné à maintenir, et surtout une restauration intégrée à l'interface qui demande le nom de la base cible, ce qui permet de tester sans toucher à la base de production. Procédure et champs attendus dans `docs/knowledges/dokploy.md`.
 
-**Rétention portée d'un seul côté.** Le champ `retentionDays` de la sauvegarde Dokploy est fixé à 30. Aucune lifecycle rule R2 n'est posée sur `portfolio-backups` : cumuler les deux mécanismes ferait silencieusement gagner le plus court des deux.
+**Rétention portée d'un seul côté.** Le champ `Keep the latest` de la sauvegarde Dokploy est fixé à 30. Aucune lifecycle rule R2 n'est posée sur `portfolio-backups` : cumuler les deux mécanismes ferait silencieusement gagner le plus court des deux.
 
 **Planification à `0 0 * * *` en UTC**, soit 1h en heure d'hiver et 2h en heure d'été à Paris. Le planificateur Dokploy travaillant en UTC, cette dérive saisonnière est inévitable ; elle est sans conséquence puisque les deux horaires précèdent le scan antivirus du VPS, et qu'un dump de cette base se compte en secondes.
 
@@ -71,8 +73,8 @@ Rules applicables : `.claude/rules/nextjs/production-deployment.md` pour les con
 **THEN** Dokploy rapporte un succès
 
 ### Scénario 4 : Sauvegarde effectivement écrite
-**GIVEN** une sauvegarde planifiée sur la Database `portfolio`, `retentionDays` à 30 et le cron `0 0 * * *`
-**WHEN** on déclenche une exécution manuelle depuis l'onglet Backup
+**GIVEN** une sauvegarde planifiée sur la Database `portfolio`, `Keep the latest` à 30 et le cron `0 0 * * *`
+**WHEN** on déclenche une exécution manuelle depuis l'onglet Backups
 **THEN** un objet compressé horodaté apparaît dans `portfolio-backups`
 **AND** sa taille est non nulle
 
@@ -87,7 +89,7 @@ Rules applicables : `.claude/rules/nextjs/production-deployment.md` pour les con
 **GIVEN** la sauvegarde en place et la restauration vérifiée
 **WHEN** on relit la section « Backup & Recovery » de `docs/PRODUCTION.md`
 **THEN** elle décrit la voie Dokploy, sa planification, sa rétention et la procédure de restauration réellement testée
-**AND** elle ne contient plus le script `/opt/backup.sh`, la configuration rclone manuelle ni la ligne de crontab
+**AND** elle nomme les buckets, la destination Dokploy, la planification et la rétention réellement configurées, et ne renvoie plus à aucun script ni cron sur le VPS
 **AND** la ligne du README de l'espace admin signalant l'absence de destination a disparu
 
 ## Edge cases
@@ -103,7 +105,7 @@ Rules applicables : `.claude/rules/nextjs/production-deployment.md` pour les con
 ### Décision : mécanisme de sauvegarde
 
 **Options envisagées :**
-- **A. Script `/opt/backup.sh` avec rclone et cron VPS** : c'est la procédure déjà écrite dans `docs/PRODUCTION.md`, jamais appliquée. Elle couvre la base et le volume d'assets en une seule passe et ne dépend pas de Dokploy. En contrepartie, le script vit hors du dépôt, n'est pas versionné, dépend de noms de containers suffixés qui changent au redéploiement, et sa restauration est entièrement manuelle.
+- **A. Script `/opt/backup.sh` avec rclone et cron VPS** : c'est la procédure qu'a longtemps décrite `docs/PRODUCTION.md` sans jamais être appliquée, et qui en a été retirée depuis. Elle couvre la base et le volume d'assets en une seule passe et ne dépend pas de Dokploy. En contrepartie, le script vit hors du dépôt, n'est pas versionné, dépend de noms de containers suffixés qui changent au redéploiement, et sa restauration est entièrement manuelle.
 - **B. Mécanisme natif Dokploy** : destination et planification dans l'interface, `pg_dump` et transfert rclone pris en charge, restauration depuis l'interface avec choix de la base cible. Ne couvre pas le volume d'assets dans la même opération, et ajoute une dépendance au bon fonctionnement de Dokploy.
 
 **Choix : B**

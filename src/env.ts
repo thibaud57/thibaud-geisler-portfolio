@@ -10,7 +10,6 @@ export const env = createEnv({
     SMTP_PASS: z.string().min(1),
     SMTP_FROM: z.email(),
     MAIL_TO: z.email(),
-    ASSETS_PATH: z.string().optional(),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .optional(),
@@ -30,7 +29,6 @@ export const env = createEnv({
     SMTP_PASS: process.env.SMTP_PASS,
     SMTP_FROM: process.env.SMTP_FROM,
     MAIL_TO: process.env.MAIL_TO,
-    ASSETS_PATH: process.env.ASSETS_PATH,
     LOG_LEVEL: process.env.LOG_LEVEL,
     IP_HASH_SALT: process.env.IP_HASH_SALT,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,

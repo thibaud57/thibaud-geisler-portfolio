@@ -17,3 +17,16 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
     }),
   })
 }
+
+// jsdom n'implémente pas IntersectionObserver, requis par le `whileInView` de Motion (MotionItem).
+// Voir https://github.com/jsdom/jsdom/issues/2032.
+if (typeof window !== 'undefined' && typeof window.IntersectionObserver === 'undefined') {
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    value: class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  })
+}

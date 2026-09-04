@@ -6,7 +6,7 @@ status: "draft"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["05-protection-routes-admin-design.md"]
-date: "2026-08-30"
+date: "2026-09-03"
 ---
 
 # Shell de l'espace admin
@@ -31,10 +31,12 @@ Exclut tout écran métier : les listes et formulaires arrivent aux sub-projects
 - **À créer** : `src/components/layout/AdminSidebar.tsx`
 - **À créer** : `src/components/layout/AdminHeader.tsx`
 - **À créer** : `src/components/layout/AdminUserMenu.tsx` (Client Component portant la déconnexion)
+- **À créer** : `src/components/layout/AdminThemeToggle.tsx` (le `ThemeToggle` public ne se réutilise pas : il appelle `useTranslations` et s'appuie sur Magic UI, tous deux hors de portée dans l'admin)
 - **À modifier** : `src/app/admin/layout.tsx` (montage du shell autour des enfants)
 - **À modifier** : `src/app/admin/page.tsx` (écran d'arrivée)
 - **À créer** : `src/app/admin/projets/page.tsx`, `src/app/admin/tags/page.tsx`, `src/app/admin/entreprises/page.tsx`, `src/app/admin/assets/page.tsx` — pages d'attente, remplacées par les sub-projects `07` à `13`
 - **À créer** : `src/components/ui/` — composants installés via le CLI shadcn : `sidebar`, `separator`, `tooltip`, `avatar`, `collapsible`, `scroll-area`
+- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Navigation admin → Sidebar » rejoint la section Navigation, la ligne « Primitifs d'interface » se vide entièrement, ses cinq composants étant installés ici
 
 ## Architecture approach
 
@@ -50,7 +52,7 @@ Exclut tout écran métier : les listes et formulaires arrivent aux sub-projects
 
 **La déconnexion est un Client Component isolé.** Elle appelle `authClient.signOut()` puis redirige vers la page de connexion. L'isoler dans son propre fichier évite de rendre client l'ensemble du header, qui reste un Server Component.
 
-**Le conteneur admin occupe toute la largeur disponible.** `docs/DESIGN.md` le précise : « pleine largeur moins la sidebar, pas de `max-w-7xl` centré », avec un padding vertical de `py-6` à `py-8`, « où la densité prime sur le souffle ». Les titres restent en Geist Sans, `font-display` étant réservé aux surfaces marketing.
+**Le conteneur admin occupe toute la largeur disponible.** `docs/DESIGN.md` le précise : « pleine largeur moins la sidebar, pas de `max-w-7xl` centré », avec un padding vertical de `py-6` à `py-8`, « où la densité prime sur le souffle ». Les titres restent en Geist Sans, `font-display` étant réservé aux surfaces marketing. Sur un `<h1>`, cela demande de neutraliser explicitement la famille et la graisse posées par `@layer base` (`font-sans font-medium tracking-normal`), une utilitaire de taille n'écrasant ni l'une ni l'autre.
 
 **Les quatre routes de la sidebar sont créées comme pages d'attente.** Ce n'est pas du confort : `typedRoutes: true` fait vérifier les liens à la compilation, donc une entrée pointant vers une route inexistante ferait **échouer le build**, pas produire une 404. Chaque page ne porte que son titre et une mention indiquant qu'elle reste à construire, et sera remplacée par le sub-project qui lui correspond. C'est le prix d'un shell qui navigue réellement avant que les écrans n'existent.
 
@@ -60,7 +62,7 @@ Exclut tout écran métier : les listes et formulaires arrivent aux sub-projects
 
 **Pas de `'use cache'`** dans l'arbre admin, contrainte héritée du sub-project `05`.
 
-Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/shadcn-ui/setup.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/react/hooks.md`, `.claude/rules/next-themes/theming.md`, `.claude/rules/nextjs/auth.md`.
+Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/shadcn-ui/setup.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/react/hooks.md`, `.claude/rules/theming/theme-store.md`, `.claude/rules/nextjs/auth.md`.
 
 ## Acceptance criteria
 
@@ -106,7 +108,7 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/shad
 - **`typedRoutes: true` transforme un lien mort en échec de build** : c'est ce qui impose de créer les quatre pages d'attente dans ce sub-project plutôt que de les laisser aux suivants. Un lien vers une route inexistante ne produit pas une 404, il empêche de compiler
 - **Pages d'attente à ne pas oublier** : chaque sub-project ultérieur doit remplacer la sienne, et non en créer une seconde à côté
 - **Objet `user` tainté** : passer `user` entier au menu utilisateur ferait échouer le rendu. Les champs sont sélectionnés dans le layout, côté serveur
-- **Bascule de thème** : le `ThemeToggle` existant est déjà un Client Component autonome, il se monte tel quel
+- **Bascule de thème** : un `AdminThemeToggle` propre à l'admin, adossé au même `useTheme` (`src/lib/theme.ts`). Le `ThemeToggle` public ne se réutilise pas : il appelle `useTranslations`, indisponible hors du segment `[locale]`, et rend un composant Magic UI que l'admin s'interdit
 - **Débordement horizontal sur mobile** : c'est le défaut le plus courant d'un shell à sidebar, et il ne se voit pas sur un écran large. Le scénario 3 le vérifie explicitement
 - **Double scroll** : une `ScrollArea` mal placée peut produire deux barres de défilement imbriquées, une pour la sidebar et une pour la page
 

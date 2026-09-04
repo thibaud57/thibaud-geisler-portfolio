@@ -18,12 +18,15 @@
 - `useActionState`, sans librairie de formulaire, comme le formulaire de contact.
 - Le champ `icon` est un **select** alimenté par le registre, jamais une saisie libre : `resolveTagIcon` renvoie `null` sans erreur sur une clé inconnue.
 - Le select d'icône et la validation Zod tirent de la **même** source exportée depuis `src/lib/icons.tsx`.
+- **`Select` et non un combobox `Command`**, malgré la taille du registre (une soixantaine de clés). Deux raisons : la liste est fermée et connue à la compilation, donc validable par Zod sans saisie libre ; et `docs/DESIGN.md` documente `Command` comme cassé en style `radix-nova`, son état sélectionné s'affichant incorrectement (issue [#9228](https://github.com/shadcn-ui/ui/issues/9228)). Ne pas « améliorer » ce champ en Combobox tant que cette issue est ouverte.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
-- **`updateTag('tags')`** après chaque mutation réussie, jamais avant. C'est `updateTag` et non `revalidateTag`, pour une raison de comportement observable : la doc Next 16 pose que `updateTag` fait attendre la requête suivante le temps de recharger (« Next request waits for fresh data, no stale content served »), là où `revalidateTag(tag, 'max')` sert du contenu périmé pendant que la revalidation tourne en arrière-plan. Le scénario 7 exige de voir le tag sur la page publique **immédiatement** après création : avec `'max'`, le premier chargement pourrait encore montrer l'ancien contenu et l'on conclurait à tort à un défaut.
+- **`updateCacheTag('tags')`** après chaque mutation réussie, jamais avant. C'est `updateTag` et non `revalidateTag`, pour une raison de comportement observable : la doc Next 16 pose que `updateTag` fait attendre la requête suivante le temps de recharger (« Next request waits for fresh data, no stale content served »), là où `revalidateTag(tag, 'max')` sert du contenu périmé pendant que la revalidation tourne en arrière-plan. Le scénario 7 exige de voir le tag sur la page publique **immédiatement** après création : avec `'max'`, le premier chargement pourrait encore montrer l'ancien contenu et l'on conclurait à tort à un défaut.
 - La forme historique `revalidateTag(tag)` à un seul argument est **dépréciée** en Next 16. La doc indique la migration : « Migrate to `updateTag` in Server Actions, or `profile="max"` ». Ces actions étant des Server Actions, `updateTag` est le remplaçant direct, et le seul contexte où il soit autorisé.
 - `revalidateTag(tag, 'max')` reste correct **hors** Server Action, par exemple dans `src/instrumentation.ts` qui l'utilise déjà : ne pas y toucher.
-- La requête d'administration ne filtre pas et n'utilise pas `'use cache'` : `findAllTags` fait les deux et masquerait des tags.
-- `src/app/admin/tags/page.tsx` existe déjà comme page d'attente : la **remplacer**, ne pas en créer une seconde.
+- La requête d'administration n'utilise pas `'use cache'` : `findAllTags` le fait, et l'administration doit voir l'état de la base immédiatement après une mutation.
+- `src/app/admin/tags/page.tsx` est la page d'attente créée au sub-project `06` : la **remplacer**, ne pas en créer une seconde.
+- **`revalidatePath('/admin/tags')`** après chaque mutation, en plus de l'étiquette : celle-ci ne couvre que les pages publiques, l'écran d'administration lit sans cache et ne se rafraîchirait pas.
+- **Renommer l'import de cache** : `import { updateTag as updateCacheTag } from 'next/cache'`. Le fichier d'actions exporte lui-même une Server Action `updateTag`, et deux déclarations du même nom dans un module lèvent `TS2440`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
 **Rules :** `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/prisma/client-setup.md`, `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/vitest/setup.md`.
@@ -97,10 +100,13 @@ export const tagSchema = z.object({
     .string()
     .trim()
     .refine((value) => value === '' || TAG_ICON_KEYS.includes(value), {
-      message: "Cette icône n'existe pas dans le registre",
+      error: "Cette icône n'existe pas dans le registre",
     })
     .optional(),
-  displayOrder: z.coerce.number().int('L\'ordre doit être un entier').min(0, "L'ordre ne peut pas être négatif"),
+  displayOrder: z.coerce
+    .number({ error: "L'ordre doit être un nombre" })
+    .int("L'ordre doit être un entier")
+    .min(0, "L'ordre ne peut pas être négatif"),
 })
 
 export type TagInput = z.infer<typeof tagSchema>
@@ -162,7 +168,7 @@ Même forme que `ContactFormState`, pour que `useActionState` s'utilise de faço
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/headers', () => ({ headers: vi.fn(() => new Headers()) }))
-vi.mock('next/cache', () => ({ updateTag: vi.fn() }))
+vi.mock('next/cache', () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
@@ -174,7 +180,7 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/get-current-user', () => ({ getCurrentUser: vi.fn() }))
 
 
-import { updateTag } from 'next/cache'
+import { updateTag as updateCacheTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/get-current-user'
 import { createTag, deleteTag } from './tags'
@@ -264,7 +270,7 @@ describe('createTag', () => {
 
     await createTag(initialTagFormState, buildFormData())
 
-    expect(updateTag).toHaveBeenCalledWith('tags')
+    expect(updateCacheTag).toHaveBeenCalledWith('tags')
   })
 
   it("traduit une violation d'unicité en erreur de champ", async () => {
@@ -303,7 +309,7 @@ describe('deleteTag', () => {
     const state = await deleteTag('tag-1')
 
     expect(state.ok).toBe(true)
-    expect(updateTag).toHaveBeenCalledWith('tags')
+    expect(updateCacheTag).toHaveBeenCalledWith('tags')
   })
 
   it('traduit une violation de clé étrangère en message explicite', async () => {
@@ -330,7 +336,7 @@ Expected: FAIL, le module `./tags` n'existe pas.
 'use server'
 
 import 'server-only'
-import { updateTag } from 'next/cache'
+import { revalidatePath, updateTag as updateCacheTag } from 'next/cache'
 
 import { getCurrentUser } from '@/lib/get-current-user'
 import { prisma } from '@/lib/prisma'
@@ -379,7 +385,8 @@ export async function createTag(
     await prisma.tag.create({
       data: { ...result.data, icon: result.data.icon || null },
     })
-    updateTag('tags')
+    updateCacheTag('tags')
+    revalidatePath('/admin/tags')
     log.info({ event: 'tag:created', slug: result.data.slug })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -421,7 +428,8 @@ export async function updateTag(
       where: { id },
       data: { ...result.data, icon: result.data.icon || null },
     })
-    updateTag('tags')
+    updateCacheTag('tags')
+    revalidatePath('/admin/tags')
     log.info({ event: 'tag:updated', slug: result.data.slug })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -445,7 +453,8 @@ export async function deleteTag(id: string): Promise<TagFormState> {
 
   try {
     await prisma.tag.delete({ where: { id } })
-    updateTag('tags')
+    updateCacheTag('tags')
+    revalidatePath('/admin/tags')
     log.info({ event: 'tag:deleted', id })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
@@ -494,7 +503,7 @@ export async function findAllTagsForAdmin(): Promise<Tag[]> {
 }
 ```
 
-Ni `'use cache'` ni filtre sur `HIDDEN_ON_ABOUT_TAG_SLUGS`, contrairement à `findAllTags`. L'administration doit voir tous les tags, et immédiatement après une mutation. Réutiliser la requête publique masquerait les quatre slugs cachés et donnerait l'impression qu'ils ont été supprimés.
+Pas de `'use cache'`, contrairement à `findAllTags`. L'administration doit voir l'état réel de la base, et immédiatement après une mutation : réutiliser la requête publique afficherait un instantané périmé et donnerait l'impression que la mutation n'a rien fait.
 
 Pas de localisation non plus : l'écran affiche `nameFr` et `nameEn` côte à côte, puisqu'il sert à les éditer.
 
@@ -512,7 +521,8 @@ Expected: aucune erreur.
 
 **Files:**
 - Create: `src/components/features/admin/tags/TagFormDialog.tsx`
-- Create: `src/components/ui/alert-dialog.tsx` (via le CLI)
+- Create: `src/components/ui/alert-dialog.tsx`, `src/components/ui/dialog.tsx`, `src/components/ui/select.tsx` (via le CLI)
+- Modify: `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog`, et `Select` quitte la ligne « Formulaires admin » pour rejoindre la section Formulaires
 
 **Interfaces:**
 - Consomme : `createTag` et `updateTag` (Task 4), `tagSchema` (Task 2), `TAG_ICON_KEYS` (Task 1), `initialTagFormState` (Task 3).
@@ -521,8 +531,10 @@ Expected: aucune erreur.
 - [ ] **Step 1: Installer le composant de confirmation**
 
 ```bash
-pnpm dlx shadcn@latest add alert-dialog
+pnpm dlx shadcn@latest add alert-dialog dialog select
 ```
+
+Les trois sont nécessaires et **aucun n'est présent** : `dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md`, `alert-dialog` n'a jamais été installé. Passer `--dry-run` d'abord et refuser tout écrasement d'un composant existant.
 
 - [ ] **Step 2: Écrire le formulaire**
 
@@ -561,13 +573,15 @@ Expected: aucune erreur.
 
 - [ ] **Step 1: Écrire la confirmation de suppression**
 
-Composant client montant un `AlertDialog` shadcn. Il appelle `deleteTag(id)` à la confirmation, et affiche `state.message === 'tag_in_use'` sous la forme d'un message expliquant que le tag est utilisé par des projets et ne peut pas être supprimé.
+Composant client montant un `AlertDialog` shadcn. Il appelle `deleteTag(id)` à la confirmation, et rend `state.message === 'tag_in_use'` dans un `<p className="text-sm text-destructive">` expliquant que le tag est utilisé par des projets et ne peut pas être supprimé.
+
+Un `<p>` et non un `Alert` : le composant `Alert` a été retiré du dépôt et rangé en post-MVP, et un message tenant sur une ligne dans une modale de confirmation ne justifie pas de le réinstaller. C'est aussi la forme déjà retenue pour les erreurs de champ du formulaire, donc le vocabulaire visuel reste le même d'un écran à l'autre.
 
 C'est le seul endroit où cette contrainte devient visible pour l'utilisateur : sans ce traitement, la suppression échouerait sans explication.
 
 - [ ] **Step 2: Écrire la table**
 
-Composant client rendant un `Table` shadcn avec les colonnes : slug, nom français, nom anglais, catégorie (en `Badge`), icône (rendue via `resolveTagIcon`), ordre, et une colonne d'actions portant l'édition et la suppression.
+Composant client rendant un `Table` shadcn avec les colonnes : slug, nom français, nom anglais, catégorie (en `<Badge variant="outline" meta>`, la catégorie étant une métadonnée), icône (rendue via `resolveTagIcon`), ordre, et une colonne d'actions portant l'édition et la suppression.
 
 Rendre l'icône plutôt que sa clé permet de constater d'un coup d'œil qu'une icône ne résout pas.
 
@@ -582,9 +596,9 @@ export default async function AdminTagsPage() {
   const tags = await findAllTagsForAdmin()
 
   return (
-    <div>
+    <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Tags</h1>
+        <h1 className="font-sans text-2xl font-medium tracking-normal">Tags</h1>
         <TagFormDialog tag={null} />
       </div>
       <div className="mt-6">
@@ -621,7 +635,7 @@ Expected: il apparaît dans la liste, avec son icône rendue.
 
 Consulter une page publique affichant les tags, par exemple `/fr/a-propos`.
 
-Expected: le nouveau tag y figure. S'il n'apparaît pas alors qu'il est bien en base, c'est que `updateTag('tags')` n'a pas été appelé.
+Expected: le nouveau tag y figure. S'il n'apparaît pas alors qu'il est bien en base, c'est que `updateCacheTag('tags')` n'a pas été appelé.
 
 - [ ] **Step 3: Vérifier le refus d'un slug en double**
 
@@ -647,11 +661,11 @@ Tenter de supprimer un tag rattaché à un projet, par exemple un tag du seed.
 
 Expected: message expliquant que le tag est utilisé par des projets. Ni le tag ni ses rattachements ne sont altérés. C'est le critère central de ce sub-project : une erreur Prisma brute affichée ici signifierait que le code `P2003` n'est pas intercepté.
 
-- [ ] **Step 7: Vérifier que les tags cachés sont visibles en administration**
+- [ ] **Step 7: Vérifier que la liste d'administration montre toute la base**
 
-Chercher dans la liste les slugs `piagent`, `php`, `local` et `vercel`.
+Comparer le nombre de lignes affichées au `SELECT count(*) FROM "Tag"` de la base de développement.
 
-Expected: ils y figurent tous les quatre. Leur absence signalerait que la requête publique filtrante a été réutilisée.
+Expected: les deux nombres sont égaux. Un écart signalerait que la requête publique, cachée, a été réutilisée à la place de la requête d'administration.
 
 - [ ] **Step 8: Lancer la suite complète**
 

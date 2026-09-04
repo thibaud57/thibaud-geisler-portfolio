@@ -362,6 +362,7 @@
         "name": "Processor",
         "role": "Role",
         "purpose": "Purpose",
+        "dataCategories": "Data categories",
         "country": "Country"
       }
     },
@@ -423,6 +424,14 @@
       "EMBEDDED_SERVICE": "Embedded service",
       "EMAIL_PROVIDER": "Email provider",
       "ANALYTICS": "Analytics"
+    },
+    "dataCategory": {
+      "IDENTITY": "Identity",
+      "CONTACT": "Contact details",
+      "IP_ADDRESS": "IP address",
+      "USAGE_DATA": "Usage data",
+      "TECHNICAL_LOGS": "Technical logs",
+      "COOKIE_DATA": "Cookie data"
     }
   }
 }

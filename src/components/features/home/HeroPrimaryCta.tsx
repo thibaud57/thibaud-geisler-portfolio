@@ -11,7 +11,11 @@ export function HeroPrimaryCta({ label }: Props) {
   const router = useRouter()
 
   return (
-    <ShimmerButton onClick={() => router.push('/contact')} background="var(--primary)">
+    <ShimmerButton
+      onClick={() => router.push('/contact')}
+      background="var(--primary)"
+      shimmerColor="var(--shine)"
+    >
       <span className="text-base font-medium text-primary-foreground">{label}</span>
     </ShimmerButton>
   )
