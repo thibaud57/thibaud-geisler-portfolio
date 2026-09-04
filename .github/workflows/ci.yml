@@ -102,7 +102,7 @@ jobs:
       - run: just build
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        run: just audit
         continue-on-error: true
 
   ci:
