@@ -305,7 +305,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Hero effects | Background Ripple Effect | Aceternity UI | Fond interactif hero/CTA, grille de cellules qui ripplent au clic |
+| Hero effects | Background Ripple Effect | Aceternity UI | Fond du hero de l'accueil uniquement, grille de cellules qui ripplent au clic |
 | Effets visuels enrichis | Border Beam | Magic UI | Enrichissement visuel des surfaces marketing, always-on sur 3 emplacements (badge "En cours", CTA démo, card service mise en avant) |
 | Entrée au scroll | MotionItem | composant maison (`IntersectionObserver`) | Props `index` (rang dans la rangée) et `className` : inséré dans une grille il en devient l'élément, les classes du parent (`col-span`, `h-full`) doivent lui être portées |
 
@@ -384,7 +384,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|------|-----------|
 | Motion (package `motion`, import `motion/react`) | Moteur d'animation sous-jacent des composants Magic UI | Jamais appelé directement dans le code applicatif |
 | Magic UI | Text effects et effets visuels enrichis | HyperText, WordRotate, NumberTicker, Marquee, BorderBeam, ShimmerButton, AnimatedThemeToggler |
-| Aceternity UI | Hero effects premium | Background Ripple Effect, hero / sections clés |
+| Aceternity UI | Hero effects premium | Background Ripple Effect, hero de l'accueil |
 
 ## Principes Directeurs
 
