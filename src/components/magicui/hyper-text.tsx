@@ -17,50 +17,37 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type HTMLAttributes,
   type RefAttributes,
 } from "react"
-import {
-  AnimatePresence,
-  motion,
-  type DOMMotionComponents,
-  type HTMLMotionProps,
-  type MotionProps,
-} from "motion/react"
-
 import { cn } from "@/lib/utils"
 
 type CharacterSet = string[] | readonly string[]
 type RevealOrder = "sequential" | "random"
 
-const motionElements = {
-  article: motion.article,
-  div: motion.div,
-  h1: motion.h1,
-  h2: motion.h2,
-  h3: motion.h3,
-  h4: motion.h4,
-  h5: motion.h5,
-  h6: motion.h6,
-  li: motion.li,
-  p: motion.p,
-  section: motion.section,
-  span: motion.span,
-} as const
-
-type MotionElementType = Extract<
-  keyof DOMMotionComponents,
-  keyof typeof motionElements
->
-type HyperTextMotionComponent = ComponentType<
-  Omit<HTMLMotionProps<"div">, "ref"> & RefAttributes<HTMLElement>
+type ElementType =
+  | "article"
+  | "div"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6"
+  | "li"
+  | "p"
+  | "section"
+  | "span"
+type HyperTextComponent = ComponentType<
+  HTMLAttributes<HTMLElement> & RefAttributes<HTMLElement>
 >
 
-interface HyperTextProps extends Omit<MotionProps, "children"> {
+interface HyperTextProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
   children: string
   className?: string
   duration?: number
   delay?: number
-  as?: MotionElementType
+  as?: ElementType
   startOnView?: boolean
   animateOnHover?: boolean
   characterSet?: CharacterSet
@@ -90,7 +77,7 @@ export function HyperText({
   revealOrder = "sequential",
   ...props
 }: HyperTextProps) {
-  const MotionComponent = motionElements[Component] as HyperTextMotionComponent
+  const Element = Component as unknown as HyperTextComponent
 
   const [displayText, setDisplayText] = useState<string[]>(() =>
     children.split("")
@@ -195,29 +182,27 @@ export function HyperText({
   }, [children, duration, isAnimating, characterSet, revealOrder])
 
   return (
-    <MotionComponent
+    <Element
       ref={elementRef}
       className={cn("overflow-hidden py-2 text-4xl font-bold", className)}
       onMouseEnter={handleAnimationTrigger}
       {...props}
     >
-      <AnimatePresence>
-        {displayText.map((letter, index) =>
-          letter === "\n" ? (
-            <br key={index} />
-          ) : (
-            <motion.span
-              key={index}
-              className={cn(
-                isAnimating && "font-mono",
-                letter === " " ? "w-3" : "",
-              )}
-            >
-              {letter}
-            </motion.span>
-          ),
-        )}
-      </AnimatePresence>
-    </MotionComponent>
+      {displayText.map((letter, index) =>
+        letter === "\n" ? (
+          <br key={index} />
+        ) : (
+          <span
+            key={index}
+            className={cn(
+              isAnimating && "font-mono",
+              letter === " " ? "w-3" : "",
+            )}
+          >
+            {letter}
+          </span>
+        ),
+      )}
+    </Element>
   )
 }
