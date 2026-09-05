@@ -33,7 +33,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | shadcn/ui (CLI) | `shadcn@4.19.0` | ✅ | Composants copiés localement, style `radix-nova` |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
-| next-intl | `4.13.7` | ✅ | Nécessite Next.js >= 16.3 pour `use cache` |
+| next-intl | `4.14.1` | ✅ | Nécessite Next.js >= 16.3 pour `use cache` |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
 
@@ -41,8 +41,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Zod | `4.4.3` | ✅ | Validateurs string déplacés en top-level |
-| nodemailer | `9.0.5` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v9 le 25 août 2026 |
+| Zod | `4.5.4` | ✅ | Validateurs string déplacés en top-level |
+| nodemailer | `9.0.6` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v9 le 25 août 2026 |
 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` requis dans `next.config.ts`, les trois. `thread-stream@4.2.0` est installé en dépendance directe |
 | @next/env | `16.3.3` | ✅ | Chargement `.env` dans `prisma.config.ts`, `prisma/seed.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
@@ -57,7 +57,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | Vitest | `4.1.11` | ✅ | Vite >= 6 + Node.js >= 20. Combo `@testing-library/react 16.x`. `jsdom@30`, `@testing-library/jest-dom@7` |
-| @vitejs/plugin-react | `6.1.0` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
+| @vitejs/plugin-react | `6.1.1` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
 
 ## Base de données
 
@@ -209,7 +209,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Compatibilité Écosystème** :
 - React 19.2 : ✅ (inclus)
 - shadcn/ui : ✅
-- next-intl : ✅ (>= 4.4 requis, 4.13.7 installée)
+- next-intl : ✅ (>= 4.4 requis, 4.14.1 installée)
 - Prisma 7 : ✅ (setup standard, build Turbopack vérifié, voir § Prisma ORM > Issues connues)
 - Pino : ⚠️ `serverExternalPackages` obligatoire
 
@@ -395,7 +395,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 ### 7. next-intl
 
-**Version actuelle** : `4.13.7`
+**Version actuelle** : `4.14.1`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v3 → v4)** :
@@ -419,9 +419,9 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 - TypeScript 5+ : ✅
 
 **Issue** :
-- Next.js 16.0 à 16.2 : `getTranslations()` incompatible avec `use cache`. **Résolu sur Next.js >= 16.3** : c'est la 16.3.0 qui active les root params par défaut (PR #93863) et génère leurs types (PR #91019). L'issue [amannn/next-intl#1493](https://github.com/amannn/next-intl/issues/1493) est fermée le 4 août 2026 en citant « nextjs 16.3 root-params ». Aucune peer ne l'impose : `next-intl@4.13.7` déclare `next: ^12 || … || ^16`
+- Next.js 16.0 à 16.2 : `getTranslations()` incompatible avec `use cache`. **Résolu sur Next.js >= 16.3** : c'est la 16.3.0 qui active les root params par défaut (PR #93863) et génère leurs types (PR #91019). L'issue [amannn/next-intl#1493](https://github.com/amannn/next-intl/issues/1493) est fermée le 4 août 2026 en citant « nextjs 16.3 root-params ». Aucune peer ne l'impose : `next-intl@4.14.1` déclare `next: ^12 || … || ^16`
 
-**Recommandation** : ✅ next-intl 4.13.7 avec Next.js 16.3+.
+**Recommandation** : ✅ next-intl 4.14.1 avec Next.js 16.3+.
 
 ### 8. @icons-pack/react-simple-icons
 
@@ -465,7 +465,7 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 
 ### 1. Zod
 
-**Version actuelle** : `4.4.3`
+**Version actuelle** : `4.5.4`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v3 → v4)** :
@@ -490,11 +490,11 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 - Next.js Server Actions : ✅
 - React : ✅
 
-**Recommandation** : ✅ Zod 4.4.3. Vérifier les usages de `.email()`, `.uuid()` lors de la migration depuis v3.
+**Recommandation** : ✅ Zod 4.5.4. Vérifier les usages de `.email()`, `.uuid()` lors de la migration depuis v3.
 
 ### 2. nodemailer
 
-**Version actuelle** : `9.0.5`
+**Version actuelle** : `9.0.6`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v8 → v9)** :
@@ -519,7 +519,7 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 - TypeScript : ✅ via `@types/nodemailer@8.0.1` (`esModuleInterop: true` requis). **La majeure des types ne suit plus celle de la lib** : DefinitelyTyped n'a pas publié de 9.x, `^8.0.1` reste la version correcte face à `nodemailer@9`
 - SMTP IONOS : ✅ (STARTTLS/TLS/SMTPS)
 
-**Recommandation** : ✅ nodemailer 9.0.5, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse.
+**Recommandation** : ✅ nodemailer 9.0.6, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse.
 
 ### 3. Pino
 
@@ -582,7 +582,7 @@ Charge les fichiers de configuration d'environnement avec la même cascade que N
 Validation des variables d'environnement au boot, dans `src/env.ts`, avec séparation stricte `server` et `client` : les secrets serveur sont exclus du bundle client par construction.
 
 **Compatibilité Écosystème** :
-- Zod : ✅ peer `^3.24.0 || ^4.0.0`, le projet est en Zod 4.4.3
+- Zod : ✅ peer `^3.24.0 || ^4.0.0`, le projet est en Zod 4.5.4
 - TypeScript : ✅ peer `>=5.0.0`
 - Next.js 16 : ✅
 
@@ -696,7 +696,7 @@ pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-lib
 
 ### 2. @vitejs/plugin-react
 
-**Version actuelle** : `6.1.0`
+**Version actuelle** : `6.1.1`
 **Stabilité** : ✅
 
 Plugin JSX officiel, celui que documente Next.js pour un setup Vitest. Transform via Babel, pas SWC.
@@ -707,7 +707,7 @@ Plugin JSX officiel, celui que documente Next.js pour un setup Vitest. Transform
 
 **À noter** : `6.1.1` est disponible.
 
-**Recommandation** : ✅ 6.1.0.
+**Recommandation** : ✅ 6.1.1.
 
 ## Base de données
 
@@ -842,7 +842,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
 | Next.js 16.3.3 | Prisma 7.10.0 | ✅ | Setup standard. Build Turbopack (défaut Next 16) vérifié en CI et en image Docker, l'opt-out `--webpack` posé pour l'erreur WASM `query_compiler_fast_bg.postgresql.mjs` a été retiré |
-| Next.js 16.3.3 | next-intl 4.13.7 | ✅ | Nécessite Next.js >= 16.3 pour `use cache` (root params) |
+| Next.js 16.3.3 | next-intl 4.14.1 | ✅ | Nécessite Next.js >= 16.3 pour `use cache` (root params) |
 | Next.js 16.3.3 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.1 requis |
 | Next.js 16.3.3 | Pino 10.3.1 | ⚠️ | `serverExternalPackages` requis |
 | Next.js 16.3.3 | Vitest 4.1.11 | ✅ | Async Server Components non testables en unit |
@@ -853,7 +853,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Tailwind 4.3.3 | shadcn/ui | ✅ | Composants mis à jour pour v4 |
 | Tailwind 4.3.3 | Magic UI | ✅ | Tailwind v4 par défaut depuis avril 2025 |
 | Tailwind 4.3.3 | Aceternity UI | ✅ | Tailwind v4 standard documenté |
-| Zod 4.4.3 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
+| Zod 4.5.4 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
 | pnpm 10.33.0 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
 | Node.js 24.20.0 | Prisma 7.10.0 | ✅ | Node.js >= 20.19 requis |
 | Node.js 24.20.0 | Next.js 16.3.3 | ✅ | Node.js >= 20.9 requis |
