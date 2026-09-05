@@ -203,7 +203,7 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, `rounded-lg`, padding 10px) |
+| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px) |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : typographie animée, bento grid, marquee, bordure animée, bouton shimmer, bascule de thème |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé : Background Ripple Effect seul, les candidats étant listés en § Mapping Composants > Post-MVP |
 | ReUI | Composants absents du registry shadcn | Post-MVP admin, `EventCalendar` uniquement. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
@@ -324,7 +324,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement |
-| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Leur ajouter une prop `size` (`default` / `sm`), que le registry n'a pas : sous une table dont les boutons d'action sont à 28px, un pager à 32px pèse trop |
+| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin (compteur, lignes par page, pager) se tient en 24px, un cran sous la barre d'outils. Le registry n'ayant pas de prop de taille ici, leur ajouter `size` (`sm`, `xs`) et le même `xs` à `Select` |
 | Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Recherche, puis un seul bouton `outline` ouvrant tous les filtres en Popover, compteur d'actifs en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre |
 | En-tête de colonne triable | Button `ghost` dans le `th` | shadcn/ui | Cycle croissant, décroissant, ordre d'affichage ; `aria-sort` sur le bouton. Glisser-déposer désactivé dès qu'un tri ou un filtre est actif |
 | Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. `Checkbox` plutôt qu'une case native : l'état indéterminé du « tout sélectionner » d'un tableau ne se rend pas autrement |
