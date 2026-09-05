@@ -19,8 +19,8 @@ async function readFontsFromDisk(): Promise<OgFont[]> {
   const fontsDir = join(process.cwd(), 'src', 'lib', 'seo', 'fonts')
 
   const [sansationBold, geistRegular] = await Promise.all([
-    readFile(join(fontsDir, 'Sansation-Bold.ttf')),
-    readFile(join(fontsDir, 'Geist-Regular.ttf')),
+    readFile(join(fontsDir, 'Sansation-Bold.woff2')),
+    readFile(join(fontsDir, 'Geist-Regular.woff2')),
   ])
 
   return [

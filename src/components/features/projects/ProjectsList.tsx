@@ -35,7 +35,11 @@ export function ProjectsList({ projects }: Props) {
               animate={index >= ABOVE_THE_FOLD_COUNT}
               className="h-full"
             >
-              <ProjectCard project={project} preloadCover={index === 0} />
+              <ProjectCard
+                project={project}
+                preloadCover={index === 0}
+                headingLevel="h2"
+              />
             </MotionItem>
           ))}
         </BentoGrid>
