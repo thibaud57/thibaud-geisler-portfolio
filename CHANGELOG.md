@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.3...v1.6.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* nettoyage motion et will-change, Brotli en production et diagnostic LCP ([#132](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/132)) ([61c0e96](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/61c0e9696e6d482ba8ecfcd924cab9ec80cee565))
+
 ## [1.6.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.2...v1.6.3) (2026-09-05)
 
 
