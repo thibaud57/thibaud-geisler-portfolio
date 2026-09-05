@@ -16,11 +16,18 @@ import { useImageFallback } from './useImageFallback'
 type Props = {
   project: LocalizedProjectWithRelations
   preloadCover?: boolean
+  // Sur /projets la carte suit directement le h1 (h2) ; sur l'accueil elle vit sous le h2
+  // de la section teaser (h3). text-2xl et tracking-normal neutralisent la scale globale h2/h3.
+  headingLevel?: 'h2' | 'h3'
 }
 
 const MAX_VISIBLE_TAGS = 3
 
-export function ProjectCard({ project, preloadCover = false }: Props) {
+export function ProjectCard({
+  project,
+  preloadCover = false,
+  headingLevel: Heading = 'h3',
+}: Props) {
   const t = useTranslations('Projects')
   const visibleProjectTags = project.tags.slice(0, MAX_VISIBLE_TAGS)
   const extraCount = Math.max(0, project.tags.length - MAX_VISIBLE_TAGS)
@@ -44,9 +51,9 @@ export function ProjectCard({ project, preloadCover = false }: Props) {
           />
 
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <h3 className="font-display">
+            <Heading className="font-display text-2xl font-bold tracking-normal">
               {project.title}
-            </h3>
+            </Heading>
 
             <div className="flex flex-wrap items-center gap-2">
               {company ? (

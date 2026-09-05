@@ -1,10 +1,10 @@
 ---
 title: "DESIGN — Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-09-04"
-keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin"]
+date: "2026-09-05"
+keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin", "dataviz"]
 scope: ["docs", "frontend"]
-technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "Motion", "next-intl"]
+technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "Motion", "next-intl"]
 ---
 
 # 🎨 Identité Visuelle
@@ -56,19 +56,22 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Body | 1rem (16px) | 400 (Regular) | `text-base` |
 | Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
 | Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground` : titres de cartes de stack, libellés de stats, libellé de signature de la landing, métadonnées et timeline d'étude de cas. Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
+| Titre de card marketing | 1.5rem (24px) | 700 (Bold) | `font-display text-2xl font-bold tracking-normal` : cards services et projets. Taille fixe quel que soit le niveau du titre, d'où le `text-2xl` explicite |
 | Display number (chiffre clé) | 3rem (48px), 3.75rem (60px) dès sm | 700 (Bold) | `font-display text-5xl font-bold text-primary sm:text-6xl` : chiffres des stats `/a-propos` |
 
 > Les styles de base H1, H2 et H3 sont appliqués globalement via `@layer base` dans `globals.css` (mobile-first, palier `sm:` pour le desktop). Pas besoin de répéter ces classes sur chaque balise, sauf override ponctuel.
 
 > `font-display` est appliquée par défaut sur H1 via `@layer base`, les autres niveaux utilisant Geist Sans.
 
-> **Exceptions** : `font-display` s'ajoute aussi aux titres de cards marketing en H3 (`font-display text-2xl font-bold`) et aux H2 des sections de la landing, pour la cohérence éditoriale avec les H1 hero. Les H2 des autres pages, les pages de lecture (légales, case studies) et les pages internes (admin post-MVP, formulaires) gardent Geist Sans.
+> **Exceptions** : `font-display` s'ajoute aussi aux titres de cards marketing et aux H2 des sections de la landing, pour la cohérence éditoriale avec les H1 hero. Les H2 des autres pages, les pages de lecture (légales, case studies) et les pages internes (admin post-MVP, formulaires) gardent Geist Sans. Le `tracking-tight` de la base corrige l'impression de relâchement des grandes tailles : à 24px il étrangle, d'où le `tracking-normal` de la card marketing.
+
+> **Le niveau d'un titre suit la structure de la page, jamais son apparence.** Une card marketing est un cran sous le titre qui la précède : H2 quand elle suit le H1 de la page (`/services`, `/projets`), H3 quand elle vit sous un H2 de section (accueil). `ServiceCard` et `ProjectCard` prennent donc un `headingLevel` de leur appelant, et gardent la même apparence dans les deux cas.
 
 ## Palette de Couleurs
 
 ### Tokens / Variables CSS
 
-> Valeurs en **OKLCH**, format de `globals.css` (convention shadcn/ui + Tailwind CSS v4), pour qu'un écart entre doc et code se voie à la lecture. Les trois nombres sont clarté, saturation, teinte : le vert sauge garde la teinte 140 en light comme en dark, seule sa clarté change.
+> Valeurs en **OKLCH**, format de `globals.css` (convention shadcn/ui + Tailwind CSS v4), pour qu'un écart entre doc et code se voie à la lecture. Les trois nombres sont clarté, saturation, teinte.
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
@@ -85,13 +88,13 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--border` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 10%)` | Bordures |
 | `--input` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 15%)` | Bordures inputs, plus contrastées que `--border` en dark |
 | `--ring` | `oklch(0.53 0.04 140)` | `oklch(0.68 0.03 140)` | Focus ring (vert sauge) |
-| `--destructive` | `oklch(0.577 0.245 27.325)` | `oklch(0.704 0.191 22.216)` | Erreurs, actions destructives |
+| `--destructive` | `oklch(0.53 0.16 25)` | `oklch(0.68 0.15 25)` | Erreurs, actions destructives. Rouge brique, cf. § Couleurs Sémantiques |
 | `--card` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des cartes |
 | `--card-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des cartes |
 | `--popover` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des popovers |
 | `--popover-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des popovers |
 
-> `globals.css` définit aussi `--chart-1` à `--chart-5` et les huit `--sidebar-*` : scaffolding shadcn pour les composants Chart et Sidebar, non installés (post-MVP).
+> Les huit `--sidebar-*` sont le scaffolding shadcn du composant Sidebar, non installé (post-MVP). `--chart-1` à `--chart-5` : voir § Palette dataviz.
 
 ### Couleurs Sémantiques
 
@@ -99,17 +102,42 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
-| `--success` | `oklch(0.65 0.17 140)` | `oklch(0.72 0.18 145)` | Confirmation formulaire, actions réussies. Réservé (admin post-MVP) |
-| `--warning` | `oklch(0.65 0.15 80)` | `oklch(0.78 0.17 85)` | Avertissements, états attention. Réservé (admin post-MVP) |
-| `--info` | `oklch(0.55 0.22 265)` | `oklch(0.63 0.21 260)` | Messages informatifs, aide contextuelle. Réservé (admin post-MVP) |
-| `--shine` | `oklch(1 0 0 / 0.95)` | `oklch(1 0 0 / 0.95)` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode. Réservé aux surfaces `bg-primary` |
+| `--success` | `oklch(0.55 0.11 148)` | `oklch(0.72 0.11 148)` | Confirmation formulaire, actions réussies. Réservé (admin post-MVP) |
+| `--warning` | `oklch(0.56 0.11 72)` | `oklch(0.76 0.11 72)` | Avertissements, états attention. Réservé (admin post-MVP) |
+| `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Messages informatifs, aide contextuelle. Ardoise, pas un bleu franc. Réservé (admin post-MVP) |
+| `--shine` | `oklch(1 0 0 / 0.95)` | `oklch(1 0 0 / 0.95)` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode. Uniquement sur des surfaces `bg-primary`, invisible sur une carte claire |
+
+> Contraintes à tenir si l'un de ces tokens bouge ou si un cinquième s'ajoute : **chroma entre 0,11 et 0,16**, au-delà la couleur crie à côté d'un accent à 0,04 ; `--success` en teinte **148**, qui se confondrait avec `--primary` en 140 ; `--info-foreground` sombre en dark, l'ardoise y étant claire.
+
+### Palette dataviz
+
+> Cinq séries pour les graphiques de l'espace admin (`--chart-1` à `--chart-5`).
+
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `--chart-1` | `oklch(0.42 0.05 140)` | `oklch(0.82 0.05 140)` | Première série, sauge profond. Réservé (admin post-MVP) |
+| `--chart-2` | `oklch(0.62 0.045 140)` | `oklch(0.64 0.045 140)` | Deuxième série, sauge clair. Réservé (admin post-MVP) |
+| `--chart-3` | `oklch(0.45 0.06 250)` | `oklch(0.8 0.06 250)` | Troisième série, ardoise profonde. Réservé (admin post-MVP) |
+| `--chart-4` | `oklch(0.65 0.055 250)` | `oklch(0.62 0.06 250)` | Quatrième série, ardoise claire. Réservé (admin post-MVP) |
+| `--chart-5` | `oklch(0.8 0 0)` | `oklch(0.48 0 0)` | Cinquième série, gris neutre. Réservé (admin post-MVP) |
+
+**Sauge + ardoise** : deux clartés de sauge (teinte 140, celle de la marque), deux d'ardoise (teinte 250, celle de `--info`), un gris neutre pour fermer. Aucune teinte hors du système : une couleur inventée pour un graphique n'appartient à aucune partie de la marque. La teinte sépare les familles de séries, la clarté sépare à l'intérieur d'une famille.
+
+**Règle d'attribution des couleurs de série, en trois branches** :
+
+- Séries de **même nature** (CA par mois, parts d'un total, donut) : `--chart-1` à `--chart-5` **par position**, sans choix explicite
+- Séries de **natures différentes** dans un même graphique (visites du site contre sessions du chatbot) : rampes **nommées** (`primary`, `info`), la teinte devant faire la distinction que la clarté seule ne fait pas
+- La couleur **porte un sens** : rampe **sémantique** (`--destructive` pour un impayé, `--warning` pour un retard)
+
+> Au-delà de cinq séries, regrouper la queue en « Autres ». Les aplats de graphique visent 3:1 sur le fond (WCAG 1.4.11, composants non textuels), pas les 4,5:1 exigés du texte.
 
 ### Règles
 
-- ✅ Toujours référencer les couleurs par token CSS : jamais de valeur hex en dur dans les composants
-- ✅ L'accent vert sauge est utilisé avec parcimonie : CTA, liens, hover states, éléments de marque. Pas de surfaces entièrement vertes.
+- ✅ Toujours référencer les couleurs par token CSS, jamais de valeur hex en dur dans les composants : un seul endroit à modifier par mode
+- ✅ L'accent vert sauge est utilisé avec parcimonie : CTA, liens, hover states, éléments de marque. Pas de surfaces d'interface entièrement vertes. Les aplats des graphiques échappent à cette règle : ce sont des données, pas du chrome, et leur couleur est la seule chose qui distingue une série d'une autre.
 - ✅ Privilégier le contraste : le texte principal doit toujours avoir un ratio WCAG AA minimum (4.5:1)
 - ✅ Les gris neutres (`muted`, `border`) n'ont pas de teinte colorée : ils restent purement neutres pour renforcer l'impact du vert sauge quand il apparaît
+- ✅ Une couleur garde sa teinte et son chroma entre light et dark : seule la clarté change, ce qui la maintient lisible sur son fond sans en faire une autre couleur
 
 ## Formes
 
@@ -119,6 +147,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
+| `--radius-xs` | `calc(var(--radius) * 0.2)` → 2px | Bouton de fermeture d'une modale. Réservé (admin post-MVP) |
 | `--radius-sm` | `calc(var(--radius) * 0.6)` → 6px | Badges, tags, petits éléments |
 | `--radius-md` | `calc(var(--radius) * 0.8)` → 8px | Boutons, inputs, éléments UI courants |
 | `--radius-lg` | `var(--radius)` → 10px | Cards, conteneurs |
@@ -133,6 +162,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
+| `shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Affordance de champ shadcn : `Checkbox`, `Switch`, `RadioGroup`, déclencheur de `Select`. Réservé (admin post-MVP) |
 | `shadow-sm` | `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)` | Repos des cards en grille |
 | `shadow-md` | `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)` | Petits éléments cliquables au hover (pastilles), dropdowns et menus (valeur `radix-nova`) |
 | `shadow-lg` | `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)` | Panneau latéral du menu mobile |
@@ -142,7 +172,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 ## Dark / Light Mode
 
-**Stratégie** : store maison `src/lib/theme.ts` (next-themes retiré : abandonné, bug de thème périmé avec React 19 Activity)
+**Stratégie** : store maison `src/lib/theme.ts`. Pas `next-themes`, dont le thème reste périmé sous React 19 Activity
 
 **Mécanisme** : CSS variables sur `:root` (light) et `.dark` (dark), classe posée sur `<html>` par le store `src/lib/theme.ts` (singleton `useSyncExternalStore` + script inline anti-FOUC). Tant que le visiteur n'a rien choisi, le mode se résout depuis `prefers-color-scheme`.
 
@@ -151,7 +181,6 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 - ✅ Le thème suit la préférence OS du visiteur tant qu'il n'a rien choisi, `'system'` étant la valeur de repli du store : approche inclusive, pas de surprise pour les visiteurs non-dev
 - ✅ Le toggle dark/light est accessible depuis la navbar pour permettre de forcer un mode
 - ✅ Le design doit fonctionner aussi bien en light qu'en dark (pas optimisé pour un seul mode)
-- ✅ Toutes les couleurs passent par les tokens CSS variables : un seul endroit à modifier par mode
 
 ---
 
@@ -163,7 +192,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Type | Outil / Ressource | Usage |
 |------|-------------------|-------|
-| CLI | `pnpm dlx shadcn@latest` | Point d'entrée unifié discovery / audit / install pour les 3 registries. Détail des commandes dans le skill shadcn. |
+| CLI | `pnpm dlx shadcn@latest` | Point d'entrée unifié discovery / audit / install pour tous les registries déclarés dans `components.json`. Détail des commandes dans le skill shadcn. |
 | Skill | `.claude/skills/shadcn/` | Skill officiel shadcn auto-chargé : CLI reference complète, critical rules de composition, patterns officiels. Remplace la redocumentation locale des commandes CLI |
 
 ### Configuration projet
@@ -174,13 +203,14 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, `rounded-lg`, padding 10px) |
-| Magic UI | Effets visuels copy-paste | Enrichissements marketing : text effects, typographie animée, bento grid, marquee, particles, borders animés |
-| Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé en MVP : Background Ripple Effect. Candidats post-MVP : MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams |
+| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px) |
+| Magic UI | Effets visuels copy-paste | Enrichissements marketing : typographie animée, bento grid, marquee, bordure animée, bouton shimmer, bascule de thème |
+| Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé : Background Ripple Effect seul, les candidats étant listés en § Mapping Composants > Post-MVP |
+| ReUI | Composants absents du registry shadcn | Post-MVP admin, `EventCalendar` uniquement. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies et des pages légales (`prose dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
-> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui seul.
+> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, à une exception près : `EventCalendar`, que le registry shadcn n'a pas.
 
 ### Style shadcn
 
@@ -199,6 +229,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | shadcn/ui | `src/components/ui/` | Défaut shadcn CLI |
 | Magic UI | `src/components/magicui/` | Défaut Magic UI |
 | Aceternity UI | `src/components/aceternity/` | Défaut Aceternity = `ui/`, customisé via `-p src/components/aceternity` ou `aliases` dans `components.json` |
+| ReUI | `src/components/reui/` | Post-MVP, même principe que les deux précédents |
 
 ## Mapping Composants
 
@@ -210,7 +241,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Navbar | Navbar, Mobile Menu | nav custom + shadcn/ui (Sheet) | `sticky top-0` + `backdrop-blur` + `border-b border-border`, contient logo, liens, sélecteur de langue et bascule de thème. Liens plats en `ul`/`li` avec état actif via `usePathname`, NavigationMenu écarté (pensé pour des menus à sous-panneaux). Sheet pour le menu mobile |
 | Footer | Footer | composant maison | Layout custom sur toutes les pages publiques, séparé du contenu par un `border-t border-border`. Contient logo, tagline, localisation, réseaux sociaux, lien CV, copyright et navigation légale (mentions, confidentialité, cookies) |
-| Language Switcher | DropdownMenu + icône Globe (Lucide) + drapeaux (`country-flag-icons`) | shadcn/ui | Switch FR / EN dans navbar (Feature 6 i18n) |
+| Language Switcher | DropdownMenu + icône Globe (Lucide) + drapeaux (`country-flag-icons`) | shadcn/ui | Switch FR / EN dans la navbar, locale courante en `font-semibold` |
 | Theme Toggle | AnimatedThemeToggler | Magic UI + store `src/lib/theme.ts` | Toggle dark/light animé dans navbar, morphing soleil/lune |
 | Filtres projets | Tabs custom minimaliste (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`) |
 | Onglets contact | Tabs | shadcn/ui (Radix) | Bascule formulaire / Calendly sur `/contact`. L'onglet Calendly est monté en `forceMount` et masqué en CSS, pour que le widget ne se réinitialise pas à chaque bascule ; la `key={pathname}` remet l'onglet par défaut au changement de locale |
@@ -219,8 +250,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Boutons | Button (variants selon contexte) | shadcn/ui | default, outline, ghost, destructive, icon, variant choisi selon l'usage |
-| Bouton CTA hero | ShimmerButton | Magic UI | Hero / landing uniquement, effet shimmer, max 1 par page |
+| Boutons | Button | shadcn/ui | Variants `default`, `outline`, `ghost`, `secondary`, `destructive`, `link` ; taille `icon` pour les boutons à glyphe seul. `destructive` est une teinte `destructive/10` avec texte `--destructive`, pas un aplat rouge |
+| Bouton CTA hero | ShimmerButton | Magic UI | Hero de la landing uniquement, effet shimmer sur `--shine` |
 | Téléchargement CV | DownloadCvButton | composant maison (Button) | Navbar, footer et `/a-propos`, en `variant="outline" size="sm"` dans les deux premiers |
 
 ### Formulaires
@@ -228,7 +259,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Champs | Input, Textarea, Label | shadcn/ui | Formulaire contact |
-| Formulaire contact | Form shadcn pur (Card + Input + Textarea + Button + Label) | shadcn/ui | Layout 2 cols (form / Calendly + réseaux) reconstruit en shadcn sans bloc Aceternity PRO. UI livrée par Feature 1 sub 04, logique métier (Zod + Server Action + SMTP + rate limiting) par Feature 4 |
+| Formulaire contact | Card + Input + Textarea + Button + Label | shadcn/ui | Layout 2 colonnes (formulaire / Calendly + réseaux), sans abstraction Form : validation Zod dans la Server Action, erreurs de champ en `text-sm text-destructive` sous l'input, confirmation par toast |
 
 ### Cards et grilles
 
@@ -237,13 +268,13 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Cards services | Card | shadcn/ui | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
 | Cards projets | BentoCard | Magic UI | Showcase visuel dans BentoGrid (landing + /projects) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique et son conteneur : cards projets (landing + /projects) et stack `/a-propos`. Conteneur visuel seul (`rounded-lg`, bordure, `shadow-sm`), l'affordance de survol vivant sur l'élément cliquable |
-| Tables de données | Table + TanStack Table | shadcn/ui | `Table` installé. Le tri, le filtrage et la pagination sont un **pattern** à implémenter, pas un composant du registry |
+| Tables de données | Table | shadcn/ui | Tri, filtrage et pagination en état local React, sans librairie de table à cette volumétrie |
 
 ### Badges
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` (bordure ajoutée au CVA, comme les badges meta), casse normale (noms de marque). Simple Icons pour technos/infra/outils, Lucide pour expertises, renderer choisi selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`). Cards projets, case studies et stack `/a-propos` |
+| Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Simple Icons pour technos/infra/outils, Lucide pour expertises, renderer choisi selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`). Cards projets, case studies et stack `/a-propos` |
 | Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` | shadcn/ui | Type de projet (API, Web App…), entreprise avec logo, compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant |
 
 ### Feedback et chargement
@@ -265,9 +296,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Paragraphe d'accroche | LeadParagraph | composant maison | Filet `border-l-2 border-primary/60` + `pl-5` sur la tagline `/a-propos` et le chapô d'étude de cas |
 | Texte à libellé | LabeledText | composant maison | Met en gras le libellé d'un paragraphe traduit jusqu'aux deux-points, au-delà de 30 caractères le texte est rendu tel quel. Utilisé sur `/a-propos`, où le gras vit dans le composant plutôt que dans les fichiers de traduction |
-| Typographie display | Hyper Text, Word Rotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots) |
+| Typographie display | HyperText, WordRotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots) |
 | Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
-| Marquee | Marquee | Magic UI | Défilement horizontal (logos techs, clients, projets) |
+| Marquee | Marquee | Magic UI | Bande de logos de la stack qui défile sous le CTA final de la landing, avec fondu sur les bords |
 | Rendu markdown | MarkdownContent | composant maison (`@tailwindcss/typography`) | Case studies et pages légales, classes `prose` et overrides `prose-h2` / `prose-h3` alignés sur la scale |
 
 ### Effets visuels
@@ -293,28 +324,35 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement |
-| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | - |
-| Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact |
+| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin (compteur, lignes par page, pager) se tient en 24px, un cran sous la barre d'outils. Le registry n'ayant pas de prop de taille ici, leur ajouter `size` (`sm`, `xs`) et le même `xs` à `Select` |
+| Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Recherche, puis un seul bouton `outline` ouvrant tous les filtres en Popover, compteur d'actifs en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre |
+| En-tête de colonne triable | Button `ghost` dans le `th` | shadcn/ui | Cycle croissant, décroissant, ordre d'affichage ; `aria-sort` sur le bouton. Glisser-déposer désactivé dès qu'un tri ou un filtre est actif |
+| Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. `Checkbox` plutôt qu'une case native : l'état indéterminé du « tout sélectionner » d'un tableau ne se rend pas autrement |
+| Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Hérite du contournement de `Command` |
+| Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur, `align="end"` sous une barre d'outils. Seul (filtres d'une liste) ou en composition (Combobox, sélecteur de date) |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Dates de facture, d'échéance, de mission |
-| Feedback | Alert | shadcn/ui | Messages persistants dans la page, là où le toast est passager |
+| Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
+| Feedback | Alert | shadcn/ui | Avis persistant en tête d'écran. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
 | Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression |
-| Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026 |
-| Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Palette et lisibilité en mode sombre se décident avec le skill `dataviz` de Claude Code, hors dépôt |
+| Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk |
+| Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
+| Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
 | Primitifs d'interface | Tooltip, Separator, ScrollArea, Avatar, Collapsible | shadcn/ui | - |
-| Effets hero | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Candidats, aucun installé |
+| Effets hero | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Candidats |
 | Effets visuels | Shine Border, Particles, Meteors, Magic Card | Magic UI | Candidats |
 | Typographie display | Text Reveal | Magic UI | Candidat (au scroll) |
 | Typographie display (alt) | Text Generate Effect, Flip Words | Aceternity UI | Candidats |
 
 ## États des Composants
 
-> Les composants shadcn/ui, Magic UI et Aceternity UI (Button, BentoCard, MacbookScroll, ShimmerButton, etc.) ont leurs états et animations **intégrés**. Les guidelines ci-dessous s'appliquent uniquement aux composants **custom** non-lib créés from scratch.
+> Les composants shadcn/ui, Magic UI et Aceternity UI (Button, BentoCard, ShimmerButton, etc.) ont leurs états et animations **intégrés**. Les guidelines ci-dessous s'appliquent uniquement aux composants **custom** non-lib créés from scratch.
 
 | État | Style / Comportement | Contexte |
 |------|---------------------|----------|
 | Hover (surfaces cliquables custom) | Léger scale `1.01` + ombre + transition `300ms ease-out` | Cards (`shadow-xl`) et petits éléments type pastille (`shadow-md`) |
 | Hover (surfaces custom non cliquables) | Contour porté à `primary/40`, transition `300ms ease-out` | Cards services et tuiles de stack : le contour se colore, la surface reste en place, l'action vivant dans le bouton de la card |
 | Hover (liens d'interface) | Transition couleur `150ms` vers `text-primary` | Nav, liens hors composants shadcn |
+| Actif (lien de navigation) | `font-semibold text-primary` ; `font-semibold` seul dans le sélecteur de langue, où la couleur marquerait un lien | Item de la navbar correspondant à la route courante, locale courante du sélecteur |
 | Loading | Skeleton pulse (`animate-pulse`) | Chargement de contenu dynamique (projets, etc.) |
 
 ---
@@ -344,31 +382,27 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| Motion (package `motion`, import `motion/react`) | Animations avancées sur composants Magic UI | `BorderBeam`, `HyperText`, `NumberTicker`, `WordRotate` |
-| Magic UI | Text effects et effets visuels enrichis | Text reveals, aurora text, border beam, particles, 2-3 effets max par page |
-| Aceternity UI | Hero effects premium | Background Ripple Effect (seul effet installé en MVP), hero / sections clés. Autres effets premium (MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams) candidats post-MVP |
+| Motion (package `motion`, import `motion/react`) | Moteur d'animation sous-jacent des composants Magic UI | Jamais appelé directement dans le code applicatif |
+| Magic UI | Text effects et effets visuels enrichis | HyperText, WordRotate, NumberTicker, Marquee, BorderBeam, ShimmerButton, AnimatedThemeToggler |
+| Aceternity UI | Hero effects premium | Background Ripple Effect, hero / sections clés |
 
 ## Principes Directeurs
 
 - **Intensité** : `subtile`, chaque animation a un but fonctionnel (guider l'attention, confirmer une action)
 - **Durée standard** : `200-400ms` pour tout ce qui déplace ou fait apparaître ; `150ms` pour les micro-transitions de couleur seule, défaut Tailwind
 - **Easing** : `ease-out` (entrées), `ease-in-out` (transitions)
-- **Intention** : renforcer la sensation de qualité et de fluidité sans distraire. Le contenu prime sur l'effet.
+- **Intention** : renforcer la sensation de qualité et de fluidité sans distraire. Le contenu prime sur l'effet : 2 à 3 effets Magic UI par page au plus, un seul ShimmerButton
 - **Périmètre** : les animations d'entrée au scroll sont réservées aux surfaces marketing (accueil, `/services`, `/projets`, `/a-propos`), les pages de lecture continue et le formulaire de contact affichant leur contenu directement
-- **Accessibilité** : `prefers-reduced-motion` est respecté (`useReducedMotion`), le contenu s'affiche alors sans fondu ni délai
+- **Accessibilité** : `prefers-reduced-motion` est respecté (hook maison de `MotionItem` sur `matchMedia`, et `@media` dans `globals.css`), le contenu s'affiche alors sans fondu ni délai
 
 ## Composants Animés
 
-> Ce tableau liste uniquement les animations **implémentées manuellement** (Motion, Tailwind transitions, CSS) sur des composants custom ou sur des composants shadcn non animés par défaut. Les composants Magic UI et Aceternity UI listés dans `§ Mapping Composants` (ShimmerButton, AnimatedThemeToggler, NumberTicker, BentoCard, Marquee, HyperText, WordRotate, BackgroundRippleEffect, etc.) ont leurs animations **intégrées** et ne sont pas dupliqués ici. `BorderBeam` fait exception : l'animation vient de la lib, mais ses emplacements et ses paramètres sont une décision projet, donc documentés ci-dessous.
+> Ce tableau liste uniquement les animations **implémentées manuellement** (Motion, Tailwind transitions, CSS) sur des composants custom ou sur des composants shadcn non animés par défaut. Les composants Magic UI et Aceternity UI du tableau ci-dessus ont leurs animations **intégrées** et ne sont pas dupliqués ici. `BorderBeam` fait exception : l'animation vient de la lib, mais ses emplacements et ses paramètres sont une décision projet, donc documentés ci-dessous. Les transitions de survol et d'état actif vivent en § États des Composants, pas ici.
 
 | Composant | Type d'animation | Librairie | Trigger |
 |-----------|-----------------|-----------|---------|
 | Sections marketing | Fade-in + slide-up 20px, `400ms ease-out` | CSS + IntersectionObserver (`MotionItem`) | Scroll (viewport entry à 20%) |
 | Cards en grille | Idem, en cascade `100ms` par colonne (`index % colonnes`, plafonnée à une rangée) | CSS + IntersectionObserver (`MotionItem`) | Scroll (viewport entry à 20%) |
-| Surfaces cliquables custom | Scale `1.01` + ombre, `300ms ease-out` | Tailwind transitions | Hover |
-| Surfaces custom non cliquables | Contour porté à `primary/40`, `300ms ease-out` | Tailwind transitions | Hover |
-| Boutons CTA standards | Défaut shadcn (`hover:bg-primary/90`) | Tailwind transitions | Hover |
-| Navigation | Transition de couleur vers `text-primary` (`font-semibold` sur l'item actif) | Tailwind transitions | Hover / Active |
 | Page transitions | Fondu croisé `200ms`, `ease-in-out` en sortie et `ease-out` en entrée | React `ViewTransition` | Changement de route. Porté par `PageShell` pour les pages qui l'utilisent, et par la landing pour elle-même |
 | Badge "En cours" (indicateur live) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s`, `size=30` | Magic UI | Always-on (signale les cards de projets actifs) |
 | CTA "Voir la démo" (case study) | BorderBeam rotation bordure, `colorFrom=var(--shine)`, `duration=7s`, `size=40` | Magic UI | Always-on (mise en valeur du CTA principal, uniquement sur bouton démo, pas github) |
@@ -431,7 +465,6 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Règles
 
-- ✅ **Tokens CSS** : utiliser les variables CSS (`bg-primary`, `text-muted-foreground`, etc.) au lieu de couleurs Tailwind brutes (`bg-green-600`)
 - ✅ **`cn()` obligatoire** : toujours utiliser `cn()` pour composer les classes dans les composants React (permet le merge propre et l'override par props)
 - ✅ **Composants shadcn** : toujours utiliser les composants shadcn/ui quand ils existent avant de créer un composant custom
 - ✅ **Responsive** : écrire le style mobile d'abord, puis élargir avec `sm:`, `md:`, `lg:`
@@ -462,6 +495,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 ## Ressources Complémentaires
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
+- [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin (post-MVP)
 - [Radix UI](https://www.radix-ui.com) : primitives accessibles sous-jacentes à shadcn/ui
 - [Geist Font](https://vercel.com/font) : polices Geist Sans et Geist Mono (Vercel)
 - [Sansation](https://fonts.google.com/specimen/Sansation) : police display, par Bernd Montag, sous licence OFL

@@ -19,7 +19,7 @@ paths:
 - **Polices du projet (DESIGN.md)**, chargées dans `src/lib/fonts.ts`, exposées par `fontVariables` et posées sur le `<html>`
   - **`Geist Sans`** → corps de texte, UI, titres H2-H6, navigation, boutons (`next/font/google`, variable `--font-sans`)
   - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (`next/font/google`, variable `--font-mono`)
-  - **`Sansation`** → titres hero H1, éléments de marque, logo (`next/font/local` sur `src/lib/seo/fonts/Sansation-Bold.ttf`, variable `--font-display`, mappée à la classe `font-display`)
+  - **`Sansation`** → titres hero H1, éléments de marque, logo (`next/font/local` sur `src/lib/seo/fonts/Sansation-Bold.woff2`, variable `--font-display`, mappée à la classe `font-display`)
 - Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css` — voir `tailwind/conventions.md`)
 - Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
 - Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec le **chemin relatif** que construit `buildAssetUrl()`. Ne PAS préfixer par `NEXT_PUBLIC_SITE_URL` ni déclarer le domaine dans `images.remotePatterns` — une URL absolue ferait traiter comme distante une image servie par la même origine, sans aucun gain
@@ -31,7 +31,7 @@ paths:
 - Omettre `sizes` sur une image `fill` : Next.js génère un `srcset` limité (1x/2x) au lieu du jeu complet adaptatif
 - Servir des images dynamiques depuis `public/` : pas de hashing, pas de cache-busting, couplage au build. Utiliser une route API dédiée
 - Utiliser des SVG en `<Image>` sans `unoptimized` : l'optimisation n'apporte rien pour les SVG
-- Importer `next/font` dans `ImageResponse` : **ne fonctionne pas**, charger manuellement les fichiers `.ttf`/`.woff` via `readFile`
+- Importer `next/font` dans `ImageResponse` : **ne fonctionne pas**, charger manuellement le fichier de police via `readFile` (`.woff2` compris, cf. Gotchas)
 - Charger une police Google **peu répandue** via `next/font/google` sans vérifier sa couverture métriques (cf. Gotchas) : le fallback ajusté est abandonné en silence et le swap provoque du CLS
 
 ## Gotchas
@@ -39,6 +39,8 @@ paths:
   - **Vérifier avant d'adopter une police Google** : `node -e "console.log('<nom-minuscules>' in require('next/dist/server/capsize-font-metrics.json'))"`
   - **Si absente → `next/font/local`** : il parse le fichier réel avec `fontkit` et calcule les overrides quelle que soit la police, sans dépendre du snapshot
   - **Contrôler après coup** : le CSS de build doit porter `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`/`ascent-override`
+- **`preload: false` sur une police la casse** (Next 16.3.3 + Turbopack) : le fichier est renommé `-s.<hash>`, le CSS suit, mais le hint du payload RSC garde `-s.p.<hash>` → **500** à chaque rendu. Vu sur `Geist_Mono`, 2026-09-05
+- **Un seul woff2 par police suffit** : `fontkit` le mesure comme un TTF (`size-adjust` identique avant/après conversion) et **satori l'accepte** pour les `ImageResponse` (PNG identique au bit près). Un TTF gardé « pour les OG » est du poids mort
 - Next 16 : `images.minimumCacheTTL` passe de 60s à **4h** (14400s), réduit le coût de revalidation
 - Next 16 : `images.qualities` restreint à `[75]` par défaut, toute autre valeur est coercée sauf déclaration explicite (`qualities: [25, 50, 75, 100]`)
 - Next 16 : `images.imageSizes` perd la valeur `16` par défaut (retina fetch 32px minimum)

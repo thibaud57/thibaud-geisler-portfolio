@@ -116,14 +116,12 @@ const LUCIDE_ICONS: Record<string, IconComponent> = {
 export function MaltIcon({ className }: { className?: string }) {
   return (
     <svg
-      role="img"
+      aria-hidden="true"
       viewBox="-2.5 2.6 42.63 42.63"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* La barre est affinée perpendiculairement (rotation à l'horizontale, compression,
-          rotation inverse) : à 16 px elle écrasait les pétales et faisait une tache. */}
       <path
         transform="translate(18.9 23.84) rotate(-45) scale(1 0.62) rotate(45) translate(-18.9 -23.84)"
         d="M32.1993 10.5357C29.3591 7.69551 26.3252 9.53378 24.4265 11.4325L6.49014 29.3694C4.59144 31.2679 2.60411 34.1526 5.59336 37.1414C8.58262 40.1313 11.4673 38.1436 13.3656 36.2449L31.3023 18.3084C33.201 16.4095 35.0393 13.3755 32.1993 10.5357Z"
@@ -142,7 +140,7 @@ export function MaltIcon({ className }: { className?: string }) {
 export function LinkedinIcon({ className }: { className?: string }) {
   return (
     <svg
-      role="img"
+      aria-hidden="true"
       viewBox="0 0 24 24"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"

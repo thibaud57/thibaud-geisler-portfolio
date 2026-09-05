@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   poweredByHeader: false,
+  // Traefik sert le brotli (`compress-br@file`) et ne compresse pas une réponse portant déjà
+  // un Content-Encoding : le gzip de Next l'en empêcherait. Sans ce middleware, plus rien
+  // n'est compressé. Cf. docs/knowledges/dokploy.md § Compression Brotli
+  compress: false,
   images: {
     formats: ['image/avif', 'image/webp'],
   },
