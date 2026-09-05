@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.2...v1.6.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* LCP mobile, accessibilité des titres et resserrement des tokens sémantiques ([#129](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/129)) ([a1f3401](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a1f3401973b385bedd02fa723c55b7c08e283ef5))
+
 ## [1.6.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.1...v1.6.2) (2026-09-04)
 
 
