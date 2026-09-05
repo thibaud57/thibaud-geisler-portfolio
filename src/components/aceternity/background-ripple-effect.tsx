@@ -1,4 +1,13 @@
 "use client";
+
+/**
+ * Composant Aceternity `BackgroundRippleEffect` modifié localement (copy-paste shadcn).
+ * Diff vs upstream (https://ui.aceternity.com/components/background-ripple-effect) :
+ * `will-change: transform` retiré des cellules. MDN le réserve au dernier recours et
+ * déconseille de l'anticiper : sur 216 cellules il maintenait autant de couches de
+ * composition en permanence, sans contrepartie.
+ */
+
 import React, { useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -113,7 +122,7 @@ const DivGrid = ({
           <div
             key={idx}
             className={cn(
-              "cell relative border-[0.5px] opacity-40 transition-opacity duration-150 will-change-transform hover:opacity-80 dark:shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
+              "cell relative border-[0.5px] opacity-40 transition-opacity duration-150 hover:opacity-80 dark:shadow-[0px_0px_40px_1px_var(--cell-shadow-color)_inset]",
               clickedCell && "animate-cell-ripple [animation-fill-mode:none]",
               !interactive && "pointer-events-none",
             )}
