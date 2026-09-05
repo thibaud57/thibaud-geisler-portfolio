@@ -386,6 +386,12 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 
 > **Chatbot (post-MVP)** : son quota ne se fixe pas ici. La route ne vivra pas dans ce dépôt mais dans le service `portfolio-chatbot`, c'est sa propre documentation d'exploitation qui la portera ([ADR-014](adrs/014-rate-limiting-chatbot.md) pour la décision).
 
+## Domaine & Redirection
+
+`www.thibaud-geisler.com` redirige vers `thibaud-geisler.com` via un middleware Traefik custom (`redirect-www-to-apex`, depuis le 2026-09-04), le domaine principal restant l'unique adresse indexée. Config et procédure : [knowledges/dokploy.md § Middleware Traefik custom](knowledges/dokploy.md#middleware-traefik-custom-redirection-www).
+
+> ✅ **Vérifié le 2026-09-04** : `curl -IL https://www.thibaud-geisler.com/` → `308 Permanent Redirect` vers `https://thibaud-geisler.com/` (Traefik `permanent: true` répond 301 en GET, 308 sur les autres méthodes dont `HEAD`, celle utilisée par `curl -I`)
+
 ## Dépendances
 
 | Outil | Scope | Fréquence | Config |
@@ -612,25 +618,33 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 | Page/Feature | Target | Current |
 |--------------|--------|---------|
-| LCP `/fr` mobile | < 2,5 s | 4,1 s |
-| LCP `/fr/projets` mobile | < 2,5 s | 5,4 s |
-| LCP pages publiques desktop | < 2,5 s | 0,8 à 0,9 s |
-| CLS pages publiques | < 0,1 | 0,05 mobile, **0,28 desktop** |
-| TBT (proxy INP en lab) | < 200 ms | 60 à 460 ms selon la page |
-| TTFB pages publiques | < 200 ms | à relever : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (mesurer une URL localisée, la racine ne renvoie qu'une redirection) |
+| LCP `/fr` mobile | < 2,5 s | **3,9 s** (PSI, 2026-09-05), seul indicateur hors cible |
+| LCP `/fr/projets` mobile | < 2,5 s | 5,4 s (13 mai), **à remesurer via PSI** |
+| LCP pages publiques desktop | < 2,5 s | non mesuré via PSI depuis mai (0,8 à 0,9 s alors). Le pilotage CDP donne 0,23 à 0,31 s, chiffre non opposable : le throttling réseau ne s'applique pas au document de navigation |
+| CLS pages publiques | < 0,1 | **0,051 mobile, 0,012 desktop** (PSI et CDP, 2026-09-05) |
+| TBT (proxy INP en lab) | < 200 ms | **60 à 70 ms** (PSI, 2026-09-05) |
+| Score performance `/fr` mobile | — | **86 à 87** (PSI, 2026-09-05), contre 70 le 13 mai |
+| TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
-> Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire (Lighthouse via PageSpeed Insights), à ne pas confondre avec du terrain. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
+> Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire, à ne pas confondre avec du terrain — le champ CrUX de PSI affiche toujours « Aucune donnée », faute de trafic suffisant. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
+
+> ⚠️ **Suspendre Kaspersky avant toute mesure, `curl` compris** : il s'interpose sur le TLS et gonfle le TTFB d'un facteur 3 à 5 (0,55-0,75 s actif contre 0,13-0,19 s désactivé, 2026-09-05). Il supprime aussi l'entrée LCP en émulation mobile. Seul PSI y échappe.
+
+> ⚠️ **Ne pas relever le TBT en pilotage CDP** : l'observer `longtask` sous CPU ×4 compte sa propre instrumentation et surestime d'un facteur 5 (295-444 ms contre 60-70 ms chez PSI, même build).
 
 ## Optimisations
 
 - [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) — le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
-- [x] Baseline LCP/INP/CLS prise sur les pages clés × 2 locales
+- [x] Baseline LCP/CLS/TBT prise sur les pages clés × 2 locales. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
 - [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
-- [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
+- [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf desktop 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
 - [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md)
+- [x] **Polices en woff2, un fichier par famille** (en attente de déploiement) : `Sansation-Bold` 45 → 16 Ko, `Geist-Regular` 126 → 45 Ko, servis au navigateur comme à satori. Les `.ttf` ont été supprimés. Gain réseau de 8 Ko sur le chemin critique du LCP
 - [x] Bandeau de consentement sorti du chemin critique : provider depuis `@c15t/nextjs/headless`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte aussi leur CSS. Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu — un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
-- [ ] **Reprendre une baseline Core Web Vitals** : la dernière date du 13 mai 2026, trois releases avant l'état courant. Tant qu'elle n'est pas refaite, la colonne `Current` ci-dessus décrit une application qui n'existe plus
+- [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` mobile. Restent à relever via PSI : `/fr/projets` mobile et le desktop. **L'élément LCP est le `H1`**, donc un texte : le levier est le CSS bloquant et les polices, pas les images ni le JS
+- [ ] **Brotli** : middleware `compress-br@file` posé sur l'apex et `compress: false` en attente de déploiement. Vérifier `Content-Encoding: br` juste après, sinon repasser `compress: true` ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
+- [ ] **LCP mobile** : 3,9 s contre 2,5 s visés, quasi inchangé depuis mai et seul indicateur hors cible. PSI impute 590 ms aux requêtes bloquant le rendu. Autres pistes : les 216 divs de `BackgroundRippleEffect` en amont du `H1`, les 43 Kio de JS inutilisé, les 35 Ko de `motion` sur l'accueil
 
 > La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` — le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
 
