@@ -133,6 +133,73 @@ networks:
 
 ---
 
+## Middleware Traefik custom (redirection `www`)
+
+### Description
+
+L'onglet Domains suffit pour un domaine/certificat simple, mais ne propose aucune redirection entre deux domaines. Pour `www.thibaud-geisler.com` → `thibaud-geisler.com`, il faut définir un middleware dans le Traefik File System (sidebar → **Traefik File System** → `dynamic/middlewares.yml`), puis le référencer sur le domaine. Ce fichier est **partagé entre tous les projets du VPS** : d'autres entrées que celles du portfolio peuvent y coexister, toujours vérifier avant d'éditer.
+
+### Exemple
+
+```yaml
+http:
+  middlewares:
+    # Portfolio (thibaud-geisler.com), depuis le 2026-09-04
+    redirect-www-to-apex:
+      redirectRegex:
+        regex: "^https://www\\.thibaud-geisler\\.com/(.*)"
+        replacement: "https://thibaud-geisler.com/${1}"
+        permanent: true
+```
+
+Référencement : Application → onglet **Domains** → éditer `www.thibaud-geisler.com` → champ **Middlewares** → `redirect-www-to-apex@file`.
+
+### Points Importants
+
+- **Toujours commenter le fichier par projet** avant d'ajouter une entrée : sans ça, impossible de savoir plus tard qui a posé quel middleware sur un serveur mutualisé
+- Une faute de frappe dans le nom du middleware ne remonte **aucune erreur** dans l'UI, il est silencieusement ignoré (comportement documenté par le mainteneur sur [PR #3374](https://github.com/Dokploy/dokploy/pull/3374))
+- **Ne jamais passer par les labels** (Advanced → Swarm Settings) pour un middleware custom : ils atterrissent dans `ContainerSpec.Labels`, pas dans les labels de service lus par le provider Swarm, et se perdent au redéploiement suivant ([discussion #4228](https://github.com/Dokploy/dokploy/discussions/4228))
+- **Toujours redéployer le compose après une modification de domaine** : le bandeau bleu de l'onglet Domains le rappelle, sans ce redeploy le middleware référencé reste inactif
+
+---
+
+## Compression Brotli via Traefik
+
+### Description
+
+Traefik v3.5 sert `br` via son middleware `compress`, mais [ne compresse pas une réponse portant déjà un `Content-Encoding`](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/). Next compressant en gzip par défaut, le middleware seul ne change rien : les deux moitiés sont nécessaires.
+
+### Exemple
+
+Traefik File System (`dynamic/middlewares.yml`) :
+
+```yaml
+http:
+  middlewares:
+    compress-br:
+      compress:
+        # Ordre par défaut de Traefik : gzip, br, zstd. Sans cette liste, gzip reste choisi.
+        encodings:
+          - br
+          - gzip
+        minResponseBodyBytes: 1024
+```
+
+Puis onglet **Domains** de l'apex → champ **Middlewares** → `compress-br@file`, redeploy, et seulement ensuite `compress: false` dans `next.config.ts`.
+
+```bash
+curl -s -o /dev/null -D - -H "Accept-Encoding: br, gzip" https://thibaud-geisler.com/fr | grep -i content-encoding
+```
+
+### Points Importants
+
+- **Middleware d'abord, `compress: false` ensuite** : l'inverse ouvre une fenêtre sans aucune compression
+- **Si la vérification ne renvoie pas `br`, repasser `compress: true`** : gzip vaut mieux que rien
+- Sur l'apex seulement : `www` ne renvoie qu'une redirection au corps vide
+- Gain attendu sur le chemin critique du LCP : brotli fait 15 à 20 % de mieux que gzip sur du texte
+
+---
+
 ## Rollbacks registry-based
 
 ### Description
