@@ -87,7 +87,7 @@ Expected : 0 erreur. Vérifier que `MetadataRoute.Robots` est correctement réso
 
 - [ ] **Step 3 : Tests unit (vérifier qu'aucune régression)**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests existants (sub-projects 01 + 03) passent. Aucun nouveau test attendu (`tdd_scope: none` confirmé par no-lib-test).
 
 - [ ] **Step 4 : Tests integration (vérifier qu'aucune régression)**
