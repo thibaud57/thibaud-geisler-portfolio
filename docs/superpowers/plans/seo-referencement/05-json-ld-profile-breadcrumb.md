@@ -801,7 +801,7 @@ Expected : 0 erreur. Vérifier en particulier que `ProfilePagePersonInput`, `Bre
 
 - [ ] **Step 3 : Tests unit complets**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests unit passent, dont les 15 cas de `src/lib/seo/json-ld.test.ts`. Aucun test des sub-projects 01 + 03 ne régresse.
 
 - [ ] **Step 4 : Tests integration (sanity check)**

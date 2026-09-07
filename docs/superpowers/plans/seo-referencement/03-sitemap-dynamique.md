@@ -381,7 +381,7 @@ Expected : 0 erreur. Vérifier que `MetadataRoute.Sitemap`, `BuildSitemapEntries
 
 - [ ] **Step 3 : Tests unit complets**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests unit passent, dont les ~12 cas de `src/lib/sitemap.test.ts`. Aucun test du sub-project 01 (`src/lib/seo.test.ts`) ne régresse.
 
 - [ ] **Step 4 : Tests integration (sanity check, pas de régression)**

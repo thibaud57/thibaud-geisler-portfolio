@@ -69,7 +69,7 @@ test: test-unit test-integration
 # Tests unitaires (Vitest)
 [group('quality')]
 test-unit:
-    pnpm vitest run --project unit --passWithNoTests
+    pnpm vitest run --project unit
 
 # Tests d'intégration (DB de test via .env.test s'il existe)
 [group('quality')]

@@ -102,7 +102,7 @@ Expected : 0 erreur. Vérifier que la route `/llms.txt` est typée correctement 
 
 - [ ] **Step 3 : Tests unit (vérifier qu'aucune régression)**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests existants (sub-projects 01 + 03 + 05) passent. Aucun nouveau test attendu (`tdd_scope: none`).
 
 - [ ] **Step 4 : Tests integration (vérifier qu'aucune régression)**
