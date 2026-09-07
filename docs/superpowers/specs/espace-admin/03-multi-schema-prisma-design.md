@@ -23,14 +23,14 @@ Exclut la création du schema `auth` : il appartient au sub-project `04`, qui l'
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il conditionne le sub-project `04`, qui n'aura plus qu'à ajouter `"auth"` au tableau `schemas` et à y déclarer ses tables.
+Aucune : ce sub-project est autoporté. Il conditionne le sub-project `04`, qui n'aura plus qu'à ajouter `"auth"` au tableau `schemas` et à y déclarer ses tables.
 
 ## Files touched
 
 - **À modifier** : `prisma/schema.prisma` (champ `schemas` sur le datasource, plus `@@schema("public")` sur 22 déclarations)
 - **À modifier** : `docs/ARCHITECTURE.md` (§ Base de Données Principale : le découpage en schemas n'est plus annoncé au post-MVP pour ceux réellement créés)
 
-`prisma/schema.prisma` est le seul fichier de code concerné. Aucune migration n'est attendue, l'annotation ne modifiant rien physiquement — mais cette absence se constate, elle ne se suppose pas (voir Architecture approach).
+`prisma/schema.prisma` est le seul fichier de code concerné. Aucune migration n'est attendue, l'annotation ne modifiant rien physiquement, mais cette absence se constate, elle ne se suppose pas (voir Architecture approach).
 
 `src/lib/prisma.ts`, `prisma.config.ts` et `src/lib/prisma-test-setup.ts` restent inchangés.
 
@@ -38,11 +38,11 @@ Aucune — ce sub-project est autoporté. Il conditionne le sub-project `04`, qu
 
 **Aucun `previewFeatures` à déclarer.** Le multi-schema est stable en Prisma 7. Les guides antérieurs demandent `previewFeatures = ["multiSchema"]` : c'est obsolète et cela produirait un avertissement.
 
-**L'annotation est obligatoire et exhaustive.** Dès que `schemas` figure dans le datasource, chaque modèle **et chaque enum** doit porter un `@@schema`, faute de quoi la validation échoue. Il n'existe pas de valeur par défaut implicite. Les 22 déclarations sont donc concernées, pas seulement les 9 modèles — c'est la principale source d'erreur de ce sub-project.
+**L'annotation est obligatoire et exhaustive.** Dès que `schemas` figure dans le datasource, chaque modèle **et chaque enum** doit porter un `@@schema`, faute de quoi la validation échoue. Il n'existe pas de valeur par défaut implicite. Les 22 déclarations sont donc concernées, pas seulement les 9 modèles : c'est la principale source d'erreur de ce sub-project.
 
 **L'annotation ne déplace rien.** Les tables vivent déjà dans `public`, schema par défaut de PostgreSQL. `@@schema("public")` déclare un état existant plutôt qu'il ne le change. C'est ce qui rend l'opération sûre malgré son étendue.
 
-**L'absence de migration se vérifie, elle ne se présume pas.** Le changement ne devrait produire aucun diff, mais c'est précisément ce qu'il faut confirmer : un `prisma migrate dev --create-only` révèle ce que Prisma compte écrire. Si un fichier est généré, son SQL est lu avant toute application. Toute instruction touchant les tables existantes — `ALTER TABLE`, `DROP`, recréation — signalerait une erreur d'annotation et non un comportement attendu.
+**L'absence de migration se vérifie, elle ne se présume pas.** Le changement ne devrait produire aucun diff, mais c'est précisément ce qu'il faut confirmer : un `prisma migrate dev --create-only` révèle ce que Prisma compte écrire. Si un fichier est généré, son SQL est lu avant toute application. Toute instruction touchant les tables existantes (`ALTER TABLE`, `DROP`, recréation) signalerait une erreur d'annotation et non un comportement attendu.
 
 **Le client doit être régénéré explicitement.** Depuis Prisma 7, `migrate dev` ne déclenche plus `prisma generate`. Sans cette étape, le client reste sur l'ancien schéma et les tests échouent pour une raison étrangère au changement.
 

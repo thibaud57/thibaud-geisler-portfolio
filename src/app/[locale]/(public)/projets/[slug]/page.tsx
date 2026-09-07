@@ -1,26 +1,21 @@
-import type { Metadata, ResolvingMetadata } from 'next'
-import type { Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
-import Image from 'next/image'
-import { notFound } from 'next/navigation'
+import type { Metadata, ResolvingMetadata } from "next"
+import type { Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
+import Image from "next/image"
+import { notFound } from "next/navigation"
 
-import { CaseStudyFooter } from '@/components/features/projects/CaseStudyFooter'
-import { CaseStudyHeader } from '@/components/features/projects/CaseStudyHeader'
-import { TagStackGrouped } from '@/components/features/projects/TagStackGrouped'
-import { PageShell } from '@/components/layout/PageShell'
-import { MarkdownContent } from '@/components/markdown/MarkdownContent'
-import { JsonLd } from '@/components/seo/json-ld'
-import { setupLocalePage } from '@/i18n/locale-guard'
-import { routing } from '@/i18n/routing'
-import {
-  buildPageMetadata,
-  resolveParentOgImages,
-  setupLocaleMetadata,
-  siteUrl,
-} from '@/lib/seo'
-import { buildBreadcrumbList, buildProjectCreativeWork } from '@/lib/seo/json-ld'
-import { safeExternalUrl } from '@/lib/url'
-import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/projects'
+import { CaseStudyFooter } from "@/components/features/projects/CaseStudyFooter"
+import { CaseStudyHeader } from "@/components/features/projects/CaseStudyHeader"
+import { TagStackGrouped } from "@/components/features/projects/TagStackGrouped"
+import { PageShell } from "@/components/layout/PageShell"
+import { MarkdownContent } from "@/components/markdown/MarkdownContent"
+import { JsonLd } from "@/components/seo/json-ld"
+import { setupLocalePage } from "@/i18n/locale-guard"
+import { routing } from "@/i18n/routing"
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
+import { buildBreadcrumbList, buildProjectCreativeWork } from "@/lib/seo/json-ld"
+import { safeExternalUrl } from "@/lib/url"
+import { findAllPublishedSlugs, findPublishedBySlug } from "@/server/queries/projects"
 
 // Prérendre les slugs au build fige title/og/canonical dans le <head> pour TOUS les user-agents.
 // Sans ça, le streaming metadata de Next les envoie après </head>, et seuls les bots de la liste
@@ -29,13 +24,11 @@ import { findAllPublishedSlugs, findPublishedBySlug } from '@/server/queries/pro
 // Cf. .claude/rules/nextjs/routing.md pour l'arbitrage complet.
 export async function generateStaticParams() {
   const slugs = await findAllPublishedSlugs()
-  return routing.locales.flatMap((locale) =>
-    slugs.map(({ slug }) => ({ locale, slug })),
-  )
+  return routing.locales.flatMap((locale) => slugs.map(({ slug }) => ({ locale, slug })))
 }
 
 export async function generateMetadata(
-  { params }: PageProps<'/[locale]/projets/[slug]'>,
+  { params }: PageProps<"/[locale]/projets/[slug]">,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const [{ locale, slug, t }, parentImages] = await Promise.all([
@@ -51,16 +44,14 @@ export async function generateMetadata(
     path: `/projets/${slug}`,
     title: project.title,
     description: project.description,
-    siteName: t('siteTitle'),
-    ogType: 'article',
+    siteName: t("siteTitle"),
+    ogType: "article",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
   })
 }
 
-export default async function CaseStudyPage({
-  params,
-}: PageProps<'/[locale]/projets/[slug]'>) {
+export default async function CaseStudyPage({ params }: PageProps<"/[locale]/projets/[slug]">) {
   const { locale, slug } = await setupLocalePage(params)
 
   return (
@@ -70,23 +61,17 @@ export default async function CaseStudyPage({
   )
 }
 
-async function CaseStudyContentAsync({
-  locale,
-  slug,
-}: {
-  locale: Locale
-  slug: string
-}) {
+async function CaseStudyContentAsync({ locale, slug }: { locale: Locale; slug: string }) {
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 
-  const tMeta = await getTranslations('Metadata')
+  const tMeta = await getTranslations("Metadata")
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,
     items: [
-      { name: tMeta('breadcrumbHome'), path: '' },
-      { name: tMeta('breadcrumbProjects'), path: '/projets' },
+      { name: tMeta("breadcrumbHome"), path: "" },
+      { name: tMeta("breadcrumbProjects"), path: "/projets" },
       { name: project.title, path: `/projets/${slug}` },
     ],
   })
@@ -112,12 +97,12 @@ async function CaseStudyContentAsync({
             markdown={project.caseStudyMarkdown}
             components={{
               img: ({ src, alt }) => {
-                if (typeof src !== 'string') return null
+                if (typeof src !== "string") return null
                 return (
                   <figure className="my-8">
                     <Image
                       src={src}
-                      alt={alt ?? ''}
+                      alt={alt ?? ""}
                       width={1600}
                       height={900}
                       sizes="(max-width: 768px) 100vw, 1200px"
@@ -142,4 +127,3 @@ async function CaseStudyContentAsync({
     </>
   )
 }
-

@@ -1,6 +1,6 @@
 ---
 title: "React — Librairie UI"
-version: "19.2.5"
+version: "19.2.8"
 description: "Référence technique pour React 19 : Server Components, Actions, hooks modernes et patterns Next.js."
 date: "2026-04-13"
 keywords: ["react", "server-components", "actions", "hooks", "nextjs"]

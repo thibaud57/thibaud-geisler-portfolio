@@ -1,14 +1,14 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown } from "lucide-react"
 
-import { BackgroundRippleEffect } from '@/components/aceternity/background-ripple-effect'
-import { HyperText } from '@/components/magicui/hyper-text'
-import { Button } from '@/components/ui/button'
-import { Link } from '@/i18n/navigation'
-import { cn } from '@/lib/utils'
+import { BackgroundRippleEffect } from "@/components/aceternity/background-ripple-effect"
+import { HyperText } from "@/components/magicui/hyper-text"
+import { Button } from "@/components/ui/button"
+import { Link } from "@/i18n/navigation"
+import { cn } from "@/lib/utils"
 
-import { HeroPrimaryCta } from './HeroPrimaryCta'
+import { HeroPrimaryCta } from "./HeroPrimaryCta"
 
-type Props = {
+interface Props {
   h1: React.ReactNode
   tagline: string
   ctaPrimaryLabel: string
@@ -28,7 +28,7 @@ export function Hero({
   return (
     <section
       className={cn(
-        'relative isolate flex min-h-[calc(100vh-4rem)] w-full items-start justify-center overflow-hidden pt-[18vh] pb-24',
+        "relative isolate flex min-h-[calc(100vh-4rem)] w-full items-start justify-center overflow-hidden pt-[18vh] pb-24",
         className,
       )}
     >
@@ -37,10 +37,7 @@ export function Hero({
       <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center sm:px-6">
         <h1 className="lg:text-6xl">{h1}</h1>
         <div className="relative max-w-2xl overflow-hidden">
-          <p
-            aria-hidden
-            className="invisible whitespace-pre-line text-xl text-muted-foreground"
-          >
+          <p aria-hidden className="invisible text-xl whitespace-pre-line text-muted-foreground">
             {tagline}
           </p>
           <HyperText
@@ -53,7 +50,12 @@ export function Hero({
         </div>
         <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
           <HeroPrimaryCta label={ctaPrimaryLabel} />
-          <Button asChild variant="outline" size="lg" className="h-12 rounded-full px-8 text-base font-medium">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-12 rounded-full px-8 text-base font-medium"
+          >
             <Link href="/projets">{ctaSecondaryLabel}</Link>
           </Button>
         </div>

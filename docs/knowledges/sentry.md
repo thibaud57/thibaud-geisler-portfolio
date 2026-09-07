@@ -14,7 +14,7 @@ technologies: ["Next.js", "React", "Pino", "Docker", "GitHub Actions"]
 
 [ADR-017](../adrs/017-observabilite-cloud.md) impose **le service cloud, jamais le self-hosted** : l'installation auto-hébergée réclame 4 cœurs, 16 Go de RAM et 16 Go de swap au minimum, hors de portée du VPS.
 
-Le plan gratuit *Developer* couvre largement l'usage : « 5k errors », « 5M spans », « 50 replays », « 5GB » de logs, « 30-day lookback » de rétention, et « One user » — ce dernier point étant sans conséquence pour un projet single-user.
+Le plan gratuit *Developer* couvre largement l'usage : « 5k errors », « 5M spans », « 50 replays », « 5GB » de logs, « 30-day lookback » de rétention, et « One user », ce dernier point étant sans conséquence pour un projet single-user.
 
 ---
 

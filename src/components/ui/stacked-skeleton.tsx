@@ -1,16 +1,16 @@
-import { cn } from '@/lib/utils'
-import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
-type Props = {
+interface Props {
   heights: string[]
   className?: string
 }
 
 export function StackedSkeleton({ heights, className }: Props) {
   return (
-    <div className={cn('space-y-12', className)} aria-hidden>
+    <div className={cn("space-y-12", className)} aria-hidden>
       {heights.map((height, index) => (
-        <Skeleton key={index} className={cn(height, 'w-full')} />
+        <Skeleton key={index} className={cn(height, "w-full")} />
       ))}
     </div>
   )

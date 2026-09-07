@@ -46,8 +46,13 @@ next-env.d.ts
 # bundle généré au build Docker pour `prisma db seed` en prod (cf. Dockerfile stage builder)
 /prisma/seed.js
 
-# VS Code Local History extension
+# IDE
 .history/
+# On versionne ce qui décrit le projet, pas ce qui décrit la machine
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
 
 # Playwright MCP (screenshots, snapshots, logs de debug)
 .playwright-mcp/

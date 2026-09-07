@@ -13,13 +13,13 @@ paths:
 - Définir le niveau depuis `env` (`@/env`, t3-env) avec fallback `debug` en dev et `info` en prod : `level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info')`. Seul `NODE_ENV` se lit sur `process.env`, il n'est pas dans le schéma
 - Activer le transport `pino-pretty` **uniquement en dev**, output JSON brut en prod (capturé par Dokploy stdout)
 - Créer un **child logger par Server Action / requête** avec bindings statiques (`action`, `requestId: crypto.randomUUID()`) pour tracer le flow d'exécution
-- Logger les erreurs avec `err` en **premier argument** : `logger.error({ err }, 'message')` — Pino capture automatiquement `message`, `stack`, `type`
+- Logger les erreurs avec `err` en **premier argument** : `logger.error({ err }, 'message')`. Pino capture automatiquement `message`, `stack`, `type`
 - Respecter les niveaux : `info` événements normaux, `warn` dégradés non bloquants (rate limit, retry), `error` échecs bloquants
 - Activer `redact` pour masquer automatiquement les champs sensibles (`*.authorization`, `req.headers.cookie`, `smtp.pass`). Préférer `censor: '[REDACTED]'` à `remove: true` : la clé reste visible dans la ligne, ce qui permet de constater au débogage qu'un champ sensible a bien été intercepté, là où `remove` le fait disparaître sans laisser de trace
 - Déclarer `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : les 3 packages sont **obligatoires**, `thread-stream` est le worker thread sous-jacent que Next.js doit traiter comme module externe
 - Installer explicitement **`thread-stream`** : `pnpm add thread-stream` (dépendance runtime de Pino, pas toujours résolue automatiquement)
 - Charger le logger au démarrage côté serveur uniquement via **`instrumentation.ts`** : `if (process.env.NEXT_RUNTIME === 'nodejs') await import('./lib/logger')` dans `register()`
-- Utiliser `formatters.level` pour envoyer le **label texte** (`info`) au lieu du numéro (`30`) — plus lisible dans les logs Dokploy
+- Utiliser `formatters.level` pour envoyer le **label texte** (`info`) au lieu du numéro (`30`), plus lisible dans les logs Dokploy
 - Définir `base: { service: '<nom-app>' }` pour injecter automatiquement le nom du service dans chaque log
 
 ## À éviter
@@ -32,7 +32,7 @@ paths:
 
 ## Gotchas
 - Pino 10.3.1 + Next.js App Router : `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` est **obligatoire** sinon erreur de bundling au build/runtime (les worker threads ne peuvent pas être bundlés par Webpack/Turbopack)
-- Pino 10.3.1 fixe un memory leak dans le transport avec `--import preload` (sanitisation `NODE_OPTIONS`) — upgrade obligatoire depuis < 10.3.1
+- Pino 10.3.1 fixe un memory leak dans le transport avec `--import preload` (sanitisation `NODE_OPTIONS`). Upgrade obligatoire depuis < 10.3.1
 - Node.js ≥ 20 requis pour Pino 10
 
 ## Exemples

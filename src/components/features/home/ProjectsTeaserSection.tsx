@@ -1,34 +1,32 @@
-import type { Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
+import type { Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
 
-import { TEASER_LIMIT } from '@/components/features/home/constants'
-import { ProjectCard } from '@/components/features/projects/ProjectCard'
-import { BentoGrid } from '@/components/magicui/bento-grid'
-import { Button } from '@/components/ui/button'
-import { Link } from '@/i18n/navigation'
-import { findManyPublished } from '@/server/queries/projects'
+import { TEASER_LIMIT } from "@/components/features/home/constants"
+import { ProjectCard } from "@/components/features/projects/ProjectCard"
+import { BentoGrid } from "@/components/magicui/bento-grid"
+import { Button } from "@/components/ui/button"
+import { Link } from "@/i18n/navigation"
+import { findManyPublished } from "@/server/queries/projects"
 
-type Props = {
+interface Props {
   locale: Locale
 }
 
 export async function ProjectsTeaserSection({ locale }: Props) {
-  const t = await getTranslations('HomePage.projectsTeaser')
+  const t = await getTranslations("HomePage.projectsTeaser")
 
   return (
     <section className="flex flex-col gap-8">
       <header className="flex flex-col items-center gap-3 text-center">
-        <h2 className="font-display">{t('title')}</h2>
-        <p className="max-w-2xl text-base text-muted-foreground">
-          {t('subtitle')}
-        </p>
+        <h2 className="font-display">{t("title")}</h2>
+        <p className="max-w-2xl text-base text-muted-foreground">{t("subtitle")}</p>
       </header>
 
       <ProjectsTeaserGrid locale={locale} />
 
       <div className="flex justify-center">
         <Button asChild variant="ghost" size="lg">
-          <Link href="/projets">{t('seeAll')}</Link>
+          <Link href="/projets">{t("seeAll")}</Link>
         </Button>
       </div>
     </section>

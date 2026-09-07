@@ -1,27 +1,28 @@
-import 'server-only'
-import { cacheLife, cacheTag } from 'next/cache'
-import { prisma } from '@/lib/prisma'
+import "server-only"
+import { cacheLife, cacheTag } from "next/cache"
+import { prisma } from "@/lib/prisma"
 
-export { findAllTags } from '@/server/queries/tags'
+export { findAllTags } from "@/server/queries/tags"
 
 const START_YEAR = 2020
 
+// eslint-disable-next-line @typescript-eslint/require-await -- "use cache" impose async même sans await interne (cf. doc Next.js)
 export async function getYearsOfExperience(): Promise<number> {
-  'use cache'
-  cacheLife('max')
+  "use cache"
+  cacheLife("max")
   return new Date().getFullYear() - START_YEAR
 }
 
 export async function countMissionsDelivered(): Promise<number> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('projects')
+  "use cache"
+  cacheLife("hours")
+  cacheTag("projects")
   const result = await prisma.clientMeta.aggregate({
     _sum: { deliverablesCount: true },
     where: {
       project: {
-        status: 'PUBLISHED',
-        type: 'CLIENT',
+        status: "PUBLISHED",
+        type: "CLIENT",
         endedAt: { not: null },
       },
     },
@@ -30,14 +31,14 @@ export async function countMissionsDelivered(): Promise<number> {
 }
 
 export async function countClientsSupported(): Promise<number> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('projects')
+  "use cache"
+  cacheLife("hours")
+  cacheTag("projects")
   return prisma.company.count({
     where: {
       clientMetas: {
         some: {
-          project: { status: 'PUBLISHED', type: 'CLIENT' },
+          project: { status: "PUBLISHED", type: "CLIENT" },
         },
       },
     },

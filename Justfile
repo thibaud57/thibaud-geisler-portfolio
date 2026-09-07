@@ -1,31 +1,35 @@
+set minimum-version := "1.58.0"
 set dotenv-load
 set dotenv-required
-set windows-shell := ["bash", "-cu"]
+set default-list
+# Sans lui, un commentaire en corps de recette part au shell et s'affiche : check ne serait plus muet
+set ignore-comments
+# bash sur tous les OS (Git Bash sous Windows) : set windows-shell est deprecie depuis just 1.56
+set shell := ["bash", "-cu"]
+# Recettes [script] : un seul bash pour tout le corps, le sourcing de .env.test persiste entre les lignes
+set script-interpreter := ["bash", "-eu"]
 
 PORT := env("PORT", "3000")
-DOTENV_TEST := "set -a && . ./.env.test && set +a"
-DOTENV_TEST_OPT := "if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi"
-
-default:
-    @just --list
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
-# Démarre le serveur Next.js (port $PORT, 3000 par défaut)
+# Démarre le serveur Next.js (PORT, 3000 par défaut)
 [group('dev')]
 dev:
     pnpm dev
 
-# Arrête le serveur Next.js (Windows libère le port $PORT, Unix tue le process `next dev`)
+# Arrête le serveur Next.js
 [group('dev')]
 [windows]
 stop:
-    @powershell -Command "Get-NetTCPConnection -LocalPort {{PORT}} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force }"
+    # `//` : depuis Git Bash, MSYS convertirait `/PID` en chemin Windows
+    -netstat -ano | awk '/:{{ PORT }} .*LISTENING/ {print $NF}' | sort -u | xargs -r -I{} taskkill //PID {} //T //F
 
+# Arrête le serveur Next.js
 [group('dev')]
 [unix]
 stop:
-    @pkill -f "next dev" || true
+    -pkill -f "next dev"
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 
@@ -34,15 +38,23 @@ stop:
 build:
     pnpm build
 
-# Lint ESLint sur src/
+# Lint ESLint sur src/ + formatage
 [group('quality')]
 lint:
     pnpm lint
+    pnpm format:check
+    pnpm prisma validate
+    actionlint
+
+# Reformate tout le depot
+[group('quality')]
+format:
+    pnpm format
+    pnpm prisma format
 
 # Vérifie les types (typegen Next.js + tsc)
 [group('quality')]
 typecheck:
-    pnpm next typegen
     pnpm typecheck
 
 # Vulnérabilités des dépendances (même seuil que la CI, qui ne bloque pas)
@@ -59,15 +71,19 @@ test: test-unit test-integration
 test-unit:
     pnpm vitest run --project unit --passWithNoTests
 
-# Tests d'intégration (DB de test)
+# Tests d'intégration (DB de test via .env.test s'il existe)
 [group('quality')]
+[script]
 test-integration:
-    @{{DOTENV_TEST_OPT}} && pnpm vitest run --project integration --no-file-parallelism
+    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
+    pnpm vitest run --project integration
 
 # Tests en mode watch
 [group('quality')]
+[script]
 test-watch:
-    @{{DOTENV_TEST_OPT}} && pnpm test:watch
+    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
+    pnpm test:watch
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
 
@@ -81,51 +97,57 @@ docker-up:
 docker-down:
     docker compose down
 
-# ── Database ──────────────────────────────────────────────────────────────────
+# ── DB ────────────────────────────────────────────────────────────────────────
+
+# Démarre Postgres + applique les migrations (DB prête, idempotent)
+[group('db')]
+db:
+    docker compose up -d --wait postgres
+    pnpm prisma migrate deploy
 
 # Crée et applique une migration Prisma
 [group('db')]
 db-migrate LABEL:
-    pnpm prisma migrate dev --name {{LABEL}}
+    pnpm prisma migrate dev --name {{ LABEL }}
 
-# Réinitialise la DB de dev (drop + recreate + migrate + seed)
-[group('db')]
+# Réinitialise la DB de dev (drop + recreate + migrate, sans seed : just db-seed ensuite)
 [confirm('Cela va DROP la DB de dev. Continuer ?')]
+[group('db')]
 db-reset:
-    pnpm prisma migrate reset --force
+    pnpm prisma migrate reset --force --skip-seed
+
+# Insère les données de seed (idempotent, upsert par slug)
+[group('db')]
+db-seed:
+    pnpm prisma db seed
 
 # Ouvre Prisma Studio (http://localhost:5555)
 [group('db')]
 db-studio:
     pnpm prisma studio
 
-# Démarre Postgres + applique les migrations (DB prête)
-[group('db')]
-db:
-    docker compose up -d --wait postgres
-    pnpm prisma migrate deploy
-
-# Insère les données de seed
-[group('db')]
-seed:
-    pnpm prisma db seed
-
 # Démarre Postgres + migrations pour la DB de test
 [group('db')]
+[script]
 db-test:
     docker compose up -d --wait postgres
-    @{{DOTENV_TEST}} && pnpm prisma migrate deploy
+    set -a && . ./.env.test && set +a
+    pnpm prisma migrate deploy
 
 # Réinitialise la DB de test (drop, sans seed)
-[group('db')]
 [confirm('Cela va DROP la DB de test. Continuer ?')]
+[group('db')]
+[script]
 db-test-reset:
-    @{{DOTENV_TEST}} && pnpm prisma migrate reset --force --skip-seed
+    set -a && . ./.env.test && set +a
+    pnpm prisma migrate reset --force --skip-seed
 
 # Prisma Studio sur la DB de test
 [group('db')]
+[script]
 db-test-studio:
-    @{{DOTENV_TEST}} && pnpm prisma studio
+    set -a && . ./.env.test && set +a
+    pnpm prisma studio
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -134,15 +156,19 @@ db-test-studio:
 install:
     pnpm install
 
-# Bootstrap complet (install + DB + seed)
+# Setup complet : dépendances, base prête, seed
 [group('setup')]
-setup: install db seed
+setup: install db db-seed
 
-# Diagnostique l'environnement local
+# Vérifie que l'environnement local est prêt : sortie vide = rien à signaler
 [group('setup')]
 check:
-    @echo "→ Node.js: $(node --version)"
-    @echo "→ pnpm: $(pnpm --version)"
-    @docker info > /dev/null 2>&1 && echo "✓ Docker opérationnel" || echo "⚠️  Docker non disponible"
-    @test -f .env && echo "✓ .env présent" || echo "⚠️  .env manquant (copier .env.example)"
-    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' && echo "✓ PostgreSQL accessible" || echo "⚠️  PostgreSQL non accessible (just db)"
+    @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir engines de package.json)"
+    @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir packageManager de package.json)"
+    @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
+    @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"
+    @test -d .next/types || echo "⚠️ Types Next absents, lancer just install (postinstall les génère)"
+    @[ -n "${DATABASE_URL:-}" ] || echo "⚠️ DATABASE_URL manquant dans .env"
+    @[ -n "${NEXT_PUBLIC_SITE_URL:-}" ] || echo "⚠️ NEXT_PUBLIC_SITE_URL manquant dans .env"
+    @docker info > /dev/null 2>&1 || echo "⚠️ Docker non disponible"
+    @docker compose ps postgres --format json 2>/dev/null | grep -q '"Health":"healthy"' || echo "⚠️ PostgreSQL non accessible, lancer just db"

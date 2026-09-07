@@ -1,0 +1,14 @@
+# L'index est en LF : ceci aligne l'arbre de travail dessus, quelle que soit la
+# valeur de core.autocrlf du poste. Sans ce fichier, un clone sous Windows avec
+# autocrlf voit du CRLF et `prettier --check` echoue sur des fichiers bien formates.
+* text=auto eol=lf
+
+# Binaires : aucune conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff2 binary
+*.pdf binary

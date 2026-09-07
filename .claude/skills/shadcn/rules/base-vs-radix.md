@@ -151,7 +151,7 @@ const items = [
 
 Base supports `multiple`, render-function children on `SelectValue`, and object values with `itemToStringValue`. Radix is single-select with string values only.
 
-**Correct (base — multiple selection):**
+**Correct (base, multiple selection):**
 
 ```tsx
 <Select items={items} multiple defaultValue={[]}>
@@ -164,7 +164,7 @@ Base supports `multiple`, render-function children on `SelectValue`, and object 
 </Select>
 ```
 
-**Correct (base — object values):**
+**Correct (base, object values):**
 
 ```tsx
 <Select defaultValue={plans[0]} itemToStringValue={(plan) => plan.name}>

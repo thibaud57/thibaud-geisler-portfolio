@@ -1,14 +1,14 @@
-import type { Metadata, ResolvingMetadata } from 'next'
-import { hasLocale, type Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
-import { notFound } from 'next/navigation'
+import type { Metadata, ResolvingMetadata } from "next"
+import { hasLocale, type Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
+import { notFound } from "next/navigation"
 
-import { env } from '@/env'
-import { localeToOgLocale } from '@/i18n/locale-tags'
-import { routing } from '@/i18n/routing'
+import { env } from "@/env"
+import { localeToOgLocale } from "@/i18n/locale-tags"
+import { routing } from "@/i18n/routing"
 
-type OpenGraphImages = NonNullable<NonNullable<Metadata['openGraph']>['images']>
-type TwitterImages = NonNullable<NonNullable<Metadata['twitter']>['images']>
+type OpenGraphImages = NonNullable<NonNullable<Metadata["openGraph"]>["images"]>
+type TwitterImages = NonNullable<NonNullable<Metadata["twitter"]>["images"]>
 
 export async function resolveParentOgImages(
   parent: ResolvingMetadata,
@@ -19,42 +19,36 @@ export async function resolveParentOgImages(
   return { og, twitter }
 }
 
-export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
+export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
 
 export { localeToOgLocale }
 
 export function buildOgAlternateLocales(locale: Locale): string[] {
-  return routing.locales
-    .filter((other) => other !== locale)
-    .map((other) => localeToOgLocale[other])
+  return routing.locales.filter((other) => other !== locale).map((other) => localeToOgLocale[other])
 }
 
-export function buildLanguageAlternates(path: string, base = ''): Record<string, string> {
+export function buildLanguageAlternates(path: string, base = ""): Record<string, string> {
   return {
-    ...Object.fromEntries(
-      routing.locales.map((locale) => [locale, `${base}/${locale}${path}`]),
-    ),
-    'x-default': `${base}/${routing.defaultLocale}${path}`,
+    ...Object.fromEntries(routing.locales.map((locale) => [locale, `${base}/${locale}${path}`])),
+    "x-default": `${base}/${routing.defaultLocale}${path}`,
   }
 }
 
-export async function setupLocaleMetadata<T extends { locale: string }>(
-  params: Promise<T>,
-) {
+export async function setupLocaleMetadata<T extends { locale: string }>(params: Promise<T>) {
   const resolved = await params
   if (!hasLocale(routing.locales, resolved.locale)) notFound()
   const locale: Locale = resolved.locale
-  const t = await getTranslations({ locale, namespace: 'Metadata' })
+  const t = await getTranslations({ locale, namespace: "Metadata" })
   return { ...resolved, locale, t }
 }
 
-export type BuildPageMetadataInput = {
+export interface BuildPageMetadataInput {
   locale: Locale
   path: string
   title: string
   description: string
   siteName: string
-  ogType?: 'website' | 'article'
+  ogType?: "website" | "article"
   parentOpenGraphImages?: OpenGraphImages
   parentTwitterImages?: TwitterImages
 }
@@ -65,12 +59,12 @@ export function buildPageMetadata({
   title,
   description,
   siteName,
-  ogType = 'website',
+  ogType = "website",
   parentOpenGraphImages,
   parentTwitterImages,
 }: BuildPageMetadataInput): Metadata {
   const url = `${siteUrl}/${locale}${path}`
-  const isProduction = process.env.NODE_ENV === 'production'
+  const isProduction = process.env.NODE_ENV === "production"
 
   return {
     title,
@@ -86,7 +80,7 @@ export function buildPageMetadata({
       ...(parentOpenGraphImages ? { images: parentOpenGraphImages } : {}),
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title,
       description,
       ...(parentTwitterImages ? { images: parentTwitterImages } : {}),

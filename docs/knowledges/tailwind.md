@@ -1,6 +1,6 @@
 ---
 title: "Tailwind CSS — Framework utility-first"
-version: "4.2.2"
+version: "4.3.3"
 description: "Référence technique pour Tailwind CSS v4 : CSS-first config, @theme, dark mode et intégration Next.js."
 date: "2026-04-13"
 keywords: ["tailwind", "css", "utility", "theme", "dark-mode"]

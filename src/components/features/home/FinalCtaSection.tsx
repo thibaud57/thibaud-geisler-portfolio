@@ -1,56 +1,54 @@
-import type { Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
+import type { Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
 
-import { Marquee } from '@/components/magicui/marquee'
-import { WordRotate } from '@/components/magicui/word-rotate'
-import { Button } from '@/components/ui/button'
-import { Link } from '@/i18n/navigation'
-import { resolveTagIcon } from '@/lib/icons'
-import { findTagsBySlugs } from '@/server/queries/tags'
+import { Marquee } from "@/components/magicui/marquee"
+import { WordRotate } from "@/components/magicui/word-rotate"
+import { Button } from "@/components/ui/button"
+import { Link } from "@/i18n/navigation"
+import { resolveTagIcon } from "@/lib/icons"
+import { findTagsBySlugs } from "@/server/queries/tags"
 
 const STACK_TAG_SLUGS = [
-  'typescript',
-  'nodejs',
-  'angular',
-  'nextjs',
-  'python',
-  'fastapi',
-  'postgresql',
-  'mongodb',
-  'n8n',
-  'anthropic',
-  'docker',
-  'dokploy',
-  'github-actions',
+  "typescript",
+  "nodejs",
+  "angular",
+  "nextjs",
+  "python",
+  "fastapi",
+  "postgresql",
+  "mongodb",
+  "n8n",
+  "anthropic",
+  "docker",
+  "dokploy",
+  "github-actions",
 ] as const
 
-type Props = {
+interface Props {
   locale: Locale
 }
 
 export async function FinalCtaSection({ locale }: Props) {
-  const t = await getTranslations('HomePage')
+  const t = await getTranslations("HomePage")
 
-  const rotateWords = t.raw('finalCta.rotateWords') as string[]
+  const rotateWords = t.raw("finalCta.rotateWords") as string[]
 
   return (
     <section className="flex flex-col items-center gap-8 rounded-xl border bg-card px-6 py-12 text-center sm:py-16">
       <h2 className="flex flex-wrap items-center justify-center gap-x-3 font-display">
-        <span>{t('finalCta.titlePrefix')}</span>
+        <span>{t("finalCta.titlePrefix")}</span>
         <WordRotate words={rotateWords} className="text-primary" />
-        <span>{t('finalCta.titleSuffix')}</span>
+        <span>{t("finalCta.titleSuffix")}</span>
       </h2>
-      <p className="max-w-2xl text-lg text-muted-foreground">
-        {t('finalCta.subtitle')}
-      </p>
+      <p className="max-w-2xl text-lg text-muted-foreground">{t("finalCta.subtitle")}</p>
       <Button asChild size="lg">
-        <Link href="/contact">{t('finalCta.ctaLabel')}</Link>
+        <Link href="/contact">{t("finalCta.ctaLabel")}</Link>
       </Button>
 
       {/* Écart doublé : la bande stack est d'un autre registre que la séquence d'appel à l'action */}
       <div className="mt-8 flex w-full flex-col items-center gap-4">
-        <p className="text-balance text-center text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground">
-          {t('signatureSection.title')}
+        <p className="text-center text-sm font-medium tracking-[0.25em] text-balance text-muted-foreground uppercase">
+          {t("signatureSection.title")}
         </p>
         <StackMarquee locale={locale} />
       </div>

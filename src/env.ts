@@ -1,5 +1,5 @@
-import { createEnv } from '@t3-oss/env-nextjs'
-import { z } from 'zod'
+import { createEnv } from "@t3-oss/env-nextjs"
+import { z } from "zod"
 
 export const env = createEnv({
   server: {
@@ -10,9 +10,7 @@ export const env = createEnv({
     SMTP_PASS: z.string().min(1),
     SMTP_FROM: z.email(),
     MAIL_TO: z.email(),
-    LOG_LEVEL: z
-      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
-      .optional(),
+    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).optional(),
     IP_HASH_SALT: z.string().min(16),
   },
   client: {
@@ -22,20 +20,20 @@ export const env = createEnv({
     NEXT_PUBLIC_BUILD_YEAR: z.string().optional(),
   },
   runtimeEnv: {
-    DATABASE_URL: process.env.DATABASE_URL,
-    SMTP_HOST: process.env.SMTP_HOST,
-    SMTP_PORT: process.env.SMTP_PORT,
-    SMTP_USER: process.env.SMTP_USER,
-    SMTP_PASS: process.env.SMTP_PASS,
-    SMTP_FROM: process.env.SMTP_FROM,
-    MAIL_TO: process.env.MAIL_TO,
-    LOG_LEVEL: process.env.LOG_LEVEL,
-    IP_HASH_SALT: process.env.IP_HASH_SALT,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NEXT_PUBLIC_CALENDLY_URL_FR: process.env.NEXT_PUBLIC_CALENDLY_URL_FR,
-    NEXT_PUBLIC_CALENDLY_URL_EN: process.env.NEXT_PUBLIC_CALENDLY_URL_EN,
-    NEXT_PUBLIC_BUILD_YEAR: process.env.NEXT_PUBLIC_BUILD_YEAR,
+    DATABASE_URL: process.env["DATABASE_URL"],
+    SMTP_HOST: process.env["SMTP_HOST"],
+    SMTP_PORT: process.env["SMTP_PORT"],
+    SMTP_USER: process.env["SMTP_USER"],
+    SMTP_PASS: process.env["SMTP_PASS"],
+    SMTP_FROM: process.env["SMTP_FROM"],
+    MAIL_TO: process.env["MAIL_TO"],
+    LOG_LEVEL: process.env["LOG_LEVEL"],
+    IP_HASH_SALT: process.env["IP_HASH_SALT"],
+    NEXT_PUBLIC_SITE_URL: process.env["NEXT_PUBLIC_SITE_URL"],
+    NEXT_PUBLIC_CALENDLY_URL_FR: process.env["NEXT_PUBLIC_CALENDLY_URL_FR"],
+    NEXT_PUBLIC_CALENDLY_URL_EN: process.env["NEXT_PUBLIC_CALENDLY_URL_EN"],
+    NEXT_PUBLIC_BUILD_YEAR: process.env["NEXT_PUBLIC_BUILD_YEAR"],
   },
   emptyStringAsUndefined: true,
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: !!process.env["SKIP_ENV_VALIDATION"],
 })

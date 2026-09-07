@@ -6,9 +6,11 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Un push qui en chasse un autre annule le run précédent, mais seulement sur PR :
+# sur main chaque commit garde son propre verdict.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -21,8 +23,8 @@ jobs:
     outputs:
       source: ${{ steps.filter.outputs.source }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           predicate-quantifier: every
@@ -57,10 +59,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/test_db
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      SKIP_ENV_VALIDATION: 'true'
+      SKIP_ENV_VALIDATION: "true"
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Create .env for just (dotenv-required)
         run: |
@@ -69,18 +71,18 @@ jobs:
           NEXT_PUBLIC_SITE_URL=http://localhost:3000
           EOF
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '24'
-          cache: 'pnpm'
+          node-version: "24"
+          cache: "pnpm"
 
-      - uses: extractions/setup-just@v4
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
 
       - run: pnpm install --frozen-lockfile
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.{js,jsx,ts,tsx}') }}
@@ -90,6 +92,12 @@ jobs:
       - name: Apply Prisma migrations to test DB
         run: pnpm prisma migrate deploy
 
+      # `just lint` appelle actionlint, absent des runners. Script epingle au commit du tag
+      # v1.7.12 et binaire epingle par l'argument : une URL sur `main` serait mutable.
+      - name: Installer actionlint
+        run: |
+          bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: just lint
       - run: just typecheck
       - run: just test
@@ -97,7 +105,7 @@ jobs:
       # generateStaticParams des pages projet lit la DB : sans seed il renvoie [],
       # ce que Cache Components refuse au build. Seed juste avant, pas avant les
       # tests d'intégration qui partagent cette DB et pourraient la modifier.
-      - run: just seed
+      - run: just db-seed
 
       - run: just build
 

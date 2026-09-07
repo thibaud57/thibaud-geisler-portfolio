@@ -23,8 +23,8 @@ Exclut l'édition, portée par le sub-project `13`. Exclut la pagination : le vo
 
 ## Dependencies
 
-- `06-shell-admin-design.md` (statut: draft) — fournit le shell et la page d'attente que ce sub-project remplace.
-- `11-crud-projets-actions-design.md` (statut: draft) — fournit `findAllProjectsForAdmin` et `deleteProject`.
+- `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente que ce sub-project remplace.
+- `11-crud-projets-actions-design.md` (statut: draft) : fournit `findAllProjectsForAdmin` et `deleteProject`.
 
 ## Files touched
 

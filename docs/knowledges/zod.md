@@ -1,6 +1,6 @@
 ---
 title: "Zod — Validation & Inference"
-version: "4.3.6"
+version: "4.5.4"
 description: "Référence technique pour Zod v4 : schémas, safeParse, inference TS et intégration Server Actions."
 date: "2026-04-13"
 keywords: ["zod", "validation", "typescript", "server-action", "form"]

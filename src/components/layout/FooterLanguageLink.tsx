@@ -1,12 +1,12 @@
-'use client'
+"use client"
 
-import { useLocale } from 'next-intl'
+import { useLocale } from "next-intl"
 
-import { localeLabels } from '@/i18n/locale-labels'
-import { Link, usePathname } from '@/i18n/navigation'
-import { routing } from '@/i18n/routing'
+import { localeLabels } from "@/i18n/locale-labels"
+import { Link, usePathname } from "@/i18n/navigation"
+import { routing } from "@/i18n/routing"
 
-type Props = {
+interface Props {
   className?: string
 }
 

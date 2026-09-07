@@ -110,7 +110,7 @@ pnpm install --frozen-lockfile
 
 ```yaml
 # .github/workflows/ci.yml
-- uses: pnpm/action-setup@v6
+- uses: pnpm/action-setup@<sha> # v6.0.10
   with:
     version: 10
 - run: pnpm install --frozen-lockfile

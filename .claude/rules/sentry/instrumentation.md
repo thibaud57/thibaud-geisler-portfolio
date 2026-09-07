@@ -14,7 +14,7 @@ paths:
 - Déclarer un seul point d'entrée `instrumentation.ts` exportant `register()`, qui importe la config serveur ou edge selon `process.env.NEXT_RUNTIME`
 - Exporter `onRequestError = Sentry.captureRequestError` depuis `instrumentation.ts` : c'est ce qui capture les erreurs des Server Components, du proxy et du middleware (SDK >= 8.28.0)
 - Nommer le fichier client `instrumentation-client.ts` : `sentry.client.config.ts` est l'ancienne convention, encore tolérée mais obsolète
-- Filtrer les données personnelles dans `beforeSend`, qui doit retourner un event valide ou `null` — jamais `undefined`
+- Filtrer les données personnelles dans `beforeSend`, qui doit retourner un event valide ou `null`, jamais `undefined`
 - Utiliser `Sentry.pinoIntegration()` pour brancher le logger existant, jamais un transport maison (SDK >= 10.18.0, Pino `>=8.0.0 <11`)
 - Restreindre explicitement `log.levels` dans l'intégration Pino : le défaut envoie tous les niveaux, `debug` compris, et épuise le quota de logs
 - Déclarer `error.levels` explicitement pour choisir quels niveaux Pino créent **en plus** une issue, sinon une même erreur remonte deux fois
@@ -31,7 +31,7 @@ paths:
 - Ajouter une capture de PII sans mettre à jour `docs/registre-traitements.md`
 
 ## Gotchas
-- **`captureException` dans un Server Component casse le prerendering quand `cacheComponents: true`** — c'est la configuration du projet. Issue getsentry/sentry-javascript#21333, corrigée par la PR #21351, version de publication non confirmée : à tester avant mise en production
+- **`captureException` dans un Server Component casse le prerendering quand `cacheComponents: true`** (c'est la configuration du projet). Issue getsentry/sentry-javascript#21333, corrigée par la PR #21351, version de publication non confirmée : à tester avant mise en production
 - `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs (issue #10466). Pertinent dès qu'une Server Action utilise `redirect()` ou `notFound()`
 - Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack, qui est **le bundler du build de production depuis le 3 septembre 2026** (opt-out `--webpack` retiré) : les traiter comme actifs, vérifier la version du SDK face à ces fixes et provoquer une erreur serveur réelle pour valider la remontée
 - Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée

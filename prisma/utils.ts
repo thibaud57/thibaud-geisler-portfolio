@@ -1,4 +1,4 @@
-import type { z } from 'zod'
+import type { z } from "zod"
 
 export function parseOrThrow<T extends z.ZodTypeAny>(
   schema: T,
@@ -7,9 +7,7 @@ export function parseOrThrow<T extends z.ZodTypeAny>(
 ): z.infer<T> {
   const result = schema.safeParse(data)
   if (!result.success) {
-    throw new Error(
-      `${label} invalide: ${result.error.issues[0]?.message ?? 'format invalide'}`,
-    )
+    throw new Error(`${label} invalide: ${result.error.issues[0]?.message ?? "format invalide"}`)
   }
   return result.data
 }

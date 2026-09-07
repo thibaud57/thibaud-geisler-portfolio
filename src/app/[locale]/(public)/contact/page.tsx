@@ -1,35 +1,30 @@
-import type { Metadata, ResolvingMetadata } from 'next'
-import type { Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
-import { Suspense } from 'react'
+import type { Metadata, ResolvingMetadata } from "next"
+import type { Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
+import { Suspense } from "react"
 
-import { contactEmail } from '@/config/social-links'
-import { env } from '@/env'
-import { setupLocalePage } from '@/i18n/locale-guard'
-import { Link } from '@/i18n/navigation'
-import { logger } from '@/lib/logger'
-import {
-  buildPageMetadata,
-  resolveParentOgImages,
-  setupLocaleMetadata,
-  siteUrl,
-} from '@/lib/seo'
-import { buildContactPage } from '@/lib/seo/json-ld'
-import { JsonLd } from '@/components/seo/json-ld'
+import { contactEmail } from "@/config/social-links"
+import { env } from "@/env"
+import { setupLocalePage } from "@/i18n/locale-guard"
+import { Link } from "@/i18n/navigation"
+import { logger } from "@/lib/logger"
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
+import { buildContactPage } from "@/lib/seo/json-ld"
+import { JsonLd } from "@/components/seo/json-ld"
 
-import { CalendlyWidget } from '@/components/features/contact/CalendlyWidget'
-import { ContactForm } from '@/components/features/contact/ContactForm'
-import { ContactTabs } from '@/components/features/contact/ContactTabs'
-import { LocationLine } from '@/components/features/contact/LocationLine'
-import { SocialLinks } from '@/components/features/contact/SocialLinks'
-import { PageShell } from '@/components/layout/PageShell'
-import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
+import { CalendlyWidget } from "@/components/features/contact/CalendlyWidget"
+import { ContactForm } from "@/components/features/contact/ContactForm"
+import { ContactTabs } from "@/components/features/contact/ContactTabs"
+import { LocationLine } from "@/components/features/contact/LocationLine"
+import { SocialLinks } from "@/components/features/contact/SocialLinks"
+import { PageShell } from "@/components/layout/PageShell"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 
-const PREFILL_SLUGS = ['ia', 'fullstack', 'formation'] as const
+const PREFILL_SLUGS = ["ia", "fullstack", "formation"] as const
 type PrefillSlug = (typeof PREFILL_SLUGS)[number]
 
 function isPrefillSlug(value: string | undefined): value is PrefillSlug {
-  return typeof value === 'string' && (PREFILL_SLUGS as readonly string[]).includes(value)
+  return typeof value === "string" && (PREFILL_SLUGS as readonly string[]).includes(value)
 }
 
 const CALENDLY_URL_BY_LOCALE = {
@@ -38,7 +33,7 @@ const CALENDLY_URL_BY_LOCALE = {
 } as const satisfies Record<Locale, string | undefined>
 
 export async function generateMetadata(
-  { params }: PageProps<'/[locale]/contact'>,
+  { params }: PageProps<"/[locale]/contact">,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const [{ locale, t }, parentImages] = await Promise.all([
@@ -47,11 +42,11 @@ export async function generateMetadata(
   ])
   return buildPageMetadata({
     locale,
-    path: '/contact',
-    title: t('contactTitle'),
-    description: t('contactDescription'),
-    siteName: t('siteTitle'),
-    ogType: 'website',
+    path: "/contact",
+    title: t("contactTitle"),
+    description: t("contactDescription"),
+    siteName: t("siteTitle"),
+    ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
   })
@@ -60,31 +55,31 @@ export async function generateMetadata(
 export default async function ContactPage({
   params,
   searchParams,
-}: PageProps<'/[locale]/contact'>) {
+}: PageProps<"/[locale]/contact">) {
   const { locale } = await setupLocalePage(params)
   const [t, tMeta] = await Promise.all([
-    getTranslations('ContactPage'),
-    getTranslations('Metadata'),
+    getTranslations("ContactPage"),
+    getTranslations("Metadata"),
   ])
   const contactJsonLd = buildContactPage({
     locale,
     siteUrl,
-    name: t('header.h1'),
-    description: tMeta('contactDescription'),
-    personName: 'Thibaud Geisler',
+    name: t("header.h1"),
+    description: tMeta("contactDescription"),
+    personName: "Thibaud Geisler",
     email: contactEmail,
   })
 
   return (
-    <PageShell title={t('header.h1')} subtitle={t('header.tagline')}>
+    <PageShell title={t("header.h1")} subtitle={t("header.tagline")}>
       <JsonLd data={contactJsonLd} />
-      <div className="mx-auto w-full max-w-2xl flex flex-col gap-10">
-        <div className="flex flex-wrap items-center justify-center -mt-2 gap-4 md:justify-between">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
+        <div className="-mt-2 flex flex-wrap items-center justify-center gap-4 md:justify-between">
           <LocationLine />
           <SocialLinks className="md:justify-end" />
         </div>
 
-        <Suspense fallback={<StackedSkeleton heights={['h-10', 'h-96']} />}>
+        <Suspense fallback={<StackedSkeleton heights={["h-10", "h-96"]} />}>
           <ContactTabsAsync locale={locale} searchParams={searchParams} />
         </Suspense>
       </div>
@@ -97,40 +92,37 @@ async function ContactTabsAsync({
   searchParams,
 }: {
   locale: Locale
-  searchParams: PageProps<'/[locale]/contact'>['searchParams']
+  searchParams: PageProps<"/[locale]/contact">["searchParams"]
 }) {
   const resolvedSearchParams = await searchParams
-  const rawService = resolvedSearchParams?.service
+  const rawService = resolvedSearchParams["service"]
   const serviceParam = Array.isArray(rawService) ? rawService[0] : rawService
 
-  const t = await getTranslations('ContactPage')
+  const t = await getTranslations("ContactPage")
 
-  const defaultSubject = isPrefillSlug(serviceParam) ? t(`form.subjectPrefill.${serviceParam}`) : ''
+  const defaultSubject = isPrefillSlug(serviceParam) ? t(`form.subjectPrefill.${serviceParam}`) : ""
 
   const formLabels = {
-    name: t('form.fields.name'),
-    company: t('form.fields.company'),
-    email: t('form.fields.email'),
-    subject: t('form.fields.subject'),
-    message: t('form.fields.message'),
-    namePlaceholder: t('form.placeholders.name'),
-    companyPlaceholder: t('form.placeholders.company'),
-    emailPlaceholder: t('form.placeholders.email'),
-    subjectPlaceholder: t('form.placeholders.subject'),
-    messagePlaceholder: t('form.placeholders.message'),
-    submit: t('form.submit'),
-    submitting: t('form.submitting'),
-    successToast: t('form.success.toast'),
+    name: t("form.fields.name"),
+    company: t("form.fields.company"),
+    email: t("form.fields.email"),
+    subject: t("form.fields.subject"),
+    message: t("form.fields.message"),
+    namePlaceholder: t("form.placeholders.name"),
+    companyPlaceholder: t("form.placeholders.company"),
+    emailPlaceholder: t("form.placeholders.email"),
+    subjectPlaceholder: t("form.placeholders.subject"),
+    messagePlaceholder: t("form.placeholders.message"),
+    submit: t("form.submit"),
+    submitting: t("form.submitting"),
+    successToast: t("form.success.toast"),
   }
 
   const privacyNotice = (
     <p className="text-sm text-muted-foreground">
-      {t.rich('form.privacyNotice', {
+      {t.rich("form.privacyNotice", {
         link: (chunks) => (
-          <Link
-            href="/confidentialite"
-            className="text-primary underline underline-offset-2"
-          >
+          <Link href="/confidentialite" className="text-primary underline underline-offset-2">
             {chunks}
           </Link>
         ),
@@ -138,15 +130,18 @@ async function ContactTabsAsync({
     </p>
   )
 
-  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ''
+  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ""
   if (!calendlyUrl) {
-    logger.warn({ event: 'calendly:url_missing', locale }, 'NEXT_PUBLIC_CALENDLY_URL_<locale> absent')
+    logger.warn(
+      { event: "calendly:url_missing", locale },
+      "NEXT_PUBLIC_CALENDLY_URL_<locale> absent",
+    )
   }
 
   return (
     <ContactTabs
-      formLabel={t('tabs.form')}
-      calendlyLabel={t('tabs.calendly')}
+      formLabel={t("tabs.form")}
+      calendlyLabel={t("tabs.calendly")}
       formContent={
         <ContactForm
           key={defaultSubject}
@@ -156,7 +151,7 @@ async function ContactTabsAsync({
         />
       }
       calendlyContent={
-        <CalendlyWidget url={calendlyUrl} placeholderLabel={t('calendly.placeholder')} />
+        <CalendlyWidget url={calendlyUrl} placeholderLabel={t("calendly.placeholder")} />
       }
     />
   )

@@ -430,7 +430,7 @@ Attendu : build Next.js OK, toutes les routes listées sans erreur.
    - **Col gauche** : `logo-horizontal-dark.svg` visible (hauteur ~40 px, largeur auto), tagline `IA & Développement Full-Stack · Luxembourg · France` en `text-muted-foreground`.
    - **Col droite (alignée à droite en desktop)** : titre `Retrouvez-moi`, 2 badges 40×40 (LinkedIn + GitHub) avec icônes Simple Icons, label `Mon CV au format PDF :` + bouton CV outline sm.
    - **Row bottom (séparée par border-t)** : `© {année} Thibaud Geisler` à gauche, espace vide à droite.
-5. DevTools Elements : le commentaire JSX `Feature 7 (conformité-legale) — décommenter...` est bien dans le DOM HTML (invisible).
+5. DevTools Elements : le commentaire JSX `Feature 7 (conformité-legale) : décommenter...` est bien dans le DOM HTML (invisible).
 
 - [ ] **Step 7.6 : Smoke test switch thème dark**
 

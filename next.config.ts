@@ -1,43 +1,43 @@
-import bundleAnalyzer from '@next/bundle-analyzer'
-import type { NextConfig } from 'next'
-import createNextIntlPlugin from 'next-intl/plugin'
+import bundleAnalyzer from "@next/bundle-analyzer"
+import type { NextConfig } from "next"
+import createNextIntlPlugin from "next-intl/plugin"
 
-const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
-const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env["ANALYZE"] === "true" })
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = process.env["NODE_ENV"] !== "production"
 
 const cspDirectives = [
-  ['default-src', "'self'"],
-  ['script-src', isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'"],
-  ['style-src', "'self' 'unsafe-inline'"],
-  ['img-src', "'self' data: https:"],
-  ['frame-src', 'https://calendly.com https://*.calendly.com'],
-  ['connect-src', "'self' https://*.calendly.com"],
-  ['font-src', "'self' data:"],
-  ['frame-ancestors', "'none'"],
-  ['base-uri', "'self'"],
-  ['form-action', "'self'"],
-  ['object-src', "'none'"],
+  ["default-src", "'self'"],
+  ["script-src", isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'"],
+  ["style-src", "'self' 'unsafe-inline'"],
+  ["img-src", "'self' data: https:"],
+  ["frame-src", "https://calendly.com https://*.calendly.com"],
+  ["connect-src", "'self' https://*.calendly.com"],
+  ["font-src", "'self' data:"],
+  ["frame-ancestors", "'none'"],
+  ["base-uri", "'self'"],
+  ["form-action", "'self'"],
+  ["object-src", "'none'"],
 ] as const
 
-const cspHeaderValue = cspDirectives.map(([directive, value]) => `${directive} ${value}`).join('; ')
+const cspHeaderValue = cspDirectives.map(([directive, value]) => `${directive} ${value}`).join("; ")
 
 const securityHeaders = [
-  { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'X-XSS-Protection', value: '0' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
-  { key: 'Content-Security-Policy', value: cspHeaderValue },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-XSS-Protection", value: "0" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  { key: "Content-Security-Policy", value: cspHeaderValue },
 ]
 
 const nextConfig: NextConfig = {
   // Empêche `next dev` de régénérer AGENTS.md / CLAUDE.md à la racine :
   // les instructions agent du projet vivent dans .claude/CLAUDE.md.
   agentRules: false,
-  output: 'standalone',
+  output: "standalone",
   cacheComponents: true,
   experimental: {
     // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
@@ -51,18 +51,18 @@ const nextConfig: NextConfig = {
   // n'est compressé. Cf. docs/knowledges/dokploy.md § Compression Brotli
   compress: false,
   images: {
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
   },
-  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   outputFileTracingIncludes: {
-    '/[locale]/mentions-legales': ['./content/legal/**/*.md'],
-    '/[locale]/confidentialite': ['./content/legal/**/*.md'],
+    "/[locale]/mentions-legales": ["./content/legal/**/*.md"],
+    "/[locale]/confidentialite": ["./content/legal/**/*.md"],
   },
   env: {
     NEXT_PUBLIC_BUILD_YEAR: String(new Date().getFullYear()),
   },
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }]
+    return [{ source: "/(.*)", headers: securityHeaders }]
   },
 }
 

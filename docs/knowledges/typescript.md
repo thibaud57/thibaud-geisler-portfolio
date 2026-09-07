@@ -1,6 +1,6 @@
 ---
 title: "TypeScript — Langage typé"
-version: "6.0.2"
+version: "6.0.3"
 description: "Référence technique pour TypeScript 6 : tsconfig, inférence, patterns et intégration Next.js."
 date: "2026-04-13"
 keywords: ["typescript", "types", "tsconfig", "inference"]

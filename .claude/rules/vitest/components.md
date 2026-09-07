@@ -8,9 +8,9 @@ paths:
 ## À faire
 - Importer `render` depuis `@testing-library/react` et utiliser **`screen` global** pour les queries après `render()` (préféré aux utilitaires destructurés de `render()`)
 - Prioriser les queries accessibles dans cet ordre : **`getByRole`** > `getByLabelText` > `getByPlaceholderText` > `getByText` > `getByTestId`
-- **3 préfixes de query** : `getBy*` (throw si absent, sync), `queryBy*` (retourne `null` si absent, sync — utiliser pour vérifier l'**absence** d'un élément), `findBy*` (throw au timeout, async, pour éléments qui **apparaissent**)
+- **3 préfixes de query** : `getBy*` (throw si absent, sync), `queryBy*` (retourne `null` si absent, sync, utiliser pour vérifier l'**absence** d'un élément), `findBy*` (throw au timeout, async, pour éléments qui **apparaissent**)
 - Pour attendre qu'un élément **apparaisse** : utiliser **`findBy*`** (combinaison `getBy + waitFor`, recommandé par `eslint-plugin-testing-library` règle `prefer-find-by`)
-- Pour attendre un **changement d'état** sur un élément déjà présent (ex: bouton qui devient `disabled`) : utiliser **`waitFor(() => expect(...).toBe...)`** — `findBy` ne suffit pas car il n'attend que la présence, pas l'état
+- Pour attendre un **changement d'état** sur un élément déjà présent (ex: bouton qui devient `disabled`) : utiliser **`waitFor(() => expect(...).toBe...)`**. `findBy` ne suffit pas car il n'attend que la présence, pas l'état
 - Appeler **`userEvent.setup()`** AVANT chaque `render()` pour simuler le comportement navigateur réaliste (focus, hover, pointer events)
 - Préférer **`userEvent`** à `fireEvent` : `fireEvent` envoie des événements DOM bruts sans la séquence complète (focus → keydown → keypress → input → keyup)
 - Tester le **comportement utilisateur observable** (rendu, interactions, accessibilité), pas l'implémentation interne (state, hooks, refs)
@@ -19,7 +19,7 @@ paths:
 ## À éviter
 - Utiliser `react-test-renderer` : **déprécié** React 19, utiliser `@testing-library/react`
 - Utiliser `fireEvent` au lieu de `userEvent` : événements bruts sans simulation comportement navigateur (manque focus, hover, séquence keyboard)
-- Utiliser le **snapshot testing systématique** : trop fragile, casse à chaque changement de markup sans valeur ajoutée — réserver aux structures vraiment stables
+- Utiliser le **snapshot testing systématique** : trop fragile, casse à chaque changement de markup sans valeur ajoutée. Réserver aux structures vraiment stables
 - Tester l'**implémentation interne** (`state`, hooks, props internes) au lieu du comportement observable : casse au moindre refactor
 
 ## Exemples

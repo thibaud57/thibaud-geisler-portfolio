@@ -4,7 +4,7 @@
 
 **Goal:** Créer, modifier et supprimer des tags depuis l'espace admin, et poser le pattern CRUD des entités légères.
 
-**Architecture:** Des Server Actions calquées sur `submitContact`, validées par un schéma Zod partagé avec le formulaire, et un écran de liste dont le formulaire vit en modale. Les deux contraintes de la base — unicité du slug et interdiction de supprimer un tag rattaché — sont traduites en messages de formulaire plutôt que remontées comme erreurs techniques.
+**Architecture:** Des Server Actions calquées sur `submitContact`, validées par un schéma Zod partagé avec le formulaire, et un écran de liste dont le formulaire vit en modale. Les deux contraintes de la base (unicité du slug et interdiction de supprimer un tag rattaché) sont traduites en messages de formulaire plutôt que remontées comme erreurs techniques.
 
 **Tech Stack:** Next.js 16 Server Actions, Zod 4, Prisma 7, React 19 (`useActionState`), shadcn/ui, Vitest.
 
