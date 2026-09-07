@@ -25,7 +25,7 @@ paths:
 ## Gotchas
 - `Object.fromEntries(formData)` **perd les champs multi-valeurs** (checkbox multi, input `name="tags[]"`) : utiliser `formData.getAll('key')` explicitement et un schéma avec `z.array()`
 - **`safeParseAsync`** obligatoire si le schéma contient un refinement ou un transform asynchrone : sinon erreur runtime "Async refinement encountered in sync mode"
-- Pour **Next.js spécifiquement** : utiliser **`@t3-oss/env-nextjs`** + `createEnv` (sépare `server` / `client`, tree-shake les secrets serveur du bundle client) plutôt que `z.parse(process.env)` direct — voir `nextjs/configuration.md`
+- Pour **Next.js spécifiquement** : utiliser **`@t3-oss/env-nextjs`** + `createEnv` (sépare `server` / `client`, tree-shake les secrets serveur du bundle client) plutôt que `z.parse(process.env)` direct (voir `nextjs/configuration.md`)
 
 ## Exemples
 ```typescript

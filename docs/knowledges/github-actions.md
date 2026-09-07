@@ -64,13 +64,13 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfolio_test
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@<sha> # v7.0.1
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@<sha> # v6.0.10
         with:
           version: 10
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@<sha> # v7.0.0
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -148,11 +148,11 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 
 ```yaml
 # Option 1 : cache automatique via setup-node
-- uses: pnpm/action-setup@v6
+- uses: pnpm/action-setup@<sha> # v6.0.10
   with:
     version: 10
 
-- uses: actions/setup-node@v7
+- uses: actions/setup-node@<sha> # v7.0.0
   with:
     node-version: '24'
     cache: 'pnpm'
@@ -164,7 +164,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
   shell: bash
   run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-- uses: actions/cache@v6
+- uses: actions/cache@<sha> # v6.1.0
   with:
     path: ${{ env.STORE_PATH }}
     key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -250,9 +250,9 @@ jobs:
 ## ✅ Recommandations
 
 - Utiliser `ubuntu-24.04` explicitement (pas `ubuntu-latest`)
-- Actions épinglées : `checkout@v7`, `setup-node@v7`, `cache@v6`, `pnpm/action-setup@v6`
+- Actions épinglées par SHA de commit, version en commentaire (`checkout@<sha> # v7.0.1`) : un tag `@vN` est mobile et détournable, Dependabot met à jour SHA et commentaire ensemble
 - `cache: 'pnpm'` dans `setup-node` pour accélérer
-- `concurrency.cancel-in-progress: true` sur les branches feature
+- `concurrency.cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : annule les runs redondants d'une PR, garde le verdict de chaque commit de `main`
 - `permissions: contents: read` par défaut
 - `--frozen-lockfile` en CI (garantit la reproductibilité)
 

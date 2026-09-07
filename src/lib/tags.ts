@@ -1,10 +1,10 @@
-import type { TagKind } from '@/generated/prisma/client'
+import type { TagKind } from "@/generated/prisma/client"
 
 export const KIND_ORDER: readonly TagKind[] = [
-  'EXPERTISE',
-  'AI',
-  'LANGUAGE',
-  'FRAMEWORK',
-  'DATABASE',
-  'INFRA',
+  "EXPERTISE",
+  "AI",
+  "LANGUAGE",
+  "FRAMEWORK",
+  "DATABASE",
+  "INFRA",
 ]

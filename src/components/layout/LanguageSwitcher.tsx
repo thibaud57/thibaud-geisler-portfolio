@@ -1,22 +1,22 @@
-'use client'
+"use client"
 
-import FR from 'country-flag-icons/react/3x2/FR'
-import GB from 'country-flag-icons/react/3x2/GB'
-import { Globe } from 'lucide-react'
-import type { Locale } from 'next-intl'
-import { useLocale, useTranslations } from 'next-intl'
+import FR from "country-flag-icons/react/3x2/FR"
+import GB from "country-flag-icons/react/3x2/GB"
+import { Globe } from "lucide-react"
+import type { Locale } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { localeLabels } from '@/i18n/locale-labels'
-import { usePathname, useRouter } from '@/i18n/navigation'
-import { routing } from '@/i18n/routing'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dropdown-menu"
+import { localeLabels } from "@/i18n/locale-labels"
+import { usePathname, useRouter } from "@/i18n/navigation"
+import { routing } from "@/i18n/routing"
+import { cn } from "@/lib/utils"
 
 const localeFlags = {
   fr: FR,
@@ -27,7 +27,7 @@ export function LanguageSwitcher() {
   const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
-  const t = useTranslations('LanguageSwitcher')
+  const t = useTranslations("LanguageSwitcher")
 
   function handleLocaleChange(nextLocale: Locale) {
     router.replace(pathname, { locale: nextLocale })
@@ -36,7 +36,7 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={t('ariaLabel')}>
+        <Button variant="ghost" size="icon" aria-label={t("ariaLabel")}>
           <Globe className="size-5" />
         </Button>
       </DropdownMenuTrigger>
@@ -46,10 +46,12 @@ export function LanguageSwitcher() {
           return (
             <DropdownMenuItem
               key={loc}
-              onClick={() => handleLocaleChange(loc)}
-              className={cn(locale === loc && 'font-semibold')}
+              onClick={() => {
+                handleLocaleChange(loc)
+              }}
+              className={cn(locale === loc && "font-semibold")}
             >
-              <Flag aria-hidden/>
+              <Flag aria-hidden />
               {localeLabels[loc]}
             </DropdownMenuItem>
           )

@@ -1,24 +1,24 @@
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next"
 
-import { routing } from '@/i18n/routing'
-import { buildLanguageAlternates } from '@/lib/seo'
+import { routing } from "@/i18n/routing"
+import { buildLanguageAlternates } from "@/lib/seo"
 
 export const PUBLIC_STATIC_PATHS = [
-  '',
-  '/services',
-  '/projets',
-  '/a-propos',
-  '/contact',
-  '/mentions-legales',
-  '/confidentialite',
+  "",
+  "/services",
+  "/projets",
+  "/a-propos",
+  "/contact",
+  "/mentions-legales",
+  "/confidentialite",
 ] as const
 
-type SitemapProject = {
+interface SitemapProject {
   slug: string
   updatedAt: Date
 }
 
-type BuildSitemapEntriesInput = {
+interface BuildSitemapEntriesInput {
   staticPaths: readonly string[]
   projects: readonly SitemapProject[]
   siteUrl: string
@@ -29,14 +29,11 @@ export function buildSitemapEntries({
   projects,
   siteUrl,
 }: BuildSitemapEntriesInput): MetadataRoute.Sitemap {
-  const base = siteUrl.replace(/\/$/, '')
+  const base = siteUrl.replace(/\/$/, "")
 
   // Pas de lastModified sur les pages statiques : aucune date de contenu fiable n'existe pour
   // elles, et une date qui change à chaque requête finit ignorée par Google.
-  const toEntriesPerLocale = (
-    path: string,
-    lastModified?: Date,
-  ): MetadataRoute.Sitemap => {
+  const toEntriesPerLocale = (path: string, lastModified?: Date): MetadataRoute.Sitemap => {
     const languages = buildLanguageAlternates(path, base)
     return routing.locales.map((locale) => ({
       url: `${base}/${locale}${path}`,

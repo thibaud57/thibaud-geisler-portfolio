@@ -1,13 +1,13 @@
-'use client'
+"use client"
 
 /* eslint-disable react-hooks/static-components -- resolveTagIcon fait un lookup par clé dans les registries immuables Simple Icons / Lucide, pas une création de composant runtime */
 
-import { Badge } from '@/components/ui/badge'
-import { resolveTagIcon } from '@/lib/icons'
-import type { LocalizedTagRecord } from '@/types/project'
+import { Badge } from "@/components/ui/badge"
+import { resolveTagIcon } from "@/lib/icons"
+import type { LocalizedTagRecord } from "@/types/project"
 
-type Props = {
-  tag: Pick<LocalizedTagRecord, 'name' | 'icon'>
+interface Props {
+  tag: Pick<LocalizedTagRecord, "name" | "icon">
   className?: string
 }
 

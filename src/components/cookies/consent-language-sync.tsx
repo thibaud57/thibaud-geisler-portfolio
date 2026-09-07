@@ -1,15 +1,15 @@
-'use client'
+"use client"
 
-import { useEffect } from 'react'
-import { useLocale } from 'next-intl'
-import { useConsentManager } from '@c15t/nextjs/headless'
+import { useEffect } from "react"
+import { useLocale } from "next-intl"
+import { useConsentManager } from "@c15t/nextjs/headless"
 
 export function ConsentLanguageSync() {
   const locale = useLocale()
   const { setLanguage } = useConsentManager()
 
   useEffect(() => {
-    setLanguage(locale)
+    void setLanguage(locale)
   }, [locale, setLanguage])
 
   return null

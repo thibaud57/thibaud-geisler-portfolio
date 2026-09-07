@@ -20,9 +20,9 @@ paths:
   - **`Geist Sans`** → corps de texte, UI, titres H2-H6, navigation, boutons (`next/font/google`, variable `--font-sans`)
   - **`Geist Mono`** → blocs de code, snippets, éléments de stack technique (`next/font/google`, variable `--font-mono`)
   - **`Sansation`** → titres hero H1, éléments de marque, logo (`next/font/local` sur `src/lib/seo/fonts/Sansation-Bold.woff2`, variable `--font-display`, mappée à la classe `font-display`)
-- Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css` — voir `tailwind/conventions.md`)
+- Respecter la scale typographique DESIGN.md (H1/H2/H3 appliqués globalement via `@layer base` dans `globals.css`, voir `tailwind/conventions.md`)
 - Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
-- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec le **chemin relatif** que construit `buildAssetUrl()`. Ne PAS préfixer par `NEXT_PUBLIC_SITE_URL` ni déclarer le domaine dans `images.remotePatterns` — une URL absolue ferait traiter comme distante une image servie par la même origine, sans aucun gain
+- Servir les assets dynamiques via la route catch-all `/api/assets/[...path]` (ADR-011, convention nested `projets/{client,personal}/<slug>/<filename>`) : les pointer avec le **chemin relatif** que construit `buildAssetUrl()`. Ne PAS préfixer par `NEXT_PUBLIC_SITE_URL` ni déclarer le domaine dans `images.remotePatterns`. Une URL absolue ferait traiter comme distante une image servie par la même origine, sans aucun gain
 
 ## À éviter
 - Utiliser `images.domains` : **déprécié** Next 16, utiliser `remotePatterns` (plus granulaire et sécurisé)

@@ -1,6 +1,6 @@
 ---
 title: "PostgreSQL — Base de données relationnelle"
-version: "18.3"
+version: "18.6"
 description: "Référence technique pour PostgreSQL 18 : types, indexes, transactions et Docker."
 date: "2026-04-13"
 keywords: ["postgresql", "database", "sql", "indexes", "jsonb"]

@@ -1,13 +1,10 @@
-export type ProjectTimeline = {
+export interface ProjectTimeline {
   startYear: number | null
   endYear: number | null
   inProgress: boolean
 }
 
-export function getProjectTimeline(
-  startedAt: Date | null,
-  endedAt: Date | null,
-): ProjectTimeline {
+export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null): ProjectTimeline {
   return {
     startYear: startedAt?.getFullYear() ?? null,
     endYear: endedAt?.getFullYear() ?? null,

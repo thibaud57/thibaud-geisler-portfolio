@@ -1,24 +1,24 @@
-import { SOCIAL_LINKS } from '@/config/social-links'
-import { siteUrl } from '@/lib/seo'
-import { findManyPublished } from '@/server/queries/projects'
+import { requireSocialUrl } from "@/config/social-links"
+import { siteUrl } from "@/lib/seo"
+import { findManyPublished } from "@/server/queries/projects"
 
-const linkedinUrl = SOCIAL_LINKS.find((link) => link.slug === 'linkedin')!.url
-const githubUrl = SOCIAL_LINKS.find((link) => link.slug === 'github')!.url
+const linkedinUrl = requireSocialUrl("linkedin")
+const githubUrl = requireSocialUrl("github")
 
 // Anglais comme langue de référence pour l'ingestion par les LLM, la version FR est liée en bas.
 // Les études de cas viennent de la même query que le sitemap : rien à maintenir à la main.
 function escapeLinkText(text: string): string {
-  return text.replace(/[[\]]/g, '\\$&')
+  return text.replace(/[[\]]/g, "\\$&")
 }
 
 export async function GET(): Promise<Response> {
-  const projects = await findManyPublished({ locale: 'en' })
+  const projects = await findManyPublished({ locale: "en" })
   const caseStudies = projects
     .map(
       (project) =>
         `- [${escapeLinkText(project.title)}](${siteUrl}/en/projets/${project.slug}): ${project.description}`,
     )
-    .join('\n')
+    .join("\n")
 
   const body = `# Thibaud Geisler
 
@@ -44,8 +44,8 @@ ${caseStudies}
   return new Response(body, {
     status: 200,
     headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
     },
   })
 }

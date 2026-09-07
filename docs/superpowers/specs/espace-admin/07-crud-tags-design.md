@@ -23,7 +23,7 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 
 ## Dependencies
 
-- `06-shell-admin-design.md` (statut: draft) — fournit le shell dans lequel l'écran s'insère, et la page d'attente `/admin/tags` que ce sub-project remplace.
+- `06-shell-admin-design.md` (statut: draft) : fournit le shell dans lequel l'écran s'insère, et la page d'attente `/admin/tags` que ce sub-project remplace.
 
 ## Files touched
 

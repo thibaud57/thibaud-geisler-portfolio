@@ -23,7 +23,7 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 
 ## Dependencies
 
-- `04-auth-better-auth-google-design.md` (statut: draft) — fournit `auth`, `authClient` et les routes `/api/auth/*` sans lesquelles il n'y a ni session à vérifier ni moyen d'en ouvrir une.
+- `04-auth-better-auth-google-design.md` (statut: draft) : fournit `auth`, `authClient` et les routes `/api/auth/*` sans lesquelles il n'y a ni session à vérifier ni moyen d'en ouvrir une.
 
 ## Files touched
 

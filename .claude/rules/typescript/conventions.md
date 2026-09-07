@@ -12,7 +12,7 @@ paths:
 # TypeScript — Patterns & Gotchas v6
 
 ## À faire
-- Dériver les types via **`z.infer<typeof Schema>`** (Zod) ou **`typeof`** (constantes) — source unique de vérité entre runtime et types
+- Dériver les types via **`z.infer<typeof Schema>`** (Zod) ou **`typeof`** (constantes) : source unique de vérité entre runtime et types
 - Préférer les **discriminated unions** aux enums : narrowing automatique via `switch`/`if` sur la propriété discriminante (`status`, `kind`, `type`), pattern utilisé par `safeParse` Zod (`{ success, data } | { success: false, error }`)
 - Importer les types Prisma via **`@/generated/prisma/client`** (Prisma 7, plus `@prisma/client`) et utiliser **`Prisma.ModelGetPayload<T>`** pour typer un résultat avec relations incluses
 - Utiliser l'alias **`@/*`** pour tous les imports : jamais de chemins relatifs de plus de 2 niveaux (`../../../lib/foo` → `@/lib/foo`)
@@ -28,9 +28,9 @@ paths:
 
 ## Gotchas
 - TypeScript 6 : **`strict: true`** par défaut (ne pas le forcer à `false`)
-- TypeScript 6 : **`module: esnext`** par défaut (plus `commonjs`) — casse les imports CJS existants, migrer les `require()` vers `import`
+- TypeScript 6 : **`module: esnext`** par défaut (plus `commonjs`). Casse les imports CJS existants, migrer les `require()` vers `import`
 - TypeScript 6 : **`moduleResolution: node`** (node10) **déprécié** → utiliser `bundler` (Next 16 / Turbopack) ou `nodenext`
-- TypeScript 6 : **`types: []`** par défaut (plus d'auto-discovery des `@types/*`) — déclarer explicitement les types utilisés (ex: `["node", "vitest/globals"]`)
+- TypeScript 6 : **`types: []`** par défaut (plus d'auto-discovery des `@types/*`). Déclarer explicitement les types utilisés (ex: `["node", "vitest/globals"]`)
 
 ## Exemples
 ```typescript

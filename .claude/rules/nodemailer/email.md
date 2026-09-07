@@ -16,9 +16,9 @@ paths:
 - Le champ **`from`** doit correspondre à une adresse autorisée par le relais SMTP (sinon rejet côté serveur)
 - Toujours **`await transporter.sendMail()`** dans une Server Action : l'opération est async, sinon l'action retourne avant l'envoi
 - Importer nodemailer **uniquement** dans des fichiers serveur (`'use server'`, `route.ts`, `instrumentation.ts`)
-- Pin **`nodemailer@^8.0.5`** minimum dans `package.json` pour bénéficier des correctifs CVE CRLF
+- Pin **`nodemailer@^9.x`** minimum dans `package.json` (majeure installée) : la v9 valide par défaut le certificat TLS des requêtes HTTPS qu'elle émet elle-même (pièce jointe distante, token OAuth2, proxy), breaking change v8 → v9 à connaître avant de fixer une version basse
 - **Mocker** le transporter dans les tests (jamais d'envoi réel en CI/dev)
-- Wrapper `sendMail()` dans un try/catch et logger les événements `email:sent` / `email:failed` **sans le contenu du message** (RGPD) — cf. `pino/logger.md` pour le pattern child logger
+- Wrapper `sendMail()` dans un try/catch et logger les événements `email:sent` / `email:failed` **sans le contenu du message** (RGPD), cf. `pino/logger.md` pour le pattern child logger
 
 ## À éviter
 - Importer nodemailer dans un Client Component : dépend de `net`, `tls`, `dns` Node.js, casse au build
@@ -30,7 +30,7 @@ paths:
 - Committer `.env.local` ou les credentials SMTP dans le dépôt
 
 ## Gotchas
-- nodemailer < 8.0.5 : faille **CRLF injection** (CVE GHSA-vvjj-xcjg-gr5g + GHSA-c7w3-x93f-qmm8) — pinner `>=8.0.5` obligatoire dans `package.json`
+- nodemailer < 8.0.4/8.0.5 : faille **CRLF injection** (CVE GHSA-c7w3-x93f-qmm8 corrigée en 8.0.4, GHSA-vvjj-xcjg-gr5g corrigée en 8.0.5) : pinner `>=9.x` (majeure installée) dans `package.json`, la v9 ajoute la validation TLS par défaut sur le contenu distant qu'elle requête elle-même
 - TypeScript : `@types/nodemailer@^8.0.0` requis avec **`esModuleInterop: true`** dans `tsconfig.json` (sinon erreurs d'import du namespace)
 - Node.js ≥ 20 requis (compatible depuis nodemailer v6.0.0)
 

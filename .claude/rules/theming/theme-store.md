@@ -13,7 +13,7 @@ next-themes a été retiré (abandonné depuis mars 2025, bug de thème périmé
 
 ## À faire
 - Consommer le thème via **`useTheme()` de `@/lib/theme`** uniquement : `{ theme, resolvedTheme, setTheme }`, même API que next-themes
-- **`resolvedTheme` est `undefined` au SSR et pendant l'hydratation** : rendre un placeholder tant qu'il l'est. `useSyncExternalStore` re-rend seul au premier snapshot client — jamais de state `mounted` + effect
+- **`resolvedTheme` est `undefined` au SSR et pendant l'hydratation** : rendre un placeholder tant qu'il l'est. `useSyncExternalStore` re-rend seul au premier snapshot client, jamais de state `mounted` + effect
 - **`suppressHydrationWarning` sur `<html>`** (jamais sur `<body>`) : le script anti-FOUC pose la classe avant l'hydratation
 - Script anti-FOUC : **`<ThemeScript />`** (via `useServerInsertedHTML`, invisible pour React côté client, donc sans warning script-in-component) dans le layout `[locale]` ; `global-not-found.tsx` embarque le script brut, il rend son propre document
 - Toute écriture de thème passe par **`setTheme()`** : écrivain unique, il persiste, applique la classe et notifie

@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 /**
  * Composant Aceternity `BackgroundRippleEffect` modifié localement (copy-paste shadcn).
@@ -8,24 +8,24 @@
  * composition en permanence, sans contrepartie.
  */
 
-import React, { useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import React, { useMemo, useRef, useState } from "react"
+import { cn } from "@/lib/utils"
 
 export const BackgroundRippleEffect = ({
   rows = 8,
   cols = 27,
   cellSize = 56,
 }: {
-  rows?: number;
-  cols?: number;
-  cellSize?: number;
+  rows?: number
+  cols?: number
+  cellSize?: number
 }) => {
   const [clickedCell, setClickedCell] = useState<{
-    row: number;
-    col: number;
-  } | null>(null);
-  const [rippleKey, setRippleKey] = useState(0);
-  const ref = useRef<HTMLDivElement | null>(null);
+    row: number
+    col: number
+  } | null>(null)
+  const [rippleKey, setRippleKey] = useState(0)
+  const ref = useRef<HTMLDivElement | null>(null)
 
   return (
     <div
@@ -48,48 +48,46 @@ export const BackgroundRippleEffect = ({
           fillColor="var(--cell-fill-color)"
           clickedCell={clickedCell}
           onCellClick={(row, col) => {
-            setClickedCell({ row, col });
-            setRippleKey((k) => k + 1);
+            setClickedCell({ row, col })
+            setRippleKey((k) => k + 1)
           }}
           interactive
         />
       </div>
     </div>
-  );
-};
+  )
+}
 
-type DivGridProps = {
-  className?: string;
-  rows: number;
-  cols: number;
-  cellSize: number;
-  borderColor: string;
-  fillColor: string;
-  clickedCell: { row: number; col: number } | null;
-  onCellClick?: (row: number, col: number) => void;
-  interactive?: boolean;
-};
+interface DivGridProps {
+  className?: string
+  rows: number
+  cols: number
+  cellSize: number
+  borderColor: string
+  fillColor: string
+  clickedCell: { row: number; col: number } | null
+  onCellClick?: (row: number, col: number) => void
+  interactive?: boolean
+}
 
 type CellStyle = React.CSSProperties & {
-  ["--delay"]?: string;
-  ["--duration"]?: string;
-};
+  ["--delay"]?: string
+  ["--duration"]?: string
+}
 
 const DivGrid = ({
   className,
-  rows = 7,
-  cols = 30,
-  cellSize = 56,
-  borderColor = "#3f3f46",
-  fillColor = "rgba(14,165,233,0.3)",
-  clickedCell = null,
+  rows,
+  cols,
+  cellSize,
+  borderColor,
+  fillColor,
+  clickedCell,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function -- no-op par défaut, onCellClick est optionnel
   onCellClick = () => {},
   interactive = true,
 }: DivGridProps) => {
-  const cells = useMemo(
-    () => Array.from({ length: rows * cols }, (_, idx) => idx),
-    [rows, cols],
-  );
+  const cells = useMemo(() => Array.from({ length: rows * cols }, (_, idx) => idx), [rows, cols])
 
   const gridStyle: React.CSSProperties = {
     display: "grid",
@@ -98,25 +96,25 @@ const DivGrid = ({
     width: cols * cellSize,
     height: rows * cellSize,
     marginInline: "auto",
-  };
+  }
 
   return (
     <div className={cn("relative z-[3]", className)} style={gridStyle}>
       {cells.map((idx) => {
-        const rowIdx = Math.floor(idx / cols);
-        const colIdx = idx % cols;
+        const rowIdx = Math.floor(idx / cols)
+        const colIdx = idx % cols
         const distance = clickedCell
           ? Math.hypot(clickedCell.row - rowIdx, clickedCell.col - colIdx)
-          : 0;
-        const delay = clickedCell ? Math.max(0, distance * 55) : 0;
-        const duration = 200 + distance * 80;
+          : 0
+        const delay = clickedCell ? Math.max(0, distance * 55) : 0
+        const duration = 200 + distance * 80
 
         const style: CellStyle = clickedCell
           ? {
               "--delay": `${delay}ms`,
               "--duration": `${duration}ms`,
             }
-          : {};
+          : {}
 
         return (
           <div
@@ -132,11 +130,15 @@ const DivGrid = ({
               ...style,
             }}
             onClick={
-              interactive ? () => onCellClick?.(rowIdx, colIdx) : undefined
+              interactive
+                ? () => {
+                    onCellClick(rowIdx, colIdx)
+                  }
+                : undefined
             }
           />
-        );
+        )
       })}
     </div>
-  );
-};
+  )
+}

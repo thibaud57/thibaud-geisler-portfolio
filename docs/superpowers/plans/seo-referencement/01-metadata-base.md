@@ -770,7 +770,7 @@ Expected : 0 erreur. Vérifier en particulier que `Metadata` retourné par `buil
 
 - [ ] **Step 3 : Tests unit complets**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests unit passent, dont les ~14 cas de `src/lib/seo.test.ts`.
 
 - [ ] **Step 4 : Tests integration (sanity check, ils ne devraient pas régresser)**

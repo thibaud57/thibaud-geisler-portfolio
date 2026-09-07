@@ -1,6 +1,6 @@
 ---
 title: "nodemailer — SMTP Email"
-version: "8.0.5"
+version: "9.1.1"
 description: "Référence technique pour nodemailer : SMTP, Server Actions Next.js et sécurité pour le formulaire de contact."
 date: "2026-04-13"
 keywords: ["nodemailer", "smtp", "email", "nextjs", "server-action"]
@@ -10,7 +10,7 @@ technologies: ["Node.js", "Next.js", "TypeScript"]
 
 # Description
 
-`nodemailer` est la librairie de référence Node.js pour l'envoi d'emails via SMTP. Utilisée dans le portfolio pour envoyer les soumissions du formulaire de contact vers la boîte mail professionnelle via le relais SMTP IONOS. Exclusivement côté serveur : import strictement interdit dans les composants client ou l'Edge Runtime. La v8.0.5 corrige deux CVE critiques de type CRLF injection (GHSA-vvjj-xcjg-gr5g et GHSA-c7w3-x93f-qmm8).
+`nodemailer` est la librairie de référence Node.js pour l'envoi d'emails via SMTP. Utilisée dans le portfolio pour envoyer les soumissions du formulaire de contact vers la boîte mail professionnelle via le relais SMTP IONOS. Exclusivement côté serveur : import strictement interdit dans les composants client ou l'Edge Runtime. Les v8.0.4 et v8.0.5 corrigent chacune une CVE de type CRLF injection, de sévérité faible à modérée : GHSA-c7w3-x93f-qmm8 (CVSS 2.3, faible) corrigée en 8.0.4, GHSA-vvjj-xcjg-gr5g (CVSS 4.9, modérée) corrigée en 8.0.5.
 
 ---
 

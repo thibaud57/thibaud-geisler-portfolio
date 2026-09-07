@@ -8,26 +8,12 @@ paths:
 
 ## À faire
 - Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
-- Actions épinglées à la majeure, avec **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH). Inventaire au 1er septembre 2026, toutes sur leur dernière majeure :
-
-| Action | Épinglée |
-|---|---|
-| `actions/checkout` | `@v7` |
-| `actions/setup-node` | `@v7` |
-| `actions/cache` | `@v6` |
-| `pnpm/action-setup` | `@v6` |
-| `docker/build-push-action` | `@v7` |
-| `docker/login-action` | `@v4` |
-| `docker/metadata-action` | `@v6` |
-| `docker/setup-buildx-action` | `@v4` |
-| `dorny/paths-filter` | `@v4` |
-| `extractions/setup-just` | `@v4` |
-| `googleapis/release-please-action` | `@v5` |
-| `actions/create-github-app-token` | `@v3` |
+- **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@3d3c42e… # v7.0.1`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files`, mars 2025, secrets exfiltrés sur des milliers de dépôts). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble ; l'inventaire des versions vit dans VERSIONS.md § GitHub Actions, les workflows sont la source
+- **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH)
 - **Node 24** explicite dans `setup-node` : `node-version: '24'`. Le Node système de l'image runner n'est jamais celui du projet et change à chaque image (22.23.2 sur `ubuntu24/20260831.293.1`) : toujours l'overrider, ne jamais s'y fier
 - **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node@v7` (le cache auto a été retiré en v6)
 - Install reproductible : **`pnpm install --frozen-lockfile`** (échoue si lockfile désynchronisé avec `package.json`)
-- **Concurrency** : `concurrency.group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: true` pour annuler les runs redondants sur la même branche
+- **Concurrency** : `concurrency.group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict ; `false` sur `release-please.yml` et `deploy.yml`, une release interrompue laisserait un état incomplet
 - **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
 - **`timeout-minutes: 15`** sur chaque job : évite qu'un test qui hang consomme les 6h de timeout par défaut et bloque les minutes CI (15 min suffit largement pour lint + typecheck + tests d'un MVP)
 - **Service container Postgres** pour tests d'intégration : `image: postgres:18-alpine` (même tag que `compose.override.yaml`, sinon la CI teste une autre image que le dev), healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner (pas le nom du service)
@@ -44,7 +30,7 @@ paths:
 ## Gotchas
 - **`actions/setup-node` v5 → v6** : le cache automatique pour pnpm a été retiré, `cache: 'pnpm'` est désormais obligatoire pour bénéficier du cache (VERSIONS.md)
 - **`pnpm/action-setup` v3 → v4** : erreur levée si le champ `packageManager` dans `package.json` contredit la version spécifiée dans l'action (avant : silencieux) (VERSIONS.md)
-- **Node 20 est EOL depuis le 30 avril 2026** : ne jamais l'utiliser. Le défaut de `ubuntu-24.04` n'est pas Node 20 mais la version système de l'image du moment (22.23.2 fin août 2026), qui bouge sans préavis — l'override `node-version: '24'` dans `setup-node@v7` est ce qui rend le runtime déterministe (VERSIONS.md)
+- **Node 20 est EOL depuis le 30 avril 2026** : ne jamais l'utiliser. Le défaut de `ubuntu-24.04` n'est pas Node 20 mais la version système de l'image du moment (22.23.2 fin août 2026), qui bouge sans préavis : l'override `node-version: '24'` dans `setup-node@v7` est ce qui rend le runtime déterministe (VERSIONS.md)
 
 ## Exemples
 ```yaml
@@ -58,7 +44,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -68,9 +54,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@<sha> # v7.0.1
+      - uses: pnpm/action-setup@<sha> # v6.0.10
+      - uses: actions/setup-node@<sha> # v7.0.0
         with:
           node-version: '24'
           cache: 'pnpm'
@@ -93,8 +79,8 @@ jobs:
     outputs:
       source: ${{ steps.filter.outputs.source }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
+      - uses: actions/checkout@<sha> # v7.0.1
+      - uses: dorny/paths-filter@<sha> # v4.0.3
         id: filter
         with:
           predicate-quantifier: every   # obligatoire pour que les négations excluent réellement (défaut 'some' = OR → ** matche toujours et rend les négations inertes)

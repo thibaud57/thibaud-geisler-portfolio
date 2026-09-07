@@ -25,9 +25,9 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 
 ## Dependencies
 
-- `08-crud-entreprises-design.md` (statut: draft) — fournit `CompanyFormDialog`, monté ici depuis le select d'entreprise.
-- `10-gestion-assets-admin-design.md` (statut: draft) — fournit `AssetPicker` pour le choix de la couverture.
-- `12-ecran-liste-projets-design.md` (statut: draft) — fournit les deux pages d'attente `/admin/projets/nouveau` et `/admin/projets/[id]` que ce sub-project remplace, et la liste depuis laquelle on arrive.
+- `08-crud-entreprises-design.md` (statut: draft) : fournit `CompanyFormDialog`, monté ici depuis le select d'entreprise.
+- `10-gestion-assets-admin-design.md` (statut: draft) : fournit `AssetPicker` pour le choix de la couverture.
+- `12-ecran-liste-projets-design.md` (statut: draft) : fournit les deux pages d'attente `/admin/projets/nouveau` et `/admin/projets/[id]` que ce sub-project remplace, et la liste depuis laquelle on arrive.
 
 ## Files touched
 

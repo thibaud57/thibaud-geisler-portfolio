@@ -23,7 +23,7 @@ Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10
 
 ## Dependencies
 
-- `07-crud-tags-design.md` (statut: draft) — pose le pattern CRUD que ce sub-project reprend : forme des Server Actions, forme de l'état de formulaire, traitement des erreurs Prisma.
+- `07-crud-tags-design.md` (statut: draft) : pose le pattern CRUD que ce sub-project reprend : forme des Server Actions, forme de l'état de formulaire, traitement des erreurs Prisma.
 
 ## Files touched
 

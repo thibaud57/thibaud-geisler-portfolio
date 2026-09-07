@@ -10,9 +10,9 @@ paths:
 ## À faire
 - Instancier `PrismaClient` en **singleton global** pour éviter l'épuisement du pool de connexions pendant le HMR Next.js en dev
 - Utiliser `@prisma/adapter-pg` : driver adapter **obligatoire** pour PostgreSQL en Prisma 7
-- Charger `.env` dans `prisma.config.ts` via **`@next/env`** (`loadEnvConfig(process.cwd())` en tête de fichier) — recommandation officielle Next.js pour charger les env vars hors runtime Next, pas de dep dotenv supplémentaire à ajouter (déjà transitif via `next`)
-- Lire `DATABASE_URL` dans `src/lib/prisma.ts` via **`env.DATABASE_URL`** importé depuis `@/env` (createEnv `@t3-oss/env-nextjs` + Zod, voir `nextjs/configuration.md`) — Next.js charge automatiquement `.env*` au runtime, pas besoin de `dotenv/config` dans le module Prisma
-- Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via **`process.env.DATABASE_URL!`**, `migrations.path`). L'**adapter** (`PrismaPg`) n'est **pas** dans ce fichier — il se configure à l'instanciation du `PrismaClient` (dans `src/lib/prisma.ts`)
+- Charger `.env` dans `prisma.config.ts` via **`@next/env`** (`loadEnvConfig(process.cwd())` en tête de fichier) : recommandation officielle Next.js pour charger les env vars hors runtime Next, pas de dep dotenv supplémentaire à ajouter (déjà transitif via `next`)
+- Lire `DATABASE_URL` dans `src/lib/prisma.ts` via **`env.DATABASE_URL`** importé depuis `@/env` (createEnv `@t3-oss/env-nextjs` + Zod, voir `nextjs/configuration.md`) : Next.js charge automatiquement `.env*` au runtime, pas besoin de `dotenv/config` dans le module Prisma
+- Créer un fichier `prisma.config.ts` à la racine pour centraliser la config (`schema`, `datasource.url` via **`process.env.DATABASE_URL!`**, `migrations.path`). L'**adapter** (`PrismaPg`) n'est **pas** dans ce fichier : il se configure à l'instanciation du `PrismaClient` (dans `src/lib/prisma.ts`)
 - Déclarer `"type": "module"` dans `package.json` : Prisma 7 est **ESM-only**
 - Ajouter `"postinstall": "prisma generate"` dans `package.json` (convention standard Prisma 7)
 - Importer le client dans le code depuis le chemin `output` déclaré dans le generator (ex: `@/generated/prisma/client`), et **non plus** depuis `@prisma/client` (ancien chemin v6). Le package `@prisma/client` reste néanmoins requis comme dépendance runtime dans `package.json` (non déprécié en v7, adapter également requis via `@prisma/adapter-pg`)

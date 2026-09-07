@@ -1,11 +1,11 @@
-import type { Metadata, ResolvingMetadata } from 'next'
-import type { Locale } from 'next-intl'
-import { getTranslations } from 'next-intl/server'
-import { notFound } from 'next/navigation'
+import type { Metadata, ResolvingMetadata } from "next"
+import type { Locale } from "next-intl"
+import { getTranslations } from "next-intl/server"
+import { notFound } from "next/navigation"
 
-import { OpenCookiePreferencesButton } from '@/components/features/legal/OpenCookiePreferencesButton'
-import { PageShell } from '@/components/layout/PageShell'
-import { MarkdownContent } from '@/components/markdown/MarkdownContent'
+import { OpenCookiePreferencesButton } from "@/components/features/legal/OpenCookiePreferencesButton"
+import { PageShell } from "@/components/layout/PageShell"
+import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import {
   Table,
   TableBody,
@@ -13,18 +13,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { setupLocalePage } from '@/i18n/locale-guard'
-import { loadLegalContent } from '@/lib/legal/load-legal-content'
-import {
-  buildPageMetadata,
-  resolveParentOgImages,
-  setupLocaleMetadata,
-} from '@/lib/seo'
-import { getDataProcessors, getPublisher } from '@/server/queries/legal'
+} from "@/components/ui/table"
+import { setupLocalePage } from "@/i18n/locale-guard"
+import { loadLegalContent } from "@/lib/legal/load-legal-content"
+import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
+import { getDataProcessors, getPublisher } from "@/server/queries/legal"
 
 export async function generateMetadata(
-  { params }: PageProps<'/[locale]/confidentialite'>,
+  { params }: PageProps<"/[locale]/confidentialite">,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const [{ locale, t }, parentImages] = await Promise.all([
@@ -33,11 +29,11 @@ export async function generateMetadata(
   ])
   return buildPageMetadata({
     locale,
-    path: '/confidentialite',
-    title: t('privacyPolicyTitle'),
-    description: t('privacyPolicyDescription'),
-    siteName: t('siteTitle'),
-    ogType: 'website',
+    path: "/confidentialite",
+    title: t("privacyPolicyTitle"),
+    description: t("privacyPolicyDescription"),
+    siteName: t("siteTitle"),
+    ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
   })
@@ -45,32 +41,31 @@ export async function generateMetadata(
 
 export default async function ConfidentialitePage({
   params,
-}: PageProps<'/[locale]/confidentialite'>) {
+}: PageProps<"/[locale]/confidentialite">) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations('PrivacyPolicy')
+  const t = await getTranslations("PrivacyPolicy")
 
   return (
-    <PageShell title={t('title')} subtitle={t('lastUpdated')}>
+    <PageShell title={t("title")} subtitle={t("lastUpdated")}>
       <ConfidentialiteContentAsync locale={locale} />
     </PageShell>
   )
 }
 
 async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
-  const [t, tLegal, publisher, processors, introContent, cookiesContent] =
-    await Promise.all([
-      getTranslations('PrivacyPolicy'),
-      getTranslations('Legal'),
-      getPublisher(),
-      getDataProcessors(),
-      loadLegalContent(locale, 'confidentialite-intro'),
-      loadLegalContent(locale, 'confidentialite-cookies'),
-    ])
+  const [t, tLegal, publisher, processors, introContent, cookiesContent] = await Promise.all([
+    getTranslations("PrivacyPolicy"),
+    getTranslations("Legal"),
+    getPublisher(),
+    getDataProcessors(),
+    loadLegalContent(locale, "confidentialite-intro"),
+    loadLegalContent(locale, "confidentialite-cookies"),
+  ])
 
   if (!publisher?.publisher) notFound()
   const pub = publisher.publisher
 
-  const regionFormatter = new Intl.DisplayNames([locale], { type: 'region' })
+  const regionFormatter = new Intl.DisplayNames([locale], { type: "region" })
 
   const transfersOutsideEu = processors.flatMap((entry) => {
     const framework = entry.processing.outsideEuFramework
@@ -82,44 +77,32 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
       <MarkdownContent markdown={introContent} />
 
       <section className="flex flex-col gap-6">
-        <h2>
-          {t('recipients.title')}
-        </h2>
-        <p className="text-muted-foreground">{t('recipients.intro')}</p>
+        <h2>{t("recipients.title")}</h2>
+        <p className="text-muted-foreground">{t("recipients.intro")}</p>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('recipients.tableHeaders.name')}</TableHead>
-              <TableHead>{t('recipients.tableHeaders.role')}</TableHead>
-              <TableHead>{t('recipients.tableHeaders.purpose')}</TableHead>
-              <TableHead>
-                {t('recipients.tableHeaders.dataCategories')}
-              </TableHead>
-              <TableHead>{t('recipients.tableHeaders.country')}</TableHead>
+              <TableHead>{t("recipients.tableHeaders.name")}</TableHead>
+              <TableHead>{t("recipients.tableHeaders.role")}</TableHead>
+              <TableHead>{t("recipients.tableHeaders.purpose")}</TableHead>
+              <TableHead>{t("recipients.tableHeaders.dataCategories")}</TableHead>
+              <TableHead>{t("recipients.tableHeaders.country")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {processors.map((entry) => {
               const purpose =
-                locale === 'fr'
-                  ? entry.processing.purposeFr
-                  : entry.processing.purposeEn
-              const country =
-                regionFormatter.of(entry.address.country) ??
-                entry.address.country
+                locale === "fr" ? entry.processing.purposeFr : entry.processing.purposeEn
+              const country = regionFormatter.of(entry.address.country) ?? entry.address.country
               return (
                 <TableRow key={entry.processing.slug}>
                   <TableCell className="font-medium">{entry.name}</TableCell>
-                  <TableCell>
-                    {tLegal(`processingKind.${entry.processing.kind}`)}
-                  </TableCell>
-                  <TableCell className="whitespace-normal">
-                    {purpose}
-                  </TableCell>
+                  <TableCell>{tLegal(`processingKind.${entry.processing.kind}`)}</TableCell>
+                  <TableCell className="whitespace-normal">{purpose}</TableCell>
                   <TableCell className="whitespace-normal">
                     {entry.processing.dataCategories
                       .map((category) => tLegal(`dataCategory.${category}`))
-                      .join(', ')}
+                      .join(", ")}
                   </TableCell>
                   <TableCell>{country}</TableCell>
                 </TableRow>
@@ -130,15 +113,13 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
       </section>
 
       <section className="flex flex-col gap-6">
-        <h2>
-          {t('retention.title')}
-        </h2>
-        <p className="text-muted-foreground">{t('retention.intro')}</p>
+        <h2>{t("retention.title")}</h2>
+        <p className="text-muted-foreground">{t("retention.intro")}</p>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('retention.tableHeaders.processor')}</TableHead>
-              <TableHead>{t('retention.tableHeaders.duration')}</TableHead>
+              <TableHead>{t("retention.tableHeaders.processor")}</TableHead>
+              <TableHead>{t("retention.tableHeaders.duration")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -159,11 +140,9 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
       </section>
 
       <section className="flex flex-col gap-6">
-        <h2>
-          {t('rights.title')}
-        </h2>
+        <h2>{t("rights.title")}</h2>
         <p className="text-muted-foreground">
-          {t.rich('rights.body', {
+          {t.rich("rights.body", {
             mail: (chunks) => (
               <a
                 href={`mailto:${pub.publicEmail}`}
@@ -188,19 +167,14 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
 
       {transfersOutsideEu.length > 0 ? (
         <section className="flex flex-col gap-6">
-          <h2>
-            {t('transfers.title')}
-          </h2>
-          <p className="text-muted-foreground">{t('transfers.intro')}</p>
+          <h2>{t("transfers.title")}</h2>
+          <p className="text-muted-foreground">{t("transfers.intro")}</p>
           <ul className="flex flex-col gap-2">
             {transfersOutsideEu.map((entry) => {
-              const country =
-                regionFormatter.of(entry.address.country) ??
-                entry.address.country
+              const country = regionFormatter.of(entry.address.country) ?? entry.address.country
               return (
                 <li key={entry.processing.slug}>
-                  <span className="font-semibold">{entry.name}</span> (
-                  {country}) -{' '}
+                  <span className="font-semibold">{entry.name}</span> ({country}) -{" "}
                   {tLegal(`outsideEuFramework.${entry.framework}`)}
                 </li>
               )
@@ -216,4 +190,3 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
     </div>
   )
 }
-

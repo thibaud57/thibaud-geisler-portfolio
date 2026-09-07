@@ -1,11 +1,11 @@
-import type { Locale } from 'next-intl'
+import type { Locale } from "next-intl"
 
-type TagBilingual = {
+interface TagBilingual {
   nameFr: string
   nameEn: string
 }
 
-type ProjectBilingual = {
+interface ProjectBilingual {
   titleFr: string
   titleEn: string
   descriptionFr: string
@@ -14,11 +14,11 @@ type ProjectBilingual = {
   caseStudyMarkdownEn: string | null
 }
 
-export type LocalizedTag<T extends TagBilingual> = Omit<T, 'nameFr' | 'nameEn'> & {
+export type LocalizedTag<T extends TagBilingual> = Omit<T, "nameFr" | "nameEn"> & {
   name: string
 }
 
-type ProjectTagBilingual<TTag extends TagBilingual> = {
+interface ProjectTagBilingual<TTag extends TagBilingual> {
   tag: TTag
 }
 
@@ -27,20 +27,26 @@ export type LocalizedProject<
   T extends ProjectBilingual & { tags: ProjectTagBilingual<TTag>[] },
 > = Omit<
   T,
-  'titleFr' | 'titleEn' | 'descriptionFr' | 'descriptionEn' | 'caseStudyMarkdownFr' | 'caseStudyMarkdownEn' | 'tags'
+  | "titleFr"
+  | "titleEn"
+  | "descriptionFr"
+  | "descriptionEn"
+  | "caseStudyMarkdownFr"
+  | "caseStudyMarkdownEn"
+  | "tags"
 > & {
   title: string
   description: string
   caseStudyMarkdown: string | null
-  tags: Array<Omit<T['tags'][number], 'tag'> & { tag: LocalizedTag<TTag> }>
+  tags: (Omit<T["tags"][number], "tag"> & { tag: LocalizedTag<TTag> })[]
 }
 
 export function localizeTag<T extends TagBilingual>(tag: T, locale: Locale): LocalizedTag<T> {
   const { nameFr, nameEn, ...rest } = tag
   return {
     ...rest,
-    name: locale === 'fr' ? nameFr : nameEn,
-  } as LocalizedTag<T>
+    name: locale === "fr" ? nameFr : nameEn,
+  }
 }
 
 export function localizeProject<
@@ -59,9 +65,9 @@ export function localizeProject<
   } = project
   return {
     ...rest,
-    title: locale === 'fr' ? titleFr : titleEn,
-    description: locale === 'fr' ? descriptionFr : descriptionEn,
-    caseStudyMarkdown: locale === 'fr' ? caseStudyMarkdownFr : caseStudyMarkdownEn,
+    title: locale === "fr" ? titleFr : titleEn,
+    description: locale === "fr" ? descriptionFr : descriptionEn,
+    caseStudyMarkdown: locale === "fr" ? caseStudyMarkdownFr : caseStudyMarkdownEn,
     tags: tags.map((pt) => ({ ...pt, tag: localizeTag(pt.tag, locale) })),
   } as LocalizedProject<TTag, T>
 }
