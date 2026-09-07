@@ -26,21 +26,8 @@ type CharacterSet = string[] | readonly string[]
 type RevealOrder = "sequential" | "random"
 
 type ElementType =
-  | "article"
-  | "div"
-  | "h1"
-  | "h2"
-  | "h3"
-  | "h4"
-  | "h5"
-  | "h6"
-  | "li"
-  | "p"
-  | "section"
-  | "span"
-type HyperTextComponent = ComponentType<
-  HTMLAttributes<HTMLElement> & RefAttributes<HTMLElement>
->
+  "article" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "p" | "section" | "span"
+type HyperTextComponent = ComponentType<HTMLAttributes<HTMLElement> & RefAttributes<HTMLElement>>
 
 interface HyperTextProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
   children: string
@@ -59,9 +46,7 @@ interface HyperTextProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
   revealOrder?: RevealOrder
 }
 
-const DEFAULT_CHARACTER_SET = Object.freeze(
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
-) as readonly string[]
+const DEFAULT_CHARACTER_SET = Object.freeze("ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""))
 
 const getRandomInt = (max: number): number => Math.floor(Math.random() * max)
 
@@ -79,9 +64,7 @@ export function HyperText({
 }: HyperTextProps) {
   const Element = Component as unknown as HyperTextComponent
 
-  const [displayText, setDisplayText] = useState<string[]>(() =>
-    children.split("")
-  )
+  const [displayText, setDisplayText] = useState<string[]>(() => children.split(""))
   const [isAnimating, setIsAnimating] = useState(false)
   const iterationCount = useRef(0)
   const elementRef = useRef<HTMLElement | null>(null)
@@ -100,20 +83,24 @@ export function HyperText({
       const startTimeout = setTimeout(() => {
         setIsAnimating(true)
       }, delay)
-      return () => clearTimeout(startTimeout)
+      return () => {
+        clearTimeout(startTimeout)
+      }
     }
 
-    const intersectionTimeoutRef: { current: ReturnType<typeof setTimeout> | null } = { current: null }
+    const intersectionTimeoutRef: { current: ReturnType<typeof setTimeout> | null } = {
+      current: null,
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           intersectionTimeoutRef.current = setTimeout(() => {
             setIsAnimating(true)
           }, delay)
           observer.disconnect()
         }
       },
-      { threshold: 0.1, rootMargin: "-30% 0px -30% 0px" }
+      { threshold: 0.1, rootMargin: "-30% 0px -30% 0px" },
     )
 
     if (elementRef.current) {
@@ -141,7 +128,13 @@ export function HyperText({
         const shuffled = Array.from({ length: maxIterations }, (_, i) => i)
         for (let i = maxIterations - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
-          ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+          const a = shuffled[i]
+          const b = shuffled[j]
+          // Les deux indices sont dans les bornes par construction de la boucle : le garde
+          // ne sert qu'à satisfaire `noUncheckedIndexedAccess`, il ne s'exécute jamais.
+          if (a === undefined || b === undefined) continue
+          shuffled[i] = b
+          shuffled[j] = a
         }
         revealPositionByIndexRef.current = new Map(
           shuffled.map((charIndex, position) => [charIndex, position]),
@@ -158,10 +151,12 @@ export function HyperText({
           currentText.map((letter, index) => {
             if (letter === " " || letter === "\n") return letter
             const revealPosition = revealPositionByIndexRef.current.get(index) ?? index
-            return revealPosition <= iterationCount.current
-              ? children[index]
-              : characterSet[getRandomInt(characterSet.length)]
-          })
+            return (
+              (revealPosition <= iterationCount.current
+                ? children[index]
+                : characterSet[getRandomInt(characterSet.length)]) ?? letter
+            )
+          }),
         )
 
         if (progress < 1) {
@@ -192,13 +187,7 @@ export function HyperText({
         letter === "\n" ? (
           <br key={index} />
         ) : (
-          <span
-            key={index}
-            className={cn(
-              isAnimating && "font-mono",
-              letter === " " ? "w-3" : "",
-            )}
-          >
+          <span key={index} className={cn(isAnimating && "font-mono", letter === " " ? "w-3" : "")}>
             {letter}
           </span>
         ),

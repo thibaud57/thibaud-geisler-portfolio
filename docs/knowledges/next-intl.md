@@ -1,6 +1,6 @@
 ---
 title: "next-intl — Internationalisation Next.js"
-version: "4.9.1"
+version: "4.14.2"
 description: "Référence technique pour next-intl : i18n App Router, locale routing, useTranslations et static rendering."
 date: "2026-04-13"
 keywords: ["next-intl", "i18n", "nextjs", "locale", "app-router"]

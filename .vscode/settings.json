@@ -1,0 +1,20 @@
+{
+  "files.exclude": {
+    "**/.history": true
+  },
+  "search.exclude": {
+    "**/.history": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "**/src/generated": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "files.watcherExclude": {
+    "**/.history/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/coverage/**": true,
+    "**/src/generated/**": true
+  }
+}

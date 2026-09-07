@@ -1,8 +1,8 @@
 ---
 name: infra-ops
-description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`, `seed`, et les équivalents DB test (`db-test`, `db-test-reset`, `db-test-studio`). Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev, db-test-reset = DROP de la DB test).
+description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`, `db-seed`, et les équivalents DB test (`db-test`, `db-test-reset`, `db-test-studio`). Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev, db-test-reset = DROP de la DB test).
 disable-model-invocation: true
-allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio), Bash(just seed), Bash(just db-test), Bash(just db-test-reset), Bash(just db-test-studio)
+allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio), Bash(just db-seed), Bash(just db-test), Bash(just db-test-reset), Bash(just db-test-studio)
 ---
 
 # infra-ops - Opérations Docker + Database
@@ -24,9 +24,9 @@ Ta mission est d'exécuter des opérations Docker et Database selon la demande e
 |---|---|---|
 | Readiness (Postgres up + migrate deploy) | `just db` | Idempotent, safe à relancer |
 | Créer une migration dev | `just db-migrate <LABEL>` | LABEL obligatoire (snake-case, ex: `add-project-slug`) |
-| Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation |
+| Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate, sans seed (`just db-seed` ensuite). `[confirm]` Just demande confirmation |
 | Ouvrir Prisma Studio | `just db-studio` | Background (UI locale, http://localhost:5555) |
-| Seed la DB depuis `prisma/seed-data/` | `just seed` | Idempotent (upsert par slug). Pas destructif. Requiert tables migrées (`just db`) |
+| Seed la DB depuis `prisma/seed-data/` | `just db-seed` | Idempotent (upsert par slug). Pas destructif. Requiert tables migrées (`just db`) |
 
 ### Database (test)
 

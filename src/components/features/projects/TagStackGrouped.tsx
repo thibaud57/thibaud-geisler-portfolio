@@ -1,15 +1,15 @@
-import { useTranslations } from 'next-intl'
-import type { TagKind } from '@/generated/prisma/client'
-import { KIND_ORDER } from '@/lib/tags'
-import type { LocalizedProjectTag } from '@/types/project'
-import { TagBadge } from './TagBadge'
+import { useTranslations } from "next-intl"
+import type { TagKind } from "@/generated/prisma/client"
+import { KIND_ORDER } from "@/lib/tags"
+import type { LocalizedProjectTag } from "@/types/project"
+import { TagBadge } from "./TagBadge"
 
-type Props = {
+interface Props {
   tags: LocalizedProjectTag[]
 }
 
 export function TagStackGrouped({ tags }: Props) {
-  const t = useTranslations('Projects.caseStudy')
+  const t = useTranslations("Projects.caseStudy")
 
   if (tags.length === 0) return null
 
@@ -32,13 +32,13 @@ export function TagStackGrouped({ tags }: Props) {
   return (
     <section aria-labelledby="case-study-stack-title">
       <h2 id="case-study-stack-title" className="mb-6">
-        {t('stackTitle')}
+        {t("stackTitle")}
       </h2>
 
       <div className="flex flex-col gap-8">
         {orderedGroups.map(([kind, groupTags]) => (
           <div key={kind} className="grid gap-3 sm:grid-cols-[13rem_1fr] sm:gap-6">
-            <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground sm:pt-1.5">
+            <h3 className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase sm:pt-1.5">
               {t(`kind.${kind}`)}
             </h3>
             <div className="flex flex-wrap items-center gap-2">

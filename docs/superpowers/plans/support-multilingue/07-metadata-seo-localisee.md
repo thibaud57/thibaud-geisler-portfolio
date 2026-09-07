@@ -346,7 +346,7 @@ Expected: aucune erreur.
 Démarrer `pnpm dev`. Ouvrir `http://localhost:3000/fr/projets` et inspecter le code source (Ctrl+U).
 
 Expected:
-- `<title>Projets | Thibaud Geisler — IA & Full-Stack</title>`
+- `<title>Projets | Thibaud Geisler : IA & Full-Stack</title>`
 - `<meta name="description" content="Portfolio de projets en intelligence artificielle..."`
 - `<meta property="og:locale" content="fr_FR">`
 - `<link rel="alternate" hreflang="en" href=".../en/projets">`
@@ -357,7 +357,7 @@ Expected:
 Ouvrir `http://localhost:3000/en/projets` et inspecter le code source.
 
 Expected:
-- `<title>Projects | Thibaud Geisler — AI & Full-Stack</title>`
+- `<title>Projects | Thibaud Geisler : AI & Full-Stack</title>`
 - `<meta property="og:locale" content="en_US">`
 
 - [ ] **Step 4: Vérifier le sitemap**

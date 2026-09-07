@@ -1,10 +1,10 @@
-'use client'
+"use client"
 
-import { useFormStatus } from 'react-dom'
+import { useFormStatus } from "react-dom"
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button"
 
-type Props = {
+interface Props {
   label: string
   submittingLabel: string
 }

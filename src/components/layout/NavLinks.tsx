@@ -1,14 +1,14 @@
-'use client'
+"use client"
 
-import { useTranslations } from 'next-intl'
+import { useTranslations } from "next-intl"
 
-import { Link, usePathname } from '@/i18n/navigation'
-import { cn } from '@/lib/utils'
+import { Link, usePathname } from "@/i18n/navigation"
+import { cn } from "@/lib/utils"
 
-import { NAV_ITEMS } from '@/config/nav-items'
+import { NAV_ITEMS } from "@/config/nav-items"
 
-type Props = {
-  orientation: 'horizontal' | 'vertical'
+interface Props {
+  orientation: "horizontal" | "vertical"
   onLinkClick?: () => void
   className?: string
 }
@@ -18,16 +18,16 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export function NavLinks({ orientation, onLinkClick, className }: Props) {
-  const t = useTranslations('Nav')
+  const t = useTranslations("Nav")
   const pathname = usePathname()
-  const isVertical = orientation === 'vertical'
+  const isVertical = orientation === "vertical"
 
   return (
     <ul
       className={cn(
         isVertical
-          ? 'flex flex-col text-base font-medium'
-          : 'flex items-center gap-6 text-sm font-medium',
+          ? "flex flex-col text-base font-medium"
+          : "flex items-center gap-6 text-sm font-medium",
         className,
       )}
     >
@@ -39,11 +39,9 @@ export function NavLinks({ orientation, onLinkClick, className }: Props) {
               href={item.href}
               onClick={onLinkClick}
               className={cn(
-                'transition',
-                isVertical && 'block py-3',
-                active
-                  ? 'font-semibold text-primary'
-                  : 'text-foreground hover:text-primary',
+                "transition",
+                isVertical && "block py-3",
+                active ? "font-semibold text-primary" : "text-foreground hover:text-primary",
               )}
             >
               {t(item.slug)}

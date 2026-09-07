@@ -32,7 +32,7 @@ paths:
 ## Gotchas
 - La route `/api/assets/[...path]` est dynamique par nature (`fs.readFile` à chaque requête), mais le `Cache-Control: immutable` côté navigateur rend les hits serveur marginaux en usage normal
 - `fs.readFile` lève `ENOENT` si le fichier n'existe pas : catch spécifique sur `err.code === 'ENOENT'` pour renvoyer 404, re-throw tout autre erreur (permission, IO) pour que Next gère via `error.tsx`
-- `path.extname(filename).slice(1).toLowerCase()` pour extraire l'extension puis lookup dans un `CONTENT_TYPE_MAP` centralisé — dériver la whitelist Zod depuis `Object.keys(CONTENT_TYPE_MAP)` pour single source of truth
+- `path.extname(filename).slice(1).toLowerCase()` pour extraire l'extension puis lookup dans un `CONTENT_TYPE_MAP` centralisé : dériver la whitelist Zod depuis `Object.keys(CONTENT_TYPE_MAP)` pour single source of truth
 - Le `params.path` d'un segment catch-all Next est toujours `string[]`, jamais `string` : pas besoin de split, passer le tableau directement à Zod
 - **Migration future R2** (post-MVP avec upload depuis l'espace admin) : remplacer le corps de `resolveAssetPath` par un fetch signé R2 (le path joined sert de clé d'objet) sans changer la signature côté route handler ; pas d'interface `AssetStorage` prématurée (YAGNI)
 - Le helper `src/server/config/assets.ts` doit importer `'server-only'` en tête pour empêcher tout import accidentel depuis un Client Component

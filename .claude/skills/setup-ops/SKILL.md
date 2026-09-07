@@ -17,7 +17,7 @@ L'utilisateur précise : **install**, **setup**, ou **check**. Par défaut : `ch
 | Action | Commande | Description |
 |---|---|---|
 | install | `just install` | `pnpm install` idempotent (réinstalle si lockfile changé) |
-| setup | `just setup` | install + db (Postgres up + migrate deploy) + seed (données initiales idempotentes) au premier démarrage. Recette : `setup: install db seed`. |
+| setup | `just setup` | install + db (Postgres up + migrate deploy) + seed (données initiales idempotentes) au premier démarrage. Recette : `setup: install db db-seed`. |
 | check | `just check` | Diagnostics Node, pnpm, Docker, .env, Postgres |
 
 ## Règles

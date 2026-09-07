@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { BorderBeam } from '@/components/magicui/border-beam'
+import { BorderBeam } from "@/components/magicui/border-beam"
 
 export function ServiceCardBeam() {
   return (

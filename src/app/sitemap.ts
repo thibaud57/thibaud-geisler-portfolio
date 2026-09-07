@@ -1,8 +1,8 @@
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next"
 
-import { siteUrl } from '@/lib/seo'
-import { buildSitemapEntries, PUBLIC_STATIC_PATHS } from '@/lib/sitemap'
-import { findAllPublishedSlugs } from '@/server/queries/projects'
+import { siteUrl } from "@/lib/seo"
+import { buildSitemapEntries, PUBLIC_STATIC_PATHS } from "@/lib/sitemap"
+import { findAllPublishedSlugs } from "@/server/queries/projects"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const projects = await findAllPublishedSlugs()

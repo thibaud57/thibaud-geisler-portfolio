@@ -32,7 +32,7 @@ paths:
 - **Utilitaires renommés v3 → v4** : `shadow-sm` → `shadow-xs`, `blur-sm` → `blur-xs`, `rounded-sm` → `rounded-xs`, `outline-none` → `outline-hidden`, `ring` (3px) → `ring-3`
 - **Gradients** : `bg-gradient-to-*` → `bg-linear-to-*`
 - **Important suffix** : `!flex` (préfixe v3) → `flex!` (suffixe v4)
-- **Ordre des variants empilés** : gauche-à-droite en v4 (au lieu de droite-à-gauche en v3) — ex: `dark:hover:bg-primary` (v4) au lieu de `hover:dark:bg-primary` (v3)
+- **Ordre des variants empilés** : gauche-à-droite en v4 (au lieu de droite-à-gauche en v3), ex: `dark:hover:bg-primary` (v4) au lieu de `hover:dark:bg-primary` (v3)
 - **Browser minimum** : Chrome 111, Safari 16.4, Firefox 128 (pas de support legacy)
 
 ## Exemples

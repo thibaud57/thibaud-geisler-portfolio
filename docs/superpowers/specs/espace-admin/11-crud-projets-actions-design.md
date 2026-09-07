@@ -23,8 +23,8 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 
 ## Dependencies
 
-- `07-crud-tags-design.md` (statut: draft) — les tags doivent exister pour être rattachés, et le pattern de Server Action vient de là.
-- `08-crud-entreprises-design.md` (statut: draft) — un projet client référence une entreprise.
+- `07-crud-tags-design.md` (statut: draft) : les tags doivent exister pour être rattachés, et le pattern de Server Action vient de là.
+- `08-crud-entreprises-design.md` (statut: draft) : un projet client référence une entreprise.
 
 ## Files touched
 

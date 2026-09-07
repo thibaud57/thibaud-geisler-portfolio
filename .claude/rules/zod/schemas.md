@@ -10,11 +10,11 @@ paths:
 
 ## À faire
 - Déclarer les schémas **au niveau module** dans `src/lib/schemas/` (pas à l'intérieur d'une fonction) : partage client/serveur et pas de re-compilation à chaque appel
-- Dériver les types via **`z.infer<typeof Schema>`** — JAMAIS dupliquer le type TypeScript à la main à côté du schéma
+- Dériver les types via **`z.infer<typeof Schema>`** : JAMAIS dupliquer le type TypeScript à la main à côté du schéma
 - Préférer les **validators top-level v4** (`z.email()`, `z.url()`, `z.iso.datetime()`) aux formes chaînées v3 (`z.string().email()`) : plus rapide et tree-shakable
 - Utiliser **`z.coerce.number()`** / `z.coerce.boolean()` pour convertir les valeurs brutes `FormData` ou `process.env` (toutes en string à la base)
 - `.refine()` pour les validations mono-champ, **`.superRefine()`** pour les validations cross-champs (multi-erreurs via `ctx.addIssue`)
-- `.transform()` pour normaliser après validation (trim, lowercase) — distinguer **`z.input<typeof S>`** (avant transform) et **`z.output<typeof S>`** (après, alias de `z.infer`)
+- `.transform()` pour normaliser après validation (trim, lowercase) : distinguer **`z.input<typeof S>`** (avant transform) et **`z.output<typeof S>`** (après, alias de `z.infer`)
 
 ## À éviter
 - Dupliquer le type TypeScript à la main à côté du schéma : divergence inévitable, toujours passer par `z.infer`

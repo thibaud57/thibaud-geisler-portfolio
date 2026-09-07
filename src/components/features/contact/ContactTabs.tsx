@@ -1,11 +1,11 @@
-'use client'
+"use client"
 
-import { usePathname } from 'next/navigation'
-import { type ReactNode } from 'react'
+import { usePathname } from "next/navigation"
+import { type ReactNode } from "react"
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-type Props = {
+interface Props {
   formLabel: string
   calendlyLabel: string
   formContent: ReactNode

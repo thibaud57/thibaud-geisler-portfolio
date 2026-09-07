@@ -1,6 +1,6 @@
 ---
 title: "Docker Engine — Conteneurisation"
-version: "29.4.0"
+version: "29.8.0"
 description: "Référence technique pour Docker Engine 29 : Dockerfile multi-stage, volumes, networks."
 date: "2026-04-13"
 keywords: ["docker", "container", "dockerfile", "multistage", "volumes"]

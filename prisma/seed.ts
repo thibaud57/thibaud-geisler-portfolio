@@ -1,14 +1,14 @@
-import nextEnv from '@next/env'
-import { readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { z } from 'zod'
-import { PrismaClient, type ProjectType } from '@/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { routing } from '@/i18n/routing'
-import { tags } from './seed-data/tags.js'
-import { companies } from './seed-data/companies.js'
-import { projects } from './seed-data/projects.js'
+import nextEnv from "@next/env"
+import { readFileSync } from "node:fs"
+import { join, dirname } from "node:path"
+import { fileURLToPath } from "node:url"
+import { z } from "zod"
+import { PrismaClient, type ProjectType } from "@/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
+import { routing } from "@/i18n/routing"
+import { tags } from "./seed-data/tags.js"
+import { companies } from "./seed-data/companies.js"
+import { projects } from "./seed-data/projects.js"
 import {
   DataProcessingSchema,
   LegalEntitySchema,
@@ -16,8 +16,8 @@ import {
   legalEntities,
   publisher,
   dataProcessings,
-} from './seed-data/legal.js'
-import { parseOrThrow } from './utils.js'
+} from "./seed-data/legal.js"
+import { parseOrThrow } from "./utils.js"
 
 nextEnv.loadEnvConfig(process.cwd())
 
@@ -33,23 +33,13 @@ const IconSchema = z
 
 type Locale = (typeof routing.locales)[number]
 
-function readCaseStudy(
-  slug: string,
-  type: ProjectType,
-  locale: Locale,
-): string | null {
-  const folder = type === 'CLIENT' ? 'client' : 'personal'
-  const path = join(
-    __dirname,
-    'seed-data',
-    'case-studies',
-    folder,
-    `${slug}.${locale}.md`,
-  )
+function readCaseStudy(slug: string, type: ProjectType, locale: Locale): string | null {
+  const folder = type === "CLIENT" ? "client" : "personal"
+  const path = join(__dirname, "seed-data", "case-studies", folder, `${slug}.${locale}.md`)
   try {
-    return readFileSync(path, 'utf8')
+    return readFileSync(path, "utf8")
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null
     throw err
   }
 }
@@ -75,7 +65,7 @@ async function seedPublisherAndProcessings(prisma: PrismaClient) {
   const { legalEntitySlug, ...publisherCommon } = parseOrThrow(
     PublisherSchema,
     publisher,
-    'Publisher',
+    "Publisher",
   )
   const publisherEntity = await prisma.legalEntity.findUniqueOrThrow({
     where: { slug: legalEntitySlug },
@@ -110,7 +100,7 @@ async function seedPublisherAndProcessings(prisma: PrismaClient) {
 }
 
 async function main() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+  const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"]! })
   const prisma = new PrismaClient({ adapter })
 
   try {
@@ -125,7 +115,7 @@ async function main() {
         const iconParse = IconSchema.safeParse(t.icon)
         if (!iconParse.success) {
           throw new Error(
-            `Tag "${t.slug}" has an invalid icon "${t.icon ?? 'null'}": ${iconParse.error.issues[0]?.message ?? 'format invalide'}`,
+            `Tag "${t.slug}" has an invalid icon "${t.icon ?? "null"}": ${iconParse.error.issues[0]?.message ?? "format invalide"}`,
           )
         }
 
@@ -144,7 +134,7 @@ async function main() {
         })
       }),
     )
-    const nbExpertises = tags.filter((t) => t.kind === 'EXPERTISE').length
+    const nbExpertises = tags.filter((t) => t.kind === "EXPERTISE").length
     console.log(`✔ ${tags.length} tags upsertés (dont ${nbExpertises} expertises)`)
 
     await Promise.all(
@@ -155,9 +145,7 @@ async function main() {
           websiteUrl: c.websiteUrl,
           sectors: c.sectors,
           size: c.size,
-          legalEntity: c.legalEntitySlug
-            ? { connect: { slug: c.legalEntitySlug } }
-            : undefined,
+          legalEntity: c.legalEntitySlug ? { connect: { slug: c.legalEntitySlug } } : undefined,
         }
 
         return prisma.company.upsert({
@@ -173,8 +161,8 @@ async function main() {
 
     await Promise.all(
       projects.map((p) => {
-        const caseStudyMarkdownFr = readCaseStudy(p.slug, p.type, 'fr')
-        const caseStudyMarkdownEn = readCaseStudy(p.slug, p.type, 'en')
+        const caseStudyMarkdownFr = readCaseStudy(p.slug, p.type, "fr")
+        const caseStudyMarkdownEn = readCaseStudy(p.slug, p.type, "en")
 
         if (caseStudyMarkdownFr !== null && caseStudyMarkdownEn === null) {
           missingEnStubs.push(p.slug)
@@ -238,15 +226,13 @@ async function main() {
 
     if (missingEnStubs.length > 0) {
       console.warn(
-        `⚠ ${missingEnStubs.length} projet(s) sans case study EN (FR seule présente) : ${missingEnStubs.join(', ')}. caseStudyMarkdownEn = null.`,
+        `⚠ ${missingEnStubs.length} projet(s) sans case study EN (FR seule présente) : ${missingEnStubs.join(", ")}. caseStudyMarkdownEn = null.`,
       )
     }
 
-    const nbClients = projects.filter((p) => p.type === 'CLIENT').length
+    const nbClients = projects.filter((p) => p.type === "CLIENT").length
     const nbPerso = projects.length - nbClients
-    console.log(
-      `✔ ${projects.length} projets upsertés (${nbClients} CLIENT + ${nbPerso} PERSONAL)`,
-    )
+    console.log(`✔ ${projects.length} projets upsertés (${nbClients} CLIENT + ${nbPerso} PERSONAL)`)
     console.log(`→ Seed terminé avec succès.`)
   } catch (err) {
     console.error(`✖ Seed échoué:`, err)

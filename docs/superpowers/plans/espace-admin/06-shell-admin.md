@@ -448,7 +448,7 @@ Expected: une seule barre de défilement verticale. Deux barres imbriquées sign
 
 Basculer en mode sombre depuis le header.
 
-Expected: le shell entier suit, sidebar et header compris, sans zone restée claire — ce qui trahirait une couleur écrite en dur au lieu d'un token.
+Expected: le shell entier suit, sidebar et header compris, sans zone restée claire, ce qui trahirait une couleur écrite en dur au lieu d'un token.
 
 - [ ] **Step 9: Vérifier la déconnexion**
 
