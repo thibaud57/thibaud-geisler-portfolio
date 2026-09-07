@@ -52,7 +52,6 @@ describe("<ConsentLanguageSync />", () => {
   })
 
   it("ne génère pas de warning React au unmount", () => {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function -- on veut juste faire taire console.error
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     const { unmount } = render(<ConsentLanguageSync />)
     unmount()

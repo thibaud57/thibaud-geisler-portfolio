@@ -1,6 +1,6 @@
 import type { TagKind } from "@/generated/prisma/client"
 
-export type TagInput = {
+export interface TagInput {
   slug: string
   nameFr: string
   nameEn: string

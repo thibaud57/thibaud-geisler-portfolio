@@ -2,7 +2,7 @@ import type { CompanySector, CompanySize } from "@/generated/prisma/client"
 
 export const PERSONAL_COMPANY_SLUG = "personnel"
 
-export type CompanyInput = {
+export interface CompanyInput {
   slug: string
   name: string
   logoFilename: string | null

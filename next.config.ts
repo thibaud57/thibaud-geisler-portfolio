@@ -5,7 +5,7 @@ import createNextIntlPlugin from "next-intl/plugin"
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env["ANALYZE"] === "true" })
 
-const isDev = process.env["NODE_ENV"] !== "production"
+const isDev = process.env.NODE_ENV !== "production"
 
 const cspDirectives = [
   ["default-src", "'self'"],
@@ -61,7 +61,8 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_YEAR: String(new Date().getFullYear()),
   },
-  async headers() {
+  // Retour synchrone accepte par le type Next : `async` sans `await` serait du bruit
+  headers() {
     return [{ source: "/(.*)", headers: securityHeaders }]
   },
 }
