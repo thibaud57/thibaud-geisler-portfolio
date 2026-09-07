@@ -55,7 +55,6 @@ format:
 # Vérifie les types (typegen Next.js + tsc)
 [group('quality')]
 typecheck:
-    pnpm next typegen
     pnpm typecheck
 
 # Vulnérabilités des dépendances (même seuil que la CI, qui ne bloque pas)
@@ -168,6 +167,7 @@ check:
     @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir packageManager de package.json)"
     @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
     @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"
+    @test -d .next/types || echo "⚠️ Types Next absents, lancer just install (postinstall les génère)"
     @[ -n "${DATABASE_URL:-}" ] || echo "⚠️ DATABASE_URL manquant dans .env"
     @[ -n "${NEXT_PUBLIC_SITE_URL:-}" ] || echo "⚠️ NEXT_PUBLIC_SITE_URL manquant dans .env"
     @docker info > /dev/null 2>&1 || echo "⚠️ Docker non disponible"
