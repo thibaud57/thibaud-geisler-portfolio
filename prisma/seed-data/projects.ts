@@ -7,7 +7,7 @@ import type {
 } from "@/generated/prisma/client"
 import { PERSONAL_COMPANY_SLUG } from "./companies"
 
-export type ProjectInput = {
+export interface ProjectInput {
   slug: string
   titleFr: string
   titleEn: string

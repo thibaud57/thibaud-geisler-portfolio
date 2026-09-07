@@ -100,7 +100,12 @@ async function seedPublisherAndProcessings(prisma: PrismaClient) {
 }
 
 async function main() {
-  const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"]! })
+  const connectionString = process.env["DATABASE_URL"]
+  if (!connectionString) {
+    throw new Error("DATABASE_URL manquant : le seed ne peut joindre aucune base.")
+  }
+
+  const adapter = new PrismaPg({ connectionString })
   const prisma = new PrismaClient({ adapter })
 
   try {
@@ -242,4 +247,9 @@ async function main() {
   }
 }
 
-main()
+// Le try/catch interne ne couvre pas la garde sur DATABASE_URL, posee avant lui : sans ce
+// catch, un env incomplet sortirait en rejet non gere plutot qu'avec le message.
+main().catch((err: unknown) => {
+  console.error(`✖ Seed échoué:`, err)
+  process.exit(1)
+})
