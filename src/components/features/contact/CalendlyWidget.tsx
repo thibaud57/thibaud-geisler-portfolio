@@ -1,14 +1,14 @@
-'use client'
+"use client"
 
-import { useConsentManager } from '@c15t/nextjs/headless'
-import { CalendarClock, Cookie } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useEffect, useState, type ReactNode } from 'react'
-import { InlineWidget, useCalendlyEventListener } from 'react-calendly'
+import { useConsentManager } from "@c15t/nextjs/headless"
+import { CalendarClock, Cookie } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { useEffect, useState, type ReactNode } from "react"
+import { InlineWidget, useCalendlyEventListener } from "react-calendly"
 
-import { OpenCookiePreferencesButton } from '@/components/features/legal/OpenCookiePreferencesButton'
-import { cn } from '@/lib/utils'
-import { trackCalendlyEvent } from '@/server/actions/calendly'
+import { OpenCookiePreferencesButton } from "@/components/features/legal/OpenCookiePreferencesButton"
+import { cn } from "@/lib/utils"
+import { trackCalendlyEvent } from "@/server/actions/calendly"
 
 const PAGE_SETTINGS = {
   hideEventTypeDetails: true,
@@ -24,15 +24,15 @@ const MIN_REASONABLE_HEIGHT_PX = 400
 // Padding-top interne Calendly (plan free, non configurable). Layout mobile plus serré, d'où la valeur réduite.
 const TOP_PADDING_CROP_DESKTOP_PX = 70
 const TOP_PADDING_CROP_MOBILE_PX = 0
-const MOBILE_BREAKPOINT = '(max-width: 767px)'
+const MOBILE_BREAKPOINT = "(max-width: 767px)"
 
-type Props = {
+interface Props {
   url: string
   placeholderLabel: string
   className?: string
 }
 
-type PlaceholderShellProps = {
+interface PlaceholderShellProps {
   icon: ReactNode
   label: string
   action?: ReactNode
@@ -43,7 +43,7 @@ function PlaceholderShell({ icon, label, action, className }: PlaceholderShellPr
   return (
     <div
       className={cn(
-        'flex w-full flex-1 flex-col items-center justify-center min-h-[500px] gap-3 border border-border bg-card text-muted-foreground rounded-lg',
+        "flex min-h-[500px] w-full flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card text-muted-foreground",
         className,
       )}
     >
@@ -56,8 +56,8 @@ function PlaceholderShell({ icon, label, action, className }: PlaceholderShellPr
 
 export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
   const { has } = useConsentManager()
-  const marketingAccepted = has('marketing')
-  const tCookies = useTranslations('Cookies.calendlyGated')
+  const marketingAccepted = has("marketing")
+  const tCookies = useTranslations("Cookies.calendlyGated")
 
   const [height, setHeight] = useState(INITIAL_HEIGHT_PX)
   const [cropPx, setCropPx] = useState(TOP_PADDING_CROP_DESKTOP_PX)
@@ -65,11 +65,14 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_BREAKPOINT)
-    const update = () =>
+    const update = () => {
       setCropPx(mq.matches ? TOP_PADDING_CROP_MOBILE_PX : TOP_PADDING_CROP_DESKTOP_PX)
+    }
     update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
+    mq.addEventListener("change", update)
+    return () => {
+      mq.removeEventListener("change", update)
+    }
   }, [])
 
   useCalendlyEventListener({
@@ -93,9 +96,9 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
     return (
       <PlaceholderShell
         icon={<Cookie className="size-10" aria-hidden />}
-        label={tCookies('label')}
-        action={<OpenCookiePreferencesButton variant="default" label={tCookies('cta')} />}
-        className={cn('gap-4 p-6', className)}
+        label={tCookies("label")}
+        action={<OpenCookiePreferencesButton variant="default" label={tCookies("cta")} />}
+        className={cn("gap-4 p-6", className)}
       />
     )
   }
@@ -115,9 +118,9 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
       style={{
         minWidth: MIN_WIDTH_PX,
         height: height - cropPx,
-        overflow: 'hidden',
+        overflow: "hidden",
       }}
-      className={cn('relative w-full', className)}
+      className={cn("relative w-full", className)}
     >
       <InlineWidget
         url={url}

@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server"
 
-export async function GET() {
+export function GET() {
   return NextResponse.json(
-    { status: 'ok' },
-    { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+    { status: "ok" },
+    { headers: { "Cache-Control": "no-cache, no-store, must-revalidate" } },
   )
 }

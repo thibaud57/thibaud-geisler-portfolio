@@ -1,4 +1,4 @@
-const SAFE_PROTOCOLS = ['http:', 'https:']
+const SAFE_PROTOCOLS = ["http:", "https:"]
 
 // Les URL externes des projets et des entreprises viennent de la base, sans schéma Zod à
 // l'écriture. Un `javascript:` ou un `data:text/html` y deviendrait un XSS stocké au clic.

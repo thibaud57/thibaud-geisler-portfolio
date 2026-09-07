@@ -17,13 +17,7 @@ import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 export type TransitionVariant =
-  | "circle"
-  | "square"
-  | "triangle"
-  | "diamond"
-  | "hexagon"
-  | "rectangle"
-  | "star"
+  "circle" | "square" | "triangle" | "diamond" | "hexagon" | "rectangle" | "star"
 
 interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"button"> {
   duration?: number
@@ -33,10 +27,7 @@ interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"butt
 }
 
 function polygonCollapsed(cx: number, cy: number, vertexCount: number): string {
-  const pairs = Array.from(
-    { length: vertexCount },
-    () => `${cx}px ${cy}px`
-  ).join(", ")
+  const pairs = Array.from({ length: vertexCount }, () => `${cx}px ${cy}px`).join(", ")
   return `polygon(${pairs})`
 }
 
@@ -46,14 +37,11 @@ function getThemeTransitionClipPaths(
   cy: number,
   maxRadius: number,
   viewportWidth: number,
-  viewportHeight: number
+  viewportHeight: number,
 ): [string, string] {
   switch (variant) {
     case "circle":
-      return [
-        `circle(0px at ${cx}px ${cy}px)`,
-        `circle(${maxRadius}px at ${cx}px ${cy}px)`,
-      ]
+      return [`circle(0px at ${cx}px ${cy}px)`, `circle(${maxRadius}px at ${cx}px ${cy}px)`]
     case "square": {
       const halfW = Math.max(cx, viewportWidth - cx)
       const halfH = Math.max(cy, viewportHeight - cy)
@@ -115,12 +103,10 @@ function getThemeTransitionClipPaths(
         const verts: string[] = []
         for (let i = 0; i < 5; i++) {
           const outerA = -Math.PI / 2 + (i * 2 * Math.PI) / 5
-          verts.push(
-            `${cx + radius * Math.cos(outerA)}px ${cy + radius * Math.sin(outerA)}px`
-          )
+          verts.push(`${cx + radius * Math.cos(outerA)}px ${cy + radius * Math.sin(outerA)}px`)
           const innerA = outerA + Math.PI / 5
           verts.push(
-            `${cx + radius * innerRatio * Math.cos(innerA)}px ${cy + radius * innerRatio * Math.sin(innerA)}px`
+            `${cx + radius * innerRatio * Math.cos(innerA)}px ${cy + radius * innerRatio * Math.sin(innerA)}px`,
           )
         }
         return `polygon(${verts.join(", ")})`
@@ -129,10 +115,7 @@ function getThemeTransitionClipPaths(
       return [starPolygon(startR), starPolygon(R)]
     }
     default:
-      return [
-        `circle(0px at ${cx}px ${cy}px)`,
-        `circle(${maxRadius}px at ${cx}px ${cy}px)`,
-      ]
+      return [`circle(0px at ${cx}px ${cy}px)`, `circle(${maxRadius}px at ${cx}px ${cy}px)`]
   }
 }
 
@@ -169,10 +152,7 @@ export const AnimatedThemeToggler = ({
       y = top + height / 2
     }
 
-    const maxRadius = Math.hypot(
-      Math.max(x, viewportWidth - x),
-      Math.max(y, viewportHeight - y)
-    )
+    const maxRadius = Math.hypot(Math.max(x, viewportWidth - x), Math.max(y, viewportHeight - y))
 
     const applyTheme = () => {
       setTheme(isDark ? "light" : "dark")
@@ -184,50 +164,41 @@ export const AnimatedThemeToggler = ({
     }
 
     const root = document.documentElement
-    root.dataset.magicuiThemeVt = "active"
-    root.style.setProperty(
-      "--magicui-theme-toggle-vt-duration",
-      `${duration}ms`
-    )
+    root.dataset["magicuiThemeVt"] = "active"
+    root.style.setProperty("--magicui-theme-toggle-vt-duration", `${duration}ms`)
     const cleanup = () => {
-      delete root.dataset.magicuiThemeVt
+      delete root.dataset["magicuiThemeVt"]
       root.style.removeProperty("--magicui-theme-toggle-vt-duration")
     }
 
     const transition = document.startViewTransition(() => {
       flushSync(applyTheme)
     })
-    if (typeof transition?.finished?.finally === "function") {
-      transition.finished.finally(cleanup)
-    } else {
-      cleanup()
-    }
+    // Fire-and-forget : toggleTheme n'est pas async, rien n'attend ces promesses.
+    void transition.finished.finally(cleanup)
 
-    const ready = transition?.ready
-    if (ready && typeof ready.then === "function") {
-      const clipPath = getThemeTransitionClipPaths(
-        shape,
-        x,
-        y,
-        maxRadius,
-        viewportWidth,
-        viewportHeight
+    const clipPath = getThemeTransitionClipPaths(
+      shape,
+      x,
+      y,
+      maxRadius,
+      viewportWidth,
+      viewportHeight,
+    )
+    void transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath,
+        },
+        {
+          duration,
+          // Star: linear avoids easing overshoot that fights polygon interpolation at t→1; VT group duration is synced above.
+          easing: shape === "star" ? "linear" : "ease-in-out",
+          fill: "forwards",
+          pseudoElement: "::view-transition-new(root)",
+        },
       )
-      ready.then(() => {
-        document.documentElement.animate(
-          {
-            clipPath,
-          },
-          {
-            duration,
-            // Star: linear avoids easing overshoot that fights polygon interpolation at t→1; VT group duration is synced above.
-            easing: shape === "star" ? "linear" : "ease-in-out",
-            fill: "forwards",
-            pseudoElement: "::view-transition-new(root)",
-          }
-        )
-      })
-    }
+    })
   }, [shape, fromCenter, duration, isDark, setTheme])
 
   return (

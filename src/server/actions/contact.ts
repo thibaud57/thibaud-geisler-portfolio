@@ -1,15 +1,20 @@
-'use server'
+"use server"
 
-import 'server-only'
+import "server-only"
 
-import { MAIL_FROM, MAIL_TO, transporter } from '@/lib/mailer'
-import { rateLimiter } from '@/lib/rate-limiter'
-import { contactSchema, type ContactInput } from '@/lib/schemas/contact'
-import { createActionLogger } from '@/lib/server-utils'
+import { MAIL_FROM, MAIL_TO, transporter } from "@/lib/mailer"
+import { rateLimiter } from "@/lib/rate-limiter"
+import { z } from "zod"
 
-import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from './contact.types'
+import { contactSchema } from "@/lib/schemas/contact"
+import { createActionLogger } from "@/lib/server-utils"
 
-type ZodFieldErrors = Partial<Record<keyof ContactInput, string[]>>
+import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from "./contact.types"
+
+function stringField(formData: FormData, key: string): string {
+  const value = formData.get(key)
+  return typeof value === "string" ? value : ""
+}
 
 function buildEmailBody(data: {
   name: string
@@ -22,33 +27,33 @@ function buildEmailBody(data: {
     `De : ${data.name} <${data.email}>`,
     ...(data.company ? [`Société : ${data.company}`] : []),
     `Sujet : ${data.subject}`,
-    '',
+    "",
     data.message,
-    '',
-    '---',
-    'Reçu via thibaud-geisler.com (formulaire de contact)',
+    "",
+    "---",
+    "Reçu via thibaud-geisler.com (formulaire de contact)",
   ]
-  return lines.join('\n')
+  return lines.join("\n")
 }
 
 export async function submitContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  const { log, ip } = await createActionLogger('submitContact')
+  const { log, ip } = await createActionLogger("submitContact")
 
-  const honeypot = formData.get('website')
-  if (typeof honeypot === 'string' && honeypot.trim().length > 0) {
-    log.info({ event: 'honeypot:caught' })
+  const honeypot = formData.get("website")
+  if (typeof honeypot === "string" && honeypot.trim().length > 0) {
+    log.info({ event: "honeypot:caught" })
     return { ok: true, errors: {}, message: null }
   }
 
-  const submittedValues: ContactFormState['values'] = {
-    name: String(formData.get('name') ?? ''),
-    company: String(formData.get('company') ?? ''),
-    email: String(formData.get('email') ?? ''),
-    subject: String(formData.get('subject') ?? ''),
-    message: String(formData.get('message') ?? ''),
+  const submittedValues: ContactFormState["values"] = {
+    name: stringField(formData, "name"),
+    company: stringField(formData, "company"),
+    email: stringField(formData, "email"),
+    subject: stringField(formData, "subject"),
+    message: stringField(formData, "message"),
   }
 
   const rateLimit = rateLimiter.check(ip, {
@@ -56,11 +61,11 @@ export async function submitContact(
     windowMs: RATE_LIMIT_WINDOW_MS,
   })
   if (!rateLimit.allowed) {
-    log.warn({ event: 'rate_limit:exceeded', retryAfterSeconds: rateLimit.retryAfterSeconds })
+    log.warn({ event: "rate_limit:exceeded", retryAfterSeconds: rateLimit.retryAfterSeconds })
     return {
       ok: false,
       errors: {},
-      message: 'rate_limit',
+      message: "rate_limit",
       values: submittedValues,
     }
   }
@@ -69,7 +74,7 @@ export async function submitContact(
   if (!result.success) {
     return {
       ok: false,
-      errors: result.error.flatten().fieldErrors as ZodFieldErrors,
+      errors: z.flattenError(result.error).fieldErrors,
       message: null,
       values: submittedValues,
     }
@@ -86,14 +91,14 @@ export async function submitContact(
       text: buildEmailBody(result.data),
     })
     log.info({
-      event: 'email:sent',
+      event: "email:sent",
       has_company: Boolean(result.data.company),
       message_length: result.data.message.length,
       duration_ms: Math.round(performance.now() - startedAt),
     })
     return { ok: true, errors: {}, message: null }
   } catch (err) {
-    log.error({ err, event: 'email:failed' })
-    return { ok: false, errors: {}, message: 'smtp_error', values: submittedValues }
+    log.error({ err, event: "email:failed" })
+    return { ok: false, errors: {}, message: "smtp_error", values: submittedValues }
   }
 }

@@ -1,9 +1,9 @@
-'use client'
+"use client"
 
-import { ShimmerButton } from '@/components/magicui/shimmer-button'
-import { useRouter } from '@/i18n/navigation'
+import { ShimmerButton } from "@/components/magicui/shimmer-button"
+import { useRouter } from "@/i18n/navigation"
 
-type Props = {
+interface Props {
   label: string
 }
 
@@ -12,7 +12,9 @@ export function HeroPrimaryCta({ label }: Props) {
 
   return (
     <ShimmerButton
-      onClick={() => router.push('/contact')}
+      onClick={() => {
+        router.push("/contact")
+      }}
       background="var(--primary)"
       shimmerColor="var(--shine)"
     >

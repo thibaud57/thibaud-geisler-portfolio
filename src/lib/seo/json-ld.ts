@@ -1,19 +1,19 @@
-import type { Locale } from 'next-intl'
+import type { Locale } from "next-intl"
 
-import type { Expertise } from '@/config/expertise'
-import { localeToLanguageTag } from '@/i18n/locale-tags'
-import { routing } from '@/i18n/routing'
+import type { Expertise } from "@/config/expertise"
+import { localeToLanguageTag } from "@/i18n/locale-tags"
+import { routing } from "@/i18n/routing"
 
 type KnowsAboutEntry =
   | string
   | {
-      '@type': 'Thing'
+      "@type": "Thing"
       name: string
-      '@id': string
+      "@id": string
       sameAs: string
     }
 
-export type ProfilePagePersonInput = {
+export interface ProfilePagePersonInput {
   locale: Locale
   siteUrl: string
   name: string
@@ -29,13 +29,13 @@ export type ProfilePagePersonInput = {
   }
 }
 
-export type ProfilePagePerson = {
-  '@context': 'https://schema.org'
-  '@type': 'ProfilePage'
+export interface ProfilePagePerson {
+  "@context": "https://schema.org"
+  "@type": "ProfilePage"
   dateModified: string
   mainEntity: {
-    '@type': 'Person'
-    '@id': string
+    "@type": "Person"
+    "@id": string
     name: string
     jobTitle: string
     description: string
@@ -47,39 +47,39 @@ export type ProfilePagePerson = {
     address?: SchemaOrgPostalAddress
     taxID?: string
     identifier?: {
-      '@type': 'PropertyValue'
-      propertyID: 'SIRET'
+      "@type": "PropertyValue"
+      propertyID: "SIRET"
       value: string
     }
   }
 }
 
-export type BreadcrumbListInput = {
+export interface BreadcrumbListInput {
   locale: Locale
   siteUrl: string
   items: readonly { name: string; path: string }[]
 }
 
-export type BreadcrumbList = {
-  '@context': 'https://schema.org'
-  '@type': 'BreadcrumbList'
+export interface BreadcrumbList {
+  "@context": "https://schema.org"
+  "@type": "BreadcrumbList"
   itemListElement: {
-    '@type': 'ListItem'
+    "@type": "ListItem"
     position: number
     name: string
     item: string
   }[]
 }
 
-export type AddressInput = {
+export interface AddressInput {
   street: string
   postalCode: string
   city: string
   country: string
 }
 
-export type SchemaOrgPostalAddress = {
-  '@type': 'PostalAddress'
+export interface SchemaOrgPostalAddress {
+  "@type": "PostalAddress"
   streetAddress: string
   postalCode: string
   addressLocality: string
@@ -87,7 +87,7 @@ export type SchemaOrgPostalAddress = {
 }
 
 function normalizeBase(siteUrl: string): string {
-  return siteUrl.replace(/\/$/, '')
+  return siteUrl.replace(/\/$/, "")
 }
 
 function localePageUrl(siteUrl: string, locale: Locale, path: string): string {
@@ -100,9 +100,11 @@ export function buildPersonId(siteUrl: string): string {
   return `${normalizeBase(siteUrl)}/#person`
 }
 
-type PersonReference = { '@id': string }
+interface PersonReference {
+  "@id": string
+}
 
-export type WebSiteGraphInput = {
+export interface WebSiteGraphInput {
   locale: Locale
   siteUrl: string
   siteName: string
@@ -115,12 +117,12 @@ export type WebSiteGraphInput = {
   }
 }
 
-export type WebSiteGraph = {
-  '@context': 'https://schema.org'
-  '@graph': [
+export interface WebSiteGraph {
+  "@context": "https://schema.org"
+  "@graph": [
     {
-      '@type': 'WebSite'
-      '@id': string
+      "@type": "WebSite"
+      "@id": string
       url: string
       name: string
       description: string
@@ -128,8 +130,8 @@ export type WebSiteGraph = {
       publisher: PersonReference
     },
     {
-      '@type': 'Person'
-      '@id': string
+      "@type": "Person"
+      "@id": string
       name: string
       jobTitle: string
       url: string
@@ -139,7 +141,7 @@ export type WebSiteGraph = {
   ]
 }
 
-export type OfferCatalogInput = {
+export interface OfferCatalogInput {
   locale: Locale
   siteUrl: string
   name: string
@@ -147,25 +149,25 @@ export type OfferCatalogInput = {
   areaServed: readonly string[]
 }
 
-export type OfferCatalog = {
-  '@context': 'https://schema.org'
-  '@type': 'OfferCatalog'
-  '@id': string
+export interface OfferCatalog {
+  "@context": "https://schema.org"
+  "@type": "OfferCatalog"
+  "@id": string
   name: string
   url: string
   provider: PersonReference
   itemListElement: {
-    '@type': 'Offer'
+    "@type": "Offer"
     itemOffered: {
-      '@type': 'Service'
-      '@id': string
+      "@type": "Service"
+      "@id": string
       name: string
       description: string
       serviceType: string
       provider: PersonReference
       areaServed: readonly string[]
       availableChannel: {
-        '@type': 'ServiceChannel'
+        "@type": "ServiceChannel"
         serviceUrl: string
         availableLanguage: readonly string[]
       }
@@ -173,7 +175,7 @@ export type OfferCatalog = {
   }[]
 }
 
-export type ContactPageInput = {
+export interface ContactPageInput {
   locale: Locale
   siteUrl: string
   name: string
@@ -182,7 +184,7 @@ export type ContactPageInput = {
   email: string
 }
 
-export type ProjectCreativeWorkInput = {
+export interface ProjectCreativeWorkInput {
   locale: Locale
   siteUrl: string
   slug: string
@@ -203,10 +205,10 @@ export type ProjectCreativeWorkInput = {
 // temporalCoverage (intervalle ISO 8601, borne ouverte « .. » tant que la mission dure).
 // Le lien démo n'y figure pas : schema.org n'a pas de propriété « démo », et le déclarer
 // autrement demanderait de basculer url/mainEntityOfPage pour un gain nul.
-export type ProjectCreativeWork = {
-  '@context': 'https://schema.org'
-  '@type': 'CreativeWork' | 'SoftwareSourceCode'
-  '@id': string
+export interface ProjectCreativeWork {
+  "@context": "https://schema.org"
+  "@type": "CreativeWork" | "SoftwareSourceCode"
+  "@id": string
   url: string
   name: string
   description: string
@@ -219,19 +221,19 @@ export type ProjectCreativeWork = {
   codeRepository?: string
 }
 
-export type ContactPage = {
-  '@context': 'https://schema.org'
-  '@type': 'ContactPage'
+export interface ContactPage {
+  "@context": "https://schema.org"
+  "@type": "ContactPage"
   url: string
   name: string
   description: string
   mainEntity: {
-    '@type': 'Person'
-    '@id': string
+    "@type": "Person"
+    "@id": string
     name: string
     contactPoint: {
-      '@type': 'ContactPoint'
-      contactType: 'sales'
+      "@type": "ContactPoint"
+      contactType: "sales"
       email: string
       availableLanguage: readonly string[]
     }
@@ -240,7 +242,7 @@ export type ContactPage = {
 
 export function buildPostalAddress(address: AddressInput): SchemaOrgPostalAddress {
   return {
-    '@type': 'PostalAddress',
+    "@type": "PostalAddress",
     streetAddress: address.street,
     postalCode: address.postalCode,
     addressLocality: address.city,
@@ -251,29 +253,27 @@ export function buildPostalAddress(address: AddressInput): SchemaOrgPostalAddres
 function mapExpertise(entry: Expertise): KnowsAboutEntry {
   if (entry.wikidataId && entry.wikipediaUrl) {
     return {
-      '@type': 'Thing',
+      "@type": "Thing",
       name: entry.name,
-      '@id': `https://www.wikidata.org/wiki/${entry.wikidataId}`,
+      "@id": `https://www.wikidata.org/wiki/${entry.wikidataId}`,
       sameAs: entry.wikipediaUrl,
     }
   }
   return entry.name
 }
 
-export function buildProfilePagePerson(
-  input: ProfilePagePersonInput,
-): ProfilePagePerson {
+export function buildProfilePagePerson(input: ProfilePagePersonInput): ProfilePagePerson {
   return {
-    '@context': 'https://schema.org',
-    '@type': 'ProfilePage',
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
     dateModified: new Date().toISOString(),
     mainEntity: {
-      '@type': 'Person',
-      '@id': buildPersonId(input.siteUrl),
+      "@type": "Person",
+      "@id": buildPersonId(input.siteUrl),
       name: input.name,
       jobTitle: input.jobTitle,
       description: input.description,
-      url: localePageUrl(input.siteUrl, input.locale, '/a-propos'),
+      url: localePageUrl(input.siteUrl, input.locale, "/a-propos"),
       email: input.email,
       image: input.image,
       sameAs: input.sameAs,
@@ -282,8 +282,8 @@ export function buildProfilePagePerson(
         address: buildPostalAddress(input.legal.address),
         taxID: input.legal.siret,
         identifier: {
-          '@type': 'PropertyValue' as const,
-          propertyID: 'SIRET' as const,
+          "@type": "PropertyValue" as const,
+          propertyID: "SIRET" as const,
           value: input.legal.siret,
         },
       }),
@@ -293,10 +293,10 @@ export function buildProfilePagePerson(
 
 export function buildBreadcrumbList(input: BreadcrumbListInput): BreadcrumbList {
   return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
     itemListElement: input.items.map((entry, index) => ({
-      '@type': 'ListItem',
+      "@type": "ListItem",
       position: index + 1,
       name: entry.name,
       item: localePageUrl(input.siteUrl, input.locale, entry.path),
@@ -308,23 +308,23 @@ export function buildWebSiteGraph(input: WebSiteGraphInput): WebSiteGraph {
   const base = normalizeBase(input.siteUrl)
   const personId = buildPersonId(input.siteUrl)
   return {
-    '@context': 'https://schema.org',
-    '@graph': [
+    "@context": "https://schema.org",
+    "@graph": [
       {
-        '@type': 'WebSite',
-        '@id': `${base}/#website`,
+        "@type": "WebSite",
+        "@id": `${base}/#website`,
         url: `${base}/`,
         name: input.siteName,
         description: input.siteDescription,
         inLanguage: localeToLanguageTag[input.locale],
-        publisher: { '@id': personId },
+        publisher: { "@id": personId },
       },
       {
-        '@type': 'Person',
-        '@id': personId,
+        "@type": "Person",
+        "@id": personId,
         name: input.person.name,
         jobTitle: input.person.jobTitle,
-        url: localePageUrl(input.siteUrl, input.locale, '/a-propos'),
+        url: localePageUrl(input.siteUrl, input.locale, "/a-propos"),
         image: input.person.image,
         sameAs: input.person.sameAs,
       },
@@ -335,28 +335,32 @@ export function buildWebSiteGraph(input: WebSiteGraphInput): WebSiteGraph {
 const availableLanguages = routing.locales
 
 export function buildOfferCatalog(input: OfferCatalogInput): OfferCatalog {
-  const pageUrl = localePageUrl(input.siteUrl, input.locale, '/services')
-  const provider = { '@id': buildPersonId(input.siteUrl) }
+  const pageUrl = localePageUrl(input.siteUrl, input.locale, "/services")
+  const provider = { "@id": buildPersonId(input.siteUrl) }
   return {
-    '@context': 'https://schema.org',
-    '@type': 'OfferCatalog',
-    '@id': `${pageUrl}#catalog`,
+    "@context": "https://schema.org",
+    "@type": "OfferCatalog",
+    "@id": `${pageUrl}#catalog`,
     name: input.name,
     url: pageUrl,
     provider,
     itemListElement: input.services.map((service) => ({
-      '@type': 'Offer',
+      "@type": "Offer",
       itemOffered: {
-        '@type': 'Service',
-        '@id': `${pageUrl}#${service.slug}`,
+        "@type": "Service",
+        "@id": `${pageUrl}#${service.slug}`,
         name: service.name,
         description: service.description,
         serviceType: service.name,
         provider,
         areaServed: input.areaServed,
         availableChannel: {
-          '@type': 'ServiceChannel',
-          serviceUrl: localePageUrl(input.siteUrl, input.locale, `/contact?service=${service.slug}`),
+          "@type": "ServiceChannel",
+          serviceUrl: localePageUrl(
+            input.siteUrl,
+            input.locale,
+            `/contact?service=${service.slug}`,
+          ),
           availableLanguage: availableLanguages,
         },
       },
@@ -366,18 +370,18 @@ export function buildOfferCatalog(input: OfferCatalogInput): OfferCatalog {
 
 export function buildContactPage(input: ContactPageInput): ContactPage {
   return {
-    '@context': 'https://schema.org',
-    '@type': 'ContactPage',
-    url: localePageUrl(input.siteUrl, input.locale, '/contact'),
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    url: localePageUrl(input.siteUrl, input.locale, "/contact"),
     name: input.name,
     description: input.description,
     mainEntity: {
-      '@type': 'Person',
-      '@id': buildPersonId(input.siteUrl),
+      "@type": "Person",
+      "@id": buildPersonId(input.siteUrl),
       name: input.personName,
       contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'sales',
+        "@type": "ContactPoint",
+        contactType: "sales",
         email: input.email,
         availableLanguage: availableLanguages,
       },
@@ -392,18 +396,18 @@ function toIsoDate(date: Date): string {
 export function buildProjectCreativeWork(input: ProjectCreativeWorkInput): ProjectCreativeWork {
   const pageUrl = localePageUrl(input.siteUrl, input.locale, `/projets/${input.slug}`)
   return {
-    '@context': 'https://schema.org',
-    '@type': input.githubUrl ? 'SoftwareSourceCode' : 'CreativeWork',
-    '@id': `${pageUrl}#creativework`,
+    "@context": "https://schema.org",
+    "@type": input.githubUrl ? "SoftwareSourceCode" : "CreativeWork",
+    "@id": `${pageUrl}#creativework`,
     url: pageUrl,
     name: input.title,
     description: input.description,
     inLanguage: localeToLanguageTag[input.locale],
-    author: { '@id': buildPersonId(input.siteUrl) },
+    author: { "@id": buildPersonId(input.siteUrl) },
     keywords: input.keywords,
     ...(input.startedAt && {
       dateCreated: toIsoDate(input.startedAt),
-      temporalCoverage: `${toIsoDate(input.startedAt)}/${input.endedAt ? toIsoDate(input.endedAt) : '..'}`,
+      temporalCoverage: `${toIsoDate(input.startedAt)}/${input.endedAt ? toIsoDate(input.endedAt) : ".."}`,
     }),
     dateModified: toIsoDate(input.updatedAt),
     ...(input.githubUrl && { codeRepository: input.githubUrl }),

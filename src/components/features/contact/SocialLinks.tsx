@@ -1,10 +1,10 @@
-import { SiGithub } from '@icons-pack/react-simple-icons'
-import { Mail } from 'lucide-react'
-import { getTranslations } from 'next-intl/server'
+import { SiGithub } from "@icons-pack/react-simple-icons"
+import { Mail } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
-import { SOCIAL_LINKS, type SocialSlug } from '@/config/social-links'
-import { LinkedinIcon, MaltIcon } from '@/lib/icons'
-import { cn } from '@/lib/utils'
+import { SOCIAL_LINKS, type SocialSlug } from "@/config/social-links"
+import { LinkedinIcon, MaltIcon } from "@/lib/icons"
+import { cn } from "@/lib/utils"
 
 const ICONS: Record<SocialSlug, React.ComponentType<{ className?: string }>> = {
   linkedin: LinkedinIcon,
@@ -13,30 +13,30 @@ const ICONS: Record<SocialSlug, React.ComponentType<{ className?: string }>> = {
   email: Mail,
 }
 
-type Props = {
+interface Props {
   className?: string
 }
 
 export async function SocialLinks({ className }: Props) {
-  const t = await getTranslations('ContactPage.social.ariaLabel')
+  const t = await getTranslations("ContactPage.social.ariaLabel")
 
   const ariaLabels: Record<SocialSlug, string> = {
-    linkedin: t('linkedin'),
-    github: t('github'),
-    malt: t('malt'),
-    email: t('email'),
+    linkedin: t("linkedin"),
+    github: t("github"),
+    malt: t("malt"),
+    email: t("email"),
   }
 
   return (
-    <div className={cn('flex flex-wrap gap-3', className)}>
+    <div className={cn("flex flex-wrap gap-3", className)}>
       {SOCIAL_LINKS.map((link) => {
         const Icon = ICONS[link.slug]
-        const isExternal = link.slug !== 'email'
+        const isExternal = link.slug !== "email"
         return (
           <a
             key={link.slug}
             href={link.url}
-            {...(isExternal && { target: '_blank', rel: 'noopener noreferrer' })}
+            {...(isExternal && { target: "_blank", rel: "noopener noreferrer" })}
             aria-label={ariaLabels[link.slug]}
             className="flex size-9 items-center justify-center rounded-md border border-border bg-card transition duration-300 ease-out hover:scale-[1.01] hover:shadow-md"
           >

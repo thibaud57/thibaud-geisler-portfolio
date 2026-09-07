@@ -1,0 +1,18 @@
+# Appartient a son gestionnaire de paquets
+pnpm-lock.yaml
+
+# Ecrits ou alignes a la main : Prettier reflow les tableaux et rend les diffs
+# illisibles.
+*.md
+
+# Porte settings.json et le hook, que *.md ne couvre pas
+.claude/
+
+# Genere
+.next/
+out/
+build/
+coverage/
+next-env.d.ts
+src/generated/
+prisma/seed.js

@@ -1,44 +1,41 @@
-'use client'
+"use client"
 
-import { useMemo, type ReactNode } from 'react'
-import { useLocale } from 'next-intl'
-import dynamic from 'next/dynamic'
-import {
-  ConsentManagerProvider,
-  type ConsentManagerOptions,
-} from '@c15t/nextjs/headless'
-import { baseTranslations } from '@c15t/translations/all'
+import { useMemo, type ReactNode } from "react"
+import { useLocale } from "next-intl"
+import dynamic from "next/dynamic"
+import { ConsentManagerProvider, type ConsentManagerOptions } from "@c15t/nextjs/headless"
+import { baseTranslations } from "@c15t/translations/all"
 
-import frMessages from '../../messages/fr.json'
-import enMessages from '../../messages/en.json'
+import frMessages from "../../messages/fr.json"
+import enMessages from "../../messages/en.json"
 
-import { Toaster } from '@/components/ui/sonner'
-import { ConsentLanguageSync } from '@/components/cookies/consent-language-sync'
-import { buildLegalLinks } from '@/lib/cookies/build-legal-links'
+import { Toaster } from "@/components/ui/sonner"
+import { ConsentLanguageSync } from "@/components/cookies/consent-language-sync"
+import { buildLegalLinks } from "@/lib/cookies/build-legal-links"
 
 // Le provider vient de /headless (sans UI) et les surfaces du module consent-ui, qui porte
 // aussi leur CSS : c'est ce couple qui crée une vraie frontière de chunk. Les importer du
 // même point d'entrée remettrait l'UI dans le bundle synchrone, dynamic() ou pas.
 // ssr: false assumé : overlays purement interactifs, aucun contenu indexable.
 const ConsentBanner = dynamic(
-  () => import('@/components/cookies/consent-ui').then((m) => m.ConsentBanner),
+  () => import("@/components/cookies/consent-ui").then((m) => m.ConsentBanner),
   { ssr: false },
 )
 const ConsentDialog = dynamic(
-  () => import('@/components/cookies/consent-ui').then((m) => m.ConsentDialog),
+  () => import("@/components/cookies/consent-ui").then((m) => m.ConsentDialog),
   { ssr: false },
 )
 
 const themeColors = {
-  primary: 'var(--primary)',
-  primaryHover: 'var(--primary)',
-  surface: 'var(--card)',
-  surfaceHover: 'var(--muted)',
-  border: 'var(--border)',
-  text: 'var(--foreground)',
-  textMuted: 'var(--muted-foreground)',
-  textOnPrimary: 'var(--primary-foreground)',
-  switchTrackActive: 'var(--primary)',
+  primary: "var(--primary)",
+  primaryHover: "var(--primary)",
+  surface: "var(--card)",
+  surfaceHover: "var(--muted)",
+  border: "var(--border)",
+  text: "var(--foreground)",
+  textMuted: "var(--muted-foreground)",
+  textOnPrimary: "var(--primary-foreground)",
+  switchTrackActive: "var(--primary)",
 } as const
 
 // Override des descriptions par défaut de c15t : sa copie générique mentionne mesure
@@ -52,9 +49,9 @@ export function Providers({ children }: { children: ReactNode }) {
   const locale = useLocale()
   const consentOptions = useMemo<ConsentManagerOptions>(
     () => ({
-      mode: 'offline',
-      overrides: { country: 'FR' },
-      consentCategories: ['necessary', 'marketing'],
+      mode: "offline",
+      overrides: { country: "FR" },
+      consentCategories: ["necessary", "marketing"],
       i18n: {
         locale,
         detectBrowserLanguage: false,
@@ -66,14 +63,14 @@ export function Providers({ children }: { children: ReactNode }) {
         // Sans theme.dark explicite, c15t injecte ses defaults en :root.dark qui battent nos overrides par spécificité.
         dark: themeColors,
         radius: {
-          md: 'var(--radius)',
+          md: "var(--radius)",
         },
         typography: {
-          fontFamily: 'var(--font-sans)',
+          fontFamily: "var(--font-sans)",
         },
         slots: {
-          consentBannerDescription: '[&_a]:text-primary',
-          consentDialogDescription: '[&_a]:block [&_a]:mt-2 [&_a]:text-primary',
+          consentBannerDescription: "[&_a]:text-primary",
+          consentDialogDescription: "[&_a]:block [&_a]:mt-2 [&_a]:text-primary",
         },
       },
     }),
@@ -84,8 +81,8 @@ export function Providers({ children }: { children: ReactNode }) {
     <ConsentManagerProvider options={consentOptions}>
       <ConsentLanguageSync />
       {children}
-      <ConsentBanner hideBranding legalLinks={['privacyPolicy']} />
-      <ConsentDialog hideBranding legalLinks={['privacyPolicy']} />
+      <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
+      <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
       <Toaster />
     </ConsentManagerProvider>
   )

@@ -236,10 +236,10 @@ model Publisher {
 }
 
 model DataProcessing {
-  id                       String      @id @default(uuid(7))
-  slug                     String      @unique
-  processorLegalEntityId   String
-  processor                LegalEntity @relation("DataProcessingProcessor", fields: [processorLegalEntityId], references: [id], onDelete: Cascade)
+  id                     String      @id @default(uuid(7))
+  slug                   String      @unique
+  processorLegalEntityId String
+  processor              LegalEntity @relation("DataProcessingProcessor", fields: [processorLegalEntityId], references: [id], onDelete: Cascade)
 
   kind               ProcessingKind
   purposeFr          String
