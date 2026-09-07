@@ -23,7 +23,7 @@ Exclut toute protection de route et tout écran : le proxy, `getCurrentUser()`, 
 
 ## Dependencies
 
-- `03-multi-schema-prisma-design.md` (statut: draft) — le multi-schema doit être actif pour pouvoir déclarer des tables hors de `public`. Ce sub-project ajoute `"auth"` au tableau `schemas` que le `03` a introduit.
+- `03-multi-schema-prisma-design.md` (statut: draft) : le multi-schema doit être actif pour pouvoir déclarer des tables hors de `public`. Ce sub-project ajoute `"auth"` au tableau `schemas` que le `03` a introduit.
 
 ## Files touched
 
@@ -47,7 +47,7 @@ Exclut toute protection de route et tout écran : le proxy, `getCurrentUser()`, 
 
 **Les noms de tables par défaut de Better Auth sont conservés** : `user`, `session`, `account` et `verification`, tels que l'ADR-018 les écrit déjà. Aucun `modelName` n'est configuré.
 
-Le guide officiel Prisma résout d'ailleurs la tension entre les deux conventions sans configuration : les **modèles** se nomment `User`, `Session`, `Account` et `Verification` en PascalCase, et un `@@map` les rattache aux tables en minuscules. Le `schema.prisma` reste donc homogène à la lecture, `model User` voisinant `model Project`, pendant que la base respecte la convention de la librairie. La règle qui gouverne le nommage dans cette base est celle de l'ADR-018 lui-même, « un seul propriétaire par schema » : chaque propriétaire apporte la convention de son écosystème. `public` et `freelance` appartiennent à ce dépôt, donc à la convention Prisma en PascalCase ; `auth` appartient à Better Auth ; `dev` et `rag_public` appartiendront à des services Python, où le snake_case est la norme — ce que l'ADR anticipe en écrivant `documents, chunks, embeddings`. Aligner `auth` en PascalCase ne rendrait donc pas la base homogène, puisqu'elle ne peut pas l'être, mais introduirait une exception dans une règle par ailleurs sans exception.
+Le guide officiel Prisma résout d'ailleurs la tension entre les deux conventions sans configuration : les **modèles** se nomment `User`, `Session`, `Account` et `Verification` en PascalCase, et un `@@map` les rattache aux tables en minuscules. Le `schema.prisma` reste donc homogène à la lecture, `model User` voisinant `model Project`, pendant que la base respecte la convention de la librairie. La règle qui gouverne le nommage dans cette base est celle de l'ADR-018 lui-même, « un seul propriétaire par schema » : chaque propriétaire apporte la convention de son écosystème. `public` et `freelance` appartiennent à ce dépôt, donc à la convention Prisma en PascalCase ; `auth` appartient à Better Auth ; `dev` et `rag_public` appartiendront à des services Python, où le snake_case est la norme, ce que l'ADR anticipe en écrivant `documents, chunks, embeddings`. Aligner `auth` en PascalCase ne rendrait donc pas la base homogène, puisqu'elle ne peut pas l'être, mais introduirait une exception dans une règle par ailleurs sans exception.
 
 **La whitelist est une fonction pure, séparée du hook.** `src/lib/admin-whitelist.ts` expose une fonction qui décide si un email est autorisé ; `src/lib/auth.ts` l'appelle depuis `databaseHooks.user.create.before`. Cette séparation rend la règle testable sans monter Better Auth, et c'est la seule règle métier du sub-project : une régression ouvrirait l'espace admin à n'importe quel compte Google.
 

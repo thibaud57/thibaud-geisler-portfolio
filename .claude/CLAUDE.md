@@ -39,15 +39,15 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 
 Branches : `feature/*` → `develop` → `main` → tag `vX.Y.Z` (auto via release-please) → deploy auto sur tag (GHA → GHCR → Dokploy pull) | `hotfix/*` → `main`
 Commits : `type(scope): description`, types `feat | fix | docs | refactor | test | chore`
-Fin de feature : lancer `Skill[superpowers:finishing-a-development-branch]` avant de créer la PR — il vérifie les tests, propose merge local / push+PR / keep / discard, et pilote le workflow proprement.
-PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer — release-please et Dokploy en dépendent)
+Fin de feature : lancer `Skill[superpowers:finishing-a-development-branch]` avant de créer la PR : il vérifie les tests, propose merge local / push+PR / keep / discard, et pilote le workflow proprement.
+PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer, release-please et Dokploy en dépendent)
 PR develop → main : titre obligatoirement Conventional bumping (`feat:` / `fix:` / `feat!:`) sinon release-please skip → pas de tag → pas de deploy. Détails : [PRODUCTION.md § Convention Commits](../docs/PRODUCTION.md#convention-commits)
 Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop local et supprimer la feature branch. Après un tag : `git pull origin main` puis `git push origin develop`, le resync ne passe pas par git-sync
 
 **Discipline commit (obligatoire)** :
 - **Attendre la fin complète du workflow d'implémentation** (toutes les phases : impl + verification + quality gates /simplify + code-reviewer + fixes éventuels) **avant tout `git commit`**. Ne JAMAIS committer au milieu d'un workflow, même pour des étapes intermédiaires "qui marchent" : un fix ultérieur peut invalider le state intermédiaire et multiplier les commits à réviser.
 - **Toujours demander explicitement au user avant `git commit`** (même si le workflow est terminé, même si tout est vert). Jamais de commit auto-initié. Le user valide le périmètre et le message.
-- S'applique à tous les workflows : `/implement-subproject`, subagent-driven-development, refactor ad hoc, fix isolé. Les skills qui commitent à la volée (TDD red/green via subagent) sont une exception **tolérée** uniquement dans leur scope interne — mais le workflow parent doit quand même demander validation avant tout commit additionnel (fixup, spec status, docs).
+- S'applique à tous les workflows : `/implement-subproject`, subagent-driven-development, refactor ad hoc, fix isolé. Les skills qui commitent à la volée (TDD red/green via subagent) sont une exception **tolérée** uniquement dans leur scope interne, mais le workflow parent doit quand même demander validation avant tout commit additionnel (fixup, spec status, docs).
 
 > Politique de tag, checklist release, flux hotfix détaillé : [PRODUCTION.md](../docs/PRODUCTION.md)
 
@@ -58,6 +58,8 @@ Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop 
 - **Formation IA intégrée dans `/services`** : pas de sous-page `/services/formation` dédiée tant que l'offre n'est pas stabilisée. Réévaluer uniquement si l'offre formation grossit significativement
 
 ## Commandes
+
+**`just` exige bash** : le `Justfile` pose `set shell := ["bash", "-cu"]`. Le hook `env-check` vérifie au démarrage que `bash` résout bien vers Git Bash et non vers le lanceur WSL.
 
 | Commande / Skill | Rôle |
 |---|---|

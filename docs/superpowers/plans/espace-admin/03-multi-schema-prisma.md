@@ -4,7 +4,7 @@
 
 **Goal:** Activer le multi-schema Prisma et rattacher explicitement les 22 déclarations existantes au schema `public`.
 
-**Architecture:** Un champ `schemas` sur le datasource et un `@@schema("public")` sur chaque modèle et chaque enum. L'annotation déclare un état déjà vrai — les tables vivent déjà dans `public` — donc aucune migration n'est attendue. Cette absence se vérifie en lisant ce que Prisma produit, elle ne se présume pas.
+**Architecture:** Un champ `schemas` sur le datasource et un `@@schema("public")` sur chaque modèle et chaque enum. L'annotation déclare un état déjà vrai (les tables vivent déjà dans `public`), donc aucune migration n'est attendue. Cette absence se vérifie en lisant ce que Prisma produit, elle ne se présume pas.
 
 **Tech Stack:** Prisma 7, PostgreSQL 18, Vitest, Docker Compose, Just. Versions exactes : `docs/VERSIONS.md`.
 
@@ -118,7 +118,7 @@ En cas d'échec, le message nomme la déclaration fautive, par exemple `Error va
 
 ### Task 2 : Constater l'absence de diff et régénérer le client
 
-**Files:** aucun fichier supplémentaire, sauf si Prisma génère une migration — auquel cas elle est à examiner avant toute décision.
+**Files:** aucun fichier supplémentaire, sauf si Prisma génère une migration, auquel cas elle est à examiner avant toute décision.
 
 **Interfaces:**
 - Consomme : le schéma validé de la Task 1.
@@ -215,7 +215,7 @@ FROM information_schema.schemata
 WHERE schema_name NOT LIKE 'pg_%' AND schema_name <> 'information_schema';
 ```
 
-Expected: `public` seul. La présence d'un schema `auth` signalerait que la contrainte de périmètre n'a pas été respectée — il appartient au sub-project `04`.
+Expected: `public` seul. La présence d'un schema `auth` signalerait que la contrainte de périmètre n'a pas été respectée : il appartient au sub-project `04`.
 
 - [ ] **Step 4: Recréer la base de test et lancer la suite**
 

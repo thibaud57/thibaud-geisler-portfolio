@@ -7,8 +7,8 @@ paths:
 # Tailwind CSS — Conventions de code & usage
 
 ## À faire
-- **`cn()` obligatoire** : toujours utiliser `cn()` (de shadcn/ui — wrapper `clsx` + `tailwind-merge`) pour composer les classes Tailwind dans les composants React (override propre par props sans conflit)
-- Référencer les couleurs par **token CSS sémantique** (`bg-primary`, `text-foreground`, `border-border`, `bg-card`) au lieu de couleurs Tailwind brutes (`bg-green-600`) ou hex en dur (`text-[#8FA68E]`) — les tokens vivent dans `globals.css` et changent automatiquement entre light/dark
+- **`cn()` obligatoire** : toujours utiliser `cn()` (de shadcn/ui, wrapper `clsx` + `tailwind-merge`) pour composer les classes Tailwind dans les composants React (override propre par props sans conflit)
+- Référencer les couleurs par **token CSS sémantique** (`bg-primary`, `text-foreground`, `border-border`, `bg-card`) au lieu de couleurs Tailwind brutes (`bg-green-600`) ou hex en dur (`text-[#8FA68E]`) : les tokens vivent dans `globals.css` et changent automatiquement entre light/dark
 - **Mobile-first** : écrire le style de base pour mobile, puis élargir avec les variants `sm:`, `md:`, `lg:`, `xl:` (convention Tailwind standard)
 - **Ordre d'application** dans `cn()` : `layout → spacing → typography → colors → effects → responsive` (lisibilité accrue)
 - Respecter les **breakpoints projet** : `sm` (≥640px), `md` (≥768px, navigation desktop), `lg` (≥1024px, grids 3 col), `xl` (≥1280px, container max)

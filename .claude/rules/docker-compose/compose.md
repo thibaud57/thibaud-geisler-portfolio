@@ -10,9 +10,9 @@ paths:
 # Docker Compose — services, volumes, healthchecks
 
 ## À faire
-- Nommer le fichier **`compose.yaml`** (nom canonique v5) et démarrer directement par `services:` — **sans** `version:` (ignoré en v5, bruit inutile)
+- Nommer le fichier **`compose.yaml`** (nom canonique v5) et démarrer directement par `services:`, **sans** `version:` (ignoré en v5, bruit inutile)
 - Utiliser la syntaxe **`docker compose`** (plugin CLI officiel), jamais `docker-compose` (binaire v1 supprimé avril 2025)
-- **Mount volume Postgres 18** sur `pgdata:/var/lib/postgresql` — **JAMAIS** `/var/lib/postgresql/data` (breaking change v17→v18 : `PGDATA` passe à `/var/lib/postgresql/18/docker`, ancien mount casse le conteneur)
+- **Mount volume Postgres 18** sur `pgdata:/var/lib/postgresql`, **JAMAIS** `/var/lib/postgresql/data` (breaking change v17→v18 : `PGDATA` passe à `/var/lib/postgresql/18/docker`, ancien mount casse le conteneur)
 - **Healthcheck `pg_isready`** sur le service `db` + **`depends_on.db.condition: service_healthy`** sur le service `app` : évite que le conteneur `app` démarre avant que Postgres soit prêt
 - Résoudre les services entre eux par **nom de service DNS** interne (ex: `postgresql://user:pass@db:5432/...`), jamais par IP ni `localhost`
 - Déclarer les volumes persistants en **volumes nommés** (section `volumes:` top-level), jamais en bind mount pour les données Postgres (permissions, portabilité)
@@ -32,7 +32,7 @@ paths:
 - Docker Compose v1 (`docker-compose`) **entièrement supprimé** depuis avril 2025 → utiliser `docker compose` (plugin CLI) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
 - Docker Compose v5 : champ **`version:`** dans le YAML désormais **ignoré** (saut direct v2→v5, plus besoin de déclarer la version) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
 - **PostgreSQL 18 Docker breaking** : `PGDATA` passe à `/var/lib/postgresql/18/docker`, réutiliser l'ancien mount `/var/lib/postgresql/data` avec l'image `postgres:18` casse le conteneur au démarrage (VERSIONS.md)
-- **`compose.override.yaml` auto-chargé** par `docker compose up` si présent à côté de `compose.yaml` (convention officielle) — mais **Dokploy ne charge que `compose.yaml`** par défaut, donc les overrides dev sont naturellement ignorés en prod sans config Dokploy particulière
+- **`compose.override.yaml` auto-chargé** par `docker compose up` si présent à côté de `compose.yaml` (convention officielle), mais **Dokploy ne charge que `compose.yaml`** par défaut, donc les overrides dev sont naturellement ignorés en prod sans config Dokploy particulière
 
 ## Exemples
 ```yaml

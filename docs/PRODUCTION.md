@@ -113,9 +113,9 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest — **toute valeur non vide suffit**, la variable n'est pas comparée à `true`. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose une lecture dynamique avec fallback `./assets`, pour que le dev fonctionne sans fichier d'environnement).
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose une lecture dynamique avec fallback `./assets`, pour que le dev fonctionne sans fichier d'environnement).
 
-> **Deux variables ne se configurent pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, et le `DATABASE_URL` passé en build-arg par `deploy.yml` pointe la Postgres CI éphémère, pas la base de production — le prerender des pages publiques a besoin d'une base joignable au build (§ Déploiement).
+> **Deux variables ne se configurent pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, et le `DATABASE_URL` passé en build-arg par `deploy.yml` pointe la Postgres CI éphémère, pas la base de production : le prerender des pages publiques a besoin d'une base joignable au build (§ Déploiement).
 
 ### Variables Communes
 
@@ -183,7 +183,7 @@ IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées.
 
 | Trigger | Étapes | Cible |
 |---------|--------|-------|
-| Push sur `main`, PR vers `main` ou `develop` | lint, typecheck, tests, build, `pnpm audit` (workflow `ci.yml`) | - |
+| Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`), typecheck, tests, build, `pnpm audit` non bloquant (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
 | Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
@@ -198,7 +198,7 @@ IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées.
 
 > ⚠️ **Le déploiement coupe brièvement le service** : un Compose recrée le container, il n'y a pas de rolling update. Traefik route vers le nouveau container dès qu'il écoute, sans attendre que l'app soit prête. Le temps du `prisma migrate deploy` puis du démarrage Next, les requêtes échouent. Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la coupure : dans ce cas, l'appliquer manuellement avant le déploiement.
 
-> ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s (`start_period` de 60 s pour couvrir les migrations). Il ne conditionne aucune bascule de trafic, il rend l'état du container observable — `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
+> ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s (`start_period` de 60 s pour couvrir les migrations). Il ne conditionne aucune bascule de trafic, il rend l'état du container observable : `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
 > ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
@@ -224,12 +224,12 @@ IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées.
 
 ## Checklist Pré-MEP
 
-Items validés avant le tout premier merge `develop → main`, celui qui a déclenché le premier déploiement et ouvert le régime `1.x` (mai 2026). Conservés comme trace de ce qui a été vérifié une fois pour toutes ; les vérifications récurrentes vivent dans la Checklist Release.
+Items validés une première fois avant le tout premier merge `develop → main`, celui qui a déclenché le premier déploiement et ouvert le régime `1.x` (mai 2026), puis revalidés lors des audits de septembre 2026 (`v1.6.0`). Conservés comme trace de ce qui a été vérifié ; les vérifications récurrentes vivent dans la Checklist Release.
 
 ### Bootstrap technique
 
 - [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
-- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible — build de l'image et runtime du conteneur vérifiés contre une base réelle. Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
+- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
@@ -242,7 +242,7 @@ Items validés avant le tout premier merge `develop → main`, celui qui a décl
 - [x] **`/simplify`** : passe qualité sur toute la branche
 - [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
 - [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
-- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. Seule dette ouverte, non exploitable en single-user faute de chemin d'écriture non-trusté : trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`) — **à corriger avant le premier formulaire d'édition de l'espace admin**, où ils deviendraient un XSS stocké
+- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. Seule dette ouverte, non exploitable en single-user faute de chemin d'écriture non-trusté : trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`) : **à corriger avant le premier formulaire d'édition de l'espace admin**, où ils deviendraient un XSS stocké
 
 > Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
 
@@ -254,7 +254,7 @@ Items validés avant le tout premier merge `develop → main`, celui qui a décl
 
 ### Cohérence documentaire
 
-- [x] **BRAINSTORM.md** : audité (verdict OK pour MEP — écarts mineurs doc-only, deps non listées, à compléter post-MEP)
+- [x] **BRAINSTORM.md** : audité (verdict OK pour MEP, écarts mineurs doc-only, deps non listées, à compléter post-MEP)
 - [x] **ARCHITECTURE.md** : audité (verdict OK, corrections doc-only reportées après la MEP)
 - [x] **DESIGN.md** : audité (verdict à corriger, non bloquant)
 - [x] **VERSIONS.md** : audité (périmètre limité à ce que le dépôt déclare, la plateforme d'hébergement est documentée ici)
@@ -271,10 +271,10 @@ Items validés avant le tout premier merge `develop → main`, celui qui a décl
 
 ## Checklist Post-MEP
 
-Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer — sauf le seed, qui reste un geste de reprise.
+Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer, sauf le seed, qui reste un geste de reprise.
 
 - [x] **Seed BDD initial** : Dokploy → Compose `Portfolio-app` → Schedules → `manual-seed` → **Run manually**. Le Schedule lance `prisma db seed` dans le service `nextjs`. Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`, donc rejouable à volonté tant que le contenu vient du dépôt.
-- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker des assets (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
+- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
 - [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
@@ -313,7 +313,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 
 **Pièges de montée**, à lire avant d'y toucher :
 
-- **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité — sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel. Le Traefik interne n'est **pas** monté automatiquement avec Dokploy.
+- **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité, sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel. Le Traefik interne n'est **pas** monté automatiquement avec Dokploy.
 - **Docker Engine 29** : API minimale v1.44, un client antérieur à la v25 ne parle plus au daemon.
 - **Docker Compose v5** : le build passe par Docker Bake, le builder interne a disparu ; le champ `version:` du YAML est ignoré.
 - **Cloudflare R2** : service managé, aucune version à suivre, donc aucune montée à préparer. Ses limites structurelles (pas de versioning, Bucket Locks ≠ Object Lock WORM, facturation arrondie) conditionnent la stratégie de sauvegarde et sont documentées dans [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md).
@@ -334,9 +334,9 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 
-> ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre — le stage `runner` repart de `FROM base` et ne copie que des fichiers — mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
+> ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre (le stage `runner` repart de `FROM base` et ne copie que des fichiers), mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
 
-> **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` — la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
+> **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
 
 ### Rotation
 
@@ -369,7 +369,7 @@ connect-src 'self' https://*.calendly.com; font-src 'self' data:; frame-ancestor
 base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
-> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` et `connect-src` n'ouvrent que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard — Umami, ingestion Sentry — doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
+> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` et `connect-src` n'ouvrent que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami, ingestion Sentry) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
 
 > ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com/fr` et comparer aux valeurs de ce tableau
 > ❌ **Ne pas désactiver HSTS ou CSP en production**, même temporairement
@@ -438,7 +438,7 @@ Seuils sur ce qui est réellement observable avec la stack actuelle : sonde exte
 
 > ⚠️ **Une alerte émise depuis le VPS ne survit pas à la panne du VPS** : les notifications Dokploy partent de la machine surveillée, par son propre SMTP. VPS éteint, réseau coupé ou Traefik cassé, aucun mail ne part et l'incident reste invisible. C'est la raison d'être de la sonde externe : elle seule observe le service depuis l'extérieur.
 
-> ℹ️ **Un déploiement déclenche une alerte** s'il tombe sur un contrôle : le recreate du container coupe le service quelques dizaines de secondes (§ CI/CD & Déploiement). Un « DOWN » suivi d'un « UP » peu après, autour d'une mise en production, n'est pas un faux positif — c'est la coupure réelle, mesurée.
+> ℹ️ **Un déploiement déclenche une alerte** s'il tombe sur un contrôle : le recreate du container coupe le service quelques dizaines de secondes (§ CI/CD & Déploiement). Un « DOWN » suivi d'un « UP » peu après, autour d'une mise en production, n'est pas un faux positif : c'est la coupure réelle, mesurée.
 
 ---
 
@@ -454,7 +454,7 @@ JSON structuré via Pino (`src/lib/logger.ts`), une ligne par événement sur st
 {"level":"info","time":"2026-09-03T18:09:24.189Z","service":"thibaud-geisler-portfolio","action":"submitContact","requestId":"b4c784fb-398b-44b9-aa06-34564c598fd7","ip_hash":"7a42ebba","event":"email:sent","has_company":true,"message_length":312,"duration_ms":1180}
 ```
 
-> **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action — `action`, `requestId` (corrèle toutes les lignes d'une même soumission) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
+> **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action : `action`, `requestId` (corrèle toutes les lignes d'une même soumission) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
 
 > **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `request:unhandled_error` → `err`, `path`.
 
@@ -618,16 +618,16 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 | Page/Feature | Target | Current |
 |--------------|--------|---------|
-| LCP `/fr` mobile | < 2,5 s | **3,9 s** (PSI, 2026-09-05), seul indicateur hors cible |
-| LCP `/fr/projets` mobile | < 2,5 s | 5,4 s (13 mai), **à remesurer via PSI** |
-| LCP pages publiques desktop | < 2,5 s | non mesuré via PSI depuis mai (0,8 à 0,9 s alors). Le pilotage CDP donne 0,23 à 0,31 s, chiffre non opposable : le throttling réseau ne s'applique pas au document de navigation |
-| CLS pages publiques | < 0,1 | **0,051 mobile, 0,012 desktop** (PSI et CDP, 2026-09-05) |
-| TBT (proxy INP en lab) | < 200 ms | **60 à 70 ms** (PSI, 2026-09-05) |
-| Score performance `/fr` mobile | — | **86 à 87** (PSI, 2026-09-05), contre 70 le 13 mai |
+| LCP `/fr` mobile | < 2,5 s | **3,3 à 3,9 s** sur 6 runs PSI (2026-09-05), médiane 3,5 s. Seul indicateur nettement hors cible |
+| LCP `/fr/projets` mobile | < 2,5 s | **3,0 s** (PSI, 2026-09-05), contre 5,4 s le 13 mai |
+| LCP pages publiques desktop | < 2,5 s | **1,0 s** sur `/fr/projets` (PSI, 2026-09-05), score 98 et accessibilité 100 |
+| CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0 ailleurs** (PSI, 2026-09-05) |
+| TBT (proxy INP en lab) | < 200 ms | **40 à 430 ms** selon les runs (PSI, 2026-09-05), médiane ~240 ms sur `/fr`, 40 ms sur `/fr/projets` |
+| Score performance mobile | — | `/fr` **73 à 91** sur 6 runs (médiane 86), `/fr/projets` **94**. Contre 70 et 75 le 13 mai |
 | TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
-> Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire, à ne pas confondre avec du terrain — le champ CrUX de PSI affiche toujours « Aucune donnée », faute de trafic suffisant. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
+> Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire, à ne pas confondre avec du terrain : le champ CrUX de PSI affiche toujours « Aucune donnée », faute de trafic suffisant. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
 
 > ⚠️ **Suspendre Kaspersky avant toute mesure, `curl` compris** : il s'interpose sur le TLS et gonfle le TTFB d'un facteur 3 à 5 (0,55-0,75 s actif contre 0,13-0,19 s désactivé, 2026-09-05). Il supprime aussi l'entrée LCP en émulation mobile. Seul PSI y échappe.
 
@@ -635,18 +635,19 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ## Optimisations
 
-- [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) — le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
+- [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
 - [x] Baseline LCP/CLS/TBT prise sur les pages clés × 2 locales. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
 - [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
 - [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf desktop 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
 - [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md)
-- [x] **Polices en woff2, un fichier par famille** (en attente de déploiement) : `Sansation-Bold` 45 → 16 Ko, `Geist-Regular` 126 → 45 Ko, servis au navigateur comme à satori. Les `.ttf` ont été supprimés. Gain réseau de 8 Ko sur le chemin critique du LCP
-- [x] Bandeau de consentement sorti du chemin critique : provider depuis `@c15t/nextjs/headless`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte aussi leur CSS. Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu — un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
-- [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` mobile. Restent à relever via PSI : `/fr/projets` mobile et le desktop. **L'élément LCP est le `H1`**, donc un texte : le levier est le CSS bloquant et les polices, pas les images ni le JS
+- [x] **Polices en woff2, un fichier par famille** (`v1.6.3`) : `Sansation-Bold` 45 → 16 Ko, `Geist-Regular` 126 → 45 Ko, servis au navigateur comme à satori. Les `.ttf` ont été supprimés. Gain réseau de 8 Ko sur le chemin critique du LCP
+- [x] Bandeau de consentement sorti du chemin critique : provider depuis `@c15t/nextjs/headless`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte aussi leur CSS. Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu : un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
+- [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` et `/fr/projets`, mobile et desktop. **L'élément LCP est le `H1`**, donc un texte : ni les images ni le JS ne sont en cause
 - [x] **Brotli servi** depuis le 2026-09-05 : middleware Traefik `compress-br` sur l'apex + `compress: false` côté Next. Vérifié en prod sur le HTML, le CSS et le JS, HTML 68,3 → 39,7 Ko (-41 %), page complète 656 → 560 Ko ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
-- [ ] **LCP mobile** : **3,9 s avant Brotli, 3,5 à 3,9 s après** (étendue de 3 runs, pas une évolution), contre 2,5 s visés. Seul indicateur hors cible, inchangé ou très légèrement amélioré. **Brotli a supprimé le goulot réseau** : PSI n'impute plus d'économies aux requêtes bloquantes, et la répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
+- [x] **`will-change` et `motion` inutiles retirés** (`v1.6.4`) : `will-change: transform` maintenait 216 couches de composition sur les cellules du hero, et `motion` était importé dans `HyperText` sans y animer quoi que ce soit. Aucun changement visuel
+- [ ] **LCP mobile de l'accueil** : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
 
-> La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` — le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
+> La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` : le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
 
 ---
 

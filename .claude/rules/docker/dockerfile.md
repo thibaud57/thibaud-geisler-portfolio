@@ -9,11 +9,11 @@ paths:
 
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` (ex: `deps → builder → runner`) pour isoler toolchain/devDeps du runtime image
-- Image de base **`node:24-alpine`** (ligne 24 « Krypton », LTS active ; Alpine pour poids minimum). Node 26 est Current jusqu'à sa bascule LTS attendue vers octobre 2026 — ne pas migrer avant
-- Activer pnpm via **`corepack enable`** dans le stage `deps` — pas `npm install -g pnpm` (corepack est la voie officielle depuis Node 16.10+)
+- Image de base **`node:24-alpine`** (ligne 24 « Krypton », LTS active ; Alpine pour poids minimum). Node 26 est Current jusqu'à sa bascule LTS attendue vers octobre 2026. Ne pas migrer avant
+- Activer pnpm via **`corepack enable`** dans le stage `deps`, pas `npm install -g pnpm` (corepack est la voie officielle depuis Node 16.10+)
 - Copier **`package.json`** et **`pnpm-lock.yaml`** AVANT le code source dans le stage `deps` pour maximiser le cache de layers Docker
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
-- Exploiter le **cache BuildKit** pour le store pnpm : `RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile` — évite de retélécharger les dépendances à chaque rebuild (BuildKit activé par défaut Docker 23+, cache persisté sur le VPS entre rebuilds Dokploy)
+- Exploiter le **cache BuildKit** pour le store pnpm : `RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile`. Évite de retélécharger les dépendances à chaque rebuild (BuildKit activé par défaut Docker 23+, cache persisté sur le VPS entre rebuilds Dokploy)
 - Créer un **utilisateur non-root** dédié (`addgroup` + `adduser`) et l'activer via `USER` dans le stage final `runner`
 - Maintenir un **`.dockerignore`** à la racine excluant au minimum `node_modules`, `.next`, `.git`, `.env*`, `README.md` pour réduire le build context
 - Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `libc6-compat` pour sharp, `/api/health`, `instrumentation.ts`) : voir `nextjs/production-deployment.md`
@@ -26,7 +26,7 @@ paths:
 
 ## Gotchas
 - **Node 20 EOL 30 avril 2026** : `node:24-alpine` non négociable pour tout nouveau build, ne pas utiliser `node:20-*` (VERSIONS.md)
-- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou compose si le service a beaucoup de connexions — pas dans le Dockerfile (voir `docker-compose/compose.md`)
+- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou compose si le service a beaucoup de connexions, pas dans le Dockerfile (voir `docker-compose/compose.md`)
 
 ## Exemples
 ```dockerfile

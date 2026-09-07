@@ -7,8 +7,8 @@ paths:
 
 ## À faire
 - Installer via le CLI shadcn avec syntaxe namespace : **`pnpm dlx shadcn@latest add @aceternity/<component>`** (registry déclaré dans `components.json`, voir [DESIGN.md § Outils & Discovery](../../../docs/DESIGN.md))
-- **Composants dans `src/components/aceternity/`** (recommandation projet, cohérent avec `src/components/magicui/`) — customiser via le flag `-p src/components/aceternity` ou les `aliases` dans `components.json`
-- Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy) — installé automatiquement par le CLI
+- **Composants dans `src/components/aceternity/`** (recommandation projet, cohérent avec `src/components/magicui/`) : customiser via le flag `-p src/components/aceternity` ou les `aliases` dans `components.json`
+- Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy), installé automatiquement par le CLI
 - Toujours **`'use client'`** sur les composants qui consomment Aceternity : utilisent `useState`, `useEffect`, `useRef`, intersection observer, détection souris
 - **Réservé aux surfaces marketing du site public** (DESIGN.md) : hero, sections clés, transitions visuelles. **JAMAIS** dans l'espace admin
 - **Périmètre projet** : voir [DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour la répartition exacte entre Aceternity UI, Magic UI et shadcn/ui, et les catégories autorisées pour ce projet

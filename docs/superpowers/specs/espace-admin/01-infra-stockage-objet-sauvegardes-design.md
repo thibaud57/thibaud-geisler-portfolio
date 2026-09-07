@@ -13,7 +13,7 @@ date: "2026-09-03"
 
 ## Scope
 
-Provisionner un compte Cloudflare R2 avec trois buckets cloisonnés — `portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev` — chacun servi par un token restreint à lui seul, puis configurer dans Dokploy une destination de sauvegarde et une sauvegarde quotidienne de la base `portfolio`, dont la restauration est effectivement vérifiée.
+Provisionner un compte Cloudflare R2 avec trois buckets cloisonnés (`portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev`), chacun servi par un token restreint à lui seul, puis configurer dans Dokploy une destination de sauvegarde et une sauvegarde quotidienne de la base `portfolio`, dont la restauration est effectivement vérifiée.
 
 Les deux buckets d'assets sont créés ici mais restent vides : la bascule du stockage applicatif leur appartient au sub-project `09`. Ce sub-project ne touche à aucun code, n'ajoute aucune variable à `src/env.ts` et ne modifie que trois fichiers de documentation.
 
@@ -23,7 +23,7 @@ Les deux buckets d'assets sont créés ici mais restent vides : la bascule du st
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté.
+Aucune : ce sub-project est autoporté.
 
 ## Files touched
 
@@ -38,7 +38,7 @@ Aucun autre fichier du dépôt n'est touché. Le reste des opérations vit hors 
 
 **Trois buckets, trois tokens, aucun recouvrement.** `portfolio-backups` reçoit les dumps écrits par Dokploy, `portfolio-assets` recevra plus tard les fichiers écrits par l'application en production, et `portfolio-assets-dev` ceux du développement local. Chacun est servi par un token `Object Read & Write` restreint à son seul bucket, ce qui est le seul niveau de permission R2 à supporter le cloisonnement : les permissions `Admin` portent sur le compte entier. L'objectif est double, qu'une compromission de l'application ne donne aucun moyen d'effacer les sauvegardes, et qu'une manipulation locale ne puisse pas atteindre les assets de production.
 
-Le free tier R2 est un forfait d'usage mensuel — 10 Go-mois, 1 M d'opérations Class A, 10 M Class B, egress gratuit — que la grille tarifaire de Cloudflare exprime sans jamais le rapporter à un bucket. Multiplier les buckets n'ouvre donc aucun quota supplémentaire mais n'en consomme pas non plus : la séparation ne coûte rien.
+Le free tier R2 est un forfait d'usage mensuel (10 Go-mois, 1 M d'opérations Class A, 10 M Class B, egress gratuit) que la grille tarifaire de Cloudflare exprime sans jamais le rapporter à un bucket. Multiplier les buckets n'ouvre donc aucun quota supplémentaire mais n'en consomme pas non plus : la séparation ne coûte rien.
 
 **Juridiction `eu` sur les trois buckets**, garantissant la résidence des données dans l'Union européenne. Ce choix est définitif après création et l'endpoint S3 devient `https://<account-id>.eu.r2.cloudflarestorage.com`. Le flag `--jurisdiction eu` doit être répété sur chaque commande Wrangler visant ces buckets, `info` et `lifecycle` compris. Détails dans `docs/knowledges/cloudflare-r2.md`.
 

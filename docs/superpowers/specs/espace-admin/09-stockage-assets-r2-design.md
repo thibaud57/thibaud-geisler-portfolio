@@ -23,7 +23,7 @@ Les URLs publiques ne changent pas : la route `/api/assets/[...path]` reste le s
 
 ## Dependencies
 
-- `01-infra-stockage-objet-sauvegardes-design.md` (statut: draft) — a créé le bucket `portfolio-assets` en juridiction `eu` et son token `Object Read & Write` restreint.
+- `01-infra-stockage-objet-sauvegardes-design.md` (statut: draft) : a créé le bucket `portfolio-assets` en juridiction `eu` et son token `Object Read & Write` restreint.
 
 ## Files touched
 
