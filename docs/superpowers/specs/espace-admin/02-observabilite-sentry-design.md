@@ -23,7 +23,7 @@ Sentry se consulte sur son dashboard cloud : aucun écran de restitution n'est c
 
 ## Dependencies
 
-Aucune — ce sub-project est autoporté. Il précède la fondation admin pour que celle-ci s'écrive sous observation et que la CSP ne soit modifiée qu'une seule fois.
+Aucune : ce sub-project est autoporté. Il précède la fondation admin pour que celle-ci s'écrive sous observation et que la CSP ne soit modifiée qu'une seule fois.
 
 ## Files touched
 

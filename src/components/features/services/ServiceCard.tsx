@@ -1,18 +1,25 @@
-import { Link } from '@/i18n/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { LabeledText } from '@/components/ui/labeled-text'
-import { ServiceCardBeam } from './ServiceCardBeam'
-import { SERVICE_HIGHLIGHTS, SERVICE_ICONS, type ServiceSlug } from './service-slugs'
+import { Link } from "@/i18n/navigation"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { LabeledText } from "@/components/ui/labeled-text"
+import { ServiceCardBeam } from "./ServiceCardBeam"
+import { SERVICE_HIGHLIGHTS, SERVICE_ICONS, type ServiceSlug } from "./service-slugs"
 
-type Props = {
+interface Props {
   slug: ServiceSlug
   title: string
   description: string
   bullets?: string[]
   ctaLabel?: string
-  variant?: 'full' | 'teaser'
-  headingLevel?: 'h2' | 'h3'
+  variant?: "full" | "teaser"
+  headingLevel?: "h2" | "h3"
 }
 
 export function ServiceCard({
@@ -21,13 +28,13 @@ export function ServiceCard({
   description,
   bullets,
   ctaLabel,
-  variant = 'full',
+  variant = "full",
   // Sur /services la carte est un titre de section (h2) ; sur l'accueil elle vit sous le h2
   // de la section teaser (h3). tracking-normal et text-wrap neutralisent la scale globale h2/h3.
-  headingLevel = variant === 'full' ? 'h2' : 'h3',
+  headingLevel = variant === "full" ? "h2" : "h3",
 }: Props) {
   const Icon = SERVICE_ICONS[slug]
-  const isFull = variant === 'full'
+  const isFull = variant === "full"
 
   return (
     <Card className="relative flex h-full flex-col overflow-hidden transition duration-300 ease-out hover:ring-primary/40">
@@ -39,9 +46,7 @@ export function ServiceCard({
         >
           {title}
         </CardTitle>
-        <CardDescription className="text-base text-muted-foreground">
-          {description}
-        </CardDescription>
+        <CardDescription className="text-base text-muted-foreground">{description}</CardDescription>
       </CardHeader>
 
       {isFull && bullets && (
@@ -60,9 +65,7 @@ export function ServiceCard({
       {isFull && ctaLabel && (
         <CardFooter>
           <Button asChild className="w-full">
-            <Link href={{ pathname: '/contact', query: { service: slug } }}>
-              {ctaLabel}
-            </Link>
+            <Link href={{ pathname: "/contact", query: { service: slug } }}>{ctaLabel}</Link>
           </Button>
         </CardFooter>
       )}

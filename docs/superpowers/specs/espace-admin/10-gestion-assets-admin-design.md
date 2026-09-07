@@ -23,8 +23,8 @@ C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les
 
 ## Dependencies
 
-- `06-shell-admin-design.md` (statut: draft) — fournit le shell et la page d'attente `/admin/assets` que ce sub-project remplace.
-- `09-stockage-assets-r2-design.md` (statut: draft) — fournit le client R2 et le bucket dans lequel écrire.
+- `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente `/admin/assets` que ce sub-project remplace.
+- `09-stockage-assets-r2-design.md` (statut: draft) : fournit le client R2 et le bucket dans lequel écrire.
 
 ## Files touched
 
@@ -48,7 +48,7 @@ C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les
 
 **Le fichier transite par une Server Action, dont la limite est relevée à 8 Mo.** Next.js la fixe à 1 Mo par défaut, ce qui suffirait à un CV texte mais pas à une capture PNG non optimisée. La documentation précise que la limite porte sur le corps HTTP brut, overhead multipart compris, et qu'il faut prévoir 10 à 20 Ko de marge. Huit mégaoctets laissent un facteur trois à quatre sur le plus gros cas réaliste : une image de projet en webp pèse 100 à 300 Ko, une capture PNG 1 à 3 Mo, un CV rarement plus de 2 Mo.
 
-La mise en garde de Next sur cette limite — consommation de ressources et déni de service — ne s'applique pas : l'action est derrière l'authentification, seul le compte autorisé peut l'atteindre.
+La mise en garde de Next sur cette limite (consommation de ressources et déni de service) ne s'applique pas : l'action est derrière l'authentification, seul le compte autorisé peut l'atteindre.
 
 **Chaque Server Action vérifie la session elle-même.** `await getCurrentUser()` ouvre chaque mutation, hors de tout `try/catch`. Le layout protège l'affichage des pages, il ne protège pas l'exécution des actions : une Server Action exportée est un endpoint HTTP que quiconque connaît l'identifiant peut appeler sans jamais charger l'écran. C'est la défense en profondeur qu'impose `.claude/rules/nextjs/server-actions.md`, qui écrit aussi bien « vérifier l'authentification dans chaque Server Action, même si le proxy protège déjà la route » que « ne pas dépendre uniquement du proxy : un matcher modifié peut supprimer la couverture ». L'appel précède le `try`, sinon le `catch` avalerait l'interruption `unauthorized()` et la présenterait comme une erreur technique.
 

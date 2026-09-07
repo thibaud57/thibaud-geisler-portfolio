@@ -12,84 +12,24 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 | Frontend | React 19, Tailwind 4, shadcn/ui (+ Magic UI, Aceternity UI), next-intl 4 (FR/EN) |
 | Base de données | PostgreSQL 18, Prisma 7 |
 | Observabilité | Pino 10 (logs structurés serveur) |
-| Infrastructure | Docker Compose (Postgres dev), Dokploy self-hosted (VPS IONOS) |
 
 ## Prérequis
 
 - Node.js >= 24
 - pnpm >= 10 (version pinnée via `packageManager` dans `package.json`)
 - Docker (Compose, pour Postgres en dev)
-- [`just`](https://github.com/casey/just) (workflow standard du projet)
+- [`just`](https://github.com/casey/just) (workflow standard du projet) avec bash (Git Bash sous Windows, le `Justfile` pose `set shell := ["bash", "-cu"]`)
+- [`actionlint`](https://github.com/rhysd/actionlint) (`winget install rhysd.actionlint`, requis par `just lint`)
 
 ## Getting Started
 
 ```bash
-cp .env.example .env        # puis remplir les valeurs (voir section Environnement)
+cp .env.example .env        # chaque variable y est commentée
 just setup                  # install deps + démarre Postgres + applique migrations + seed
 just dev                    # serveur Next.js sur http://localhost:3000
 ```
 
-`just check` permet de diagnostiquer rapidement l'environnement (Node, pnpm, Docker, `.env`, Postgres).
-
-## Scripts utiles
-
-Toutes les recettes passent par `just`. La liste complète est disponible via `just --list`.
-
-### Dev
-
-| Commande | Description |
-|----------|-------------|
-| `just dev` | Démarre `next dev` (port 3000) |
-| `just stop` | Libère le port 3000 (kill du process Next) |
-
-### Quality
-
-| Commande | Description |
-|----------|-------------|
-| `just lint` | ESLint sur `src/` |
-| `just typecheck` | `next typegen` puis `tsc --noEmit` |
-| `just test` | Tests unit + intégration (Vitest) |
-| `just test-unit` | Tests unitaires seuls |
-| `just test-integration` | Tests d'intégration seuls (base de test) |
-| `just test-watch` | Tests en mode watch |
-| `just build` | Build de production Next.js |
-| `just audit` | Vulnérabilités des dépendances (seuil high, non bloquant) |
-
-### Database
-
-| Commande | Description |
-|----------|-------------|
-| `just db` | Démarre Postgres (Docker) puis applique les migrations |
-| `just db-migrate LABEL` | Crée et applique une nouvelle migration |
-| `just db-studio` | Ouvre Prisma Studio |
-| `just seed` | Exécute le seed Prisma |
-| `just db-reset` | **Destructif** : drop, recreate, migrate et seed de la base de dev |
-| `just db-test` | Prépare la base de test (`.env.test`) |
-| `just db-test-reset` | **Destructif** : drop de la base de test, sans seed |
-| `just db-test-studio` | Prisma Studio sur la base de test |
-
-### Infrastructure
-
-| Commande | Description |
-|----------|-------------|
-| `just docker-up` | Démarre les services Docker Compose (profil `validation`) |
-| `just docker-down` | Arrête les services Docker Compose |
-| `just install` | Installe les dépendances pnpm |
-| `just setup` | Bootstrap complet : install, base prête, seed |
-| `just check` | Diagnostics Node / pnpm / Docker / `.env` / Postgres |
-
-## Variables d'environnement
-
-Le fichier `.env.example` liste toutes les variables nécessaires, regroupées par bloc :
-
-- **App** : `NEXT_PUBLIC_SITE_URL`, `ASSETS_PATH`
-- **Database (dev local)** : `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (credentials init Postgres local lus par `compose.override.yaml`), `DATABASE_URL` (URL connexion Prisma). En prod Dokploy, ces vars sont ignorées (la Postgres Database Dokploy a ses propres credentials, `DATABASE_URL` injectée via Dokploy UI).
-- **SMTP** (formulaire de contact) : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `MAIL_TO`
-- **Calendly** (event types FR/EN distincts) : `NEXT_PUBLIC_CALENDLY_URL_FR`, `NEXT_PUBLIC_CALENDLY_URL_EN`
-- **Sécurité** : `IP_HASH_SALT` (sel du hash SHA-256 des IP journalisées, 16 caractères minimum, **requis** — l'application refuse de démarrer sans lui). Générer : `openssl rand -hex 32`
-- **Logs** : `LOG_LEVEL` (optionnel, `fatal` à `trace` ou `silent` ; défaut `debug` en dev, `info` en production)
-
-Validation runtime via `@t3-oss/env-nextjs` + Zod (cf. `src/env.ts`).
+`just --list` donne l'inventaire des recettes, `just check` diagnostique l'environnement (Node, pnpm, Docker, `.env`, Postgres). `src/env.ts` valide au démarrage les variables qu'il déclare (`@t3-oss/env-nextjs` + Zod) : l'application refuse de démarrer s'il en manque une.
 
 ## Architecture
 
@@ -108,36 +48,22 @@ Convention de stockage :
 - `assets/projets/{client,personal}/<slug>/<filename>` (logos, captures, médias projet)
 - `assets/documents/<slug>/<filename>` (CV, plaquettes, etc.)
 
-Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture filesystem à `process.env.ASSETS_PATH`). En production, les fichiers vivent dans le volume Docker `portfolio_assets` monté sur `/app/assets`.
+Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture filesystem à `process.env.ASSETS_PATH`).
 
 Détails (validation Zod, defense-in-depth, headers cache) : [`.claude/rules/nextjs/assets.md`](.claude/rules/nextjs/assets.md) et [ADR-011](docs/adrs/).
 
-## Déploiement
-
-Pipeline GHA → GHCR → Dokploy pull-only. Les tags `vX.Y.Z` (release-please) déclenchent le build Docker côté GitHub Actions et le push vers GHCR, puis trigger un redeploy Dokploy via API. Dokploy pull l'image GHCR sur le VPS, sans rebuild local. PostgreSQL est provisionné séparément côté Dokploy Database.
-
-Détails (release flow, hotfix, monitoring, incidents) : [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
-
 ## Documentation
 
-| Doc | Rôle |
-|-----|------|
-| [`docs/BRAINSTORM.md`](docs/BRAINSTORM.md) | Vision, features, roadmap MVP |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Architecture, ADRs, patterns |
-| [`docs/VERSIONS.md`](docs/VERSIONS.md) | Versions exactes, compatibilité |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | Design system, typographie, couleurs |
-| [`docs/PRODUCTION.md`](docs/PRODUCTION.md) | Release, déploiement, monitoring |
-| [`docs/registre-traitements.md`](docs/registre-traitements.md) | Registre RGPD des traitements (art. 30) |
-| [`docs/adrs/`](docs/adrs/) | Architecture Decision Records |
-| [`docs/knowledges/`](docs/knowledges/) | Fiches techniques par techno |
-| [`docs/baselines/`](docs/baselines/) | Relevés Core Web Vitals datés |
-| [`docs/reports/`](docs/reports/) | Audits ponctuels (SEO, etc.) |
-| [`CHANGELOG.md`](CHANGELOG.md) | Historique des versions (Keep a Changelog) |
-
-## Workflow Git
-
-Branches : `feature/* -> develop -> main` (tag `vX.Y.Z` automatique via release-please après merge sur `main`). Les hotfixes partent directement de `main`.
-Commits : Conventional Commits (`type(scope): description`), types `feat | fix | docs | refactor | test | chore`.
-PRs feature : toujours `gh pr create --base develop` (la branche par défaut GitHub reste `main`, ne pas la modifier).
-
-Détails complets (release flow, tags, hotfix, checklist) : [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
+| Doc | Contenu |
+|---|---|
+| [docs/BRAINSTORM.md](docs/BRAINSTORM.md) | Vision, features, roadmap MVP |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture, ADRs, patterns |
+| [docs/VERSIONS.md](docs/VERSIONS.md) | Versions exactes, compatibilité |
+| [docs/DESIGN.md](docs/DESIGN.md) | Design system, typographie, couleurs |
+| [docs/PRODUCTION.md](docs/PRODUCTION.md) | Release, déploiement, monitoring |
+| [docs/registre-traitements.md](docs/registre-traitements.md) | Registre RGPD des traitements (art. 30) |
+| [docs/adrs/](docs/adrs/) | Décisions d'architecture actées |
+| [docs/knowledges/](docs/knowledges/) | Fiches techniques par librairie |
+| [docs/baselines/](docs/baselines/) | Relevés Core Web Vitals datés |
+| [docs/reports/](docs/reports/) | Audits ponctuels (SEO, etc.) |
+| [CHANGELOG.md](CHANGELOG.md) | Historique des versions, tenu par release-please |

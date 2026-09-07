@@ -1,7 +1,7 @@
 ---
 title: "ADR-007 — Analytics : Umami self-hosted"
 status: "accepted"
-description: "Décision actée : Umami self-hosted post-MVP — RGPD-friendly, zéro coût, compatible PostgreSQL"
+description: "Décision actée : Umami self-hosted post-MVP, RGPD-friendly, zéro coût, compatible PostgreSQL"
 date: "2026-03-31"
 keywords: ["architecture", "adr", "analytics", "umami", "rgpd"]
 scope: ["docs", "architecture"]

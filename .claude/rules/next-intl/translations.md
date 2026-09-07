@@ -9,11 +9,11 @@ paths:
 
 ## À faire
 - Utiliser **`useTranslations(namespace)`** dans les composants sync (Server ou Client), **`getTranslations({ locale, namespace })`** en async côté serveur (Server Components async, Server Actions, Route Handlers, `generateMetadata`)
-- Stocker les messages dans `messages/fr.json` et `messages/en.json` avec **namespaces imbriqués** (HomePage, Nav, ContactForm) — le caractère `.` accède au nesting (`t('form.placeholder')`)
+- Stocker les messages dans `messages/fr.json` et `messages/en.json` avec **namespaces imbriqués** (HomePage, Nav, ContactForm) : le caractère `.` accède au nesting (`t('form.placeholder')`)
 - **Un seul `useTranslations` / `getTranslations` par composant si tous les keys vivent sous le même parent**. Accéder aux sous-namespaces via dot notation (`t(\`contractStatus.${value}\`)`, `t('stats.years.label')`) plutôt que d'instancier N hooks (`useTranslations('Foo.bar')` + `useTranslations('Foo.baz')` est verbeux et redondant). N hooks autorisés uniquement si les namespaces top-level diffèrent (ex: `'ErrorPage'` + `'Common'`)
 - Pour les messages ICU avec pluriels : utiliser les tags `zero`, `one`, `two`, `few`, `many`, `other` (seul `other` obligatoire), `#` insère la valeur numérique
 - **`t.rich(key, tags)`** pour interpoler du JSX dans un message (ex: footer avec liens vers les CGV, mentions légales)
-- **`useFormatter()` / `getFormatter()`** pour formater dates et nombres selon la locale : `format.dateTime`, `format.number`, `format.relativeTime`, `format.list` — basé sur l'API `Intl` native du navigateur
+- **`useFormatter()` / `getFormatter()`** pour formater dates et nombres selon la locale : `format.dateTime`, `format.number`, `format.relativeTime`, `format.list`, basé sur l'API `Intl` native du navigateur
 - **Séparer UI chrome et content DB** : les labels d'interface (nav, boutons, titres de page statiques, enums bornés) vivent dans `messages/{fr,en}.json` et sont consommés via `useTranslations` / `getTranslations`. Le **content éditorial long** stocké en BDD (titres de projets, descriptions, markdown case study, noms de tags affichés) passe par des **colonnes jumelées Prisma `<champ>Fr`/`<champ>En`** et un helper pur `localize*(entity, locale)` qui résout le bon champ avant render (cf. `src/i18n/localize-content.ts`). Ne jamais dupliquer du content éditorial dans `messages/*.json`
 
 ## À éviter
@@ -23,7 +23,7 @@ paths:
 - Multiplier `useTranslations`/`getTranslations` pour des sous-namespaces du même parent (`'Foo.bar'` + `'Foo.baz'` + `'Foo.qux'`) : 1 hook sur `'Foo'` + dot notation suffit, plus DRY et moins de subscriptions React
 
 ## Gotchas
-- Depuis next-intl 4.0, **`NextIntlClientProvider` obligatoire** pour tous les Client Components qui utilisent `useTranslations` — sinon erreur de contexte (avant 4.0 : optionnel)
+- Depuis next-intl 4.0, **`NextIntlClientProvider` obligatoire** pour tous les Client Components qui utilisent `useTranslations`, sinon erreur de contexte (avant 4.0 : optionnel)
 - `onError` et `getMessageFallback` ne sont **pas hérités** par `NextIntlClientProvider` : les définir explicitement dans un wrapper Client si nécessaire
 - Pour la config initiale (`defineRouting`, `setRequestLocale`, `createNavigation`, layout `[locale]`, types `AppConfig`) : voir `next-intl/setup.md`
 

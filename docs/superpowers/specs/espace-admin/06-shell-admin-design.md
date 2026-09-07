@@ -23,7 +23,7 @@ Exclut tout écran métier : les listes et formulaires arrivent aux sub-projects
 
 ## Dependencies
 
-- `05-protection-routes-admin-design.md` (statut: draft) — fournit le layout protégé qu'on habille ici, ainsi que `getCurrentUser()` pour alimenter le header.
+- `05-protection-routes-admin-design.md` (statut: draft) : fournit le layout protégé qu'on habille ici, ainsi que `getCurrentUser()` pour alimenter le header.
 
 ## Files touched
 
@@ -34,8 +34,8 @@ Exclut tout écran métier : les listes et formulaires arrivent aux sub-projects
 - **À créer** : `src/components/layout/AdminThemeToggle.tsx` (le `ThemeToggle` public ne se réutilise pas : il appelle `useTranslations` et s'appuie sur Magic UI, tous deux hors de portée dans l'admin)
 - **À modifier** : `src/app/admin/layout.tsx` (montage du shell autour des enfants)
 - **À modifier** : `src/app/admin/page.tsx` (écran d'arrivée)
-- **À créer** : `src/app/admin/projets/page.tsx`, `src/app/admin/tags/page.tsx`, `src/app/admin/entreprises/page.tsx`, `src/app/admin/assets/page.tsx` — pages d'attente, remplacées par les sub-projects `07` à `13`
-- **À créer** : `src/components/ui/` — composants installés via le CLI shadcn : `sidebar`, `separator`, `tooltip`, `avatar`, `collapsible`, `scroll-area`
+- **À créer** : `src/app/admin/projets/page.tsx`, `src/app/admin/tags/page.tsx`, `src/app/admin/entreprises/page.tsx`, `src/app/admin/assets/page.tsx` : pages d'attente, remplacées par les sub-projects `07` à `13`
+- **À créer** : `src/components/ui/` : composants installés via le CLI shadcn : `sidebar`, `separator`, `tooltip`, `avatar`, `collapsible`, `scroll-area`
 - **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Navigation admin → Sidebar » rejoint la section Navigation, la ligne « Primitifs d'interface » se vide entièrement, ses cinq composants étant installés ici
 
 ## Architecture approach

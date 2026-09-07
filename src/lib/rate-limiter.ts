@@ -1,10 +1,10 @@
-export type RateLimitOptions = {
+export interface RateLimitOptions {
   max: number
   windowMs: number
   cap?: number
 }
 
-export type RateLimitResult = {
+export interface RateLimitResult {
   allowed: boolean
   retryAfterSeconds: number
 }

@@ -107,7 +107,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Messages informatifs, aide contextuelle. Ardoise, pas un bleu franc. Réservé (admin post-MVP) |
 | `--shine` | `oklch(1 0 0 / 0.95)` | `oklch(1 0 0 / 0.95)` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode. Uniquement sur des surfaces `bg-primary`, invisible sur une carte claire |
 
-> Contraintes à tenir si l'un de ces tokens bouge ou si un cinquième s'ajoute : **chroma entre 0,11 et 0,16**, au-delà la couleur crie à côté d'un accent à 0,04 ; `--success` en teinte **148**, qui se confondrait avec `--primary` en 140 ; `--info-foreground` sombre en dark, l'ardoise y étant claire.
+> Contraintes à tenir si l'un de ces tokens bouge ou si un cinquième s'ajoute : **chroma entre 0,11 et 0,16** (sauf `--info`, à 0,07), au-delà la couleur crie à côté d'un accent à 0,04 ; `--success` en teinte **148**, qui se confondrait avec `--primary` en 140 ; `--info-foreground` sombre en dark, l'ardoise y étant claire.
 
 ### Palette dataviz
 
@@ -206,11 +206,11 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 | shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px) |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : typographie animée, bento grid, marquee, bordure animée, bouton shimmer, bascule de thème |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé : Background Ripple Effect seul, les candidats étant listés en § Mapping Composants > Post-MVP |
-| ReUI | Composants absents du registry shadcn | Post-MVP admin, `EventCalendar` uniquement. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
+| ReUI | Composants absents du registry shadcn | Post-MVP admin : `EventCalendar` et `Kanban`. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies et des pages légales (`prose dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
-> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, à une exception près : `EventCalendar`, que le registry shadcn n'a pas.
+> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, sauf pour l'agenda et le kanban, que le registry shadcn n'a pas.
 
 ### Style shadcn
 
@@ -331,6 +331,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Hérite du contournement de `Command` |
 | Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur, `align="end"` sous une barre d'outils. Seul (filtres d'une liste) ou en composition (Combobox, sélecteur de date) |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Dates de facture, d'échéance, de mission |
+| Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action |
 | Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
 | Feedback | Alert | shadcn/ui | Avis persistant en tête d'écran. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
 | Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression |

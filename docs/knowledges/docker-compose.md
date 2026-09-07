@@ -1,6 +1,6 @@
 ---
 title: "Docker Compose — Orchestration multi-services"
-version: "5.1.2"
+version: "5.5.1"
 description: "Référence technique pour Docker Compose v5 : compose.yaml, healthchecks et depends_on."
 date: "2026-04-13"
 keywords: ["docker-compose", "orchestration", "yaml", "healthcheck"]
@@ -10,7 +10,7 @@ technologies: ["Docker", "PostgreSQL", "Dokploy"]
 
 # Description
 
-`Docker Compose` v5 orchestre les services multi-conteneurs du portfolio (Next.js + PostgreSQL) sur le VPS IONOS via Dokploy. La v5 délègue le build à Docker Bake, ignore définitivement le champ `version:` dans `compose.yaml` (warning en v5), et saute directement de v2 à v5 pour éviter la confusion avec les anciens formats v1 "version 3.x".
+`Docker Compose` v5 orchestre les services multi-conteneurs du portfolio (Next.js + PostgreSQL) sur le VPS IONOS via Dokploy. La v5 délègue le build à Docker Bake, ignore définitivement le champ `version:` dans `compose.yaml` (warning en v5), et saute directement de v2 à v5.
 
 ---
 

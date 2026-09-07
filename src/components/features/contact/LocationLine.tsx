@@ -1,10 +1,10 @@
-import FR from 'country-flag-icons/react/3x2/FR'
-import LU from 'country-flag-icons/react/3x2/LU'
-import { Globe } from 'lucide-react'
+import FR from "country-flag-icons/react/3x2/FR"
+import LU from "country-flag-icons/react/3x2/LU"
+import { Globe } from "lucide-react"
 
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils"
 
-type Props = {
+interface Props {
   className?: string
 }
 
@@ -12,7 +12,7 @@ export function LocationLine({ className }: Props) {
   return (
     <ul
       className={cn(
-        'flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground',
+        "flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground",
         className,
       )}
     >

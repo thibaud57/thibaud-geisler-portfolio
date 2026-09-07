@@ -4,7 +4,7 @@
 
 **Goal:** Créer, modifier et supprimer un projet avec sa méta client et ses tags, dans une transaction.
 
-**Architecture:** Un schéma Zod à validation conditionnelle porte la règle que la base ne peut pas exprimer — un projet client exige une entreprise et un mode de travail, un projet personnel n'en a pas. Les écritures sur les trois tables passent par une transaction unique, et les tags sont remplacés intégralement plutôt que rapprochés.
+**Architecture:** Un schéma Zod à validation conditionnelle porte la règle que la base ne peut pas exprimer : un projet client exige une entreprise et un mode de travail, un projet personnel n'en a pas. Les écritures sur les trois tables passent par une transaction unique, et les tags sont remplacés intégralement plutôt que rapprochés.
 
 **Tech Stack:** Next.js 16 Server Actions, Zod 4, Prisma 7, Vitest.
 

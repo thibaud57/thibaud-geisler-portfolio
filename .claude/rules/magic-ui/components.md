@@ -8,13 +8,13 @@ paths:
 ## À faire
 - Installer via le CLI shadcn avec syntaxe namespace : **`pnpm dlx shadcn@latest add @magicui/<component>`** (registry déclaré dans `components.json`, voir [DESIGN.md § Outils & Discovery](../../../docs/DESIGN.md))
 - Composants copiés dans **`src/components/magicui/`** (séparé de `src/components/ui/` qui contient shadcn/ui pur)
-- Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy) — installé automatiquement par le CLI shadcn
+- Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy), installé automatiquement par le CLI shadcn
 - Toujours **`'use client'`** sur les composants qui consomment Magic UI : les composants Magic UI sont eux-mêmes Client Components (animations Intersection Observer + hooks)
 - **Périmètre projet** : voir [DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour la répartition exacte entre Magic UI, Aceternity UI et shadcn/ui, et les catégories autorisées pour ce projet
 - **Limiter à 2-3 effets maximum par page** (DESIGN.md) : éviter la surcharge visuelle et la distraction du contenu
 - **Intensité subtile** (DESIGN.md) : durée 200-400ms, easing `ease-out` pour les entrées et `ease-in-out` pour les transitions, intention = renforcer la qualité sans distraire le contenu
 - Utiliser **`BlurFade`** pour les entrées animées au scroll (pattern Intersection Observer recommandé pour les sections marketing)
-- **Combiner avec shadcn/ui** : shadcn pour l'UI fonctionnelle (Form, Button, Dialog), Magic UI pour les enrichissements visuels — les deux libs partagent le même `cn()` (`src/lib/utils.ts`) et les tokens CSS sémantiques
+- **Combiner avec shadcn/ui** : shadcn pour l'UI fonctionnelle (Form, Button, Dialog), Magic UI pour les enrichissements visuels. Les deux libs partagent le même `cn()` (`src/lib/utils.ts`) et les tokens CSS sémantiques
 
 ## À éviter
 - Utiliser le package **`magicui-cli`** : **legacy/abandonné**, utiliser `pnpm dlx shadcn@latest add` à la place
@@ -25,10 +25,10 @@ paths:
 - Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `tailwind-merge`, `class-variance-authority`)
 
 ## Gotchas
-- **Pas de versioning sémantique** (modèle copy-paste via registry shadcn) : pas de `pnpm update` possible, les composants restent figés au moment de l'install — relancer `shadcn@latest add --overwrite <component>` pour récupérer les updates upstream
+- **Pas de versioning sémantique** (modèle copy-paste via registry shadcn) : pas de `pnpm update` possible, les composants restent figés au moment de l'install. Relancer `shadcn@latest add --overwrite <component>` pour récupérer les updates upstream
 - Magic UI : **Tailwind v4 + React 19 par défaut depuis avril 2025**, plus besoin de `tailwind.config.ts`
 - **Issue shadcn CLI > 2.8.0 + Magic UI** : peut générer des imports sans alias `@/` dans certains composants Magic UI → vérifier/ajuster les imports `@/lib/utils` après chaque `add`
-- Site **`v3.magicui.design`** conserve la variante Tailwind v3 pour l'ancienne méthode — utiliser **`magicui.design`** (v4) pour ce projet
+- Site **`v3.magicui.design`** conserve la variante Tailwind v3 pour l'ancienne méthode. Utiliser **`magicui.design`** (v4) pour ce projet
 - Pour la **philosophie copy-paste** (versionnement, modification, ownership) partagée avec shadcn-ui : voir `shadcn-ui/setup.md`
 
 ## Exemples

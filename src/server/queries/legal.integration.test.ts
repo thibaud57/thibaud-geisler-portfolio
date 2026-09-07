@@ -1,24 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock('next/cache', () => ({
+vi.mock("next/cache", () => ({
   cacheLife: vi.fn(),
   cacheTag: vi.fn(),
   revalidateTag: vi.fn(),
 }))
 
-import { prisma, resetDatabase } from '@/lib/prisma-test-setup'
-import {
-  getDataProcessors,
-  getHostingProvider,
-  getPublisher,
-} from '@/server/queries/legal'
-import {
-  dataProcessings,
-  legalEntities,
-  publisher,
-} from '../../../prisma/seed-data/legal'
+import { prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { getDataProcessors, getHostingProvider, getPublisher } from "@/server/queries/legal"
+import { dataProcessings, legalEntities, publisher } from "../../../prisma/seed-data/legal"
 
-type SeedLegalOptions = {
+interface SeedLegalOptions {
   withPublisher?: boolean
   withIonosHosting?: boolean
   withIonosSmtp?: boolean
@@ -35,13 +27,13 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
 
   const slugFilter: Record<string, boolean> = {
     thibaud: withPublisher,
-    'ionos-sarl': withIonosHosting || withIonosSmtp,
-    'calendly-inc': withCalendly,
+    "ionos-sarl": withIonosHosting || withIonosSmtp,
+    "calendly-inc": withCalendly,
   }
   const processingFilter: Record<string, boolean> = {
-    'ionos-hosting': withIonosHosting,
-    'ionos-smtp': withIonosSmtp,
-    'calendly-embedded': withCalendly,
+    "ionos-hosting": withIonosHosting,
+    "ionos-smtp": withIonosSmtp,
+    "calendly-embedded": withCalendly,
   }
 
   const slugToId = new Map<string, string>()
@@ -104,7 +96,7 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
   }
 }
 
-describe('getPublisher', () => {
+describe("getPublisher", () => {
   beforeEach(async () => {
     await resetDatabase()
   })
@@ -120,40 +112,40 @@ describe('getPublisher', () => {
     const result = await getPublisher()
 
     expect(result).not.toBeNull()
-    expect(result?.slug).toBe('thibaud')
-    expect(result?.siret).toBe('88041912200036')
-    expect(result?.legalStatusKey).toBe('entrepreneurIndividuel')
-    expect(result?.address.street).toBe('11 rue Gouvy')
-    expect(result?.address.city).toBe('Metz')
+    expect(result?.slug).toBe("thibaud")
+    expect(result?.siret).toBe("88041912200036")
+    expect(result?.legalStatusKey).toBe("entrepreneurIndividuel")
+    expect(result?.address.street).toBe("11 rue Gouvy")
+    expect(result?.address.city).toBe("Metz")
     expect(result?.publisher).not.toBeNull()
-    expect(result?.publisher?.apeCode).toBe('6201Z')
-    expect(result?.publisher?.registrationType).toBe('RNE')
-    expect(result?.publisher?.vatRegime).toBe('FRANCHISE')
+    expect(result?.publisher?.apeCode).toBe("6201Z")
+    expect(result?.publisher?.registrationType).toBe("RNE")
+    expect(result?.publisher?.vatRegime).toBe("FRANCHISE")
   })
 
-  it('retourne null si pas de publisher seedé (DB vide)', async () => {
+  it("retourne null si pas de publisher seedé (DB vide)", async () => {
     await expect(getPublisher()).resolves.toBeNull()
   })
 })
 
-describe('getDataProcessors', () => {
+describe("getDataProcessors", () => {
   beforeEach(async () => {
     await resetDatabase()
   })
 
-  it('retourne tous les processors triés par displayOrder ascendant', async () => {
+  it("retourne tous les processors triés par displayOrder ascendant", async () => {
     await seedLegalForTest({ withPublisher: false })
 
     const result = await getDataProcessors()
 
     expect(result.map((p) => p.processing.slug)).toEqual([
-      'ionos-hosting',
-      'calendly-embedded',
-      'ionos-smtp',
+      "ionos-hosting",
+      "calendly-embedded",
+      "ionos-smtp",
     ])
   })
 
-  it('retourne outsideEuFramework=DATA_PRIVACY_FRAMEWORK pour Calendly et null pour IONOS', async () => {
+  it("retourne outsideEuFramework=DATA_PRIVACY_FRAMEWORK pour Calendly et null pour IONOS", async () => {
     await seedLegalForTest({ withPublisher: false })
 
     const result = await getDataProcessors()
@@ -161,12 +153,12 @@ describe('getDataProcessors', () => {
       result.map((entry) => [entry.processing.slug, entry.processing.outsideEuFramework]),
     )
 
-    expect(bySlug['calendly-embedded']).toBe('DATA_PRIVACY_FRAMEWORK')
-    expect(bySlug['ionos-hosting']).toBeNull()
-    expect(bySlug['ionos-smtp']).toBeNull()
+    expect(bySlug["calendly-embedded"]).toBe("DATA_PRIVACY_FRAMEWORK")
+    expect(bySlug["ionos-hosting"]).toBeNull()
+    expect(bySlug["ionos-smtp"]).toBeNull()
   })
 
-  it('retourne legalBasis=CONSENT pour Calendly et LEGITIMATE_INTERESTS pour IONOS', async () => {
+  it("retourne legalBasis=CONSENT pour Calendly et LEGITIMATE_INTERESTS pour IONOS", async () => {
     await seedLegalForTest({ withPublisher: false })
 
     const result = await getDataProcessors()
@@ -174,31 +166,31 @@ describe('getDataProcessors', () => {
       result.map((entry) => [entry.processing.slug, entry.processing.legalBasis]),
     )
 
-    expect(bySlug['calendly-embedded']).toBe('CONSENT')
-    expect(bySlug['ionos-hosting']).toBe('LEGITIMATE_INTERESTS')
-    expect(bySlug['ionos-smtp']).toBe('LEGITIMATE_INTERESTS')
+    expect(bySlug["calendly-embedded"]).toBe("CONSENT")
+    expect(bySlug["ionos-hosting"]).toBe("LEGITIMATE_INTERESTS")
+    expect(bySlug["ionos-smtp"]).toBe("LEGITIMATE_INTERESTS")
   })
 })
 
-describe('getHostingProvider', () => {
+describe("getHostingProvider", () => {
   beforeEach(async () => {
     await resetDatabase()
   })
 
-  it('retourne IONOS hosting (kind=HOSTING)', async () => {
+  it("retourne IONOS hosting (kind=HOSTING)", async () => {
     await seedLegalForTest({ withPublisher: false })
 
     const result = await getHostingProvider()
 
     expect(result).not.toBeNull()
-    expect(result?.slug).toBe('ionos-sarl')
-    expect(result?.name).toBe('IONOS SARL')
-    expect(result?.address.city).toBe('Sarreguemines')
-    expect(result?.processing.kind).toBe('HOSTING')
-    expect(result?.processing.purposeFr).toContain('Hébergement')
+    expect(result?.slug).toBe("ionos-sarl")
+    expect(result?.name).toBe("IONOS SARL")
+    expect(result?.address.city).toBe("Sarreguemines")
+    expect(result?.processing.kind).toBe("HOSTING")
+    expect(result?.processing.purposeFr).toContain("Hébergement")
   })
 
-  it('retourne null si aucun HOSTING seedé (uniquement Calendly)', async () => {
+  it("retourne null si aucun HOSTING seedé (uniquement Calendly)", async () => {
     await seedLegalForTest({
       withPublisher: false,
       withIonosHosting: false,

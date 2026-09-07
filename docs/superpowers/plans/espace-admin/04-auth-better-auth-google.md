@@ -385,7 +385,7 @@ export const auth = betterAuth({
 })
 ```
 
-Trois points non négociables : aucune clé `emailAndPassword` n'est déclarée, `nextCookies()` est le dernier plugin, et le hook est un `before` — seul un `before` peut refuser la création, un `after` n'observe qu'un compte déjà créé. La documentation Better Auth décrit la forme des deux hooks sans garantir le comportement transactionnel du second : raison de plus pour ne pas lui confier la whitelist.
+Trois points non négociables : aucune clé `emailAndPassword` n'est déclarée, `nextCookies()` est le dernier plugin, et le hook est un `before` : seul un `before` peut refuser la création, un `after` n'observe qu'un compte déjà créé. La documentation Better Auth décrit la forme des deux hooks sans garantir le comportement transactionnel du second : raison de plus pour ne pas lui confier la whitelist.
 
 - [ ] **Step 2: Écrire le client navigateur**
 

@@ -32,7 +32,7 @@ import {
   SiSpring,
   SiSpringboot,
   SiTypescript,
-} from '@icons-pack/react-simple-icons'
+} from "@icons-pack/react-simple-icons"
 import {
   Bot,
   BrainCircuit,
@@ -51,7 +51,7 @@ import {
   Sparkles,
   SquareFunction,
   Workflow,
-} from 'lucide-react'
+} from "lucide-react"
 
 export type IconComponent = React.ComponentType<{ size?: number; className?: string }>
 
@@ -93,21 +93,21 @@ const SIMPLE_ICONS: Record<string, IconComponent> = {
 
 const LUCIDE_ICONS: Record<string, IconComponent> = {
   bot: Bot,
-  'brain-circuit': BrainCircuit,
+  "brain-circuit": BrainCircuit,
   bug: Bug,
-  'chevron-right': ChevronRight,
+  "chevron-right": ChevronRight,
   coffee: Coffee,
   database: Database,
-  'database-zap': DatabaseZap,
+  "database-zap": DatabaseZap,
   ghost: Ghost,
   laptop: Laptop,
-  'message-circle': MessageCircle,
+  "message-circle": MessageCircle,
   network: Network,
   plug: Plug,
-  'shield-ban': ShieldBan,
+  "shield-ban": ShieldBan,
   ship: Ship,
   sparkles: Sparkles,
-  'square-function': SquareFunction,
+  "square-function": SquareFunction,
   workflow: Workflow,
 }
 
@@ -153,12 +153,12 @@ export function LinkedinIcon({ className }: { className?: string }) {
 
 export function resolveTagIcon(icon: string | null): IconComponent | null {
   if (!icon) return null
-  const colonIdx = icon.indexOf(':')
+  const colonIdx = icon.indexOf(":")
   if (colonIdx === -1) return null
   const lib = icon.slice(0, colonIdx)
   const slug = icon.slice(colonIdx + 1)
   if (!slug) return null
-  if (lib === 'simple-icons') return SIMPLE_ICONS[slug] ?? null
-  if (lib === 'lucide') return LUCIDE_ICONS[slug] ?? null
+  if (lib === "simple-icons") return SIMPLE_ICONS[slug] ?? null
+  if (lib === "lucide") return LUCIDE_ICONS[slug] ?? null
   return null
 }

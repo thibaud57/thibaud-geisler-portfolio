@@ -7,9 +7,9 @@ paths:
 # Next.js — Tests (specifics Next.js)
 
 ## À faire
-- Mocker **`next/navigation`** (`useRouter`, `usePathname`, `useSearchParams`, `redirect`) via `vi.mock()` — non disponibles en jsdom
+- Mocker **`next/navigation`** (`useRouter`, `usePathname`, `useSearchParams`, `redirect`) via `vi.mock()` : non disponibles en jsdom
 - Mocker **`next/cache`** (`revalidateTag`, `revalidatePath`) pour tester les Server Actions en isolation
-- Mocker **`next/image`** : contrairement à `next/jest`, Vitest + jsdom ne résout pas les imports d'images dynamiques (cause `SyntaxError`) — soit `vi.mock('next/image')` retournant un `<img>` simple, soit un plugin Vite qui transforme les fichiers image
+- Mocker **`next/image`** : contrairement à `next/jest`, Vitest + jsdom ne résout pas les imports d'images dynamiques (cause `SyntaxError`) : soit `vi.mock('next/image')` retournant un `<img>` simple, soit un plugin Vite qui transforme les fichiers image
 - Pour les **Server Components asynchrones** (non testables dans Vitest/jsdom) : extraire le data fetching dans une fonction pure testable + tester le composant de présentation en lui passant les données en props
 - Pour les **Server Actions** : tester la logique métier en isolant la fonction pure (validation Zod, transformation de données), mocker `next/cache` et `next/navigation`
 - Utiliser des **factory functions** (`createUser(overrides?)`) pour les fixtures plutôt que des constantes partagées (évite la mutation accidentelle entre tests)
@@ -21,7 +21,7 @@ paths:
 - Utiliser `useFormState` de `react-dom` dans les tests : **déprécié** R19, utiliser `useActionState` de `react`
 
 ## Gotchas
-- **SMTP doit toujours être mocké** dans les tests d'intégration (les appels nodemailer ne sont jamais réels) — voir `nodemailer/email.md` pour le pattern de mock du transporter
+- **SMTP doit toujours être mocké** dans les tests d'intégration (les appels nodemailer ne sont jamais réels). Voir `nodemailer/email.md` pour le pattern de mock du transporter
 - **Tests E2E (Playwright)** : non prévus pour le MVP, à ajouter post-MVP si l'espace admin devient complexe
 
 ## Exemples

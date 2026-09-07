@@ -1,10 +1,10 @@
-import 'server-only'
-import { cacheLife, cacheTag } from 'next/cache'
-import type { Locale } from 'next-intl'
+import "server-only"
+import { cacheLife, cacheTag } from "next/cache"
+import type { Locale } from "next-intl"
 
-import type { Prisma, Tag } from '@/generated/prisma/client'
-import { localizeTag, type LocalizedTag } from '@/i18n/localize-content'
-import { prisma } from '@/lib/prisma'
+import type { Prisma, Tag } from "@/generated/prisma/client"
+import { localizeTag, type LocalizedTag } from "@/i18n/localize-content"
+import { prisma } from "@/lib/prisma"
 
 export const TAG_LOGO_SELECT = {
   slug: true,
@@ -15,14 +15,12 @@ export const TAG_LOGO_SELECT = {
 
 export type TagLogo = Prisma.TagGetPayload<{ select: typeof TAG_LOGO_SELECT }>
 
-export async function findAllTags(
-  locale: Locale,
-): Promise<LocalizedTag<Tag>[]> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('tags')
+export async function findAllTags(locale: Locale): Promise<LocalizedTag<Tag>[]> {
+  "use cache"
+  cacheLife("hours")
+  cacheTag("tags")
   const tags = await prisma.tag.findMany({
-    orderBy: [{ displayOrder: 'asc' }, { slug: 'asc' }],
+    orderBy: [{ displayOrder: "asc" }, { slug: "asc" }],
   })
   return tags.map((tag) => localizeTag(tag, locale))
 }
@@ -31,21 +29,19 @@ export async function findTagsBySlugs(params: {
   slugs: readonly string[]
   locale: Locale
 }): Promise<LocalizedTag<TagLogo>[]> {
-  'use cache'
-  cacheLife('hours')
-  cacheTag('tags')
+  "use cache"
+  cacheLife("hours")
+  cacheTag("tags")
 
   const tags = await prisma.tag.findMany({
     where: { slug: { in: [...params.slugs] } },
     select: TAG_LOGO_SELECT,
   })
 
-  if (process.env.NODE_ENV !== 'production' && tags.length !== params.slugs.length) {
+  if (process.env.NODE_ENV !== "production" && tags.length !== params.slugs.length) {
     const found = new Set(tags.map((t) => t.slug))
     const missing = params.slugs.filter((s) => !found.has(s))
-    console.warn(
-      `[findTagsBySlugs] Slugs absents en DB (silent filter) : ${missing.join(', ')}`,
-    )
+    console.warn(`[findTagsBySlugs] Slugs absents en DB (silent filter) : ${missing.join(", ")}`)
   }
 
   const bySlug = new Map(tags.map((t) => [t.slug, t]))

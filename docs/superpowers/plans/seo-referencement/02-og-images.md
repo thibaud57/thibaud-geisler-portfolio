@@ -555,7 +555,7 @@ Expected : 0 erreur. Vérifier en particulier que `OgFont`, `OgTemplateProps`, e
 
 - [ ] **Step 3 : Tests unit (vérifier qu'aucune régression)**
 
-Run : `just test-unit` (`pnpm vitest run --project unit --passWithNoTests`)
+Run : `just test-unit`
 Expected : tous les tests existants (notamment `src/lib/seo.test.ts` du sub-project 01) passent. Aucun nouveau test attendu (`tdd_scope: none` confirmé par no-lib-test).
 
 - [ ] **Step 4 : Tests integration (vérifier qu'aucune régression)**

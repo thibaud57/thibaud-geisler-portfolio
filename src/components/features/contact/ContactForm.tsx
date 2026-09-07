@@ -1,20 +1,20 @@
-'use client'
+"use client"
 
-import { useActionState, useCallback, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
+import { useActionState, useCallback, useEffect } from "react"
+import { useTranslations } from "next-intl"
+import { toast } from "sonner"
 
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
-import { submitContact } from '@/server/actions/contact'
-import { initialContactFormState } from '@/server/actions/contact.types'
+import { submitContact } from "@/server/actions/contact"
+import { initialContactFormState } from "@/server/actions/contact.types"
 
-import { SubmitButton } from './SubmitButton'
+import { SubmitButton } from "./SubmitButton"
 
-type Labels = {
+interface Labels {
   name: string
   company: string
   email: string
@@ -30,14 +30,14 @@ type Labels = {
   successToast: string
 }
 
-type Props = {
+interface Props {
   labels: Labels
   defaultSubject?: string
   privacyNotice: React.ReactNode
 }
 
-export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Props) {
-  const tErrors = useTranslations('ContactPage.form.errors')
+export function ContactForm({ labels, defaultSubject = "", privacyNotice }: Props) {
+  const tErrors = useTranslations("ContactPage.form.errors")
   const translateError = useCallback(
     (code: string): string => tErrors(code as Parameters<typeof tErrors>[0]),
     [tErrors],
@@ -79,7 +79,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               required
               aria-invalid={!!state.errors.name?.length}
               aria-describedby="name-error"
-              defaultValue={state.values?.name ?? ''}
+              defaultValue={state.values?.name ?? ""}
               placeholder={labels.namePlaceholder}
             />
           </Field>
@@ -96,7 +96,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               type="text"
               aria-invalid={!!state.errors.company?.length}
               aria-describedby="company-error"
-              defaultValue={state.values?.company ?? ''}
+              defaultValue={state.values?.company ?? ""}
               placeholder={labels.companyPlaceholder}
             />
           </Field>
@@ -115,7 +115,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               required
               aria-invalid={!!state.errors.email?.length}
               aria-describedby="email-error"
-              defaultValue={state.values?.email ?? ''}
+              defaultValue={state.values?.email ?? ""}
               placeholder={labels.emailPlaceholder}
             />
           </Field>
@@ -153,7 +153,7 @@ export function ContactForm({ labels, defaultSubject = '', privacyNotice }: Prop
               rows={6}
               aria-invalid={!!state.errors.message?.length}
               aria-describedby="message-error"
-              defaultValue={state.values?.message ?? ''}
+              defaultValue={state.values?.message ?? ""}
               placeholder={labels.messagePlaceholder}
             />
           </Field>
@@ -186,7 +186,11 @@ function Field({
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>
         {label}
-        {required ? <span aria-hidden className="ml-0.5 text-destructive">*</span> : null}
+        {required ? (
+          <span aria-hidden className="ml-0.5 text-destructive">
+            *
+          </span>
+        ) : null}
       </Label>
       {children}
       <div id={`${id}-error`} aria-live="polite">
