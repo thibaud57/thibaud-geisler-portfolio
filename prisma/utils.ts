@@ -1,6 +1,6 @@
 import type { z } from "zod"
 
-export function parseOrThrow<T extends z.ZodTypeAny>(
+export function parseOrThrow<T extends z.ZodType>(
   schema: T,
   data: unknown,
   label: string,

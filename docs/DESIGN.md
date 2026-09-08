@@ -67,6 +67,16 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 > **Le niveau d'un titre suit la structure de la page, jamais son apparence.** Une card marketing est un cran sous le titre qui la précède : H2 quand elle suit le H1 de la page (`/services`, `/projets`), H3 quand elle vit sous un H2 de section (accueil). `ServiceCard` et `ProjectCard` prennent donc un `headingLevel` de leur appelant, et gardent la même apparence dans les deux cas.
 
+**L'espace admin démarre un cran plus bas** (post-MVP), un écran de liste dense poussant sa première ligne de tableau sous la ligne de flottaison quand son titre occupe 48px.
+
+| Rôle | Balise | Réglage | D'où il vient |
+|------|--------|---------|---------------|
+| Titre d'écran | `h1` | 1.5rem (24px), 600 (SemiBold) | le réglage H3, sans palier responsive là où la vitrine ouvre à 36px |
+| Titre de section | `h2` | 1.125rem (18px), 600 (SemiBold) | `--text-lg` au poids des titres Geist, seul appariement nouveau des trois |
+| Titre de card | — | `CardTitle` | le composant, hors de cette échelle |
+
+> Les balises ne bougent pas, seule l'apparence descend : le niveau suit toujours la structure, sans quoi le plan de navigation par titres perdrait son point d'entrée. Le poids reste 600, celui de tout titre en Geist, 500 étant réservé aux libellés d'interface. Même arbitrage que l'espacement admin resserré à `py-6`–`py-8`, la densité prime sur le souffle.
+
 ## Palette de Couleurs
 
 ### Tokens / Variables CSS
@@ -147,7 +157,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
-| `--radius-xs` | `calc(var(--radius) * 0.2)` → 2px | Bouton de fermeture d'une modale. Réservé (admin post-MVP) |
+| `--radius-xs` | `0.125rem` → 2px | Défaut Tailwind, seul palier non dérivé de `--radius`. Réservé |
 | `--radius-sm` | `calc(var(--radius) * 0.6)` → 6px | Badges, tags, petits éléments |
 | `--radius-md` | `calc(var(--radius) * 0.8)` → 8px | Boutons, inputs, éléments UI courants |
 | `--radius-lg` | `var(--radius)` → 10px | Cards, conteneurs |
@@ -162,7 +172,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Valeur | Usage |
 |-------|--------|-------|
-| `shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Affordance de champ shadcn : `Checkbox`, `Switch`, `RadioGroup`, déclencheur de `Select`. Réservé (admin post-MVP) |
+| `shadow-xs` | `0 1px 2px 0 rgb(0 0 0 / 0.05)` | Défaut Tailwind. Réservé : `radix-nova` cerne ses champs d'un anneau, pas d'une ombre |
 | `shadow-sm` | `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)` | Repos des cards en grille |
 | `shadow-md` | `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)` | Petits éléments cliquables au hover (pastilles), dropdowns et menus (valeur `radix-nova`) |
 | `shadow-lg` | `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)` | Panneau latéral du menu mobile |
@@ -214,11 +224,11 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 ### Style shadcn
 
-`components.json` déclare **`radix-nova`**, appliqué à tout le projet : site public et espace admin partagent `src/components/ui/`. Ce style a été retenu pour sa compacité, qui sert la densité d'écran d'un espace admin sans desservir les pages marketing. Les autres styles du système `{base}-{style}` (`vega`, `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea`, plus l'ancien `new-york`) restent disponibles, mais **changer de style impose de réinstaller tous les composants** : les hauteurs, rayons et paddings diffèrent, et un projet à moitié migré devient visuellement incohérent. Le choix de shadcn/ui lui-même, face à du custom, est arbitré par [ADR-009](adrs/009-ui-system.md). Commandes CLI et pièges : `.claude/rules/shadcn-ui/setup.md`.
+`components.json` déclare **`radix-nova`**, appliqué à tout le projet : site public et espace admin partagent `src/components/ui/`. Retenu pour sa compacité, qui sert la densité d'un écran admin sans desservir les pages marketing. **Changer de style imposerait de réinstaller tous les composants**, les hauteurs, rayons et paddings différant de l'un à l'autre. Le choix de shadcn/ui face à du custom est arbitré par [ADR-009](adrs/009-ui-system.md) ; commandes CLI et pièges dans `.claude/rules/shadcn-ui/setup.md`.
 
 ### Consentement cookies (CMP)
 
-Le site utilise **`@c15t/nextjs`** comme Consent Management Platform : bandeau de consentement cookies (RGPD), gating du widget Calendly tant que les cookies marketing ne sont pas acceptés, bouton "Préférences cookies" dans le footer. Voir [knowledges/c15t.md](knowledges/c15t.md) pour le détail d'intégration. Le styling du banner et de la modale de préférences hérite des tokens CSS du design system (couleurs, radius, typo) pour rester cohérent avec le reste de l'UI.
+Le site utilise **`@c15t/nextjs`** comme Consent Management Platform : bandeau RGPD, gating du widget Calendly tant que les cookies marketing ne sont pas acceptés, bouton « Préférences cookies » au footer. Le bandeau et la modale de préférences héritent des tokens du design system. Détail d'intégration : [knowledges/c15t.md](knowledges/c15t.md).
 
 ### Convention de structure
 
@@ -243,14 +253,14 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Footer | Footer | composant maison | Layout custom sur toutes les pages publiques, séparé du contenu par un `border-t border-border`. Contient logo, tagline, localisation, réseaux sociaux, lien CV, copyright et navigation légale (mentions, confidentialité, cookies) |
 | Language Switcher | DropdownMenu + icône Globe (Lucide) + drapeaux (`country-flag-icons`) | shadcn/ui | Switch FR / EN dans la navbar, locale courante en `font-semibold` |
 | Theme Toggle | AnimatedThemeToggler | Magic UI + store `src/lib/theme.ts` | Toggle dark/light animé dans navbar, morphing soleil/lune |
-| Filtres projets | Tabs custom minimaliste (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`) |
+| Filtres projets | ProjectFilters, tabs custom (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`) |
 | Onglets contact | Tabs | shadcn/ui (Radix) | Bascule formulaire / Calendly sur `/contact`. L'onglet Calendly est monté en `forceMount` et masqué en CSS, pour que le widget ne se réinitialise pas à chaque bascule ; la `key={pathname}` remet l'onglet par défaut au changement de locale |
 
 ### Actions
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Boutons | Button | shadcn/ui | Variants `default`, `outline`, `ghost`, `secondary`, `destructive`, `link` ; taille `icon` pour les boutons à glyphe seul. `destructive` est une teinte `destructive/10` avec texte `--destructive`, pas un aplat rouge |
+| Boutons | Button | shadcn/ui | Variants `default`, `outline`, `ghost`, `secondary`, `destructive`, `link` ; taille `icon` pour les boutons à glyphe seul. `destructive` est une teinte `destructive/10` avec texte `--destructive`, pas un aplat rouge. Un pied ne porte **qu'un seul** `default` sauge, celui de son action principale, et il se place en dernier, à droite ; tout ce qui l'accompagne est `outline` ou `ghost` |
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero de la landing uniquement, effet shimmer sur `--shine` |
 | Téléchargement CV | DownloadCvButton | composant maison (Button) | Navbar, footer et `/a-propos`, en `variant="outline" size="sm"` dans les deux premiers |
 
@@ -268,14 +278,14 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Cards services | Card | shadcn/ui | Grille uniforme 3 colonnes, focus contenu textuel (landing + /services) |
 | Cards projets | BentoCard | Magic UI | Showcase visuel dans BentoGrid (landing + /projects) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique et son conteneur : cards projets (landing + /projects) et stack `/a-propos`. Conteneur visuel seul (`rounded-lg`, bordure, `shadow-sm`), l'affordance de survol vivant sur l'élément cliquable |
-| Tables de données | Table | shadcn/ui | Tri, filtrage et pagination en état local React, sans librairie de table à cette volumétrie |
+| Table simple | Table | shadcn/ui | Données figées, ni tri ni pagination : la seule forme en usage sur le site public |
 
 ### Badges
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Simple Icons pour technos/infra/outils, Lucide pour expertises, renderer choisi selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`). Cards projets, case studies et stack `/a-propos` |
-| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` | shadcn/ui | Type de projet (API, Web App…), entreprise avec logo, compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant |
+| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | Type de projet (API, Web App…), entreprise avec logo, compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Débordement d'une liste de tags : trois au plus, puis un « +N » en `outline`, muet |
 
 ### Feedback et chargement
 
@@ -297,7 +307,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Paragraphe d'accroche | LeadParagraph | composant maison | Filet `border-l-2 border-primary/60` + `pl-5` sur la tagline `/a-propos` et le chapô d'étude de cas |
 | Texte à libellé | LabeledText | composant maison | Met en gras le libellé d'un paragraphe traduit jusqu'aux deux-points, au-delà de 30 caractères le texte est rendu tel quel. Utilisé sur `/a-propos`, où le gras vit dans le composant plutôt que dans les fichiers de traduction |
 | Typographie display | HyperText, WordRotate | Magic UI | Effets textes animés sur surfaces marketing (tagline hero scrambled, CTAs rotation de mots) |
-| Number Ticker | NumberTicker | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
+| Number Ticker | NumberTicker, composé par NumberTickerStats | Magic UI | Chiffres clés animés sur /a-propos (années d'expérience, projets livrés, etc.) |
 | Marquee | Marquee | Magic UI | Bande de logos de la stack qui défile sous le CTA final de la landing, avec fondu sur les bords |
 | Rendu markdown | MarkdownContent | composant maison (`@tailwindcss/typography`) | Case studies et pages légales, classes `prose` et overrides `prose-h2` / `prose-h3` alignés sur la scale |
 
@@ -319,22 +329,27 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ### Post-MVP (non installés)
 
-> Chaque entrée rejoint sa famille ci-dessus au moment de son installation.
+> Chaque entrée rejoint sa famille ci-dessus au moment de son installation. Ce qui est post-MVP ici est l'**usage**, pas toujours le composant : `Badge`, `Button`, `Input`, `Table` et `Tabs` tournent en production, les écrans qui les emploieront de cette façon n'existent pas.
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement |
-| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin (compteur, lignes par page, pager) se tient en 24px, un cran sous la barre d'outils. Le registry n'ayant pas de prop de taille ici, leur ajouter `size` (`sm`, `xs`) et le même `xs` à `Select` |
-| Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Recherche, puis un seul bouton `outline` ouvrant tous les filtres en Popover, compteur d'actifs en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre |
+| Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement. Son en-tête et son pied portent chacun une bordure `--sidebar-border` : celle du haut prolonge le filet de la barre supérieure, celle du bas détache la déconnexion de la navigation, une action n'étant pas une destination |
+| Table de liste | Table | shadcn/ui | Recherche, filtres, tri et pagination sur un même jeu de lignes, en état local React et sans librairie de table à cette volumétrie. Ses quatre motifs ont chacun leur ligne ici : pied de table, barre d'outils, en-tête triable, gouttière de bord |
+| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin se tient sur la rangée `xs`, un cran sous la barre d'outils : compteur et sélecteur de lignes par page groupés à gauche, pager à droite. `Pagination` délègue à `Button` et relaie sa taille, donc `size="icon-xs"` sur les numéros suffit. `Select`, lui, s'arrête à `sm` : c'est à lui seul qu'il faut ajouter un palier `xs` |
+| Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Trois contrôles sur une rangée, dans cet ordre : recherche, puis deux boutons `outline` ouvrant chacun son Popover, colonnes affichées et filtres, chacun portant son compteur en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre |
 | En-tête de colonne triable | Button `ghost` dans le `th` | shadcn/ui | Cycle croissant, décroissant, ordre d'affichage ; `aria-sort` sur le bouton. Glisser-déposer désactivé dès qu'un tri ou un filtre est actif |
+| Tableau pleine largeur dans une card | Table | shadcn/ui | Le survol d'une ligne court d'un bord à l'autre, donc la table déborde le padding de la card. Première et dernière cellule reprennent alors les 16px de celle-ci, pour que la donnée s'aligne sur le reste de son contenu ; les cellules intérieures gardent leurs 8px |
+| Bascule de représentation | Tabs | shadcn/ui | La même donnée vue autrement (tableau, board, calendrier), et non deux contenus qui se substituent. Le composant est celui de `/contact`, le motif celui des filtres de `/projets`, un `role="tablist"` sans `tabpanel` ni `aria-controls` sur une liste filtrée en place. Rien de dédié à créer, donc, au prix d'un lecteur d'écran qui annoncera « onglet » là où rien ne se substitue |
+| Texte tronqué | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol : cellule de tableau, libellé de liste, « +N » fermant une série de badges. Sur la vitrine la troncature reste muette, faute de `Tooltip` installé (§ Badges) |
 | Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. `Checkbox` plutôt qu'une case native : l'état indéterminé du « tout sélectionner » d'un tableau ne se rend pas autrement |
-| Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Hérite du contournement de `Command` |
-| Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur, `align="end"` sous une barre d'outils. Seul (filtres d'une liste) ou en composition (Combobox, sélecteur de date) |
+| Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Une sélection multiple s'affiche en badges retirables sous le champ, où les choix restent lisibles. Hérite du contournement de `Command` |
+| Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
+| Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur, `align="end"` sous une barre d'outils. Seul (filtres d'une liste, choix des colonnes) ou en composition (Combobox, sélecteur de date). Son pied se groupe à droite comme celui d'une modale : ghost « Réinitialiser », puis l'unique `default` sauge, « Appliquer » |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Dates de facture, d'échéance, de mission |
-| Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action |
+| Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action. Le composant est **headless** : il ne fournit que le comportement, la carte est entièrement à la charge de l'appelant, qui la compose en `Card` |
 | Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
 | Feedback | Alert | shadcn/ui | Avis persistant en tête d'écran. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
-| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression |
+| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression. Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse. La largeur monte à 640px dès que le formulaire tient sur deux colonnes. Son pied court d'un bord à l'autre en bandeau `muted/50` |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
@@ -398,7 +413,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Composants Animés
 
-> Ce tableau liste uniquement les animations **implémentées manuellement** (Motion, Tailwind transitions, CSS) sur des composants custom ou sur des composants shadcn non animés par défaut. Les composants Magic UI et Aceternity UI du tableau ci-dessus ont leurs animations **intégrées** et ne sont pas dupliqués ici. `BorderBeam` fait exception : l'animation vient de la lib, mais ses emplacements et ses paramètres sont une décision projet, donc documentés ci-dessous. Les transitions de survol et d'état actif vivent en § États des Composants, pas ici.
+> Ce tableau ne liste que les animations **implémentées manuellement** (Motion, transitions Tailwind, CSS), sur des composants custom ou sur des composants shadcn non animés. Celles de Magic UI et d'Aceternity UI sont intégrées à leurs composants. `BorderBeam` fait exception : l'animation vient de la lib, mais ses emplacements et ses paramètres sont une décision projet. Les transitions de survol et d'état actif vivent en § États des Composants.
 
 | Composant | Type d'animation | Librairie | Trigger |
 |-----------|-----------------|-----------|---------|
@@ -426,6 +441,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Rythme interne d'une section | `gap` uniforme, doublé avant un bloc d'un autre registre | CTA final : 32px entre titre, sous-titre et bouton, 64px avant la bande stack |
 | Grid principal | CSS Grid ou Flexbox | selon le contexte, pas de librairie de grid externe |
 | Container admin | pleine largeur moins la sidebar | post-MVP, sans `max-w-7xl` centré |
+| Barre supérieure admin | `56px` | post-MVP, un cran sous les 64px de la navbar publique. L'en-tête du rail s'aligne dessus, et leurs deux bordures basses n'en forment qu'une |
+| Rail de navigation admin | `13rem` (208px) | post-MVP, contre 16rem par défaut : « Tableau de bord », le plus long libellé, occupe 104px des 152px laissés au texte. Se pose par `style` sur `SidebarProvider` ; le mobile garde la largeur du `Sheet` |
 | Espacement entre sections, admin | `py-6` à `py-8` | post-MVP, la densité prime sur le souffle |
 
 ## Responsive
@@ -470,6 +487,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ✅ **Composants shadcn** : toujours utiliser les composants shadcn/ui quand ils existent avant de créer un composant custom
 - ✅ **Responsive** : écrire le style mobile d'abord, puis élargir avec `sm:`, `md:`, `lg:`
 - ✅ **Liens** : les liens de contenu (paragraphe, liste, définition) portent `text-primary underline underline-offset-2` en permanence (WCAG 1.4.1, la couleur seule tombe à 1:1 sur `text-muted-foreground`). Les liens d'interface (nav, CTA, boutons, cards) se distinguent par la couleur (`hover:text-primary`), sur le reset global de `globals.css`
+- ✅ **Valeurs numériques** : ce qui se compare s'aligne à droite en `tabular-nums` (montants, quantités, taux, durées), pour que les ordres de grandeur se lisent en colonne. Sans changer de famille : Geist Sans porte des chiffres tabulaires, le mono reste réservé aux années de timeline. Ce qui se lit comme une étiquette reste à gauche et en chasse normale : années, numéros de facture, identifiants. `NumberTicker` l'applique déjà aux chiffres clés de `/a-propos`
+- ✅ **Largeur des champs** : tout contrôle de saisie occupe la largeur de sa colonne, texte, liste déroulante, recherche ou date, pour que les champs d'une rangée s'alignent. À poser explicitement, plusieurs contrôles du registry se dimensionnant sur leur contenu
+- ✅ **Texte trop long** : ce qui ne tient pas dans sa colonne se tronque par une ellipse, l'intégral se relisant au survol dès que `Tooltip` est installé (§ Post-MVP). Le `placeholder` fait exception, il doit tenir entier dans son champ
 
 ## Anti-Patterns
 
@@ -496,7 +516,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 ## Ressources Complémentaires
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
-- [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin (post-MVP)
+- [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin et `Kanban` pour l'espace Dev (post-MVP)
 - [Radix UI](https://www.radix-ui.com) : primitives accessibles sous-jacentes à shadcn/ui
 - [Geist Font](https://vercel.com/font) : polices Geist Sans et Geist Mono (Vercel)
 - [Sansation](https://fonts.google.com/specimen/Sansation) : police display, par Bernd Montag, sous licence OFL

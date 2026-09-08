@@ -264,7 +264,7 @@ export default async function AdminNouveauProjetPage() {
           { label: 'Nouveau projet' },
         ]}
       />
-      <h1 className="mt-4 font-sans text-2xl font-medium tracking-normal">Nouveau projet</h1>
+      <h1 className="mt-4 font-sans text-2xl font-semibold tracking-tight">Nouveau projet</h1>
       <div className="mt-6">
         <ProjectForm
           project={null}
@@ -282,7 +282,7 @@ Les trois requêtes sont parallélisées : elles ne dépendent pas les unes des 
 
 Deux points de style sont imposés par `docs/DESIGN.md` et valent pour les deux pages de ce sub-project :
 
-- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`font-sans` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation à 600, une graisse qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). Le `tracking-tight` hérité est en revanche conservé : l'écran admin reprend le réglage H3 tel quel, 24px en 600, comme `docs/DESIGN.md` le prescrit. Les pages internes de l'admin gardent Geist Sans.
 - **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 ---
@@ -329,7 +329,7 @@ export default async function AdminEditProjetPage({
           { label: project.titleFr },
         ]}
       />
-      <h1 className="mt-4 font-sans text-2xl font-medium tracking-normal">{project.titleFr}</h1>
+      <h1 className="mt-4 font-sans text-2xl font-semibold tracking-tight">{project.titleFr}</h1>
       <div className="mt-6">
         <ProjectForm
           project={project}
