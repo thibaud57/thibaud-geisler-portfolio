@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.5](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.4...v1.6.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* linter tout le dépôt et aligne DESIGN.md, les plans et les specs sur radix-nova ([#137](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/137)) ([66ecc5f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/66ecc5fe1b211820ecb2795a165b881155dee00f))
+
 ## [1.6.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.3...v1.6.4) (2026-09-05)
 
 
