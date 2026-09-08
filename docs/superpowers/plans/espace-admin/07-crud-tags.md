@@ -598,7 +598,7 @@ export default async function AdminTagsPage() {
   return (
     <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-sans text-2xl font-medium tracking-normal">Tags</h1>
+        <h1 className="font-sans text-2xl font-semibold tracking-tight">Tags</h1>
         <TagFormDialog tag={null} />
       </div>
       <div className="mt-6">

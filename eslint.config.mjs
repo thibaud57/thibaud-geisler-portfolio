@@ -27,9 +27,11 @@ const eslintConfig = defineConfig([
     // Un mock se lit par reference (`expect(transporter.sendMail)`, `vi.mocked(transporter.sendMail)`),
     // jamais appele : il n'y a aucun `this` a perdre. `vi.mocked()` ne suffit pas a satisfaire la regle,
     // la lecture de `transporter.sendMail` est deja la reference non liee. La regle reste armee sur src/.
-    files: ["**/*.test.ts", "**/*.test.tsx"],
+    files: ["**/*.test.ts", "**/*.test.tsx", "vitest.setup.ts"],
     rules: {
       "@typescript-eslint/unbound-method": "off",
+      // Un double de test remplace une API absente de jsdom : ses methodes sont vides par nature
+      "@typescript-eslint/no-empty-function": "off",
     },
   },
   // Override default ignores of eslint-config-next.
