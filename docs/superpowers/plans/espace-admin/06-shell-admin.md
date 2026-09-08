@@ -16,7 +16,7 @@
 - **Les quatre pages d'attente sont obligatoires.** Avec `typedRoutes: true`, un lien vers une route inexistante **fait échouer le build**, il ne produit pas une 404.
 - L'objet `user` est tainté : extraire les champs côté serveur, ne jamais le passer entier à un composant client.
 - Conteneur admin en pleine largeur moins la sidebar, **pas** de `max-w-7xl` centré. Padding vertical de `py-6` à `py-8`.
-- Titres en Geist Sans, **jamais** `font-display`, réservé aux surfaces marketing. Sur un `<h1>`, cela impose `font-sans font-medium tracking-normal` : `@layer base` y pose `font-display text-4xl font-bold tracking-tight`, qu'une utilitaire de taille seule n'écrase pas.
+- Titres en Geist Sans, **jamais** `font-display`, réservé aux surfaces marketing. Sur un `<h1>`, cela impose `font-sans font-semibold tracking-tight` : `@layer base` y pose `font-display text-4xl font-bold tracking-tight`, qu'une utilitaire de taille seule n'écrase pas.
 - Tokens CSS uniquement (`bg-primary`, `text-muted-foreground`), jamais de couleur en dur. `cn()` pour composer les classes.
 - Icônes Lucide, taille standard 20px. Mobile-first, bascule au breakpoint `md:`.
 - Pas de fil d'ariane (sub-project `13`), pas de `LanguageSwitcher` (ADR-021), pas de `'use cache'` dans l'arbre admin.
@@ -80,7 +80,7 @@ Le même squelette pour chacune, en adaptant le titre :
 export default function AdminProjetsPage() {
   return (
     <div className="w-full py-6 lg:py-8">
-      <h1 className="font-sans text-2xl font-medium tracking-normal">Projets</h1>
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Projets</h1>
       <p className="mt-2 text-muted-foreground">Écran à construire.</p>
     </div>
   )
@@ -89,7 +89,7 @@ export default function AdminProjetsPage() {
 
 À décliner en `AdminTagsPage` (« Tags »), `AdminEntreprisesPage` (« Entreprises ») et `AdminAssetsPage` (« Assets »).
 
-**Les trois classes du `h1` sont toutes nécessaires.** `src/app/globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une utilitaire de taille écrase la taille et la graisse, jamais la famille : un `<h1 className="text-2xl font-semibold">` rendrait en Sansation à 600, graisse qui n'est pas chargée (Sansation est importée en `700` seul), et garderait le `tracking-tight`. `font-sans` rétablit Geist Sans, que les pages internes gardent, `font-medium` la graisse, `tracking-normal` l'interlettrage.
+**Les deux classes du `h1` sont toutes deux nécessaires.** `src/app/globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une utilitaire de taille écrase la taille et la graisse, jamais la famille : un `<h1 className="text-2xl font-semibold">` rendrait en Sansation à 600, graisse qui n'est pas chargée (Sansation est importée en `700` seul). `font-sans` rétablit Geist Sans, que les pages internes gardent, et `font-semibold` la graisse des titres. Le `tracking-tight` de la base est en revanche conservé : l'écran admin reprend le réglage H3 tel quel, 24px en 600, ce que `docs/DESIGN.md` prescrit.
 
 Le conteneur suit le design system admin : pleine largeur, sans `max-w-7xl` centré, rythme vertical `py-6` à `py-8`.
 
@@ -138,7 +138,7 @@ export function AdminSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-3 text-sm font-medium tracking-[0.25em] text-balance text-muted-foreground uppercase">
+      <SidebarHeader className="h-14 justify-center border-b border-sidebar-border px-4 text-sm font-medium tracking-[0.25em] text-balance text-muted-foreground uppercase">
         Espace admin
       </SidebarHeader>
       <SidebarContent>
@@ -170,6 +170,8 @@ export function AdminSidebar() {
 `collapsible="icon"` garde les icônes visibles une fois repliée, ce qui reste navigable au lieu de disparaître complètement. Le `tooltip` sur chaque bouton n'apparaît que dans cet état replié, quand le libellé est masqué.
 
 Le `SidebarHeader` et le `SidebarGroupLabel` sont des intitulés de section : ils prennent la famille Label de la scale, `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. `text-balance` s'ajoute au-delà d'une dizaine de caractères, l'interlettrage large faisant vite déborder : « Espace admin » en compte 12, « Portfolio » 9.
+
+**Le `SidebarHeader` prend `h-14` et une bordure basse**, les mêmes que la barre de contenu à sa droite. `docs/DESIGN.md` le pose en § Layout : les deux filets se prolongent alors en une seule ligne d'horizon, et l'intitulé du rail se lit comme un en-tête plutôt que comme le premier élément de la navigation. Sans hauteur fixe l'en-tête se cale sur son contenu, et les deux se décalent d'une douzaine de pixels sur chaque écran. Le registry shadcn ne pose ni l'une ni l'autre : `SidebarHeader` y est un `flex flex-col gap-2 p-2` nu.
 
 Ce composant est client parce qu'il lit `usePathname()` pour surligner l'entrée active.
 
@@ -326,7 +328,7 @@ export default async function AdminLayout({
     <html lang="fr" className={fontVariables} suppressHydrationWarning>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <SidebarProvider>
+        <SidebarProvider style={{ '--sidebar-width': '13rem' } as React.CSSProperties}>
           <AdminSidebar />
           <SidebarInset>
             <AdminHeader email={email} />
@@ -340,6 +342,8 @@ export default async function AdminLayout({
 ```
 
 La ligne `const email = user.email` est ce qui rend le reste possible : elle extrait la donnée côté serveur. Écrire `<AdminHeader user={user} />` ferait échouer le rendu, l'objet étant tainté.
+
+Le `style` sur `SidebarProvider` porte les 13rem du design system, contre les 16rem par défaut : le composant étale le `style` reçu après ses propres variables, c'est donc l'API prévue et non une surcharge. Le mobile n'est pas concerné, `SidebarMobile` reposant sa propre largeur sur le `Sheet`.
 
 `SidebarInset` occupe la largeur restante sans conteneur centré, conformément au design system. Le `<main>` ne porte que le retrait horizontal : le rythme vertical `py-6` à `py-8` appartient à chaque page, qui l'applique sur son conteneur racine.
 
@@ -356,7 +360,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 export default function AdminHomePage() {
   return (
     <div className="w-full py-6 lg:py-8">
-      <h1 className="font-sans text-2xl font-medium tracking-normal">Espace admin</h1>
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Espace admin</h1>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href}>

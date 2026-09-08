@@ -605,6 +605,7 @@ Composant client montant un `Dialog` shadcn. Points imposés :
 - chaque champ rend son erreur sous lui depuis `state.errors`
 - les valeurs sont repeuplées depuis `state.values` en cas d'échec
 - un `useEffect` sur `state.ok` ferme la modale, déclenche un toast et appelle `onCreated`
+- **le `DialogContent` passe à `sm:max-w-[640px]` et son corps défile seul.** Ce formulaire dépasse la dizaine de champs et tient sur deux colonnes : à 512px, la largeur par défaut, il s'étire en une colonne interminable, et sans corps défilant son pied sort de la fenêtre sur un écran court, emportant « Enregistrer » avec lui. En-tête et pied restent fixes, seule la zone des champs scrolle. `docs/DESIGN.md` le pose sur sa ligne Modales
 
 - [ ] **Step 2: Vérifier typage et lint**
 
@@ -654,7 +655,7 @@ export default async function AdminEntreprisesPage() {
   return (
     <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
-        <h1 className="font-sans text-2xl font-medium tracking-normal">Entreprises</h1>
+        <h1 className="font-sans text-2xl font-semibold tracking-tight">Entreprises</h1>
         <CompanyFormDialog
           company={null}
           legalEntities={legalEntities}
@@ -671,7 +672,7 @@ export default async function AdminEntreprisesPage() {
 
 Deux points de style sont imposés par `docs/DESIGN.md` et ne s'improvisent pas :
 
-- **`font-sans` et `font-medium` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation, et en graisse 600, qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). `tracking-normal` annule le `tracking-tight` hérité. Les pages internes de l'admin gardent Geist Sans.
+- **`font-sans` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation à 600, une graisse qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). Le `tracking-tight` hérité est en revanche conservé : l'écran admin reprend le réglage H3 tel quel, 24px en 600, comme `docs/DESIGN.md` le prescrit. Les pages internes de l'admin gardent Geist Sans.
 - **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 - [ ] **Step 4: Vérifier que tout compile**
