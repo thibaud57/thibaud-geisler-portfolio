@@ -3,15 +3,12 @@ loadEnvConfig(process.cwd())
 
 import { defineConfig } from "prisma/config"
 
-const databaseUrl = process.env["DATABASE_URL"]
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL manquant : le CLI Prisma ne peut joindre aucune base.")
-}
-
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: databaseUrl,
+    // Repli documente par Prisma : `generate` n'a pas besoin d'URL, mais echouerait si le
+    // chargement du config throw. Le stage `deps` du Dockerfile n'a pas DATABASE_URL.
+    url: process.env["DATABASE_URL"] ?? "",
   },
   migrations: {
     path: "prisma/migrations",
