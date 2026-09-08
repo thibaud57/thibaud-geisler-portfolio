@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.6](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.5...v1.6.6) (2026-09-08)
+
+
+### Bug Fixes
+
+* **build:** repare le build Docker casse par deux regressions du lot d'alignement ([#139](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/139)) ([e2e2264](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e2e2264b8f03073e6fbdf372ed768b0a46903fd8))
+
 ## [1.6.5](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.4...v1.6.5) (2026-09-08)
 
 
