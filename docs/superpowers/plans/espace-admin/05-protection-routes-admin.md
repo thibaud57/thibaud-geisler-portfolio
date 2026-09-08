@@ -291,7 +291,7 @@ Ne jamais ajouter `'use cache'` dans ce fichier ni dans ses descendants.
 export default function AdminHomePage() {
   return (
     <main className="p-8">
-      <h1 className="font-sans text-2xl font-medium tracking-normal">Espace admin</h1>
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Espace admin</h1>
     </main>
   )
 }
@@ -310,7 +310,7 @@ import { Button } from '@/components/ui/button'
 export default function AdminLoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="font-sans text-2xl font-medium tracking-normal">Connexion</h1>
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Connexion</h1>
       <Button
         onClick={() =>
           authClient.signIn.social({ provider: 'google', callbackURL: '/admin' })
@@ -335,7 +335,7 @@ import Link from 'next/link'
 export default function Unauthorized() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="font-sans text-2xl font-medium tracking-normal">Accès non autorisé</h1>
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Accès non autorisé</h1>
       <p className="text-muted-foreground">
         Cette page nécessite une session valide.
       </p>
