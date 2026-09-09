@@ -565,15 +565,13 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 # 💾 Backup & Recovery
 
-> ⚠️ **Aucune sauvegarde n'existe à ce jour** (relevé du 2026-09-03 : 0 backup, 0 destination, 0 volume backup côté Dokploy). Toute perte de la Database est aujourd'hui une perte totale des données, et les procédures de restauration ci-dessous n'ont rien à restaurer. C'est le risque ouvert le plus grave de cette documentation.
-
 ## Stratégie Backup
 
-**Cible actée, pas encore en place.** Mise en œuvre par la spec `espace-admin/01` ; la marche à suivre (création de la destination, planification, rétention, pièges R2) est dans [knowledges/dokploy.md](knowledges/dokploy.md).
+**En place depuis le sub-project `espace-admin/01`**, mécanisme natif Dokploy (`pg_dump` puis transfert rclone), sans script ni cron sur le VPS, destination `cloudflare-r2-backups`. Marche à suivre pour recréer la configuration : [knowledges/dokploy.md](knowledges/dokploy.md).
 
 | Ressource | Mécanisme | Fréquence | Rétention | Localisation |
 |-----------|-----------|-----------|-----------|--------------|
-| PostgreSQL | Backup natif Dokploy (Database → Backups) | Quotidien | 30 sauvegardes (`Keep the latest`) | Cloudflare R2, bucket `portfolio-backups` |
+| PostgreSQL | Backup natif Dokploy (Database → Backups) | Quotidien | 30 sauvegardes (`Keep the latest`) | Cloudflare R2, bucket `portfolio-backups` (juridiction `eu`) |
 
 > ⚠️ **`Keep the latest` compte des sauvegardes, pas des jours.** Avec une planification quotidienne, 30 donne trente jours de profondeur ; changer la fréquence change la fenêtre réelle sans toucher au champ. Champ vide = tout est conservé.
 
@@ -593,9 +591,10 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 ### Procédure : Restauration BDD
 
 1. Suspendre les écritures le temps de la restauration, en SSH : `docker pause $(docker ps -qf name=nextjs)`
-2. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
-3. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
-4. Smoke test : accueil, `/projets`, formulaire de contact
+2. **Vérifier d'abord sur une base jetable** : `pg_restore` n'écrase pas la base cible, il exige qu'elle existe déjà. Créer une base de contrôle (`CREATE DATABASE`), restaurer dessus, comparer un comptage de référence, avant de toucher à `portfolio-db`
+3. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
+4. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
+5. Smoke test : accueil, `/projets`, formulaire de contact
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
@@ -604,11 +603,12 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 1. Créer un nouveau VPS IONOS avec la même spec, installer Dokploy (procédure : [knowledges/dokploy.md](knowledges/dokploy.md) ; choix de la plateforme : [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
 2. Recréer le projet `Portfolio` : la Database Postgres, puis le Compose `Portfolio-app` (provider GitHub, branche `main`, `compose.yaml`, Trigger Type `tag`), enfin les domaines et leurs certificats
 3. Reposer les variables d'environnement du Compose (§ Environnements), dont `DATABASE_URL` pointant la nouvelle Database
-4. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
-5. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
-6. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus), puis recopier les assets depuis le dossier `assets/` local : le volume n'est pas sauvegardé (§ Stratégie Backup)
-7. Reposer `/etc/logrotate.d/docker-containers` et le défaut de log dans `/etc/docker/daemon.json` : aucun fichier du dépôt ne les porte (§ Rétention)
-8. Smoke test complet
+4. **Recréer la Backup Destination** (`cloudflare-r2-backups`) et la sauvegarde planifiée sur la nouvelle Database : les tokens R2 survivent à la perte du VPS, la destination Dokploy non
+5. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
+6. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
+7. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus), puis recopier les assets depuis le dossier `assets/` local : le volume n'est pas sauvegardé (§ Stratégie Backup)
+8. Reposer `/etc/logrotate.d/docker-containers` et le défaut de log dans `/etc/docker/daemon.json` : aucun fichier du dépôt ne les porte (§ Rétention)
+9. Smoke test complet
 
 ---
 

@@ -103,7 +103,7 @@ graph LR
         Calendly["Calendly<br/>(prise de RDV)"]
         Sentry["Sentry<br/>(erreurs applicatives,<br/>post-MVP, ADR-017)"]
         SMTP["SMTP IONOS<br/>(email contact)"]
-        R2["Cloudflare R2<br/>(portfolio-assets, post-MVP)"]
+        R2["Cloudflare R2<br/>(portfolio-assets + portfolio-admin,<br/>post-MVP)"]
     end
 
     Browser -->|HTTPS| Dokploy -->|reverse proxy| Next
@@ -133,15 +133,15 @@ graph LR
     Dokploy["Dokploy<br/>(VPS IONOS)"]
     Next["Next.js App<br/>(container)"]
     PG["PostgreSQL<br/>(Dokploy Database)"]
-    R2["Cloudflare R2<br/>(portfolio-backups, post-MVP)"]
+    R2["Cloudflare R2<br/>(portfolio-backups)"]
 
     Tag --> GHA
     GHA -->|push image| GHCR
     GHA -->|trigger redeploy API| Dokploy
     Dokploy -->|docker compose pull| GHCR
     Dokploy -->|run container| Next
-    PG -.->|dump| Dokploy
-    Dokploy -.->|sauvegarde quotidienne| R2
+    PG -->|dump| Dokploy
+    Dokploy -->|sauvegarde quotidienne| R2
 ```
 
 ## Flux Fonctionnels (Use-cases critiques)

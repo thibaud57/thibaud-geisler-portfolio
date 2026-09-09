@@ -120,3 +120,13 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 Cf. [ADR-005](005-hebergement-dokploy-vs-vercel.md) pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
 
 **Évolution post-implémentation, route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque compte trois racines : `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL), `documents/cv/` (CV PDF par locale) et `branding/` (logo, portrait). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.
+
+**Cinq buckets R2 provisionnés au sub-project `espace-admin/01` :** `portfolio-backups` (sauvegardes base de données, sans rapport avec les assets), `portfolio-assets` / `portfolio-assets-dev` (vitrine, migration effective au sub-project `09`), `portfolio-admin` / `portfolio-admin-dev` (back-office, première écriture au sub-project `10`). Chacun servi par un token `Object Read & Write` restreint à lui seul.
+
+**Critère du partage vitrine / back-office :** pas « qui édite », l'espace admin écrit dans les deux, mais « servi par une route publique ou non ». `portfolio-assets` couvre tout ce que `/api/assets` sert sans authentification ; `portfolio-admin` tout ce qui n'est lu qu'authentifié.
+
+**Miroir avec les schemas de la base ([ADR-018](018-cloisonnement-donnees.md)) :** `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`, sous-dossier par domaine (`crm`, `administration`, `vente`) ajouté quand le besoin arrive. Une clé d'objet dit alors à elle seule quel schema la référence, quel bucket la porte, quelle route la sert et quel token y accède.
+
+**À venir avec le domaine freelance, bucket `documents-prives` :** pendant de la base du même nom, token détenu par le seul service `rag-documents`, dépôt depuis l'admin via l'API interne du service.
+
+**Le RAG lit en place :** token lecture seule et liste de préfixes autorisés, clé + ETag + date d'indexation en base. Pas de dossier `rag/`, pas de copie : une copie diverge de son original et « ce qui est indexé » est une décision, pas un emplacement.
