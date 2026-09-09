@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "infra-stockage-objet-sauvegardes"
 goal: "Provisionner Cloudflare R2 et mettre en place une sauvegarde de la base portfolio dont la restauration est vérifiée"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
