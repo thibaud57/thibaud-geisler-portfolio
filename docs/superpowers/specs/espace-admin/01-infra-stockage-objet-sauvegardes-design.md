@@ -13,9 +13,9 @@ date: "2026-09-03"
 
 ## Scope
 
-Provisionner un compte Cloudflare R2 avec trois buckets cloisonnés (`portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev`), chacun servi par un token restreint à lui seul, puis configurer dans Dokploy une destination de sauvegarde et une sauvegarde quotidienne de la base `portfolio`, dont la restauration est effectivement vérifiée.
+Provisionner un compte Cloudflare R2 avec cinq buckets cloisonnés (`portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`, `portfolio-admin` et `portfolio-admin-dev`), chacun servi par un token restreint à lui seul, puis configurer dans Dokploy une destination de sauvegarde et une sauvegarde quotidienne de la base `portfolio`, dont la restauration est effectivement vérifiée.
 
-Les deux buckets d'assets sont créés ici mais restent vides : la bascule du stockage applicatif leur appartient au sub-project `09`. Ce sub-project ne touche à aucun code, n'ajoute aucune variable à `src/env.ts` et ne modifie que trois fichiers de documentation.
+Les quatre buckets applicatifs sont créés ici mais restent vides : la bascule de la vitrine vers `portfolio-assets` appartient au sub-project `09`, la première écriture dans `portfolio-admin` au sub-project `10`. Ce sub-project ne touche à aucun code, n'ajoute aucune variable à `src/env.ts` et ne modifie que trois fichiers de documentation.
 
 ### État livré
 
@@ -28,19 +28,23 @@ Aucune : ce sub-project est autoporté.
 ## Files touched
 
 - **À modifier** : `docs/PRODUCTION.md` (compléter la section « Backup & Recovery » avec la configuration réelle : buckets, tokens, destination Dokploy, planification. La section a été réécrite le 2026-09-03 hors de ce sub-project et annonce déjà la voie Dokploy vers R2 ; ses procédures de restauration et de perte VPS y sont plus à jour que celles rédigées ici, ne pas les écraser)
-- **À modifier** : `docs/superpowers/specs/espace-admin/README.md` (la ligne « Aucune destination configurée à ce jour » de la section Infrastructure devient caduque)
+- **À modifier** : `docs/superpowers/specs/espace-admin/README.md` (la ligne « Rien n'est sauvegardé à ce jour » de la section Infrastructure devient caduque)
 
-- **À modifier** : `docs/ARCHITECTURE.md` (diagramme « Livraison et sauvegarde » : le bucket `portfolio-backups` n'est plus post-MVP)
+- **À modifier** : `docs/ARCHITECTURE.md` (diagramme « Livraison et sauvegarde » : le bucket `portfolio-backups` n'est plus post-MVP ; diagramme Runtime : le nœud R2 nomme `portfolio-assets` et `portfolio-admin`)
+- **À modifier** : `docs/registre-traitements.md` (Cloudflare R2 devient sous-traitant : sauvegardes de la base `portfolio`, qui contient les données d'authentification et, plus tard, celles du CRM. Juridiction `eu`, rétention 30 jours)
+- **À modifier** : `docs/adrs/011-stockage-assets.md` (section Notes complémentaires : nommer les cinq buckets, poser le partage vitrine / back-office et son critère, « servi sans authentification ou non », le miroir schema ↔ bucket, et la règle « le RAG lit en place, jamais de copie » pour le bucket `documents-prives` à venir)
 
 Aucun autre fichier du dépôt n'est touché. Le reste des opérations vit hors du dépôt : console Cloudflare, CLI Wrangler, interface Dokploy.
 
 ## Architecture approach
 
-**Trois buckets, trois tokens, aucun recouvrement.** `portfolio-backups` reçoit les dumps écrits par Dokploy, `portfolio-assets` recevra plus tard les fichiers écrits par l'application en production, et `portfolio-assets-dev` ceux du développement local. Chacun est servi par un token `Object Read & Write` restreint à son seul bucket, ce qui est le seul niveau de permission R2 à supporter le cloisonnement : les permissions `Admin` portent sur le compte entier. L'objectif est double, qu'une compromission de l'application ne donne aucun moyen d'effacer les sauvegardes, et qu'une manipulation locale ne puisse pas atteindre les assets de production.
+**Cinq buckets, cinq tokens, aucun recouvrement.** `portfolio-backups` reçoit les dumps écrits par Dokploy. `portfolio-assets` recevra la vitrine, tout ce que la route publique `/api/assets` sert sans authentification. `portfolio-admin` recevra le back-office, tout ce qui n'est lu qu'authentifié : le logo d'une entreprise dès cet epic, puis les documents du domaine freelance. `portfolio-assets-dev` et `portfolio-admin-dev` sont leurs jumeaux de développement local. Le partage entre les deux buckets applicatifs suit celui des schemas de la base, ADR-011 et ADR-018 : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`. Le schema qui possède la ligne possède le préfixe.
+
+Chaque bucket est servi par un token `Object Read & Write` restreint à lui seul, ce qui est le seul niveau de permission R2 à supporter le cloisonnement : les permissions `Admin` portent sur le compte entier, et un token permanent se restreint à un bucket, jamais à un préfixe (le scoping par préfixe n'existe que pour les credentials temporaires). Un bucket par environnement plutôt qu'un préfixe `dev/` en découle. L'objectif est triple : qu'une compromission de l'application ne donne aucun moyen d'effacer les sauvegardes, qu'une manipulation locale ne puisse pas atteindre les données de production, et que la route publique ne détienne jamais un token capable de lire le back-office.
 
 Le free tier R2 est un forfait d'usage mensuel (10 Go-mois, 1 M d'opérations Class A, 10 M Class B, egress gratuit) que la grille tarifaire de Cloudflare exprime sans jamais le rapporter à un bucket. Multiplier les buckets n'ouvre donc aucun quota supplémentaire mais n'en consomme pas non plus : la séparation ne coûte rien.
 
-**Juridiction `eu` sur les trois buckets**, garantissant la résidence des données dans l'Union européenne. Ce choix est définitif après création et l'endpoint S3 devient `https://<account-id>.eu.r2.cloudflarestorage.com`. Le flag `--jurisdiction eu` doit être répété sur chaque commande Wrangler visant ces buckets, `info` et `lifecycle` compris. Détails dans `docs/knowledges/cloudflare-r2.md`.
+**Juridiction `eu` sur les cinq buckets**, garantissant la résidence des données dans l'Union européenne. Ce choix est définitif après création et l'endpoint S3 devient `https://<account-id>.eu.r2.cloudflarestorage.com`. Le flag `--jurisdiction eu` doit être répété sur chaque commande Wrangler visant ces buckets, `info` et `lifecycle` compris. Détails dans `docs/knowledges/cloudflare-r2.md`.
 
 **Provisionnement en CLI, sauf les tokens.** Wrangler couvre la création et l'inspection des buckets, mais ne sait pas créer de token API : cette étape reste au dashboard Cloudflare et constitue le seul passage manuel obligatoire.
 
@@ -55,16 +59,17 @@ Rules applicables : `.claude/rules/nextjs/production-deployment.md` pour les con
 ## Acceptance criteria
 
 ### Scénario 1 : Cloisonnement des tokens
-**GIVEN** trois tokens R2 créés en `Object Read & Write`, restreints respectivement à `portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev`
+**GIVEN** cinq tokens R2 créés en `Object Read & Write`, restreints respectivement à `portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`, `portfolio-admin` et `portfolio-admin-dev`
 **WHEN** on tente de lister le contenu de `portfolio-backups` avec le token destiné aux assets de production
 **THEN** l'opération est refusée
 **AND** la même opération avec le token de sauvegarde réussit
-**AND** le token de développement ne voit ni `portfolio-backups` ni `portfolio-assets`
+**AND** le token `portfolio-assets` ne voit pas `portfolio-admin`
+**AND** les tokens de développement ne voient aucun bucket de production ni `portfolio-backups`
 
 ### Scénario 2 : Juridiction effective
-**GIVEN** les trois buckets créés avec `--jurisdiction eu`
+**GIVEN** les cinq buckets créés avec `--jurisdiction eu`
 **WHEN** on exécute `wrangler r2 bucket info` sur chacun d'eux en passant `--jurisdiction eu`
-**THEN** les trois buckets sont trouvés et rapportent la juridiction européenne
+**THEN** les cinq buckets sont trouvés et rapportent la juridiction européenne
 **AND** la même commande sans le flag ne les trouve pas
 
 ### Scénario 3 : Destination Dokploy valide
@@ -98,7 +103,8 @@ Rules applicables : `.claude/rules/nextjs/production-deployment.md` pour les con
 - **Nom de container Dokploy suffixé** : la Database porte un `appName` avec suffixe généré. Contrairement au script bash qu'on remplace, la voie native n'a pas à le connaître, ce qui supprime une cause de casse silencieuse lors d'un redéploiement
 - **Volume d'assets non sauvegardé** : le script documenté couvrait aussi le volume `portfolio_assets`, ce que la sauvegarde de base Dokploy ne fait pas. Risque temporaire accepté, le volume étant retiré au sub-project `09` au profit de R2 qui devient la source de vérité. Monter une sauvegarde de volume pour un composant dont le retrait est planifié n'est pas justifié
 - **Première sauvegarde d'une base déjà en production** : l'opération est en lecture seule sur `portfolio`, mais reste à déclencher hors des heures de déploiement pour éviter toute contention
-- **Bucket `portfolio-assets` vide pendant plusieurs sub-projects** : c'est attendu. Il est créé maintenant parce que sa juridiction est définitive et qu'un seul passage dans la console Cloudflare vaut mieux que deux
+- **Buckets applicatifs vides pendant plusieurs sub-projects** : c'est attendu. Ils sont créés maintenant parce que leur juridiction est définitive et qu'un seul passage dans la console Cloudflare vaut mieux que trois
+- **CLI `aws` requise en local** pour les vérifications de cloisonnement et de présence d'objet : Wrangler ne sait pas lister un bucket avec un token S3 donné. L'installer avant de commencer (`winget install Amazon.AWSCLI` ou équivalent), elle ne sert qu'aux vérifications
 
 ## Architectural decisions
 
