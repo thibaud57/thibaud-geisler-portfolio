@@ -52,6 +52,10 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 
 **Les dates sont optionnelles et peuvent être incohérentes.** Rien n'empêche en base une date de fin antérieure à la date de début. Le schéma le refuse, la base ne le ferait pas.
 
+**`demoUrl` et `githubUrl` n'acceptent que `http` et `https`.** `z.url()` valide par `new URL()`, qui accepte `javascript:alert(1)` : ces deux champs finissent dans un `href` de page publique, c'est-à-dire un XSS stocké. `docs/PRODUCTION.md` § Checklist Pré-MEP les nomme avec `Company.websiteUrl` et demande de les corriger « avant le premier formulaire d'édition de l'espace admin » ; le sub-project `08` a traité le troisième, celui-ci ferme les deux derniers. Le schéma pose `z.url({ protocol: /^https?$/ })`, avec un cas de test. `src/lib/url.ts` porte bien un `safeExternalUrl`, mais il ne filtre qu'au rendu du case study, pas à l'écriture ni sur les cartes projet.
+
+**`deliverablesCount` a besoin d'une valeur par défaut côté formulaire.** Le champ est `Int @default(1)` en base et validé par `min(1)`. Un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause. Le formulaire du sub-project `13` pose donc `defaultValue={1}`.
+
 **Invalidation par `updateTag('projects')`**, l'étiquette portée par les requêtes publiques de `src/server/queries/projects.ts`. `updateTag` et non `revalidateTag` : il fait attendre la requête suivante plutôt que de servir du contenu périmé, ce qui rend immédiatement visible un projet passé en publié. **Elle ne suffit pas côté administration** : ces écrans lisent sans cache, donc sans étiquette. Chaque mutation appelle aussi `revalidatePath` sur l'écran concerné, faute de quoi la liste continue d'afficher ce qui vient d'être supprimé.
 
 **La requête d'administration ignore le statut.** `findManyPublished` filtre sur `PUBLISHED` et applique `'use cache'` : l'administration doit voir les brouillons et les archivés, sans cache. Même raisonnement qu'aux sub-projects `07` et `08`.
@@ -124,6 +128,12 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 **THEN** aucune écriture n'a lieu
 **AND** le message apparaît sous le champ slug
 
+### Scénario 12 bis : URL restreintes à http et https
+**GIVEN** les Server Actions de création et de modification
+**WHEN** on soumet `javascript:alert(1)` en URL de dépôt ou de démonstration
+**THEN** la validation le refuse
+**AND** aucune ligne n'est écrite
+
 ### Scénario 12 : Action inatteignable sans session
 **GIVEN** aucune session valide
 **WHEN** la Server Action est appelée directement, sans passer par l'écran
@@ -147,6 +157,7 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
   - une date de fin antérieure à la date de début est refusée
   - des dates absentes sont acceptées, les deux champs étant optionnels
   - une URL de dépôt ou de démonstration invalide est refusée, une valeur vide est enregistrée en `null`
+  - une URL en `javascript:` est refusée sur les deux champs, `z.url()` nu l'acceptant
   - la création d'un projet client ouvre une transaction
   - le passage de `CLIENT` à `PERSONAL` supprime la méta client
   - le passage de `PERSONAL` à `CLIENT` crée la méta client

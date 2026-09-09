@@ -13,7 +13,7 @@ date: "2026-09-03"
 
 ## Scope
 
-Les pages `/admin/projets/nouveau` et `/admin/projets/[id]` : un formulaire pleine page couvrant tous les champs d'un projet, la sélection des tags, le choix de l'entreprise avec création possible sans quitter la page, le choix de la couverture parmi les assets, et la saisie du markdown bilingue des case studies.
+Les pages `/admin/projets/nouveau` et `/admin/projets/[id]` : un formulaire pleine page couvrant tous les champs d'un projet, la sélection des tags, le choix de l'entreprise avec création possible sans quitter la page, le choix de la couverture parmi les assets, et la saisie du markdown bilingue des case studies. S'y ajoute l'édition du logo d'entreprise, dernier champ de l'epic à n'être encore modifiable nulle part.
 
 C'est le dernier sub-project de la fondation, et celui qui fait converger tout ce qui précède. Il porte aussi le fil d'ariane, reporté du sub-project `06` faute de hiérarchie à représenter à l'époque.
 
@@ -31,13 +31,15 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 
 ## Files touched
 
-- **À modifier** : `src/app/admin/projets/nouveau/page.tsx` (remplacement de la page d'attente)
-- **À modifier** : `src/app/admin/projets/[id]/page.tsx` (remplacement de la page d'attente)
+- **À modifier** : `src/app/admin/(protected)/projets/nouveau/page.tsx` (remplacement de la page d'attente)
+- **À modifier** : `src/app/admin/(protected)/projets/[id]/page.tsx` (remplacement de la page d'attente)
+- **À modifier** : `src/components/features/admin/companies/CompanyFormDialog.tsx` (prop `assetPicker` optionnelle, pour rendre `logoFilename` éditable)
+- **À modifier** : `src/app/admin/(protected)/entreprises/page.tsx` (passe l'`AssetPicker` au dialogue, sur le bucket admin)
 - **À créer** : `src/components/features/admin/projects/ProjectForm.tsx`
 - **À créer** : `src/components/features/admin/projects/ProjectTagsField.tsx`
 - **À créer** : `src/components/features/admin/projects/ClientMetaFields.tsx`
 - **À créer** : `src/components/layout/AdminBreadcrumb.tsx`
-- **À installer** : `src/components/ui/breadcrumb.tsx`, `src/components/ui/dialog.tsx`, `src/components/ui/select.tsx` et `src/components/ui/alert-dialog.tsx` par le CLI shadcn. les quatre sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/`
+- **À installer** : `src/components/ui/breadcrumb.tsx` par le CLI shadcn, seul composant encore absent à ce stade. `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` sont posés par le sub-project `07`, dont celui-ci dépend transitivement : vérifier leur présence et ne rien réinstaller
 
 ## Architecture approach
 
@@ -49,7 +51,17 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 
 **La bascule vers personnel avertit avant de perdre des données.** Passer un projet de `CLIENT` à `PERSONAL` supprime sa méta client, et le sub-project `11` l'assume côté action. L'interface doit le dire au moment du choix, pas le laisser découvrir après enregistrement.
 
-**Composants à installer avant d'écrire.** `dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md` : le formulaire en dépend pour ses cinq selects et, indirectement, pour `CompanyFormDialog`. `alert-dialog` s'y ajoute, le scénario 3 exigeant que l'enregistrement n'ait lieu qu'après confirmation ; l'avertissement lui-même est un `<p className="text-sm text-destructive">`, comme les erreurs de champ du formulaire, `Alert` restant non installé. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé. Les deux pages chargent leurs données sous `<Suspense>`, `cacheComponents: true` refusant une lecture dynamique hors frontière de suspension.
+**Un seul composant à installer, `breadcrumb`.** Tout le reste est en place : `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` viennent du sub-project `07`, dont celui-ci dépend par la chaîne `13 → 12 → 11 → 07` comme par `13 → 08 → 07`. Vérifier avant d'installer, une réinstallation écrasant les composants existants.
+
+`alert-dialog` sert au scénario 3, l'enregistrement d'une bascule destructrice n'ayant lieu qu'après confirmation ; l'avertissement lui-même est un `<p className="text-sm text-destructive">`, comme les erreurs de champ, `Alert` restant non installé.
+
+Les cases à cocher des formats et des tags sont le composant **`Checkbox` du registry**, pas des cases natives : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin.
+
+Les deux pages chargent leurs données sous `<Suspense>`, `cacheComponents: true` refusant une lecture dynamique hors frontière de suspension.
+
+**Le logo d'entreprise devient éditable ici.** Aucun sub-project ne le rendait modifiable : le `08` l'excluait faute d'`AssetPicker`, le `10` écrivait l'`AssetPicker` « pour le `13` », et le `13` ne branchait que la couverture de projet. À la fin de l'epic, `Company.logoFilename` serait resté non éditable. `CompanyFormDialog` reçoit donc une prop `assetPicker` optionnelle, et les deux points de montage la fournissent : l'écran des entreprises et le select d'entreprise de ce formulaire. L'`AssetPicker` y parcourt `freelance/crm/entreprises/` sur le bucket **admin**, contrairement à celui de la couverture qui parcourt `projets/` sur le bucket de la vitrine.
+
+**`deliverablesCount` porte `defaultValue={1}`.** Le champ est validé par `min(1)` au sub-project `11`, et un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause.
 
 **Les tags se cochent, ils ne se cherchent pas.** Des cases à cocher groupées par catégorie plutôt qu'un champ de recherche : le composant `Command` de shadcn rend `CommandItem` toujours en état sélectionné dans le style `radix-nova`, la faute à un sélecteur Tailwind mal formé (`data-selected:` au lieu de `data-[selected=true]:`). C'est l'issue shadcn-ui#9228, ouverte, avec une PR de correction #9254 en attente. Le regroupement par `TagKind` rend de toute façon la liste navigable sans recherche, donc ce choix tient même une fois l'issue close.
 
@@ -123,6 +135,19 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 **WHEN** on le passe en publié et qu'on enregistre
 **THEN** il apparaît sur `/projets` du site public
 
+### Scénario 11 : Logo d'entreprise éditable
+**GIVEN** le formulaire d'une entreprise, ouvert depuis son écran ou depuis le select de ce formulaire
+**WHEN** on choisit un logo par le sélecteur d'assets
+**THEN** `logoFilename` est enregistré
+**AND** le sélecteur ne propose que les fichiers de `freelance/crm/entreprises/`, sur le bucket admin
+**AND** l'espace admin affiche ce logo, le site public continuant de n'afficher que le nom
+
+### Scénario 12 : Nombre de livrables par défaut
+**GIVEN** le bloc client d'un nouveau projet
+**WHEN** on ne touche pas au champ du nombre de livrables
+**THEN** il vaut 1 et l'enregistrement aboutit
+**AND** vider le champ produit un message de validation compréhensible, non une erreur technique
+
 ## Edge cases
 
 - **Perte de saisie à la création d'entreprise** : c'est le scénario que le double montage de `CompanyFormDialog` sert à éviter. Si l'ouverture de la modale démontait le formulaire ou provoquait une navigation, tout le travail en cours serait perdu
@@ -132,3 +157,6 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 - **Markdown long** : les case studies peuvent faire plusieurs milliers de caractères. Les zones de saisie doivent être redimensionnables et le formulaire rester navigable
 - **Sélecteur de couverture et préfixe** : proposer tous les assets, y compris les CV, rendrait le choix confus. Le sélecteur doit être restreint aux dossiers de projets
 - **Identifiant inexistant** : `/admin/projets/<id-inconnu>` doit produire une 404 propre, pas une erreur de rendu
+- **Deux `AssetPicker`, deux buckets** : celui de la couverture parcourt `projets/` sur `portfolio-assets`, celui du logo `freelance/crm/entreprises/` sur `portfolio-admin`. Confondre les deux ferait pointer un logo vers un bucket qui ne le contient pas, sans erreur immédiate
+- **Logo jamais éditable** : c'est le trou que ce sub-project ferme. Le `08` renvoyait au `10`, le `10` au `13`, et le `13` ne branchait que la couverture. Sans cette correction, `Company.logoFilename` resterait modifiable uniquement par le seed
+- **`deliverablesCount` vidé** : `Number('')` vaut `0`, que le `min(1)` refuse. Sans `defaultValue={1}`, le message d'erreur n'oriente pas vers la cause

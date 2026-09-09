@@ -18,7 +18,7 @@
 - **Aucune librairie de table** : le tri et le filtrage sont un pattern à écrire, comme le note `docs/DESIGN.md`.
 - La confirmation de suppression **nomme le projet** : aucune contrainte de base ne protège ici, contrairement aux tags et aux entreprises.
 - **Aucun test** : filtrer un tableau par statut ne vérifie aucune règle métier du projet.
-- `src/app/admin/projets/page.tsx` existe comme page d'attente : la **remplacer**.
+- `src/app/admin/(protected)/projets/page.tsx` existe comme page d'attente : la **remplacer**.
 - **Deux pages d'attente sont à créer avant d'écrire le moindre lien** : `/admin/projets/nouveau` et `/admin/projets/[id]`. Avec `typedRoutes: true`, un lien vers une route inexistante fait **échouer la compilation**, il ne produit pas une 404. La route dynamique est la plus facile à oublier : elle n'est pas dans un bouton visible mais dans la colonne d'actions de la liste.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
@@ -29,8 +29,8 @@
 ### Task 1 : Filtres et confirmation de suppression
 
 **Files:**
-- Create: `src/app/admin/projets/nouveau/page.tsx`
-- Create: `src/app/admin/projets/[id]/page.tsx`
+- Create: `src/app/admin/(protected)/projets/nouveau/page.tsx`
+- Create: `src/app/admin/(protected)/projets/[id]/page.tsx`
 - Create: `src/components/features/admin/projects/ProjectsFilters.tsx`
 - Create: `src/components/features/admin/projects/DeleteProjectDialog.tsx`
 
@@ -42,7 +42,7 @@
 
 Elles viennent **avant** tout le reste : la table de la Task 2 porte un lien par ligne vers `/admin/projets/[id]` et la page de la Task 3 un bouton vers `/admin/projets/nouveau`. Avec `typedRoutes: true`, écrire l'un ou l'autre sans que la route existe fait échouer le `typecheck`, pas produire une 404.
 
-`src/app/admin/projets/nouveau/page.tsx` :
+`src/app/admin/(protected)/projets/nouveau/page.tsx` :
 
 ```typescript
 export default function AdminNouveauProjetPage() {
@@ -55,7 +55,7 @@ export default function AdminNouveauProjetPage() {
 }
 ```
 
-`src/app/admin/projets/[id]/page.tsx` :
+`src/app/admin/(protected)/projets/[id]/page.tsx` :
 
 ```typescript
 export default function AdminEditProjetPage() {
@@ -97,7 +97,9 @@ Points imposés :
 - [ ] **Step 3: Écrire la confirmation de suppression**
 
 `AlertDialog` shadcn appelant `deleteProject(projectId)`.
-> **Composants shadcn à installer d'abord.** `select` et `alert-dialog` sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/` : `pnpm dlx shadcn@latest add select alert-dialog`, avec `--dry-run` en premier et aucun écrasement des composants existants. Pas de `dialog` : cet écran n'utilise que `AlertDialog`. Ce sub-project ne dépend pas du `07`, il ne peut donc rien hériter de ses installations. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+> **Composants shadcn : vérifier avant d'installer.** `select`, `alert-dialog` et `pagination` sont posés par le sub-project `07`, dont celui-ci dépend transitivement (`12 → 11 → 07`). Ils sont donc **déjà présents** : les réinstaller les écraserait. Faire un `ls src/components/ui/` et n'ajouter que ce qui manquerait réellement, avec `--dry-run` d'abord.
+>
+> Si une case à cocher s'avère nécessaire, c'est le `Checkbox` du registry, posé au `07`, et non un `<input type="checkbox">` natif : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin.
 
 
 Le libellé doit **nommer le projet** et énoncer ce qui disparaît :
@@ -127,7 +129,9 @@ Expected: aucune erreur.
 
 - [ ] **Step 1: Écrire la liste**
 
-Composant client tenant l'état des filtres et du tri, et dérivant la liste affichée par `useMemo`.
+Composant client qui **décrit ses colonnes et délègue au `DataTable`** du sub-project `07`. Recherche, tri par colonne avec `aria-sort` et pied paginé y sont déjà écrits : ne rien réimplémenter, les trois écrans de liste de l'epic devant se comporter à l'identique.
+
+Ce qui reste propre à cet écran : les deux filtres, type et statut, en `Select`, dont l'état vit ici et qui réduisent les lignes passées au `DataTable`.
 
 Colonnes de la table, à partir de `md:` :
 
@@ -153,7 +157,9 @@ Trois points à ne pas manquer :
 - **tolérer une méta client absente** : afficher un tiret plutôt que planter. Les Server Actions du sub-project `11` rendent le cas improbable, pas impossible
 - **distinguer l'état vide de l'état de chargement** : une liste filtrée sans résultat doit afficher un message explicite, sinon on croit à une lenteur
 
-Le tri porte sur le titre et sur `displayOrder`, avec le critère actif visible dans l'en-tête de colonne.
+Le tri porte sur le titre et sur `displayOrder`, déclaré par `sortable: true` sur ces deux colonnes. Le `DataTable` s'occupe du cycle croissant, décroissant, ordre d'affichage et de l'`aria-sort` : rien à écrire ici.
+
+Sur mobile, les cartes empilées reçoivent les mêmes lignes filtrées, mais restent hors du `DataTable`, qui rend une table. La recherche et la pagination du pied s'appliquent aux deux, la bascule ne portant que sur la présentation.
 
 - [ ] **Step 2: Vérifier typage et lint**
 
@@ -168,7 +174,7 @@ Expected: aucune erreur.
 ### Task 3 : Page
 
 **Files:**
-- Modify: `src/app/admin/projets/page.tsx`
+- Modify: `src/app/admin/(protected)/projets/page.tsx`
 
 **Interfaces:**
 - Consomme : `findAllProjectsForAdmin` (sub-project `11`), `<ProjectsTable />` (Task 2), les deux routes d'attente de la Task 1.

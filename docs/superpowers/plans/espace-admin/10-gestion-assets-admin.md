@@ -18,7 +18,10 @@
 - Les clés suivent la convention existante : `projets/{client,personal}/<slug>/<filename>`, `documents/cv/<filename>` et `branding/<filename>`.
 - Le chemin complet passe par **`validateAssetPath`** avant écriture : un fichier qu'on ne pourrait pas relire n'a aucune raison d'être écrit.
 - **Taille et type MIME sont vérifiés côté serveur**, `.claude/rules/nextjs/server-actions.md` l'imposant explicitement : « valider taille et type MIME des fichiers `FormData` côté serveur, ne pas se fier au `accept` HTML ». Le MIME annoncé doit correspondre à l'extension, faute de quoi un `.png` renommé serait servi plus tard avec un `Content-Type` qui ne décrit pas son contenu.
-- La suppression est **refusée** si l'asset est référencé par `Project.coverFilename` ou `Company.logoFilename`, et le message nomme les éléments concernés.
+- La suppression est **refusée** si l'asset est référencé par `Project.coverFilename`, par `freelance.Company.logoFilename`, **ou cité dans `caseStudyMarkdownFr` / `caseStudyMarkdownEn`**, et le message nomme les éléments concernés. Les captures de case study ne vivent dans aucune colonne dédiée : les oublier revient à autoriser la suppression d'une image affichée en production.
+- **Deux buckets.** Le sub-project `09` a réparti les fichiers selon ce qu'une route publique a le droit de servir : `portfolio-assets` pour la vitrine, lue sans authentification, `portfolio-admin` pour le back-office, lue par une route gardée sous `/admin`. L'emplacement choisi dans le formulaire détermine le bucket, jamais l'inverse. Déposer un logo d'entreprise dans `portfolio-assets` défairait ce que le `09` vient d'établir.
+- **Trois contrôles au dépôt** : un emplacement dans une liste fermée, un slug quand l'emplacement en attend un, le nom du fichier. Un asset de projet demande deux niveaux intermédiaires (`client` puis le slug), c'est le cas le plus fréquent et un « dossier plus sous-dossier » ne le couvre pas.
+- Installer un composant shadcn **seulement s'il est absent**. Ce sub-project ne dépend que du `06` et du `09` : selon l'ordre réel d'exécution, le `07` a pu passer avant et poser `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox`.
 - Le listing suit le **jeton de continuation** : `ListObjectsV2` plafonne à mille objets par appel.
 - R2 **écrase sans avertir** un objet de même clé : l'écrasement doit être confirmé explicitement.
 - Aucun modèle Prisma ajouté : un asset est un objet du bucket, référencé par son nom depuis `Project` ou `Company`, conformément à l'ADR-011.
@@ -488,7 +491,16 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
   const filename = key.split('/').pop() ?? ''
 
   const [projects, companies] = await Promise.all([
-    prisma.project.findMany({ where: { coverFilename: key }, select: { slug: true } }),
+    prisma.project.findMany({
+      where: {
+        OR: [
+          { coverFilename: key },
+          { caseStudyMarkdownFr: { contains: key } },
+          { caseStudyMarkdownEn: { contains: key } },
+        ],
+      },
+      select: { slug: true },
+    }),
     prisma.company.findMany({ where: { logoFilename: key }, select: { slug: true } }),
   ])
 
@@ -513,7 +525,11 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
 
 La vérification des rattachements précède la suppression et non l'inverse : consulter la base après avoir effacé l'objet ne servirait à rien.
 
+**Un asset est référencé de trois façons, pas deux.** Les deux colonnes sont des égalités faciles. Mais les captures de case study ne vivent dans aucune colonne dédiée : elles sont écrites en dur dans `caseStudyMarkdownFr` et `caseStudyMarkdownEn`, et rendues par `MarkdownContent`. Sans les deux `contains`, on supprime une image pourtant affichée sur une page publique, et le défaut ne se voit qu'à l'œil, plus tard, sur la page de case study concernée. C'est le trou le plus discret de cet écran.
+
 Le format exact stocké dans `coverFilename` et `logoFilename` doit être confirmé à l'implémentation. Si ces colonnes portent le nom seul et non la clé complète, la clause `where` doit s'y adapter, sans quoi la protection ne détecterait jamais rien.
+
+`DeleteObjectCommand` vise le bucket déduit de la clé : `freelance/crm/entreprises/…` va sur `portfolio-admin`, tout le reste sur `portfolio-assets`. Un `R2_BUCKET` figé supprimerait dans le mauvais bucket, ou plus exactement ne supprimerait rien, sans erreur.
 
 - [ ] **Step 4: Lancer les tests pour vérifier qu'ils passent**
 
@@ -632,7 +648,7 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/assets/AssetsBrowser.tsx`
 - Create: `src/components/features/admin/assets/AssetUploadDialog.tsx`
 - Create: `src/components/features/admin/assets/DeleteAssetDialog.tsx`
-- Modify: `src/app/admin/assets/page.tsx`
+- Modify: `src/app/admin/(protected)/assets/page.tsx`
 
 **Interfaces:**
 - Consomme : `uploadAsset`, `deleteAsset` (Task 2), `listAssets` (Task 3).
@@ -643,7 +659,16 @@ Expected: aucune erreur.
 Composant client en `useActionState`. Points imposés :
 
 - un select du dossier alimenté par `ASSET_FOLDERS`, un champ de slug, un champ de fichier
-> **Composants shadcn à installer d'abord.** `dialog`, `select` et `alert-dialog` sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/` : `pnpm dlx shadcn@latest add dialog select alert-dialog`, avec `--dry-run` en premier et aucun écrasement des composants existants. Ce sub-project ne dépend pas du `07`, il ne peut donc rien hériter de ses installations. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+> **Composants shadcn : vérifier, puis n'installer que ce qui manque.**
+>
+> ```bash
+> ls src/components/ui/
+> pnpm dlx shadcn@latest add dialog select alert-dialog   # seulement les absents
+> ```
+>
+> Ce sub-project ne dépend que du `06` et du `09` : il **peut** s'exécuter avant le `07`, auquel cas ces composants n'existent pas encore, ou après, auquel cas ils sont déjà là et les réinstaller les écraserait. Passer `--dry-run` d'abord et refuser tout écrasement d'un composant existant.
+>
+> Si un `Checkbox` s'avère nécessaire ici, prendre celui du registry et non un `<input type="checkbox">` natif : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin, seul lui rendant l'état indéterminé d'un « tout sélectionner ».
 
 - le nom du fichier est pré-rempli depuis le fichier choisi, en minuscules, et reste modifiable
 - **la taille est vérifiée côté client avant l'envoi** : au-delà de `bodySizeLimit`, la requête est rejetée par le framework avant d'atteindre l'action, et le message par défaut n'explique rien
@@ -755,6 +780,12 @@ Rattacher un asset à un projet, puis tenter de le supprimer.
 
 Expected: refus, avec le slug du projet nommé. C'est le critère central du sub-project.
 
+- [ ] **Step 8 bis: Vérifier le refus sur une capture de case study**
+
+Repérer une image citée dans le markdown d'un case study sans être la couverture du projet, par exemple `projets/client/webapp-gestion-sinistres/webapp-gestion-sinistres-2.webp`, puis tenter de la supprimer.
+
+Expected: refus, avec le slug du projet nommé. Une suppression acceptée signalerait que les deux clauses `contains` sur `caseStudyMarkdownFr` et `caseStudyMarkdownEn` manquent : l'image disparaîtrait d'une page publique sans que rien ne le signale.
+
 - [ ] **Step 9: Vérifier le bucket de destination**
 
 ```bash
@@ -764,6 +795,22 @@ AWS_ACCESS_KEY_ID=<clé dev> AWS_SECRET_ACCESS_KEY=<secret dev> AWS_DEFAULT_REGI
 ```
 
 Expected: le fichier déposé en local est dans le bucket de développement, pas dans celui de production. Le token de développement ne peut de toute façon pas lire `portfolio-assets` : tenter la même commande sur ce bucket doit être refusé.
+
+- [ ] **Step 9 bis: Vérifier la séparation vitrine / back-office**
+
+Déposer un logo dans l'emplacement `freelance/crm/entreprises`, avec un slug d'entreprise.
+
+```bash
+aws s3 ls s3://portfolio-admin-dev/freelance/crm/entreprises/ --recursive \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+```
+
+Expected: le fichier est dans le bucket **admin**, pas dans celui de la vitrine. Puis :
+
+- le charger par la route publique `/api/assets/freelance/crm/entreprises/<slug>/logo.png` doit échouer, cette route ne détenant que le token de la vitrine ;
+- le charger par la route authentifiée de l'espace admin, session valide, doit réussir.
+
+C'est ce qui prouve que la frontière posée au sub-project `09` tient jusqu'à l'écriture.
 
 - [ ] **Step 10: Lancer la suite complète**
 
@@ -789,15 +836,20 @@ Expected: tous les tests verts.
 
 `.claude/rules/nextjs/assets.md` ne décrit que `projets/` et `documents/`. Le dossier `branding/` est pourtant utilisé en production par le logo de la navbar, le portrait de la page à propos et le JSON-LD, avec une profondeur de deux segments et **sans** slug intermédiaire.
 
-Ajouter les trois structures valides à la règle de convention de chemins :
+Ajouter les quatre structures valides à la règle de convention de chemins, en nommant le bucket de chacune :
 
-| Structure | Segments | Exemple |
-|---|---|---|
-| `branding/<fichier>` | 2 | `branding/portrait.jpg` |
-| `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
-| `projets/{client,personal}/<slug>/<fichier>` | 4 | `projets/client/foyer/logo.png` |
+| Bucket | Structure | Segments | Exemple |
+|---|---|---|---|
+| `portfolio-assets` | `branding/<fichier>` | 2 | `branding/portrait.jpg` |
+| `portfolio-assets` | `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
+| `portfolio-assets` | `projets/{client,personal}/<slug-projet>/<fichier>` | 4 | `projets/client/webapp-gestion-sinistres/cover.webp` |
+| `portfolio-admin` | `freelance/crm/entreprises/<slug>/<fichier>` | 5 | `freelance/crm/entreprises/foyer/logo.png` |
 
-Sans cet ajout, la rule décrit `branding/` comme interdit alors qu'il est en place, et c'est elle qui est chargée automatiquement à la prochaine édition d'un fichier d'assets. C'est aussi ce constat d'arborescence qui justifie le slug conditionnel du schéma de la Task 1 : le documenter ailleurs que dans le plan est ce qui empêche qu'on le « corrige » plus tard en croyant à une incohérence.
+Écrire aussi la règle qui les sépare, sans quoi la table se lit comme une liste arbitraire : `portfolio-assets` porte ce que la route publique `/api/assets/[...path]` sert sans authentification, `portfolio-admin` ce qui n'est lu que par l'espace admin, derrière sa propre route gardée. Le critère n'est pas « qui édite le fichier », l'admin écrivant dans les deux, mais « qui a le droit de le lire ».
+
+Le dossier de projet porte le slug du **projet**, jamais celui de son entreprise : c'est ce que le sub-project `09` a corrigé, l'ancienne arborescence mélangeant les deux conventions.
+
+Sans cet ajout, la rule décrit `branding/` comme interdit alors qu'il est en place, et c'est elle qui est chargée automatiquement à la prochaine édition d'un fichier d'assets. C'est aussi ce constat d'arborescence qui justifie les trois contrôles du formulaire de la Task 1, emplacement, slug et nom de fichier : le documenter ailleurs que dans le plan est ce qui empêche qu'on le « corrige » plus tard en croyant à une incohérence.
 
 - [ ] **Step 2: Consigner la limite de taille dans `docs/PRODUCTION.md`**
 
@@ -809,11 +861,16 @@ Préciser le raisonnement en une ligne, la valeur seule n'expliquant pas pourquo
 
 ```bash
 grep -rn "branding" .claude/rules/nextjs/assets.md src/lib/schemas/asset.ts
+grep -rn "entreprises" .claude/rules/nextjs/assets.md src/lib/schemas/asset.ts
 ```
 
-Expected: le dossier apparaît des deux côtés, avec la même profondeur et la même absence de slug.
+Expected: les deux emplacements apparaissent des deux côtés, avec la même profondeur, la même règle de slug et le même bucket.
 
-- [ ] **Step 4: Demander la validation avant commit**
+- [ ] **Step 4: Inscrire la vérification de production dans la Checklist Release**
+
+Un point ne peut être constaté qu'après déploiement, et la production ne se déploie qu'au tag release-please : l'ajouter à la Checklist Release de `docs/PRODUCTION.md` plutôt qu'en faire un critère de fin de sub-project. Un fichier déposé depuis l'espace admin de production apparaît dans le bucket de production correspondant à son emplacement, et un logo d'entreprise reste inaccessible par la route publique.
+
+- [ ] **Step 5: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

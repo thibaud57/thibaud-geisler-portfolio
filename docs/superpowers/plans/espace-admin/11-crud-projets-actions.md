@@ -119,8 +119,14 @@ export const projectSchema = z
     formats: z.array(z.enum(PROJECT_FORMATS, { error: 'Format inconnu' })).min(1, 'Sélectionne au moins un format'),
     startedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
     endedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
-    githubUrl: z.preprocess(emptyToNull, z.url("L'URL GitHub n'est pas valide").nullable()),
-    demoUrl: z.preprocess(emptyToNull, z.url("L'URL de démonstration n'est pas valide").nullable()),
+    githubUrl: z.preprocess(
+      emptyToNull,
+      z.url({ protocol: /^https?$/, error: "L'URL GitHub n'est pas valide" }).nullable(),
+    ),
+    demoUrl: z.preprocess(
+      emptyToNull,
+      z.url({ protocol: /^https?$/, error: "L'URL de démonstration n'est pas valide" }).nullable(),
+    ),
     coverFilename: z.preprocess(emptyToNull, z.string().nullable()),
     caseStudyMarkdownFr: z.preprocess(emptyToNull, z.string().nullable()),
     caseStudyMarkdownEn: z.preprocess(emptyToNull, z.string().nullable()),
@@ -158,6 +164,12 @@ export type ProjectInput = z.infer<typeof projectSchema>
 Le `superRefine` porte les deux règles que la base ne peut pas exprimer. `workMode` y figure au même titre que `companyId` parce qu'il est **requis** dans `ClientMeta`, contrairement à `teamSize` et `contractStatus` : l'omettre produirait une erreur de base au lieu d'un message de formulaire.
 
 `emptyToNull` en `preprocess` traite le fait qu'un `FormData` renvoie `''` et jamais `undefined`. Sans lui, `z.url()` échouerait sur un champ facultatif laissé vide.
+
+**Le `protocol` sur les deux URL n'est pas optionnel.** `z.url()` nu valide par `new URL()`, qui accepte `javascript:alert(1)` : `demoUrl` et `githubUrl` finissent tous deux dans un `href` de page publique, c'est donc un XSS stocké. `docs/PRODUCTION.md` § Checklist Pré-MEP nomme ces deux champs avec `Company.websiteUrl` et demande de les corriger « avant le premier formulaire d'édition de l'espace admin ». Le sub-project `08` a traité le troisième, celui-ci ferme les deux derniers.
+
+`src/lib/url.ts` porte bien un `safeExternalUrl`, mais il filtre au rendu du seul case study : il ne couvre ni l'écriture, ni les cartes projet, ni la table admin.
+
+`deliverablesCount` mérite un `defaultValue={1}` côté formulaire au sub-project `13` : un champ numérique vidé produit `Number('')`, soit `0`, que le `min(1)` refuse avec un message qui n'oriente pas vers la cause.
 
 - [ ] **Step 2: Écrire les types d'état**
 
@@ -358,6 +370,13 @@ describe('createProject', () => {
   })
 
   it('refuse une URL GitHub invalide', async () => {
+    const state = await createProject(initialProjectFormState, buildFormData({ githubUrl: 'javascript:alert(1)' }))
+    expect(state.ok).toBe(false)
+    expect(state.errors.githubUrl).toBeDefined()
+    expect(prismaMock.project.create).not.toHaveBeenCalled()
+  })
+
+  it("refuse une URL mal formée", async () => {
     const state = await createProject(initialProjectFormState, buildFormData({ githubUrl: 'pas-une-url' }))
 
     expect(state.errors.githubUrl).toBeDefined()

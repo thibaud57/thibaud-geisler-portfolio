@@ -22,7 +22,7 @@
 - Markdown en zones de saisie simples, sans éditeur enrichi ni prévisualisation.
 - Fil d'ariane **déclaré par page**, pas dérivé du chemin.
 - **Aucun test** : les Server Actions sont couvertes par le sub-project `11`, le reste est de l'assemblage.
-- `src/app/admin/projets/nouveau/page.tsx` et `src/app/admin/projets/[id]/page.tsx` existent comme pages d'attente, créées au sub-project `12` pour que ses liens compilent : les **remplacer** toutes les deux, ne pas en créer de secondes à côté.
+- `src/app/admin/(protected)/projets/nouveau/page.tsx` et `src/app/admin/(protected)/projets/[id]/page.tsx` existent comme pages d'attente, créées au sub-project `12` pour que ses liens compilent : les **remplacer** toutes les deux, ne pas en créer de secondes à côté.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
 **Rules :** `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/tailwind/conventions.md`.
@@ -45,10 +45,15 @@
 - [ ] **Step 1: Installer le composant**
 
 ```bash
-pnpm dlx shadcn@latest add breadcrumb dialog select alert-dialog
+ls src/components/ui/                        # vérifier avant
+pnpm dlx shadcn@latest add breadcrumb        # seul composant encore absent
 ```
 
-`dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md` : le formulaire en dépend directement (selects de statut, type, mode de travail, statut de contrat, entreprise) et indirectement via `CompanyFormDialog`. `alert-dialog` porte la confirmation du scénario 3, où l'enregistrement n'a lieu qu'après accord explicite sur la suppression de la méta client. Passer `--dry-run` d'abord, ne rien écraser. Les cases à cocher des formats et des tags sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé.
+`breadcrumb` est le seul composant que ce sub-project introduit. `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` sont posés par le sub-project `07`, dont celui-ci dépend deux fois (`13 → 12 → 11 → 07` et `13 → 08 → 07`) : ils sont **déjà présents**, et les réinstaller les écraserait. Passer `--dry-run` d'abord, ne rien écraser.
+
+Le formulaire en dépend directement pour ses cinq selects (statut, type, mode de travail, statut de contrat, entreprise) et indirectement via `CompanyFormDialog`. `alert-dialog` porte la confirmation du scénario 3, où l'enregistrement n'a lieu qu'après accord explicite sur la suppression de la méta client.
+
+Les cases à cocher des formats et des tags sont le composant **`Checkbox` du registry**, pas des cases natives : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin, seul lui rendant l'état indéterminé d'un « tout sélectionner ». Le composant Radix ne soumet rien de lui-même, il faut lui passer `name` et `value` pour qu'il monte l'input caché correspondant.
 
 - [ ] **Step 2: Écrire le fil d'ariane**
 
@@ -121,7 +126,7 @@ Expected: aucune erreur.
 Composant client. Points imposés :
 
 - les tags sont **groupés par `kind`**, avec le libellé de catégorie en en-tête de chaque groupe
-- chaque tag est une case à cocher `<input type="checkbox">`, **jamais** un `Command` : son état sélectionné est incorrect en `radix-nova`. Le libellé affiché est `nameFr`, l'interface d'administration étant en français, et l'en-tête de groupe est un libellé français écrit en dur pour chacune des six valeurs de `TagKind`, que l'enum ne porte pas
+- chaque tag est un `Checkbox` shadcn, **jamais** un `Command` : l'état sélectionné de ce dernier est incorrect en `radix-nova`. Le libellé affiché est `nameFr`, l'interface d'administration étant en français, et l'en-tête de groupe est un libellé français écrit en dur pour chacune des six valeurs de `TagKind`, que l'enum ne porte pas
 - les identifiants retenus sont émis dans l'**ordre de sélection**, pas dans l'ordre d'affichage. C'est cet ordre qui alimentera `displayOrder`
 - la liste des tags retenus est affichée séparément, dans son ordre, pour que l'ordre soit visible avant enregistrement
 - chaque identifiant retenu est rendu dans un `<input type="hidden" name="tagIds" />`, ce qui produit les valeurs multiples que la Server Action lit avec `getAll`
@@ -167,6 +172,8 @@ Expected: aucune erreur.
 
 **Files:**
 - Create: `src/components/features/admin/projects/ProjectForm.tsx`
+- Modify: `src/components/features/admin/companies/CompanyFormDialog.tsx`
+- Modify: `src/app/admin/(protected)/entreprises/page.tsx`
 
 **Interfaces:**
 - Consomme : `createProject`, `updateProject` (sub-project `11`), `<ProjectTagsField />` et `<ClientMetaFields />` (Task 2), `<AssetPicker assets={…} />` (sub-project `10`, qui reçoit ses données en prop : sa requête est `server-only`).
@@ -188,11 +195,11 @@ const [state, formAction, pending] = useActionState(action, initialProjectFormSt
 | Identification | slug, statut, ordre d'affichage |
 | Contenu français | titre, description, markdown de case study |
 | Contenu anglais | titre, description, markdown de case study |
-| Classification | type, formats (cases à cocher multiples), tags |
+| Classification | type, formats (`Checkbox` multiples), tags |
 | Liens | URL de dépôt, URL de démonstration |
 | Dates | début, fin |
 | Couverture | `AssetPicker`, alimenté par la page qui appelle `listAssets('projets/')` et lui passe le résultat en prop, plus un `<input type="hidden" name="coverFilename" />` qui porte la sélection jusqu'à l'action |
-| Méta client | `ClientMetaFields`, affiché seulement si le type vaut `CLIENT` |
+| Méta client | `ClientMetaFields`, affiché seulement si le type vaut `CLIENT`. Le champ du nombre de livrables porte `defaultValue={1}` : validé par `min(1)` au sub-project `11`, un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause |
 
 Chaque intitulé de section relève de la famille Label de la scale : `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. Au-delà d'une dizaine de caractères, y ajouter `text-balance` : l'espacement large fait déborder, ce qui s'est déjà produit deux fois sur le site public. « Contenu français » fait seize caractères, « Classification » quatorze.
 
@@ -218,7 +225,20 @@ Chaque intitulé de section relève de la famille Label de la scale : `text-sm f
 
 6. **Retour à la liste après enregistrement.** Le scénario 1 de la spec l'exige (« on est redirigé vers la liste, où il figure ») et rien ne le produit aujourd'hui : les actions du sub-project `11` retournent `{ ok: true, savedId }` sans rediriger. Un `useEffect` sur `state.ok` qui appelle `router.push('/admin/projets')`, la redirection appartenant à l'interface et non à l'action, qui doit rester réutilisable.
 
-Les formats sont des cases à cocher partageant `name="formats"`, ce qui produit les valeurs multiples lues par `getAll`.
+Les formats sont des `Checkbox` shadcn partageant `name="formats"`, ce qui produit les valeurs multiples lues par `getAll`. Le composant Radix ne soumet rien de lui-même : lui passer `name` et `value` pour qu'il monte l'input caché correspondant.
+
+- [ ] **Step 1 bis: Rendre le logo d'entreprise éditable**
+
+`Company.logoFilename` n'est modifiable nulle part à ce stade, et sans cette étape il ne le serait toujours pas à la fin de l'epic : le sub-project `08` l'excluait faute d'`AssetPicker`, le `10` écrivait l'`AssetPicker` « pour le `13` », et le `13` ne branchait que la couverture de projet. Chacun renvoyait au suivant.
+
+Deux changements, l'un et l'autre légers puisque le composant existe :
+
+1. `CompanyFormDialog` reçoit une prop **optionnelle** `assetPicker: ReactNode`, rendue dans son champ logo quand elle est fournie, plus un `<input type="hidden" name="logoFilename" />` qui porte la sélection jusqu'à l'action, exactement comme la couverture le fait pour le projet. Sans la prop, le champ reste absent et le comportement du sub-project `08` est inchangé, y compris sa règle de ne jamais écraser `logoFilename` en passant.
+2. Les deux points de montage la fournissent : ce formulaire, depuis son select d'entreprise, et `/admin/entreprises`.
+
+**L'`AssetPicker` du logo ne vise pas le même bucket que celui de la couverture.** Il parcourt `freelance/crm/entreprises/` sur `portfolio-admin`, là où la couverture parcourt `projets/` sur `portfolio-assets`. Le sub-project `09` a séparé les deux : un logo d'entreprise est une donnée du CRM, que la route publique ne sert pas. Le sub-project `10` a prévu le bucket en paramètre du sélecteur pour ce cas précis.
+
+Le site public continue de n'afficher que le nom de l'entreprise : ce logo est destiné aux écrans d'administration.
 
 - [ ] **Step 2: Vérifier typage et lint**
 
@@ -233,7 +253,7 @@ Expected: aucune erreur.
 ### Task 4 : Page de création
 
 **Files:**
-- Modify: `src/app/admin/projets/nouveau/page.tsx`
+- Modify: `src/app/admin/(protected)/projets/nouveau/page.tsx`
 
 **Interfaces:**
 - Consomme : `<ProjectForm />` (Task 3), `<AdminBreadcrumb />` (Task 1), les requêtes d'administration des tags et des entreprises.
@@ -290,7 +310,7 @@ Deux points de style sont imposés par `docs/DESIGN.md` et valent pour les deux 
 ### Task 5 : Page d'édition
 
 **Files:**
-- Modify: `src/app/admin/projets/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/projets/[id]/page.tsx`
 
 **Interfaces:**
 - Consomme : `findProjectForAdmin` (sub-project `11`), `<ProjectForm />` (Task 3), `<AdminBreadcrumb />` (Task 1).
@@ -439,6 +459,26 @@ Réduire la fenêtre sous 768 pixels et parcourir le formulaire.
 
 Expected: tous les champs sont utilisables, aucun défilement horizontal, et les zones de markdown restent lisibles.
 
+- [ ] **Step 11 bis: Vérifier l'édition du logo d'entreprise**
+
+Depuis le select d'entreprise de ce formulaire, ouvrir `CompanyFormDialog` sur une entreprise existante, lui choisir un logo par le sélecteur d'assets, enregistrer. Refaire l'opération depuis `/admin/entreprises`.
+
+```sql
+SELECT slug, "logoFilename" FROM "freelance"."Company" WHERE slug = '<slug>';
+```
+
+Expected: la colonne porte une clé sous `freelance/crm/entreprises/`. Le sélecteur ne doit proposer que ce préfixe, sur le bucket **admin**, et non les fichiers de projet.
+
+Vérifier au passage que le site public n'affiche toujours que le nom : le logo est du back-office depuis le sub-project `09`, il ne revient pas sur la vitrine.
+
+Sans cette étape, `Company.logoFilename` resterait modifiable par le seul seed à la fin de l'epic : le `08` renvoyait au `10`, le `10` au `13`, et personne ne le branchait.
+
+- [ ] **Step 11 ter: Vérifier le nombre de livrables**
+
+Créer un projet client sans toucher au champ du nombre de livrables, puis en créer un second en vidant ce champ.
+
+Expected: le premier s'enregistre avec la valeur 1. Le second affiche un message de validation compréhensible sous le champ, pas une erreur technique.
+
 - [ ] **Step 12: Lancer la suite**
 
 ```bash
@@ -447,7 +487,19 @@ just test
 
 Expected: tous les tests verts.
 
-- [ ] **Step 13: Demander la validation avant commit**
+- [ ] **Step 13: Noter le sort du seed pour la clôture de l'epic**
+
+L'espace admin devient la source du contenu à l'issue de ce sub-project. `docs/PRODUCTION.md` § Checklist Post-MEP annonce que le Schedule Dokploy `manual-seed` « disparaîtra le jour où le CRUD admin deviendra la source du contenu ». Le risque est concret : après une restauration, un re-seed en `upsert` écraserait tout ce qui a été édité depuis l'admin.
+
+Le retrait n'a pas lieu ici mais au `/finalize-feature` de l'epic, une fois le CRUD vérifié de bout en bout. Trois gestes à ce moment-là :
+
+1. supprimer le Schedule `manual-seed` dans Dokploy ;
+2. rendre le seed non écrasant, création seule, pour qu'il reste utilisable au bootstrap d'une base vide ;
+3. mettre `docs/PRODUCTION.md` à jour, la ligne annonçant la disparition devenant le constat qu'elle a eu lieu.
+
+Le seed du build CI de `deploy.yml` n'est pas concerné : il ne sert qu'au prerender sur une base éphémère.
+
+- [ ] **Step 14: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

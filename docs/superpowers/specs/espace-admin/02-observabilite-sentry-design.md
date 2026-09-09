@@ -35,13 +35,12 @@ Aucune : ce sub-project est autoporté. Il précède la fondation admin pour que
 - **À créer** : `src/lib/sentry-scrub.test.ts`
 - **À modifier** : `package.json` (dépendance `@sentry/nextjs`)
 - **À modifier** : `next.config.ts` (`withSentryConfig` en wrapper externe, extension de `connect-src`)
-- **À modifier** : `src/app/[locale]/error.tsx` (remplacement du `void error` et du TODO par une capture)
+- **À modifier** : `src/app/[locale]/error.tsx` (remplacement du TODO par une capture ; contrairement à ce que supposait la rédaction initiale, il n'y a pas de `void error` à retirer)
 - **À modifier** : `src/app/global-error.tsx` (même branchement, sans introduire de dépendance nouvelle)
 - **À modifier** : `src/env.ts` (`NEXT_PUBLIC_SENTRY_DSN` côté client)
 - **À modifier** : `.env.example` (documentation de la nouvelle variable)
 - **À modifier** : `Dockerfile` (secret BuildKit pour `SENTRY_AUTH_TOKEN` sur l'étape de build)
 - **À modifier** : `.github/workflows/deploy.yml` (secret `SENTRY_AUTH_TOKEN` passé à `docker/build-push-action`, **et** `NEXT_PUBLIC_SENTRY_DSN` ajouté aux `build-args` existants)
-- **À modifier** : `.gitignore` (`.env.sentry-build-plugin`)
 - **À modifier** : `docs/VERSIONS.md` (entrée Sentry, absente aujourd'hui)
 - **À modifier** : `docs/PRODUCTION.md` (variables d'environnement, stack de monitoring, et mention du tracing comme seconde source pour la durée de la Server Action de contact, déjà mesurée par `duration_ms`)
 - **À modifier** : `docs/ARCHITECTURE.md` (§ Observabilité, et le nœud Sentry du diagramme Runtime : il porte lui aussi la mention « post-MVP »)
@@ -51,7 +50,7 @@ Aucune : ce sub-project est autoporté. Il précède la fondation admin pour que
 
 **Création du projet en CLI, instrumentation à la main.** Le CLI `sentry` est déjà installé et authentifié sur l'organisation `tg-ws`. Il crée le projet, tandis que les fichiers sont écrits manuellement. Le wizard `@sentry/wizard` est écarté pour deux raisons : c'est un TUI qui exige une saisie interactive, et il modifie `next.config.ts` sans connaître les wrappers `withBundleAnalyzer(withNextIntl(...))` déjà en place, ce qui imposerait de repasser derrière lui.
 
-**Quatre fichiers d'instrumentation**, selon la convention actuelle du SDK décrite dans `.claude/rules/sentry/instrumentation.md` : `instrumentation.ts` porte `register()` qui importe la config selon `process.env.NEXT_RUNTIME`, et exporte `onRequestError` qui capte les erreurs des Server Components et du proxy.
+**Quatre fichiers d'instrumentation**, selon la convention actuelle du SDK décrite dans `.claude/rules/sentry/instrumentation.md` : `instrumentation.ts` porte `register()` qui importe la config selon `process.env.NEXT_RUNTIME`, et exporte `onRequestError` qui capte les erreurs des Server Components et du proxy. Cet export **existe déjà** et émet l'event Pino `request:unhandled_error`, documenté en PRODUCTION.md § Logging et exploité par sa procédure d'incident : la capture Sentry s'y ajoute, elle ne s'y substitue pas.
 
 **`src/instrumentation.ts` n'est pas un fichier neuf.** Il porte déjà deux comportements qu'il faut conserver : le chargement de Pino au démarrage, imposé par `.claude/rules/pino/logger.md`, et l'invalidation des étiquettes de cache lorsque `NEXT_PHASE` vaut `phase-production-server`, qui force le remplissage avec les vraies données au premier hit après déploiement. Sans elle, le site servirait les données du seed éphémère du build CI. Le contenu Sentry s'ajoute donc au fichier existant, et l'import de la configuration serveur précède celui du logger pour que l'intégration Pino soit active avant la première émission. Le client vit dans `instrumentation-client.ts`, jamais `sentry.client.config.ts` qui est l'ancienne convention.
 
@@ -73,11 +72,16 @@ Rules applicables : `.claude/rules/sentry/instrumentation.md`, `.claude/rules/se
 
 ## Acceptance criteria
 
-### Scénario 1 : Erreur serveur capturée
-**GIVEN** l'application déployée avec l'instrumentation active
+### Scénario 1 : Erreur serveur capturée, sans perdre le log Pino
+**GIVEN** l'application lancée avec l'instrumentation active
 **WHEN** une exception non rattrapée est levée dans un Server Component
 **THEN** une issue apparaît dans le projet Sentry
-**AND** sa stack trace pointe sur le fichier source original et non sur du code minifié
+**AND** l'event Pino `request:unhandled_error` est émis comme avant, `onRequestError` ayant été composé et non remplacé
+
+### Scénario 1 bis : Source maps uploadées (vérification de production)
+**GIVEN** un déploiement issu d'un tag release-please
+**WHEN** une erreur serveur produit une issue
+**THEN** sa stack trace pointe sur le fichier source original et non sur du code minifié
 
 ### Scénario 2 : Erreur client capturée
 **GIVEN** la CSP étendue avec le host d'ingestion
@@ -104,16 +108,24 @@ Rules applicables : `.claude/rules/sentry/instrumentation.md`, `.claude/rules/se
 **THEN** une transaction couvrant la Server Action apparaît dans Sentry avec sa durée
 **AND** aucune requête de tracing n'est émise par le navigateur
 
-### Scénario 6 : Token absent de l'image publiée
-**GIVEN** l'image construite par la CI et poussée sur GHCR
-**WHEN** on inspecte l'historique des couches de l'image
+### Scénario 6 : Token absent de l'image
+**GIVEN** une image construite avec le secret monté
+**WHEN** on inspecte l'historique de ses couches
 **THEN** `SENTRY_AUTH_TOKEN` n'y apparaît sous aucune forme
+**AND** la même inspection est reconduite sur l'image publiée par la CI, au titre de la Checklist Release
 
 ### Scénario 7 : Ordre des wrappers préservé
 **GIVEN** `next.config.ts` modifié
 **WHEN** on lit l'export par défaut
 **THEN** `withSentryConfig` enveloppe `withBundleAnalyzer(withNextIntl(nextConfig))`
 **AND** le build de production aboutit sans régression sur l'i18n ni sur l'analyse de bundle
+
+### Scénario 8 : Invalidation au boot préservée
+**GIVEN** `src/instrumentation.ts` modifié pour y ajouter Sentry
+**WHEN** on relit le fichier
+**THEN** le bloc `NEXT_PHASE === 'phase-production-server'` et ses quatre `revalidateTag` sont intacts
+
+> Les scénarios exigeant un déploiement (1 bis, image publiée du 6) ne sont pas des critères de fin de sub-project : la production ne se déploie qu'au tag release-please. Ils rejoignent la Checklist Release de PRODUCTION.md, où le plan les inscrit.
 
 ## Tests à écrire
 

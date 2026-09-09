@@ -19,8 +19,12 @@
 - `size`, `websiteUrl` et `legalEntityId` sont nullables : convertir `''` en `null`. `legalEntityId: ''` violerait la contrainte de clé étrangère.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
 - Invalider **`updateTag('projects')`** puis **`revalidatePath('/admin/entreprises')`** : la première étiquette ne couvre que les pages publiques, l'écran d'administration lit sans cache et sans étiquette, rien ne le rafraîchirait sinon. Pas d'étiquette propre aux entreprises : les pages publiques y accèdent par les projets. `updateTag` et non `revalidateTag`, pour la même raison qu'au sub-project `07` : le scénario 8 vérifie le nouveau nom sur la page publique dès la modification, ce qu'un profil `'max'` ne garantit pas au premier chargement.
-- Ne pas toucher à `logoFilename`, qui devient éditable au sub-project `10`.
-- `src/app/admin/entreprises/page.tsx` existe comme page d'attente : la **remplacer**.
+- Ne pas toucher à `logoFilename`, et surtout ne pas l'écraser en `null` à la modification parce que le formulaire ne porte pas le champ. Il devient éditable au sub-project `13`, qui passe un `AssetPicker` optionnel à ce même `CompanyFormDialog`.
+- `src/app/admin/(protected)/entreprises/page.tsx` existe comme page d'attente : la **remplacer**.
+- **Aucune requête Prisma directement dans le composant de page** : avec `cacheComponents: true`, une query sans `'use cache'` hors `<Suspense>` fait échouer le build. Même motif qu'au sub-project `07`.
+- **`websiteUrl` n'accepte que `http` et `https`** : `z.url()` nu laisse passer `javascript:`, et ce champ finit dans un `href` public. Exigé par `docs/PRODUCTION.md` § Checklist Pré-MEP avant le premier formulaire d'édition de l'admin, qui est celui-ci.
+- **`Company` vit dans le schema `freelance`** depuis le sub-project `03`. Le client Prisma expose toujours `prisma.company`, rien ne change dans le code ; c'est simplement le premier écran du domaine CRM.
+- Installer un composant shadcn **seulement s'il est absent**, jamais d'après une liste figée.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
 
 **Modèle Prisma concerné** (vérifié) :
@@ -103,7 +107,9 @@ export const companySchema = z.object({
     .union([z.enum(COMPANY_SIZES), z.literal('')], { error: 'Taille inconnue' })
     .transform((value) => (value === '' ? null : value)),
   websiteUrl: z
-    .union([z.url(), z.literal('')], { error: "L'adresse du site n'est pas valide" })
+    .union([z.url({ protocol: /^https?$/ }), z.literal('')], {
+      error: "L'adresse du site n'est pas valide",
+    })
     .transform((value) => (value === '' ? null : value)),
   legalEntityId: z
     .string()
@@ -113,6 +119,10 @@ export const companySchema = z.object({
 
 export type CompanyInput = z.infer<typeof companySchema>
 ```
+
+**Le `protocol` sur `websiteUrl` n'est pas optionnel.** `z.url()` nu valide par `new URL()`, qui accepte `javascript:alert(1)` : ce champ finit dans un `href` de page publique, c'est donc un XSS stocké. `docs/PRODUCTION.md` § Checklist Pré-MEP le nomme explicitement et demande de le corriger « avant le premier formulaire d'édition de l'espace admin », qui est celui-ci. Le même correctif s'applique à `demoUrl` et `githubUrl` au sub-project `11`.
+
+`src/lib/url.ts` porte bien un `safeExternalUrl`, mais il filtre au rendu du seul case study : il ne couvre ni l'écriture, ni la table admin, ni le badge entreprise.
 
 Les trois `transform` vers `null` sont ce qui empêche la base de stocker des chaînes vides. Pour `legalEntityId`, c'est plus qu'une question de propreté : `''` ne correspond à aucune entité légale et violerait la contrainte de clé étrangère.
 
@@ -594,13 +604,15 @@ Expected: aucune erreur.
 - [ ] **Step 1: Écrire le formulaire**
 
 Composant client montant un `Dialog` shadcn. Points imposés :
-> **Aucun composant shadcn à installer.** `dialog`, `select` et `alert-dialog` viennent tous les trois de la même commande du sub-project `07`, dont celui-ci dépend : ils sont déjà présents et ne sont pas réinstallés ici. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
+> **Aucun composant shadcn à installer en principe.** `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` viennent tous de la même commande du sub-project `07`, dont celui-ci dépend. Vérifier leur présence par un `ls src/components/ui/` et n'installer que ce qui manque, jamais réinstaller ce qui est là.
+>
+> Les cases à cocher des secteurs sont le composant **`Checkbox` du registry**, pas un `<input type="checkbox">` natif : `docs/DESIGN.md` § Formulaires admin le prescrit, seul lui rendant l'état indéterminé qu'exige un « tout sélectionner », et trois écrans de l'epic en ont besoin. Chaque case reste enveloppée dans un `<label>`, pour que la cible du clic soit la ligne et non les 16px de la boîte.
 
 
 - **le déclencheur est une prop**, `trigger`, et non un bouton rendu en dur. Sur l'écran de liste ce sera « Nouvelle entreprise », dans le formulaire projet un bouton d'ajout à côté du select
 - **`onCreated` est appelé au succès** avec l'identifiant issu de `state.createdId`. C'est ce qui permettra au formulaire projet de sélectionner l'entreprise sans recharger la page
 - `const [state, formAction, pending] = useActionState(action, initialCompanyFormState)`, `action` valant `createCompany` ou `updateCompany.bind(null, company.id)`
-- les secteurs sont des cases à cocher partageant toutes `name="sectors"` : c'est ce qui produit plusieurs valeurs pour la même clé, lues par `getAll` côté serveur
+- les secteurs sont des `Checkbox` shadcn partageant toutes `name="sectors"` : c'est ce qui produit plusieurs valeurs pour la même clé, lues par `getAll` côté serveur. Le composant Radix ne soumet rien de lui-même, il faut donc lui passer `name` et `value` pour qu'il monte l'input caché correspondant
 - la taille et l'entité légale sont des selects avec une première option vide
 - chaque champ rend son erreur sous lui depuis `state.errors`
 - les valeurs sont repeuplées depuis `state.values` en cas d'échec
@@ -622,7 +634,7 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/companies/CompaniesTable.tsx`
 - Create: `src/components/features/admin/companies/DeleteCompanyDialog.tsx`
-- Modify: `src/app/admin/entreprises/page.tsx`
+- Modify: `src/app/admin/(protected)/entreprises/page.tsx`
 
 **Interfaces:**
 - Consomme : `findAllCompaniesForAdmin` (Task 3), `deleteCompany` (Task 2), `<CompanyFormDialog />` (Task 4).
@@ -634,28 +646,32 @@ Composant client montant un `AlertDialog`. Il appelle `deleteCompany(id)` et aff
 
 - [ ] **Step 2: Écrire la table**
 
-Table shadcn avec les colonnes : nom, slug, secteurs, taille, entité légale, et une colonne d'actions portant l'édition et la suppression.
+Le composant décrit ses colonnes et délègue tout le reste au `DataTable` du sub-project `07`, qui porte déjà la recherche, le tri par colonne et le pied paginé. Ne rien réécrire : les trois écrans de liste de l'epic doivent se ressembler, et c'est ce partage qui l'assure.
+
+Colonnes : nom, slug, secteurs, taille, entité légale, et une colonne d'actions portant l'édition et la suppression. La colonne d'actions n'est ni triable ni cherchable.
 
 Les secteurs sont des `<Badge variant="outline" meta>` multiples : un secteur d'activité est une information **sur** l'entreprise, pas un nom de marque, donc une métadonnée au sens de `docs/DESIGN.md`. La prop `meta` applique `uppercase tracking-wider`, ce que le variant `secondary` des badges de tags ne ferait pas.
 
 - [ ] **Step 3: Remplacer la page d'attente**
 
 ```typescript
+import { Suspense } from 'react'
+
 import { CompaniesTable } from '@/components/features/admin/companies/CompaniesTable'
 import { CompanyFormDialog } from '@/components/features/admin/companies/CompanyFormDialog'
 import { Button } from '@/components/ui/button'
+import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { findAllCompaniesForAdmin, findAvailableLegalEntities } from '@/server/queries/companies'
 
-export default async function AdminEntreprisesPage() {
+async function CompaniesSection() {
   const [companies, legalEntities] = await Promise.all([
     findAllCompaniesForAdmin(),
     findAvailableLegalEntities(),
   ])
 
   return (
-    <div className="w-full py-6 lg:py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-sans text-2xl font-semibold tracking-tight">Entreprises</h1>
+    <>
+      <div className="flex items-center justify-end">
         <CompanyFormDialog
           company={null}
           legalEntities={legalEntities}
@@ -665,6 +681,17 @@ export default async function AdminEntreprisesPage() {
       <div className="mt-6">
         <CompaniesTable companies={companies} legalEntities={legalEntities} />
       </div>
+    </>
+  )
+}
+
+export default function AdminEntreprisesPage() {
+  return (
+    <div className="w-full py-6 lg:py-8">
+      <h1 className="font-sans text-2xl font-semibold tracking-tight">Entreprises</h1>
+      <Suspense fallback={<StackedSkeleton heights={[40, 40, 40, 40, 40]} />}>
+        <CompaniesSection />
+      </Suspense>
     </div>
   )
 }
@@ -674,6 +701,8 @@ Deux points de style sont imposés par `docs/DESIGN.md` et ne s'improvisent pas 
 
 - **`font-sans` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation à 600, une graisse qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). Le `tracking-tight` hérité est en revanche conservé : l'écran admin reprend le réglage H3 tel quel, 24px en 600, comme `docs/DESIGN.md` le prescrit. Les pages internes de l'admin gardent Geist Sans.
 - **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
+
+**Les deux requêtes vivent dans `CompaniesSection`, pas dans la page.** Aucune ne porte `'use cache'`, l'admin devant voir ses propres mutations : ce sont donc des accès dynamiques, et hors `<Suspense>` le build échoue sur « Uncached data was accessed outside of `<Suspense>` ». Le titre reste dans le composant exporté, qui redevient synchrone et se peint immédiatement. Le bouton « Nouvelle entreprise » descend dans la section parce qu'il a besoin de `legalEntities`.
 
 - [ ] **Step 4: Vérifier que tout compile**
 
@@ -698,8 +727,10 @@ Expected: elle apparaît dans la liste avec ses deux secteurs. Un seul secteur e
 Créer une entreprise sans taille, sans site web et sans entité légale, puis inspecter la ligne en base.
 
 ```sql
-SELECT size, "websiteUrl", "legalEntityId" FROM "Company" WHERE slug = '<slug>';
+SELECT size, "websiteUrl", "legalEntityId" FROM "freelance"."Company" WHERE slug = '<slug>';
 ```
+
+La table est qualifiée : `Company` vit dans le schema `freelance` depuis le sub-project `03`.
 
 Expected: les trois colonnes valent `NULL`, jamais une chaîne vide.
 
@@ -724,10 +755,20 @@ Expected: le rattachement est conservé. Sa perte signalerait que `findAvailable
 Modifier une entreprise du seed qui porte un `logoFilename`, changer son nom, enregistrer.
 
 ```sql
-SELECT "logoFilename" FROM "Company" WHERE slug = '<slug>';
+SELECT "logoFilename" FROM "freelance"."Company" WHERE slug = '<slug>';
 ```
 
-Expected: la valeur est inchangée. Le sub-project `10` rendra ce champ éditable, celui-ci ne doit pas l'écraser.
+Expected: la valeur est inchangée. Le sub-project `13` rendra ce champ éditable, celui-ci ne doit pas l'écraser en passant.
+
+- [ ] **Step 6 bis: Vérifier le refus d'une URL hostile**
+
+Dans le champ site web, saisir `javascript:alert(1)` et enregistrer.
+
+Expected: la validation refuse, message sous le champ, aucune ligne écrite. Une acceptation signalerait un `z.url()` nu : c'est un XSS stocké, ce champ finissant dans un `href` de page publique.
+
+- [ ] **Step 6 ter: Vérifier la table de liste**
+
+Recherche, tri par colonne, pagination : le comportement doit être identique à celui de `/admin/tags`, les deux écrans partageant le même `DataTable`.
 
 - [ ] **Step 7: Vérifier le refus de suppression d'une entreprise référencée**
 

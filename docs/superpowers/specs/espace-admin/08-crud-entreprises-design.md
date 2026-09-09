@@ -15,7 +15,7 @@ date: "2026-09-03"
 
 Créer, modifier et supprimer des entreprises depuis l'espace admin, en reprenant le pattern posé au sub-project `07`. La différence tient au composant de formulaire, conçu dès le départ pour deux points de montage : son propre écran de liste, et le select du formulaire projet du sub-project `13`.
 
-Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10`, et la création d'une entité légale, qui relève des mentions légales. Le rattachement à une entité légale **existante** est en revanche couvert.
+Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10` et le bucket `portfolio-admin` du `09` : le sub-project `13` la branche, en passant un `AssetPicker` optionnel à ce même `CompanyFormDialog`. Exclut aussi la création d'une entité légale, qui relève des mentions légales. Le rattachement à une entité légale **existante** est en revanche couvert.
 
 ### État livré
 
@@ -32,8 +32,8 @@ Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10
 - **À créer** : `src/server/actions/companies.test.ts`
 - **À créer** : `src/server/actions/companies.types.ts`
 - **À créer** : `src/server/queries/companies.ts`
-- **À modifier** : `src/app/admin/entreprises/page.tsx` (remplacement de la page d'attente)
-- **Aucun composant shadcn à installer** : `dialog`, `select` et `alert-dialog` sont posés par le sub-project `07`, dont celui-ci dépend
+- **À modifier** : `src/app/admin/(protected)/entreprises/page.tsx` (remplacement de la page d'attente)
+- **Aucun composant shadcn à installer en principe** : `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` sont posés par le sub-project `07`, dont celui-ci dépend. Vérifier tout de même leur présence et n'installer que ce qui manque, la règle valant pour tout l'epic
 - **À créer** : `src/components/features/admin/companies/CompanyFormDialog.tsx`
 - **À créer** : `src/components/features/admin/companies/CompaniesTable.tsx`
 - **À créer** : `src/components/features/admin/companies/DeleteCompanyDialog.tsx`
@@ -46,13 +46,21 @@ Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10
 
 **Le formulaire est conçu pour deux points de montage.** `CompanyFormDialog` reçoit son déclencheur en prop plutôt que de le rendre lui-même : sur l'écran de liste ce sera un bouton « Nouvelle entreprise », dans le formulaire projet un bouton d'ajout adjacent au select. Il expose également un rappel de succès, pour que le formulaire projet puisse sélectionner l'entreprise fraîchement créée. Sans ce rappel, il faudrait recharger la page et l'on perdrait la saisie du projet en cours.
 
-**Les secteurs sont une sélection multiple.** `sectors` est un tableau de `CompanySector` en base. Un `FormData` renvoyant plusieurs valeurs pour une même clé, la lecture passe par `getAll` et non `get`, et le schéma valide un tableau. C'est la principale différence de forme avec les tags.
+**Les secteurs sont une sélection multiple, en `Checkbox` shadcn.** `sectors` est un tableau de `CompanySector` en base. Un `FormData` renvoyant plusieurs valeurs pour une même clé, la lecture passe par `getAll` et non `get`, et le schéma valide un tableau. C'est la principale différence de forme avec les tags. Le composant est celui du registry, pas une case native : `docs/DESIGN.md` § Formulaires admin le prescrit, seul lui rendant l'état indéterminé qu'un « tout sélectionner » de tableau exige, et trois écrans de l'epic en ont besoin. Il est installé au sub-project `07`.
+
+**`Company` vit dans le schema `freelance`.** Le sub-project `03` l'y a déplacée : c'est une entité du CRM, que la vitrine ne lit qu'à travers `ClientMeta` pour afficher le nom du client d'un projet. Rien ne change pour ce sub-project, le client Prisma exposant toujours `prisma.company`, mais l'écran des entreprises est le premier du domaine freelance et non un écran de la vitrine.
+
+**La lecture des données de la page vit sous `<Suspense>`.** Avec `cacheComponents: true`, une requête Prisma sans `'use cache'` est un accès dynamique et fait échouer le build hors d'une frontière `<Suspense>`. La page monte un sous-composant async, sur le modèle posé au sub-project `07`.
+
+**La liste réutilise le `DataTable` du sub-project `07`** : recherche, tri par colonne et pied paginé, sans réécrire quoi que ce soit. Les deux `Popover` de la barre d'outils restent hors epic, comme au `07`.
 
 **La taille est optionnelle**, `size` étant nullable. La chaîne vide du formulaire est convertie en `null`, comme l'icône des tags.
 
 **Le rattachement à une entité légale est un select des entités existantes.** `legalEntityId` porte une contrainte d'unicité : une entité légale ne peut être rattachée qu'à une seule entreprise. Une tentative de rattachement à une entité déjà prise lève un `P2002` sur ce champ, à traduire en message de formulaire au même titre que le slug.
 
 **La suppression est bloquée par `ClientMeta`.** La relation porte `onDelete: Restrict`, donc une entreprise référencée par un projet client ne peut pas être supprimée. Même traitement que pour les tags rattachés.
+
+**`websiteUrl` n'accepte que `http` et `https`.** `z.url()` valide par `new URL()`, qui accepte `javascript:alert(1)` : le champ se retrouverait dans un `href` de page publique, c'est-à-dire un XSS stocké. `docs/PRODUCTION.md` § Checklist Pré-MEP le signale nommément et demande de le corriger « avant le premier formulaire d'édition de l'espace admin », qui est celui-ci. Le schéma pose donc `z.url({ protocol: /^https?$/ })`, et un cas de test le couvre. `src/lib/url.ts` porte bien un `safeExternalUrl`, mais il ne protège que le rendu du case study, pas l'écriture ni les autres points d'affichage.
 
 **L'étiquette invalidée est celle des projets.** Les entreprises apparaissent sur les pages publiques à travers les projets, dont les requêtes portent l'étiquette `projects`. Une modification d'entreprise doit donc invalider `projects` par `updateTag`, et non une étiquette qui lui serait propre.
 
@@ -112,6 +120,18 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 **THEN** l'accès est refusé avant toute validation et toute écriture
 **AND** aucune ligne n'est créée, modifiée ni supprimée
 
+### Scénario 10 : URL de site web restreinte à http et https
+**GIVEN** le formulaire de création
+**WHEN** on soumet `javascript:alert(1)` comme site web
+**THEN** la validation le refuse
+**AND** aucune ligne n'est créée
+
+### Scénario 11 : Build de production réussi
+**GIVEN** `cacheComponents: true` et la lecture Prisma de la page
+**WHEN** on exécute `pnpm build`
+**THEN** le build aboutit
+**AND** aucune erreur « Uncached data was accessed outside of `<Suspense>` » n'est levée
+
 ## Tests à écrire
 
 ### Unit
@@ -127,6 +147,7 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
   - une taille absente de `CompanySize` est refusée
   - une taille vide est acceptée et enregistrée en `null`
   - un site web qui n'est pas une URL est refusé
+  - un site web en `javascript:` est refusé, `z.url()` nu l'acceptant
   - un site web vide est accepté et enregistré en `null`
   - la création réussie invalide l'étiquette de cache `projects`
   - une violation d'unicité sur le slug est traduite en erreur sous le champ slug
@@ -143,5 +164,7 @@ Aucun test n'est écrit sur le rendu des composants. Le double montage du formul
 - **Secteurs lus avec `get` au lieu de `getAll`** : seul le premier secteur serait enregistré, silencieusement. Les autres disparaîtraient sans erreur
 - **Chaînes vides converties en `null`** : `size`, `websiteUrl` et `legalEntityId` sont nullables. Un `FormData` renvoie `''` et non `undefined` : sans conversion, la base stockerait des chaînes vides, et `legalEntityId: ''` violerait la contrainte de clé étrangère
 - **Étiquette de cache** : invalider une étiquette propre aux entreprises n'aurait aucun effet, les pages publiques passant par les requêtes de projets. C'est `projects` qu'il faut invalider
-- **Logo non éditable ici** : `logoFilename` reste tel quel. Le sub-project `10` le rendra modifiable, celui-ci ne doit pas l'écraser lors d'une modification
+- **Logo non éditable ici** : `logoFilename` reste tel quel, et surtout la modification d'une entreprise ne doit pas l'écraser en `null` parce que le formulaire ne porte pas le champ. Le sub-project `13` le rend éditable, en passant un `AssetPicker` optionnel à ce composant
+- **`z.url()` accepte `javascript:`** : la validation par `new URL()` ne dit rien du scheme. C'est le défaut le plus dangereux de cet écran, et le seul qui ne se voie pas à l'usage tant que personne ne saisit une URL hostile
+- **Requête Prisma hors `<Suspense>`** : le build échoue, il ne dégrade pas
 - **Entité légale libérée** : la relation porte `onDelete: SetNull`. Détacher une entité légale d'une entreprise la rend disponible pour une autre, ce qui est le comportement attendu

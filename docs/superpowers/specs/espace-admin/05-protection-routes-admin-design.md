@@ -13,7 +13,7 @@ date: "2026-09-03"
 
 ## Scope
 
-Sortir `/admin` du routing localisé, y poser une redirection optimiste dans le proxy, et une vérification réelle de session dans le layout. S'y ajoutent la page de connexion, une page d'accueil admin minimale et la page `unauthorized`.
+Sortir `/admin` du routing localisé, y poser une redirection optimiste dans le proxy, et une vérification réelle de session dans le layout du groupe protégé. S'y ajoutent la page de connexion, une page d'accueil admin minimale, la page `unauthorized` et l'exclusion de `/admin` des robots.
 
 Exclut toute navigation et tout écran métier : la sidebar, le header et la structure du shell appartiennent au sub-project `06`. La page d'accueil créée ici ne porte qu'un titre, le temps de disposer de quelque chose à protéger.
 
@@ -31,12 +31,14 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 - **À créer** : `src/lib/admin-routes.ts` (fonctions pures de qualification du chemin)
 - **À créer** : `src/lib/admin-routes.test.ts`
 - **À créer** : `src/lib/get-current-user.ts` (vérification réelle de session, avec Taint API)
-- **À créer** : `src/app/admin/layout.tsx` (layout protégé, et **root layout de l'arbre `/admin`** : le seul autre root layout du dépôt vit sous `[locale]`, celui-ci doit donc rendre son propre `<html>`/`<body>`, importer `globals.css` et le script de thème, comme `global-not-found.tsx`)
-- **À créer** : `src/app/admin/page.tsx` (page d'accueil minimale, remplacée au sub-project `06`)
-- **À créer** : `src/app/admin/login/page.tsx` (page de connexion)
-- **À créer** : `src/app/admin/unauthorized.tsx` (voisin du layout qui lève la frontière, donc couvert par le document qu'il rend)
+- **À créer** : `src/app/admin/layout.tsx` (**root layout de l'arbre `/admin`**, sans aucune garde : le seul autre root layout du dépôt vit sous `[locale]`, celui-ci doit donc rendre son propre `<html>`/`<body>`, importer `globals.css`, le script de thème et monter `<Toaster />`, comme `global-not-found.tsx`. Il porte aussi `metadata.robots` en `noindex, nofollow`)
+- **À créer** : `src/app/admin/unauthorized.tsx` (frontière des enfants du root layout)
+- **À créer** : `src/app/admin/login/page.tsx` (page de connexion, **hors** du groupe protégé)
+- **À créer** : `src/app/admin/(protected)/layout.tsx` (garde de session, sous `<Suspense>`)
+- **À créer** : `src/app/admin/(protected)/page.tsx` (page d'accueil minimale, remplacée au sub-project `06`)
 - **À modifier** : `next.config.ts` (`experimental.authInterrupts` et `experimental.taint`)
 - **À modifier** : `tsconfig.json` (ajout de `react/experimental` au champ `types`, requis par le Taint API)
+- **À modifier** : `src/app/robots.ts` (ajout de `/admin` au `disallow`)
 
 ## Architecture approach
 
@@ -44,7 +46,26 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 
 **La vérification du proxy n'est pas une sécurité.** `getSessionCookie(request)`, importée de `better-auth/cookies`, teste la seule présence du cookie sans appel base ni validation de signature. La documentation Better Auth le signale en majuscules dans son propre exemple : c'est une redirection optimiste destinée à l'expérience utilisateur. Elle évite d'afficher un écran vide à un visiteur non connecté, rien de plus. `getSessionCookie` est préférée à `getCookieCache`, qui embarquerait des données de session dans le cookie sans bénéfice pour un simple test de présence.
 
-**La sécurité réelle est dans le layout, et dans chaque Server Action.**  `getCurrentUser()` appelle `auth.api.getSession()` avec les en-têtes de la requête, ce qui valide la session en base. Sans session, il appelle `unauthorized()`. Le layout `/admin` l'invoque, donc toute page de l'arbre en hérite. C'est la protection en couches décrite par ARCHITECTURE.md § Autorisation : le proxy oriente, le layout autorise, chaque action se garde elle-même.
+**L'arbre `/admin` se scinde en deux : le document, et ce qui est gardé.** Un root layout qui appellerait la garde protégerait aussi `/admin/login`, qu'un visiteur anonyme doit précisément pouvoir atteindre : la connexion deviendrait impossible. Et `unauthorized.tsx` enveloppe les *enfants* du layout qui le voisine, jamais ce layout lui-même, exactement comme `error.tsx` (`.claude/rules/nextjs/routing.md`) : un `unauthorized()` levé par le root layout remonterait hors de toute frontière. La structure retenue résout les deux d'un coup, au moyen d'un route group interne qui ne change pas les URLs :
+
+```
+src/app/admin/
+├── layout.tsx              root : <html>, <body>, globals.css, thème, <Toaster />, metadata noindex
+├── unauthorized.tsx        frontière des enfants du root layout
+├── login/page.tsx          hors garde
+└── (protected)/
+    ├── layout.tsx          getCurrentUser() + shell (sub-project 06)
+    ├── page.tsx
+    └── …                   projets, tags, entreprises, assets (sub-projects 06 à 13)
+```
+
+L'ADR-021 n'interdit qu'un route group **à la place** du segment `admin/`, ce qui ferait disparaître le segment de l'URL. Un groupe interne à `admin/` laisse `/admin/projets` inchangé.
+
+**La sécurité réelle est dans `(protected)/layout.tsx`, et dans chaque Server Action.** `getCurrentUser()` appelle `auth.api.getSession()` avec les en-têtes de la requête, ce qui valide la session en base. Sans session, il appelle `unauthorized()`, capté par `admin/unauthorized.tsx` et rendu dans le document du root layout. Toute page du groupe en hérite. C'est la protection en couches décrite par ARCHITECTURE.md § Autorisation : le proxy oriente, le layout autorise, chaque action se garde elle-même.
+
+**La garde vit sous `<Suspense>`.** `getCurrentUser()` lit `headers()`, un accès dynamique. Avec `cacheComponents: true`, tout accès dynamique hors d'une frontière `<Suspense>` fait échouer le build sur « Uncached data was accessed outside of `<Suspense>` » (`.claude/rules/nextjs/rendering-caching.md`). `(protected)/layout.tsx` place donc la garde et le shell dans un composant async, monté sous `<Suspense>` avec un fallback, et `children` lui est passé.
+
+**Le `<Toaster />` est monté par le root layout admin.** Celui du site public vit dans `src/app/providers.tsx`, sous `[locale]`, hors de l'arbre `/admin` : sans ce montage, les toasts de succès des sub-projects `07` et suivants ne s'afficheraient jamais, sans erreur ni indice.
 
 `getCurrentUser()` sera **aussi** appelée en tête de chaque Server Action de l'espace admin, à partir du sub-project `07`. Le layout ne couvre que le rendu des pages : une Server Action exportée reste un endpoint HTTP joignable sans jamais charger l'écran qui la monte. Ce helper est donc écrit ici pour deux usages, pas un seul.
 
@@ -55,6 +76,10 @@ Exclut toute navigation et tout écran métier : la sidebar, le header et la str
 **Aucun `'use cache'` dans l'arbre admin.** Avec `cacheComponents: true`, le contenu est dynamique par défaut et le cache est opt-in. Ne jamais l'activer sous `/admin` évite le contournement documenté par `docs/VERSIONS.md` § Post-MVP > Better Auth, qui impose d'extraire les cookies avant le scope de cache. Un écran d'administration n'a de toute façon aucune raison d'être mis en cache.
 
 **La CSP n'est pas modifiée.** La connexion passe par `authClient.signIn.social()`, c'est-à-dire un appel same-origin suivi d'une navigation JavaScript vers Google. La directive `form-action` ne s'applique qu'aux soumissions de formulaire et n'est donc pas sollicitée. Ce point est vérifié explicitement plutôt que supposé, car Chrome et Safari bloquent les redirections issues d'un formulaire sous `form-action 'self'` là où Firefox les autorise : un bouton implémenté en formulaire produirait un bug qui ne se reproduit pas sur tous les navigateurs.
+
+**`/admin` sort des robots et de l'indexation.** `src/app/robots.ts` exclut déjà `/api/`, donc `/api/auth/`, mais pas `/admin`. Deux couches : `/admin` au `disallow`, et `robots: { index: false, follow: false }` dans les metadata du root layout admin, qui couvre tout l'arbre y compris la page de connexion. `sitemap.ts` et `llms.txt` ne décrivent que le site public et n'ont rien à changer : vérifier seulement qu'aucun sub-project ultérieur n'y ajoute une route admin. Ce n'est pas une mesure de sécurité, l'accès étant gardé, mais l'espace n'a aucune raison d'apparaître dans un index de moteur ou de modèle.
+
+**Aucun bouton de connexion sur le site public.** L'URL `/admin/login` n'est pas dissimulée et n'a pas à l'être : l'authentification est déléguée à Google, la whitelist s'applique avant création de compte, et la surface réellement exposée est `/api/auth/*`, identique quelle que soit l'URL de la page. Une URL secrète ajouterait une friction pour l'utilisateur légitime sans retirer quoi que ce soit à un attaquant.
 
 **Aucun rate limiting spécifique.** L'ADR-002 a supprimé le brute force par construction : il n'existe aucun endpoint de mot de passe, l'authentification étant déléguée à Google. Ajouter un compteur protégerait d'une menace absente de cette architecture.
 
@@ -89,7 +114,8 @@ Rules applicables : `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/proxy.
 **GIVEN** un cookie de session forgé ou expiré
 **WHEN** on demande `/admin`
 **THEN** le proxy laisse passer, la présence du cookie suffisant à son test
-**AND** le layout appelle `unauthorized()` et la page `unauthorized` s'affiche
+**AND** `(protected)/layout.tsx` appelle `unauthorized()`
+**AND** `admin/unauthorized.tsx` s'affiche, rendu dans le document du root layout admin
 
 ### Scénario 6 : Connexion complète
 **GIVEN** la page de connexion affichée
@@ -97,10 +123,29 @@ Rules applicables : `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/proxy.
 **THEN** on est ramené sur `/admin`
 **AND** aucune violation de CSP n'apparaît dans la console du navigateur
 
+### Scénario 6 bis : Compte refusé par la whitelist
+**GIVEN** la page de connexion affichée
+**WHEN** on mène le flux OAuth avec un compte Google non autorisé
+**THEN** on revient sur `/admin/login`
+**AND** un message explique que ce compte n'est pas autorisé, lu depuis le paramètre `error` de l'URL
+
 ### Scénario 7 : Objet user non transmissible au client
 **GIVEN** `getCurrentUser()` qui taint l'objet retourné
 **WHEN** un Client Component tente de recevoir cet objet en prop
 **THEN** le rendu échoue avec l'erreur du Taint API plutôt que de laisser fuir la donnée
+
+### Scénario 8 : Build de production réussi
+**GIVEN** `cacheComponents: true` et la garde qui lit `headers()`
+**WHEN** on exécute `pnpm build`
+**THEN** le build aboutit
+**AND** aucune erreur « Uncached data was accessed outside of `<Suspense>` » n'est levée
+
+### Scénario 9 : Espace admin hors des index
+**GIVEN** l'application déployée
+**WHEN** on consulte `/robots.txt` et le `<head>` d'une page admin
+**THEN** `/admin` figure au `disallow`
+**AND** la page porte `noindex, nofollow`
+**AND** `sitemap.xml` et `llms.txt` ne mentionnent aucune route admin
 
 ## Tests à écrire
 
@@ -125,6 +170,10 @@ Aucun test n'est écrit sur le proxy lui-même, sur `getCurrentUser()` ni sur le
 - **Drapeaux expérimentaux** : `authInterrupts` et `taint` doivent être activés dans ce sub-project, celui qui introduit leur usage. Les poser en avance produirait une configuration inutilisée, les poser en retard un build en échec
 - **`LanguageSwitcher` hors de l'admin** : l'ADR-021 le note, `/admin` étant monolingue. Le layout créé ici ne monte aucun composant de navigation, donc le point ne se pose qu'au sub-project `06`
 - **`unauthorized.tsx` à la racine** : il vit hors de `[locale]`, comme `/admin`. Il ne peut donc pas utiliser `useTranslations` et porte des libellés français en dur, à l'image de `global-error.tsx`
+- **Placement de `unauthorized.tsx`** : il doit voisiner le root layout, pas le layout qui lève l'interruption. Posé dans `(protected)/`, il n'attraperait pas un `unauthorized()` levé par `(protected)/layout.tsx`, une frontière n'enveloppant que les enfants de son layout voisin. Le symptôme serait une erreur non gérée là où on attendait un écran
+- **Route group visible dans l'URL** : `(protected)` entre parenthèses est un groupe, il ne produit aucun segment. Écrire `protected/` sans parenthèses donnerait `/admin/protected/projets`
+- **Toaster manquant** : sans montage dans le root layout admin, les toasts des sub-projects suivants ne s'affichent pas, sans erreur ni message. Le défaut se constate à l'écran, jamais dans les logs
+- **Accès dynamique hors `<Suspense>`** : le build échoue, il ne dégrade pas. Le message nomme le fichier, pas toujours l'appel fautif
 
 ## Architectural decisions
 

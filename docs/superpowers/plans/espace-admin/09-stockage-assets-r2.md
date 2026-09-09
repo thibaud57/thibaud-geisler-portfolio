@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Les URLs publiques ne changent pas.** `/api/assets/[...path]` reste le seul point d'accès et le bucket demeure privé.
+- **`/api/assets/[...path]` reste le seul point d'accès public** et le bucket demeure privé. Les **clés changent** en revanche : l'arborescence est réorganisée pendant la migration, les projets passant sous leur propre slug et les logos d'entreprise dans `portfolio-admin`. C'est le seul moment de l'epic où cela ne coûte rien, tous les fichiers changeant déjà d'adresse.
 - **`requestChecksumCalculation: 'WHEN_REQUIRED'` sur le client S3.** Les versions récentes de `@aws-sdk/client-s3` calculent par défaut un checksum CRC32 que R2 ne supportait pas, ce qui faisait échouer `PutObject` et `UploadPart` avec un message peu parlant. Cloudflare a depuis annoncé l'incident comme résolu de son côté : le réglage n'est donc peut-être plus indispensable, mais il reste sans effet de bord et couvre le cas où la compatibilité régresserait. Le garder, et ne le retirer qu'après avoir constaté qu'un upload passe sans lui.
 - `NoSuchKey` doit être traduit en 404. Sans cela, chaque asset manquant produit un 500 et pollue le monitoring.
 - Aucune abstraction de stockage : une seule implémentation, écrite directement. La rule le pose déjà, « pas d'interface `AssetStorage` prématurée (YAGNI) ».
@@ -31,6 +31,8 @@
 - Modify: `package.json`
 - Create: `src/lib/r2.ts`
 - Modify: `src/env.ts` (quatre variables R2 ajoutées, `ASSETS_PATH` retirée)
+
+> **Prérequis local : la CLI `aws`** (`winget install Amazon.AWSCLI` ou équivalent). Les Tasks 2 et 6 s'en servent pour lister, copier et déplacer des objets avec un token S3 donné, ce que Wrangler ne sait pas faire. Sur le VPS, la Task 2 passe par le conteneur `amazon/aws-cli`, rien n'y est installé.
 - Modify: `.env.example`
 
 **Interfaces:**
@@ -114,15 +116,63 @@ Expected: aucune erreur. Un échec sur `requestChecksumCalculation` signalerait 
 
 ---
 
-### Task 2 : Migrer les fichiers existants
+### Task 2 : Migrer les fichiers existants et réorganiser l'arborescence
 
-**Files:** aucun fichier du dépôt.
+**Files:**
+- Modify: `prisma/seed-data/projects.ts`
+- Modify: `prisma/seed-data/companies.ts`
+- Modify: les markdown de `prisma/seed-data/case-studies/` citant une capture
+- Create: `prisma/migrations/<timestamp>_asset_keys/migration.sql`
 
 **Interfaces:**
-- Consomme : le bucket du sub-project `01`, les fichiers du volume Docker.
-- Produit : les objets présents dans R2, condition de la Task 3.
+- Consomme : les buckets du sub-project `01`, les fichiers du volume Docker.
+- Produit : les objets présents dans R2 sous leurs **nouvelles** clés, et une base qui les désigne, conditions de la Task 3.
 
 > Cette tâche précède le changement de code. Basculer la lecture avant d'avoir migré rendrait le site sans images pendant l'intervalle.
+
+> **Trois choses bougent ensemble : les objets, le seed, les colonnes.** Déplacer les fichiers sans migrer `Project.coverFilename` et `freelance.Company.logoFilename` fait disparaître toutes les images du site d'un coup en production, et le symptôme n'apparaît qu'au déploiement. C'est le défaut le plus coûteux du sub-project.
+
+- [ ] **Step 0: Établir la table de correspondance**
+
+L'arborescence actuelle porte deux conventions contradictoires. Un projet **client** range ses fichiers sous le slug de son **entreprise** (`projets/client/foyer/cover.webp` appartient au projet `webapp-gestion-sinistres`), un projet **personnel** sous le sien. Et le logo d'une société vit dans le dossier d'un projet, alors qu'une société peut en porter plusieurs.
+
+Cible :
+
+```
+portfolio-assets
+├── branding/<fichier>                          inchangé
+├── documents/cv/<fichier>                      inchangé
+└── projets/{client,personal}/<slug-projet>/    couverture, captures, vidéos
+
+portfolio-admin
+└── freelance/crm/entreprises/<slug>/logo.png
+```
+
+La correspondance ancien dossier vers nouveau **n'est pas déductible du nom de dossier** : le dossier porte le slug de l'entreprise, le nouveau celui du projet. Elle a été relevée dans `prisma/seed-data/projects.ts`, où chaque projet porte son `slug` et son `coverFilename`. **Vérifier ces cinq lignes contre le fichier avant de lancer quoi que ce soit**, un projet ajouté depuis la rédaction de ce plan s'y ajouterait :
+
+| Dossier actuel | Slug du projet | Nouveau dossier |
+|---|---|---|
+| `projets/client/foyer/` | `webapp-gestion-sinistres` | `projets/client/webapp-gestion-sinistres/` |
+| `projets/client/theodo-extend/` | `chatbot-agents-ia` | `projets/client/chatbot-agents-ia/` |
+| `projets/client/wanted-design/` | `referent-ia-automatisation` | `projets/client/referent-ia-automatisation/` |
+| `projets/client/paysystem/` | `saas-gestion-paie` | `projets/client/saas-gestion-paie/` |
+| `projets/client/cloudsmart/` | `erp-odoo-android` | `projets/client/erp-odoo-android/` |
+
+Le `logo.png` de chacun de ces dossiers ne suit pas le projet : il part dans le bucket `portfolio-admin`, sous `freelance/crm/entreprises/<slug-entreprise>/logo.png`, en gardant donc le slug de l'entreprise.
+
+Les six dossiers de `projets/personal/` ne bougent pas, leur nom étant déjà le slug du projet.
+
+Une seule capture de case study est concernée, `webapp-gestion-sinistres-2.webp`, qui suit son dossier vers `projets/client/webapp-gestion-sinistres/`.
+
+`personal` est conservé plutôt que `perso` : le segment porte alors le même mot que la valeur `PERSONAL` de l'enum `ProjectType`.
+
+Les captures de case study ne sont ni dans `coverFilename` ni dans `logoFilename` mais en dur dans le markdown. Les trouver :
+
+```bash
+grep -rn "assets/projets/" prisma/seed-data/case-studies/
+```
+
+Une entreprise du seed porte `logoFilename: null` : rien à déplacer pour elle, et la migration de données ne doit pas lui inventer un chemin.
 
 - [ ] **Step 1: Inventorier le contenu du volume**
 
@@ -153,7 +203,87 @@ docker run --rm \
 
 Le token utilisé est celui de `portfolio-assets`, jamais celui des sauvegardes : c'est précisément le cloisonnement posé au sub-project `01`.
 
-La structure de dossiers est conservée telle quelle : les clés d'objet reprennent exactement les chemins existants, ce qui est la condition pour que les URLs ne changent pas. `s3 sync` préserve l'arborescence sous `/data` sans préfixe ajouté.
+`s3 sync` préserve l'arborescence sous `/data` sans préfixe ajouté : le bucket reçoit donc l'**ancienne** arborescence, que les deux steps suivants corrigent en place.
+
+- [ ] **Step 2 bis: Renommer les dossiers de projet dans le bucket**
+
+Pour chaque ligne de la table de correspondance du Step 0, un `mv` récursif côté R2 :
+
+```bash
+docker run --rm \
+  -e AWS_ACCESS_KEY_ID=<clé du token portfolio-assets> \
+  -e AWS_SECRET_ACCESS_KEY=<secret du même token> \
+  -e AWS_DEFAULT_REGION=auto \
+  amazon/aws-cli s3 mv \
+  s3://portfolio-assets/projets/client/foyer/ \
+  s3://portfolio-assets/projets/client/webapp-gestion-sinistres/ \
+  --recursive --exclude "logo.png" \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+```
+
+`--exclude "logo.png"` laisse le logo derrière : il part dans l'autre bucket au Step 2 ter. Répéter pour chaque projet client. Les projets personnels ne bougent pas, leur dossier portait déjà le slug du projet.
+
+- [ ] **Step 2 ter: Déplacer les logos d'entreprise vers `portfolio-admin`**
+
+Le CLI ne peut pas copier d'un bucket à l'autre avec deux jeux de credentials différents : passer par un fichier local intermédiaire, ou par deux commandes successives avec le token adéquat.
+
+```bash
+# lecture avec le token portfolio-assets
+aws s3 cp s3://portfolio-assets/projets/client/foyer/logo.png /tmp/foyer-logo.png \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+
+# écriture avec le token portfolio-admin
+aws s3 cp /tmp/foyer-logo.png \
+  s3://portfolio-admin/freelance/crm/entreprises/foyer/logo.png \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+
+# suppression de la source, une fois la copie vérifiée
+aws s3 rm s3://portfolio-assets/projets/client/foyer/logo.png \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+```
+
+Ne supprimer la source qu'après avoir constaté la présence de la copie : les fichiers du volume restent la seule autre copie tant que la Task 5 ne l'a pas retiré.
+
+`Company` étant une entité du CRM (ADR-018, schema `freelance`), son logo n'a rien à faire dans le bucket que sert une route publique. La conséquence est assumée : le badge entreprise des pages publiques n'affichera plus que le nom, ce que la Task 2 quinquies applique.
+
+- [ ] **Step 2 quater: Mettre le seed et la base en accord**
+
+Trois écritures, dans cet ordre :
+
+1. `prisma/seed-data/projects.ts` : les 11 `coverFilename` suivent la nouvelle arborescence.
+2. `prisma/seed-data/companies.ts` : les 5 `logoFilename` deviennent `freelance/crm/entreprises/<slug>/logo.png`. Celui qui vaut `null` reste `null`.
+3. Les markdown de case study repérés au Step 0.
+
+Puis une migration de données, sans laquelle la production pointerait dans le vide :
+
+```sql
+UPDATE "public"."Project"
+SET "coverFilename" = replace("coverFilename", 'projets/client/foyer/', 'projets/client/webapp-gestion-sinistres/')
+WHERE "coverFilename" LIKE 'projets/client/foyer/%';
+-- … une instruction par correspondance
+
+UPDATE "freelance"."Company"
+SET "logoFilename" = 'freelance/crm/entreprises/' || slug || '/logo.png'
+WHERE "logoFilename" IS NOT NULL;
+
+UPDATE "public"."Project"
+SET "caseStudyMarkdownFr" = replace("caseStudyMarkdownFr", 'projets/client/foyer/', 'projets/client/webapp-gestion-sinistres/'),
+    "caseStudyMarkdownEn" = replace("caseStudyMarkdownEn", 'projets/client/foyer/', 'projets/client/webapp-gestion-sinistres/');
+```
+
+Vérifier ensuite qu'aucune valeur ne pointe plus vers l'ancienne arborescence :
+
+```sql
+SELECT count(*) FROM "public"."Project" WHERE "coverFilename" LIKE 'projets/client/foyer/%';
+```
+
+Expected: `0`.
+
+- [ ] **Step 2 quinquies: Retirer le logo du badge entreprise public**
+
+Le logo n'est plus servi par la route publique : le composant du badge entreprise ne doit plus tenter de l'afficher, sinon les cartes projet et les case studies porteront une image cassée. Ne garder que le nom.
+
+`logoFilename` reste en base et n'est pas supprimé du modèle : le sub-project `13` le rend éditable depuis l'admin, qui le lit par sa propre route authentifiée.
 
 - [ ] **Step 3: Vérifier l'inventaire**
 
@@ -166,7 +296,23 @@ docker run --rm \
   --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com | wc -l
 ```
 
-Expected: le même nombre qu'au Step 1. Un écart signalerait une migration incomplète, dont le symptôme serait une image absente sur une page peu consultée.
+Expected: le nombre du Step 1, **moins** les logos d'entreprise partis dans `portfolio-admin`. Compter ces derniers séparément :
+
+```bash
+aws s3 ls s3://portfolio-admin/freelance/crm/entreprises/ --recursive \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com | wc -l
+```
+
+La somme des deux doit égaler l'inventaire du volume. Un écart signalerait une migration incomplète, dont le symptôme serait une image absente sur une page peu consultée.
+
+Vérifier aussi qu'aucun `logo.png` ne subsiste dans `portfolio-assets` :
+
+```bash
+aws s3 ls s3://portfolio-assets/ --recursive \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com | grep logo.png
+```
+
+Expected: aucun résultat.
 
 - [ ] **Step 4: Vérifier un objet nominal**
 
@@ -440,23 +586,28 @@ Demander `/api/assets/fichier.exe`.
 
 Expected: un 400, et aucune requête émise vers R2.
 
-- [ ] **Step 5: Vérifier les en-têtes de cache en production**
+- [ ] **Step 5: Vérifier la nouvelle arborescence et le badge entreprise**
 
-Après déploiement :
+Sur `/fr/projets` et sur une page de case study :
 
-```bash
-curl -sI https://thibaud-geisler.com/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf | grep -i cache-control
-```
+Expected: les couvertures et les captures se chargent depuis leurs **nouvelles** clés, sous le slug du projet. Le badge entreprise porte le nom seul, sans image et sans emplacement vide.
 
-Expected: `public, max-age=31536000, immutable`.
+Inspecter l'onglet réseau : aucune requête vers `/api/assets/` ne doit viser un `logo.png`. Une 404 sur un logo signalerait que le badge n'a pas été nettoyé au Step 2 quinquies.
 
-- [ ] **Step 6: Vérifier que le bucket n'est pas exposé**
+- [ ] **Step 6: Vérifier que les buckets ne sont pas exposés**
 
-Tenter d'accéder à un objet par une URL publique R2.
+Tenter d'accéder à un objet de `portfolio-assets` par une URL publique R2, puis à un logo de `portfolio-admin` par la route `/api/assets/freelance/crm/entreprises/foyer/logo.png`.
 
-Expected: accès refusé, aucun domaine public n'ayant été configuré.
+Expected: accès refusé dans le premier cas, aucun domaine public n'ayant été configuré. Dans le second, une erreur : le client de la route publique ne détient que le token de `portfolio-assets`, il ne peut pas lire l'autre bucket. C'est ce qui garantit qu'un logo d'entreprise ne fuitera pas par la route publique.
 
-- [ ] **Step 7: Demander la validation avant commit**
+- [ ] **Step 7: Inscrire les vérifications de production dans la Checklist Release**
+
+Deux constats exigent un déploiement, et la production ne se déploie qu'au tag release-please (`docs/PRODUCTION.md` § Workflow Release) : ils ne peuvent pas être des critères de fin de sub-project. Les ajouter à la Checklist Release de `docs/PRODUCTION.md`, à cocher au premier tag qui embarque ce sub-project :
+
+1. `curl -sI https://<domaine>/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf | grep -i cache-control` retourne `public, max-age=31536000, immutable`.
+2. Les pages publiques affichent toutes leurs images depuis les nouvelles clés, et aucun badge entreprise ne porte d'image cassée. Un défaut ici signalerait une migration de données non appliquée en production.
+
+- [ ] **Step 8: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

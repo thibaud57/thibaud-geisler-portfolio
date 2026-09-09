@@ -20,11 +20,13 @@
 - Le select d'icône et la validation Zod tirent de la **même** source exportée depuis `src/lib/icons.tsx`.
 - **`Select` et non un combobox `Command`**, malgré la taille du registre (une soixantaine de clés). Deux raisons : la liste est fermée et connue à la compilation, donc validable par Zod sans saisie libre ; et `docs/DESIGN.md` documente `Command` comme cassé en style `radix-nova`, son état sélectionné s'affichant incorrectement (issue [#9228](https://github.com/shadcn-ui/ui/issues/9228)). Ne pas « améliorer » ce champ en Combobox tant que cette issue est ouverte.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
-- **`updateCacheTag('tags')`** après chaque mutation réussie, jamais avant. C'est `updateTag` et non `revalidateTag`, pour une raison de comportement observable : la doc Next 16 pose que `updateTag` fait attendre la requête suivante le temps de recharger (« Next request waits for fresh data, no stale content served »), là où `revalidateTag(tag, 'max')` sert du contenu périmé pendant que la revalidation tourne en arrière-plan. Le scénario 7 exige de voir le tag sur la page publique **immédiatement** après création : avec `'max'`, le premier chargement pourrait encore montrer l'ancien contenu et l'on conclurait à tort à un défaut.
+- **`updateCacheTag('tags')` ET `updateCacheTag('projects')`** après chaque mutation réussie, jamais avant. La seconde est indispensable et facile à manquer : `PROJECT_INCLUDE` (`src/types/project.ts`) embarque les tags dans chaque projet caché sous l'étiquette `projects`. Sans elle, renommer un tag met bien `/a-propos` à jour, qui lit `findAllTags`, mais laisse `/projets` et les case studies afficher l'ancien nom jusqu'à expiration du `cacheLife('hours')`. C'est le pire des symptômes : partiellement correct, donc on cherche du côté du cache d'une page au lieu de l'étiquette manquante. C'est `updateTag` et non `revalidateTag`, pour une raison de comportement observable : la doc Next 16 pose que `updateTag` fait attendre la requête suivante le temps de recharger (« Next request waits for fresh data, no stale content served »), là où `revalidateTag(tag, 'max')` sert du contenu périmé pendant que la revalidation tourne en arrière-plan. Le scénario 7 exige de voir le tag sur la page publique **immédiatement** après création : avec `'max'`, le premier chargement pourrait encore montrer l'ancien contenu et l'on conclurait à tort à un défaut.
 - La forme historique `revalidateTag(tag)` à un seul argument est **dépréciée** en Next 16. La doc indique la migration : « Migrate to `updateTag` in Server Actions, or `profile="max"` ». Ces actions étant des Server Actions, `updateTag` est le remplaçant direct, et le seul contexte où il soit autorisé.
 - `revalidateTag(tag, 'max')` reste correct **hors** Server Action, par exemple dans `src/instrumentation.ts` qui l'utilise déjà : ne pas y toucher.
 - La requête d'administration n'utilise pas `'use cache'` : `findAllTags` le fait, et l'administration doit voir l'état de la base immédiatement après une mutation.
-- `src/app/admin/tags/page.tsx` est la page d'attente créée au sub-project `06` : la **remplacer**, ne pas en créer une seconde.
+- `src/app/admin/(protected)/tags/page.tsx` est la page d'attente créée au sub-project `06` : la **remplacer**, ne pas en créer une seconde.
+- **Aucune requête Prisma directement dans le composant de page.** Avec `cacheComponents: true`, une query sans `'use cache'` est un accès dynamique, et hors `<Suspense>` elle fait échouer le build (« Uncached data was accessed outside of `<Suspense>` »). La page monte un sous-composant async sous `<Suspense>`.
+- **Installer les composants shadcn « s'ils sont absents »**, jamais d'après une liste figée : les sub-projects de l'epic se recouvrent, et un `add` sur un composant déjà présent l'écrase.
 - **`revalidatePath('/admin/tags')`** après chaque mutation, en plus de l'étiquette : celle-ci ne couvre que les pages publiques, l'écran d'administration lit sans cache et ne se rafraîchirait pas.
 - **Renommer l'import de cache** : `import { updateTag as updateCacheTag } from 'next/cache'`. Le fichier d'actions exporte lui-même une Server Action `updateTag`, et deux déclarations du même nom dans un module lèvent `TS2440`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
@@ -522,7 +524,7 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/tags/TagFormDialog.tsx`
 - Create: `src/components/ui/alert-dialog.tsx`, `src/components/ui/dialog.tsx`, `src/components/ui/select.tsx` (via le CLI)
-- Modify: `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog`, et `Select` quitte la ligne « Formulaires admin » pour rejoindre la section Formulaires
+- Modify: `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog` ; `Select` et `Checkbox` quittent la ligne « Formulaires admin » pour rejoindre la section Formulaires ; `Pagination` quitte « Navigation dans les listes », dont `Breadcrumb` reste post-MVP jusqu'au sub-project `13` ; la ligne « Table de liste » rejoint « Cards et grilles » et la ligne « En-tête de colonne triable » disparaît, tous deux étant réalisés par le `DataTable` ; la ligne « Barre d'outils de liste » **reste en post-MVP**, marquée comme cible ultérieure, ses deux Popover n'entrant pas dans cet epic
 
 **Interfaces:**
 - Consomme : `createTag` et `updateTag` (Task 4), `tagSchema` (Task 2), `TAG_ICON_KEYS` (Task 1), `initialTagFormState` (Task 3).
@@ -531,10 +533,13 @@ Expected: aucune erreur.
 - [ ] **Step 1: Installer le composant de confirmation**
 
 ```bash
-pnpm dlx shadcn@latest add alert-dialog dialog select
+ls src/components/ui/   # n'installer que ce qui manque
+pnpm dlx shadcn@latest add alert-dialog dialog select pagination checkbox
 ```
 
-Les trois sont nécessaires et **aucun n'est présent** : `dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md`, `alert-dialog` n'a jamais été installé. Passer `--dry-run` d'abord et refuser tout écrasement d'un composant existant.
+`dialog` et `select` ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md`, `alert-dialog`, `pagination` et `checkbox` n'ont jamais été installés. Vérifier tout de même avant : ce sub-project est le premier de l'epic à poser ces composants, mais la formule « installer ce qui est absent » vaut pour tous, et le `10` peut s'exécuter avant celui-ci. Passer `--dry-run` d'abord et refuser tout écrasement d'un composant existant.
+
+`checkbox` est celui qu'on serait tenté de sauter. `docs/DESIGN.md` § Formulaires admin le prescrit explicitement « plutôt qu'une case native », parce que seul lui rend l'état indéterminé d'un « tout sélectionner » de tableau, et trois écrans de cet epic en ont besoin (secteurs au `08`, formats et tags au `13`). L'installer ici évite que chacun bricole son `<input type="checkbox">` « pour ce seul écran ».
 
 - [ ] **Step 2: Écrire le formulaire**
 
@@ -563,13 +568,14 @@ Expected: aucune erreur.
 ### Task 7 : Écran de liste
 
 **Files:**
+- Create: `src/components/features/admin/DataTable.tsx`
 - Create: `src/components/features/admin/tags/TagsTable.tsx`
 - Create: `src/components/features/admin/tags/DeleteTagDialog.tsx`
-- Modify: `src/app/admin/tags/page.tsx`
+- Modify: `src/app/admin/(protected)/tags/page.tsx`
 
 **Interfaces:**
 - Consomme : `findAllTagsForAdmin` (Task 5), `deleteTag` (Task 4), `<TagFormDialog />` (Task 6).
-- Produit : l'écran `/admin/tags` complet.
+- Produit : l'écran `/admin/tags` complet, et le `DataTable` partagé que réutiliseront les sub-projects `08` et `12`.
 
 - [ ] **Step 1: Écrire la confirmation de suppression**
 
@@ -579,22 +585,62 @@ Un `<p>` et non un `Alert` : le composant `Alert` a été retiré du dépôt et 
 
 C'est le seul endroit où cette contrainte devient visible pour l'utilisateur : sans ce traitement, la suppression échouerait sans explication.
 
-- [ ] **Step 2: Écrire la table**
+- [ ] **Step 2: Écrire le `DataTable` partagé**
 
-Composant client rendant un `Table` shadcn avec les colonnes : slug, nom français, nom anglais, catégorie (en `<Badge variant="outline" meta>`, la catégorie étant une métadonnée), icône (rendue via `resolveTagIcon`), ordre, et une colonne d'actions portant l'édition et la suppression.
+Composant client générique, écrit une fois ici et réutilisé tel quel par les sub-projects `08` et `12`. Il reçoit ses lignes et la description de ses colonnes, et tient en état local React trois choses, sans aucune librairie de table :
 
-Rendre l'icône plutôt que sa clé permet de constater d'un coup d'œil qu'une icône ne résout pas.
+- **une recherche**, un `Input` au-dessus de la table, qui filtre sur les champs déclarés cherchables ;
+- **un tri par colonne**, déclenché par un `Button` `ghost` dans le `th`, cyclant croissant, décroissant, ordre d'affichage, et portant `aria-sort` avec l'état courant ;
+- **une pagination**, dans un pied sur la rangée `xs` : compteur de lignes à gauche, `Pagination` shadcn en `size="icon-xs"` à droite.
 
-- [ ] **Step 3: Remplacer la page d'attente**
+L'API attendue, à ajuster à l'usage :
 
 ```typescript
-import { findAllTagsForAdmin } from '@/server/queries/tags'
-import { TagsTable } from '@/components/features/admin/tags/TagsTable'
+type Column<T> = {
+  key: string
+  header: string
+  sortable?: boolean
+  searchable?: boolean
+  cell: (row: T) => ReactNode
+  sortValue?: (row: T) => string | number
+}
+
+export function DataTable<T>({ rows, columns, pageSize = 20, empty }: {
+  rows: readonly T[]
+  columns: readonly Column<T>[]
+  pageSize?: number
+  empty: ReactNode
+}) { /* … */ }
+```
+
+`sortValue` est distinct de `cell` parce qu'une cellule peut rendre un `Badge` ou une icône, dont on ne trie pas le JSX.
+
+**Ce qui n'est pas dans cet epic** : les deux `Popover` de la barre d'outils décrits par DESIGN.md, choix des colonnes affichées et filtres à compteurs facettés. Ils n'ont de sens qu'avec du volume et des colonnes qu'on veut masquer. Ne poser **aucun** contrôle désactivé ni décoratif à leur place : une recherche grisée n'annonce rien d'utile dans son propre back-office et laisse du code à reprendre.
+
+La table court d'un bord à l'autre de sa card, DESIGN.md § Tableau pleine largeur : le survol d'une ligne sweepe jusqu'aux bords, première et dernière cellule reprenant les 16px de la card, les cellules intérieures gardant leurs 8px.
+
+- [ ] **Step 3: Écrire la table des tags**
+
+Composant client qui décrit ses colonnes et délègue le reste au `DataTable` : slug, nom français, nom anglais, catégorie (en `<Badge variant="outline" meta>`, la catégorie étant une métadonnée), icône (rendue via `resolveTagIcon`), ordre, et une colonne d'actions portant l'édition et la suppression.
+
+Rendre l'icône plutôt que sa clé permet de constater d'un coup d'œil qu'une icône ne résout pas. Cette colonne n'est ni triable ni cherchable.
+
+- [ ] **Step 4: Remplacer la page d'attente**
+
+```typescript
+import { Suspense } from 'react'
+
+import { StackedSkeleton } from '@/components/ui/stacked-skeleton'
 import { TagFormDialog } from '@/components/features/admin/tags/TagFormDialog'
+import { TagsTable } from '@/components/features/admin/tags/TagsTable'
+import { findAllTagsForAdmin } from '@/server/queries/tags'
 
-export default async function AdminTagsPage() {
+async function TagsList() {
   const tags = await findAllTagsForAdmin()
+  return <TagsTable tags={tags} />
+}
 
+export default function AdminTagsPage() {
   return (
     <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
@@ -602,16 +648,26 @@ export default async function AdminTagsPage() {
         <TagFormDialog tag={null} />
       </div>
       <div className="mt-6">
-        <TagsTable tags={tags} />
+        <Suspense fallback={<StackedSkeleton heights={[40, 40, 40, 40, 40]} />}>
+          <TagsList />
+        </Suspense>
       </div>
     </div>
   )
 }
 ```
 
-Server Component qui charge les données et les passe à la table. Aucun `'use cache'`, contrainte héritée de l'espace admin.
+**La requête vit dans un sous-composant async sous `<Suspense>`, pas dans la page.** Avec `cacheComponents: true`, `findAllTagsForAdmin` n'a pas de `'use cache'` par construction, donc c'est un accès dynamique : appelée directement dans le composant de page, elle fait échouer le build sur « Uncached data was accessed outside of `<Suspense>` ». Les sub-projects `10`, `12` et `13` appliquent déjà ce motif, celui-ci est le premier à en avoir besoin.
 
-- [ ] **Step 4: Vérifier que tout compile**
+Le composant de page exporté redevient **synchrone**, ce qui laisse le titre et le bouton de création peints immédiatement pendant que la liste charge.
+
+Point de vigilance propre à ce premier écran admin lisant Prisma sans cache : l'issue prisma#28588 (« used new Date() before accessing uncached data ») peut se manifester ici. Mitigation si le cas se présente, un `await connection()` en tête de `TagsList`.
+
+Aucun `'use cache'`, contrainte héritée de l'espace admin.
+
+Vérifier la signature réelle de `StackedSkeleton` avant de l'employer, le composant est maison.
+
+- [ ] **Step 5: Vérifier que tout compile**
 
 ```bash
 just typecheck && just lint && just build
@@ -631,11 +687,19 @@ Depuis `/admin/tags`, créer un tag avec un slug inédit, les deux noms, une cat
 
 Expected: il apparaît dans la liste, avec son icône rendue.
 
-- [ ] **Step 2: Vérifier la répercussion publique**
+- [ ] **Step 2: Vérifier la répercussion publique sur les deux étiquettes**
 
-Consulter une page publique affichant les tags, par exemple `/fr/a-propos`.
+Renommer un tag **déjà rattaché à un projet**, puis consulter dans l'ordre `/fr/a-propos` et `/fr/projets`.
 
-Expected: le nouveau tag y figure. S'il n'apparaît pas alors qu'il est bien en base, c'est que `updateCacheTag('tags')` n'a pas été appelé.
+Expected: le nouveau nom apparaît sur les **deux**.
+
+S'il n'apparaît nulle part alors qu'il est bien en base, aucune invalidation n'a eu lieu. S'il apparaît sur `/a-propos` mais pas sur `/projets`, c'est `updateCacheTag('projects')` qui manque : les tags sont embarqués dans le cache des projets via `PROJECT_INCLUDE`. C'est le seul symptôme de ce sub-project qui ressemble à un cache paresseux alors que c'est une étiquette oubliée.
+
+- [ ] **Step 2 bis: Vérifier le comportement de la table de liste**
+
+Sur `/admin/tags`, saisir un terme dans la recherche, puis cliquer deux fois sur l'en-tête « Slug », puis changer de page si le nombre de tags le permet.
+
+Expected: la liste se filtre, se trie en croissant puis en décroissant, et le pied affiche le compteur. Inspecter le `th` : `aria-sort` doit refléter l'état courant.
 
 - [ ] **Step 3: Vérifier le refus d'un slug en double**
 
@@ -667,13 +731,13 @@ Comparer le nombre de lignes affichées au `SELECT count(*) FROM "Tag"` de la ba
 
 Expected: les deux nombres sont égaux. Un écart signalerait que la requête publique, cachée, a été réutilisée à la place de la requête d'administration.
 
-- [ ] **Step 8: Lancer la suite complète**
+- [ ] **Step 8: Lancer la suite complète et le build**
 
 ```bash
-just test
+just test && pnpm build
 ```
 
-Expected: tous les tests verts.
+Expected: tous les tests verts et le build réussi. C'est le build, et non le typage, qui sanctionne une requête Prisma sortie du sous-composant sous `<Suspense>`.
 
 - [ ] **Step 9: Demander la validation avant commit**
 

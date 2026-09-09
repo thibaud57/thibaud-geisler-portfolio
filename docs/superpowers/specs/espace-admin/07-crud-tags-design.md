@@ -13,7 +13,7 @@ date: "2026-09-03"
 
 ## Scope
 
-Créer, modifier et supprimer des tags depuis l'espace admin : Server Actions validées par Zod, écran de liste, formulaire en modale et confirmation de suppression.
+Créer, modifier et supprimer des tags depuis l'espace admin : Server Actions validées par Zod, écran de liste, formulaire en modale et confirmation de suppression. S'y ajoute le composant de table de liste partagé, écrit ici et réutilisé par les sub-projects `08` et `12`.
 
 Ce sub-project établit le pattern que reprendront les entités légères suivantes, Entreprises au `08` et le reste de l'admin ensuite. Exclut la réorganisation par glisser-déposer : `displayOrder` s'édite au clavier comme un champ ordinaire.
 
@@ -33,12 +33,13 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 - **À créer** : `src/server/actions/tags.types.ts` (types d'état de formulaire)
 - **À modifier** : `src/server/queries/tags.ts` (requête de liste pour l'administration)
 - **À modifier** : `src/lib/icons.tsx` (export des clés d'icônes disponibles)
-- **À modifier** : `src/app/admin/tags/page.tsx` (remplacement de la page d'attente)
+- **À modifier** : `src/app/admin/(protected)/tags/page.tsx` (remplacement de la page d'attente)
+- **À créer** : `src/components/features/admin/DataTable.tsx` (table de liste partagée : recherche, tri par colonne, pied paginé)
 - **À créer** : `src/components/features/admin/tags/TagsTable.tsx`
 - **À créer** : `src/components/features/admin/tags/TagFormDialog.tsx`
 - **À créer** : `src/components/features/admin/tags/DeleteTagDialog.tsx`
-- **À créer** : `src/components/ui/alert-dialog.tsx`, `src/components/ui/dialog.tsx` et `src/components/ui/select.tsx` (installés par le CLI shadcn : les deux derniers ont été retirés du dépôt et rangés en post-MVP dans `docs/DESIGN.md`)
-- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog`, et `Select` sort de la ligne « Formulaires admin » pour rejoindre la section Formulaires
+- **À créer** : `src/components/ui/` : `alert-dialog`, `dialog`, `select`, `pagination`, `checkbox`, installés par le CLI shadcn **s'ils sont absents**
+- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Modales » rejoint la section Overlays avec `Dialog` et `AlertDialog`, `Select` et `Checkbox` sortent de la ligne « Formulaires admin » pour rejoindre la section Formulaires, `Pagination` sort de « Navigation dans les listes », et la ligne « Barre d'outils de liste » est marquée comme cible ultérieure
 
 ## Architecture approach
 
@@ -56,9 +57,15 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 
 **Chaque Server Action vérifie la session elle-même.** `await getCurrentUser()` ouvre chaque mutation, hors de tout `try/catch`. Le layout protège l'affichage des pages, il ne protège pas l'exécution des actions : une Server Action exportée est un endpoint HTTP que quiconque connaît l'identifiant peut appeler sans jamais charger l'écran. C'est la défense en profondeur qu'impose `.claude/rules/nextjs/server-actions.md`, qui écrit aussi bien « vérifier l'authentification dans chaque Server Action, même si le proxy protège déjà la route » que « ne pas dépendre uniquement du proxy : un matcher modifié peut supprimer la couverture ». L'appel précède le `try`, sinon le `catch` avalerait l'interruption `unauthorized()` et la présenterait comme une erreur technique.
 
-**Invalidation par `updateTag('tags')`** après chaque mutation réussie. C'est l'étiquette déjà posée par les requêtes publiques de `src/server/queries/tags.ts`, donc les pages publiques reflètent le changement sans redéploiement.
+**Invalidation par `updateTag('tags')` et `updateTag('projects')`** après chaque mutation réussie. La première étiquette est celle des requêtes publiques de `src/server/queries/tags.ts`. La seconde est indispensable et facile à manquer : `PROJECT_INCLUDE` (`src/types/project.ts`) embarque les tags dans chaque projet caché sous l'étiquette `projects`, donc renommer un tag ou changer son icône laisse les cartes projet et les case studies afficher l'ancienne valeur jusqu'à expiration du `cacheLife('hours')`. Le scénario 7 passerait sur `/a-propos`, qui lit `findAllTags`, et échouerait sur `/projets`.
+
+**La lecture des données de la page vit sous `<Suspense>`.** Avec `cacheComponents: true`, une requête Prisma sans `'use cache'` est un accès dynamique : appelée directement dans le composant de page, elle fait échouer le build sur « Uncached data was accessed outside of `<Suspense>` ». La page monte donc un sous-composant async sous `<Suspense>`, avec un `StackedSkeleton` en fallback. Point de vigilance propre au premier écran admin lisant Prisma sans cache : l'issue prisma#28588 (« used new Date() before accessing uncached data ») peut se manifester ici, sa mitigation est un `await connection()` en tête du sous-composant.
 
 `updateTag` plutôt que `revalidateTag` : le premier fait attendre la requête suivante le temps de recharger, le second sert d'abord du contenu périmé. Comme on vérifie l'effet en consultant la page publique juste après la mutation, seule la première sémantique rend le critère observable. `updateTag` n'est utilisable que depuis une Server Action, ce qui est précisément le contexte ici.
+
+**La table de liste est un composant partagé, écrit une fois ici.** `docs/DESIGN.md` § Mapping Composants décrit le motif cible d'une table admin, et le design system rappelle que ce n'est pas un composant du registry mais un pattern en état local React, sans librairie de table à cette volumétrie. Ce sub-project en écrit la moitié utile tout de suite : champ de recherche, en-tête de colonne triable (cycle croissant, décroissant, ordre d'affichage, avec `aria-sort` sur le bouton `ghost` du `th`), et pied sur la rangée `xs` portant le compteur à gauche et le pager à droite. Les sub-projects `08` et `12` le réutilisent tel quel, ce qui fait que les trois écrans de liste se ressemblent dès le premier jour.
+
+Les deux `Popover` de la barre d'outils, choix des colonnes affichées et filtres à compteurs facettés, **restent hors de cet epic**. Ils n'ont de sens qu'avec du volume et des colonnes qu'on veut masquer : à cinq entreprises et trente tags, ils ajouteraient des contrôles sans emploi. DESIGN.md les garde comme cible et le note. Aucun contrôle désactivé ni décoratif n'est posé en attendant : une recherche grisée n'annonce rien d'utile dans son propre back-office et laisse du code à reprendre.
 
 **La liste d'administration ne réutilise pas la requête publique.** `findAllTags` applique `'use cache'` : l'administration doit lire la base sans cache, pour voir ses propres mutations. Une requête distincte est ajoutée plutôt que de paramétrer l'existante, dont le comportement de cache ne se désactive pas au cas par cas.
 
@@ -104,9 +111,23 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 **AND** ni le tag ni ses rattachements ne sont altérés
 
 ### Scénario 7 : Répercussion sur le site public
-**GIVEN** un tag créé depuis l'administration
-**WHEN** on consulte une page publique qui affiche les tags
-**THEN** le nouveau tag y figure, l'étiquette de cache ayant été invalidée
+**GIVEN** un tag existant, renommé depuis l'administration
+**WHEN** on consulte `/a-propos`, qui lit `findAllTags`
+**THEN** le nouveau nom y figure
+**AND** sur `/projets`, les cards des projets portant ce tag affichent aussi le nouveau nom, `projects` ayant été invalidée en même temps que `tags`
+
+### Scénario 10 : Table de liste utilisable
+**GIVEN** l'écran des tags et plus d'une page de lignes
+**WHEN** on saisit un terme dans la recherche, puis on clique deux fois sur un en-tête de colonne
+**THEN** la liste se filtre, puis se trie en croissant, puis en décroissant
+**AND** `aria-sort` reflète l'état courant
+**AND** le pied affiche le compteur et permet de changer de page
+
+### Scénario 11 : Build de production réussi
+**GIVEN** `cacheComponents: true` et la lecture Prisma de la page
+**WHEN** on exécute `pnpm build`
+**THEN** le build aboutit
+**AND** aucune erreur « Uncached data was accessed outside of `<Suspense>` » n'est levée
 
 ### Scénario 8 : Icône restreinte au registre
 **GIVEN** le formulaire de création
@@ -132,7 +153,7 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
   - une icône absente du registre est refusée
   - une icône vide est acceptée, le champ étant optionnel
   - un slug comportant des majuscules ou des espaces est refusé ou normalisé, selon la règle retenue
-  - la création réussie invalide l'étiquette de cache `tags`
+  - la création réussie invalide les étiquettes de cache `tags` **et** `projects`
   - une violation de contrainte d'unicité sur le slug est traduite en erreur de champ, non en erreur technique
   - une violation de contrainte de clé étrangère à la suppression est traduite en message explicite
   - les valeurs saisies sont retournées dans l'état en cas d'échec de validation
@@ -146,5 +167,7 @@ Aucun test n'est écrit sur le rendu des composants : monter une modale shadcn p
 - **Icône silencieusement invalide** : c'est le piège principal de cette entité. `resolveTagIcon` retourne `null` sans rien signaler, donc un tag mal saisi s'afficherait simplement sans icône, et le défaut ne serait découvert qu'à l'œil sur le site public
 - **`displayOrder` en doublon** : rien n'empêche deux tags de porter la même valeur. L'ordre est alors départagé par le tri secondaire déjà présent dans `findAllTags` (`slug` croissant), donc le comportement reste déterministe
 - **Cache non invalidé** : une mutation qui oublie `updateTag('tags')` réussit en base sans que le site public ne change. Le symptôme ressemble à un échec d'enregistrement alors que la donnée est bien écrite
+- **Invalidation partielle** : n'invalider que `tags` est plus vicieux qu'oublier les deux. `/a-propos` se met à jour, `/projets` non, parce que les tags y sont embarqués dans le cache `projects` via `PROJECT_INCLUDE`. On conclut à un cache mal purgé sur une page alors que la cause est une étiquette manquante
+- **Requête Prisma hors `<Suspense>`** : le build échoue, il ne dégrade pas. Le message nomme le fichier, pas toujours l'appel fautif
 - **Requête publique cachée** : `findAllTags` porte `'use cache'`. Réutilisée dans l'administration, elle servirait un instantané antérieur à la dernière mutation, qui passerait pour perdue
 - **Suppression concurrente** : un tag rattaché à un projet entre l'affichage de la liste et la confirmation de suppression provoque une erreur de contrainte. C'est le comportement attendu, et le message doit rester compréhensible

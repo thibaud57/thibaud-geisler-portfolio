@@ -38,8 +38,10 @@ Exclut toute protection de route et tout écran : le proxy, `getCurrentUser()`, 
 - **À créer** : `src/app/api/auth/[...all]/route.ts`
 - **À modifier** : `src/env.ts` (cinq variables serveur)
 - **À modifier** : `.env.example`
-- **À modifier** : `src/lib/prisma-test-setup.ts` (extension du reset aux tables d'authentification, avec noms qualifiés)
+- **À modifier** : `src/lib/prisma-test-setup.ts` (extension du reset aux quatre tables d'authentification, qualifiées `"auth".`, le sub-project `03` ayant déjà qualifié `Company`)
 - **À modifier** : `docs/PRODUCTION.md` (réintroduction des cinq variables d'authentification, retirées le 2026-09-03 parce qu'elles décrivaient une infrastructure inexistante : bloc Variables Secrets, Gestion des Secrets, Rotation, et anti-patterns de logging)
+- **À modifier** : `docs/VERSIONS.md` (Better Auth quitte l'annexe post-MVP, où son entrée précise « rejoindra le tableau principal à l'implémentation », pour le tableau des versions en service, avec la version réellement installée)
+- **À modifier** : `docs/registre-traitements.md` (nouveau traitement « Authentification de l'administrateur » : email, nom et photo Google conservés en base, finalité, base légale, durée, et mention de Google comme sous-traitant)
 
 ## Architecture approach
 
@@ -52,6 +54,10 @@ Le guide officiel Prisma résout d'ailleurs la tension entre les deux convention
 **La whitelist est une fonction pure, séparée du hook.** `src/lib/admin-whitelist.ts` expose une fonction qui décide si un email est autorisé ; `src/lib/auth.ts` l'appelle depuis `databaseHooks.user.create.before`. Cette séparation rend la règle testable sans monter Better Auth, et c'est la seule règle métier du sub-project : une régression ouvrirait l'espace admin à n'importe quel compte Google.
 
 **Google est l'unique provider.** Aucun provider Credentials n'est activé, pas même en secours. L'ADR-002 est explicite : « garder un second provider reviendrait à conserver la surface d'attaque que l'on cherche à éliminer ». En cas de perte d'accès au compte Google, le recours documenté est un accès SSH Dokploy avec requête SQL directe.
+
+**Le refus d'un compte non autorisé lève une `APIError`, pas une `Error`.** `better-auth/api` expose `APIError`, qui porte un statut HTTP et un code : levée depuis le hook, elle produit une réponse 403 exploitable et une redirection vers `/admin/login?error=...`. Une `Error` nue produirait un 500, c'est-à-dire un incident technique là où il s'agit d'un refus attendu, et remonterait dans Sentry à chaque tentative.
+
+**Le tracking d'IP est désactivé.** Better Auth renseigne `session.ipAddress` en clair par défaut. `docs/PRODUCTION.md` et le registre des traitements posent la règle inverse, aucune IP en clair, celles du formulaire de contact étant hachées avec `IP_HASH_SALT`. `advanced.ipAddress.disableIpTracking: true` fait retourner `null` à la détection. La donnée n'apprendrait rien ici : un seul utilisateur, sa propre adresse.
 
 **`nextCookies()` est le dernier plugin déclaré.** L'ordre n'est pas indifférent : placé ailleurs, les en-têtes `Set-Cookie` des Server Actions ne sont plus gérés. C'est une exigence de `.claude/rules/nextjs/auth.md`.
 
@@ -74,6 +80,8 @@ Contraintes d'architecture : ADR-002 pour le choix du provider et le mécanisme 
 **WHEN** on mène le flux OAuth jusqu'au bout avec un compte Google différent
 **THEN** aucune ligne n'est créée dans `auth.user`
 **AND** aucune session n'est ouverte
+**AND** la réponse porte un statut 4xx et non un 500, le refus étant attendu et non une panne
+**AND** l'utilisateur revient sur `/admin/login` avec un paramètre `error` que le sub-project `05` traduit en message
 
 ### Scénario 3 : Règle de whitelist isolée et testable
 **GIVEN** la fonction d'autorisation
@@ -98,6 +106,12 @@ Contraintes d'architecture : ADR-002 pour le choix du provider et le mécanisme 
 **THEN** aucune ne porte le préfixe `NEXT_PUBLIC_`
 **AND** le bundle client ne contient ni `BETTER_AUTH_SECRET` ni `GOOGLE_CLIENT_SECRET`
 
+### Scénario 7 : Aucune adresse IP en clair
+**GIVEN** `advanced.ipAddress.disableIpTracking` à `true`
+**WHEN** une session est créée par une connexion réussie
+**THEN** `auth.session.ipAddress` est nul
+**AND** le registre des traitements décrit les données réellement conservées, email, nom et photo Google
+
 ## Tests à écrire
 
 ### Unit
@@ -121,6 +135,8 @@ Aucun test n'est écrit sur la configuration de Better Auth, l'ordre des plugins
 - **Redirect URIs Google** : chaque environnement doit être déclaré dans la console Google Cloud. Un oubli ne se manifeste qu'au moment de la connexion
 - **Aucune route n'est protégée à l'issue de ce sub-project** : l'authentification fonctionne mais `/admin` n'existe pas encore. Ce n'est pas un défaut, c'est le périmètre
 - **Fuite entre tests** : sans extension de `resetDatabase()`, un utilisateur créé par un test resterait visible du suivant, et l'échec apparaîtrait dans un test sans rapport avec la cause
+- **`?schema=public` dans le `DATABASE_URL` de la CI** : `.github/workflows/deploy.yml` passe cette chaîne à la Postgres éphémère du build. Le paramètre fixe le `search_path` de la connexion et n'empêche pas Prisma de créer d'autres schemas, qui qualifie ses requêtes en multi-schema. À vérifier tout de même sur le premier build CI qui embarque ce sub-project : c'est le premier à faire appliquer `migrate deploy` avec un schema hors `public` dans cet environnement
+- **Refus rendu comme une panne** : une `Error` nue dans le hook produit un 500 et une issue Sentry à chaque tentative avec un mauvais compte. `APIError` de `better-auth/api` porte le statut et le code, et c'est ce que la page de connexion du `05` lira
 
 ## Architectural decisions
 
