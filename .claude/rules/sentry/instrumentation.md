@@ -12,12 +12,13 @@ paths:
 
 ## À faire
 - Déclarer un seul point d'entrée `instrumentation.ts` exportant `register()`, qui importe la config serveur ou edge selon `process.env.NEXT_RUNTIME`
-- Exporter `onRequestError = Sentry.captureRequestError` depuis `instrumentation.ts` : c'est ce qui capture les erreurs des Server Components, du proxy et du middleware (SDK >= 8.28.0)
+- Exporter `onRequestError` depuis `instrumentation.ts` en appelant `Sentry.captureRequestError` : c'est ce qui capture les erreurs des Server Components, du proxy et du middleware (SDK >= 8.28.0). Une assignation directe suffit s'il n'y a rien d'autre à faire ; composer un wrapper est légitime pour y ajouter un log applicatif (ex: `logger.error` pour une procédure d'incident), à condition d'untracker ce logger de `pinoIntegration` (voir Gotchas) pour ne pas dupliquer l'issue
 - Nommer le fichier client `instrumentation-client.ts` : `sentry.client.config.ts` est l'ancienne convention, encore tolérée mais obsolète
 - Filtrer les données personnelles dans `beforeSend`, qui doit retourner un event valide ou `null`, jamais `undefined`
+- **Filtrer aussi dans `beforeSendLog` dès que `pinoIntegration` est active** : `log.levels` alimente le produit *Logs* de Sentry, un canal distinct des issues que `beforeSend` ne voit jamais. Il transporte l'objet Pino entier, `err` sérialisé compris, et `enableLogs` vaut `true` par défaut. Filtrer un seul des deux canaux laisse la donnée fuiter par l'autre
 - Utiliser `Sentry.pinoIntegration()` pour brancher le logger existant, jamais un transport maison (SDK >= 10.18.0, Pino `>=8.0.0 <11`)
 - Restreindre explicitement `log.levels` dans l'intégration Pino : le défaut envoie tous les niveaux, `debug` compris, et épuise le quota de logs
-- Déclarer `error.levels` explicitement pour choisir quels niveaux Pino créent **en plus** une issue, sinon une même erreur remonte deux fois
+- Déclarer `error.levels` explicitement pour choisir quels niveaux Pino créent **en plus** une issue, sinon une même erreur remonte deux fois. Même risque si un `logger.error()` explicite suit un `Sentry.captureRequestError`/`captureException` déjà posé pour la même erreur : `pinoIntegration` intercepte tout `logger.error()` du process par défaut (`diagnostics_channel`, pas seulement une instance précise). Untracker un child logger dédié à cet appel (`Sentry.pinoIntegration.untrackLogger(logger.child({}))`) évite le doublon sans désactiver la capture Pino du reste de l'app
 - Provoquer une vraie erreur serveur après l'installation et vérifier qu'elle arrive dans Sentry : une intégration qui compile n'est pas une intégration qui remonte
 - Brancher les `// TODO post-MVP : envoyer error à Sentry` déjà présents dans `error.tsx` et `global-error.tsx`
 
@@ -46,6 +47,12 @@ export async function register() {
 }
 
 export const onRequestError = Sentry.captureRequestError
+
+// ✅ Wrapper légitime : log applicatif ajouté, logger dédié untracké pour éviter le doublon
+export const onRequestError: Instrumentation.onRequestError = (error, request, context) => {
+  Sentry.captureRequestError(error, request, context)
+  incidentLogger.error({ err: error, path: request.path }) // incidentLogger = logger.child({}), untracké
+}
 ```
 
 ```typescript
@@ -59,6 +66,8 @@ Sentry.init({
   ],
   beforeSend(event) {
     if (event.user) delete event.user.email
+    // Un message d'erreur (ex: rejet SMTP) peut embarquer un email hors de event.user
+    if (event.message) event.message = redactEmails(event.message)
     return event                      // null pour abandonner, jamais undefined
   },
 })

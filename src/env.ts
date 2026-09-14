@@ -18,6 +18,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CALENDLY_URL_FR: z.url().optional(),
     NEXT_PUBLIC_CALENDLY_URL_EN: z.url().optional(),
     NEXT_PUBLIC_BUILD_YEAR: z.string().optional(),
+    NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env["DATABASE_URL"],
@@ -33,6 +34,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CALENDLY_URL_FR: process.env["NEXT_PUBLIC_CALENDLY_URL_FR"],
     NEXT_PUBLIC_CALENDLY_URL_EN: process.env["NEXT_PUBLIC_CALENDLY_URL_EN"],
     NEXT_PUBLIC_BUILD_YEAR: process.env["NEXT_PUBLIC_BUILD_YEAR"],
+    NEXT_PUBLIC_SENTRY_DSN: process.env["NEXT_PUBLIC_SENTRY_DSN"],
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env["SKIP_ENV_VALIDATION"],

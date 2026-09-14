@@ -4,7 +4,7 @@ description: "Documentation opérationnelle : release strategy, déploiement, mo
 date: "2026-09-03"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino"]
+technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
 ---
 
 # 🚀 Release Strategy
@@ -88,6 +88,12 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
+**Sentry (à cocher au premier tag embarquant l'observabilité applicative) :**
+- [ ] Les logs du workflow de déploiement montrent l'upload des source maps
+- [ ] Une erreur serveur en production produit une issue dont la stack trace pointe sur le fichier source et non sur du code minifié
+- [ ] `docker history --no-trunc <image publiée> | grep -i sentry_auth_token` ne retourne rien
+- [ ] `/fr/projets` affiche les projets de la base de production et non ceux du seed du build CI (confirme que l'invalidation `NEXT_PHASE` s'exécute toujours au boot)
+
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -134,6 +140,10 @@ ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/
 # ⚠️ Inlinées dans le bundle JS au build → propagées via build args du workflow GHA `deploy.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
 NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
 NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
+
+# Sentry (monitoring d'erreurs et tracing, DSN exposé au navigateur)
+# ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SENTRY_DSN` GitHub Repository Variables)
+NEXT_PUBLIC_SENTRY_DSN=             # DSN du projet Sentry (Project Settings → SDK Setup → Client Keys). Fiche : knowledges/sentry.md
 ```
 
 > **Dev local uniquement (`POSTGRES_*`)** : `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` sont consommés par `compose.override.yaml` pour initialiser le Postgres local et ne sont pas utilisés en prod (Dokploy gère sa propre Database avec ses credentials). Voir `.env.example` pour les valeurs par défaut dev.
@@ -332,6 +342,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `DATABASE_URL` | Dokploy : Environment du Compose | Via `env` (client Prisma) |
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
+| `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
 | `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 
 > ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre (le stage `runner` repart de `FROM base` et ne copie que des fichiers), mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
@@ -365,11 +376,11 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 ```
 default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
 img-src 'self' data: https:; frame-src https://calendly.com https://*.calendly.com;
-connect-src 'self' https://*.calendly.com; font-src 'self' data:; frame-ancestors 'none';
-base-uri 'self'; form-action 'self'; object-src 'none'
+connect-src 'self' https://*.calendly.com https://o4511826481774592.ingest.de.sentry.io;
+font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
-> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` et `connect-src` n'ouvrent que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami, ingestion Sentry) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
+> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` n'ouvre que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `connect-src` ouvre Calendly et l'ingestion Sentry (organisation `tg-ws`, région européenne `de.sentry.io`). `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
 
 > ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com/fr` et comparer aux valeurs de ce tableau
 > ❌ **Ne pas désactiver HSTS ou CSP en production**, même temporairement
@@ -412,6 +423,7 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
 | Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
 | UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
+| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack, détail : [knowledges/sentry.md](knowledges/sentry.md) | [sentry.io](https://sentry.io), organisation `tg-ws` |
 
 ## Métriques Clés
 
@@ -425,6 +437,8 @@ Seuils sur ce qui est réellement observable avec la stack actuelle : sonde exte
 | Rate limit formulaire déclenché | > 5 fois/heure | > 20 fois/heure | Event `rate_limit:exceeded` |
 
 > ⚠️ **Ces seuils ne sont comptés par personne** : aucun outil n'agrège les logs ni ne calcule de taux. Ils se vérifient à la lecture, dans l'onglet Logs, quand on a une raison de regarder.
+
+> ℹ️ **Sentry, seconde source pour les routes/queries tracées** : `duration_ms` sur l'event `email:sent` reste la mesure de référence de la Server Action de contact (§ Logging). Sentry ajoute une transaction par requête pour les routes, pages et queries Prisma tracées, mais pas pour la Server Action elle-même : voir [knowledges/sentry.md](knowledges/sentry.md#instrumentation-des-server-actions).
 
 ## Alertes
 
@@ -500,7 +514,7 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`
+- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`
 - ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société) : données personnelles, RGPD
 - ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
@@ -632,6 +646,8 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 > ⚠️ **Suspendre Kaspersky avant toute mesure, `curl` compris** : il s'interpose sur le TLS et gonfle le TTFB d'un facteur 3 à 5 (0,55-0,75 s actif contre 0,13-0,19 s désactivé, 2026-09-05). Il supprime aussi l'entrée LCP en émulation mobile. Seul PSI y échappe.
 
 > ⚠️ **Ne pas relever le TBT en pilotage CDP** : l'observer `longtask` sous CPU ×4 compte sa propre instrumentation et surestime d'un facteur 5 (295-444 ms contre 60-70 ms chez PSI, même build).
+
+> ℹ️ **Sentry ne remplace pas `duration_ms`** sur l'envoi du formulaire de contact : c'est une seconde source pour les routes/queries tracées, pas pour la Server Action elle-même (§ Observabilité › Stack Monitoring, [knowledges/sentry.md](knowledges/sentry.md#instrumentation-des-server-actions)).
 
 ## Optimisations
 

@@ -2,6 +2,8 @@
 
 import "server-only"
 
+import * as Sentry from "@sentry/nextjs"
+
 import { MAIL_FROM, MAIL_TO, transporter } from "@/lib/mailer"
 import { rateLimiter } from "@/lib/rate-limiter"
 import { z } from "zod"
@@ -40,65 +42,70 @@ export async function submitContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  const { log, ip } = await createActionLogger("submitContact")
+  return Sentry.withServerActionInstrumentation(
+    "submitContact",
+    async (): Promise<ContactFormState> => {
+      const { log, ip } = await createActionLogger("submitContact")
 
-  const honeypot = formData.get("website")
-  if (typeof honeypot === "string" && honeypot.trim().length > 0) {
-    log.info({ event: "honeypot:caught" })
-    return { ok: true, errors: {}, message: null }
-  }
+      const honeypot = formData.get("website")
+      if (typeof honeypot === "string" && honeypot.trim().length > 0) {
+        log.info({ event: "honeypot:caught" })
+        return { ok: true, errors: {}, message: null }
+      }
 
-  const submittedValues: ContactFormState["values"] = {
-    name: stringField(formData, "name"),
-    company: stringField(formData, "company"),
-    email: stringField(formData, "email"),
-    subject: stringField(formData, "subject"),
-    message: stringField(formData, "message"),
-  }
+      const submittedValues: ContactFormState["values"] = {
+        name: stringField(formData, "name"),
+        company: stringField(formData, "company"),
+        email: stringField(formData, "email"),
+        subject: stringField(formData, "subject"),
+        message: stringField(formData, "message"),
+      }
 
-  const rateLimit = rateLimiter.check(ip, {
-    max: RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-  })
-  if (!rateLimit.allowed) {
-    log.warn({ event: "rate_limit:exceeded", retryAfterSeconds: rateLimit.retryAfterSeconds })
-    return {
-      ok: false,
-      errors: {},
-      message: "rate_limit",
-      values: submittedValues,
-    }
-  }
+      const rateLimit = rateLimiter.check(ip, {
+        max: RATE_LIMIT_MAX,
+        windowMs: RATE_LIMIT_WINDOW_MS,
+      })
+      if (!rateLimit.allowed) {
+        log.warn({ event: "rate_limit:exceeded", retryAfterSeconds: rateLimit.retryAfterSeconds })
+        return {
+          ok: false,
+          errors: {},
+          message: "rate_limit",
+          values: submittedValues,
+        }
+      }
 
-  const result = contactSchema.safeParse(Object.fromEntries(formData))
-  if (!result.success) {
-    return {
-      ok: false,
-      errors: z.flattenError(result.error).fieldErrors,
-      message: null,
-      values: submittedValues,
-    }
-  }
+      const result = contactSchema.safeParse(Object.fromEntries(formData))
+      if (!result.success) {
+        return {
+          ok: false,
+          errors: z.flattenError(result.error).fieldErrors,
+          message: null,
+          values: submittedValues,
+        }
+      }
 
-  // Horloge monotone : un ajustement NTP pendant l'envoi fausserait une mesure prise sur Date.now().
-  const startedAt = performance.now()
-  try {
-    await transporter.sendMail({
-      from: MAIL_FROM,
-      to: MAIL_TO,
-      replyTo: result.data.email,
-      subject: `Contact: ${result.data.name} — ${result.data.subject}`,
-      text: buildEmailBody(result.data),
-    })
-    log.info({
-      event: "email:sent",
-      has_company: Boolean(result.data.company),
-      message_length: result.data.message.length,
-      duration_ms: Math.round(performance.now() - startedAt),
-    })
-    return { ok: true, errors: {}, message: null }
-  } catch (err) {
-    log.error({ err, event: "email:failed" })
-    return { ok: false, errors: {}, message: "smtp_error", values: submittedValues }
-  }
+      // Horloge monotone : un ajustement NTP pendant l'envoi fausserait une mesure prise sur Date.now().
+      const startedAt = performance.now()
+      try {
+        await transporter.sendMail({
+          from: MAIL_FROM,
+          to: MAIL_TO,
+          replyTo: result.data.email,
+          subject: `Contact: ${result.data.name} — ${result.data.subject}`,
+          text: buildEmailBody(result.data),
+        })
+        log.info({
+          event: "email:sent",
+          has_company: Boolean(result.data.company),
+          message_length: result.data.message.length,
+          duration_ms: Math.round(performance.now() - startedAt),
+        })
+        return { ok: true, errors: {}, message: null }
+      } catch (err) {
+        log.error({ err, event: "email:failed" })
+        return { ok: false, errors: {}, message: "smtp_error", values: submittedValues }
+      }
+    },
+  )
 }

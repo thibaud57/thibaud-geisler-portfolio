@@ -1,6 +1,7 @@
 import bundleAnalyzer from "@next/bundle-analyzer"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
+import { withSentryConfig } from "@sentry/nextjs/config"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env["ANALYZE"] === "true" })
@@ -13,7 +14,7 @@ const cspDirectives = [
   ["style-src", "'self' 'unsafe-inline'"],
   ["img-src", "'self' data: https:"],
   ["frame-src", "https://calendly.com https://*.calendly.com"],
-  ["connect-src", "'self' https://*.calendly.com"],
+  ["connect-src", "'self' https://*.calendly.com https://o4511826481774592.ingest.de.sentry.io"],
   ["font-src", "'self' data:"],
   ["frame-ancestors", "'none'"],
   ["base-uri", "'self'"],
@@ -67,4 +68,12 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withBundleAnalyzer(withNextIntl(nextConfig))
+export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
+  org: "tg-ws",
+  project: "thibaud-geisler-portfolio",
+  authToken: process.env["SENTRY_AUTH_TOKEN"],
+  silent: !process.env["CI"],
+  widenClientFileUpload: true,
+  // @ts-expect-error useRunAfterProductionCompileHook is undocumented in types but required for Turbopack
+  _experimental: { useRunAfterProductionCompileHook: true },
+})

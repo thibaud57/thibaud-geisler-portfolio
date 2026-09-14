@@ -36,9 +36,11 @@ ENV SKIP_ENV_VALIDATION=true
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_CALENDLY_URL_FR
 ARG NEXT_PUBLIC_CALENDLY_URL_EN
+ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_CALENDLY_URL_FR=$NEXT_PUBLIC_CALENDLY_URL_FR
 ENV NEXT_PUBLIC_CALENDLY_URL_EN=$NEXT_PUBLIC_CALENDLY_URL_EN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 
 # DATABASE_URL au build = connection string vers Postgres ephemeral GitHub Actions
 # (vit pendant le job CI uniquement, ~5 min). Permet à Prisma 'use cache' d'exécuter
@@ -57,7 +59,9 @@ COPY --from=deps /app/src/generated ./src/generated
 # Turbopack (défaut Next 16). L'opt-out `--webpack` posé pour l'issue WASM
 # Prisma 7 (query_compiler_fast_bg.postgresql.mjs) a été retiré : build et
 # runtime vérifiés sur Next 16.3.3 + Prisma 7.10.0 (docs/VERSIONS.md § Prisma ORM).
-RUN pnpm exec next build
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+    pnpm exec next build
 
 # --- Bundle du seed Prisma -------------------------------------------------
 # Pre-bundle prisma/seed.ts → prisma/seed.js (deps externes resolues au runtime

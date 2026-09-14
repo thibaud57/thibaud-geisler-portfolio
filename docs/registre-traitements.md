@@ -63,6 +63,20 @@ scope: ["docs", "legal"]
 | Conservation | Gérée par Calendly |
 | Sécurité | Widget chargé après consentement (CMP c15t), HTTPS |
 
+## Traitement 4 : erreurs applicatives (Sentry)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Diagnostic et correction des erreurs applicatives |
+| Base légale | Intérêt légitime (art. 6.1.f) |
+| Personnes concernées | Visiteurs du site déclenchant une erreur applicative |
+| Données | Stack trace et contexte technique de l'erreur (requête, composant). `email` et `ip_address` de `event.user` retirés avant envoi, et toute adresse email détectée dans un message d'exception (ex: rejet SMTP) est masquée. Le filtrage couvre les **deux** canaux alimentés par l'intégration Pino : les issues (`beforeSend`) et les logs (`beforeSendLog`), ce dernier masquant aussi les emails imbriqués dans l'objet `err` sérialisé (`src/lib/sentry-scrub.ts`) |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | Sentry (Functional Software, Inc.) |
+| Transferts hors UE | Aucun : organisation `tg-ws` en région européenne, ingestion `de.sentry.io` (Francfort) |
+| Conservation | 30 jours (plan Developer), géré par Sentry |
+| Sécurité | Filtrage `email` et `ip_address` avant envoi sur les deux canaux (`beforeSend` pour les issues, `beforeSendLog` pour les logs), HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
+
 ## Notes
 
 - Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).

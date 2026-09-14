@@ -21,6 +21,9 @@ const eslintConfig = defineConfig([
       // a un objet ("[object Object]") ou a un nullish ("undefined") qui restent interdits.
       // Sans ca, chaque `${size}px` d'une valeur CSS demanderait un String() autour.
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      // Le rest destructuring (`const { sensible, ...safe } = obj`) est un pattern légitime
+      // pour omettre des clés d'un objet, pas du code mort.
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
     },
   },
   {

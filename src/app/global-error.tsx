@@ -5,6 +5,7 @@ import { hasLocale } from "next-intl"
 import { useSyncExternalStore } from "react"
 
 import { routing } from "@/i18n/routing"
+import { useReportError } from "@/hooks/use-report-error"
 
 type Locale = (typeof routing.locales)[number]
 
@@ -43,11 +44,11 @@ interface Props {
   reset: () => void
 }
 
-// TODO post-MVP : envoyer `error` à Sentry (cf. PRODUCTION.md > Monitoring). Tant que rien
-// ne le consomme, il n'est pas déstructuré : le lire pour rien serait une expression morte.
-export default function GlobalError({ reset }: Props) {
+export default function GlobalError({ error, reset }: Props) {
   const locale = useSyncExternalStore(subscribe, getClientLocale, getServerLocale)
   const t = messages[locale]
+
+  useReportError(error)
 
   return (
     <html lang={locale} suppressHydrationWarning>

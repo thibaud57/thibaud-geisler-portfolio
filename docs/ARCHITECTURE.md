@@ -101,7 +101,7 @@ graph LR
 
     subgraph Ext["Services externes"]
         Calendly["Calendly<br/>(prise de RDV)"]
-        Sentry["Sentry<br/>(erreurs applicatives,<br/>post-MVP, ADR-017)"]
+        Sentry["Sentry<br/>(erreurs + tracing serveur,<br/>ADR-017)"]
         SMTP["SMTP IONOS<br/>(email contact)"]
         R2["Cloudflare R2<br/>(portfolio-assets + portfolio-admin,<br/>post-MVP)"]
     end
@@ -109,14 +109,14 @@ graph LR
     Browser -->|HTTPS| Dokploy -->|reverse proxy| Next
     Browser -->|embed widget, après consentement c15t| Calendly
     Browser -.->|script analytics| Umami
-    Browser -.->|erreurs client, ingestion directe| Sentry
+    Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
     Next -->|Prisma| PG
     Next -->|File I/O| Assets
     Next -.->|HTTP interne| Chatbot
     Next -.->|HTTP interne| AgentOS
     Next -.->|HTTP interne| RagDocs
     Next -->|nodemailer| SMTP
-    Next -.->|erreurs + spans serveur| Sentry
+    Next -->|erreurs + spans serveur| Sentry
     Next -.->|S3, bascule des assets| R2
     Chatbot -.->|SQL| PG
     AgentOS -.->|SQL| PG
@@ -532,7 +532,7 @@ Pino, logger JSON structuré. Output stdout, visible dans l'onglet Logs de Dokpl
 ### Monitoring
 
 - **Umami** : analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Cf. [ADR-007](adrs/007-analytics-umami.md)
-- **Sentry** (post-MVP) : erreurs applicatives, en cloud
+- **Sentry** : en place, cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Le tracing des Server Actions est affecté par un bug SDK connu sous Turbopack : l'instrumentation est en place côté code mais la transaction n'atteint pas le dashboard. Détail : [knowledges/sentry.md](knowledges/sentry.md)
 - **Logfire ou Langfuse** (post-MVP) : traces LLM des services IA, en cloud, via OpenTelemetry émis nativement par PydanticAI
 
 Sentry et Logfire ou Langfuse ne sont pas auto-hébergés : leur empreinte mémoire est incompatible avec le VPS. Umami reste self-hosted, son empreinte étant sans commune mesure. Cf. [ADR-017](adrs/017-observabilite-cloud.md).
