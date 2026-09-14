@@ -5,17 +5,22 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "freelance"]
 }
 
 enum ProjectType {
   CLIENT
   PERSONAL
+
+  @@schema("public")
 }
 
 enum ProjectStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+
+  @@schema("public")
 }
 
 enum ProjectFormat {
@@ -25,6 +30,8 @@ enum ProjectFormat {
   DESKTOP_APP
   CLI
   IA
+
+  @@schema("public")
 }
 
 enum ContractStatus {
@@ -32,12 +39,16 @@ enum ContractStatus {
   CDI
   STAGE
   ALTERNANCE
+
+  @@schema("public")
 }
 
 enum WorkMode {
   PRESENTIEL
   HYBRIDE
   REMOTE
+
+  @@schema("public")
 }
 
 enum TagKind {
@@ -47,6 +58,8 @@ enum TagKind {
   INFRA
   AI
   EXPERTISE
+
+  @@schema("public")
 }
 
 enum CompanySize {
@@ -54,6 +67,8 @@ enum CompanySize {
   PME
   ETI
   GROUPE
+
+  @@schema("freelance")
 }
 
 enum CompanySector {
@@ -68,11 +83,15 @@ enum CompanySector {
   EMARKETING
   BANQUE
   AUTRE
+
+  @@schema("freelance")
 }
 
 enum VatRegime {
   FRANCHISE
   ASSUJETTI
+
+  @@schema("public")
 }
 
 enum ProcessingKind {
@@ -80,6 +99,8 @@ enum ProcessingKind {
   EMBEDDED_SERVICE
   EMAIL_PROVIDER
   ANALYTICS
+
+  @@schema("public")
 }
 
 enum OutsideEuFramework {
@@ -87,6 +108,8 @@ enum OutsideEuFramework {
   STANDARD_CONTRACTUAL_CLAUSES
   ADEQUACY_DECISION
   BINDING_CORPORATE_RULES
+
+  @@schema("public")
 }
 
 enum LegalBasis {
@@ -96,6 +119,8 @@ enum LegalBasis {
   VITAL_INTERESTS
   PUBLIC_TASK
   LEGITIMATE_INTERESTS
+
+  @@schema("public")
 }
 
 enum DataCategory {
@@ -105,6 +130,8 @@ enum DataCategory {
   USAGE_DATA
   TECHNICAL_LOGS
   COOKIE_DATA
+
+  @@schema("public")
 }
 
 model Project {
@@ -129,6 +156,8 @@ model Project {
   clientMeta          ClientMeta?
   createdAt           DateTime        @default(now()) @db.Timestamptz
   updatedAt           DateTime        @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }
 
 model ClientMeta {
@@ -143,6 +172,8 @@ model ClientMeta {
   deliverablesCount Int             @default(1)
   createdAt         DateTime        @default(now()) @db.Timestamptz
   updatedAt         DateTime        @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }
 
 model Company {
@@ -160,6 +191,8 @@ model Company {
   clientMetas ClientMeta[]
   createdAt   DateTime     @default(now()) @db.Timestamptz
   updatedAt   DateTime     @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
 }
 
 model Tag {
@@ -173,6 +206,8 @@ model Tag {
   projects     ProjectTag[]
   createdAt    DateTime     @default(now()) @db.Timestamptz
   updatedAt    DateTime     @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }
 
 model ProjectTag {
@@ -184,6 +219,7 @@ model ProjectTag {
 
   @@id([projectId, tagId])
   @@index([projectId, displayOrder])
+  @@schema("public")
 }
 
 model Address {
@@ -196,6 +232,8 @@ model Address {
   updatedAt  DateTime @updatedAt @db.Timestamptz
 
   legalEntity LegalEntity?
+
+  @@schema("public")
 }
 
 model LegalEntity {
@@ -219,6 +257,8 @@ model LegalEntity {
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }
 
 model Publisher {
@@ -233,6 +273,8 @@ model Publisher {
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }
 
 model DataProcessing {
@@ -252,4 +294,6 @@ model DataProcessing {
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("public")
 }

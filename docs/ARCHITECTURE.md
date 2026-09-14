@@ -67,7 +67,7 @@ pnpm
 
 - **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, cf. [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
-- **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine post-MVP ([ADR-018](adrs/018-cloisonnement-donnees.md))
+- **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : volumes Docker pour le MVP (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
 - **Sécurité** : `src/proxy.ts` (locale routing, et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth (post-MVP)
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
@@ -303,13 +303,14 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-Post-MVP, la base se découpe en schemas par domaine (`public`, `auth`, `freelance`, `dev`, `rag_public`) et une **seconde base isolée** accueille les documents personnels, avec ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM. Les schemas `auth`, `dev` et `rag_public` viendront compléter ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
 Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 
-- **Domaine projets** : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag`
+- **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
+- **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
 
 Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés sur disque (volume Docker) et référencés depuis `Project.coverFilename` ou `Company.logoFilename`, qui portent la clé complète (`projets/client/foyer/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).

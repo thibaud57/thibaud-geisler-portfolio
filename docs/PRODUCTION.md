@@ -81,6 +81,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploiement :
 
 - [ ] Variables d'environnement à jour dans Dokploy
+- [ ] Si la release embarque une migration qui déplace ou transforme des données existantes : dernière sauvegarde réussie et datée du jour dans Dokploy (Database `portfolio-db` → Backups), le rollback du code ne défaisant pas une migration (§ Rollback)
 - [ ] Merge vers `main` validé (develop → main fin d'epic, ou hotfix/* → main pour bug critique)
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
