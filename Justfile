@@ -114,7 +114,7 @@ db-migrate LABEL:
 [confirm('Cela va DROP la DB de dev. Continuer ?')]
 [group('db')]
 db-reset:
-    pnpm prisma migrate reset --force --skip-seed
+    pnpm prisma migrate reset --force
 
 # Insère les données de seed (idempotent, upsert par slug)
 [group('db')]
@@ -140,7 +140,7 @@ db-test:
 [script]
 db-test-reset:
     set -a && . ./.env.test && set +a
-    pnpm prisma migrate reset --force --skip-seed
+    pnpm prisma migrate reset --force
 
 # Prisma Studio sur la DB de test
 [group('db')]
