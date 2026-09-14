@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "stockage-assets-r2"
 goal: "Basculer le stockage des assets du volume Docker vers Cloudflare R2 et réorganiser leur arborescence"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-infra-stockage-objet-sauvegardes-design.md", "03-multi-schema-prisma-design.md"]
