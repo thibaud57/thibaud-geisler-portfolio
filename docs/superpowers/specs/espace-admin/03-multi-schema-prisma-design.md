@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "multi-schema-prisma"
 goal: "Activer le multi-schema Prisma, rattacher les modèles existants au schema public et déplacer Company dans freelance"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
