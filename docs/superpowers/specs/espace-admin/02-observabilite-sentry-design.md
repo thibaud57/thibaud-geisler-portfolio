@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "observabilite-sentry"
 goal: "Instrumenter l'application avec Sentry pour capter les erreurs serveur et client avant que la fondation admin n'introduise des mutations"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: []
