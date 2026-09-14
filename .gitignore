@@ -62,7 +62,3 @@ next-env.d.ts
 
 # Claude Code scheduling lock (PID + sessionId, recréé à chaque session)
 .claude/scheduled_tasks.lock
-
-# Assets locaux (servis par /api/assets en dev, volume Docker en prod)
-/assets/*
-!/assets/.gitkeep

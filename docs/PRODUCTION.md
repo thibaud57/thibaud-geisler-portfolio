@@ -95,6 +95,20 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] `docker history --no-trunc <image publiée> | grep -i sentry_auth_token` ne retourne rien
 - [ ] `/fr/projets` affiche les projets de la base de production et non ceux du seed du build CI (confirme que l'invalidation `NEXT_PHASE` s'exécute toujours au boot)
 
+**Cloudflare R2 assets (à cocher au premier tag embarquant la bascule des assets vers R2) :**
+- [ ] Avant le merge vers `main` : les quatre variables R2 posées dans Dokploy, token de production de `portfolio-assets`, `R2_ASSETS_BUCKET=portfolio-assets`
+- [ ] Avant le merge vers `main` : les buckets de dev ne portent aucun objet de test, sans quoi il partirait en production à l'étape suivante
+- [ ] Avant le merge vers `main` : `portfolio-assets` peuplé depuis `portfolio-assets-dev`, en deux temps puisque chaque token ne voit que son bucket
+  ```bash
+  AWS_ACCESS_KEY_ID=<clé dev> AWS_SECRET_ACCESS_KEY=<secret dev> AWS_DEFAULT_REGION=auto aws s3 sync s3://portfolio-assets-dev/ <dossier temporaire>/ --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+  AWS_ACCESS_KEY_ID=<clé prod> AWS_SECRET_ACCESS_KEY=<secret prod> AWS_DEFAULT_REGION=auto AWS_REQUEST_CHECKSUM_CALCULATION=when_required aws s3 sync <dossier temporaire>/ s3://portfolio-assets/ --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+  ```
+- [ ] Avant le merge vers `main` : `portfolio-admin` peuplé depuis `portfolio-admin-dev` de la même façon, puis le dossier temporaire supprimé
+- [ ] Avant le merge vers `main` : chaque bucket de production porte autant d'objets que son bucket de dev (`aws s3 ls s3://<bucket>/ --recursive ... | wc -l`), aucun `logo.png` dans `portfolio-assets`
+- [ ] Après déploiement : `curl -sI https://<domaine>/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf | grep -i cache-control` retourne `public, max-age=31536000, immutable`
+- [ ] Après déploiement : les pages publiques affichent toutes leurs images depuis les nouvelles clés et aucun badge entreprise ne porte d'image cassée (un défaut signalerait une migration de données non appliquée)
+- [ ] Après quelques jours de fonctionnement normal : le volume Docker `portfolio_assets` du VPS peut être supprimé, mort depuis le déploiement, gardé jusque-là comme copie gratuite
+
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -120,7 +134,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`. **Exception** : `ASSETS_PATH` reste sur `process.env` direct (rule `nextjs/assets.md` impose une lecture dynamique avec fallback `./assets`, pour que le dev fonctionne sans fichier d'environnement).
+> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT`, `R2_*` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`.
 
 > **Deux variables ne se configurent pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, et le `DATABASE_URL` passé en build-arg par `deploy.yml` pointe la Postgres CI éphémère, pas la base de production : le prerender des pages publiques a besoin d'une base joignable au build (§ Déploiement).
 
@@ -133,9 +147,6 @@ NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, 
                                     # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
                                     # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
 LOG_LEVEL=                          # Optionnel — niveau de log Pino (fatal|error|warn|info|debug|trace|silent). Défaut : debug en dev, info en prod
-
-# Assets (fichiers servis via /api/assets/[...path], sous-dossiers projets/{client,personal}/<slug>/)
-ASSETS_PATH=                        # Dev local : ./assets | Prod Docker : /app/assets
 
 # Calendly (widget inline /contact, exposé au navigateur — une URL par locale, event types FR/EN distincts)
 # ⚠️ Inlinées dans le bundle JS au build → propagées via build args du workflow GHA `deploy.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
@@ -171,9 +182,15 @@ MAIL_TO=                           # Adresse destinataire des messages du formul
 
 # Sécurité (hachage des IP dans les logs — pseudonymisation)
 IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
+
+# Cloudflare R2 (assets servis via /api/assets/[...path], SDK S3, ADR-011)
+R2_ACCOUNT_ID=                     # Identifiant de compte Cloudflare, compose l'endpoint https://<R2_ACCOUNT_ID>.eu.r2.cloudflarestorage.com
+R2_ASSETS_ACCESS_KEY_ID=           # Clé du token R2 "Object Read & Write", restreint au bucket portfolio-assets
+R2_ASSETS_SECRET_ACCESS_KEY=       # Secret du même token
+R2_ASSETS_BUCKET=                  # Nom du bucket lu par la route : portfolio-assets en prod, portfolio-assets-dev en dev
 ```
 
-> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-03).
+> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-14).
 
 ### Règles
 
@@ -246,7 +263,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 > Items techniques et assets de bootstrap, implémentés et validés empiriquement. Pas d'ADR : pas de décision architecturale structurelle, juste des optimisations, workarounds Docker/Next.js et assets de branding.
 
-> **Port 5432 et overrides dev** : l'exposition du port Postgres et les autres overrides dev-specific (bind-mount assets, override `DATABASE_URL`) sont isolés dans `compose.override.yaml`, auto-chargé en local et ignoré par Dokploy. Rien à désactiver manuellement avant un déploiement, et le port `5432` n'est pas joignable depuis l'extérieur en production (vérifié le 2026-09-03) : l'y voir ouvert un jour serait une anomalie.
+> **Port 5432 et overrides dev** : l'exposition du port Postgres et l'override `DATABASE_URL` sont isolés dans `compose.override.yaml`, auto-chargé en local et ignoré par Dokploy. Rien à désactiver manuellement avant un déploiement, et le port `5432` n'est pas joignable depuis l'extérieur en production (vérifié le 2026-09-03) : l'y voir ouvert un jour serait une anomalie.
 
 ### Revue globale de l'app
 
@@ -515,7 +532,7 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`
+- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`
 - ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société) : données personnelles, RGPD
 - ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
@@ -590,7 +607,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 > ⚠️ **`Keep the latest` compte des sauvegardes, pas des jours.** Avec une planification quotidienne, 30 donne trente jours de profondeur ; changer la fréquence change la fenêtre réelle sans toucher au champ. Champ vide = tout est conservé.
 
-> **Le volume des assets n'est pas sauvegardé, et ne le sera pas** : les assets migrent vers Cloudflare R2 avec l'upload depuis l'espace admin, le volume Docker disparaît alors (ADR-011). Configurer une sauvegarde de volume pour la démonter ensuite n'aurait pas de sens. D'ici là, la source reste le dossier `assets/` local, celui-là même qui a servi à remplir le volume : c'est lui qu'il faut garder à jour.
+> **Les buckets d'assets ne sont pas sauvegardés, par choix** : chaque bucket de production a son pendant de développement et les fichiers source sont conservés hors du dépôt. R2 n'ayant ni versioning ni corbeille (`knowledges/cloudflare-r2.md`), une suppression dans un bucket reste définitive.
 
 ## Recovery
 
@@ -621,7 +638,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 4. **Recréer la Backup Destination** (`cloudflare-r2-backups`) et la sauvegarde planifiée sur la nouvelle Database : les tokens R2 survivent à la perte du VPS, la destination Dokploy non
 5. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
 6. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
-7. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus), puis recopier les assets depuis le dossier `assets/` local : le volume n'est pas sauvegardé (§ Stratégie Backup)
+7. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus). Les buckets R2 ne vivent pas sur le VPS : rien à restaurer côté assets
 8. Reposer `/etc/logrotate.d/docker-containers` et le défaut de log dans `/etc/docker/daemon.json` : aucun fichier du dépôt ne les porte (§ Rétention)
 9. Smoke test complet
 

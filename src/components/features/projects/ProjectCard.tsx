@@ -56,9 +56,7 @@ export function ProjectCard({
             </Heading>
 
             <div className="flex flex-wrap items-center gap-2">
-              {company ? (
-                <ContextBadge logoFilename={company.logoFilename} name={company.name} />
-              ) : null}
+              {company ? <ContextBadge name={company.name} /> : null}
               <FormatBadges formats={project.formats} />
             </div>
 
@@ -133,25 +131,12 @@ function CoverArea({
 }
 
 interface ContextBadgeProps {
-  logoFilename: string | null
   name: string
 }
 
-function ContextBadge({ logoFilename, name }: ContextBadgeProps) {
-  const { showImage, onError } = useImageFallback(logoFilename)
-
+function ContextBadge({ name }: ContextBadgeProps) {
   return (
     <Badge variant="outline" meta>
-      {showImage && logoFilename ? (
-        <Image
-          src={buildAssetUrl(logoFilename)}
-          alt={name}
-          width={14}
-          height={14}
-          className="rounded object-contain"
-          onError={onError}
-        />
-      ) : null}
       {name}
     </Badge>
   )

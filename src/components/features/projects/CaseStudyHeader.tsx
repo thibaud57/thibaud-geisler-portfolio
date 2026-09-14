@@ -1,6 +1,5 @@
 import { safeExternalUrl } from "@/lib/url"
 import Image from "next/image"
-import { User } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
@@ -62,39 +61,24 @@ export function CaseStudyHeader({ project }: Props) {
       )}
 
       {company ? (
-        <div className="mt-10 flex w-fit flex-col gap-4 rounded-xl border border-border bg-muted/30 p-5 sm:flex-row sm:items-center">
-          {company.logoFilename ? (
-            <Image
-              src={buildAssetUrl(company.logoFilename)}
-              alt={company.name}
-              width={56}
-              height={56}
-              className="rounded-md object-contain"
-            />
+        <div className="mt-10 flex w-fit flex-col gap-1 rounded-xl border border-border bg-muted/30 p-5">
+          {companyUrl ? (
+            <a
+              href={companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xl font-semibold hover:text-primary"
+            >
+              {company.name}
+            </a>
           ) : (
-            <div className="flex size-14 items-center justify-center rounded-md border border-border bg-muted">
-              <User className="size-7 text-muted-foreground" aria-hidden="true" />
-            </div>
+            <span className="text-xl font-semibold">{company.name}</span>
           )}
-          <div className="flex flex-col gap-1">
-            {companyUrl ? (
-              <a
-                href={companyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xl font-semibold hover:text-primary"
-              >
-                {company.name}
-              </a>
-            ) : (
-              <span className="text-xl font-semibold">{company.name}</span>
-            )}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              {company.sectors.length > 0 ? (
-                <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
-              ) : null}
-              {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
-            </div>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {company.sectors.length > 0 ? (
+              <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
+            ) : null}
+            {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
           </div>
         </div>
       ) : null}

@@ -1,7 +1,8 @@
-import { readFile } from "node:fs/promises"
+import { GetObjectCommand, NoSuchKey } from "@aws-sdk/client-s3"
 import { NextResponse } from "next/server"
 import { logger } from "@/lib/logger"
-import { getContentType, resolveAssetPath, validateAssetPath } from "@/server/config/assets"
+import { r2, R2_BUCKET } from "@/lib/r2"
+import { getContentType, validateAssetPath } from "@/server/config/assets"
 
 const log = logger.child({ route: "/api/assets/[...path]" })
 
@@ -18,14 +19,23 @@ export async function GET(_request: Request, context: RouteContext): Promise<Res
     return NextResponse.json({ error: validation.error }, { status: 400 })
   }
 
-  const filepath = resolveAssetPath(validation.joined)
-
   try {
-    const data = await readFile(filepath)
-    return new Response(data, {
+    const object = await r2.send(
+      new GetObjectCommand({ Bucket: R2_BUCKET, Key: validation.joined }),
+    )
+
+    if (!object.Body) {
+      log.debug({ path: validation.joined }, "assets: empty body")
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    return new Response(object.Body.transformToWebStream(), {
       status: 200,
       headers: {
         "Content-Type": getContentType(validation.joined),
+        ...(object.ContentLength !== undefined && {
+          "Content-Length": String(object.ContentLength),
+        }),
         // En prod les assets sont immutables (convention : renommer le fichier pour invalider).
         // En dev, revalider à chaque requête sinon Chrome garde 1 an le premier fichier servi → galère au moindre remplacement local.
         "Cache-Control":
@@ -35,7 +45,7 @@ export async function GET(_request: Request, context: RouteContext): Promise<Res
       },
     })
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+    if (err instanceof NoSuchKey) {
       log.debug({ path: validation.joined }, "assets: not found")
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }

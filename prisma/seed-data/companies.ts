@@ -16,7 +16,7 @@ export const companies: CompanyInput[] = [
   {
     slug: "foyer",
     name: "Foyer",
-    logoFilename: "projets/client/foyer/logo.png",
+    logoFilename: "freelance/crm/entreprises/foyer/logo.png",
     websiteUrl: "https://www.foyer.lu",
     sectors: ["ASSURANCE"],
     size: "ETI",
@@ -25,7 +25,7 @@ export const companies: CompanyInput[] = [
   {
     slug: "cloudsmart",
     name: "CloudSmart",
-    logoFilename: "projets/client/cloudsmart/logo.png",
+    logoFilename: "freelance/crm/entreprises/cloudsmart/logo.png",
     websiteUrl: "https://cloudsmart.lu",
     sectors: ["SAAS", "LOGICIELS_ENTREPRISE"],
     size: "TPE",
@@ -34,7 +34,7 @@ export const companies: CompanyInput[] = [
   {
     slug: "paysystem",
     name: "PaySystem",
-    logoFilename: "projets/client/paysystem/logo.png",
+    logoFilename: "freelance/crm/entreprises/paysystem/logo.png",
     websiteUrl: "https://www.paysystem.eu",
     sectors: ["SAAS", "SERVICES_RH"],
     size: "TPE",
@@ -44,7 +44,7 @@ export const companies: CompanyInput[] = [
   {
     slug: "wanted-design",
     name: "Wanted Design",
-    logoFilename: "projets/client/wanted-design/logo.png",
+    logoFilename: "freelance/crm/entreprises/wanted-design/logo.png",
     websiteUrl: "https://www.wanteddesign.fr",
     sectors: ["EMARKETING", "IA_AUTOMATISATION"],
     size: "TPE",
@@ -55,7 +55,7 @@ export const companies: CompanyInput[] = [
     // Theodo n'a pas donne son accord ecrit de referencement (contrat-cadre, art. 6)
     slug: "theodo-extend",
     name: "Theodo Extend",
-    logoFilename: "projets/client/theodo-extend/logo.png",
+    logoFilename: "freelance/crm/entreprises/theodo-extend/logo.png",
     websiteUrl: "https://www.theodo.com",
     sectors: ["ESN_CONSEIL"],
     size: "ETI",

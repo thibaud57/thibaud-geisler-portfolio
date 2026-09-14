@@ -76,10 +76,10 @@ import { S3Client } from '@aws-sdk/client-s3'
 
 export const r2 = new S3Client({
   region: 'auto',
-  endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: `https://${env.R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`, // buckets du projet en juridiction eu
   credentials: {
-    accessKeyId: env.R2_ACCESS_KEY_ID,
-    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    accessKeyId: env.R2_ASSETS_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_ASSETS_SECRET_ACCESS_KEY,
   },
   requestChecksumCalculation: 'WHEN_REQUIRED',
 })
@@ -107,7 +107,7 @@ La couverture des opérations **objet** est quasi complète, celle des opératio
 // ✅ Supporté : tout ce dont la route assets a besoin
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 
-const object = await r2.send(new GetObjectCommand({ Bucket: 'portfolio-assets', Key: 'projets/client/foyer/logo.png' }))
+const object = await r2.send(new GetObjectCommand({ Bucket: 'portfolio-assets', Key: 'projets/client/webapp-gestion-sinistres/cover.webp' }))
 
 // ❌ Non supporté : le tagging d'objet n'existe pas sur R2
 // await r2.send(new PutObjectTaggingCommand({ ... }))
@@ -199,7 +199,7 @@ R2 propose deux façons d'exposer un bucket publiquement, et Cloudflare en déco
 
 ```
 Navigateur
-    │  GET /api/assets/projets/client/foyer/logo.png
+    │  GET /api/assets/projets/client/webapp-gestion-sinistres/cover.webp
     ▼
 Route catch-all Next.js         ← valide le chemin, applique Cache-Control
     │  GetObjectCommand (token scopé, serveur à serveur)

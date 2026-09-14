@@ -110,7 +110,7 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 
 **Pattern commun aux trois options :** route API `/api/assets/[...path]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier : un chemin disque configuré par `ASSETS_PATH` pour l'Option A, des credentials et un fetch signé pour B et C.
 
-**Workflow dev local / prod :**
+**Workflow dev local / prod de l'Option A, remplacé au sub-project `espace-admin/09` (cf. dernière note) :**
 - Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env`
 - Prod Docker : volume `portfolio_assets` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` fixé dans `compose.yaml`
 - Le volume Docker persiste entre les redéploiements, remplacer le container ne supprime pas les fichiers
@@ -130,3 +130,5 @@ Cf. [ADR-005](005-hebergement-dokploy-vs-vercel.md) pour le contexte infrastruct
 **À venir avec le domaine freelance, bucket `documents-prives` :** pendant de la base du même nom, token détenu par le seul service `rag-documents`, dépôt depuis l'admin via l'API interne du service.
 
 **Le RAG lit en place :** token lecture seule et liste de préfixes autorisés, clé + ETag + date d'indexation en base. Pas de dossier `rag/`, pas de copie : une copie diverge de son original et « ce qui est indexé » est une décision, pas un emplacement.
+
+**Migration vers R2 réalisée (2026-09-14, sub-project `espace-admin/09`) :** la lecture bascule du volume Docker vers le bucket `portfolio-assets`, juridiction `eu`. Le bucket reste privé, servi exclusivement par la route `/api/assets/[...path]`, aucun domaine public n'étant configuré. L'arborescence change avec elle : les fichiers d'un projet client passent sous le slug du projet, les logos d'entreprise partent dans `portfolio-admin` sous `freelance/crm/entreprises/<slug>/`. En développement, `portfolio-assets-dev` joue le même rôle avec son propre token. Le volume Docker devient mort et se retire après quelques jours d'observation.

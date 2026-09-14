@@ -4,10 +4,6 @@ services:
     pull_policy: always
     restart: unless-stopped
     env_file: .env
-    environment:
-      ASSETS_PATH: /app/assets
-    volumes:
-      - portfolio_assets:/app/assets
     # start_period couvre `prisma migrate deploy`, qui précède le serveur dans le CMD.
     healthcheck:
       test:
@@ -26,6 +22,3 @@ services:
       options:
         max-size: "100m"
         max-file: "10"
-
-volumes:
-  portfolio_assets:

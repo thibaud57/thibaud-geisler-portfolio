@@ -35,7 +35,6 @@ function createCompany(overrides?: Partial<Company>): Company {
     id: "company-id",
     slug: "personnel",
     name: "Personnel",
-    logoFilename: null,
     websiteUrl: null,
     sectors: [],
     size: null,

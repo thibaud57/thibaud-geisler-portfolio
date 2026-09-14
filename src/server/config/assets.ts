@@ -41,17 +41,6 @@ export function validateAssetPath(raw: string[]): ValidateAssetPathResult {
   return { ok: true, segments: parsed.data, joined: parsed.data.join("/") }
 }
 
-export function resolveAssetPath(joined: string): string {
-  // ASSETS_PATH est une racine fixe côté OS, pas un chemin projet : turbopackIgnore évite que
-  // Next trace tout le repo (dont public/) dans le bundle serveur de la route.
-  const root = path.resolve(/*turbopackIgnore: true*/ process.env["ASSETS_PATH"] ?? "./assets")
-  const candidate = path.resolve(root, joined)
-  if (!candidate.startsWith(root + path.sep) && candidate !== root) {
-    throw new Error(`Path traversal detected: "${joined}"`)
-  }
-  return candidate
-}
-
 export function getContentType(filename: string): string {
   const ext = path.extname(filename).slice(1).toLowerCase()
   return CONTENT_TYPE_MAP[ext] ?? "application/octet-stream"

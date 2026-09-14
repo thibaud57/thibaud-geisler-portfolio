@@ -49,7 +49,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date("2025-10-16"),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: "projets/client/foyer/cover.webp",
+    coverFilename: "projets/client/webapp-gestion-sinistres/cover.webp",
     displayOrder: 2,
     tagSlugs: [
       "scala",
@@ -92,7 +92,7 @@ export const projects: ProjectInput[] = [
     endedAt: null,
     githubUrl: null,
     demoUrl: null,
-    coverFilename: "projets/client/theodo-extend/cover.webp",
+    coverFilename: "projets/client/chatbot-agents-ia/cover.webp",
     displayOrder: 0,
     tagSlugs: [
       "google-adk",
@@ -133,7 +133,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date("2026-06-20"),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: "projets/client/wanted-design/cover.webp",
+    coverFilename: "projets/client/referent-ia-automatisation/cover.webp",
     displayOrder: 1,
     tagSlugs: [
       "agents-ia",
@@ -168,7 +168,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date("2022-04-30"),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: "projets/client/paysystem/cover.webp",
+    coverFilename: "projets/client/saas-gestion-paie/cover.webp",
     displayOrder: 9,
     tagSlugs: [
       "developpement-fullstack",
@@ -202,7 +202,7 @@ export const projects: ProjectInput[] = [
     endedAt: new Date("2021-09-30"),
     githubUrl: null,
     demoUrl: null,
-    coverFilename: "projets/client/cloudsmart/cover.webp",
+    coverFilename: "projets/client/erp-odoo-android/cover.webp",
     displayOrder: 10,
     tagSlugs: ["python", "odoo", "android", "java"],
     clientMeta: {

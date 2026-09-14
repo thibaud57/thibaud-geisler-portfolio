@@ -68,7 +68,7 @@ pnpm
 - **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, cf. [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
-- **Assets** : volumes Docker pour le MVP (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
+- **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
 - **Sécurité** : `src/proxy.ts` (locale routing, et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth (post-MVP)
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
@@ -87,7 +87,7 @@ graph LR
         Dokploy["Dokploy<br/>(reverse proxy)"]
         subgraph App["Docker (app)"]
             Next["Next.js App<br/>(App Router)"]
-            Assets["Assets<br/>(Docker volume, MVP acté,<br/>cf. ADR-011)"]
+            Assets["Assets<br/>(lecture R2 via S3 SDK,<br/>cf. ADR-011)"]
         end
         PG["PostgreSQL<br/>(Dokploy Database)"]
         Umami["Umami<br/>(analytics self-hosted,<br/>post-MVP, ADR-007)"]
@@ -103,7 +103,7 @@ graph LR
         Calendly["Calendly<br/>(prise de RDV)"]
         Sentry["Sentry<br/>(erreurs + tracing serveur,<br/>ADR-017)"]
         SMTP["SMTP IONOS<br/>(email contact)"]
-        R2["Cloudflare R2<br/>(portfolio-assets + portfolio-admin,<br/>post-MVP)"]
+        R2["Cloudflare R2<br/>(portfolio-assets + portfolio-admin)"]
     end
 
     Browser -->|HTTPS| Dokploy -->|reverse proxy| Next
@@ -111,13 +111,13 @@ graph LR
     Browser -.->|script analytics| Umami
     Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
     Next -->|Prisma| PG
-    Next -->|File I/O| Assets
+    Next --> Assets
+    Assets -->|S3| R2
     Next -.->|HTTP interne| Chatbot
     Next -.->|HTTP interne| AgentOS
     Next -.->|HTTP interne| RagDocs
     Next -->|nodemailer| SMTP
     Next -->|erreurs + spans serveur| Sentry
-    Next -.->|S3, bascule des assets| R2
     Chatbot -.->|SQL| PG
     AgentOS -.->|SQL| PG
     RagDocs -.->|SQL| PGPriv
@@ -246,7 +246,7 @@ src/
 ├── config/                       # Données de config statiques (nav-items, social-links, expertise)
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), legal/ (chargement markdown), seo/ (OG, metadata)
+├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata)
 ├── server/                       # Server Actions + queries Prisma + config serveur
 │   ├── actions/
 │   ├── config/
@@ -282,7 +282,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), CRUD projets post-MVP
-- **Route handlers** : `/api/assets/[...path]` (streaming des fichiers du volume), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
@@ -313,7 +313,7 @@ Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 - **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
 
-Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés sur disque (volume Docker) et référencés depuis `Project.coverFilename` ou `Company.logoFilename`, qui portent la clé complète (`projets/client/foyer/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
+Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés dans un bucket R2 et référencés depuis `Project.coverFilename` (bucket `portfolio-assets`) ou `Company.logoFilename` (bucket `portfolio-admin`), qui portent la clé complète (`projets/client/webapp-gestion-sinistres/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
 
 ### ORM/ODM
 
@@ -342,13 +342,14 @@ Les quatre tags sont purgés au démarrage par `src/instrumentation.ts` : l'imag
 
 ### Files / Assets Storage
 
-Volumes Docker pour le MVP (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment de l'upload depuis l'espace admin.
+Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Bucket privé, aucun domaine public configuré : seule la route y accède, via le SDK S3.
 
-| Racine | Contenu |
-|--------|---------|
-| `projets/{client,personal}/<slug>/` | Covers, logos, captures de case study (`<slug>` = `Company.slug` ou `Project.slug`) |
-| `documents/cv/` | CV PDF par locale |
-| `branding/` | Logo, portrait |
+| Bucket | Racine | Contenu |
+|--------|--------|---------|
+| `portfolio-assets` (vitrine, servi par la route) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
+| `portfolio-assets` | `documents/cv/` | CV PDF par locale |
+| `portfolio-assets` | `branding/` | Logo, portrait |
+| `portfolio-admin` (back-office, jamais servi par la route) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise |
 
 ### File Processing
 
@@ -588,7 +589,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-008 : Single repository](adrs/008-single-repository.md)
 - [ADR-009 : UI System : shadcn/ui hybride + effets visuels](adrs/009-ui-system.md)
 - [ADR-010 : i18n : next-intl](adrs/010-i18n.md)
-- [ADR-011 : Stockage assets : volumes Docker MVP, R2 post-MVP](adrs/011-stockage-assets.md)
+- [ADR-011 : Stockage assets sur Cloudflare R2](adrs/011-stockage-assets.md)
 - [ADR-015 : Découpage en services par frontière d'exécution](adrs/015-decoupage-services.md)
 - [ADR-016 : Accès LLM : OpenRouter, sans gateway auto-hébergée](adrs/016-acces-llm.md)
 - [ADR-017 : Observabilité en cloud, pas en self-hosted](adrs/017-observabilite-cloud.md)

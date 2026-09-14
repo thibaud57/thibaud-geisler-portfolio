@@ -7,7 +7,8 @@ export const PROJECT_INCLUDE = {
     orderBy: { displayOrder: "asc" },
   },
   clientMeta: {
-    include: { company: true },
+    // Le logo vit dans le bucket portfolio-admin, que la vitrine ne sert jamais : sa clé n'a pas à atteindre le client.
+    include: { company: { omit: { logoFilename: true } } },
   },
 } as const satisfies Prisma.ProjectInclude
 

@@ -285,7 +285,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Simple Icons pour technos/infra/outils, Lucide pour expertises, renderer choisi selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`). Cards projets, case studies et stack `/a-propos` |
-| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | Type de projet (API, Web App…), entreprise avec logo, compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Débordement d'une liste de tags : trois au plus, puis un « +N » en `outline`, muet |
+| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | Type de projet (API, Web App…), nom de l'entreprise (sans logo, qui reste dans l'admin), compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Débordement d'une liste de tags : trois au plus, puis un « +N » en `outline`, muet |
 
 ### Feedback et chargement
 

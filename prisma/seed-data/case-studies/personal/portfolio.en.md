@@ -73,5 +73,3 @@ Dokploy hosting on VPS, Docker Compose (Next.js + Postgres), GitHub Actions CI, 
 - Blog + AI content generation
 - Self-hosted Umami analytics
 - Self-hosted n8n (workflow orchestration)
-- Cloudflare R2 + rclone backups (script + cron, post-MVP)
-- Migration of Docker-volume assets to Cloudflare R2 (at the time of the admin dashboard)

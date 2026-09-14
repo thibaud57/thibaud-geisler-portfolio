@@ -77,6 +77,20 @@ scope: ["docs", "legal"]
 | Conservation | 30 jours (plan Developer), géré par Sentry |
 | Sécurité | Filtrage `email` et `ip_address` avant envoi sur les deux canaux (`beforeSend` pour les issues, `beforeSendLog` pour les logs), HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
 
+## Traitement 5 : hébergement des assets du site (Cloudflare R2)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Stockage et diffusion des assets publics du site (CV, portrait, visuels de projets) via la route `/api/assets/[...path]` |
+| Base légale | Intérêt légitime (art. 6.1.f) |
+| Personnes concernées | Thibaud Geisler (CV, portrait) |
+| Données | CV PDF, photo de portrait, visuels de projets et de marque |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | Cloudflare, Inc. (bucket `portfolio-assets`) |
+| Transferts hors UE | Aucun : bucket en juridiction `eu` |
+| Conservation | Durée de vie du site, fichier remplacé à chaque mise à jour |
+| Sécurité | Bucket privé, aucun domaine public configuré, accès exclusif via la route API avec token scopé, HTTPS/TLS |
+
 ## Notes
 
 - Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).

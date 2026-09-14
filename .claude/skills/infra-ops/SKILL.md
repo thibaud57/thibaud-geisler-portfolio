@@ -35,7 +35,7 @@ Recettes jumelles de la DB dev, qui chargent `.env.test` (DATABASE_URL = `portfo
 | Action | Commande | Notes |
 |---|---|---|
 | Migrer la DB test (migrate deploy) | `just db-test` | Idempotent. À relancer après chaque nouvelle migration locale pour que les tests integration voient le schéma à jour |
-| Reset complet DB test | `just db-test-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation. `--skip-seed` (les tests créent leurs fixtures inline) |
+| Reset complet DB test | `just db-test-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation. Sans seed (les tests créent leurs fixtures inline) |
 | Ouvrir Prisma Studio sur la DB test | `just db-test-studio` | Background (UI locale, http://localhost:5555). Pour inspecter les fixtures d'un test integration qui échoue |
 
 ## Règles
@@ -44,4 +44,4 @@ Recettes jumelles de la DB dev, qui chargent `.env.test` (DATABASE_URL = `portfo
 - `db-reset` / `db-test-reset` → confirmer que l'environnement est bien celui ciblé (jamais en prod), rappeler que ça drop tout
 - `db-migrate` sans LABEL → demander le label avant de lancer (Prisma bloque interactivement sinon). Après création : proposer `just db-test` pour réaligner la DB test
 - `db-studio` / `db-test-studio` en background uniquement
-- `docker-down` ne supprime pas les volumes (`portfolio_pgdata`, `portfolio_assets` persistent)
+- `docker-down` ne supprime pas le volume `portfolio_pgdata`, les données Postgres persistent
