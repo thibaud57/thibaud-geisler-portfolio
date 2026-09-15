@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "auth-better-auth-google"
 goal: "Installer l'authentification Better Auth avec Google comme unique provider et un seul compte autorisé"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["03-multi-schema-prisma-design.md"]
