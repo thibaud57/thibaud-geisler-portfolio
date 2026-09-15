@@ -263,7 +263,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Boutons | Button | shadcn/ui | Variants `default`, `outline`, `ghost`, `secondary`, `destructive`, `link` ; taille `icon` pour les boutons à glyphe seul. `destructive` est une teinte `destructive/10` avec texte `--destructive`, pas un aplat rouge. Un pied ne porte **qu'un seul** `default` sauge, celui de son action principale, et il se place en dernier, à droite ; tout ce qui l'accompagne est `outline` ou `ghost` |
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero de la landing uniquement, effet shimmer sur `--shine` |
 | Téléchargement CV | DownloadCvButton | composant maison (Button) | Navbar, footer et `/a-propos`, en `variant="outline" size="sm"` dans les deux premiers |
-| Connexion Google | GoogleSignInButton | composant maison (Button) | Seule action de la card de connexion admin, pleine largeur en `variant="outline" size="lg"`, logo Simple Icons en `data-icon="inline-start"` |
+| Connexion Google | GoogleSignInButton | composant maison (Button) | Seule action de la card de connexion admin, pleine largeur en `variant="outline" size="lg"`, logo Simple Icons en `data-icon="inline-start"`. `outline` : convention des boutons de connexion tiers |
 
 ### Formulaires
 
