@@ -16,7 +16,7 @@ paths:
 - Toujours définir les cookies de session avec `HttpOnly: true`, `Secure: true` (en prod), `SameSite: 'lax'`, `Path: '/'`, `Max-Age` fini
 - Utiliser `jose` pour tout JWT (Edge-compatible), `jsonwebtoken` dépend de `crypto` Node.js et casse en Edge
 - Centraliser la vérification de session dans un helper `getCurrentUser()` reutilisable dans Server Components / Server Actions / Route Handlers
-- Protéger les routes `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy (double protection)
+- Protéger les routes `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy, **et** rappeler `getCurrentUser()` dans chaque page du groupe comme en tête de chaque Server Action (cf. Gotchas)
 - Utiliser `nextCookies()` comme **dernier** plugin dans la config Better Auth pour gérer automatiquement les `Set-Cookie` des Server Actions
 - Pour Argon2id custom : config minimale OWASP 19 MiB memory, 2 iterations, parallelism 1
 - Activer `experimental: { authInterrupts: true }` pour utiliser `unauthorized()` / `forbidden()` et les fichiers `unauthorized.tsx` / `forbidden.tsx`
@@ -38,6 +38,8 @@ paths:
 - Better Auth + Prisma 7 : `prisma.config.ts` charge `.env` via `loadEnvConfig` (`@next/env`) pour la CLI Prisma, et `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs`) au runtime Next. Sinon erreur P1010 "User was denied access"
 - Refus dans un `databaseHooks` pendant le callback OAuth : lever `APIError` avec un `code` dans le body, sinon le callback relance l'erreur en 403 JSON au lieu de rediriger vers `onAPIError.errorURL` (voir `docs/VERSIONS.md` § Conflits Potentiels)
 - `advanced.ipAddress.disableIpTracking` coupe aussi le rate limiting natif : pour ne pas persister l'IP, la retirer dans `databaseHooks.session.create.before` (voir `docs/VERSIONS.md` § Conflits Potentiels)
+- **Un layout protégé ne protège pas le contenu de ses pages** : Next rend page et layout en parallèle, et sérialise le payload RSC de la page même quand le layout lève `unauthorized()`. Un cookie forgé, qui passe le proxy, reçoit alors le contenu. Chaque page appelle `getCurrentUser()` avant de lire ou rendre quoi que ce soit, sous la frontière `<Suspense>` de `(protected)/loading.tsx` (sans elle, Next signale en dev un accès dynamique hors `<Suspense>` à la navigation)
+- La whitelist de `databaseHooks.user.create.before` ne s'exécute qu'à la création du compte : `getCurrentUser()` revérifie `isAdminEmail` sur chaque session, sinon un compte créé avant un changement d'`ADMIN_EMAIL` garde l'accès
 - Cookies API Next 15+ : `const cookieStore = await cookies()` (async), hard error Next 16 si accès synchrone
 - `SameSite: 'strict'` bloque aussi les navigations top-level cross-site (liens entrants) : utiliser `'lax'` sauf besoin spécifique
 

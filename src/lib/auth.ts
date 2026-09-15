@@ -5,6 +5,7 @@ import { APIError } from "better-auth/api"
 import { nextCookies } from "better-auth/next-js"
 
 import { env } from "@/env"
+import { ADMIN_LOGIN_PATH } from "@/lib/admin-routes"
 import { isAdminEmail } from "@/lib/admin-whitelist"
 import { prisma } from "@/lib/prisma"
 
@@ -20,7 +21,7 @@ export const auth = betterAuth({
   },
   onAPIError: {
     // Le callback OAuth ne redirige vers errorURL que si l'APIError du hook porte un `code` (dist/api/routes/callback.mjs)
-    errorURL: "/admin/login",
+    errorURL: ADMIN_LOGIN_PATH,
   },
   databaseHooks: {
     user: {

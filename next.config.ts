@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
     // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
     // global-not-found.tsx porte le 404 des URLs qui ne matchent aucune route.
     globalNotFound: true,
+    authInterrupts: true,
+    taint: true,
   },
   typedRoutes: true,
   poweredByHeader: false,

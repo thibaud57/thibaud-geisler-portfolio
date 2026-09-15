@@ -33,7 +33,8 @@ just stop   # à la fin, libère le port 3000
 | Route handler | `curl -s "http://localhost:3000/api/<route>"` |
 | Server Action (formulaire) | voir ci-dessous, le POST se reconstruit à la main |
 | Logs applicatifs (Pino) | `grep "<event>" "$SCRATCH/verify-dev.log"` |
-| Authentification (Better Auth) | `curl -s http://localhost:3000/api/auth/get-session` (`null` sans session). Flux OAuth réel : voir ci-dessous |
+| Authentification (Better Auth) | `curl -s http://localhost:3000/api/auth/get-session` (`null` sans session). Flux OAuth réel et garde admin : voir ci-dessous |
+| Espace admin sans session | `curl -s -o /dev/null -D - http://localhost:3000/admin` : 307 vers `/admin/login`, sans préfixe de locale |
 | Base de données | `docker exec thibaud-geisler-portfolio-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -A -c "<SQL>"'` : les credentials viennent de l'environnement du conteneur, sans lire `.env` (base de test : `portfolio_test`, liste via `psql -d postgres -l`, sans `-d` psql cherche une base au nom de l'utilisateur, absente) |
 | Erreurs remontées à Sentry | `sentry issue list tg-ws/thibaud-geisler-portfolio --limit 5 --fresh`, puis `sentry issue view <SHORT-ID>` (l'ingestion prend 15 à 60 s, boucler plutôt qu'attendre un délai fixe). Détail et pièges : [knowledges/sentry.md](../../../docs/knowledges/sentry.md) |
 
@@ -57,22 +58,19 @@ Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécut
 
 ## Piloter le flux OAuth Google
 
-Google exige un vrai navigateur et un vrai compte : le développeur clique, la recette prépare l'entrée et contrôle la base. Tant qu'aucune page de connexion n'appelle `authClient.signIn.social`, une route temporaire démarre le flux en recopiant le cookie d'état :
+Google exige un vrai navigateur et un vrai compte : le développeur clique sur « Continuer avec Google » depuis `http://localhost:3000/admin/login`, la recette contrôle le log et la base. Compter `auth."user"`, `auth.session` et `auth.account` avant puis après chaque connexion. Le compte refusé se teste dans une fenêtre privée neuve et doit revenir sur `/admin/login?error=FORBIDDEN` sans créer de ligne.
 
-```typescript
-// src/app/api/verify-auth/route.ts (temporaire)
-import { auth } from "@/lib/auth"
+## Prouver que la garde admin tient
 
-export async function GET() {
-  const res = await auth.api.signInSocial({ body: { provider: "google", callbackURL: "/fr" }, asResponse: true })
-  const { url } = (await res.json()) as { url: string }
-  const headers = new Headers({ Location: url })
-  for (const cookie of res.headers.getSetCookie()) headers.append("Set-Cookie", cookie)
-  return new Response(null, { status: 302, headers })
-}
+Un cookie forgé passe le proxy, qui ne teste que sa présence : c'est la garde serveur qui doit tout refuser, **y compris le payload RSC de la page**, pas seulement l'écran affiché.
+
+```bash
+curl -s -H "Cookie: better-auth.session_token=forged.value" http://localhost:3000/admin -o forged.html
+grep -c "Accès non autorisé" forged.html   # attendu : 1
+grep -c "<texte propre à la page>" forged.html   # attendu : 0, sinon le contenu fuit dans le flight
 ```
 
-Compter `auth."user"`, `auth.session` et `auth.account` avant puis après chaque connexion. Le compte refusé se teste en navigation privée, sinon Google reprend le compte déjà connecté.
+Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Component vide (`"use client"`, `export function TaintProbe(_props: { user: unknown }) { return null }`) monté par la page avec `user={await getCurrentUser()}`. Le développeur recharge `/admin` connecté, le log doit porter `⨯ Error: N'expose jamais l'objet user complet…`.
 
 ## Gotchas
 
@@ -81,6 +79,8 @@ Compter `auth."user"`, `auth.session` et `auth.account` avant puis après chaque
 - Les logs Pino locaux ne sont pas filtrés des données personnelles, seul ce qui part vers un service externe l'est. Une donnée sensible visible dans le fichier de log local est le comportement attendu.
 - `/api/assets/*` lit le bucket R2 de dev (`R2_ASSETS_BUCKET` du `.env`), pas le disque : des 404 sur tous les assets signalent un bucket vide ou désynchronisé, pas un défaut de code. Le repeupler avec `aws s3 sync` depuis les fichiers source, token de dev (forme de la commande : `docs/PRODUCTION.md` § Checklist Release).
 - Supprimer une route temporaire pendant que `pnpm dev` tournait laisse `.next/dev/types/validator.ts` la référencer : le `pnpm build` suivant échoue en `TS2307`. Supprimer `.next/dev/types/validator.ts` et `.next/dev/types/routes.d.ts` (régénérés) avant de builder.
-- Un compte refusé atterrit sur `/fr/admin/login?error=FORBIDDEN` en 404 tant que le proxy next-intl préfixe `/admin` et qu'aucune page de connexion n'existe : l'URL et l'absence de ligne en base font la preuve, pas le rendu.
+- Un layout qui lève `unauthorized()` ne retient pas le payload de ses pages : Next les rend en parallèle et sérialise la page quand même. Seul le grep du cookie forgé le révèle, l'écran affiché est correct dans les deux cas. Confirmé en production : `just build` puis `pnpm start` (le dev écrit dans `.next/dev`, le build de production y survit).
+- `?error=state_mismatch` après une connexion signifie un callback rejoué avec un `state` déjà consommé (onglet Google réutilisé, double clic), pas un défaut : repartir d'une fenêtre neuve.
+- En dev, une requête au cookie forgé logue « Could not validate `instant`… `NEXT_HTTP_ERROR_FALLBACK;401` » : c'est la validation de navigation de Next qui trace l'`unauthorized()`, attendu. « encountered uncached data… outside of `<Suspense>` » sur une page admin, lui, est un vrai défaut : la page lit `headers()` hors de la frontière de `(protected)/loading.tsx`.
 - Les noms des variables serveur (`GOOGLE_CLIENT_SECRET`, `SMTP_PASS`…) figurent dans un chunk de `.next/static` : c'est le schéma de t3-env, attendu. Seule la présence d'une *valeur* serait un défaut, et la chercher exige de lire `.env` : le développeur lance lui-même le grep.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.

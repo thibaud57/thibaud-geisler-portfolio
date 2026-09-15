@@ -18,7 +18,7 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "types": ["node", "vitest/globals", "react/canary"],
+    "types": ["node", "vitest/globals", "react/canary", "react/experimental"],
     "plugins": [
       {
         "name": "next"

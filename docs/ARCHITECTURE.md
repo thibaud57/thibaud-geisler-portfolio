@@ -69,7 +69,7 @@ pnpm
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
-- **Sécurité** : `src/proxy.ts` (locale routing et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
+- **Sécurité** : `src/proxy.ts` (locale routing, dont `/admin` est exclu, et vérification du cookie de session sur `/admin`) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
@@ -225,8 +225,8 @@ src/
 │   │   ├── error.tsx
 │   │   ├── loading.tsx
 │   │   └── not-found.tsx
-│   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-021),
-│   │                             # avec son propre root layout (second <html> du dépôt)
+│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), avec son propre
+│   │                             # root layout (second <html> du dépôt) ; login/ hors garde, (protected)/ gardé
 │   ├── api/                      # API routes (hors [locale]) : assets, auth, health
 │   ├── sitemap.ts                # SEO : sitemap, robots, llms.txt
 │   ├── robots.ts
@@ -246,7 +246,7 @@ src/
 ├── config/                       # Données de config statiques (nav-items, social-links, expertise)
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email)
+├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email), admin-routes.ts (chemins admin), get-current-user.ts (garde de session)
 ├── server/                       # Server Actions + queries Prisma + config serveur
 │   ├── actions/
 │   ├── config/
@@ -254,7 +254,7 @@ src/
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Types TypeScript partagés
 ├── instrumentation.ts            # Bootstrap serveur (logger, purge du cache au boot)
-└── proxy.ts                      # Routing i18n, puis vérification de session sur /admin (post-MVP).
+└── proxy.ts                      # Routing i18n, sauf /admin : redirection vers /admin/login sans cookie de session.
                                   # Les security headers sont dans next.config.ts
 ```
 
@@ -287,7 +287,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### Sécurité Backend
 
 - **AuthN** : Better Auth avec Google OAuth comme unique provider, aucun provider Credentials (Gmail pro + whitelist email single-user via le hook `databaseHooks.user.create.before`), espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
-- **AuthZ** (post-MVP) : trois couches, proxy Next.js sur `/admin` par vérification du cookie de session, contrôle de session dans le layout protégé, et contrôle en tête de chaque Server Action admin (une action exportée reste joignable sans passer par l'écran)
+- **AuthZ** : proxy Next.js sur `/admin` par présence du cookie de session, puis `getCurrentUser()` dans le layout protégé, dans chaque page et en tête de chaque Server Action admin (cf. § Autorisation)
 - **Durcissement** : Security headers via la configuration Next.js, rate limiting au plus près de l'entrée publique (Server Action contact aujourd'hui), jamais dans le proxy
 
 ### Services Externes
@@ -499,7 +499,7 @@ Better Auth avec Google OAuth comme unique provider, aucun provider Credentials.
 
 ### Autorisation
 
-Proxy Next.js : protection des routes `/admin` par vérification du cookie de session, sans appel BDD. La validation se fait dans le layout protégé, puis à nouveau en tête de chaque Server Action admin : le layout protège l'affichage des pages, pas l'exécution des actions. Le mécanisme est post-MVP : `src/proxy.ts` ne porte aujourd'hui que le routing i18n.
+Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, redirection vers `/admin/login`, sans appel BDD ni validation de signature. `getCurrentUser()` autorise : session validée en base, `ADMIN_EMAIL` revérifié (le hook de whitelist ne tourne qu'à la création du compte), `unauthorized()` sinon, objet user et token taintés. Il est appelé par le layout du groupe `(protected)`, par chaque page du groupe, et en tête de chaque Server Action admin : Next rend page et layout en parallèle et sérialise le payload de la page même quand le layout refuse, et une action exportée reste joignable sans passer par l'écran.
 
 ### Protection API
 
@@ -620,7 +620,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 **Dans ce dépôt**
 
-- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy et layout (cf. § Autorisation)
+- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
 - **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs
