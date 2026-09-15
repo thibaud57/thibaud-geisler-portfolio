@@ -62,3 +62,6 @@ next-env.d.ts
 
 # Claude Code scheduling lock (PID + sessionId, recréé à chaque session)
 .claude/scheduled_tasks.lock
+
+# Superpowers (ledgers, briefs et review packages de subagent-driven-development)
+.superpowers/
