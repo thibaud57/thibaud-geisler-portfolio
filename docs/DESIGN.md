@@ -263,6 +263,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Boutons | Button | shadcn/ui | Variants `default`, `outline`, `ghost`, `secondary`, `destructive`, `link` ; taille `icon` pour les boutons à glyphe seul. `destructive` est une teinte `destructive/10` avec texte `--destructive`, pas un aplat rouge. Un pied ne porte **qu'un seul** `default` sauge, celui de son action principale, et il se place en dernier, à droite ; tout ce qui l'accompagne est `outline` ou `ghost` |
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero de la landing uniquement, effet shimmer sur `--shine` |
 | Téléchargement CV | DownloadCvButton | composant maison (Button) | Navbar, footer et `/a-propos`, en `variant="outline" size="sm"` dans les deux premiers |
+| Connexion Google | GoogleSignInButton | composant maison (Button) | Seule action de la card de connexion admin, pleine largeur en `variant="outline" size="lg"`, logo Simple Icons en `data-icon="inline-start"` |
 
 ### Formulaires
 
@@ -279,6 +280,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Cards projets | BentoCard | Magic UI | Showcase visuel dans BentoGrid (landing + /projects) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique et son conteneur : cards projets (landing + /projects) et stack `/a-propos`. Conteneur visuel seul (`rounded-lg`, bordure, `shadow-sm`), l'affordance de survol vivant sur l'élément cliquable |
 | Table simple | Table | shadcn/ui | Données figées, ni tri ni pagination : la seule forme en usage sur le site public |
+| Card de connexion admin | Card + Separator | shadcn/ui | Centrée en `max-w-sm` sur `/admin/login`. En-tête centré : logo, `Separator`, titre à l'échelle admin, `CardDescription`. Contenu : avis d'erreur éventuel puis bouton de connexion |
 
 ### Badges
 
@@ -292,6 +294,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Feedback | Toast | shadcn/ui (Sonner) | Confirmation formulaire |
+| Avis | Alert | shadcn/ui | Avis persistant en tête d'écran : refus de connexion admin, en `variant="destructive"` avec `ShieldBan` pour un compte refusé et `CircleAlert` sinon. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
 | Chargement | Skeleton, StackedSkeleton | shadcn/ui + composant maison | `StackedSkeleton` empile des `Skeleton` aux hauteurs passées en props. Utilisé en fallback de `<Suspense>` sur la page case study et dans son `loading.tsx` |
 
 ### Overlays
@@ -323,7 +326,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Logo | BrandLogo | composant maison (`next/image`) | Navbar, footer et menu mobile, variante claire ou sombre selon le thème |
+| Logo | BrandLogo | composant maison (`next/image`) | Navbar, footer, menu mobile et connexion admin, variante claire ou sombre selon le thème. Fixé à 140px sur la connexion, la largeur de la navbar mobile : à 200px il dépasse le titre de la card |
 | Réseaux sociaux | SocialLinks | composant maison (Simple Icons + Lucide) | Pastilles de 36px en navbar mobile, footer et `/contact` |
 | Localisation | LocationLine | composant maison (`country-flag-icons`) | Drapeaux FR et LU, footer et `/contact` |
 
@@ -348,12 +351,11 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Dates de facture, d'échéance, de mission |
 | Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action. Le composant est **headless** : il ne fournit que le comportement, la carte est entièrement à la charge de l'appelant, qui la compose en `Card` |
 | Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
-| Feedback | Alert | shadcn/ui | Avis persistant en tête d'écran. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
 | Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression. Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse. La largeur monte à 640px dès que le formulaire tient sur deux colonnes. Son pied court d'un bord à l'autre en bandeau `muted/50` |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
-| Primitifs d'interface | Tooltip, Separator, ScrollArea, Avatar, Collapsible | shadcn/ui | - |
+| Primitifs d'interface | Tooltip, ScrollArea, Avatar, Collapsible | shadcn/ui | - |
 | Effets hero | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Candidats |
 | Effets visuels | Shine Border, Particles, Meteors, Magic Card | Magic UI | Candidats |
 | Typographie display | Text Reveal | Magic UI | Candidat (au scroll) |
