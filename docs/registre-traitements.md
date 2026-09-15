@@ -91,6 +91,20 @@ scope: ["docs", "legal"]
 | Conservation | Durée de vie du site, fichier remplacé à chaque mise à jour |
 | Sécurité | Bucket privé, aucun domaine public configuré, accès exclusif via la route API avec token scopé, HTTPS/TLS |
 
+## Traitement 6 : authentification de l'administrateur (Better Auth)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Contrôle d'accès à l'espace d'administration |
+| Base légale | Intérêt légitime (art. 6.1.f), le responsable de traitement étant aussi l'unique personne concernée |
+| Personnes concernées | Thibaud Geisler, seul compte Google autorisé par la whitelist |
+| Données | Email, nom et URL de la photo de profil renvoyés par Google (`auth.user`), plus les lignes techniques de session (dont le user-agent du navigateur) et de compte OAuth (`auth.session`, `auth.account`) |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | IONOS (hébergeur du VPS). Google agit en responsable de traitement indépendant pour les données du compte Google ([Controller-Controller Data Protection Terms](https://business.safety.google/controllerterms/)) |
+| Transferts hors UE | Aucun : données conservées sur le VPS IONOS |
+| Conservation | Durée de vie du compte, les sessions expirent d'elles-mêmes |
+| Sécurité | Google comme unique provider, aucun mot de passe stocké. Whitelist par email via le hook `databaseHooks.user.create.before`, tout autre compte rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour le rate limiting de Better Auth, retirée de la session avant écriture (`databaseHooks.session.create.before`), aligné sur la politique déjà appliquée au formulaire de contact (Traitement 1) |
+
 ## Notes
 
 - Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).

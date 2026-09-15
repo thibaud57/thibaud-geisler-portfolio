@@ -36,6 +36,8 @@ paths:
 ## Gotchas
 - Better Auth + Next 16 : workaround `use cache` + `getServerSession` = extraire les cookies avant le scope cache et les passer en argument (Issue #5584, contrainte Next.js pas bug Better Auth)
 - Better Auth + Prisma 7 : `prisma.config.ts` charge `.env` via `loadEnvConfig` (`@next/env`) pour la CLI Prisma, et `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs`) au runtime Next. Sinon erreur P1010 "User was denied access"
+- Refus dans un `databaseHooks` pendant le callback OAuth : lever `APIError` avec un `code` dans le body, sinon le callback relance l'erreur en 403 JSON au lieu de rediriger vers `onAPIError.errorURL` (voir `docs/VERSIONS.md` § Conflits Potentiels)
+- `advanced.ipAddress.disableIpTracking` coupe aussi le rate limiting natif : pour ne pas persister l'IP, la retirer dans `databaseHooks.session.create.before` (voir `docs/VERSIONS.md` § Conflits Potentiels)
 - Cookies API Next 15+ : `const cookieStore = await cookies()` (async), hard error Next 16 si accès synchrone
 - `SameSite: 'strict'` bloque aussi les navigations top-level cross-site (liens entrants) : utiliser `'lax'` sauf besoin spécifique
 

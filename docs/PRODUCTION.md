@@ -109,6 +109,12 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Après déploiement : les pages publiques affichent toutes leurs images depuis les nouvelles clés et aucun badge entreprise ne porte d'image cassée (un défaut signalerait une migration de données non appliquée)
 - [ ] Après quelques jours de fonctionnement normal : le volume Docker `portfolio_assets` du VPS peut être supprimé, mort depuis le déploiement, gardé jusque-là comme copie gratuite
 
+**Better Auth (à cocher au premier tag embarquant l'authentification de l'espace admin) :**
+- [ ] Avant le merge vers `main` : les cinq variables posées dans Dokploy (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`), `BETTER_AUTH_URL` valant le domaine de production
+- [ ] Avant le merge vers `main` : le redirect URI de production `https://thibaud-geisler.com/api/auth/callback/google` déclaré sur le client OAuth dans Google Cloud Console
+- [ ] Après le premier build CI qui embarque ce schema : les logs montrent `migrate deploy` appliquer la migration du schema `auth` et le prerender aboutir. En cas d'échec, retirer `?schema=public` du `DATABASE_URL` de la CI plutôt que de l'étendre. Le message `BetterAuthError: You are using the default secret` pendant la collecte des pages est attendu : les secrets d'authentification ne sont injectés qu'au runtime
+- [ ] Après déploiement : le compte Google correspondant à `ADMIN_EMAIL` peut se connecter et un autre compte Google est refusé, redirigé vers `/admin/login?error=FORBIDDEN`
+
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -188,9 +194,16 @@ R2_ACCOUNT_ID=                     # Identifiant de compte Cloudflare, compose l
 R2_ASSETS_ACCESS_KEY_ID=           # Clé du token R2 "Object Read & Write", restreint au bucket portfolio-assets
 R2_ASSETS_SECRET_ACCESS_KEY=       # Secret du même token
 R2_ASSETS_BUCKET=                  # Nom du bucket lu par la route : portfolio-assets en prod, portfolio-assets-dev en dev
+
+# Better Auth (authentification de l'espace admin, Google OAuth unique provider, ADR-002)
+BETTER_AUTH_URL=                   # URL de base des redirect URIs. Dev : http://localhost:3000 | Prod : https://thibaud-geisler.com
+GOOGLE_CLIENT_ID=                  # Identifiant du client OAuth (Google Cloud Console → APIs & Services → Credentials)
+GOOGLE_CLIENT_SECRET=              # Secret du client OAuth
+BETTER_AUTH_SECRET=                # Secret de signature des sessions et jetons. Générer : openssl rand -base64 32
+ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée à créer un compte, comparée dans le hook databaseHooks.user.create.before
 ```
 
-> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-14).
+> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-15).
 
 ### Règles
 
@@ -362,6 +375,9 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
 | `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
+| `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
 
 > ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre (le stage `runner` repart de `FROM base` et ne copie que des fichiers), mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
 
@@ -376,6 +392,9 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `IP_HASH_SALT` | En cas de compromission | Régénérer (`openssl rand -hex 32`) → Dokploy → les nouveaux logs utilisent le nouveau sel, les hashs déjà écrits restent inchangés |
 | Clé privée de la GitHub App de release | **Aucune expiration, donc aucune échéance à surveiller.** Rotation sur compromission uniquement | Settings → Developer settings → GitHub Apps → `thibaud-geisler-portfolio` → General → Private keys → Generate a private key, puis remplacer le secret repo par le contenu intégral du `.pem` (lignes `BEGIN`/`END` incluses). Supprimer l'ancienne clé dans l'App et le `.pem` du disque |
 | `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
+| `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
+| `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
+| `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
 
 ## Security Headers
 
@@ -532,8 +551,8 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`
-- ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société) : données personnelles, RGPD
+- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET`
+- ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société), ni `ADMIN_EMAIL` (seul élément identifiant la cible d'une tentative d'accès) : données personnelles, RGPD
 - ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
 ---

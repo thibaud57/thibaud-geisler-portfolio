@@ -4,7 +4,7 @@ description: "Documentation de l'architecture du portfolio personnel thibaud-gei
 date: "2026-09-04"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
+technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Better Auth", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
@@ -69,7 +69,7 @@ pnpm
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
-- **Sécurité** : `src/proxy.ts` (locale routing, et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth (post-MVP)
+- **Sécurité** : `src/proxy.ts` (locale routing et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
@@ -227,7 +227,7 @@ src/
 │   │   └── not-found.tsx
 │   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-021),
 │   │                             # avec son propre root layout (second <html> du dépôt)
-│   ├── api/                      # API routes (hors [locale]) : assets, health
+│   ├── api/                      # API routes (hors [locale]) : assets, auth, health
 │   ├── sitemap.ts                # SEO : sitemap, robots, llms.txt
 │   ├── robots.ts
 │   ├── llms.txt/
@@ -246,7 +246,7 @@ src/
 ├── config/                       # Données de config statiques (nav-items, social-links, expertise)
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata)
+├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email)
 ├── server/                       # Server Actions + queries Prisma + config serveur
 │   ├── actions/
 │   ├── config/
@@ -282,11 +282,11 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), CRUD projets post-MVP
-- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
-- **AuthN** : Better Auth avec Google OAuth comme unique provider (Gmail pro + whitelist email single-user), post-MVP, espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
+- **AuthN** : Better Auth avec Google OAuth comme unique provider, aucun provider Credentials (Gmail pro + whitelist email single-user via le hook `databaseHooks.user.create.before`), espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
 - **AuthZ** (post-MVP) : trois couches, proxy Next.js sur `/admin` par vérification du cookie de session, contrôle de session dans le layout protégé, et contrôle en tête de chaque Server Action admin (une action exportée reste joignable sans passer par l'écran)
 - **Durcissement** : Security headers via la configuration Next.js, rate limiting au plus près de l'entrée publique (Server Action contact aujourd'hui), jamais dans le proxy
 
@@ -303,7 +303,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM. Les schemas `auth`, `dev` et `rag_public` viendront compléter ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM, `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
@@ -312,6 +312,7 @@ Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 - **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
 - **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
+- **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
 
 Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés dans un bucket R2 et référencés depuis `Project.coverFilename` (bucket `portfolio-assets`) ou `Company.logoFilename` (bucket `portfolio-admin`), qui portent la clé complète (`projets/client/webapp-gestion-sinistres/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
 
@@ -472,6 +473,8 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 | `test` | Vitest, base PostgreSQL dédiée | `.env.test` |
 | `production` | VPS IONOS via Dokploy | Variables d'env Dokploy |
 
+> **Authentification** : cinq variables serveur (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`), validées par `src/env.ts`. Détail : [PRODUCTION.md § Variables d'Environnement](PRODUCTION.md#variables-denvironnement).
+
 ### Sécurité Infrastructure
 
 - **Secrets** : variables d'environnement gérées dans Dokploy (jamais dans le repo)
@@ -492,7 +495,7 @@ OWASP Top 10 comme référence : durcissement des headers, validation stricte de
 
 ### Authentification
 
-Better Auth avec Google OAuth comme unique provider. Whitelist email single-user via hook `databaseHooks.user.create.before` (seul le Gmail pro autorisé peut créer un compte). Uniquement pour l'espace admin (post-MVP). Pages publiques sans auth. Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
+Better Auth avec Google OAuth comme unique provider, aucun provider Credentials. Whitelist email single-user via le hook `databaseHooks.user.create.before` : seul `ADMIN_EMAIL` peut créer un compte, tout autre compte lève une `APIError` et redirige vers `/admin/login?error=FORBIDDEN`. Aucune adresse IP conservée en session : le hook `databaseHooks.session.create.before` la retire avant écriture, l'IP ne servant qu'au rate limiting en mémoire de Better Auth (`disableIpTracking` le couperait aussi). Uniquement pour l'espace admin, pages publiques sans auth. Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
 ### Autorisation
 
@@ -617,7 +620,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 **Dans ce dépôt**
 
-- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)). Better Auth + Google OAuth, whitelist d'un email unique
+- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy et layout (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
 - **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs

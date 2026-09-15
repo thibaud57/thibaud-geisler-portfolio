@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["public", "freelance"]
+  schemas  = ["public", "freelance", "auth"]
 }
 
 enum ProjectType {
@@ -296,4 +296,73 @@ model DataProcessing {
   updatedAt DateTime @updatedAt @db.Timestamptz
 
   @@schema("public")
+}
+
+// Better Auth fournit id/createdAt/updatedAt à l'insertion : pas de @default(uuid(7))
+// ni @default(now())/@updatedAt sur ces 4 modèles, sinon double source de vérité.
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime  @db.Timestamptz
+  updatedAt     DateTime  @db.Timestamptz
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+  @@schema("auth")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @db.Timestamptz
+  token     String
+  createdAt DateTime @db.Timestamptz
+  updatedAt DateTime @db.Timestamptz
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+  @@schema("auth")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz
+  refreshTokenExpiresAt DateTime? @db.Timestamptz
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @db.Timestamptz
+  updatedAt             DateTime  @db.Timestamptz
+
+  @@index([userId])
+  @@map("account")
+  @@schema("auth")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz
+  createdAt  DateTime @db.Timestamptz
+  updatedAt  DateTime @db.Timestamptz
+
+  @@index([identifier])
+  @@map("verification")
+  @@schema("auth")
 }
