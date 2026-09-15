@@ -46,8 +46,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Historique local VSCode (deja gitignore, jamais du code source)
     ".history/**",
-    // Worktrees d'agents : copies completes du depot, node_modules et .next compris
-    ".claude/worktrees/**",
+    // Outillage Claude Code, sans code applicatif ; ses worktrees d'agents copient tout le depot
+    ".claude/**",
   ]),
   // En dernier : il desactive des regles de style, tout bloc place apres les retablirait
   prettier,
