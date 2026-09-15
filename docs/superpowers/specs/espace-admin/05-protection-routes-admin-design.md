@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "protection-routes-admin"
 goal: "Rendre /admin inaccessible sans session valide et le sortir du routing localisé"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["04-auth-better-auth-google-design.md"]
