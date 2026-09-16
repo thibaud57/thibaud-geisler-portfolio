@@ -29,6 +29,13 @@ Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en
 - `10-gestion-assets-admin-design.md` (statut: draft) : fournit `AssetPicker` pour le choix de la couverture.
 - `12-ecran-liste-projets-design.md` (statut: draft) : fournit les deux pages d'attente `/admin/projets/nouveau` et `/admin/projets/[id]` que ce sub-project remplace, et la liste depuis laquelle on arrive.
 
+## Références de design
+
+- **Maquette** : l'écran Formulaire projet (`isForm`), son fil d'ariane (`formCrumbs`), sa grille de colonnes, le combobox de tags, les sélecteurs de dates de début, de fin et de mise en production, le select d'entreprise, l'ouverture du sélecteur d'assets (`openAssetPicker`) et l'avertissement au changement de type (`dlgTypeWarning`).
+- **Le formulaire est un écran plein dans la maquette**, pas une modale : c'est cohérent avec les deux routes `/admin/projets/nouveau` et `/admin/projets/[id]` que cette spec remplace. À ne pas confondre avec le formulaire d'entreprise monté ici, dont la forme reste à trancher au `08`.
+- **Design system** : les fiches `.prompt.md` de `Combobox`, des sélecteurs de date et des champs installés ici.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À modifier** : `src/app/admin/(protected)/projets/nouveau/page.tsx` (remplacement de la page d'attente)

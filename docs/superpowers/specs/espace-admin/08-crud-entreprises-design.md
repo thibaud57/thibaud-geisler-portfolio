@@ -25,6 +25,13 @@ Exclut l'édition du logo, qui suppose le sélecteur d'assets du sub-project `10
 
 - `07-crud-tags-design.md` (statut: draft) : pose le pattern CRUD que ce sub-project reprend : forme des Server Actions, forme de l'état de formulaire, traitement des erreurs Prisma.
 
+## Références de design
+
+- **Maquette** : l'écran Entreprises (`isCompanies`), son formulaire (`isCompanyForm`) et la confirmation de suppression (`dlgDeleteCompany`), qui porte le cas de l'entreprise rattachée à des projets.
+- **Divergence à trancher avant d'implémenter** : la maquette donne au formulaire un **écran plein** avec fil d'ariane (`compCrumbs`, `saveCompany`, retour vers la liste), et ne l'ouvre que depuis la liste. Cette spec prévoit une **modale** montée à deux endroits, la liste et le formulaire projet du `13`, pour créer une entreprise sans perdre la saisie en cours. Les deux ont été écrites séparément : choisir, et aligner l'autre.
+- **Design system** : les fiches `.prompt.md` des composants réutilisés du `07`, plus celles des champs propres à l'entreprise.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À créer** : `src/lib/schemas/company.ts`

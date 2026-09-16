@@ -26,6 +26,13 @@ Exclut l'édition, portée par le sub-project `13`.
 - `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente que ce sub-project remplace.
 - `11-crud-projets-actions-design.md` (statut: draft) : fournit `findAllProjectsForAdmin` et `deleteProject`.
 
+## Références de design
+
+- **Maquette** : l'écran Projets (`isProjets`), ses tris de colonne (`sortByOrder`, `sortTitle`, `sortYear`, `sortEnd`), son pied paginé (`projBar`), son état vide (`noRows`) et sa confirmation de suppression (`dlgDeleteProject`).
+- **Deux contrôles de la maquette restent hors de cet epic**, le sub-project `07` l'ayant tranché : le sélecteur de colonnes affichées (`projColsOpen`) et les filtres à compteurs facettés (`projFacets`). Ils n'ont de sens qu'avec du volume. Les filtres par type et par statut de cette spec sont des sélecteurs ordinaires, sans compteur.
+- **Design system** : les fiches `.prompt.md` de la table partagée du `07` et des filtres installés ici.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À modifier** : `src/app/admin/(protected)/projets/page.tsx` (remplacement de la page d'attente)

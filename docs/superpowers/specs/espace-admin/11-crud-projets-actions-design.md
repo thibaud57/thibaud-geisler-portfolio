@@ -26,6 +26,11 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 - `07-crud-tags-design.md` (statut: draft) : les tags doivent exister pour être rattachés, et le pattern de Server Action vient de là.
 - `08-crud-entreprises-design.md` (statut: draft) : un projet client référence une entreprise.
 
+## Références de design
+
+- **Aucun écran** : ce sub-project ne pose que des Server Actions et des requêtes. Les écrans qui les consomment sont dans la maquette, la liste (`isProjets`) au `12` et le formulaire (`isForm`) au `13` : les lire ici sert seulement à vérifier que les données exposées suffisent à les rendre.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À créer** : `src/lib/schemas/project.ts`

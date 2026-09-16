@@ -28,6 +28,11 @@ La route `/api/assets/[...path]` reste le seul point d'accès public, le bucket 
 - `01-infra-stockage-objet-sauvegardes-design.md` (statut: draft) : a créé les buckets `portfolio-assets` et `portfolio-admin` en juridiction `eu`, chacun avec son token `Object Read & Write` restreint.
 - `03-multi-schema-prisma-design.md` (statut: draft) : `Company` vit dans le schema `freelance`, ce qui qualifie la mise à jour de `logoFilename`.
 
+## Références de design
+
+- **Aucun écran** : ce sub-project n'a pas de surface visuelle, la maquette ne le couvre pas. Elle intervient au `10`, qui pose l'écran Assets au-dessus de ce stockage.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À modifier** : `package.json` (dépendance `@aws-sdk/client-s3`)

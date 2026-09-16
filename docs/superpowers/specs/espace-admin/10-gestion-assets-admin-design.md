@@ -26,6 +26,13 @@ C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les
 - `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente `/admin/assets` que ce sub-project remplace.
 - `09-stockage-assets-r2-design.md` (statut: draft) : fournit le client R2 et le bucket dans lequel écrire.
 
+## Références de design
+
+- **Maquette** : l'écran Assets (`isAssets`), une grille de tuiles avec recherche, facettes et pied de liste, son téléversement (`openUpload`) et sa confirmation de suppression (`dlgDeleteAsset`).
+- **Le sélecteur d'assets se lit dans le `13`** : la maquette l'ouvre depuis le formulaire projet (`openAssetPicker` dans l'écran `isForm`), c'est là qu'on voit ce qu'il doit rendre.
+- **Design system** : les fiches `.prompt.md` des composants de tuile et de téléversement mobilisés.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À modifier** : `next.config.ts` (relèvement de `serverActions.bodySizeLimit`)

@@ -25,6 +25,12 @@ Ce sub-project établit le pattern que reprendront les entités légères suivan
 
 - `06-shell-admin-design.md` (statut: draft) : fournit le shell dans lequel l'écran s'insère, et la page d'attente `/admin/tags` que ce sub-project remplace.
 
+## Références de design
+
+- **Maquette** : l'écran Tags (`isTags` dans `Espace admin.dc.html`), le formulaire en modale (`dlgTagForm`) et la confirmation de suppression (`dlgDeleteTag`), qui porte déjà le cas du tag rattaché à un projet. La barre d'outils, l'en-tête de colonne triable et le pied paginé s'y lisent aussi : c'est de cet écran qu'est généralisée la table partagée reprise par les `08` et `12`.
+- **Design system** : les fiches `.prompt.md` de `Table`, `Dialog`, `AlertDialog`, `Pagination`, `Select` et `Checkbox`, les composants que ce sub-project installe.
+- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
+
 ## Files touched
 
 - **À créer** : `src/lib/schemas/tag.ts` (schémas Zod partagés)
