@@ -31,6 +31,12 @@ stop:
 stop:
     -pkill -f "next dev"
 
+# Crée une session admin de dev sans Google et écrit son cookie au format curl dans FILE
+[group('dev')]
+dev-login FILE:
+    # react-server : auth.ts importe server-only, qui lève hors d'un Server Component et se résout en module vide sous cette condition
+    pnpm exec tsx --conditions=react-server scripts/dev-login.ts {{ FILE }}
+
 # ── Quality ───────────────────────────────────────────────────────────────────
 
 # Build de production Next.js
