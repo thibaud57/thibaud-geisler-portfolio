@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "shell-admin"
 goal: "Poser la coquille de navigation commune à tous les écrans de l'espace admin"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["05-protection-routes-admin-design.md"]
