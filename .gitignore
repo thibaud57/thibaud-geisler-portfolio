@@ -65,3 +65,10 @@ next-env.d.ts
 
 # Superpowers (ledgers, briefs et review packages de subagent-driven-development)
 .superpowers/
+
+# design-sync : scripts, build et état machine. Seuls config.json et NOTES.md sont versionnés
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
