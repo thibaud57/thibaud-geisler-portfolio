@@ -55,7 +55,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Subtitle (en-tête de page, texte de section) | 1.125rem (18px) | 400 (Regular) | `text-lg` : sous-titres centrés de `PageShell`, CTA final |
 | Body | 1rem (16px) | 400 (Regular) | `text-base` |
 | Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
-| Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground` : titres de cartes de stack, libellés de stats, libellé de signature de la landing, métadonnées et timeline d'étude de cas. Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
+| Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground` : titres de cartes de stack, libellés de stats, libellé de signature de la landing, métadonnées et timeline d'étude de cas, section de la sidebar admin. Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
 | Titre de card marketing | 1.5rem (24px) | 700 (Bold) | `font-display text-2xl font-bold tracking-normal` : cards services et projets. Taille fixe quel que soit le niveau du titre, d'où le `text-2xl` explicite |
 | Display number (chiffre clé) | 3rem (48px), 3.75rem (60px) dès sm | 700 (Bold) | `font-display text-5xl font-bold text-primary sm:text-6xl` : chiffres des stats `/a-propos` |
 
@@ -104,7 +104,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--popover` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des popovers |
 | `--popover-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des popovers |
 
-> Les huit `--sidebar-*` sont le scaffolding shadcn du composant Sidebar, non installé (post-MVP). `--chart-1` à `--chart-5` : voir § Palette dataviz.
+> Les huit `--sidebar-*` sont les tokens du composant Sidebar (§ Navigation). `--chart-1` à `--chart-5` : voir § Palette dataviz.
 
 ### Couleurs Sémantiques
 
@@ -220,7 +220,7 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies et des pages légales (`prose dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 
-> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, sauf pour l'agenda et le kanban, que le registry shadcn n'a pas.
+> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, sauf pour l'agenda et le kanban, que le registry shadcn n'a pas, et pour la bascule de thème, partagée avec la navbar.
 
 ### Style shadcn
 
@@ -252,9 +252,11 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Navbar | Navbar, Mobile Menu | nav custom + shadcn/ui (Sheet) | `sticky top-0` + `backdrop-blur` + `border-b border-border`, contient logo, liens, sélecteur de langue et bascule de thème. Liens plats en `ul`/`li` avec état actif via `usePathname`, NavigationMenu écarté (pensé pour des menus à sous-panneaux). Sheet pour le menu mobile |
 | Footer | Footer | composant maison | Layout custom sur toutes les pages publiques, séparé du contenu par un `border-t border-border`. Contient logo, tagline, localisation, réseaux sociaux, lien CV, copyright et navigation légale (mentions, confidentialité, cookies) |
 | Language Switcher | DropdownMenu + icône Globe (Lucide) + drapeaux (`country-flag-icons`) | shadcn/ui | Switch FR / EN dans la navbar, locale courante en `font-semibold` |
-| Theme Toggle | AnimatedThemeToggler | Magic UI + store `src/lib/theme.ts` | Toggle dark/light animé dans navbar, morphing soleil/lune |
+| Theme Toggle | AnimatedThemeToggler | Magic UI + store `src/lib/theme.ts` | Toggle dark/light animé dans navbar et barre supérieure admin, morphing soleil/lune |
 | Filtres projets | ProjectFilters, tabs custom (boutons HTML + sémantique ARIA) | shadcn/ui tokens | Filtres client / personnel / tous sur `/projets`. Tabs custom avec `role="tablist"` + `role="tab"` + `aria-selected` (requis pour les tests Testing Library). Style via tokens Tailwind (`border-primary`, `text-muted-foreground`) |
 | Onglets contact | Tabs | shadcn/ui (Radix) | Bascule formulaire / Calendly sur `/contact`. L'onglet Calendly est monté en `forceMount` et masqué en CSS, pour que le widget ne se réinitialise pas à chaque bascule ; la `key={pathname}` remet l'onglet par défaut au changement de locale |
+| Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement. Son en-tête porte le logo, lien vers `/admin`, `BrandMark` une fois replié. Son en-tête et son pied portent chacun une bordure `--sidebar-border` : celle du haut prolonge le filet de la barre supérieure, celle du bas détache la déconnexion de la navigation, une action n'étant pas une destination. `Tooltip` relit le libellé de chaque item en mode replié (icônes seules). Le tiroir mobile réaffiche le bouton de fermeture du `Sheet`, masqué par le registry |
+| Menu du compte admin | Avatar + DropdownMenu | shadcn/ui | Barre supérieure admin, à droite de la bascule de thème. Photo Google, deux initiales en secours, à 24px dans un bouton de 36px comme la bascule. Ouvre nom, email et « Déconnexion » |
 
 ### Actions
 
@@ -293,7 +295,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Feedback | Toast | shadcn/ui (Sonner) | Confirmation formulaire |
+| Feedback | Toast | shadcn/ui (Sonner) | Confirmation formulaire, échec de déconnexion admin |
 | Avis | Alert | shadcn/ui | Avis persistant en tête d'écran : refus de connexion admin, en `variant="destructive"` avec `ShieldBan` pour un compte refusé et `CircleAlert` sinon. Les erreurs de champ d'un formulaire restent un `<p className="text-sm text-destructive">` sous l'input |
 | Chargement | Skeleton, StackedSkeleton | shadcn/ui + composant maison | `StackedSkeleton` empile des `Skeleton` aux hauteurs passées en props. Utilisé en fallback de `<Suspense>` sur la page case study et dans son `loading.tsx` |
 
@@ -326,24 +328,24 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Logo | BrandLogo | composant maison (`next/image`) | Navbar, footer, menu mobile et connexion admin, variante claire ou sombre selon le thème. Fixé à 140px sur la connexion, la largeur de la navbar mobile : à 200px il dépasse le titre de la card |
+| Logo | BrandLogo | composant maison (`next/image`) | Navbar, footer, menu mobile, connexion admin et rail admin, variante claire ou sombre selon le thème. Fixé à 140px sur la connexion, la largeur de la navbar mobile : à 200px il dépasse le titre de la card. 120px dans le rail, 150px dès `md` |
+| Petit logo | BrandMark | composant maison (`next/image`) | Rail admin replié, à 24px : le logo horizontal ne tient pas dans ses 3rem |
 | Réseaux sociaux | SocialLinks | composant maison (Simple Icons + Lucide) | Pastilles de 36px en navbar mobile, footer et `/contact` |
 | Localisation | LocationLine | composant maison (`country-flag-icons`) | Drapeaux FR et LU, footer et `/contact` |
 
 ### Post-MVP (non installés)
 
-> Chaque entrée rejoint sa famille ci-dessus au moment de son installation. Ce qui est post-MVP ici est l'**usage**, pas toujours le composant : `Badge`, `Button`, `Input`, `Table` et `Tabs` tournent en production, les écrans qui les emploieront de cette façon n'existent pas.
+> Chaque entrée rejoint sa famille ci-dessus au moment de son installation. Ce qui est post-MVP ici est l'**usage**, pas toujours le composant : `Badge`, `Button`, `Input`, `Table`, `Tabs` et `Tooltip` tournent en production, les écrans qui les emploieront de cette façon n'existent pas.
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Navigation admin | Sidebar | shadcn/ui | Repliable, gère le mobile nativement. Son en-tête et son pied portent chacun une bordure `--sidebar-border` : celle du haut prolonge le filet de la barre supérieure, celle du bas détache la déconnexion de la navigation, une action n'étant pas une destination |
 | Table de liste | Table | shadcn/ui | Recherche, filtres, tri et pagination sur un même jeu de lignes, en état local React et sans librairie de table à cette volumétrie. Ses quatre motifs ont chacun leur ligne ici : pied de table, barre d'outils, en-tête triable, gouttière de bord |
 | Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin se tient sur la rangée `xs`, un cran sous la barre d'outils : compteur et sélecteur de lignes par page groupés à gauche, pager à droite. `Pagination` délègue à `Button` et relaie sa taille, donc `size="icon-xs"` sur les numéros suffit. `Select`, lui, s'arrête à `sm` : c'est à lui seul qu'il faut ajouter un palier `xs` |
 | Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Trois contrôles sur une rangée, dans cet ordre : recherche, puis deux boutons `outline` ouvrant chacun son Popover, colonnes affichées et filtres, chacun portant son compteur en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre. Les deux Popover sont une cible : seule la recherche est livrée tant qu'aucune liste ne dépasse la centaine de lignes |
 | En-tête de colonne triable | Button `ghost` dans le `th` | shadcn/ui | Cycle croissant, décroissant, ordre d'affichage ; `aria-sort` sur le bouton. Glisser-déposer désactivé dès qu'un tri ou un filtre est actif |
 | Tableau pleine largeur dans une card | Table | shadcn/ui | Le survol d'une ligne court d'un bord à l'autre, donc la table déborde le padding de la card. Première et dernière cellule reprennent alors les 16px de celle-ci, pour que la donnée s'aligne sur le reste de son contenu ; les cellules intérieures gardent leurs 8px |
 | Bascule de représentation | Tabs | shadcn/ui | La même donnée vue autrement (tableau, board, calendrier), et non deux contenus qui se substituent. Le composant est celui de `/contact`, le motif celui des filtres de `/projets`, un `role="tablist"` sans `tabpanel` ni `aria-controls` sur une liste filtrée en place. Rien de dédié à créer, donc, au prix d'un lecteur d'écran qui annoncera « onglet » là où rien ne se substitue |
-| Texte tronqué | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol : cellule de tableau, libellé de liste, « +N » fermant une série de badges. Sur la vitrine la troncature reste muette, faute de `Tooltip` installé (§ Badges) |
+| Texte tronqué | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol : cellule de tableau, libellé de liste, « +N » fermant une série de badges. Sur la vitrine la troncature reste muette, ce câblage n'étant pas fait (§ Badges) |
 | Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. `Checkbox` plutôt qu'une case native : l'état indéterminé du « tout sélectionner » d'un tableau ne se rend pas autrement |
 | Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Une sélection multiple s'affiche en badges retirables sous le champ, où les choix restent lisibles. Hérite du contournement de `Command` |
 | Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
@@ -355,7 +357,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
-| Primitifs d'interface | Tooltip, ScrollArea, Avatar, Collapsible | shadcn/ui | - |
+| Primitifs d'interface | ScrollArea, Collapsible | shadcn/ui | - |
 | Effets hero | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Candidats |
 | Effets visuels | Shine Border, Particles, Meteors, Magic Card | Magic UI | Candidats |
 | Typographie display | Text Reveal | Magic UI | Candidat (au scroll) |
@@ -442,10 +444,10 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Spacing pages documentaires | `space-y-12` sur le wrapper, `gap-6` entre sections coded, `prose-h2:mt-12 prose-h2:mb-6` sur le markdown | rythme serré pour la lecture continue (légales, case studies) |
 | Rythme interne d'une section | `gap` uniforme, doublé avant un bloc d'un autre registre | CTA final : 32px entre titre, sous-titre et bouton, 64px avant la bande stack |
 | Grid principal | CSS Grid ou Flexbox | selon le contexte, pas de librairie de grid externe |
-| Container admin | pleine largeur moins la sidebar | post-MVP, sans `max-w-7xl` centré |
-| Barre supérieure admin | `56px` | post-MVP, un cran sous les 64px de la navbar publique. L'en-tête du rail s'aligne dessus, et leurs deux bordures basses n'en forment qu'une |
-| Rail de navigation admin | `13rem` (208px) | post-MVP, contre 16rem par défaut : « Tableau de bord », le plus long libellé, occupe 104px des 152px laissés au texte. Se pose par `style` sur `SidebarProvider` ; le mobile garde la largeur du `Sheet` |
-| Espacement entre sections, admin | `py-6` à `py-8` | post-MVP, la densité prime sur le souffle |
+| Container admin | pleine largeur moins la sidebar | sans `max-w-7xl` centré |
+| Barre supérieure admin | `56px` | un cran sous les 64px de la navbar publique. L'en-tête du rail s'aligne dessus, et leurs deux bordures basses n'en forment qu'une |
+| Rail de navigation admin | `13rem` (208px) | contre 16rem par défaut : « Tableau de bord », le plus long libellé, occupe 104px des 152px laissés au texte. Se pose par `style` sur `SidebarProvider` ; le mobile garde la largeur du `Sheet` |
+| Espacement entre sections, admin | `py-6` à `py-8`, retrait `px-4 md:px-6` | porté par `AdminPageShell`, qui rend aussi le titre d'écran et son sous-titre. La densité prime sur le souffle |
 
 ## Responsive
 
@@ -491,7 +493,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ✅ **Liens** : les liens de contenu (paragraphe, liste, définition) portent `text-primary underline underline-offset-2` en permanence (WCAG 1.4.1, la couleur seule tombe à 1:1 sur `text-muted-foreground`). Les liens d'interface (nav, CTA, boutons, cards) se distinguent par la couleur (`hover:text-primary`), sur le reset global de `globals.css`
 - ✅ **Valeurs numériques** : ce qui se compare s'aligne à droite en `tabular-nums` (montants, quantités, taux, durées), pour que les ordres de grandeur se lisent en colonne. Sans changer de famille : Geist Sans porte des chiffres tabulaires, le mono reste réservé aux années de timeline. Ce qui se lit comme une étiquette reste à gauche et en chasse normale : années, numéros de facture, identifiants. `NumberTicker` l'applique déjà aux chiffres clés de `/a-propos`
 - ✅ **Largeur des champs** : tout contrôle de saisie occupe la largeur de sa colonne, texte, liste déroulante, recherche ou date, pour que les champs d'une rangée s'alignent. À poser explicitement, plusieurs contrôles du registry se dimensionnant sur leur contenu
-- ✅ **Texte trop long** : ce qui ne tient pas dans sa colonne se tronque par une ellipse, l'intégral se relisant au survol dès que `Tooltip` est installé (§ Post-MVP). Le `placeholder` fait exception, il doit tenir entier dans son champ
+- ✅ **Texte trop long** : ce qui ne tient pas dans sa colonne se tronque par une ellipse, relue au survol par `Tooltip` (§ Post-MVP, Texte tronqué). Le `placeholder` fait exception, il doit tenir entier dans son champ
 
 ## Anti-Patterns
 

@@ -1,13 +1,14 @@
 import "server-only"
 import { headers } from "next/headers"
 import { unauthorized } from "next/navigation"
-import { experimental_taintObjectReference, experimental_taintUniqueValue } from "react"
+import { cache, experimental_taintObjectReference, experimental_taintUniqueValue } from "react"
 
 import { env } from "@/env"
 import { isAdminEmail } from "@/lib/admin-whitelist"
 import { auth } from "@/lib/auth"
 
-export async function getCurrentUser() {
+// cache() : le layout protégé et sa page l'appellent dans le même rendu, une seule lecture de session par requête
+export const getCurrentUser = cache(async () => {
   const session = await auth.api.getSession({ headers: await headers() })
 
   // Le hook de whitelist ne s'exécute qu'à la création du compte : sans ce contrôle, un compte
@@ -26,4 +27,4 @@ export async function getCurrentUser() {
   )
 
   return session.user
-}
+})

@@ -19,7 +19,7 @@ paths:
 ## À éviter
 - Enchaîner deux `await` indépendants l'un après l'autre (waterfall) : paralléliser avec `Promise.all()`
 - Utiliser `unstable_noStore()` : déprécié, remplacé par `connection()` (mais voir gotcha bug R19.2 ci-dessous)
-- Utiliser `cache()` de React sur les queries Prisma : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions pures appelées plusieurs fois dans le même render sans IO
+- Utiliser `cache()` de React sur les queries Prisma : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions pures appelées plusieurs fois dans le même render sans IO, et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()` et ne peut donc pas passer par `'use cache'`
 - Compter sur le Data Cache automatique pour les queries Prisma : elles ne participent pas au cache `fetch()`, wrap explicite obligatoire avec `'use cache'`
 - **Wrapper un Server Component async dans `<Suspense>` quand toutes ses queries sont déjà en `'use cache'`** : redondant et ajoute une frontière inutile dans le shell statique (cf. règle XOR ci-dessous)
 - Appeler `cookies()` ou `headers()` dans un callback `after()` : runtime error, lire les valeurs avant et les passer en paramètre

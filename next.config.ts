@@ -55,6 +55,10 @@ const nextConfig: NextConfig = {
   compress: false,
   images: {
     formats: ["image/avif", "image/webp"],
+    // Photo de profil Google du compte admin, affichée dans le menu du compte
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/a/**" },
+    ],
   },
   serverExternalPackages: ["pino", "pino-pretty", "thread-stream"],
   outputFileTracingIncludes: {
