@@ -182,6 +182,7 @@ Aucun test n'est écrit sur les composants ni sur le comportement du navigateur 
 
 ## Edge cases
 
+- **Garde par page** : la page appelle `await getCurrentUser()` avant tout rendu et garde le `loading.tsx` de son segment, posés au sub-project `06` (cf. `.claude/rules/nextjs/auth.md`)
 - **Limite de taille silencieuse** : au-delà de `bodySizeLimit`, la requête est rejetée par le framework avant d'atteindre l'action. Le message par défaut n'est pas explicite, il faut donc valider la taille côté client avant l'envoi pour donner un retour compréhensible
 - **Écrasement involontaire** : R2 remplace un objet de même clé sans avertissement. C'est le seul geste destructeur de cet écran, d'où l'avertissement du scénario 8
 - **Nom de fichier issu du système de l'utilisateur** : espaces, accents et majuscules sont fréquents. Sans normalisation ou refus explicite, on écrirait une clé que `validateAssetPath` refuserait ensuite de relire, et l'asset serait perdu tout en occupant de l'espace

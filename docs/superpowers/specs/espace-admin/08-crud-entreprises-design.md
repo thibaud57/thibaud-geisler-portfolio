@@ -160,6 +160,7 @@ Aucun test n'est écrit sur le rendu des composants. Le double montage du formul
 
 ## Edge cases
 
+- **Garde par page** : la page appelle `await getCurrentUser()` avant tout rendu et garde le `loading.tsx` de son segment, posés au sub-project `06` (cf. `.claude/rules/nextjs/auth.md`)
 - **Distinguer les deux contraintes d'unicité** : le slug et l'entité légale lèvent tous deux un `P2002`. Sans lire `meta.target`, on afficherait « ce slug est déjà pris » alors que le problème vient de l'entité légale, et l'utilisateur chercherait longtemps
 - **Secteurs lus avec `get` au lieu de `getAll`** : seul le premier secteur serait enregistré, silencieusement. Les autres disparaîtraient sans erreur
 - **Chaînes vides converties en `null`** : `size`, `websiteUrl` et `legalEntityId` sont nullables. Un `FormData` renvoie `''` et non `undefined` : sans conversion, la base stockerait des chaînes vides, et `legalEntityId: ''` violerait la contrainte de clé étrangère

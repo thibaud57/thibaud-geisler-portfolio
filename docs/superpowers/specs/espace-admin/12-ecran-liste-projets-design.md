@@ -29,8 +29,8 @@ Exclut l'édition, portée par le sub-project `13`.
 ## Files touched
 
 - **À modifier** : `src/app/admin/(protected)/projets/page.tsx` (remplacement de la page d'attente)
-- **À créer** : `src/app/admin/(protected)/projets/nouveau/page.tsx` (page d'attente, remplacée par le sub-project `13`)
-- **À créer** : `src/app/admin/(protected)/projets/[id]/page.tsx` (page d'attente, remplacée par le sub-project `13`)
+- **À créer** : `src/app/admin/(protected)/projets/nouveau/page.tsx` (page d'attente, remplacée par le sub-project `13`) et son `loading.tsx`
+- **À créer** : `src/app/admin/(protected)/projets/[id]/page.tsx` (page d'attente, remplacée par le sub-project `13`) et son `loading.tsx`
 - **Composants shadcn** : `select`, `alert-dialog` et `pagination` sont posés par le sub-project `07`, dont celui-ci dépend transitivement par le `11`. Vérifier leur présence et n'installer que ce qui manque
 - **À créer** : `src/components/features/admin/projects/ProjectsTable.tsx`
 - **À créer** : `src/components/features/admin/projects/ProjectsFilters.tsx`
@@ -119,6 +119,7 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/next
 
 ## Edge cases
 
+- **Garde par page** : chaque page appelle `await getCurrentUser()` avant tout rendu et vit sous le `loading.tsx` de son propre segment (cf. `.claude/rules/nextjs/auth.md`)
 - **Confirmation comme seule protection** : contrairement aux tags et aux entreprises, aucune contrainte de base n'empêche la suppression d'un projet. La méta client et les rattachements partent en cascade, et rien n'est récupérable. Le libellé de la confirmation doit donc nommer le projet, pas se contenter d'un « Êtes-vous sûr ? »
 - **État vide et chargement confondus** : une liste filtrée sans résultat ressemble à une liste qui charge. Les deux états doivent être distincts, sinon on croit à une lenteur
 - **Projet client sans entreprise affichable** : la méta client peut manquer si une donnée a été créée hors de l'application. L'affichage doit le tolérer sans planter, même si les Server Actions du sub-project `11` rendent ce cas improbable

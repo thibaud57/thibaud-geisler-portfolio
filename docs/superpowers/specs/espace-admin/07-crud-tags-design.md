@@ -163,6 +163,7 @@ Aucun test n'est écrit sur le rendu des composants : monter une modale shadcn p
 
 ## Edge cases
 
+- **Garde par page** : la page appelle `await getCurrentUser()` avant tout rendu et garde le `loading.tsx` de son segment, posés au sub-project `06` (cf. `.claude/rules/nextjs/auth.md`)
 - **Slug non normalisé** : `React` et `react` produiraient deux tags distincts alors que le slug est un identifiant technique. La règle de normalisation doit être décidée et testée, pas laissée à la saisie
 - **Icône silencieusement invalide** : c'est le piège principal de cette entité. `resolveTagIcon` retourne `null` sans rien signaler, donc un tag mal saisi s'afficherait simplement sans icône, et le défaut ne serait découvert qu'à l'œil sur le site public
 - **`displayOrder` en doublon** : rien n'empêche deux tags de porter la même valeur. L'ordre est alors départagé par le tri secondaire déjà présent dans `findAllTags` (`slug` croissant), donc le comportement reste déterministe

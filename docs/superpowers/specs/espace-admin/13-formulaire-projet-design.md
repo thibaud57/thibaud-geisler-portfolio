@@ -150,6 +150,7 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 
 ## Edge cases
 
+- **Garde par page** : les pages appellent `await getCurrentUser()` avant tout rendu et gardent le `loading.tsx` de leur segment, posés au sub-project `12` (cf. `.claude/rules/nextjs/auth.md`)
 - **Perte de saisie à la création d'entreprise** : c'est le scénario que le double montage de `CompanyFormDialog` sert à éviter. Si l'ouverture de la modale démontait le formulaire ou provoquait une navigation, tout le travail en cours serait perdu
 - **Repeuplement après erreur** : un formulaire de cette taille rejeté sans conserver les valeurs saisies serait pénible au point d'être inutilisable. L'état retourné par les Server Actions porte `values` précisément pour ça
 - **Bascule de type sans avertissement** : la suppression de la méta client est irréversible et silencieuse côté base
