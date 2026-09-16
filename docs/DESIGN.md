@@ -518,6 +518,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - [country-flag-icons](https://catamphetamine.gitlab.io/country-flag-icons/)
 
 ## Ressources Complémentaires
+- [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : ce design system porté dans Claude Design (composants, cartes de référence et maquettes du site public), synchronisé à la main depuis ce dépôt
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
 - [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin et `Kanban` pour l'espace Dev (post-MVP)
