@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "crud-tags"
 goal: "Gérer les tags depuis l'espace admin et établir le pattern CRUD des entités légères"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "full"
 depends_on: ["06-shell-admin-design.md"]
