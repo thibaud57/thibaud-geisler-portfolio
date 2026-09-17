@@ -162,3 +162,8 @@ export function resolveTagIcon(icon: string | null): IconComponent | null {
   if (lib === "lucide") return LUCIDE_ICONS[slug] ?? null
   return null
 }
+
+export const TAG_ICON_KEYS = [
+  ...Object.keys(SIMPLE_ICONS).map((slug) => `simple-icons:${slug}`),
+  ...Object.keys(LUCIDE_ICONS).map((slug) => `lucide:${slug}`),
+].sort() as readonly string[]

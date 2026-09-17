@@ -273,6 +273,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Champs | Input, Textarea, Label | shadcn/ui | Formulaire contact |
 | Formulaire contact | Card + Input + Textarea + Button + Label | shadcn/ui | Layout 2 colonnes (formulaire / Calendly + réseaux), sans abstraction Form : validation Zod dans la Server Action, erreurs de champ en `text-sm text-destructive` sous l'input, confirmation par toast |
+| Champs à choix fermé | Select, Checkbox | shadcn/ui | `Select` pour les champs à liste fermée d'un formulaire admin (catégorie, icône du formulaire tag), validée par Zod côté serveur comme le formulaire contact. `Checkbox` : Réservé, prévu pour l'état indéterminé du « tout sélectionner » d'un tableau, qu'une case native ne rend pas |
 
 ### Cards et grilles
 
@@ -282,6 +283,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Cards projets | BentoCard | Magic UI | Showcase visuel dans BentoGrid (landing + /projects) |
 | Bento Grid | BentoGrid + BentoCard | Magic UI | Grille asymétrique et son conteneur : cards projets (landing + /projects) et stack `/a-propos`. Conteneur visuel seul (`rounded-lg`, bordure, `shadow-sm`), l'affordance de survol vivant sur l'élément cliquable |
 | Table simple | Table | shadcn/ui | Données figées, ni tri ni pagination : la seule forme en usage sur le site public |
+| Table de liste (admin) | Table, Pagination | shadcn/ui | Recherche, filtres, tri et pagination sur un même jeu de lignes, en état local React et sans librairie de table à cette volumétrie, composés dans `DataTable`. La table vit bord à bord dans sa `Card` : première et dernière cellule reprennent les 16px de padding de la card, les cellules intérieures gardent leurs 8px, et le survol d'une ligne court d'un bord à l'autre. Le pied se tient sur la rangée `xs`, un cran sous la barre d'outils : compteur et sélecteur de lignes par page groupés à gauche, pager à droite. `Pagination` délègue à `Button` et relaie sa taille, donc `size="icon-xs"` sur les numéros suffit. `Select`, lui, s'arrête à `sm` dans le registry : le projet lui ajoute le palier `xs`. Le tri de colonne (`aria-sort`, cycle croissant/décroissant/ordre d'affichage) vit dans le même composant. Barre d'outils reste post-MVP |
 | Card de connexion admin | Card + Separator | shadcn/ui | Centrée en `max-w-sm` sur `/admin/login`. En-tête centré : logo, `Separator`, titre à l'échelle admin, `CardDescription`. Contenu : avis d'erreur éventuel puis bouton de connexion |
 
 ### Badges
@@ -304,6 +306,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Panneau latéral | Sheet | shadcn/ui | Menu mobile |
+| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression. La largeur monte à 640px dès que le formulaire tient sur deux colonnes. Son pied court d'un bord à l'autre en bandeau `muted/50` |
 
 ### Contenu et texte
 
@@ -335,25 +338,22 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ### Post-MVP (non installés)
 
-> Chaque entrée rejoint sa famille ci-dessus au moment de son installation. Ce qui est post-MVP ici est l'**usage**, pas toujours le composant : `Badge`, `Button`, `Input`, `Table`, `Tabs` et `Tooltip` tournent en production, les écrans qui les emploieront de cette façon n'existent pas.
+> Chaque entrée rejoint sa famille ci-dessus au moment de son installation. Ce qui est post-MVP ici est l'**usage**, pas toujours le composant : `Badge`, `Button`, `Dialog`, `Input`, `Tabs` et `Tooltip` tournent en production, les écrans qui les emploieront de cette façon n'existent pas.
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
-| Table de liste | Table | shadcn/ui | Recherche, filtres, tri et pagination sur un même jeu de lignes, en état local React et sans librairie de table à cette volumétrie. Ses quatre motifs ont chacun leur ligne ici : pied de table, barre d'outils, en-tête triable, gouttière de bord |
-| Navigation dans les listes | Breadcrumb, Pagination | shadcn/ui | Le pied d'une table admin se tient sur la rangée `xs`, un cran sous la barre d'outils : compteur et sélecteur de lignes par page groupés à gauche, pager à droite. `Pagination` délègue à `Button` et relaie sa taille, donc `size="icon-xs"` sur les numéros suffit. `Select`, lui, s'arrête à `sm` : c'est à lui seul qu'il faut ajouter un palier `xs` |
-| Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Trois contrôles sur une rangée, dans cet ordre : recherche, puis deux boutons `outline` ouvrant chacun son Popover, colonnes affichées et filtres, chacun portant son compteur en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre. Les deux Popover sont une cible : seule la recherche est livrée tant qu'aucune liste ne dépasse la centaine de lignes |
-| En-tête de colonne triable | Button `ghost` dans le `th` | shadcn/ui | Cycle croissant, décroissant, ordre d'affichage ; `aria-sort` sur le bouton. Glisser-déposer désactivé dès qu'un tri ou un filtre est actif |
-| Tableau pleine largeur dans une card | Table | shadcn/ui | Le survol d'une ligne court d'un bord à l'autre, donc la table déborde le padding de la card. Première et dernière cellule reprennent alors les 16px de celle-ci, pour que la donnée s'aligne sur le reste de son contenu ; les cellules intérieures gardent leurs 8px |
+| Fil d'ariane | Breadcrumb | shadcn/ui | Chemin depuis l'accueil de l'espace admin jusqu'au formulaire d'un projet, en création comme en édition |
+| Barre d'outils de liste | Input + Button + Popover + Checkbox | shadcn/ui | Trois contrôles sur une rangée, dans cet ordre : recherche, puis deux boutons `outline` ouvrant chacun son Popover, colonnes affichées et filtres, chacun portant son compteur en `Badge`. Multi-sélection par axe appliquée au clic, pas d'option « Tous », compteurs facettés, ligne récapitulative sous la barre. Cible ultérieure : seule la recherche est livrée tant qu'aucune liste ne dépasse la centaine de lignes, les deux Popover n'ayant de sens qu'avec du volume et des colonnes à masquer |
 | Bascule de représentation | Tabs | shadcn/ui | La même donnée vue autrement (tableau, board, calendrier), et non deux contenus qui se substituent. Le composant est celui de `/contact`, le motif celui des filtres de `/projets`, un `role="tablist"` sans `tabpanel` ni `aria-controls` sur une liste filtrée en place. Rien de dédié à créer, donc, au prix d'un lecteur d'écran qui annoncera « onglet » là où rien ne se substitue |
 | Texte tronqué | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol : cellule de tableau, libellé de liste, « +N » fermant une série de badges. Sur la vitrine la troncature reste muette, ce câblage n'étant pas fait (§ Badges) |
-| Formulaires admin | Select, Switch, Checkbox, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact. `Checkbox` plutôt qu'une case native : l'état indéterminé du « tout sélectionner » d'un tableau ne se rend pas autrement |
+| Formulaires admin | Switch, RadioGroup | shadcn/ui | `useActionState` (React 19) sur une Server Action validée par Zod, comme le formulaire de contact |
 | Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Registre de tags, liste d'entreprises : là où taper vaut mieux que dérouler. Une sélection multiple s'affiche en badges retirables sous le champ, où les choix restent lisibles. Hérite du contournement de `Command` |
 | Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
+| Formulaire long en modale | Dialog | shadcn/ui | Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse |
 | Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur, `align="end"` sous une barre d'outils. Seul (filtres d'une liste, choix des colonnes) ou en composition (Combobox, sélecteur de date). Son pied se groupe à droite comme celui d'une modale : ghost « Réinitialiser », puis l'unique `default` sauge, « Appliquer » |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Dates de facture, d'échéance, de mission |
 | Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action. Le composant est **headless** : il ne fournit que le comportement, la carte est entièrement à la charge de l'appelant, qui la compose en `Card` |
 | Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
-| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression. Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse. La largeur monte à 640px dès que le formulaire tient sur deux colonnes. Son pied court d'un bord à l'autre en bandeau `muted/50` |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |

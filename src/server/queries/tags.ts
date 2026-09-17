@@ -50,3 +50,11 @@ export async function findTagsBySlugs(params: {
     return tag ? [localizeTag(tag, params.locale)] : []
   })
 }
+
+// Sans 'use cache', contrairement à findAllTags : l'administration doit lire la base juste après
+// ses propres mutations, là où la requête publique servirait un instantané antérieur.
+export async function findAllTagsForAdmin(): Promise<Tag[]> {
+  return prisma.tag.findMany({
+    orderBy: [{ displayOrder: "asc" }, { slug: "asc" }],
+  })
+}
