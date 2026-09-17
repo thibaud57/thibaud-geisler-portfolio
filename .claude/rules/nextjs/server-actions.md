@@ -43,7 +43,7 @@ paths:
 'use server'
 export async function submitForm(prev: FormState, formData: FormData): Promise<FormState> {
   const result = Schema.safeParse(Object.fromEntries(formData))
-  if (!result.success) return { errors: result.error.flatten().fieldErrors }
+  if (!result.success) return { errors: z.flattenError(result.error).fieldErrors }
   await save(result.data)
   revalidatePath('/items')
   redirect('/items') // HORS du try/catch
