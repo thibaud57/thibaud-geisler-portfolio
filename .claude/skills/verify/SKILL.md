@@ -57,6 +57,39 @@ curl -s -X POST http://localhost:3000/fr/contact \
 
 Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.
 
+## Piloter une Server Action de l'espace admin
+
+Un formulaire rendu dans une modale fermée n'est pas dans le HTML : ni champs `$ACTION_*`, ni id d'action à y récupérer. L'id se lit dans le manifeste du build de dev, une fois la page servie au moins une fois :
+
+```bash
+node -e 'const m=require("./.next/dev/server/app/admin/(protected)/tags/page/server-reference-manifest.json");
+for (const [id,v] of Object.entries(m.node)) console.log(id, v.exportedName)'
+```
+
+Le corps se construit avec le vrai `encodeReply` que Next embarque, jamais à la main. Un script du scratchpad ne résout pas `next/...` depuis son propre dossier, d'où le `createRequire` pointé sur le dépôt :
+
+```js
+const req = require("module").createRequire("<racine du dépôt>/package.json")
+const { encodeReply } = req("next/dist/compiled/react-server-dom-turbopack/client.edge.js")
+
+const fd = new FormData()
+fd.append("slug", "verify-xx-a")                                  // les champs du formulaire
+const body = await encodeReply([{ ok: null, errors: {}, message: null }, fd])  // (prevState, formData)
+// action liée par bind(null, id) : encodeReply([id, prevState, fd])
+// action à arguments simples, deleteTag(id) : encodeReply([id]), corps texte
+
+await fetch("http://localhost:3000/admin/tags", {
+  method: "POST", body, redirect: "manual",
+  headers: { "Next-Action": "<id>", Accept: "text/x-component",
+             Origin: "http://localhost:3000", Cookie: "<cookies du jar>" },
+})
+// la valeur retournée par l'action est la ligne `1:{…}` de la réponse
+```
+
+Les tags de test prennent un préfixe de slug propre au run et sont tous supprimés avant de rendre la main ; un tag seedé renommé pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
+
+Les deux refus d'accès ne se lisent pas pareil, et c'est ce qui prouve la défense en profondeur : sans cookie, le proxy répond **307** avant même l'action ; avec un cookie forgé, qui passe le proxy, c'est la garde `getCurrentUser()` de l'action qui répond **401**. Seul le second prouve que l'action se protège elle-même.
+
 ## Piloter le flux OAuth Google
 
 Google exige un vrai navigateur et un vrai compte : le développeur clique sur « Continuer avec Google » depuis `http://localhost:3000/admin/login`, la recette contrôle le log et la base. Compter `auth."user"`, `auth.session` et `auth.account` avant puis après chaque connexion. Le compte refusé se teste dans une fenêtre privée neuve et doit revenir sur `/admin/login?error=FORBIDDEN` sans créer de ligne.
@@ -104,4 +137,7 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - `?error=state_mismatch` après une connexion signifie un callback rejoué avec un `state` déjà consommé (onglet Google réutilisé, double clic), pas un défaut : repartir d'une fenêtre neuve.
 - En dev, une requête au cookie forgé logue « Could not validate `instant`… `NEXT_HTTP_ERROR_FALLBACK;401` » : c'est la validation de navigation de Next qui trace l'`unauthorized()`, attendu. « encountered uncached data… outside of `<Suspense>` » sur une page admin, lui, est un vrai défaut : la page lit `headers()` hors de la frontière de `(protected)/loading.tsx`.
 - Les noms des variables serveur (`GOOGLE_CLIENT_SECRET`, `SMTP_PASS`…) figurent dans un chunk de `.next/static` : c'est le schéma de t3-env, attendu. Seule la présence d'une *valeur* serait un défaut, et la chercher exige de lire `.env` : le développeur lance lui-même le grep.
+- Un `FormData` encodé à la main avec le préfixe `1_` (au lieu du `_1_` qu'emploie `encodeReply`) n'échoue pas : l'action s'exécute, reçoit des champs `undefined` et renvoie des erreurs de validation en anglais (« expected string, received undefined »), qui ressemblent à un défaut du schéma. Constaté le 2026-09-17 sur Next 16.3.3.
+- Pino est formaté en pretty en dev, pas en JSON : chercher `event: "tag:created"`, jamais `"event":"tag:created"`, qui ne trouve rien et fait croire que l'action n'a pas logué.
+- Le client Prisma logue lui-même en `prisma:error`, avec un extrait du code source appelant, les violations de contrainte que l'action intercepte pourtant proprement (`P2002` slug déjà pris, `P2003` tag rattaché). L'action a bien renvoyé son message métier. Mais un grep des noms d'événements tombe aussi sur cet extrait de code : compter les événements sur les lignes `event:`, pas sur leur seul nom.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.
