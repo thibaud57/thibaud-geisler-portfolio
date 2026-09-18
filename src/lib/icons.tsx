@@ -163,7 +163,13 @@ export function resolveTagIcon(icon: string | null): IconComponent | null {
   return null
 }
 
-export const TAG_ICON_KEYS = [
+export function TagIcon({ icon, className }: { icon: string | null; className?: string }) {
+  const Icon = resolveTagIcon(icon)
+  // eslint-disable-next-line react-hooks/static-components -- lookup par clé dans des registres immuables, aucun composant créé au rendu
+  return Icon ? <Icon className={className} aria-hidden /> : null
+}
+
+export const TAG_ICON_KEYS: readonly string[] = [
   ...Object.keys(SIMPLE_ICONS).map((slug) => `simple-icons:${slug}`),
   ...Object.keys(LUCIDE_ICONS).map((slug) => `lucide:${slug}`),
-].sort() as readonly string[]
+].sort()

@@ -5,7 +5,9 @@ import { Marquee } from "@/components/magicui/marquee"
 import { WordRotate } from "@/components/magicui/word-rotate"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
-import { resolveTagIcon } from "@/lib/icons"
+import { TagIcon } from "@/lib/icons"
+import { LABEL_CLASS } from "@/lib/typography"
+import { cn } from "@/lib/utils"
 import { findTagsBySlugs } from "@/server/queries/tags"
 
 const STACK_TAG_SLUGS = [
@@ -47,9 +49,7 @@ export async function FinalCtaSection({ locale }: Props) {
 
       {/* Écart doublé : la bande stack est d'un autre registre que la séquence d'appel à l'action */}
       <div className="mt-8 flex w-full flex-col items-center gap-4">
-        <p className="text-center text-sm font-medium tracking-[0.25em] text-balance text-muted-foreground uppercase">
-          {t("signatureSection.title")}
-        </p>
+        <p className={cn(LABEL_CLASS, "text-center text-balance")}>{t("signatureSection.title")}</p>
         <StackMarquee locale={locale} />
       </div>
     </section>
@@ -62,18 +62,15 @@ async function StackMarquee({ locale }: Props) {
   return (
     <div className="relative w-full overflow-hidden">
       <Marquee className="[--duration:40s] [--gap:3rem]" pauseOnHover>
-        {stackTags.map((tag) => {
-          const Icon = resolveTagIcon(tag.icon)
-          return (
-            <div
-              key={tag.slug}
-              className="mx-4 flex items-center gap-3 text-muted-foreground transition hover:text-foreground"
-            >
-              {Icon && <Icon className="size-6" aria-hidden />}
-              <span className="text-sm font-medium">{tag.name}</span>
-            </div>
-          )
-        })}
+        {stackTags.map((tag) => (
+          <div
+            key={tag.slug}
+            className="mx-4 flex items-center gap-3 text-muted-foreground transition hover:text-foreground"
+          >
+            <TagIcon icon={tag.icon} className="size-6" />
+            <span className="text-sm font-medium">{tag.name}</span>
+          </div>
+        ))}
       </Marquee>
       <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-linear-to-r from-card to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-card to-transparent" />

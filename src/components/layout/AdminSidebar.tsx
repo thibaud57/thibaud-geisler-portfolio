@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { ADMIN_NAV_ITEMS, ADMIN_NAV_SECTION } from "@/config/admin-nav-items"
+import { LABEL_CLASS } from "@/lib/typography"
 
 export function AdminSidebar() {
   return (
@@ -22,9 +23,7 @@ export function AdminSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sm tracking-[0.25em] text-muted-foreground uppercase">
-            {ADMIN_NAV_SECTION}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className={LABEL_CLASS}>{ADMIN_NAV_SECTION}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => (

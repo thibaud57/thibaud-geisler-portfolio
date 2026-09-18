@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
 import { formatDurationRange, getProjectTimeline } from "@/lib/projects"
+import { LABEL_CLASS } from "@/lib/typography"
 import type { LocalizedProjectWithRelations } from "@/types/project"
 import { LeadParagraph } from "@/components/ui/lead-paragraph"
 import { FormatBadges } from "./FormatBadges"
@@ -118,9 +119,7 @@ function TimelineMarker({
           variant === "active" && "animate-pulse ring-4 ring-primary/20",
         )}
       />
-      <span className="font-mono text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-        {label}
-      </span>
+      <span className={cn(LABEL_CLASS, "font-mono")}>{label}</span>
     </div>
   )
 }
@@ -128,9 +127,7 @@ function TimelineMarker({
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-        {label}
-      </dt>
+      <dt className={LABEL_CLASS}>{label}</dt>
       <dd className="font-medium text-foreground">{value}</dd>
     </div>
   )

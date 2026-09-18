@@ -17,7 +17,7 @@ export const tags: TagInput[] = [
     nameEn: "TypeScript",
     kind: "LANGUAGE",
     icon: "simple-icons:typescript",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "python",
@@ -25,7 +25,7 @@ export const tags: TagInput[] = [
     nameEn: "Python",
     kind: "LANGUAGE",
     icon: "simple-icons:python",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "scala",
@@ -33,7 +33,7 @@ export const tags: TagInput[] = [
     nameEn: "Scala",
     kind: "LANGUAGE",
     icon: "simple-icons:scala",
-    displayOrder: 2,
+    displayOrder: 3,
   },
   {
     slug: "java",
@@ -41,7 +41,7 @@ export const tags: TagInput[] = [
     nameEn: "Java",
     kind: "LANGUAGE",
     icon: "lucide:coffee",
-    displayOrder: 3,
+    displayOrder: 4,
   },
 
   // === FRAMEWORK (11) ===
@@ -51,7 +51,7 @@ export const tags: TagInput[] = [
     nameEn: "Angular",
     kind: "FRAMEWORK",
     icon: "simple-icons:angular",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "fastapi",
@@ -59,7 +59,7 @@ export const tags: TagInput[] = [
     nameEn: "FastAPI",
     kind: "FRAMEWORK",
     icon: "simple-icons:fastapi",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "play",
@@ -67,7 +67,7 @@ export const tags: TagInput[] = [
     nameEn: "Play",
     kind: "FRAMEWORK",
     icon: "lucide:chevron-right",
-    displayOrder: 2,
+    displayOrder: 3,
   },
   {
     slug: "nodejs",
@@ -75,7 +75,7 @@ export const tags: TagInput[] = [
     nameEn: "Node.js",
     kind: "FRAMEWORK",
     icon: "simple-icons:nodedotjs",
-    displayOrder: 3,
+    displayOrder: 4,
   },
   {
     slug: "express",
@@ -83,7 +83,7 @@ export const tags: TagInput[] = [
     nameEn: "Express",
     kind: "FRAMEWORK",
     icon: "simple-icons:express",
-    displayOrder: 4,
+    displayOrder: 5,
   },
   {
     slug: "nestjs",
@@ -91,7 +91,7 @@ export const tags: TagInput[] = [
     nameEn: "NestJS",
     kind: "FRAMEWORK",
     icon: "simple-icons:nestjs",
-    displayOrder: 5,
+    displayOrder: 6,
   },
   {
     slug: "react",
@@ -99,7 +99,7 @@ export const tags: TagInput[] = [
     nameEn: "React",
     kind: "FRAMEWORK",
     icon: "simple-icons:react",
-    displayOrder: 6,
+    displayOrder: 7,
   },
   {
     slug: "nextjs",
@@ -107,7 +107,7 @@ export const tags: TagInput[] = [
     nameEn: "Next.js",
     kind: "FRAMEWORK",
     icon: "simple-icons:nextdotjs",
-    displayOrder: 7,
+    displayOrder: 8,
   },
   {
     slug: "spring-boot",
@@ -115,7 +115,7 @@ export const tags: TagInput[] = [
     nameEn: "Spring Boot",
     kind: "FRAMEWORK",
     icon: "simple-icons:springboot",
-    displayOrder: 8,
+    displayOrder: 9,
   },
   {
     slug: "android",
@@ -123,7 +123,7 @@ export const tags: TagInput[] = [
     nameEn: "Android",
     kind: "FRAMEWORK",
     icon: "simple-icons:android",
-    displayOrder: 9,
+    displayOrder: 10,
   },
   {
     slug: "odoo",
@@ -131,7 +131,7 @@ export const tags: TagInput[] = [
     nameEn: "Odoo",
     kind: "FRAMEWORK",
     icon: "simple-icons:odoo",
-    displayOrder: 10,
+    displayOrder: 11,
   },
 
   // === DATABASE (4) ===
@@ -141,7 +141,7 @@ export const tags: TagInput[] = [
     nameEn: "MongoDB",
     kind: "DATABASE",
     icon: "simple-icons:mongodb",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "postgresql",
@@ -149,7 +149,7 @@ export const tags: TagInput[] = [
     nameEn: "PostgreSQL",
     kind: "DATABASE",
     icon: "simple-icons:postgresql",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "qdrant",
@@ -157,7 +157,7 @@ export const tags: TagInput[] = [
     nameEn: "Qdrant",
     kind: "DATABASE",
     icon: "lucide:database-zap",
-    displayOrder: 2,
+    displayOrder: 3,
   },
   {
     slug: "pgvector",
@@ -165,7 +165,7 @@ export const tags: TagInput[] = [
     nameEn: "pgvector",
     kind: "DATABASE",
     icon: "simple-icons:postgresql",
-    displayOrder: 3,
+    displayOrder: 4,
   },
 
   // === AI (10) ===
@@ -175,7 +175,7 @@ export const tags: TagInput[] = [
     nameEn: "Google ADK",
     kind: "AI",
     icon: "simple-icons:google",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "n8n",
@@ -183,7 +183,7 @@ export const tags: TagInput[] = [
     nameEn: "n8n",
     kind: "AI",
     icon: "simple-icons:n8n",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "skills",
@@ -191,16 +191,16 @@ export const tags: TagInput[] = [
     nameEn: "Skills",
     kind: "AI",
     icon: "simple-icons:anthropic",
-    displayOrder: 2,
+    displayOrder: 3,
   },
-  { slug: "mcp", nameFr: "MCP", nameEn: "MCP", kind: "AI", icon: "lucide:plug", displayOrder: 3 },
+  { slug: "mcp", nameFr: "MCP", nameEn: "MCP", kind: "AI", icon: "lucide:plug", displayOrder: 4 },
   {
     slug: "rag",
     nameFr: "RAG",
     nameEn: "RAG",
     kind: "AI",
     icon: "lucide:database",
-    displayOrder: 4,
+    displayOrder: 5,
   },
   {
     slug: "vertex-ai",
@@ -208,7 +208,7 @@ export const tags: TagInput[] = [
     nameEn: "Vertex AI",
     kind: "AI",
     icon: "lucide:sparkles",
-    displayOrder: 5,
+    displayOrder: 6,
   },
   {
     slug: "gemini",
@@ -216,7 +216,7 @@ export const tags: TagInput[] = [
     nameEn: "Gemini",
     kind: "AI",
     icon: "simple-icons:googlegemini",
-    displayOrder: 6,
+    displayOrder: 7,
   },
   {
     slug: "anthropic",
@@ -224,7 +224,7 @@ export const tags: TagInput[] = [
     nameEn: "Claude",
     kind: "AI",
     icon: "simple-icons:claude",
-    displayOrder: 7,
+    displayOrder: 8,
   },
   {
     slug: "openai",
@@ -232,7 +232,7 @@ export const tags: TagInput[] = [
     nameEn: "ChatGPT",
     kind: "AI",
     icon: "lucide:message-circle",
-    displayOrder: 8,
+    displayOrder: 9,
   },
   {
     slug: "perplexity",
@@ -240,7 +240,7 @@ export const tags: TagInput[] = [
     nameEn: "Perplexity",
     kind: "AI",
     icon: "simple-icons:perplexity",
-    displayOrder: 9,
+    displayOrder: 10,
   },
 
   // === INFRA (10) ===
@@ -250,7 +250,7 @@ export const tags: TagInput[] = [
     nameEn: "Kafka",
     kind: "INFRA",
     icon: "simple-icons:apachekafka",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "docker",
@@ -258,7 +258,7 @@ export const tags: TagInput[] = [
     nameEn: "Docker",
     kind: "INFRA",
     icon: "simple-icons:docker",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "kubernetes",
@@ -266,7 +266,7 @@ export const tags: TagInput[] = [
     nameEn: "Kubernetes",
     kind: "INFRA",
     icon: "simple-icons:kubernetes",
-    displayOrder: 2,
+    displayOrder: 3,
   },
   {
     slug: "gcp",
@@ -274,7 +274,7 @@ export const tags: TagInput[] = [
     nameEn: "Google Cloud",
     kind: "INFRA",
     icon: "simple-icons:googlecloud",
-    displayOrder: 3,
+    displayOrder: 4,
   },
   {
     slug: "dokploy",
@@ -282,7 +282,7 @@ export const tags: TagInput[] = [
     nameEn: "Dokploy",
     kind: "INFRA",
     icon: "lucide:ship",
-    displayOrder: 9,
+    displayOrder: 10,
   },
   {
     slug: "github-actions",
@@ -290,7 +290,7 @@ export const tags: TagInput[] = [
     nameEn: "GitHub Actions",
     kind: "INFRA",
     icon: "simple-icons:githubactions",
-    displayOrder: 4,
+    displayOrder: 5,
   },
   {
     slug: "datadog",
@@ -298,7 +298,7 @@ export const tags: TagInput[] = [
     nameEn: "Datadog",
     kind: "INFRA",
     icon: "simple-icons:datadog",
-    displayOrder: 5,
+    displayOrder: 6,
   },
   {
     slug: "elasticsearch",
@@ -306,7 +306,7 @@ export const tags: TagInput[] = [
     nameEn: "Elasticsearch",
     kind: "INFRA",
     icon: "simple-icons:elasticsearch",
-    displayOrder: 6,
+    displayOrder: 7,
   },
   {
     slug: "sentry",
@@ -314,7 +314,7 @@ export const tags: TagInput[] = [
     nameEn: "Sentry",
     kind: "INFRA",
     icon: "simple-icons:sentry",
-    displayOrder: 7,
+    displayOrder: 8,
   },
   {
     slug: "sonarqube",
@@ -322,7 +322,7 @@ export const tags: TagInput[] = [
     nameEn: "SonarQube",
     kind: "INFRA",
     icon: "simple-icons:sonarqubeserver",
-    displayOrder: 8,
+    displayOrder: 9,
   },
 
   // === EXPERTISE (8) ===
@@ -332,7 +332,7 @@ export const tags: TagInput[] = [
     nameEn: "AI Agents",
     kind: "EXPERTISE",
     icon: "lucide:brain-circuit",
-    displayOrder: 0,
+    displayOrder: 1,
   },
   {
     slug: "automatisation",
@@ -340,7 +340,7 @@ export const tags: TagInput[] = [
     nameEn: "Automation",
     kind: "EXPERTISE",
     icon: "lucide:workflow",
-    displayOrder: 1,
+    displayOrder: 2,
   },
   {
     slug: "developpement-fullstack",
@@ -348,7 +348,7 @@ export const tags: TagInput[] = [
     nameEn: "Full-Stack Development",
     kind: "EXPERTISE",
     icon: "lucide:laptop",
-    displayOrder: 2,
+    displayOrder: 3,
   },
   {
     slug: "microservices",
@@ -356,7 +356,7 @@ export const tags: TagInput[] = [
     nameEn: "Microservices",
     kind: "EXPERTISE",
     icon: "lucide:network",
-    displayOrder: 3,
+    displayOrder: 4,
   },
   {
     slug: "programmation-fonctionnelle",
@@ -364,7 +364,7 @@ export const tags: TagInput[] = [
     nameEn: "Functional Programming",
     kind: "EXPERTISE",
     icon: "lucide:square-function",
-    displayOrder: 4,
+    displayOrder: 5,
   },
   {
     slug: "scraping",
@@ -372,7 +372,7 @@ export const tags: TagInput[] = [
     nameEn: "Scraping",
     kind: "EXPERTISE",
     icon: "lucide:bug",
-    displayOrder: 5,
+    displayOrder: 6,
   },
   {
     slug: "anonymisation",
@@ -380,7 +380,7 @@ export const tags: TagInput[] = [
     nameEn: "Anonymization",
     kind: "EXPERTISE",
     icon: "lucide:ghost",
-    displayOrder: 6,
+    displayOrder: 7,
   },
   {
     slug: "anti-bot",
@@ -388,6 +388,6 @@ export const tags: TagInput[] = [
     nameEn: "Anti-bot",
     kind: "EXPERTISE",
     icon: "lucide:shield-ban",
-    displayOrder: 7,
+    displayOrder: 8,
   },
 ]

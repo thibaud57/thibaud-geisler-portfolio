@@ -9,14 +9,9 @@ import { rateLimiter } from "@/lib/rate-limiter"
 import { z } from "zod"
 
 import { contactSchema } from "@/lib/schemas/contact"
-import { createActionLogger } from "@/lib/server-utils"
+import { createActionLogger, stringField } from "@/lib/server-utils"
 
 import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from "./contact.types"
-
-function stringField(formData: FormData, key: string): string {
-  const value = formData.get(key)
-  return typeof value === "string" ? value : ""
-}
 
 function buildEmailBody(data: {
   name: string

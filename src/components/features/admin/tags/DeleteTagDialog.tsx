@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, type MouseEvent } from "react"
-import { Trash2 } from "lucide-react"
+import { TriangleAlert, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -12,27 +12,40 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import type { Tag } from "@/generated/prisma/client"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { deleteTag } from "@/server/actions/tags"
-import { initialTagFormState, type TagFormState } from "@/server/actions/tags.types"
+import type { TagDeleteState } from "@/server/actions/tags.types"
+import type { AdminTag } from "@/server/queries/tags"
+
+const initialDeleteState: TagDeleteState = { ok: true, message: null }
 
 interface Props {
-  tag: Tag
+  tag: AdminTag
 }
 
 export function DeleteTagDialog({ tag }: Props) {
   const [open, setOpen] = useState(false)
-  const [state, setState] = useState<TagFormState>(initialTagFormState)
+  const [state, setState] = useState<TagDeleteState>(initialDeleteState)
   const [pending, startTransition] = useTransition()
+  // Connu au rendu, contrairement à state.message === "tag_in_use" (retour serveur) qui reste la
+  // seule protection si un rattachement survient entre l'affichage et la confirmation.
+  const knownInUseCount = tag._count.projects
+  const deniedMessage =
+    knownInUseCount > 0
+      ? `Ce tag est utilisé par ${knownInUseCount} projet${knownInUseCount > 1 ? "s" : ""} et ne peut pas être supprimé.`
+      : state.message === "tag_in_use"
+        ? "Ce tag est utilisé par des projets et ne peut pas être supprimé."
+        : null
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) {
-      setState(initialTagFormState)
+      setState(initialDeleteState)
     }
   }
 
@@ -56,26 +69,37 @@ export function DeleteTagDialog({ tag }: Props) {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={`Supprimer ${tag.nameFr}`}>
-          <Trash2 className="size-4" />
-        </Button>
-      </AlertDialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={`Supprimer ${tag.nameFr}`}>
+              <Trash2 className="size-4" />
+            </Button>
+          </AlertDialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Supprimer</TooltipContent>
+      </Tooltip>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Supprimer {tag.nameFr} ?</AlertDialogTitle>
-          <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+          <AlertDialogMedia>
+            <TriangleAlert className="size-8 text-destructive" />
+          </AlertDialogMedia>
+          <AlertDialogTitle>Supprimer le tag « {tag.nameFr} » ?</AlertDialogTitle>
+          {/* aria-live : le refus détecté par le serveur arrive après l'ouverture, dans ce même texte. */}
+          <AlertDialogDescription
+            aria-live="polite"
+            className={deniedMessage ? "text-destructive" : undefined}
+          >
+            {deniedMessage ?? "La suppression est définitive."}
+          </AlertDialogDescription>
         </AlertDialogHeader>
-        <div aria-live="polite">
-          {state.message === "tag_in_use" ? (
-            <p className="text-sm text-destructive">
-              Ce tag est utilisé par des projets et ne peut pas être supprimé.
-            </p>
-          ) : null}
-        </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={pending} onClick={handleConfirm}>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={pending || deniedMessage !== null}
+            onClick={handleConfirm}
+          >
             {pending ? "Suppression..." : "Supprimer"}
           </AlertDialogAction>
         </AlertDialogFooter>

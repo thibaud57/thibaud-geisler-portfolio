@@ -7,6 +7,11 @@ import { logger } from "@/lib/logger"
 
 const IP_HASH_LENGTH = 8
 
+export function stringField(formData: FormData, key: string, fallback = ""): string {
+  const value = formData.get(key)
+  return typeof value === "string" ? value : fallback
+}
+
 export function extractClientIp(forwardedFor: string | null): string {
   if (!forwardedFor) return "unknown"
   const first = forwardedFor.split(",")[0]?.trim()

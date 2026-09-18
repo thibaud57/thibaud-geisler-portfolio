@@ -202,7 +202,7 @@ model Tag {
   nameEn       String
   kind         TagKind
   icon         String?
-  displayOrder Int          @default(0)
+  displayOrder Int          @default(1)
   projects     ProjectTag[]
   createdAt    DateTime     @default(now()) @db.Timestamptz
   updatedAt    DateTime     @updatedAt @db.Timestamptz
