@@ -108,7 +108,30 @@ curl -s -b "$SCRATCH/admin.jar" -c "$SCRATCH/admin.jar" -X POST -H "Origin: http
 rm -f "$SCRATCH/admin.jar"                     # le jar vaut une session admin valide
 ```
 
-Compter `auth.session` avant et après la déconnexion : une ligne en moins. Restent au navigateur du développeur les clics, le clavier, le tiroir mobile et le rendu visuel.
+Compter `auth.session` avant et après la déconnexion : une ligne en moins.
+
+## Piloter l'admin dans un navigateur (MCP Playwright)
+
+Clics, modales, glisser-déposer et rendu visuel se pilotent avec le MCP Playwright, sur la même session que `just dev-login`. Le code de `browser_run_code_unsafe` tourne dans une VM sans `require` ni `import` et le MCP recopie ce code dans sa sortie : le cookie se lit donc depuis le disque, jamais en clair dans le code.
+
+```bash
+cp "$SCRATCH/admin.jar" .playwright-mcp/admin.txt   # dossier gitignoré, seule racine lisible en file://
+```
+
+```js
+async (page) => {
+  await page.goto("file:///<racine du dépôt>/.playwright-mcp/admin.txt")
+  const jar = await page.evaluate(() => document.body.innerText)
+  const cookies = jar.split("\n").map((l) => l.replace(/^#HttpOnly_/, "")).filter((l) => l && !l.startsWith("#"))
+    .map((l) => l.split("\t")).filter((p) => p.length >= 7)
+    .map((p) => ({ name: p[5], value: p[6].trim(), url: "http://localhost:3000" }))
+  await page.context().addCookies(cookies)
+  await page.goto("http://localhost:3000/admin/tags")
+  return cookies.map((c) => c.name)   // les noms, jamais les valeurs
+}
+```
+
+Supprimer `.playwright-mcp/admin.txt` aussitôt les cookies posés : `eslint .` le lit aussi. En fin de run, `clearCookies()` côté navigateur puis la déconnexion par curl ci-dessus. Mesurer plutôt que regarder : `getBoundingClientRect` et `getComputedStyle` donnent les écarts et couleurs exacts, une capture d'élément (`locator.screenshot`) donne le rendu à comparer à la maquette. Relever les `console` de type `warning` et `error` pendant chaque scénario.
 
 ## Prouver que la garde admin tient
 
@@ -138,6 +161,7 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - En dev, une requête au cookie forgé logue « Could not validate `instant`… `NEXT_HTTP_ERROR_FALLBACK;401` » : c'est la validation de navigation de Next qui trace l'`unauthorized()`, attendu. « encountered uncached data… outside of `<Suspense>` » sur une page admin, lui, est un vrai défaut : la page lit `headers()` hors de la frontière de `(protected)/loading.tsx`.
 - Les noms des variables serveur (`GOOGLE_CLIENT_SECRET`, `SMTP_PASS`…) figurent dans un chunk de `.next/static` : c'est le schéma de t3-env, attendu. Seule la présence d'une *valeur* serait un défaut, et la chercher exige de lire `.env` : le développeur lance lui-même le grep.
 - Un `FormData` encodé à la main avec le préfixe `1_` (au lieu du `_1_` qu'emploie `encodeReply`) n'échoue pas : l'action s'exécute, reçoit des champs `undefined` et renvoie des erreurs de validation en anglais (« expected string, received undefined »), qui ressemblent à un défaut du schéma. Constaté le 2026-09-17 sur Next 16.3.3.
-- Pino est formaté en pretty en dev, pas en JSON : chercher `event: "tag:created"`, jamais `"event":"tag:created"`, qui ne trouve rien et fait croire que l'action n'a pas logué.
+- Pino est formaté en pretty en dev, pas en JSON, et colorisé : des codes ANSI séparent `event` de ses deux-points dans le fichier de log. Chercher `grep -c 'event.*"tag:created"'` ; `"event":"tag:created"` comme `event: "tag:created"` ne trouvent rien et font croire que l'action n'a pas logué (constaté le 2026-09-17).
+- `just build` lancé pendant que `pnpm dev` tourne corrompt un JSON du cache `.next` : toutes les pages répondent 500 avec `SyntaxError: Unexpected non-whitespace character after JSON`, sans rapport avec le code. Arrêter ce serveur par le PID qu'affiche « Another next dev server is already running » (`taskkill //PID <pid> //T //F`), puis relancer `pnpm dev` (constaté le 2026-09-17, `just stop` ne l'avait pas arrêté).
 - Le client Prisma logue lui-même en `prisma:error`, avec un extrait du code source appelant, les violations de contrainte que l'action intercepte pourtant proprement (`P2002` slug déjà pris, `P2003` tag rattaché). L'action a bien renvoyé son message métier. Mais un grep des noms d'événements tombe aussi sur cet extrait de code : compter les événements sur les lignes `event:`, pas sur leur seul nom.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.

@@ -179,6 +179,7 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
+| **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin (tags par catégorie, projets, tags d'un projet) garde une suite continue qui commence à 1 : une position occupée décale les suivants, une suppression renumérote, un glisser-déposer donne au déplacé la place de la cible. Calcul pur dans `src/lib/reorder.ts`, réécriture de la suite entière dans une transaction à chaque mutation |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---

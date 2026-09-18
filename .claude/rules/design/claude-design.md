@@ -12,7 +12,9 @@ Un second projet Claude Design, « Espace Admin », porte les écrans de l'admin
 ## À faire
 
 - **Lire l'écran de la maquette** avant d'écrire le composant. La spec du sub-project le nomme dans sa section « Références de design »
+- **Lire la maquette depuis son export local** (`.design-sync/maquette/`, procédure dans `.design-sync/NOTES.md`), pas par `DesignSync` : sa lecture s'arrête à 256 Kio sans prévenir, et la maquette dépasse cette taille
 - **Signaler une divergence** entre la maquette et la spec au lieu de la trancher en silence : les deux ont été écrites séparément, l'écart est une décision à prendre
+- **Appliquer les arbitrages de `docs/DESIGN.md` avant la maquette** : quand le propriétaire a tranché un écart une fois (espacement des champs, refus de suppression, tuile d'icône, taille des erreurs…), la décision vaut pour tous les écrans suivants, même si la maquette n'a pas encore été réalignée
 - **Relire `ecarts-design-system.md`** (dans le projet de la maquette) après avoir corrigé un composant du design system : la correction peut y rendre un contournement inutile
 
 ## À ne pas faire
