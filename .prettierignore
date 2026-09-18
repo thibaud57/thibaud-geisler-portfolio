@@ -16,3 +16,6 @@ coverage/
 next-env.d.ts
 src/generated/
 prisma/seed.js
+
+# Export local de la maquette Claude Design (gitignore)
+.design-sync/maquette/

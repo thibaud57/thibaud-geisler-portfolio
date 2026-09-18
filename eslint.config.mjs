@@ -48,6 +48,8 @@ const eslintConfig = defineConfig([
     ".history/**",
     // Outillage Claude Code, sans code applicatif ; ses worktrees d'agents copient tout le depot
     ".claude/**",
+    // Export local de la maquette Claude Design (gitignore), jamais du code du projet
+    ".design-sync/maquette/**",
   ]),
   // En dernier : il desactive des regles de style, tout bloc place apres les retablirait
   prettier,

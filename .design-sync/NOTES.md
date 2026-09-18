@@ -10,9 +10,22 @@
 **Les deux se lisent ensemble avant d'implémenter un écran admin** : le système dit avec quels
 composants, la maquette dit à quoi l'écran ressemble. Un sub-project qui ne consulte que l'un des
 deux se trompe, c'est arrivé au 06 : le shell a d'abord été écrit sans la maquette, puis repris.
+Même chose au 07 : l'écran des tags a été livré depuis la spec, sans la maquette ni les fiches du
+système, puis refait entièrement.
 
 `ecarts-design-system.md` liste ce que la maquette a dû contourner faute d'un composant adéquat :
 à relire avant de changer un composant du système, une correction peut y supprimer un contournement.
+
+## Lire la maquette
+
+- **`DesignSync` tronque la lecture d'un fichier à 256 Kio** (`get_file`, constaté le 2026-09-17) :
+  `Espace admin.dc.html` dépasse cette taille, la fin du fichier ne revient pas et rien ne le signale.
+  Au 07, l'écran Tags était lisible, pas les modales, le formulaire entreprise ni l'écran des assets.
+- **Lire la maquette entière depuis son export** : dans Claude Design, menu du projet, Export puis
+  ZIP, dézippé dans `.design-sync/maquette/` (ignoré par git : la maquette fait foi, une copie
+  versionnée vieillirait). Ré-exporter avant de s'en servir si la maquette a bougé.
+- **Vérifier qu'un écran est complet avant de s'y fier** : un écran coupé ressemble à un écran
+  simple. L'export se termine par `</html>`, une lecture tronquée non.
 
 ## Comment ce dépôt se synchronise
 
