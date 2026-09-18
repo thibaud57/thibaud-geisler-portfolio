@@ -72,7 +72,7 @@ Ces variables sont **requises** et non optionnelles : sans elles, plus aucun ass
 - [ ] **Step 3: Documenter dans `.env.example`**
 
 ```bash
-# Cloudflare R2 (assets — bucket privé, servi via /api/assets/[...path])
+# Cloudflare R2 (assets, bucket privé, servi via /api/assets/[...path])
 R2_ACCOUNT_ID=                      # Identifiant de compte Cloudflare
 R2_ACCESS_KEY_ID=                   # Token Object Read & Write restreint au bucket de CET environnement
 R2_SECRET_ACCESS_KEY=               # Secret du même token (affiché une seule fois à la création)

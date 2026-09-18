@@ -15,11 +15,15 @@ date: "2026-09-03"
 
 Créer, modifier et supprimer un projet avec ses relations : la méta client et les tags rattachés, écrits dans une même transaction. Schémas Zod couvrant les champs bilingues et les enums existants, et invalidation du cache.
 
+L'ordre d'affichage des projets forme une suite continue de 1 à n sur l'ensemble des projets, client et personnels mélangés : c'est la même liste que sert la page publique `/projets`. La création, la modification et la suppression maintiennent cette suite, et une Server Action `reorderProjects` porte le glisser-déposer que le sub-project `12` câble sur sa vue « Tous ».
+
 Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`. C'est le sub-project le plus dense en règles de cohérence de toute la feature, d'où sa séparation d'avec l'interface.
+
+Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement » en porte la suite prévue.
 
 ### État livré
 
-À la fin de ce sub-project, on peut : exécuter une suite de tests qui crée un projet client complet avec ses tags et sa méta client, le modifie, change son type, le supprime, et vérifie qu'aucune ligne orpheline ne subsiste.
+À la fin de ce sub-project, on peut : exécuter une suite de tests qui crée un projet client complet avec ses tags et sa méta client, le modifie, change son type, le supprime, réordonne l'ensemble des projets par glisser-déposer, et vérifie qu'aucune ligne orpheline ni aucun trou dans l'ordre d'affichage ne subsiste.
 
 ## Dependencies
 
@@ -38,6 +42,8 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 - **À créer** : `src/server/actions/projects.test.ts`
 - **À créer** : `src/server/actions/projects.types.ts`
 - **À modifier** : `src/server/queries/projects.ts` (requête d'administration)
+- **À modifier** : `prisma/schema.prisma` (`Project.displayOrder` et `ProjectTag.displayOrder` en `@default(1)`)
+- **À créer** : une migration Prisma qui décale d'un cran les valeurs existantes de ces deux colonnes
 
 ## Architecture approach
 
@@ -51,7 +57,15 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 
 **Les tags sont remplacés intégralement à chaque modification.** Calculer un différentiel entre l'ancien et le nouveau jeu serait plus économe mais introduirait une logique de rapprochement pour un gain nul à cette échelle : un projet porte quelques tags. La suppression puis la recréation, dans la transaction, donne le même résultat avec moins de code susceptible de se tromper.
 
-**L'ordre des tags est porté par `ProjectTag.displayOrder`.** Il vient de la position dans la liste soumise, ce qui permettra au formulaire de laisser réordonner sans champ supplémentaire.
+**L'ordre des tags est porté par `ProjectTag.displayOrder`, en base 1.** Il vient de la position dans la liste soumise, `index + 1` et non `index`, cohérent avec la suite 1..n posée au sub-project `07` pour `Tag.displayOrder`. Le remplacement intégral du jeu à chaque modification rend cette suite triviale à garder continue : il n'y a jamais d'insertion à une position occupée à gérer ici, contrairement à l'ordre des projets ci-dessous.
+
+**`Project.displayOrder` forme une seule suite continue de 1 à n, sur l'ensemble des projets.** Contrairement aux tags, dont l'ordre se scope par catégorie, les projets n'ont pas d'axe qui partitionnerait la suite : un projet client et un projet personnel se disputent la même numérotation, parce que la page publique `/projets` les affiche dans une seule liste. Le sub-project `12` restreint le glisser-déposer à sa vue « Tous » ; ses vues « Client » et « Perso » affichent ce même numéro global sans permettre de le changer, elles ne réordonnent pas une sous-suite qui leur serait propre.
+
+**La création, la modification et la suppression maintiennent cette suite, par réutilisation directe de `src/lib/reorder.ts` et du motif `renumberTags` de `src/server/actions/tags.ts`.** Une création à une position occupée décale d'un cran tous les projets à partir de cette position ; une modification qui change la position déplace le projet et referme l'ancienne ; une suppression renumérote ce qui reste. Les trois passent par `computeIdsAtPosition` et `removeId`, comme pour les tags, à la différence que la liste de référence couvre tous les projets et non une catégorie : pas de `findCategoryIds`, une seule liste d'identifiants triée par `displayOrder`. Chaque opération réécrit cette liste en entier dans la transaction déjà ouverte pour le reste du projet (méta client, tags), ce qui referme aussi un trou préexistant.
+
+**`reorderProjects` est symétrique de `reorderTags`, sans le paramètre de catégorie.** Elle reçoit la liste complète des identifiants de projet dans le nouvel ordre et refuse d'écrire si cette liste ne correspond plus exactement à l'ensemble des projets en base (`sameIdSet`) : une création ou une suppression survenue entre l'affichage de la liste et le dépôt du glisser-déposer la rendrait périmée. Le sub-project `12` ne l'appelle que depuis sa vue « Tous ».
+
+**La migration qui fait démarrer `Project.displayOrder` et `ProjectTag.displayOrder` à 1 décale les données existantes d'un cran**, du même geste que la migration `20260917151326_tag_display_order_from_one` pour `Tag.displayOrder`. Elle précède tout seed ou donnée réelle de projet.
 
 **`formats` est un tableau d'enum**, lu avec `getAll` comme les secteurs d'entreprise au sub-project `08`. Même piège : une lecture par `get` ne conserverait que la première valeur.
 
@@ -145,6 +159,41 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 **THEN** l'accès est refusé avant toute validation et toute écriture
 **AND** aucune ligne n'est créée, modifiée ni supprimée
 
+### Scénario 13 : Création à une position occupée
+**GIVEN** une suite de projets numérotés de 1 à n
+**WHEN** on crée un projet à une position déjà occupée
+**THEN** le nouveau projet prend cette position
+**AND** les projets suivants décalent d'un cran, dans la même transaction
+
+### Scénario 14 : Déplacement par modification
+**GIVEN** un projet en position p
+**WHEN** on le modifie avec une position différente
+**THEN** il quitte sa position et prend la nouvelle, les projets intermédiaires glissant d'un cran
+**AND** la suite reste continue de 1 à n
+
+### Scénario 15 : Suppression et renumérotation
+**GIVEN** une suite de projets numérotés de 1 à n
+**WHEN** on en supprime un
+**THEN** les projets restants forment une suite continue de 1 à n-1, sans trou
+
+### Scénario 16 : Glisser-déposer global
+**GIVEN** la liste complète des projets, sans tri actif
+**WHEN** on dépose un projet sur un autre
+**THEN** le déposé prend la position de la cible
+**AND** l'ordre de l'ensemble est réécrit de 1 à n
+
+### Scénario 17 : Ordre périmé
+**GIVEN** un projet créé ou supprimé depuis l'affichage de la liste
+**WHEN** on dépose un projet par glisser-déposer
+**THEN** rien n'est écrit
+**AND** un message invite à recharger la page
+
+### Scénario 18 : Tags d'un projet numérotés depuis 1
+**GIVEN** un jeu de tags soumis pour un projet
+**WHEN** le projet est enregistré
+**THEN** le premier tag porte `displayOrder` 1, pas 0
+**AND** l'ordre de rattachement suit celui de la soumission
+
 ## Tests à écrire
 
 ### Unit
@@ -172,6 +221,14 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
   - une violation d'unicité sur le slug est traduite en erreur sous ce champ
   - les valeurs saisies sont retournées dans l'état en cas d'échec
   - un appel sans session est refusé avant l'ouverture de la transaction
+  - la création à une position occupée décale les projets suivants, dans une transaction
+  - la modification qui change de position déplace le projet et referme l'ancienne, dans une transaction
+  - la suppression renumérote la suite restante de 1 à n-1, dans la même transaction
+  - le premier tag rattaché porte `displayOrder` 1, pas 0
+  - `reorderProjects` refuse un appel sans session, avant toute requête base
+  - `reorderProjects` refuse une liste d'ids en doublon sans rien écrire
+  - `reorderProjects` refuse une liste qui ne couvre pas exactement l'ensemble des projets, sans rien écrire
+  - `reorderProjects` réécrit `displayOrder` à partir de 1 dans l'ordre reçu, dans une transaction, puis invalide les caches
 
 ## Edge cases
 
@@ -182,6 +239,8 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 - **Dates au fuseau** : les colonnes sont en `Timestamptz`. Une date saisie sans heure est interprétée à minuit, ce qui peut décaler d'un jour selon le fuseau. Sur des dates de début et de fin de mission, l'effet reste sans conséquence, mais il explique un affichage parfois surprenant
 - **Suppression et cascades** : `ClientMeta` et `ProjectTag` sont en `Cascade` sur le projet, donc supprimés automatiquement. Ni les tags ni l'entreprise ne le sont, leurs relations portant `Restrict`
 - **`coverFilename` non vérifié** : rien ne garantit que le fichier référencé existe dans le bucket. Le formulaire du sub-project `13` le choisira parmi les assets réels, ce qui rend le cas improbable sans le rendre impossible
+- **`displayOrder` en doublon ou troué** : rien en base ne l'interdit hors des mutations de l'admin (écriture directe, seed modifié). Comme pour les tags, la prochaine mutation renumérote l'ensemble et referme le trou
+- **Ordre périmé pendant le glisser-déposer global** : une création ou une suppression de projet entre l'affichage de la vue « Tous » et le dépôt rend l'ordre reçu périmé ; `reorderProjects` le refuse plutôt que d'écrire un sous-ensemble incomplet
 
 ## Architectural decisions
 
@@ -198,3 +257,16 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 - Le différentiel demande une logique de rapprochement, donc un endroit de plus où se tromper, pour un résultat identique
 - Le remplacement rend l'ordre trivial à recalculer, alors que le différentiel imposerait de réajuster les `displayOrder` des rattachements conservés
 - Les deux options s'exécutent dans la même transaction, donc sans différence de sûreté
+
+### Décision : portée de l'ordre d'affichage des projets
+
+**Options envisagées :**
+- **A. Suite globale** : `Project.displayOrder` forme une seule suite 1..n sur l'ensemble des projets, tous types confondus.
+- **B. Suite par type** : une suite 1..n pour les projets `CLIENT`, une autre pour les `PERSONAL`, sur le modèle de `Tag.displayOrder` scopé par `kind`.
+
+**Choix : A**
+
+**Rationale :**
+- La page publique `/projets` affiche tous les projets dans une seule liste : une suite globale reflète directement cet ordre, une suite par type imposerait un tri secondaire à la lecture publique
+- Le sub-project `12` expose une vue « Tous » précisément pour porter cet ordre global ; ses vues « Client » et « Perso » n'en présentent qu'un sous-ensemble, sans réordonnancement qui leur serait propre
+- Une suite par type dupliquerait le motif de catégorie des tags sans qu'aucun écran n'ait besoin de réordonner les projets client indépendamment des personnels

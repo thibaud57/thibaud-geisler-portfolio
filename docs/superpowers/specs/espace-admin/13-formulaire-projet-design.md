@@ -5,7 +5,7 @@ goal: "Créer et modifier un projet complet depuis un formulaire pleine page"
 status: "draft"
 complexity: "L"
 tdd_scope: "none"
-depends_on: ["08-crud-entreprises-design.md", "10-gestion-assets-admin-design.md", "12-ecran-liste-projets-design.md"]
+depends_on: ["08-crud-entreprises-design.md", "10-gestion-assets-admin-design.md", "11-crud-projets-actions-design.md", "12-ecran-liste-projets-design.md"]
 date: "2026-09-03"
 ---
 
@@ -13,72 +13,97 @@ date: "2026-09-03"
 
 ## Scope
 
-Les pages `/admin/projets/nouveau` et `/admin/projets/[id]` : un formulaire pleine page couvrant tous les champs d'un projet, la sélection des tags, le choix de l'entreprise avec création possible sans quitter la page, le choix de la couverture parmi les assets, et la saisie du markdown bilingue des case studies. S'y ajoute l'édition du logo d'entreprise, dernier champ de l'epic à n'être encore modifiable nulle part.
+Les pages `/admin/projets/nouveau` et `/admin/projets/[id]` : un formulaire pleine page couvrant tous les champs d'un projet portés par le schéma Prisma, la sélection des tags, le choix d'une entreprise parmi les entreprises existantes, le choix de la couverture parmi les assets, et la saisie du markdown bilingue des case studies.
 
-C'est le dernier sub-project de la fondation, et celui qui fait converger tout ce qui précède. Il porte aussi le fil d'ariane, reporté du sub-project `06` faute de hiérarchie à représenter à l'époque.
+C'est le dernier sub-project de la fondation, celui qui fait converger les entreprises, les assets, les tags et les Server Actions des projets.
 
-Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en markdown et se relisent sur le site public.
+Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en markdown et se relisent sur le site public. Exclut aussi la création d'une entreprise : le champ Entreprise choisit parmi les entreprises existantes, leur formulaire vivant sur son propre écran plein, au sub-project `08`. Exclut enfin l'édition du logo d'entreprise, portée par les sub-projects `08` et `10` sur l'écran des entreprises, pas ici.
+
+Deux champs que la maquette montre sur ce formulaire n'ont pas de colonne Prisma et restent hors périmètre : l'étape de développement et la date de mise en production (`docs/BRAINSTORM.md` § Feature 6, « Suivi du cycle de développement »). Les liens GitHub et démo, eux, existent en base sur `Project` : ils restent des champs ordinaires, sans le conditionnement au type que leur applique la maquette, cette règle n'étant portée par aucun schéma Zod du sub-project `11`.
 
 ### État livré
 
-À la fin de ce sub-project, on peut : créer un projet client de bout en bout depuis le formulaire, y compris son entreprise si elle n'existait pas, lui choisir une couverture parmi les assets, le passer en publié, et le voir apparaître sur `/projets`.
+À la fin de ce sub-project, on peut : créer un projet client de bout en bout depuis le formulaire, en lui choisissant une entreprise existante, lui choisir une couverture parmi les assets, le passer en publié, et le voir apparaître sur `/projets`.
 
 ## Dependencies
 
-- `08-crud-entreprises-design.md` (statut: draft) : fournit `CompanyFormDialog`, monté ici depuis le select d'entreprise.
+- `08-crud-entreprises-design.md` (statut: draft) : fournit la liste des entreprises existantes, consommée par le champ Entreprise, l'écran plein où elles se créent, et `AdminBreadcrumb`, qu'il crée pour son propre fil d'ariane et que ce formulaire réutilise à l'identique.
 - `10-gestion-assets-admin-design.md` (statut: draft) : fournit `AssetPicker` pour le choix de la couverture.
-- `12-ecran-liste-projets-design.md` (statut: draft) : fournit les deux pages d'attente `/admin/projets/nouveau` et `/admin/projets/[id]` que ce sub-project remplace, et la liste depuis laquelle on arrive.
+- `11-crud-projets-actions-design.md` (statut: draft) : fournit `createProject`, `updateProject` et les types `AdminProjectDetail` / `AdminProjectListItem`, consommés directement par ce formulaire.
+- `12-ecran-liste-projets-design.md` (statut: draft) : fournit les deux pages d'attente `/admin/projets/nouveau` et `/admin/projets/[id]` que ce sub-project remplace, la liste depuis laquelle on arrive, et `src/lib/projects.ts` (`PROJECT_TYPE_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_FORMAT_LABELS`, `CONTRACT_STATUS_LABELS`), que ce formulaire réutilise pour ses libellés d'énumération plutôt que de les redéfinir, et complète de `WORK_MODE_LABELS`.
 
 ## Références de design
 
-- **Maquette** : l'écran Formulaire projet (`isForm`), son fil d'ariane (`formCrumbs`), sa grille de colonnes, le combobox de tags, les sélecteurs de dates de début, de fin et de mise en production, le select d'entreprise, l'ouverture du sélecteur d'assets (`openAssetPicker`) et l'avertissement au changement de type (`dlgTypeWarning`).
-- **Le formulaire est un écran plein dans la maquette**, pas une modale : c'est cohérent avec les deux routes `/admin/projets/nouveau` et `/admin/projets/[id]` que cette spec remplace. À ne pas confondre avec le formulaire d'entreprise monté ici, dont la forme reste à trancher au `08`.
-- **Design system** : les fiches `.prompt.md` de `Combobox`, des sélecteurs de date et des champs installés ici.
+- **Maquette** : l'écran Formulaire projet (`isForm`), son fil d'ariane (`formCrumbs`), sa grille à deux colonnes de `Card`, le Combobox de tags et sa liste réordonnable, les sélecteurs de dates de début et de fin, le champ d'entreprise, l'ouverture du sélecteur d'assets (`openAssetPicker`) et l'avertissement au changement de type (`dlgTypeWarning`).
+- **Le formulaire est un écran plein dans la maquette**, pas une modale : cohérent avec les deux routes `/admin/projets/nouveau` et `/admin/projets/[id]` que cette spec remplace. Le formulaire d'entreprise, monté au sub-project `08`, est lui aussi un écran plein indépendant : ce sub-project ne le monte jamais depuis ici.
+- **Design system** : les fiches `.prompt.md` du Combobox, des sélecteurs de date, du `Switch` et du `Breadcrumb`.
 - Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
 
 ## Files touched
 
 - **À modifier** : `src/app/admin/(protected)/projets/nouveau/page.tsx` (remplacement de la page d'attente)
 - **À modifier** : `src/app/admin/(protected)/projets/[id]/page.tsx` (remplacement de la page d'attente)
-- **À modifier** : `src/components/features/admin/companies/CompanyFormDialog.tsx` (prop `assetPicker` optionnelle, pour rendre `logoFilename` éditable)
-- **À modifier** : `src/app/admin/(protected)/entreprises/page.tsx` (passe l'`AssetPicker` au dialogue, sur le bucket admin)
 - **À créer** : `src/components/features/admin/projects/ProjectForm.tsx`
 - **À créer** : `src/components/features/admin/projects/ProjectTagsField.tsx`
 - **À créer** : `src/components/features/admin/projects/ClientMetaFields.tsx`
-- **À créer** : `src/components/layout/AdminBreadcrumb.tsx`
-- **À installer** : `src/components/ui/breadcrumb.tsx` par le CLI shadcn, seul composant encore absent à ce stade. `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` sont posés par le sub-project `07`, dont celui-ci dépend transitivement : vérifier leur présence et ne rien réinstaller
+- **À modifier** : `src/lib/projects.ts` (ajout de `WORK_MODE_LABELS`, les autres libellés du `12` sont réutilisés tels quels)
+- **À créer** : `src/components/layout/AdminBreadcrumb.tsx`, **sauf s'il existe déjà** : le sub-project `08` en a besoin en premier pour son propre écran plein d'entreprise, vérifier avant d'en écrire un second
+- **À installer** : `src/components/ui/breadcrumb.tsx` par le CLI shadcn, **s'il n'est pas déjà posé par le `08`** ; `src/components/ui/switch.tsx` et `src/components/ui/calendar.tsx`, tous deux encore absents à ce stade. `dialog`, `select`, `alert-dialog`, `pagination`, `checkbox`, `popover` et `command` sont posés par le sub-project `07`, dont celui-ci dépend transitivement : vérifier leur présence et ne rien réinstaller
+- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : `Switch` et `Popover + Calendar` rejoignent Formulaires, `Breadcrumb` rejoint Navigation s'il n'a pas déjà quitté le post-MVP au `08`
 
 ## Architecture approach
 
-**Formulaire pleine page, pas modale.** C'est le pattern retenu pendant la décomposition pour les entités riches : une quinzaine de champs, deux zones de markdown et trois sélecteurs ne tiennent pas dans une modale utilisable au téléphone. Les entités légères, tags et entreprises, gardent leur modale.
+**Formulaire pleine page, pas modale.** Repris du pattern retenu pendant la décomposition pour les entités riches : une quinzaine de champs, deux zones de markdown et plusieurs sélecteurs ne tiennent pas dans une modale utilisable au téléphone.
 
-**Un seul composant pour la création et la modification.** Les deux pages montent le même formulaire, qui reçoit un projet ou `null`. L'action liée diffère, `createProject` ou `updateProject` avec l'identifiant, mais la structure des champs est identique et la dupliquer garantirait qu'elles divergent.
+**Un seul composant pour la création et la modification.** Les deux pages montent le même formulaire, qui reçoit un projet ou `null`. L'action liée diffère, `createProject` ou `updateProject` avec l'identifiant, mais la structure des champs est identique et la dupliquer garantirait qu'elle diverge.
 
-**Le bloc de méta client apparaît selon le type.** Entreprise, mode de travail, statut de contrat, taille d'équipe et nombre de livrables ne s'affichent que pour un projet `CLIENT`. C'est la traduction visuelle de la règle portée par le schéma Zod du sub-project `11`.
+**Le titre et les boutons « Annuler » et « Enregistrer » vivent dans une rangée d'en-tête à même le formulaire, juste sous le fil d'ariane**, exactement comme la maquette les place à côté du titre. Ce composant reprend le motif posé par `CompanyForm` au sub-project `08` : `AdminPageShell` ne convient pas à un formulaire pleine page, son emplacement d'actions ne pouvant pas porter l'état `pending` du bouton d'enregistrement, propre au formulaire qu'il faudrait alors faire remonter jusqu'à la page. Les deux pages ne rendent donc que `AdminBreadcrumb` puis `ProjectForm`, sans `h1` séparé.
 
-**La bascule vers personnel avertit avant de perdre des données.** Passer un projet de `CLIENT` à `PERSONAL` supprime sa méta client, et le sub-project `11` l'assume côté action. L'interface doit le dire au moment du choix, pas le laisser découvrir après enregistrement.
+**Deux colonnes de `Card`, comme la maquette.** La grille se replie sur une seule colonne en mobile, dans l'ordre du DOM (contenu entier, puis latérale entière) ; au-delà, la colonne de contenu occupe la plus grande part, la colonne latérale reste `sticky` pendant le défilement. Chaque `Card` regroupe les champs par nature, pas par section technique :
 
-**Un seul composant à installer, `breadcrumb`.** Tout le reste est en place : `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` viennent du sub-project `07`, dont celui-ci dépend par la chaîne `13 → 12 → 11 → 07` comme par `13 → 08 → 07`. Vérifier avant d'installer, une réinstallation écrasant les composants existants.
+Colonne de contenu, dans l'ordre :
+- **Identité** : slug, ordre d'affichage, titre (français), titre (anglais), puis en pleine largeur le type de projet (`formats`, six `Checkbox`)
+- **Description** : description (français), description (anglais)
+- **Tags** : le champ d'ajout et la liste retenue, détaillés plus bas
+- **Case study** : contenu (français), contenu (anglais), en `Textarea` `font-mono` redimensionnable
 
-`alert-dialog` sert au scénario 3, l'enregistrement d'une bascule destructrice n'ayant lieu qu'après confirmation ; l'avertissement lui-même est un `<p className="text-sm text-destructive">`, comme les erreurs de champ, `Alert` restant non installé.
+Colonne latérale, dans l'ordre :
+- **Publication** : statut, type (`Switch`), dates de début et de fin
+- **Avancement** : lien GitHub, lien démo
+- **Couverture** : vignette et bouton d'ouverture du sélecteur d'assets
+- **Méta client** : entreprise, mode de travail, statut de contrat, taille d'équipe, nombre de livrables (toujours montée, détaillée plus bas)
 
-Les cases à cocher des formats et des tags sont le composant **`Checkbox` du registry**, pas des cases natives : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin.
+**Le champ « Type de projet » porte `formats`, pas `type`.** La grille de six cases coche des `ProjectFormat` (Web App, App Mobile, Desktop App, API, CLI, IA). `type` (`ProjectType`, client ou personnel) est un champ séparé, le `Switch` de la card Publication : les deux se nomment « type » dans la maquette, jamais dans ce formulaire.
 
-Les deux pages chargent leurs données sous `<Suspense>`, `cacheComponents: true` refusant une lecture dynamique hors frontière de suspension.
+**Les libellés viennent de `prisma/schema.prisma`, pas de la maquette, et de `src/lib/projects.ts` posé par le `12`.** `PROJECT_TYPE_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_FORMAT_LABELS` et `CONTRACT_STATUS_LABELS` y sont déjà écrits pour l'écran de liste : ce formulaire les importe plutôt que de les redéfinir, et complète le fichier de `WORK_MODE_LABELS`, absent du `12` faute de colonne « Mode de travail » sur cet écran-là. Deux écarts assumés, sans changement de schéma : « CLI » et « IA » restent tels quels là où la maquette montre « Automatisation » et « Data / IA », et le statut de contrat garde « Stage » là où elle montre « CDD », l'enum `ContractStatus` n'ayant pas cette valeur.
 
-**Le logo d'entreprise devient éditable ici.** Aucun sub-project ne le rendait modifiable : le `08` l'excluait faute d'`AssetPicker`, le `10` écrivait l'`AssetPicker` « pour le `13` », et le `13` ne branchait que la couverture de projet. À la fin de l'epic, `Company.logoFilename` serait resté non éditable. `CompanyFormDialog` reçoit donc une prop `assetPicker` optionnelle, et les deux points de montage la fournissent : l'écran des entreprises et le select d'entreprise de ce formulaire. L'`AssetPicker` y parcourt `freelance/crm/entreprises/` sur le bucket **admin**, contrairement à celui de la couverture qui parcourt `projets/` sur le bucket de la vitrine.
+| Champ | Valeurs Prisma → libellé |
+|---|---|
+| `formats` (`ProjectFormat`) | `API` → API, `WEB_APP` → Web App, `MOBILE_APP` → App Mobile, `DESKTOP_APP` → Desktop App, `CLI` → CLI, `IA` → IA |
+| `status` (`ProjectStatus`) | `DRAFT` → Brouillon, `PUBLISHED` → Publié, `ARCHIVED` → Archivé |
+| `type` (`ProjectType`) | `CLIENT` → Projet client, `PERSONAL` → Projet perso |
+| `workMode` (`WorkMode`) | `REMOTE` → Remote, `HYBRIDE` → Hybride, `PRESENTIEL` → Sur site |
+| `contractStatus` (`ContractStatus`) | `FREELANCE` → Freelance, `CDI` → CDI, `STAGE` → Stage, `ALTERNANCE` → Alternance |
 
-**`deliverablesCount` porte `defaultValue={1}`.** Le champ est validé par `min(1)` au sub-project `11`, et un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause.
+**La carte Méta client reste montée en permanence.** Ses champs passent `disabled` quand le type vaut `PERSONAL`, elle ne se démonte ni ne se masque jamais. Un contrôle `disabled` n'entre pas dans le `FormData` soumis : pour un projet personnel, l'absence de ces champs à la soumission est exactement ce qu'attend le schéma conditionnel du sub-project `11`, sans logique supplémentaire côté formulaire.
 
-**Les tags se cochent, ils ne se cherchent pas.** Des cases à cocher groupées par catégorie plutôt qu'un champ de recherche : le composant `Command` de shadcn rend `CommandItem` toujours en état sélectionné dans le style `radix-nova`, la faute à un sélecteur Tailwind mal formé (`data-selected:` au lieu de `data-[selected=true]:`). C'est l'issue shadcn-ui#9228, ouverte, avec une PR de correction #9254 en attente. Le regroupement par `TagKind` rend de toute façon la liste navigable sans recherche, donc ce choix tient même une fois l'issue close.
+**La bascule vers personnel avertit par une `AlertDialog`, sans texte persistant.** Passer un projet client en personnel supprime sa méta à l'enregistrement, et le sub-project `11` l'assume côté action. Le `Switch` de type ne bascule pas directement l'état quand il quitte `CLIENT` sur un projet existant : il ouvre une `AlertDialog` qui nomme ce qui sera perdu, et seule sa confirmation fait passer le type sur `PERSONAL` et désactive la carte. Annuler laisse le type inchangé. Aucun `<p className="text-sm text-destructive">` persistant sous le champ : la maquette ne porte que la modale, et un texte permanent doublonnerait le même message.
 
-**L'ordre des tags suit l'ordre de sélection.** `ProjectTag.displayOrder` détermine leur affichage sur le site public. Plutôt qu'une interface de réordonnancement, la liste des tags retenus s'affiche dans l'ordre où ils ont été cochés, et se réorganise en décochant puis recochant. Une poignée de tags par projet rend ce geste acceptable, là où un système de glisser-déposer serait disproportionné.
+**Les tags s'ajoutent par un Combobox groupé, se réordonnent par glisser-déposer.** Le champ d'ajout est un Combobox (`Popover` + `Command`) dont les options sont groupées par `TagKind`, dans le même registre que le sélecteur d'icône des tags du sub-project `07` : la coche se pilote par l'attribut `data-checked` sur `CommandItem`, contournement déjà validé et documenté (`docs/DESIGN.md` § Champ de recherche). Un tag choisi rejoint la liste des tags retenus et disparaît du Combobox. Cette liste est rendue séparément, chaque ligne portant son rang, un bouton de retrait, et un geste de glisser-déposer pour la réordonner : la position dans le tableau, pas une position saisie, détermine l'ordre. `ProjectTag.displayOrder` vaut `index + 1` au moment de la soumission, porté par un `<input type="hidden" name="tagIds" />` par tag, dans l'ordre de la liste. Le retrait recalcule aussitôt les rangs affichés.
 
-**L'entreprise se crée sans quitter la page.** Le select est accompagné d'un bouton qui ouvre `CompanyFormDialog`, écrit au sub-project `08` précisément pour ce double montage. Son rappel de succès sélectionne l'entreprise créée. Sans ce mécanisme, créer un projet pour un nouveau client imposerait d'abandonner la saisie en cours.
+**L'entreprise se choisit parmi les entreprises existantes, sans bouton de création.** Le champ Entreprise est un Combobox de recherche sur les entreprises déjà créées (`docs/DESIGN.md` § Champ de recherche : au-delà d'une dizaine d'options, la recherche vaut mieux que la liste déroulante). Aucun bouton n'ouvre de formulaire de création depuis cet écran : une entreprise manquante se crée depuis son propre écran, au sub-project `08`, puis redevient disponible ici au rechargement.
 
-**Le markdown reste du texte.** Deux zones de saisie, une par langue, sans éditeur enrichi ni prévisualisation. Le rendu existe déjà sur le site public, et un éditeur riche pour du contenu écrit deux ou trois fois par an ne se justifie pas.
+**Trois `Select` restent soumis par `onSubmit` et `startTransition`, jamais par `<form action>`.** Statut, mode de travail et statut de contrat sont chacun un `Select` : React réinitialise un formulaire à `action` après chaque envoi, et Radix Select répond à ce reset en rappelant `onValueChange` avec sa valeur du premier rendu, ce qui effacerait ces trois choix à la première erreur de validation. Le formulaire soumet donc par `startTransition(() => formAction(new FormData(event.currentTarget)))` après `event.preventDefault()`, comme `TagFormDialog` (`.claude/rules/shadcn-ui/components.md`).
 
-**Le fil d'ariane arrive maintenant, il est déclaré, et il vit dans la page.** Il prend son sens ici, où `/admin/projets/[id]` crée la première hiérarchie réelle. Chaque page déclare son chemin plutôt qu'un composant ne le dérive du `pathname` : deux routes ne justifient pas une logique de dérivation, qui supposerait en plus de résoudre un identifiant en titre de projet. Il est rendu en tête du contenu et non dans le header, parce que le header est monté par le layout : lui faire porter le fil imposerait un contexte ou un slot pour qu'une page lui transmette ses maillons, alors que la page a déjà chargé le projet dont elle affiche le titre.
+**La couverture rejoint le `FormData` par un champ caché.** `AssetPicker` est contrôlé, sa valeur n'atteint pas l'action toute seule : `<input type="hidden" name="coverFilename" value={selected ?? ''} />` à côté de lui, comme les tags le font avec `tagIds`. Le sélecteur est restreint au dossier `projets/` des assets (sub-project `10`).
+
+**L'ordre d'affichage se pré-remplit à n+1, sans logique d'insertion ici.** Le champ « Ordre d'affichage » de la card Identité s'initialise à `projects.length + 1` en création, à la valeur du projet en modification. Décaler les projets suivants à une position occupée, renuméroter à la suppression : c'est la règle complète que porte le sub-project `11`, qui l'applique à `Project.displayOrder` comme le `07` le fait pour les tags. Ce formulaire ne fait que proposer la valeur suivante.
+
+**`deliverablesCount` porte `defaultValue={1}`.** Validé par `min(1)` au sub-project `11`, un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause.
+
+**Le markdown reste du texte.** Deux zones de saisie, une par langue, sans éditeur enrichi ni prévisualisation. Le rendu existe déjà sur le site public, et un éditeur riche pour un contenu écrit deux ou trois fois par an ne se justifie pas.
+
+**Le fil d'ariane vit dans la page, déclaré par elle.** Chaque page déclare son chemin plutôt qu'un composant ne le dérive du `pathname` : deux routes ne justifient pas une logique de dérivation, qui supposerait en plus de résoudre un identifiant en titre de projet.
 
 **Aucun test.** Les Server Actions sont couvertes par le sub-project `11`, et le reste est de l'assemblage de composants que la règle no-lib-test exclut.
 
@@ -92,22 +117,24 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 **THEN** le projet est créé
 **AND** on est redirigé vers la liste, où il figure
 
-### Scénario 2 : Bloc client conditionnel
-**GIVEN** le formulaire avec le type personnel sélectionné
+### Scénario 2 : Champs de méta client actifs selon le type
+**GIVEN** le formulaire avec le type personnel sélectionné, la card Méta client visible et désactivée
 **WHEN** on bascule le type sur client
-**THEN** les champs d'entreprise, de mode de travail, de statut de contrat, de taille d'équipe et de nombre de livrables apparaissent
+**THEN** les champs d'entreprise, de mode de travail, de statut de contrat, de taille d'équipe et de nombre de livrables deviennent actifs
+**AND** la card reste affichée dans les deux cas
 
-### Scénario 3 : Avertissement de perte
+### Scénario 3 : Avertissement de perte à la bascule vers personnel
 **GIVEN** un projet client existant en cours de modification
 **WHEN** on bascule son type sur personnel
-**THEN** un avertissement signale que la méta client sera supprimée
+**THEN** une `AlertDialog` signale que la méta client sera supprimée
 **AND** l'enregistrement n'a lieu qu'après confirmation
+**AND** annuler dans la boîte laisse le type inchangé
 
-### Scénario 4 : Création d'entreprise sans quitter la page
-**GIVEN** le formulaire d'un projet client, partiellement rempli
-**WHEN** on crée une entreprise depuis le select
-**THEN** elle est créée et sélectionnée
-**AND** les champs déjà saisis du projet sont intacts
+### Scénario 4 : Sélection d'une entreprise existante
+**GIVEN** le formulaire d'un projet client
+**WHEN** on cherche puis choisit une entreprise dans le champ Entreprise
+**THEN** son identifiant est retenu
+**AND** aucun formulaire de création ne s'ouvre depuis cet écran
 
 ### Scénario 5 : Erreurs de validation
 **GIVEN** un projet client sans entreprise
@@ -118,13 +145,14 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 ### Scénario 6 : Choix de la couverture
 **GIVEN** le formulaire
 **WHEN** on ouvre le sélecteur de couverture
-**THEN** les assets disponibles sont proposés en vignettes
+**THEN** les assets du dossier `projets/` sont proposés en vignettes
 **AND** la sélection renseigne le champ correspondant
 
-### Scénario 7 : Ordre des tags
-**GIVEN** trois tags cochés dans un ordre donné
-**WHEN** on enregistre puis qu'on rouvre le projet
-**THEN** les tags apparaissent dans le même ordre
+### Scénario 7 : Ajout, réordonnancement et retrait des tags
+**GIVEN** le formulaire
+**WHEN** on ajoute trois tags par le Combobox, qu'on en glisse un à une autre position, puis qu'on en retire un
+**THEN** la liste des tags retenus reflète ces trois opérations
+**AND** l'ordre visible au moment de l'enregistrement devient `ProjectTag.displayOrder`
 
 ### Scénario 8 : Modification préservant les champs non touchés
 **GIVEN** un projet complet
@@ -142,15 +170,8 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 **WHEN** on le passe en publié et qu'on enregistre
 **THEN** il apparaît sur `/projets` du site public
 
-### Scénario 11 : Logo d'entreprise éditable
-**GIVEN** le formulaire d'une entreprise, ouvert depuis son écran ou depuis le select de ce formulaire
-**WHEN** on choisit un logo par le sélecteur d'assets
-**THEN** `logoFilename` est enregistré
-**AND** le sélecteur ne propose que les fichiers de `freelance/crm/entreprises/`, sur le bucket admin
-**AND** l'espace admin affiche ce logo, le site public continuant de n'afficher que le nom
-
-### Scénario 12 : Nombre de livrables par défaut
-**GIVEN** le bloc client d'un nouveau projet
+### Scénario 11 : Nombre de livrables par défaut
+**GIVEN** le bloc Méta client d'un nouveau projet client
 **WHEN** on ne touche pas au champ du nombre de livrables
 **THEN** il vaut 1 et l'enregistrement aboutit
 **AND** vider le champ produit un message de validation compréhensible, non une erreur technique
@@ -158,13 +179,12 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 ## Edge cases
 
 - **Garde par page** : les pages appellent `await getCurrentUser()` avant tout rendu et gardent le `loading.tsx` de leur segment, posés au sub-project `12` (cf. `.claude/rules/nextjs/auth.md`)
-- **Perte de saisie à la création d'entreprise** : c'est le scénario que le double montage de `CompanyFormDialog` sert à éviter. Si l'ouverture de la modale démontait le formulaire ou provoquait une navigation, tout le travail en cours serait perdu
 - **Repeuplement après erreur** : un formulaire de cette taille rejeté sans conserver les valeurs saisies serait pénible au point d'être inutilisable. L'état retourné par les Server Actions porte `values` précisément pour ça
-- **Bascule de type sans avertissement** : la suppression de la méta client est irréversible et silencieuse côté base
-- **Composant `Command` en `radix-nova`** : son état sélectionné est incorrect, issue shadcn-ui#9228. C'est ce qui écarte un champ de recherche pour les tags
-- **Markdown long** : les case studies peuvent faire plusieurs milliers de caractères. Les zones de saisie doivent être redimensionnables et le formulaire rester navigable
-- **Sélecteur de couverture et préfixe** : proposer tous les assets, y compris les CV, rendrait le choix confus. Le sélecteur doit être restreint aux dossiers de projets
+- **Bascule de type sans avertissement** : la suppression de la méta client est irréversible et silencieuse côté base ; c'est ce que l'`AlertDialog` empêche
+- **Champs `disabled` absents du `FormData`** : un contrôle désactivé n'est jamais soumis par le navigateur. C'est voulu pour la carte Méta client d'un projet personnel, à ne pas reproduire par erreur ailleurs dans le formulaire
+- **Markdown long** : les case studies peuvent faire plusieurs milliers de caractères. Les zones de saisie doivent rester redimensionnables et le formulaire navigable
+- **Sélecteur de couverture et préfixe** : proposer tous les assets, y compris les CV, rendrait le choix confus. Le sélecteur reste restreint au dossier `projets/`
 - **Identifiant inexistant** : `/admin/projets/<id-inconnu>` doit produire une 404 propre, pas une erreur de rendu
-- **Deux `AssetPicker`, deux buckets** : celui de la couverture parcourt `projets/` sur `portfolio-assets`, celui du logo `freelance/crm/entreprises/` sur `portfolio-admin`. Confondre les deux ferait pointer un logo vers un bucket qui ne le contient pas, sans erreur immédiate
-- **Logo jamais éditable** : c'est le trou que ce sub-project ferme. Le `08` renvoyait au `10`, le `10` au `13`, et le `13` ne branchait que la couverture. Sans cette correction, `Company.logoFilename` resterait modifiable uniquement par le seed
 - **`deliverablesCount` vidé** : `Number('')` vaut `0`, que le `min(1)` refuse. Sans `defaultValue={1}`, le message d'erreur n'oriente pas vers la cause
+- **Étape de développement et date de mise en production absentes** : aucune colonne Prisma ne les porte. `docs/BRAINSTORM.md` § Feature 6 les garde pour plus tard, ce formulaire ne les affiche pas
+- **GitHub et démo non conditionnés au type** : la maquette les réserve à un projet personnel, mais `githubUrl` et `demoUrl` sont des champs ordinaires de `Project`, sans distinction de type portée par le sub-project `11`. Les masquer pour un projet client cacherait un champ que rien n'empêche de renseigner

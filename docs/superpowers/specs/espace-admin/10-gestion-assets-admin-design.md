@@ -5,7 +5,7 @@ goal: "Uploader, lister et supprimer les assets depuis l'espace admin, et fourni
 status: "draft"
 complexity: "L"
 tdd_scope: "full"
-depends_on: ["06-shell-admin-design.md", "09-stockage-assets-r2-design.md"]
+depends_on: ["06-shell-admin-design.md", "08-crud-entreprises-design.md", "09-stockage-assets-r2-design.md"]
 date: "2026-09-03"
 ---
 
@@ -13,23 +13,26 @@ date: "2026-09-03"
 
 ## Scope
 
-Écran de gestion des assets : dépôt de fichiers, listing par dossier, suppression, et un composant de sélection réutilisable qui alimentera `Project.coverFilename` et `Company.logoFilename`. L'écran couvre les **deux** buckets, la vitrine et le back-office, ce qui suppose une route authentifiée pour lire le second.
+Écran de gestion des assets : dépôt de fichiers, grille de tuiles filtrable par dossier, suppression, et un composant de sélection réutilisable qui alimentera `Project.coverFilename` et `Company.logoFilename`. L'écran couvre les **deux** buckets, la vitrine et le back-office, ce qui suppose une route authentifiée pour lire le second.
 
 C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les assets ne pouvaient être déposés qu'en copiant des fichiers à la main. Exclut le redimensionnement et la génération de miniatures, `next/image` restant seul responsable de l'optimisation à l'affichage.
 
+Le sélecteur d'assets câble aussi la carte « Logo » du formulaire entreprise, dont le `08` pose l'écran sans l'éditer : ce sub-project ouvre le sélecteur sur `freelance/crm/entreprises/`, sur `portfolio-admin`. Exclut la récupération automatique du logo depuis le domaine de l'entreprise, un sub-project distinct, immédiatement après celui-ci.
+
 ### État livré
 
-À la fin de ce sub-project, on peut : déposer une image depuis l'écran d'administration, la voir immédiatement servie par `/api/assets/...`, la sélectionner comme couverture d'un projet, et constater qu'elle ne peut plus être supprimée tant que ce rattachement existe.
+À la fin de ce sub-project, on peut : déposer une image depuis l'écran d'administration, la voir immédiatement servie par `/api/assets/...`, la sélectionner comme couverture d'un projet ou comme logo d'une entreprise, et constater qu'elle ne peut plus être supprimée tant que ce rattachement existe.
 
 ## Dependencies
 
 - `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente `/admin/assets` que ce sub-project remplace.
+- `08-crud-entreprises-design.md` (statut: draft) : pose la carte Logo du formulaire entreprise, sans l'éditer, et sa Server Action de mutation : ce sub-project les modifie tous les deux pour brancher `AssetPicker` et écrire `logoFilename`.
 - `09-stockage-assets-r2-design.md` (statut: draft) : fournit le client R2 et le bucket dans lequel écrire.
 
 ## Références de design
 
-- **Maquette** : l'écran Assets (`isAssets`), une grille de tuiles avec recherche, facettes et pied de liste, son téléversement (`openUpload`) et sa confirmation de suppression (`dlgDeleteAsset`).
-- **Le sélecteur d'assets se lit dans le `13`** : la maquette l'ouvre depuis le formulaire projet (`openAssetPicker` dans l'écran `isForm`), c'est là qu'on voit ce qu'il doit rendre.
+- **Maquette** : l'écran Assets (`isAssets`), une grille de tuiles avec recherche, facettes et pied de liste, son téléversement (`openUpload`) et sa confirmation de suppression (`dlgDeleteAsset`). Trois écarts assumés : la grille suit des paliers fixes (une colonne par défaut, deux dès `sm`, trois dès `md`, quatre dès `lg`, cinq dès `xl`, tuiles d'environ 200px) plutôt que le `repeat(auto-fill,minmax(200px,1fr))` fluide de la maquette ; le dossier proposé au dépôt et à la facette vient de `ASSET_FOLDERS` (plan) et de l'ADR-011, la maquette listant une arborescence antérieure à la migration du `09` ; l'état d'écrasement de `dlgUpload`, absent de la maquette, se conçoit d'après l'arbitrage transverse (avertissement en `text-sm text-destructive`, sans `Alert`).
+- **Le sélecteur d'assets se lit dans le `13`** pour la couverture de projet (la maquette l'ouvre depuis le formulaire projet, `openAssetPicker` dans l'écran `isForm`) ; ce sub-project le câble une première fois, pour la carte Logo du formulaire entreprise. La maquette ne montre aucun sélecteur à cet endroit : `openLogoPicker` y déclenche un fetch automatique, hors périmètre ici (cf. Scope).
 - **Design system** : les fiches `.prompt.md` des composants de tuile et de téléversement mobilisés.
 - Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
 
@@ -46,14 +49,14 @@ C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les
 - **À modifier** : `src/env.ts` et `.env.example` (variables du bucket admin)
 - **À créer** : `src/app/admin/(protected)/api/assets/[...path]/route.ts` ou équivalent : route **authentifiée** servant `portfolio-admin`, la route publique ne détenant pas son token
 - **À modifier** : `src/app/admin/(protected)/assets/page.tsx` (remplacement de la page d'attente)
-- **À installer** : `src/components/ui/` : `dialog`, `select`, `alert-dialog`, **s'ils sont absents**. Ce sub-project est le seul de l'epic à pouvoir s'exécuter avant le `07` (il ne dépend que du `06` et du `09`) : selon l'ordre réel, ces composants sont déjà là ou non, d'où la vérification préalable plutôt qu'une installation inconditionnelle
+- **Aucun composant shadcn à installer** : `dialog`, `select`, `alert-dialog`, `popover`, `checkbox`, `pagination`, `command` sont déjà en place depuis le `07`
 - **À créer** : `src/components/features/admin/assets/AssetsBrowser.tsx`
 - **À créer** : `src/components/features/admin/assets/AssetUploadDialog.tsx`
 - **À créer** : `src/components/features/admin/assets/DeleteAssetDialog.tsx`
 - **À créer** : `src/components/features/admin/assets/AssetPicker.tsx` (sélecteur réutilisable)
+- **À modifier** : la carte Logo du formulaire entreprise posé par le `08` (bouton « Choisir un logo » branché sur `AssetPicker`, préfixe `freelance/crm/entreprises/`) et sa Server Action de mutation, à qui le champ `logoFilename` est ajouté : le `08` livre le formulaire sans l'éditer
 - **À modifier** : `docs/PRODUCTION.md` (mention de la limite de taille retenue)
-- **À modifier** : `.claude/rules/nextjs/assets.md` (documentation du dossier `branding/`, absent de la rule alors qu'il est utilisé, et des quatre emplacements valides avec leur bucket)
-- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) **si ce sub-project s'exécute avant le `07`** : les lignes « Modales » et « Formulaires admin » quittent alors la section Post-MVP pour leur famille, au titre du premier sub-project qui installe réellement `dialog`, `select` et `alert-dialog`. Si le `07` est déjà passé, il l'a fait et il n'y a rien à reprendre
+- **À modifier** : `.claude/rules/nextjs/assets.md` (documentation du dossier `branding/`, absent de la rule alors qu'il est utilisé, et des cinq emplacements valides avec leur bucket)
 
 ## Architecture approach
 
@@ -80,6 +83,8 @@ Trois contrôles, donc, et non deux : un **emplacement** choisi dans une liste f
 
 `MAX_SEGMENTS` vaut 5 dans `validateAssetPath`, ce qui couvre la clé la plus profonde sans modification.
 
+**La modale de dépôt soumet par `onSubmit` et `startTransition`, jamais par `<form action>`.** Son `Select` d'emplacement subirait le même reset que celui des tags et des entreprises : React réinitialise un formulaire à `action` après chaque envoi, et Radix Select rappelle `onValueChange` avec sa valeur du premier rendu, ce qui effacerait l'emplacement choisi à la première erreur de validation (`.claude/rules/shadcn-ui/components.md`).
+
 **`branding/` est absent de la rule.** Il est pourtant utilisé par le logo de la navbar, le portrait de la page à propos et le JSON-LD, mais `.claude/rules/nextjs/assets.md` ne décrit que `projets/` et `documents/`. Cet écart est comblé par ce sub-project, faute de quoi la prochaine personne à lire la rule croirait cette structure interdite.
 
 **Le type MIME annoncé doit correspondre à l'extension.** La rule des Server Actions impose de valider taille **et** type MIME côté serveur. Un type vide est toléré, certains navigateurs ne le renseignant pas, mais un type renseigné qui contredit l'extension trahit un fichier renommé : l'accepter reviendrait à servir plus tard un `Content-Type` qui ne décrit pas le contenu, puisque la route déduit ce dernier de l'extension seule.
@@ -92,7 +97,17 @@ C'est le comportement déjà retenu pour les tags et les entreprises : dans tout
 
 **Le listing est paginé dès le départ.** `ListObjectsV2` renvoie au maximum mille objets par appel et se paie en opération Class A, la plus chère. Le volume actuel est très en deçà, mais consommer le jeton de continuation dès l'écriture évite une liste silencieusement tronquée le jour où le nombre d'assets grandit.
 
-**Le sélecteur est un composant à part, et il prend son bucket en paramètre.** `AssetPicker` ne sert à rien ici : il est écrit pour le sub-project `13`, qui rattache une couverture de projet **et** le logo d'une entreprise. Ces deux usages ne visent pas le même bucket, d'où un paramètre plutôt qu'un chemin figé : le formulaire projet lui passe `projets/` sur `portfolio-assets`, le formulaire entreprise `freelance/crm/entreprises/` sur `portfolio-admin`. L'écrire maintenant, au moment où l'on connaît la forme des données, évite de le bricoler dans un formulaire déjà chargé.
+**Le sélecteur est un composant à part, et il prend son bucket en paramètre.** `AssetPicker` sert deux usages qui ne visent pas le même bucket, d'où un paramètre plutôt qu'un chemin figé : la carte Logo du formulaire entreprise, câblée ici même avec `freelance/crm/entreprises/` sur `portfolio-admin`, et la couverture de projet, câblée au sub-project `13` avec `projets/` sur `portfolio-assets`. L'écrire au moment où l'on connaît la forme des données évite de le bricoler dans un formulaire déjà chargé.
+
+**Le listing est une grille plate filtrée par une facette « Dossier », pas une liste groupée par préfixe.** Aucune ligne de section ne sépare les dossiers : la barre d'outils porte une recherche et un `Popover` de facettes (Dossier, Nature), sur le motif déjà posé au `07`. La grille de tuiles suit des paliers fixes, une colonne par défaut, deux dès `sm`, trois dès `md`, quatre dès `lg`, cinq dès `xl`, pour des tuiles d'environ 200px.
+
+**Chaque tuile porte une action « copier le chemin »**, en plus de la suppression : elle copie `/api/assets/<clé>` dans le presse-papiers. Aucune date de dernière modification n'apparaît sur la tuile, la maquette n'en montrant pas.
+
+**Le pied de la grille n'a pas de sélecteur « lignes par page ».** Compteur et résumé des facettes à gauche, `Pagination` à droite : l'écran Assets n'est pas une instance de `DataTable`, une grille de tuiles n'a pas de colonnes à paginer par lot variable.
+
+**L'avertissement d'écrasement n'a pas de représentation dans la maquette**, qui ne modélise que le dépôt nominal. Il prend la forme retenue pour tout avertissement inline de l'admin : un texte `text-sm text-destructive` dans le corps de `dlgUpload`, sans bandeau `Alert` séparé, et une confirmation explicite avant l'envoi.
+
+**Le blocage de suppression suit le motif déjà posé pour les tags et les entreprises**, pas le pied à bouton unique `Fermer` que la maquette dessine pour ce cas précis : le refus remplace la description en `text-destructive` dès l'ouverture, le bouton `Annuler` reste, et `Supprimer` est désactivé plutôt que retiré. Le message reprend le gabarit observé dans la maquette pour une couverture de projet, « Ce fichier est la couverture de « {{ projet }} ». Retirez le rattachement avant de le supprimer. », décliné pour les deux autres rattachements possibles : le logo d'une entreprise et une capture de case study.
 
 **Aucune écriture en base.** Un asset n'a pas d'existence en base : il est un objet dans le bucket, référencé par sa clé depuis `Project` ou `Company`. Ce sub-project n'ajoute donc aucun modèle Prisma, conformément à l'ADR-011.
 
@@ -105,6 +120,12 @@ Rules applicables : `.claude/rules/nextjs/assets.md`, `.claude/rules/nextjs/serv
 **WHEN** on dépose une image dans un dossier de projet
 **THEN** elle apparaît dans le listing
 **AND** elle est servie par `/api/assets/...` à l'URL correspondant à sa clé
+
+### Scénario 1 bis : Logo d'entreprise sélectionné
+**GIVEN** le formulaire entreprise et sa carte Logo
+**WHEN** on clique sur « Choisir un logo »
+**THEN** le sélecteur d'assets s'ouvre sur `freelance/crm/entreprises/`, sur le bucket `portfolio-admin`
+**AND** le logo choisi s'affiche dans l'aperçu de la carte
 
 ### Scénario 2 : Fichier trop volumineux
 **GIVEN** la limite de taille configurée

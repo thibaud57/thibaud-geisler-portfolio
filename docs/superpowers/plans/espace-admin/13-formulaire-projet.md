@@ -4,7 +4,7 @@
 
 **Goal:** Créer et modifier un projet complet depuis un formulaire pleine page, entreprise et couverture comprises.
 
-**Architecture:** Un composant de formulaire unique sert la création et la modification, l'action liée changeant seule. Le bloc de méta client s'affiche selon le type, les tags se cochent par catégorie, et l'entreprise se crée depuis le select grâce au composant conçu au sub-project `08` pour ce double montage.
+**Architecture:** Un composant de formulaire unique sert la création et la modification, l'action liée changeant seule. Deux colonnes de `Card` reprennent le regroupement de la maquette : contenu à gauche, publication et méta à droite, colonne droite sticky. La carte Méta client reste toujours montée, ses champs `disabled` selon le type. Les tags s'ajoutent par un Combobox groupé et se réordonnent par glisser-déposer. L'entreprise se choisit parmi les entreprises existantes, sans création possible depuis cet écran.
 
 **Tech Stack:** Next.js 16 App Router, React 19 (`useActionState`), shadcn/ui, Tailwind 4.
 
@@ -13,14 +13,14 @@
 ## Global Constraints
 
 - **Un seul composant** pour la création et la modification : dupliquer garantirait la divergence.
-- Le bloc de méta client s'affiche **uniquement** pour le type `CLIENT`, en écho à la règle du schéma Zod du sub-project `11`.
-- La bascule de `CLIENT` vers `PERSONAL` **avertit avant d'enregistrer** : la méta client sera supprimée, de façon irréversible.
-- **Pas de composant `Command`** pour les tags : son état sélectionné est incorrect en style `radix-nova` (issue shadcn-ui#9228). Cases à cocher groupées par `TagKind`.
-- L'ordre des tags **suit l'ordre de sélection**, il alimente `ProjectTag.displayOrder`.
-- `CompanyFormDialog` est monté depuis le select d'entreprise, avec son rappel `onCreated` : sans lui, créer un projet pour un nouveau client ferait perdre la saisie.
-- Le sélecteur de couverture est **restreint aux dossiers de projets** : proposer les CV rendrait le choix confus.
+- La card **Méta client reste toujours montée** : ses contrôles passent `disabled` pour un type `PERSONAL`, elle ne se démonte ni ne se masque jamais.
+- La bascule de `CLIENT` vers `PERSONAL` **avertit par une `AlertDialog` avant d'enregistrer**, sans texte persistant ailleurs dans le formulaire : la méta client sera supprimée, de façon irréversible.
+- **Tags** : Combobox de recherche groupé par `TagKind` pour ajouter, liste des tags retenus réordonnable par glisser-déposer avec retrait. `ProjectTag.displayOrder` vaut la position dans la liste, `index + 1`.
+- **Entreprise choisie parmi les entreprises existantes**, aucun bouton de création ni modale depuis ce formulaire : une entreprise manquante se crée sur son propre écran, au sub-project `08`.
+- Le sélecteur de couverture est **restreint au dossier `projets/`** des assets : proposer les CV rendrait le choix confus.
 - Markdown en zones de saisie simples, sans éditeur enrichi ni prévisualisation.
 - Fil d'ariane **déclaré par page**, pas dérivé du chemin.
+- **Trois `Select`** (statut, mode de travail, statut de contrat) soumis par `onSubmit` + `startTransition`, jamais par `<form action>` : Radix Select perdrait sa valeur au premier reset après erreur.
 - **Aucun test** : les Server Actions sont couvertes par le sub-project `11`, le reste est de l'assemblage.
 - `src/app/admin/(protected)/projets/nouveau/page.tsx` et `src/app/admin/(protected)/projets/[id]/page.tsx` existent comme pages d'attente, créées au sub-project `12` pour que ses liens compilent : les **remplacer** toutes les deux, ne pas en créer de secondes à côté.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
@@ -29,33 +29,30 @@
 
 ---
 
-### Task 1 : Fil d'ariane
+### Task 1 : Composants et fil d'ariane
 
 **Files:**
-- Create: `src/components/ui/breadcrumb.tsx` (via le CLI)
-- Create: `src/components/ui/dialog.tsx` (via le CLI)
-- Create: `src/components/ui/select.tsx` (via le CLI)
-- Create: `src/components/ui/alert-dialog.tsx` (via le CLI)
-- Create: `src/components/layout/AdminBreadcrumb.tsx`
+- Create: `src/components/ui/breadcrumb.tsx` (via le CLI, **seulement s'il est absent**)
+- Create: `src/components/ui/switch.tsx` (via le CLI)
+- Create: `src/components/ui/calendar.tsx` (via le CLI)
+- Create: `src/components/layout/AdminBreadcrumb.tsx` (**seulement s'il est absent**)
 
 **Interfaces:**
 - Consomme : rien.
 - Produit : `<AdminBreadcrumb items={{ label: string; href?: string }[]} />`, monté par les pages des Tasks 4 et 5.
 
-- [ ] **Step 1: Installer le composant**
+- [ ] **Step 1: Installer les composants manquants**
 
 ```bash
-ls src/components/ui/                        # vérifier avant
-pnpm dlx shadcn@latest add breadcrumb        # seul composant encore absent
+ls src/components/ui/                                         # vérifier avant
+pnpm dlx shadcn@latest add breadcrumb switch calendar --dry-run  # simuler d'abord
 ```
 
-`breadcrumb` est le seul composant que ce sub-project introduit. `dialog`, `select`, `alert-dialog`, `pagination` et `checkbox` sont posés par le sub-project `07`, dont celui-ci dépend deux fois (`13 → 12 → 11 → 07` et `13 → 08 → 07`) : ils sont **déjà présents**, et les réinstaller les écraserait. Passer `--dry-run` d'abord, ne rien écraser.
+`switch` et `calendar` sont introduits ici : le premier pour le toggle de type, le second pour les sélecteurs de date de début et de fin, composés avec `Popover`. `breadcrumb` peut déjà être posé si le sub-project `08` l'a installé pour son propre écran plein d'entreprise : ne l'ajouter que s'il manque, une réinstallation écraserait le composant en place. `dialog`, `select`, `alert-dialog`, `pagination`, `checkbox`, `popover` et `command` viennent du sub-project `07`, déjà présents par la chaîne de dépendances (`13 → 12 → 11 → 07` et `13 → 08 → 07`) : ne rien réinstaller.
 
-Le formulaire en dépend directement pour ses cinq selects (statut, type, mode de travail, statut de contrat, entreprise) et indirectement via `CompanyFormDialog`. `alert-dialog` porte la confirmation du scénario 3, où l'enregistrement n'a lieu qu'après accord explicite sur la suppression de la méta client.
+- [ ] **Step 2: Écrire le fil d'ariane, si absent**
 
-Les cases à cocher des formats et des tags sont le composant **`Checkbox` du registry**, pas des cases natives : `docs/DESIGN.md` § Formulaires admin le prescrit pour tout l'espace admin, seul lui rendant l'état indéterminé d'un « tout sélectionner ». Le composant Radix ne soumet rien de lui-même, il faut lui passer `name` et `value` pour qu'il monte l'input caché correspondant.
-
-- [ ] **Step 2: Écrire le fil d'ariane**
+Si `AdminBreadcrumb` existe déjà (posé par le `08`), passer cette étape : le composant est générique, sans rien de propre au formulaire projet.
 
 ```typescript
 import Link from 'next/link'
@@ -97,9 +94,11 @@ export function AdminBreadcrumb({ items }: { items: BreadcrumbEntry[] }) {
 
 Les items sont fournis par chaque page. Une dérivation depuis le `pathname` supposerait de résoudre un identifiant de projet en titre lisible, ce qu'une page connaît déjà puisqu'elle a chargé le projet.
 
-`AdminHeader` n'est **pas** touché. Le fil se rend en tête du contenu de chaque page, pas dans le header : celui-ci est monté par le layout, donc lui faire porter le fil imposerait un contexte ou un slot pour qu'une page lui transmette ses maillons. La page, elle, a déjà chargé le projet dont elle affiche le titre.
+- [ ] **Step 3: Sortir les composants installés du post-MVP**
 
-- [ ] **Step 3: Vérifier typage et lint**
+Modifier `docs/DESIGN.md` § Mapping Composants : `Switch` rejoint Formulaires (ligne « Formulaires admin »), `Popover + Calendar` rejoint Formulaires (ligne « Sélecteur de date »), et `Breadcrumb` rejoint Navigation (ligne « Fil d'ariane ») si ce sub-project l'installe (sinon le `08` l'a déjà fait). Retirer les lignes correspondantes de la section Post-MVP.
+
+- [ ] **Step 4: Vérifier typage et lint**
 
 ```bash
 just typecheck && just lint
@@ -114,49 +113,45 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/projects/ProjectTagsField.tsx`
 - Create: `src/components/features/admin/projects/ClientMetaFields.tsx`
+- Modify: `src/lib/projects.ts` (ajout de `WORK_MODE_LABELS`)
 
 **Interfaces:**
-- Consomme : les enums de `src/lib/schemas/project.ts`, `CompanyFormDialog` du sub-project `08`.
-- Produit : `<ProjectTagsField tags={Tag[]} value={string[]} onChange={(ids: string[]) => void} />` et `<ClientMetaFields companies={{id, name}[]} legalEntities={{id, name}[]} defaultValues={...} errors={...} />`, montés par le formulaire de la Task 3.
+- Consomme : les enums de `src/lib/schemas/project.ts`, la liste des entreprises fournie par le sub-project `08`, `PROJECT_TYPE_LABELS` / `PROJECT_STATUS_LABELS` / `PROJECT_FORMAT_LABELS` / `CONTRACT_STATUS_LABELS` du sub-project `12`.
+- Produit : `WORK_MODE_LABELS`, à côté des quatre autres. `<ProjectTagsField tags={Tag[]} value={string[]} onChange={(ids: string[]) => void} />` et `<ClientMetaFields companies={{id, name}[]} disabled={boolean} defaultValues={...} errors={...} />`, montés par le formulaire de la Task 3.
 
-`legalEntities` traverse `ClientMetaFields` sans lui servir : il ne fait que l'acheminer jusqu'à `CompanyFormDialog`, qui en a besoin pour son select d'entité légale. L'oublier dans la signature casserait la création d'entreprise depuis le formulaire projet.
+- [ ] **Step 0: Compléter `src/lib/projects.ts`**
+
+```typescript
+import type { WorkMode } from '@/generated/prisma/client'
+
+export const WORK_MODE_LABELS: Record<WorkMode, string> = {
+  REMOTE: 'Remote',
+  HYBRIDE: 'Hybride',
+  PRESENTIEL: 'Sur site',
+}
+```
+
+`PROJECT_TYPE_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_FORMAT_LABELS` et `CONTRACT_STATUS_LABELS` existent déjà, écrits au sub-project `12` : ne pas les redéfinir ici, `ClientMetaFields` (Step 2) et `ProjectForm` (Task 3) les importent tels quels.
 
 - [ ] **Step 1: Écrire le champ de tags**
 
 Composant client. Points imposés :
 
-- les tags sont **groupés par `kind`**, avec le libellé de catégorie en en-tête de chaque groupe
-- chaque tag est un `Checkbox` shadcn, **jamais** un `Command` : l'état sélectionné de ce dernier est incorrect en `radix-nova`. Le libellé affiché est `nameFr`, l'interface d'administration étant en français, et l'en-tête de groupe est un libellé français écrit en dur pour chacune des six valeurs de `TagKind`, que l'enum ne porte pas
-- les identifiants retenus sont émis dans l'**ordre de sélection**, pas dans l'ordre d'affichage. C'est cet ordre qui alimentera `displayOrder`
-- la liste des tags retenus est affichée séparément, dans son ordre, pour que l'ordre soit visible avant enregistrement
-- chaque identifiant retenu est rendu dans un `<input type="hidden" name="tagIds" />`, ce qui produit les valeurs multiples que la Server Action lit avec `getAll`
-
-L'ordre de sélection est ce qui permet de se passer d'une interface de réordonnancement : recocher dans l'ordre voulu suffit.
+- un Combobox (`Popover` + `Command`) liste les tags **non encore retenus**, groupés par `TagKind` (`CommandGroup` par catégorie, libellé français écrit en dur comme au `07`), avec recherche sur `nameFr`
+- la coche d'un `CommandItem` se pilote par l'attribut `data-checked`, pas par l'état interne de `cmdk`, comme `IconCombobox` de `TagFormDialog` (`src/components/features/admin/tags/TagFormDialog.tsx`)
+- choisir un tag l'ajoute en fin de la liste des tags retenus et le retire des options du Combobox
+- la liste des tags retenus est un tableau en état local (`useState<Tag[]>`), rendu séparément : chaque ligne porte son rang (`index + 1`), le `nameFr` du tag, et un bouton de retrait
+- chaque ligne est `draggable`, avec `onDragStart`, `onDragOver` et `onDrop` qui réordonnent le tableau par `splice`, sur le modèle du glisser-déposer déjà écrit dans `DataTable` (`src/components/features/admin/DataTable.tsx`), mais en état purement client : ce composant n'écrit rien en base, il compose seulement la valeur soumise par le formulaire
+- chaque tag retenu est rendu dans un `<input type="hidden" name="tagIds" value={tag.id} />`, dans l'ordre du tableau : la Server Action du sub-project `11` lit `formData.getAll('tagIds')` et en déduit `displayOrder` par position
+- état vide : la liste retenue affiche un message plutôt que rien, tant qu'aucun tag n'est choisi
 
 - [ ] **Step 2: Écrire les champs de méta client**
 
-Composant client rendant l'entreprise, le mode de travail, le statut de contrat, la taille d'équipe et le nombre de livrables.
+Composant client rendant l'entreprise, le mode de travail, le statut de contrat, la taille d'équipe et le nombre de livrables. Reçoit une prop `disabled`, posée sur chacun de ses contrôles quand le type vaut `PERSONAL` : la card qui l'englobe reste montée en permanence (Task 3), ce composant ne démonte jamais ses champs, il les désactive.
 
-Le select d'entreprise est accompagné d'un bouton qui monte `CompanyFormDialog` :
+Le champ Entreprise est un **Combobox de recherche** parmi les entreprises passées en prop (même composition que le sélecteur d'icône du `07`), pas un `Select` : au-delà d'une dizaine d'entreprises, la recherche vaut mieux que la liste déroulante (`docs/DESIGN.md` § Champ de recherche). Sa valeur rejoint le `FormData` par un `<input type="hidden" name="companyId" />`, comme la couverture le fait pour `coverFilename` (Task 3). **Aucun bouton de création n'accompagne ce champ** : une entreprise manquante se crée sur son propre écran, au sub-project `08`, et redevient disponible ici au rechargement de la page.
 
-```typescript
-<CompanyFormDialog
-  company={null}
-  legalEntities={legalEntities}
-  trigger={
-    <Button variant="outline" size="icon" aria-label="Nouvelle entreprise">
-      <Plus className="size-5" />
-    </Button>
-  }
-  onCreated={(id) => setCompanyId(id)}
-/>
-```
-
-C'est l'usage pour lequel ce composant a été écrit au sub-project `08`. `onCreated` sélectionne l'entreprise créée sans rechargement, donc sans perdre la saisie du projet en cours.
-
-L'icône est un `Plus` de `lucide-react`, en import nommé, à 20px (`size-5`) : `docs/DESIGN.md` impose Lucide pour toutes les icônes d'interface, un `+` typographique n'en est pas une.
-
-Le mode de travail est **requis** dès que le type est `CLIENT`, contrairement au statut de contrat et à la taille d'équipe : il n'est pas nullable en base.
+Le mode de travail et le statut de contrat sont deux `Select` distincts, soumis par le formulaire parent via `onSubmit` + `startTransition` (Task 3). Le mode de travail est **requis** dès que le type est `CLIENT`, contrairement au statut de contrat et à la taille d'équipe : il n'est pas nullable en base.
 
 - [ ] **Step 3: Vérifier typage et lint**
 
@@ -172,12 +167,10 @@ Expected: aucune erreur.
 
 **Files:**
 - Create: `src/components/features/admin/projects/ProjectForm.tsx`
-- Modify: `src/components/features/admin/companies/CompanyFormDialog.tsx`
-- Modify: `src/app/admin/(protected)/entreprises/page.tsx`
 
 **Interfaces:**
-- Consomme : `createProject`, `updateProject` (sub-project `11`), `<ProjectTagsField />` et `<ClientMetaFields />` (Task 2), `<AssetPicker assets={…} />` (sub-project `10`, qui reçoit ses données en prop : sa requête est `server-only`).
-- Produit : `<ProjectForm project={AdminProjectDetail | null} tags={Tag[]} companies={...} legalEntities={...} />`, monté par les pages des Tasks 4 et 5. Le type vient du sub-project `11` : `ProjectWithRelations` décrit la requête publique et ne correspond pas à l'`include` de `findProjectForAdmin`.
+- Consomme : `createProject`, `updateProject` (sub-project `11`), `<ProjectTagsField />` et `<ClientMetaFields />`, `PROJECT_TYPE_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_FORMAT_LABELS`, `WORK_MODE_LABELS`, `CONTRACT_STATUS_LABELS` (Task 2), `<AssetPicker assets={…} />` (sub-project `10`, qui reçoit ses données en prop : sa requête est `server-only`), `AdminBreadcrumb` (sub-project `08`).
+- Produit : `<ProjectForm project={AdminProjectDetail | null} tags={Tag[]} companies={...} />`, monté par les pages des Tasks 4 et 5. Le type vient du sub-project `11` : `ProjectWithRelations` décrit la requête publique et ne correspond pas à l'`include` de `findProjectForAdmin`.
 
 - [ ] **Step 1: Écrire le formulaire**
 
@@ -188,57 +181,85 @@ const action = project ? updateProject.bind(null, project.id) : createProject
 const [state, formAction, pending] = useActionState(action, initialProjectFormState)
 ```
 
-**Structure des champs**, dans cet ordre :
+**En-tête du formulaire**, juste sous le fil d'ariane rendu par la page : le titre (`project.titleFr` ou « Nouveau projet ») à gauche, « Annuler » (`variant="ghost"`, lien vers `/admin/projets`) et « Enregistrer » (`type="submit"`, désactivé pendant `pending`) à droite, sur le modèle de `CompanyForm` (`08`). Le formulaire porte ce titre lui-même, pas la page : le bouton d'enregistrement a besoin de `pending`, propre à ce composant client, et `AdminPageShell` ne convient pas à un formulaire pleine page pour cette raison.
 
-| Section | Champs |
+```tsx
+<form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
+  <div className="flex flex-wrap items-center justify-between gap-4">
+    <h1 className="font-sans text-2xl font-semibold tracking-tight">
+      {project ? project.titleFr : "Nouveau projet"}
+    </h1>
+    <div className="flex gap-2">
+      <Button type="button" variant="ghost" asChild>
+        <Link href="/admin/projets">Annuler</Link>
+      </Button>
+      <Button type="submit" disabled={pending}>
+        <Save aria-hidden data-icon="inline-start" />
+        {pending ? "Enregistrement..." : "Enregistrer"}
+      </Button>
+    </div>
+  </div>
+  {/* deux colonnes de Card, ci-dessous */}
+</form>
+```
+
+**`font-sans` sur ce `h1` est requis.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }` : une classe utilitaire écrase la taille et la graisse, jamais la famille. Sans `font-sans`, ce titre rendrait en Sansation à 600, une graisse qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). Le `tracking-tight` hérité est conservé : l'écran admin reprend le réglage H3, 24px en 600, comme `docs/DESIGN.md` le prescrit.
+
+**Disposition**, deux colonnes de `Card` comme la maquette : une seule colonne en mobile, dans l'ordre du DOM ci-dessous ; au-delà, la colonne de contenu occupe la plus grande part, la colonne latérale une part plus étroite et reste `sticky` pendant le défilement.
+
+Colonne de contenu :
+
+| Card | Champs |
 |---|---|
-| Identification | slug, statut, ordre d'affichage |
-| Contenu français | titre, description, markdown de case study |
-| Contenu anglais | titre, description, markdown de case study |
-| Classification | type, formats (`Checkbox` multiples), tags |
-| Liens | URL de dépôt, URL de démonstration |
-| Dates | début, fin |
+| Identité | slug, ordre d'affichage, titre (français), titre (anglais), puis en pleine largeur le type de projet (`formats`, `Checkbox` multiples) |
+| Description | description (français), description (anglais) |
+| Tags | `<ProjectTagsField />` (Task 2) |
+| Case study | contenu (français, `rows=8`), contenu (anglais, `rows=4`), `font-mono`, redimensionnables verticalement |
+
+Colonne latérale :
+
+| Card | Champs |
+|---|---|
+| Publication | statut (`Select`), type (`Switch`), dates de début et de fin (`Popover` + `Calendar`) |
+| Avancement | URL de dépôt, URL de démonstration |
 | Couverture | `AssetPicker`, alimenté par la page qui appelle `listAssets('projets/')` et lui passe le résultat en prop, plus un `<input type="hidden" name="coverFilename" />` qui porte la sélection jusqu'à l'action |
-| Méta client | `ClientMetaFields`, affiché seulement si le type vaut `CLIENT`. Le champ du nombre de livrables porte `defaultValue={1}` : validé par `min(1)` au sub-project `11`, un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause |
+| Méta client | `<ClientMetaFields disabled={type === 'PERSONAL'} ... />` (Task 2), toujours montée |
 
-Chaque intitulé de section relève de la famille Label de la scale : `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. Au-delà d'une dizaine de caractères, y ajouter `text-balance` : l'espacement large fait déborder, ce qui s'est déjà produit deux fois sur le site public. « Contenu français » fait seize caractères, « Classification » quatorze.
+Chaque `Card` porte son titre dans un `CardTitle` (« Identité », « Description », « Tags », « Case study », « Publication », « Avancement », « Couverture », « Méta client »), le composant portant déjà l'échelle admin (`docs/DESIGN.md` § Scale typographique) : pas de style de libellé ad hoc à composer.
 
-**Répartition responsive**, mobile-first au même titre que le site public :
+Les libellés d'énumération (`formats`, `status`, `type`, `workMode`, `contractStatus`) s'importent tous les cinq depuis `@/lib/projects` (Task 2) : `PROJECT_FORMAT_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_TYPE_LABELS`, `WORK_MODE_LABELS`, `CONTRACT_STATUS_LABELS`. Aucun n'est redéfini ici.
 
-- **Base** : une colonne. Les paires de champs courts admettent deux colonnes, ce qui vaut pour la date de début et la date de fin
-- **`md:`** : deux colonnes pour Identification, Classification, Liens, Dates et Méta client. Contenu français, Contenu anglais et Couverture restent sur une colonne pleine largeur, leurs zones de markdown et leurs vignettes n'ayant rien à gagner à être resserrées
-- **`lg:`** : trois colonnes pour Identification et Méta client, les seules sections qui portent assez de champs courts. Les autres gardent leur palier `md:`
-
-**Six comportements non négociables :**
+**Sept comportements non négociables :**
 
 1. **Repeuplement après erreur.** Chaque champ tire son `defaultValue` de `state.values` s'il existe, sinon du projet, sinon vide. Un formulaire de cette taille qui perd la saisie sur une erreur de validation est inutilisable.
 
 2. **Erreur sous chaque champ**, depuis `state.errors`, et pas seulement un message global.
 
-3. **Avertissement à la bascule vers personnel.** Quand on édite un projet qui avait une méta client et qu'on passe le type sur `PERSONAL`, afficher un avertissement avant enregistrement : la méta sera supprimée définitivement. Le sub-project `11` l'exécute sans broncher, c'est l'interface qui doit prévenir.
+3. **Avertissement par `AlertDialog` à la bascule vers personnel.** Le `Switch` de type, quand il quitte `CLIENT` sur un projet existant, ouvre une `AlertDialog` avant de rien changer : titre et description nomment ce qui sera supprimé (entreprise, mode de travail, statut de contrat, taille d'équipe, nombre de livrables), le pied porte `AlertDialogCancel` (« Garder client ») et une `AlertDialogAction variant="destructive"` qui confirme (« Supprimer la méta client »). Seule la confirmation fait passer l'état sur `PERSONAL` et désactive la card Méta client ; annuler ne change rien. **Aucun texte persistant** sous le `Switch`, la modale portant seule l'avertissement.
 
-   L'avertissement est un `<p className="text-sm text-destructive">` rendu sous le select de type, et non un `Alert` : le composant n'est pas installé, et le formulaire rend déjà toutes ses erreurs de champ sous cette forme. La soumission passe ensuite par un `AlertDialog` : le scénario 3 exige que l'enregistrement n'ait lieu **qu'après confirmation**, ce qu'un message seul ne produit pas.
+4. **La card Méta client ne se démonte jamais.** `<ClientMetaFields disabled={type === 'PERSONAL'} />` désactive ses contrôles pour un projet personnel plutôt que de retirer la card : un contrôle `disabled` n'apparaît pas dans le `FormData` soumis, ce qui produit exactement l'absence de ces champs qu'attend le schéma conditionnel du sub-project `11`.
 
-4. **Le bouton de soumission est désactivé pendant `pending`**, un enregistrement double créerait un conflit de slug.
+5. **Le bouton de soumission est désactivé pendant `pending`**, un enregistrement double créerait un conflit de slug.
 
-5. **La couverture rejoint le `FormData` par un champ caché.** `AssetPicker` est un composant contrôlé, sa valeur n'atteint pas l'action toute seule : rendre `<input type="hidden" name="coverFilename" value={selected ?? ''} />` à côté de lui, comme les tags le font avec `tagIds`. Sans lui, `formData.get('coverFilename')` du sub-project `11` lit toujours une chaîne vide et le scénario 8 échoue.
+6. **La couverture rejoint le `FormData` par un champ caché.** `AssetPicker` est un composant contrôlé, sa valeur n'atteint pas l'action toute seule : rendre `<input type="hidden" name="coverFilename" value={selected ?? ''} />` à côté de lui, comme les tags le font avec `tagIds`. Sans lui, `formData.get('coverFilename')` du sub-project `11` lit toujours une chaîne vide et le scénario 8 échoue.
 
-6. **Retour à la liste après enregistrement.** Le scénario 1 de la spec l'exige (« on est redirigé vers la liste, où il figure ») et rien ne le produit aujourd'hui : les actions du sub-project `11` retournent `{ ok: true, savedId }` sans rediriger. Un `useEffect` sur `state.ok` qui appelle `router.push('/admin/projets')`, la redirection appartenant à l'interface et non à l'action, qui doit rester réutilisable.
+7. **Retour à la liste après enregistrement.** Le scénario 1 de la spec l'exige (« on est redirigé vers la liste, où il figure ») et rien ne le produit aujourd'hui : les actions du sub-project `11` retournent `{ ok: true, savedId }` sans rediriger. Un `useEffect` sur `state.ok` qui appelle `router.push('/admin/projets')`, la redirection appartenant à l'interface et non à l'action, qui doit rester réutilisable.
 
-Les formats sont des `Checkbox` shadcn partageant `name="formats"`, ce qui produit les valeurs multiples lues par `getAll`. Le composant Radix ne soumet rien de lui-même : lui passer `name` et `value` pour qu'il monte l'input caché correspondant.
+Les formats sont des `Checkbox` shadcn partageant `name="formats"`, ce qui produit les valeurs multiples lues par `getAll`. Le composant Radix ne soumet rien de lui-même : lui passer `name` et `value` pour qu'il monte l'input caché correspondant. `deliverablesCount` porte `defaultValue={1}` : validé par `min(1)` au sub-project `11`, un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause.
 
-- [ ] **Step 1 bis: Rendre le logo d'entreprise éditable**
+**Trois `Select` imposent `onSubmit` + `startTransition`.** Statut, mode de travail et statut de contrat perdraient leur valeur au premier envoi si le formulaire soumettait par `<form action>` : React le réinitialise après l'action, et Radix Select répond à ce `reset` en rappelant `onValueChange` avec sa valeur du premier rendu. Le formulaire soumet donc :
 
-`Company.logoFilename` n'est modifiable nulle part à ce stade, et sans cette étape il ne le serait toujours pas à la fin de l'epic : le sub-project `08` l'excluait faute d'`AssetPicker`, le `10` écrivait l'`AssetPicker` « pour le `13` », et le `13` ne branchait que la couverture de projet. Chacun renvoyait au suivant.
+```typescript
+function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  event.preventDefault()
+  const formData = new FormData(event.currentTarget)
+  startTransition(() => {
+    formAction(formData)
+  })
+}
+```
 
-Deux changements, l'un et l'autre légers puisque le composant existe :
-
-1. `CompanyFormDialog` reçoit une prop **optionnelle** `assetPicker: ReactNode`, rendue dans son champ logo quand elle est fournie, plus un `<input type="hidden" name="logoFilename" />` qui porte la sélection jusqu'à l'action, exactement comme la couverture le fait pour le projet. Sans la prop, le champ reste absent et le comportement du sub-project `08` est inchangé, y compris sa règle de ne jamais écraser `logoFilename` en passant.
-2. Les deux points de montage la fournissent : ce formulaire, depuis son select d'entreprise, et `/admin/entreprises`.
-
-**L'`AssetPicker` du logo ne vise pas le même bucket que celui de la couverture.** Il parcourt `freelance/crm/entreprises/` sur `portfolio-admin`, là où la couverture parcourt `projets/` sur `portfolio-assets`. Le sub-project `09` a séparé les deux : un logo d'entreprise est une donnée du CRM, que la route publique ne sert pas. Le sub-project `10` a prévu le bucket en paramètre du sélecteur pour ce cas précis.
-
-Le site public continue de n'afficher que le nom de l'entreprise : ce logo est destiné aux écrans d'administration.
+comme `TagFormDialog` (`src/components/features/admin/tags/TagFormDialog.tsx`, `.claude/rules/shadcn-ui/components.md`).
 
 - [ ] **Step 2: Vérifier typage et lint**
 
@@ -259,21 +280,20 @@ Expected: aucune erreur.
 - Consomme : `<ProjectForm />` (Task 3), `<AdminBreadcrumb />` (Task 1), les requêtes d'administration des tags et des entreprises.
 - Produit : la page `/admin/projets/nouveau`.
 
-> **Les deux pages de ce sub-project lisent des données dynamiques : leur chargement passe sous `<Suspense>`.** Avec `cacheComponents: true`, une lecture ni cachée ni suspendue lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Le motif est le même dans les deux cas : un sous-composant `async` porte le `Promise.all` et rend le formulaire, la page ne garde que le fil d'Ariane, le `<Suspense>` et son `StackedSkeleton`, aux hauteurs des blocs de champs. `docs/DESIGN.md` en fait le composant de fallback de `<Suspense>` : il empile des `Skeleton` aux hauteurs passées en props, il n'y a pas de squelette à écrire. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Ne pas prendre `(public)/projets/page.tsx` pour modèle : sa query est en `'use cache'`, donc il ne porte aucun `<Suspense>`. Les blocs de code ci-dessous montrent le chargement, pas la structure finale de la page.
+> **Les deux pages de ce sub-project lisent des données dynamiques : leur chargement passe sous `<Suspense>`.** Avec `cacheComponents: true`, une lecture ni cachée ni suspendue lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Le motif est le même dans les deux cas : un sous-composant `async` porte le `Promise.all` et rend le formulaire, la page ne garde que le fil d'Ariane, le `<Suspense>` et son `StackedSkeleton`, aux hauteurs des blocs de champs. `docs/DESIGN.md` en fait le composant de fallback de `<Suspense>` : il empile des `Skeleton` aux hauteurs passées en props, il n'y a pas de squelette à écrire. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Ne pas prendre `(public)/projets/page.tsx` pour modèle : sa query est en `'use cache'`, donc il ne porte aucun `<Suspense>`. Le bloc de code ci-dessous montre le chargement, pas la structure finale de la page.
 
 - [ ] **Step 1: Remplacer la page d'attente**
 
 ```typescript
 import { AdminBreadcrumb } from '@/components/layout/AdminBreadcrumb'
 import { ProjectForm } from '@/components/features/admin/projects/ProjectForm'
-import { findAllCompaniesForAdmin, findAvailableLegalEntities } from '@/server/queries/companies'
+import { findAllCompaniesForAdmin } from '@/server/queries/companies'
 import { findAllTagsForAdmin } from '@/server/queries/tags'
 
 export default async function AdminNouveauProjetPage() {
-  const [tags, companies, legalEntities] = await Promise.all([
+  const [tags, companies] = await Promise.all([
     findAllTagsForAdmin(),
     findAllCompaniesForAdmin(),
-    findAvailableLegalEntities(),
   ])
 
   return (
@@ -284,26 +304,17 @@ export default async function AdminNouveauProjetPage() {
           { label: 'Nouveau projet' },
         ]}
       />
-      <h1 className="mt-4 font-sans text-2xl font-semibold tracking-tight">Nouveau projet</h1>
-      <div className="mt-6">
-        <ProjectForm
-          project={null}
-          tags={tags}
-          companies={companies}
-          legalEntities={legalEntities}
-        />
+      <div className="mt-4">
+        <ProjectForm project={null} tags={tags} companies={companies} />
       </div>
     </div>
   )
 }
 ```
 
-Les trois requêtes sont parallélisées : elles ne dépendent pas les unes des autres.
+Les deux requêtes sont parallélisées : elles ne dépendent pas l'une de l'autre. Pas de `h1` séparé dans la page : `ProjectForm` (Task 3) porte son propre titre, dans la rangée d'en-tête qui accueille aussi « Annuler » et « Enregistrer ».
 
-Deux points de style sont imposés par `docs/DESIGN.md` et valent pour les deux pages de ce sub-project :
-
-- **`font-sans` sur le `h1`.** `globals.css` applique en `@layer base` `h1 { @apply font-display text-4xl font-bold tracking-tight text-balance sm:text-5xl }`. Une classe utilitaire écrase la taille et la graisse, jamais la famille : sans `font-sans`, ce titre rendrait en Sansation à 600, une graisse qui n'est pas chargée (`Sansation` est déclarée en `['700']` seul). Le `tracking-tight` hérité est en revanche conservé : l'écran admin reprend le réglage H3 tel quel, 24px en 600, comme `docs/DESIGN.md` le prescrit. Les pages internes de l'admin gardent Geist Sans.
-- **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
+Un point de style est imposé par `docs/DESIGN.md` et vaut pour les deux pages de ce sub-project : **`w-full py-6 lg:py-8` sur le conteneur.** Le container admin occupe la pleine largeur restante après la sidebar, sans `max-w-7xl` centré, et son rythme vertical est resserré : la densité prime sur le souffle.
 
 ---
 
@@ -323,7 +334,7 @@ import { notFound } from 'next/navigation'
 
 import { AdminBreadcrumb } from '@/components/layout/AdminBreadcrumb'
 import { ProjectForm } from '@/components/features/admin/projects/ProjectForm'
-import { findAllCompaniesForAdmin, findAvailableLegalEntities } from '@/server/queries/companies'
+import { findAllCompaniesForAdmin } from '@/server/queries/companies'
 import { findProjectForAdmin } from '@/server/queries/projects'
 import { findAllTagsForAdmin } from '@/server/queries/tags'
 
@@ -332,11 +343,10 @@ export default async function AdminEditProjetPage({
 }: PageProps<'/admin/projets/[id]'>) {
   const { id } = await params
 
-  const [project, tags, companies, legalEntities] = await Promise.all([
+  const [project, tags, companies] = await Promise.all([
     findProjectForAdmin(id),
     findAllTagsForAdmin(),
     findAllCompaniesForAdmin(),
-    findAvailableLegalEntities(),
   ])
 
   if (!project) notFound()
@@ -349,14 +359,8 @@ export default async function AdminEditProjetPage({
           { label: project.titleFr },
         ]}
       />
-      <h1 className="mt-4 font-sans text-2xl font-semibold tracking-tight">{project.titleFr}</h1>
-      <div className="mt-6">
-        <ProjectForm
-          project={project}
-          tags={tags}
-          companies={companies}
-          legalEntities={legalEntities}
-        />
+      <div className="mt-4">
+        <ProjectForm project={project} tags={tags} companies={companies} />
       </div>
     </div>
   )
@@ -365,7 +369,7 @@ export default async function AdminEditProjetPage({
 
 `notFound()` traite l'identifiant inconnu par une 404 propre plutôt qu'une erreur de rendu.
 
-Le fil d'ariane affiche le titre du projet, ce qu'une dérivation depuis le `pathname` n'aurait pas pu faire sans requête supplémentaire.
+Le fil d'ariane affiche le titre du projet, ce qu'une dérivation depuis le `pathname` n'aurait pas pu faire sans requête supplémentaire. Pas de `h1` séparé ici non plus : `ProjectForm` affiche `project.titleFr` dans sa propre rangée d'en-tête.
 
 - [ ] **Step 2: Vérifier que tout compile**
 
@@ -387,27 +391,21 @@ Depuis `/admin/projets`, cliquer sur « Nouveau projet », renseigner les champs
 
 Expected: le projet est créé et apparaît dans la liste.
 
-- [ ] **Step 2: Vérifier l'affichage conditionnel**
+- [ ] **Step 2: Vérifier l'affichage conditionnel de la méta client**
 
 Basculer le type sur client.
 
-Expected: les cinq champs de méta client apparaissent. Rebasculer sur personnel les masque.
+Expected: les cinq champs de méta client passent de désactivés à actifs, la card restant affichée. Rebasculer sur personnel les désactive à nouveau, sans les démonter.
 
-- [ ] **Step 3: Créer une entreprise sans quitter la page**
-
-Sur un projet client partiellement rempli, ouvrir la création d'entreprise depuis le select, la créer.
-
-Expected: elle est sélectionnée, et **tous les champs déjà saisis du projet sont intacts**. C'est le scénario qui justifie tout le travail de double montage du sub-project `08`.
-
-- [ ] **Step 4: Vérifier le repeuplement après erreur**
+- [ ] **Step 3: Vérifier le repeuplement après erreur**
 
 Remplir largement le formulaire en type client, laisser l'entreprise vide, enregistrer.
 
 Expected: l'erreur apparaît sous le champ d'entreprise et **aucune autre valeur n'est perdue**.
 
-- [ ] **Step 5: Vérifier l'ordre des tags**
+- [ ] **Step 4: Vérifier l'ajout, le réordonnancement et le retrait des tags**
 
-Cocher trois tags dans un ordre choisi, enregistrer, rouvrir le projet.
+Ajouter trois tags par le Combobox dans un ordre choisi, en glisser un à une autre position, retirer le dernier, enregistrer, rouvrir le projet.
 
 ```sql
 SELECT t.slug, pt."displayOrder" FROM "ProjectTag" pt
@@ -416,21 +414,21 @@ JOIN "Project" p ON p.id = pt."projectId"
 WHERE p.slug = '<slug>' ORDER BY pt."displayOrder";
 ```
 
-Expected: l'ordre en base correspond à l'ordre de sélection.
+Expected: l'ordre en base correspond à l'ordre final de la liste, sans trou après le retrait.
 
-- [ ] **Step 6: Vérifier le sélecteur de couverture**
+- [ ] **Step 5: Vérifier le sélecteur de couverture**
 
 Ouvrir le sélecteur.
 
-Expected: seuls les assets des dossiers de projets sont proposés, pas les CV.
+Expected: seuls les assets du dossier `projets/` sont proposés, pas les CV.
 
-- [ ] **Step 7: Vérifier l'avertissement de bascule**
+- [ ] **Step 6: Vérifier l'avertissement de bascule**
 
 Modifier un projet client existant et passer son type sur personnel.
 
-Expected: un avertissement signale la suppression de la méta client avant l'enregistrement.
+Expected: une `AlertDialog` signale la suppression de la méta client avant l'enregistrement. Annuler garde le type client sans rien modifier ; confirmer bascule le type et désactive la card.
 
-- [ ] **Step 8: Vérifier la préservation en modification**
+- [ ] **Step 7: Vérifier la préservation en modification**
 
 Modifier uniquement le titre français d'un projet complet, enregistrer.
 
@@ -441,39 +439,25 @@ FROM "Project" WHERE slug = '<slug>';
 
 Expected: tous ces champs sont inchangés.
 
-- [ ] **Step 9: Vérifier la 404**
+- [ ] **Step 8: Vérifier la 404**
 
 Demander `/admin/projets/identifiant-inexistant`.
 
 Expected: une 404 propre.
 
-- [ ] **Step 10: Vérifier la publication**
+- [ ] **Step 9: Vérifier la publication**
 
 Passer un projet en publié, puis consulter `/fr/projets`.
 
 Expected: il y apparaît. Son absence signalerait que `updateTag('projects')` n'a pas fonctionné.
 
-- [ ] **Step 11: Vérifier sur téléphone**
+- [ ] **Step 10: Vérifier sur téléphone**
 
 Réduire la fenêtre sous 768 pixels et parcourir le formulaire.
 
-Expected: tous les champs sont utilisables, aucun défilement horizontal, et les zones de markdown restent lisibles.
+Expected: une seule colonne, dans l'ordre contenu puis latérale, tous les champs utilisables, aucun défilement horizontal, et les zones de markdown restent lisibles.
 
-- [ ] **Step 11 bis: Vérifier l'édition du logo d'entreprise**
-
-Depuis le select d'entreprise de ce formulaire, ouvrir `CompanyFormDialog` sur une entreprise existante, lui choisir un logo par le sélecteur d'assets, enregistrer. Refaire l'opération depuis `/admin/entreprises`.
-
-```sql
-SELECT slug, "logoFilename" FROM "freelance"."Company" WHERE slug = '<slug>';
-```
-
-Expected: la colonne porte une clé sous `freelance/crm/entreprises/`. Le sélecteur ne doit proposer que ce préfixe, sur le bucket **admin**, et non les fichiers de projet.
-
-Vérifier au passage que le site public n'affiche toujours que le nom : le logo est du back-office depuis le sub-project `09`, il ne revient pas sur la vitrine.
-
-Sans cette étape, `Company.logoFilename` resterait modifiable par le seul seed à la fin de l'epic : le `08` renvoyait au `10`, le `10` au `13`, et personne ne le branchait.
-
-- [ ] **Step 11 ter: Vérifier le nombre de livrables**
+- [ ] **Step 11: Vérifier le nombre de livrables**
 
 Créer un projet client sans toucher au champ du nombre de livrables, puis en créer un second en vidant ce champ.
 
