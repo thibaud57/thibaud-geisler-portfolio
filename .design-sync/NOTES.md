@@ -21,9 +21,17 @@ système, puis refait entièrement.
 - **`DesignSync` tronque la lecture d'un fichier à 256 Kio** (`get_file`, constaté le 2026-09-17) :
   `Espace admin.dc.html` dépasse cette taille, la fin du fichier ne revient pas et rien ne le signale.
   Au 07, l'écran Tags était lisible, pas les modales, le formulaire entreprise ni l'écran des assets.
-- **Lire la maquette entière depuis son export** : dans Claude Design, menu du projet, Export puis
+- **Lire la maquette depuis son export** : dans Claude Design, menu du projet, Export puis
   ZIP, dézippé dans `.design-sync/maquette/` (ignoré par git : la maquette fait foi, une copie
   versionnée vieillirait). Ré-exporter avant de s'en servir si la maquette a bougé.
+- **Lire les fiches du design system depuis son export** : même procédure sur le projet du design
+  system, dézippé dans `.design-sync/design-system/` (ignoré par git, comme par ESLint, Prettier et
+  TypeScript : il porte des `.jsx` et des `.d.ts`). Chaque composant y a sa fiche
+  `components/<groupe>/<Nom>.prompt.md`. `DesignSync` est réservé à `/design-sync` : ré-exporter
+  après chaque sync plutôt que lire en ligne. La copie `_ds/` de la maquette n'a pas les fiches.
+- **Lire un écran, pas le fichier** : l'export porte tous les écrans dans un seul fichier. Repérer
+  l'écran par son identifiant (`isTags`, `dlgDeleteTag`…), lire sa plage, puis les valeurs
+  calculées qu'il utilise (libellés, colonnes, items) dans le script en fin de fichier.
 - **Vérifier qu'un écran est complet avant de s'y fier** : un écran coupé ressemble à un écran
   simple. L'export se termine par `</html>`, une lecture tronquée non.
 

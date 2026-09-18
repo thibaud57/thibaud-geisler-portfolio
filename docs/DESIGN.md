@@ -511,6 +511,25 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 # 🔗 Ressources
 
+## Maquette et design system externes
+
+- **Design system** : [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : ce design system porté dans Claude Design (composants, cartes de référence et kit du site public), synchronisé à la main depuis ce dépôt par `/design-sync`. Fait foi sur les composants
+- **Maquette** : [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : les écrans de l'espace admin, construits sur le design system ci-dessus. Fait foi sur l'apparence des écrans : à lire avec le système avant d'implémenter un écran
+- **Lecture locale** : exports ZIP dézippés dans `.design-sync/maquette/` et `.design-sync/design-system/`, ignorés par git, procédure dans `.design-sync/NOTES.md`. La maquette se ré-exporte quand elle évolue : sa lecture distante s'arrête à 256 Kio sans prévenir, et elle dépasse cette taille. Le design system se ré-exporte après chaque `/design-sync` : l'outil qui le lit en ligne est réservé à ce sync, et c'est dans l'export que se lisent les fiches `.prompt.md` des composants
+
+### Arbitrages
+
+Écarts à la maquette ou au design system tranchés par le propriétaire. Ils priment sur eux pour tous les écrans.
+
+- **Espacement des formulaires en modale** : 16px (`gap-4`) entre les champs et entre les rangées, là où la maquette en montre 12
+- **Erreur de champ** : `text-sm text-destructive` (14px) sous le champ, là où la maquette l'écrit en 12px
+- **Refus de suppression** : remplace le texte de la confirmation, en `text-destructive` dès l'ouverture et sans bandeau séparé, là où la maquette garde le texte et ajoute un `Alert` dessous
+- **Icône de confirmation** : `TriangleAlert` sans tuile, là où la maquette et le design system la posent sur un fond `muted`
+- **Libellés bilingues** : en toutes lettres, « Nom (français) » et « Nom (anglais) », là où la maquette écrit « Nom (FR) » et « Nom (EN) »
+- **Titre d'une modale de modification** : nomme l'élément, « Modifier Agents IA », là où la maquette écrit « Modifier le tag »
+- **Description d'un formulaire en modale** : dit l'action, « Créer un tag pour catégoriser les projets. » ou « Modifier les informations de ce tag. », là où la maquette y explique la langue des noms
+- **Valeurs métier affichées** : celles de la base et de ses règles, là où la maquette montre des valeurs d'exemple parfois en retard (trois catégories de tag pour six, « CDD » pour « Stage », « Automatisation » et « Data / IA » pour « CLI » et « IA », un ordre d'affichage à partir de 0 au lieu de 1)
+
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)
 - [Tailwind CSS](https://tailwindcss.com/docs)
@@ -520,8 +539,6 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - [country-flag-icons](https://catamphetamine.gitlab.io/country-flag-icons/)
 
 ## Ressources Complémentaires
-- [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : ce design system porté dans Claude Design (composants, cartes de référence et kit du site public), synchronisé à la main depuis ce dépôt
-- [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : la maquette des écrans admin, construite sur le design system ci-dessus. À lire avec lui avant d'implémenter un écran : le système dit avec quels composants, la maquette à quoi l'écran ressemble
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
 - [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin et `Kanban` pour l'espace Dev (post-MVP)

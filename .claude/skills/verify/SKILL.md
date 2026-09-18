@@ -133,6 +133,15 @@ async (page) => {
 
 Supprimer `.playwright-mcp/admin.txt` aussitôt les cookies posés : `eslint .` le lit aussi. En fin de run, `clearCookies()` côté navigateur puis la déconnexion par curl ci-dessus. Mesurer plutôt que regarder : `getBoundingClientRect` et `getComputedStyle` donnent les écarts et couleurs exacts, une capture d'élément (`locator.screenshot`) donne le rendu à comparer à la maquette. Relever les `console` de type `warning` et `error` pendant chaque scénario.
 
+## Contrôler la fidélité à la maquette
+
+Quand la spec a une section « Références de design », l'écran livré se compare à la maquette, pas seulement au fonctionnel : au 07, un écran qui passait tous les tests ne lui ressemblait pas.
+
+- **Source** : l'extrait que `/implement-subproject` passe à `/verify` quand il en passe un, c'est ce que les implementers ont reçu. Sinon l'export local `.design-sync/maquette/Espace admin.dc.html`, et pour les fiches de composants `.design-sync/design-system/components/` (procédure et fraîcheur dans `.design-sync/NOTES.md`). Chaque écran s'y trouve par son identifiant (`isTags`, `dlgDeleteTag`…), les valeurs calculées (libellés, colonnes, items) dans le script en fin de fichier
+- **Arbitrages d'abord** : `docs/DESIGN.md` § Arbitrages liste les écarts tranchés par le propriétaire. Un écart qui en applique un est conforme
+- **Comparer écran par écran**, modales et états compris (vide, erreur de validation, suppression refusée) : disposition, ordre et largeur des colonnes, composants, libellés, boutons et leur ordre. Mesurer les largeurs et écarts au `getBoundingClientRect`, capturer chaque modale au `locator.screenshot`
+- **Un écart non consigné est un échec**, rapporté avec l'écran, la ligne de la maquette et la mesure. Jamais corrigé en silence : c'est au propriétaire de trancher entre la maquette et le code
+
 ## Prouver que la garde admin tient
 
 Un cookie forgé passe le proxy, qui ne teste que sa présence : c'est la garde serveur qui doit tout refuser, **y compris le payload RSC de la page**, pas seulement l'écran affiché.

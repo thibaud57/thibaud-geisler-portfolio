@@ -72,5 +72,6 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
-# Export ZIP de la maquette Claude Design, lu en local : la maquette fait foi, une copie versionnée vieillirait
+# Exports ZIP de la maquette et du design system Claude Design, lus en local : la source en ligne fait foi, une copie versionnée vieillirait
 .design-sync/maquette/
+.design-sync/design-system/
