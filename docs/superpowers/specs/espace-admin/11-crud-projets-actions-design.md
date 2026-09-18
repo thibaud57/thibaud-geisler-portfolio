@@ -17,7 +17,7 @@ Créer, modifier et supprimer un projet avec ses relations : la méta client et 
 
 L'ordre d'affichage des projets forme une suite continue de 1 à n sur l'ensemble des projets, client et personnels mélangés : c'est la même liste que sert la page publique `/projets`. La création, la modification et la suppression maintiennent cette suite, et une Server Action `reorderProjects` porte le glisser-déposer que le sub-project `12` câble sur sa vue « Tous ».
 
-Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`. C'est le sub-project le plus dense en règles de cohérence de toute la feature, d'où sa séparation d'avec l'interface.
+Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`. Leurs écrans de maquette (`isProjets`, `isForm`) servent seulement à vérifier que les données exposées ici suffisent à les rendre. C'est le sub-project le plus dense en règles de cohérence de toute la feature, d'où sa séparation d'avec l'interface.
 
 Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement » en porte la suite prévue.
 
@@ -29,11 +29,6 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 
 - `07-crud-tags-design.md` (statut: draft) : les tags doivent exister pour être rattachés, et le pattern de Server Action vient de là.
 - `08-crud-entreprises-design.md` (statut: draft) : un projet client référence une entreprise.
-
-## Références de design
-
-- **Aucun écran** : ce sub-project ne pose que des Server Actions et des requêtes. Les écrans qui les consomment sont dans la maquette, la liste (`isProjets`) au `12` et le formulaire (`isForm`) au `13` : les lire ici sert seulement à vérifier que les données exposées suffisent à les rendre.
-- Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
 
 ## Files touched
 

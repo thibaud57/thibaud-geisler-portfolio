@@ -33,7 +33,7 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 
 - **Maquette** : l'écran Projets (`isProjets`), ses trois vues de sous-navigation (script `8420-8424`, titre et accroche dynamiques `projViewTitle`/`projViewHint`), ses tris de colonne (`sortByOrder`, `sortTitle`, `sortYear`, `sortEnd`), son pied paginé (`projBar`), son état vide (`noRows`) et sa confirmation de suppression (`dlgDeleteProject`).
 - **L'écran suit la maquette, y compris ses deux contrôles de barre d'outils** : le sélecteur de colonnes affichées (`projColsOpen`), venu du `DataTable` du sub-project `08`, et les filtres à compteurs facettés (`projFacets`), que le `DataTable` porte depuis le sub-project `07`. Les filtres sont des facettes multi-sélection à compteurs, jamais un `Select`.
-- **Design system** : les fiches `.prompt.md` de la table partagée du `07`, du sélecteur de colonnes et de la sous-navigation du `08`.
+- **Design system** : les fiches `.prompt.md` de `Table`, `Popover` et `Checkbox` (colonnes et facettes), `Pagination` et `Select` (pied), `Tooltip` (actions de ligne), `AlertDialog` (suppression) et `Sidebar` (sous-navigation).
 - Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
 
 ## Files touched
