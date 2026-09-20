@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "crud-entreprises"
 goal: "Gérer les entreprises clientes sur un écran plein dédié, poser l'arborescence complète de la barre latérale admin et ajouter le sélecteur de colonnes au DataTable partagé"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "full"
 depends_on: ["06-shell-admin-design.md", "07-crud-tags-design.md"]
