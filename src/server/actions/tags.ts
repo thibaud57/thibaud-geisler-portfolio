@@ -9,13 +9,9 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { computeIdsAtPosition, removeId, sameIdSet } from "@/lib/reorder"
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
-import { createActionLogger } from "@/lib/server-utils"
+import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
 import { type TagDeleteState, type TagFormState, type TagReorderState } from "./tags.types"
-
-function isPrismaError(err: unknown, code: string): boolean {
-  return typeof err === "object" && err !== null && "code" in err && err.code === code
-}
 
 function invalidateTagCaches(): void {
   updateCacheTag("tags")

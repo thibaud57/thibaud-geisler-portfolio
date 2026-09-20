@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react"
-import { ArrowDown, ArrowUp, ChevronsUpDown, Funnel, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, Funnel, Search } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,9 @@ import { cn } from "@/lib/utils"
 
 const UNGROUPED_KEY = "__all__"
 
+// Pastille compacte de la maquette (16px, texte 10px) : le badge par défaut alourdirait un bouton sm.
+const COUNTER_BADGE_CLASS = "h-4 min-w-4 px-[5px] text-[10px] leading-none"
+
 // Une colonne est triable ou cherchable par la seule présence de son accesseur : sans flag à
 // tenir en phase, une colonne déclarée triable sans comparateur est impossible à écrire.
 export interface Column<T> {
@@ -58,6 +61,11 @@ export interface Column<T> {
   cell: (row: T) => ReactNode
   sortValue?: (row: T) => string | number
   searchValue?: (row: T) => string
+  hideable?: boolean
+  defaultVisible?: boolean
+  // Colonne purement visuelle (ex. logo en tuile) : le header existe pour l'accessibilité sans
+  // occuper de place, contrairement à un header vide qui casserait la lecture du tableau au lecteur d'écran.
+  headerSrOnly?: boolean
 }
 
 export interface GroupBy<T, K extends string = string> {
@@ -89,7 +97,8 @@ interface Props<T, K extends string = string> {
   rows: readonly T[]
   columns: readonly Column<T>[]
   getRowId: (row: T) => string
-  orderValue: (row: T) => number
+  // Omis : pas de colonne #, pas de groupement ni de drag-and-drop ; l'ordre d'affichage est celui des lignes reçues.
+  orderValue?: (row: T) => number
   empty: ReactNode
   searchPlaceholder: string
   countLabel: (count: number) => string
@@ -97,6 +106,7 @@ interface Props<T, K extends string = string> {
   pageSize?: (typeof PAGE_SIZE_OPTIONS)[number]
   groupBy?: GroupBy<T, K>
   facets?: readonly Facet<T, K>[]
+  defaultFacetSelections?: Record<string, readonly string[]>
   onReorder?: (groupKey: K, orderedRowIds: string[]) => Promise<boolean>
 }
 
@@ -111,27 +121,55 @@ export function DataTable<T, K extends string = string>({
   pageSize = 25,
   groupBy,
   facets,
+  defaultFacetSelections,
   onReorder,
 }: Props<T, K>) {
+  const hasOrderColumn = orderValue !== undefined
+  const colSpanOffset = hasOrderColumn ? 1 : 0
+
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState<SortState>(null)
   const [page, setPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState<number>(pageSize)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [facetSelections, setFacetSelections] = useState<Record<string, Set<string>>>({})
+  const [facetSelections, setFacetSelections] = useState<Record<string, Set<string>>>(() =>
+    Object.fromEntries(
+      Object.entries(defaultFacetSelections ?? {}).map(([key, values]) => [key, new Set(values)]),
+    ),
+  )
   const [orderOverrides, setOrderOverrides] = useState<Record<string, string[]>>({})
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [draggedGroupKey, setDraggedGroupKey] = useState<K | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [, startReorderTransition] = useTransition()
 
+  const hideableColumns = useMemo(() => columns.filter((column) => column.hideable), [columns])
+  const defaultHiddenColumnKeys = useMemo(
+    () =>
+      hideableColumns
+        .filter((column) => column.defaultVisible === false)
+        .map((column) => column.key),
+    [hideableColumns],
+  )
+  const [hiddenColumnKeys, setHiddenColumnKeys] = useState<Set<string>>(
+    () => new Set(defaultHiddenColumnKeys),
+  )
+  const [columnsOpen, setColumnsOpen] = useState(false)
+
+  const visibleColumns = useMemo(
+    () => columns.filter((column) => !hiddenColumnKeys.has(column.key)),
+    [columns, hiddenColumnKeys],
+  )
+  const visibleHideableCount = hideableColumns.length - hiddenColumnKeys.size
+  const isDefaultColumnState = sameIdSet([...hiddenColumnKeys], defaultHiddenColumnKeys)
+
   const searchFilteredRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     if (!query) return rows
     return rows.filter((row) =>
-      columns.some((column) => column.searchValue?.(row).toLowerCase().includes(query)),
+      visibleColumns.some((column) => column.searchValue?.(row).toLowerCase().includes(query)),
     )
-  }, [rows, search, columns])
+  }, [rows, search, visibleColumns])
 
   const activeFacetCount = useMemo(
     () => Object.values(facetSelections).reduce((sum, values) => sum + values.size, 0),
@@ -159,7 +197,7 @@ export function DataTable<T, K extends string = string>({
   )
 
   const groupedView = useMemo(() => {
-    if (!isOrderView) return null
+    if (!isOrderView || !orderValue) return null
     const byId = new Map(facetFilteredRows.map((row) => [getRowId(row), row]))
     const groupKeys: readonly K[] = groupBy ? groupBy.order : [UNGROUPED_KEY as K]
     const idsByGroup: Record<string, string[]> = {}
@@ -201,9 +239,11 @@ export function DataTable<T, K extends string = string>({
   ])
 
   const sortedRows = useMemo(() => {
-    if (isOrderView) return groupedView?.flatRows ?? []
+    if (isOrderView) return groupedView?.flatRows ?? facetFilteredRows
     if (!sort) return facetFilteredRows
-    const column = columns.find((candidate) => candidate.key === sort.key)
+    // visibleColumns et non columns : un tri sur une colonne masquée entre-temps (ex. Réinitialiser
+    // qui la re-masque) doit retomber sur l'ordre d'affichage plutôt que trier par une valeur invisible.
+    const column = visibleColumns.find((candidate) => candidate.key === sort.key)
     if (!column?.sortValue) return facetFilteredRows
     const { sortValue } = column
     const direction = sort.direction === "asc" ? 1 : -1
@@ -214,7 +254,7 @@ export function DataTable<T, K extends string = string>({
       if (valueA > valueB) return direction
       return 0
     })
-  }, [isOrderView, groupedView, sort, facetFilteredRows, columns])
+  }, [isOrderView, groupedView, sort, facetFilteredRows, visibleColumns])
 
   const pageCount = Math.max(1, Math.ceil(sortedRows.length / rowsPerPage))
   // Recalé pendant le rendu et non seulement borné à l'affichage : une page devenue hors limite
@@ -224,7 +264,9 @@ export function DataTable<T, K extends string = string>({
   const paginatedRows = sortedRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
   const renderItems = useMemo((): RenderItem<T, K>[] => {
-    if (!isOrderView || !groupBy) return paginatedRows.map((row) => ({ type: "row", row }))
+    if (!isOrderView || !groupBy || !hasOrderColumn) {
+      return paginatedRows.map((row) => ({ type: "row", row }))
+    }
     const items: RenderItem<T, K>[] = []
     let previousKey: K | null = null
     for (const row of paginatedRows) {
@@ -237,7 +279,7 @@ export function DataTable<T, K extends string = string>({
       items.push({ type: "row", row })
     }
     return items
-  }, [isOrderView, groupBy, paginatedRows, rows])
+  }, [isOrderView, groupBy, hasOrderColumn, paginatedRows, rows])
 
   function handleSort(key: string) {
     setSort((current) => {
@@ -263,6 +305,23 @@ export function DataTable<T, K extends string = string>({
   function resetFacets() {
     setFacetSelections({})
     setPage(1)
+  }
+
+  function toggleColumn(key: string) {
+    const isHiding = !hiddenColumnKeys.has(key)
+    setHiddenColumnKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+    // Hors updater (StrictMode le rejoue) : une colonne masquée ne peut pas rester triée.
+    if (isHiding) setSort((current) => (current?.key === key ? null : current))
+  }
+
+  function resetColumns() {
+    setHiddenColumnKeys(new Set(defaultHiddenColumnKeys))
+    if (sort && defaultHiddenColumnKeys.includes(sort.key)) setSort(null)
   }
 
   function handleDragEnd() {
@@ -303,7 +362,7 @@ export function DataTable<T, K extends string = string>({
     })
   }
 
-  function renderHeaderCell(column: Column<T>, isLast: boolean) {
+  function renderHeaderCell(column: Column<T>, isFirst: boolean, isLast: boolean) {
     const alignRight = column.align === "right"
     return (
       <TableHead
@@ -317,7 +376,13 @@ export function DataTable<T, K extends string = string>({
                 : "descending"
               : "none"
         }
-        className={cn(column.width, alignRight && "text-right", isLast && "pr-4")}
+        className={cn(
+          column.width,
+          alignRight && "text-right",
+          // Sans colonne # (hasOrderColumn faux), la première colonne visible porte elle-même le 16px de bord de Card.
+          isFirst && !hasOrderColumn && "pl-4",
+          isLast && "pr-4",
+        )}
       >
         {column.sortValue ? (
           <Button
@@ -344,6 +409,8 @@ export function DataTable<T, K extends string = string>({
               />
             )}
           </Button>
+        ) : column.headerSrOnly ? (
+          <span className="sr-only">{column.header}</span>
         ) : (
           column.header
         )}
@@ -353,7 +420,7 @@ export function DataTable<T, K extends string = string>({
 
   function renderDataRow(row: T) {
     const rowId = getRowId(row)
-    const draggable = isOrderView && !!onReorder
+    const draggable = isOrderView && hasOrderColumn && !!onReorder
     const isValidDropTarget = draggable && draggedGroupKey === effectiveGroupKey(row)
     return (
       <TableRow
@@ -389,16 +456,19 @@ export function DataTable<T, K extends string = string>({
           isValidDropTarget && dragOverId === rowId && "bg-muted",
         )}
       >
-        <TableCell className="pr-1 pl-4 font-mono text-muted-foreground">
-          {/* Position affichée plutôt que displayOrder : suit le glisser-déposer avant la réponse du serveur. */}
-          {groupedView?.positionById.get(rowId) ?? orderValue(row)}
-        </TableCell>
-        {columns.map((column, index) => (
+        {orderValue ? (
+          <TableCell className="pr-1 pl-4 font-mono text-muted-foreground">
+            {/* Position affichée plutôt que displayOrder : suit le glisser-déposer avant la réponse du serveur. */}
+            {groupedView?.positionById.get(rowId) ?? orderValue(row)}
+          </TableCell>
+        ) : null}
+        {visibleColumns.map((column, index) => (
           <TableCell
             key={column.key}
             className={cn(
               column.align === "right" && "text-right",
-              index === columns.length - 1 && "pr-4",
+              index === 0 && !hasOrderColumn && "pl-4",
+              index === visibleColumns.length - 1 && "pr-4",
               column.className,
             )}
           >
@@ -440,14 +510,88 @@ export function DataTable<T, K extends string = string>({
           />
         </div>
 
+        {hideableColumns.length > 0 ? (
+          <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                // La pastille finit le bouton : son padding droit plein la décollerait du bord
+                // deux fois plus que le gap qui la précède.
+                className={cn(visibleHideableCount > 0 && "pr-1.5")}
+              >
+                <Columns3 aria-hidden data-icon="inline-start" />
+                Colonnes
+                {visibleHideableCount > 0 ? (
+                  <Badge variant="default" className={COUNTER_BADGE_CLASS}>
+                    {visibleHideableCount}
+                  </Badge>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="gap-0">
+              <div className={cn(LABEL_CLASS, "mb-2")}>Colonnes affichées</div>
+              <div className="grid gap-[2px]">
+                {hideableColumns.map((column) => {
+                  const checked = !hiddenColumnKeys.has(column.key)
+                  return (
+                    <label
+                      key={column.key}
+                      className="-mx-2 flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => {
+                          toggleColumn(column.key)
+                        }}
+                      />
+                      <span>{column.header}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <Separator className="mt-3 mb-2" />
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isDefaultColumnState}
+                  onClick={resetColumns}
+                >
+                  Réinitialiser
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    setColumnsOpen(false)
+                  }}
+                >
+                  Appliquer
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : null}
+
         {facets && facets.length > 0 ? (
           <Popover open={filterOpen} onOpenChange={setFilterOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" size="sm">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(activeFacetCount > 0 && "pr-1.5")}
+              >
                 <Funnel aria-hidden data-icon="inline-start" />
                 Filtres
                 {activeFacetCount > 0 ? (
-                  <Badge variant="secondary">{activeFacetCount}</Badge>
+                  <Badge variant="default" className={COUNTER_BADGE_CLASS}>
+                    {activeFacetCount}
+                  </Badge>
                 ) : null}
               </Button>
             </PopoverTrigger>
@@ -514,23 +658,25 @@ export function DataTable<T, K extends string = string>({
           <Table className="min-w-[720px] table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[52px] pr-1 pl-4 font-mono">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2.5 font-mono"
-                    title="Revenir à l'ordre d'affichage"
-                    onClick={() => {
-                      setSort(null)
-                      setPage(1)
-                    }}
-                  >
-                    #
-                  </Button>
-                </TableHead>
-                {columns.map((column, index) =>
-                  renderHeaderCell(column, index === columns.length - 1),
+                {hasOrderColumn ? (
+                  <TableHead className="w-[52px] pr-1 pl-4 font-mono">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-2.5 font-mono"
+                      title="Revenir à l'ordre d'affichage"
+                      onClick={() => {
+                        setSort(null)
+                        setPage(1)
+                      }}
+                    >
+                      #
+                    </Button>
+                  </TableHead>
+                ) : null}
+                {visibleColumns.map((column, index) =>
+                  renderHeaderCell(column, index === 0, index === visibleColumns.length - 1),
                 )}
               </TableRow>
             </TableHeader>
@@ -538,7 +684,7 @@ export function DataTable<T, K extends string = string>({
               {facetFilteredRows.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length + 1}
+                    colSpan={visibleColumns.length + colSpanOffset}
                     className="h-24 pr-4 pl-4 text-center text-muted-foreground"
                   >
                     Aucun résultat pour cette recherche.
@@ -548,7 +694,10 @@ export function DataTable<T, K extends string = string>({
                 renderItems.map((item) =>
                   item.type === "group" ? (
                     <TableRow key={`group-${item.key}`}>
-                      <TableCell colSpan={columns.length + 1} className="bg-muted/50 px-4 py-2">
+                      <TableCell
+                        colSpan={visibleColumns.length + colSpanOffset}
+                        className="bg-muted/50 px-4 py-2"
+                      >
                         <span className="inline-flex items-center gap-1.5">
                           <span className={LABEL_CLASS}>{groupBy?.label(item.key)}</span>
                           <span className={LABEL_CLASS}>- {item.count}</span>
@@ -568,7 +717,7 @@ export function DataTable<T, K extends string = string>({
       {facetFilteredRows.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
+            <span role="status" aria-live="polite" className="text-sm text-muted-foreground">
               {countLabel(facetFilteredRows.length)}
             </span>
             <Select

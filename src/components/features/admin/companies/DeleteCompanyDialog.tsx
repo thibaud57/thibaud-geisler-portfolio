@@ -18,51 +18,49 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { deleteTag } from "@/server/actions/tags"
-import type { TagDeleteState } from "@/server/actions/tags.types"
-import type { AdminTag } from "@/server/queries/tags"
-
-const initialDeleteState: TagDeleteState = { ok: true, message: null }
+import { deleteCompany } from "@/server/actions/companies"
+import type { CompanyFormMessage } from "@/server/actions/companies.types"
+import type { AdminCompany } from "@/server/queries/companies"
 
 interface Props {
-  tag: AdminTag
+  company: AdminCompany
 }
 
-export function DeleteTagDialog({ tag }: Props) {
+export function DeleteCompanyDialog({ company }: Props) {
   const [open, setOpen] = useState(false)
-  const [state, setState] = useState<TagDeleteState>(initialDeleteState)
+  const [message, setMessage] = useState<CompanyFormMessage>(null)
   const [pending, startTransition] = useTransition()
-  // Connu au rendu, contrairement à state.message === "tag_in_use" (retour serveur) qui reste la
-  // seule protection si un rattachement survient entre l'affichage et la confirmation.
-  const knownInUseCount = tag._count.projects
+  // Connu au rendu, contrairement à message === "company_in_use" (retour serveur) qui reste
+  // la seule protection si un projet se rattache entre l'affichage et la confirmation.
+  const knownInUseCount = company._count.clientMetas
   const deniedMessage =
     knownInUseCount > 0
-      ? `Ce tag est utilisé par ${knownInUseCount} projet${knownInUseCount > 1 ? "s" : ""} et ne peut pas être supprimé.`
-      : state.message === "tag_in_use"
-        ? "Ce tag est utilisé par des projets et ne peut pas être supprimé."
+      ? `Cette entreprise est rattachée à ${knownInUseCount} projet${knownInUseCount > 1 ? "s" : ""} et ne peut pas être supprimée.`
+      : message === "company_in_use"
+        ? "Cette entreprise est rattachée à des projets et ne peut pas être supprimée."
         : null
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) {
-      setState(initialDeleteState)
+      setMessage(null)
     }
   }
 
   // AlertDialogAction ferme la modale par défaut (DialogPrimitive.Close sous-jacent) : preventDefault
-  // systématique pour garder la main sur la fermeture selon le résultat de deleteTag.
+  // systématique pour garder la main sur la fermeture selon le résultat de deleteCompany.
   function handleConfirm(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault()
     startTransition(async () => {
-      const result = await deleteTag(tag.id)
+      const result = await deleteCompany(company.id)
       if (result.ok) {
-        toast.success("Tag supprimé")
+        toast.success("Entreprise supprimée")
         setOpen(false)
       } else if (result.message === "unknown_error") {
         toast.error("Une erreur est survenue, réessayez")
         setOpen(false)
       } else {
-        setState(result)
+        setMessage(result.message)
       }
     })
   }
@@ -78,7 +76,7 @@ export function DeleteTagDialog({ tag }: Props) {
               // 20px de large pour 28 de haut, comme iconBtn dans la maquette : les deux actions
               // d'une ligne se lisent comme une paire, pas comme deux boutons séparés.
               className="w-5 min-w-5"
-              aria-label={`Supprimer ${tag.nameFr}`}
+              aria-label={`Supprimer ${company.name}`}
             >
               <Trash2 className="size-4" />
             </Button>
@@ -91,7 +89,7 @@ export function DeleteTagDialog({ tag }: Props) {
           <AlertDialogMedia>
             <TriangleAlert className="size-8 text-destructive" />
           </AlertDialogMedia>
-          <AlertDialogTitle>Supprimer le tag « {tag.nameFr} » ?</AlertDialogTitle>
+          <AlertDialogTitle>Supprimer « {company.name} » ?</AlertDialogTitle>
           {/* aria-live : le refus détecté par le serveur arrive après l'ouverture, dans ce même texte. */}
           <AlertDialogDescription
             aria-live="polite"

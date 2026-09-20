@@ -1,3 +1,4 @@
+import { AdminNavDisabledItem } from "@/components/layout/AdminNavDisabledItem"
 import { AdminNavLink } from "@/components/layout/AdminNavLink"
 import { AdminSidebarBrand } from "@/components/layout/AdminSidebarBrand"
 import { AdminSignOutButton } from "@/components/layout/AdminSignOutButton"
@@ -12,7 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ADMIN_NAV_ITEMS, ADMIN_NAV_SECTION } from "@/config/admin-nav-items"
+import { ADMIN_NAV_GROUPS } from "@/config/admin-nav-items"
 import { LABEL_CLASS } from "@/lib/typography"
 
 export function AdminSidebar() {
@@ -22,21 +23,31 @@ export function AdminSidebar() {
         <AdminSidebarBrand />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className={LABEL_CLASS}>{ADMIN_NAV_SECTION}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                  <AdminNavLink href={href} label={label}>
-                    <Icon />
-                    <span>{label}</span>
-                  </AdminNavLink>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {ADMIN_NAV_GROUPS.map((group) => {
+          return (
+            <SidebarGroup key={group.label ?? "home"}>
+              {group.label ? (
+                <SidebarGroupLabel className={LABEL_CLASS}>{group.label}</SidebarGroupLabel>
+              ) : null}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.label}>
+                      {item.href ? (
+                        <AdminNavLink href={item.href} label={item.label} subItems={item.subItems}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </AdminNavLink>
+                      ) : (
+                        <AdminNavDisabledItem label={item.label} icon={item.icon} />
+                      )}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>

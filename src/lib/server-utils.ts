@@ -12,6 +12,10 @@ export function stringField(formData: FormData, key: string, fallback = ""): str
   return typeof value === "string" ? value : fallback
 }
 
+export function isPrismaError(err: unknown, code: string): boolean {
+  return typeof err === "object" && err !== null && "code" in err && err.code === code
+}
+
 export function extractClientIp(forwardedFor: string | null): string {
   if (!forwardedFor) return "unknown"
   const first = forwardedFor.split(",")[0]?.trim()

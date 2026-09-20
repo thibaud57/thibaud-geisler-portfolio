@@ -6,16 +6,17 @@ interface Props {
   id: string
   label: ReactNode
   error?: ReactNode
+  errors?: string[]
   children: ReactNode
 }
 
-export function FormField({ id, label, error, children }: Props) {
+export function FormField({ id, label, error, errors, children }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
       <div id={`${id}-error`} aria-live="polite">
-        {error}
+        {errors?.[0] ? <p className="text-sm text-destructive">{errors[0]}</p> : error}
       </div>
     </div>
   )

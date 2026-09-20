@@ -47,16 +47,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 import type { Tag, TagKind } from "@/generated/prisma/client"
 import { TAG_ICON_KEYS, TagIcon } from "@/lib/icons"
+import { normalizeForSearch } from "@/lib/search"
 import { KIND_ORDER, TAG_KIND_LABELS, type TagCountByKind } from "@/lib/tags"
 import { createTag, updateTag } from "@/server/actions/tags"
 import { initialTagFormState } from "@/server/actions/tags.types"
-
-// cmdk juge une valeur "sélectionnée" en comparant sa propre recherche interne, insensible aux
-// accents ici pour rester cohérent avec le reste du formulaire (sans effet sur ce registre, dont
-// les clés sont des identifiants techniques sans accent).
-function normalizeForSearch(value: string): string {
-  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
-}
 
 function filterIconOption(value: string, search: string): number {
   return normalizeForSearch(value).includes(normalizeForSearch(search)) ? 1 : 0
@@ -97,7 +91,14 @@ export function TagFormDialog({ tag, counts }: Props) {
         <Tooltip>
           <TooltipTrigger asChild>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={`Modifier ${tag.nameFr}`}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                // 20px de large pour 28 de haut, comme iconBtn dans la maquette : les deux actions
+                // d'une ligne se lisent comme une paire, pas comme deux boutons séparés.
+                className="w-5 min-w-5"
+                aria-label={`Modifier ${tag.nameFr}`}
+              >
                 <Pencil className="size-4" />
               </Button>
             </DialogTrigger>

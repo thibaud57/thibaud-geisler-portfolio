@@ -52,6 +52,7 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
       className: "truncate text-muted-foreground",
       searchValue: (tag) => tag.nameEn,
       cell: (tag) => tag.nameEn,
+      hideable: true,
     },
     {
       key: "kind",
@@ -62,6 +63,7 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
           {TAG_KIND_LABELS[tag.kind]}
         </Badge>
       ),
+      hideable: true,
     },
     {
       key: "icon",
@@ -74,6 +76,7 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
             <span className="truncate font-mono text-xs">{tag.icon}</span>
           </span>
         ) : null,
+      hideable: true,
     },
     {
       key: "usage",
@@ -83,6 +86,7 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
       className: "font-mono tabular-nums text-muted-foreground",
       sortValue: (tag) => tag._count.projects,
       cell: (tag) => tag._count.projects,
+      hideable: true,
     },
     {
       key: "actions",

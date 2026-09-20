@@ -9,18 +9,18 @@ import { Button } from "@/components/ui/button"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllCompaniesForAdmin } from "@/server/queries/companies"
 
-async function CompaniesSection() {
+async function WorkedCompaniesSection() {
   const companies = await findAllCompaniesForAdmin()
-  return <CompaniesTable companies={companies} />
+  return <CompaniesTable companies={companies} workedOnly />
 }
 
-export default async function AdminEntreprisesPage() {
+export default async function AdminEntreprisesTravailleesPage() {
   await getCurrentUser()
 
   return (
     <AdminPageShell
-      title="Toutes les entreprises"
-      subtitle="Clients, intermédiaires et prospects."
+      title="Entreprises travaillées"
+      subtitle="Celles qui figurent sur le site : missions et emplois."
       actions={
         <Button asChild>
           <Link href="/admin/entreprises/nouvelle">
@@ -31,7 +31,7 @@ export default async function AdminEntreprisesPage() {
       }
     >
       <Suspense fallback={<DataTableSkeleton />}>
-        <CompaniesSection />
+        <WorkedCompaniesSection />
       </Suspense>
     </AdminPageShell>
   )

@@ -17,7 +17,7 @@ date: "2026-09-03"
 
 C'est le sub-project qui donne son sens à la bascule R2 du `09` : jusqu'ici les assets ne pouvaient être déposés qu'en copiant des fichiers à la main. Exclut le redimensionnement et la génération de miniatures, `next/image` restant seul responsable de l'optimisation à l'affichage.
 
-Le sélecteur d'assets câble aussi la carte « Logo » du formulaire entreprise, dont le `08` pose l'écran sans l'éditer : ce sub-project ouvre le sélecteur sur `freelance/crm/entreprises/`, sur `portfolio-admin`. Exclut la récupération automatique du logo depuis le domaine de l'entreprise, un sub-project distinct, immédiatement après celui-ci.
+Le sélecteur d'assets ajoute aussi la carte « Logo » au formulaire entreprise, que le `08` livre sans elle : ce sub-project ouvre le sélecteur sur `freelance/crm/entreprises/`, sur `portfolio-admin`. Exclut la récupération automatique du logo depuis le domaine de l'entreprise, un sub-project distinct, immédiatement après celui-ci.
 
 ### État livré
 
@@ -26,7 +26,7 @@ Le sélecteur d'assets câble aussi la carte « Logo » du formulaire entreprise
 ## Dependencies
 
 - `06-shell-admin-design.md` (statut: draft) : fournit le shell et la page d'attente `/admin/assets` que ce sub-project remplace.
-- `08-crud-entreprises-design.md` (statut: draft) : pose la carte Logo du formulaire entreprise, sans l'éditer, et sa Server Action de mutation : ce sub-project les modifie tous les deux pour brancher `AssetPicker` et écrire `logoFilename`.
+- `08-crud-entreprises-design.md` (statut: draft) : pose le formulaire entreprise et sa Server Action de mutation, tous deux sans le logo : ce sub-project leur ajoute la carte Logo, `AssetPicker` et l'écriture de `logoFilename`.
 - `09-stockage-assets-r2-design.md` (statut: draft) : fournit le client R2 et le bucket dans lequel écrire.
 
 ## Références de design
@@ -53,7 +53,7 @@ Le sélecteur d'assets câble aussi la carte « Logo » du formulaire entreprise
 - **À créer** : `src/components/features/admin/assets/AssetUploadDialog.tsx`
 - **À créer** : `src/components/features/admin/assets/DeleteAssetDialog.tsx`
 - **À créer** : `src/components/features/admin/assets/AssetPicker.tsx` (sélecteur réutilisable)
-- **À modifier** : la carte Logo du formulaire entreprise posé par le `08` (bouton « Choisir un logo » branché sur `AssetPicker`, préfixe `freelance/crm/entreprises/`) et sa Server Action de mutation, à qui le champ `logoFilename` est ajouté : le `08` livre le formulaire sans l'éditer
+- **À modifier** : le formulaire entreprise posé par le `08`, qui gagne sa carte Logo (bouton « Choisir un logo » branché sur `AssetPicker`, préfixe `freelance/crm/entreprises/`), et sa Server Action de mutation, à qui le champ `logoFilename` est ajouté : le `08` livre le formulaire sans le logo
 - **À modifier** : `docs/PRODUCTION.md` (mention de la limite de taille retenue)
 - **À modifier** : `.claude/rules/nextjs/assets.md` (documentation du dossier `branding/`, absent de la rule alors qu'il est utilisé, et des cinq emplacements valides avec leur bucket)
 
