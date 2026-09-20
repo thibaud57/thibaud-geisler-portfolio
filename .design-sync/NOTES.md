@@ -49,8 +49,27 @@ système, puis refait entièrement.
   régénère `_ds_manifest.json` et l'adherence, puis l'efface.
 - **Pas de `_ds_sync.json`** : cette ancre décrit un build du convertisseur. Sans elle, le prochain
   sync revérifie tout, ce que le skill appelle le choix honnête hors convertisseur.
-- **La copie `_ds/` de la maquette est un instantané** du système : elle se rafraîchit côté app, pas
-  à la main.
+- **Ne pas envoyer `_ds_bundle.js`** : l'app le recompile depuis les `.jsx` envoyés, à l'ouverture qui
+  suit `_ds_needs_recompile` (le correctif `Sidebar.jsx` du 06 y est arrivé sans bundle envoyé).
+- **Travailler dans l'export et vérifier avant l'envoi** : l'export `.design-sync/design-system/` est
+  la copie à modifier, en gardant une copie intacte pour calculer ce qui s'écrit et ce qui se
+  supprime. Pour voir les cartes, recompiler un bundle local depuis les `.jsx` (l'`esbuild` du
+  projet suffit : un bloc par fichier, imports repris depuis `__ds_scope`, noms publiés sur le
+  namespace), servir le dossier en HTTP (les icônes se chargent par `fetch`, refusé en `file://`),
+  puis capturer chaque carte avec le Chromium de Playwright en headless à son viewport `@dsCard`.
+  Comparer au rendu de la copie intacte distingue une régression d'un défaut ancien.
+- **Un composant installé quitte `post-mvp/`** : fichiers vers `components/core/`, règles de
+  `post-mvp.css` vers `components.css`. Les deux feuilles restent à leur place : la maquette les
+  charge directement.
+- **La maquette charge `_ds_src/`, pas `_ds/`** : `_ds/` est l'instantané lié que l'app gère,
+  `_ds_src/` une copie écrite à la main. Après un sync du système, y recopier depuis l'export les
+  fichiers qui ont changé, vérifier que chaque composant utilisé par la maquette existe dans le
+  nouveau bundle, puis capturer ses écrans avant et après : un écart hors des composants touchés
+  est une régression.
+- **Dans la maquette, `style` sur un `x-import` ne garde que la position** (`position`, `inset`,
+  `width`, `z-index`…) : le runtime (`support.js`) l'applique à l'hôte, pas au composant. Une
+  couleur passe par `dc-props`, qui étale en props un objet calculé dans le script
+  (`{ style: { color: … } }`).
 - **Ne jamais modifier la maquette sans demande explicite** : c'est le fichier de design du
   propriétaire, pas un artefact généré.
 
@@ -64,5 +83,20 @@ système, puis refait entièrement.
   peut retirer la `ScrollArea` qui le contournait. `github.md` porte la trace datée du sync et la
   table des écrans, corrigée : `Sidebar`, `Avatar` et `Tooltip` ne sont plus annoncés comme absents
   du dépôt.
+- **Sub-project 07, tags (sync du 2026-09-19)** : treize composants installés passent de
+  `post-mvp/` à `components/core/`, fiches au statut installé ; arbitrages du propriétaire portés
+  dans le readme et les fiches `Dialog`, `AlertDialog` et `Input` (`AlertDialogMedia` sans tuile) ;
+  `Command` réaligné sur le registre plus récent installé au 07 ; `AdminPageShell` reçoit
+  `actions` et son sous-titre de 14px ; motif `DataTable` ajouté avec la carte `patterns-admin` ;
+  cartes de guidelines palette des graphiques et drapeaux ; taille `xs` du fil d'ariane, qui
+  n'avait pas de règle. `Dialog size="lg"` et `DialogBody` restent (la maquette s'en sert) et sont
+  écrits comme raccourcis du système, le code élargissant par classe. Détail dans `github.md`.
+- **Maquette réalignée (2026-09-19)** : sur le code du 07 et les huit arbitrages de `docs/DESIGN.md`
+  (six catégories de tag, formulaire de tag du code, refus de suppression dans le texte, 16px entre
+  champs en modale, formats et contrats de la base). Sa copie `_ds_src/` resynchronisée depuis
+  l'export du système (bundle, manifeste, `components.css`, `post-mvp.css`, readme), après contrôle
+  que les 60 composants utilisés existent et capture des 23 écrans avant et après : seules les
+  modales changent. Écart n° 2 réglé, `ScrollArea` de la sidebar retirée. Détail dans le
+  `github.md` de la maquette.
 - **Reste ouvert** : écart n° 1, `Kanban` n'accepte que trois champs par carte, la maquette propose
   un champ `meta` ou `badges` et un `line-clamp-2`.
