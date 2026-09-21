@@ -13,12 +13,12 @@
 ## Global Constraints
 
 - **TDD strict** : les mutations de l'espace admin sont sous TDD complet dans la stratégie du projet.
-- La cohérence entre `type` et `clientMeta` est portée par **Zod**, pas par la base : `clientMeta` y est simplement optionnel.
+- **Tout projet exige une méta, quel que soit son type** : entreprise et mode de travail sont requis en `CLIENT` comme en `PERSONAL` (un projet personnel se rattache à la société du propriétaire). L'obligation est portée par **Zod**, pas par la base : `clientMeta` y est simplement optionnel. Voir spec § Décision : méta des projets personnels.
 - Toute création ou modification passe par **`prisma.$transaction`** : trois tables sont écrites.
 - Les tags sont **remplacés intégralement** à la modification, jamais rapprochés. `ProjectTag.displayOrder` vaut **`index + 1`**, jamais `index` : la suite démarre à 1, comme `Tag.displayOrder`.
 - `formats` se lit avec **`getAll`** : `get` ne conserverait que la première valeur.
 - `workMode` est **requis** dans `ClientMeta`, contrairement à `teamSize` et `contractStatus`.
-- Le passage de `CLIENT` à `PERSONAL` **supprime la méta client**. C'est assumé, et le formulaire du sub-project `13` devra avertir.
+- **Le changement de type ne supprime rien** : la modification passe toujours par `clientMeta.upsert`, jamais par `deleteMany`.
 - **`Project.displayOrder` forme une suite globale 1..n sur l'ensemble des projets**, tous types confondus, et non une suite par `type` : c'est la même liste que sert la page publique `/projets`. Voir spec § Décision : portée de l'ordre d'affichage des projets.
 - **`Project.displayOrder` et `ProjectTag.displayOrder` démarrent à 1, pas 0.** Une migration décale les données existantes d'un cran, du même geste que `prisma/migrations/20260917151326_tag_display_order_from_one` pour `Tag.displayOrder`.
 - **La création, la modification et la suppression réutilisent `computeIdsAtPosition`, `removeId` et `sameIdSet` de `src/lib/reorder.ts`**, exactement comme `src/server/actions/tags.ts`. Une création à une position occupée décale les suivants, une modification qui change de position déplace et referme l'ancienne, une suppression renumérote ce qui reste. Contrairement aux tags, il n'y a pas de `findCategoryIds` : une seule liste, tous les projets, triée par `displayOrder`.
@@ -150,22 +150,13 @@ export const projectSchema = z
       ),
     tagIds: z.array(z.string()).default([]),
 
-    companyId: z.preprocess(emptyToNull, z.string().nullable()),
-    workMode: z.preprocess(emptyToNull, z.enum(WORK_MODES).nullable()),
+    companyId: z.string().trim().min(1, "L'entreprise est requise"),
+    workMode: z.enum(WORK_MODES, { error: 'Le mode de travail est requis' }),
     contractStatus: z.preprocess(emptyToNull, z.enum(CONTRACT_STATUSES).nullable()),
     teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
     deliverablesCount: z.coerce.number().int().min(1).default(1),
   })
   .superRefine((data, ctx) => {
-    if (data.type === 'CLIENT') {
-      if (!data.companyId) {
-        ctx.addIssue({ code: 'custom', path: ['companyId'], message: "L'entreprise est requise pour un projet client" })
-      }
-      if (!data.workMode) {
-        ctx.addIssue({ code: 'custom', path: ['workMode'], message: 'Le mode de travail est requis pour un projet client' })
-      }
-    }
-
     if (data.startedAt && data.endedAt && data.endedAt < data.startedAt) {
       ctx.addIssue({
         code: 'custom',
@@ -187,7 +178,7 @@ export const projectReorderSchema = z.object({
 })
 ```
 
-Le `superRefine` porte les deux règles que la base ne peut pas exprimer. `workMode` y figure au même titre que `companyId` parce qu'il est **requis** dans `ClientMeta`, contrairement à `teamSize` et `contractStatus` : l'omettre produirait une erreur de base au lieu d'un message de formulaire.
+`companyId` et `workMode` sont requis au niveau du champ, sans condition sur `type` : tout projet porte une méta. `workMode` l'est parce qu'il est **requis** dans `ClientMeta`, contrairement à `teamSize` et `contractStatus` : l'omettre produirait une erreur de base au lieu d'un message de formulaire. Le `superRefine` ne garde que la cohérence des dates, seule règle qui croise deux champs.
 
 `emptyToNull` en `preprocess` traite le fait qu'un `FormData` renvoie `''` et jamais `undefined`. Sans lui, `z.url()` échouerait sur un champ facultatif laissé vide.
 
@@ -279,6 +270,86 @@ Expected: aucune erreur.
 
 ---
 
+### Task 6 : Seed en base 1 et société du propriétaire
+
+> Ajoutée le 2026-09-21 sur décision du propriétaire, exécutée après la Task 2 et avant la Task 5. Voir spec § Décision : méta des projets personnels.
+
+**Files:**
+- Modify: `prisma/seed-data/companies.ts`
+- Modify: `prisma/seed-data/projects.ts`
+- Modify: `prisma/seed.ts`
+- Create: une migration de données générée par la CLI Prisma (dossier `prisma/migrations/<timestamp>_rename_personal_company/`)
+
+**Interfaces:**
+- Consomme : l'entité légale `thibaud` de `prisma/seed-data/legal.ts`.
+- Produit : un seed cohérent avec la suite 1..n et avec la règle « tout projet porte une méta », consommé par la Task 5.
+
+- [ ] **Step 1: Remplacer l'entreprise `personnel` dans `prisma/seed-data/companies.ts`**
+
+Renommer la constante `PERSONAL_COMPANY_SLUG` en `OWNER_COMPANY_SLUG`, valeur `"thibaud-geisler"`, et l'entrée correspondante :
+
+```typescript
+  {
+    slug: OWNER_COMPANY_SLUG,
+    name: "Thibaud Geisler",
+    logoFilename: "branding/favicon-light.png",
+    websiteUrl: "https://thibaud-geisler.com",
+    sectors: ["IA_AUTOMATISATION"],
+    size: "TPE",
+    legalEntitySlug: "thibaud",
+  },
+```
+
+Mettre à jour l'import et les six usages dans `prisma/seed-data/projects.ts`.
+
+- [ ] **Step 2: Passer le seed en base 1**
+
+Dans `prisma/seed-data/projects.ts`, ajouter 1 à chaque `displayOrder` (la suite 0..10 devient 1..11, l'ordre relatif ne change pas) et corriger le commentaire de `tagSlugs` (« 1 en premier »). Dans `prisma/seed.ts`, `projectTagCreate` écrit `displayOrder: index + 1`.
+
+- [ ] **Step 3: Générer une migration vide**
+
+```bash
+pnpm prisma migrate dev --name rename_personal_company --create-only
+```
+
+- [ ] **Step 4: Écrire le renommage**
+
+```sql
+-- Renomme la ligne au lieu d'en créer une seconde : l'id ne change pas, les ClientMeta déjà
+-- rattachés suivent, et le seed (upsert par slug) retrouve ensuite la même entreprise.
+UPDATE "freelance"."Company"
+SET "slug" = 'thibaud-geisler',
+    "name" = 'Thibaud Geisler',
+    "websiteUrl" = 'https://thibaud-geisler.com',
+    "logoFilename" = 'branding/favicon-light.png'
+WHERE "slug" = 'personnel';
+```
+
+Secteurs, taille et entité légale restent posés par le seed ou depuis l'écran Entreprises : la migration ne porte que ce qui empêcherait l'`upsert` de retrouver la ligne.
+
+- [ ] **Step 5: Appliquer puis rejouer le seed**
+
+```bash
+pnpm prisma migrate dev
+just db-seed
+```
+
+```sql
+SELECT slug, name, "legalEntityId" IS NOT NULL AS has_legal_entity FROM "freelance"."Company" ORDER BY slug;
+SELECT min("displayOrder"), max("displayOrder"), count(*) FROM "public"."Project";
+SELECT min("displayOrder") FROM "public"."ProjectTag";
+```
+
+Expected: aucune entreprise `personnel`, `thibaud-geisler` rattachée à une entité légale, `Project.displayOrder` de 1 à n sans trou, `ProjectTag.displayOrder` minimal à 1.
+
+- [ ] **Step 6: Vérifier typage et lint**
+
+```bash
+just typecheck && just lint
+```
+
+---
+
 ### Task 3 : Server Actions, en TDD
 
 **Files:**
@@ -301,7 +372,7 @@ vi.mock('@/lib/logger', () => ({
 }))
 vi.mock('@/lib/prisma', () => {
   const project = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findMany: vi.fn() }
-  const clientMeta = { create: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() }
+  const clientMeta = { create: vi.fn(), upsert: vi.fn() }
   const projectTag = { deleteMany: vi.fn(), createMany: vi.fn() }
   const prisma = { project, clientMeta, projectTag, $transaction: vi.fn() }
   // Sert les deux formes de $transaction (tableau de promesses ou callback interactif) sans
@@ -347,8 +418,8 @@ function buildFormData(
     caseStudyMarkdownFr: '',
     caseStudyMarkdownEn: '',
     displayOrder: '1',
-    companyId: '',
-    workMode: '',
+    companyId: 'c1',
+    workMode: 'REMOTE',
     contractStatus: '',
     teamSize: '',
     deliverablesCount: '1',
@@ -414,23 +485,18 @@ describe('createProject', () => {
     )
   })
 
-  it('refuse un projet client sans entreprise', async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ type: 'CLIENT', workMode: 'REMOTE' }),
-    )
+  it.each(['CLIENT', 'PERSONAL'])('refuse un projet %s sans entreprise', async (type) => {
+    const state = await createProject(initialProjectFormState, buildFormData({ type, companyId: '' }))
 
     expect(state.errors.companyId).toBeDefined()
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('refuse un projet client sans mode de travail', async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ type: 'CLIENT', companyId: 'c1' }),
-    )
+  it.each(['CLIENT', 'PERSONAL'])('refuse un projet %s sans mode de travail', async (type) => {
+    const state = await createProject(initialProjectFormState, buildFormData({ type, workMode: '' }))
 
     expect(state.errors.workMode).toBeDefined()
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
   it('crée la méta client pour un projet client', async () => {
@@ -447,13 +513,18 @@ describe('createProject', () => {
     )
   })
 
-  it("ne crée aucune méta client pour un projet personnel, même si une entreprise est soumise", async () => {
+  it('crée la méta pour un projet personnel, comme pour un projet client', async () => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([])
     vi.mocked(prisma.project.create).mockResolvedValue({ id: 'p1' } as never)
 
-    await createProject(initialProjectFormState, buildFormData({ type: 'PERSONAL', companyId: 'c1' }))
+    await createProject(
+      initialProjectFormState,
+      buildFormData({ type: 'PERSONAL', companyId: 'c-owner', workMode: 'REMOTE' }),
+    )
 
-    expect(prisma.clientMeta.create).not.toHaveBeenCalled()
+    expect(prisma.clientMeta.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ projectId: 'p1', companyId: 'c-owner', workMode: 'REMOTE' }) }),
+    )
   })
 
   it('refuse une date de fin antérieure à la date de début', async () => {
@@ -598,26 +669,31 @@ describe('updateProject', () => {
     vi.clearAllMocks()
   })
 
-  it('supprime la méta client au passage en personnel', async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: 'p1' }] as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
-
-    await updateProject('p1', initialProjectFormState, buildFormData({ type: 'PERSONAL' }))
-
-    expect(prisma.clientMeta.deleteMany).toHaveBeenCalledWith({ where: { projectId: 'p1' } })
-  })
-
-  it('crée ou met à jour la méta client au passage en client', async () => {
+  it.each(['CLIENT', 'PERSONAL'])('crée ou met à jour la méta quand le type soumis est %s', async (type) => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: 'p1' }] as never)
     vi.mocked(prisma.project.update).mockResolvedValue({} as never)
 
     await updateProject(
       'p1',
       initialProjectFormState,
-      buildFormData({ type: 'CLIENT', companyId: 'c1', workMode: 'REMOTE' }),
+      buildFormData({ type, companyId: 'c2', workMode: 'HYBRIDE' }),
     )
 
-    expect(prisma.clientMeta.upsert).toHaveBeenCalled()
+    expect(prisma.clientMeta.upsert).toHaveBeenCalledWith(
+      objectMatch({
+        where: { projectId: 'p1' },
+        create: objectMatch({ projectId: 'p1', companyId: 'c2', workMode: 'HYBRIDE' }),
+        update: objectMatch({ companyId: 'c2', workMode: 'HYBRIDE' }),
+      }),
+    )
+  })
+
+  it("refuse un appel sans session, avant d'ouvrir la transaction", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error('UNAUTHORIZED'))
+
+    await expect(updateProject('p1', initialProjectFormState, buildFormData())).rejects.toThrow()
+
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
   it('remplace intégralement le jeu de tags, en base 1', async () => {
@@ -821,6 +897,11 @@ function projectData(input: ProjectInput) {
   return project
 }
 
+function clientMetaData(input: ProjectInput) {
+  const { companyId, workMode, contractStatus, teamSize, deliverablesCount } = input
+  return { companyId, workMode, contractStatus, teamSize, deliverablesCount }
+}
+
 async function findAllProjectIds(): Promise<string[]> {
   const projects = await prisma.project.findMany({
     orderBy: { displayOrder: 'asc' },
@@ -870,18 +951,7 @@ export async function createProject(
         renumberProjects(tx.project, computeIdsAtPosition(existingIds, created.id, input.displayOrder)),
       )
 
-      if (input.type === 'CLIENT' && input.companyId && input.workMode) {
-        await tx.clientMeta.create({
-          data: {
-            projectId: created.id,
-            companyId: input.companyId,
-            workMode: input.workMode,
-            contractStatus: input.contractStatus,
-            teamSize: input.teamSize,
-            deliverablesCount: input.deliverablesCount,
-          },
-        })
-      }
+      await tx.clientMeta.create({ data: { projectId: created.id, ...clientMetaData(input) } })
 
       if (input.tagIds.length > 0) {
         await tx.projectTag.createMany({
@@ -941,29 +1011,12 @@ export async function updateProject(
         }),
       )
 
-      if (input.type === 'CLIENT' && input.companyId && input.workMode) {
-        await tx.clientMeta.upsert({
-          where: { projectId: id },
-          create: {
-            projectId: id,
-            companyId: input.companyId,
-            workMode: input.workMode,
-            contractStatus: input.contractStatus,
-            teamSize: input.teamSize,
-            deliverablesCount: input.deliverablesCount,
-          },
-          update: {
-            companyId: input.companyId,
-            workMode: input.workMode,
-            contractStatus: input.contractStatus,
-            teamSize: input.teamSize,
-            deliverablesCount: input.deliverablesCount,
-          },
-        })
-      } else {
-        // Bascule vers PERSONAL : la méta client est perdue, c'est assumé.
-        await tx.clientMeta.deleteMany({ where: { projectId: id } })
-      }
+      const meta = clientMetaData(input)
+      await tx.clientMeta.upsert({
+        where: { projectId: id },
+        create: { projectId: id, ...meta },
+        update: meta,
+      })
 
       await tx.projectTag.deleteMany({ where: { projectId: id } })
       if (input.tagIds.length > 0) {
@@ -1172,17 +1225,18 @@ SELECT slug, "displayOrder" FROM "Project" ORDER BY "displayOrder" ASC;
 
 Expected: le nouveau projet est en position 1, tous les autres décalés d'un cran, sans trou ni doublon.
 
-- [ ] **Step 4: Vérifier la bascule vers personnel**
+- [ ] **Step 4: Vérifier le changement de type**
 
-Modifier le premier projet créé en `PERSONAL`.
+Modifier le premier projet créé en `PERSONAL`, rattaché à l'entreprise `thibaud-geisler`.
 
 ```sql
-SELECT count(*) FROM "ClientMeta" cm
+SELECT count(*), max(c.slug) FROM "ClientMeta" cm
 JOIN "Project" p ON p.id = cm."projectId"
+JOIN "freelance"."Company" c ON c.id = cm."companyId"
 WHERE p.slug = '<slug>';
 ```
 
-Expected: zéro. La méta client a bien été supprimée.
+Expected: une seule méta, rattachée à `thibaud-geisler`. Rien n'a été supprimé.
 
 - [ ] **Step 5: Vérifier le remplacement des tags**
 

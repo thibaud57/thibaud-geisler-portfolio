@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "crud-projets-actions"
 goal: "Porter toute la logique de mutation d'un projet et de ses relations, sans interface"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "full"
 depends_on: ["07-crud-tags-design.md", "08-crud-entreprises-design.md"]
@@ -19,7 +19,9 @@ L'ordre d'affichage des projets forme une suite continue de 1 à n sur l'ensembl
 
 Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`. Leurs écrans de maquette (`isProjets`, `isForm`) servent seulement à vérifier que les données exposées ici suffisent à les rendre. C'est le sub-project le plus dense en règles de cohérence de toute la feature, d'où sa séparation d'avec l'interface.
 
-Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement » en porte la suite prévue.
+Tout projet porte une méta rattachée à une entreprise, quel que soit son type : un projet personnel est rattaché à la société du propriétaire, qui remplace dans le seed et en base l'entreprise factice `personnel`.
+
+Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement » en porte la suite prévue. Reste aussi hors périmètre l'affichage public : `ProjectCard` et `CaseStudyHeader` montrent la société du propriétaire comme n'importe quelle entreprise, le choix de masquer ou d'adapter ce bandeau appartient à un sub-project d'interface.
 
 ### État livré
 
@@ -39,16 +41,22 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 - **À modifier** : `src/server/queries/projects.ts` (requête d'administration)
 - **À modifier** : `prisma/schema.prisma` (`Project.displayOrder` et `ProjectTag.displayOrder` en `@default(1)`)
 - **À créer** : une migration Prisma qui décale d'un cran les valeurs existantes de ces deux colonnes
+- **À créer** : une migration Prisma de données qui renomme l'entreprise `personnel` en société du propriétaire, sans changer son identifiant
+- **À modifier** : `prisma/seed-data/companies.ts` (l'entreprise `personnel` devient `thibaud-geisler`, rattachée à l'entité légale `thibaud`)
+- **À modifier** : `prisma/seed-data/projects.ts` (`displayOrder` de 1 à n, rattachement des projets personnels à la nouvelle entreprise)
+- **À modifier** : `prisma/seed.ts` (`ProjectTag.displayOrder` en `index + 1`)
 
 ## Architecture approach
 
-**Le type du projet commande la présence de la méta client.** Un projet `CLIENT` exige un `ClientMeta` rattaché à une entreprise ; un projet `PERSONAL` n'en a pas. Cette dépendance ne peut pas être exprimée par le modèle Prisma, où `clientMeta` est simplement optionnel : elle relève du schéma Zod, sous forme de validation conditionnelle. C'est la principale règle métier du sub-project.
+**Tout projet exige une méta, quel que soit son type.** Entreprise et mode de travail sont requis pour un projet `CLIENT` comme pour un projet `PERSONAL` : un projet personnel est une réalisation de la société du propriétaire, il s'y rattache comme un projet client se rattache à son client. `type` ne porte plus que la distinction d'affichage entre les deux. Cette obligation ne peut pas être exprimée par le modèle Prisma, où `clientMeta` est simplement optionnel : elle relève du schéma Zod. C'est la principale règle métier du sub-project.
+
+**La société du propriétaire remplace l'entreprise factice `personnel`.** Le seed rattachait les projets personnels à une entreprise sans logo, sans site ni entité légale, qui ne correspond à rien de réel. Elle devient `thibaud-geisler`, rattachée à l'entité légale `thibaud` déjà présente dans `prisma/seed-data/legal.ts`. Une migration de données renomme la ligne existante plutôt que d'en créer une seconde : l'identifiant ne change pas, les `ClientMeta` déjà en base restent rattachés, et le seed, qui procède par `upsert` sur le slug, retrouve ensuite la même ligne.
 
 **Chaque Server Action vérifie la session elle-même.** `await getCurrentUser()` ouvre chaque mutation, hors de tout `try/catch`. Le layout protège l'affichage des pages, il ne protège pas l'exécution des actions : une Server Action exportée est un endpoint HTTP que quiconque connaît l'identifiant peut appeler sans jamais charger l'écran. C'est la défense en profondeur qu'impose `.claude/rules/nextjs/server-actions.md`, qui écrit aussi bien « vérifier l'authentification dans chaque Server Action, même si le proxy protège déjà la route » que « ne pas dépendre uniquement du proxy : un matcher modifié peut supprimer la couverture ». L'appel précède le `try`, sinon le `catch` avalerait l'interruption `unauthorized()` et la présenterait comme une erreur technique.
 
-**Tout passe par une transaction.** Créer un projet client écrit trois tables : `Project`, `ClientMeta` et une ligne de `ProjectTag` par tag. Une écriture partielle laisserait un projet sans sa méta, donc un projet client invalide au regard de la règle ci-dessus, sans qu'aucune contrainte de base ne s'y oppose.
+**Tout passe par une transaction.** Créer un projet écrit trois tables : `Project`, `ClientMeta` et une ligne de `ProjectTag` par tag. Une écriture partielle laisserait un projet sans sa méta, donc invalide au regard de la règle ci-dessus, sans qu'aucune contrainte de base ne s'y oppose.
 
-**Le changement de type est autorisé mais destructeur.** Passer un projet de `CLIENT` à `PERSONAL` supprime sa méta client : entreprise, mode de travail, taille d'équipe et nombre de livrables sont perdus. L'action le fait dans la transaction, et le formulaire du sub-project `13` devra avertir avant. L'alternative, interdire le changement, obligerait à recréer le projet et à ressaisir tout le reste pour une correction de type.
+**Le changement de type ne détruit rien.** Passer un projet de `CLIENT` à `PERSONAL`, ou l'inverse, réécrit sa méta avec les valeurs soumises, comme toute modification : la méta est créée si elle manquait, mise à jour sinon, jamais supprimée.
 
 **Les tags sont remplacés intégralement à chaque modification.** Calculer un différentiel entre l'ancien et le nouveau jeu serait plus économe mais introduirait une logique de rapprochement pour un gain nul à cette échelle : un projet porte quelques tags. La suppression puis la recréation, dans la transaction, donne le même résultat avec moins de code susceptible de se tromper.
 
@@ -79,10 +87,10 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 ## Acceptance criteria
 
 ### Scénario 1 : Création d'un projet personnel
-**GIVEN** des données valides de type `PERSONAL`
+**GIVEN** des données valides de type `PERSONAL` avec la société du propriétaire et un mode de travail
 **WHEN** l'action de création s'exécute
 **THEN** le projet est créé avec ses tags
-**AND** aucune méta client n'est créée
+**AND** sa méta est créée et rattachée à cette société
 
 ### Scénario 2 : Création d'un projet client
 **GIVEN** des données valides de type `CLIENT` avec une entreprise et un mode de travail
@@ -90,28 +98,28 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 **THEN** le projet, sa méta client et ses tags sont créés
 **AND** les trois écritures ont eu lieu dans la même transaction
 
-### Scénario 3 : Projet client sans entreprise
-**GIVEN** des données de type `CLIENT` sans entreprise renseignée
+### Scénario 3 : Projet sans entreprise
+**GIVEN** des données de type `CLIENT` ou `PERSONAL` sans entreprise renseignée
 **WHEN** l'action s'exécute
 **THEN** aucune écriture n'a lieu
 **AND** l'erreur porte sur le champ d'entreprise
 
-### Scénario 4 : Projet personnel avec méta client
-**GIVEN** des données de type `PERSONAL` accompagnées d'une entreprise
+### Scénario 4 : Projet sans mode de travail
+**GIVEN** des données de type `CLIENT` ou `PERSONAL` sans mode de travail
 **WHEN** l'action s'exécute
-**THEN** la méta client est ignorée ou refusée, selon la règle retenue
-**AND** aucun `ClientMeta` n'est créé
+**THEN** aucune écriture n'a lieu
+**AND** l'erreur porte sur le champ de mode de travail
 
-### Scénario 5 : Bascule de client vers personnel
+### Scénario 5 : Changement de type
 **GIVEN** un projet client existant avec sa méta
-**WHEN** on le passe en `PERSONAL`
-**THEN** la méta client est supprimée
-**AND** le projet subsiste avec ses autres champs intacts
+**WHEN** on le passe en `PERSONAL` en le rattachant à la société du propriétaire
+**THEN** la méta est conservée et porte la nouvelle entreprise
+**AND** aucune méta n'est supprimée
 
-### Scénario 6 : Bascule de personnel vers client
-**GIVEN** un projet personnel existant
-**WHEN** on le passe en `CLIENT` avec une entreprise et un mode de travail
-**THEN** une méta client est créée et rattachée
+### Scénario 6 : Projet existant sans méta
+**GIVEN** un projet en base dépourvu de méta
+**WHEN** on le modifie avec une entreprise et un mode de travail
+**THEN** une méta est créée et rattachée
 
 ### Scénario 7 : Remplacement des tags
 **GIVEN** un projet portant trois tags
@@ -200,16 +208,15 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
   - un statut absent de `ProjectStatus` est refusé
   - un format absent de `ProjectFormat` est refusé
   - plusieurs formats soumis sont tous conservés
-  - un projet `CLIENT` sans entreprise est refusé, l'erreur portant sur le champ d'entreprise
-  - un projet `CLIENT` sans mode de travail est refusé, ce champ étant requis en base
-  - un projet `PERSONAL` avec une entreprise ne crée aucune méta client
+  - un projet sans entreprise est refusé quel que soit son type, l'erreur portant sur le champ d'entreprise
+  - un projet sans mode de travail est refusé quel que soit son type, ce champ étant requis en base
+  - un projet `PERSONAL` crée sa méta comme un projet `CLIENT`
   - une date de fin antérieure à la date de début est refusée
   - des dates absentes sont acceptées, les deux champs étant optionnels
   - une URL de dépôt ou de démonstration invalide est refusée, une valeur vide est enregistrée en `null`
   - une URL en `javascript:` est refusée sur les deux champs, `z.url()` nu l'acceptant
-  - la création d'un projet client ouvre une transaction
-  - le passage de `CLIENT` à `PERSONAL` supprime la méta client
-  - le passage de `PERSONAL` à `CLIENT` crée la méta client
+  - la création d'un projet ouvre une transaction
+  - la modification crée ou met à jour la méta, sans jamais la supprimer, changement de type compris
   - la modification remplace intégralement le jeu de tags
   - l'ordre de rattachement des tags suit l'ordre soumis
   - la création réussie invalide l'étiquette `projects`
@@ -227,8 +234,9 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 
 ## Edge cases
 
-- **Écriture partielle sans transaction** : un projet client créé sans sa méta serait invalide au regard de la règle métier, alors qu'aucune contrainte de base ne s'y oppose. C'est le risque principal de ce sub-project
-- **Perte silencieuse de la méta client** : la bascule vers `PERSONAL` supprime des données saisies. L'action l'assume, mais le formulaire du sub-project `13` doit avertir, sans quoi la perte serait découverte plus tard
+- **Écriture partielle sans transaction** : un projet créé sans sa méta serait invalide au regard de la règle métier, alors qu'aucune contrainte de base ne s'y oppose. C'est le risque principal de ce sub-project
+- **Projet hérité sans méta** : rien en base n'interdit un projet dépourvu de `ClientMeta`. La modification le répare par `upsert`, la validation exigeant entreprise et mode de travail
+- **Seed rejoué après une édition dans l'admin** : le seed procède par `upsert` sur le slug, il écraserait une modification faite depuis l'espace admin. Il reste un jeu de données de développement, de test et de CI
 - **`workMode` requis** : contrairement à `teamSize` et `contractStatus`, ce champ n'est pas nullable dans `ClientMeta`. L'oublier dans le schéma produirait une erreur de base au lieu d'un message de formulaire
 - **`formats` lu avec `get`** : seule la première valeur serait conservée, silencieusement. Même piège qu'avec les secteurs d'entreprise
 - **Dates au fuseau** : les colonnes sont en `Timestamptz`. Une date saisie sans heure est interprétée à minuit, ce qui peut décaler d'un jour selon le fuseau. Sur des dates de début et de fin de mission, l'effet reste sans conséquence, mais il explique un affichage parfois surprenant
@@ -252,6 +260,19 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/zod
 - Le différentiel demande une logique de rapprochement, donc un endroit de plus où se tromper, pour un résultat identique
 - Le remplacement rend l'ordre trivial à recalculer, alors que le différentiel imposerait de réajuster les `displayOrder` des rattachements conservés
 - Les deux options s'exécutent dans la même transaction, donc sans différence de sûreté
+
+### Décision : méta des projets personnels
+
+**Options envisagées :**
+- **A. Méta requise pour tous les types** : entreprise et mode de travail obligatoires, un projet personnel se rattache à la société du propriétaire.
+- **B. Méta réservée aux projets client** : un projet `PERSONAL` n'en a pas, et la bascule de `CLIENT` vers `PERSONAL` la supprime.
+
+**Choix : A** (décision du propriétaire, 2026-09-21)
+
+**Rationale :**
+- Le seed rattache déjà chaque projet personnel à une méta, que `CaseStudyHeader` affiche et que `src/server/queries/about.ts` agrège : l'option B effacerait ces données à la première modification d'un projet personnel depuis l'admin
+- Un projet personnel est une réalisation de la société du propriétaire, une vraie entreprise avec son entité légale, utile ensuite au suivi commercial et à la facturation
+- Une seule règle de validation pour les deux types, sans branche conditionnelle ni suppression destructrice à la bascule
 
 ### Décision : portée de l'ordre d'affichage des projets
 

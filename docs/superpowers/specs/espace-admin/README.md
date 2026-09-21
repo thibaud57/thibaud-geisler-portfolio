@@ -139,6 +139,17 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 | Variables `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL` absentes de `src/env.ts` et `.env.example` | ⬜ `env.ts` est fail-fast, à ajouter dans le même commit que l'installation de `better-auth` |
 | Tables Better Auth absentes du schéma | ⬜ Première migration à écrire. Le modèle `Asset` fantôme de l'ADR-002 est corrigé |
 
+## À traiter avant la mise en production
+
+Dette reportée par les sub-projects au fil de l'implémentation. `/finalize-feature` la relit, la checklist Pré-MEP de [PRODUCTION.md](../../../PRODUCTION.md) porte ce qui concerne le déploiement lui-même.
+
+| Point | Origine | État |
+|---|---|---|
+| Retirer le Schedule Dokploy `manual-seed` | `11` | ⬜ Dès la première saisie depuis l'espace admin : le seed procède par `upsert` sur le slug, un run écraserait les modifications faites en production |
+| Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ⬜ Les deux champs sont restreints à `http` et `https` côté schéma depuis le sub-project `11`. [PRODUCTION.md § Checklist Pré-MEP](../../../PRODUCTION.md) les liste encore comme ouverts |
+| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13` | ⬜ Entreprises, tags et projets. Le seed ne sert plus qu'au développement local et au build de CI une fois cette saisie faite |
+| Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
+
 ## Infrastructure
 
 Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
@@ -162,3 +173,4 @@ Quatre projets Dokploy existants : Portfolio (un service Compose plus une Databa
 - Source de vérité du kanban : GitHub Issues, avec l'espace admin en simple vue, ou base locale avec synchronisation ? La première évite un chantier de synchronisation bidirectionnelle.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
 - Faut-il un serveur MCP au-dessus des Server Actions du portfolio, pour piloter le CRM depuis Claude Code ? Techniquement peu coûteux, mais un CLI consomme nettement moins de contexte qu'un MCP à usage répétitif.
+- Que devient le seed une fois le contenu saisi depuis l'espace admin ? Il ne remplit plus la base de production, mais il reste **porteur du build** : `generateStaticParams` sur `/projets/[slug]` lit la base, et Cache Components refuse un retour vide au build (`.github/workflows/ci.yml`). C'est la seule raison du service Postgres éphémère et du `prisma db seed` de `deploy.yml` ; les tests d'intégration, eux, portent leurs propres fixtures et tournent avant le seed. Abandonner `generateStaticParams`, optionnel avec `cacheComponents` (`.claude/rules/nextjs/routing.md`), retirerait tout cet échafaudage au prix du premier hit instantané et des métadonnées figées dans le `<head>` pour les crawlers HTML-only (Telegram, Bluesky, Mastodon). Argument décisif à peser le moment venu : dès que la production diverge du dépôt, le build prérend le jeu de slugs du seed et non celui de la production, donc un prérendu qui ne décrit plus rien.
