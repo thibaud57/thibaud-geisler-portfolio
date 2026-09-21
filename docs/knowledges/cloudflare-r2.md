@@ -148,6 +148,7 @@ Token « dokploy-backups »     Object Read & Write   → portfolio-backups  uni
 
 ### Points Importants
 
+- Le compte R2 porte aussi des buckets étrangers au portfolio, créés le 2026-09-20 : `vps-system` (sauvegardes système du VPS, par restic) et `dokploy-backups` (sauvegardes de Dokploy lui-même). Ce dernier est homonyme du token de l'exemple ci-dessus, qui vise `portfolio-backups` : un bucket et un token sans rapport, à ne pas confondre en lisant la liste des buckets
 - La **Secret Access Key ne s'affiche qu'une fois** à la création. Non récupérable ensuite, seule la rotation reste possible
 - Wrangler **ne crée pas** de token R2 : cette étape se fait au dashboard (R2 → Manage API tokens). Les flags `--token` des commandes consomment un token existant, ils n'en produisent pas
 - Token de compte (créé sous Manage Account, réservé aux Super Administrators) : survit aux changements d'équipe, valide jusqu'à révocation. C'est celui qui convient à un service comme l'application ou Dokploy
@@ -310,7 +311,7 @@ wrangler r2 object delete <bucket>/<clé>
 
 ## ✅ Recommandations
 
-- **Un bucket par usage, un token par bucket**, chacun en `Object Read & Write` restreint à son seul bucket : une compromission de l'application ne doit pas permettre d'effacer les sauvegardes, et une manipulation locale ne doit pas atteindre la production. Le découpage retenu par le projet est de trois buckets (`portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`), décidé dans `docs/superpowers/specs/espace-admin/01-infra-stockage-objet-sauvegardes-design.md` : le forfait gratuit étant mensuel et non par bucket, la séparation ne coûte rien
+- **Un bucket par usage, un token par bucket**, chacun en `Object Read & Write` restreint à son seul bucket : une compromission de l'application ne doit pas permettre d'effacer les sauvegardes, et une manipulation locale ne doit pas atteindre la production. Le découpage retenu par le projet est de cinq buckets (`portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`, `portfolio-admin`, `portfolio-admin-dev`), décidé dans `docs/superpowers/specs/espace-admin/01-infra-stockage-objet-sauvegardes-design.md` : le forfait gratuit étant mensuel et non par bucket, la séparation ne coûte rien
 - **Garder les buckets privés** : les assets transitent par `/api/assets/[...path]`, qui conserve la validation de chemin et la politique de cache déjà en place
 - Fixer `requestChecksumCalculation: 'WHEN_REQUIRED'` sur le client S3 dès la première ligne écrite, avant de perdre du temps sur des uploads qui échouent
 - Choisir la juridiction à la création en connaissance de cause : c'est le seul paramètre définitivement figé

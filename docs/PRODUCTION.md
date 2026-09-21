@@ -115,6 +115,10 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Après le premier build CI qui embarque ce schema : les logs montrent `migrate deploy` appliquer la migration du schema `auth` et le prerender aboutir. En cas d'échec, retirer `?schema=public` du `DATABASE_URL` de la CI plutôt que de l'étendre. Le message `BetterAuthError: You are using the default secret` pendant la collecte des pages est attendu : les secrets d'authentification ne sont injectés qu'au runtime
 - [ ] Après déploiement : le compte Google correspondant à `ADMIN_EMAIL` peut se connecter et un autre compte Google est refusé, redirigé vers `/admin/login?error=FORBIDDEN`
 
+**Assets espace admin (à cocher au premier tag embarquant l'upload de logos depuis l'espace admin) :**
+- [ ] Avant le merge vers `main` : les trois variables `R2_ADMIN_*` posées dans Dokploy
+- [ ] Après déploiement : un fichier déposé depuis l'espace admin de production atterrit dans le bucket de production correspondant à son emplacement, et un logo d'entreprise reste inaccessible par la route publique `/api/assets/[...path]`
+
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -189,11 +193,14 @@ MAIL_TO=                           # Adresse destinataire des messages du formul
 # Sécurité (hachage des IP dans les logs — pseudonymisation)
 IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
 
-# Cloudflare R2 (assets servis via /api/assets/[...path], SDK S3, ADR-011)
+# Cloudflare R2 (assets servis via /api/assets/[...path] et /admin/api/assets/[...path], SDK S3, ADR-011)
 R2_ACCOUNT_ID=                     # Identifiant de compte Cloudflare, compose l'endpoint https://<R2_ACCOUNT_ID>.eu.r2.cloudflarestorage.com
 R2_ASSETS_ACCESS_KEY_ID=           # Clé du token R2 "Object Read & Write", restreint au bucket portfolio-assets
 R2_ASSETS_SECRET_ACCESS_KEY=       # Secret du même token
 R2_ASSETS_BUCKET=                  # Nom du bucket lu par la route : portfolio-assets en prod, portfolio-assets-dev en dev
+R2_ADMIN_ACCESS_KEY_ID=            # Clé du token R2 "Object Read & Write", restreint au bucket portfolio-admin
+R2_ADMIN_SECRET_ACCESS_KEY=        # Secret du même token
+R2_ADMIN_BUCKET=                   # Nom du bucket lu par la route admin : portfolio-admin en prod, portfolio-admin-dev en dev
 
 # Better Auth (authentification de l'espace admin, Google OAuth unique provider, ADR-002)
 BETTER_AUTH_URL=                   # URL de base des redirect URIs. Dev : http://localhost:3000 | Prod : https://thibaud-geisler.com
@@ -203,7 +210,7 @@ BETTER_AUTH_SECRET=                # Secret de signature des sessions et jetons.
 ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée à créer un compte, comparée dans le hook databaseHooks.user.create.before
 ```
 
-> Liste exhaustive : ce sont exactement les variables posées dans l'Environment du Compose (relevé du 2026-09-15).
+> Liste exhaustive de ce que `src/env.ts` valide : alignement confirmé avec l'Environment du Compose Dokploy le 2026-09-15. Les trois variables `R2_ADMIN_*` sont postérieures à ce relevé et restent à poser dans Dokploy (§ Checklist Release).
 
 ### Règles
 
@@ -434,6 +441,10 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 
 > **Chatbot (post-MVP)** : son quota ne se fixe pas ici. La route ne vivra pas dans ce dépôt mais dans le service `portfolio-chatbot`, c'est sa propre documentation d'exploitation qui la portera ([ADR-014](adrs/014-rate-limiting-chatbot.md) pour la décision).
 
+## Taille des requêtes
+
+`serverActions.bodySizeLimit` (`next.config.ts`) est relevée à **10 Mo** pour l'upload d'assets depuis l'espace admin, contre 1 Mo par défaut. Cette limite porte sur le corps HTTP brut, overhead multipart compris, et diffère de `MAX_ASSET_BYTES` (**8 Mo**, `src/lib/schemas/asset.ts`) : c'est ce second chiffre qu'annonce l'interface et que vérifient le client comme le serveur. Les 2 Mo d'écart couvrent cet overhead (boundary et en-têtes multipart) : sans marge, un fichier proche de 8 Mo ferait dépasser le corps de requête et déclencherait le rejet générique du framework au lieu du message de `MAX_ASSET_BYTES`. La mise en garde de Next sur la consommation de ressources d'une limite élevée ne s'applique pas ici : l'action vit derrière l'authentification de l'espace admin et n'est joignable que par le seul compte autorisé (`ADMIN_EMAIL`).
+
 ## Domaine & Redirection
 
 `www.thibaud-geisler.com` redirige vers `thibaud-geisler.com` via un middleware Traefik custom (`redirect-www-to-apex`, depuis le 2026-09-04), le domaine principal restant l'unique adresse indexée. Config et procédure : [knowledges/dokploy.md § Middleware Traefik custom](knowledges/dokploy.md#middleware-traefik-custom-redirection-www).
@@ -551,7 +562,7 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 ### Anti-Patterns
 
-- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET`
+- ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`, `R2_ADMIN_SECRET_ACCESS_KEY`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET`
 - ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société), ni `ADMIN_EMAIL` (seul élément identifiant la cible d'une tentative d'accès) : données personnelles, RGPD
 - ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
@@ -618,7 +629,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ## Stratégie Backup
 
-**En place depuis le sub-project `espace-admin/01`**, mécanisme natif Dokploy (`pg_dump` puis transfert rclone), sans script ni cron sur le VPS, destination `cloudflare-r2-backups`. Marche à suivre pour recréer la configuration : [knowledges/dokploy.md](knowledges/dokploy.md).
+**En place**, mécanisme natif Dokploy (`pg_dump` puis transfert rclone), sans script ni cron sur le VPS, destination `cloudflare-r2-backups`. Marche à suivre pour recréer la configuration : [knowledges/dokploy.md](knowledges/dokploy.md).
 
 | Ressource | Mécanisme | Fréquence | Rétention | Localisation |
 |-----------|-----------|-----------|-----------|--------------|

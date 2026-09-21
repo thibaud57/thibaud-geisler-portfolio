@@ -496,6 +496,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ✅ **Valeurs numériques** : ce qui se compare s'aligne à droite en `tabular-nums` (montants, quantités, taux, durées), pour que les ordres de grandeur se lisent en colonne. Sans changer de famille : Geist Sans porte des chiffres tabulaires, le mono reste réservé aux années de timeline. Ce qui se lit comme une étiquette reste à gauche et en chasse normale : années, numéros de facture, identifiants. `NumberTicker` l'applique déjà aux chiffres clés de `/a-propos`
 - ✅ **Largeur des champs** : tout contrôle de saisie occupe la largeur de sa colonne, texte, liste déroulante, recherche ou date, pour que les champs d'une rangée s'alignent. À poser explicitement, plusieurs contrôles du registry se dimensionnant sur leur contenu
 - ✅ **Texte trop long** : ce qui ne tient pas dans sa colonne se tronque par une ellipse, relue au survol par `Tooltip` (§ Post-MVP, Texte tronqué). Le `placeholder` fait exception, il doit tenir entier dans son champ
+- ✅ **Curseur** : le curseur texte ne paraît que sur les champs de saisie, le pointeur sur ce qui se clique, la flèche partout ailleurs. Posé une fois en `@layer base` dans `globals.css`, jamais composant par composant : hérité par défaut, le curseur texte fait passer un contenu statique pour éditable
 
 ## Anti-Patterns
 
@@ -532,6 +533,11 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Colonnes par vue** : la vue « Tous / Toutes » d'une liste affiche toutes ses colonnes par défaut, les autres vues en masquent selon leur objet, là où la maquette en masque d'emblée sur toutes les vues
 - **Badges tronqués** : trois au plus puis un « +N », partout, là où la maquette en montre deux sur certaines colonnes
 - **Valeurs métier affichées** : celles de la base et de ses règles, là où la maquette montre des valeurs d'exemple parfois en retard (trois catégories de tag pour six, « CDD » pour « Stage », « Automatisation » et « Data / IA » pour « CLI » et « IA », un ordre d'affichage à partir de 0 au lieu de 1)
+- **Rangée de rattachement d'une tuile** : réservée sur toutes les tuiles d'une grille, icône de lien et filet de séparation toujours visibles même quand l'élément n'est référencé par rien, les badges de rattachement n'apparaissant qu'à partir de la première référence
+- **Pied de pagination** : identique sur toute liste admin, grille de tuiles comprise, sélecteur de lignes par page inclus
+- **Aperçu d'un fichier** : l'image tient entière dans son cadre, jamais recadrée, sur un fond neutre. Le dégradé ne signale plus qu'un aperçu manquant
+- **Chemin sous un aperçu** : le dossier parent seul, le chemin complet au survol. Sur des clés profondes, le début du chemin est commun à tous les fichiers et l'ellipse emporte justement le segment qui les distingue
+- **Titre d'une confirmation de suppression** : nomme le fichier, pas sa clé complète, pour tenir sur une ligne quelle que soit la profondeur du dossier
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

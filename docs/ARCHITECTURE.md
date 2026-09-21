@@ -68,7 +68,7 @@ pnpm
 - **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, cf. [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
-- **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
+- **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via les routes API catch-all `/api/assets/[...path]` et `/admin/api/assets/[...path]`, jamais depuis `public/`
 - **Sécurité** : `src/proxy.ts` (locale routing, dont `/admin` est exclu, et vérification du cookie de session sur `/admin`) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
@@ -283,7 +283,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), CRUD projets post-MVP
-- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
@@ -344,14 +344,14 @@ Les quatre tags sont purgés au démarrage par `src/instrumentation.ts` : l'imag
 
 ### Files / Assets Storage
 
-Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Bucket privé, aucun domaine public configuré : seule la route y accède, via le SDK S3.
+Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par deux routes API catch-all, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique) : `/api/assets/[...path]` pour le bucket vitrine, `/admin/api/assets/[...path]` derrière la garde de session pour le bucket back-office. Buckets privés, aucun domaine public configuré : seules ces routes y accèdent, via le SDK S3, chacune avec le token de son bucket.
 
 | Bucket | Racine | Contenu |
 |--------|--------|---------|
-| `portfolio-assets` (vitrine, servi par la route) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
+| `portfolio-assets` (vitrine, servi sans authentification) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
 | `portfolio-assets` | `documents/cv/` | CV PDF par locale |
 | `portfolio-assets` | `branding/` | Logo, portrait |
-| `portfolio-admin` (back-office, jamais servi par la route) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise |
+| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise |
 
 ### File Processing
 
