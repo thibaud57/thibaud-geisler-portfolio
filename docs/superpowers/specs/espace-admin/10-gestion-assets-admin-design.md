@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "gestion-assets-admin"
 goal: "Uploader, lister et supprimer les assets depuis l'espace admin, et fournir le sélecteur qui les rattache aux projets et aux entreprises"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "full"
 depends_on: ["06-shell-admin-design.md", "08-crud-entreprises-design.md", "09-stockage-assets-r2-design.md"]
