@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "ecran-liste-projets"
 goal: "Lister et parcourir tous les projets, publiés comme brouillons, depuis l'espace admin"
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["06-shell-admin-design.md", "08-crud-entreprises-design.md", "11-crud-projets-actions-design.md"]
@@ -44,11 +44,14 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 - **À créer** : `src/app/admin/(protected)/projets/[id]/page.tsx` (page d'attente, remplacée par le sub-project `13`) et son `loading.tsx`
 - **À modifier** : `src/config/admin-nav-items.ts` (sous-entrées Tous / Clients / Perso sous l'item Projets, dans la forme que le `08` y introduit)
 - **Composants shadcn** : `select`, `alert-dialog`, `pagination`, `popover`, `checkbox` et `tooltip` sont déjà posés par les sub-projects `07` et `08`. Vérifier leur présence et n'installer que ce qui manque
-- **À modifier** : `src/components/features/admin/DataTable.tsx` (rendu carte sous `md:`, à partir des mêmes lignes filtrées/triées/paginées que la table)
-- **À créer** : `src/lib/projects.ts` (libellés d'affichage des enums projet, calcul de durée)
+- **À modifier** : `src/components/features/admin/DataTable.tsx` (rendu carte sous `md:` à partir des mêmes lignes filtrées/triées/paginées que la table, états vides génériques, clic de ligne, facettes multi-valeurs)
+- **À installer** : le composant `empty` du registry shadcn, support des deux états vides
+- **À créer** : `src/components/features/admin/DetailDialog.tsx` (vue détail générique)
+- **À modifier** : `src/components/features/admin/tags/TagsTable.tsx`, `src/components/features/admin/tags/TagFormDialog.tsx` et `src/components/features/admin/companies/CompaniesTable.tsx` (vue détail et états vides sur les deux listes déjà livrées)
+- **À modifier** : `src/lib/projects.ts` (libellés d'affichage des enums projet, calcul de durée)
 - **À créer** : `src/components/features/admin/projects/ProjectsTable.tsx`
 - **À créer** : `src/components/features/admin/projects/DeleteProjectDialog.tsx`
-- **À modifier** : `docs/DESIGN.md` § Mapping Composants (le rendu carte sort du post-MVP)
+- **À modifier** : `docs/DESIGN.md` § Mapping Composants (le rendu carte sort du post-MVP) et § Arbitrages (vue détail, états vides)
 
 ## Architecture approach
 
@@ -56,7 +59,7 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 
 **Trois vues, une route par vue, un seul composant de table.** La maquette ne traite pas Tous/Client/Perso comme un filtre dans la barre d'outils de l'écran, mais comme trois entrées de sous-navigation dans la sidebar, au même pattern que Missions (Mission/CRA) ou Entreprises (Toutes/Travaillées). Changer de vue est donc une navigation, pas un état local : `/admin/projets` (Tous), `/admin/projets/client` et `/admin/projets/perso`, coexistant sans conflit avec la route dynamique `/admin/projets/[id]` puisque Next.js résout toujours un segment statique avant un segment dynamique de même niveau. Chaque route est une page `async` fine qui charge `findAllProjectsForAdmin()` et délègue à `<ProjectsTable projects={...} view="tous" | "client" | "perso" />`, seul composant qui connaît le détail des colonnes, des filtres et du glisser-déposer.
 
-**`ProjectsTable` filtre par type avant de passer les lignes au `DataTable`.** Les vues Client et Perso ne sont pas un filtre applicable et retirable dans la barre d'outils : elles restreignent la donnée en amont, à la source. Le filtre facetté « Type de projet » du `DataTable` n'a donc de sens que dans la vue Tous, où les deux types se côtoient ; les vues Client et Perso ne le déclarent pas.
+**`ProjectsTable` filtre par type avant de passer les lignes au `DataTable`.** Les vues Client et Perso ne sont pas un filtre applicable et retirable dans la barre d'outils : elles restreignent la donnée en amont, à la source, avant même que le `DataTable` reçoive les lignes. Le filtre facetté « Type de projet » du `DataTable`, lui, porte sur les formats du projet (API, Web App…), une donnée indépendante de cette nature Client/Perso : il garde donc sa place dans les trois vues.
 
 **Le titre et l'accroche de l'en-tête suivent la vue.** Trois couples titre/accroche, en dur comme le reste de l'interface admin (ADR-021, monolingue français) : la spec ne recopie pas le texte de la maquette (`.claude/rules/design/claude-design.md`), l'écran `isProjets` en porte la source, `projViewTitle`/`projViewHint`.
 
@@ -71,26 +74,31 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 | # | `displayOrder`, rendu natif du `DataTable` | non |
 | Titre | `titleFr`, avec le slug en dessous | non |
 | Nature | `type`, badge `outline meta` Client/Perso | oui |
-| Type de projet | `formats`, badges `secondary` capés à 2 + tooltip | oui |
+| Type de projet | `formats`, badges `secondary` capés à 3 + tooltip | oui |
 | Entreprise | `clientMeta.company`, mini logo + nom, ou tiret | oui |
 | Statut contrat | `clientMeta.contractStatus`, texte muted | oui |
 | Date début | `startedAt`, triable | oui |
 | Date fin | `endedAt`, triable | oui |
 | Durée | calculée depuis `startedAt`/`endedAt` (ou aujourd'hui si en cours) | oui |
 | Équipe | `clientMeta.teamSize`, aligné à droite, mono | oui |
-| Liens | présence de `githubUrl`/`demoUrl`, « GitHub · Démo » | oui |
+| Liens | `githubUrl`/`demoUrl`, liens « GitHub · Démo » cliquables vers un nouvel onglet, ou tiret | oui |
 | Statut | `status`, pastille + libellé (Brouillon/Publié/Archivé) | oui |
 | Actions | édition + suppression | non |
 
 Le tri par colonne, avec `aria-sort` et le cycle croissant/décroissant/ordre d'affichage déjà porté par le `DataTable`, ne s'applique qu'à Titre, Date début et Date fin, comme la maquette : les autres colonnes n'ont pas de `sortValue`.
 
-**Colonnes visibles par défaut, par vue** (les autres restent masquées mais accessibles par le sélecteur) :
-- **Tous** et **Client** : Nature, Type de projet, Entreprise, Date début, Durée, Statut
+**Colonnes visibles par défaut, par vue** (les autres restent masquées mais accessibles par le sélecteur), suivant l'arbitrage « Colonnes par vue » de `docs/DESIGN.md` :
+- **Tous** : toutes les colonnes masquables
+- **Client** : Nature, Type de projet, Entreprise, Date début, Durée, Statut
 - **Perso** : Type de projet, Date début, Date fin, Liens, Statut
 
-**Les filtres facettés portent sur le Statut de publication dans toutes les vues, et sur le Type de projet dans la seule vue Tous.** Chaque compteur tient compte de la recherche en cours, sans option « Tous » (mécanisme déjà câblé par le `DataTable` depuis le `07`).
+**Les filtres facettés portent sur le Statut de publication et sur le Type de projet dans les trois vues.** Aucune vue ne porte de filtre sur la nature Client/Perso, déjà tranchée par la route. Chaque compteur tient compte de la recherche en cours, sans option « Tous » (mécanisme déjà câblé par le `DataTable` depuis le `07`).
 
 **Le glisser-déposer n'est câblé que dans la vue Tous.** `ProjectsTable` ne passe la prop `onReorder` (appelant `reorderProjects` du sub-project `11`) qu'en vue Tous ; les vues Client et Perso omettent cette prop, ce qui suffit à rendre leurs lignes non draggables sans changement au `DataTable` : `draggable` y vaut déjà `isOrderView && !!onReorder`. Le numéro affiché en colonne `#` reste la position globale du projet (cf. spec `11`, ordre 1..n sur l'ensemble des projets) : les vues Client et Perso l'affichent tel quel, non contigu dans leur sous-ensemble filtré, sans jamais permettre de le changer.
+
+**Le clic sur une ligne ouvre une vue détail, décision du propriétaire qui vaut pour toute liste admin** (arbitrage consigné dans `docs/DESIGN.md`). Le `DataTable` gagne une prop `onRowClick` et une prop `rowLabel` qui nomme la ligne pour les technologies d'assistance ; la modale générique de détail, calquée sur l'écran `dlgDetail` de la maquette, vit à côté de lui et sert aussi les tags et les entreprises. Son pied mène à l'édition, quand le crayon de la colonne Actions y mène directement. Le titre de la ligne reste du texte, sans lien.
+
+**Les deux états vides sont génériques, eux aussi portés par le `DataTable`** (même arbitrage) : base vide d'un côté, recherche ou facettes sans résultat de l'autre, ce dernier portant le bouton de réinitialisation qu'appelle l'edge case « Filtres non réinitialisables ». Chaque écran fournit l'icône, le titre et la phrase, le composant rend la forme.
 
 **Actions de ligne en icônes seules, relues par `Tooltip`.** Motif déjà livré par `DeleteTagDialog.tsx` : `Button variant="ghost" size="icon-sm"`, crayon « Modifier » et poubelle « Supprimer », `aria-label` portant le titre du projet. Les cartes mobiles, elles, portent des boutons texte en pied de carte (« Modifier » en `outline`, « Supprimer » en `destructive`), comme la maquette.
 
@@ -126,11 +134,11 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/next
 **THEN** seuls les projets en brouillon de cette vue restent affichés
 **AND** le nombre de résultats est indiqué
 
-### Scénario 4 : Filtre par type, seulement en vue Tous
-**GIVEN** la vue Tous
+### Scénario 4 : Filtre par type de projet, dans les trois vues
+**GIVEN** une vue affichée, Tous, Client ou Perso
 **WHEN** on ouvre les filtres
-**THEN** un filtre Type de projet est disponible en plus du filtre Statut
-**AND** les vues Client et Perso ne le proposent pas, leur contenu étant déjà restreint par la vue
+**THEN** un filtre Type de projet (les formats du projet) est disponible en plus du filtre Statut
+**AND** aucune vue ne propose de filtre sur la nature Client/Perso, déjà tranchée par la route
 
 ### Scénario 5 : Filtres combinés sans résultat
 **GIVEN** un filtre de type et un filtre de statut actifs en vue Tous
@@ -181,6 +189,12 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/next
 **WHEN** on affiche la liste, dans n'importe quelle vue
 **THEN** les projets se présentent en cartes empilées, avec des boutons texte pour les actions
 **AND** la page ne défile pas horizontalement
+
+### Scénario 14 : Vue détail au clic de ligne
+**GIVEN** la liste affichée
+**WHEN** on clique sur une ligne ailleurs que sur ses actions
+**THEN** une modale montre les champs du projet
+**AND** son bouton de modification mène à l'écran d'édition, quand le crayon de la colonne Actions y mène sans passer par elle
 
 ## Edge cases
 
