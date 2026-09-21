@@ -1,7 +1,11 @@
 ---
 paths:
   - "src/app/api/assets/**/*.ts"
+  - "src/app/admin/(protected)/api/assets/**/*.ts"
   - "src/server/config/assets.ts"
+  - "src/server/actions/assets.ts"
+  - "src/server/queries/assets.ts"
+  - "src/lib/schemas/asset.ts"
   - "src/lib/r2.ts"
   - ".env*"
 ---
@@ -10,8 +14,9 @@ paths:
 
 ## À faire
 - Servir tous les assets publics (images de projets, captures, CV, branding) via la route catch-all `GET /api/assets/[...path]` qui lit le bucket Cloudflare R2 `portfolio-assets` (ou `portfolio-assets-dev` en développement) via `GetObjectCommand` du SDK S3
-- **Deux buckets, jamais servis par la même route** : `portfolio-assets` (vitrine, lu par `/api/assets`) et `portfolio-admin` (back-office, logos d'entreprise sous `freelance/crm/entreprises/<slug>/logo.png`, jamais servi par la route publique). Chacun a son token restreint, aucun ne lit l'autre bucket
-- **Organisation `portfolio-assets`** : `branding/<fichier>` (logo, portrait), `documents/cv/<fichier>` (CV, un fichier par locale `cv-thibaud-geisler-<locale>.pdf`), `projets/{client,personal}/<slug-projet>/<fichier>` (couverture, captures, vidéos du projet, sous **son propre** slug, `Project.slug`, plus le slug de l'entreprise pour un projet client)
+- **Deux buckets, jamais servis par la même route** : `portfolio-assets` (vitrine, lu par `/api/assets`) et `portfolio-admin` (back-office, logos d'entreprise sous `freelance/crm/entreprises/<slug>/logo.png`, 5 segments, jamais servi par la route publique). Le critère qui les sépare n'est pas qui édite le fichier (l'espace admin écrit dans les deux) mais **qui a le droit de le lire** : `portfolio-assets` porte ce que `/api/assets/[...path]` sert sans authentification, `portfolio-admin` ce qui n'est lu que par l'espace admin, derrière sa propre route gardée. Chacun a son token restreint, aucun ne lit l'autre bucket
+- **Organisation `portfolio-assets`** : `branding/<fichier>` (2 segments, logo, portrait), `documents/cv/<fichier>` (3 segments, CV, un fichier par locale `cv-thibaud-geisler-<locale>.pdf`), `projets/{client,personal}/<slug-projet>/<fichier>` (4 segments, couverture, captures, vidéos du projet, sous **son propre** slug, `Project.slug`, plus le slug de l'entreprise pour un projet client)
+- **L'emplacement choisi au dépôt détermine le bucket, jamais l'inverse** : le dossier sélectionné (`branding`, `documents/cv`, `projets/{client,personal}`, `freelance/crm/entreprises`) fixe à lui seul la destination, aucun autre paramètre ne l'influence
 - Valider chaque segment du `path` via un schéma Zod strict (regex `^[a-z0-9][a-z0-9._-]*$` par segment, insensible à la casse) et valider que le **dernier segment** porte une extension whitelist (png/jpg/jpeg/webp/svg/pdf). Profondeur max 5 segments. Le chemin validé devient directement la clé d'objet R2
 - Relayer le corps de la réponse en flux (`object.Body.transformToWebStream()`) plutôt que de le charger en mémoire : le CV en PDF étant le plus lourd des assets, cela évite de le tamponner entièrement à chaque requête
 - Retourner `Cache-Control` conditionnel : `public, max-age=31536000, immutable` en production (assets immutables, convention : changer le filename pour invalider, pas le cache) et `no-cache, no-store, must-revalidate` en dev (sinon Chrome garde 1 an le premier fichier servi localement, pénible au moindre remplacement d'asset)
@@ -24,7 +29,7 @@ paths:
 - Stocker les assets dynamiques dans `public/` : couplage au build, pas de hashing, incompatible avec l'upload depuis l'espace admin (ADR-011 contrainte actée, indépendante du choix de stockage)
 - Accepter des segments contenant `/` ou `\` : chaque entrée du tableau `path` issu du catch-all Next doit être un segment atomique (la regex rejette tout séparateur interne). Rejeter `..` et `.` : le motif de segment l'exclut déjà en imposant de commencer par un caractère alphanumérique
 - Ajouter `export const dynamic` dans la route handler : incompatible avec `cacheComponents: true` (cf. `nextjs/api-routes.md`). Le `Cache-Control` HTTP + comportement dynamic par défaut suffisent
-- Dépasser 5 segments de profondeur : la limite dure empêche l'explosion arborescente et reste cohérente avec la convention `projets/<type>/<slug>/<filename>` (4 segments)
+- Dépasser 5 segments de profondeur : la limite dure empêche l'explosion arborescente et correspond exactement à la plus profonde des quatre structures valides, `freelance/crm/entreprises/<slug>/<fichier>` (`portfolio-admin`)
 - Introduire une interface `AssetStorage` : une seule implémentation existe, l'écrire directement (YAGNI)
 
 ## Gotchas

@@ -1,7 +1,42 @@
 import type { Locale } from "next-intl"
 
-export function buildAssetUrl(filename: string): string {
-  return `/api/assets/${filename}`
+import { isAdminAssetKey } from "@/lib/schemas/asset"
+
+export function buildAssetUrl(key: string): string {
+  const base = isAdminAssetKey(key) ? "/admin/api/assets" : "/api/assets"
+  return `${base}/${key}`
+}
+
+export function nameOfAssetKey(key: string): string {
+  return key.split("/").at(-1) ?? key
+}
+
+export function pathOfAssetKey(key: string): string {
+  return key.split("/").slice(0, -1).join("/")
+}
+
+// Dernier segment du dossier : sur les clés profondes (freelance/crm/entreprises/<slug>/logo.png),
+// c'est lui qui distingue deux fichiers de même nom, quand le début du chemin est commun à tous et
+// se ferait tronquer en premier.
+export function folderLabelOfAssetKey(key: string): string {
+  return pathOfAssetKey(key).split("/").at(-1) ?? ""
+}
+
+export function isPdfAssetKey(key: string): boolean {
+  return key.toLowerCase().endsWith(".pdf")
+}
+
+export function assetKeyMatchesQuery(key: string, query: string): boolean {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+  return (
+    nameOfAssetKey(key).toLowerCase().includes(normalizedQuery) ||
+    pathOfAssetKey(key).toLowerCase().includes(normalizedQuery)
+  )
+}
+
+export function countAssetsLabel(count: number): string {
+  return count === 1 ? "1 fichier" : `${count} fichiers`
 }
 
 const CV_FILENAMES = {

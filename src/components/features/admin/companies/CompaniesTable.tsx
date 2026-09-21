@@ -3,8 +3,10 @@
 import { Pencil } from "lucide-react"
 import Link from "next/link"
 
+import { AssetImage } from "@/components/features/admin/assets/AssetImage"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
+import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -26,6 +28,24 @@ function capSectors(sectors: readonly CompanySector[]) {
 const TRUNCATED_CELL_CLASS =
   "block w-full truncate rounded-sm border border-transparent text-left focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
 
+function CompanyLogoTile({ logoFilename }: { logoFilename: string | null }) {
+  const { showImage, onError } = useImageFallback(logoFilename)
+  return (
+    <span className="relative block size-7 overflow-hidden rounded-md border border-border bg-linear-to-br from-primary/20 to-accent/20">
+      {showImage && logoFilename ? (
+        <AssetImage
+          assetKey={logoFilename}
+          alt=""
+          fill
+          sizes="28px"
+          className="object-cover"
+          onError={onError}
+        />
+      ) : null}
+    </span>
+  )
+}
+
 function TruncatedCell({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="text-muted-foreground">—</span>
   return (
@@ -46,10 +66,7 @@ const columns: readonly Column<AdminCompany>[] = [
     header: "Logo",
     headerSrOnly: true,
     width: "w-[44px]",
-    // Logos non lisibles avant le bucket du sub-project 10 : tuile dégradée systématique, jamais logoFilename.
-    cell: () => (
-      <span className="block size-7 rounded-md border border-border bg-linear-to-br from-primary/20 to-accent/20" />
-    ),
+    cell: (company) => <CompanyLogoTile logoFilename={company.logoFilename} />,
   },
   {
     key: "name",
@@ -147,8 +164,8 @@ const columns: readonly Column<AdminCompany>[] = [
             <Button
               variant="ghost"
               size="icon-sm"
-              // 20px de large pour 28 de haut, comme iconBtn dans la maquette : les deux actions
-              // d'une ligne se lisent comme une paire, pas comme deux boutons séparés.
+              // Les deux actions d'une ligne se lisent comme une paire, pas comme deux boutons
+              // séparés : d'où une largeur plus étroite que la hauteur.
               className="w-5 min-w-5"
               aria-label={`Modifier ${company.name}`}
               asChild

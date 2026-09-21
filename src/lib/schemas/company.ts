@@ -1,6 +1,7 @@
 import { z } from "zod"
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+import { isAdminAssetKey } from "@/lib/schemas/asset"
+import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 const SECTORS = [
   "ASSURANCE",
@@ -59,6 +60,13 @@ export const companySchema = z.object({
     .string()
     .trim()
     .transform((value) => (value === NONE_VALUE || value === "" ? null : value)),
+  logoFilename: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || isAdminAssetKey(value), {
+      error: "Le logo doit être choisi dans l'espace Assets",
+    })
+    .transform((value) => (value === "" ? null : value)),
 })
 
 export type CompanyInput = z.infer<typeof companySchema>

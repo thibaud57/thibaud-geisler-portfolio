@@ -2,8 +2,7 @@ import { z } from "zod"
 
 import { TagKind } from "@/generated/prisma/browser"
 import { TAG_ICON_KEYS } from "@/lib/icons"
-
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 export const tagSchema = z.object({
   slug: z

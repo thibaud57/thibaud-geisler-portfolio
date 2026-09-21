@@ -45,6 +45,7 @@ function collectValues(formData: FormData): CompanyFormState["values"] {
     size: stringField(formData, "size"),
     websiteUrl: stringField(formData, "websiteUrl"),
     legalEntityId: stringField(formData, "legalEntityId"),
+    logoFilename: stringField(formData, "logoFilename"),
   }
 }
 
@@ -136,7 +137,6 @@ export async function updateCompany(
     "updateCompany",
     { success: "company:updated", failure: "company:update_failed" },
     formData,
-    // logoFilename n'est jamais dans `data` : une modification ne l'écrase donc jamais en null.
     (data) => prisma.company.update({ where: { id }, data }),
   )
 }

@@ -15,3 +15,15 @@ export const r2 = new S3Client({
 })
 
 export const R2_BUCKET = env.R2_ASSETS_BUCKET
+
+export const adminR2 = new S3Client({
+  region: "auto",
+  endpoint: `https://${env.R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: env.R2_ADMIN_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_ADMIN_SECRET_ACCESS_KEY,
+  },
+  requestChecksumCalculation: "WHEN_REQUIRED",
+})
+
+export const R2_ADMIN_BUCKET = env.R2_ADMIN_BUCKET

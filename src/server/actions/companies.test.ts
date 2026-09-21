@@ -197,6 +197,16 @@ describe("createCompany", () => {
     )
   })
 
+  it("rejects a logo key outside the companies asset folder", async () => {
+    const state = await createCompany(
+      initialCompanyFormState,
+      buildFormData({ logoFilename: "branding/logos/monogramme.svg" }),
+    )
+
+    expect(state.errors.logoFilename).toBeDefined()
+    expect(prisma.company.create).not.toHaveBeenCalled()
+  })
+
   it("returns the submitted values on failure", async () => {
     const state = await createCompany(initialCompanyFormState, buildFormData({ slug: "" }))
 

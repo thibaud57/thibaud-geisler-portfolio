@@ -8,30 +8,16 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react"
-import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, Funnel, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3 } from "lucide-react"
 
+import { FacetFilter } from "@/components/features/admin/FacetFilter"
+import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
+import { SearchInput } from "@/components/features/admin/SearchInput"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import {
   Table,
@@ -41,14 +27,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, paginate } from "@/lib/pagination"
 import { computeReorderedIds, sameIdSet } from "@/lib/reorder"
-import { LABEL_CLASS } from "@/lib/typography"
+import { COUNTER_BADGE_CLASS, LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 const UNGROUPED_KEY = "__all__"
-
-// Pastille compacte de la maquette (16px, texte 10px) : le badge par défaut alourdirait un bouton sm.
-const COUNTER_BADGE_CLASS = "h-4 min-w-4 px-[5px] text-[10px] leading-none"
 
 // Une colonne est triable ou cherchable par la seule présence de son accesseur : sans flag à
 // tenir en phase, une colonne déclarée triable sans comparateur est impossible à écrire.
@@ -91,8 +75,6 @@ type SortState = { key: string; direction: SortDirection } | null
 type RenderItem<T, K extends string> =
   { type: "row"; row: T } | { type: "group"; key: K; count: number }
 
-const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100] as const
-
 interface Props<T, K extends string = string> {
   rows: readonly T[]
   columns: readonly Column<T>[]
@@ -118,7 +100,7 @@ export function DataTable<T, K extends string = string>({
   empty,
   searchPlaceholder,
   countLabel,
-  pageSize = 25,
+  pageSize = DEFAULT_PAGE_SIZE,
   groupBy,
   facets,
   defaultFacetSelections,
@@ -256,12 +238,12 @@ export function DataTable<T, K extends string = string>({
     })
   }, [isOrderView, groupedView, sort, facetFilteredRows, visibleColumns])
 
-  const pageCount = Math.max(1, Math.ceil(sortedRows.length / rowsPerPage))
-  // Recalé pendant le rendu et non seulement borné à l'affichage : une page devenue hors limite
-  // après une suppression resurgirait sinon dès que la liste regrossit.
+  const {
+    currentPage,
+    pageCount,
+    pageItems: paginatedRows,
+  } = paginate(sortedRows, page, rowsPerPage)
   if (page > pageCount) setPage(pageCount)
-  const currentPage = Math.min(page, pageCount)
-  const paginatedRows = sortedRows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
   const renderItems = useMemo((): RenderItem<T, K>[] => {
     if (!isOrderView || !groupBy || !hasOrderColumn) {
@@ -492,23 +474,14 @@ export function DataTable<T, K extends string = string>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-[320px] min-w-[200px] flex-1">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(1)
-            }}
-            className="pl-[34px]"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value)
+            setPage(1)
+          }}
+          placeholder={searchPlaceholder}
+        />
 
         {hideableColumns.length > 0 ? (
           <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
@@ -578,78 +551,22 @@ export function DataTable<T, K extends string = string>({
         ) : null}
 
         {facets && facets.length > 0 ? (
-          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={cn(activeFacetCount > 0 && "pr-1.5")}
-              >
-                <Funnel aria-hidden data-icon="inline-start" />
-                Filtres
-                {activeFacetCount > 0 ? (
-                  <Badge variant="default" className={COUNTER_BADGE_CLASS}>
-                    {activeFacetCount}
-                  </Badge>
-                ) : null}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="gap-0">
-              {facets.map((facet) => (
-                <div key={facet.key}>
-                  <div className={cn(LABEL_CLASS, "mb-2")}>{facet.label}</div>
-                  <div className="grid gap-[2px]">
-                    {facet.options.map((option) => {
-                      const count = searchFilteredRows.filter(
-                        (row) => facet.value(row) === option.value,
-                      ).length
-                      const checked = facetSelections[facet.key]?.has(option.value) ?? false
-                      return (
-                        <label
-                          key={option.value}
-                          className="-mx-2 flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                        >
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => {
-                              toggleFacetValue(facet.key, option.value)
-                            }}
-                          />
-                          <span>{option.label}</span>
-                          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                            {count}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-              <Separator className="mt-3 mb-2" />
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={activeFacetCount === 0}
-                  onClick={resetFacets}
-                >
-                  Réinitialiser
-                </Button>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    setFilterOpen(false)
-                  }}
-                >
-                  Appliquer
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <FacetFilter
+            groups={facets.map((facet) => ({
+              key: facet.key,
+              label: facet.label,
+              options: facet.options.map((option) => ({
+                value: option.value,
+                label: option.label,
+                count: searchFilteredRows.filter((row) => facet.value(row) === option.value).length,
+              })),
+            }))}
+            selected={facetSelections}
+            onToggle={toggleFacetValue}
+            onReset={resetFacets}
+            open={filterOpen}
+            onOpenChange={setFilterOpen}
+          />
         ) : null}
       </div>
 
@@ -715,104 +632,18 @@ export function DataTable<T, K extends string = string>({
       </Card>
 
       {facetFilteredRows.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span role="status" aria-live="polite" className="text-sm text-muted-foreground">
-              {countLabel(facetFilteredRows.length)}
-            </span>
-            <Select
-              value={String(rowsPerPage)}
-              onValueChange={(value) => {
-                setRowsPerPage(Number(value))
-                setPage(1)
-              }}
-            >
-              <SelectTrigger size="xs" aria-label="Lignes par page" className="w-16">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Pagination className="mx-0 w-auto justify-end">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  text=""
-                  aria-label="Page précédente"
-                  size="icon-xs"
-                  aria-disabled={currentPage === 1}
-                  tabIndex={currentPage === 1 ? -1 : undefined}
-                  className={cn(currentPage === 1 && "pointer-events-none opacity-50")}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    setPage((current) => Math.max(1, current - 1))
-                  }}
-                />
-              </PaginationItem>
-              {getVisiblePages(currentPage, pageCount).map((entry, index) =>
-                entry === "ellipsis" ? (
-                  <PaginationItem key={`ellipsis-${index}`}>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={entry}>
-                    <PaginationLink
-                      href="#"
-                      size="icon-xs"
-                      isActive={entry === currentPage}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setPage(entry)
-                      }}
-                    >
-                      {entry}
-                    </PaginationLink>
-                  </PaginationItem>
-                ),
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  text=""
-                  aria-label="Page suivante"
-                  size="icon-xs"
-                  aria-disabled={currentPage === pageCount}
-                  tabIndex={currentPage === pageCount ? -1 : undefined}
-                  className={cn(currentPage === pageCount && "pointer-events-none opacity-50")}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    setPage((current) => Math.min(pageCount, current + 1))
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PaginationFooter
+          countLabel={countLabel(facetFilteredRows.length)}
+          currentPage={currentPage}
+          pageCount={pageCount}
+          onPageChange={setPage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value)
+            setPage(1)
+          }}
+        />
       ) : null}
     </div>
   )
-}
-
-function getVisiblePages(current: number, total: number): ("ellipsis" | number)[] {
-  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1)
-
-  const pinned = new Set([1, 2, total - 1, total, current - 1, current, current + 1])
-  const pages = [...pinned].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b)
-
-  const result: ("ellipsis" | number)[] = []
-  let previous = 0
-  for (const page of pages) {
-    if (previous && page - previous > 1) result.push("ellipsis")
-    result.push(page)
-    previous = page
-  }
-  return result
 }

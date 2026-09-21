@@ -46,6 +46,11 @@ const nextConfig: NextConfig = {
     globalNotFound: true,
     authInterrupts: true,
     taint: true,
+    serverActions: {
+      // Porte sur le corps HTTP brut, overhead multipart compris : garder de la marge sur
+      // MAX_ASSET_BYTES (8 Mo, la limite annoncée et vérifiée côté client/serveur).
+      bodySizeLimit: "10mb",
+    },
   },
   typedRoutes: true,
   poweredByHeader: false,
