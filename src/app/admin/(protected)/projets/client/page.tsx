@@ -10,18 +10,18 @@ import { projectSkeletonWidths } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllProjectsForAdmin } from "@/server/queries/projects"
 
-async function ProjectsSection() {
+async function ClientProjectsSection() {
   const projects = await findAllProjectsForAdmin()
-  return <ProjectsTable projects={projects} view="tous" />
+  return <ProjectsTable projects={projects} view="client" />
 }
 
-export default async function AdminProjetsPage() {
+export default async function AdminProjetsClientPage() {
   await getCurrentUser()
 
   return (
     <AdminPageShell
-      title="Tous les projets"
-      subtitle="Clients et perso confondus. Glissez une ligne pour régler l'ordre sur le site."
+      title="Projets clients"
+      subtitle="Missions et emplois. L'ordre se règle depuis la vue Tous."
       actions={
         <Button asChild>
           <Link href="/admin/projets/nouveau">
@@ -31,8 +31,8 @@ export default async function AdminProjetsPage() {
         </Button>
       }
     >
-      <Suspense fallback={<DataTableSkeleton columnWidths={projectSkeletonWidths("tous")} />}>
-        <ProjectsSection />
+      <Suspense fallback={<DataTableSkeleton columnWidths={projectSkeletonWidths("client")} />}>
+        <ClientProjectsSection />
       </Suspense>
     </AdminPageShell>
   )

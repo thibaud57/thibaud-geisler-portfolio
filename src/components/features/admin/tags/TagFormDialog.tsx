@@ -8,12 +8,15 @@ import {
   useEffectEvent,
   useId,
   useState,
+  type Ref,
   type SubmitEvent,
   type ReactNode,
 } from "react"
 import { ChevronsUpDown, Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
+import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -43,7 +46,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 import type { Tag, TagKind } from "@/generated/prisma/client"
 import { TAG_ICON_KEYS, TagIcon } from "@/lib/icons"
@@ -61,9 +63,12 @@ const NO_ICON_OPTION = "aucune"
 interface Props {
   tag: Tag | null
   counts: TagCountByKind
+  // La vue détail (DetailDialog) ouvre ce même dialogue en cliquant ce bouton par ref plutôt que
+  // de dupliquer sa logique d'édition : évite un second TagFormDialog contrôlé en parallèle.
+  triggerRef?: Ref<HTMLButtonElement>
 }
 
-export function TagFormDialog({ tag, counts }: Props) {
+export function TagFormDialog({ tag, counts, triggerRef }: Props) {
   const [open, setOpen] = useState(false)
   const [instanceKey, setInstanceKey] = useState(0)
 
@@ -88,23 +93,11 @@ export function TagFormDialog({ tag, counts }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {tag ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                // Les deux actions d'une ligne se lisent comme une paire, pas comme deux boutons
-                // séparés : d'où une largeur plus étroite que la hauteur.
-                className="w-5 min-w-5"
-                aria-label={`Modifier ${tag.nameFr}`}
-              >
-                <Pencil className="size-4" />
-              </Button>
-            </DialogTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Modifier</TooltipContent>
-        </Tooltip>
+        <DialogTrigger asChild>
+          <RowActionButton ref={triggerRef} aria-label={`Modifier ${tag.nameFr}`}>
+            <Pencil className="size-4" />
+          </RowActionButton>
+        </DialogTrigger>
       ) : (
         <DialogTrigger asChild>
           <Button>
@@ -328,7 +321,7 @@ function IconCombobox({
             {value ? (
               <>
                 <TagIcon icon={value} className="size-4 shrink-0" />
-                <span className="truncate font-mono text-xs">{value}</span>
+                <TruncateTooltip className="font-mono text-xs">{value}</TruncateTooltip>
               </>
             ) : (
               <span className="text-muted-foreground">Aucune</span>
@@ -370,7 +363,7 @@ function IconCombobox({
                   }}
                 >
                   <TagIcon icon={key} className="size-4" />
-                  <span className="truncate font-mono text-xs">{key}</span>
+                  <TruncateTooltip className="font-mono text-xs">{key}</TruncateTooltip>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -4,6 +4,7 @@ import { AdminPageShell } from "@/components/layout/AdminPageShell"
 import { DataTableSkeleton } from "@/components/features/admin/DataTableSkeleton"
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
 import { TagsTable } from "@/components/features/admin/tags/TagsTable"
+import { TAG_SKELETON_WIDTHS } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { countTagsByKind, findAllTagsForAdmin } from "@/server/queries/tags"
 
@@ -27,7 +28,7 @@ export default async function AdminTagsPage() {
       subtitle="Contenu bilingue édité depuis une interface française. Un tag rattaché à un projet ne se supprime pas."
       actions={<TagFormDialog tag={null} counts={counts} />}
     >
-      <Suspense fallback={<DataTableSkeleton />}>
+      <Suspense fallback={<DataTableSkeleton columnWidths={TAG_SKELETON_WIDTHS} />}>
         <TagsList />
       </Suspense>
     </AdminPageShell>

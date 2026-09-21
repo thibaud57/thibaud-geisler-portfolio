@@ -1,16 +1,20 @@
 "use client"
 
-import { Pencil } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Building2, Pencil } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-import { AssetImage } from "@/components/features/admin/assets/AssetImage"
+import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
+import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
+import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
-import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { CompanySector } from "@/generated/prisma/client"
+import { COMPANY_COLUMN_WIDTHS } from "@/lib/admin-table-widths"
 import { COMPANY_SECTOR_LABELS, COMPANY_SIZE_LABELS } from "@/lib/companies"
 import type { AdminCompany } from "@/server/queries/companies"
 
@@ -23,41 +27,9 @@ function capSectors(sectors: readonly CompanySector[]) {
   return { shown, hidden, all: labels.join(" · ") }
 }
 
-// Bouton réel (pas un span) : Radix documente qu'un TooltipTrigger non focusable
-// n'ouvre jamais le tooltip au clavier (WCAG 2.2 SC 1.4.13).
-const TRUNCATED_CELL_CLASS =
-  "block w-full truncate rounded-sm border border-transparent text-left focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-
-function CompanyLogoTile({ logoFilename }: { logoFilename: string | null }) {
-  const { showImage, onError } = useImageFallback(logoFilename)
-  return (
-    <span className="relative block size-7 overflow-hidden rounded-md border border-border bg-linear-to-br from-primary/20 to-accent/20">
-      {showImage && logoFilename ? (
-        <AssetImage
-          assetKey={logoFilename}
-          alt=""
-          fill
-          sizes="28px"
-          className="object-cover"
-          onError={onError}
-        />
-      ) : null}
-    </span>
-  )
-}
-
 function TruncatedCell({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="text-muted-foreground">—</span>
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" className={TRUNCATED_CELL_CLASS}>
-          {value}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>{value}</TooltipContent>
-    </Tooltip>
-  )
+  return <TruncateTooltip className="block w-full">{value}</TruncateTooltip>
 }
 
 const columns: readonly Column<AdminCompany>[] = [
@@ -65,13 +37,13 @@ const columns: readonly Column<AdminCompany>[] = [
     key: "logo",
     header: "Logo",
     headerSrOnly: true,
-    width: "w-[44px]",
+    width: COMPANY_COLUMN_WIDTHS.logo,
     cell: (company) => <CompanyLogoTile logoFilename={company.logoFilename} />,
   },
   {
     key: "name",
     header: "Nom",
-    width: "w-[26%]",
+    width: COMPANY_COLUMN_WIDTHS.name,
     sortValue: (company) => company.name,
     searchValue: (company) => `${company.name} ${company.slug}`,
     cell: (company) => (
@@ -84,7 +56,7 @@ const columns: readonly Column<AdminCompany>[] = [
   {
     key: "sectors",
     header: "Secteur",
-    width: "w-[22%]",
+    width: COMPANY_COLUMN_WIDTHS.sectors,
     hideable: true,
     cell: (company) => {
       const { shown, hidden, all } = capSectors(company.sectors)
@@ -117,7 +89,7 @@ const columns: readonly Column<AdminCompany>[] = [
   {
     key: "size",
     header: "Taille",
-    width: "w-[96px]",
+    width: COMPANY_COLUMN_WIDTHS.size,
     hideable: true,
     cell: (company) =>
       company.size ? (
@@ -129,23 +101,23 @@ const columns: readonly Column<AdminCompany>[] = [
   {
     key: "legalEntity",
     header: "Entité légale",
-    width: "w-[160px]",
-    className: "truncate text-muted-foreground",
+    width: COMPANY_COLUMN_WIDTHS.legalEntity,
+    className: "text-muted-foreground",
     hideable: true,
     cell: (company) => <TruncatedCell value={company.legalEntity?.name} />,
   },
   {
     key: "websiteUrl",
     header: "Site web",
-    width: "w-[150px]",
-    className: "truncate text-muted-foreground",
+    width: COMPANY_COLUMN_WIDTHS.websiteUrl,
+    className: "text-muted-foreground",
     hideable: true,
     cell: (company) => <TruncatedCell value={company.websiteUrl} />,
   },
   {
     key: "projects",
     header: "Projets",
-    width: "w-[96px]",
+    width: COMPANY_COLUMN_WIDTHS.projects,
     align: "right",
     className: "font-mono tabular-nums text-muted-foreground",
     hideable: true,
@@ -155,33 +127,41 @@ const columns: readonly Column<AdminCompany>[] = [
   {
     key: "actions",
     header: "Actions",
-    width: "w-[88px]",
+    width: COMPANY_COLUMN_WIDTHS.actions,
     align: "right",
     cell: (company) => (
       <span className="inline-flex gap-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              // Les deux actions d'une ligne se lisent comme une paire, pas comme deux boutons
-              // séparés : d'où une largeur plus étroite que la hauteur.
-              className="w-5 min-w-5"
-              aria-label={`Modifier ${company.name}`}
-              asChild
-            >
-              <Link href={`/admin/entreprises/${company.id}`}>
-                <Pencil className="size-4" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Modifier</TooltipContent>
-        </Tooltip>
+        <RowActionButton aria-label={`Modifier ${company.name}`} asChild>
+          <Link href={`/admin/entreprises/${company.id}`}>
+            <Pencil className="size-4" />
+          </Link>
+        </RowActionButton>
         <DeleteCompanyDialog company={company} />
       </span>
     ),
   },
 ]
+
+function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailContent {
+  const projectCount = company._count.clientMetas
+  return {
+    title: company.name,
+    rows: [
+      { label: "Entité légale", value: company.legalEntity?.name ?? "—" },
+      { label: "Site web", value: company.websiteUrl ?? "—" },
+      {
+        label: "Secteur",
+        value: company.sectors.length
+          ? company.sectors.map((sector) => COMPANY_SECTOR_LABELS[sector]).join(", ")
+          : "—",
+      },
+      { label: "Taille", value: company.size ? COMPANY_SIZE_LABELS[company.size] : "—" },
+      { label: "Travaillée", value: projectCount > 0 ? "Oui" : "Non" },
+      { label: "Projets", value: `${projectCount} projet${projectCount > 1 ? "s" : ""}` },
+    ],
+    onEdit,
+  }
+}
 
 const facets: readonly Facet<AdminCompany, "yes" | "no">[] = [
   {
@@ -203,16 +183,43 @@ interface Props {
 }
 
 export function CompaniesTable({ companies, workedOnly = false }: Props) {
+  const router = useRouter()
+  const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(null)
+
+  const detail = useMemo<DetailContent | null>(
+    () =>
+      selectedCompany
+        ? buildCompanyDetail(selectedCompany, () => {
+            router.push(`/admin/entreprises/${selectedCompany.id}`)
+          })
+        : null,
+    [selectedCompany, router],
+  )
+
   return (
-    <DataTable
-      rows={companies}
-      columns={columns}
-      getRowId={(company) => company.id}
-      searchPlaceholder="Rechercher un nom ou un slug"
-      countLabel={(count) => (count === 1 ? "1 entreprise" : `${count} entreprises`)}
-      empty="Aucune entreprise pour le moment. Créez-en une via le bouton ci-dessus."
-      facets={facets}
-      defaultFacetSelections={workedOnly ? WORKED_ONLY_FACET_SELECTIONS : undefined}
-    />
+    <>
+      <DataTable
+        rows={companies}
+        columns={columns}
+        getRowId={(company) => company.id}
+        searchPlaceholder="Rechercher un nom ou un slug"
+        countLabel={(count) => (count === 1 ? "1 entreprise" : `${count} entreprises`)}
+        onRowClick={setSelectedCompany}
+        rowLabel={(company) => company.name}
+        empty={{
+          icon: Building2,
+          title: "Aucune entreprise",
+          description: "Aucune entreprise pour le moment. Créez-en une via le bouton ci-dessus.",
+        }}
+        facets={facets}
+        defaultFacetSelections={workedOnly ? WORKED_ONLY_FACET_SELECTIONS : undefined}
+      />
+      <DetailDialog
+        detail={detail}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCompany(null)
+        }}
+      />
+    </>
   )
 }

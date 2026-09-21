@@ -52,7 +52,16 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   {
     label: "Portfolio",
     items: [
-      { label: "Projets", icon: FolderKanban, href: "/admin/projets" },
+      {
+        label: "Projets",
+        icon: FolderKanban,
+        href: "/admin/projets",
+        subItems: [
+          { label: "Tous", href: "/admin/projets" },
+          { label: "Clients", href: "/admin/projets/client" },
+          { label: "Perso", href: "/admin/projets/perso" },
+        ],
+      },
       { label: "Tags", icon: Tags, href: "/admin/tags" },
       { label: "Assets", icon: ImageIcon, href: "/admin/assets" },
     ],

@@ -16,8 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { deleteTag } from "@/server/actions/tags"
 import type { TagDeleteState } from "@/server/actions/tags.types"
 import type { AdminTag } from "@/server/queries/tags"
@@ -69,23 +68,11 @@ export function DeleteTagDialog({ tag }: Props) {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              // Les deux actions d'une ligne se lisent comme une paire, pas comme deux boutons
-              // séparés : d'où une largeur plus étroite que la hauteur.
-              className="w-5 min-w-5"
-              aria-label={`Supprimer ${tag.nameFr}`}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </AlertDialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Supprimer</TooltipContent>
-      </Tooltip>
+      <AlertDialogTrigger asChild>
+        <RowActionButton aria-label={`Supprimer ${tag.nameFr}`}>
+          <Trash2 className="size-4" />
+        </RowActionButton>
+      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogMedia>

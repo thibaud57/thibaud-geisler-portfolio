@@ -3,19 +3,23 @@
 import {
   useCallback,
   useMemo,
+  useRef,
   useState,
   useTransition,
+  type ComponentProps,
   type DragEvent,
   type ReactNode,
 } from "react"
 import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3 } from "lucide-react"
 
+import { ORDER_COLUMN_WIDTH } from "@/lib/admin-table-widths"
+import { EmptyState, type EmptyStateContent } from "@/components/features/admin/EmptyState"
 import { FacetFilter } from "@/components/features/admin/FacetFilter"
 import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
 import { SearchInput } from "@/components/features/admin/SearchInput"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
@@ -34,12 +38,27 @@ import { cn } from "@/lib/utils"
 
 const UNGROUPED_KEY = "__all__"
 
+// Construit une fois au chargement du module : la collation FR sert tous les tris de toutes les
+// instances de DataTable, sans reconstruction par rendu ni par paire comparée. Le classement par
+// points de code de `<`/`>` mettrait les mots accentués après Z ("Épreuve" après "Zèbre").
+const FR_COLLATOR = new Intl.Collator("fr")
+
+// Un clic dans la colonne Actions (ou tout autre contrôle interactif de la ligne) ne doit pas
+// ouvrir le détail de la ligne : ses propres boutons/liens gèrent déjà leur clic.
+function isInteractiveClickTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("button, a, [role='button']") !== null
+}
+
 // Une colonne est triable ou cherchable par la seule présence de son accesseur : sans flag à
 // tenir en phase, une colonne déclarée triable sans comparateur est impossible à écrire.
 export interface Column<T> {
   key: string
   header: string
-  width: string
+  // Pixels, posés en style inline sur le <th> : sous table-fixed, seule la première ligne dimensionne
+  // les colonnes, donc pas de largeur dupliquée sur les <td>. Un nombre plutôt qu'une classe Tailwind
+  // arbitraire rend les largeurs sommables et bannit le pourcentage, qui s'écrase à 0 dès que les
+  // colonnes voisines saturent le tableau.
+  width: number
   align?: "right"
   className?: string
   cell: (row: T) => ReactNode
@@ -67,7 +86,16 @@ export interface Facet<T, K extends string = string> {
   key: string
   label: string
   options: readonly FacetOption[]
-  value: (row: T) => K
+  // Scalaire ou tableau : la plupart des facettes portent une valeur unique par ligne, certaines
+  // (ex. formats d'un projet) en portent plusieurs ; la ligne matche si l'une d'elles est sélectionnée.
+  value: (row: T) => K | readonly K[]
+}
+
+// Array.isArray ne narrowe pas value: K | readonly K[] pour un K générique (TS ne peut pas prouver
+// que K exclut les tableaux) : les deux branches restent castées explicitement, sûres au runtime.
+function facetValues<T, K extends string>(facet: Facet<T, K>, row: T): readonly K[] {
+  const value = facet.value(row)
+  return Array.isArray(value) ? (value as readonly K[]) : [value as K]
 }
 
 type SortDirection = "asc" | "desc"
@@ -81,7 +109,7 @@ interface Props<T, K extends string = string> {
   getRowId: (row: T) => string
   // Omis : pas de colonne #, pas de groupement ni de drag-and-drop ; l'ordre d'affichage est celui des lignes reçues.
   orderValue?: (row: T) => number
-  empty: ReactNode
+  empty: EmptyStateContent
   searchPlaceholder: string
   countLabel: (count: number) => string
   // Restreint aux options du sélecteur : une autre valeur laisserait son libellé vide.
@@ -90,6 +118,12 @@ interface Props<T, K extends string = string> {
   facets?: readonly Facet<T, K>[]
   defaultFacetSelections?: Record<string, readonly string[]>
   onReorder?: (groupKey: K, orderedRowIds: string[]) => Promise<boolean>
+  onRowClick?: (row: T) => void
+  // DataTable ignore la sémantique des colonnes : l'écran fournit le nom qui identifie la ligne
+  // (titre de projet, nom de tag, nom d'entreprise) pour que le tabIndex ajouté par onRowClick
+  // porte une annonce lecteur d'écran, pas un arrêt muet.
+  rowLabel?: (row: T) => string
+  renderCard?: (row: T) => ReactNode
 }
 
 export function DataTable<T, K extends string = string>({
@@ -105,6 +139,9 @@ export function DataTable<T, K extends string = string>({
   facets,
   defaultFacetSelections,
   onReorder,
+  onRowClick,
+  rowLabel,
+  renderCard,
 }: Props<T, K>) {
   const hasOrderColumn = orderValue !== undefined
   const colSpanOffset = hasOrderColumn ? 1 : 0
@@ -124,6 +161,9 @@ export function DataTable<T, K extends string = string>({
   const [draggedGroupKey, setDraggedGroupKey] = useState<K | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [, startReorderTransition] = useTransition()
+  // Ref et non state : un clic parasite après un drop (Firefox notamment) ne doit pas déclencher
+  // onRowClick sans provoquer de re-render à chaque glisser-déposer.
+  const justDraggedRef = useRef(false)
 
   const hideableColumns = useMemo(() => columns.filter((column) => column.hideable), [columns])
   const defaultHiddenColumnKeys = useMemo(
@@ -163,10 +203,37 @@ export function DataTable<T, K extends string = string>({
     return searchFilteredRows.filter((row) =>
       facets.every((facet) => {
         const selected = facetSelections[facet.key]
-        return !selected || selected.size === 0 || selected.has(facet.value(row))
+        return (
+          !selected ||
+          selected.size === 0 ||
+          facetValues(facet, row).some((value) => selected.has(value))
+        )
       }),
     )
   }, [searchFilteredRows, facets, facetSelections, activeFacetCount])
+
+  // Un passage par facette (Map tallying) plutôt qu'un filter() par option : searchFilteredRows
+  // recompte à chaque changement de page/tri/colonnes/drag, pas seulement à chaque recherche.
+  const facetGroups = useMemo(() => {
+    if (!facets) return []
+    return facets.map((facet) => {
+      const counts = new Map<string, number>()
+      for (const row of searchFilteredRows) {
+        for (const value of facetValues(facet, row)) {
+          counts.set(value, (counts.get(value) ?? 0) + 1)
+        }
+      }
+      return {
+        key: facet.key,
+        label: facet.label,
+        options: facet.options.map((option) => ({
+          value: option.value,
+          label: option.label,
+          count: counts.get(option.value) ?? 0,
+        })),
+      }
+    })
+  }, [facets, searchFilteredRows])
 
   const isOrderView = !sort && search.trim() === "" && activeFacetCount === 0
 
@@ -232,6 +299,9 @@ export function DataTable<T, K extends string = string>({
     return [...facetFilteredRows].sort((a, b) => {
       const valueA = sortValue(a)
       const valueB = sortValue(b)
+      if (typeof valueA === "string" && typeof valueB === "string") {
+        return FR_COLLATOR.compare(valueA, valueB) * direction
+      }
       if (valueA < valueB) return -1 * direction
       if (valueA > valueB) return direction
       return 0
@@ -244,6 +314,9 @@ export function DataTable<T, K extends string = string>({
     pageItems: paginatedRows,
   } = paginate(sortedRows, page, rowsPerPage)
   if (page > pageCount) setPage(pageCount)
+
+  const pageRangeStart = (currentPage - 1) * rowsPerPage + 1
+  const pageRangeEnd = pageRangeStart - 1 + paginatedRows.length
 
   const renderItems = useMemo((): RenderItem<T, K>[] => {
     if (!isOrderView || !groupBy || !hasOrderColumn) {
@@ -289,6 +362,12 @@ export function DataTable<T, K extends string = string>({
     setPage(1)
   }
 
+  function resetSearchAndFacets() {
+    setSearch("")
+    setFacetSelections({})
+    setPage(1)
+  }
+
   function toggleColumn(key: string) {
     const isHiding = !hiddenColumnKeys.has(key)
     setHiddenColumnKeys((prev) => {
@@ -310,6 +389,11 @@ export function DataTable<T, K extends string = string>({
     setDraggedId(null)
     setDraggedGroupKey(null)
     setDragOverId(null)
+    // Différé : un clic parasite consécutif au drop arrive dans la même passe d'événements que
+    // dragend, avant ce timeout ; un clic normal ultérieur arrive après.
+    window.setTimeout(() => {
+      justDraggedRef.current = false
+    }, 0)
   }
 
   function handleDrop(event: DragEvent<HTMLTableRowElement>, row: T) {
@@ -358,8 +442,8 @@ export function DataTable<T, K extends string = string>({
                 : "descending"
               : "none"
         }
+        style={{ width: column.width }}
         className={cn(
-          column.width,
           alignRight && "text-right",
           // Sans colonne # (hasOrderColumn faux), la première colonne visible porte elle-même le 16px de bord de Card.
           isFirst && !hasOrderColumn && "pl-4",
@@ -400,6 +484,62 @@ export function DataTable<T, K extends string = string>({
     )
   }
 
+  function buildDragRowProps(
+    row: T,
+    rowId: string,
+    draggable: boolean,
+  ): Pick<
+    ComponentProps<typeof TableRow>,
+    "draggable" | "onDragStart" | "onDragOver" | "onDragEnd" | "onDrop"
+  > {
+    if (!draggable) return {}
+    return {
+      draggable: true,
+      onDragStart: () => {
+        setDraggedId(rowId)
+        setDraggedGroupKey(effectiveGroupKey(row))
+        justDraggedRef.current = true
+      },
+      onDragOver: (event) => {
+        if (draggedGroupKey !== effectiveGroupKey(row)) return
+        event.preventDefault()
+        setDragOverId(rowId)
+      },
+      onDragEnd: handleDragEnd,
+      onDrop: (event) => {
+        handleDrop(event, row)
+      },
+    }
+  }
+
+  // role="row" reste natif : chaque ligne imbrique de vrais contrôles (lien, bouton, tooltip),
+  // interdits dans un role="button". aria-label annonce l'action pour l'arrêt clavier que crée
+  // tabIndex, à défaut d'un rôle qui le ferait lui-même.
+  function buildClickRowProps(
+    row: T,
+  ): Pick<ComponentProps<typeof TableRow>, "tabIndex" | "aria-label" | "onClick" | "onKeyDown"> {
+    if (!onRowClick) return {}
+    return {
+      tabIndex: 0,
+      "aria-label": rowLabel ? `Voir le détail : ${rowLabel(row)}` : undefined,
+      onClick: (event) => {
+        if (justDraggedRef.current) return
+        // React fait bulle un portail (AlertDialog, Tooltip, Popover…) le long de l'arbre React,
+        // pas du DOM : un clic dans son contenu atteint ce onClick sans jamais croiser la ligne
+        // dans le DOM réel. `contains` l'exclut avant même de tester l'interactivité.
+        if (!event.currentTarget.contains(event.target as Node)) return
+        if (isInteractiveClickTarget(event.target)) return
+        onRowClick(row)
+      },
+      onKeyDown: (event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        onRowClick(row)
+      },
+    }
+  }
+
   function renderDataRow(row: T) {
     const rowId = getRowId(row)
     const draggable = isOrderView && hasOrderColumn && !!onReorder
@@ -407,41 +547,21 @@ export function DataTable<T, K extends string = string>({
     return (
       <TableRow
         key={rowId}
-        draggable={draggable}
-        onDragStart={
-          draggable
-            ? () => {
-                setDraggedId(rowId)
-                setDraggedGroupKey(effectiveGroupKey(row))
-              }
-            : undefined
-        }
-        onDragOver={
-          draggable
-            ? (event) => {
-                if (draggedGroupKey !== effectiveGroupKey(row)) return
-                event.preventDefault()
-                setDragOverId(rowId)
-              }
-            : undefined
-        }
-        onDragEnd={draggable ? handleDragEnd : undefined}
-        onDrop={
-          draggable
-            ? (event) => {
-                handleDrop(event, row)
-              }
-            : undefined
-        }
+        {...buildDragRowProps(row, rowId, draggable)}
+        {...buildClickRowProps(row)}
         className={cn(
-          draggable && "cursor-grab",
+          draggable ? "cursor-grab" : onRowClick && "cursor-pointer",
           isValidDropTarget && dragOverId === rowId && "bg-muted",
         )}
       >
         {orderValue ? (
           <TableCell className="pr-1 pl-4 font-mono text-muted-foreground">
-            {/* Position affichée plutôt que displayOrder : suit le glisser-déposer avant la réponse du serveur. */}
-            {groupedView?.positionById.get(rowId) ?? orderValue(row)}
+            {/* positionById recontiguïse 1..N sur les lignes reçues, correct seulement si elles couvrent
+                tout l'ordre : sur un sous-ensemble filtré (vue Client/Perso), la valeur d'ordre réelle
+                doit s'afficher telle quelle. */}
+            {onReorder
+              ? (groupedView?.positionById.get(rowId) ?? orderValue(row))
+              : orderValue(row)}
           </TableCell>
         ) : null}
         {visibleColumns.map((column, index) => (
@@ -461,14 +581,18 @@ export function DataTable<T, K extends string = string>({
     )
   }
 
+  // Texte commun à toutes les listes admin : un écart de formulation d'un écran à l'autre se lirait
+  // comme une différence de comportement. Seule l'icône reste celle de l'écran.
+  const effectiveEmptyFiltered: EmptyStateContent = {
+    icon: empty.icon,
+    title: "Aucun résultat ne correspond à ces filtres",
+    description: "Essayez une autre recherche ou modifiez les filtres actifs.",
+  }
+
   if (rows.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          {empty}
-        </CardContent>
-      </Card>
-    )
+    // border-solid : les surfaces admin utilisent une bordure pleine, pas le border-dashed par
+    // défaut d'Empty (laissé intact pour un futur usage qui le voudrait).
+    return <EmptyState {...empty} className="border border-solid" />
   }
 
   return (
@@ -552,15 +676,7 @@ export function DataTable<T, K extends string = string>({
 
         {facets && facets.length > 0 ? (
           <FacetFilter
-            groups={facets.map((facet) => ({
-              key: facet.key,
-              label: facet.label,
-              options: facet.options.map((option) => ({
-                value: option.value,
-                label: option.label,
-                count: searchFilteredRows.filter((row) => facet.value(row) === option.value).length,
-              })),
-            }))}
+            groups={facetGroups}
             selected={facetSelections}
             onToggle={toggleFacetValue}
             onReset={resetFacets}
@@ -570,70 +686,89 @@ export function DataTable<T, K extends string = string>({
         ) : null}
       </div>
 
-      <Card className="gap-0 py-0">
-        <div className="overflow-x-auto">
-          <Table className="min-w-[720px] table-fixed">
-            <TableHeader>
-              <TableRow>
-                {hasOrderColumn ? (
-                  <TableHead className="w-[52px] pr-1 pl-4 font-mono">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="-ml-2.5 font-mono"
-                      title="Revenir à l'ordre d'affichage"
-                      onClick={() => {
-                        setSort(null)
-                        setPage(1)
-                      }}
-                    >
-                      #
-                    </Button>
-                  </TableHead>
-                ) : null}
-                {visibleColumns.map((column, index) =>
-                  renderHeaderCell(column, index === 0, index === visibleColumns.length - 1),
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {facetFilteredRows.length === 0 ? (
+      <div className={renderCard ? "hidden md:block" : undefined}>
+        <Card className="gap-0 py-0">
+          <div className="overflow-x-auto">
+            <Table className="table-fixed">
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={visibleColumns.length + colSpanOffset}
-                    className="h-24 pr-4 pl-4 text-center text-muted-foreground"
-                  >
-                    Aucun résultat pour cette recherche.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                renderItems.map((item) =>
-                  item.type === "group" ? (
-                    <TableRow key={`group-${item.key}`}>
-                      <TableCell
-                        colSpan={visibleColumns.length + colSpanOffset}
-                        className="bg-muted/50 px-4 py-2"
+                  {hasOrderColumn ? (
+                    <TableHead
+                      style={{ width: ORDER_COLUMN_WIDTH }}
+                      className="pr-1 pl-4 font-mono"
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="-ml-2.5 font-mono"
+                        title="Revenir à l'ordre d'affichage"
+                        onClick={() => {
+                          setSort(null)
+                          setPage(1)
+                        }}
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className={LABEL_CLASS}>{groupBy?.label(item.key)}</span>
-                          <span className={LABEL_CLASS}>- {item.count}</span>
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    renderDataRow(item.row)
-                  ),
-                )
-              )}
-            </TableBody>
-          </Table>
+                        #
+                      </Button>
+                    </TableHead>
+                  ) : null}
+                  {visibleColumns.map((column, index) =>
+                    renderHeaderCell(column, index === 0, index === visibleColumns.length - 1),
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {facetFilteredRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={visibleColumns.length + colSpanOffset}
+                      className="p-0 whitespace-normal"
+                    >
+                      <EmptyState {...effectiveEmptyFiltered} onReset={resetSearchAndFacets} />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  renderItems.map((item) =>
+                    item.type === "group" ? (
+                      <TableRow key={`group-${item.key}`}>
+                        <TableCell
+                          colSpan={visibleColumns.length + colSpanOffset}
+                          className="bg-muted/50 px-4 py-2"
+                        >
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={LABEL_CLASS}>{groupBy?.label(item.key)}</span>
+                            <span className={LABEL_CLASS}>- {item.count}</span>
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      renderDataRow(item.row)
+                    ),
+                  )
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      </div>
+
+      {renderCard ? (
+        <div className="grid gap-3 md:hidden">
+          {facetFilteredRows.length === 0 ? (
+            <EmptyState
+              {...effectiveEmptyFiltered}
+              onReset={resetSearchAndFacets}
+              className="border border-solid"
+            />
+          ) : (
+            paginatedRows.map((row) => <div key={getRowId(row)}>{renderCard(row)}</div>)
+          )}
         </div>
-      </Card>
+      ) : null}
 
       {facetFilteredRows.length > 0 ? (
         <PaginationFooter
-          countLabel={countLabel(facetFilteredRows.length)}
+          countLabel={`${pageRangeStart}–${pageRangeEnd} sur ${countLabel(facetFilteredRows.length)}`}
           currentPage={currentPage}
           pageCount={pageCount}
           onPageChange={setPage}

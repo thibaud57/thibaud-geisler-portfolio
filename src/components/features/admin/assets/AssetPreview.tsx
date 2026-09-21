@@ -2,6 +2,7 @@
 
 import { FileText, Image as ImageIcon } from "lucide-react"
 
+import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
 import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -50,7 +51,9 @@ export function AssetPreview({ assetKey, sizes }: Props) {
       </div>
 
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{nameOfAssetKey(assetKey)}</div>
+        <TruncateTooltip className="block w-full text-sm font-medium">
+          {nameOfAssetKey(assetKey)}
+        </TruncateTooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="block truncate font-mono text-xs text-muted-foreground">

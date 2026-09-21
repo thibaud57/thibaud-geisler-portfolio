@@ -16,8 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { nameOfAssetKey } from "@/lib/assets"
 import { isHardcodedAssetKey } from "@/lib/schemas/asset"
 import { deleteAsset } from "@/server/actions/assets"
@@ -95,24 +94,11 @@ export function DeleteAssetDialog({ assetKey, usedBy }: Props) {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              // Les deux actions d'une tuile se lisent comme une paire, pas comme deux boutons
-              // séparés : d'où une largeur plus étroite que la hauteur.
-              className="w-5 min-w-5"
-              aria-label={`Supprimer ${assetKey}`}
-              disabled={hardcoded}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </AlertDialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Supprimer</TooltipContent>
-      </Tooltip>
+      <AlertDialogTrigger asChild>
+        <RowActionButton aria-label={`Supprimer ${assetKey}`} disabled={hardcoded}>
+          <Trash2 className="size-4" />
+        </RowActionButton>
+      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogMedia>

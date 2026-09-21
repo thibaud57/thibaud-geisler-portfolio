@@ -6,6 +6,7 @@ import { CompaniesTable } from "@/components/features/admin/companies/CompaniesT
 import { DataTableSkeleton } from "@/components/features/admin/DataTableSkeleton"
 import { AdminPageShell } from "@/components/layout/AdminPageShell"
 import { Button } from "@/components/ui/button"
+import { COMPANY_SKELETON_WIDTHS } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllCompaniesForAdmin } from "@/server/queries/companies"
 
@@ -30,7 +31,7 @@ export default async function AdminEntreprisesTravailleesPage() {
         </Button>
       }
     >
-      <Suspense fallback={<DataTableSkeleton />}>
+      <Suspense fallback={<DataTableSkeleton columnWidths={COMPANY_SKELETON_WIDTHS} />}>
         <WorkedCompaniesSection />
       </Suspense>
     </AdminPageShell>
