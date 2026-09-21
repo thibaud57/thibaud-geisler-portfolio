@@ -48,3 +48,30 @@ export async function findAllPublishedSlugs(): Promise<{ slug: string; updatedAt
     orderBy: { displayOrder: "asc" },
   })
 }
+
+export type AdminProjectListItem = Awaited<ReturnType<typeof findAllProjectsForAdmin>>[number]
+export type AdminProjectDetail = NonNullable<Awaited<ReturnType<typeof findProjectForAdmin>>>
+
+// Sans 'use cache' ni filtre de statut, contrairement aux requêtes publiques : l'administration
+// doit lire la base juste après une mutation, brouillons et archivés compris.
+export async function findAllProjectsForAdmin() {
+  return prisma.project.findMany({
+    include: {
+      clientMeta: {
+        include: { company: { select: { id: true, name: true, logoFilename: true } } },
+      },
+      tags: { include: { tag: true }, orderBy: { displayOrder: "asc" } },
+    },
+    orderBy: { displayOrder: "asc" },
+  })
+}
+
+export async function findProjectForAdmin(id: string) {
+  return prisma.project.findUnique({
+    where: { id },
+    include: {
+      clientMeta: true,
+      tags: { include: { tag: true }, orderBy: { displayOrder: "asc" } },
+    },
+  })
+}

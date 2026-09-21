@@ -1,6 +1,6 @@
 import type { CompanySector, CompanySize } from "@/generated/prisma/client"
 
-export const PERSONAL_COMPANY_SLUG = "personnel"
+export const OWNER_COMPANY_SLUG = "thibaud-geisler"
 
 export interface CompanyInput {
   slug: string
@@ -62,12 +62,12 @@ export const companies: CompanyInput[] = [
     legalEntitySlug: "that-sas",
   },
   {
-    slug: PERSONAL_COMPANY_SLUG,
-    name: "Personnel",
-    logoFilename: null,
-    websiteUrl: null,
-    sectors: [],
-    size: null,
-    legalEntitySlug: null,
+    slug: OWNER_COMPANY_SLUG,
+    name: "Thibaud Geisler",
+    logoFilename: "branding/favicon-light.png",
+    websiteUrl: "https://thibaud-geisler.com",
+    sectors: ["IA_AUTOMATISATION"],
+    size: "TPE",
+    legalEntitySlug: "thibaud",
   },
 ]

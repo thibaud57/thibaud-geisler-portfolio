@@ -184,7 +184,7 @@ async function main() {
           : undefined
 
         const projectTagCreate = p.tagSlugs.map((slug, index) => ({
-          displayOrder: index,
+          displayOrder: index + 1,
           tag: { connect: { slug } },
         }))
 

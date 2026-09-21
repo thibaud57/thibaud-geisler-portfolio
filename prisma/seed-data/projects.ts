@@ -5,7 +5,7 @@ import type {
   ProjectType,
   WorkMode,
 } from "@/generated/prisma/client"
-import { PERSONAL_COMPANY_SLUG } from "./companies"
+import { OWNER_COMPANY_SLUG } from "./companies"
 
 export interface ProjectInput {
   slug: string
@@ -22,7 +22,7 @@ export interface ProjectInput {
   demoUrl: string | null
   coverFilename: string | null
   displayOrder: number
-  // L'index du slug dans tagSlugs[] pilote ProjectTag.displayOrder au seed (0 en premier)
+  // L'index du slug dans tagSlugs[] pilote ProjectTag.displayOrder au seed (1 en premier)
   tagSlugs: string[]
   clientMeta: {
     companySlug: string
@@ -50,7 +50,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/client/webapp-gestion-sinistres/cover.webp",
-    displayOrder: 2,
+    displayOrder: 3,
     tagSlugs: [
       "scala",
       "angular",
@@ -93,7 +93,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/client/chatbot-agents-ia/cover.webp",
-    displayOrder: 0,
+    displayOrder: 1,
     tagSlugs: [
       "google-adk",
       "fastapi",
@@ -134,7 +134,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/client/referent-ia-automatisation/cover.webp",
-    displayOrder: 1,
+    displayOrder: 2,
     tagSlugs: [
       "agents-ia",
       "automatisation",
@@ -169,7 +169,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/client/saas-gestion-paie/cover.webp",
-    displayOrder: 9,
+    displayOrder: 10,
     tagSlugs: [
       "developpement-fullstack",
       "angular",
@@ -203,7 +203,7 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/client/erp-odoo-android/cover.webp",
-    displayOrder: 10,
+    displayOrder: 11,
     tagSlugs: ["python", "odoo", "android", "java"],
     clientMeta: {
       companySlug: "cloudsmart",
@@ -229,9 +229,9 @@ export const projects: ProjectInput[] = [
     githubUrl: "https://github.com/thibaud57/thibaud-geisler-portfolio",
     demoUrl: "https://thibaud-geisler.com",
     coverFilename: "projets/personal/portfolio/cover.webp",
-    displayOrder: 6,
+    displayOrder: 7,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",
@@ -264,9 +264,9 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/personal/techno-scraper/cover.webp",
-    displayOrder: 4,
+    displayOrder: 5,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",
@@ -301,9 +301,9 @@ export const projects: ProjectInput[] = [
       "https://github.com/thibaud57/n8n-backups/blob/main/workflows/work/ybAxfufVGPJPln2i.json",
     demoUrl: null,
     coverFilename: "projets/personal/crm-leads-n8n/cover.webp",
-    displayOrder: 7,
+    displayOrder: 8,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",
@@ -327,9 +327,9 @@ export const projects: ProjectInput[] = [
     githubUrl: "https://github.com/thibaud57/n8n-backups/tree/main/workflows/RAG",
     demoUrl: null,
     coverFilename: "projets/personal/rag-drive-agent/cover.webp",
-    displayOrder: 3,
+    displayOrder: 4,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",
@@ -365,9 +365,9 @@ export const projects: ProjectInput[] = [
     githubUrl: null,
     demoUrl: null,
     coverFilename: "projets/personal/flight-search-api/cover.webp",
-    displayOrder: 5,
+    displayOrder: 6,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",
@@ -400,9 +400,9 @@ export const projects: ProjectInput[] = [
     githubUrl: "https://github.com/thibaud57/lessons",
     demoUrl: null,
     coverFilename: "projets/personal/skill-prof/cover.webp",
-    displayOrder: 8,
+    displayOrder: 9,
     clientMeta: {
-      companySlug: PERSONAL_COMPANY_SLUG,
+      companySlug: OWNER_COMPANY_SLUG,
       teamSize: 1,
       contractStatus: null,
       workMode: "REMOTE",

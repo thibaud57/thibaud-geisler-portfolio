@@ -10,6 +10,12 @@ export function isAdminAssetKey(key: string): boolean {
   return key.startsWith(`${ADMIN_FOLDER}/`)
 }
 
+const PROJECT_FOLDERS = ["projets/client", "projets/personal"] as const
+
+export function isProjectAssetKey(key: string): boolean {
+  return PROJECT_FOLDERS.some((folder) => key.startsWith(`${folder}/`))
+}
+
 export const MAX_ASSET_BYTES = 8 * 1024 * 1024
 
 // Arborescence ADR-011, deux buckets :

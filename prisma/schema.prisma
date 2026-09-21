@@ -151,7 +151,7 @@ model Project {
   coverFilename       String?
   caseStudyMarkdownFr String?
   caseStudyMarkdownEn String?
-  displayOrder        Int             @default(0)
+  displayOrder        Int             @default(1)
   tags                ProjectTag[]
   clientMeta          ClientMeta?
   createdAt           DateTime        @default(now()) @db.Timestamptz
@@ -213,7 +213,7 @@ model Tag {
 model ProjectTag {
   projectId    String
   tagId        String
-  displayOrder Int     @default(0)
+  displayOrder Int     @default(1)
   project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tag          Tag     @relation(fields: [tagId], references: [id], onDelete: Restrict)
 

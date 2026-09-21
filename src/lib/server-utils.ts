@@ -12,8 +12,33 @@ export function stringField(formData: FormData, key: string, fallback = ""): str
   return typeof value === "string" ? value : fallback
 }
 
+// getAll, jamais get : un FormData renvoyant plusieurs valeurs pour un champ, get() ne garderait
+// que la première et silencierait la perte des autres.
+export function stringValues(formData: FormData, key: string): string[] {
+  return formData.getAll(key).filter((value): value is string => typeof value === "string")
+}
+
 export function isPrismaError(err: unknown, code: string): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === code
+}
+
+// Prisma 7 + @prisma/adapter-pg ne porte pas `meta.target` sur un P2002 : l'index de contrainte
+// vit sous `meta.driverAdapterError.cause.constraint.index` (nom Postgres `<Table>_<col>_key`),
+// constaté sur ce projet le 2026-09-19. `meta.target` reste un filet pour un autre chemin d'erreur.
+// Une clé étrangère violée (P2003) suit le même chemin, avec un nom en `<Table>_<col>_fkey`.
+export function violatedConstraint(err: unknown): string {
+  if (typeof err !== "object" || err === null) return ""
+  const meta = (err as { meta?: unknown }).meta
+  if (typeof meta !== "object" || meta === null) return ""
+
+  const driverIndex = (
+    meta as { driverAdapterError?: { cause?: { constraint?: { index?: unknown } } } }
+  ).driverAdapterError?.cause?.constraint?.index
+  if (typeof driverIndex === "string") return driverIndex
+
+  const target = (meta as { target?: unknown }).target
+  if (Array.isArray(target)) return target.join(",")
+  return typeof target === "string" ? target : ""
 }
 
 export function extractClientIp(forwardedFor: string | null): string {

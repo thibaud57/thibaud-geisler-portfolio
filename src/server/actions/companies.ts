@@ -7,33 +7,15 @@ import { z } from "zod"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
-import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
+import {
+  createActionLogger,
+  isPrismaError,
+  stringField,
+  stringValues,
+  violatedConstraint,
+} from "@/lib/server-utils"
 
 import { type CompanyFormState } from "./companies.types"
-
-// Prisma 7 + @prisma/adapter-pg ne porte pas `meta.target` sur un P2002 : l'index de contrainte
-// vit sous `meta.driverAdapterError.cause.constraint.index` (nom Postgres `<Table>_<col>_key`),
-// constaté sur ce projet le 2026-09-19. `meta.target` reste un filet pour un autre chemin d'erreur.
-function uniqueConstraintIndex(err: unknown): string {
-  if (typeof err !== "object" || err === null) return ""
-  const meta = (err as { meta?: unknown }).meta
-  if (typeof meta !== "object" || meta === null) return ""
-
-  const driverIndex = (
-    meta as { driverAdapterError?: { cause?: { constraint?: { index?: unknown } } } }
-  ).driverAdapterError?.cause?.constraint?.index
-  if (typeof driverIndex === "string") return driverIndex
-
-  const target = (meta as { target?: unknown }).target
-  if (Array.isArray(target)) return target.join(",")
-  return typeof target === "string" ? target : ""
-}
-
-// getAll, jamais get : un FormData renvoyant plusieurs valeurs pour "sectors", get() ne garderait
-// que la première et silencierait la perte des autres secteurs cochés.
-function stringValues(formData: FormData, key: string): string[] {
-  return formData.getAll(key).filter((value): value is string => typeof value === "string")
-}
 
 // Seule source des champs lus depuis le FormData : un champ ajouté ici sans l'être côté validation
 // (ou l'inverse) désynchroniserait silencieusement ce qui est validé de ce qui est réaffiché en cas d'échec.
@@ -55,7 +37,7 @@ function mapUniqueViolation(
 ): CompanyFormState | null {
   if (!isPrismaError(err, "P2002")) return null
 
-  if (uniqueConstraintIndex(err).includes("legalEntityId")) {
+  if (violatedConstraint(err).includes("legalEntityId")) {
     return {
       ok: false,
       errors: { legalEntityId: ["Cette entité légale est déjà rattachée à une autre entreprise"] },
