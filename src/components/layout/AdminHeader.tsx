@@ -8,8 +8,8 @@ export function AdminHeader({ account }: { account: AdminAccount }) {
     <header className="flex h-14 items-center gap-2 border-b border-border px-4">
       <SidebarTrigger />
       <AdminPageTitle />
-      {/* gap-1 et non gap-2 : les deux boutons font 36px là où la maquette les pose à 28, le même
-          écart de 8px les détacherait l'un de l'autre. */}
+      {/* gap-1 et non gap-2 : ces deux boutons font 36px, et un écart de 8px
+          les détacherait l'un de l'autre. */}
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle label="Changer de thème" />
         <AdminUserMenu account={account} />

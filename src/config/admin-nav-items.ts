@@ -91,8 +91,8 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   },
   {
     label: "Suivi mission",
-    // La maquette génère une entrée par mission cliente active (donnée hors du schéma actuel) :
-    // représentée ici par une entrée générique unique, désactivée comme le reste du groupe.
+    // Une entrée par mission cliente active demanderait une donnée hors du schéma actuel :
+    // d'où une entrée générique unique, désactivée comme le reste du groupe.
     items: [{ label: "Missions", icon: Briefcase }],
   },
   {

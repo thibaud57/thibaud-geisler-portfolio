@@ -94,8 +94,8 @@ export function TagFormDialog({ tag, counts }: Props) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                // 20px de large pour 28 de haut, comme iconBtn dans la maquette : les deux actions
-                // d'une ligne se lisent comme une paire, pas comme deux boutons séparés.
+                // Les deux actions d'une ligne se lisent comme une paire, pas comme deux boutons
+                // séparés : d'où une largeur plus étroite que la hauteur.
                 className="w-5 min-w-5"
                 aria-label={`Modifier ${tag.nameFr}`}
               >
