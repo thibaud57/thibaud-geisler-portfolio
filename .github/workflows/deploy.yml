@@ -15,7 +15,9 @@ env:
 
 jobs:
   build-and-deploy:
-    if: github.repository == 'thibaud57/thibaud-geisler-portfolio'
+    # Un dispatch manuel hors tag publierait `latest` depuis du code jamais passé par la release.
+    # Le rollback reste couvert : il se lance sur le ref du tag visé.
+    if: github.repository == 'thibaud57/thibaud-geisler-portfolio' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

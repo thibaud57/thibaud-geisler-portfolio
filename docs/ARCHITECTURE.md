@@ -141,7 +141,7 @@ graph LR
     Dokploy -->|docker compose pull| GHCR
     Dokploy -->|run container| Next
     PG -->|dump| Dokploy
-    Dokploy -->|sauvegarde quotidienne| R2
+    Dokploy -->|sauvegarde quotidienne, minuit| R2
 ```
 
 ## Flux Fonctionnels (Use-cases critiques)
@@ -462,7 +462,8 @@ Docker + Docker Compose côté application (service `nextjs` uniquement). Postgr
 3 workflows GitHub Actions :
 - **`ci.yml`** : lint + typecheck + tests + build sur push `main` et PR vers `main` ou `develop` (Postgres CI éphémère, migrations appliquées avant les tests). Les PR doc-only et les PR release-please sautent le job `quality`, un job agrégateur `ci` restant le required check. Audit des dépendances non bloquant.
 - **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. S'authentifie par GitHub App (`actions/create-github-app-token@v3`), le tag étant ainsi poussé par un acteur dont les événements déclenchent `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
-- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` pour rejouer un déploiement → migrations + seed sur le Postgres CI (le prerender a besoin de données) → build Docker → push GHCR → trigger Dokploy redeploy.
+- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` sur le ref d'un tag pour rejouer un déploiement (tout autre ref est sauté) → migrations + seed sur le Postgres CI (le prerender a besoin de données) → build Docker → push GHCR → trigger Dokploy redeploy.
+- **`security.yml`** : chaque semaine, scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security. Ne conditionne ni la CI ni le déploiement.
 
 Déploiement piloté par les tags release-please, jamais par un merge `main` direct.
 
@@ -480,7 +481,7 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 
 - **Secrets** : variables d'environnement gérées dans Dokploy (jamais dans le repo)
 - **Réseau** : seuls les ports 80/443 exposés publiquement (reverse proxy Dokploy)
-- **HTTPS** : TLS automatique via Dokploy (Let's Encrypt)
+- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake. Note A+ chez SSL Labs (relevé du 2026-09-21)
 
 ### Scalabilité & Performance
 

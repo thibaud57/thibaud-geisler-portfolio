@@ -823,22 +823,24 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 **Version actuelle** : `ubuntu-24.04` (runner Noble Numbat)
 **Stabilité** : ✅
 
-**Actions épinglées par SHA de commit** (inventaire au 6 septembre 2026, version exacte en commentaire dans les workflows, qui sont la source ; Dependabot `github-actions` met à jour SHA et commentaire ensemble) :
+**Actions épinglées par SHA de commit** (inventaire au 21 septembre 2026, version exacte en commentaire dans les workflows, qui sont la source ; Dependabot `github-actions` met à jour SHA et commentaire ensemble) :
 
 | Action | Version épinglée | Dernière publiée |
 |---|---|---|
 | `actions/checkout` | 7.0.1 | 7.0.1 (20 juillet 2026) |
 | `actions/setup-node` | 7.0.0 | 7.0.0 (14 juillet 2026) |
 | `actions/cache` | 6.1.0 | 6.1.0 (26 juin 2026) |
-| `pnpm/action-setup` | 6.0.10 | 6.0.10 (3 août 2026) |
+| `pnpm/action-setup` | 6.0.10 | 6.1.0 (5 septembre 2026) |
 | `dorny/paths-filter` | 4.0.3 | 4.0.3 (5 août 2026) |
 | `extractions/setup-just` | 4.0.0 | 4.0.0 (5 avril 2026) |
 | `googleapis/release-please-action` | 5.0.0 | 5.0.0 (22 avril 2026) |
 | `actions/create-github-app-token` | 3.2.0 | 3.2.0 (12 mai 2026) |
-| `docker/build-push-action` | 7.3.0 | 7.3.0 (1er juillet 2026) |
+| `docker/build-push-action` | 7.3.0 | 7.4.0 (15 septembre 2026) |
 | `docker/login-action` | 4.6.0 | 4.6.0 (29 juillet 2026) |
 | `docker/metadata-action` | 6.2.0 | 6.2.0 (2 juillet 2026) |
-| `docker/setup-buildx-action` | 4.3.0 | 4.3.0 (19 août 2026) |
+| `docker/setup-buildx-action` | 4.3.0 | 4.4.1 (16 septembre 2026) |
+| `aquasecurity/trivy-action` | 0.36.0 | 0.36.0 (22 avril 2026) |
+| `github/codeql-action` (`upload-sarif`) | 4.38.1 | 4.38.1 (18 septembre 2026) |
 
 **Breaking Changes Majeurs** :
 - **Runner Ubuntu** :

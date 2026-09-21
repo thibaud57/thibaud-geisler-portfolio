@@ -30,7 +30,9 @@ const securityHeaders = [
   { key: "X-XSS-Protection", value: "0" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  // Fallback : en production Traefik (`security-headers@file`) réécrit cette en-tête,
+  // la valeur est alignée sur la sienne pour qu'un `curl -I` donne le même résultat partout.
+  { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
   { key: "Content-Security-Policy", value: cspHeaderValue },
 ]
 

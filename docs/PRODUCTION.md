@@ -74,6 +74,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod
 - [ ] Tests passent (lint, typecheck, tests unitaires/intégration)
 - [ ] Build sans erreurs TypeScript
 - [ ] `just audit` lu, même s'il ne bloque pas (§ Dépendances)
+- [ ] Alertes Trivy de l'onglet Security lues, même si le scan ne bloque pas (§ Dépendances)
 
 > ℹ️ Le job `quality` est **sauté** sur un diff purement documentaire et sur les branches `release-please--*` : une PR de release affichée « verte » n'a donc rien exécuté, c'est normal.
 
@@ -235,6 +236,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
 | Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
+| Chaque lundi, ou dispatch manuel | Scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security (workflow `security.yml`) | - |
 
 > GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
@@ -244,9 +246,9 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 **Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js`.
 
-> ⚠️ **Le déploiement coupe brièvement le service** : un Compose recrée le container, il n'y a pas de rolling update. Traefik route vers le nouveau container dès qu'il écoute, sans attendre que l'app soit prête. Le temps du `prisma migrate deploy` puis du démarrage Next, les requêtes échouent. Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la coupure : dans ce cas, l'appliquer manuellement avant le déploiement.
+> ⚠️ **Le déploiement coupe brièvement le service, en `404`** : un Compose recrée le container, il n'y a pas de rolling update, et Traefik ne route que vers un container `healthy` ([knowledges/dokploy.md](knowledges/dokploy.md#traefik-et-lets-encrypt)). Le temps du `prisma migrate deploy` puis du démarrage Next, le domaine répond `404` : c'est une protection, pas une panne (moins de 10 s mesurées au redeploy du 2026-09-21, sans migration). Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la fenêtre : dans ce cas, l'appliquer manuellement avant le déploiement.
 
-> ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s (`start_period` de 60 s pour couvrir les migrations). Il ne conditionne aucune bascule de trafic, il rend l'état du container observable : `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
+> ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s, et toutes les 5 s (défaut Docker) pendant le `start_period` de 60 s qui couvre les migrations. Il conditionne le routage Traefik et rend l'état du container observable : `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
 > ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
@@ -264,7 +266,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 3. Vérifier le statut dans Dokploy → Compose `Portfolio-app` → onglet Deployments, puis smoke test
 4. Corriger la cause sur `hotfix/*` → `main` → nouveau tag : le retour arrière est un roll-*forward* vers un `PATCH` supérieur, jamais une suppression du tag fautif
 
-> ⚠️ **Dispatcher sur le ref du tag, jamais sur `main`** : `docker/metadata-action` lit `type=semver` depuis `github.ref`. Sur `main`, il ne produit que `latest` et `sha-XXX`, sans les tags `X.Y.Z` et `X.Y`.
+> ⚠️ **Dispatcher sur le ref du tag, jamais sur une branche** : le job de `deploy.yml` porte la condition `startsWith(github.ref, 'refs/tags/v')`. Lancé depuis une branche il est sauté, faute de quoi il publierait `latest` depuis du code jamais passé par la release.
 
 > ℹ️ **« Redeploy » dans Dokploy** relance la **même** image : utile si le pull a échoué ou si le container est KO, sans effet sur la version déployée. C'est aussi le geste de reprise quand le `curl` de `deploy.yml` a échoué alors que l'image est bien sur GHCR.
 
@@ -354,14 +356,16 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 |---|---|---|---|
 | Docker Engine | `29.8.0` | `29.8.0` | 2026-09-04 |
 | Docker Compose | `5.5.1` | `5.5.1` | 2026-09-04 |
-| Dokploy | `0.30.4` | `0.30.4` | 2026-09-03 |
+| Dokploy | `0.30.7` | `0.30.7` (2026-09-18) | 2026-09-21 |
+| Traefik | `3.7.13` | `3.7.13` (2026-09-04) | 2026-09-20 |
 | Cloudflare R2 | managed service | — | sans objet |
 
-> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, et son API la renvoie sur `settings.getDokployVersion`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
+> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, et son API la renvoie sur `settings.getDokployVersion` ; celle de Traefik se lit sur l'image du container, `docker ps --filter name=traefik --format '{{.Image}}'`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
 
 **Pièges de montée**, à lire avant d'y toucher :
 
-- **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité, sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel. Le Traefik interne n'est **pas** monté automatiquement avec Dokploy.
+- **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité, sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel.
+- **Traefik** : Dokploy ne monte jamais son image, mais peut recréer le container sur une version plus ancienne lors de ses propres mises à jour. Relever l'image après chaque montée de Dokploy ([knowledges/dokploy.md](knowledges/dokploy.md#traefik-et-lets-encrypt)).
 - **Docker Engine 29** : API minimale v1.44, un client antérieur à la v25 ne parle plus au daemon.
 - **Docker Compose v5** : le build passe par Docker Bake, le builder interne a disparu ; le champ `version:` du YAML est ignoré.
 - **Cloudflare R2** : service managé, aucune version à suivre, donc aucune montée à préparer. Ses limites structurelles (pas de versioning, Bucket Locks ≠ Object Lock WORM, facturation arrondie) conditionnent la stratégie de sauvegarde et sont documentées dans [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md).
@@ -414,7 +418,7 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 | `X-XSS-Protection` | `0` | Désactivé, CSP prend le relais (le filtre natif peut introduire des failles) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Limite la fuite d'URL vers les sites externes |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Désactive les APIs navigateur inutilisées |
-| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` | Force HTTPS sur 2 ans |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS sur 1 an |
 | `Content-Security-Policy` | Politique complète ci-dessous | Whitelist des origines autorisées, protection XSS |
 
 ```
@@ -426,7 +430,9 @@ font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'sel
 
 > ℹ️ **Ce que la politique concède, et à qui** : `frame-src` n'ouvre que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `connect-src` ouvre Calendly et l'ingestion Sentry (organisation `tg-ws`, région européenne `de.sentry.io`). `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
 
-> ✅ **Vérifier après chaque modification de `next.config.ts`** : `curl -I https://thibaud-geisler.com/fr` et comparer aux valeurs de ce tableau
+> ⚠️ **En production, Traefik réécrit `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` et `Permissions-Policy`** (middleware `security-headers@file` du point d'entrée, relevé du 2026-09-21). `next.config.ts` porte les mêmes valeurs, en fallback. `Permissions-Policy` sort dans l'ordre de Traefik : `geolocation=(), microphone=(), camera=()`.
+
+> ✅ **Vérifier après chaque modification de `next.config.ts` ou du middleware Traefik** : `curl -I https://thibaud-geisler.com/fr` et comparer aux valeurs de ce tableau
 > ❌ **Ne pas désactiver HSTS ou CSP en production**, même temporairement
 
 ## CORS
@@ -438,6 +444,10 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Endpoint / Scope | Limite | Fenêtre | Mécanisme |
 |-----------------|--------|---------|-----------|
 | Formulaire contact (Server Action) | 5 requêtes | 10 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`, cap 1000 clés). Dépassement → event `rate_limit:exceeded` en `warn` |
+| Domaine, toutes routes | 600 requêtes, rafale 200 | 1 min | Middleware Traefik `rate-limit-strict@file`, posé sur le domaine, par IP source (IPv6 regroupées par `/64`). Dépassement → `429` |
+| Défaut du VPS, tous sites | 3000 requêtes, rafale 1000 | 1 min | Middleware Traefik `rate-limit@file`, posé sur le point d'entrée `websecure` |
+
+> ⚠️ **Ne jamais référencer `rate-limit@file` sur le domaine** : le point d'entrée l'applique déjà, traversé deux fois il compterait double. Les deux couches Traefik se cumulent, la plus stricte l'emporte. Repère de réglage : une page du site demande 49 requêtes (mesuré le 2026-09-20).
 
 > **Chatbot (post-MVP)** : son quota ne se fixe pas ici. La route ne vivra pas dans ce dépôt mais dans le service `portfolio-chatbot`, c'est sa propre documentation d'exploitation qui la portera ([ADR-014](adrs/014-rate-limiting-chatbot.md) pour la décision).
 
@@ -457,6 +467,7 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 |-------|-------|-----------|--------|
 | Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle | [.github/dependabot.yml](../.github/dependabot.yml) : PRs vers `develop`, 5 ouvertes au plus, mineures et patchs groupés en une PR `minor-patch`, majeures isolées |
 | `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : il signale, il n'arrête pas le pipeline |
+| Trivy | Image `latest` de GHCR, celle que tire Dokploy : sévérités `CRITICAL` et `HIGH` corrigeables | Hebdomadaire, et à la demande par `gh workflow run security.yml` | Workflow `security.yml`, rapport dans l'onglet Security du dépôt (Code scanning, catégorie `trivy-image`). Ne bloque aucune release |
 
 > ⚠️ **Les PRs Dependabot visent `develop`, jamais `main`** : elles n'atteignent la production qu'au prochain merge d'epic. Un correctif de sécurité urgent passe par un `hotfix/*`.
 
@@ -500,7 +511,7 @@ Seuils sur ce qui est réellement observable avec la stack actuelle : sonde exte
 
 > ⚠️ **Une alerte émise depuis le VPS ne survit pas à la panne du VPS** : les notifications Dokploy partent de la machine surveillée, par son propre SMTP. VPS éteint, réseau coupé ou Traefik cassé, aucun mail ne part et l'incident reste invisible. C'est la raison d'être de la sonde externe : elle seule observe le service depuis l'extérieur.
 
-> ℹ️ **Un déploiement déclenche une alerte** s'il tombe sur un contrôle : le recreate du container coupe le service quelques dizaines de secondes (§ CI/CD & Déploiement). Un « DOWN » suivi d'un « UP » peu après, autour d'une mise en production, n'est pas un faux positif : c'est la coupure réelle, mesurée.
+> ℹ️ **Un déploiement déclenche une alerte** s'il tombe sur un contrôle : le recreate du container coupe le service le temps du démarrage (§ CI/CD & Déploiement). Un « DOWN » suivi d'un « UP » peu après, autour d'une mise en production, n'est pas un faux positif : c'est la coupure réelle, mesurée.
 
 ---
 
@@ -544,7 +555,7 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 | Env | Rétention | Gestion |
 |-----|-----------|---------|
 | development | Terminal local, pas de rétention | - |
-| production (app) | Fenêtre glissante d'environ 1 Go par service | En place dans `compose.yaml` : driver `json-file`, `max-size: "100m"`, `max-file: "10"` |
+| production (app) | Fenêtre glissante d'environ 100 Mo | En place dans `compose.yaml` : driver `json-file`, `max-size: "20m"`, `max-file: "5"` |
 | production (Database) | Environ 30 Mo | Hérité du défaut posé dans `/etc/docker/daemon.json` du VPS (`json-file`, `max-size: "10m"`, `max-file: "3"`), qui s'applique à tout container sans config explicite. Relevé du 2026-09-04 |
 
 > ℹ️ **Dokploy ne fait pas la rotation** : son cron de nettoyage quotidien ne touche qu'à ses propres logs de déploiement, pas aux logs Docker des services. Deux mécanismes bornent le reste : le `json-file` déclaré dans `compose.yaml` pour l'app, et le défaut de `/etc/docker/daemon.json` pour tout container qui n'en déclare aucun.
@@ -629,11 +640,11 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ## Stratégie Backup
 
-**En place**, mécanisme natif Dokploy (`pg_dump` puis transfert rclone), sans script ni cron sur le VPS, destination `cloudflare-r2-backups`. Marche à suivre pour recréer la configuration : [knowledges/dokploy.md](knowledges/dokploy.md).
+**En place**, mécanisme natif Dokploy (`pg_dump` puis transfert rclone), sans script ni cron sur le VPS, destination `r2 portfolio-backups` (nom relevé dans Dokploy le 2026-09-21). Une restauration d'essai a été réalisée et validée le 2026-09-20, et Healthchecks surveille le silence : une sauvegarde qui ne se signale pas déclenche une alerte. Marche à suivre pour recréer la configuration : [knowledges/dokploy.md](knowledges/dokploy.md).
 
 | Ressource | Mécanisme | Fréquence | Rétention | Localisation |
 |-----------|-----------|-----------|-----------|--------------|
-| PostgreSQL | Backup natif Dokploy (Database → Backups) | Quotidien | 30 sauvegardes (`Keep the latest`) | Cloudflare R2, bucket `portfolio-backups` (juridiction `eu`) |
+| PostgreSQL | Backup natif Dokploy (Database → Backups) | Quotidien, à minuit (`0 0 * * *`) | 30 sauvegardes (`Keep the latest`) | Cloudflare R2, bucket `portfolio-backups` (juridiction `eu`) |
 
 > ⚠️ **`Keep the latest` compte des sauvegardes, pas des jours.** Avec une planification quotidienne, 30 donne trente jours de profondeur ; changer la fréquence change la fenêtre réelle sans toucher au champ. Champ vide = tout est conservé.
 
@@ -665,11 +676,11 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 1. Créer un nouveau VPS IONOS avec la même spec, installer Dokploy (procédure : [knowledges/dokploy.md](knowledges/dokploy.md) ; choix de la plateforme : [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
 2. Recréer le projet `Portfolio` : la Database Postgres, puis le Compose `Portfolio-app` (provider GitHub, branche `main`, `compose.yaml`, Trigger Type `tag`), enfin les domaines et leurs certificats
 3. Reposer les variables d'environnement du Compose (§ Environnements), dont `DATABASE_URL` pointant la nouvelle Database
-4. **Recréer la Backup Destination** (`cloudflare-r2-backups`) et la sauvegarde planifiée sur la nouvelle Database : les tokens R2 survivent à la perte du VPS, la destination Dokploy non
+4. **Recréer la Backup Destination** (`r2 portfolio-backups`) et la sauvegarde planifiée sur la nouvelle Database : les tokens R2 survivent à la perte du VPS, la destination Dokploy non
 5. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
 6. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
 7. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus). Les buckets R2 ne vivent pas sur le VPS : rien à restaurer côté assets
-8. Reposer `/etc/logrotate.d/docker-containers` et le défaut de log dans `/etc/docker/daemon.json` : aucun fichier du dépôt ne les porte (§ Rétention)
+8. Reposer `/etc/logrotate.d/docker-containers`, le défaut de log dans `/etc/docker/daemon.json` (§ Rétention) et la configuration Traefik du VPS, middlewares `security-headers`, `rate-limit`, `rate-limit-strict`, `redirect-www-to-apex`, `compress-br` et options TLS (§ Sécurité & Configuration) : aucun fichier du dépôt ne les porte
 9. Smoke test complet
 
 ---
