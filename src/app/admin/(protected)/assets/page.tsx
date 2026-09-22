@@ -5,11 +5,10 @@ import { AssetUploadDialog } from "@/components/features/admin/assets/AssetUploa
 import { AdminPageShell } from "@/components/layout/AdminPageShell"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { ADMIN_FOLDER } from "@/lib/schemas/asset"
 import { listAdminAssets, listAssets, resolveAssetUsage } from "@/server/queries/assets"
 
 async function AssetsSection({ initialSearch }: { initialSearch: string }) {
-  const [assets, adminAssets] = await Promise.all([listAssets(), listAdminAssets(ADMIN_FOLDER)])
+  const [assets, adminAssets] = await Promise.all([listAssets(), listAdminAssets()])
   const allAssets = [...assets, ...adminAssets]
   const usage = await resolveAssetUsage(allAssets.map((asset) => asset.key))
 

@@ -351,7 +351,7 @@ Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par de
 | `portfolio-assets` (vitrine, servi sans authentification) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
 | `portfolio-assets` | `documents/cv/` | CV PDF par locale |
 | `portfolio-assets` | `branding/` | Logo, portrait |
-| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise |
+| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
 
 ### File Processing
 

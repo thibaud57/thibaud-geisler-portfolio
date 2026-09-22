@@ -4,14 +4,14 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { ADMIN_FOLDER } from "@/lib/schemas/asset"
+import { COMPANY_LOGO_FOLDER } from "@/lib/schemas/asset"
 import { findAvailableLegalEntities } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 
 async function NewCompanySection() {
   const [legalEntities, logoAssets] = await Promise.all([
     findAvailableLegalEntities(),
-    listAdminAssets(ADMIN_FOLDER),
+    listAdminAssets(COMPANY_LOGO_FOLDER),
   ])
 
   return (

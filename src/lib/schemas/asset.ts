@@ -3,11 +3,22 @@ import { z } from "zod"
 import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
-export const ADMIN_FOLDER = "freelance/crm/entreprises"
-
-// Seul ce dossier vit sur portfolio-admin : une clé qui y commence n'est jamais lue par la route publique.
+// Miroir du schema `freelance` (ADR-011) : une clé qui y commence vit sur portfolio-admin.
 export function isAdminAssetKey(key: string): boolean {
-  return key.startsWith(`${ADMIN_FOLDER}/`)
+  return key.startsWith("freelance/")
+}
+
+export const COMPANY_LOGO_FOLDER = "freelance/crm/entreprises"
+
+// Seule exception du bucket admin : le logo d'une entreprise s'affiche sur la vitrine, la route
+// publique le sert donc sans session, tout en le laissant dans le bucket du CRM.
+export function isCompanyLogoKey(key: string): boolean {
+  return key.startsWith(`${COMPANY_LOGO_FOLDER}/`)
+}
+
+// Servie par la route gardée /admin/api/assets : tout portfolio-admin, moins l'exception ci-dessus.
+export function isGuardedAssetKey(key: string): boolean {
+  return isAdminAssetKey(key) && !isCompanyLogoKey(key)
 }
 
 const PROJECT_FOLDERS = ["projets/client", "projets/personal"] as const
@@ -22,11 +33,11 @@ export const MAX_ASSET_BYTES = 8 * 1024 * 1024
 //   branding/<fichier>                              → logos et portrait (portfolio-assets)
 //   documents/cv/<fichier>                          → CV par locale (portfolio-assets)
 //   projets/{client,personal}/<slug>/<fichier>      → couvertures et captures de projets (portfolio-assets)
-//   freelance/crm/entreprises/<slug>/<fichier>      → logo d'entreprise (portfolio-admin)
+//   freelance/crm/entreprises/<slug>/<fichier>      → logo d'entreprise (portfolio-admin, lu aussi par la vitrine)
 export const FOLDERS_WITH_SLUG = [
   "projets/client",
   "projets/personal",
-  "freelance/crm/entreprises",
+  COMPANY_LOGO_FOLDER,
 ] as const
 export const FOLDERS_WITHOUT_SLUG = ["branding", "documents/cv"] as const
 export const ASSET_FOLDERS = [...FOLDERS_WITH_SLUG, ...FOLDERS_WITHOUT_SLUG] as const

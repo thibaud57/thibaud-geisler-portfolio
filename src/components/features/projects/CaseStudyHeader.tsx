@@ -1,9 +1,10 @@
 import { safeExternalUrl } from "@/lib/url"
 import Image from "next/image"
+import { User } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
-import { formatDurationRange, getProjectTimeline } from "@/lib/projects"
+import { getProjectDuration, getProjectTimeline } from "@/lib/projects"
 import { LABEL_CLASS } from "@/lib/typography"
 import type { LocalizedProjectWithRelations } from "@/types/project"
 import { LeadParagraph } from "@/components/ui/lead-paragraph"
@@ -21,8 +22,23 @@ export function CaseStudyHeader({ project }: Props) {
   const endLabel = endYear?.toString() ?? (inProgress ? t("inProgress") : "")
   const { company, teamSize, contractStatus: contract, workMode } = project.clientMeta ?? {}
   const companyUrl = safeExternalUrl(company?.websiteUrl)
+  // Un projet personnel est rattaché à l'entreprise du freelance lui-même : la vitrine montre la
+  // même carte, mais « Personnel » avec une icône, jamais la fiche de cette entreprise.
+  const isPersonal = project.type === "PERSONAL"
 
-  const durationValue = formatDurationRange(timeline, t("inProgress"))
+  // La frise porte déjà les années : Durée dit combien de temps, calculé des deux dates en base.
+  // Sans date de fin la page, prérendue, ne peut pas compter jusqu'à aujourd'hui : « En cours ».
+  const duration = getProjectDuration(project.startedAt, project.endedAt)
+  const durationValue = duration
+    ? [
+        duration.years > 0 ? t("meta.durationYears", { count: duration.years }) : null,
+        duration.months > 0 ? t("meta.durationMonths", { count: duration.months }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : inProgress
+      ? t("inProgress")
+      : null
 
   return (
     <header>
@@ -61,25 +77,44 @@ export function CaseStudyHeader({ project }: Props) {
         />
       )}
 
-      {company ? (
-        <div className="mt-10 flex w-fit flex-col gap-1 rounded-xl border border-border bg-muted/30 p-5">
-          {companyUrl ? (
-            <a
-              href={companyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xl font-semibold hover:text-primary"
-            >
-              {company.name}
-            </a>
+      {isPersonal || company ? (
+        <div className="mt-10 flex w-fit items-center gap-4 rounded-xl border border-border bg-muted/30 p-5">
+          {!isPersonal && company?.logoFilename ? (
+            <Image
+              src={buildAssetUrl(company.logoFilename)}
+              alt={company.name}
+              width={56}
+              height={56}
+              className="size-14 shrink-0 rounded-md border border-border bg-muted object-contain"
+            />
           ) : (
-            <span className="text-xl font-semibold">{company.name}</span>
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+              <User className="size-7 text-muted-foreground" aria-hidden="true" />
+            </div>
           )}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            {company.sectors.length > 0 ? (
-              <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
+          <div className="flex flex-col gap-1">
+            {isPersonal ? (
+              <span className="text-xl font-semibold">{t("personal")}</span>
+            ) : companyUrl ? (
+              <a
+                href={companyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xl font-semibold hover:text-primary"
+              >
+                {company?.name}
+              </a>
+            ) : (
+              <span className="text-xl font-semibold">{company?.name}</span>
+            )}
+            {!isPersonal && company ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                {company.sectors.length > 0 ? (
+                  <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
+                ) : null}
+                {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
+              </div>
             ) : null}
-            {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
           </div>
         </div>
       ) : null}

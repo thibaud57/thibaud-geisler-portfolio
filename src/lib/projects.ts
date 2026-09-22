@@ -20,17 +20,6 @@ export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null)
   }
 }
 
-export function formatDurationRange(
-  timeline: ProjectTimeline,
-  inProgressLabel: string,
-): string | null {
-  const { startYear, endYear, inProgress } = timeline
-  if (startYear === null) return null
-  if (endYear && endYear !== startYear) return `${startYear} → ${endYear}`
-  if (inProgress) return `${startYear} → ${inProgressLabel}`
-  return String(startYear)
-}
-
 export function formatShortDate(date: Date | null): string | null {
   if (!date) return null
   const day = String(date.getDate()).padStart(2, "0")
@@ -89,24 +78,43 @@ export const WORK_MODE_LABELS: Record<WorkMode, string> = {
   PRESENTIEL: "Sur site",
 }
 
+export interface ProjectDuration {
+  years: number
+  months: number
+}
+
 // Arithmétique manuelle plutôt que date-fns, présente au projet mais pour la seule locale du
-// Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface.
-export function formatProjectDuration(startedAt: Date | null, endedAt: Date | null): string | null {
-  if (!startedAt) return null
-  const end = endedAt ?? new Date()
+// Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les
+// parts servent la vitrine (formatées par next-intl dans sa locale) et l'admin (français en dur).
+// Pas de lecture de l'horloge ici : la page projet de la vitrine est prérendue (cacheComponents),
+// un new Date() pendant le prerender fait échouer le build.
+export function getProjectDuration(
+  startedAt: Date | null,
+  endedAt: Date | null,
+): ProjectDuration | null {
+  if (!startedAt || !endedAt) return null
+  const end = endedAt
   // Zod refuse endedAt < startedAt depuis le formulaire d'édition, mais pas la base (seed, edit SQL
   // direct, donnée legacy) : une plage inversée n'a pas de durée plausible à afficher. Comparer les
   // dates elles-mêmes, pas seulement le delta en mois : une inversion à l'intérieur du même mois
   // calendaire (ex. 20 mai → 1er mai) a un delta de 0, que la seule comparaison de mois ne détecte pas.
   if (end < startedAt) return null
-  const totalMonths =
-    (end.getFullYear() - startedAt.getFullYear()) * 12 + (end.getMonth() - startedAt.getMonth())
+  const totalMonths = Math.max(
+    1,
+    (end.getFullYear() - startedAt.getFullYear()) * 12 + (end.getMonth() - startedAt.getMonth()),
+  )
+  return { years: Math.floor(totalMonths / 12), months: totalMonths % 12 }
+}
 
-  if (totalMonths < 12) return totalMonths <= 1 ? "1 mois" : `${totalMonths} mois`
-  const years = Math.floor(totalMonths / 12)
-  const remainder = totalMonths % 12
-  const yearsLabel = years === 1 ? "1 an" : `${years} ans`
-  return remainder === 0 ? yearsLabel : `${yearsLabel} ${remainder} mois`
+// Admin seulement : ses pages sont dynamiques (session), lire l'horloge y est permis, un projet en
+// cours se compte jusqu'à aujourd'hui.
+export function formatProjectDuration(startedAt: Date | null, endedAt: Date | null): string | null {
+  const duration = getProjectDuration(startedAt, endedAt ?? new Date())
+  if (!duration) return null
+  const { years, months } = duration
+  const yearsLabel = years === 0 ? null : years === 1 ? "1 an" : `${years} ans`
+  const monthsLabel = months === 0 ? null : `${months} mois`
+  return [yearsLabel, monthsLabel].filter(Boolean).join(" ")
 }
 
 // Partagés par les cards du formulaire projet et les blocs de sa vue détail, titres comme libellés

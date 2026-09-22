@@ -5,6 +5,11 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("@/lib/r2", () => ({
   r2: { send: vi.fn() },
   R2_BUCKET: "test-bucket",
+  adminR2: { send: vi.fn() },
+  R2_ADMIN_BUCKET: "test-admin-bucket",
+}))
+vi.mock("@/lib/prisma", () => ({
+  prisma: { company: { findFirst: vi.fn(() => null) } },
 }))
 
 const PNG_1X1 = Buffer.from([
@@ -95,5 +100,56 @@ describe("GET /api/assets/[...path]", () => {
     const response = await callRoute(["test.png"])
 
     expect(response.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
+  })
+
+  it("sert le logo d'une entreprise dont un projet est publié, depuis le bucket admin, sans cache", async () => {
+    const { adminR2, r2 } = await import("@/lib/r2")
+    const { prisma } = await import("@/lib/prisma")
+    vi.mocked(prisma.company.findFirst).mockResolvedValueOnce({ id: "foyer" } as never)
+    vi.mocked(adminR2.send).mockResolvedValueOnce({
+      Body: { transformToWebStream: () => toReadableStream(PNG_1X1) },
+    } as never)
+    vi.stubEnv("NODE_ENV", "production")
+
+    const response = await callRoute(["freelance", "crm", "entreprises", "foyer", "logo.png"])
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("Cache-Control")).toBe("no-cache, no-store, must-revalidate")
+    expect(prisma.company.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          logoFilename: "freelance/crm/entreprises/foyer/logo.png",
+          clientMetas: { some: { project: { status: "PUBLISHED" } } },
+        },
+      }),
+    )
+    const command = vi.mocked(adminR2.send).mock.calls[0]?.[0] as GetObjectCommand
+    expect(command.input).toEqual({
+      Bucket: "test-admin-bucket",
+      Key: "freelance/crm/entreprises/foyer/logo.png",
+    })
+    expect(r2.send).not.toHaveBeenCalled()
+  })
+
+  it("répond 404 sans lire R2 pour le logo d'une entreprise sans projet publié", async () => {
+    const { adminR2, r2 } = await import("@/lib/r2")
+
+    const response = await callRoute(["freelance", "crm", "entreprises", "prospect", "logo.png"])
+
+    expect(response.status).toBe(404)
+    expect(adminR2.send).not.toHaveBeenCalled()
+    expect(r2.send).not.toHaveBeenCalled()
+  })
+
+  it("ne sert aucune autre clé freelance/ depuis le bucket admin", async () => {
+    const { adminR2, r2 } = await import("@/lib/r2")
+    vi.mocked(r2.send).mockRejectedValueOnce(
+      new NoSuchKey({ message: "The specified key does not exist.", $metadata: {} }),
+    )
+
+    const response = await callRoute(["freelance", "administration", "contrat.pdf"])
+
+    expect(response.status).toBe(404)
+    expect(adminR2.send).not.toHaveBeenCalled()
   })
 })

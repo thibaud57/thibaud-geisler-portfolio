@@ -95,6 +95,7 @@ async function CaseStudyContentAsync({ locale, slug }: { locale: Locale; slug: s
         {project.caseStudyMarkdown ? (
           <MarkdownContent
             markdown={project.caseStudyMarkdown}
+            links="standalone"
             components={{
               img: ({ src, alt }) => {
                 if (typeof src !== "string") return null

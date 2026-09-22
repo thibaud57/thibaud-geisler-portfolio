@@ -118,7 +118,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 
 **Assets espace admin (à cocher au premier tag embarquant l'upload de logos depuis l'espace admin) :**
 - [ ] Avant le merge vers `main` : les trois variables `R2_ADMIN_*` posées dans Dokploy
-- [ ] Après déploiement : un fichier déposé depuis l'espace admin de production atterrit dans le bucket de production correspondant à son emplacement, et un logo d'entreprise reste inaccessible par la route publique `/api/assets/[...path]`
+- [ ] Après déploiement : un fichier déposé depuis l'espace admin de production atterrit dans le bucket de production correspondant à son emplacement ; le logo d'une entreprise ayant un projet publié est servi par `/api/assets/freelance/crm/entreprises/<slug>/logo.png` sans session, en `no-cache` ; celui d'une entreprise sans projet publié, comme toute autre clé `freelance/`, répond 404 par la route publique
 
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 

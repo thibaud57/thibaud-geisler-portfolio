@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import { safeExternalUrl } from "@/lib/url"
 import { cn } from "@/lib/utils"
 
@@ -21,7 +22,7 @@ export function ExternalUrl({ url, children, className }: Props) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn("text-primary underline-offset-4 hover:underline", className)}
+      className={cn(STANDALONE_LINK_CLASS, className)}
     >
       {children ?? href}
     </a>

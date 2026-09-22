@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { isAdminAssetKey } from "@/lib/schemas/asset"
+import { isCompanyLogoKey } from "@/lib/schemas/asset"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 const SECTORS = [
@@ -63,7 +63,7 @@ export const companySchema = z.object({
   logoFilename: z
     .string()
     .trim()
-    .refine((value) => value === "" || isAdminAssetKey(value), {
+    .refine((value) => value === "" || isCompanyLogoKey(value), {
       error: "Le logo doit être choisi dans l'espace Assets",
     })
     .transform((value) => (value === "" ? null : value)),

@@ -1,21 +1,23 @@
 import Image, { type ImageProps } from "next/image"
 
-import { buildAssetUrl } from "@/lib/assets"
+import { buildAssetUrl, buildGuardedAssetUrl } from "@/lib/assets"
 import { isAdminAssetKey } from "@/lib/schemas/asset"
 
 interface Props extends Omit<ImageProps, "src" | "unoptimized"> {
   assetKey: string
 }
 
-// next/image rejoue la requête en interne pour l'optimiser, sans en-têtes ni cookie de session :
-// la garde getCurrentUser() de /admin/api/assets la rejette systématiquement. Les clés du bucket
-// admin doivent donc être servies sans optimisation, celles du bucket public la gardent.
+// Dans l'espace admin, tout le bucket admin se lit par la route gardée, y compris un logo
+// d'entreprise que la vitrine ne montrerait pas encore (aucun projet publié). next/image rejoue
+// la requête en interne pour l'optimiser, sans cookie de session : la garde getCurrentUser() la
+// rejetterait, d'où unoptimized sur ces clés seulement.
 export function AssetImage({ assetKey, alt, ...props }: Props) {
+  const guarded = isAdminAssetKey(assetKey)
   return (
     <Image
-      src={buildAssetUrl(assetKey)}
+      src={guarded ? buildGuardedAssetUrl(assetKey) : buildAssetUrl(assetKey)}
       alt={alt}
-      unoptimized={isAdminAssetKey(assetKey)}
+      unoptimized={guarded}
       {...props}
     />
   )

@@ -8,6 +8,7 @@ import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
+import { LINK_CLASS } from "@/lib/typography"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
 import { getHostingProvider, getPublisher } from "@/server/queries/legal"
 
@@ -123,10 +124,7 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
 
           <dt className="font-semibold">{t("identity.emailLabel")}</dt>
           <dd>
-            <a
-              href={`mailto:${pub.publicEmail}`}
-              className="text-primary underline underline-offset-2"
-            >
+            <a href={`mailto:${pub.publicEmail}`} className={LINK_CLASS}>
               {pub.publicEmail}
             </a>
           </dd>

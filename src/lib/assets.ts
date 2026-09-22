@@ -1,10 +1,15 @@
 import type { Locale } from "next-intl"
 
-import { isAdminAssetKey } from "@/lib/schemas/asset"
+import { isGuardedAssetKey } from "@/lib/schemas/asset"
 
+// Route gardée par la session admin : tout le bucket admin s'y lit, logos compris.
+export function buildGuardedAssetUrl(key: string): string {
+  return `/admin/api/assets/${key}`
+}
+
+// URL d'un asset pour la vitrine : la route publique, sauf ce que seule la session peut lire.
 export function buildAssetUrl(key: string): string {
-  const base = isAdminAssetKey(key) ? "/admin/api/assets" : "/api/assets"
-  return `${base}/${key}`
+  return isGuardedAssetKey(key) ? buildGuardedAssetUrl(key) : `/api/assets/${key}`
 }
 
 export function nameOfAssetKey(key: string): string {

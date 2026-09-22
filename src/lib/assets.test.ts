@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest"
 
-import { assetKeyMatchesQuery } from "./assets"
+import { assetKeyMatchesQuery, buildAssetUrl } from "./assets"
+
+describe("buildAssetUrl", () => {
+  it("serves a company logo through the public route despite its admin bucket", () => {
+    const url = buildAssetUrl("freelance/crm/entreprises/foyer/logo.png")
+
+    expect(url).toBe("/api/assets/freelance/crm/entreprises/foyer/logo.png")
+  })
+
+  it("keeps any other admin key behind the guarded route", () => {
+    const url = buildAssetUrl("freelance/administration/contrat.pdf")
+
+    expect(url).toBe("/admin/api/assets/freelance/administration/contrat.pdf")
+  })
+})
 
 describe("assetKeyMatchesQuery", () => {
   const key = "projets/client/chatbot-agents-ia/cover.webp"
