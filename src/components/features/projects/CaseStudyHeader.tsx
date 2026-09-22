@@ -1,11 +1,12 @@
 import { safeExternalUrl } from "@/lib/url"
 import Image from "next/image"
 import { User } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { getTranslations } from "next-intl/server"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
-import { getProjectDuration, getProjectTimeline } from "@/lib/projects"
+import { getProjectTimeline } from "@/lib/projects"
 import { LABEL_CLASS } from "@/lib/typography"
+import { getLiveProjectDuration } from "@/server/queries/projects"
 import type { LocalizedProjectWithRelations } from "@/types/project"
 import { LeadParagraph } from "@/components/ui/lead-paragraph"
 import { FormatBadges } from "./FormatBadges"
@@ -14,8 +15,8 @@ interface Props {
   project: LocalizedProjectWithRelations
 }
 
-export function CaseStudyHeader({ project }: Props) {
-  const t = useTranslations("Projects.caseStudy")
+export async function CaseStudyHeader({ project }: Props) {
+  const t = await getTranslations("Projects.caseStudy")
 
   const timeline = getProjectTimeline(project.startedAt, project.endedAt)
   const { startYear, endYear, inProgress } = timeline
@@ -26,9 +27,8 @@ export function CaseStudyHeader({ project }: Props) {
   // même carte, mais « Personnel » avec une icône, jamais la fiche de cette entreprise.
   const isPersonal = project.type === "PERSONAL"
 
-  // La frise porte déjà les années : Durée dit combien de temps, calculé des deux dates en base.
-  // Sans date de fin la page, prérendue, ne peut pas compter jusqu'à aujourd'hui : « En cours ».
-  const duration = getProjectDuration(project.startedAt, project.endedAt)
+  // La frise porte déjà les années : Durée dit combien de temps, jusqu'à aujourd'hui en cours.
+  const duration = await getLiveProjectDuration(project.startedAt, project.endedAt)
   const durationValue = duration
     ? [
         duration.years > 0 ? t("meta.durationYears", { count: duration.years }) : null,
@@ -36,9 +36,7 @@ export function CaseStudyHeader({ project }: Props) {
       ]
         .filter(Boolean)
         .join(" ")
-    : inProgress
-      ? t("inProgress")
-      : null
+    : null
 
   return (
     <header>

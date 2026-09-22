@@ -4,6 +4,7 @@ import type { Locale } from "next-intl"
 import { prisma } from "@/lib/prisma"
 import type { ProjectType } from "@/generated/prisma/client"
 import { localizeProject } from "@/i18n/localize-content"
+import { getProjectDuration, type ProjectDuration } from "@/lib/projects"
 import { PROJECT_INCLUDE, type LocalizedProjectWithRelations } from "@/types/project"
 
 export async function findManyPublished(params: {
@@ -80,4 +81,17 @@ export async function findProjectForAdmin(id: string) {
 // de la page, donc sous sa frontière <Suspense>, pas dans un en-tête au-dessus.
 export async function countProjects(): Promise<number> {
   return prisma.project.count()
+}
+
+// Un projet en cours se compte jusqu'à aujourd'hui. L'horloge se lit dans un scope "use cache",
+// pas dans la page prérendue (cacheComponents refuse new Date() au prerender) ; "days" borne le
+// retard à un jour après le 1er du mois, quand la valeur bascule.
+// eslint-disable-next-line @typescript-eslint/require-await -- "use cache" impose async même sans await interne (cf. doc Next.js)
+export async function getLiveProjectDuration(
+  startedAt: Date | null,
+  endedAt: Date | null,
+): Promise<ProjectDuration | null> {
+  "use cache"
+  cacheLife("days")
+  return getProjectDuration(startedAt, endedAt ?? new Date())
 }

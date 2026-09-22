@@ -86,8 +86,8 @@ export interface ProjectDuration {
 // Arithmétique manuelle plutôt que date-fns, présente au projet mais pour la seule locale du
 // Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les
 // parts servent la vitrine (formatées par next-intl dans sa locale) et l'admin (français en dur).
-// Pas de lecture de l'horloge ici : la page projet de la vitrine est prérendue (cacheComponents),
-// un new Date() pendant le prerender fait échouer le build.
+// Pas de lecture de l'horloge ici, l'appelant fournit la fin : new Date() côté admin (pages
+// dynamiques), getLiveProjectDuration côté vitrine (la page prérendue ne peut pas la lire).
 export function getProjectDuration(
   startedAt: Date | null,
   endedAt: Date | null,
@@ -106,8 +106,6 @@ export function getProjectDuration(
   return { years: Math.floor(totalMonths / 12), months: totalMonths % 12 }
 }
 
-// Admin seulement : ses pages sont dynamiques (session), lire l'horloge y est permis, un projet en
-// cours se compte jusqu'à aujourd'hui.
 export function formatProjectDuration(startedAt: Date | null, endedAt: Date | null): string | null {
   const duration = getProjectDuration(startedAt, endedAt ?? new Date())
   if (!duration) return null
