@@ -10,7 +10,11 @@ import {
   type Facet,
   type GroupBy,
 } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
+import {
+  type DetailContent,
+  DetailDialog,
+  type DetailRow,
+} from "@/components/features/admin/DetailDialog"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteTagDialog } from "@/components/features/admin/tags/DeleteTagDialog"
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
@@ -102,7 +106,7 @@ function buildColumns(): readonly Column<AdminTag>[] {
   ]
 }
 
-function tagDetailRows(tag: AdminTag): DetailContent["rows"] {
+function tagDetailRows(tag: AdminTag): readonly DetailRow[] {
   return [
     { label: "Slug", value: <span className="font-mono">{tag.slug}</span> },
     { label: "Nom (FR)", value: tag.nameFr },
@@ -202,7 +206,7 @@ export function TagsTable({ tags }: Props) {
       selectedTag
         ? {
             title: selectedTag.nameFr,
-            rows: tagDetailRows(selectedTag),
+            sections: [{ rows: tagDetailRows(selectedTag) }],
             onEdit: () => {
               editTriggerRefs.current.get(selectedTag.id)?.click()
             },

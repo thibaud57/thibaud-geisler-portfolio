@@ -108,3 +108,16 @@ export function formatProjectDuration(startedAt: Date | null, endedAt: Date | nu
   const yearsLabel = years === 1 ? "1 an" : `${years} ans`
   return remainder === 0 ? yearsLabel : `${yearsLabel} ${remainder} mois`
 }
+
+// Partagées par les cards du formulaire projet et les blocs de sa vue détail : consulter puis
+// modifier doit retrouver les mêmes intitulés (docs/DESIGN.md § Arbitrages).
+export const PROJECT_SECTION_TITLES = {
+  identity: "Identité",
+  description: "Description",
+  tags: "Tags",
+  caseStudy: "Case study",
+  publication: "Publication",
+  links: "Liens",
+  cover: "Couverture",
+  clientMeta: "Méta client",
+} as const

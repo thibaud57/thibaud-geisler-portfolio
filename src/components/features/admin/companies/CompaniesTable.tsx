@@ -15,7 +15,11 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { CompanySector } from "@/generated/prisma/client"
 import { COMPANY_COLUMN_WIDTHS } from "@/lib/admin-table-widths"
-import { COMPANY_SECTOR_LABELS, COMPANY_SIZE_LABELS } from "@/lib/companies"
+import {
+  COMPANY_SECTION_TITLES,
+  COMPANY_SECTOR_LABELS,
+  COMPANY_SIZE_LABELS,
+} from "@/lib/companies"
 import type { AdminCompany } from "@/server/queries/companies"
 
 const MAX_VISIBLE_SECTORS = 3
@@ -146,18 +150,60 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
   const projectCount = company._count.clientMetas
   return {
     title: company.name,
-    rows: [
-      { label: "Entité légale", value: company.legalEntity?.name ?? "—" },
-      { label: "Site web", value: company.websiteUrl ?? "—" },
+    subtitle: (
+      <span className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline" meta>
+          {projectCount > 0 ? "Travaillée" : "Non travaillée"}
+        </Badge>
+        <span>{`${projectCount} projet${projectCount > 1 ? "s" : ""}`}</span>
+      </span>
+    ),
+    sections: [
       {
-        label: "Secteur",
-        value: company.sectors.length
-          ? company.sectors.map((sector) => COMPANY_SECTOR_LABELS[sector]).join(", ")
-          : "—",
+        title: COMPANY_SECTION_TITLES.identity,
+        rows: [
+          { label: "Nom", value: company.name },
+          { label: "Slug", value: <span className="font-mono">{company.slug}</span> },
+          { label: "Site web", value: company.websiteUrl ?? "—" },
+        ],
       },
-      { label: "Taille", value: company.size ? COMPANY_SIZE_LABELS[company.size] : "—" },
-      { label: "Travaillée", value: projectCount > 0 ? "Oui" : "Non" },
-      { label: "Projets", value: `${projectCount} projet${projectCount > 1 ? "s" : ""}` },
+      {
+        title: COMPANY_SECTION_TITLES.classification,
+        rows: [
+          {
+            label: "Secteurs",
+            fullWidth: true,
+            value: company.sectors.length ? (
+              <span className="flex flex-wrap gap-1">
+                {company.sectors.map((sector) => (
+                  <Badge key={sector} variant="secondary">
+                    {COMPANY_SECTOR_LABELS[sector]}
+                  </Badge>
+                ))}
+              </span>
+            ) : (
+              "—"
+            ),
+          },
+          { label: "Taille", value: company.size ? COMPANY_SIZE_LABELS[company.size] : "—" },
+        ],
+      },
+      {
+        title: COMPANY_SECTION_TITLES.legalEntity,
+        rows: [{ value: company.legalEntity?.name ?? "—" }],
+      },
+      {
+        title: COMPANY_SECTION_TITLES.logo,
+        rows: [
+          {
+            value: company.logoFilename ? (
+              <span className="font-mono text-xs">{company.logoFilename}</span>
+            ) : (
+              "—"
+            ),
+          },
+        ],
+      },
     ],
     onEdit,
   }

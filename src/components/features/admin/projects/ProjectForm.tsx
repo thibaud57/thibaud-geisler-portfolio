@@ -41,6 +41,7 @@ import {
   formatShortDate,
   parseIsoDate,
   PROJECT_FORMAT_LABELS,
+  PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
   toIsoDate,
@@ -186,7 +187,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Identité</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.identity}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <FormField id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
@@ -274,7 +275,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.description}</CardTitle>
               <CardDescription>
                 Deux à quatre phrases : ce que c&apos;est, la partie difficile, le résultat.
               </CardDescription>
@@ -313,7 +314,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Tags</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.tags}</CardTitle>
               <CardDescription>
                 Cherchez puis sélectionnez. L&apos;ordre d&apos;affichage suit l&apos;ordre de
                 sélection.
@@ -329,7 +330,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Case study</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.caseStudy}</CardTitle>
               <CardDescription>
                 Markdown brut, une zone par langue. Le rendu se relit sur le site public.
               </CardDescription>
@@ -372,7 +373,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
         <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">
           <Card>
             <CardHeader>
-              <CardTitle>Publication</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.publication}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-4">
@@ -509,7 +510,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Liens</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.links}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
               <FormField
@@ -543,7 +544,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Couverture</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.cover}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-muted">
@@ -579,7 +580,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <Card>
             <CardHeader>
-              <CardTitle>Méta client</CardTitle>
+              <CardTitle>{PROJECT_SECTION_TITLES.clientMeta}</CardTitle>
               <CardDescription>
                 Entreprise, contrat et mode de travail apparaissent sur la fiche publique du projet.
               </CardDescription>

@@ -20,3 +20,12 @@ export const COMPANY_SIZE_LABELS: Record<(typeof COMPANY_SIZES)[number], string>
   ETI: "ETI",
   GROUPE: "Groupe",
 }
+
+// Partagées par les cards du formulaire entreprise et les blocs de sa vue détail
+// (docs/DESIGN.md § Arbitrages).
+export const COMPANY_SECTION_TITLES = {
+  identity: "Identité",
+  classification: "Classification",
+  legalEntity: "Entité légale",
+  logo: "Logo",
+} as const

@@ -30,8 +30,10 @@ import {
   formatShortDate,
   getProjectTimeline,
   PROJECT_FORMAT_LABELS,
+  PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
+  WORK_MODE_LABELS,
 } from "@/lib/projects"
 import { safeExternalUrl } from "@/lib/url"
 import { cn } from "@/lib/utils"
@@ -55,6 +57,22 @@ const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
   DRAFT: "bg-warning",
   PUBLISHED: "bg-success",
   ARCHIVED: "bg-muted-foreground",
+}
+
+// Un case study fait plusieurs milliers de caractères : la vue détail dit qu'il existe et ce qu'il
+// pèse, la lecture du texte appartient à l'écran d'édition.
+function describeMarkdown(markdown: string | null): string {
+  if (!markdown) return "—"
+  return `Rédigé (${markdown.length} caractères)`
+}
+
+function renderProjectStatus(status: ProjectStatus, className?: string): ReactNode {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5", className)}>
+      <span className={cn("size-1.5 shrink-0 rounded-full", PROJECT_STATUS_DOT_CLASS[status])} />
+      {PROJECT_STATUS_LABELS[status]}
+    </span>
+  )
 }
 
 // Même rendu partout où la donnée apparaît (colonne, vue détail, carte mobile) : un lien ouvert ne
@@ -243,17 +261,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.statut,
       className: "whitespace-nowrap",
       ...hideable(view, "statut"),
-      cell: (project) => (
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              PROJECT_STATUS_DOT_CLASS[project.status],
-            )}
-          />
-          {PROJECT_STATUS_LABELS[project.status]}
-        </span>
-      ),
+      cell: (project) => renderProjectStatus(project.status),
     },
     {
       key: "actions",
@@ -308,31 +316,125 @@ async function handleReorder(_groupKey: string, orderedRowIds: string[]): Promis
 }
 
 function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): DetailContent {
+  const clientMeta = project.clientMeta
   return {
     title: project.titleFr,
-    subtitle: `${PROJECT_TYPE_LABELS[project.type]} · ${PROJECT_STATUS_LABELS[project.status]}`,
-    rows: [
-      { label: "Slug", value: <span className="font-mono">{project.slug}</span> },
+    subtitle: (
+      <span className="flex flex-wrap items-center gap-2">
+        <span className="font-mono">#{project.displayOrder}</span>
+        <Badge variant="outline" meta>
+          {PROJECT_TYPE_LABELS[project.type]}
+        </Badge>
+        {renderProjectStatus(project.status)}
+      </span>
+    ),
+    sections: [
       {
-        label: "Type de projet",
-        value: project.formats.map((format) => PROJECT_FORMAT_LABELS[format]).join(", ") || "—",
+        title: PROJECT_SECTION_TITLES.identity,
+        rows: [
+          { label: "Titre (français)", value: project.titleFr },
+          { label: "Titre (anglais)", value: project.titleEn },
+          { label: "Slug", value: <span className="font-mono">{project.slug}</span> },
+          {
+            label: "Type de projet",
+            fullWidth: true,
+            value: project.formats.length ? (
+              <span className="flex flex-wrap gap-1">
+                {project.formats.map((format) => (
+                  <Badge key={format} variant="secondary">
+                    {PROJECT_FORMAT_LABELS[format]}
+                  </Badge>
+                ))}
+              </span>
+            ) : (
+              "—"
+            ),
+          },
+        ],
       },
-      { label: "Entreprise", value: project.clientMeta?.company.name ?? "—" },
       {
-        label: "Statut contrat",
-        value: project.clientMeta?.contractStatus
-          ? CONTRACT_STATUS_LABELS[project.clientMeta.contractStatus]
-          : "—",
+        title: PROJECT_SECTION_TITLES.description,
+        rows: [
+          { label: "Français", fullWidth: true, value: project.descriptionFr },
+          { label: "Anglais", fullWidth: true, value: project.descriptionEn },
+        ],
       },
-      { label: "Date début", value: formatShortDate(project.startedAt) },
-      { label: "Date fin", value: formatShortDate(project.endedAt) },
-      { label: "Durée", value: formatProjectDuration(project.startedAt, project.endedAt) ?? "—" },
       {
-        label: "Équipe",
-        value: project.clientMeta?.teamSize != null ? String(project.clientMeta.teamSize) : "—",
+        title: PROJECT_SECTION_TITLES.tags,
+        rows: [
+          {
+            value: project.tags.length ? (
+              <span className="flex flex-wrap gap-1">
+                {project.tags.map((projectTag) => (
+                  <Badge key={projectTag.tagId} variant="secondary">
+                    {projectTag.tag.nameFr}
+                  </Badge>
+                ))}
+              </span>
+            ) : (
+              "—"
+            ),
+          },
+        ],
       },
-      { label: "Liens", value: renderProjectLinks(project) },
-      { label: "Ordre d'affichage", value: String(project.displayOrder) },
+      {
+        title: PROJECT_SECTION_TITLES.caseStudy,
+        rows: [
+          { label: "Français", value: describeMarkdown(project.caseStudyMarkdownFr) },
+          { label: "Anglais", value: describeMarkdown(project.caseStudyMarkdownEn) },
+        ],
+      },
+      {
+        title: PROJECT_SECTION_TITLES.publication,
+        rows: [
+          { label: "Date début", value: formatShortDate(project.startedAt) },
+          { label: "Date fin", value: formatShortDate(project.endedAt) },
+          {
+            label: "Durée",
+            value: formatProjectDuration(project.startedAt, project.endedAt) ?? "—",
+          },
+        ],
+      },
+      {
+        title: PROJECT_SECTION_TITLES.links,
+        rows: [{ value: renderProjectLinks(project) }],
+      },
+      {
+        title: PROJECT_SECTION_TITLES.cover,
+        rows: [
+          {
+            value: project.coverFilename ? (
+              <span className="font-mono text-xs">{project.coverFilename}</span>
+            ) : (
+              "—"
+            ),
+          },
+        ],
+      },
+      // Un projet perso n'a pas de méta client : le bloc entier disparaît plutôt que d'aligner
+      // trois tirets sous leur propre titre.
+      ...(clientMeta
+        ? [
+            {
+              title: PROJECT_SECTION_TITLES.clientMeta,
+              rows: [
+                { label: "Entreprise", value: clientMeta.company.name },
+                { label: "Mode de travail", value: WORK_MODE_LABELS[clientMeta.workMode] },
+                {
+                  label: "Statut contrat",
+                  value: clientMeta.contractStatus
+                    ? CONTRACT_STATUS_LABELS[clientMeta.contractStatus]
+                    : "—",
+                },
+                {
+                  label: "Équipe",
+                  value: clientMeta.teamSize != null ? String(clientMeta.teamSize) : "—",
+                },
+                { label: "Livrables", value: String(clientMeta.deliverablesCount) },
+              ],
+            },
+          ]
+        : []),
     ],
     onEdit,
   }
@@ -361,10 +463,7 @@ function ProjectCard({ project }: { project: AdminProjectListItem }) {
         </div>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 text-foreground">
-          <span className={cn("size-1.5 rounded-full", PROJECT_STATUS_DOT_CLASS[project.status])} />
-          {PROJECT_STATUS_LABELS[project.status]}
-        </span>
+        {renderProjectStatus(project.status, "text-foreground")}
         {company ? (
           <span className="inline-flex items-center gap-1.5">
             <CompanyLogoTile logoFilename={company.logoFilename} size="sm" className="shrink-0" />

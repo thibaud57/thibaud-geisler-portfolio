@@ -30,7 +30,11 @@ import {
 } from "@/components/ui/select"
 
 import type { Company, LegalEntity } from "@/generated/prisma/client"
-import { COMPANY_SECTOR_LABELS, COMPANY_SIZE_LABELS } from "@/lib/companies"
+import {
+  COMPANY_SECTION_TITLES,
+  COMPANY_SECTOR_LABELS,
+  COMPANY_SIZE_LABELS,
+} from "@/lib/companies"
 import { COMPANY_SECTORS, COMPANY_SIZES, NONE_VALUE } from "@/lib/schemas/company"
 import { createCompany, updateCompany } from "@/server/actions/companies"
 import { initialCompanyFormState } from "@/server/actions/companies.types"
@@ -98,7 +102,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Identité</CardTitle>
+              <CardTitle>{COMPANY_SECTION_TITLES.identity}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <FormField id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
@@ -144,7 +148,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Classification</CardTitle>
+              <CardTitle>{COMPANY_SECTION_TITLES.classification}</CardTitle>
               <CardDescription>
                 Cherchez puis sélectionnez. Une valeur choisie s&apos;ajoute sous le champ.
               </CardDescription>
@@ -192,7 +196,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Entité légale</CardTitle>
+              <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField
@@ -226,7 +230,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
         <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">
           <Card>
             <CardHeader>
-              <CardTitle>Logo</CardTitle>
+              <CardTitle>{COMPANY_SECTION_TITLES.logo}</CardTitle>
               <CardDescription>
                 Choisi parmi les logos déposés dans l&apos;espace Assets.
               </CardDescription>
