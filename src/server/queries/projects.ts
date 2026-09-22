@@ -75,3 +75,9 @@ export async function findProjectForAdmin(id: string) {
     },
   })
 }
+
+// Sans 'use cache', contrairement à countTagsByKind : lue dans le Promise.all du composant async
+// de la page, donc sous sa frontière <Suspense>, pas dans un en-tête au-dessus.
+export async function countProjects(): Promise<number> {
+  return prisma.project.count()
+}

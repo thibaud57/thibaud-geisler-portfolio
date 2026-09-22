@@ -12,6 +12,10 @@ import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 const emptyToNull = (value: unknown) => (value === "" ? null : value)
 
+// Un SelectItem Radix refuse value="" : le seul Select nullable du formulaire (Statut de contrat)
+// rend ce sentinel comme premier item, retraduit en null ci-dessous. Même motif que companySchema.
+export const NONE_VALUE = "aucun"
+
 export const projectSchema = z
   .object({
     slug: z
@@ -81,7 +85,11 @@ export const projectSchema = z
 
     companyId: z.string().trim().min(1, "L'entreprise est requise"),
     workMode: z.enum(WorkMode, { error: "Le mode de travail est requis" }),
-    contractStatus: z.preprocess(emptyToNull, z.enum(ContractStatus).nullable()),
+    contractStatus: z
+      .union([z.enum(ContractStatus), z.literal(NONE_VALUE), z.literal("")], {
+        error: "Statut de contrat inconnu",
+      })
+      .transform((value) => (value === NONE_VALUE || value === "" ? null : value)),
     teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
     deliverablesCount: z
       .string()
@@ -91,7 +99,10 @@ export const projectSchema = z
         z.coerce
           .number<string>({ error: "Le nombre de livrables doit être un nombre" })
           .int("Le nombre de livrables doit être un entier")
-          .min(1, "Le nombre de livrables commence à 1"),
+          // 0 est légitime : une mission peut être terminée sans livrable remis (cadrage,
+          // architecture). La stat publique « projets clients livrés » somme cette colonne,
+          // un 0 doit pouvoir s'y compter pour ce qu'il vaut plutôt que d'être interdit.
+          .min(0, "Le nombre de livrables ne peut pas être négatif"),
       ),
   })
   .superRefine((data, ctx) => {

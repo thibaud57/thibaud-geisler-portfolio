@@ -3,6 +3,7 @@ import type {
   ProjectFormat,
   ProjectStatus,
   ProjectType,
+  WorkMode,
 } from "@/generated/prisma/client"
 
 export interface ProjectTimeline {
@@ -28,6 +29,31 @@ export function formatDurationRange(
   if (endYear && endYear !== startYear) return `${startYear} → ${endYear}`
   if (inProgress) return `${startYear} → ${inProgressLabel}`
   return String(startYear)
+}
+
+export function formatShortDate(date: Date | null): string {
+  if (!date) return "—"
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  return `${day}/${month}/${date.getFullYear()}`
+}
+
+// Accesseurs locaux, pas toISOString() : le Calendar rend une Date à minuit local, la convertir en
+// UTC avant de trancher décale le jour dès que le fuseau est en avance sur UTC (France l'été).
+export function toIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+// new Date("YYYY-MM-DD") parse la chaîne en UTC (spec ECMA-262) : décalage symétrique à toIsoDate.
+// slice plutôt que split+destructuring : évite le string | undefined de noUncheckedIndexedAccess.
+export function parseIsoDate(value: string): Date {
+  const year = Number(value.slice(0, 4))
+  const month = Number(value.slice(5, 7))
+  const day = Number(value.slice(8, 10))
+  return new Date(year, month - 1, day)
 }
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
@@ -57,7 +83,14 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   ALTERNANCE: "Alternance",
 }
 
-// Pas de date-fns/dayjs au projet : arithmétique manuelle, suffisante pour un affichage "X mois" / "X ans".
+export const WORK_MODE_LABELS: Record<WorkMode, string> = {
+  REMOTE: "Remote",
+  HYBRIDE: "Hybride",
+  PRESENTIEL: "Sur site",
+}
+
+// Arithmétique manuelle plutôt que date-fns, présente au projet mais pour la seule locale du
+// Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface.
 export function formatProjectDuration(startedAt: Date | null, endedAt: Date | null): string | null {
   if (!startedAt) return null
   const end = endedAt ?? new Date()

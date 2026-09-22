@@ -14,19 +14,11 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { normalizeForSearch } from "@/lib/search"
+import { filterCommandOption } from "@/lib/search"
 
 export interface ComboboxOption {
   value: string
   label: string
-}
-
-// cmdk ne matche par défaut que value + keywords en minuscules : les diacritiques passent par
-// normalizeForSearch pour que la recherche reste accent-insensitive sur les deux, comme IconCombobox.
-function filterOption(value: string, search: string, keywords?: string[]): number {
-  const needle = normalizeForSearch(search)
-  const haystack = [value, ...(keywords ?? [])]
-  return haystack.some((entry) => normalizeForSearch(entry).includes(needle)) ? 1 : 0
 }
 
 interface Props {
@@ -91,7 +83,7 @@ export function MultiSelectCombobox({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-(--radix-popper-anchor-width) p-0">
-          <Command filter={filterOption}>
+          <Command filter={filterCommandOption}>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>
               <CommandEmpty>{emptyMessage}</CommandEmpty>

@@ -27,6 +27,7 @@ import {
   CONTRACT_STATUS_LABELS,
   formatDurationRange,
   formatProjectDuration,
+  formatShortDate,
   getProjectTimeline,
   PROJECT_FORMAT_LABELS,
   PROJECT_STATUS_LABELS,
@@ -54,13 +55,6 @@ const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
   DRAFT: "bg-warning",
   PUBLISHED: "bg-success",
   ARCHIVED: "bg-muted-foreground",
-}
-
-function formatShortDate(date: Date | null): string {
-  if (!date) return "—"
-  const day = String(date.getDate()).padStart(2, "0")
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  return `${day}/${month}/${date.getFullYear()}`
 }
 
 // Même rendu partout où la donnée apparaît (colonne, vue détail, carte mobile) : un lien ouvert ne
