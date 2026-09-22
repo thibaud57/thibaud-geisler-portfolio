@@ -423,7 +423,7 @@ export function ProjectsTable({ projects, view }: Props) {
         rowLabel={(project) => project.titleFr}
         renderCard={(project) => <ProjectCard project={project} />}
         searchPlaceholder="Rechercher un titre ou un slug"
-        countLabel={(count) => (count === 1 ? "1 projet" : `${count} projets`)}
+        noun="projet"
         empty={{
           icon: Folder,
           title: "Aucun projet",

@@ -35,10 +35,6 @@ export function assetKeyMatchesQuery(key: string, query: string): boolean {
   )
 }
 
-export function countAssetsLabel(count: number): string {
-  return count === 1 ? "1 fichier" : `${count} fichiers`
-}
-
 const CV_FILENAMES = {
   fr: "cv-thibaud-geisler-fr.pdf",
   en: "cv-thibaud-geisler-en.pdf",

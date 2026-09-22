@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   assetKeyMatchesQuery,
   buildAssetUrl,
-  countAssetsLabel,
   isPdfAssetKey,
   nameOfAssetKey,
   pathOfAssetKey,
@@ -203,7 +202,9 @@ export function AssetsBrowser({ assets, usage }: Props) {
           </div>
 
           <PaginationFooter
-            countLabel={`${countAssetsLabel(filteredAssets.length)}${facetSummary ? ` · ${facetSummary}` : ""}`}
+            count={filteredAssets.length}
+            noun="fichier"
+            suffix={facetSummary}
             currentPage={currentPage}
             pageCount={pageCount}
             onPageChange={setPage}

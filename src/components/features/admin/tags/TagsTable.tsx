@@ -219,7 +219,7 @@ export function TagsTable({ tags }: Props) {
         getRowId={(tag) => tag.id}
         orderValue={(tag) => tag.displayOrder}
         searchPlaceholder="Rechercher un nom ou un slug"
-        countLabel={(count) => (count === 1 ? "1 tag" : `${count} tags`)}
+        noun="tag"
         groupBy={groupBy}
         facets={facets}
         onReorder={handleReorder}

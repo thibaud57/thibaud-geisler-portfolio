@@ -111,7 +111,7 @@ interface Props<T, K extends string = string> {
   orderValue?: (row: T) => number
   empty: EmptyStateContent
   searchPlaceholder: string
-  countLabel: (count: number) => string
+  noun: string
   // Restreint aux options du sélecteur : une autre valeur laisserait son libellé vide.
   pageSize?: (typeof PAGE_SIZE_OPTIONS)[number]
   groupBy?: GroupBy<T, K>
@@ -133,7 +133,7 @@ export function DataTable<T, K extends string = string>({
   orderValue,
   empty,
   searchPlaceholder,
-  countLabel,
+  noun,
   pageSize = DEFAULT_PAGE_SIZE,
   groupBy,
   facets,
@@ -314,9 +314,6 @@ export function DataTable<T, K extends string = string>({
     pageItems: paginatedRows,
   } = paginate(sortedRows, page, rowsPerPage)
   if (page > pageCount) setPage(pageCount)
-
-  const pageRangeStart = (currentPage - 1) * rowsPerPage + 1
-  const pageRangeEnd = pageRangeStart - 1 + paginatedRows.length
 
   const renderItems = useMemo((): RenderItem<T, K>[] => {
     if (!isOrderView || !groupBy || !hasOrderColumn) {
@@ -768,7 +765,8 @@ export function DataTable<T, K extends string = string>({
 
       {facetFilteredRows.length > 0 ? (
         <PaginationFooter
-          countLabel={`${pageRangeStart}–${pageRangeEnd} sur ${countLabel(facetFilteredRows.length)}`}
+          count={facetFilteredRows.length}
+          noun={noun}
           currentPage={currentPage}
           pageCount={pageCount}
           onPageChange={setPage}

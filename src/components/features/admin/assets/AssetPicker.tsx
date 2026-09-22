@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { assetKeyMatchesQuery, countAssetsLabel } from "@/lib/assets"
+import { assetKeyMatchesQuery } from "@/lib/assets"
 import { DEFAULT_PAGE_SIZE, paginate } from "@/lib/pagination"
 import type { AssetEntry } from "@/server/queries/assets"
 
@@ -118,7 +118,8 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
           {filteredAssets.length > 0 ? (
             <div className="shrink-0">
               <PaginationFooter
-                countLabel={countAssetsLabel(filteredAssets.length)}
+                count={filteredAssets.length}
+                noun="fichier"
                 currentPage={currentPage}
                 pageCount={pageCount}
                 onPageChange={setPage}

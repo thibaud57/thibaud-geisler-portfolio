@@ -203,7 +203,7 @@ export function CompaniesTable({ companies, workedOnly = false }: Props) {
         columns={columns}
         getRowId={(company) => company.id}
         searchPlaceholder="Rechercher un nom ou un slug"
-        countLabel={(count) => (count === 1 ? "1 entreprise" : `${count} entreprises`)}
+        noun="entreprise"
         onRowClick={setSelectedCompany}
         rowLabel={(company) => company.name}
         empty={{

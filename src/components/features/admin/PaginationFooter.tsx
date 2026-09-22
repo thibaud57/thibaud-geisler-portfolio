@@ -20,7 +20,9 @@ import { getVisiblePages, PAGE_SIZE_OPTIONS } from "@/lib/pagination"
 import { cn } from "@/lib/utils"
 
 interface Props {
-  countLabel: string
+  count: number
+  noun: string
+  suffix?: string
   currentPage: number
   pageCount: number
   onPageChange: (page: number) => void
@@ -31,7 +33,9 @@ interface Props {
 // Bloc unique pour toute liste admin, table ou grille de tuiles (DataTable, AssetsBrowser,
 // AssetPicker) : compteur, sélecteur de lignes par page et navigation, pour un pied identique partout.
 export function PaginationFooter({
-  countLabel,
+  count,
+  noun,
+  suffix,
   currentPage,
   pageCount,
   onPageChange,
@@ -42,7 +46,8 @@ export function PaginationFooter({
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <span role="status" aria-live="polite" className="text-sm text-muted-foreground">
-          {countLabel}
+          {`${count} ${noun}${count > 1 ? "s" : ""}`}
+          {suffix ? ` · ${suffix}` : null}
         </span>
         <Select
           value={String(rowsPerPage)}
