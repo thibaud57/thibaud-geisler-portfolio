@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from "react"
 import { ChevronsUpDown, X } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -43,6 +44,7 @@ export function ProjectTagsField({ tags, defaultSelectedIds }: Props) {
     resolveTags(defaultSelectedIds, tags),
   )
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   const selectedIds = new Set(selectedTags.map((tag) => tag.id))
@@ -71,9 +73,14 @@ export function ProjectTagsField({ tags, defaultSelectedIds }: Props) {
     })
   }
 
+  function endDrag() {
+    setDraggedId(null)
+    setDragOverId(null)
+  }
+
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] items-start gap-4">
-      <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <Label htmlFor={searchId}>Ajouter un tag</Label>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -125,36 +132,39 @@ export function ProjectTagsField({ tags, defaultSelectedIds }: Props) {
         </p>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-2">
-        <span className="text-sm font-medium">Tags retenus — glissez pour réordonner</span>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">Tags retenus : glissez pour réordonner</span>
         {selectedTags.length > 0 ? (
-          <div className="flex flex-col gap-1">
+          <div role="list" className="flex flex-wrap gap-1.5">
             {selectedTags.map((tag, index) => (
-              <div
+              <Badge
                 key={tag.id}
+                variant="secondary"
+                role="listitem"
                 draggable
                 onDragStart={() => {
                   setDraggedId(tag.id)
                 }}
                 onDragOver={(event) => {
                   event.preventDefault()
+                  if (dragOverId !== tag.id) setDragOverId(tag.id)
                 }}
                 onDrop={() => {
                   reorder(tag.id)
-                  setDraggedId(null)
+                  endDrag()
                 }}
-                onDragEnd={() => {
-                  setDraggedId(null)
-                }}
+                onDragEnd={endDrag}
                 className={cn(
-                  "flex h-8 cursor-grab items-center gap-2 rounded-md border px-2 text-sm",
-                  draggedId === tag.id ? "border-primary bg-accent" : "border-border bg-card",
+                  "max-w-full cursor-grab transition-[opacity,box-shadow]",
+                  draggedId === tag.id && "cursor-grabbing opacity-40",
+                  draggedId &&
+                    draggedId !== tag.id &&
+                    dragOverId === tag.id &&
+                    "ring-2 ring-primary ring-offset-1 ring-offset-card",
                 )}
               >
-                <span className="flex size-4.5 shrink-0 items-center justify-center rounded-sm bg-muted font-mono text-xs text-muted-foreground">
-                  {index + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{tag.nameFr}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">{index + 1}</span>
+                <span className="min-w-0 truncate">{tag.nameFr}</span>
                 <button
                   type="button"
                   aria-label={`Retirer ${tag.nameFr}`}
@@ -165,7 +175,7 @@ export function ProjectTagsField({ tags, defaultSelectedIds }: Props) {
                 >
                   <X className="size-3 text-muted-foreground" />
                 </button>
-              </div>
+              </Badge>
             ))}
           </div>
         ) : (
