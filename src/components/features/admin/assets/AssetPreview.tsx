@@ -12,11 +12,13 @@ import { cn } from "@/lib/utils"
 interface Props {
   assetKey: string
   sizes: string
+  // Vignette à gauche du nom plutôt qu'au-dessus : une ligne de vue détail, pas une tuile de grille.
+  row?: boolean
 }
 
-// Vignette et identité d'un asset, communes à la grille de gestion et au sélecteur : un même
-// fichier se présente à l'identique des deux côtés.
-export function AssetPreview({ assetKey, sizes }: Props) {
+// Vignette et identité d'un asset, communes à la grille de gestion, au sélecteur et à la vue
+// détail : un même fichier se présente à l'identique partout.
+export function AssetPreview({ assetKey, sizes, row = false }: Props) {
   const pdf = isPdfAssetKey(assetKey)
   const { showImage, onError } = useImageFallback(pdf ? null : assetKey)
   const folder = folderLabelOfAssetKey(assetKey)
@@ -25,10 +27,11 @@ export function AssetPreview({ assetKey, sizes }: Props) {
   const missing = !pdf && !showImage
 
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className={cn("flex min-w-0", row ? "items-center gap-3" : "flex-col gap-2")}>
       <div
         className={cn(
           "relative flex aspect-video items-center justify-center overflow-hidden rounded-md border border-border text-muted-foreground",
+          row && "w-28 shrink-0 group-hover:border-primary",
           missing ? "bg-linear-to-br from-primary/20 to-accent/20" : "bg-muted",
         )}
       >

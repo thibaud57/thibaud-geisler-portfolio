@@ -222,7 +222,12 @@ function UploadForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <FormField id={`${formId}-folder`} label="Dossier" errors={state.errors.folder}>
+          <FormField
+            id={`${formId}-folder`}
+            label="Dossier"
+            errors={state.errors.folder}
+            help="Jamais saisi librement : l'arborescence du bucket est fixée."
+          >
             <Select name="folder" value={folder} onValueChange={handleFolderChange}>
               <SelectTrigger
                 id={`${formId}-folder`}
@@ -240,15 +245,17 @@ function UploadForm({
                 ))}
               </SelectContent>
             </Select>
-            <p id={`${formId}-folder-help`} className="text-xs text-muted-foreground">
-              Jamais saisi librement : l&apos;arborescence du bucket est fixée.
-            </p>
           </FormField>
         </div>
 
         {needsSlug ? (
           <>
-            <FormField id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
+            <FormField
+              id={`${formId}-slug`}
+              label="Slug"
+              errors={state.errors.slug}
+              help="Requis pour cet emplacement : slug du projet ou de l'entreprise concerné."
+            >
               <Input
                 id={`${formId}-slug`}
                 name="slug"
@@ -260,9 +267,6 @@ function UploadForm({
                 aria-invalid={!!state.errors.slug?.length}
                 aria-describedby={`${formId}-slug-help ${formId}-slug-error`}
               />
-              <p id={`${formId}-slug-help`} className="text-xs text-muted-foreground">
-                Requis pour cet emplacement : slug du projet ou de l&apos;entreprise concerné.
-              </p>
             </FormField>
             {filenameField}
           </>
@@ -328,6 +332,7 @@ function UploadForm({
           type="submit"
           disabled={pending || oversizedMessage !== null || (isOverwrite && !overwriteAcknowledged)}
         >
+          <Upload aria-hidden data-icon="inline-start" />
           {pending ? "Envoi..." : "Déposer"}
         </Button>
       </DialogFooter>

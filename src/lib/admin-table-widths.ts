@@ -6,9 +6,8 @@
 export const ORDER_COLUMN_WIDTH = 52
 
 export const TAG_COLUMN_WIDTHS = {
-  slug: 156,
-  nameFr: 195,
-  nameEn: 166,
+  name: 280,
+  nameEn: 210,
   kind: 110,
   icon: 170,
   usage: 84,

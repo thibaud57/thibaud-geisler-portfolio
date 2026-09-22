@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select"
 
 import type { ContractStatus, WorkMode } from "@/generated/prisma/client"
-import { CONTRACT_STATUS_LABELS, WORK_MODE_LABELS } from "@/lib/projects"
+import { CONTRACT_STATUS_LABELS, PROJECT_FIELD_LABELS, WORK_MODE_LABELS } from "@/lib/projects"
 import { NONE_VALUE } from "@/lib/schemas/project"
 import { filterCommandOption } from "@/lib/search"
 import type { AdminCompany } from "@/server/queries/companies"
@@ -48,7 +48,11 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <FormField id={`${formId}-companyId`} label="Entreprise" errors={errors.companyId}>
+      <FormField
+        id={`${formId}-companyId`}
+        label={PROJECT_FIELD_LABELS.companyId}
+        errors={errors.companyId}
+      >
         <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -95,8 +99,12 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
         <input type="hidden" name="companyId" value={companyId} />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField id={`${formId}-workMode`} label="Mode de travail" errors={errors.workMode}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          id={`${formId}-workMode`}
+          label={PROJECT_FIELD_LABELS.workMode}
+          errors={errors.workMode}
+        >
           <Select name="workMode" defaultValue={defaultValues.workMode ?? "REMOTE"}>
             <SelectTrigger
               id={`${formId}-workMode`}
@@ -118,7 +126,7 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
 
         <FormField
           id={`${formId}-contractStatus`}
-          label="Statut de contrat"
+          label={PROJECT_FIELD_LABELS.contractStatus}
           errors={errors.contractStatus}
         >
           <Select name="contractStatus" defaultValue={defaultValues.contractStatus ?? NONE_VALUE}>
@@ -142,8 +150,12 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
         </FormField>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField id={`${formId}-teamSize`} label="Taille d'équipe" errors={errors.teamSize}>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          id={`${formId}-teamSize`}
+          label={PROJECT_FIELD_LABELS.teamSize}
+          errors={errors.teamSize}
+        >
           <Input
             id={`${formId}-teamSize`}
             name="teamSize"
@@ -160,7 +172,7 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
 
         <FormField
           id={`${formId}-deliverablesCount`}
-          label="Livrables"
+          label={PROJECT_FIELD_LABELS.deliverablesCount}
           errors={errors.deliverablesCount}
         >
           <Input

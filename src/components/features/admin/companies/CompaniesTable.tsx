@@ -11,28 +11,22 @@ import { type DetailContent, DetailDialog } from "@/components/features/admin/De
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
+import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
+import { BadgeList } from "@/components/features/admin/BadgeList"
+import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import type { CompanySector } from "@/generated/prisma/client"
 import { COMPANY_COLUMN_WIDTHS } from "@/lib/admin-table-widths"
 import {
+  COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
   COMPANY_SIZE_LABELS,
 } from "@/lib/companies"
 import type { AdminCompany } from "@/server/queries/companies"
 
-const MAX_VISIBLE_SECTORS = 3
-
-function capSectors(sectors: readonly CompanySector[]) {
-  const labels = sectors.map((sector) => COMPANY_SECTOR_LABELS[sector])
-  const shown = labels.slice(0, MAX_VISIBLE_SECTORS)
-  const hidden = labels.slice(shown.length)
-  return { shown, hidden, all: labels.join(" · ") }
-}
-
 function TruncatedCell({ value }: { value: string | null | undefined }) {
-  if (!value) return <span className="text-muted-foreground">—</span>
+  if (!value) return null
   return <TruncateTooltip className="block w-full">{value}</TruncateTooltip>
 }
 
@@ -46,65 +40,35 @@ const columns: readonly Column<AdminCompany>[] = [
   },
   {
     key: "name",
-    header: "Nom",
+    header: COMPANY_FIELD_LABELS.name,
     width: COMPANY_COLUMN_WIDTHS.name,
     sortValue: (company) => company.name,
     searchValue: (company) => `${company.name} ${company.slug}`,
-    cell: (company) => (
-      <div className="flex flex-col">
-        <span className="font-medium">{company.name}</span>
-        <span className="font-mono text-xs text-muted-foreground">{company.slug}</span>
-      </div>
-    ),
+    cell: (company) => <NameSlugCell name={company.name} slug={company.slug} />,
   },
   {
     key: "sectors",
-    header: "Secteur",
+    header: COMPANY_FIELD_LABELS.sectors,
     width: COMPANY_COLUMN_WIDTHS.sectors,
     hideable: true,
-    cell: (company) => {
-      const { shown, hidden, all } = capSectors(company.sectors)
-      return (
-        <div className="flex flex-wrap gap-1">
-          {shown.map((label) => (
-            <Badge key={label} variant="secondary">
-              {label}
-            </Badge>
-          ))}
-          {hidden.length > 0 ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" asChild>
-                  <button
-                    type="button"
-                    aria-label={`Voir les secteurs supplémentaires : ${hidden.join(" · ")}`}
-                  >
-                    +{hidden.length}
-                  </button>
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>{all}</TooltipContent>
-            </Tooltip>
-          ) : null}
-        </div>
-      )
-    },
+    cell: (company) => (
+      <BadgeList
+        labels={company.sectors.map((sector) => COMPANY_SECTOR_LABELS[sector])}
+        noun="secteurs"
+      />
+    ),
   },
   {
     key: "size",
-    header: "Taille",
+    header: COMPANY_FIELD_LABELS.size,
     width: COMPANY_COLUMN_WIDTHS.size,
     hideable: true,
     cell: (company) =>
-      company.size ? (
-        <Badge variant="secondary">{COMPANY_SIZE_LABELS[company.size]}</Badge>
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      ),
+      company.size ? <Badge variant="secondary">{COMPANY_SIZE_LABELS[company.size]}</Badge> : null,
   },
   {
     key: "legalEntity",
-    header: "Entité légale",
+    header: COMPANY_FIELD_LABELS.legalEntityId,
     width: COMPANY_COLUMN_WIDTHS.legalEntity,
     className: "text-muted-foreground",
     hideable: true,
@@ -112,18 +76,22 @@ const columns: readonly Column<AdminCompany>[] = [
   },
   {
     key: "websiteUrl",
-    header: "Site web",
+    header: COMPANY_FIELD_LABELS.websiteUrl,
     width: COMPANY_COLUMN_WIDTHS.websiteUrl,
-    className: "text-muted-foreground",
     hideable: true,
-    cell: (company) => <TruncatedCell value={company.websiteUrl} />,
+    cell: (company) =>
+      company.websiteUrl ? (
+        <TruncateTooltip className="block w-full">
+          <ExternalUrl url={company.websiteUrl} />
+        </TruncateTooltip>
+      ) : null,
   },
   {
     key: "projects",
     header: "Projets",
     width: COMPANY_COLUMN_WIDTHS.projects,
     align: "right",
-    className: "font-mono tabular-nums text-muted-foreground",
+    className: "tabular-nums text-muted-foreground",
     hideable: true,
     sortValue: (company) => company._count.clientMetas,
     cell: (company) => company._count.clientMetas,
@@ -150,57 +118,58 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
   const projectCount = company._count.clientMetas
   return {
     title: company.name,
-    subtitle: (
-      <span className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" meta>
-          {projectCount > 0 ? "Travaillée" : "Non travaillée"}
-        </Badge>
-        <span>{`${projectCount} projet${projectCount > 1 ? "s" : ""}`}</span>
-      </span>
+    slug: company.slug,
+    subtitle: `${projectCount} projet${projectCount > 1 ? "s" : ""}`,
+    status: (
+      <Badge variant="outline" meta>
+        {projectCount > 0 ? "Travaillée" : "Non travaillée"}
+      </Badge>
     ),
     sections: [
+      // Chaque bloc reprend les champs de la card du formulaire, dans son ordre et à sa place,
+      // moins le slug, que l'en-tête porte déjà.
       {
         title: COMPANY_SECTION_TITLES.identity,
         rows: [
-          { label: "Nom", value: company.name },
-          { label: "Slug", value: <span className="font-mono">{company.slug}</span> },
-          { label: "Site web", value: company.websiteUrl ?? "—" },
+          { label: COMPANY_FIELD_LABELS.name, value: company.name },
+          {
+            label: COMPANY_FIELD_LABELS.websiteUrl,
+            value: <ExternalUrl url={company.websiteUrl} className="wrap-anywhere" />,
+          },
         ],
       },
       {
         title: COMPANY_SECTION_TITLES.classification,
         rows: [
           {
-            label: "Secteurs",
-            fullWidth: true,
-            value: company.sectors.length ? (
-              <span className="flex flex-wrap gap-1">
-                {company.sectors.map((sector) => (
-                  <Badge key={sector} variant="secondary">
-                    {COMPANY_SECTOR_LABELS[sector]}
-                  </Badge>
-                ))}
-              </span>
-            ) : (
-              "—"
+            label: COMPANY_FIELD_LABELS.sectors,
+            value: (
+              <BadgeList
+                labels={company.sectors.map((sector) => COMPANY_SECTOR_LABELS[sector])}
+                noun="secteurs"
+                max={Infinity}
+              />
             ),
           },
-          { label: "Taille", value: company.size ? COMPANY_SIZE_LABELS[company.size] : "—" },
+          {
+            label: COMPANY_FIELD_LABELS.size,
+            value: company.size ? (
+              <Badge variant="secondary">{COMPANY_SIZE_LABELS[company.size]}</Badge>
+            ) : null,
+          },
         ],
       },
       {
         title: COMPANY_SECTION_TITLES.legalEntity,
-        rows: [{ value: company.legalEntity?.name ?? "—" }],
+        rows: [{ value: company.legalEntity?.name }],
       },
       {
         title: COMPANY_SECTION_TITLES.logo,
         rows: [
           {
             value: company.logoFilename ? (
-              <span className="font-mono text-xs">{company.logoFilename}</span>
-            ) : (
-              "—"
-            ),
+              <AssetPreviewLink assetKey={company.logoFilename} />
+            ) : null,
           },
         ],
       },

@@ -31,8 +31,8 @@ export function formatDurationRange(
   return String(startYear)
 }
 
-export function formatShortDate(date: Date | null): string {
-  if (!date) return "—"
+export function formatShortDate(date: Date | null): string | null {
+  if (!date) return null
   const day = String(date.getDate()).padStart(2, "0")
   const month = String(date.getMonth() + 1).padStart(2, "0")
   return `${day}/${month}/${date.getFullYear()}`
@@ -109,8 +109,9 @@ export function formatProjectDuration(startedAt: Date | null, endedAt: Date | nu
   return remainder === 0 ? yearsLabel : `${yearsLabel} ${remainder} mois`
 }
 
-// Partagées par les cards du formulaire projet et les blocs de sa vue détail : consulter puis
-// modifier doit retrouver les mêmes intitulés (docs/DESIGN.md § Arbitrages).
+// Partagés par les cards du formulaire projet et les blocs de sa vue détail, titres comme libellés
+// de champ : consulter puis modifier doit retrouver les mêmes intitulés (docs/DESIGN.md
+// § Arbitrages). Les clés des libellés sont les noms des champs du formulaire.
 export const PROJECT_SECTION_TITLES = {
   identity: "Identité",
   description: "Description",
@@ -120,4 +121,27 @@ export const PROJECT_SECTION_TITLES = {
   links: "Liens",
   cover: "Couverture",
   clientMeta: "Méta client",
+} as const
+
+export const PROJECT_FIELD_LABELS = {
+  slug: "Slug",
+  displayOrder: "Ordre d'affichage",
+  titleFr: "Titre (français)",
+  titleEn: "Titre (anglais)",
+  formats: "Type de projet",
+  descriptionFr: "Description (français)",
+  descriptionEn: "Description (anglais)",
+  caseStudyMarkdownFr: "Contenu (français)",
+  caseStudyMarkdownEn: "Contenu (anglais)",
+  status: "Statut",
+  type: "Nature",
+  startedAt: "Début",
+  endedAt: "Fin",
+  githubUrl: "Lien GitHub",
+  demoUrl: "Lien démo",
+  companyId: "Entreprise",
+  workMode: "Mode de travail",
+  contractStatus: "Statut de contrat",
+  teamSize: "Taille d'équipe",
+  deliverablesCount: "Livrables",
 } as const

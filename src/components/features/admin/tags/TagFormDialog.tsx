@@ -10,9 +10,8 @@ import {
   useState,
   type Ref,
   type SubmitEvent,
-  type ReactNode,
 } from "react"
-import { ChevronsUpDown, Pencil, Plus } from "lucide-react"
+import { ChevronsUpDown, Pencil, Plus, Save } from "lucide-react"
 import { toast } from "sonner"
 
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
@@ -50,7 +49,7 @@ import {
 import type { Tag, TagKind } from "@/generated/prisma/client"
 import { TAG_ICON_KEYS, TagIcon } from "@/lib/icons"
 import { normalizeForSearch } from "@/lib/search"
-import { KIND_ORDER, TAG_KIND_LABELS, type TagCountByKind } from "@/lib/tags"
+import { KIND_ORDER, TAG_FIELD_LABELS, TAG_KIND_LABELS, type TagCountByKind } from "@/lib/tags"
 import { createTag, updateTag } from "@/server/actions/tags"
 import { initialTagFormState } from "@/server/actions/tags.types"
 
@@ -181,7 +180,7 @@ function TagForm({
 
       <div className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
+          <FormField id={`${formId}-slug`} label={TAG_FIELD_LABELS.slug} errors={state.errors.slug}>
             <Input
               id={`${formId}-slug`}
               name="slug"
@@ -190,11 +189,11 @@ function TagForm({
               aria-describedby={`${formId}-slug-error`}
               placeholder="mon-tag"
             />
-          </Field>
+          </FormField>
 
-          <Field
+          <FormField
             id={`${formId}-displayOrder`}
-            label="Ordre d'affichage"
+            label={TAG_FIELD_LABELS.displayOrder}
             errors={state.errors.displayOrder}
           >
             <Input
@@ -211,11 +210,15 @@ function TagForm({
               aria-invalid={!!state.errors.displayOrder?.length}
               aria-describedby={`${formId}-displayOrder-error`}
             />
-          </Field>
+          </FormField>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${formId}-nameFr`} label="Nom (français)" errors={state.errors.nameFr}>
+          <FormField
+            id={`${formId}-nameFr`}
+            label={TAG_FIELD_LABELS.nameFr}
+            errors={state.errors.nameFr}
+          >
             <Input
               id={`${formId}-nameFr`}
               name="nameFr"
@@ -223,8 +226,12 @@ function TagForm({
               aria-invalid={!!state.errors.nameFr?.length}
               aria-describedby={`${formId}-nameFr-error`}
             />
-          </Field>
-          <Field id={`${formId}-nameEn`} label="Nom (anglais)" errors={state.errors.nameEn}>
+          </FormField>
+          <FormField
+            id={`${formId}-nameEn`}
+            label={TAG_FIELD_LABELS.nameEn}
+            errors={state.errors.nameEn}
+          >
             <Input
               id={`${formId}-nameEn`}
               name="nameEn"
@@ -232,11 +239,11 @@ function TagForm({
               aria-invalid={!!state.errors.nameEn?.length}
               aria-describedby={`${formId}-nameEn-error`}
             />
-          </Field>
+          </FormField>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id={`${formId}-kind`} label="Catégorie" errors={state.errors.kind}>
+          <FormField id={`${formId}-kind`} label={TAG_FIELD_LABELS.kind} errors={state.errors.kind}>
             <Select name="kind" value={kindValue} onValueChange={handleKindChange}>
               <SelectTrigger
                 id={`${formId}-kind`}
@@ -254,21 +261,23 @@ function TagForm({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
+          </FormField>
 
-          <Field id={`${formId}-icon`} label="Icône" errors={state.errors.icon}>
+          <FormField
+            id={`${formId}-icon`}
+            label={TAG_FIELD_LABELS.icon}
+            errors={state.errors.icon}
+            help="Restreinte au registre : une clé inconnue passerait sans icône, sans erreur."
+          >
             <IconCombobox
               id={`${formId}-icon`}
               value={iconValue}
               onValueChange={setIconValue}
               ariaInvalid={!!state.errors.icon?.length}
-              ariaDescribedby={`${formId}-icon-error`}
+              ariaDescribedby={`${formId}-icon-help ${formId}-icon-error`}
             />
             <input type="hidden" name="icon" value={iconValue} />
-            <p className="text-xs text-muted-foreground">
-              Restreinte au registre : une clé inconnue passerait sans icône, sans erreur.
-            </p>
-          </Field>
+          </FormField>
         </div>
       </div>
 
@@ -279,6 +288,7 @@ function TagForm({
           </Button>
         </DialogClose>
         <Button type="submit" disabled={pending}>
+          <Save aria-hidden data-icon="inline-start" />
           {pending ? "Enregistrement..." : "Enregistrer"}
         </Button>
       </DialogFooter>
@@ -371,27 +381,5 @@ function IconCombobox({
         </Command>
       </PopoverContent>
     </Popover>
-  )
-}
-
-function Field({
-  id,
-  label,
-  errors,
-  children,
-}: {
-  id: string
-  label: string
-  errors?: string[]
-  children: ReactNode
-}) {
-  return (
-    <FormField
-      id={id}
-      label={label}
-      error={errors?.[0] ? <p className="text-sm text-destructive">{errors[0]}</p> : null}
-    >
-      {children}
-    </FormField>
   )
 }

@@ -7,10 +7,13 @@ interface Props {
   label: ReactNode
   error?: ReactNode
   errors?: string[]
+  // Aide persistante, rendue sous l'erreur (docs/DESIGN.md § Formulaires) et adressable par
+  // `aria-describedby` via `${id}-help`.
+  help?: ReactNode
   children: ReactNode
 }
 
-export function FormField({ id, label, error, errors, children }: Props) {
+export function FormField({ id, label, error, errors, help, children }: Props) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
@@ -18,6 +21,11 @@ export function FormField({ id, label, error, errors, children }: Props) {
       <div id={`${id}-error`} aria-live="polite">
         {errors?.[0] ? <p className="text-sm text-destructive">{errors[0]}</p> : error}
       </div>
+      {help ? (
+        <p id={`${id}-help`} className="text-xs text-muted-foreground">
+          {help}
+        </p>
+      ) : null}
     </div>
   )
 }

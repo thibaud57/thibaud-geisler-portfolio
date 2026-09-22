@@ -26,7 +26,9 @@ export function SearchInput({ value, onChange, placeholder }: Props) {
         onChange={(event) => {
           onChange(event.target.value)
         }}
-        className="pl-[34px]"
+        // appearance-none : un champ `search` réserve à droite la place de sa croix native, même
+        // vide, et coupe le placeholder bien avant le bord. Échap efface toujours le champ.
+        className="appearance-none pl-[34px] [&::-webkit-search-cancel-button]:hidden"
       />
     </div>
   )

@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { ADMIN_FOLDER } from "@/lib/schemas/asset"
 import { listAdminAssets, listAssets, resolveAssetUsage } from "@/server/queries/assets"
 
-async function AssetsSection() {
+async function AssetsSection({ initialSearch }: { initialSearch: string }) {
   const [assets, adminAssets] = await Promise.all([listAssets(), listAdminAssets(ADMIN_FOLDER)])
   const allAssets = [...assets, ...adminAssets]
   const usage = await resolveAssetUsage(allAssets.map((asset) => asset.key))
@@ -19,13 +19,19 @@ async function AssetsSection() {
       subtitle="Objets stockés dans R2, utilisés par le site et l'espace admin. Un asset rattaché ne se supprime pas."
       actions={<AssetUploadDialog existingKeys={allAssets.map((asset) => asset.key)} />}
     >
-      <AssetsBrowser assets={allAssets} usage={usage} />
+      <AssetsBrowser assets={allAssets} usage={usage} initialSearch={initialSearch} />
     </AdminPageShell>
   )
 }
 
-export default async function AdminAssetsPage() {
+// `q` : une vue détail y envoie sur un fichier précis (couverture, logo), la recherche déjà posée.
+export default async function AdminAssetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
   await getCurrentUser()
+  const { q } = await searchParams
 
   return (
     <Suspense
@@ -35,7 +41,7 @@ export default async function AdminAssetsPage() {
         </div>
       }
     >
-      <AssetsSection />
+      <AssetsSection initialSearch={q ?? ""} />
     </Suspense>
   )
 }

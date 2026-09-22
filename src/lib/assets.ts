@@ -29,7 +29,10 @@ export function isPdfAssetKey(key: string): boolean {
 export function assetKeyMatchesQuery(key: string, query: string): boolean {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
+  // La clé entière aussi : une vue détail envoie sur l'écran Assets avec le chemin complet du
+  // fichier, que ni le nom seul ni le dossier seul ne contiennent.
   return (
+    key.toLowerCase().includes(normalizedQuery) ||
     nameOfAssetKey(key).toLowerCase().includes(normalizedQuery) ||
     pathOfAssetKey(key).toLowerCase().includes(normalizedQuery)
   )

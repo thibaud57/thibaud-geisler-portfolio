@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from "react"
 import { Folder, Pencil } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
@@ -12,10 +11,11 @@ import { type DetailContent, DetailDialog } from "@/components/features/admin/De
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
+import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
+import { BadgeList } from "@/components/features/admin/BadgeList"
+import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
 import {
   PROJECT_COLUMN_WIDTHS,
@@ -25,11 +25,10 @@ import {
 } from "@/lib/admin-table-widths"
 import {
   CONTRACT_STATUS_LABELS,
-  formatDurationRange,
   formatProjectDuration,
   formatShortDate,
-  getProjectTimeline,
   PROJECT_FORMAT_LABELS,
+  PROJECT_FIELD_LABELS,
   PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
@@ -48,8 +47,6 @@ const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
   perso: "PERSONAL",
 }
 
-const MAX_VISIBLE_FORMATS = 3
-
 const PROJECT_STATUS_VALUES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
 const PROJECT_FORMAT_VALUES = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
 
@@ -61,56 +58,38 @@ const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
 
 // Un case study fait plusieurs milliers de caractères : la vue détail dit qu'il existe et ce qu'il
 // pèse, la lecture du texte appartient à l'écran d'édition.
-function describeMarkdown(markdown: string | null): string {
-  if (!markdown) return "—"
+function describeMarkdown(markdown: string | null): ReactNode {
+  if (!markdown) return null
   return `Rédigé (${markdown.length} caractères)`
 }
 
-function renderProjectStatus(status: ProjectStatus, className?: string): ReactNode {
+function renderProjectStatus(status: ProjectStatus): ReactNode {
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
+    <span className="inline-flex items-center gap-1.5">
       <span className={cn("size-1.5 shrink-0 rounded-full", PROJECT_STATUS_DOT_CLASS[status])} />
       {PROJECT_STATUS_LABELS[status]}
     </span>
   )
 }
 
-// Même rendu partout où la donnée apparaît (colonne, vue détail, carte mobile) : un lien ouvert ne
-// doit pas se comporter différemment selon l'endroit qui l'affiche.
 function renderProjectLinks(project: AdminProjectListItem): ReactNode {
-  const github = safeExternalUrl(project.githubUrl)
-  const demo = safeExternalUrl(project.demoUrl)
   const links = [
-    github ? { label: "GitHub", href: github } : null,
-    demo ? { label: "Démo", href: demo } : null,
-  ].filter((link): link is { label: string; href: string } => link !== null)
+    { label: "GitHub", url: project.githubUrl },
+    { label: "Démo", url: project.demoUrl },
+  ].filter((link) => safeExternalUrl(link.url) !== null)
 
-  if (links.length === 0) return "—"
+  if (links.length === 0) return null
 
   return (
     <span className="inline-flex items-center gap-1.5">
       {links.map((link, index) => (
         <span key={link.label} className="inline-flex items-center gap-1.5">
           {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-          <a
-            href={link.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            {link.label}
-          </a>
+          <ExternalUrl url={link.url}>{link.label}</ExternalUrl>
         </span>
       ))}
     </span>
   )
-}
-
-function capFormats(formats: readonly ProjectFormat[]) {
-  const labels = formats.map((format) => PROJECT_FORMAT_LABELS[format])
-  const shown = labels.slice(0, MAX_VISIBLE_FORMATS)
-  const hidden = labels.slice(shown.length)
-  return { shown, hidden }
 }
 
 function hideable(
@@ -127,22 +106,15 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
   return [
     {
       key: "titre",
-      header: "Titre",
+      header: PROJECT_FIELD_LABELS.titleFr,
       width: PROJECT_COLUMN_WIDTHS.titre,
       sortValue: (project) => project.titleFr,
       searchValue: (project) => `${project.titleFr} ${project.slug}`,
-      cell: (project) => (
-        <div className="flex min-w-0 flex-col">
-          <TruncateTooltip className="font-medium">{project.titleFr}</TruncateTooltip>
-          <TruncateTooltip className="font-mono text-xs text-muted-foreground">
-            {project.slug}
-          </TruncateTooltip>
-        </div>
-      ),
+      cell: (project) => <NameSlugCell name={project.titleFr} slug={project.slug} />,
     },
     {
       key: "nature",
-      header: "Nature",
+      header: PROJECT_FIELD_LABELS.type,
       width: PROJECT_COLUMN_WIDTHS.nature,
       ...hideable(view, "nature"),
       cell: (project) => (
@@ -153,45 +125,24 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "formats",
-      header: "Type de projet",
+      header: PROJECT_FIELD_LABELS.formats,
       width: PROJECT_COLUMN_WIDTHS.formats,
       ...hideable(view, "formats"),
-      cell: (project) => {
-        const { shown, hidden } = capFormats(project.formats)
-        return (
-          <div className="flex flex-wrap gap-1">
-            {shown.map((label) => (
-              <Badge key={label} variant="secondary">
-                {label}
-              </Badge>
-            ))}
-            {hidden.length > 0 ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" asChild>
-                    <button
-                      type="button"
-                      aria-label={`Voir les formats supplémentaires : ${hidden.join(" · ")}`}
-                    >
-                      +{hidden.length}
-                    </button>
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>{[...shown, ...hidden].join(" · ")}</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-        )
-      },
+      cell: (project) => (
+        <BadgeList
+          labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
+          noun="types de projet"
+        />
+      ),
     },
     {
       key: "entreprise",
-      header: "Entreprise",
+      header: PROJECT_FIELD_LABELS.companyId,
       width: PROJECT_COLUMN_WIDTHS.entreprise,
       ...hideable(view, "entreprise"),
       cell: (project) => {
         const company = project.clientMeta?.company
-        if (!company) return <span className="text-muted-foreground">—</span>
+        if (!company) return null
         return (
           <span className="flex min-w-0 items-center gap-2">
             <CompanyLogoTile logoFilename={company.logoFilename} size="sm" className="shrink-0" />
@@ -202,18 +153,20 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "contrat",
-      header: "Statut contrat",
+      header: PROJECT_FIELD_LABELS.contractStatus,
       width: PROJECT_COLUMN_WIDTHS.contrat,
-      className: "whitespace-nowrap text-muted-foreground",
+      className: "whitespace-nowrap",
       ...hideable(view, "contrat"),
       cell: (project) =>
-        project.clientMeta?.contractStatus
-          ? CONTRACT_STATUS_LABELS[project.clientMeta.contractStatus]
-          : "—",
+        project.clientMeta?.contractStatus ? (
+          <Badge variant="secondary">
+            {CONTRACT_STATUS_LABELS[project.clientMeta.contractStatus]}
+          </Badge>
+        ) : null,
     },
     {
       key: "debut",
-      header: "Date début",
+      header: PROJECT_FIELD_LABELS.startedAt,
       width: PROJECT_COLUMN_WIDTHS.debut,
       className: "whitespace-nowrap text-muted-foreground",
       sortValue: (project) => project.startedAt?.getTime() ?? 0,
@@ -222,7 +175,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "fin",
-      header: "Date fin",
+      header: PROJECT_FIELD_LABELS.endedAt,
       width: PROJECT_COLUMN_WIDTHS.fin,
       className: "whitespace-nowrap text-muted-foreground",
       sortValue: (project) => project.endedAt?.getTime() ?? 0,
@@ -235,21 +188,21 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.duree,
       className: "whitespace-nowrap text-muted-foreground",
       ...hideable(view, "duree"),
-      cell: (project) => formatProjectDuration(project.startedAt, project.endedAt) ?? "—",
+      cell: (project) => formatProjectDuration(project.startedAt, project.endedAt),
     },
     {
       key: "equipe",
-      header: "Équipe",
+      header: PROJECT_FIELD_LABELS.teamSize,
       width: PROJECT_COLUMN_WIDTHS.equipe,
       align: "right",
-      className: "font-mono tabular-nums text-muted-foreground",
+      className: "tabular-nums text-muted-foreground",
       ...hideable(view, "equipe"),
       cell: (project) =>
-        project.clientMeta?.teamSize != null ? String(project.clientMeta.teamSize) : "—",
+        project.clientMeta?.teamSize != null ? String(project.clientMeta.teamSize) : null,
     },
     {
       key: "liens",
-      header: "Liens",
+      header: PROJECT_SECTION_TITLES.links,
       width: PROJECT_COLUMN_WIDTHS.liens,
       className: "whitespace-nowrap",
       ...hideable(view, "liens"),
@@ -257,7 +210,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "statut",
-      header: "Statut",
+      header: PROJECT_FIELD_LABELS.status,
       width: PROJECT_COLUMN_WIDTHS.statut,
       className: "whitespace-nowrap",
       ...hideable(view, "statut"),
@@ -275,7 +228,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
               <Pencil className="size-4" />
             </Link>
           </RowActionButton>
-          <DeleteProjectDialog project={project} trigger="icon" />
+          <DeleteProjectDialog project={project} />
         </span>
       ),
     },
@@ -303,51 +256,37 @@ const facets: readonly Facet<AdminProjectListItem, ProjectStatus | ProjectFormat
   },
 ]
 
-async function handleReorder(_groupKey: string, orderedRowIds: string[]): Promise<boolean> {
-  const result = await reorderProjects(orderedRowIds)
-  if (result.ok) return true
-
-  toast.error(
-    result.message === "stale_order"
-      ? "La liste a changé entre-temps. Rechargez la page."
-      : "Le nouvel ordre n'a pas pu être enregistré.",
-  )
-  return false
-}
-
 function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): DetailContent {
   const clientMeta = project.clientMeta
   return {
     title: project.titleFr,
+    slug: project.slug,
     subtitle: (
       <span className="flex flex-wrap items-center gap-2">
         <span className="font-mono">#{project.displayOrder}</span>
         <Badge variant="outline" meta>
           {PROJECT_TYPE_LABELS[project.type]}
         </Badge>
-        {renderProjectStatus(project.status)}
       </span>
     ),
+    status: renderProjectStatus(project.status),
     sections: [
+      // Chaque bloc reprend les champs de la card du formulaire, dans son ordre et à sa place,
+      // moins ceux que l'en-tête porte déjà (slug, ordre d'affichage, statut, nature).
       {
         title: PROJECT_SECTION_TITLES.identity,
         rows: [
-          { label: "Titre (français)", value: project.titleFr },
-          { label: "Titre (anglais)", value: project.titleEn },
-          { label: "Slug", value: <span className="font-mono">{project.slug}</span> },
+          { label: PROJECT_FIELD_LABELS.titleFr, value: project.titleFr },
+          { label: PROJECT_FIELD_LABELS.titleEn, value: project.titleEn },
           {
-            label: "Type de projet",
+            label: PROJECT_FIELD_LABELS.formats,
             fullWidth: true,
-            value: project.formats.length ? (
-              <span className="flex flex-wrap gap-1">
-                {project.formats.map((format) => (
-                  <Badge key={format} variant="secondary">
-                    {PROJECT_FORMAT_LABELS[format]}
-                  </Badge>
-                ))}
-              </span>
-            ) : (
-              "—"
+            value: (
+              <BadgeList
+                labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
+                noun="types de projet"
+                max={Infinity}
+              />
             ),
           },
         ],
@@ -355,24 +294,28 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
       {
         title: PROJECT_SECTION_TITLES.description,
         rows: [
-          { label: "Français", fullWidth: true, value: project.descriptionFr },
-          { label: "Anglais", fullWidth: true, value: project.descriptionEn },
+          {
+            label: PROJECT_FIELD_LABELS.descriptionFr,
+            fullWidth: true,
+            value: project.descriptionFr,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.descriptionEn,
+            fullWidth: true,
+            value: project.descriptionEn,
+          },
         ],
       },
       {
         title: PROJECT_SECTION_TITLES.tags,
         rows: [
           {
-            value: project.tags.length ? (
-              <span className="flex flex-wrap gap-1">
-                {project.tags.map((projectTag) => (
-                  <Badge key={projectTag.tagId} variant="secondary">
-                    {projectTag.tag.nameFr}
-                  </Badge>
-                ))}
-              </span>
-            ) : (
-              "—"
+            value: (
+              <BadgeList
+                labels={project.tags.map((projectTag) => projectTag.tag.nameFr)}
+                noun="tags"
+                max={Infinity}
+              />
             ),
           },
         ],
@@ -380,34 +323,55 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
       {
         title: PROJECT_SECTION_TITLES.caseStudy,
         rows: [
-          { label: "Français", value: describeMarkdown(project.caseStudyMarkdownFr) },
-          { label: "Anglais", value: describeMarkdown(project.caseStudyMarkdownEn) },
+          {
+            label: PROJECT_FIELD_LABELS.caseStudyMarkdownFr,
+            fullWidth: true,
+            value: describeMarkdown(project.caseStudyMarkdownFr),
+          },
+          {
+            label: PROJECT_FIELD_LABELS.caseStudyMarkdownEn,
+            fullWidth: true,
+            value: describeMarkdown(project.caseStudyMarkdownEn),
+          },
         ],
       },
       {
         title: PROJECT_SECTION_TITLES.publication,
         rows: [
-          { label: "Date début", value: formatShortDate(project.startedAt) },
-          { label: "Date fin", value: formatShortDate(project.endedAt) },
+          {
+            label: PROJECT_FIELD_LABELS.startedAt,
+            value: formatShortDate(project.startedAt),
+          },
+          {
+            label: PROJECT_FIELD_LABELS.endedAt,
+            value: formatShortDate(project.endedAt),
+          },
           {
             label: "Durée",
-            value: formatProjectDuration(project.startedAt, project.endedAt) ?? "—",
+            value: formatProjectDuration(project.startedAt, project.endedAt),
           },
         ],
       },
       {
         title: PROJECT_SECTION_TITLES.links,
-        rows: [{ value: renderProjectLinks(project) }],
+        rows: [
+          {
+            label: PROJECT_FIELD_LABELS.githubUrl,
+            value: <ExternalUrl url={project.githubUrl} className="wrap-anywhere" />,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.demoUrl,
+            value: <ExternalUrl url={project.demoUrl} className="wrap-anywhere" />,
+          },
+        ],
       },
       {
         title: PROJECT_SECTION_TITLES.cover,
         rows: [
           {
             value: project.coverFilename ? (
-              <span className="font-mono text-xs">{project.coverFilename}</span>
-            ) : (
-              "—"
-            ),
+              <AssetPreviewLink assetKey={project.coverFilename} />
+            ) : null,
           },
         ],
       },
@@ -418,19 +382,31 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
             {
               title: PROJECT_SECTION_TITLES.clientMeta,
               rows: [
-                { label: "Entreprise", value: clientMeta.company.name },
-                { label: "Mode de travail", value: WORK_MODE_LABELS[clientMeta.workMode] },
                 {
-                  label: "Statut contrat",
-                  value: clientMeta.contractStatus
-                    ? CONTRACT_STATUS_LABELS[clientMeta.contractStatus]
-                    : "—",
+                  label: PROJECT_FIELD_LABELS.companyId,
+                  fullWidth: true,
+                  value: clientMeta.company.name,
                 },
                 {
-                  label: "Équipe",
-                  value: clientMeta.teamSize != null ? String(clientMeta.teamSize) : "—",
+                  label: PROJECT_FIELD_LABELS.workMode,
+                  value: <Badge variant="secondary">{WORK_MODE_LABELS[clientMeta.workMode]}</Badge>,
                 },
-                { label: "Livrables", value: String(clientMeta.deliverablesCount) },
+                {
+                  label: PROJECT_FIELD_LABELS.contractStatus,
+                  value: clientMeta.contractStatus ? (
+                    <Badge variant="secondary">
+                      {CONTRACT_STATUS_LABELS[clientMeta.contractStatus]}
+                    </Badge>
+                  ) : null,
+                },
+                {
+                  label: PROJECT_FIELD_LABELS.teamSize,
+                  value: clientMeta.teamSize != null ? String(clientMeta.teamSize) : null,
+                },
+                {
+                  label: PROJECT_FIELD_LABELS.deliverablesCount,
+                  value: String(clientMeta.deliverablesCount),
+                },
               ],
             },
           ]
@@ -438,49 +414,6 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
     ],
     onEdit,
   }
-}
-
-function ProjectCard({ project }: { project: AdminProjectListItem }) {
-  const timeline = getProjectTimeline(project.startedAt, project.endedAt)
-  const years = formatDurationRange(timeline, "En cours") ?? "—"
-  const company = project.clientMeta?.company
-
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <CardTitle>
-              <TruncateTooltip className="block w-full">{project.titleFr}</TruncateTooltip>
-            </CardTitle>
-            <TruncateTooltip className="block w-full font-mono text-xs text-muted-foreground">
-              {project.slug}
-            </TruncateTooltip>
-          </div>
-          <Badge variant="outline" meta>
-            {PROJECT_TYPE_LABELS[project.type]}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        {renderProjectStatus(project.status, "text-foreground")}
-        {company ? (
-          <span className="inline-flex items-center gap-1.5">
-            <CompanyLogoTile logoFilename={company.logoFilename} size="sm" className="shrink-0" />
-            {company.name}
-          </span>
-        ) : null}
-        <span>{years}</span>
-        {renderProjectLinks(project)}
-      </CardContent>
-      <CardFooter className="gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/admin/projets/${project.id}`}>Modifier</Link>
-        </Button>
-        <DeleteProjectDialog project={project} trigger="text" />
-      </CardFooter>
-    </Card>
-  )
 }
 
 interface Props {
@@ -517,10 +450,11 @@ export function ProjectsTable({ projects, view }: Props) {
         getRowId={(project) => project.id}
         orderValue={(project) => project.displayOrder}
         facets={facets}
-        onReorder={view === "tous" ? handleReorder : undefined}
+        onReorder={
+          view === "tous" ? (_groupKey, orderedRowIds) => reorderProjects(orderedRowIds) : undefined
+        }
         onRowClick={setSelectedProject}
         rowLabel={(project) => project.titleFr}
-        renderCard={(project) => <ProjectCard project={project} />}
         searchPlaceholder="Rechercher un titre ou un slug"
         noun="projet"
         empty={{

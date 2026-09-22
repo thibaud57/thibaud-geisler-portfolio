@@ -1,16 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Link as LinkIcon } from "lucide-react"
+import { Copy, Images, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
 import { DeleteAssetDialog } from "@/components/features/admin/assets/DeleteAssetDialog"
+import { BadgeList } from "@/components/features/admin/BadgeList"
+import { EmptyState } from "@/components/features/admin/EmptyState"
 import { FacetFilter, type FacetFilterGroup } from "@/components/features/admin/FacetFilter"
 import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
+import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { SearchInput } from "@/components/features/admin/SearchInput"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -27,9 +28,8 @@ import type { AssetEntry } from "@/server/queries/assets"
 interface Props {
   assets: readonly AssetEntry[]
   usage: ReadonlyMap<string, readonly string[]>
+  initialSearch?: string
 }
-
-const MAX_VISIBLE_USED_BY = 3
 
 function folderOf(key: string): string {
   return ASSET_FOLDERS.find((folder) => key.startsWith(`${folder}/`)) ?? pathOfAssetKey(key)
@@ -51,8 +51,8 @@ const FACET_VALUES: readonly {
   { key: "nature", value: (asset) => kindOf(asset.key) },
 ]
 
-export function AssetsBrowser({ assets, usage }: Props) {
-  const [search, setSearch] = useState("")
+export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
+  const [search, setSearch] = useState(initialSearch)
   const [facetSelections, setFacetSelections] = useState<Record<string, Set<string>>>({})
   const [filterOpen, setFilterOpen] = useState(false)
   const [page, setPage] = useState(1)
@@ -143,11 +143,12 @@ export function AssetsBrowser({ assets, usage }: Props) {
 
   if (assets.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Aucun asset pour le moment. Déposez-en un via le bouton ci-dessus.
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Images}
+        title="Aucun asset"
+        description="Aucun asset pour le moment. Déposez-en un via le bouton ci-dessus."
+        className="border border-solid"
+      />
     )
   }
 
@@ -181,11 +182,16 @@ export function AssetsBrowser({ assets, usage }: Props) {
       </div>
 
       {filteredAssets.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Aucun résultat pour cette recherche.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Images}
+          title="Aucun résultat ne correspond à ces filtres"
+          description="Essayez une autre recherche ou modifiez les filtres actifs."
+          className="border border-solid"
+          onReset={() => {
+            setSearch("")
+            resetFilters()
+          }}
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -230,8 +236,6 @@ function AssetTile({
   onCopyPath: () => void
 }) {
   const name = nameOfAssetKey(asset.key)
-  const shownUsedBy = usedBy.slice(0, MAX_VISIBLE_USED_BY)
-  const hiddenUsedBy = usedBy.slice(MAX_VISIBLE_USED_BY)
 
   return (
     <Card size="sm">
@@ -243,16 +247,9 @@ function AssetTile({
           <span className="inline-flex gap-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="w-5 min-w-5"
-                  aria-label={`Copier le chemin de ${name}`}
-                  onClick={onCopyPath}
-                >
+                <RowActionButton aria-label={`Copier le chemin de ${name}`} onClick={onCopyPath}>
                   <Copy className="size-4" />
-                </Button>
+                </RowActionButton>
               </TooltipTrigger>
               <TooltipContent>Copier le chemin</TooltipContent>
             </Tooltip>
@@ -262,26 +259,9 @@ function AssetTile({
 
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2 text-muted-foreground">
           <LinkIcon aria-hidden className="size-3 shrink-0" />
-          {shownUsedBy.map((slug) => (
-            <Badge key={slug} variant="secondary">
-              {slug}
-            </Badge>
-          ))}
-          {hiddenUsedBy.length > 0 ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" asChild>
-                  <button
-                    type="button"
-                    aria-label={`Voir les rattachements supplémentaires : ${hiddenUsedBy.join(", ")}`}
-                  >
-                    +{hiddenUsedBy.length}
-                  </button>
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>{usedBy.join(", ")}</TooltipContent>
-            </Tooltip>
-          ) : null}
+          {/* Rangée réservée sur toutes les tuiles (docs/DESIGN.md § Arbitrages) : vide, elle ne
+              montre rien, pas même un tiret. */}
+          <BadgeList labels={usedBy} noun="rattachements" empty={null} />
         </div>
       </CardContent>
     </Card>

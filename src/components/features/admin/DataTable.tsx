@@ -11,18 +11,17 @@ import {
   type ReactNode,
 } from "react"
 import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3 } from "lucide-react"
+import { toast } from "sonner"
 
 import { ORDER_COLUMN_WIDTH } from "@/lib/admin-table-widths"
 import { EmptyState, type EmptyStateContent } from "@/components/features/admin/EmptyState"
+import { EmptyValue } from "@/components/features/admin/EmptyValue"
 import { FacetFilter } from "@/components/features/admin/FacetFilter"
+import { OptionsPopover } from "@/components/features/admin/OptionsPopover"
 import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
 import { SearchInput } from "@/components/features/admin/SearchInput"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -33,7 +32,7 @@ import {
 } from "@/components/ui/table"
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, paginate } from "@/lib/pagination"
 import { computeReorderedIds, sameIdSet } from "@/lib/reorder"
-import { COUNTER_BADGE_CLASS, LABEL_CLASS } from "@/lib/typography"
+import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 const UNGROUPED_KEY = "__all__"
@@ -98,6 +97,10 @@ function facetValues<T, K extends string>(facet: Facet<T, K>, row: T): readonly 
   return Array.isArray(value) ? (value as readonly K[]) : [value as K]
 }
 
+// Le retour commun des actions de réordonnancement : DataTable garde ou annule l'ordre optimiste
+// et porte lui-même le message, l'écran ne fait que passer son action.
+export type ReorderResult = { ok: true } | { ok: false; message: string }
+
 type SortDirection = "asc" | "desc"
 type SortState = { key: string; direction: SortDirection } | null
 type RenderItem<T, K extends string> =
@@ -117,13 +120,12 @@ interface Props<T, K extends string = string> {
   groupBy?: GroupBy<T, K>
   facets?: readonly Facet<T, K>[]
   defaultFacetSelections?: Record<string, readonly string[]>
-  onReorder?: (groupKey: K, orderedRowIds: string[]) => Promise<boolean>
+  onReorder?: (groupKey: K, orderedRowIds: string[]) => Promise<ReorderResult>
   onRowClick?: (row: T) => void
   // DataTable ignore la sémantique des colonnes : l'écran fournit le nom qui identifie la ligne
   // (titre de projet, nom de tag, nom d'entreprise) pour que le tabIndex ajouté par onRowClick
   // porte une annonce lecteur d'écran, pas un arrêt muet.
   rowLabel?: (row: T) => string
-  renderCard?: (row: T) => ReactNode
 }
 
 export function DataTable<T, K extends string = string>({
@@ -141,7 +143,6 @@ export function DataTable<T, K extends string = string>({
   onReorder,
   onRowClick,
   rowLabel,
-  renderCard,
 }: Props<T, K>) {
   const hasOrderColumn = orderValue !== undefined
   const colSpanOffset = hasOrderColumn ? 1 : 0
@@ -182,7 +183,6 @@ export function DataTable<T, K extends string = string>({
     () => columns.filter((column) => !hiddenColumnKeys.has(column.key)),
     [columns, hiddenColumnKeys],
   )
-  const visibleHideableCount = hideableColumns.length - hiddenColumnKeys.size
   const isDefaultColumnState = sameIdSet([...hiddenColumnKeys], defaultHiddenColumnKeys)
 
   const searchFilteredRows = useMemo(() => {
@@ -412,7 +412,15 @@ export function DataTable<T, K extends string = string>({
       let ok = false
       // finally : une action qui lève (session expirée) doit aussi rendre l'ordre réel à l'écran.
       try {
-        ok = await onReorder(targetGroupKey, nextIds)
+        const result = await onReorder(targetGroupKey, nextIds)
+        ok = result.ok
+        if (!result.ok) {
+          toast.error(
+            result.message === "stale_order"
+              ? "La liste a changé entre-temps. Rechargez la page."
+              : "Le nouvel ordre n'a pas pu être enregistré.",
+          )
+        }
       } finally {
         if (!ok) {
           setOrderOverrides((prev) => {
@@ -571,7 +579,7 @@ export function DataTable<T, K extends string = string>({
               column.className,
             )}
           >
-            {column.cell(row)}
+            {column.cell(row) ?? <EmptyValue />}
           </TableCell>
         ))}
       </TableRow>
@@ -605,70 +613,28 @@ export function DataTable<T, K extends string = string>({
         />
 
         {hideableColumns.length > 0 ? (
-          <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                // La pastille finit le bouton : son padding droit plein la décollerait du bord
-                // deux fois plus que le gap qui la précède.
-                className={cn(visibleHideableCount > 0 && "pr-1.5")}
-              >
-                <Columns3 aria-hidden data-icon="inline-start" />
-                Colonnes
-                {visibleHideableCount > 0 ? (
-                  <Badge variant="default" className={COUNTER_BADGE_CLASS}>
-                    {visibleHideableCount}
-                  </Badge>
-                ) : null}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="gap-0">
-              <div className={cn(LABEL_CLASS, "mb-2")}>Colonnes affichées</div>
-              <div className="grid gap-[2px]">
-                {hideableColumns.map((column) => {
-                  const checked = !hiddenColumnKeys.has(column.key)
-                  return (
-                    <label
-                      key={column.key}
-                      className="-mx-2 flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={() => {
-                          toggleColumn(column.key)
-                        }}
-                      />
-                      <span>{column.header}</span>
-                    </label>
-                  )
-                })}
-              </div>
-              <Separator className="mt-3 mb-2" />
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={isDefaultColumnState}
-                  onClick={resetColumns}
-                >
-                  Réinitialiser
-                </Button>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    setColumnsOpen(false)
-                  }}
-                >
-                  Appliquer
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <OptionsPopover
+            icon={Columns3}
+            label="Colonnes"
+            groups={[
+              {
+                key: "columns",
+                title: "Colonnes affichées",
+                options: hideableColumns.map((column) => ({
+                  key: column.key,
+                  label: column.header,
+                  checked: !hiddenColumnKeys.has(column.key),
+                })),
+              },
+            ]}
+            onToggle={(_groupKey, key) => {
+              toggleColumn(key)
+            }}
+            resetDisabled={isDefaultColumnState}
+            onReset={resetColumns}
+            open={columnsOpen}
+            onOpenChange={setColumnsOpen}
+          />
         ) : null}
 
         {facets && facets.length > 0 ? (
@@ -683,7 +649,7 @@ export function DataTable<T, K extends string = string>({
         ) : null}
       </div>
 
-      <div className={renderCard ? "hidden md:block" : undefined}>
+      <div>
         <Card className="gap-0 py-0">
           <div className="overflow-x-auto">
             <Table className="table-fixed">
@@ -748,20 +714,6 @@ export function DataTable<T, K extends string = string>({
           </div>
         </Card>
       </div>
-
-      {renderCard ? (
-        <div className="grid gap-3 md:hidden">
-          {facetFilteredRows.length === 0 ? (
-            <EmptyState
-              {...effectiveEmptyFiltered}
-              onReset={resetSearchAndFacets}
-              className="border border-solid"
-            />
-          ) : (
-            paginatedRows.map((row) => <div key={getRowId(row)}>{renderCard(row)}</div>)
-          )}
-        </div>
-      ) : null}
 
       {facetFilteredRows.length > 0 ? (
         <PaginationFooter

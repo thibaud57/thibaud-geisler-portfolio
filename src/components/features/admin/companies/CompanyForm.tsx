@@ -31,6 +31,7 @@ import {
 
 import type { Company, LegalEntity } from "@/generated/prisma/client"
 import {
+  COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
   COMPANY_SIZE_LABELS,
@@ -105,7 +106,12 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
               <CardTitle>{COMPANY_SECTION_TITLES.identity}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
+              <FormField
+                id={`${formId}-slug`}
+                label={COMPANY_FIELD_LABELS.slug}
+                errors={state.errors.slug}
+                help="Identifiant d'URL, minuscules et tirets."
+              >
                 <Input
                   id={`${formId}-slug`}
                   name="slug"
@@ -114,11 +120,12 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                   aria-invalid={!!state.errors.slug?.length}
                   aria-describedby={`${formId}-slug-help ${formId}-slug-error`}
                 />
-                <p id={`${formId}-slug-help`} className="text-xs text-muted-foreground">
-                  Identifiant d&apos;URL, minuscules et tirets.
-                </p>
               </FormField>
-              <FormField id={`${formId}-name`} label="Nom" errors={state.errors.name}>
+              <FormField
+                id={`${formId}-name`}
+                label={COMPANY_FIELD_LABELS.name}
+                errors={state.errors.name}
+              >
                 <Input
                   id={`${formId}-name`}
                   name="name"
@@ -130,7 +137,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
               </FormField>
               <FormField
                 id={`${formId}-websiteUrl`}
-                label="Site web"
+                label={COMPANY_FIELD_LABELS.websiteUrl}
                 errors={state.errors.websiteUrl}
               >
                 <Input
@@ -154,7 +161,12 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField id={`${formId}-sectors`} label="Secteurs" errors={state.errors.sectors}>
+              <FormField
+                id={`${formId}-sectors`}
+                label={COMPANY_FIELD_LABELS.sectors}
+                errors={state.errors.sectors}
+                help="Au moins un secteur est requis."
+              >
                 <MultiSelectCombobox
                   id={`${formId}-sectors`}
                   name="sectors"
@@ -165,13 +177,14 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                   searchPlaceholder="Chercher un secteur"
                   emptyMessage="Aucun secteur ne correspond."
                   ariaInvalid={!!sectorsError}
-                  ariaDescribedby={`${formId}-sectors-error`}
+                  ariaDescribedby={`${formId}-sectors-help ${formId}-sectors-error`}
                 />
-                {sectors.length === 0 && !sectorsError ? (
-                  <p className="text-xs text-muted-foreground">Au moins un secteur est requis.</p>
-                ) : null}
               </FormField>
-              <FormField id={`${formId}-size`} label="Taille" errors={state.errors.size}>
+              <FormField
+                id={`${formId}-size`}
+                label={COMPANY_FIELD_LABELS.size}
+                errors={state.errors.size}
+              >
                 <Select name="size" defaultValue={company?.size ?? NONE_VALUE}>
                   <SelectTrigger
                     id={`${formId}-size`}
@@ -201,7 +214,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
             <CardContent>
               <FormField
                 id={`${formId}-legalEntityId`}
-                label="Entité légale"
+                label={COMPANY_FIELD_LABELS.legalEntityId}
                 errors={state.errors.legalEntityId}
               >
                 <Select name="legalEntityId" defaultValue={company?.legalEntityId ?? NONE_VALUE}>

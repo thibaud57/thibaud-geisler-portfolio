@@ -41,6 +41,7 @@ import {
   formatShortDate,
   parseIsoDate,
   PROJECT_FORMAT_LABELS,
+  PROJECT_FIELD_LABELS,
   PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
@@ -190,7 +191,12 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               <CardTitle>{PROJECT_SECTION_TITLES.identity}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField id={`${formId}-slug`} label="Slug" errors={state.errors.slug}>
+              <FormField
+                id={`${formId}-slug`}
+                label={PROJECT_FIELD_LABELS.slug}
+                errors={state.errors.slug}
+                help="Identifiant d'URL, minuscules et tirets."
+              >
                 <Input
                   id={`${formId}-slug`}
                   name="slug"
@@ -198,13 +204,10 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   aria-invalid={!!state.errors.slug?.length}
                   aria-describedby={`${formId}-slug-help ${formId}-slug-error`}
                 />
-                <p id={`${formId}-slug-help`} className="text-xs text-muted-foreground">
-                  Identifiant d&apos;URL, minuscules et tirets.
-                </p>
               </FormField>
               <FormField
                 id={`${formId}-displayOrder`}
-                label="Ordre d'affichage"
+                label={PROJECT_FIELD_LABELS.displayOrder}
                 errors={state.errors.displayOrder}
               >
                 <Input
@@ -221,7 +224,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               </FormField>
               <FormField
                 id={`${formId}-titleFr`}
-                label="Titre (français)"
+                label={PROJECT_FIELD_LABELS.titleFr}
                 errors={state.errors.titleFr}
               >
                 <Input
@@ -234,7 +237,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               </FormField>
               <FormField
                 id={`${formId}-titleEn`}
-                label="Titre (anglais)"
+                label={PROJECT_FIELD_LABELS.titleEn}
                 errors={state.errors.titleEn}
               >
                 <Input
@@ -246,7 +249,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                 />
               </FormField>
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <span className="text-sm font-medium">Type de projet</span>
+                <span className="text-sm font-medium">{PROJECT_FIELD_LABELS.formats}</span>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
                   {PROJECT_FORMATS.map((format) => (
                     <label
@@ -283,7 +286,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardContent className="flex flex-col gap-4">
               <FormField
                 id={`${formId}-descriptionFr`}
-                label="Description (français)"
+                label={PROJECT_FIELD_LABELS.descriptionFr}
                 errors={state.errors.descriptionFr}
               >
                 <Textarea
@@ -297,7 +300,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               </FormField>
               <FormField
                 id={`${formId}-descriptionEn`}
-                label="Description (anglais)"
+                label={PROJECT_FIELD_LABELS.descriptionEn}
                 errors={state.errors.descriptionEn}
               >
                 <Textarea
@@ -338,7 +341,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardContent className="flex flex-col gap-4">
               <FormField
                 id={`${formId}-caseStudyMarkdownFr`}
-                label="Contenu (français)"
+                label={PROJECT_FIELD_LABELS.caseStudyMarkdownFr}
                 errors={state.errors.caseStudyMarkdownFr}
               >
                 <Textarea
@@ -353,7 +356,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               </FormField>
               <FormField
                 id={`${formId}-caseStudyMarkdownEn`}
-                label="Contenu (anglais)"
+                label={PROJECT_FIELD_LABELS.caseStudyMarkdownEn}
                 errors={state.errors.caseStudyMarkdownEn}
               >
                 <Textarea
@@ -375,9 +378,13 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardHeader>
               <CardTitle>{PROJECT_SECTION_TITLES.publication}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField id={`${formId}-status`} label="Statut" errors={state.errors.status}>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  id={`${formId}-status`}
+                  label={PROJECT_FIELD_LABELS.status}
+                  errors={state.errors.status}
+                >
                   <Select name="status" defaultValue={defaultStatus}>
                     <SelectTrigger
                       id={`${formId}-status`}
@@ -397,7 +404,11 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   </Select>
                 </FormField>
 
-                <FormField id={`${formId}-type`} label="Type" errors={state.errors.type}>
+                <FormField
+                  id={`${formId}-type`}
+                  label={PROJECT_FIELD_LABELS.type}
+                  errors={state.errors.type}
+                >
                   <RadioGroup
                     id={`${formId}-type`}
                     value={type}
@@ -419,8 +430,12 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                 </FormField>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField id={`${formId}-startedAt`} label="Début" errors={state.errors.startedAt}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  id={`${formId}-startedAt`}
+                  label={PROJECT_FIELD_LABELS.startedAt}
+                  errors={state.errors.startedAt}
+                >
                   <Popover open={startOpen} onOpenChange={setStartOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -458,7 +473,11 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   />
                 </FormField>
 
-                <FormField id={`${formId}-endedAt`} label="Fin" errors={state.errors.endedAt}>
+                <FormField
+                  id={`${formId}-endedAt`}
+                  label={PROJECT_FIELD_LABELS.endedAt}
+                  errors={state.errors.endedAt}
+                >
                   <Popover open={endOpen} onOpenChange={setEndOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -512,10 +531,10 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardHeader>
               <CardTitle>{PROJECT_SECTION_TITLES.links}</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
+            <CardContent className="grid gap-4 sm:grid-cols-2">
               <FormField
                 id={`${formId}-githubUrl`}
-                label="Lien GitHub"
+                label={PROJECT_FIELD_LABELS.githubUrl}
                 errors={state.errors.githubUrl}
               >
                 <Input
@@ -528,7 +547,11 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   aria-describedby={`${formId}-githubUrl-error`}
                 />
               </FormField>
-              <FormField id={`${formId}-demoUrl`} label="Lien démo" errors={state.errors.demoUrl}>
+              <FormField
+                id={`${formId}-demoUrl`}
+                label={PROJECT_FIELD_LABELS.demoUrl}
+                errors={state.errors.demoUrl}
+              >
                 <Input
                   id={`${formId}-demoUrl`}
                   name="demoUrl"
