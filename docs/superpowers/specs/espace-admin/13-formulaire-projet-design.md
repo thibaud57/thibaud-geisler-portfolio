@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "formulaire-projet"
 goal: "Créer et modifier un projet complet depuis un formulaire pleine page"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["08-crud-entreprises-design.md", "10-gestion-assets-admin-design.md", "11-crud-projets-actions-design.md", "12-ecran-liste-projets-design.md"]
@@ -19,7 +19,7 @@ C'est le dernier sub-project de la fondation, celui qui fait converger les entre
 
 Exclut la prévisualisation rendue du markdown : les case studies s'écrivent en markdown et se relisent sur le site public. Exclut aussi la création d'une entreprise : le champ Entreprise choisit parmi les entreprises existantes, leur formulaire vivant sur son propre écran plein, au sub-project `08`. Exclut enfin l'édition du logo d'entreprise, portée par les sub-projects `08` et `10` sur l'écran des entreprises, pas ici.
 
-Deux champs que la maquette montre sur ce formulaire n'ont pas de colonne Prisma et restent hors périmètre : l'étape de développement et la date de mise en production (`docs/BRAINSTORM.md` § Feature 6, « Suivi du cycle de développement »). Les liens GitHub et démo, eux, existent en base sur `Project` : ils restent des champs ordinaires, sans le conditionnement au type que leur applique la maquette, cette règle n'étant portée par aucun schéma Zod du sub-project `11`.
+Deux champs que la maquette montre sur ce formulaire n'ont pas de colonne Prisma et restent hors périmètre : l'étape de développement et la date de mise en production (`docs/BRAINSTORM.md` § Feature 6, « Suivi du cycle de développement »). Le bloc « Phase » que la maquette place dans la même card suit, elle le dérive de cette même étape de développement. Les liens GitHub et démo, eux, existent en base sur `Project` : ils restent des champs ordinaires, sans le conditionnement au type que leur applique la maquette, cette règle n'étant portée par aucun schéma Zod du sub-project `11`.
 
 ### État livré
 
@@ -34,9 +34,9 @@ Deux champs que la maquette montre sur ce formulaire n'ont pas de colonne Prisma
 
 ## Références de design
 
-- **Maquette** : l'écran Formulaire projet (`isForm`), son fil d'ariane (`formCrumbs`), sa grille à deux colonnes de `Card`, le Combobox de tags et sa liste réordonnable, les sélecteurs de dates de début et de fin, le champ d'entreprise, l'ouverture du sélecteur d'assets (`openAssetPicker`) et l'avertissement au changement de type (`dlgTypeWarning`).
+- **Maquette** : l'écran Formulaire projet (`isForm`), son fil d'ariane (`formCrumbs`), sa grille à deux colonnes de `Card`, le Combobox de tags et sa liste réordonnable, les sélecteurs de dates de début et de fin, le champ d'entreprise et l'ouverture du sélecteur d'assets (`openAssetPicker`). L'avertissement au changement de type (`dlgTypeWarning`) n'est pas repris : le sub-project `11` ne supprime rien à la bascule, la modale n'aurait rien à annoncer.
 - **Le formulaire est un écran plein dans la maquette**, pas une modale : cohérent avec les deux routes `/admin/projets/nouveau` et `/admin/projets/[id]` que cette spec remplace. Le formulaire d'entreprise, monté au sub-project `08`, est lui aussi un écran plein indépendant : ce sub-project ne le monte jamais depuis ici.
-- **Design system** : les fiches `.prompt.md` du Combobox, des sélecteurs de date, du `Switch` et du `Breadcrumb`.
+- **Design system** : les fiches `.prompt.md` du Combobox, des sélecteurs de date, du `Switch` et du `Breadcrumb`. La fiche du `Switch` proscrit son usage dans un formulaire à enregistrer, ce qui écarte celui que la maquette place sur le type (cf. `docs/DESIGN.md` § Arbitrages).
 - Règle de lecture et liens des deux projets : `.claude/rules/design/claude-design.md`.
 
 ## Files touched
@@ -48,8 +48,8 @@ Deux champs que la maquette montre sur ce formulaire n'ont pas de colonne Prisma
 - **À créer** : `src/components/features/admin/projects/ClientMetaFields.tsx`
 - **À modifier** : `src/lib/projects.ts` (ajout de `WORK_MODE_LABELS`, les autres libellés du `12` sont réutilisés tels quels)
 - **À créer** : `src/components/layout/AdminBreadcrumb.tsx`, **sauf s'il existe déjà** : le sub-project `08` en a besoin en premier pour son propre écran plein d'entreprise, vérifier avant d'en écrire un second
-- **À installer** : `src/components/ui/breadcrumb.tsx` par le CLI shadcn, **s'il n'est pas déjà posé par le `08`** ; `src/components/ui/switch.tsx` et `src/components/ui/calendar.tsx`, tous deux encore absents à ce stade. `dialog`, `select`, `alert-dialog`, `pagination`, `checkbox`, `popover` et `command` sont posés par le sub-project `07`, dont celui-ci dépend transitivement : vérifier leur présence et ne rien réinstaller
-- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : `Switch` et `Popover + Calendar` rejoignent Formulaires, `Breadcrumb` rejoint Navigation s'il n'a pas déjà quitté le post-MVP au `08`
+- **À installer** : `src/components/ui/breadcrumb.tsx` par le CLI shadcn, **s'il n'est pas déjà posé par le `08`** ; `src/components/ui/calendar.tsx` et `src/components/ui/radio-group.tsx`, tous deux encore absents à ce stade. `switch.tsx` n'est pas installé : l'arbitrage écarte le `Switch` de ce formulaire. `dialog`, `select`, `alert-dialog`, `pagination`, `checkbox`, `popover` et `command` sont posés par le sub-project `07`, dont celui-ci dépend transitivement : vérifier leur présence et ne rien réinstaller
+- **À modifier** : `docs/DESIGN.md` (§ Mapping Composants) : `RadioGroup` et `Popover + Calendar` rejoignent Formulaires, `Breadcrumb` rejoint Navigation s'il n'a pas déjà quitté le post-MVP au `08`. `docs/DESIGN.md` (§ Arbitrages) : les écarts à la maquette tranchés sur cet écran
 
 ## Architecture approach
 
@@ -68,12 +68,12 @@ Colonne de contenu, dans l'ordre :
 - **Case study** : contenu (français), contenu (anglais), en `Textarea` `font-mono` redimensionnable
 
 Colonne latérale, dans l'ordre :
-- **Publication** : statut, type (`Switch`), dates de début et de fin
-- **Avancement** : lien GitHub, lien démo
+- **Publication** : statut, type (`RadioGroup`), dates de début et de fin
+- **Liens** : lien GitHub, lien démo
 - **Couverture** : vignette et bouton d'ouverture du sélecteur d'assets
-- **Méta client** : entreprise, mode de travail, statut de contrat, taille d'équipe, nombre de livrables (toujours montée, détaillée plus bas)
+- **Méta client** : entreprise, mode de travail, statut de contrat, taille d'équipe, nombre de livrables (détaillée plus bas)
 
-**Le champ « Type de projet » porte `formats`, pas `type`.** La grille de six cases coche des `ProjectFormat` (Web App, App Mobile, Desktop App, API, CLI, IA). `type` (`ProjectType`, client ou personnel) est un champ séparé, le `Switch` de la card Publication : les deux se nomment « type » dans la maquette, jamais dans ce formulaire.
+**Le champ « Type de projet » porte `formats`, pas `type`.** La grille de six cases coche des `ProjectFormat` (Web App, App Mobile, Desktop App, API, CLI, IA). `type` (`ProjectType`, client ou personnel) est un champ séparé, le `RadioGroup` de la card Publication : les deux se nomment « type » dans la maquette, jamais dans ce formulaire.
 
 **Les libellés viennent de `prisma/schema.prisma`, pas de la maquette, et de `src/lib/projects.ts` posé par le `12`.** `PROJECT_TYPE_LABELS`, `PROJECT_STATUS_LABELS`, `PROJECT_FORMAT_LABELS` et `CONTRACT_STATUS_LABELS` y sont déjà écrits pour l'écran de liste : ce formulaire les importe plutôt que de les redéfinir, et complète le fichier de `WORK_MODE_LABELS`, absent du `12` faute de colonne « Mode de travail » sur cet écran-là. Deux écarts assumés, sans changement de schéma : « CLI » et « IA » restent tels quels là où la maquette montre « Automatisation » et « Data / IA », et le statut de contrat garde « Stage » là où elle montre « CDD », l'enum `ContractStatus` n'ayant pas cette valeur.
 
@@ -85,9 +85,11 @@ Colonne latérale, dans l'ordre :
 | `workMode` (`WorkMode`) | `REMOTE` → Remote, `HYBRIDE` → Hybride, `PRESENTIEL` → Sur site |
 | `contractStatus` (`ContractStatus`) | `FREELANCE` → Freelance, `CDI` → CDI, `STAGE` → Stage, `ALTERNANCE` → Alternance |
 
-**La carte Méta client reste montée en permanence.** Ses champs passent `disabled` quand le type vaut `PERSONAL`, elle ne se démonte ni ne se masque jamais. Un contrôle `disabled` n'entre pas dans le `FormData` soumis : pour un projet personnel, l'absence de ces champs à la soumission est exactement ce qu'attend le schéma conditionnel du sub-project `11`, sans logique supplémentaire côté formulaire.
+**La carte Méta client est active quel que soit le type.** Le sub-project `11` exige une méta sur tout projet, `PERSONAL` comme `CLIENT` (`11-crud-projets-actions-design.md` § Architecture approach, « Tout projet exige une méta ») : `companyId` et `workMode` sont requis sans condition dans `src/lib/schemas/project.ts`, et `ClientMeta` est créée par la même transaction dans les deux cas. Aucun champ de cette carte n'est jamais `disabled`, et le formulaire ne porte aucune branche conditionnelle au type. Un projet personnel se rattache à la société du propriétaire, dont le slug est `OWNER_COMPANY_SLUG` (`prisma/seed-data/companies.ts`), comme un projet client se rattache à son client.
 
-**La bascule vers personnel avertit par une `AlertDialog`, sans texte persistant.** Passer un projet client en personnel supprime sa méta à l'enregistrement, et le sub-project `11` l'assume côté action. Le `Switch` de type ne bascule pas directement l'état quand il quitte `CLIENT` sur un projet existant : il ouvre une `AlertDialog` qui nomme ce qui sera perdu, et seule sa confirmation fait passer le type sur `PERSONAL` et désactive la carte. Annuler laisse le type inchangé. Aucun `<p className="text-sm text-destructive">` persistant sous le champ : la maquette ne porte que la modale, et un texte permanent doublonnerait le même message.
+**Le champ de type ne porte que la distinction d'affichage.** Le sub-project `11` réécrit la méta avec les valeurs soumises sans jamais la supprimer, quel que soit le sens du changement : rien n'est perdu et rien n'a besoin d'être annoncé. Pas d'`AlertDialog`, pas de texte d'avertissement persistant, pas de désactivation de carte.
+
+**Deux `RadioGroupItem` côte à côte, pas un `Switch`.** La maquette montre un interrupteur, sa fiche du design system le réserve aux réglages qui s'appliquent à l'instant : ici le choix n'est en base qu'après « Enregistrer », et « Perso » n'est pas l'absence de « Client ». Les libellés viennent de `PROJECT_TYPE_LABELS`, donc « Client » et « Perso » comme les badges de la liste, ce qui les fait tenir sur une ligne sans grandir la card. Arbitrage consigné dans `docs/DESIGN.md`.
 
 **Les tags s'ajoutent par un Combobox groupé, se réordonnent par glisser-déposer.** Le champ d'ajout est un Combobox (`Popover` + `Command`) dont les options sont groupées par `TagKind`, dans le même registre que le sélecteur d'icône des tags du sub-project `07` : la coche se pilote par l'attribut `data-checked` sur `CommandItem`, contournement déjà validé et documenté (`docs/DESIGN.md` § Champ de recherche). Un tag choisi rejoint la liste des tags retenus et disparaît du Combobox. Cette liste est rendue séparément, chaque ligne portant son rang, un bouton de retrait, et un geste de glisser-déposer pour la réordonner : la position dans le tableau, pas une position saisie, détermine l'ordre. `ProjectTag.displayOrder` vaut `index + 1` au moment de la soumission, porté par un `<input type="hidden" name="tagIds" />` par tag, dans l'ordre de la liste. Le retrait recalcule aussitôt les rangs affichés.
 
@@ -99,7 +101,7 @@ Colonne latérale, dans l'ordre :
 
 **L'ordre d'affichage se pré-remplit à n+1, sans logique d'insertion ici.** Le champ « Ordre d'affichage » de la card Identité s'initialise à `projects.length + 1` en création, à la valeur du projet en modification. Décaler les projets suivants à une position occupée, renuméroter à la suppression : c'est la règle complète que porte le sub-project `11`, qui l'applique à `Project.displayOrder` comme le `07` le fait pour les tags. Ce formulaire ne fait que proposer la valeur suivante.
 
-**`deliverablesCount` porte `defaultValue={1}`.** Validé par `min(1)` au sub-project `11`, un champ numérique vidé produit `Number('')`, soit `0`, refusé avec un message qui n'oriente pas vers la cause.
+**`deliverablesCount` porte `defaultValue={1}`.** Un champ numérique vidé produit `Number('')`, soit `0`, et ce zéro silencieux ne serait pas ce que l'utilisateur a voulu saisir. Le `min(1)` du sub-project `11` est descendu à `min(0)` : une mission peut se terminer sans livrable remis, et la stat publique « projets clients livrés » somme cette colonne, un zéro doit pouvoir s'y compter pour ce qu'il vaut.
 
 **Le markdown reste du texte.** Deux zones de saisie, une par langue, sans éditeur enrichi ni prévisualisation. Le rendu existe déjà sur le site public, et un éditeur riche pour un contenu écrit deux ou trois fois par an ne se justifie pas.
 
@@ -113,31 +115,30 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 
 ### Scénario 1 : Création d'un projet personnel
 **GIVEN** le formulaire de création
-**WHEN** on renseigne les champs requis avec le type personnel et qu'on enregistre
+**WHEN** on renseigne les champs requis avec le type personnel, la société du propriétaire comme entreprise et un mode de travail, puis qu'on enregistre
 **THEN** le projet est créé
 **AND** on est redirigé vers la liste, où il figure
 
-### Scénario 2 : Champs de méta client actifs selon le type
-**GIVEN** le formulaire avec le type personnel sélectionné, la card Méta client visible et désactivée
-**WHEN** on bascule le type sur client
-**THEN** les champs d'entreprise, de mode de travail, de statut de contrat, de taille d'équipe et de nombre de livrables deviennent actifs
-**AND** la card reste affichée dans les deux cas
+### Scénario 2 : Méta client requise quel que soit le type
+**GIVEN** le formulaire avec le type personnel sélectionné
+**WHEN** on consulte la card Méta client
+**THEN** ses cinq champs sont actifs et modifiables
+**AND** basculer le type sur client ne change rien à leur état
 
-### Scénario 3 : Avertissement de perte à la bascule vers personnel
+### Scénario 3 : Bascule de type sans perte
 **GIVEN** un projet client existant en cours de modification
-**WHEN** on bascule son type sur personnel
-**THEN** une `AlertDialog` signale que la méta client sera supprimée
-**AND** l'enregistrement n'a lieu qu'après confirmation
-**AND** annuler dans la boîte laisse le type inchangé
+**WHEN** on bascule son type sur personnel et qu'on enregistre
+**THEN** aucune boîte de confirmation ne s'ouvre
+**AND** l'entreprise, le mode de travail, le statut de contrat, la taille d'équipe et le nombre de livrables sont conservés en base
 
 ### Scénario 4 : Sélection d'une entreprise existante
-**GIVEN** le formulaire d'un projet client
+**GIVEN** le formulaire
 **WHEN** on cherche puis choisit une entreprise dans le champ Entreprise
 **THEN** son identifiant est retenu
 **AND** aucun formulaire de création ne s'ouvre depuis cet écran
 
 ### Scénario 5 : Erreurs de validation
-**GIVEN** un projet client sans entreprise
+**GIVEN** un projet sans entreprise
 **WHEN** on enregistre
 **THEN** l'erreur apparaît sous le champ d'entreprise
 **AND** toutes les autres valeurs saisies sont conservées
@@ -171,7 +172,7 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 **THEN** il apparaît sur `/projets` du site public
 
 ### Scénario 11 : Nombre de livrables par défaut
-**GIVEN** le bloc Méta client d'un nouveau projet client
+**GIVEN** le bloc Méta client d'un nouveau projet
 **WHEN** on ne touche pas au champ du nombre de livrables
 **THEN** il vaut 1 et l'enregistrement aboutit
 **AND** vider le champ produit un message de validation compréhensible, non une erreur technique
@@ -180,11 +181,10 @@ Rules applicables : `.claude/rules/shadcn-ui/components.md`, `.claude/rules/zod/
 
 - **Garde par page** : les pages appellent `await getCurrentUser()` avant tout rendu et gardent le `loading.tsx` de leur segment, posés au sub-project `12` (cf. `.claude/rules/nextjs/auth.md`)
 - **Repeuplement après erreur** : un formulaire de cette taille rejeté sans conserver les valeurs saisies serait pénible au point d'être inutilisable. L'état retourné par les Server Actions porte `values` précisément pour ça
-- **Bascule de type sans avertissement** : la suppression de la méta client est irréversible et silencieuse côté base ; c'est ce que l'`AlertDialog` empêche
-- **Champs `disabled` absents du `FormData`** : un contrôle désactivé n'est jamais soumis par le navigateur. C'est voulu pour la carte Méta client d'un projet personnel, à ne pas reproduire par erreur ailleurs dans le formulaire
+- **Méta client sur un projet personnel** : ni facultative ni désactivée. Le sub-project `11` la valide et l'écrit pour les deux types, un formulaire qui n'enverrait pas `companyId` et `workMode` ferait échouer la création d'un projet personnel sur « L'entreprise est requise »
 - **Markdown long** : les case studies peuvent faire plusieurs milliers de caractères. Les zones de saisie doivent rester redimensionnables et le formulaire navigable
 - **Sélecteur de couverture et préfixe** : proposer tous les assets, y compris les CV, rendrait le choix confus. Le sélecteur reste restreint au dossier `projets/`
 - **Identifiant inexistant** : `/admin/projets/<id-inconnu>` doit produire une 404 propre, pas une erreur de rendu
-- **`deliverablesCount` vidé** : `Number('')` vaut `0`, que le `min(1)` refuse. Sans `defaultValue={1}`, le message d'erreur n'oriente pas vers la cause
-- **Étape de développement et date de mise en production absentes** : aucune colonne Prisma ne les porte. `docs/BRAINSTORM.md` § Feature 6 les garde pour plus tard, ce formulaire ne les affiche pas
+- **`deliverablesCount` vidé** : `Number('')` vaut `0`. Depuis que le schéma accepte `0`, un champ vidé s'enregistrerait en silence à zéro : `defaultValue={1}` évite qu'un oubli devienne une valeur
+- **Étape de développement, date de mise en production et bloc « Phase » absents** : aucune colonne Prisma ne porte l'étape de développement, dont la maquette dérive son bloc « Phase ». `docs/BRAINSTORM.md` § Feature 6 la garde pour plus tard, ce formulaire n'affiche ni le champ ni le bloc qui en découle. La card n'en gardant que les deux liens, elle s'intitule « Liens » et non « Avancement »
 - **GitHub et démo non conditionnés au type** : la maquette les réserve à un projet personnel, mais `githubUrl` et `demoUrl` sont des champs ordinaires de `Project`, sans distinction de type portée par le sub-project `11`. Les masquer pour un projet client cacherait un champ que rien n'empêche de renseigner
