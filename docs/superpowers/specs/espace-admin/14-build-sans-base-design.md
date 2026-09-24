@@ -2,7 +2,7 @@
 feature: "Feature 1 — Espace admin"
 subproject: "build-sans-base"
 goal: "Rendre le build indépendant de la base et retirer le seed, l'espace admin devenant la source du contenu"
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["13-formulaire-projet-design.md"]
@@ -19,7 +19,7 @@ Exclut le transfert du contenu de la base de dev vers la production, qui est un 
 
 ### État livré
 
-À la fin de ce sub-project, on peut : arrêter Postgres, lancer `just build`, et le voir passer ; lire `deploy.yml` sans y trouver ni service Postgres, ni `migrate deploy`, ni `db seed`, ni `DATABASE_URL` ; constater que `prisma/seed.ts` et `prisma/seed-data/` n'existent plus, que `pnpm prisma db seed` n'est plus configuré et que `just setup` ne seed rien ; produire un dump de la base de dev par `just db-dump` et le rejouer par `just db-restore` sur une base vidée ; puis, sur une base peuplée, ouvrir `/fr/projets` et un `/fr/projets/[slug]` jamais visité, voir le contenu arriver, rouvrir la même page et la voir servie du cache, enregistrer un projet depuis l'admin et voir la page publique refléter le changement.
+À la fin de ce sub-project, on peut : arrêter Postgres, lancer `just build`, et le voir passer ; lire `deploy.yml` sans y trouver ni service Postgres, ni `migrate deploy`, ni `db seed`, ni `DATABASE_URL` ; constater que `prisma/seed.ts` et `prisma/seed-data/` n'existent plus, que `pnpm prisma db seed` n'est plus configuré et que `just setup` ne seed rien ; produire un dump de la base de dev par `just db-dump` et le rejouer par `just db-restore` sur une base vidée ; puis, sur une base peuplée, ouvrir `/fr/projets` et un `/fr/projets/[slug]` jamais visité, voir le contenu arriver, rouvrir la même page et la voir servie du cache, enregistrer un projet depuis l'admin et voir la page publique refléter le changement ; demander un slug de projet inexistant ou dépublié sur `/fr/projets/<slug>` et obtenir un vrai 404 HTTP, pas seulement l'UI « introuvable ».
 
 ## Dependencies
 
@@ -31,7 +31,9 @@ Exclut le transfert du contenu de la base de dev vers la production, qui est un 
 - **À modifier** : `src/app/[locale]/(public)/projets/[slug]/page.tsx` (retrait de `generateStaticParams`, la promesse `params` descend dans un composant sous `<Suspense>`)
 - **À modifier** : `src/app/[locale]/(public)/a-propos/page.tsx` (les trois composants async qui lisent la base passent sous `<Suspense>`, différés par `io()`)
 - **À modifier** : `src/app/[locale]/(public)/mentions-legales/page.tsx` et `src/app/[locale]/(public)/confidentialite/page.tsx` (même traitement sur leur composant de contenu)
+- **À modifier** : `src/components/features/home/ProjectsTeaserSection.tsx` et `src/components/features/home/FinalCtaSection.tsx` (même traitement que les autres pages publiques : lecture différée par `io()` sous `<Suspense>`)
 - **À modifier** : `src/components/layout/Footer.tsx` (`FooterCopyrightAsync` différé par `io()` sous `<Suspense>`, avec un repli sans SIRET)
+- **À modifier** : `src/proxy.ts` (check d'existence minimal avant stream sur `/<locale>/projets/<slug>` : sans `generateStaticParams`, le statut HTTP se fige à 200 avant que `notFound()` ne puisse plus le changer ; réécrit vers une route sans `page.tsx` quand le projet n'existe pas ou n'est pas publié, pour un vrai 404 rendu par `not-found.tsx`. Repli qui laisse passer en cas de panne base)
 - **À modifier** : `src/app/sitemap.ts` et `src/app/llms.txt/route.ts` (`await connection()` avant la requête : pas de rendu React, donc pas d'`io()`)
 - **À modifier** : `next.config.ts` (`partialPrefetching: true` ; `htmlLimitedBots` étendu aux crawlers HTML-only que le prerender protégeait)
 - **À modifier** : `src/instrumentation.ts` (retrait du bloc `NEXT_PHASE` qui invalidait le cache du seed de CI au démarrage, sans objet une fois qu'aucune donnée n'est cuite au build)
@@ -42,10 +44,11 @@ Exclut le transfert du contenu de la base de dev vers la production, qui est un 
 - **À supprimer** : `src/server/queries/legal.integration.test.ts`. Ce test était le contrat seed × requêtes (spec `conformite-legale/01` : « obtenir `siret = 88041912200036` + `address.street = 11 rue Gouvy` ») : trois de ses sept cas ne vérifiaient que le contenu du seed, deux le retour `null` de Prisma, et les trois conditions projet restantes (`PUBLISHER_SLUG`, `orderBy displayOrder`, `kind: HOSTING`) tiennent en une ligne chacune, sont visibles d'un coup d'œil sur `/mentions-legales` et `/confidentialite`, et leur forme de retour est gardée par le typecheck des quatre consommateurs. Les textes légaux de `content/legal/` ne sont pas concernés, ils ne passaient pas par le seed
 - **À modifier** : `Justfile` (`db-seed` remplacé par `db-dump` et `db-restore FILE`, `setup` ne seed plus, commentaires de `db-reset` et `db-test-reset` corrigés)
 - **À modifier** : `.gitignore` (`dumps/`, où `just db-dump` écrit)
+- **À modifier** : `.dockerignore` (`dumps/` exclu : les dumps portent des données personnelles, cf. `docs/registre-traitements.md`, et le contexte de build part dans le cache BuildKit poussé sur GHA `cache-to: type=gha`)
 - **À créer** : `docs/adrs/022-rendu-public-sans-donnee-au-build.md`
-- **À modifier** : `docs/PRODUCTION.md` (§ Accès Dashboard Dokploy : « Schedules » n'a plus `manual-seed` à citer ; § Déploiement : plus de Postgres de CI ; § Checklist Release : la ligne Sentry sur `NEXT_PHASE` part, une rubrique « Transfert du contenu » décrit le `pg_dump` / restore et la suppression du Schedule ; § Checklist Pré-MEP : « Smoke test du livrable » ne parle plus de base au build ; § Checklist Post-MEP : la ligne « Seed BDD initial » et l'avertissement sur le Schedule deviennent le constat de leur disparition, datés)
+- **À modifier** : `docs/PRODUCTION.md` (§ Accès Dashboard Dokploy : « Schedules » n'a plus `manual-seed` à citer ; § Déploiement : plus de Postgres de CI, et le callout « Provider Dokploy » cesse de dire qu'un build sur le VPS échouerait, il dit pourquoi on reste en pull-only ; § Secrets : l'avertissement sur le cache BuildKit qui retient `DATABASE_URL` part avec le build-arg ; § Checklist Release : la ligne Sentry sur `NEXT_PHASE` part, une rubrique « Transfert du contenu » décrit le `pg_dump` / restore et la suppression du Schedule ; § Checklist Pré-MEP : « Smoke test du livrable » ne parle plus de base au build ; § Checklist Post-MEP : la ligne « Seed BDD initial » et l'avertissement sur le Schedule deviennent le constat de leur disparition, datés)
 - **À modifier** : `docs/ARCHITECTURE.md` (§ Patterns Utilisés, le pattern de data-fetching qui décrit le prerender contre la base de CI)
-- **À modifier** : `.claude/rules/nextjs/routing.md` (la règle sur `generateStaticParams` posé pour `/projets/[slug]` devient son contraire), `.claude/rules/nextjs/rendering-caching.md` (la règle « `'use cache'` XOR `<Suspense>` » accueille le motif `io()` puis fonction cachée ; l'avertissement sur `connection()` renvoie vers `io()`), `.claude/rules/nextjs/data-fetching.md` (plus de Postgres éphémère en CI), `.claude/rules/nextjs/metadata-seo.md` (le levier pour les crawlers HTML-only n'est plus `generateStaticParams` mais `htmlLimitedBots` ciblé)
+- **À modifier** : `.claude/rules/nextjs/routing.md` (la règle sur `generateStaticParams` posé pour `/projets/[slug]` devient son contraire), `.claude/rules/nextjs/rendering-caching.md` (la règle « `'use cache'` XOR `<Suspense>` » accueille le motif `io()` puis fonction cachée ; l'avertissement sur `connection()` renvoie vers `io()`), `.claude/rules/nextjs/data-fetching.md` (plus de Postgres éphémère en CI), `.claude/rules/nextjs/metadata-seo.md` (le levier pour les crawlers HTML-only n'est plus `generateStaticParams` mais `htmlLimitedBots` ciblé), `.claude/rules/nextjs/proxy.md` (l'interdiction générale d'appel DB dans le proxy gagne une exception étroitement circonscrite au check d'existence de `src/proxy.ts`, rien d'autre)
 - **À modifier** : `docs/superpowers/specs/espace-admin/README.md` (§ À traiter avant la mise en production : les lignes sur le Schedule et le seed pointent vers ce sub-project et la release)
 - **À modifier** : `.claude/skills/infra-ops/SKILL.md` (`just db-seed` sort d'`allowed-tools` et du tableau, `db-dump` et `db-restore` y entrent, le commentaire de `db-reset` suit), `.claude/skills/setup-ops/SKILL.md` (`just setup` = install + db, sans seed), `.claude/skills/verify/SKILL.md` (« un tag seedé » devient « un tag de la base de dev »). Toujours via `Skill[skill-creator]`, jamais en éditant le `.md` directement
 - **À modifier** : `.claude/rules/prisma/schema-migrations.md` (la règle « exécuter `pnpm prisma db seed` explicitement » devient « aucun seed configuré dans ce projet »)
@@ -125,6 +128,12 @@ Rules applicables : `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/
 **WHEN** on demande `/sitemap.xml` et `/llms.txt` sur une base peuplée
 **THEN** ils listent les projets publiés
 
+### Scénario 9 : Statut 404 réel sur un slug de projet inexistant
+**GIVEN** un slug qui ne correspond à aucun projet publié
+**WHEN** on demande `/fr/projets/<slug>`
+**THEN** la réponse porte le statut HTTP 404
+**AND** l'UI affichée est celle de `not-found.tsx`
+
 ## Edge cases
 
 - **`generateMetadata` de `[slug]` lit la base** : sans `generateStaticParams`, elle ne s'exécute qu'à la requête, jamais au build. Elle continue d'appeler `findPublishedBySlug` et `notFound()` sans changement
@@ -138,6 +147,7 @@ Rules applicables : `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/
 - **`pg_restore` sur une base non vide** : il n'écrase pas, il empile. Toujours `just db-reset` avant `just db-restore`, et `--data-only` puisque les migrations Prisma ont déjà posé le schéma
 - **Le Schedule Dokploy survit au code** : rien dans le dépôt ne le supprime. Tant qu'il existe, un clic « Run manually » échoue puisque `prisma db seed` n'est plus configuré, mais il doit être supprimé pour ne pas laisser un bouton mort
 - **Base de production en retard sur le seed** : les projets personnels y sont peut-être encore rattachés à l'entreprise factice d'avant le sub-project `11`, les livrables au `min(1)` d'avant le `13`. Le transfert dev → prod remplace la base, ces écarts disparaissent avec
+- **Statut HTTP figé à 200 sur un slug de projet inexistant (soft 404)** : sans `generateStaticParams`, la coquille statique de `/projets/[slug]` part avant que la base ne réponde. Une fois le stream commencé, `notFound()` change l'UI mais plus le statut déjà envoyé au client. Remède : `src/proxy.ts` vérifie l'existence d'un projet publié par un `select` d'un seul champ avant de laisser partir la réponse, et réécrit vers une route sans `page.tsx` quand il n'y en a pas, pour que Next rende `not-found.tsx` nativement avec un vrai 404. Une panne base laisse passer la requête plutôt que de fabriquer un faux 404. Surcoût mesuré : 7 à 18 ms sur une page projet valide
 
 ## Architectural decisions
 
@@ -168,3 +178,18 @@ Rules applicables : `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/
 - Les données légales suivront dans un CRUD du CRM ; d'ici là elles voyagent avec le dump, comme le reste, et les textes légaux restent en dur dans `content/legal/`
 - Un dump est ce que le transfert vers la production exige de toute façon : une seule recette sert la dev et la release
 - La fenêtre de danger, un seed `upsert` lancé sur une base éditée, se ferme par construction et non par consigne
+
+### Décision : Vrai 404 sur les slugs de projet inexistants
+
+**Options envisagées :**
+- **A. Accepter le soft 404** : laisser `notFound()` gérer l'UI seule, sans se soucier du statut HTTP déjà envoyé. Rien à coder, mais un slug inexistant ou dépublié répond 200, ce qui trompe tout outil qui s'y fie (indexation SEO, monitoring, un lien mort qui semble vivant)
+- **B. Check d'existence dans le proxy avant le stream** : sur `/<locale>/projets/<slug>` uniquement, une requête Prisma minimale (`select` d'un seul champ) avant de laisser partir la réponse, qui réécrit vers une route sans `page.tsx` quand le projet n'existe pas ou n'est pas publié, pour que Next rende `not-found.tsx` nativement avec un vrai 404. Repli qui laisse passer en cas de panne base
+- **C. Vérifier dans la page elle-même** : techniquement impossible une fois `generateStaticParams` retiré. Le composant qui appelle `notFound()` est sous `<Suspense>`, le stream a déjà commencé et le statut HTTP de la réponse est déjà figé à 200 quand il s'exécute
+
+**Choix : B**
+
+**Rationale :**
+- C est écarté d'office : le proxy est le seul point qui s'exécute avant que le stream ne commence, donc le seul endroit où un vrai 404 reste possible
+- Le check reste minimal (`select` d'un champ, non caché) pour ne pas réintroduire ce qu'ADR-022 vient de retirer : aucune lecture de contenu au build, aucune logique métier dans le proxy, seulement une existence
+- Le repli qui laisse passer en cas de panne base préserve la disponibilité : une page valide ne doit jamais devenir un 404 à cause d'un problème réseau transitoire
+- Surcoût mesuré : 7 à 18 ms sur une page projet valide, acceptable pour un site à faible trafic

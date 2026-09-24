@@ -514,6 +514,12 @@ Cinq passages, dans l'ordre du document :
 
 > **Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
 
+**§ Étapes de Déploiement**, le callout « Provider Dokploy » (« Si tu rajoutes un `build:`, Dokploy reconstruira localement et échouera (BuildKit sandbox + Postgres inaccessible) ») devient :
+
+> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que `deploy.yml` apporte : déploiement sur tag de release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
+
+**§ Secrets**, le callout « Le cache BuildKit conserve l'environnement du stage `builder` » (« ce stage porte `ARG DATABASE_URL`... ce cache devient une fuite ») est supprimé en entier : le stage n'a plus de `ARG DATABASE_URL` et `cache-to: type=gha` ne retient plus aucune valeur qui ne soit déjà publique.
+
 **§ Checklist Release**, bloc Sentry : supprimer la ligne « `/fr/projets` affiche les projets de la base de production et non ceux du seed du build CI (confirme que l'invalidation `NEXT_PHASE` s'exécute toujours au boot) ».
 
 **§ Checklist Release**, ajouter un bloc, à cocher au premier tag qui embarque ce sub-project :
@@ -563,7 +569,11 @@ Trois passages :
 - la règle « `'use cache'` XOR `<Suspense>` » gagne une phrase : « Exception : un composant sous `<Suspense>` qui s'ouvre par `await io()` puis appelle une fonction `'use cache'`. Le composant est exclu du prerender, la fonction se met en cache à la requête : c'est le motif de tout le site public, qui ne lit jamais la base au build » ;
 - l'avertissement sur `connection()` gagne : « Préférer `io()` (Next 16.3.0) dans les composants : il suspend comme un `await` ordinaire, n'attend pas une vraie navigation et laisse le code aval être mis en cache et préchargé. `connection()` reste pour les route handlers sans arbre React (`sitemap.ts`, `llms.txt`) ».
 
-`.claude/rules/nextjs/data-fetching.md`, l'exemple « generateStaticParams pour routes dynamiques /[slug] » avec son commentaire « Requiert DB accessible au build » est remplacé par :
+`.claude/rules/nextjs/data-fetching.md`, le gotcha « **Build Docker BuildKit + Dokploy : DB inaccessible au build**... Solution structurelle : externaliser le build via GitHub Actions avec service Postgres ephemeral + push GHCR + Dokploy en mode pull-only » devient :
+
+> - **Le build ne lit jamais la base** ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)) : toute lecture Prisma du site public s'ouvre par `await io()` sous `<Suspense>`, donc ni `generateStaticParams`, ni `'use cache'` au prerender, ni `DATABASE_URL` au build. C'est ce qui rend le build possible dans un sandbox BuildKit sans réseau ([moby/buildkit#978](https://github.com/moby/buildkit/issues/978)), sur GHA comme sur le VPS. Le build reste sur GHA (`deploy.yml`) pour d'autres raisons, décrites dans `docs/PRODUCTION.md` § Déploiement (tag de release, image versionnée, Trivy, ressources du VPS)
+
+Puis, même fichier, l'exemple « generateStaticParams pour routes dynamiques /[slug] » avec son commentaire « Requiert DB accessible au build » est remplacé par :
 
 ```typescript
 // ✅ Route dynamique /[slug] sans generateStaticParams : params descend sous <Suspense>
