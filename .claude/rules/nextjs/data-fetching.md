@@ -27,7 +27,7 @@ paths:
 
 ## Gotchas
 - **`'use cache'` XOR `<Suspense>` (règle binaire Next 16, doc officielle)** : un Server Component async doit être SOIT entièrement cacheable via `'use cache'` (inclus dans le static shell au prerender) SOIT sous `<Suspense>` (streamed runtime). Jamais les deux. `<Suspense>` n'est obligatoire QUE pour les composants qui accèdent à `cookies()`/`headers()`/`searchParams`/`connection()` ou font des fetches non cachés. Exception : Client Components avec hooks runtime (`usePathname`, `useLocale`) rendus dans le root layout (Navbar/Footer). Ces zones exigent quand même un Suspense parent (validé empiriquement par erreur de build "Uncached data accessed outside of `<Suspense>`")
-- **Build Docker BuildKit + Dokploy : DB inaccessible au build**. BuildKit isole le sandbox réseau, donc les queries Prisma `'use cache'` que Next tente d'exécuter au prerender throw `ECONNREFUSED` ([moby/buildkit#978](https://github.com/moby/buildkit/issues/978), [Dokploy/dokploy#2413](https://github.com/Dokploy/dokploy/issues/2413)). **Solution structurelle : externaliser le build via GitHub Actions avec service Postgres ephemeral + push GHCR + Dokploy en mode pull-only** (provider Docker, pas Git). Cf. doc Dokploy ["Going Production"](https://docs.dokploy.com/docs/core/applications/going-production) qui recommande explicitement ce pattern
+- **Le build ne lit jamais la base** ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)) : toute lecture Prisma du site public s'ouvre par `await io()` sous `<Suspense>`, donc ni `generateStaticParams`, ni `'use cache'` au prerender, ni `DATABASE_URL` au build. C'est ce qui rend le build possible dans un sandbox BuildKit sans réseau ([moby/buildkit#978](https://github.com/moby/buildkit/issues/978)), sur GHA comme sur le VPS. Le build reste sur GHA (`deploy.yml`) pour d'autres raisons, décrites dans `docs/PRODUCTION.md` § Déploiement (tag de release, image versionnée, Trivy, ressources du VPS)
 - **`connection()` runtime + multi-Suspense + `cacheComponents: true` = bug HierarchyRequestError** au reveal côté client sur pages denses (≥7 markers `$?` ou Client Components hydratant lourds). Cause : interaction Activity wrap Next 16 + multi-Suspense streamées (issue [vercel/next.js#86577](https://github.com/vercel/next.js/issues/86577) Open). Mitigation : ne PAS utiliser `connection()` runtime, préférer le pattern `'use cache'` qui n'introduit pas de zone dynamique streamée
 - Prisma 7 + Next 16 `cacheComponents: true` : `new Date()` interne Prisma 7 peut déclencher *"used new Date() before accessing uncached data"* dans les composants qui lisent Prisma sans cache. La query wrappée `'use cache'` absorbe ce cas dans son scope cache ([prisma#28588](https://github.com/prisma/prisma/issues/28588))
 - `cache()` React et `'use cache'` Next 16 opèrent dans des scopes isolés : superposer les 2 sur la même fonction est redondant. Préférer `'use cache'` seul (Data Cache persistant + dedup per-request automatique) dès que `cacheComponents: true`
@@ -78,16 +78,18 @@ export default function Page({ searchParams }) {
 ```
 
 ```typescript
-// ✅ generateStaticParams pour routes dynamiques /[slug]
-// Requiert DB accessible au build (CI GHA avec service Postgres ephemeral)
-export async function generateStaticParams() {
-  const slugs = await findAllPublishedSlugs() // 'use cache' interne
-  return slugs.map(({ slug }) => ({ slug }))
+// ✅ Route dynamique /[slug] sans generateStaticParams : params descend sous <Suspense>
+export default function Page({ params }: PageProps<"/[locale]/projets/[slug]">) {
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <Content params={params} />
+    </Suspense>
+  )
 }
 
-export default async function Page({ params }) {
+async function Content({ params }) {
   const { locale, slug } = await params
-  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne, locale dans la clé de cache
+  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne, mis en cache à la requête
   return <CaseStudy project={project} />
 }
 ```

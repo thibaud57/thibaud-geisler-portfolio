@@ -145,9 +145,9 @@ Dette reportée par les sub-projects au fil de l'implémentation. `/finalize-fea
 
 | Point | Origine | État |
 |---|---|---|
-| Retirer le Schedule Dokploy `manual-seed` | `11` | ⬜ Dès la première saisie depuis l'espace admin : le seed procède par `upsert` sur le slug, un run écraserait les modifications faites en production |
+| Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ⬜ Après le déploiement du `14` : le seed n'existe plus, le Schedule n'a plus de commande à lancer. Geste manuel de la Checklist Release, bloc Contenu depuis l'espace admin |
 | Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ⬜ Les deux champs sont restreints à `http` et `https` côté schéma depuis le sub-project `11`. [PRODUCTION.md § Checklist Pré-MEP](../../../PRODUCTION.md) les liste encore comme ouverts |
-| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13` | ⬜ Entreprises, tags et projets. Le seed ne sert plus qu'au développement local et au build de CI une fois cette saisie faite |
+| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ⬜ Entreprises, tags, projets et données légales en base de dev, puis transfert unique vers la production à la release du `14` par `just db-dump` et restore. Le seed a disparu |
 | Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
 
 ## Infrastructure
@@ -173,4 +173,4 @@ Quatre projets Dokploy existants : Portfolio (un service Compose plus une Databa
 - Source de vérité du kanban : GitHub Issues, avec l'espace admin en simple vue, ou base locale avec synchronisation ? La première évite un chantier de synchronisation bidirectionnelle.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
 - Faut-il un serveur MCP au-dessus des Server Actions du portfolio, pour piloter le CRM depuis Claude Code ? Techniquement peu coûteux, mais un CLI consomme nettement moins de contexte qu'un MCP à usage répétitif.
-- Que devient le seed une fois le contenu saisi depuis l'espace admin ? Il ne remplit plus la base de production, mais il reste **porteur du build** : `generateStaticParams` sur `/projets/[slug]` lit la base, et Cache Components refuse un retour vide au build (`.github/workflows/ci.yml`). C'est la seule raison du service Postgres éphémère et du `prisma db seed` de `deploy.yml` ; les tests d'intégration, eux, portent leurs propres fixtures et tournent avant le seed. Abandonner `generateStaticParams`, optionnel avec `cacheComponents` (`.claude/rules/nextjs/routing.md`), retirerait tout cet échafaudage au prix du premier hit instantané et des métadonnées figées dans le `<head>` pour les crawlers HTML-only (Telegram, Bluesky, Mastodon). Argument décisif à peser le moment venu : dès que la production diverge du dépôt, le build prérend le jeu de slugs du seed et non celui de la production, donc un prérendu qui ne décrit plus rien.
+- Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

@@ -94,7 +94,6 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Les logs du workflow de déploiement montrent l'upload des source maps
 - [ ] Une erreur serveur en production produit une issue dont la stack trace pointe sur le fichier source et non sur du code minifié
 - [ ] `docker history --no-trunc <image publiée> | grep -i sentry_auth_token` ne retourne rien
-- [ ] `/fr/projets` affiche les projets de la base de production et non ceux du seed du build CI (confirme que l'invalidation `NEXT_PHASE` s'exécute toujours au boot)
 
 **Cloudflare R2 assets (à cocher au premier tag embarquant la bascule des assets vers R2) :**
 - [ ] Avant le merge vers `main` : les quatre variables R2 posées dans Dokploy, token de production de `portfolio-assets`, `R2_ASSETS_BUCKET=portfolio-assets`
@@ -120,6 +119,16 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Avant le merge vers `main` : les trois variables `R2_ADMIN_*` posées dans Dokploy
 - [ ] Après déploiement : un fichier déposé depuis l'espace admin de production atterrit dans le bucket de production correspondant à son emplacement ; le logo d'une entreprise ayant un projet publié est servi par `/api/assets/freelance/crm/entreprises/<slug>/logo.png` sans session, en `no-cache` ; celui d'une entreprise sans projet publié, comme toute autre clé `freelance/`, répond 404 par la route publique
 
+**Contenu depuis l'espace admin (à cocher au premier tag qui embarque ce sub-project) :**
+- [ ] Avant le merge vers `main` : la base de dev est validée depuis l'espace admin, entreprises, tags, projets et données légales
+- [ ] Avant le merge vers `main` : sauvegarde de la base de production datée du jour (Database `portfolio-db` → Backups)
+- [ ] Avant le merge vers `main` : `just db-dump` de la base locale (tout sauf le schéma `auth`), répétition à blanc par `just db-reset` puis `just db-restore` en local, puis restore dans `portfolio-db` après vidage des tables de contenu
+- [ ] Avant le merge vers `main` : buckets synchronisés comme au bloc Cloudflare R2 ci-dessus
+- [ ] Après déploiement : suppression du Schedule `manual-seed` dans Dokploy (Compose `Portfolio-app` → Schedules), il n'a plus de commande à lancer
+- [ ] Après déploiement : `curl -N https://thibaud-geisler.com/fr/projets` montre la coquille avant le contenu ; si tout arrive d'un bloc, le streaming est mis en tampon par le proxy et le gain de premier octet est perdu
+- [ ] Après déploiement : trois `curl -s -A "<user-agent>"` sur une page de projet avec `TelegramBot (like TwitterBot)`, `Bluesky Cardyb/1.1` et `http.rb/5.1.1 (Mastodon/4.3.0; +https://example.org/)` trouvent `og:title` avant `</head>`
+- [ ] Après déploiement : PageSpeed Insights sur les quatre pages clés × deux locales, comparé à [baselines/](baselines/), et nouveau relevé daté
+
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -141,13 +150,13 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
   - `Environment` : variables et secrets du service
   - `Deployments` : historique des déploiements et leurs logs
   - `Logs` : sortie stdout en temps réel (JSON Pino)
-  - `Schedules` : tâches ponctuelles, dont `manual-seed`
+  - `Schedules` : tâches ponctuelles. Aucune depuis la suppression de `manual-seed` (septembre 2026, sub-project `14`)
 
 ## Variables d'Environnement
 
 > **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT`, `R2_*` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`.
 
-> **Deux variables ne se configurent pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, et le `DATABASE_URL` passé en build-arg par `deploy.yml` pointe la Postgres CI éphémère, pas la base de production : le prerender des pages publiques a besoin d'une base joignable au build (§ Déploiement).
+> **Une variable ne se configure pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, calculée automatiquement, jamais posée dans l'Environment Dokploy.
 
 ### Variables Communes
 
@@ -242,7 +251,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 ## Étapes de Déploiement (Automatiques)
 
-**Côté GHA (`deploy.yml`)** : tag `v*` push → Postgres CI éphémère + migrate + seed → build Docker (`driver-opts: network=host` pour atteindre la Postgres CI) → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×.
+**Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
 
 **Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js`.
 
@@ -252,7 +261,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
-> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Si tu rajoutes un `build:`, Dokploy reconstruira localement et échouera (BuildKit sandbox + Postgres inaccessible).
+> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que `deploy.yml` apporte : déploiement sur tag de release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
 
 ## Rollback
 
@@ -317,20 +326,20 @@ Items validés une première fois avant le tout premier merge `develop → main`
 - [x] **`just lint`** + **`just typecheck`** : code sain (déjà couverts en CI, sécu finale en local)
 - [x] **`just test`** : tous les tests passent en local
 - [x] **`just build`** : build Next.js standalone passe sans erreur
-- [x] **Smoke test du livrable** : construire l'image localement (`docker build`, en passant les build-args `NEXT_PUBLIC_*` et un `DATABASE_URL` joignable), puis `just docker-up` et une requête sur `localhost:3000/api/health`. Le prerender exige une base accessible **au build**, c'est ce que reproduit la Postgres éphémère de `deploy.yml` (§ Déploiement) : un build sans base n'est pas représentatif. Pattern de data-fetching : [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
+- [x] **Smoke test du livrable** : construire l'image localement (`docker build`, en passant les build-args `NEXT_PUBLIC_*`), puis `just docker-up` avec un `DATABASE_URL` joignable et une requête sur `localhost:3000/api/health`. Le build n'exige aucune base depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) : un `DATABASE_URL` joignable n'est nécessaire qu'au `just docker-up` qui suit. Pattern de data-fetching : [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
 
 ## Checklist Post-MEP
 
-Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer, sauf le seed, qui reste un geste de reprise.
+Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer.
 
-- [x] **Seed BDD initial** : Dokploy → Compose `Portfolio-app` → Schedules → `manual-seed` → **Run manually**. Le Schedule lance `prisma db seed` dans le service `nextjs`. Prisma 7 = seed explicite (jamais auto), idempotent via `upsert`, donc rejouable à volonté tant que le contenu vient du dépôt.
+- [x] **Seed BDD initial** : effectué au premier déploiement (mai 2026) par le Schedule Dokploy `manual-seed`. Le seed et le Schedule ont disparu avec le sub-project `14` de l'espace admin (septembre 2026) : le contenu vient de l'espace admin, et une base vide se remplit par transfert (§ Checklist Release, bloc Contenu depuis l'espace admin)
 - [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
 - [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
 - [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/](baselines/))
 
-> ⚠️ **Le Schedule `manual-seed` ne doit jamais se déclencher tout seul** : son expression cron est volontairement posée sur une date qui n'existe pas (`0 0 30 2 *`), le seul lancement possible est « Run manually ». Un seed automatique écraserait par `upsert` tout contenu modifié depuis l'espace admin. Le Schedule disparaîtra le jour où le CRUD admin deviendra la source du contenu ; d'ici là, il reste la voie de re-seed après une restauration.
+> ℹ️ **Il n'existe plus de seed** : `prisma db seed` n'est pas configuré et le dépôt ne porte plus aucune donnée de contenu. Une base se remplit par `just db-restore` d'un dump, jamais par rejeu de fichiers du dépôt.
 
 ---
 
@@ -389,8 +398,6 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
-
-> ⚠️ **Le cache BuildKit conserve l'environnement du stage `builder`** : `deploy.yml` exporte les layers en `cache-to: type=gha,mode=max`, et ce stage porte `ARG DATABASE_URL`. L'image publiée sur GHCR est propre (le stage `runner` repart de `FROM base` et ne copie que des fichiers), mais la valeur vit dans le cache Actions du dépôt. Sans conséquence aujourd'hui, ce build-arg pointant la Postgres CI éphémère (§ Déploiement). Le jour où il désignerait autre chose qu'une base jetable, ce cache devient une fuite.
 
 > **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
 

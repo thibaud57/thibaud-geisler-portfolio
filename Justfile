@@ -116,16 +116,24 @@ db:
 db-migrate LABEL:
     pnpm prisma migrate dev --name {{ LABEL }}
 
-# Réinitialise la DB de dev (drop + recreate + migrate, sans seed : just db-seed ensuite)
+# Réinitialise la DB de dev (drop + recreate + migrate, sans données : just db-restore ensuite)
 [confirm('Cela va DROP la DB de dev. Continuer ?')]
 [group('db')]
 db-reset:
     pnpm prisma migrate reset --force
 
-# Insère les données de seed (idempotent, upsert par slug)
+# Dump des données de la DB de dev (tout sauf le schéma auth), dans dumps/ ignoré par git
 [group('db')]
-db-seed:
-    pnpm prisma db seed
+[script]
+db-dump:
+    mkdir -p dumps
+    docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d portfolio_dev -Fc --data-only --exclude-schema=auth' > "dumps/portfolio_dev-$(date +%Y%m%d-%H%M%S).dump"
+    ls -1t dumps | head -1
+
+# Restaure un dump dans la DB de dev, à lancer sur une base vidée par just db-reset
+[group('db')]
+db-restore FILE:
+    docker compose exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d portfolio_dev --data-only --disable-triggers' < "{{ FILE }}"
 
 # Ouvre Prisma Studio (http://localhost:5555)
 [group('db')]
@@ -140,7 +148,7 @@ db-test:
     set -a && . ./.env.test && set +a
     pnpm prisma migrate deploy
 
-# Réinitialise la DB de test (drop, sans seed)
+# Réinitialise la DB de test (drop, sans données)
 [confirm('Cela va DROP la DB de test. Continuer ?')]
 [group('db')]
 [script]
@@ -162,9 +170,9 @@ db-test-studio:
 install:
     pnpm install
 
-# Setup complet : dépendances, base prête, seed
+# Setup complet : dépendances, base prête. Les données de dev : just db-restore <dump>
 [group('setup')]
-setup: install db db-seed
+setup: install db
 
 # Vérifie que l'environnement local est prêt : sortie vide = rien à signaler
 [group('setup')]

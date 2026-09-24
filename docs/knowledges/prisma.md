@@ -104,7 +104,6 @@ export default defineConfig({
   },
   migrations: {
     path: 'prisma/migrations',
-    // En production le seed est pré-bundlé, voir `prisma.config.ts` du projet
     seed: 'tsx prisma/seed.ts',
   },
 })

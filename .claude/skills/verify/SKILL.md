@@ -86,7 +86,7 @@ await fetch("http://localhost:3000/admin/tags", {
 // la valeur retournée par l'action est la ligne `1:{…}` de la réponse
 ```
 
-Les tags de test prennent un préfixe de slug propre au run et sont tous supprimés avant de rendre la main ; un tag seedé renommé pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
+Les tags de test prennent un préfixe de slug propre au run et sont tous supprimés avant de rendre la main ; un tag de la base de dev renommé pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
 
 Les deux refus d'accès ne se lisent pas pareil, et c'est ce qui prouve la défense en profondeur : sans cookie, le proxy répond **307** avant même l'action ; avec un cookie forgé, qui passe le proxy, c'est la garde `getCurrentUser()` de l'action qui répond **401**. Seul le second prouve que l'action se protège elle-même.
 

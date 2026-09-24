@@ -11,7 +11,7 @@ paths:
 - Déclarer un champ `output` **obligatoire** dans le generator, pointant vers un dossier du code source (ex: `../src/generated/prisma`)
 - Versionner les migrations dans `prisma/migrations/` générées via `prisma migrate dev --name <description>`
 - Exécuter `pnpm prisma generate` manuellement ou via `postinstall` après chaque modification du schema (ne s'exécute plus auto après `migrate dev`)
-- Exécuter `pnpm prisma db seed` explicitement : le seeding automatique est supprimé en v7
+- Aucun seed configuré : `migrations.seed` est absent de `prisma.config.ts`, le contenu vient de l'espace admin et une base locale se remplit par `just db-restore` ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)). Prisma 7 n'en lance de toute façon aucun automatiquement
 - Migrer les middlewares `$use()` vers `$extends()` : nouvelle API Prisma Client Extensions
 - Ajouter le dossier `output` généré au `.gitignore` (le client est généré, pas versionné)
 - Utiliser les nested transaction rollbacks via savepoints (disponibles depuis v7.5.0)

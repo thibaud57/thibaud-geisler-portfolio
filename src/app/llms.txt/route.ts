@@ -1,3 +1,5 @@
+import { connection } from "next/server"
+
 import { requireSocialUrl } from "@/config/social-links"
 import { siteUrl } from "@/lib/seo"
 import { findManyPublished } from "@/server/queries/projects"
@@ -12,6 +14,7 @@ function escapeLinkText(text: string): string {
 }
 
 export async function GET(): Promise<Response> {
+  await connection()
   const projects = await findManyPublished({ locale: "en" })
   const caseStudies = projects
     .map(

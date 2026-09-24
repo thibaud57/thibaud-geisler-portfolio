@@ -42,6 +42,16 @@ const nextConfig: NextConfig = {
   agentRules: false,
   output: "standalone",
   cacheComponents: true,
+  // Sans generateStaticParams sur /projets/[slug], la coquille d'un slug jamais visité est servie
+  // à l'instant puis complétée en arrière-plan, y compris dès qu'un <Link> vers lui entre dans le
+  // viewport (ISR avec Cache Components).
+  partialPrefetching: true,
+  // Reprend la liste par défaut de Next (l'option la remplace, elle ne l'étend pas) et y ajoute les
+  // crawlers HTML-only que le prerender des slugs protégeait : sans rendu bloquant, ils liraient
+  // les métadonnées streamées après </head>. Jamais /.*/ : bugs connus avec Cache Components
+  // (.claude/rules/nextjs/metadata-seo.md).
+  htmlLimitedBots:
+    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Bluesky|Mastodon/i,
   experimental: {
     // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
     // global-not-found.tsx porte le 404 des URLs qui ne matchent aucune route.

@@ -43,8 +43,8 @@ next-env.d.ts
 
 # prisma (Prisma 7 génère le client dans le code source)
 /src/generated/
-# bundle généré au build Docker pour `prisma db seed` en prod (cf. Dockerfile stage builder)
-/prisma/seed.js
+# dumps de DB de dev (just db-dump)
+dumps/
 
 # IDE
 .history/

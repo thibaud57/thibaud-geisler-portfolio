@@ -1,10 +1,13 @@
 import type { Metadata, ResolvingMetadata } from "next"
+import { io } from "next/cache"
 import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { PageShell } from "@/components/layout/PageShell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
@@ -40,12 +43,21 @@ export default async function MentionsLegalesPage({
 
   return (
     <PageShell title={t("title")} subtitle={t("lastUpdated")}>
-      <MentionsLegalesContentAsync locale={locale} />
+      <Suspense
+        fallback={
+          <StackedSkeleton
+            heights={["h-[783px] sm:h-[436px]", "h-[783px] sm:h-[436px]", "h-[783px] sm:h-[436px]"]}
+          />
+        }
+      >
+        <MentionsLegalesContentAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
 }
 
 async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
+  await io()
   const [t, tLegal, publisher, hosting, legalContent] = await Promise.all([
     getTranslations("LegalMentions"),
     getTranslations("Legal"),

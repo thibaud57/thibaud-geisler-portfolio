@@ -149,8 +149,8 @@ graph LR
 ### Use-case 1 : Affichage de la liste des projets
 
 1. Visiteur accède à `/projets`
-2. Page entièrement pré-rendue au build (Server Component async dont la query porte `'use cache'` + `cacheTag('projects')`), sans `<Suspense>` dans la page (règle `'use cache'` XOR `<Suspense>`)
-3. Le static shell complet est servi depuis le Data Cache, premier hit ultra-rapide
+2. La liste est un Server Component async sous `<Suspense>`, ouvert par `await io()` : exclu du prerender, il s'exécute à la requête et sa query porte `'use cache'` + `cacheTag('projects')`
+3. La première visite après un démarrage calcule et met en cache, les suivantes sont servies du cache jusqu'à `updateTag('projects')` depuis l'espace admin
 4. Chaque carte affiche titre, société ou format, description et tags, et mène au case study qui porte les liens GitHub et démo
 5. Filtrage par type (client / personnel) disponible sur la page
 
@@ -166,9 +166,10 @@ graph LR
 
 ### Use-case 3 : Affichage d'une page projet (case study)
 
-1. `generateStaticParams` liste les slugs publiés × locales, prérendus au build (métadonnées comprises)
-2. Visiteur accède à `/projets/[slug]`, servi depuis le prérendu
-3. Next.js query Prisma sur le slug, en `'use cache'` + `cacheTag('projects')`, pour la revalidation et les slugs hors liste rendus à la demande
+1. Visiteur accède à `/projets/[slug]`
+2. Le contenu est un Server Component async sous `<Suspense>` (`CaseStudyContentAsync`) : sans `generateStaticParams`, `params` est une donnée de requête ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), ce qui exclut le composant du prerender dès qu'il l'attend
+3. `findPublishedBySlug(slug, locale)` porte `'use cache'` + `cacheTag('projects')` : la première visite après un démarrage calcule et met en cache, les suivantes sont servies du cache jusqu'à `updateTag('projects')` depuis l'espace admin
+4. Projet absent ou non publié → `notFound()`
 
 Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 
@@ -340,7 +341,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Les quatre tags sont purgés au démarrage par `src/instrumentation.ts` : l'image est construite en CI sur une base seedée, le cache embarqué au build porte donc des données jetables. Invalidation par `updateTag` depuis les Server Actions admin post-MVP.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin.
 
 ### Files / Assets Storage
 
@@ -462,7 +463,7 @@ Docker + Docker Compose côté application (service `nextjs` uniquement). Postgr
 3 workflows GitHub Actions :
 - **`ci.yml`** : lint + typecheck + tests + build sur push `main` et PR vers `main` ou `develop` (Postgres CI éphémère, migrations appliquées avant les tests). Les PR doc-only et les PR release-please sautent le job `quality`, un job agrégateur `ci` restant le required check. Audit des dépendances non bloquant.
 - **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. S'authentifie par GitHub App (`actions/create-github-app-token@v3`), le tag étant ainsi poussé par un acteur dont les événements déclenchent `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
-- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` sur le ref d'un tag pour rejouer un déploiement (tout autre ref est sauté) → migrations + seed sur le Postgres CI (le prerender a besoin de données) → build Docker → push GHCR → trigger Dokploy redeploy.
+- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` sur le ref d'un tag pour rejouer un déploiement (tout autre ref est sauté) → build Docker sans base → push GHCR → trigger Dokploy redeploy.
 - **`security.yml`** : chaque semaine, scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security. Ne conditionne ni la CI ni le déploiement.
 
 Déploiement piloté par les tags release-please, jamais par un merge `main` direct.
@@ -602,6 +603,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-019 : Communication inter-services : HTTP interne, jamais exposé](adrs/019-communication-inter-services.md)
 - [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
 - [ADR-021 : Routing de l'espace admin, hors du segment de locale](adrs/021-routing-espace-admin.md)
+- [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
 
 > Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 

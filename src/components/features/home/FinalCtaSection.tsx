@@ -1,9 +1,12 @@
 import type { Locale } from "next-intl"
+import { io } from "next/cache"
 import { getTranslations } from "next-intl/server"
+import { Suspense } from "react"
 
 import { Marquee } from "@/components/magicui/marquee"
 import { WordRotate } from "@/components/magicui/word-rotate"
 import { Button } from "@/components/ui/button"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { Link } from "@/i18n/navigation"
 import { TagIcon } from "@/lib/icons"
 import { LABEL_CLASS } from "@/lib/typography"
@@ -50,13 +53,16 @@ export async function FinalCtaSection({ locale }: Props) {
       {/* Écart doublé : la bande stack est d'un autre registre que la séquence d'appel à l'action */}
       <div className="mt-8 flex w-full flex-col items-center gap-4">
         <p className={cn(LABEL_CLASS, "text-center text-balance")}>{t("signatureSection.title")}</p>
-        <StackMarquee locale={locale} />
+        <Suspense fallback={<StackedSkeleton heights={["h-16"]} />}>
+          <StackMarquee locale={locale} />
+        </Suspense>
       </div>
     </section>
   )
 }
 
 async function StackMarquee({ locale }: Props) {
+  await io()
   const stackTags = await findTagsBySlugs({ slugs: STACK_TAG_SLUGS, locale })
 
   return (

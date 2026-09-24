@@ -22,7 +22,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
 
 
 # =============================================================================
-# Stage: builder — Build Next.js (standalone) + bundle du seed Prisma
+# Stage: builder — Build Next.js (standalone)
 # =============================================================================
 FROM base AS builder
 
@@ -42,13 +42,6 @@ ENV NEXT_PUBLIC_CALENDLY_URL_FR=$NEXT_PUBLIC_CALENDLY_URL_FR
 ENV NEXT_PUBLIC_CALENDLY_URL_EN=$NEXT_PUBLIC_CALENDLY_URL_EN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 
-# DATABASE_URL au build = connection string vers Postgres ephemeral GitHub Actions
-# (vit pendant le job CI uniquement, ~5 min). Permet à Prisma 'use cache' d'exécuter
-# les queries au prerender pour générer le static shell. Le runtime utilise la vraie
-# DB Dokploy (DATABASE_URL injectée via env_file: .env du compose).
-ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
-
 # --- Sources + node_modules ------------------------------------------------
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -63,29 +56,11 @@ RUN --mount=type=secret,id=sentry_auth_token \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
     pnpm exec next build
 
-# --- Bundle du seed Prisma -------------------------------------------------
-# Pre-bundle prisma/seed.ts → prisma/seed.js (deps externes resolues au runtime
-# depuis node_modules). En prod, prisma.config.ts utilise `node prisma/seed.js`
-# au lieu de `tsx prisma/seed.ts` :
-#   - tsx est un devDep, exclu par `pnpm deploy --prod` → absent du runner
-#   - même en deps, /app/node_modules/.bin n'est pas dans le PATH du runner
-#     → spawn('tsx') échouerait avec ENOENT
-# `node` est dans le PATH système, donc spawn passe.
-RUN pnpm exec esbuild prisma/seed.ts \
-    --bundle \
-    --platform=node \
-    --format=esm \
-    --target=node24 \
-    --packages=external \
-    --alias:@=./src \
-    --outfile=prisma/seed.js
-
 
 # =============================================================================
 # Stage: deploy-prisma — Extraction des deps runtime en node_modules flat
 # `pnpm deploy --legacy --prod` produit un node_modules sans symlinks .pnpm,
-# requis pour que le runner standalone puisse lancer `prisma migrate deploy`
-# et `prisma db seed` au startup.
+# requis pour que le runner standalone puisse lancer `prisma migrate deploy` au startup.
 # =============================================================================
 FROM base AS deploy-prisma
 COPY --from=deps /app/node_modules ./node_modules
@@ -113,7 +88,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# --- Artifacts Prisma (client + adapter en deps prod, schema, migrations, seed bundlé) ---
+# --- Artifacts Prisma (client + adapter en deps prod, schema, migrations) ---
 COPY --from=deploy-prisma --chown=nextjs:nodejs /prod/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./

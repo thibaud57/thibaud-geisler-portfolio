@@ -1,8 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next"
-import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import Image from "next/image"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { CaseStudyFooter } from "@/components/features/projects/CaseStudyFooter"
 import { CaseStudyHeader } from "@/components/features/projects/CaseStudyHeader"
@@ -10,22 +10,12 @@ import { TagStackGrouped } from "@/components/features/projects/TagStackGrouped"
 import { PageShell } from "@/components/layout/PageShell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { JsonLd } from "@/components/seo/json-ld"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
-import { routing } from "@/i18n/routing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildBreadcrumbList, buildProjectCreativeWork } from "@/lib/seo/json-ld"
 import { safeExternalUrl } from "@/lib/url"
-import { findAllPublishedSlugs, findPublishedBySlug } from "@/server/queries/projects"
-
-// Prérendre les slugs au build fige title/og/canonical dans le <head> pour TOUS les user-agents.
-// Sans ça, le streaming metadata de Next les envoie après </head>, et seuls les bots de la liste
-// htmlLimitedBots (LinkedIn, Twitter, Slack, Bing…) reçoivent un rendu bloquant qui les protège.
-// Ce qui reste exposé : les crawlers HTML-only absents de cette liste (Telegram, Bluesky, Mastodon).
-// Cf. .claude/rules/nextjs/routing.md pour l'arbitrage complet.
-export async function generateStaticParams() {
-  const slugs = await findAllPublishedSlugs()
-  return routing.locales.flatMap((locale) => slugs.map(({ slug }) => ({ locale, slug })))
-}
+import { findPublishedBySlug } from "@/server/queries/projects"
 
 export async function generateMetadata(
   { params }: PageProps<"/[locale]/projets/[slug]">,
@@ -51,17 +41,30 @@ export async function generateMetadata(
   })
 }
 
-export default async function CaseStudyPage({ params }: PageProps<"/[locale]/projets/[slug]">) {
-  const { locale, slug } = await setupLocalePage(params)
-
+export default function CaseStudyPage({ params }: PageProps<"/[locale]/projets/[slug]">) {
   return (
     <PageShell>
-      <CaseStudyContentAsync locale={locale} slug={slug} />
+      <Suspense
+        fallback={
+          <StackedSkeleton
+            heights={[
+              "h-[859px] lg:h-[667px]",
+              "h-[1717px] lg:h-[1334px]",
+              "h-[572px] lg:h-[444px]",
+            ]}
+          />
+        }
+      >
+        <CaseStudyContentAsync params={params} />
+      </Suspense>
     </PageShell>
   )
 }
 
-async function CaseStudyContentAsync({ locale, slug }: { locale: Locale; slug: string }) {
+async function CaseStudyContentAsync({
+  params,
+}: Pick<PageProps<"/[locale]/projets/[slug]">, "params">) {
+  const { locale, slug } = await setupLocalePage(params)
   const project = await findPublishedBySlug(slug, locale)
   if (!project) notFound()
 
