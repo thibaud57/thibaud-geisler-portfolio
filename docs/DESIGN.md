@@ -524,20 +524,20 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ### Arbitrages
 
-Écarts à la maquette ou au design system tranchés par le propriétaire. Ils priment sur eux pour tous les écrans. Design system et maquette ont été réalignés sur ces arbitrages le 2026-09-19 : chaque « là où » décrit leur état antérieur, qu'un export plus ancien montre encore.
+Écarts à la maquette ou au design system tranchés par le propriétaire. Ils priment sur eux pour tous les écrans. Le « là où » de chaque ligne décrit ce que montre la source ; une ligne qui porte une date de réalignement n'est plus un écart, son « là où » décrit l'état antérieur qu'un export plus ancien montre encore. Les lignes sans date attendent leur réalignement.
 
 - **Espacement des formulaires** : 16px (`gap-4`) entre les champs et entre les rangées, en modale comme en écran plein, là où la maquette en montre 12
-- **Erreur de champ** : `text-sm text-destructive` (14px) sous le champ, là où la maquette l'écrit en 12px
-- **Refus de suppression** : remplace le texte de la confirmation, en `text-destructive` dès l'ouverture et sans bandeau séparé, là où la maquette garde le texte et ajoute un `Alert` dessous
-- **Icône de confirmation** : `TriangleAlert` sans tuile, là où la maquette et le design system la posent sur un fond `muted`
-- **Libellés bilingues** : en toutes lettres, « Nom (français) » et « Nom (anglais) », là où la maquette écrit « Nom (FR) » et « Nom (EN) »
+- **Erreur de champ** : `text-sm text-destructive` (14px) sous le champ, là où la maquette l'écrit en 12px (réaligné le 2026-09-19)
+- **Refus de suppression** : remplace le texte de la confirmation, en `text-destructive` dès l'ouverture et sans bandeau séparé, là où la maquette garde le texte et ajoute un `Alert` dessous (réaligné le 2026-09-19)
+- **Icône de confirmation** : `TriangleAlert` sans tuile, là où la maquette et le design system la posent sur un fond `muted` (réaligné le 2026-09-19)
+- **Libellés bilingues** : en toutes lettres, « Nom (français) » et « Nom (anglais) », là où la maquette écrit « Nom (FR) » et « Nom (EN) » (réaligné le 2026-09-19)
 - **Séparateur dans un libellé d'interface** : deux-points, là où la maquette emploie un tiret cadratin. Le tiret cadratin reste réservé à la valeur absente d'une cellule de liste
-- **Titre d'une modale de modification** : nomme l'élément, « Modifier Agents IA », là où la maquette écrit « Modifier le tag »
-- **Description d'un formulaire en modale** : dit l'action, « Créer un tag pour catégoriser les projets. » ou « Modifier les informations de ce tag. », là où la maquette y explique la langue des noms
+- **Titre d'une modale de modification** : nomme l'élément, « Modifier Agents IA », là où la maquette écrit « Modifier le tag » (réaligné le 2026-09-19)
+- **Description d'un formulaire en modale** : dit l'action, « Créer un tag pour catégoriser les projets. » ou « Modifier les informations de ce tag. », là où la maquette y explique la langue des noms (réaligné le 2026-09-19)
 - **Choix des colonnes sur toute liste admin** : porté par `DataTable`, donc proposé partout où un écran déclare des colonnes masquables, l'écran des tags compris, là où la maquette ne le montre que sur certaines listes
 - **Colonnes par vue** : la vue « Tous / Toutes » d'une liste affiche toutes ses colonnes par défaut, les autres vues en masquent selon leur objet, là où la maquette en masque d'emblée sur toutes les vues
 - **Badges tronqués** : trois au plus puis un « +N », partout en affichage, là où la maquette en montre deux sur certaines colonnes. Un champ d'édition les montre tous, ils y sont manipulables un par un ; la vue détail aussi, elle est faite pour tout montrer. Un seul composant, `BadgeList`, porte la règle
-- **Valeurs métier affichées** : celles de la base et de ses règles, là où la maquette montre des valeurs d'exemple parfois en retard (trois catégories de tag pour six, « CDD » pour « Stage », « Automatisation » et « Data / IA » pour « CLI » et « IA », un ordre d'affichage à partir de 0 au lieu de 1)
+- **Valeurs métier affichées** : celles de la base et de ses règles, là où la maquette montre des valeurs d'exemple parfois en retard (trois catégories de tag pour six, « CDD » pour « Stage », « Automatisation » et « Data / IA » pour « CLI » et « IA », un ordre d'affichage à partir de 0 au lieu de 1) (réaligné le 2026-09-19)
 - **Rangée de rattachement d'une tuile** : réservée sur toutes les tuiles d'une grille, icône de lien et filet de séparation toujours visibles même quand l'élément n'est référencé par rien, les badges de rattachement n'apparaissant qu'à partir de la première référence
 - **Pied de pagination** : identique sur toute liste admin, grille de tuiles comprise, sélecteur de lignes par page inclus
 - **Aperçu d'un fichier** : l'image tient entière dans son cadre, jamais recadrée, sur un fond neutre. Le dégradé ne signale plus qu'un aperçu manquant

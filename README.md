@@ -48,7 +48,7 @@ Stockés dans deux buckets Cloudflare R2 privés, jamais sur le filesystem de l'
 - `portfolio-assets/projets/{client,personal}/<slug-projet>/<filename>` (couvertures, captures, médias projet, sous le slug du projet)
 - `portfolio-assets/documents/cv/<filename>` (CV)
 - `portfolio-assets/branding/<filename>` (logo, portrait)
-- `portfolio-admin/freelance/crm/entreprises/<slug>/logo.png` (logos d'entreprise, jamais servis publiquement)
+- `portfolio-admin/freelance/crm/entreprises/<slug>/logo.png` (logos d'entreprise, servis sans session tant que l'entreprise a un projet publié, 404 sinon)
 
 Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture R2 par le SDK S3).
 

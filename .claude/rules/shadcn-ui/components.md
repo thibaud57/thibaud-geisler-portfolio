@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/components/**/*.tsx"
+  - "src/hooks/use-form-action-submit.ts"
 ---
 
 # shadcn/ui — Composants, CVA & Server/Client
@@ -26,7 +27,7 @@ paths:
 - **Redéfinir les états** `hover:`/`focus:`/`disabled:` sur les composants shadcn : ils sont déjà intégrés et accessibles
 
 ## Gotchas
-- **`Select` dans un `<form action>` perd son choix à chaque envoi** : React réinitialise le formulaire après l'action, et Radix Select répond à l'événement `reset` en rappelant `onValueChange` avec sa valeur du premier rendu (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Soumettre par `onSubmit` + `startTransition(() => formAction(formData))`, sans reset (cf. `TagFormDialog`)
+- **`Select` dans un `<form action>` perd son choix à chaque envoi** : React réinitialise le formulaire après l'action, et Radix Select répond à l'événement `reset` en rappelant `onValueChange` avec sa valeur du premier rendu (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Le contournement (`onSubmit` + `startTransition(() => formAction(formData))`, sans reset) vit dans le hook `useFormActionSubmit` : l'appeler plutôt que le réécrire, tout formulaire admin portant un `Select` passe par lui
 - Pour la **convention de structure des sous-dossiers UI** (séparation `ui/`, `magicui/`, `aceternity/`) : voir `DESIGN.md` § Stack UI > Convention de structure
 
 ## Exemples
