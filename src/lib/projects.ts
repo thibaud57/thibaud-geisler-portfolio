@@ -94,7 +94,7 @@ export function getProjectDuration(
 ): ProjectDuration | null {
   if (!startedAt || !endedAt) return null
   const end = endedAt
-  // Zod refuse endedAt < startedAt depuis le formulaire d'édition, mais pas la base (seed, edit SQL
+  // Zod refuse endedAt < startedAt depuis le formulaire d'édition, mais pas la base (edit SQL
   // direct, donnée legacy) : une plage inversée n'a pas de durée plausible à afficher. Comparer les
   // dates elles-mêmes, pas seulement le delta en mois : une inversion à l'intérieur du même mois
   // calendaire (ex. 20 mai → 1er mai) a un delta de 0, que la seule comparaison de mois ne détecte pas.

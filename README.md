@@ -25,7 +25,7 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 
 ```bash
 cp .env.example .env        # chaque variable y est commentée
-just setup                  # install deps + démarre Postgres + applique migrations + seed
+just setup                  # install deps + démarre Postgres + applique migrations
 just dev                    # serveur Next.js sur http://localhost:3000
 ```
 
@@ -33,7 +33,7 @@ just dev                    # serveur Next.js sur http://localhost:3000
 
 ## Architecture
 
-Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et alimentées par un seed idempotent.
+Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et saisies depuis l'espace admin.
 
 Détails complets : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
