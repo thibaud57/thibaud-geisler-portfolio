@@ -1,20 +1,11 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import { ChevronsUpDown, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { filterCommandOption } from "@/lib/search"
+import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { CommandGroup, CommandItem } from "@/components/ui/command"
 
 export interface ComboboxOption {
   value: string
@@ -65,47 +56,33 @@ export function MultiSelectCombobox({
 
   return (
     <div className="flex flex-col gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            ref={triggerRef}
-            type="button"
-            variant="outline"
-            role="combobox"
-            id={id}
-            aria-expanded={open}
-            aria-invalid={ariaInvalid}
-            aria-describedby={ariaDescribedby}
-            className="w-full justify-between font-normal"
-          >
-            <span className="text-muted-foreground">{placeholder}</span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-(--radix-popper-anchor-width) p-0">
-          <Command filter={filterCommandOption}>
-            <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    keywords={[option.label]}
-                    data-checked={selected.includes(option.value)}
-                    onSelect={() => {
-                      toggle(option.value)
-                    }}
-                  >
-                    {option.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <ComboboxPopover
+        id={id}
+        open={open}
+        onOpenChange={setOpen}
+        triggerRef={triggerRef}
+        triggerContent={<span className="text-muted-foreground">{placeholder}</span>}
+        ariaInvalid={ariaInvalid}
+        ariaDescribedby={ariaDescribedby}
+        searchPlaceholder={searchPlaceholder}
+        emptyMessage={emptyMessage}
+      >
+        <CommandGroup>
+          {options.map((option) => (
+            <CommandItem
+              key={option.value}
+              value={option.value}
+              keywords={[option.label]}
+              data-checked={selected.includes(option.value)}
+              onSelect={() => {
+                toggle(option.value)
+              }}
+            >
+              {option.label}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </ComboboxPopover>
 
       {selected.length > 0 ? (
         <div role="list" className="flex flex-wrap gap-1.5">

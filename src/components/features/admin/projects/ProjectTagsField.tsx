@@ -1,23 +1,14 @@
 "use client"
 
 import { useId, useRef, useState } from "react"
-import { ChevronsUpDown, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
 import { Label } from "@/components/ui/label"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CommandGroup, CommandItem } from "@/components/ui/command"
 
 import { computeReorderedIds } from "@/lib/reorder"
-import { filterCommandOption } from "@/lib/search"
 import { KIND_ORDER, TAG_KIND_GROUP_LABELS } from "@/lib/tags"
 import { cn } from "@/lib/utils"
 import type { AdminTag } from "@/server/queries/tags"
@@ -82,51 +73,37 @@ export function ProjectTagsField({ tags, defaultSelectedIds }: Props) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor={searchId}>Ajouter un tag</Label>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              ref={triggerRef}
-              type="button"
-              variant="outline"
-              role="combobox"
-              id={searchId}
-              aria-expanded={open}
-              className="w-full justify-between font-normal"
-            >
-              <span className="text-muted-foreground">Choisir un tag</span>
-              <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-(--radix-popper-anchor-width) p-0">
-            <Command filter={filterCommandOption}>
-              <CommandInput placeholder="Rechercher un tag…" />
-              <CommandList>
-                <CommandEmpty>Aucun tag ne correspond.</CommandEmpty>
-                {KIND_ORDER.map((kind) => {
-                  const kindTags = availableTags.filter((tag) => tag.kind === kind)
-                  if (kindTags.length === 0) return null
-                  return (
-                    <CommandGroup key={kind} heading={TAG_KIND_GROUP_LABELS[kind]}>
-                      {kindTags.map((tag) => (
-                        <CommandItem
-                          key={tag.id}
-                          value={tag.id}
-                          keywords={[tag.nameFr]}
-                          data-checked={false}
-                          onSelect={() => {
-                            selectTag(tag)
-                          }}
-                        >
-                          {tag.nameFr}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )
-                })}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <ComboboxPopover
+          id={searchId}
+          open={open}
+          onOpenChange={setOpen}
+          triggerRef={triggerRef}
+          triggerContent={<span className="text-muted-foreground">Choisir un tag</span>}
+          searchPlaceholder="Rechercher un tag…"
+          emptyMessage="Aucun tag ne correspond."
+        >
+          {KIND_ORDER.map((kind) => {
+            const kindTags = availableTags.filter((tag) => tag.kind === kind)
+            if (kindTags.length === 0) return null
+            return (
+              <CommandGroup key={kind} heading={TAG_KIND_GROUP_LABELS[kind]}>
+                {kindTags.map((tag) => (
+                  <CommandItem
+                    key={tag.id}
+                    value={tag.id}
+                    keywords={[tag.nameFr]}
+                    data-checked={false}
+                    onSelect={() => {
+                      selectTag(tag)
+                    }}
+                  >
+                    {tag.nameFr}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )
+          })}
+        </ComboboxPopover>
         <p className="text-xs text-muted-foreground">
           Un tag choisi s&apos;ajoute à la liste et disparaît d&apos;ici.
         </p>

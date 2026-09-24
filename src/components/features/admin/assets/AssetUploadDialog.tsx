@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  startTransition,
   useActionState,
   useCallback,
   useEffect,
@@ -9,7 +8,6 @@ import {
   useState,
   type ChangeEvent,
   type DragEvent,
-  type SubmitEvent,
 } from "react"
 import { Upload } from "lucide-react"
 import { toast } from "sonner"
@@ -35,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
 import { ASSET_FOLDERS, buildAssetKey, folderNeedsSlug, MAX_ASSET_BYTES } from "@/lib/schemas/asset"
 import { uploadAsset } from "@/server/actions/assets"
@@ -181,19 +180,13 @@ function UploadForm({
     }
   }, [state, onUploaded])
 
-  // onSubmit plutôt que <form action> : le Select de dossier perdrait sa valeur au premier reset
-  // après une erreur de validation (cf. TagFormDialog, .claude/rules/shadcn-ui/components.md).
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (oversizedMessage) return
-    if (isOverwrite && !overwriteAcknowledged) return
-    const formData = new FormData(event.currentTarget)
+  const handleSubmit = useFormActionSubmit(formAction, (formData) => {
+    if (oversizedMessage) return false
+    if (isOverwrite && !overwriteAcknowledged) return false
     // L'input file n'a pas de name : seul l'état React porte le fichier (drop ou dialogue), posé ici.
     if (file) formData.set("file", file)
-    startTransition(() => {
-      formAction(formData)
-    })
-  }
+    return true
+  })
 
   const filenameField = (
     <FormField id={`${formId}-filename`} label="Nom du fichier" errors={state.errors.filename}>

@@ -14,7 +14,7 @@ import { updateTag } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { NONE_VALUE } from "@/lib/schemas/company"
-import { createCompany, deleteCompany } from "./companies"
+import { createCompany, deleteCompany, updateCompany } from "./companies"
 import { initialCompanyFormState } from "./companies.types"
 
 const BASE_FIELDS = {
@@ -210,7 +210,7 @@ describe("createCompany", () => {
   it("returns the submitted values on failure", async () => {
     const state = await createCompany(initialCompanyFormState, buildFormData({ slug: "" }))
 
-    expect(state.values?.["name"]).toBe("Acme")
+    expect(state.values?.name).toBe("Acme")
   })
 
   it("invalidates the projects cache tag after a successful creation", async () => {
@@ -250,6 +250,59 @@ describe("createCompany", () => {
   })
 })
 
+describe("updateCompany", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("targets the company by its id", async () => {
+    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+
+    await updateCompany("c1", initialCompanyFormState, buildFormData())
+
+    expect(prisma.company.update).toHaveBeenCalledWith(objectMatch({ where: { id: "c1" } }))
+  })
+
+  it("keeps the submitted logo key instead of clearing it", async () => {
+    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+
+    await updateCompany(
+      "c1",
+      initialCompanyFormState,
+      buildFormData({ logoFilename: "freelance/crm/entreprises/acme/logo.png" }),
+    )
+
+    expect(prisma.company.update).toHaveBeenCalledWith(
+      objectMatch({
+        data: objectMatch({ logoFilename: "freelance/crm/entreprises/acme/logo.png" }),
+      }),
+    )
+  })
+
+  it("invalidates the projects cache tag after a successful update", async () => {
+    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+
+    await updateCompany("c1", initialCompanyFormState, buildFormData())
+
+    expect(updateTag).toHaveBeenCalledWith("projects")
+  })
+
+  it("leaves the company untouched when the payload is invalid", async () => {
+    const state = await updateCompany("c1", initialCompanyFormState, buildFormData({ slug: "" }))
+
+    expect(state.errors.slug).toBeDefined()
+    expect(prisma.company.update).not.toHaveBeenCalled()
+  })
+
+  it("rejects a call without a session, before any validation", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+    await expect(updateCompany("c1", initialCompanyFormState, buildFormData())).rejects.toThrow()
+
+    expect(prisma.company.update).not.toHaveBeenCalled()
+  })
+})
+
 describe("deleteCompany", () => {
   afterEach(() => vi.clearAllMocks())
 
@@ -268,5 +321,13 @@ describe("deleteCompany", () => {
     const state = await deleteCompany("c1")
 
     expect(state.message).toBe("company_in_use")
+  })
+
+  it("rejects a call without a session, before touching the database", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+    await expect(deleteCompany("c1")).rejects.toThrow()
+
+    expect(prisma.company.delete).not.toHaveBeenCalled()
   })
 })

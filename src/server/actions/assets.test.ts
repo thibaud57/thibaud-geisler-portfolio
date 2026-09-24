@@ -285,4 +285,14 @@ describe("deleteAsset", () => {
     expect(r2.send).not.toHaveBeenCalled()
     expect(adminR2.send).not.toHaveBeenCalled()
   })
+
+  it("rejects a call without a session, before any database query", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+    await expect(deleteAsset("projets/client/acme/cover.webp")).rejects.toThrow()
+
+    expect(prisma.project.findMany).not.toHaveBeenCalled()
+    expect(prisma.company.findMany).not.toHaveBeenCalled()
+    expect(r2.send).not.toHaveBeenCalled()
+  })
 })

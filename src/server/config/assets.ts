@@ -4,12 +4,15 @@ import { GetObjectCommand, NoSuchKey, type S3Client } from "@aws-sdk/client-s3"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
-import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
+import {
+  ALLOWED_EXTENSIONS,
+  ASSET_EXTENSION_ERROR_MESSAGE,
+  CONTENT_TYPE_MAP,
+} from "@/lib/asset-content-types"
 import { logger } from "@/lib/logger"
 
 export { CONTENT_TYPE_MAP }
 
-const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
 const SEGMENT_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i
 const MAX_SEGMENTS = 5
 
@@ -25,7 +28,7 @@ export const AssetPathSchema = z
       const ext = path.extname(last).slice(1).toLowerCase()
       return ALLOWED_EXTENSIONS.includes(ext)
     },
-    { message: `Extension non autorisée (attendu : ${ALLOWED_EXTENSIONS.join(", ")})` },
+    { message: ASSET_EXTENSION_ERROR_MESSAGE },
   )
 
 export type ValidateAssetPathResult =

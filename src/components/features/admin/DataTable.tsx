@@ -30,10 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, paginate } from "@/lib/pagination"
+import { useFacetedSearch, type Facet, type FacetOption } from "@/hooks/use-faceted-search"
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/lib/pagination"
 import { computeReorderedIds, sameIdSet } from "@/lib/reorder"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
+
+export type { Facet, FacetOption }
 
 const UNGROUPED_KEY = "__all__"
 
@@ -74,27 +77,6 @@ export interface GroupBy<T, K extends string = string> {
   key: (row: T) => K
   order: readonly K[]
   label: (key: K) => ReactNode
-}
-
-export interface FacetOption {
-  value: string
-  label: string
-}
-
-export interface Facet<T, K extends string = string> {
-  key: string
-  label: string
-  options: readonly FacetOption[]
-  // Scalaire ou tableau : la plupart des facettes portent une valeur unique par ligne, certaines
-  // (ex. formats d'un projet) en portent plusieurs ; la ligne matche si l'une d'elles est sélectionnée.
-  value: (row: T) => K | readonly K[]
-}
-
-// Array.isArray ne narrowe pas value: K | readonly K[] pour un K générique (TS ne peut pas prouver
-// que K exclut les tableaux) : les deux branches restent castées explicitement, sûres au runtime.
-function facetValues<T, K extends string>(facet: Facet<T, K>, row: T): readonly K[] {
-  const value = facet.value(row)
-  return Array.isArray(value) ? (value as readonly K[]) : [value as K]
 }
 
 // Le retour commun des actions de réordonnancement : DataTable garde ou annule l'ordre optimiste
@@ -147,16 +129,8 @@ export function DataTable<T, K extends string = string>({
   const hasOrderColumn = orderValue !== undefined
   const colSpanOffset = hasOrderColumn ? 1 : 0
 
-  const [search, setSearch] = useState("")
   const [sort, setSort] = useState<SortState>(null)
-  const [page, setPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState<number>(pageSize)
   const [filterOpen, setFilterOpen] = useState(false)
-  const [facetSelections, setFacetSelections] = useState<Record<string, Set<string>>>(() =>
-    Object.fromEntries(
-      Object.entries(defaultFacetSelections ?? {}).map(([key, values]) => [key, new Set(values)]),
-    ),
-  )
   const [orderOverrides, setOrderOverrides] = useState<Record<string, string[]>>({})
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [draggedGroupKey, setDraggedGroupKey] = useState<K | null>(null)
@@ -185,55 +159,38 @@ export function DataTable<T, K extends string = string>({
   )
   const isDefaultColumnState = sameIdSet([...hiddenColumnKeys], defaultHiddenColumnKeys)
 
-  const searchFilteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return rows
-    return rows.filter((row) =>
-      visibleColumns.some((column) => column.searchValue?.(row).toLowerCase().includes(query)),
-    )
-  }, [rows, search, visibleColumns])
-
-  const activeFacetCount = useMemo(
-    () => Object.values(facetSelections).reduce((sum, values) => sum + values.size, 0),
-    [facetSelections],
+  const matchesColumnSearch = useCallback(
+    (row: T, rawSearch: string) => {
+      const query = rawSearch.trim().toLowerCase()
+      if (!query) return true
+      return visibleColumns.some((column) =>
+        column.searchValue?.(row).toLowerCase().includes(query),
+      )
+    },
+    [visibleColumns],
   )
 
-  const facetFilteredRows = useMemo(() => {
-    if (!facets || activeFacetCount === 0) return searchFilteredRows
-    return searchFilteredRows.filter((row) =>
-      facets.every((facet) => {
-        const selected = facetSelections[facet.key]
-        return (
-          !selected ||
-          selected.size === 0 ||
-          facetValues(facet, row).some((value) => selected.has(value))
-        )
-      }),
-    )
-  }, [searchFilteredRows, facets, facetSelections, activeFacetCount])
-
-  // Un passage par facette (Map tallying) plutôt qu'un filter() par option : searchFilteredRows
-  // recompte à chaque changement de page/tri/colonnes/drag, pas seulement à chaque recherche.
-  const facetGroups = useMemo(() => {
-    if (!facets) return []
-    return facets.map((facet) => {
-      const counts = new Map<string, number>()
-      for (const row of searchFilteredRows) {
-        for (const value of facetValues(facet, row)) {
-          counts.set(value, (counts.get(value) ?? 0) + 1)
-        }
-      }
-      return {
-        key: facet.key,
-        label: facet.label,
-        options: facet.options.map((option) => ({
-          value: option.value,
-          label: option.label,
-          count: counts.get(option.value) ?? 0,
-        })),
-      }
-    })
-  }, [facets, searchFilteredRows])
+  const {
+    search,
+    setSearch,
+    setPage,
+    rowsPerPage,
+    setRowsPerPage,
+    facetSelections,
+    activeFacetCount,
+    filteredRows: facetFilteredRows,
+    facetGroups,
+    toggleFacet: toggleFacetValue,
+    resetFacets,
+    resetSearchAndFacets,
+    paginate: paginateRows,
+  } = useFacetedSearch<T, K>({
+    rows,
+    matchesSearch: matchesColumnSearch,
+    facets,
+    defaultFacetSelections,
+    pageSize,
+  })
 
   const isOrderView = !sort && search.trim() === "" && activeFacetCount === 0
 
@@ -308,12 +265,7 @@ export function DataTable<T, K extends string = string>({
     })
   }, [isOrderView, groupedView, sort, facetFilteredRows, visibleColumns])
 
-  const {
-    currentPage,
-    pageCount,
-    pageItems: paginatedRows,
-  } = paginate(sortedRows, page, rowsPerPage)
-  if (page > pageCount) setPage(pageCount)
+  const { currentPage, pageCount, pageItems: paginatedRows } = paginateRows(sortedRows)
 
   const renderItems = useMemo((): RenderItem<T, K>[] => {
     if (!isOrderView || !groupBy || !hasOrderColumn) {
@@ -339,29 +291,6 @@ export function DataTable<T, K extends string = string>({
       if (current.direction === "asc") return { key, direction: "desc" }
       return null
     })
-    setPage(1)
-  }
-
-  function toggleFacetValue(facetKey: string, value: string) {
-    setFacetSelections((prev) => {
-      const next = { ...prev }
-      const current = new Set(next[facetKey] ?? [])
-      if (current.has(value)) current.delete(value)
-      else current.add(value)
-      next[facetKey] = current
-      return next
-    })
-    setPage(1)
-  }
-
-  function resetFacets() {
-    setFacetSelections({})
-    setPage(1)
-  }
-
-  function resetSearchAndFacets() {
-    setSearch("")
-    setFacetSelections({})
     setPage(1)
   }
 
@@ -603,14 +532,7 @@ export function DataTable<T, K extends string = string>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput
-          value={search}
-          onChange={(value) => {
-            setSearch(value)
-            setPage(1)
-          }}
-          placeholder={searchPlaceholder}
-        />
+        <SearchInput value={search} onChange={setSearch} placeholder={searchPlaceholder} />
 
         {hideableColumns.length > 0 ? (
           <OptionsPopover
@@ -723,10 +645,7 @@ export function DataTable<T, K extends string = string>({
           pageCount={pageCount}
           onPageChange={setPage}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(value) => {
-            setRowsPerPage(value)
-            setPage(1)
-          }}
+          onRowsPerPageChange={setRowsPerPage}
         />
       ) : null}
     </div>

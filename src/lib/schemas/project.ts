@@ -8,12 +8,12 @@ import {
   WorkMode,
 } from "@/generated/prisma/browser"
 import { isProjectAssetKey } from "@/lib/schemas/asset"
+import { nullifyNoneValue } from "@/lib/schemas/none-value"
+import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 const emptyToNull = (value: unknown) => (value === "" ? null : value)
 
-// Un SelectItem Radix refuse value="" : le seul Select nullable du formulaire (Statut de contrat)
-// rend ce sentinel comme premier item, retraduit en null ci-dessous. Même motif que companySchema.
 export const NONE_VALUE = "aucun"
 
 export const projectSchema = z
@@ -64,18 +64,13 @@ export const projectSchema = z
       .transform((value) => (value === "" ? null : value)),
     caseStudyMarkdownFr: z.preprocess(emptyToNull, z.string().nullable()),
     caseStudyMarkdownEn: z.preprocess(emptyToNull, z.string().nullable()),
-    // Le contrôle de chaîne précède la coercition : Number('') vaut 0, un champ vidé passerait
-    // sinon pour un ordre valide. Même garde sur deliverablesCount.
-    displayOrder: z
-      .string()
-      .trim()
-      .min(1, "L'ordre est requis")
-      .pipe(
-        z.coerce
-          .number<string>({ error: "L'ordre doit être un nombre" })
-          .int("L'ordre doit être un entier")
-          .min(1, "L'ordre commence à 1"),
-      ),
+    displayOrder: positiveIntegerString({
+      requiredMessage: "L'ordre est requis",
+      numberMessage: "L'ordre doit être un nombre",
+      intMessage: "L'ordre doit être un entier",
+      minValue: 1,
+      minMessage: "L'ordre commence à 1",
+    }),
     tagIds: z
       .array(z.string())
       .default([])
@@ -89,21 +84,18 @@ export const projectSchema = z
       .union([z.enum(ContractStatus), z.literal(NONE_VALUE), z.literal("")], {
         error: "Statut de contrat inconnu",
       })
-      .transform((value) => (value === NONE_VALUE || value === "" ? null : value)),
+      .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
     teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
-    deliverablesCount: z
-      .string()
-      .trim()
-      .min(1, "Le nombre de livrables est requis")
-      .pipe(
-        z.coerce
-          .number<string>({ error: "Le nombre de livrables doit être un nombre" })
-          .int("Le nombre de livrables doit être un entier")
-          // 0 est légitime : une mission peut être terminée sans livrable remis (cadrage,
-          // architecture). La stat publique « projets clients livrés » somme cette colonne,
-          // un 0 doit pouvoir s'y compter pour ce qu'il vaut plutôt que d'être interdit.
-          .min(0, "Le nombre de livrables ne peut pas être négatif"),
-      ),
+    // 0 est légitime : une mission peut être terminée sans livrable remis (cadrage,
+    // architecture). La stat publique « projets clients livrés » somme cette colonne,
+    // un 0 doit pouvoir s'y compter pour ce qu'il vaut plutôt que d'être interdit.
+    deliverablesCount: positiveIntegerString({
+      requiredMessage: "Le nombre de livrables est requis",
+      numberMessage: "Le nombre de livrables doit être un nombre",
+      intMessage: "Le nombre de livrables doit être un entier",
+      minValue: 0,
+      minMessage: "Le nombre de livrables ne peut pas être négatif",
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.startedAt && data.endedAt && data.endedAt < data.startedAt) {

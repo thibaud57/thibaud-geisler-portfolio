@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  startTransition,
   useActionState,
   useCallback,
   useEffect,
@@ -9,22 +8,15 @@ import {
   useId,
   useState,
   type Ref,
-  type SubmitEvent,
 } from "react"
-import { ChevronsUpDown, Pencil, Plus, Save } from "lucide-react"
+import { Pencil, Plus, Save } from "lucide-react"
 import { toast } from "sonner"
 
+import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { CommandGroup, CommandItem } from "@/components/ui/command"
 import {
   Dialog,
   DialogClose,
@@ -37,7 +29,6 @@ import {
 } from "@/components/ui/dialog"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -47,6 +38,7 @@ import {
 } from "@/components/ui/select"
 
 import type { Tag, TagKind } from "@/generated/prisma/client"
+import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { TAG_ICON_KEYS, TagIcon } from "@/lib/icons"
 import { normalizeForSearch } from "@/lib/search"
 import { KIND_ORDER, TAG_FIELD_LABELS, TAG_KIND_LABELS, type TagCountByKind } from "@/lib/tags"
@@ -139,16 +131,7 @@ function TagForm({
     setDisplayOrderValue(String(nextOrder))
   }
 
-  // onSubmit plutôt que <form action> : React réinitialise un formulaire à action après chaque envoi,
-  // et Radix Select répond à ce reset en rappelant onValueChange avec sa valeur du premier rendu. La
-  // catégorie et l'ordre saisis étaient effacés dès la première erreur de validation.
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    startTransition(() => {
-      formAction(formData)
-    })
-  }
+  const handleSubmit = useFormActionSubmit(formAction)
 
   // tag ne sert qu'au libellé du toast : le lire via useEffectEvent évite de le lister en dep.
   // Son identité d'objet change à chaque refetch de la table parente (même ligne, nouvelle query
@@ -311,75 +294,67 @@ function IconCombobox({
 }) {
   const [open, setOpen] = useState(false)
 
-  // modal : le verrou de scroll du Dialog parent annule le wheel sur ce contenu, portalisé hors de
-  // lui. Seul le Popover modal monte son propre verrou, qui passe au-dessus et rend la liste
-  // scrollable à la molette.
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          id={id}
-          aria-expanded={open}
-          aria-invalid={ariaInvalid}
-          aria-describedby={ariaDescribedby}
-          className="w-full justify-between font-normal"
+    <ComboboxPopover
+      id={id}
+      open={open}
+      onOpenChange={setOpen}
+      // modal : le verrou de scroll du Dialog parent annule le wheel sur ce contenu, portalisé hors
+      // de lui. Seul le Popover modal monte son propre verrou, qui passe au-dessus et rend la liste
+      // scrollable à la molette.
+      modal
+      triggerContent={
+        <span className="flex min-w-0 items-center gap-2">
+          {value ? (
+            <>
+              <TagIcon icon={value} className="size-4 shrink-0" />
+              <TruncateTooltip className="font-mono text-xs">{value}</TruncateTooltip>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Aucune</span>
+          )}
+        </span>
+      }
+      ariaInvalid={ariaInvalid}
+      ariaDescribedby={ariaDescribedby}
+      searchPlaceholder="Chercher une icône"
+      emptyMessage="Aucune icône ne correspond."
+      filter={filterIconOption}
+      popoverContentProps={{
+        side: "bottom",
+        avoidCollisions: false,
+        className:
+          "max-h-(--radix-popover-content-available-height) w-(--radix-popper-anchor-width) overflow-hidden p-0",
+      }}
+      // 3rem : la hauteur du champ de recherche, que la place annoncée par Radix inclut.
+      commandListClassName="max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))]"
+    >
+      <CommandGroup>
+        <CommandItem
+          value={NO_ICON_OPTION}
+          data-checked={value === ""}
+          onSelect={() => {
+            onValueChange("")
+            setOpen(false)
+          }}
         >
-          <span className="flex min-w-0 items-center gap-2">
-            {value ? (
-              <>
-                <TagIcon icon={value} className="size-4 shrink-0" />
-                <TruncateTooltip className="font-mono text-xs">{value}</TruncateTooltip>
-              </>
-            ) : (
-              <span className="text-muted-foreground">Aucune</span>
-            )}
-          </span>
-          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        side="bottom"
-        avoidCollisions={false}
-        className="max-h-(--radix-popover-content-available-height) w-(--radix-popper-anchor-width) overflow-hidden p-0"
-      >
-        <Command filter={filterIconOption}>
-          <CommandInput placeholder="Chercher une icône" />
-          {/* 3rem : la hauteur du champ de recherche, que la place annoncée par Radix inclut. */}
-          <CommandList className="max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))]">
-            <CommandEmpty>Aucune icône ne correspond.</CommandEmpty>
-            <CommandGroup>
-              <CommandItem
-                value={NO_ICON_OPTION}
-                data-checked={value === ""}
-                onSelect={() => {
-                  onValueChange("")
-                  setOpen(false)
-                }}
-              >
-                Aucune
-              </CommandItem>
-              {TAG_ICON_KEYS.map((key) => (
-                <CommandItem
-                  key={key}
-                  value={key}
-                  data-checked={value === key}
-                  onSelect={() => {
-                    onValueChange(key)
-                    setOpen(false)
-                  }}
-                >
-                  <TagIcon icon={key} className="size-4" />
-                  <TruncateTooltip className="font-mono text-xs">{key}</TruncateTooltip>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          Aucune
+        </CommandItem>
+        {TAG_ICON_KEYS.map((key) => (
+          <CommandItem
+            key={key}
+            value={key}
+            data-checked={value === key}
+            onSelect={() => {
+              onValueChange(key)
+              setOpen(false)
+            }}
+          >
+            <TagIcon icon={key} className="size-4" />
+            <TruncateTooltip className="font-mono text-xs">{key}</TruncateTooltip>
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    </ComboboxPopover>
   )
 }

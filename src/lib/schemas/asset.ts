@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
+import { ALLOWED_EXTENSIONS, ASSET_EXTENSION_ERROR_MESSAGE } from "@/lib/asset-content-types"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 // Miroir du schema `freelance` (ADR-011) : une clé qui y commence vit sur portfolio-admin.
@@ -52,7 +52,6 @@ export function isHardcodedAssetKey(key: string): boolean {
   return (FOLDERS_WITHOUT_SLUG as readonly string[]).some((folder) => key.startsWith(`${folder}/`))
 }
 
-const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
 const FILENAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
 
 export const assetUploadSchema = z
@@ -69,7 +68,7 @@ export const assetUploadSchema = z
         "Le nom ne peut contenir que des minuscules, chiffres, points, tirets et underscores",
       )
       .refine((value) => ALLOWED_EXTENSIONS.includes(value.split(".").pop() ?? ""), {
-        message: `Extension non autorisée (attendu : ${ALLOWED_EXTENSIONS.join(", ")})`,
+        message: ASSET_EXTENSION_ERROR_MESSAGE,
       }),
   })
   .superRefine((data, ctx) => {

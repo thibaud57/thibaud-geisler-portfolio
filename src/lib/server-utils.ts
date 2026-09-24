@@ -1,5 +1,6 @@
 import "server-only"
 import { createHash, randomUUID } from "node:crypto"
+import * as Sentry from "@sentry/nextjs"
 import { headers } from "next/headers"
 
 import { env } from "@/env"
@@ -55,11 +56,31 @@ export function hashIp(ip: string): string {
     .slice(0, IP_HASH_LENGTH)
 }
 
-export async function createActionLogger(action: string) {
-  const headersList = await headers()
-  const ip = extractClientIp(headersList.get("x-forwarded-for"))
-  return {
-    log: logger.child({ action, requestId: randomUUID(), ip_hash: hashIp(ip) }),
-    ip,
-  }
+// `child` est générique sur les niveaux custom pino (`Logger<ChildCustomLevels>`) : passer par
+// cette fonction concrète (plutôt que `ReturnType<typeof logger.child>`, qui instancie le générique
+// sur son défaut au lieu du type réellement produit par cet appel précis) garde `ActionContext.log`
+// et la valeur construite ci-dessous strictement identiques.
+function createChildLogger(action: string, ip: string) {
+  return logger.child({ action, requestId: randomUUID(), ip_hash: hashIp(ip) })
+}
+
+export interface ActionContext {
+  log: ReturnType<typeof createChildLogger>
+  ip: string
+}
+
+// withServerActionInstrumentation enveloppe un callback (API Sentry, cf. docs/knowledges/sentry.md
+// § Instrumentation des Server Actions) : elle ne peut pas s'insérer dans une fonction déjà entrée.
+// Ce point d'entrée en devient donc un lui-même, seul moyen d'obtenir `log`/`ip` étant d'appeler ce
+// wrapper : aucune Server Action ne peut plus oublier l'instrumentation.
+export async function createActionLogger<T>(
+  action: string,
+  handler: (ctx: ActionContext) => T | Promise<T>,
+): Promise<T> {
+  return Sentry.withServerActionInstrumentation(action, async () => {
+    const headersList = await headers()
+    const ip = extractClientIp(headersList.get("x-forwarded-for"))
+    const log = createChildLogger(action, ip)
+    return handler({ log, ip })
+  })
 }

@@ -1,20 +1,11 @@
 "use client"
 
 import { useId, useState } from "react"
-import { ChevronsUpDown } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -26,7 +17,6 @@ import {
 import type { ContractStatus, WorkMode } from "@/generated/prisma/client"
 import { CONTRACT_STATUS_LABELS, PROJECT_FIELD_LABELS, WORK_MODE_LABELS } from "@/lib/projects"
 import { NONE_VALUE } from "@/lib/schemas/project"
-import { filterCommandOption } from "@/lib/search"
 import type { AdminCompany } from "@/server/queries/companies"
 
 const WORK_MODES = Object.keys(WORK_MODE_LABELS) as WorkMode[]
@@ -53,49 +43,37 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
         label={PROJECT_FIELD_LABELS.companyId}
         errors={errors.companyId}
       >
-        <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              role="combobox"
-              id={`${formId}-companyId`}
-              aria-expanded={companyOpen}
-              aria-invalid={!!errors.companyId?.length}
-              aria-describedby={`${formId}-companyId-error`}
-              className="w-full justify-between font-normal"
-            >
-              <span className={selectedCompany ? undefined : "text-muted-foreground"}>
-                {selectedCompany?.name ?? "Choisir une entreprise"}
-              </span>
-              <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-(--radix-popper-anchor-width) p-0">
-            <Command filter={filterCommandOption}>
-              <CommandInput placeholder="Rechercher une entreprise…" />
-              <CommandList>
-                <CommandEmpty>Aucune entreprise ne correspond.</CommandEmpty>
-                <CommandGroup>
-                  {companies.map((company) => (
-                    <CommandItem
-                      key={company.id}
-                      value={company.id}
-                      keywords={[company.name]}
-                      data-checked={companyId === company.id}
-                      onSelect={() => {
-                        setCompanyId(company.id)
-                        setCompanyOpen(false)
-                      }}
-                    >
-                      {company.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <ComboboxPopover
+          id={`${formId}-companyId`}
+          open={companyOpen}
+          onOpenChange={setCompanyOpen}
+          triggerContent={
+            <span className={selectedCompany ? undefined : "text-muted-foreground"}>
+              {selectedCompany?.name ?? "Choisir une entreprise"}
+            </span>
+          }
+          ariaInvalid={!!errors.companyId?.length}
+          ariaDescribedby={`${formId}-companyId-error`}
+          searchPlaceholder="Rechercher une entreprise…"
+          emptyMessage="Aucune entreprise ne correspond."
+        >
+          <CommandGroup>
+            {companies.map((company) => (
+              <CommandItem
+                key={company.id}
+                value={company.id}
+                keywords={[company.name]}
+                data-checked={companyId === company.id}
+                onSelect={() => {
+                  setCompanyId(company.id)
+                  setCompanyOpen(false)
+                }}
+              >
+                {company.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </ComboboxPopover>
         <input type="hidden" name="companyId" value={companyId} />
       </FormField>
 

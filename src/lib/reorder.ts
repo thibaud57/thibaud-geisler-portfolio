@@ -34,3 +34,23 @@ export function computeIdsAtPosition(
 export function removeId(ids: readonly string[], id: string): string[] {
   return ids.filter((existingId) => existingId !== id)
 }
+
+export interface RenumberedEdit<TData> {
+  id: string
+  data: TData
+}
+
+// Réécrit la suite en entier, et pas seulement les éléments décalés : elle reste continue de 1 à n
+// même si la base contenait un trou avant l'appel. L'élément édité reçoit ses champs avec sa position.
+// `update` construit la mutation propre à chaque client Prisma (tag, project...) : ça évite de
+// figer ici la forme exacte de `where`/`data` qu'exige chaque delegate généré.
+export function renumberEntities<TData extends object, TResult>(
+  update: (id: string, data: TData | { displayOrder: number }) => TResult,
+  orderedIds: readonly string[],
+  edited?: RenumberedEdit<TData>,
+): TResult[] {
+  return orderedIds.map((id, index) => {
+    const displayOrder = index + 1
+    return update(id, id === edited?.id ? { ...edited.data, displayOrder } : { displayOrder })
+  })
+}

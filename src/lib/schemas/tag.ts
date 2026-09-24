@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { TagKind } from "@/generated/prisma/browser"
 import { TAG_ICON_KEYS } from "@/lib/icons"
+import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 export const tagSchema = z.object({
@@ -31,18 +32,13 @@ export const tagSchema = z.object({
     })
     .optional()
     .transform((value) => (value === "" || value === undefined ? null : value)),
-  // Le contrôle de chaîne précède la coercition : Number("") vaut 0, un champ vidé passerait
-  // sinon pour un ordre valide.
-  displayOrder: z
-    .string()
-    .trim()
-    .min(1, "L'ordre est requis")
-    .pipe(
-      z.coerce
-        .number<string>({ error: "L'ordre doit être un nombre" })
-        .int("L'ordre doit être un entier")
-        .min(1, "L'ordre commence à 1"),
-    ),
+  displayOrder: positiveIntegerString({
+    requiredMessage: "L'ordre est requis",
+    numberMessage: "L'ordre doit être un nombre",
+    intMessage: "L'ordre doit être un entier",
+    minValue: 1,
+    minMessage: "L'ordre commence à 1",
+  }),
 })
 
 export type TagInput = z.infer<typeof tagSchema>

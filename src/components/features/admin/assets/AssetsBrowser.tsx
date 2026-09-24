@@ -8,20 +8,21 @@ import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
 import { DeleteAssetDialog } from "@/components/features/admin/assets/DeleteAssetDialog"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { EmptyState } from "@/components/features/admin/EmptyState"
-import { FacetFilter, type FacetFilterGroup } from "@/components/features/admin/FacetFilter"
+import { FacetFilter } from "@/components/features/admin/FacetFilter"
 import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { SearchInput } from "@/components/features/admin/SearchInput"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useFacetedSearch, type Facet } from "@/hooks/use-faceted-search"
 import {
-  assetKeyMatchesQuery,
   buildAssetUrl,
   isPdfAssetKey,
+  matchesAssetSearch,
   nameOfAssetKey,
   pathOfAssetKey,
 } from "@/lib/assets"
-import { DEFAULT_PAGE_SIZE, paginate } from "@/lib/pagination"
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination"
 import { ASSET_FOLDERS } from "@/lib/schemas/asset"
 import type { AssetEntry } from "@/server/queries/assets"
 
@@ -43,91 +44,48 @@ function formatSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} Ko`
 }
 
-const FACET_VALUES: readonly {
-  key: string
-  value: (asset: AssetEntry) => string
-}[] = [
-  { key: "folder", value: (asset) => folderOf(asset.key) },
-  { key: "nature", value: (asset) => kindOf(asset.key) },
+const FACETS: readonly Facet<AssetEntry>[] = [
+  {
+    key: "folder",
+    label: "Dossier",
+    options: ASSET_FOLDERS.map((folder) => ({ value: folder, label: `${folder}/` })),
+    value: (asset) => folderOf(asset.key),
+  },
+  {
+    key: "nature",
+    label: "Nature",
+    options: [
+      { value: "image", label: "Image" },
+      { value: "pdf", label: "PDF" },
+    ],
+    value: (asset) => kindOf(asset.key),
+  },
 ]
 
 export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
-  const [search, setSearch] = useState(initialSearch)
-  const [facetSelections, setFacetSelections] = useState<Record<string, Set<string>>>({})
   const [filterOpen, setFilterOpen] = useState(false)
-  const [page, setPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE)
-
-  // Même composition que DataTable : la recherche filtre d'abord, les compteurs de facettes se
-  // calculent sur ce résultat, puis les facettes filtrent à leur tour (jamais l'inverse).
-  const searchFilteredAssets = assets.filter((asset) => assetKeyMatchesQuery(asset.key, search))
-
-  const activeFacetCount = Object.values(facetSelections).reduce(
-    (sum, values) => sum + values.size,
-    0,
-  )
-
-  const filteredAssets =
-    activeFacetCount === 0
-      ? searchFilteredAssets
-      : searchFilteredAssets.filter((asset) =>
-          FACET_VALUES.every(({ key, value }) => {
-            const selected = facetSelections[key]
-            return !selected || selected.size === 0 || selected.has(value(asset))
-          }),
-        )
-
   const {
-    currentPage,
-    pageCount,
-    pageItems: paginatedAssets,
-  } = paginate(filteredAssets, page, rowsPerPage)
-  if (page > pageCount) setPage(pageCount)
+    search,
+    setSearch,
+    setPage,
+    rowsPerPage,
+    setRowsPerPage,
+    facetSelections,
+    filteredRows: filteredAssets,
+    facetGroups,
+    toggleFacet,
+    resetFacets,
+    resetSearchAndFacets,
+    paginate,
+  } = useFacetedSearch({
+    rows: assets,
+    matchesSearch: matchesAssetSearch,
+    facets: FACETS,
+    initialSearch,
+    pageSize: DEFAULT_PAGE_SIZE,
+  })
 
-  const facetGroups: readonly FacetFilterGroup[] = [
-    {
-      key: "folder",
-      label: "Dossier",
-      options: ASSET_FOLDERS.map((folder) => ({
-        value: folder,
-        label: `${folder}/`,
-        count: searchFilteredAssets.filter((asset) => folderOf(asset.key) === folder).length,
-      })),
-    },
-    {
-      key: "nature",
-      label: "Nature",
-      options: [
-        {
-          value: "image",
-          label: "Image",
-          count: searchFilteredAssets.filter((asset) => kindOf(asset.key) === "image").length,
-        },
-        {
-          value: "pdf",
-          label: "PDF",
-          count: searchFilteredAssets.filter((asset) => kindOf(asset.key) === "pdf").length,
-        },
-      ],
-    },
-  ]
-
-  function toggleFacet(groupKey: string, value: string) {
-    setFacetSelections((prev) => {
-      const next = { ...prev }
-      const current = new Set(next[groupKey] ?? [])
-      if (current.has(value)) current.delete(value)
-      else current.add(value)
-      next[groupKey] = current
-      return next
-    })
-    setPage(1)
-  }
-
-  function resetFilters() {
-    setFacetSelections({})
-    setPage(1)
-  }
+  const { currentPage, pageCount, pageItems: paginatedAssets } = paginate(filteredAssets)
 
   function handleCopyPath(asset: AssetEntry) {
     const path = buildAssetUrl(asset.key)
@@ -165,17 +123,14 @@ export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           value={search}
-          onChange={(value) => {
-            setSearch(value)
-            setPage(1)
-          }}
+          onChange={setSearch}
           placeholder="Rechercher un fichier ou un dossier"
         />
         <FacetFilter
           groups={facetGroups}
           selected={facetSelections}
           onToggle={toggleFacet}
-          onReset={resetFilters}
+          onReset={resetFacets}
           open={filterOpen}
           onOpenChange={setFilterOpen}
         />
@@ -187,10 +142,7 @@ export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
           title="Aucun résultat ne correspond à ces filtres"
           description="Essayez une autre recherche ou modifiez les filtres actifs."
           className="border border-solid"
-          onReset={() => {
-            setSearch("")
-            resetFilters()
-          }}
+          onReset={resetSearchAndFacets}
         />
       ) : (
         <>
@@ -215,10 +167,7 @@ export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
             pageCount={pageCount}
             onPageChange={setPage}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(value) => {
-              setRowsPerPage(value)
-              setPage(1)
-            }}
+            onRowsPerPageChange={setRowsPerPage}
           />
         </>
       )}

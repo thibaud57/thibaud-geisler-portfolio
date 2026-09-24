@@ -2,19 +2,13 @@
 
 import "server-only"
 import { revalidatePath, updateTag } from "next/cache"
-import { z } from "zod"
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
-import {
-  createActionLogger,
-  isPrismaError,
-  stringField,
-  stringValues,
-  violatedConstraint,
-} from "@/lib/server-utils"
+import { isPrismaError, stringField, stringValues, violatedConstraint } from "@/lib/server-utils"
 
+import { deleteEntity, saveEntity } from "./shared"
 import { type CompanyFormState } from "./companies.types"
 
 // Seule source des champs lus depuis le FormData : un champ ajouté ici sans l'être côté validation
@@ -63,33 +57,26 @@ interface SaveCompanyEvents {
   failure: string
 }
 
-async function saveCompany(
+function saveCompany(
   actionName: string,
   events: SaveCompanyEvents,
   formData: FormData,
   persist: (data: CompanyInput) => Promise<unknown>,
 ): Promise<CompanyFormState> {
-  const { log } = await createActionLogger(actionName)
   const values = collectValues(formData)
 
-  const result = companySchema.safeParse(values)
-  if (!result.success) {
-    return { ok: false, errors: z.flattenError(result.error).fieldErrors, message: null, values }
-  }
-
-  try {
-    await persist(result.data)
-    // Après l'écriture réussie seulement : une invalidation précédant un échec purgerait le cache sans raison.
-    invalidateCompanyCaches()
-    log.info({ event: events.success, slug: result.data.slug })
-    return { ok: true, errors: {}, message: null }
-  } catch (err) {
-    const mapped = mapUniqueViolation(err, values)
-    if (mapped) return mapped
-
-    log.error({ err, event: events.failure })
-    return { ok: false, errors: {}, message: "unknown_error", values }
-  }
+  return saveEntity<CompanyInput, CompanyFormState, unknown>({
+    actionName,
+    events,
+    schema: companySchema,
+    input: values,
+    persist,
+    invalidateCaches: invalidateCompanyCaches,
+    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
+    onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    mapError: (err) => mapUniqueViolation(err, values),
+    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+  })
 }
 
 export async function createCompany(
@@ -126,18 +113,15 @@ export async function updateCompany(
 export async function deleteCompany(id: string): Promise<CompanyFormState> {
   await getCurrentUser()
 
-  const { log } = await createActionLogger("deleteCompany")
-
-  try {
-    await prisma.company.delete({ where: { id } })
-    invalidateCompanyCaches()
-    log.info({ event: "company:deleted", id })
-    return { ok: true, errors: {}, message: null }
-  } catch (err) {
-    if (isPrismaError(err, "P2003")) {
-      return { ok: false, errors: {}, message: "company_in_use" }
-    }
-    log.error({ err, event: "company:delete_failed" })
-    return { ok: false, errors: {}, message: "unknown_error" }
-  }
+  return deleteEntity<CompanyFormState>({
+    actionName: "deleteCompany",
+    events: { success: "company:deleted", failure: "company:delete_failed" },
+    successLogFields: { id },
+    destroy: () => prisma.company.delete({ where: { id } }),
+    invalidateCaches: invalidateCompanyCaches,
+    onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    mapError: (err) =>
+      isPrismaError(err, "P2003") ? { ok: false, errors: {}, message: "company_in_use" } : null,
+    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
+  })
 }

@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  startTransition,
-  useActionState,
-  useEffect,
-  useId,
-  useState,
-  type SubmitEvent,
-} from "react"
+import { useActionState, useEffect, useId, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Calendar as CalendarIcon, Save } from "lucide-react"
@@ -37,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 
 import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
+import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
   formatShortDate,
   parseIsoDate,
@@ -122,16 +116,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
     }
   }, [state, project, router])
 
-  // onSubmit plutôt que <form action> : ce formulaire porte trois Select (Statut, Mode de travail,
-  // Statut de contrat), que React réinitialiserait à leur valeur du premier rendu à la première
-  // erreur de validation.
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    startTransition(() => {
-      formAction(formData)
-    })
-  }
+  const handleSubmit = useFormActionSubmit(formAction)
 
   const defaultSlug = fieldDefault(state.values?.slug, project?.slug)
   const defaultTitleFr = fieldDefault(state.values?.titleFr, project?.titleFr)

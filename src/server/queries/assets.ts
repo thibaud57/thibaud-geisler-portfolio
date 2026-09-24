@@ -1,6 +1,7 @@
 import "server-only"
 import { ListObjectsV2Command, type S3Client } from "@aws-sdk/client-s3"
 
+import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from "@/lib/r2"
 
@@ -55,10 +56,44 @@ export async function listAdminAssets(prefix?: string): Promise<AssetEntry[]> {
 
 export type AssetUsage = Map<string, string[]>
 
-// Une clé peut être citée dans le markdown d'un case study sans vivre dans aucune colonne dédiée :
-// mêmes trois façons de référencer un asset que deleteAsset, résolues ici pour toutes les clés
-// en une passe (deux requêtes, jamais une par asset).
-export async function resolveAssetUsage(keys: string[]): Promise<AssetUsage> {
+interface ProjectAssetRecord {
+  coverFilename: string | null
+  caseStudyMarkdownFr: string | null
+  caseStudyMarkdownEn: string | null
+}
+
+interface ProjectAssetReference {
+  matches: (project: ProjectAssetRecord, key: string) => boolean
+  whereCondition: (key: string) => Prisma.ProjectWhereInput
+}
+
+// Les trois façons dont un projet peut référencer un asset (une correspondance exacte pour la
+// couverture, une sous-chaîne pour le markdown de chaque locale du case study) : deleteAsset (filtre
+// SQL, une clé) et matchAssetUsage (filtre en mémoire, N clés) partagent cette définition pour ne
+// jamais diverger, tout en gardant chacun sa propre stratégie de requête.
+export const PROJECT_ASSET_REFERENCES: readonly ProjectAssetReference[] = [
+  {
+    matches: (project, key) => project.coverFilename === key,
+    whereCondition: (key) => ({ coverFilename: key }),
+  },
+  {
+    matches: (project, key) => (project.caseStudyMarkdownFr ?? "").includes(key),
+    whereCondition: (key) => ({ caseStudyMarkdownFr: { contains: key } }),
+  },
+  {
+    matches: (project, key) => (project.caseStudyMarkdownEn ?? "").includes(key),
+    whereCondition: (key) => ({ caseStudyMarkdownEn: { contains: key } }),
+  },
+]
+
+export const COMPANY_LOGO_FIELD = "logoFilename" as const
+
+export interface AssetReferences {
+  projects: (ProjectAssetRecord & { slug: string })[]
+  companies: { slug: string; logoFilename: string | null }[]
+}
+
+export async function loadAssetReferences(): Promise<AssetReferences> {
   const [projects, companies] = await Promise.all([
     prisma.project.findMany({
       select: {
@@ -70,20 +105,18 @@ export async function resolveAssetUsage(keys: string[]): Promise<AssetUsage> {
     }),
     prisma.company.findMany({ select: { slug: true, logoFilename: true } }),
   ])
+  return { projects, companies }
+}
 
+export function matchAssetUsage(references: AssetReferences, keys: string[]): AssetUsage {
   return new Map(
     keys.map((key) => {
       const usedBy = [
-        ...projects
-          .filter(
-            (project) =>
-              project.coverFilename === key ||
-              (project.caseStudyMarkdownFr ?? "").includes(key) ||
-              (project.caseStudyMarkdownEn ?? "").includes(key),
-          )
+        ...references.projects
+          .filter((project) => PROJECT_ASSET_REFERENCES.some((ref) => ref.matches(project, key)))
           .map((project) => project.slug),
-        ...companies
-          .filter((company) => company.logoFilename === key)
+        ...references.companies
+          .filter((company) => company[COMPANY_LOGO_FIELD] === key)
           .map((company) => company.slug),
       ]
       return [key, usedBy] as const

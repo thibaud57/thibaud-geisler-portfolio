@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { isCompanyLogoKey } from "@/lib/schemas/asset"
+import { nullifyNoneValue } from "@/lib/schemas/none-value"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
 const SECTORS = [
@@ -22,8 +23,6 @@ export const COMPANY_SIZES = ["TPE", "PME", "ETI", "GROUPE"] as const
 
 const WEBSITE_URL_SCHEMA = z.url({ protocol: /^https?$/ })
 
-// Un SelectItem Radix refuse value="" : les deux Select nullables du formulaire (Taille, Entité
-// légale) rendent ce sentinel comme premier item, retraduit en null ci-dessous.
 export const NONE_VALUE = "aucune"
 
 export const companySchema = z.object({
@@ -46,7 +45,7 @@ export const companySchema = z.object({
     .union([z.enum(COMPANY_SIZES), z.literal(NONE_VALUE), z.literal("")], {
       error: "Taille inconnue",
     })
-    .transform((value) => (value === NONE_VALUE || value === "" ? null : value)),
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
   websiteUrl: z
     // Zod 4 fait remonter le message de z.url() en échec plutôt que l'`error` du z.union parent :
     // un refine sur z.string() garde un seul message, quel que soit le point d'échec.
@@ -59,7 +58,7 @@ export const companySchema = z.object({
   legalEntityId: z
     .string()
     .trim()
-    .transform((value) => (value === NONE_VALUE || value === "" ? null : value)),
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
   logoFilename: z
     .string()
     .trim()

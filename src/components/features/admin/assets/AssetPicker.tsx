@@ -18,8 +18,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { assetKeyMatchesQuery } from "@/lib/assets"
-import { DEFAULT_PAGE_SIZE, paginate } from "@/lib/pagination"
+import { useFacetedSearch } from "@/hooks/use-faceted-search"
+import { matchesAssetSearch } from "@/lib/assets"
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination"
 import type { AssetEntry } from "@/server/queries/assets"
 
 interface Props {
@@ -34,16 +35,25 @@ interface Props {
 export function AssetPicker({ value, onChange, assets, title, description, triggerLabel }: Props) {
   const [open, setOpen] = useState(false)
   const [pickedKey, setPickedKey] = useState(value)
-  const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState<number>(DEFAULT_PAGE_SIZE)
+  const {
+    search,
+    setSearch,
+    setPage,
+    rowsPerPage,
+    setRowsPerPage,
+    filteredRows: filteredAssets,
+    paginate,
+  } = useFacetedSearch({
+    rows: assets,
+    matchesSearch: matchesAssetSearch,
+    pageSize: DEFAULT_PAGE_SIZE,
+  })
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) {
       setPickedKey(value)
       setSearch("")
-      setPage(1)
     }
   }
 
@@ -53,14 +63,8 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
   }
 
   const searchQuery = search.trim()
-  const filteredAssets = assets.filter((asset) => assetKeyMatchesQuery(asset.key, search))
 
-  const {
-    currentPage,
-    pageCount,
-    pageItems: paginatedAssets,
-  } = paginate(filteredAssets, page, rowsPerPage)
-  if (page > pageCount) setPage(pageCount)
+  const { currentPage, pageCount, pageItems: paginatedAssets } = paginate(filteredAssets)
 
   return (
     <div className="flex items-center gap-2">
@@ -83,10 +87,7 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
           <div className="flex shrink-0">
             <SearchInput
               value={search}
-              onChange={(next) => {
-                setSearch(next)
-                setPage(1)
-              }}
+              onChange={setSearch}
               placeholder="Rechercher un fichier ou un dossier"
             />
           </div>
@@ -124,10 +125,7 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
                 pageCount={pageCount}
                 onPageChange={setPage}
                 rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={(value) => {
-                  setRowsPerPage(value)
-                  setPage(1)
-                }}
+                onRowsPerPageChange={setRowsPerPage}
               />
             </div>
           ) : null}

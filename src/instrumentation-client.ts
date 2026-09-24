@@ -8,3 +8,7 @@ Sentry.init({
   tracesSampleRate: 0,
   beforeSend: scrubSentryEvent,
 })
+
+// Export attendu nommément par le SDK, qui réclame ce hook au démarrage tant qu'il est absent :
+// sans lui, une erreur levée pendant une navigation client n'est rattachée à aucune transition.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

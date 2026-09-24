@@ -2,15 +2,15 @@
 
 import "server-only"
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
-import { z } from "zod"
 
 import type { Prisma, TagKind } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { computeIdsAtPosition, removeId, sameIdSet } from "@/lib/reorder"
+import { computeIdsAtPosition, removeId, renumberEntities, sameIdSet } from "@/lib/reorder"
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
+import { deleteEntity, saveEntity } from "./shared"
 import { type TagDeleteState, type TagFormState, type TagReorderState } from "./tags.types"
 
 function invalidateTagCaches(): void {
@@ -28,21 +28,15 @@ async function findCategoryIds(kind: TagKind): Promise<string[]> {
   return tags.map((tag) => tag.id)
 }
 
-// Réécrit la catégorie en entier, et pas seulement les tags décalés : la suite continue 1..n tient
-// même si la base contenait un trou avant l'appel. Le tag édité reçoit ses champs avec sa position.
 function renumberTags(
   tagClient: Prisma.TransactionClient["tag"],
   orderedIds: readonly string[],
   edited?: { id: string; data: TagInput },
 ) {
-  return orderedIds.map((id, index) =>
-    tagClient.update({
-      where: { id },
-      data:
-        id === edited?.id
-          ? { ...edited.data, displayOrder: index + 1 }
-          : { displayOrder: index + 1 },
-    }),
+  return renumberEntities(
+    (id, data) => tagClient.update({ where: { id }, data }),
+    orderedIds,
+    edited,
   )
 }
 
@@ -110,36 +104,27 @@ interface SaveTagEvents {
   failure: string
 }
 
-async function saveTag(
+function saveTag(
   actionName: string,
   events: SaveTagEvents,
   formData: FormData,
   persist: (data: TagInput) => Promise<unknown>,
 ): Promise<TagFormState> {
-  const { log } = await createActionLogger(actionName)
-
-  const result = tagSchema.safeParse(Object.fromEntries(formData))
-  if (!result.success) {
-    return { ok: false, errors: z.flattenError(result.error).fieldErrors, message: null }
-  }
-
-  try {
-    await persist(result.data)
-    // Après l'écriture réussie seulement : une invalidation précédant un échec purgerait le cache sans raison.
-    invalidateTagCaches()
-    log.info({ event: events.success, slug: result.data.slug })
-    return { ok: true, errors: {}, message: null }
-  } catch (err) {
-    if (isPrismaError(err, "P2002")) {
-      return {
-        ok: false,
-        errors: { slug: ["Ce slug est déjà utilisé."] },
-        message: "slug_taken",
-      }
-    }
-    log.error({ err, event: events.failure })
-    return { ok: false, errors: {}, message: "unknown_error" }
-  }
+  return saveEntity<TagInput, TagFormState, unknown>({
+    actionName,
+    events,
+    schema: tagSchema,
+    input: Object.fromEntries(formData),
+    persist,
+    invalidateCaches: invalidateTagCaches,
+    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null }),
+    onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    mapError: (err) =>
+      isPrismaError(err, "P2002")
+        ? { ok: false, errors: { slug: ["Ce slug est déjà utilisé."] }, message: "slug_taken" }
+        : null,
+    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
+  })
 }
 
 export async function createTag(
@@ -147,7 +132,7 @@ export async function createTag(
   formData: FormData,
 ): Promise<TagFormState> {
   // Défense en profondeur dans chaque action exportée, jamais dans saveTag : le layout protège les
-  // pages, pas les actions. Placé dans un try, unauthorized() serait avalé et masqué en unknown_error.
+  // pages, pas les actions. Placé hors de l'instrumentation, unauthorized() serait avalé et masqué en unknown_error.
   await getCurrentUser()
 
   return saveTag(
@@ -176,57 +161,53 @@ export async function updateTag(
 export async function deleteTag(id: string): Promise<TagDeleteState> {
   await getCurrentUser()
 
-  const { log } = await createActionLogger("deleteTag")
-
-  try {
-    await deleteTagWithReorder(id)
-    invalidateTagCaches()
-    log.info({ event: "tag:deleted", id })
-    return { ok: true, message: null }
-  } catch (err) {
-    if (isPrismaError(err, "P2003")) {
-      return { ok: false, message: "tag_in_use" }
-    }
-    log.error({ err, event: "tag:delete_failed" })
-    return { ok: false, message: "unknown_error" }
-  }
+  return deleteEntity<TagDeleteState>({
+    actionName: "deleteTag",
+    events: { success: "tag:deleted", failure: "tag:delete_failed" },
+    successLogFields: { id },
+    destroy: () => deleteTagWithReorder(id),
+    invalidateCaches: invalidateTagCaches,
+    onSuccess: () => ({ ok: true, message: null }),
+    mapError: (err) => (isPrismaError(err, "P2003") ? { ok: false, message: "tag_in_use" } : null),
+    onUnknownError: () => ({ ok: false, message: "unknown_error" }),
+  })
 }
 
 export async function reorderTags(kind: TagKind, orderedIds: string[]): Promise<TagReorderState> {
   await getCurrentUser()
 
-  const { log } = await createActionLogger("reorderTags")
-
-  const result = tagReorderSchema.safeParse({ kind, orderedIds })
-  if (!result.success) {
-    return { ok: false, message: "invalid_order" }
-  }
-
-  try {
-    const existing = await prisma.tag.findMany({
-      where: { kind: result.data.kind },
-      select: { id: true },
-    })
-
-    // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du glisser-déposer
-    // rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des displayOrder en doublon ou troués
-    // dans la catégorie.
-    const existingIds = existing.map((tag) => tag.id)
-    if (!sameIdSet(existingIds, result.data.orderedIds)) {
-      return { ok: false, message: "stale_order" }
+  return createActionLogger("reorderTags", async ({ log }) => {
+    const result = tagReorderSchema.safeParse({ kind, orderedIds })
+    if (!result.success) {
+      return { ok: false, message: "invalid_order" }
     }
 
-    await prisma.$transaction(renumberTags(prisma.tag, result.data.orderedIds))
+    try {
+      const existing = await prisma.tag.findMany({
+        where: { kind: result.data.kind },
+        select: { id: true },
+      })
 
-    invalidateTagCaches()
-    log.info({
-      event: "tag:reordered",
-      kind: result.data.kind,
-      count: result.data.orderedIds.length,
-    })
-    return { ok: true, message: null }
-  } catch (err) {
-    log.error({ err, event: "tag:reorder_failed" })
-    return { ok: false, message: "unknown_error" }
-  }
+      // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du glisser-déposer
+      // rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des displayOrder en doublon ou troués
+      // dans la catégorie.
+      const existingIds = existing.map((tag) => tag.id)
+      if (!sameIdSet(existingIds, result.data.orderedIds)) {
+        return { ok: false, message: "stale_order" }
+      }
+
+      await prisma.$transaction(renumberTags(prisma.tag, result.data.orderedIds))
+
+      invalidateTagCaches()
+      log.info({
+        event: "tag:reordered",
+        kind: result.data.kind,
+        count: result.data.orderedIds.length,
+      })
+      return { ok: true, message: null }
+    } catch (err) {
+      log.error({ err, event: "tag:reorder_failed" })
+      return { ok: false, message: "unknown_error" }
+    }
+  })
 }

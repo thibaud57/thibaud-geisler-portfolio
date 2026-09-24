@@ -43,6 +43,11 @@ export function assetKeyMatchesQuery(key: string, query: string): boolean {
   )
 }
 
+// Référence stable d'un rendu à l'autre : useFacetedSearch mémoïse son filtrage sur ce prédicat,
+// qu'une lambda recréée à chaque rendu invaliderait systématiquement.
+export const matchesAssetSearch = (asset: { key: string }, query: string): boolean =>
+  assetKeyMatchesQuery(asset.key, query)
+
 const CV_FILENAMES = {
   fr: "cv-thibaud-geisler-fr.pdf",
   en: "cv-thibaud-geisler-en.pdf",

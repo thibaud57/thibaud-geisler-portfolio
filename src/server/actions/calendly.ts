@@ -10,6 +10,7 @@ export async function trackCalendlyEvent(input: CalendlyEventInput): Promise<voi
   const parsed = calendlyEventSchema.safeParse(input)
   if (!parsed.success) return
 
-  const { log } = await createActionLogger("trackCalendlyEvent")
-  log.info({ event: "calendly:event_scheduled", event_uri: parsed.data.eventUri })
+  await createActionLogger("trackCalendlyEvent", ({ log }) => {
+    log.info({ event: "calendly:event_scheduled", event_uri: parsed.data.eventUri })
+  })
 }

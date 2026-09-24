@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  startTransition,
-  useActionState,
-  useEffect,
-  useId,
-  useState,
-  type SubmitEvent,
-} from "react"
+import { useActionState, useEffect, useId, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Save } from "lucide-react"
@@ -30,6 +23,7 @@ import {
 } from "@/components/ui/select"
 
 import type { Company, LegalEntity } from "@/generated/prisma/client"
+import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
@@ -70,15 +64,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
     }
   }, [state, company, router])
 
-  // onSubmit plutôt que <form action> : ce formulaire porte deux Select (Taille, Entité légale),
-  // que React réinitialiserait à leur valeur du premier rendu à la première erreur de validation.
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    startTransition(() => {
-      formAction(formData)
-    })
-  }
+  const handleSubmit = useFormActionSubmit(formAction)
 
   const sectorsError = state.errors.sectors?.[0]
 

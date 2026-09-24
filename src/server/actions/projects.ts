@@ -2,12 +2,11 @@
 
 import "server-only"
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
-import { z } from "zod"
 
 import type { Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { computeIdsAtPosition, sameIdSet } from "@/lib/reorder"
+import { computeIdsAtPosition, renumberEntities, sameIdSet } from "@/lib/reorder"
 import { projectReorderSchema, projectSchema, type ProjectInput } from "@/lib/schemas/project"
 import {
   createActionLogger,
@@ -17,6 +16,7 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
+import { deleteEntity, saveEntity } from "./shared"
 import { type ProjectFormState, type ProjectReorderState } from "./projects.types"
 
 // Seule lecture du FormData : le même objet est validé puis réaffiché en cas d'échec, les deux ne
@@ -115,21 +115,15 @@ async function findAllProjectIds(
   return projects.map((project) => project.id)
 }
 
-// Réécrit la suite en entier, et pas seulement les projets décalés : elle reste continue de 1 à n
-// même si la base contenait un trou avant l'appel. Une seule liste, aucun axe ne la partitionne.
 function renumberProjects(
   projectClient: Prisma.TransactionClient["project"],
   orderedIds: readonly string[],
   edited?: { id: string; data: ReturnType<typeof projectData> },
 ) {
-  return orderedIds.map((id, index) =>
-    projectClient.update({
-      where: { id },
-      data:
-        id === edited?.id
-          ? { ...edited.data, displayOrder: index + 1 }
-          : { displayOrder: index + 1 },
-    }),
+  return renumberEntities(
+    (id, data) => projectClient.update({ where: { id }, data }),
+    orderedIds,
+    edited,
   )
 }
 
@@ -200,40 +194,34 @@ interface SaveProjectEvents {
   failure: string
 }
 
-async function saveProject(
+function saveProject(
   actionName: string,
   events: SaveProjectEvents,
   formData: FormData,
   persist: (input: ProjectInput) => Promise<string>,
 ): Promise<ProjectFormState> {
-  const { log } = await createActionLogger(actionName)
   const values = collectValues(formData)
 
-  const result = projectSchema.safeParse(values)
-  if (!result.success) {
-    return { ok: false, errors: z.flattenError(result.error).fieldErrors, message: null, values }
-  }
-
-  try {
-    const savedId = await persist(result.data)
-    invalidateProjectCaches()
-    log.info({ event: events.success, slug: result.data.slug })
-    return { ok: true, errors: {}, message: null, savedId }
-  } catch (err) {
-    const mapped = mapConstraintViolation(err, values)
-    if (mapped) return mapped
-
-    log.error({ err, event: events.failure })
-    return { ok: false, errors: {}, message: "unknown_error", values }
-  }
+  return saveEntity<ProjectInput, ProjectFormState, string>({
+    actionName,
+    events,
+    schema: projectSchema,
+    input: values,
+    persist,
+    invalidateCaches: invalidateProjectCaches,
+    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
+    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
+    mapError: (err) => mapConstraintViolation(err, values),
+    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+  })
 }
 
 export async function createProject(
   _prevState: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  // Dans chaque action exportée et jamais dans saveProject : placé dans un try, unauthorized()
-  // serait avalé et masqué en unknown_error.
+  // Dans chaque action exportée et jamais dans saveProject : placé hors de l'instrumentation,
+  // unauthorized() serait avalé et masqué en unknown_error.
   await getCurrentUser()
 
   return saveProject(
@@ -262,60 +250,59 @@ export async function updateProject(
 export async function deleteProject(id: string): Promise<ProjectFormState> {
   await getCurrentUser()
 
-  const { log } = await createActionLogger("deleteProject")
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.project.delete({ where: { id } })
-      const remaining = await tx.project.findMany({
-        orderBy: { displayOrder: "asc" },
-        select: { id: true },
-      })
-      await Promise.all(
-        renumberProjects(
-          tx.project,
-          remaining.map((project) => project.id),
-        ),
-      )
-    })
-
-    invalidateProjectCaches()
-    log.info({ event: "project:deleted", id })
-    return { ok: true, errors: {}, message: null }
-  } catch (err) {
-    log.error({ err, event: "project:delete_failed" })
-    return { ok: false, errors: {}, message: "unknown_error" }
-  }
+  return deleteEntity<ProjectFormState>({
+    actionName: "deleteProject",
+    events: { success: "project:deleted", failure: "project:delete_failed" },
+    successLogFields: { id },
+    destroy: () =>
+      prisma.$transaction(async (tx) => {
+        await tx.project.delete({ where: { id } })
+        const remaining = await tx.project.findMany({
+          orderBy: { displayOrder: "asc" },
+          select: { id: true },
+        })
+        await Promise.all(
+          renumberProjects(
+            tx.project,
+            remaining.map((project) => project.id),
+          ),
+        )
+      }),
+    invalidateCaches: invalidateProjectCaches,
+    onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    mapError: () => null,
+    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
+  })
 }
 
 export async function reorderProjects(orderedIds: string[]): Promise<ProjectReorderState> {
   await getCurrentUser()
 
-  const { log } = await createActionLogger("reorderProjects")
-
-  const result = projectReorderSchema.safeParse({ orderedIds })
-  if (!result.success) {
-    return { ok: false, message: "invalid_order" }
-  }
-
-  try {
-    const existing = await prisma.project.findMany({ select: { id: true } })
-
-    // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du
-    // glisser-déposer rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des
-    // displayOrder en doublon ou troués.
-    const existingIds = existing.map((project) => project.id)
-    if (!sameIdSet(existingIds, result.data.orderedIds)) {
-      return { ok: false, message: "stale_order" }
+  return createActionLogger("reorderProjects", async ({ log }) => {
+    const result = projectReorderSchema.safeParse({ orderedIds })
+    if (!result.success) {
+      return { ok: false, message: "invalid_order" }
     }
 
-    await prisma.$transaction(renumberProjects(prisma.project, result.data.orderedIds))
+    try {
+      const existing = await prisma.project.findMany({ select: { id: true } })
 
-    invalidateProjectCaches()
-    log.info({ event: "project:reordered", count: result.data.orderedIds.length })
-    return { ok: true, message: null }
-  } catch (err) {
-    log.error({ err, event: "project:reorder_failed" })
-    return { ok: false, message: "unknown_error" }
-  }
+      // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du
+      // glisser-déposer rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des
+      // displayOrder en doublon ou troués.
+      const existingIds = existing.map((project) => project.id)
+      if (!sameIdSet(existingIds, result.data.orderedIds)) {
+        return { ok: false, message: "stale_order" }
+      }
+
+      await prisma.$transaction(renumberProjects(prisma.project, result.data.orderedIds))
+
+      invalidateProjectCaches()
+      log.info({ event: "project:reordered", count: result.data.orderedIds.length })
+      return { ok: true, message: null }
+    } catch (err) {
+      log.error({ err, event: "project:reorder_failed" })
+      return { ok: false, message: "unknown_error" }
+    }
+  })
 }

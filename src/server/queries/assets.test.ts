@@ -16,7 +16,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma"
 import { r2 } from "@/lib/r2"
-import { listAssets, resolveAssetUsage } from "./assets"
+import { listAssets, loadAssetReferences, matchAssetUsage } from "./assets"
 
 describe("listAssets", () => {
   afterEach(() => {
@@ -44,7 +44,7 @@ describe("listAssets", () => {
   })
 })
 
-describe("resolveAssetUsage", () => {
+describe("matchAssetUsage", () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -64,13 +64,17 @@ describe("resolveAssetUsage", () => {
       },
     ] as never)
 
-    const usage = await resolveAssetUsage(["projets/client/foyer/screenshot-1.webp"])
+    const usage = matchAssetUsage(await loadAssetReferences(), [
+      "projets/client/foyer/screenshot-1.webp",
+    ])
 
     expect(usage.get("projets/client/foyer/screenshot-1.webp")).toEqual(["foyer"])
   })
 
   it("resolves a key referenced nowhere to an empty list", async () => {
-    const usage = await resolveAssetUsage(["branding/logo-horizontal-light.png"])
+    const usage = matchAssetUsage(await loadAssetReferences(), [
+      "branding/logo-horizontal-light.png",
+    ])
 
     expect(usage.get("branding/logo-horizontal-light.png")).toEqual([])
   })
