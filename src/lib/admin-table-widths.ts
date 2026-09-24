@@ -1,7 +1,5 @@
-// Largeurs de colonnes (px) des écrans de liste admin. Module sans "use client" : importable à la
-// fois par les tables clientes (DataTable applique ces nombres aux <th>) et par les pages serveur
-// (DataTableSkeleton, fallback de <Suspense>, en a besoin pour annoncer le nombre et la largeur de
-// colonnes réels). Une seule source évite que le squelette dérive silencieusement de la table.
+// Module sans "use client" : partagé entre les tables clientes (DataTable) et les pages serveur
+// (DataTableSkeleton), pour que le squelette ne dérive jamais silencieusement de la table.
 
 export const ORDER_COLUMN_WIDTH = 52
 
@@ -51,9 +49,8 @@ export type ProjectColumnKey = keyof typeof PROJECT_COLUMN_WIDTHS
 
 export type ProjectView = "tous" | "client" | "perso"
 
-// Colonnes masquables visibles par défaut par vue (arbitrage "Colonnes par vue"). Source unique
-// lue par ProjectsTable (defaultVisible de chaque colonne) et par projectSkeletonWidths ci-dessous :
-// sans elle, le squelette annoncerait une vue qui n'arrive pas.
+// Source unique des colonnes visibles par défaut par vue (arbitrage "Colonnes par vue") : sans
+// elle, le squelette annoncerait une vue qui n'arrive pas.
 export const PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   ProjectView,
   readonly ProjectColumnKey[]

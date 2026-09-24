@@ -26,8 +26,6 @@ interface Props {
   children: ReactNode
 }
 
-// Squelette Popover+Command partagé par tous les combobox admin (sélection simple ou multiple) :
-// MultiSelectCombobox, ClientMetaFields, ProjectTagsField, IconCombobox de TagFormDialog.
 export function ComboboxPopover({
   id,
   open,

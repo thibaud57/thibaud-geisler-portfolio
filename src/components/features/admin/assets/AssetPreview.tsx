@@ -16,8 +16,6 @@ interface Props {
   row?: boolean
 }
 
-// Vignette et identité d'un asset, communes à la grille de gestion, au sélecteur et à la vue
-// détail : un même fichier se présente à l'identique partout.
 export function AssetPreview({ assetKey, sizes, row = false }: Props) {
   const pdf = isPdfAssetKey(assetKey)
   const { showImage, onError } = useImageFallback(pdf ? null : assetKey)

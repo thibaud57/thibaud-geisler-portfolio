@@ -4,7 +4,7 @@ import { env } from "@/env"
 
 export const r2 = new S3Client({
   region: "auto",
-  // Buckets créés en juridiction européenne au sub-project 01, sans .eu. le bucket est introuvable
+  // Bucket créé en juridiction européenne : sans le sous-domaine .eu., l'endpoint ne le trouve pas.
   endpoint: `https://${env.R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId: env.R2_ASSETS_ACCESS_KEY_ID,

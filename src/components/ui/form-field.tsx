@@ -7,8 +7,6 @@ interface Props {
   label: ReactNode
   error?: ReactNode
   errors?: string[]
-  // Aide persistante, rendue sous l'erreur (docs/DESIGN.md § Formulaires) et adressable par
-  // `aria-describedby` via `${id}-help`.
   help?: ReactNode
   children: ReactNode
 }

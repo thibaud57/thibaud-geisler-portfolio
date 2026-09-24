@@ -10,7 +10,7 @@ interface Props {
   className?: string
   components?: Components
   // "text" : lien dans un paragraphe (pages légales). "standalone" : liste de liens seuls sur
-  // leur ligne (case study), cf. LINK_CLASS et STANDALONE_LINK_CLASS.
+  // leur ligne (case study).
   links?: "text" | "standalone"
 }
 

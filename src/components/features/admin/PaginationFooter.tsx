@@ -30,8 +30,6 @@ interface Props {
   onRowsPerPageChange: (rowsPerPage: number) => void
 }
 
-// Bloc unique pour toute liste admin, table ou grille de tuiles (DataTable, AssetsBrowser,
-// AssetPicker) : compteur, sélecteur de lignes par page et navigation, pour un pied identique partout.
 export function PaginationFooter({
   count,
   noun,

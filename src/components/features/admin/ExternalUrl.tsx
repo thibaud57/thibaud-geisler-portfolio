@@ -11,9 +11,7 @@ interface Props {
   className?: string
 }
 
-// Une adresse web s'affiche en lien cliquable, nouvel onglet, partout où elle apparaît : colonne,
-// vue détail, carte. Absente ou refusée par safeExternalUrl, elle vaut null, donc le tiret du
-// conteneur.
+// null si absente ou refusée par safeExternalUrl : le conteneur affiche alors son propre tiret.
 export function ExternalUrl({ url, children, className }: Props) {
   const href = safeExternalUrl(url)
   if (!href) return null

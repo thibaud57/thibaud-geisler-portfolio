@@ -81,9 +81,8 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
 
-          {/* Wrapper flex row : SearchInput porte flex-1 pour se placer à côté d'un bouton de
-              filtre (AssetsBrowser). En enfant direct d'un flex-col, flex-1 grandirait en hauteur
-              plutôt qu'en largeur. */}
+          {/* Wrapper flex row : SearchInput porte flex-1, qui grandirait en hauteur plutôt qu'en
+              largeur en enfant direct d'un flex-col. */}
           <div className="flex shrink-0">
             <SearchInput
               value={search}

@@ -33,10 +33,8 @@ export interface DetailSection {
 
 export interface DetailContent {
   title: string
-  // Sous le titre, comme sous le nom dans la colonne d'ouverture de la liste.
   slug?: string
   subtitle?: ReactNode
-  // L'état de l'élément (statut d'un projet, engagement d'une entreprise), à droite du titre.
   status?: ReactNode
   sections: readonly DetailSection[]
   // Navigation (Entreprises, Projets) ou ouverture d'une autre modale (Tags) : au composant de
@@ -69,8 +67,8 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
 
   return (
     <Dialog open={detail !== null} onOpenChange={onOpenChange}>
-      {/* Plafond et défilement interne comme AssetPicker : un détail complet dépasse la hauteur de
-          l'écran, et le pied doit rester atteignable. `svh`, que la barre d'URL mobile ne fausse pas. */}
+      {/* Plafond et défilement interne : un détail complet dépasse la hauteur de l'écran, et le
+          pied doit rester atteignable. `svh`, que la barre d'URL mobile ne fausse pas. */}
       <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-160">
         <DialogHeader className="shrink-0 pr-8">
           <div className="flex flex-wrap items-center gap-3">
@@ -97,8 +95,7 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
                       row.fullWidth && "sm:col-span-full",
                     )}
                   >
-                    {/* Même registre que le Label d'un champ de formulaire : consulter puis
-                        modifier doit montrer le même mot, à la même taille. */}
+                    {/* Consulter puis modifier doit montrer le même mot, à la même taille. */}
                     {row.label ? (
                       <span className="text-sm leading-none font-medium">{row.label}</span>
                     ) : null}

@@ -2,7 +2,6 @@
 
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 
-// Colonne d'ouverture de toute liste admin : le nom de l'élément et son slug dessous.
 export function NameSlugCell({ name, slug }: { name: string; slug: string }) {
   return (
     <div className="flex min-w-0 flex-col">

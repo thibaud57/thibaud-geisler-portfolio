@@ -10,11 +10,10 @@ export async function register() {
     await import("../sentry.server.config")
     const { logger } = await import("./lib/logger")
 
-    // Untrack sur un child dédié : `captureRequestError` capture déjà l'erreur juste avant
-    // `logUnhandledError` ci-dessous, donc le `logger.error()` qui suit doublonnerait l'issue
-    // Sentry via l'auto-capture Pino de `pinoIntegration` si on ne l'untrackait pas. Untracker
-    // le logger global aurait aussi masqué les vraies erreurs applicatives loggées ailleurs
-    // (ex. Server Actions), d'où le child dédié plutôt que le singleton.
+    // Untrack sur un child dédié, pas le singleton : untracker le logger global masquerait aussi
+    // les vraies erreurs applicatives loggées ailleurs (ex. Server Actions). Sans untrack ici, le
+    // `logger.error()` qui suit doublonnerait l'issue Sentry déjà capturée par `captureRequestError`,
+    // via l'auto-capture Pino de `pinoIntegration`.
     unhandledErrorLogger = logger.child({})
     Sentry.pinoIntegration.untrackLogger(unhandledErrorLogger)
   }

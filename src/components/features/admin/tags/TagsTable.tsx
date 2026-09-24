@@ -39,7 +39,6 @@ import type { AdminTag } from "@/server/queries/tags"
 // rendu (réaction de `react-hooks/refs`, ESLint 6+).
 function buildColumns(): readonly Column<AdminTag>[] {
   return [
-    // Nom et slug sur la même cellule, comme la colonne d'ouverture des projets et des entreprises.
     {
       key: "name",
       header: TAG_FIELD_LABELS.nameFr,

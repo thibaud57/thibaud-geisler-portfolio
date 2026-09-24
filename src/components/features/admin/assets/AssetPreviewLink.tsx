@@ -4,9 +4,9 @@ import Link from "next/link"
 
 import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
 
-// Couverture ou logo dans une vue détail : la même tuile que l'écran Assets, en ligne, et un clic
-// y mène, la recherche déjà posée sur ce fichier. Le lien colle à la tuile, sans fond : au survol,
-// seule la vignette prend la bordure primaire.
+// Couverture ou logo d'une vue détail : un clic mène vers l'écran Assets, la recherche déjà posée
+// sur ce fichier. Le lien colle à la tuile, sans fond : au survol, seule la vignette prend la
+// bordure primaire.
 export function AssetPreviewLink({ assetKey }: { assetKey: string }) {
   return (
     <Link

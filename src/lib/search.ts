@@ -4,9 +4,8 @@ export function normalizeForSearch(value: string): string {
   return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
 }
 
-// cmdk ne matche par défaut que value + keywords en minuscules : les diacritiques passent par
-// normalizeForSearch pour que la recherche reste accent-insensitive sur les deux. Prop `filter`
-// de Command (MultiSelectCombobox, ClientMetaFields, ProjectTagsField).
+// cmdk ne matche par défaut que value + keywords en minuscules : passer par normalizeForSearch
+// garde la recherche accent-insensitive sur les deux.
 export function filterCommandOption(value: string, search: string, keywords?: string[]): number {
   const needle = normalizeForSearch(search)
   const haystack = [value, ...(keywords ?? [])]

@@ -9,11 +9,10 @@ import { useReportError } from "@/hooks/use-report-error"
 
 type Locale = (typeof routing.locales)[number]
 
-// Messages hardcodés : global-error vit hors de NextIntlClientProvider et
-// peut se déclencher quand next-intl lui-même crash. Garder ce fichier
-// indépendant du runtime i18n pour rester affichable en dernier recours.
-// Le titre diverge volontairement de Metadata.ErrorPage.title (« Erreur »)
-// pour signaler un crash root layout plus grave qu'une erreur applicative.
+// Messages hardcodés : global-error vit hors de NextIntlClientProvider et peut se déclencher
+// si next-intl lui-même crash, d'où l'indépendance totale du runtime i18n. Titre volontairement
+// distinct de Metadata.ErrorPage.title (« Erreur ») pour signaler un crash root layout, plus
+// grave qu'une erreur applicative.
 const messages = {
   fr: {
     title: "Erreur critique",

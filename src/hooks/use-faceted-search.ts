@@ -33,8 +33,6 @@ interface Options<T, K extends string = string> {
   pageSize: number
 }
 
-// Recherche + facettes (comptage, filtrage, toggle) + pagination : le socle commun à DataTable,
-// AssetsBrowser et AssetPicker. Chacun ne garde que son rendu propre (table, grille, liste).
 export function useFacetedSearch<T, K extends string = string>({
   rows,
   matchesSearch,

@@ -10,7 +10,6 @@ interface Props {
   placeholder: string
 }
 
-// Partagé entre DataTable et AssetsBrowser, sur le modèle de FacetFilter.
 export function SearchInput({ value, onChange, placeholder }: Props) {
   return (
     <div className="relative max-w-[320px] min-w-[200px] flex-1">

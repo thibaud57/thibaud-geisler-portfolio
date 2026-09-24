@@ -37,9 +37,6 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-// Panneau commun aux boutons Filtres et Colonnes d'une liste admin : un bloc titré par groupe, sur
-// le modèle des blocs de la vue détail (même titre, même règle de grille : deux colonnes dès qu'il
-// y a plus d'un élément). Les deux appelants ne diffèrent que par leurs données.
 export function OptionsPopover({
   icon: Icon,
   label,
@@ -50,9 +47,7 @@ export function OptionsPopover({
   open,
   onOpenChange,
 }: Props) {
-  // Un bloc sans option ne s'affiche pas, titre et séparateur compris.
   const visibleGroups = groups.filter((group) => group.options.length > 0)
-  // Pastille du bouton : valeurs cochées d'un filtre, colonnes masquables affichées.
   const count = groups.reduce(
     (sum, group) => sum + group.options.filter((option) => option.checked).length,
     0,

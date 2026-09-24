@@ -162,8 +162,8 @@ function UploadForm({
         })
       : null
   const isOverwrite = predictedKey !== null && existingKeys.includes(predictedKey)
-  // Ajustement pendant le rendu (pas un useEffect, cf. useImageFallback) : une confirmation ne doit
-  // pas survivre à un changement de la clé visée (autre dossier, slug ou nom de fichier).
+  // Ajustement pendant le rendu (pas un useEffect) : une confirmation ne doit pas survivre à un
+  // changement de la clé visée (autre dossier, slug ou nom de fichier).
   if (overwriteAckKey !== null && overwriteAckKey !== predictedKey) setOverwriteAckKey(null)
   const overwriteAcknowledged = predictedKey !== null && overwriteAckKey === predictedKey
 

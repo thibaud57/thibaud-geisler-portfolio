@@ -13,7 +13,6 @@ interface Props {
   children: ReactNode
 }
 
-// Bloc titré d'une vue détail ou d'un panneau de la barre d'outils : même titre, même grille.
 export function TitledBlock({ title, count, className, gridClassName, children }: Props) {
   return (
     <div className={cn("flex flex-col gap-3", className)}>
