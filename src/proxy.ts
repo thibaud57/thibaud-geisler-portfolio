@@ -32,8 +32,7 @@ export default async function proxy(request: NextRequest) {
         select: { id: true },
       })
       if (!project) {
-        // Chemin sans page.tsx dans [locale] : Next rend not-found.tsx nativement, avec un vrai
-        // 404 posé avant tout Suspense.
+        // Chemin sans page.tsx : Next rend global-not-found.tsx avec un vrai 404, posé avant tout Suspense.
         return NextResponse.rewrite(new URL(`/${locale}/_unmatched-project-slug`, request.url))
       }
     } catch {

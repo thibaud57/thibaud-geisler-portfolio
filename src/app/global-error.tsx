@@ -1,13 +1,10 @@
 "use client"
 
 import { AlertTriangle } from "lucide-react"
-import { hasLocale } from "next-intl"
-import { useSyncExternalStore } from "react"
+import type { Locale } from "next-intl"
 
-import { routing } from "@/i18n/routing"
 import { useReportError } from "@/hooks/use-report-error"
-
-type Locale = (typeof routing.locales)[number]
+import { useUrlLocale } from "@/hooks/use-url-locale"
 
 // Messages hardcodés : global-error vit hors de NextIntlClientProvider et peut se déclencher
 // si next-intl lui-même crash, d'où l'indépendance totale du runtime i18n. Titre volontairement
@@ -28,23 +25,13 @@ const messages = {
   },
 } satisfies Record<Locale, Record<string, string>>
 
-function getClientLocale(): Locale {
-  const segment = window.location.pathname.split("/")[1]
-  return hasLocale(routing.locales, segment) ? segment : routing.defaultLocale
-}
-
-// Pas de souscription : global-error ne survit pas à une navigation popstate.
-// eslint-disable-next-line @typescript-eslint/no-empty-function -- no-op requis par la signature useSyncExternalStore
-const subscribe = () => () => {}
-const getServerLocale = (): Locale => routing.defaultLocale
-
 interface Props {
   error: Error & { digest?: string }
   reset: () => void
 }
 
 export default function GlobalError({ error, reset }: Props) {
-  const locale = useSyncExternalStore(subscribe, getClientLocale, getServerLocale)
+  const locale = useUrlLocale()
   const t = messages[locale]
 
   useReportError(error)
