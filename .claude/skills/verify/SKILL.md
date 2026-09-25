@@ -11,7 +11,7 @@ Postgres doit tourner, sinon les pages qui lisent la base répondent 500 sans qu
 
 ```bash
 docker ps --format "{{.Names}}: {{.Status}}" | grep postgres   # attendu : healthy
-just db-test                                                    # démarre Postgres + migrations si absent
+just db                                                         # démarre Postgres + migrations de portfolio_dev si absent
 ```
 
 ## Lancer et attendre
@@ -62,9 +62,11 @@ Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécut
 Un formulaire rendu dans une modale fermée n'est pas dans le HTML : ni champs `$ACTION_*`, ni id d'action à y récupérer. L'id se lit dans le manifeste du build de dev, une fois la page servie au moins une fois :
 
 ```bash
-node -e 'const m=require("./.next/dev/server/app/admin/(protected)/tags/page/server-reference-manifest.json");
-for (const [id,v] of Object.entries(m.node)) console.log(id, v.exportedName)'
+find ".next/dev/server/app/admin/(protected)" -name server-reference-manifest.json | while read f; do echo "== $f"
+  node -e 'const m=require(process.argv[1]); for (const [id,v] of Object.entries(m.node)) console.log(id, v.exportedName)' "./$f"; done
 ```
+
+Chaque page ne liste que les actions que ses composants importent, et le POST vise cette page : `deleteCompany` sur `/admin/entreprises`, `createCompany`/`updateCompany` sur `/admin/entreprises/nouvelle` ou `[id]`, `deleteProject`/`reorderProjects` sur `/admin/projets`, `createProject`/`updateProject` sur `/admin/projets/nouveau` ou `[id]`, `uploadAsset`/`deleteAsset` sur `/admin/assets`.
 
 Le corps se construit avec le vrai `encodeReply` que Next embarque, jamais à la main. Un script du scratchpad ne résout pas `next/...` depuis son propre dossier, d'où le `createRequire` pointé sur le dépôt :
 
@@ -83,12 +85,30 @@ await fetch("http://localhost:3000/admin/tags", {
   headers: { "Next-Action": "<id>", Accept: "text/x-component",
              Origin: "http://localhost:3000", Cookie: "<cookies du jar>" },
 })
-// la valeur retournée par l'action est la ligne `1:{…}` de la réponse
+// la valeur retournée est la ligne qui contient `"ok":` ; en dev, une ligne `1:D"$…"` de debug peut la précéder
 ```
 
-Les tags de test prennent un préfixe de slug propre au run et sont tous supprimés avant de rendre la main ; un tag de la base de dev renommé pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
+Un champ à valeurs multiples (`sectors`, `formats`, `tagIds`) s'ajoute une fois par valeur : les actions le lisent par `getAll`, un seul `append` ne teste pas ce piège. Un fichier se dépose avec `fd.append("file", new Blob([octets], { type: "image/png" }), "x.png")`, à côté de `folder`, `slug` et `filename`.
+
+Toute entité de test (tag, entreprise, projet, asset) prend un préfixe de slug propre au run et se supprime avant de rendre la main, dans l'ordre imposé par les `Restrict` : projet, puis entreprise et tags, puis assets. Une entité de la base de dev modifiée pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
 
 Les deux refus d'accès ne se lisent pas pareil, et c'est ce qui prouve la défense en profondeur : sans cookie, le proxy répond **307** avant même l'action ; avec un cookie forgé, qui passe le proxy, c'est la garde `getCurrentUser()` de l'action qui répond **401**. Seul le second prouve que l'action se protège elle-même.
+
+## Parcours de bout en bout de l'espace admin
+
+Le contenu public vient de l'admin : c'est ce parcours qui prouve l'epic, pas les écrans pris un par un. Il s'enchaîne avec les actions réelles, et chaque étape se vérifie en base **et** côté vitrine :
+
+1. Créer un tag, une entreprise (deux secteurs), déposer son logo sous `freelance/crm/entreprises/<slug>/`, puis une couverture sous `projets/client/<slug-projet>/`.
+2. Créer un projet `DRAFT` qui les utilise, à l'ordre pré-rempli n+1 : le créer ailleurs renumérote tous les projets de la base de dev. En base, `ClientMeta` et `ProjectTag` existent.
+3. En brouillon : `/fr/projets/<slug>` répond **404** et `/api/assets/freelance/crm/entreprises/<slug>/logo.png` aussi (logo servi seulement si un projet de l'entreprise est publié).
+4. Passer en `PUBLISHED` : le projet apparaît sur `/fr/projets` et `/en/projets`, sa page répond 200, la couverture et le logo sont servis, `sitemap.xml` et `llms.txt` le listent.
+5. Renommer le tag et l'entreprise : `/fr/projets` et `/fr/a-propos` montrent les nouveaux noms dès la requête suivante.
+6. Refus attendus : supprimer le tag (`tag_in_use`), l'entreprise (`company_in_use`), la couverture et le logo (`asset_in_use`, `usedBy` nomme le slug). Une clé citée seulement dans `caseStudyMarkdownFr` bloque aussi la suppression.
+7. Repasser en `DRAFT` : le 404, la disparition des listes et du sitemap, et le 404 du logo reviennent.
+8. Supprimer le projet : `ClientMeta` et `ProjectTag` partent avec, le tag et l'entreprise restent. Ensuite, tout se supprime.
+9. Sans session : une action de chaque famille (tags, entreprises, projets, assets) répond 307 sans cookie et 401 avec un cookie forgé, sans rien écrire en base.
+
+Un objet R2 se prouve par un GET sur sa route (`/api/assets/…`, ou `/admin/api/assets/…` avec le jar pour `freelance/`) : 200 présent, 404 absent. Le client `aws` exigerait les clés du `.env`.
 
 ## Piloter le flux OAuth Google
 
@@ -173,4 +193,8 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - Pino est formaté en pretty en dev, pas en JSON, et colorisé : des codes ANSI séparent `event` de ses deux-points dans le fichier de log. Chercher `grep -c 'event.*"tag:created"'` ; `"event":"tag:created"` comme `event: "tag:created"` ne trouvent rien et font croire que l'action n'a pas logué (constaté le 2026-09-17).
 - `just build` lancé pendant que `pnpm dev` tourne corrompt un JSON du cache `.next` : toutes les pages répondent 500 avec `SyntaxError: Unexpected non-whitespace character after JSON`, sans rapport avec le code. Arrêter ce serveur par le PID qu'affiche « Another next dev server is already running » (`taskkill //PID <pid> //T //F`), puis relancer `pnpm dev` (constaté le 2026-09-17, `just stop` ne l'avait pas arrêté).
 - Le client Prisma logue lui-même en `prisma:error`, avec un extrait du code source appelant, les violations de contrainte que l'action intercepte pourtant proprement (`P2002` slug déjà pris, `P2003` tag rattaché). L'action a bien renvoyé son message métier. Mais un grep des noms d'événements tombe aussi sur cet extrait de code : compter les événements sur les lignes `event:`, pas sur leur seul nom.
+- Le glisser-déposer des listes admin et des tags du formulaire projet est le drag natif HTML5 (`draggable="true"`) : `locator.dragTo(cible)` le déclenche, une suite de `page.mouse.move` ne fait rien.
+- Après une navigation client, Next 16 garde la page précédente cachée dans le DOM : deux formulaires coexistent (`/admin/projets/nouveau` puis `[id]`) et un `getByLabel` échoue en strict mode. Cibler `form:visible`.
+- Dans la modale de dépôt, choisir le fichier remplace le « Nom du fichier » déjà saisi par le nom du fichier : choisir le fichier d'abord, puis renommer.
+- Git Bash réécrit en chemin Windows tout argument qui commence par `/` : `node script.mjs /admin/assets` reçoit `C:/Program Files/Git/admin/assets`. Préfixer la commande par `MSYS_NO_PATHCONV=1`.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.
