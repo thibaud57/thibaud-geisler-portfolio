@@ -76,6 +76,12 @@ système, puis refait entièrement.
   installé en transitif, donc `node_modules/.bin/esbuild` répond toujours. Le chercher dans
   `package.json` ne donne rien, ce qui ne veut pas dire qu'il manque. Compiler tous les `.jsx` en
   un bundle jetable est la façon la moins chère de vérifier qu'aucun import ne casse avant un sync.
+- **Sans navigateur piloté, monter les miroirs en SSR** plutôt que de ne rien vérifier : bundler en
+  `--format=esm` vers un dossier du dépôt (hors de lui, `react` ne résout pas), poser
+  `globalThis.React` avant l'import (les miroirs le supposent global, comme les cartes qui le
+  tiennent du script UMD), puis `renderToStaticMarkup` sur chaque composant avec ses props requises.
+  Un identifiant manquant ou une prop mal lue échoue là, quand une carte se contenterait de rester
+  blanche. Cela ne dit rien de l'apparence, seulement que le composant s'exécute.
 
 ## Journal
 
