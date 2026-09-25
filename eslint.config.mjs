@@ -21,6 +21,9 @@ const eslintConfig = defineConfig([
       // a un objet ("[object Object]") ou a un nullish ("undefined") qui restent interdits.
       // Sans ca, chaque `${size}px` d'une valeur CSS demanderait un String() autour.
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      // Le rest destructuring (`const { sensible, ...safe } = obj`) est un pattern légitime
+      // pour omettre des clés d'un objet, pas du code mort.
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
     },
   },
   {
@@ -43,6 +46,11 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Historique local VSCode (deja gitignore, jamais du code source)
     ".history/**",
+    // Outillage Claude Code, sans code applicatif ; ses worktrees d'agents copient tout le depot
+    ".claude/**",
+    // Exports locaux de la maquette et du design system Claude Design (gitignore), jamais du code du projet
+    ".design-sync/maquette/**",
+    ".design-sync/design-system/**",
   ]),
   // En dernier : il desactive des regles de style, tout bloc place apres les retablirait
   prettier,

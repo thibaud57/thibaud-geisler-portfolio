@@ -6,17 +6,18 @@ import { useTranslations } from "next-intl"
 import { PageShell } from "@/components/layout/PageShell"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
+import { useReportError } from "@/hooks/use-report-error"
 
 interface Props {
   error: Error & { digest?: string }
   reset: () => void
 }
 
-// TODO post-MVP : envoyer `error` à Sentry (cf. PRODUCTION.md > Monitoring). Tant que rien
-// ne le consomme, il n'est pas déstructuré : le lire pour rien serait une expression morte.
-export default function Error({ reset }: Props) {
+export default function Error({ error, reset }: Props) {
   const t = useTranslations("ErrorPage")
   const tCommon = useTranslations("Common")
+
+  useReportError(error)
 
   return (
     <PageShell title={t("title")} subtitle={t("message")}>

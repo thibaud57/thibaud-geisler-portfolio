@@ -25,7 +25,7 @@ paths:
 - Mettre `redirect()` dans un `try/catch` sans `unstable_rethrow` : la redirection est avalée silencieusement
 - Utiliser `revalidateTag(tag)` avec un seul argument : **déprécié** Next 16, nouvelle signature `revalidateTag(tag, profile)` où profile est `'max'`, `'hours'`, `'days'` ou `{ expire: 0 }`
 - Faire confiance au `FormData` sans validation Zod : toute action exportée est un endpoint public invocable par quiconque
-- Stocker des fichiers uploadés sur le filesystem local en production : éphémère en serverless, non partagé entre replicas, utiliser un volume Docker dédié ou Cloudflare R2
+- Stocker des fichiers uploadés sur le filesystem local en production : éphémère en serverless, non partagé entre replicas, écrire dans le bucket Cloudflare R2 concerné (cf. `nextjs/assets.md`)
 - Utiliser `useFormState` de `react-dom` : **déprécié** R19, utiliser `useActionState` de `react`
 - Appeler `useFormStatus()` dans le même composant qui rend le `<form>` : doit être dans un composant **enfant** du form
 - Dépendre uniquement du proxy pour la protection auth : un matcher modifié peut supprimer la couverture, toujours re-vérifier dans l'action
@@ -43,7 +43,7 @@ paths:
 'use server'
 export async function submitForm(prev: FormState, formData: FormData): Promise<FormState> {
   const result = Schema.safeParse(Object.fromEntries(formData))
-  if (!result.success) return { errors: result.error.flatten().fieldErrors }
+  if (!result.success) return { errors: z.flattenError(result.error).fieldErrors }
   await save(result.data)
   revalidatePath('/items')
   redirect('/items') // HORS du try/catch

@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { User } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { buildAssetUrl } from "@/lib/assets"
@@ -33,6 +34,8 @@ export function ProjectCard({
   const extraCount = Math.max(0, project.tags.length - MAX_VISIBLE_TAGS)
   const { inProgress } = getProjectTimeline(project.startedAt, project.endedAt)
   const company = project.clientMeta?.company
+  // Un projet personnel est rattaché à l'entreprise du freelance lui-même : badge, pas fiche.
+  const isPersonal = project.type === "PERSONAL"
 
   return (
     <article className="h-full">
@@ -56,7 +59,12 @@ export function ProjectCard({
             </Heading>
 
             <div className="flex flex-wrap items-center gap-2">
-              {company ? (
+              {isPersonal ? (
+                <Badge variant="outline" meta>
+                  <User className="size-3.5" aria-hidden="true" />
+                  {t("caseStudy.personal")}
+                </Badge>
+              ) : company ? (
                 <ContextBadge logoFilename={company.logoFilename} name={company.name} />
               ) : null}
               <FormatBadges formats={project.formats} />
@@ -145,7 +153,7 @@ function ContextBadge({ logoFilename, name }: ContextBadgeProps) {
       {showImage && logoFilename ? (
         <Image
           src={buildAssetUrl(logoFilename)}
-          alt={name}
+          alt=""
           width={14}
           height={14}
           className="rounded object-contain"

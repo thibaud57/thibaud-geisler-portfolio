@@ -1,4 +1,5 @@
 import type { Locale } from "next-intl"
+import { io } from "next/cache"
 import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
 
@@ -46,7 +47,7 @@ export async function Footer({ locale }: Props) {
 
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:justify-between sm:px-6 lg:px-8">
-          <Suspense fallback={<Skeleton className="h-5 w-64" />}>
+          <Suspense fallback={<p>© {env.NEXT_PUBLIC_BUILD_YEAR} Thibaud Geisler</p>}>
             <FooterCopyrightAsync />
           </Suspense>
           <Suspense fallback={<Skeleton className="h-5 w-72" />}>
@@ -74,6 +75,7 @@ export async function Footer({ locale }: Props) {
 }
 
 async function FooterCopyrightAsync() {
+  await io()
   const publisher = await getPublisher()
   return (
     <p>

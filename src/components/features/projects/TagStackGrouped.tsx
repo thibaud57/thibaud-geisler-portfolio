@@ -1,6 +1,8 @@
 import { useTranslations } from "next-intl"
 import type { TagKind } from "@/generated/prisma/client"
 import { KIND_ORDER } from "@/lib/tags"
+import { LABEL_CLASS } from "@/lib/typography"
+import { cn } from "@/lib/utils"
 import type { LocalizedProjectTag } from "@/types/project"
 import { TagBadge } from "./TagBadge"
 
@@ -38,9 +40,7 @@ export function TagStackGrouped({ tags }: Props) {
       <div className="flex flex-col gap-8">
         {orderedGroups.map(([kind, groupTags]) => (
           <div key={kind} className="grid gap-3 sm:grid-cols-[13rem_1fr] sm:gap-6">
-            <h3 className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase sm:pt-1.5">
-              {t(`kind.${kind}`)}
-            </h3>
+            <h3 className={cn(LABEL_CLASS, "sm:pt-1.5")}>{t(`kind.${kind}`)}</h3>
             <div className="flex flex-wrap items-center gap-2">
               {groupTags.map((projectTag) => (
                 <TagBadge key={projectTag.tag.slug} tag={projectTag.tag} />

@@ -139,11 +139,22 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 | Variables `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL` absentes de `src/env.ts` et `.env.example` | ⬜ `env.ts` est fail-fast, à ajouter dans le même commit que l'installation de `better-auth` |
 | Tables Better Auth absentes du schéma | ⬜ Première migration à écrire. Le modèle `Asset` fantôme de l'ADR-002 est corrigé |
 
+## À traiter avant la mise en production
+
+Dette reportée par les sub-projects au fil de l'implémentation. `/finalize-feature` la relit, la checklist Pré-MEP de [PRODUCTION.md](../../../PRODUCTION.md) porte ce qui concerne le déploiement lui-même.
+
+| Point | Origine | État |
+|---|---|---|
+| Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ⬜ Après le déploiement du `14` : le seed n'existe plus, le Schedule n'a plus de commande à lancer. Geste manuel de la Checklist Release, bloc Contenu depuis l'espace admin |
+| Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ⬜ Les deux champs sont restreints à `http` et `https` côté schéma depuis le sub-project `11`. [PRODUCTION.md § Checklist Pré-MEP](../../../PRODUCTION.md) les liste encore comme ouverts |
+| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ⬜ Entreprises, tags, projets et données légales en base de dev, puis transfert unique vers la production à la release du `14` par `just db-dump` et restore. Le seed a disparu |
+| Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
+
 ## Infrastructure
 
 Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
 
-- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Rien n'est sauvegardé à ce jour** : relevé du 2026-09-03, aucune destination, aucune sauvegarde de base, aucun volume backup. Toute perte de la Database est définitive tant que le sub-project `01` n'est pas livré.
+- Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
 - Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers `empiricmind.fr`. **Tout ce qui est authentifié reste sur le domaine du portfolio.** `empiricmind.fr` garde les outils d'infrastructure avec leur propre authentification.
 - Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
@@ -162,3 +173,4 @@ Quatre projets Dokploy existants : Portfolio (un service Compose plus une Databa
 - Source de vérité du kanban : GitHub Issues, avec l'espace admin en simple vue, ou base locale avec synchronisation ? La première évite un chantier de synchronisation bidirectionnelle.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
 - Faut-il un serveur MCP au-dessus des Server Actions du portfolio, pour piloter le CRM depuis Claude Code ? Techniquement peu coûteux, mais un CLI consomme nettement moins de contexte qu'un MCP à usage répétitif.
+- Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

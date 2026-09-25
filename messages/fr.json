@@ -98,12 +98,15 @@
       "stackTitle": "Stack & Expertises",
       "backToList": "Retour aux projets",
       "inProgress": "En cours",
+      "personal": "Personnel",
       "meta": {
         "teamSize": "Équipe",
         "teamSizeValue": "{count, plural, one {# personne} other {# personnes}}",
         "contract": "Contrat",
         "workMode": "Mode",
-        "duration": "Durée"
+        "duration": "Durée",
+        "durationYears": "{count, plural, one {# an} other {# ans}}",
+        "durationMonths": "{count, plural, one {# mois} other {# mois}}"
       },
       "contractStatus": {
         "FREELANCE": "Freelance",
@@ -166,9 +169,15 @@
       "approach": "Mon approche : cadrer le besoin réel avec vous, réaliser un prototype rapide, itérer sur des livrables concrets, documenter pour la maintenance. J'avance en mode Agile pour livrer régulièrement et m'adapter à vos retours."
     },
     "stats": {
-      "years": { "label": "années d'expérience" },
-      "missions": { "label": "projets clients livrés" },
-      "clients": { "label": "clients accompagnés" }
+      "years": {
+        "label": "années d'expérience"
+      },
+      "missions": {
+        "label": "projets clients livrés"
+      },
+      "clients": {
+        "label": "clients accompagnés"
+      }
     },
     "transition": "L'IA bouge vite. Je veille en continu, je teste, et j'embarque dans vos projets ce qui tient en production.",
     "stack": {
@@ -307,7 +316,7 @@
     "servicesDescription": "Agents IA, RAG, MCP et automatisation n8n en production, développement full-stack Python, TypeScript, Scala et Angular, formation IA en entreprise. Du cadrage à l'infra.",
     "projectsTitle": "Projets IA et full-stack, études de cas",
     "projectsDescription": "Études de cas de projets IA et full-stack : agents, RAG, automatisation n8n, applications web. Missions clients et projets personnels, stack et résultats.",
-    "projectTitle": "Projet\u00a0: {slug}",
+    "projectTitle": "Projet : {slug}",
     "projectDescription": "Étude de cas du projet {slug} par Thibaud Geisler.",
     "aboutTitle": "À propos",
     "aboutDescription": "Tech Lead IA & full-stack freelance basé à Metz, Grand Est · Paris · Luxembourg · Remote. Parcours, stack et façon de travailler, de la TPE au grand compte.",

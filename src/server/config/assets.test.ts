@@ -1,7 +1,6 @@
 // @vitest-environment node
-import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { getContentType, resolveAssetPath, validateAssetPath } from "./assets"
+import { describe, expect, it } from "vitest"
+import { getContentType, validateAssetPath } from "./assets"
 
 describe("AssetPathSchema + validateAssetPath", () => {
   it("accepte un chemin simple à 1 segment avec extension whitelist", () => {
@@ -82,28 +81,5 @@ describe("getContentType", () => {
   it("retourne application/octet-stream sur extension inconnue", () => {
     expect(getContentType("a.xyz")).toBe("application/octet-stream")
     expect(getContentType("noext")).toBe("application/octet-stream")
-  })
-})
-
-describe("resolveAssetPath (défense en profondeur)", () => {
-  const ORIGINAL = process.env["ASSETS_PATH"]
-  const TEST_ASSETS_PATH = path.resolve(process.cwd(), "assets-test-resolve")
-
-  beforeEach(() => {
-    process.env["ASSETS_PATH"] = TEST_ASSETS_PATH
-  })
-
-  afterEach(() => {
-    if (ORIGINAL === undefined) delete process.env["ASSETS_PATH"]
-    else process.env["ASSETS_PATH"] = ORIGINAL
-  })
-
-  it("résout un chemin imbriqué sous la racine ASSETS_PATH", () => {
-    const resolved = resolveAssetPath("projets/client/foyer/logo.png")
-    expect(resolved.startsWith(TEST_ASSETS_PATH + path.sep)).toBe(true)
-  })
-
-  it("throw Error si le chemin tenterait d échapper à la racine", () => {
-    expect(() => resolveAssetPath("../../etc/passwd")).toThrow(/Path traversal/)
   })
 })

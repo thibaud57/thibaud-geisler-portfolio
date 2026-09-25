@@ -1,7 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next"
-import { cacheLife } from "next/cache"
+import { cacheLife, io } from "next/cache"
 import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
+import { Suspense } from "react"
 
 import { AboutHero } from "@/components/features/about/AboutHero"
 import { NumberTickerStats } from "@/components/features/about/NumberTickerStats"
@@ -10,6 +11,7 @@ import { PageShell } from "@/components/layout/PageShell"
 import { JsonLd } from "@/components/seo/json-ld"
 import { LabeledText } from "@/components/ui/labeled-text"
 import { MotionItem } from "@/components/ui/motion-item"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { EXPERTISE } from "@/config/expertise"
 import { contactEmail, socialSameAs } from "@/config/social-links"
 import { setupLocalePage } from "@/i18n/locale-guard"
@@ -78,21 +80,28 @@ export default async function AProposPage({ params }: PageProps<"/[locale]/a-pro
 
       <MotionItem>
         <section className="border-y border-border py-16 sm:py-20 lg:py-24">
-          <StatsAsync />
+          <Suspense fallback={<StackedSkeleton heights={["h-[308px] sm:h-[88px]"]} />}>
+            <StatsAsync />
+          </Suspense>
         </section>
       </MotionItem>
 
       <section className="flex flex-col gap-6">
         <h2>{t("stack.title")}</h2>
-        <StackAsync locale={locale} />
+        <Suspense fallback={<StackedSkeleton heights={["h-[1196px] md:h-[512px]"]} />}>
+          <StackAsync locale={locale} />
+        </Suspense>
       </section>
 
-      <ProfileJsonLdAsync locale={locale} />
+      <Suspense fallback={null}>
+        <ProfileJsonLdAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
 }
 
 async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
+  await io()
   const [tMeta, tAbout, publisher] = await Promise.all([
     getTranslations("Metadata"),
     getTranslations("AboutPage"),
@@ -124,6 +133,7 @@ async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
 }
 
 async function StatsAsync() {
+  await io()
   const [t, years, missions, clients] = await Promise.all([
     getTranslations("AboutPage.stats"),
     getYearsOfExperience(),
@@ -139,6 +149,7 @@ async function StatsAsync() {
 }
 
 async function StackAsync({ locale }: { locale: Locale }) {
+  await io()
   const tags = await findAllTags(locale)
   return <TechStackBadges tags={tags} />
 }

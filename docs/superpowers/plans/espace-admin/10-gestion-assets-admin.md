@@ -15,12 +15,19 @@
 - `serverActions.bodySizeLimit` relevé à **8 Mo**. Le défaut de 1 Mo est trop bas pour une capture PNG, et la mise en garde de Next sur les ressources ne s'applique pas derrière l'authentification.
 - **Chaque Server Action ouvre par `await getCurrentUser()`**, hors de tout `try/catch`. Une action exportée est un endpoint HTTP invocable par quiconque connaît son identifiant : le layout protège l'affichage des pages, pas l'exécution des actions. `.claude/rules/nextjs/server-actions.md` l'impose deux fois, en « à faire » (défense en profondeur) et en « à éviter » (dépendre uniquement du proxy). L'appel doit précéder le `try`, sans quoi le `catch` avalerait l'interruption `unauthorized()` et transformerait un refus d'accès en `unknown_error`.
 - **Pas d'URL présignée** : la Server Action garde l'avantage que le serveur voit le fichier et peut le valider avant écriture.
-- Les clés suivent la convention existante : `projets/{client,personal}/<slug>/<filename>`, `documents/cv/<filename>` et `branding/<filename>`.
+- **La modale de dépôt soumet par `onSubmit` + `startTransition`, jamais par `<form action>`** : son `Select` d'emplacement perdrait sa valeur au premier reset après erreur, comme le `Select` Taille du `08` ou celui des tags.
+- Les clés suivent la convention existante : `projets/{client,personal}/<slug>/<filename>`, `documents/cv/<filename>`, `branding/<filename>` sur `portfolio-assets`, et `freelance/crm/entreprises/<slug>/<filename>` sur `portfolio-admin`.
 - Le chemin complet passe par **`validateAssetPath`** avant écriture : un fichier qu'on ne pourrait pas relire n'a aucune raison d'être écrit.
 - **Taille et type MIME sont vérifiés côté serveur**, `.claude/rules/nextjs/server-actions.md` l'imposant explicitement : « valider taille et type MIME des fichiers `FormData` côté serveur, ne pas se fier au `accept` HTML ». Le MIME annoncé doit correspondre à l'extension, faute de quoi un `.png` renommé serait servi plus tard avec un `Content-Type` qui ne décrit pas son contenu.
-- La suppression est **refusée** si l'asset est référencé par `Project.coverFilename` ou `Company.logoFilename`, et le message nomme les éléments concernés.
+- La suppression est **refusée** si l'asset est référencé par `Project.coverFilename`, par `freelance.Company.logoFilename`, **ou cité dans `caseStudyMarkdownFr` / `caseStudyMarkdownEn`**, et le message nomme les éléments concernés. Les captures de case study ne vivent dans aucune colonne dédiée : les oublier revient à autoriser la suppression d'une image affichée en production.
+- **Deux buckets.** Le sub-project `09` a réparti les fichiers selon ce qu'une route publique a le droit de servir : `portfolio-assets` pour la vitrine, lue sans authentification, `portfolio-admin` pour le back-office, lue par une route gardée sous `/admin`. L'emplacement choisi dans le formulaire détermine le bucket, jamais l'inverse. Déposer un logo d'entreprise dans `portfolio-assets` défairait ce que le `09` vient d'établir.
+- **Trois contrôles au dépôt** : un emplacement dans une liste fermée, un slug quand l'emplacement en attend un, le nom du fichier. Un asset de projet demande deux niveaux intermédiaires (`client` puis le slug), c'est le cas le plus fréquent et un « dossier plus sous-dossier » ne le couvre pas.
+- **Aucun composant shadcn à installer** : `dialog`, `select`, `alert-dialog`, `pagination`, `checkbox`, `popover`, `command` sont déjà en place depuis le `07`.
 - Le listing suit le **jeton de continuation** : `ListObjectsV2` plafonne à mille objets par appel.
-- R2 **écrase sans avertir** un objet de même clé : l'écrasement doit être confirmé explicitement.
+- **La grille de tuiles suit des paliers fixes**, pas le `auto-fill` fluide de la maquette : une colonne par défaut, deux dès `sm`, trois dès `md`, quatre dès `lg`, cinq dès `xl`, pour des tuiles d'environ 200px.
+- **Grille plate filtrée par une facette « Dossier »**, jamais une liste groupée par préfixe. Chaque tuile porte une action copier-le-chemin (`/api/assets/<clé>`) en plus de la suppression, sans date de modification affichée. Le pied de grille n'a pas de sélecteur « lignes par page » : ce n'est pas un `DataTable`.
+- R2 **écrase sans avertir** un objet de même clé : le dépôt sur une clé existante affiche un avertissement `text-sm text-destructive` dans le corps de la modale, sans `Alert`, et exige une confirmation explicite avant l'envoi.
+- **`AssetPicker` sert deux usages dès ce sub-project** : la carte Logo du formulaire entreprise (`freelance/crm/entreprises/` sur `portfolio-admin`, câblée ici), et la couverture de projet (`projets/` sur `portfolio-assets`, câblée au `13`).
 - Aucun modèle Prisma ajouté : un asset est un objet du bucket, référencé par son nom depuis `Project` ou `Company`, conformément à l'ADR-011.
 - Les dépôts locaux vont dans `portfolio-assets-dev`, la production dans `portfolio-assets`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur.
@@ -35,10 +42,12 @@
 - Modify: `next.config.ts`
 - Create: `src/lib/schemas/asset.ts`
 - Create: `src/server/actions/assets.types.ts`
+- Modify: `src/lib/r2.ts` (second client, bucket `portfolio-admin`)
+- Modify: `src/env.ts` et `.env.example` (variables du bucket admin)
 
 **Interfaces:**
 - Consomme : `CONTENT_TYPE_MAP` de `src/server/config/assets.ts`.
-- Produit : `assetUploadSchema`, `ASSET_FOLDERS`, `MAX_ASSET_BYTES`, `AssetFormState`, consommés par la Task 2.
+- Produit : `assetUploadSchema`, `ASSET_FOLDERS`, `MAX_ASSET_BYTES`, `AssetFormState`, `isAdminAssetKey`, `adminR2`, `R2_ADMIN_BUCKET`, consommés par les Tasks 2 et 3.
 
 - [ ] **Step 1: Relever la limite de taille**
 
@@ -66,13 +75,21 @@ import { CONTENT_TYPE_MAP } from '@/server/config/assets'
 
 export const MAX_ASSET_BYTES = 8 * 1024 * 1024
 
-// L'arborescence réelle porte trois profondeurs, relevées dans le dossier assets/ :
-//   branding/<fichier>                            → logos et portrait
-//   documents/cv/<fichier>                        → CV par locale
-//   projets/{client,personal}/<slug>/<fichier>    → couvertures et logos de projets
-export const FOLDERS_WITH_SLUG = ['projets/client', 'projets/personal'] as const
+// Arborescence ADR-011, deux buckets :
+//   branding/<fichier>                              → logos et portrait (portfolio-assets)
+//   documents/cv/<fichier>                          → CV par locale (portfolio-assets)
+//   projets/{client,personal}/<slug>/<fichier>      → couvertures et captures de projets (portfolio-assets)
+//   freelance/crm/entreprises/<slug>/<fichier>      → logo d'entreprise (portfolio-admin)
+export const FOLDERS_WITH_SLUG = ['projets/client', 'projets/personal', 'freelance/crm/entreprises'] as const
 export const FOLDERS_WITHOUT_SLUG = ['branding', 'documents/cv'] as const
 export const ASSET_FOLDERS = [...FOLDERS_WITH_SLUG, ...FOLDERS_WITHOUT_SLUG] as const
+
+const ADMIN_FOLDER = 'freelance/crm/entreprises'
+
+// Seul ce dossier vit sur portfolio-admin : une clé qui y commence n'est jamais lue par la route publique.
+export function isAdminAssetKey(key: string): boolean {
+  return key.startsWith(`${ADMIN_FOLDER}/`)
+}
 
 const ALLOWED_EXTENSIONS = Object.keys(CONTENT_TYPE_MAP)
 const FILENAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
@@ -129,11 +146,11 @@ export function buildAssetKey(input: AssetUploadInput): string {
 }
 ```
 
-Le slug est **conditionnel** : `branding/` reçoit ses fichiers directement, alors que `projets/client` et `projets/personal` attendent un sous-dossier. Cette asymétrie n'est pas un choix mais un constat de l'arborescence existante, où `branding/portrait.jpg` voisine avec `documents/cv/cv-thibaud-geisler-fr.pdf`. Un schéma imposant un slug partout rendrait impossible le dépôt d'un logo de marque.
+Le slug est **conditionnel** : `branding/` et `documents/cv/` reçoivent leurs fichiers directement, alors que `projets/client`, `projets/personal` et `freelance/crm/entreprises` attendent un sous-dossier, respectivement le slug du projet et celui de l'entreprise. Cette asymétrie n'est pas un choix mais un constat de l'arborescence existante, où `branding/portrait.jpg` voisine avec `documents/cv/cv-thibaud-geisler-fr.pdf`. Un schéma imposant un slug partout rendrait impossible le dépôt d'un logo de marque.
 
 `buildAssetKey` centralise la composition de la clé pour que la règle du slug conditionnel ne soit écrite qu'une fois.
 
-`ASSET_FOLDERS` reste une liste fermée plutôt qu'un chemin libre : c'est ce qui empêche l'arborescence de diverger de ce que la route sait servir. La liste d'extensions est dérivée de `CONTENT_TYPE_MAP`, donc écriture et lecture ne peuvent pas diverger.
+`ASSET_FOLDERS` reste une liste fermée plutôt qu'un chemin libre : c'est ce qui empêche l'arborescence de diverger de ce que la route sait servir. La liste d'extensions est dérivée de `CONTENT_TYPE_MAP`, donc écriture et lecture ne peuvent pas diverger. `isAdminAssetKey` est la seule règle qui décide du bucket : elle sert aussi bien au dépôt (Task 2) qu'à la lecture authentifiée (Task 3).
 
 `.toLowerCase()` sur le nom de fichier traite le cas le plus fréquent, un fichier venu du système de l'utilisateur nommé `Capture Écran.PNG`. Les espaces et accents restent refusés par le motif, avec un message explicite plutôt qu'une normalisation silencieuse qui produirait un nom surprenant.
 
@@ -167,6 +184,38 @@ export const initialAssetFormState: AssetFormState = {
 
 `usedBy` porte les noms des projets et entreprises qui référencent un asset, pour que le refus de suppression soit exploitable.
 
+- [ ] **Step 4: Second client R2, sur `portfolio-admin`**
+
+Le `09` n'a créé qu'un client, pour `portfolio-assets`. Ce sub-project est le premier à écrire dans `portfolio-admin` : il lui faut son propre client, sur son propre token, la séparation des deux buckets n'ayant de sens que si aucun client ne peut lire l'autre.
+
+Dans `src/env.ts`, section `server`, à côté des quatre variables `R2_*` du `09` :
+
+```typescript
+    R2_ADMIN_ACCESS_KEY_ID: z.string().min(1),
+    R2_ADMIN_SECRET_ACCESS_KEY: z.string().min(1),
+    R2_ADMIN_BUCKET: z.string().min(1),
+```
+
+`R2_ACCOUNT_ID` est réutilisé, les deux buckets vivant sur le même compte Cloudflare.
+
+Dans `src/lib/r2.ts` :
+
+```typescript
+export const adminR2 = new S3Client({
+  region: 'auto',
+  endpoint: `https://${env.R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: env.R2_ADMIN_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_ADMIN_SECRET_ACCESS_KEY,
+  },
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+})
+
+export const R2_ADMIN_BUCKET = env.R2_ADMIN_BUCKET
+```
+
+Documenter les trois variables dans `.env.example`, sur le modèle des quatre du `09` : `R2_ADMIN_BUCKET` vaut `portfolio-admin-dev` en développement, `portfolio-admin` en production.
+
 ---
 
 ### Task 2 : Server Actions, en TDD
@@ -176,7 +225,7 @@ export const initialAssetFormState: AssetFormState = {
 - Create: `src/server/actions/assets.ts`
 
 **Interfaces:**
-- Consomme : `assetUploadSchema` (Task 1), `r2`, `R2_BUCKET`, `validateAssetPath`, `getContentType`, `prisma`.
+- Consomme : `assetUploadSchema`, `isAdminAssetKey` (Task 1), `r2`, `R2_BUCKET`, `adminR2`, `R2_ADMIN_BUCKET`, `validateAssetPath`, `getContentType`, `prisma`.
 - Produit : `uploadAsset`, `deleteAsset`, consommées par les Tasks 4 et 5.
 
 - [ ] **Step 1: Écrire les tests qui échouent**
@@ -191,6 +240,8 @@ vi.mock('@/lib/logger', () => ({
 vi.mock('@/lib/r2', () => ({
   r2: { send: vi.fn() },
   R2_BUCKET: 'test-bucket',
+  adminR2: { send: vi.fn() },
+  R2_ADMIN_BUCKET: 'test-admin-bucket',
 }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -203,7 +254,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 
 import { prisma } from '@/lib/prisma'
-import { r2 } from '@/lib/r2'
+import { adminR2, r2 } from '@/lib/r2'
 import { getCurrentUser } from '@/lib/get-current-user'
 import { deleteAsset, uploadAsset } from './assets'
 import { initialAssetFormState } from './assets.types'
@@ -225,6 +276,7 @@ describe('uploadAsset', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(r2.send).mockResolvedValue({} as never)
+    vi.mocked(adminR2.send).mockResolvedValue({} as never)
   })
 
   it('refuse une extension hors liste blanche sans appeler R2', async () => {
@@ -335,13 +387,27 @@ describe('uploadAsset', () => {
   })
 
   it('compose la clé à partir du dossier, du slug et du nom', async () => {
-    await uploadAsset(initialAssetFormState, buildUpload({ slug: 'foyer', filename: 'logo.png' }))
+    await uploadAsset(initialAssetFormState, buildUpload({ slug: 'foyer', filename: 'cover-2.webp' }))
 
     expect(r2.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        input: expect.objectContaining({ Key: 'projets/client/foyer/logo.png' }),
+        input: expect.objectContaining({ Key: 'projets/client/foyer/cover-2.webp' }),
       }),
     )
+  })
+
+  it('écrit un logo d\'entreprise dans portfolio-admin, pas portfolio-assets', async () => {
+    await uploadAsset(
+      initialAssetFormState,
+      buildUpload({ folder: 'freelance/crm/entreprises', slug: 'foyer', filename: 'logo.png' }),
+    )
+
+    expect(adminR2.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ Bucket: 'test-admin-bucket', Key: 'freelance/crm/entreprises/foyer/logo.png' }),
+      }),
+    )
+    expect(r2.send).not.toHaveBeenCalled()
   })
 
   it('refuse un appel sans session, avant toute validation', async () => {
@@ -357,6 +423,7 @@ describe('deleteAsset', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(r2.send).mockResolvedValue({} as never)
+    vi.mocked(adminR2.send).mockResolvedValue({} as never)
     vi.mocked(prisma.project.findMany).mockResolvedValue([] as never)
     vi.mocked(prisma.company.findMany).mockResolvedValue([] as never)
   })
@@ -366,6 +433,16 @@ describe('deleteAsset', () => {
 
     expect(state.ok).toBe(true)
     expect(r2.send).toHaveBeenCalled()
+  })
+
+  it('supprime un logo d\'entreprise via adminR2, sur portfolio-admin', async () => {
+    const state = await deleteAsset('freelance/crm/entreprises/foyer/logo.png')
+
+    expect(state.ok).toBe(true)
+    expect(adminR2.send).toHaveBeenCalledWith(
+      expect.objectContaining({ input: expect.objectContaining({ Bucket: 'test-admin-bucket' }) }),
+    )
+    expect(r2.send).not.toHaveBeenCalled()
   })
 
   it('refuse la suppression et nomme le projet qui utilise la couverture', async () => {
@@ -382,11 +459,11 @@ describe('deleteAsset', () => {
   it("refuse la suppression et nomme l'entreprise qui utilise le logo", async () => {
     vi.mocked(prisma.company.findMany).mockResolvedValue([{ slug: 'dentsu' }] as never)
 
-    const state = await deleteAsset('projets/client/dentsu/logo.png')
+    const state = await deleteAsset('freelance/crm/entreprises/dentsu/logo.png')
 
     expect(state.message).toBe('asset_in_use')
     expect(state.usedBy).toContain('dentsu')
-    expect(r2.send).not.toHaveBeenCalled()
+    expect(adminR2.send).not.toHaveBeenCalled()
   })
 })
 ```
@@ -407,16 +484,24 @@ import 'server-only'
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { revalidatePath } from 'next/cache'
 
+import { z } from 'zod'
+
 import { getCurrentUser } from '@/lib/get-current-user'
 import { prisma } from '@/lib/prisma'
-import { r2, R2_BUCKET } from '@/lib/r2'
-import { assetUploadSchema, buildAssetKey, MAX_ASSET_BYTES } from '@/lib/schemas/asset'
+import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from '@/lib/r2'
+import { assetUploadSchema, buildAssetKey, isAdminAssetKey, MAX_ASSET_BYTES } from '@/lib/schemas/asset'
 import { createActionLogger } from '@/lib/server-utils'
 import { getContentType, validateAssetPath } from '@/server/config/assets'
 
 import { type AssetFormState } from './assets.types'
 
 type ZodFieldErrors = AssetFormState['errors']
+
+function resolveBucket(key: string): { client: typeof r2; bucket: string } {
+  return isAdminAssetKey(key)
+    ? { client: adminR2, bucket: R2_ADMIN_BUCKET }
+    : { client: r2, bucket: R2_BUCKET }
+}
 
 export async function uploadAsset(
   _prevState: AssetFormState,
@@ -434,7 +519,7 @@ export async function uploadAsset(
   if (!result.success) {
     return {
       ok: false,
-      errors: result.error.flatten().fieldErrors as ZodFieldErrors,
+      errors: z.flattenError(result.error).fieldErrors as ZodFieldErrors,
       message: null,
     }
   }
@@ -463,10 +548,12 @@ export async function uploadAsset(
     return { ok: false, errors: {}, message: 'file_type_mismatch' }
   }
 
+  const { client, bucket } = resolveBucket(key)
+
   try {
-    await r2.send(
+    await client.send(
       new PutObjectCommand({
-        Bucket: R2_BUCKET,
+        Bucket: bucket,
         Key: key,
         Body: Buffer.from(await file.arrayBuffer()),
         ContentType: getContentType(key),
@@ -488,7 +575,16 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
   const filename = key.split('/').pop() ?? ''
 
   const [projects, companies] = await Promise.all([
-    prisma.project.findMany({ where: { coverFilename: key }, select: { slug: true } }),
+    prisma.project.findMany({
+      where: {
+        OR: [
+          { coverFilename: key },
+          { caseStudyMarkdownFr: { contains: key } },
+          { caseStudyMarkdownEn: { contains: key } },
+        ],
+      },
+      select: { slug: true },
+    }),
     prisma.company.findMany({ where: { logoFilename: key }, select: { slug: true } }),
   ])
 
@@ -497,8 +593,10 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
     return { ok: false, errors: {}, message: 'asset_in_use', usedBy }
   }
 
+  const { client, bucket } = resolveBucket(key)
+
   try {
-    await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }))
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
     revalidatePath('/admin/assets')
     log.info({ event: 'asset:deleted', key, filename })
     return { ok: true, errors: {}, message: null }
@@ -513,43 +611,48 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
 
 La vérification des rattachements précède la suppression et non l'inverse : consulter la base après avoir effacé l'objet ne servirait à rien.
 
+**Un asset est référencé de trois façons, pas deux.** Les deux colonnes sont des égalités faciles. Mais les captures de case study ne vivent dans aucune colonne dédiée : elles sont écrites en dur dans `caseStudyMarkdownFr` et `caseStudyMarkdownEn`, et rendues par `MarkdownContent`. Sans les deux `contains`, on supprime une image pourtant affichée sur une page publique, et le défaut ne se voit qu'à l'œil, plus tard, sur la page de case study concernée. C'est le trou le plus discret de cet écran.
+
 Le format exact stocké dans `coverFilename` et `logoFilename` doit être confirmé à l'implémentation. Si ces colonnes portent le nom seul et non la clé complète, la clause `where` doit s'y adapter, sans quoi la protection ne détecterait jamais rien.
+
+`resolveBucket` déduit le bucket et le client de la clé, via `isAdminAssetKey` : `freelance/crm/entreprises/…` va sur `portfolio-admin` avec `adminR2`, tout le reste sur `portfolio-assets` avec `r2`. Un `R2_BUCKET` figé aurait supprimé ou écrit dans le mauvais bucket, ou plus exactement n'aurait rien fait, sans erreur, le token de la vitrine ne voyant pas `portfolio-admin`.
 
 - [ ] **Step 4: Lancer les tests pour vérifier qu'ils passent**
 
 Run: `pnpm vitest run --project unit src/server/actions/assets.test.ts`
-Expected: PASS, seize cas verts.
+Expected: PASS, dix-huit cas verts.
 
 ---
 
-### Task 3 : Listing paginé
+### Task 3 : Listing paginé et lecture authentifiée du bucket admin
 
 **Files:**
 - Create: `src/server/queries/assets.ts`
 - Create: `src/server/queries/assets.test.ts`
+- Create: `src/app/admin/(protected)/api/assets/[...path]/route.ts`
 
 **Interfaces:**
-- Consomme : `r2`, `R2_BUCKET`.
-- Produit : `listAssets(prefix?: string)`, consommée par les Tasks 4 et 5.
+- Consomme : `r2`, `R2_BUCKET`, `adminR2`, `R2_ADMIN_BUCKET` (Task 1), `getCurrentUser`, `validateAssetPath`, `getContentType`.
+- Produit : `listAssets(prefix?: string)` et `listAdminAssets(prefix?: string)`, consommées par les Tasks 4 et 5 ; la route authentifiée, consommée par l'`AssetPicker` de la carte Logo pour ses vignettes.
 
 - [ ] **Step 1: Écrire le listing**
 
 ```typescript
 import 'server-only'
-import { ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { ListObjectsV2Command, type S3Client } from '@aws-sdk/client-s3'
 
-import { r2, R2_BUCKET } from '@/lib/r2'
+import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from '@/lib/r2'
 
 export type AssetEntry = { key: string; size: number; lastModified?: Date }
 
-export async function listAssets(prefix?: string): Promise<AssetEntry[]> {
+async function listBucket(client: S3Client, bucket: string, prefix?: string): Promise<AssetEntry[]> {
   const entries: AssetEntry[] = []
   let continuationToken: string | undefined
 
   do {
-    const page = await r2.send(
+    const page = await client.send(
       new ListObjectsV2Command({
-        Bucket: R2_BUCKET,
+        Bucket: bucket,
         Prefix: prefix,
         ContinuationToken: continuationToken,
       }),
@@ -568,11 +671,21 @@ export async function listAssets(prefix?: string): Promise<AssetEntry[]> {
     continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined
   } while (continuationToken)
 
+  return entries
+}
+
+export async function listAssets(prefix?: string): Promise<AssetEntry[]> {
+  const entries = await listBucket(r2, R2_BUCKET, prefix)
+  return entries.sort((a, b) => a.key.localeCompare(b.key))
+}
+
+export async function listAdminAssets(prefix?: string): Promise<AssetEntry[]> {
+  const entries = await listBucket(adminR2, R2_ADMIN_BUCKET, prefix)
   return entries.sort((a, b) => a.key.localeCompare(b.key))
 }
 ```
 
-La boucle sur le jeton de continuation n'est pas de l'anticipation : sans elle, la liste s'arrêterait à mille objets **en paraissant complète**. C'est le genre de défaut qui n'apparaît que le jour où il est coûteux.
+La boucle sur le jeton de continuation n'est pas de l'anticipation : sans elle, la liste s'arrêterait à mille objets **en paraissant complète**. C'est le genre de défaut qui n'apparaît que le jour où il est coûteux. `listBucket` factorise la boucle entre les deux buckets : seuls le client et le nom du bucket changent, la logique de pagination ne doit pas être écrite deux fois.
 
 - [ ] **Step 2: Écrire le test de pagination**
 
@@ -584,7 +697,52 @@ pnpm vitest run --project unit src/server/queries/assets.test.ts
 
 Expected: PASS, un cas vert. Sans ce test, une régression sur la boucle rend la liste silencieusement tronquée, ce que le scénario 7 de la spec ne détecterait qu'au-delà de mille objets.
 
-- [ ] **Step 3: Vérifier le typage**
+- [ ] **Step 3: Écrire la route authentifiée du bucket admin**
+
+`portfolio-admin` n'a pas de route publique : les vignettes de l'`AssetPicker` sur la carte Logo (`<img src="...">`) passent par une route sous `/admin`, gardée comme le reste de l'arbre. Même mécanique que la route publique du `09` (validation, `GetObjectCommand`, flux, `NoSuchKey` en 404), avec deux différences : le client et le bucket admin, et une garde de session en tête.
+
+```typescript
+import { GetObjectCommand } from '@aws-sdk/client-s3'
+import { NextResponse } from 'next/server'
+
+import { getCurrentUser } from '@/lib/get-current-user'
+import { adminR2, R2_ADMIN_BUCKET } from '@/lib/r2'
+import { getContentType, validateAssetPath } from '@/server/config/assets'
+
+type RouteContext = { params: Promise<{ path: string[] }> }
+
+export async function GET(_request: Request, context: RouteContext): Promise<Response> {
+  await getCurrentUser()
+
+  const { path: raw } = await context.params
+  const validation = validateAssetPath(raw)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
+  }
+
+  try {
+    const object = await adminR2.send(
+      new GetObjectCommand({ Bucket: R2_ADMIN_BUCKET, Key: validation.joined }),
+    )
+    if (!object.Body) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    return new Response(object.Body.transformToWebStream(), {
+      status: 200,
+      headers: { 'Content-Type': getContentType(validation.joined) },
+    })
+  } catch (err) {
+    if ((err as { name?: string }).name === 'NoSuchKey') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    throw err
+  }
+}
+```
+
+`await getCurrentUser()` précède tout : cette route sert un bucket qui n'a pas d'autre protection que la session, contrairement à `portfolio-assets` dont la seule garde est de ne rien exposer de sensible. Pas de `Cache-Control` immuable ici : ce n'est pas la vitrine, et un logo remplacé doit apparaître sans attendre l'expiration d'un cache d'un an.
+
+- [ ] **Step 4: Vérifier le typage**
 
 ```bash
 just typecheck
@@ -600,20 +758,18 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/assets/AssetPicker.tsx`
 
 **Interfaces:**
-- Consomme : rien côté serveur. `listAssets` porte `import 'server-only'` : un composant client ne peut pas l'importer, c'est le parent Server Component qui appelle la requête et passe le résultat en prop.
-- Produit : `<AssetPicker value={string | null} onChange={(key: string | null) => void} assets={AssetEntry[]} />`, consommé par le sub-project `13` (le `08` passe avant et n'édite pas le logo). Le filtrage par préfixe est fait par l'appelant, au moment de la requête.
-
-> Ce composant ne sert à rien dans ce sub-project. Il est écrit ici parce que c'est le moment où l'on connaît la forme des données, plutôt que d'être improvisé dans un formulaire déjà chargé.
+- Consomme : rien côté serveur. `listAssets` et `listAdminAssets` portent `import 'server-only'` : un composant client ne peut pas les importer, c'est le parent Server Component qui appelle la requête et passe le résultat en prop.
+- Produit : `<AssetPicker value={string | null} onChange={(key: string | null) => void} assets={AssetEntry[]} imageBasePath={string} />`, consommé dès ce sub-project par la carte Logo du formulaire entreprise (`imageBasePath="/admin/api/assets"`, assets de `listAdminAssets('freelance/crm/entreprises')`), puis par le sub-project `13` pour la couverture de projet (`imageBasePath="/api/assets"`, assets de `listAssets('projets')`). Le filtrage par préfixe est fait par l'appelant, au moment de la requête.
 
 - [ ] **Step 1: Écrire le sélecteur**
 
 Composant client affichant les assets d'un préfixe sous forme de vignettes sélectionnables, avec une option de retrait. Points imposés :
 
 - il reçoit et renvoie une **clé d'objet**, jamais un fichier
-- les vignettes s'affichent via `/api/assets/<clé>`, seul point d'accès au bucket
+- les vignettes s'affichent via `${imageBasePath}/<clé>` : `/api/assets` pour `portfolio-assets`, la route authentifiée de la Task 3 pour `portfolio-admin`. Le composant ne choisit pas le bucket, il affiche ce que l'appelant lui a résolu
 - une option permet de revenir à l'absence de sélection, `coverFilename` et `logoFilename` étant nullables
 - le préfixe restreint la liste au dossier pertinent, pour ne pas proposer un CV comme couverture de projet
-- la grille suit les paliers de `docs/DESIGN.md` : une colonne par défaut, `md:grid-cols-2`, `lg:grid-cols-3`
+- la grille suit des paliers fixes propres à la modale : `grid-cols-2` par défaut, `sm:grid-cols-3`, `md:grid-cols-4`. Distincts des paliers de l'écran Assets (Task 5, une colonne par défaut jusqu'à cinq dès `xl`) : cette grille compose des vignettes plus petites dans une modale, pas la surface pleine largeur de la page
 - une vignette est **sélectionnable, donc cliquable** : elle porte `transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl`, l'affordance de survol des surfaces cliquables custom. Ne pas écrire de `hover:border-*` : la `Card` shadcn en `radix-nova` dessine son contour par `ring-1 ring-foreground/10` et sa bordure fait 0px, la classe n'aurait aucun effet visible
 
 - [ ] **Step 2: Vérifier typage et lint**
@@ -632,60 +788,71 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/assets/AssetsBrowser.tsx`
 - Create: `src/components/features/admin/assets/AssetUploadDialog.tsx`
 - Create: `src/components/features/admin/assets/DeleteAssetDialog.tsx`
-- Modify: `src/app/admin/assets/page.tsx`
+- Modify: `src/app/admin/(protected)/assets/page.tsx`
 
 **Interfaces:**
-- Consomme : `uploadAsset`, `deleteAsset` (Task 2), `listAssets` (Task 3).
+- Consomme : `uploadAsset`, `deleteAsset` (Task 2), `listAssets`, `listAdminAssets` (Task 3).
 - Produit : l'écran `/admin/assets` complet.
 
 - [ ] **Step 1: Écrire la modale de dépôt**
 
 Composant client en `useActionState`. Points imposés :
 
-- un select du dossier alimenté par `ASSET_FOLDERS`, un champ de slug, un champ de fichier
-> **Composants shadcn à installer d'abord.** `dialog`, `select` et `alert-dialog` sont rangés en post-MVP dans `docs/DESIGN.md` et absents de `src/components/ui/` : `pnpm dlx shadcn@latest add dialog select alert-dialog`, avec `--dry-run` en premier et aucun écrasement des composants existants. Ce sub-project ne dépend pas du `07`, il ne peut donc rien hériter de ses installations. Les cases à cocher sont des `<input type="checkbox">` natifs, `checkbox` n'ayant jamais été installé : ne pas l'introduire pour ce seul écran.
-
+- un select du dossier alimenté par `ASSET_FOLDERS` (cinq entrées, `freelance/crm/entreprises` comprise), un champ de slug, un champ de fichier
+- soumission par `onSubmit` + `startTransition(() => formAction(new FormData(event.currentTarget)))` après `event.preventDefault()`, jamais par `<form action>` : le `Select` de dossier perdrait sa valeur au premier reset après une erreur de validation, comme `TagFormDialog` (`.claude/rules/shadcn-ui/components.md`)
+- le texte d'aide de la zone de dépôt énumère toutes les extensions réellement acceptées : « JPG, PNG, WebP, SVG ou PDF · 8 Mo maximum », dérivées de `CONTENT_TYPE_MAP`, pas une liste recopiée à la main qui pourrait diverger
 - le nom du fichier est pré-rempli depuis le fichier choisi, en minuscules, et reste modifiable
 - **la taille est vérifiée côté client avant l'envoi** : au-delà de `bodySizeLimit`, la requête est rejetée par le framework avant d'atteindre l'action, et le message par défaut n'explique rien
-- si la clé existe déjà dans le listing, une confirmation est demandée avant envoi, R2 écrasant sans avertir
+- si la clé existe déjà dans le listing, un avertissement `text-sm text-destructive` apparaît dans le corps de la modale, sans `Alert`, et le bouton « Déposer » exige une seconde confirmation avant d'envoyer, R2 écrasant sans avertir
 
 - [ ] **Step 2: Écrire la confirmation de suppression**
 
-`AlertDialog` appelant `deleteAsset(key)`. Quand `state.message` vaut `asset_in_use`, afficher la liste `state.usedBy` avec une phrase expliquant que l'asset est utilisé et ne peut pas être supprimé.
+`AlertDialog` appelant `deleteAsset(key)`. Quand `state.message` vaut `asset_in_use`, le texte de la modale est remplacé dès l'ouverture par le refus en `text-destructive`, sur le gabarit « Ce fichier est [la couverture de / le logo de / cité dans le case study de] « {{ nom }} ». Retirez le rattachement avant de le supprimer. », `{{ nom }}` venant du premier élément de `state.usedBy`. Le bouton `Annuler` reste, `Supprimer` est désactivé plutôt que retiré : même motif que `dlgDeleteTag` et `dlgDeleteCompany`, pas le pied à bouton unique `Fermer` que la maquette dessine pour ce cas précis.
 
 - [ ] **Step 3: Écrire le navigateur d'assets**
 
-Liste groupée par préfixe, chaque entrée montrant la vignette, la clé, la taille et la date de modification, avec une action de suppression.
+Grille plate, filtrée par une facette « Dossier » (checkboxes à compteurs, sur le motif du `07`), jamais une liste groupée par préfixe : aucune ligne de section ne sépare les dossiers. Chaque tuile montre la vignette, le nom du fichier, le dossier (tronqué, relu en `Tooltip`), la taille, une action « copier le chemin » (`/api/assets/<clé>` ou l'équivalent admin) et une action de suppression. Aucune date de modification ne s'affiche.
 
-La grille de vignettes de chaque groupe suit les paliers de `docs/DESIGN.md` : une colonne par défaut, `md:grid-cols-2`, `lg:grid-cols-3`. Ces entrées ne sont pas cliquables, l'action vivant dans le bouton de suppression : elles ne portent donc pas le survol des surfaces cliquables, contrairement aux vignettes de l'`AssetPicker`.
+La grille suit des paliers fixes, pas les paliers de `docs/DESIGN.md` utilisés par l'`AssetPicker` : une colonne par défaut, deux dès `sm`, trois dès `md`, quatre dès `lg`, cinq dès `xl`, pour des tuiles d'environ 200px. Ces entrées ne sont pas cliquables, l'action vivant dans les deux icônes de la tuile : elles ne portent donc pas le survol des surfaces cliquables de l'`AssetPicker`.
+
+Le pied de la grille porte un compteur (« N fichiers · résumé des facettes ») et une `Pagination`, sans sélecteur « lignes par page » : ce n'est pas un `DataTable`.
 
 - [ ] **Step 4: Remplacer la page d'attente**
 
-**Le chargement passe sous `<Suspense>`.** `listAssets` lit R2 sans cache, or `cacheComponents: true` refuse une lecture dynamique qui n'est ni cachée ni suspendue : elle lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Extraire un sous-composant `async` qui appelle la requête et rend le dépôt et le navigateur, le monter dans un `<Suspense>` avec un `StackedSkeleton` en `fallback`, et laisser la page elle-même statique. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Le bloc ci-dessous montre le chargement, pas la structure finale de la page.
+**Le chargement passe sous `<Suspense>`.** `listAssets` et `listAdminAssets` lisent R2 sans cache, or `cacheComponents: true` refuse une lecture dynamique qui n'est ni cachée ni suspendue : elle lève `"Uncached data was accessed outside of <Suspense>"` et fait échouer le build. Extraire un sous-composant `async` qui appelle les deux requêtes et rend le dépôt et le navigateur, le monter dans un `<Suspense>` avec un `StackedSkeleton` en `fallback`, et laisser la page elle-même statique. `src/app/[locale]/(public)/projets/[slug]/page.tsx` en donne la forme exacte, à relire avant d'écrire. Le bloc ci-dessous montre le chargement, pas la structure finale de la page.
+
+**La grille combine les deux buckets.** La facette « Dossier » propose les cinq entrées d'`ASSET_FOLDERS`, `freelance/crm/entreprises` comprise : sans les assets admin dans le listing, ce dossier de la facette n'afficherait jamais rien après un dépôt. Chaque entrée porte son `imageBasePath` pour que `AssetsBrowser` sache résoudre sa vignette et son action copier-le-chemin sans deviner le bucket depuis la clé.
 
 ```typescript
 import { AssetsBrowser } from '@/components/features/admin/assets/AssetsBrowser'
 import { AssetUploadDialog } from '@/components/features/admin/assets/AssetUploadDialog'
-import { listAssets } from '@/server/queries/assets'
+import { listAdminAssets, listAssets } from '@/server/queries/assets'
 
 export default async function AdminAssetsPage() {
-  const assets = await listAssets()
+  const [assets, adminAssets] = await Promise.all([
+    listAssets(),
+    listAdminAssets('freelance/crm/entreprises'),
+  ])
+  const allAssets = [
+    ...assets.map((a) => ({ ...a, imageBasePath: '/api/assets' })),
+    ...adminAssets.map((a) => ({ ...a, imageBasePath: '/admin/api/assets' })),
+  ]
 
   return (
     <div className="w-full py-6 lg:py-8">
       <div className="flex items-center justify-between">
         <h1 className="font-sans text-2xl font-semibold tracking-tight">Assets</h1>
-        <AssetUploadDialog existingKeys={assets.map((a) => a.key)} />
+        <AssetUploadDialog existingKeys={allAssets.map((a) => a.key)} />
       </div>
       <div className="mt-6">
-        <AssetsBrowser assets={assets} />
+        <AssetsBrowser assets={allAssets} />
       </div>
     </div>
   )
 }
 ```
 
-`existingKeys` est ce qui permet à la modale de détecter un écrasement avant l'envoi.
+`existingKeys` est ce qui permet à la modale de détecter un écrasement avant l'envoi, tous buckets confondus : une clé donnée n'existe que dans un seul des deux.
 
 Deux points de style sont imposés par `docs/DESIGN.md` et ne s'improvisent pas :
 
@@ -755,6 +922,12 @@ Rattacher un asset à un projet, puis tenter de le supprimer.
 
 Expected: refus, avec le slug du projet nommé. C'est le critère central du sub-project.
 
+- [ ] **Step 8 bis: Vérifier le refus sur une capture de case study**
+
+Repérer une image citée dans le markdown d'un case study sans être la couverture du projet, par exemple `projets/client/webapp-gestion-sinistres/webapp-gestion-sinistres-2.webp`, puis tenter de la supprimer.
+
+Expected: refus, avec le slug du projet nommé. Une suppression acceptée signalerait que les deux clauses `contains` sur `caseStudyMarkdownFr` et `caseStudyMarkdownEn` manquent : l'image disparaîtrait d'une page publique sans que rien ne le signale.
+
 - [ ] **Step 9: Vérifier le bucket de destination**
 
 ```bash
@@ -764,6 +937,28 @@ AWS_ACCESS_KEY_ID=<clé dev> AWS_SECRET_ACCESS_KEY=<secret dev> AWS_DEFAULT_REGI
 ```
 
 Expected: le fichier déposé en local est dans le bucket de développement, pas dans celui de production. Le token de développement ne peut de toute façon pas lire `portfolio-assets` : tenter la même commande sur ce bucket doit être refusé.
+
+- [ ] **Step 9 bis: Vérifier la séparation vitrine / back-office**
+
+Déposer un logo dans l'emplacement `freelance/crm/entreprises`, avec un slug d'entreprise.
+
+```bash
+aws s3 ls s3://portfolio-admin-dev/freelance/crm/entreprises/ --recursive \
+  --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
+```
+
+Expected: le fichier est dans le bucket **admin**, pas dans celui de la vitrine. Puis :
+
+- le charger par la route publique `/api/assets/freelance/crm/entreprises/<slug>/logo.png` doit échouer, cette route ne détenant que le token de la vitrine ;
+- le charger par la route authentifiée de l'espace admin, session valide, doit réussir.
+
+C'est ce qui prouve que la frontière posée au sub-project `09` tient jusqu'à l'écriture.
+
+- [ ] **Step 9 ter: Vérifier la sélection du logo depuis le formulaire entreprise**
+
+Depuis le formulaire entreprise, cliquer sur « Choisir un logo ».
+
+Expected: le sélecteur s'ouvre sur `freelance/crm/entreprises/`, ses vignettes se chargent par la route authentifiée (pas `/api/assets/...`), le logo choisi s'affiche dans l'aperçu de la carte, et la grille de l'écran `/admin/assets` propose bien le dossier « freelance/crm/entreprises » dans sa facette Dossier une fois le fichier déposé.
 
 - [ ] **Step 10: Lancer la suite complète**
 
@@ -789,15 +984,20 @@ Expected: tous les tests verts.
 
 `.claude/rules/nextjs/assets.md` ne décrit que `projets/` et `documents/`. Le dossier `branding/` est pourtant utilisé en production par le logo de la navbar, le portrait de la page à propos et le JSON-LD, avec une profondeur de deux segments et **sans** slug intermédiaire.
 
-Ajouter les trois structures valides à la règle de convention de chemins :
+Ajouter les quatre structures valides à la règle de convention de chemins, en nommant le bucket de chacune :
 
-| Structure | Segments | Exemple |
-|---|---|---|
-| `branding/<fichier>` | 2 | `branding/portrait.jpg` |
-| `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
-| `projets/{client,personal}/<slug>/<fichier>` | 4 | `projets/client/foyer/logo.png` |
+| Bucket | Structure | Segments | Exemple |
+|---|---|---|---|
+| `portfolio-assets` | `branding/<fichier>` | 2 | `branding/portrait.jpg` |
+| `portfolio-assets` | `documents/cv/<fichier>` | 3 | `documents/cv/cv-thibaud-geisler-fr.pdf` |
+| `portfolio-assets` | `projets/{client,personal}/<slug-projet>/<fichier>` | 4 | `projets/client/webapp-gestion-sinistres/cover.webp` |
+| `portfolio-admin` | `freelance/crm/entreprises/<slug>/<fichier>` | 5 | `freelance/crm/entreprises/foyer/logo.png` |
 
-Sans cet ajout, la rule décrit `branding/` comme interdit alors qu'il est en place, et c'est elle qui est chargée automatiquement à la prochaine édition d'un fichier d'assets. C'est aussi ce constat d'arborescence qui justifie le slug conditionnel du schéma de la Task 1 : le documenter ailleurs que dans le plan est ce qui empêche qu'on le « corrige » plus tard en croyant à une incohérence.
+Écrire aussi la règle qui les sépare, sans quoi la table se lit comme une liste arbitraire : `portfolio-assets` porte ce que la route publique `/api/assets/[...path]` sert sans authentification, `portfolio-admin` ce qui n'est lu que par l'espace admin, derrière sa propre route gardée. Le critère n'est pas « qui édite le fichier », l'admin écrivant dans les deux, mais « qui a le droit de le lire ».
+
+Le dossier de projet porte le slug du **projet**, jamais celui de son entreprise : c'est ce que le sub-project `09` a corrigé, l'ancienne arborescence mélangeant les deux conventions.
+
+Sans cet ajout, la rule décrit `branding/` comme interdit alors qu'il est en place, et c'est elle qui est chargée automatiquement à la prochaine édition d'un fichier d'assets. C'est aussi ce constat d'arborescence qui justifie les trois contrôles du formulaire de la Task 1, emplacement, slug et nom de fichier : le documenter ailleurs que dans le plan est ce qui empêche qu'on le « corrige » plus tard en croyant à une incohérence.
 
 - [ ] **Step 2: Consigner la limite de taille dans `docs/PRODUCTION.md`**
 
@@ -805,15 +1005,22 @@ Ajouter la limite retenue là où les contraintes d'exploitation sont documenté
 
 Préciser le raisonnement en une ligne, la valeur seule n'expliquant pas pourquoi elle a été choisie : la limite porte sur le corps HTTP brut, overhead multipart compris, et le plus gros cas réaliste est une capture PNG non optimisée de 1 à 3 Mo. Mentionner que la mise en garde de Next sur la consommation de ressources ne s'applique pas ici, l'action étant derrière l'authentification et joignable par le seul compte autorisé.
 
+Ajouter aussi les trois variables du bucket admin (`R2_ADMIN_ACCESS_KEY_ID`, `R2_ADMIN_SECRET_ACCESS_KEY`, `R2_ADMIN_BUCKET`) aux Variables Secrets, à côté des quatre `R2_*` posées par le `09`, et `R2_ADMIN_SECRET_ACCESS_KEY` à la liste des secrets à ne jamais logger.
+
 - [ ] **Step 3: Vérifier qu'aucune des deux structures ne contredit le code**
 
 ```bash
 grep -rn "branding" .claude/rules/nextjs/assets.md src/lib/schemas/asset.ts
+grep -rn "entreprises" .claude/rules/nextjs/assets.md src/lib/schemas/asset.ts
 ```
 
-Expected: le dossier apparaît des deux côtés, avec la même profondeur et la même absence de slug.
+Expected: les deux emplacements apparaissent des deux côtés, avec la même profondeur, la même règle de slug et le même bucket.
 
-- [ ] **Step 4: Demander la validation avant commit**
+- [ ] **Step 4: Inscrire la vérification de production dans la Checklist Release**
+
+Un point ne peut être constaté qu'après déploiement, et la production ne se déploie qu'au tag release-please : l'ajouter à la Checklist Release de `docs/PRODUCTION.md` plutôt qu'en faire un critère de fin de sub-project. Un fichier déposé depuis l'espace admin de production apparaît dans le bucket de production correspondant à son emplacement, et un logo d'entreprise reste inaccessible par la route publique.
+
+- [ ] **Step 5: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

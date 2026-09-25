@@ -1,6 +1,7 @@
 "use client"
 
 import { NumberTicker } from "@/components/magicui/number-ticker"
+import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 export interface Stat {
@@ -24,9 +25,7 @@ export function NumberTickerStats({ stats, className }: Props) {
             <NumberTicker value={stat.value} />
             {stat.suffix ? <span>{stat.suffix}</span> : null}
           </div>
-          <div className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-            {stat.label}
-          </div>
+          <div className={LABEL_CLASS}>{stat.label}</div>
         </div>
       ))}
     </div>

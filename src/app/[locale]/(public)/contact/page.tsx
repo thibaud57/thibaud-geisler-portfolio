@@ -10,6 +10,7 @@ import { Link } from "@/i18n/navigation"
 import { logger } from "@/lib/logger"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildContactPage } from "@/lib/seo/json-ld"
+import { LINK_CLASS } from "@/lib/typography"
 import { JsonLd } from "@/components/seo/json-ld"
 
 import { CalendlyWidget } from "@/components/features/contact/CalendlyWidget"
@@ -122,7 +123,7 @@ async function ContactTabsAsync({
     <p className="text-sm text-muted-foreground">
       {t.rich("form.privacyNotice", {
         link: (chunks) => (
-          <Link href="/confidentialite" className="text-primary underline underline-offset-2">
+          <Link href="/confidentialite" className={LINK_CLASS}>
             {chunks}
           </Link>
         ),
