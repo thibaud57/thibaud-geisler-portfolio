@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react"
 import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { nameOfAssetKey } from "@/lib/assets"
-import { isHardcodedAssetKey } from "@/lib/schemas/asset"
+import { isHardcodedAssetKey } from "@/lib/asset-keys"
 import { deleteAsset } from "@/server/actions/assets"
 
 interface Props {

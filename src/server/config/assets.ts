@@ -15,6 +15,8 @@ export { CONTENT_TYPE_MAP }
 
 const SEGMENT_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i
 const MAX_SEGMENTS = 5
+// Limite R2 d'une clé d'objet : au-delà, R2 répond InvalidObjectName et la route tomberait en 500.
+const MAX_KEY_LENGTH = 1024
 
 const SegmentSchema = z.string().regex(SEGMENT_PATTERN, "Segment invalide")
 
@@ -30,6 +32,9 @@ export const AssetPathSchema = z
     },
     { message: ASSET_EXTENSION_ERROR_MESSAGE },
   )
+  .refine((segments) => segments.join("/").length <= MAX_KEY_LENGTH, {
+    message: "Chemin trop long",
+  })
 
 export type ValidateAssetPathResult =
   { ok: true; segments: string[]; joined: string } | { ok: false; error: string }

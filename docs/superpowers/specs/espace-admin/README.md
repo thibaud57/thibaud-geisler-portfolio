@@ -160,15 +160,15 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 
 | Point | Origine | État |
 |---|---|---|
-| Migrations appliquées au démarrage du container | `03`, `04`, `09` | ⬜ Les 7 migrations dans les logs du déploiement |
-| Charger le dump dans `portfolio-db` | `14` | ⬜ [PRODUCTION.md § Backup & Recovery](../../../PRODUCTION.md), procédure « Remplir la base depuis un dump de dev », Redeploy compris |
-| Assets servis depuis R2 | `09` | ⬜ `curl -sI https://thibaud-geisler.com/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf` renvoie `public, max-age=31536000, immutable` ; aucune image cassée sur les pages publiques ni sur les badges entreprise |
-| Connexion à l'espace admin | `04`, `05` | ⬜ Le compte `ADMIN_EMAIL` se connecte, un autre compte Google revient sur `/admin/login?error=FORBIDDEN` |
-| Upload depuis l'espace admin | `10` | ⬜ Le fichier atterrit dans le bucket de production de son emplacement ; le logo d'une entreprise ayant un projet publié est servi sans session en `no-cache`, toute autre clé `freelance/` répond 404 par la route publique |
-| Sentry | `02` | ⬜ `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/` renvoie un bundle du jour du tag ; une erreur serveur produit une issue dont la stack trace pointe sur le source ; `docker history --no-trunc <image> \| grep -i sentry_auth_token` ne renvoie rien |
-| Rendu public sans donnée au build | `14` | ⬜ `curl -N https://thibaud-geisler.com/fr/projets` montre la coquille avant le contenu ; `og:title` avant `</head>` pour les user-agents `TelegramBot (like TwitterBot)`, `Bluesky Cardyb/1.1` et `http.rb/5.1.1 (Mastodon/4.3.0; +https://example.org/)` |
-| Performance | `14` | ⬜ PageSpeed Insights sur les quatre pages clés × deux locales, comparé à [baselines/](../../../baselines/), nouveau relevé daté |
-| Supprimer le volume `portfolio_assets` du VPS | `09` | ⬜ Après quelques jours de fonctionnement normal : copie de secours d'un éventuel rollback d'ici là |
+| Migrations appliquées au démarrage du container | `03`, `04`, `09` | ✅ 2026-09-25 : container `healthy` après le déploiement de `v2.0.0` |
+| Charger le dump dans `portfolio-db` | `14` | ✅ 2026-09-25 : 11 projets, 6 entreprises, 47 tags, 12 migrations, puis Redeploy |
+| Assets servis depuis R2 | `09` | ✅ 2026-09-25 |
+| Connexion à l'espace admin | `04`, `05` | ✅ 2026-09-25, après correction de `BETTER_AUTH_URL`, restée à la valeur de dev `http://localhost:3000` |
+| Upload depuis l'espace admin | `10` | ✅ 2026-09-25 |
+| Sentry | `02` | ⬜ Source maps reçues et token absent de l'image (2026-09-25). Reste à voir une erreur serveur produire une issue dont la stack trace pointe sur le source, à la première erreur réelle |
+| Rendu public sans donnée au build | `14` | ✅ 2026-09-25 |
+| Performance | `14` | ✅ 2026-09-25 : [baselines/cwv-2026-09-25.md](../../../baselines/cwv-2026-09-25.md) |
+| Supprimer le volume `portfolio_assets` du VPS | `09` | ✅ 2026-09-25, avec l'ancienne image |
 | Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
 
 ## Infrastructure
