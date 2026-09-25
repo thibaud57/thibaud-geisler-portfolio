@@ -169,7 +169,7 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 | Rendu public sans donnée au build | `14` | ✅ 2026-09-25 |
 | Performance | `14` | ✅ 2026-09-25 : [baselines/cwv-2026-09-25.md](../../../baselines/cwv-2026-09-25.md) |
 | Supprimer le volume `portfolio_assets` du VPS | `09` | ✅ 2026-09-25, avec l'ancienne image |
-| Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
+| Compléter la fiche de la société du propriétaire | `11` | ✅ 2026-09-25 : secteur, taille, site et entité légale renseignés, favicon gardé comme logo |
 
 ## Infrastructure
 
