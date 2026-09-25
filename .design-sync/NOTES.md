@@ -53,9 +53,9 @@ système, puis refait entièrement.
   suit `_ds_needs_recompile` (le correctif `Sidebar.jsx` du 06 y est arrivé sans bundle envoyé).
 - **Travailler dans l'export et vérifier avant l'envoi** : l'export `.design-sync/design-system/` est
   la copie à modifier, en gardant une copie intacte pour calculer ce qui s'écrit et ce qui se
-  supprime. Pour voir les cartes, recompiler un bundle local depuis les `.jsx` (l'`esbuild` du
-  projet suffit : un bloc par fichier, imports repris depuis `__ds_scope`, noms publiés sur le
-  namespace), servir le dossier en HTTP (les icônes se chargent par `fetch`, refusé en `file://`),
+  supprime. Pour voir les cartes, recompiler un bundle local depuis les `.jsx` (un bloc par
+  fichier, imports repris depuis `__ds_scope`, noms publiés sur le namespace), servir le dossier en
+  HTTP (les icônes se chargent par `fetch`, refusé en `file://`),
   puis capturer chaque carte avec le Chromium de Playwright en headless à son viewport `@dsCard`.
   Comparer au rendu de la copie intacte distingue une régression d'un défaut ancien.
 - **Un composant installé quitte `post-mvp/`** : fichiers vers `components/core/`, règles de
@@ -72,8 +72,26 @@ système, puis refait entièrement.
   (`{ style: { color: … } }`).
 - **Ne jamais modifier la maquette sans demande explicite** : c'est le fichier de design du
   propriétaire, pas un artefact généré.
+- **`esbuild` n'est plus une dépendance directe** : retiré au sub-project 14 avec le seed, il reste
+  installé en transitif, donc `node_modules/.bin/esbuild` répond toujours. Le chercher dans
+  `package.json` ne donne rien, ce qui ne veut pas dire qu'il manque. Compiler tous les `.jsx` en
+  un bundle jetable est la façon la moins chère de vérifier qu'aucun import ne casse avant un sync.
 
 ## Journal
+
+- **Clôture de l'epic espace-admin (préparé le 2026-09-25, sync à lancer)** : les sub-projects 08 à
+  14 n'avaient donné lieu à aucun sync, le système en était resté au 07. Seize patterns admin y
+  entrent (`RowActionButton`, `TruncateTooltip`, `BadgeList`, `ConfirmDeleteDialog`, `DetailDialog`,
+  `OptionsPopover`, `SearchInput`, `FacetFilter`, `PaginationFooter`, `EmptyState`, `TitledBlock`,
+  `NameSlugCell`, `EmptyValue`, `ExternalUrl`, `CompanyLogoTile`, `AssetPreview`), avec `core/Empty`
+  qui leur manquait et cinq cartes `patterns-admin-*`. `Breadcrumb`, `RadioGroup` et `Calendar`
+  quittent `post-mvp/` pour `core/`, règles CSS comprises, et `post-mvp/navigation/` disparaît,
+  vidé. Le readme, `github.md` et les fiches `DataTable`, `Combobox`, `AlertDialog`, `Tooltip`,
+  `Badge`, `Table`, `Checkbox`, `DropdownMenu`, `Avatar` sont réalignés sur ce que le produit fait
+  vraiment. Deux glyphes Lucide ajoutés (`file-text`, `image`), que `AssetPreview` réclamait.
+  Vérifié par compilation : 81 miroirs, bundle jetable, aucun import cassé. **Non vérifié : le
+  rendu.** Aucune carte n'a été capturée, le navigateur piloté n'était pas disponible ce jour-là.
+  `ecarts-design-system.md` perd son patron « trois badges puis un compteur », que `BadgeList` règle.
 
 - **Sub-project 06, shell admin** : ajout de `BrandMark` et `AdminPageShell` dans
   `components/patterns/`, fiches `Sidebar`, `Avatar` et `Tooltip` mises à jour (installés en
