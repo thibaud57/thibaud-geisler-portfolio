@@ -5,7 +5,7 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { COMPANY_LOGO_FOLDER } from "@/lib/schemas/asset"
+import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
 import { findAvailableLegalEntities, findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 

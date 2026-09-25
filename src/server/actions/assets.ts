@@ -9,12 +9,12 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from "@/lib/r2"
 import {
-  assetUploadSchema,
   buildAssetKey,
   isAdminAssetKey,
   isHardcodedAssetKey,
   MAX_ASSET_BYTES,
-} from "@/lib/schemas/asset"
+} from "@/lib/asset-keys"
+import { assetUploadSchema } from "@/lib/schemas/asset"
 import { createActionLogger } from "@/lib/server-utils"
 import { getContentType, validateAssetPath } from "@/server/config/assets"
 import { COMPANY_LOGO_FIELD, PROJECT_ASSET_REFERENCES } from "@/server/queries/assets"

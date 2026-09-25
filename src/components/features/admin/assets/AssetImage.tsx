@@ -1,7 +1,7 @@
 import Image, { type ImageProps } from "next/image"
 
 import { buildAssetUrl, buildGuardedAssetUrl } from "@/lib/assets"
-import { isAdminAssetKey } from "@/lib/schemas/asset"
+import { isAdminAssetKey } from "@/lib/asset-keys"
 
 interface Props extends Omit<ImageProps, "src" | "unoptimized"> {
   assetKey: string
