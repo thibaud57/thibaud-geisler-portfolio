@@ -642,7 +642,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ### Procédure : Remplir la base depuis un dump de dev
 
-> Répétée le 2026-09-25 sur une base locale à l'état de la prod, jamais exécutée en production.
+> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), après répétition sur une base locale à l'état de la prod.
 
 1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
 2. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
@@ -679,12 +679,12 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 | Page/Feature | Target | Current |
 |--------------|--------|---------|
-| LCP `/fr` mobile | < 2,5 s | **3,3 à 3,9 s** sur 6 runs PSI (2026-09-05), médiane 3,5 s. Seul indicateur nettement hors cible |
-| LCP `/fr/projets` mobile | < 2,5 s | **3,0 s** (PSI, 2026-09-05), contre 5,4 s le 13 mai |
-| LCP pages publiques desktop | < 2,5 s | **1,0 s** sur `/fr/projets` (PSI, 2026-09-05), score 98 et accessibilité 100 |
-| CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0 ailleurs** (PSI, 2026-09-05) |
-| TBT (proxy INP en lab) | < 200 ms | **40 à 430 ms** selon les runs (PSI, 2026-09-05), médiane ~240 ms sur `/fr`, 40 ms sur `/fr/projets` |
-| Score performance mobile | — | `/fr` **73 à 91** sur 6 runs (médiane 86), `/fr/projets` **94**. Contre 70 et 75 le 13 mai |
+| LCP `/fr` mobile | < 2,5 s | **4,4 à 4,9 s** sur 2 runs PSI (2026-09-25), contre 3,3 à 3,9 s le 5 septembre. Seul indicateur nettement hors cible |
+| LCP `/fr/projets` mobile | < 2,5 s | **4,7 s** (PSI, 2026-09-25), **2,3 s** sur `/en/projets` le même jour : écart de run, pas de langue |
+| LCP pages publiques desktop | < 2,5 s | **0,5 à 0,9 s** sur les 4 pages × 2 locales (PSI, 2026-09-25), scores 88 à 100 |
+| CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0,023 sur `/en`, 0 ailleurs** (PSI, 2026-09-25) |
+| TBT (proxy INP en lab) | < 200 ms | **110 à 360 ms** en mobile, 40 à 280 ms en desktop (PSI, 2026-09-25) |
+| Score performance mobile | — | `/fr` **72 et 75** sur 2 runs, 71 à 97 ailleurs (PSI, 2026-09-25). Contre une médiane de 86 sur `/fr` le 5 septembre |
 | TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
@@ -708,9 +708,10 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 - [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` et `/fr/projets`, mobile et desktop. **L'élément LCP est le `H1`**, donc un texte : ni les images ni le JS ne sont en cause
 - [x] **Brotli servi** depuis le 2026-09-05 : middleware Traefik `compress-br` sur l'apex + `compress: false` côté Next. Vérifié en prod sur le HTML, le CSS et le JS, HTML 68,3 → 39,7 Ko (-41 %), page complète 656 → 560 Ko ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
 - [x] **`will-change` et `motion` inutiles retirés** (`v1.6.4`) : `will-change: transform` maintenait 216 couches de composition sur les cellules du hero, et `motion` était importé dans `HyperText` sans y animer quoi que ce soit. Aucun changement visuel
-- [ ] **LCP mobile de l'accueil** : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
+- [ ] **Sortir Zod du bundle public** : `src/instrumentation-client.ts` lit le DSN Sentry via `src/env.ts`, ce qui charge Zod sur toutes les pages publiques. 60 Kio de JS inutilisé, et le test `new Function` de Zod, refusé par la CSP, fait tomber les bonnes pratiques à 96 ([baselines/cwv-2026-09-25.md](baselines/cwv-2026-09-25.md))
+- [ ] **LCP mobile de l'accueil**, 4,4 à 4,9 s sur 2 runs le 2026-09-25, après l'arrivée de Sentry et de Zod côté navigateur. Relevé du 2026-09-05 : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
 
-> La revalidation type ISR est déjà en place : `cacheComponents: true` + `'use cache'` + `cacheLife('hours')` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`) purgés au démarrage par `src/instrumentation.ts` : le cache hérité du build CI serait sinon servi en production. Les mutations de l'espace admin invalideront ces tags de façon ciblée (post-MVP).
+> La revalidation type ISR est en place : `cacheComponents: true` + `'use cache'` + `cacheLife` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`). Les actions de l'espace admin invalident `projects` et `tags` par `updateTag`. Une écriture faite hors de l'app, chargement SQL compris, n'invalide rien : le cache vit en mémoire, un Redeploy le vide.
 
 ---
 
