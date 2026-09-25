@@ -19,7 +19,7 @@ paths:
 - Utiliser `Sentry.pinoIntegration()` pour brancher le logger existant, jamais un transport maison (SDK >= 10.18.0, Pino `>=8.0.0 <11`)
 - Restreindre explicitement `log.levels` dans l'intégration Pino : le défaut envoie tous les niveaux, `debug` compris, et épuise le quota de logs
 - Déclarer `error.levels` explicitement pour choisir quels niveaux Pino créent **en plus** une issue, sinon une même erreur remonte deux fois. Même risque si un `logger.error()` explicite suit un `Sentry.captureRequestError`/`captureException` déjà posé pour la même erreur : `pinoIntegration` intercepte tout `logger.error()` du process par défaut (`diagnostics_channel`, pas seulement une instance précise). Untracker un child logger dédié à cet appel (`Sentry.pinoIntegration.untrackLogger(logger.child({}))`) évite le doublon sans désactiver la capture Pino du reste de l'app
-- Provoquer une vraie erreur serveur après l'installation et vérifier qu'elle arrive dans Sentry : une intégration qui compile n'est pas une intégration qui remonte
+- Provoquer une vraie erreur serveur après l'installation et vérifier qu'elle arrive dans Sentry : une intégration qui compile n'est pas une intégration qui remonte. Sur ce projet, `GET /admin/api/sentry-test` connecté à l'espace admin, dont l'issue doit pointer sur le fichier de la route. Une erreur née dans une dépendance (SDK S3…) n'a que des frames de cette dépendance et ne prouve rien sur les source maps
 - Brancher les `// TODO post-MVP : envoyer error à Sentry` déjà présents dans `error.tsx` et `global-error.tsx`
 
 ## À éviter
@@ -36,6 +36,7 @@ paths:
 - `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs (issue #10466). Pertinent dès qu'une Server Action utilise `redirect()` ou `notFound()`
 - Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack, qui est **le bundler du build de production depuis le 3 septembre 2026** (opt-out `--webpack` retiré) : les traiter comme actifs, vérifier la version du SDK face à ces fixes et provoquer une erreur serveur réelle pour valider la remontée
 - Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée
+- **`instrumentation-client.ts` est chargé par le navigateur sur toutes les pages** : ne pas y importer `@/env`, qui embarque Zod (60 Kio) et son test `new Function`, refusé par la CSP (bonnes pratiques Lighthouse à 96, relevé du 2026-09-25). Y lire `process.env["NEXT_PUBLIC_SENTRY_DSN"]`, inliné au build
 - La région de l'organisation Sentry (États-Unis ou Europe) est **irréversible** : elle se choisit à la création, avant tout code
 
 ## Exemples

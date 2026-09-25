@@ -7,7 +7,7 @@ import {
   ProjectType,
   WorkMode,
 } from "@/generated/prisma/browser"
-import { isProjectAssetKey } from "@/lib/schemas/asset"
+import { isProjectAssetKey } from "@/lib/asset-keys"
 import { nullifyNoneValue } from "@/lib/schemas/none-value"
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"

@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { isCompanyLogoKey } from "@/lib/schemas/asset"
+import { isCompanyLogoKey } from "@/lib/asset-keys"
 import { nullifyNoneValue } from "@/lib/schemas/none-value"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 

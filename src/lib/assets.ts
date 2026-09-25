@@ -1,6 +1,6 @@
 import type { Locale } from "next-intl"
 
-import { isGuardedAssetKey } from "@/lib/schemas/asset"
+import { isGuardedAssetKey } from "@/lib/asset-keys"
 
 // Route gardée par la session admin : tout le bucket admin s'y lit, logos compris.
 export function buildGuardedAssetUrl(key: string): string {
