@@ -148,10 +148,10 @@ Dette reportée par les sub-projects au fil de l'implémentation, et préparatif
 | Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ✅ 2026-09-25 : les trois `href` alimentés par la base, `company.websiteUrl` compris, n'acceptent que `http` et `https` |
 | Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ✅ 2026-09-25 : base de dev auditée, dump `just db-dump` (schéma `auth` exclu), transfert répété sur une base locale à l'état de la prod |
 | Poser les variables d'environnement dans Dokploy | `04`, `09`, `10` | ✅ 2026-09-25 : `R2_*` (buckets de prod, tokens de prod), `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL`. Le DSN Sentry n'y va pas, il est inliné au build depuis la variable GitHub |
-| Déclarer le redirect URI de production sur le client OAuth | `04` | ⬜ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
+| Déclarer le redirect URI de production sur le client OAuth | `04` | ✅ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
 | Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev (21 et 5 objets), chaque objet relu et comparé à l'original |
 | Appliquer la migration du schéma `auth` en CI | `04` | ✅ Run CI de `feature/espace-admin` du 2026-09-25 |
-| Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ⬜ Database `portfolio-db` → Backups, sauvegarde manuelle datée du jour |
+| Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ✅ 2026-09-25 : sauvegarde manuelle depuis Database `portfolio-db` → Backups |
 | Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ✅ 2026-09-25 |
 
 ## À vérifier après la mise en production
