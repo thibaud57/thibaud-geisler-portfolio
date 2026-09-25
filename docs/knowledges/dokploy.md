@@ -1,7 +1,7 @@
 ---
 title: "Dokploy — Self-hosted PaaS"
 version: "0.30.7"
-description: "Référence technique pour Dokploy : déploiement, auto-deploy webhook, Traefik et environments."
+description: "Référence technique pour Dokploy : déploiement par API, Traefik, environments et CLI."
 date: "2026-09-03"
 keywords: ["dokploy", "paas", "self-hosted", "traefik", "deployment"]
 scope: ["docs"]
@@ -10,7 +10,7 @@ technologies: ["Docker", "Docker Compose", "Traefik", "GitHub"]
 
 # Description
 
-`Dokploy` est le PaaS self-hosted utilisé pour déployer le portfolio sur le VPS IONOS. Il installe automatiquement Docker Swarm, Traefik (v3) et une interface web. Gère le déploiement via webhook GitHub, les environments par projet, les rollbacks registry-based (v0.26+), les certificats Let's Encrypt, et l'orchestration Docker Compose. Pour le portfolio : un projet "portfolio" avec un service application Next.js et un service base PostgreSQL.
+`Dokploy` est le PaaS self-hosted utilisé pour déployer le portfolio sur le VPS IONOS. Il installe automatiquement Docker Swarm, Traefik (v3) et une interface web. Gère le déploiement par webhook GitHub ou par API, les environments par projet, les rollbacks registry-based (v0.26+), les certificats Let's Encrypt, et l'orchestration Docker Compose. Pour le portfolio : un projet `Portfolio` avec un Compose `Portfolio-app` (Next.js, image tirée de GHCR) et une Database `portfolio-db` (PostgreSQL).
 
 ---
 
@@ -44,28 +44,27 @@ docker service update --publish-rm "published=3000,target=3000,mode=host" dokplo
 
 ---
 
-## Auto-deploy via webhook GitHub
+## Déclenchement du déploiement
 
 ### Description
 
-Dokploy supporte deux méthodes d'auto-deploy : GitHub App (OAuth, push vers branche configurée) ou API webhook (GitHub Actions + curl). Pour le portfolio : GitHub App est le plus simple, push vers `main` déclenche un rebuild + redéploiement automatique.
+Dokploy sait déployer seul sur un événement GitHub (Autodeploy, Trigger Type « push » ou « tag ») ou sur appel de son API. Le portfolio utilise uniquement l'API : `deploy.yml` construit l'image, la pousse sur GHCR, puis appelle `compose.redeploy`. L'Autodeploy du Compose est coupé (relevé du 2026-09-25 : `autoDeploy = false`, `triggerType = tag`, Provider GitHub, branche `main`), sans quoi le push du tag lancerait un déploiement de l'image `latest` précédente avant que la nouvelle soit construite.
 
 ### Exemple
 
 ```bash
-# Alternative : déclencher via API (GitHub Actions)
-curl -X POST https://<dokploy-domain>/api/application.deploy \
-  -H "x-api-key: ${DOKPLOY_AUTH_TOKEN}" \
+# Appel fait par deploy.yml
+curl -X POST https://<dokploy-domain>/api/compose.redeploy \
+  -H "x-api-key: ${DOKPLOY_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"applicationId": "${DOKPLOY_APPLICATION_ID}"}'
+  -d '{"composeId": "${DOKPLOY_COMPOSE_ID}"}'
 ```
 
 ### Points Importants
 
-- GitHub App : configuration via Settings > Git > Create Github App
-- Push vers la branche configurée déclenche un build automatique
-- Les autres branches sont ignorées ("Branch Not Match")
-- Alternative : API REST + header `x-api-key` pour les pipelines custom
+- Un Compose se déclenche par `compose.redeploy` + `composeId`, une Application par `application.deploy` + `applicationId` : confondre les deux renvoie une erreur
+- À chaque déploiement, Dokploy clone la branche configurée et lit son `compose.yaml` (copie dans `/etc/dokploy/compose/<appName>/code/`) : un changement de `compose.yaml` part donc avec le prochain déploiement, quel qu'en soit le déclencheur
+- Les réglages du Compose se lisent sans exposer de secret dans la base de Dokploy : `select name, "autoDeploy", "triggerType", branch from compose;` sur le container `dokploy-postgres` (utilisateur et base `dokploy`)
 
 ---
 
@@ -288,25 +287,21 @@ Le CLI `dokploy` permet d'interagir avec une instance Dokploy distante. Utile po
 npm install -g @dokploy/cli
 
 # Authentification
-dokploy authenticate                         # interactif (URL + API token)
-dokploy verify                               # vérifier l'auth courante
+dokploy auth -u <url du dashboard> -t <API token>
 
-# Projets et applications
-dokploy project:list
-dokploy app:deploy                           # déclencher un déploiement
-dokploy app:stop
+# Lecture (sortie JSON à filtrer avec jq, elle peut contenir des secrets)
+dokploy project all --json
+dokploy compose one --composeId <id> --json
 
-# Variables d'environnement
-dokploy env pull .env.production             # récupère les vars du serveur
-dokploy env push .env.production             # envoie les vars vers le serveur
+# Déploiement
+dokploy compose redeploy --composeId <id>
 ```
 
 ### Points Importants
 
 - Authentification via API token (généré dans le profil Dokploy)
-- Alternative au dashboard pour les pipelines CI/CD
-- `env pull/push` pour synchroniser les variables avec un fichier local
-- `--help` sur chaque commande pour les flags complets
+- ⚠️ CLI 0.30.7 face à un serveur 0.30.7 (relevé du 2026-09-25) : `project all` répond, mais toute commande qui prend un identifiant (`compose one`, `deployment all-by-compose`) échoue en `Request failed with status code 400`. Passer par le dashboard, ou par la base de Dokploy pour une lecture (§ Déclenchement du déploiement)
+- Aucune commande `env` dans cette version : les variables se gèrent dans l'onglet Environment
 
 ---
 
@@ -316,7 +311,7 @@ dokploy env push .env.production             # envoie les vars vers le serveur
 
 - Installer via le script officiel : `curl -sSL https://dokploy.com/install.sh | sh`
 - Retirer l'exposition publique du port 3000 après config
-- Activer l'auto-deploy via GitHub App pour la branche `main`
+- Laisser l'Autodeploy coupé quand un workflow construit l'image et appelle l'API : les deux déclencheurs se concurrenceraient
 - Configurer un registry pour les rollbacks (Docker Hub ou GHCR)
 - Utiliser les variables au niveau project/environment pour la hiérarchie
 - Préférer l'UI Domains aux labels Traefik manuels
