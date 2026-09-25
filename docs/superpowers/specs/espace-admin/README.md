@@ -184,7 +184,7 @@ Quatre projets Dokploy existants : Portfolio (un service Compose plus une Databa
 ## Priorités
 
 1. **Auth plus CRUD contenu portfolio.** Fondation obligatoire, ne dépend presque d'aucune décision restante. Livrée en `v2.0.0` le 2026-09-25.
-2. **CRM** : entreprises, entités légales, leads et prospection, l'outil du quotidien. Puis LinkedIn, et la migration comptabilité en dernier.
+2. **CRM** : entreprises, entités légales, leads et prospection, l'outil du quotidien. Puis la migration comptabilité, et LinkedIn en dernier.
 3. Kanban dev et `agent-os`.
 4. Chatbot public.
 5. RAG documents personnels.
