@@ -53,7 +53,7 @@ Dokploy sait déployer seul sur un événement GitHub (Autodeploy, Trigger Type 
 ### Exemple
 
 ```bash
-# Appel fait par deploy.yml (Compose, pas Application : endpoint et identifiant diffèrent)
+# Appel fait par deploy.yml
 curl -X POST https://<dokploy-domain>/api/compose.redeploy \
   -H "x-api-key: ${DOKPLOY_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -64,7 +64,6 @@ curl -X POST https://<dokploy-domain>/api/compose.redeploy \
 
 - Un Compose se déclenche par `compose.redeploy` + `composeId`, une Application par `application.deploy` + `applicationId` : confondre les deux renvoie une erreur
 - À chaque déploiement, Dokploy clone la branche configurée et lit son `compose.yaml` (copie dans `/etc/dokploy/compose/<appName>/code/`) : un changement de `compose.yaml` part donc avec le prochain déploiement, quel qu'en soit le déclencheur
-- Avec l'Autodeploy actif, les branches autres que celle configurée sont ignorées (« Branch Not Match »)
 - Les réglages du Compose se lisent sans exposer de secret dans la base de Dokploy : `select name, "autoDeploy", "triggerType", branch from compose;` sur le container `dokploy-postgres` (utilisateur et base `dokploy`)
 
 ---
@@ -301,7 +300,6 @@ dokploy compose redeploy --composeId <id>
 ### Points Importants
 
 - Authentification via API token (généré dans le profil Dokploy)
-- Une commande par routeur de l'API (`compose`, `postgres`, `deployment`, `schedule`…), `--help` sur chacune pour ses flags
 - ⚠️ CLI 0.30.7 face à un serveur 0.30.7 (relevé du 2026-09-25) : `project all` répond, mais toute commande qui prend un identifiant (`compose one`, `deployment all-by-compose`) échoue en `Request failed with status code 400`. Passer par le dashboard, ou par la base de Dokploy pour une lecture (§ Déclenchement du déploiement)
 - Aucune commande `env` dans cette version : les variables se gèrent dans l'onglet Environment
 

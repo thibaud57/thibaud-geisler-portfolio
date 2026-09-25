@@ -111,7 +111,6 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
   - `Environment` : variables et secrets du service
   - `Deployments` : historique des déploiements et leurs logs
   - `Logs` : sortie stdout en temps réel (JSON Pino)
-  - `Schedules` : tâches ponctuelles. Aucune depuis la suppression de `manual-seed` (septembre 2026, sub-project `14`)
 
 ## Variables d'Environnement
 
@@ -183,12 +182,10 @@ BETTER_AUTH_SECRET=                # Secret de signature des sessions et jetons.
 ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée à créer un compte, comparée dans le hook databaseHooks.user.create.before
 ```
 
-> Liste exhaustive de ce que `src/env.ts` valide.
-
 ### Règles
 
 - ✅ **Les secrets vivent dans l'Environment du Compose Dokploy**, jamais dans le dépôt
-- ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon l'app répond 500 à chaque requête (§ Variables d'Environnement)
+- ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon l'app répond 500 à chaque requête
 - ✅ **`NEXT_PUBLIC_` uniquement pour ce qui est exposé au navigateur**, et à passer en build-arg dans `deploy.yml` puisque la valeur est inlinée au build
 
 ### Anti-Patterns
@@ -252,7 +249,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 ### Bootstrap technique
 
-- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`. L'image publiée pèse 971 Mo sur le VPS (relevé du 2026-09-25).
+- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`.
 - [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
@@ -266,7 +263,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 - [x] **`/simplify`** : passe qualité sur toute la branche
 - [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
 - [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
-- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. La seule dette relevée, trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`), est close : les schémas Zod de l'espace admin n'y acceptent que `http` et `https` (`src/lib/schemas/project.ts`, `src/lib/schemas/company.ts`)
+- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. La seule dette relevée, trois `href` alimentés par la BDD sans allowlist de scheme, est close : les schémas Zod de l'espace admin n'y acceptent que `http` et `https`
 
 > Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
 

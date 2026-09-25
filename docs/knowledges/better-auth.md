@@ -43,6 +43,7 @@ export const auth = betterAuth({
 - `nextCookies()` se place **en dernier** dans `plugins` : il permet aux Server Actions de poser les cookies de session, ce qu'un React Server Component ne peut pas faire lui-même
 - `baseURL` détermine l'URL de callback attendue par le fournisseur, `{baseURL}/api/auth/callback/google` : une valeur qui ne correspond pas à l'origine réelle fait échouer le retour OAuth sans message explicite
 - `secret` signe les cookies de session : le changer invalide toutes les sessions en cours
+- `BetterAuthError: You are using the default secret` dans les logs de `next build` est attendu : le secret n'est injecté qu'au runtime, et le build aboutit quand même
 - L'instance s'expose en HTTP par un seul route handler catch-all, `toNextJsHandler(auth)` sur `/api/auth/[...all]`
 
 ---
