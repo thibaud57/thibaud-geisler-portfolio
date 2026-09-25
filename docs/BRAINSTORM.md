@@ -248,6 +248,13 @@ Données et écrans **dans ce dépôt**, avec les jointures vers les projets que
 
 Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans un service voisin ; ce qui est déterministe (grille de qualification, calculs de cotisations et de TVA, indicateurs) reste du code TypeScript ici.
 
+La maquette de l'espace admin dessine déjà ces écrans, et le CRUD des entreprises livré avant eux s'arrête au sous-ensemble que le schéma porte. Cette feature reprend donc, écrans de la maquette à l'appui :
+
+* **Fiche entreprise enrichie** : type, zone géographique, statut de relation, date de premier contact, entreprise travaillée, client final, outils, notes. Les vues « Recrutement » et « Prospects » de la liste en dépendent, et restent désactivées jusque-là
+* **Entité légale créée depuis la fiche** : raison sociale, forme juridique, SIRET, TVA, RCS, capital et adresse, avec pré-remplissage assisté depuis un service voisin
+* **Panneau de détail** ouvert au clic sur une ligne de liste
+* **Logo récupéré depuis le domaine de l'entreprise** puis stocké dans le bucket d'assets, en remplacement du choix manuel livré avec la gestion des assets. Sub-project court, prévu juste après elle : appel [Logo.dev](https://www.logo.dev/pricing) (plan gratuit à 500 000 requêtes par mois, attribution obligatoire), stockage sous un nom prévisible pour ne plus appeler le service à l'affichage, dépôt manuel qui écrase le fichier
+
 ### Feature 4 : Chatbot IA public
 
 Chatbot sur le site public, vitrine de compétence technique, répondant sur le parcours, les projets et les compétences.
@@ -267,6 +274,8 @@ L'écran de commande et le stockage des brouillons sont ici, l'exécution passe 
 Tableau de suivi des projets et des audits automatisés, alimenté par GitHub et par un orchestrateur qui exécute des agents de code.
 
 Vue et déclenchement ici, exécution ailleurs : cloner des dépôts et lancer des builds n'a pas sa place dans le conteneur qui sert le site public.
+
+En viennent aussi deux champs que la maquette montre sur un projet et que le CRUD des projets n'implémente pas : l'étape de développement (à venir, en cours, terminé), distincte du statut de publication, et la date de mise en production.
 
 ### Feature 7 : Documents personnels
 

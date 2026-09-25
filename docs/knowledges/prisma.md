@@ -104,8 +104,6 @@ export default defineConfig({
   },
   migrations: {
     path: 'prisma/migrations',
-    // En production le seed est pré-bundlé, voir `prisma.config.ts` du projet
-    seed: 'tsx prisma/seed.ts',
   },
 })
 ```
@@ -115,7 +113,8 @@ export default defineConfig({
 - Charger `.env` via `@next/env` (`loadEnvConfig(process.cwd())`), recommandation officielle Next.js, pas de dep `dotenv` à ajouter (transitif via `next`)
 - Utiliser `process.env.DATABASE_URL!` plutôt que le helper `env('DATABASE_URL')` de `prisma/config` : ce dernier throw `PrismaConfigEnvError` au chargement du fichier config et casse `prisma generate` (issue #28590). `process.env.X!` est lu paresseusement
 - Les flags `--schema` et `--url` sont supprimés en v7
-- Configurer `seed: 'tsx prisma/seed.ts'` pour `prisma db seed`
+- `datasource.url` retombe sur `""` quand `DATABASE_URL` est absente : `generate` n'en a pas besoin, mais un throw au chargement du config le casserait, et le stage `deps` du Dockerfile n'a pas cette variable
+- Aucune clé `migrations.seed` : le projet ne porte pas de seed (ADR-022), les données de développement viennent d'un dump
 
 ---
 
@@ -210,55 +209,33 @@ type ProjectWithTags = Prisma.ProjectGetPayload<{
 
 ---
 
-## Seed et données de développement
+## Données de développement par dump
 
 ### Description
 
-Pattern pour peupler la base avec des données de test. Le script est référencé dans `prisma.config.ts` via `migrations.seed` et exécuté via `pnpm exec prisma db seed`.
+Le projet ne porte pas de seed : le contenu est saisi dans l'espace admin, et une base de développement se remplit en restaurant un dump des données réelles (ADR-022). Le dump exclut le schéma `auth`, dont les sessions et comptes OAuth n'ont de sens que sur l'instance qui les a émis.
 
 ### Exemple
 
-```ts
-// prisma/seed.ts
-import nextEnv from '@next/env'
+```bash
+just db-dump                                   # dumps/portfolio_dev-<horodatage>.dump
+just db-reset                                  # drop, recreate, migrate, sans données
+just db-restore dumps/portfolio_dev-<...>.dump
+```
 
-nextEnv.loadEnvConfig(process.cwd())
-
-import { PrismaClient } from '@/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
-const prisma = new PrismaClient({ adapter })
-
-async function main() {
-  await prisma.project.createMany({
-    data: [
-      {
-        slug: 'exemple-projet',
-        title: 'Projet exemple',
-        description: 'Description courte',
-        content: '## Contexte\n...',
-        type: 'PERSONAL',
-      },
-    ],
-    skipDuplicates: true,
-  })
-}
-
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(() => prisma.$disconnect())
+```bash
+# Ce que les recettes exécutent dans le conteneur
+pg_dump -U "$POSTGRES_USER" -d portfolio_dev -Fc --data-only --exclude-schema=auth
+pg_restore -U "$POSTGRES_USER" -d portfolio_dev --data-only --disable-triggers
 ```
 
 ### Points Importants
 
-- Configurer `seed: 'tsx prisma/seed.ts'` dans `prisma.config.ts`
-- `skipDuplicates: true` rend le seed idempotent
-- Exécuter manuellement : `pnpm exec prisma db seed`
-- Ne jamais committer de vraies données (credentials, clients réels)
+- `--data-only` des deux côtés : le schéma vient des migrations, jamais du dump, sans quoi une restauration réintroduirait un schéma périmé
+- `--disable-triggers` à la restauration : les contraintes de clé étrangère rejetteraient les lignes insérées avant leur parent, l'ordre du dump ne suivant pas le graphe des relations
+- `--exclude-schema=auth` : restaurer une session ou un compte OAuth d'une autre instance n'a aucun sens, le schéma `auth` se repeuple à la première connexion Google
+- Restaurer sur une base vidée par `just db-reset` : `--data-only` n'efface rien, restaurer par-dessus des données existantes viole les contraintes d'unicité
+- `dumps/` est ignoré par git : un dump porte des données réelles
 
 ---
 
@@ -313,7 +290,6 @@ pnpm exec prisma generate              # génère le client TypeScript
 pnpm exec prisma migrate dev -n add_projects  # crée + applique une migration en dev
 pnpm exec prisma migrate deploy        # applique les migrations pending en prod
 pnpm exec prisma db push               # sync schema sans migration (prototypage)
-pnpm exec prisma db seed               # exécute le seed configuré
 pnpm exec prisma studio                # GUI web pour explorer la base
 ```
 
@@ -332,7 +308,7 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 ## ✅ Recommandations
 
 - Utiliser le driver adapter `@prisma/adapter-pg` (obligatoire en v7)
-- Charger `.env` via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` et les scripts standalone (`prisma/seed.ts`)
+- Charger `.env` via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` et les scripts standalone (`scripts/dev-login.ts`)
 - Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs` + Zod) dans le code Next.js runtime (`src/lib/prisma.ts`)
 - Pattern singleton `globalThis` pour éviter les instances multiples en dev
 - Séparer `src/server/queries/` (lecture) et `src/server/actions/` (mutations)

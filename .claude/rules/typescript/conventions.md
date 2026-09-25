@@ -15,6 +15,7 @@ paths:
 - Dériver les types via **`z.infer<typeof Schema>`** (Zod) ou **`typeof`** (constantes) : source unique de vérité entre runtime et types
 - Préférer les **discriminated unions** aux enums : narrowing automatique via `switch`/`if` sur la propriété discriminante (`status`, `kind`, `type`), pattern utilisé par `safeParse` Zod (`{ success, data } | { success: false, error }`)
 - Importer les types Prisma via **`@/generated/prisma/client`** (Prisma 7, plus `@prisma/client`) et utiliser **`Prisma.ModelGetPayload<T>`** pour typer un résultat avec relations incluses
+- Importer un enum Prisma **en valeur** (`z.enum(TagKind)`, une itération) depuis **`@/generated/prisma/browser`** dès que le module est atteignable côté client : c'est le cas des schémas Zod partagés, que la Server Action et le formulaire consomment tous deux. `@/generated/prisma/client` embarque le runtime Node et ne passe pas dans un bundle navigateur. Un `import type` reste sur `client` quelle que soit la couche : TypeScript l'efface à la compilation, il n'atteint jamais le bundle
 - Utiliser l'alias **`@/*`** pour tous les imports : jamais de chemins relatifs de plus de 2 niveaux (`../../../lib/foo` → `@/lib/foo`)
 - Narrowing via **`unknown` + `typeof`/`in`/discriminant check** plutôt que `any` : préserve la type-safety tout en acceptant des entrées runtime inconnues
 - Exécuter **`tsc --noEmit`** en CI et pre-commit : Turbopack et Vitest gèrent la compilation en dev, `tsc` sert uniquement au type-check

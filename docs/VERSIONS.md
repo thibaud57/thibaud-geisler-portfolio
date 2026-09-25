@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-09-06"
+date: "2026-09-14"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 septembre 2026**.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **14 septembre 2026**.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -46,13 +46,16 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Zod | `4.5.4` | ✅ | Validateurs string déplacés en top-level |
 | nodemailer | `9.1.1` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v9 le 25 août 2026 |
 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` requis dans `next.config.ts`, les trois. `thread-stream@4.2.0` est installé en dépendance directe |
-| @next/env | `16.3.3` | ✅ | Chargement `.env` dans `prisma.config.ts`, `prisma/seed.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
+| @next/env | `16.3.3` | ✅ | Chargement `.env` dans `prisma.config.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
 | @c15t/nextjs | `2.2.1` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
 | react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
 | remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
+| Sentry (`@sentry/nextjs`) | `10.74.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). Turbopack : tracing des Server Actions affecté par un bug SDK connu (#18871), capture d'erreur et tracing routes/queries opérationnels. Détail : [knowledges/sentry.md](knowledges/sentry.md) |
+| @aws-sdk/client-s3 | `3.1131.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
+| Better Auth | `1.7.5` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
 
 ## Tests
 
@@ -561,9 +564,9 @@ serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']
 **Version actuelle** : `16.3.3`
 **Stabilité** : ✅
 
-Charge les fichiers de configuration d'environnement avec la même cascade que Next.js, mais **hors du runtime Next**. Utilisé dans `prisma.config.ts`, `prisma/seed.ts` et le loader de tests Vitest.
+Charge les fichiers de configuration d'environnement avec la même cascade que Next.js, mais **hors du runtime Next**. Utilisé dans `prisma.config.ts` et le loader de tests Vitest.
 
-**Pourquoi il est là** : Prisma 7 a supprimé le chargement automatique. Sans ce paquet, la CLI Prisma et le seed tournent sans `DATABASE_URL`, ce qui se manifeste par une erreur P1010. C'est la recommandation officielle Next.js pour ce cas, et il n'ajoute aucune dépendance nouvelle puisque `next` le tire déjà.
+**Pourquoi il est là** : Prisma 7 a supprimé le chargement automatique. Sans ce paquet, la CLI Prisma tourne sans `DATABASE_URL`, ce qui se manifeste par une erreur P1010. C'est la recommandation officielle Next.js pour ce cas, et il n'ajoute aucune dépendance nouvelle puisque `next` le tire déjà.
 
 **Épinglé sur la version exacte de Next** : `16.3.3`, sans accent circonflexe, comme `next` lui-même. Le paquet est publié au même rythme que Next et suit sa numérotation, les deux se montent ensemble. La dernière publiée est `16.3.4`.
 
@@ -662,6 +665,37 @@ Moteur de rendu du contenu éditorial : il transforme le markdown des case studi
 - Tailwind 4 : ✅ via `@tailwindcss/typography` (classe `prose`)
 
 **Recommandation** : ✅ 10.1.0 + `remark-gfm` 4.0.1. Les monter ensemble, `remark-gfm` suivant les majeures de react-markdown.
+
+### 10. Sentry (`@sentry/nextjs`)
+
+**Version actuelle** : `10.74.0`
+**Stabilité** : ⚠️ (tracing des Server Actions affecté par un bug SDK connu sous Turbopack)
+
+Monitoring d'erreurs et tracing applicatif en cloud, le self-hosted étant exclu par [ADR-017](adrs/017-observabilite-cloud.md) (4 cœurs et 16 Go de RAM minimum, hors de portée du VPS). Capture d'erreur vérifiée fonctionnelle côté serveur, edge et navigateur ; tracing actif pour les routes, pages et queries Prisma, sans tracing navigateur ni Session Replay. Fiche détaillée : [knowledges/sentry.md](knowledges/sentry.md).
+
+**Compatibilité Écosystème** :
+- Next.js 16 : ✅ App Router, fichiers d'instrumentation `instrumentation.ts` / `instrumentation-client.ts`
+- React 19 : ✅
+- Turbopack : ⚠️ bundler par défaut du projet, dev comme build (opt-out Webpack retiré le 3 septembre 2026). Tracing des Server Actions affecté par le bug SDK [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) (voir `docs/knowledges/sentry.md` § Bundler et incidents connus pour le détail). Capture d'erreur et tracing routes/queries inaffectés. À revalider à chaque montée du SDK.
+
+**Recommandation** : ⚠️ 10.74.0 en place, capture d'erreur et tracing routes/queries opérationnels et vérifiés.
+
+### 11. Better Auth
+
+**Version actuelle** : `1.7.5`
+**Stabilité** : ✅
+
+Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5, publiée le 14 septembre 2026, est la dernière version npm au 15 septembre 2026, sans advisory GitHub ouvert sur le paquet core à cette date. Les breaking changes de la 1.7.0 portent sur OAuth provider, SSO, SCIM et MCP, hors du périmètre utilisé ([releases](https://github.com/better-auth/better-auth/releases)).
+
+**Compatibilité Écosystème** :
+- Next.js 16 : ✅ peer `^14.0.0 || ^15.0.0 || ^16.0.0` (`node_modules/better-auth/package.json`). Workaround `use cache` + `getServerSession` : extraire les cookies avant le scope cache et les passer en argument, Issue #5584 fermée NOT_PLANNED, contrainte Next.js pas bug Better Auth. Sans effet observable ici tant qu'aucune page protégée n'appelle `getServerSession` sous `'use cache'`
+- PostgreSQL 18 : ✅ via l'adapter Prisma (`provider: 'postgresql'`, `src/lib/auth.ts`)
+- Prisma 7 + `@prisma/adapter-pg` : ✅ peer `^5.0.0 || ^6.0.0 || ^7.0.0` (`node_modules/better-auth/package.json`), à condition de charger `.env` explicitement dans `prisma.config.ts` via `@next/env` (`loadEnvConfig(process.cwd())`), déjà en place
+- Google OAuth : ✅ (provider built-in)
+
+**Modèles Prisma écrits à la main** : `@better-auth/cli generate` fusionne ses modèles dans le schéma existant puis réécrit tout `prisma/schema.prisma`, sans jamais émettre `@@schema(...)` sur les modèles qu'il ajoute (générateur Prisma de la 1.7.5, `packages/cli/src/generators/prisma.ts`). Son incompatibilité Prisma 7 (issue better-auth#6277) est corrigée depuis la 1.4.5 (PR #6459). Les quatre modèles (`User`, `Session`, `Account`, `Verification`) sont transcrits à la main depuis la documentation du schéma Better Auth, annotés `@@schema("auth")`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification`.
+
+**Recommandation** : ✅ Better Auth 1.7.5 en place. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
 
 ## Tests
 
@@ -789,22 +823,24 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 **Version actuelle** : `ubuntu-24.04` (runner Noble Numbat)
 **Stabilité** : ✅
 
-**Actions épinglées par SHA de commit** (inventaire au 6 septembre 2026, version exacte en commentaire dans les workflows, qui sont la source ; Dependabot `github-actions` met à jour SHA et commentaire ensemble) :
+**Actions épinglées par SHA de commit** (inventaire au 21 septembre 2026, version exacte en commentaire dans les workflows, qui sont la source ; Dependabot `github-actions` met à jour SHA et commentaire ensemble) :
 
 | Action | Version épinglée | Dernière publiée |
 |---|---|---|
 | `actions/checkout` | 7.0.1 | 7.0.1 (20 juillet 2026) |
 | `actions/setup-node` | 7.0.0 | 7.0.0 (14 juillet 2026) |
 | `actions/cache` | 6.1.0 | 6.1.0 (26 juin 2026) |
-| `pnpm/action-setup` | 6.0.10 | 6.0.10 (3 août 2026) |
+| `pnpm/action-setup` | 6.0.10 | 6.1.0 (5 septembre 2026) |
 | `dorny/paths-filter` | 4.0.3 | 4.0.3 (5 août 2026) |
 | `extractions/setup-just` | 4.0.0 | 4.0.0 (5 avril 2026) |
 | `googleapis/release-please-action` | 5.0.0 | 5.0.0 (22 avril 2026) |
 | `actions/create-github-app-token` | 3.2.0 | 3.2.0 (12 mai 2026) |
-| `docker/build-push-action` | 7.3.0 | 7.3.0 (1er juillet 2026) |
+| `docker/build-push-action` | 7.3.0 | 7.4.0 (15 septembre 2026) |
 | `docker/login-action` | 4.6.0 | 4.6.0 (29 juillet 2026) |
 | `docker/metadata-action` | 6.2.0 | 6.2.0 (2 juillet 2026) |
-| `docker/setup-buildx-action` | 4.3.0 | 4.3.0 (19 août 2026) |
+| `docker/setup-buildx-action` | 4.3.0 | 4.4.1 (16 septembre 2026) |
+| `aquasecurity/trivy-action` | 0.36.0 | 0.36.0 (22 avril 2026) |
+| `github/codeql-action` (`upload-sarif`) | 4.38.1 | 4.38.1 (18 septembre 2026) |
 
 **Breaking Changes Majeurs** :
 - **Runner Ubuntu** :
@@ -861,6 +897,8 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Node.js 24.20.0 | Next.js 16.3.3 | ✅ | Node.js >= 20.9 requis |
 | Node.js 24.20.0 | Pino 10.3.1 | ✅ | Node.js >= 20 requis |
 | `postgres:18-alpine` | Volume Docker | ⚠️ | PG18+ change le chemin par défaut : monter `/var/lib/postgresql`, pas `/var/lib/postgresql/data` |
+| Next.js 16.3.3 | Better Auth 1.7.5 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (workaround trivial, Issue #5584) |
+| Prisma 7.10.0 | Better Auth 1.7.5 | ✅ | L'URL de base est disponible au runtime via les variables d'environnement. `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth |
 
 ---
 
@@ -878,6 +916,9 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Prisma 7 + CI/CD avec build séparé | 🟢 Faible | Hash mismatch possible si `prisma generate` est rejoué au déploiement sur une base Node différente de celle du build (issue #29025). Le projet **est** en build séparé (GitHub Actions), mais reste non concerné : Dokploy est en pull-only et ne régénère rien. Détail en § Prisma ORM |
 | Magic UI + shadcn CLI > 2.8.0 | 🟢 Faible | Vérifier les imports `@/lib/utils` après ajout des composants |
 | Aceternity UI + framer-motion legacy | 🟢 Faible | Installer `motion` v12+, pas `framer-motion` |
+| Better Auth : refus levé dans un `databaseHooks` pendant le callback OAuth | ✅ Traité | Lever `APIError` avec un `code` dans le body : sans `code`, le callback relance l'erreur en 403 JSON au lieu de rediriger vers `onAPIError.errorURL?error=<code>` (`dist/api/routes/callback.mjs` en 1.7.5) |
+| Better Auth : `advanced.ipAddress.disableIpTracking` | ✅ Traité | L'option coupe aussi le rate limiting natif, actif par défaut en production (`dist/api/rate-limiter/index.mjs` en 1.7.5). Pour ne pas persister l'IP, la retirer dans `databaseHooks.session.create.before` plutôt que désactiver le suivi |
+| Better Auth + `use cache` (Next.js 16) | 🟢 Faible | Extraire les cookies via `(await cookies()).toString()` **avant** le scope cache, passer en argument à `getServerSession` (Issue #5584) |
 
 ---
 
@@ -932,8 +973,6 @@ export default defineConfig({
   },
   migrations: {
     path: 'prisma/migrations',
-    // seed.js bundlé par esbuild au build Docker, tsx en dev : tsx reste devDep
-    seed: process.env.NODE_ENV === 'production' ? 'node prisma/seed.js' : 'tsx prisma/seed.ts',
   },
 })
 ```
@@ -987,7 +1026,7 @@ datasource db {
 ```
 
 - `moduleResolution: "bundler"` requis par Prisma 7. Ne pas activer `preserveSymlinks: true`, incompatible pnpm.
-- `allowJs` élargit ce que `tsc --noEmit` vérifie (le seed bundlé et les configs JS entrent dans le périmètre), `resolveJsonModule` autorise les imports de JSON. Les deux sont actifs dans le fichier réel.
+- `allowJs` élargit ce que `tsc --noEmit` vérifie (les configs JS entrent dans le périmètre), `resolveJsonModule` autorise les imports de JSON. Les deux sont actifs dans le fichier réel.
 - `types` est **explicite** : TypeScript 6 a retiré l'auto-discovery des `@types/*`, ce qui n'est pas déclaré ici n'est pas chargé.
 - `jsx: "react-jsx"` (runtime automatique) et non le `preserve` du template Next par défaut. Le bundler fait la transformation dans les deux cas, la valeur ne joue que sur ce que `tsc --noEmit` vérifie. Ne pas la « corriger » vers `preserve` en croyant s'aligner sur Next.
 
@@ -1134,8 +1173,9 @@ Ces mises à jour majeures ont été testées puis écartées, ou identifiées e
 | Vitest | `4.1.11` | `5.0.0` | Publiée le 3 septembre 2026, non évaluée. Exige Vite >= 6.4 et `node ^22.12 \|\| ^24 \|\| >=26` | Après lecture du guide de migration v5 |
 | ESLint | `9.39.5` | `10.9.1` | `eslint-plugin-react@7.37.5` (dernière version publiée, tirée par `eslint-config-next`) déclare `peerDependencies.eslint: ^3 \|\| ... \|\| ^9.7`. Sous ESLint 10 : `TypeError: contextOrFilename.getFilename is not a function` | Publication d'un `eslint-plugin-react` compatible ESLint 10 |
 | TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.69.0` (installée via `eslint-config-next`, dernière stable) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
-| Prisma | `7.10.0` | `8.0.0-rc.13` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.0 est sur `prev`), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. `@prisma/client` et `@prisma/adapter-pg` restent en `latest: 7.10.0`. **C'est ce blocage qui rend `just audit` rouge** : le CLI `prisma` tire `mysql2@3.15.3` (< 3.22.0, [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr)) et `deepmerge-ts@7.1.5` via `@prisma/config` (< 8.0.0, [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)). Les deux sont transitives d'une devDependency, et `mysql2` n'est jamais chargé (le projet est sur PostgreSQL) | Publication de la 8.0.0 stable. Ne pas forcer par `pnpm.overrides` : `deepmerge-ts@8` est une majeure que `@prisma/config` n'a pas validée |
+| Prisma | `7.10.0` | `8.0.0-rc.13` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.0 est sur `prev`), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. `@prisma/client` et `@prisma/adapter-pg` restent en `latest: 7.10.0`. **C'est ce blocage qui rend `just audit` rouge** : le CLI `prisma` tire `deepmerge-ts@7.1.5` via `@prisma/config` (< 8.0.0, [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)) et `mysql2@3.15.3` (< 3.22.0, [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr)). Transitives d'une devDependency, et `mysql2` n'est jamais chargé (le projet est sur PostgreSQL) | Publication de la 8.0.0 stable, qui lève `deepmerge-ts` mais **pas `mysql2`** : `better-auth` le tire aussi, cf. sa ligne. Ne pas forcer par `pnpm.overrides` : `deepmerge-ts@8` est une majeure que `@prisma/config` n'a pas validée |
 
+| Better Auth | `1.7.5` | `1.7.6` | **Aucun blocage technique identifié**, montée mineure non évaluée. C'est le second tireur de `mysql2@3.15.3` (avec le CLI `prisma`, cf. sa ligne) : tant qu'il le tire, `just audit` reste rouge même après Prisma 8. `mysql2` sert son adaptateur MySQL, que le projet n'emploie pas | Vérifier à la montée si elle relève `mysql2` à `>= 3.22.0` |
 > Les blocages ESLint et TypeScript proviennent tous deux de `eslint-config-next`. La montée de Next.js 16.2.4 vers 16.3.3, faite depuis, ne les a pas levés : la 16.3.3 tire les mêmes versions de plugins.
 
 ---
@@ -1167,40 +1207,6 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 Rien de ce qui suit n'existe dans le dépôt : ni dans `package.json`, ni dans les compose, ni dans les migrations. Ces entrées sont le résultat d'une recherche de compatibilité menée en amont, conservée pour ne pas la refaire, **pas un état vérifié**.
 
 Elles sont hors du tableau principal et hors numérotation, pour une raison précise : aucun lockfile, aucun workflow, aucun fichier de config ne peut les contredire, donc rien ne signale quand elles périment. Les versions ci-dessous sont à **revalider intégralement au moment de l'implémentation**, et l'entrée rejoint alors le tableau principal avec son numéro.
-
-> Même règle pour Sentry, absent de ce fichier : sa spec prévoit explicitement l'ajout de l'entrée au moment de l'implémentation.
-
-## Better Auth
-
-**Version étudiée** : `1.7.2` (relevée le `2026-09-03`, publiée le 26 août 2026 ; la 1.7.0 date du 18 août 2026)
-**Stabilité** : ✅
-
-**Breaking Changes Majeurs (v1.5 → v1.6)** :
-- `freshAge` basé sur `createdAt` au lieu de `updatedAt`
-- Validation `InResponseTo` activée par défaut (SAML)
-- Plugin OIDC Provider déprécié au profit de `@better-auth/oauth-provider`
-
-> Les breaking changes de la ligne 1.7 n'ont pas été relevés : à faire au moment de l'implémentation, en même temps que la revalidation de version.
-
-**Nouvelles Features Pertinentes** :
-- OpenTelemetry : distributed tracing sur endpoints/hooks/DB
-- Passkey pre-auth registration
-- Case-insensitive queries (`mode: 'insensitive'`)
-- Hachage scrypt non-bloquant
-- Joins natifs Prisma adapter (`experimental.joins: true`)
-- Package size réduit de 46%
-
-**Compatibilité Écosystème** :
-- Next.js 15 : ✅
-- Next.js 16 : ✅ (workaround `use cache` + `getServerSession` : extraire les cookies avant le scope cache et les passer en argument, Issue #5584 fermée NOT_PLANNED, c'est une contrainte Next.js pas un bug Better Auth)
-- PostgreSQL : ✅
-- Prisma v7 + `@prisma/adapter-pg` : ✅ à condition de **charger `.env` explicitement** dans `prisma.config.ts` via `@next/env` (`loadEnvConfig(process.cwd())`). L'erreur P1010 "User was denied access" vient d'une `DATABASE_URL` manquante, pas d'un bug Prisma 7
-- Google OAuth : ✅ (provider built-in)
-
-**Gotcha `.env` Prisma 7** : le chargement par `@next/env` en tête de `prisma.config.ts` est déjà en place, voir § Configuration Recommandée > prisma.config.ts.
-
-**Recommandation** : ✅ Better Auth utilisable dès l'implémentation de l'espace admin post-MVP, sur la version courante du jour. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
-
 
 ## pgvector
 
@@ -1267,8 +1273,6 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
-| Next.js 16.3.3 | Better Auth 1.7.2 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (workaround trivial, Issue #5584) |
-| Prisma 7.10.0 | Better Auth 1.7.2 | ✅ | L'URL de base est disponible au runtime via les variables d'environnement. `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth |
 | Prisma 7.10.0 | pgvector 0.8.6 | ⚠️ | Support partiel : `Unsupported("vector")` + SQL manuel |
 | PostgreSQL 18.6 | pgvector 0.8.6 | ✅ | Support PG 18 depuis 0.8.1 |
 | PostgreSQL 18.6 | Umami 3.3.1 | ⚠️ | Aucun retour upstream sur PG 18 (issue #3888, PG 17.6, fermée `not_planned`), à valider en staging |
@@ -1279,7 +1283,6 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 |---|---|---|
 | pgvector < 0.8.2 + CVE-2026-3172 | 🔴 Critique | Utiliser pgvector 0.8.2 minimum dès l'activation du RAG |
 | Umami + PostgreSQL 18 | 🟡 Moyen | Valider en staging avant prod, base dédiée séparée de celle du portfolio |
-| Better Auth + `use cache` (Next.js 16) | 🟢 Faible | Extraire les cookies via `(await cookies()).toString()` **avant** le scope cache, passer en argument à `getServerSession` (Issue #5584) |
 
 ## Checklist au moment de l'implémentation
 
@@ -1294,9 +1297,6 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 
 - [pgvector : GitHub](https://github.com/pgvector/pgvector)
 - [pgvector 0.8.2 Release](https://www.postgresql.org/about/news/pgvector-082-released-3245/)
-- [Better Auth : Changelog](https://better-auth.com/changelog)
-- [Better Auth + Prisma + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
-- [Google Cloud Console : OAuth 2.0](https://console.cloud.google.com/apis/credentials)
 - [Umami : Installation](https://docs.umami.is/docs/install)
 - [Umami v3 Blog](https://umami.is/blog/umami-v3)
 
@@ -1334,6 +1334,9 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [nodemailer : GitHub Releases](https://github.com/nodemailer/nodemailer/releases)
 - [Pino : getpino.io](https://getpino.io)
 - [pino-nextjs-example](https://github.com/pinojs/pino-nextjs-example)
+- [Better Auth : Changelog](https://better-auth.com/changelog)
+- [Better Auth + Prisma + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
+- [Google Cloud Console : OAuth 2.0](https://console.cloud.google.com/apis/credentials)
 
 ### Tests
 

@@ -39,7 +39,10 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'edge') await import('./sentry.edge.config')
 }
 
-export const onRequestError = Sentry.captureRequestError
+export const onRequestError: Instrumentation.onRequestError = (...args) => {
+  Sentry.captureRequestError(...args)
+  logUnhandledError(...args) // logger dédié, untracké de pinoIntegration : voir § Cohabitation avec Pino
+}
 ```
 
 ### Points Importants
@@ -47,7 +50,36 @@ export const onRequestError = Sentry.captureRequestError
 - Quatre fichiers au total : `instrumentation.ts`, `instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`
 - `onRequestError` capture les erreurs des Server Components, du middleware et des proxys. Il exige le SDK ≥ 8.28.0 et Next.js 15+
 - Les fichiers `sentry.server.config.ts` et `sentry.edge.config.ts` ne sont plus des points d'entrée directs : ils sont importés par `register()`
-- Le projet a déjà `error.tsx` et `global-error.tsx` porteurs d'un `// TODO post-MVP : envoyer error à Sentry`, ce sont les points de branchement côté React
+- Le projet a déjà `error.tsx` et `global-error.tsx` porteurs d'un `// TODO post-MVP : envoyer error à Sentry`, ce sont les points de branchement côté React. Le hook `useReportError` (`src/hooks/use-report-error.ts`) partagé par les deux capture systématiquement, sans dédup avec `onRequestError` côté serveur : une erreur de rendu SSR peut donc produire deux issues (une serveur, une client après hydration). C'est le pattern recommandé par Sentry pour Next.js, accepté tel quel : dédupliquer demanderait de faire transiter l'état de capture du serveur au client, hors de portée de l'API publique du SDK
+- Le warning de build `[@sentry/nextjs] ACTION REQUIRED: ... export an onRouterTransitionStart hook ...` est attendu et volontairement non adressé : le projet a tranché `tracesSampleRate: 0` dans `instrumentation-client.ts` (pas de tracing navigateur), ce hook n'a donc rien à instrumenter. Ne pas l'ajouter pour faire taire le warning
+
+---
+
+## Instrumentation des Server Actions
+
+### Description
+
+`onRequestError` couvre les Server Components, le middleware et les proxys, mais pas les Server Actions : le SDK ne les auto-instrumente jamais, sous Webpack comme sous Turbopack. Sans wrapping explicite, une Server Action qui échoue silencieusement ou qui traîne en durée ne produit aucune transaction Sentry, alors que les routes environnantes en produisent.
+
+### Exemple
+
+```typescript
+'use server'
+import * as Sentry from '@sentry/nextjs'
+
+export async function myAction(prevState: State, formData: FormData): Promise<State> {
+  return Sentry.withServerActionInstrumentation('myAction', async () => {
+    // ...corps existant, inchangé
+  })
+}
+```
+
+### Points Importants
+
+- Chaque Server Action exposée doit être wrappée individuellement : pas de mécanisme global équivalent à `onRequestError`
+- Le callback retourne ce que retourne la Server Action : le wrapping n'altère ni le type de retour ni la gestion d'erreur métier
+- Pertinent pour toute future Server Action de l'espace admin (post-MVP), pas seulement le formulaire de contact
+- **Le wrapping seul ne garantit pas la remontée** : sur ce projet (`10.74.0`, dev Turbopack), le span `function.server_action` est bien créé et flush côté SDK (`Sentry.init({ debug: true })` le confirme dans les logs), mais aucune transaction n'apparaît côté dashboard après plusieurs minutes. Symptôme identique à #18871 (perte silencieuse au niveau transport), jamais documenté par Sentry pour le tracing spécifiquement, seulement pour la capture d'erreur. Voir § Bundler et incidents connus
 
 ---
 
@@ -105,6 +137,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
 - La doc officielle se limite à « Make sure to also add it to your CI »
 - Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation : `_experimental.useRunAfterProductionCompileHook` est le mode à activer, et il exige Next >= 15.4.1
 - Laisser `deleteSourcemapsAfterUpload` actif : des source maps servies publiquement exposeraient le code source
+- Un échec d'upload est silencieux (relevé du 2026-09-25) : un token invalide ne fait pas échouer le build, et `CI` n'entrant pas dans le build Docker, `silent: !process.env["CI"]` masque aussi les logs. Seule la présence d'un bundle côté Sentry le prouve : `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/`
 
 ---
 
@@ -181,6 +214,7 @@ Sentry.init({
 - **La région de l'organisation est irréversible** : le choix entre les États-Unis et l'Europe (`de.sentry.io`, datacenter de Francfort) se fait à la création de l'organisation et ne peut plus changer. À trancher avant de créer le projet
 - Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée
 - `beforeSend` doit retourner un événement valide ou `null` pour l'abandonner, jamais `undefined`
+- **`beforeSend` ne couvre que les issues.** Avec `pinoIntegration`, `log.levels` alimente en parallèle le produit *Logs* de Sentry, qui passe par `beforeSendLog` et transporte l'objet Pino entier (`err` sérialisé compris). `enableLogs` vaut `true` par défaut (`@sentry/core` : `enableLogs ?? _experiments?.enableLogs ?? true`), donc ce second canal est actif sans rien déclarer. Filtrer les deux, sinon la donnée masquée dans l'issue repart en clair dans le log
 - Le projet hache déjà les IP dans les logs Pino (`ip_hash` salé) : la même exigence vaut ici, et l'ajout de Sentry impose de mettre à jour [registre-traitements.md](../registre-traitements.md)
 
 ---
@@ -229,7 +263,7 @@ Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-bu
 
 ### Points Importants
 
-- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée**, version du fix non confirmée. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix
+- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix. **Reproduit sur ce projet le 2026-09 pour le tracing des Server Actions** (pas seulement la capture d'erreur du rapport original) : `sentry.server.config.ts` avec `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard Sentry après plusieurs minutes d'attente. Contournement non officiel proposé dans le fil (non testé ici, à évaluer si le besoin devient bloquant) : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`)
 - [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Même remarque, et le projet a bien un `proxy.ts`
 - [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`** : c'est celui qui le concerne vraiment. Corrigée par la PR #21351, version de publication non confirmée
 - [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs. À surveiller dès que les Server Actions admin utiliseront `redirect()` ou `notFound()`

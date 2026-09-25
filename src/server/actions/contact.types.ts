@@ -1,13 +1,9 @@
+import type { FormActionState } from "@/lib/form-state"
 import type { ContactInput } from "@/lib/schemas/contact"
 
 export type ContactFormMessage = "rate_limit" | "smtp_error" | null
 
-export interface ContactFormState {
-  ok: boolean | null
-  errors: Partial<Record<keyof ContactInput, string[]>>
-  message: ContactFormMessage
-  values?: Partial<Record<keyof ContactInput, string>>
-}
+export type ContactFormState = FormActionState<ContactInput, ContactFormMessage>
 
 export const initialContactFormState: ContactFormState = {
   ok: null,

@@ -1,8 +1,8 @@
 ---
 name: infra-ops
-description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`, `db-seed`, et les équivalents DB test (`db-test`, `db-test-reset`, `db-test-studio`). Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev, db-test-reset = DROP de la DB test).
+description: Opérations Docker et Database (Prisma/Postgres). Couvre `docker-up/down`, `db` (readiness), `db-migrate LABEL`, `db-reset`, `db-studio`, `db-dump`, `db-restore`, et les équivalents DB test (`db-test`, `db-test-reset`, `db-test-studio`). Jamais d'auto-invocation par Claude, uniquement sur demande explicite, car effets de bord destructifs possibles (db-reset = DROP de la DB dev, db-test-reset = DROP de la DB test).
 disable-model-invocation: true
-allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio), Bash(just db-seed), Bash(just db-test), Bash(just db-test-reset), Bash(just db-test-studio)
+allowed-tools: Bash(just docker-up), Bash(just docker-down), Bash(just db), Bash(just db-migrate *), Bash(just db-reset), Bash(just db-studio), Bash(just db-dump), Bash(just db-restore *), Bash(just db-test), Bash(just db-test-reset), Bash(just db-test-studio)
 ---
 
 # infra-ops - Opérations Docker + Database
@@ -24,9 +24,10 @@ Ta mission est d'exécuter des opérations Docker et Database selon la demande e
 |---|---|---|
 | Readiness (Postgres up + migrate deploy) | `just db` | Idempotent, safe à relancer |
 | Créer une migration dev | `just db-migrate <LABEL>` | LABEL obligatoire (snake-case, ex: `add-project-slug`) |
-| Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate, sans seed (`just db-seed` ensuite). `[confirm]` Just demande confirmation |
+| Reset complet DB dev | `just db-reset` | ⚠️ DROP + recreate + migrate, sans données (`just db-restore` ensuite). `[confirm]` Just demande confirmation |
 | Ouvrir Prisma Studio | `just db-studio` | Background (UI locale, http://localhost:5555) |
-| Seed la DB depuis `prisma/seed-data/` | `just db-seed` | Idempotent (upsert par slug). Pas destructif. Requiert tables migrées (`just db`) |
+| Dump des données de la DB de dev, sans le schéma `auth` | `just db-dump` | Non destructif, écrit dans `dumps/` |
+| Restaure un dump dans la DB de dev | `just db-restore <fichier>` | ⚠️ Sur une base vidée par `db-reset` seulement, `pg_restore` empile sinon |
 
 ### Database (test)
 
@@ -35,7 +36,7 @@ Recettes jumelles de la DB dev, qui chargent `.env.test` (DATABASE_URL = `portfo
 | Action | Commande | Notes |
 |---|---|---|
 | Migrer la DB test (migrate deploy) | `just db-test` | Idempotent. À relancer après chaque nouvelle migration locale pour que les tests integration voient le schéma à jour |
-| Reset complet DB test | `just db-test-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation. `--skip-seed` (les tests créent leurs fixtures inline) |
+| Reset complet DB test | `just db-test-reset` | ⚠️ DROP + recreate + migrate. `[confirm]` Just demande confirmation. Sans seed (les tests créent leurs fixtures inline) |
 | Ouvrir Prisma Studio sur la DB test | `just db-test-studio` | Background (UI locale, http://localhost:5555). Pour inspecter les fixtures d'un test integration qui échoue |
 
 ## Règles
@@ -44,4 +45,4 @@ Recettes jumelles de la DB dev, qui chargent `.env.test` (DATABASE_URL = `portfo
 - `db-reset` / `db-test-reset` → confirmer que l'environnement est bien celui ciblé (jamais en prod), rappeler que ça drop tout
 - `db-migrate` sans LABEL → demander le label avant de lancer (Prisma bloque interactivement sinon). Après création : proposer `just db-test` pour réaligner la DB test
 - `db-studio` / `db-test-studio` en background uniquement
-- `docker-down` ne supprime pas les volumes (`portfolio_pgdata`, `portfolio_assets` persistent)
+- `docker-down` ne supprime pas le volume `portfolio_pgdata`, les données Postgres persistent

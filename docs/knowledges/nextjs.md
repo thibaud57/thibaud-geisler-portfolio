@@ -38,7 +38,7 @@ src/app/
 ├── admin/                                segment réel, hors [locale] (post-MVP, ADR-021)
 │   └── page.tsx                          → /admin
 ├── api/
-│   └── assets/[...path]/route.ts         → /api/assets/projets/client/foyer/logo.png
+│   └── assets/[...path]/route.ts         → /api/assets/projets/client/webapp-gestion-sinistres/cover.webp
 └── layout.tsx                            root layout
 ```
 

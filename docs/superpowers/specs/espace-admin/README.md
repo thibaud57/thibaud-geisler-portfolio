@@ -139,11 +139,43 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 | Variables `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL` absentes de `src/env.ts` et `.env.example` | ⬜ `env.ts` est fail-fast, à ajouter dans le même commit que l'installation de `better-auth` |
 | Tables Better Auth absentes du schéma | ⬜ Première migration à écrire. Le modèle `Asset` fantôme de l'ADR-002 est corrigé |
 
+## À traiter avant la mise en production
+
+Dette reportée par les sub-projects au fil de l'implémentation, et préparatifs uniques du premier déploiement de l'epic. `/finalize-feature` la relit.
+
+| Point | Origine | État |
+|---|---|---|
+| Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ✅ 2026-09-25 : les trois `href` alimentés par la base, `company.websiteUrl` compris, n'acceptent que `http` et `https` |
+| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ✅ 2026-09-25 : base de dev auditée, dump `just db-dump` (schéma `auth` exclu), transfert répété sur une base locale à l'état de la prod |
+| Poser les variables d'environnement dans Dokploy | `04`, `09`, `10` | ✅ 2026-09-25 : `R2_*` (buckets de prod, tokens de prod), `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL`. Le DSN Sentry n'y va pas, il est inliné au build depuis la variable GitHub |
+| Déclarer le redirect URI de production sur le client OAuth | `04` | ✅ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
+| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev (21 et 5 objets), chaque objet relu et comparé à l'original |
+| Appliquer la migration du schéma `auth` en CI | `04` | ✅ Run CI de `feature/espace-admin` du 2026-09-25 |
+| Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ✅ 2026-09-25 : sauvegarde manuelle depuis Database `portfolio-db` → Backups |
+| Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ✅ 2026-09-25 |
+
+## À vérifier après la mise en production
+
+Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se font. Les contrôles de chaque release restent dans [PRODUCTION.md § Checklist Release](../../../PRODUCTION.md).
+
+| Point | Origine | État |
+|---|---|---|
+| Migrations appliquées au démarrage du container | `03`, `04`, `09` | ⬜ Les 7 migrations dans les logs du déploiement |
+| Charger le dump dans `portfolio-db` | `14` | ⬜ [PRODUCTION.md § Backup & Recovery](../../../PRODUCTION.md), procédure « Remplir la base depuis un dump de dev », Redeploy compris |
+| Assets servis depuis R2 | `09` | ⬜ `curl -sI https://thibaud-geisler.com/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf` renvoie `public, max-age=31536000, immutable` ; aucune image cassée sur les pages publiques ni sur les badges entreprise |
+| Connexion à l'espace admin | `04`, `05` | ⬜ Le compte `ADMIN_EMAIL` se connecte, un autre compte Google revient sur `/admin/login?error=FORBIDDEN` |
+| Upload depuis l'espace admin | `10` | ⬜ Le fichier atterrit dans le bucket de production de son emplacement ; le logo d'une entreprise ayant un projet publié est servi sans session en `no-cache`, toute autre clé `freelance/` répond 404 par la route publique |
+| Sentry | `02` | ⬜ `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/` renvoie un bundle du jour du tag ; une erreur serveur produit une issue dont la stack trace pointe sur le source ; `docker history --no-trunc <image> \| grep -i sentry_auth_token` ne renvoie rien |
+| Rendu public sans donnée au build | `14` | ⬜ `curl -N https://thibaud-geisler.com/fr/projets` montre la coquille avant le contenu ; `og:title` avant `</head>` pour les user-agents `TelegramBot (like TwitterBot)`, `Bluesky Cardyb/1.1` et `http.rb/5.1.1 (Mastodon/4.3.0; +https://example.org/)` |
+| Performance | `14` | ⬜ PageSpeed Insights sur les quatre pages clés × deux locales, comparé à [baselines/](../../../baselines/), nouveau relevé daté |
+| Supprimer le volume `portfolio_assets` du VPS | `09` | ⬜ Après quelques jours de fonctionnement normal : copie de secours d'un éventuel rollback d'ici là |
+| Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
+
 ## Infrastructure
 
 Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
 
-- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Rien n'est sauvegardé à ce jour** : relevé du 2026-09-03, aucune destination, aucune sauvegarde de base, aucun volume backup. Toute perte de la Database est définitive tant que le sub-project `01` n'est pas livré.
+- Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
 - Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers `empiricmind.fr`. **Tout ce qui est authentifié reste sur le domaine du portfolio.** `empiricmind.fr` garde les outils d'infrastructure avec leur propre authentification.
 - Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
@@ -162,3 +194,4 @@ Quatre projets Dokploy existants : Portfolio (un service Compose plus une Databa
 - Source de vérité du kanban : GitHub Issues, avec l'espace admin en simple vue, ou base locale avec synchronisation ? La première évite un chantier de synchronisation bidirectionnelle.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
 - Faut-il un serveur MCP au-dessus des Server Actions du portfolio, pour piloter le CRM depuis Claude Code ? Techniquement peu coûteux, mais un CLI consomme nettement moins de contexte qu'un MCP à usage répétitif.
+- Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

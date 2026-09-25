@@ -4,10 +4,10 @@ services:
     pull_policy: always
     restart: unless-stopped
     env_file: .env
-    environment:
-      ASSETS_PATH: /app/assets
-    volumes:
-      - portfolio_assets:/app/assets
+    # Node en PID 1 ne récolte pas les processus orphelins.
+    init: true
+    # Sans plafond, l'OOM killer du VPS peut tuer un autre service que celui qui fuit.
+    mem_limit: 1g
     # start_period couvre `prisma migrate deploy`, qui précède le serveur dans le CMD.
     healthcheck:
       test:
@@ -24,8 +24,5 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "100m"
-        max-file: "10"
-
-volumes:
-  portfolio_assets:
+        max-size: "20m"
+        max-file: "5"

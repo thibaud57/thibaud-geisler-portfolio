@@ -11,7 +11,6 @@ paths:
 - Utiliser `NextResponse.json(data, { status })` pour retourner du JSON avec un status HTTP
 - Extraire le body manuellement via `await request.json()`, `await request.formData()` ou `await request.text()` selon le `Content-Type`
 - Défaut attendu sur un `GET` route handler : dynamic (exécuté à chaque requête). Pour cacher la réponse côté serveur, extraire la lecture dans une fonction helper avec `'use cache'` + `cacheLife()` + `cacheTag()` et l'appeler depuis le handler (la directive `'use cache'` ne peut pas être posée dans le body du handler lui-même)
-- Retourner `export const runtime = 'nodejs'` pour les routes qui touchent Prisma (Node runtime requis pour le driver PG)
 - Centraliser les headers CORS dans un objet réutilisable et créer un handler `OPTIONS` pour les requêtes préflight
 - Valider toute entrée utilisateur avec Zod avant usage (mêmes règles que les Server Actions)
 - Écouter `request.signal` (abort event) pour nettoyer les streams quand le client se déconnecte
@@ -21,11 +20,11 @@ paths:
 - Accéder synchronement à `params` : hard error Next 16
 - Combiner `Access-Control-Allow-Origin: *` avec `Access-Control-Allow-Credentials: true` (incompatibles, CORS bloqué)
 - `await` la boucle dans le `start()` d'un `ReadableStream` pour SSE : bloque le retour de la réponse, lancer le travail async en background
-- Utiliser `export const dynamic = 'force-static' | 'force-dynamic' | ...` dans un projet où `cacheComponents: true` est activé dans `next.config.ts` : **incompatible**, throw au build (cf. `nextjs/configuration.md` et `nextjs/rendering-caching.md`)
+- Utiliser `export const dynamic = 'force-static' | 'force-dynamic' | ...` ou `export const runtime = ...` dans un projet où `cacheComponents: true` est activé dans `next.config.ts` : **incompatible**, throw au build (cf. `nextjs/configuration.md` et `nextjs/rendering-caching.md`)
 
 ## Gotchas
 - Next 15 breaking change : les `GET` route handlers ne sont **plus cachés par défaut**, exécution per-request par défaut
-- Avec `cacheComponents: true` (config projet recommandée), le segment config `dynamic` est supprimé/interdit : utiliser la directive `'use cache'` dans une fonction helper pour opt-in au caching serveur, ou laisser le comportement dynamique par défaut et s'appuyer sur `Cache-Control` côté client/CDN
+- Avec `cacheComponents: true` (config projet recommandée), les segment configs `dynamic` et `runtime` sont interdits (le runtime reste Node.js par défaut, suffisant pour Prisma) : utiliser la directive `'use cache'` dans une fonction helper pour opt-in au caching serveur, ou laisser le comportement dynamique par défaut et s'appuyer sur `Cache-Control` côté client/CDN
 - SSE derrière Nginx : `X-Accel-Buffering: no` obligatoire dans les headers pour désactiver le buffering du proxy
 - `cookies()` / `headers()` de `next/headers` sont async dans les route handlers (hard error Next 16 si sync)
 

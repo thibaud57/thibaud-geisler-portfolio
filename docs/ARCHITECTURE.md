@@ -4,7 +4,7 @@ description: "Documentation de l'architecture du portfolio personnel thibaud-gei
 date: "2026-09-04"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
+technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Better Auth", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
@@ -67,9 +67,9 @@ pnpm
 
 - **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, cf. [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
-- **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine post-MVP ([ADR-018](adrs/018-cloisonnement-donnees.md))
-- **Assets** : volumes Docker pour le MVP (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/`
-- **Sécurité** : `src/proxy.ts` (locale routing, et vérification du cookie de session sur `/admin` post-MVP) + security headers dans `next.config.ts` + Better Auth avec Google OAuth (post-MVP)
+- **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
+- **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via les routes API catch-all `/api/assets/[...path]` et `/admin/api/assets/[...path]`, jamais depuis `public/`
+- **Sécurité** : `src/proxy.ts` (locale routing, dont `/admin` est exclu, et vérification du cookie de session sur `/admin`) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
 - **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
@@ -87,7 +87,7 @@ graph LR
         Dokploy["Dokploy<br/>(reverse proxy)"]
         subgraph App["Docker (app)"]
             Next["Next.js App<br/>(App Router)"]
-            Assets["Assets<br/>(Docker volume, MVP acté,<br/>cf. ADR-011)"]
+            Assets["Assets<br/>(lecture R2 via S3 SDK,<br/>cf. ADR-011)"]
         end
         PG["PostgreSQL<br/>(Dokploy Database)"]
         Umami["Umami<br/>(analytics self-hosted,<br/>post-MVP, ADR-007)"]
@@ -101,23 +101,23 @@ graph LR
 
     subgraph Ext["Services externes"]
         Calendly["Calendly<br/>(prise de RDV)"]
-        Sentry["Sentry<br/>(erreurs applicatives,<br/>post-MVP, ADR-017)"]
+        Sentry["Sentry<br/>(erreurs + tracing serveur,<br/>ADR-017)"]
         SMTP["SMTP IONOS<br/>(email contact)"]
-        R2["Cloudflare R2<br/>(portfolio-assets, post-MVP)"]
+        R2["Cloudflare R2<br/>(portfolio-assets + portfolio-admin)"]
     end
 
     Browser -->|HTTPS| Dokploy -->|reverse proxy| Next
     Browser -->|embed widget, après consentement c15t| Calendly
     Browser -.->|script analytics| Umami
-    Browser -.->|erreurs client, ingestion directe| Sentry
+    Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
     Next -->|Prisma| PG
-    Next -->|File I/O| Assets
+    Next --> Assets
+    Assets -->|S3| R2
     Next -.->|HTTP interne| Chatbot
     Next -.->|HTTP interne| AgentOS
     Next -.->|HTTP interne| RagDocs
     Next -->|nodemailer| SMTP
-    Next -.->|erreurs + spans serveur| Sentry
-    Next -.->|S3, bascule des assets| R2
+    Next -->|erreurs + spans serveur| Sentry
     Chatbot -.->|SQL| PG
     AgentOS -.->|SQL| PG
     RagDocs -.->|SQL| PGPriv
@@ -133,15 +133,15 @@ graph LR
     Dokploy["Dokploy<br/>(VPS IONOS)"]
     Next["Next.js App<br/>(container)"]
     PG["PostgreSQL<br/>(Dokploy Database)"]
-    R2["Cloudflare R2<br/>(portfolio-backups, post-MVP)"]
+    R2["Cloudflare R2<br/>(portfolio-backups)"]
 
     Tag --> GHA
     GHA -->|push image| GHCR
     GHA -->|trigger redeploy API| Dokploy
     Dokploy -->|docker compose pull| GHCR
     Dokploy -->|run container| Next
-    PG -.->|dump| Dokploy
-    Dokploy -.->|sauvegarde quotidienne| R2
+    PG -->|dump| Dokploy
+    Dokploy -->|sauvegarde quotidienne, minuit| R2
 ```
 
 ## Flux Fonctionnels (Use-cases critiques)
@@ -149,8 +149,8 @@ graph LR
 ### Use-case 1 : Affichage de la liste des projets
 
 1. Visiteur accède à `/projets`
-2. Page entièrement pré-rendue au build (Server Component async dont la query porte `'use cache'` + `cacheTag('projects')`), sans `<Suspense>` dans la page (règle `'use cache'` XOR `<Suspense>`)
-3. Le static shell complet est servi depuis le Data Cache, premier hit ultra-rapide
+2. La liste est un Server Component async sous `<Suspense>`, ouvert par `await io()` : exclu du prerender, il s'exécute à la requête et sa query porte `'use cache'` + `cacheTag('projects')`
+3. La première visite après un démarrage calcule et met en cache, les suivantes sont servies du cache jusqu'à `updateTag('projects')` depuis l'espace admin
 4. Chaque carte affiche titre, société ou format, description et tags, et mène au case study qui porte les liens GitHub et démo
 5. Filtrage par type (client / personnel) disponible sur la page
 
@@ -166,9 +166,10 @@ graph LR
 
 ### Use-case 3 : Affichage d'une page projet (case study)
 
-1. `generateStaticParams` liste les slugs publiés × locales, prérendus au build (métadonnées comprises)
-2. Visiteur accède à `/projets/[slug]`, servi depuis le prérendu
-3. Next.js query Prisma sur le slug, en `'use cache'` + `cacheTag('projects')`, pour la revalidation et les slugs hors liste rendus à la demande
+1. Visiteur accède à `/projets/[slug]`
+2. Le contenu est un Server Component async sous `<Suspense>` (`CaseStudyContentAsync`) : sans `generateStaticParams`, `params` est une donnée de requête ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), ce qui exclut le composant du prerender dès qu'il l'attend
+3. `findPublishedBySlug(slug, locale)` porte `'use cache'` + `cacheTag('projects')` : la première visite après un démarrage calcule et met en cache, les suivantes sont servies du cache jusqu'à `updateTag('projects')` depuis l'espace admin
+4. Projet absent ou non publié → `notFound()`
 
 Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 
@@ -179,6 +180,7 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
+| **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin (tags par catégorie, projets, tags d'un projet) garde une suite continue qui commence à 1 : une position occupée décale les suivants, une suppression renumérote, un glisser-déposer donne au déplacé la place de la cible. Calcul pur dans `src/lib/reorder.ts`, réécriture de la suite entière dans une transaction à chaque mutation |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -225,9 +227,9 @@ src/
 │   │   ├── error.tsx
 │   │   ├── loading.tsx
 │   │   └── not-found.tsx
-│   ├── admin/                    # Espace admin (post-MVP), HORS [locale] : français seul (ADR-021),
-│   │                             # avec son propre root layout (second <html> du dépôt)
-│   ├── api/                      # API routes (hors [locale]) : assets, health
+│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), avec son propre
+│   │                             # root layout (second <html> du dépôt) ; login/ hors garde, (protected)/ gardé
+│   ├── api/                      # API routes (hors [locale]) : assets, auth, health
 │   ├── sitemap.ts                # SEO : sitemap, robots, llms.txt
 │   ├── robots.ts
 │   ├── llms.txt/
@@ -246,15 +248,15 @@ src/
 ├── config/                       # Données de config statiques (nav-items, social-links, expertise)
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), legal/ (chargement markdown), seo/ (OG, metadata)
+├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email), admin-routes.ts (chemins admin), get-current-user.ts (garde de session)
 ├── server/                       # Server Actions + queries Prisma + config serveur
 │   ├── actions/
 │   ├── config/
 │   └── queries/
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Types TypeScript partagés
-├── instrumentation.ts            # Bootstrap serveur (logger, purge du cache au boot)
-└── proxy.ts                      # Routing i18n, puis vérification de session sur /admin (post-MVP).
+├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)
+└── proxy.ts                      # Routing i18n, sauf /admin : redirection vers /admin/login sans cookie de session.
                                   # Les security headers sont dans next.config.ts
 ```
 
@@ -282,12 +284,12 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), CRUD projets post-MVP
-- **Route handlers** : `/api/assets/[...path]` (streaming des fichiers du volume), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
-- **AuthN** : Better Auth avec Google OAuth comme unique provider (Gmail pro + whitelist email single-user), post-MVP, espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
-- **AuthZ** (post-MVP) : trois couches, proxy Next.js sur `/admin` par vérification du cookie de session, contrôle de session dans le layout protégé, et contrôle en tête de chaque Server Action admin (une action exportée reste joignable sans passer par l'écran)
+- **AuthN** : Better Auth avec Google OAuth comme unique provider, aucun provider Credentials (Gmail pro + whitelist email single-user via le hook `databaseHooks.user.create.before`), espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
+- **AuthZ** : proxy Next.js sur `/admin` par présence du cookie de session, puis `getCurrentUser()` dans le layout protégé, dans chaque page et en tête de chaque Server Action admin (cf. § Autorisation)
 - **Durcissement** : Security headers via la configuration Next.js, rate limiting au plus près de l'entrée publique (Server Action contact aujourd'hui), jamais dans le proxy
 
 ### Services Externes
@@ -303,16 +305,18 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-Post-MVP, la base se découpe en schemas par domaine (`public`, `auth`, `freelance`, `dev`, `rag_public`) et une **seconde base isolée** accueille les documents personnels, avec ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM, `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
 Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 
-- **Domaine projets** : `Project`, `ClientMeta`, `Company`, `Tag`, `ProjectTag`
+- **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
+- **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
+- **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
 
-Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés sur disque (volume Docker) et référencés depuis `Project.coverFilename` ou `Company.logoFilename`, qui portent la clé complète (`projets/client/foyer/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
+Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés dans un bucket R2 et référencés depuis `Project.coverFilename` (bucket `portfolio-assets`) ou `Company.logoFilename` (bucket `portfolio-admin`), qui portent la clé complète (`projets/client/webapp-gestion-sinistres/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
 
 ### ORM/ODM
 
@@ -337,17 +341,18 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Les quatre tags sont purgés au démarrage par `src/instrumentation.ts` : l'image est construite en CI sur une base seedée, le cache embarqué au build porte donc des données jetables. Invalidation par `updateTag` depuis les Server Actions admin post-MVP.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin.
 
 ### Files / Assets Storage
 
-Volumes Docker pour le MVP (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis via route API catch-all `/api/assets/[...path]`, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique). Migration vers Cloudflare R2 au moment de l'upload depuis l'espace admin.
+Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par deux routes API catch-all, jamais depuis `public/` (couplage au build, incompatible avec du contenu dynamique) : `/api/assets/[...path]` pour le bucket vitrine, `/admin/api/assets/[...path]` derrière la garde de session pour le bucket back-office. Buckets privés, aucun domaine public configuré : seules ces routes y accèdent, via le SDK S3, chacune avec le token de son bucket.
 
-| Racine | Contenu |
-|--------|---------|
-| `projets/{client,personal}/<slug>/` | Covers, logos, captures de case study (`<slug>` = `Company.slug` ou `Project.slug`) |
-| `documents/cv/` | CV PDF par locale |
-| `branding/` | Logo, portrait |
+| Bucket | Racine | Contenu |
+|--------|--------|---------|
+| `portfolio-assets` (vitrine, servi sans authentification) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
+| `portfolio-assets` | `documents/cv/` | CV PDF par locale |
+| `portfolio-assets` | `branding/` | Logo, portrait |
+| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
 
 ### File Processing
 
@@ -458,7 +463,8 @@ Docker + Docker Compose côté application (service `nextjs` uniquement). Postgr
 3 workflows GitHub Actions :
 - **`ci.yml`** : lint + typecheck + tests + build sur push `main` et PR vers `main` ou `develop` (Postgres CI éphémère, migrations appliquées avant les tests). Les PR doc-only et les PR release-please sautent le job `quality`, un job agrégateur `ci` restant le required check. Audit des dépendances non bloquant.
 - **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. S'authentifie par GitHub App (`actions/create-github-app-token@v3`), le tag étant ainsi poussé par un acteur dont les événements déclenchent `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
-- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` pour rejouer un déploiement → migrations + seed sur le Postgres CI (le prerender a besoin de données) → build Docker → push GHCR → trigger Dokploy redeploy.
+- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` sur le ref d'un tag pour rejouer un déploiement (tout autre ref est sauté) → build Docker sans base → push GHCR → trigger Dokploy redeploy.
+- **`security.yml`** : chaque semaine, scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security. Ne conditionne ni la CI ni le déploiement.
 
 Déploiement piloté par les tags release-please, jamais par un merge `main` direct.
 
@@ -470,11 +476,13 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 | `test` | Vitest, base PostgreSQL dédiée | `.env.test` |
 | `production` | VPS IONOS via Dokploy | Variables d'env Dokploy |
 
+> **Authentification** : cinq variables serveur (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`), validées par `src/env.ts`. Détail : [PRODUCTION.md § Variables d'Environnement](PRODUCTION.md#variables-denvironnement).
+
 ### Sécurité Infrastructure
 
 - **Secrets** : variables d'environnement gérées dans Dokploy (jamais dans le repo)
 - **Réseau** : seuls les ports 80/443 exposés publiquement (reverse proxy Dokploy)
-- **HTTPS** : TLS automatique via Dokploy (Let's Encrypt)
+- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake. Note A+ chez SSL Labs (relevé du 2026-09-21)
 
 ### Scalabilité & Performance
 
@@ -490,11 +498,11 @@ OWASP Top 10 comme référence : durcissement des headers, validation stricte de
 
 ### Authentification
 
-Better Auth avec Google OAuth comme unique provider. Whitelist email single-user via hook `databaseHooks.user.create.before` (seul le Gmail pro autorisé peut créer un compte). Uniquement pour l'espace admin (post-MVP). Pages publiques sans auth. Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
+Better Auth avec Google OAuth comme unique provider, aucun provider Credentials. Whitelist email single-user via le hook `databaseHooks.user.create.before` : seul `ADMIN_EMAIL` peut créer un compte, tout autre compte lève une `APIError` et redirige vers `/admin/login?error=FORBIDDEN`. Aucune adresse IP conservée en session : le hook `databaseHooks.session.create.before` la retire avant écriture, l'IP ne servant qu'au rate limiting en mémoire de Better Auth (`disableIpTracking` le couperait aussi). Uniquement pour l'espace admin, pages publiques sans auth. Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
 ### Autorisation
 
-Proxy Next.js : protection des routes `/admin` par vérification du cookie de session, sans appel BDD. La validation se fait dans le layout protégé, puis à nouveau en tête de chaque Server Action admin : le layout protège l'affichage des pages, pas l'exécution des actions. Le mécanisme est post-MVP : `src/proxy.ts` ne porte aujourd'hui que le routing i18n.
+Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, redirection vers `/admin/login`, sans appel BDD ni validation de signature. `getCurrentUser()` autorise : session validée en base, `ADMIN_EMAIL` revérifié (le hook de whitelist ne tourne qu'à la création du compte), `unauthorized()` sinon, objet user et token taintés. Il est appelé par le layout du groupe `(protected)`, par chaque page du groupe, et en tête de chaque Server Action admin : Next rend page et layout en parallèle et sérialise le payload de la page même quand le layout refuse, et une action exportée reste joignable sans passer par l'écran.
 
 ### Protection API
 
@@ -532,7 +540,7 @@ Pino, logger JSON structuré. Output stdout, visible dans l'onglet Logs de Dokpl
 ### Monitoring
 
 - **Umami** : analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Cf. [ADR-007](adrs/007-analytics-umami.md)
-- **Sentry** (post-MVP) : erreurs applicatives, en cloud
+- **Sentry** : en place, cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Le tracing des Server Actions est affecté par un bug SDK connu sous Turbopack : l'instrumentation est en place côté code mais la transaction n'atteint pas le dashboard. Détail : [knowledges/sentry.md](knowledges/sentry.md)
 - **Logfire ou Langfuse** (post-MVP) : traces LLM des services IA, en cloud, via OpenTelemetry émis nativement par PydanticAI
 
 Sentry et Logfire ou Langfuse ne sont pas auto-hébergés : leur empreinte mémoire est incompatible avec le VPS. Umami reste self-hosted, son empreinte étant sans commune mesure. Cf. [ADR-017](adrs/017-observabilite-cloud.md).
@@ -587,7 +595,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-008 : Single repository](adrs/008-single-repository.md)
 - [ADR-009 : UI System : shadcn/ui hybride + effets visuels](adrs/009-ui-system.md)
 - [ADR-010 : i18n : next-intl](adrs/010-i18n.md)
-- [ADR-011 : Stockage assets : volumes Docker MVP, R2 post-MVP](adrs/011-stockage-assets.md)
+- [ADR-011 : Stockage assets sur Cloudflare R2](adrs/011-stockage-assets.md)
 - [ADR-015 : Découpage en services par frontière d'exécution](adrs/015-decoupage-services.md)
 - [ADR-016 : Accès LLM : OpenRouter, sans gateway auto-hébergée](adrs/016-acces-llm.md)
 - [ADR-017 : Observabilité en cloud, pas en self-hosted](adrs/017-observabilite-cloud.md)
@@ -595,6 +603,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-019 : Communication inter-services : HTTP interne, jamais exposé](adrs/019-communication-inter-services.md)
 - [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
 - [ADR-021 : Routing de l'espace admin, hors du segment de locale](adrs/021-routing-espace-admin.md)
+- [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
 
 > Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
@@ -615,7 +624,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 **Dans ce dépôt**
 
-- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)). Better Auth + Google OAuth, whitelist d'un email unique
+- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
 - **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs

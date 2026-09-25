@@ -268,12 +268,17 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'edge') await import('../sentry.edge.config')
 }
 
-export const onRequestError = Sentry.captureRequestError
+export const onRequestError: Instrumentation.onRequestError = async (...args) => {
+  Sentry.captureRequestError(...args)
+  await logUnhandledError(...args)  // corps existant, inchangé
+}
 ```
 
-Trois ajouts seulement : l'import de la configuration serveur, la branche Edge, et l'export `onRequestError`. Tout le reste est préexistant.
+Trois ajouts seulement : l'import de la configuration serveur, la branche Edge, et l'appel à `Sentry.captureRequestError` dans `onRequestError`. Tout le reste est préexistant.
 
 L'ordre des deux `await import` n'est pas indifférent : `.claude/rules/sentry/instrumentation.md` demande que l'intégration soit active avant que le logger n'émette, faute de quoi les premiers logs échappent à la capture.
+
+**`onRequestError` existe déjà, il se compose, il ne se remplace pas.** Le fichier exporte un `onRequestError` qui émet l'event Pino `request:unhandled_error`, documenté dans `docs/PRODUCTION.md` § Logging > Niveaux et utilisé par § Incident Response, dont la procédure filtre sur `"level":"error"`. Écrire `export const onRequestError = Sentry.captureRequestError` supprimerait ce log et casserait silencieusement la procédure d'incident. Garder le corps existant et lui ajouter l'appel Sentry en tête : les deux destinations sont complémentaires, Sentry pour l'alerte, Pino pour la trace consultable sur le VPS.
 
 `onRequestError` est ce qui capture les erreurs des Server Components et du proxy. Sans cet export, ces erreurs ne remontent pas.
 
@@ -361,7 +366,7 @@ Expected: build réussi. Sans `SENTRY_AUTH_TOKEN` en local, l'upload des source 
 
 - [ ] **Step 1: Brancher `src/app/[locale]/error.tsx`**
 
-Remplacer le commentaire `// TODO post-MVP : envoyer error à Sentry` et la ligne `void error` par :
+Remplacer le commentaire `// TODO post-MVP : envoyer error à Sentry` par :
 
 ```typescript
 import { useEffect } from 'react'
@@ -400,7 +405,6 @@ L'issue getsentry/sentry-javascript#21333 décrit une rupture du prerendering qu
 **Files:**
 - Modify: `Dockerfile:60`
 - Modify: `.github/workflows/deploy.yml`
-- Modify: `.gitignore`
 
 **Interfaces:**
 - Consomme : le token et la variable enregistrés à la Task 1.
@@ -444,57 +448,51 @@ et ajouter le bloc :
 
 Le DSN va dans `build-args` et non dans `secrets` : c'est une variable `NEXT_PUBLIC_`, inlinée dans le bundle au build. L'omettre produirait un SDK navigateur muet en production alors que tout fonctionne en local.
 
-- [ ] **Step 3: Ignorer le fichier de configuration du plugin**
-
-Ajouter à `.gitignore` :
-
-```
-.env.sentry-build-plugin
-```
-
-Ce fichier n'est généré que par le wizard, qu'on n'utilise pas, mais l'ignorer coûte une ligne et évite une fuite de token si quelqu'un le lance un jour.
-
-- [ ] **Step 4: Vérifier que le token n'est pas dans l'image**
-
-Après le premier déploiement, sur l'image publiée :
+- [ ] **Step 3: Vérifier que le fichier de configuration du plugin est déjà ignoré**
 
 ```bash
-docker history --no-trunc <image> | grep -i sentry_auth_token
+git check-ignore -v .env.sentry-build-plugin
 ```
 
-Expected: aucun résultat.
+Expected: la règle `.env*` du `.gitignore` répond, avec son exception `!.env.example`. Le fichier est donc déjà couvert et **aucune ligne n'est à ajouter**. Ce fichier n'est de toute façon généré que par le wizard, qu'on n'utilise pas.
+
+- [ ] **Step 4: Vérifier localement que le token n'entre pas dans l'image**
+
+```bash
+docker build --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN -t portfolio:sentry-check .
+docker history --no-trunc portfolio:sentry-check | grep -i sentry_auth_token
+```
+
+Expected: aucun résultat. Le montage `--mount=type=secret` ne laisse rien dans les couches, c'est ce que cette commande confirme. La même vérification sur l'image publiée par la CI appartient à la Checklist Release.
 
 ---
 
-### Task 7 : Vérifier de bout en bout en production
+### Task 7 : Vérifier en local, et consigner ce qui ne se vérifie qu'en production
 
-**Files:** aucun fichier du dépôt.
+**Files:**
+- Modify: `docs/PRODUCTION.md` (§ Checklist Release)
 
 **Interfaces:**
-- Consomme : le déploiement issu des Tasks 3 à 6.
-- Produit : la preuve que la chaîne fonctionne. C'est le livrable central.
+- Consomme : la configuration des Tasks 3 à 6.
+- Produit : la preuve locale que la chaîne fonctionne, et une checklist pour ce qui ne peut être prouvé qu'après déploiement.
 
-> Une intégration qui compile n'est pas une intégration qui remonte. Chacune des trois vérifications ci-dessous couvre un chemin distinct, et l'échec de l'une n'empêche pas les autres de réussir.
+> Une intégration qui compile n'est pas une intégration qui remonte. Mais la production ne se déploie qu'au tag `release-please` (`docs/PRODUCTION.md` § Workflow Release), longtemps après le commit de ce sub-project : ce qui exige un déploiement ne peut pas être un critère de fin de tâche ici. Les vérifications se partagent donc en deux, celles qu'un `just dev` ou un build local suffit à trancher, et les autres.
 
-- [ ] **Step 1: Déclencher le déploiement**
+**Vérifications locales, avant commit :**
 
-Pousser sur la branche de déploiement et attendre que le workflow aboutisse. Vérifier dans ses logs que l'upload des source maps s'est produit.
+- [ ] **Step 1: Provoquer une erreur serveur**
 
-- [ ] **Step 2: Provoquer une erreur serveur**
+En local, provoquer une exception non rattrapée dans un Server Component ou une route handler.
 
-Depuis l'application déployée, provoquer une exception non rattrapée dans un Server Component ou une route handler.
+Expected: une issue apparaît dans le projet Sentry, et l'event Pino `request:unhandled_error` apparaît **aussi** dans la sortie du serveur. Les deux, pas l'un ou l'autre : c'est ce qui prouve que `onRequestError` a été composé et non remplacé.
 
-Expected: une issue apparaît dans le projet Sentry, avec une stack trace pointant sur le fichier source original et non sur du code minifié.
-
-Si l'issue apparaît mais que la stack trace est minifiée, le problème est l'upload des source maps, pas la capture.
-
-- [ ] **Step 3: Provoquer une erreur client**
+- [ ] **Step 2: Provoquer une erreur client**
 
 Déclencher une exception atteignant l'error boundary côté navigateur, console ouverte.
 
 Expected: une issue apparaît, et **aucune violation de CSP** n'est signalée dans la console. Une violation signalerait que `connect-src` de la Task 4 est incomplet.
 
-- [ ] **Step 4: Vérifier le tracing serveur**
+- [ ] **Step 3: Vérifier le tracing serveur**
 
 Soumettre le formulaire de contact, puis :
 
@@ -504,27 +502,21 @@ sentry trace list tg-ws/thibaud-geisler-portfolio --limit 5 --period 1h
 
 Expected: au moins une transaction couvrant la Server Action, avec sa durée. Comparer à la cible de 3 s hors SMTP fixée par `docs/PRODUCTION.md`.
 
-- [ ] **Step 5: Vérifier que l'invalidation post-déploiement fonctionne toujours**
-
-Après le déploiement, consulter `/fr/projets` et vérifier que les projets affichés sont ceux de la base de production, et non ceux du seed du build CI.
-
-Expected: le contenu réel. S'il s'agit des données de seed, le bloc `NEXT_PHASE` de `src/instrumentation.ts` a été perdu en ajoutant Sentry. C'est le défaut le plus silencieux de ce sub-project : le site répond normalement, avec le mauvais contenu.
-
-- [ ] **Step 6: Vérifier l'absence de tracing navigateur**
+- [ ] **Step 4: Vérifier l'absence de tracing navigateur**
 
 Dans l'onglet réseau, pendant une navigation sur une page publique.
 
 Expected: aucune requête d'envoi de transaction émise par le navigateur, seules les erreurs pouvant en produire.
 
-- [ ] **Step 7: Vérifier le filtrage des données personnelles**
+- [ ] **Step 5: Vérifier le filtrage des données personnelles**
 
 Ouvrir une issue captée aux étapes précédentes et inspecter son contexte utilisateur.
 
-Expected: ni adresse email, ni adresse IP en clair.
+Expected: ni adresse email, ni adresse IP en clair. C'est le `beforeSend` de la Task 3 qui est exercé ici, et il se comporte de la même façon en local et en production.
 
-- [ ] **Step 8: Vérifier les niveaux Pino**
+- [ ] **Step 6: Vérifier les niveaux Pino**
 
-Déclencher successivement un `logger.debug()`, un `logger.warn()` et un `logger.error()` depuis du code serveur, puis consulter les logs Sentry :
+Déclencher successivement un `logger.debug()`, un `logger.warn()` et un `logger.error()` depuis du code serveur, puis :
 
 ```bash
 sentry log list tg-ws/thibaud-geisler-portfolio --limit 10
@@ -539,6 +531,25 @@ Expected, conformément à `log.levels` et `error.levels` :
 | `logger.error()` | oui | oui |
 
 Si `debug` apparaît, `log.levels` n'a pas été pris en compte et le quota de 5 Go s'épuisera pour rien. Si `warn` crée une issue, c'est `error.levels` qui est trop large et chaque avertissement deviendra une alerte.
+
+- [ ] **Step 7: Vérifier que le bloc d'invalidation a survécu**
+
+```bash
+grep -n "phase-production-server" src/instrumentation.ts
+```
+
+Expected: le bloc `NEXT_PHASE` et ses quatre `revalidateTag` sont toujours là. C'est le défaut le plus silencieux de ce sub-project : perdu en ajoutant Sentry, le site répondrait normalement en production avec les données du seed CI. Le constater en production exigerait un déploiement, le constater dans le fichier ne coûte rien.
+
+**Vérifications de production, à reporter dans la Checklist Release :**
+
+- [ ] **Step 8: Ajouter le bloc Sentry à la Checklist Release de `docs/PRODUCTION.md`**
+
+Quatre points, à cocher au premier tag qui embarque ce sub-project :
+
+1. Les logs du workflow de déploiement montrent l'upload des source maps.
+2. Une erreur serveur en production produit une issue dont la stack trace pointe sur le fichier source et non sur du code minifié. Une stack minifiée signale l'upload des source maps, pas la capture.
+3. `docker history --no-trunc <image publiée> | grep -i sentry_auth_token` ne retourne rien.
+4. `/fr/projets` affiche les projets de la base de production et non ceux du seed du build CI, ce qui confirme que l'invalidation `NEXT_PHASE` s'exécute toujours au boot.
 
 ---
 

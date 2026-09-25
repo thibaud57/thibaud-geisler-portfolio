@@ -219,7 +219,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply cursor-default bg-background text-foreground;
   }
   html {
     @apply font-sans;
@@ -233,6 +233,13 @@
   h3 {
     @apply text-2xl font-semibold tracking-tight;
   }
+  /* Le curseur texte ne subsiste que là où on saisit : ailleurs, il donnait l'impression d'un
+     contenu éditable. Liens et boutons gardent le leur, posé par une règle et non hérité. */
+  input,
+  textarea,
+  [contenteditable]:not([contenteditable="false"]) {
+    cursor: text;
+  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
@@ -243,11 +250,6 @@
   a:active {
     text-decoration: none;
   }
-}
-
-.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)),
-.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)):hover {
-  text-decoration: none;
 }
 
 html[data-magicui-theme-vt="active"]::view-transition-old(root),

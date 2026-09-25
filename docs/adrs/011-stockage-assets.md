@@ -110,7 +110,7 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 
 **Pattern commun aux trois options :** route API `/api/assets/[...path]` → stream du fichier depuis le backend (fs pour A, SDK S3 pour B et C). Le code applicatif diffère uniquement dans la couche d'accès au fichier : un chemin disque configuré par `ASSETS_PATH` pour l'Option A, des credentials et un fetch signé pour B et C.
 
-**Workflow dev local / prod :**
+**Workflow dev local / prod de l'Option A, remplacé au sub-project `espace-admin/09` (cf. dernière note) :**
 - Dev local : dossier `./assets/` à la racine du projet (gitignored), `ASSETS_PATH=./assets` dans `.env`
 - Prod Docker : volume `portfolio_assets` monté sur `/app/assets` dans le container, `ASSETS_PATH=/app/assets` fixé dans `compose.yaml`
 - Le volume Docker persiste entre les redéploiements, remplacer le container ne supprime pas les fichiers
@@ -120,3 +120,19 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 Cf. [ADR-005](005-hebergement-dokploy-vs-vercel.md) pour le contexte infrastructure Dokploy (même contrainte d'absence de CDN global).
 
 **Évolution post-implémentation, route catch-all + sous-dossiers :** la route a été refactorée de `/api/assets/[filename]` (flat, single-segment) vers `/api/assets/[...path]` (catch-all, segments multiples validés individuellement). L'organisation sur disque compte trois racines : `projets/{client,personal}/<slug>/<filename>` où `<slug>` correspond au slug DB (Company.slug pour les CLIENT, Project.slug pour les PERSONAL), `documents/cv/` (CV PDF par locale) et `branding/` (logo, portrait). Motivation : lisibilité filesystem quand le volume grossit (covers + logos + screenshots case-study), cohérence avec les slugs DB, mêmes garanties sécurité (Zod par segment, path traversal check, profondeur max 5 segments). Détails : `.claude/rules/nextjs/assets.md`.
+
+**Cinq buckets R2 provisionnés au sub-project `espace-admin/01` :** `portfolio-backups` (sauvegardes base de données, sans rapport avec les assets), `portfolio-assets` / `portfolio-assets-dev` (vitrine, migration effective au sub-project `09`), `portfolio-admin` / `portfolio-admin-dev` (back-office, première écriture au sub-project `10`). Chacun servi par un token `Object Read & Write` restreint à lui seul.
+
+**Critère du partage vitrine / back-office :** pas « qui édite », l'espace admin écrit dans les deux, mais « servi par une route publique ou non ». `portfolio-assets` couvre tout ce que `/api/assets` sert sans authentification ; `portfolio-admin` tout ce qui n'est lu qu'authentifié.
+
+**Miroir avec les schemas de la base ([ADR-018](018-cloisonnement-donnees.md)) :** `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`, sous-dossier par domaine (`crm`, `administration`, `vente`) ajouté quand le besoin arrive. Une clé d'objet dit alors à elle seule quel schema la référence, quel bucket la porte, quelle route la sert et quel token y accède.
+
+**À venir avec le domaine freelance, bucket `documents-prives` :** pendant de la base du même nom, token détenu par le seul service `rag-documents`, dépôt depuis l'admin via l'API interne du service.
+
+**Le RAG lit en place :** token lecture seule et liste de préfixes autorisés, clé + ETag + date d'indexation en base. Pas de dossier `rag/`, pas de copie : une copie diverge de son original et « ce qui est indexé » est une décision, pas un emplacement.
+
+**Migration vers R2 réalisée (2026-09-14, sub-project `espace-admin/09`) :** la lecture bascule du volume Docker vers le bucket `portfolio-assets`, juridiction `eu`. Le bucket reste privé, servi exclusivement par la route `/api/assets/[...path]`, aucun domaine public n'étant configuré. L'arborescence change avec elle : les fichiers d'un projet client passent sous le slug du projet, les logos d'entreprise partent dans `portfolio-admin` sous `freelance/crm/entreprises/<slug>/`. En développement, `portfolio-assets-dev` joue le même rôle avec son propre token. Le volume Docker devient mort et se retire après quelques jours d'observation.
+
+**Exception pour le logo d'entreprise (2026-09-22, amendement du sub-project `espace-admin/09`) :** le logo reste dans `portfolio-admin`, sous `freelance/crm/entreprises/<slug>/`, comme donnée du CRM, mais la page publique d'un projet client l'affiche : `/api/assets/[...path]` sert ces seules clés depuis le bucket admin, sans session et sans cache, et seulement si l'entreprise a un projet publié : le logo d'un prospect du CRM reste invisible. Le critère « servi par une route publique ou non » se lit donc au dossier, plus au bucket, pour cette seule exception. Un projet personnel, rattaché à l'entreprise du freelance lui-même, ne montre jamais cette fiche : un badge « Projet personnel » la remplace.
+
+**Route de lecture du back-office (2026-09-21, sub-project `espace-admin/10`) :** `portfolio-admin` se lit par `/admin/api/assets/[...path]`, sous la garde de session de l'espace admin et avec son propre token. Elle répond toujours `no-cache, no-store, must-revalidate`, un fichier du back-office se remplaçant sur sa clé quand un asset public change de nom à chaque version et se sert `immutable`. Une image affichée depuis cette route passe `unoptimized` à `next/image` : l'optimiseur rejoue la requête sans cookie et se ferait refuser.
