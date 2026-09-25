@@ -138,8 +138,9 @@ function UploadForm({
   }
 
   function selectFile(selected: File) {
+    // Seul un nom repris d'un fichier précédent se remplace : un nom saisi à la main survit.
+    if (!filename || filename === file?.name.toLowerCase()) setFilename(selected.name.toLowerCase())
     setFile(selected)
-    setFilename(selected.name.toLowerCase())
   }
 
   function handleFileInputChange(event: ChangeEvent<HTMLInputElement>) {

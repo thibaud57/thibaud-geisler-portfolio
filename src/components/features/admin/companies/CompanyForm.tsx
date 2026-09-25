@@ -241,7 +241,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                     assetKey={logoFilename}
                     alt=""
                     fill
-                    sizes="100vw"
+                    sizes="(min-width: 1024px) 35vw, 100vw"
                     className="object-cover"
                     onError={onLogoError}
                   />

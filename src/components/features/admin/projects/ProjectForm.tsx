@@ -561,7 +561,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                     assetKey={coverFilename}
                     alt=""
                     fill
-                    sizes="100vw"
+                    sizes="(min-width: 1024px) 35vw, 100vw"
                     className="object-contain"
                     onError={onCoverError}
                   />
