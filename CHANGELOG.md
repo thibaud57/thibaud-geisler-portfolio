@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.0...v2.0.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* sort Zod du bundle public, borne la longueur des clés d'asset et retire npm de l'image ([#146](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/146)) ([b87ecab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b87ecab85ad16296cafae8b09dcb257cd3aeed62))
+
 ## [2.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.6...v2.0.0) (2026-09-25)
 
 
