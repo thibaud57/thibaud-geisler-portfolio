@@ -141,13 +141,34 @@ Un audit a relevé 58 écarts, dont 7 bloquants pour cette feature.
 
 ## À traiter avant la mise en production
 
-Dette reportée par les sub-projects au fil de l'implémentation. `/finalize-feature` la relit, la checklist Pré-MEP de [PRODUCTION.md](../../../PRODUCTION.md) porte ce qui concerne le déploiement lui-même.
+Dette reportée par les sub-projects au fil de l'implémentation, et préparatifs uniques du premier déploiement de l'epic. `/finalize-feature` la relit.
 
 | Point | Origine | État |
 |---|---|---|
-| Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ⬜ Après le déploiement du `14` : le seed n'existe plus, le Schedule n'a plus de commande à lancer. Geste manuel de la Checklist Release, bloc Contenu depuis l'espace admin |
-| Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ⬜ Les deux champs sont restreints à `http` et `https` côté schéma depuis le sub-project `11`. [PRODUCTION.md § Checklist Pré-MEP](../../../PRODUCTION.md) les liste encore comme ouverts |
-| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ⬜ Entreprises, tags, projets et données légales en base de dev, puis transfert unique vers la production à la release du `14` par `just db-dump` et restore. Le seed a disparu |
+| Corriger la checklist Pré-MEP sur `project.demoUrl` et `project.githubUrl` | `11` | ✅ 2026-09-25 : les trois `href` alimentés par la base, `company.websiteUrl` compris, n'acceptent que `http` et `https`, [PRODUCTION.md § Checklist Pré-MEP](../../../PRODUCTION.md) ne les liste plus comme ouverts |
+| Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ✅ 2026-09-25 : base de dev auditée, dump `just db-dump` (schéma `auth` exclu), transfert répété sur une base locale à l'état de la prod |
+| Poser les variables d'environnement dans Dokploy | `04`, `09`, `10` | ✅ 2026-09-25 : `R2_*` (buckets de prod, tokens de prod), `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL`. Le DSN Sentry n'y va pas, il est inliné au build depuis la variable GitHub |
+| Déclarer le redirect URI de production sur le client OAuth | `04` | ⬜ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
+| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev (21 et 5 objets), chaque objet relu et comparé à l'original |
+| Appliquer la migration du schéma `auth` en CI | `04` | ✅ Run CI de `feature/espace-admin` du 2026-09-25. Le `BetterAuthError: You are using the default secret` des logs de build est attendu, les secrets n'étant injectés qu'au runtime |
+| Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ⬜ Database `portfolio-db` → Backups, sauvegarde manuelle datée du jour |
+| Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ✅ 2026-09-25 : le seed n'existe plus, le Schedule n'avait plus de commande à lancer |
+
+## À vérifier après la mise en production
+
+Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se font. Les contrôles de chaque release restent dans [PRODUCTION.md § Checklist Release](../../../PRODUCTION.md).
+
+| Point | Origine | État |
+|---|---|---|
+| Migrations appliquées au démarrage du container | `03`, `04`, `09` | ⬜ Les 7 migrations dans les logs du déploiement |
+| Charger le dump dans `portfolio-db` | `14` | ⬜ [PRODUCTION.md § Backup & Recovery](../../../PRODUCTION.md), procédure « Remplir la base depuis un dump de dev », Redeploy compris |
+| Assets servis depuis R2 | `09` | ⬜ `curl -sI https://thibaud-geisler.com/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf` renvoie `public, max-age=31536000, immutable` ; aucune image cassée sur les pages publiques ni sur les badges entreprise |
+| Connexion à l'espace admin | `04`, `05` | ⬜ Le compte `ADMIN_EMAIL` se connecte, un autre compte Google revient sur `/admin/login?error=FORBIDDEN` |
+| Upload depuis l'espace admin | `10` | ⬜ Le fichier atterrit dans le bucket de production de son emplacement ; le logo d'une entreprise ayant un projet publié est servi sans session en `no-cache`, toute autre clé `freelance/` répond 404 par la route publique |
+| Sentry | `02` | ⬜ `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/` renvoie un bundle du jour du tag ; une erreur serveur produit une issue dont la stack trace pointe sur le source ; `docker history --no-trunc <image> \| grep -i sentry_auth_token` ne renvoie rien |
+| Rendu public sans donnée au build | `14` | ⬜ `curl -N https://thibaud-geisler.com/fr/projets` montre la coquille avant le contenu ; `og:title` avant `</head>` pour les user-agents `TelegramBot (like TwitterBot)`, `Bluesky Cardyb/1.1` et `http.rb/5.1.1 (Mastodon/4.3.0; +https://example.org/)` |
+| Performance | `14` | ⬜ PageSpeed Insights sur les quatre pages clés × deux locales, comparé à [baselines/](../../../baselines/), nouveau relevé daté |
+| Supprimer le volume `portfolio_assets` du VPS | `09` | ⬜ Après quelques jours de fonctionnement normal : copie de secours d'un éventuel rollback d'ici là |
 | Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
 
 ## Infrastructure

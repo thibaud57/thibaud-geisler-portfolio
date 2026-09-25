@@ -90,45 +90,6 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
-**Sentry (à cocher au premier tag embarquant l'observabilité applicative) :**
-- [ ] Les logs du workflow de déploiement montrent l'upload des source maps
-- [ ] Une erreur serveur en production produit une issue dont la stack trace pointe sur le fichier source et non sur du code minifié
-- [ ] `docker history --no-trunc <image publiée> | grep -i sentry_auth_token` ne retourne rien
-
-**Cloudflare R2 assets (à cocher au premier tag embarquant la bascule des assets vers R2) :**
-- [ ] Avant le merge vers `main` : les quatre variables R2 posées dans Dokploy, token de production de `portfolio-assets`, `R2_ASSETS_BUCKET=portfolio-assets`
-- [ ] Avant le merge vers `main` : les buckets de dev ne portent aucun objet de test, sans quoi il partirait en production à l'étape suivante
-- [ ] Avant le merge vers `main` : `portfolio-assets` peuplé depuis `portfolio-assets-dev`, en deux temps puisque chaque token ne voit que son bucket
-  ```bash
-  AWS_ACCESS_KEY_ID=<clé dev> AWS_SECRET_ACCESS_KEY=<secret dev> AWS_DEFAULT_REGION=auto aws s3 sync s3://portfolio-assets-dev/ <dossier temporaire>/ --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
-  AWS_ACCESS_KEY_ID=<clé prod> AWS_SECRET_ACCESS_KEY=<secret prod> AWS_DEFAULT_REGION=auto AWS_REQUEST_CHECKSUM_CALCULATION=when_required aws s3 sync <dossier temporaire>/ s3://portfolio-assets/ --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com
-  ```
-- [ ] Avant le merge vers `main` : `portfolio-admin` peuplé depuis `portfolio-admin-dev` de la même façon, puis le dossier temporaire supprimé
-- [ ] Avant le merge vers `main` : chaque bucket de production porte autant d'objets que son bucket de dev (`aws s3 ls s3://<bucket>/ --recursive ... | wc -l`), aucun `logo.png` dans `portfolio-assets`
-- [ ] Après déploiement : `curl -sI https://<domaine>/api/assets/documents/cv/cv-thibaud-geisler-fr.pdf | grep -i cache-control` retourne `public, max-age=31536000, immutable`
-- [ ] Après déploiement : les pages publiques affichent toutes leurs images depuis les nouvelles clés et aucun badge entreprise ne porte d'image cassée (un défaut signalerait une migration de données non appliquée)
-- [ ] Après quelques jours de fonctionnement normal : le volume Docker `portfolio_assets` du VPS peut être supprimé, mort depuis le déploiement, gardé jusque-là comme copie gratuite
-
-**Better Auth (à cocher au premier tag embarquant l'authentification de l'espace admin) :**
-- [ ] Avant le merge vers `main` : les cinq variables posées dans Dokploy (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`), `BETTER_AUTH_URL` valant le domaine de production
-- [ ] Avant le merge vers `main` : le redirect URI de production `https://thibaud-geisler.com/api/auth/callback/google` déclaré sur le client OAuth dans Google Cloud Console
-- [ ] Après le premier build CI qui embarque ce schema : les logs montrent `migrate deploy` appliquer la migration du schema `auth` et le prerender aboutir. En cas d'échec, retirer `?schema=public` du `DATABASE_URL` de la CI plutôt que de l'étendre. Le message `BetterAuthError: You are using the default secret` pendant la collecte des pages est attendu : les secrets d'authentification ne sont injectés qu'au runtime
-- [ ] Après déploiement : le compte Google correspondant à `ADMIN_EMAIL` peut se connecter et un autre compte Google est refusé, redirigé vers `/admin/login?error=FORBIDDEN`
-
-**Assets espace admin (à cocher au premier tag embarquant l'upload de logos depuis l'espace admin) :**
-- [ ] Avant le merge vers `main` : les trois variables `R2_ADMIN_*` posées dans Dokploy
-- [ ] Après déploiement : un fichier déposé depuis l'espace admin de production atterrit dans le bucket de production correspondant à son emplacement ; le logo d'une entreprise ayant un projet publié est servi par `/api/assets/freelance/crm/entreprises/<slug>/logo.png` sans session, en `no-cache` ; celui d'une entreprise sans projet publié, comme toute autre clé `freelance/`, répond 404 par la route publique
-
-**Contenu depuis l'espace admin (à cocher au premier tag qui embarque ce sub-project) :**
-- [ ] Avant le merge vers `main` : la base de dev est validée depuis l'espace admin, entreprises, tags, projets et données légales
-- [ ] Avant le merge vers `main` : sauvegarde de la base de production datée du jour (Database `portfolio-db` → Backups)
-- [ ] Avant le merge vers `main` : `just db-dump` de la base locale (tout sauf le schéma `auth`), répétition à blanc par `just db-reset` puis `just db-restore` en local, puis restore dans `portfolio-db` après vidage des tables de contenu
-- [ ] Avant le merge vers `main` : buckets synchronisés comme au bloc Cloudflare R2 ci-dessus
-- [ ] Après déploiement : suppression du Schedule `manual-seed` dans Dokploy (Compose `Portfolio-app` → Schedules), il n'a plus de commande à lancer
-- [ ] Après déploiement : `curl -N https://thibaud-geisler.com/fr/projets` montre la coquille avant le contenu ; si tout arrive d'un bloc, le streaming est mis en tampon par le proxy et le gain de premier octet est perdu
-- [ ] Après déploiement : trois `curl -s -A "<user-agent>"` sur une page de projet avec `TelegramBot (like TwitterBot)`, `Bluesky Cardyb/1.1` et `http.rb/5.1.1 (Mastodon/4.3.0; +https://example.org/)` trouvent `og:title` avant `</head>`
-- [ ] Après déploiement : PageSpeed Insights sur les quatre pages clés × deux locales, comparé à [baselines/](baselines/), et nouveau relevé daté
-
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
@@ -154,7 +115,9 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 
 ## Variables d'Environnement
 
-> **Validation runtime** : toutes les vars typées et validées au boot via `src/env.ts` (`@t3-oss/env-nextjs` + Zod). Server vs client séparés. Fail-fast si une var requise manque (`DATABASE_URL`, `SMTP_*`, `MAIL_TO`, `IP_HASH_SALT`, `R2_*` côté server, `NEXT_PUBLIC_SITE_URL` côté client). Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`.
+> **Validation runtime** : toutes les vars typées et validées via `src/env.ts` (`@t3-oss/env-nextjs` + Zod), server vs client séparés. Bypass par `SKIP_ENV_VALIDATION` pour le build CI/Docker et les tests Vitest : **toute valeur non vide suffit**, la variable n'est pas comparée à `true`.
+
+> ⚠️ **Une variable requise manquante ne fait pas tomber le container** (constaté le 2026-09-25) : les migrations s'appliquent, puis chaque requête répond 500, `/api/health` compris, et le domaine passe en 404. Correctif : poser la variable, puis Redeploy.
 
 > **Une variable ne se configure pas** : `NEXT_PUBLIC_BUILD_YEAR` est injectée au build par `next.config.ts`, calculée automatiquement, jamais posée dans l'Environment Dokploy.
 
@@ -220,12 +183,12 @@ BETTER_AUTH_SECRET=                # Secret de signature des sessions et jetons.
 ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée à créer un compte, comparée dans le hook databaseHooks.user.create.before
 ```
 
-> Liste exhaustive de ce que `src/env.ts` valide : alignement confirmé avec l'Environment du Compose Dokploy le 2026-09-15. Les trois variables `R2_ADMIN_*` sont postérieures à ce relevé et restent à poser dans Dokploy (§ Checklist Release).
+> Liste exhaustive de ce que `src/env.ts` valide.
 
 ### Règles
 
 - ✅ **Les secrets vivent dans l'Environment du Compose Dokploy**, jamais dans le dépôt
-- ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon elle échoue au boot
+- ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon l'app répond 500 à chaque requête (§ Variables d'Environnement)
 - ✅ **`NEXT_PUBLIC_` uniquement pour ce qui est exposé au navigateur**, et à passer en build-arg dans `deploy.yml` puisque la valeur est inlinée au build
 
 ### Anti-Patterns
@@ -281,13 +244,15 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le dernier backup (voir § Backup & Recovery) avant ou après le rollback.
 
+> ⚠️ **Une release qui déplace le schéma ou modifie `compose.yaml` ne se défait pas par le seul redéploiement d'un tag** : Dokploy clone `main` à chaque déploiement, le tag rejoué tourne donc avec le `compose.yaml` courant sur une base déjà migrée. Revenir en arrière exige de restaurer la sauvegarde prise avant le merge et de remettre sur `main` l'ancien `compose.yaml`, avant de dispatcher `deploy.yml` sur le tag visé.
+
 ## Checklist Pré-MEP
 
 Items validés une première fois avant le tout premier merge `develop → main`, celui qui a déclenché le premier déploiement et ouvert le régime `1.x` (mai 2026), puis revalidés lors des audits de septembre 2026 (`v1.6.0`). Conservés comme trace de ce qui a été vérifié ; les vérifications récurrentes vivent dans la Checklist Release.
 
 ### Bootstrap technique
 
-- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`. Réduit l'image Docker de ~1.2 GB à ~250 MB.
+- [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`. L'image publiée pèse 971 Mo sur le VPS (relevé du 2026-09-25).
 - [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
@@ -301,7 +266,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 - [x] **`/simplify`** : passe qualité sur toute la branche
 - [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
 - [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
-- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. Seule dette ouverte, non exploitable en single-user faute de chemin d'écriture non-trusté : trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`) : **à corriger avant le premier formulaire d'édition de l'espace admin**, où ils deviendraient un XSS stocké
+- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. La seule dette relevée, trois `href` alimentés par la BDD sans allowlist de scheme (`project.demoUrl`, `project.githubUrl`, `company.websiteUrl`), est close : les schémas Zod de l'espace admin n'y acceptent que `http` et `https` (`src/lib/schemas/project.ts`, `src/lib/schemas/company.ts`)
 
 > Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
 
@@ -332,14 +297,14 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer.
 
-- [x] **Seed BDD initial** : effectué au premier déploiement (mai 2026) par le Schedule Dokploy `manual-seed`. Le seed et le Schedule ont disparu avec le sub-project `14` de l'espace admin (septembre 2026) : le contenu vient de l'espace admin, et une base vide se remplit par transfert (§ Checklist Release, bloc Contenu depuis l'espace admin)
+- [x] **Seed BDD initial** : effectué au premier déploiement (mai 2026) par le Schedule Dokploy `manual-seed`. Le seed et le Schedule ont disparu avec le sub-project `14` de l'espace admin (septembre 2026) : le contenu vient de l'espace admin, et une base vide se remplit par transfert (§ Backup & Recovery, Procédure : Remplir la base depuis un dump de dev)
 - [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
 - [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
 - [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/](baselines/))
 
-> ℹ️ **Il n'existe plus de seed** : `prisma db seed` n'est pas configuré et le dépôt ne porte plus aucune donnée de contenu. Une base se remplit par `just db-restore` d'un dump, jamais par rejeu de fichiers du dépôt.
+> ℹ️ **Il n'existe plus de seed** : `prisma db seed` n'est pas configuré et le dépôt ne porte plus aucune donnée de contenu. Une base se remplit par un dump (`just db-restore` en local, § Backup & Recovery en production), jamais par rejeu de fichiers du dépôt.
 
 ---
 
@@ -399,7 +364,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
 
-> **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod au boot est ce qui garantit le fail-fast et le typage. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
+> **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod est ce qui garantit le typage et une erreur explicite dès le démarrage quand une variable manque. Unique exception : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
 
 ### Rotation
 
@@ -677,6 +642,25 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 5. Smoke test : accueil, `/projets`, formulaire de contact
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
+
+### Procédure : Remplir la base depuis un dump de dev
+
+> Répétée le 2026-09-25 sur une base locale à l'état de la prod, jamais exécutée en production.
+
+1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
+2. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
+3. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
+   ```bash
+   sudo docker exec $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c '
+   pg_restore -l /tmp/content.dump | grep -v _prisma_migrations > /tmp/content.list
+   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
+     pg_restore --data-only --disable-triggers -L /tmp/content.list -f - /tmp/content.dump
+     echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
+   ```
+4. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
+5. Smoke test : accueil, `/projets`, une page projet
+
+> ⚠️ Un échec annule toute la transaction, les tables restent intactes. `--disable-triggers` exige un superuser, ce qu'est l'utilisateur de `portfolio-db` (relevé du 2026-09-25).
 
 ### Procédure : Perte VPS Totale
 
