@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.6...v2.0.0) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **espace-admin:** back-office single-user, authentification Google et base multi-schéma ([#143](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/143))
+
+### Features
+
+* **espace-admin:** back-office single-user, authentification Google et base multi-schéma ([#143](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/143)) ([b2e9919](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b2e9919c2adb5345d73dbfc2835b999c13aeb304))
+
 ## [1.6.6](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.5...v1.6.6) (2026-09-08)
 
 
