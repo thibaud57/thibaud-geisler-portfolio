@@ -36,7 +36,7 @@ paths:
 - **Prisma 7 + Turbopack build** : une erreur de résolution du module WASM (`query_compiler_fast_bg.postgresql.mjs` not found) a justifié un opt-out `--webpack`, **retiré le 3 septembre 2026** faute de reproduction sur Next 16.3.3 + Prisma 7.10.0 (build Docker et runtime vérifiés, voir `docs/VERSIONS.md` § Prisma ORM). Revalider le build de l'image à chaque montée de Next ou de Prisma, le flag se remet en une ligne
 - Next 15 : `serverComponentsExternalPackages` renommé `serverExternalPackages`, l'ancien nom provoque un warning
 - `sharp` auto-installé depuis Next 15 : vérifier sa présence dans les deps de production en self-hosted
-- Build Docker côté GitHub Actions (`deploy.yml`) avec service Postgres CI éphémère (pour les queries `'use cache'` au prerender) → push GHCR → Dokploy pull-only. L'issue Prisma #29025 (hash mismatch) reste possible si le build CI et le runtime divergent : toujours figer la version Prisma + même image base Node.
+- Build Docker côté GitHub Actions (`deploy.yml`), sans aucune base : le rendu public ne lit rien au build (ADR-022), et une requête Prisma au prerender casserait le build → push GHCR → Dokploy pull-only. Ce build n'a lieu qu'au tag : l'image ne se construit nulle part avant, un changement du `Dockerfile` se valide par un `docker build` local. L'issue Prisma #29025 (hash mismatch) reste possible si le build CI et le runtime divergent : toujours figer la version Prisma + même image base Node.
 - Codemod automatique disponible : `next upgrade latest` (Next 16.1+) applique les migrations
 
 ## Exemples

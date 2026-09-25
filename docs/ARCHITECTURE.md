@@ -255,7 +255,7 @@ src/
 │   └── queries/
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Types TypeScript partagés
-├── instrumentation.ts            # Bootstrap serveur (logger, purge du cache au boot)
+├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)
 └── proxy.ts                      # Routing i18n, sauf /admin : redirection vers /admin/login sans cookie de session.
                                   # Les security headers sont dans next.config.ts
 ```

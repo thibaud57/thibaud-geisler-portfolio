@@ -137,6 +137,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
 - La doc officielle se limite à « Make sure to also add it to your CI »
 - Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation : `_experimental.useRunAfterProductionCompileHook` est le mode à activer, et il exige Next >= 15.4.1
 - Laisser `deleteSourcemapsAfterUpload` actif : des source maps servies publiquement exposeraient le code source
+- Un échec d'upload est silencieux (relevé du 2026-09-25) : un token invalide ne fait pas échouer le build, et `CI` n'entrant pas dans le build Docker, `silent: !process.env["CI"]` masque aussi les logs. Seule la présence d'un bundle côté Sentry le prouve : `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/`
 
 ---
 
