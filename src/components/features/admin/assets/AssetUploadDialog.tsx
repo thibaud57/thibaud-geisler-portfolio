@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
-import { ASSET_FOLDERS, buildAssetKey, folderNeedsSlug, MAX_ASSET_BYTES } from "@/lib/schemas/asset"
+import { ASSET_FOLDERS, buildAssetKey, folderNeedsSlug, MAX_ASSET_BYTES } from "@/lib/asset-keys"
 import { uploadAsset } from "@/server/actions/assets"
 import { initialAssetFormState } from "@/server/actions/assets.types"
 import type { AssetFormMessage } from "@/server/actions/assets.types"

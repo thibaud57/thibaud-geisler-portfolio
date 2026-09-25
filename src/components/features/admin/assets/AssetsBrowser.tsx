@@ -23,7 +23,7 @@ import {
   pathOfAssetKey,
 } from "@/lib/assets"
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination"
-import { ASSET_FOLDERS } from "@/lib/schemas/asset"
+import { ASSET_FOLDERS } from "@/lib/asset-keys"
 import type { AssetEntry } from "@/server/queries/assets"
 
 interface Props {
