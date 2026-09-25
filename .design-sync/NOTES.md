@@ -92,6 +92,11 @@ système, puis refait entièrement.
   Vérifié par compilation : 81 miroirs, bundle jetable, aucun import cassé. **Non vérifié : le
   rendu.** Aucune carte n'a été capturée, le navigateur piloté n'était pas disponible ce jour-là.
   `ecarts-design-system.md` perd son patron « trois badges puis un compteur », que `BadgeList` règle.
+- **Reste ouvert après ce sync** : le `_ds_src/` de la maquette est resté au 19 septembre, donc elle
+  tourne encore sur le système d'avant et ne voit ni les patrons admin, ni `Empty`, ni les
+  composants sortis de `post-mvp/`. Le resynchroniser n'a d'intérêt qu'au prochain écran admin, et
+  demande d'abord que le projet du système ait été ouvert une fois, pour que son bundle soit
+  recompilé : le recopier depuis un bundle jamais rendu reviendrait à propager une erreur inconnue.
 
 - **Sub-project 06, shell admin** : ajout de `BrandMark` et `AdminPageShell` dans
   `components/patterns/`, fiches `Sidebar`, `Avatar` et `Tooltip` mises à jour (installés en
