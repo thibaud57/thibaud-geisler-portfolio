@@ -82,6 +82,18 @@ système, puis refait entièrement.
   tiennent du script UMD), puis `renderToStaticMarkup` sur chaque composant avec ses props requises.
   Un identifiant manquant ou une prop mal lue échoue là, quand une carte se contenterait de rester
   blanche. Cela ne dit rien de l'apparence, seulement que le composant s'exécute.
+- **Capturer les cartes sans le MCP** : `playwright-core` et son Chromium vivent dans le cache npx
+  du serveur MCP, utilisables directement depuis un script. Servir l'export en HTTP, rediriger
+  `/_ds_bundle.js` vers un bundle compilé à la volée, puis capturer chaque carte et relever erreurs
+  console, racine vide et hauteur nulle. Trois réglages sans lesquels rien ne rend : `--jsx=transform`
+  avec `React.createElement` en factory (les cartes fournissent React en UMD, le JSX automatique
+  réclame un `react/jsx-runtime` absent), `--tsconfig-raw={}` parce qu'esbuild lit sinon le
+  `tsconfig.json` du dépôt et réimpose ce JSX automatique, et un alias `react` vers un shim qui
+  renvoie le global, faute de quoi le bundle embarque son propre React et entre en conflit.
+- **Ce que le rendu a attrapé et que rien d'autre n'aurait vu** : le `Tooltip` de ce système
+  enveloppe son déclencheur dans un span `inline-flex`, là où Radix le clone sans wrapper. Deux
+  tooltips voisins se posaient donc côte à côte, collant le nom d'un asset à son dossier. Le style
+  étant inline, aucune règle CSS ne le bat : c'est la prop `width` du `Tooltip` qui le règle.
 
 ## Journal
 
@@ -95,8 +107,11 @@ système, puis refait entièrement.
   vidé. Le readme, `github.md` et les fiches `DataTable`, `Combobox`, `AlertDialog`, `Tooltip`,
   `Badge`, `Table`, `Checkbox`, `DropdownMenu`, `Avatar` sont réalignés sur ce que le produit fait
   vraiment. Deux glyphes Lucide ajoutés (`file-text`, `image`), que `AssetPreview` réclamait.
-  Vérifié par compilation : 81 miroirs, bundle jetable, aucun import cassé. **Non vérifié : le
-  rendu.** Aucune carte n'a été capturée, le navigateur piloté n'était pas disponible ce jour-là.
+  Vérifié par compilation (81 miroirs), par montage SSR (21 composants) et **par capture : 28 des
+  29 cartes rendent sans anomalie**, la dernière ne portant que les deux 404 volontaires qui
+  démontrent l'aperçu manquant. Le rendu a corrigé ce que le reste avait laissé passer : nom et
+  dossier collés sur une tuile d'asset, un panneau de filtres ouvert qui recouvrait deux pieds de
+  pagination, un cadre de vue détail trop court qui coupait ses deux dernières lignes.
   `ecarts-design-system.md` perd son patron « trois badges puis un compteur », que `BadgeList` règle.
 - **Reste ouvert après ce sync** : le `_ds_src/` de la maquette est resté au 19 septembre, donc elle
   tourne encore sur le système d'avant et ne voit ni les patrons admin, ni `Empty`, ni les
