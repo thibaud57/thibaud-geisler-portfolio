@@ -165,7 +165,7 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 | Assets servis depuis R2 | `09` | ✅ 2026-09-25 |
 | Connexion à l'espace admin | `04`, `05` | ✅ 2026-09-25, après correction de `BETTER_AUTH_URL`, restée à la valeur de dev `http://localhost:3000` |
 | Upload depuis l'espace admin | `10` | ✅ 2026-09-25 |
-| Sentry | `02` | ⬜ Source maps reçues et token absent de l'image (2026-09-25). Reste à voir une erreur serveur produire une issue dont la stack trace pointe sur le source, à la première erreur réelle |
+| Sentry | `02` | ✅ 2026-09-25 : source maps reçues, token absent de l'image, et l'erreur de `/admin/api/sentry-test` remonte avec une stack trace qui pointe sur la ligne du `throw` |
 | Rendu public sans donnée au build | `14` | ✅ 2026-09-25 |
 | Performance | `14` | ✅ 2026-09-25 : [baselines/cwv-2026-09-25.md](../../../baselines/cwv-2026-09-25.md) |
 | Supprimer le volume `portfolio_assets` du VPS | `09` | ✅ 2026-09-25, avec l'ancienne image |
