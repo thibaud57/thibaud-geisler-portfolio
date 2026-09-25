@@ -52,6 +52,12 @@ describe("AssetPathSchema + validateAssetPath", () => {
     expect(validateAssetPath(["a", "b", "c", "d", "e", "f.png"]).ok).toBe(false)
   })
 
+  it("rejects a key longer than the 1024 characters R2 accepts", () => {
+    const result = validateAssetPath(["documents", `${"a".repeat(1100)}.pdf`])
+
+    expect(result).toEqual({ ok: false, error: "Chemin trop long" })
+  })
+
   it("exige une extension valide sur le dernier segment uniquement", () => {
     expect(validateAssetPath(["projets", "client", "logo.png"]).ok).toBe(true)
     expect(validateAssetPath(["projets.png", "client", "logo"]).ok).toBe(false)

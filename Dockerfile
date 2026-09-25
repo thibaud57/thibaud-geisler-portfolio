@@ -83,6 +83,9 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# npm n'est jamais exécuté au runtime (la CMD lance node) : le retirer sort ses dépendances des alertes Trivy.
+RUN rm -r /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 # --- Artifacts Next.js standalone ------------------------------------------
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
