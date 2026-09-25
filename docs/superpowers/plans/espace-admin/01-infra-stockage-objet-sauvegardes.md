@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Provisionner Cloudflare R2 avec trois buckets cloisonnés et obtenir une sauvegarde quotidienne de la base `portfolio` dont la restauration est effectivement vérifiée.
+**Goal:** Provisionner Cloudflare R2 avec cinq buckets cloisonnés et obtenir une sauvegarde quotidienne de la base `portfolio` dont la restauration est effectivement vérifiée.
 
-**Architecture:** Trois buckets en juridiction européenne, chacun servi par un token restreint à lui seul, de sorte qu'une compromission de l'application ne donne aucun accès aux sauvegardes et qu'une manipulation locale n'atteigne jamais les assets de production. La sauvegarde s'appuie sur le mécanisme natif Dokploy (`pg_dump` puis transfert rclone), en remplacement d'un script bash documenté mais jamais appliqué. La validation ne repose pas sur l'enregistrement réussi d'une configuration mais sur la présence réelle d'un objet dans le bucket et sur une restauration menée jusqu'à une requête SQL.
+**Architecture:** Cinq buckets en juridiction européenne, chacun servi par un token restreint à lui seul, de sorte qu'une compromission de l'application ne donne aucun accès aux sauvegardes, qu'une manipulation locale n'atteigne jamais les données de production, et que la route publique ne détienne jamais un token capable de lire le back-office. Le partage vitrine / back-office suit celui des schemas de la base (ADR-011, ADR-018) : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`. La sauvegarde s'appuie sur le mécanisme natif Dokploy (`pg_dump` puis transfert rclone), en remplacement d'un script bash documenté mais jamais appliqué. La validation ne repose pas sur l'enregistrement réussi d'une configuration mais sur la présence réelle d'un objet dans le bucket et sur une restauration menée jusqu'à une requête SQL.
 
 **Tech Stack:** Cloudflare R2, Wrangler CLI, Dokploy (S3 Destinations, Database Backups), PostgreSQL 18, rclone (embarqué par Dokploy).
 
@@ -12,14 +12,16 @@
 
 ## Global Constraints
 
-- Buckets : `portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev`, tous créés avec `--jurisdiction eu`. **La juridiction est définitive après création** : un bucket créé sans ce flag doit être détruit et recréé.
-- Le free tier R2 est un **forfait d'usage mensuel** (10 Go-mois, 1 M d'opérations Class A, 10 M Class B, egress gratuit), que la grille tarifaire Cloudflare n'exprime jamais par bucket : trois buckets ne coûtent donc pas plus que deux. Il ne couvre que le stockage Standard, pas l'Infrequent Access.
+- Buckets : `portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`, `portfolio-admin` et `portfolio-admin-dev`, tous créés avec `--jurisdiction eu`. **La juridiction est définitive après création** : un bucket créé sans ce flag doit être détruit et recréé.
+- Le free tier R2 est un **forfait d'usage mensuel** (10 Go-mois, 1 M d'opérations Class A, 10 M Class B, egress gratuit), que la grille tarifaire Cloudflare n'exprime jamais par bucket : cinq buckets ne coûtent donc pas plus que deux. Il ne couvre que le stockage Standard, pas l'Infrequent Access.
+- Un bucket par environnement et non un préfixe `dev/` : un token R2 permanent se restreint à un bucket, jamais à un préfixe (le scoping par préfixe n'existe que pour les credentials temporaires).
+- Prérequis local : la CLI `aws` (`winget install Amazon.AWSCLI` ou équivalent). Wrangler ne sait pas lister un bucket avec un token S3 donné, elle seule permet les vérifications des Tasks 2 et 4.
 - Le flag `--jurisdiction eu` (alias `--J`) doit être répété sur **chaque** commande Wrangler visant ces buckets, `info` et `lifecycle` compris. Sans lui, la commande cherche dans la juridiction par défaut et ne trouve rien.
 - Endpoint S3 résultant : `https://<account-id>.eu.r2.cloudflarestorage.com`, sans nom de bucket.
-- Trois tokens distincts en `Object Read & Write`, chacun restreint à un seul bucket. Les permissions `Admin` sont interdites ici : elles portent sur le compte entier et ne peuvent pas être restreintes.
+- Cinq tokens distincts en `Object Read & Write`, chacun restreint à un seul bucket. Les permissions `Admin` sont interdites ici : elles portent sur le compte entier et ne peuvent pas être restreintes.
 - Rétention : le champ s'appelle **`Keep the latest`** (`keepLatestCount`) et compte des **sauvegardes, pas des jours** : sa description dit « only keeps the latest N backups in the cloud ». Avec la planification quotidienne retenue, `30` donne trente sauvegardes, donc trente jours : toute modification de la fréquence change la fenêtre réelle. Laisser le champ vide conserve tout. **Aucune lifecycle rule R2** ne doit être créée sur `portfolio-backups` : cumuler les deux mécanismes fait silencieusement gagner le plus court.
 - Planification : `0 0 * * *` en UTC.
-- Les buckets `portfolio-assets` et `portfolio-assets-dev` sont créés mais restent vides. Aucune variable d'environnement R2 n'est ajoutée à `src/env.ts`, qui est fail-fast et casserait le démarrage sans code consommateur. Ces deux points appartiennent au sub-project `09`.
+- Les quatre buckets applicatifs sont créés mais restent vides. Aucune variable d'environnement R2 n'est ajoutée à `src/env.ts`, qui est fail-fast et casserait le démarrage sans code consommateur. La vitrine bascule sur `portfolio-assets` au sub-project `09`, la première écriture dans `portfolio-admin` a lieu au `10`.
 - Le volume Docker `portfolio_assets` n'est pas sauvegardé. Risque temporaire assumé et documenté, ce volume disparaissant au sub-project `09`.
 - Aucun commit intermédiaire. Le périmètre du commit final est validé par l'utilisateur, conformément à la discipline commit du projet.
 
@@ -27,13 +29,13 @@
 
 ---
 
-### Task 1 : Créer les trois buckets R2 en juridiction européenne
+### Task 1 : Créer les cinq buckets R2 en juridiction européenne
 
 **Files:** aucun fichier du dépôt. Opérations en CLI sur le compte Cloudflare.
 
 **Interfaces:**
 - Consomme : un compte Cloudflare actif.
-- Produit : les buckets `portfolio-backups`, `portfolio-assets` et `portfolio-assets-dev` en juridiction `eu`, et l'**account ID** Cloudflare, nécessaire à la Task 3 pour construire l'endpoint.
+- Produit : les buckets `portfolio-backups`, `portfolio-assets`, `portfolio-assets-dev`, `portfolio-admin` et `portfolio-admin-dev` en juridiction `eu`, et l'**account ID** Cloudflare, nécessaire à la Task 3 pour construire l'endpoint.
 
 - [ ] **Step 1: Installer Wrangler et s'authentifier**
 
@@ -44,25 +46,27 @@ wrangler login
 
 `wrangler login` ouvre un flux OAuth dans le navigateur. Ce flux est distinct des tokens R2 créés en Task 2 : il authentifie le CLI, il ne sert pas aux applications.
 
-- [ ] **Step 2: Créer les trois buckets**
+- [ ] **Step 2: Créer les cinq buckets**
 
 ```bash
 wrangler r2 bucket create portfolio-backups     --jurisdiction eu
 wrangler r2 bucket create portfolio-assets      --jurisdiction eu
 wrangler r2 bucket create portfolio-assets-dev  --jurisdiction eu
+wrangler r2 bucket create portfolio-admin       --jurisdiction eu
+wrangler r2 bucket create portfolio-admin-dev   --jurisdiction eu
 ```
 
-Les sauvegardes, les assets de production, et les assets de développement. Séparer les deux derniers suit le principe déjà appliqué à PostgreSQL, où le développement tourne sur sa propre base et non sur celle de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
+Les sauvegardes, la vitrine (ce que `/api/assets` sert sans authentification), le back-office (ce qui n'est lu qu'authentifié), et leurs jumeaux de développement. Séparer production et développement suit le principe déjà appliqué à PostgreSQL, où le développement tourne sur sa propre base et non sur celle de production. Séparer vitrine et back-office tient à la route publique, qui ne doit jamais détenir un token capable de lire le second. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, ces séparations ne coûtent rien.
 
 - [ ] **Step 3: Vérifier que les buckets existent bien en juridiction eu**
 
 ```bash
-wrangler r2 bucket info portfolio-backups     --jurisdiction eu
-wrangler r2 bucket info portfolio-assets      --jurisdiction eu
-wrangler r2 bucket info portfolio-assets-dev  --jurisdiction eu
+for b in portfolio-backups portfolio-assets portfolio-assets-dev portfolio-admin portfolio-admin-dev; do
+  wrangler r2 bucket info "$b" --jurisdiction eu
+done
 ```
 
-Attendu : les trois commandes retournent les informations du bucket.
+Attendu : les cinq commandes retournent les informations du bucket.
 
 - [ ] **Step 4: Vérifier que l'omission du flag ne les trouve pas**
 
@@ -84,13 +88,13 @@ Le noter : il compose l'endpoint `https://<account-id>.eu.r2.cloudflarestorage.c
 
 ---
 
-### Task 2 : Créer trois tokens API cloisonnés
+### Task 2 : Créer cinq tokens API cloisonnés
 
 **Files:** aucun fichier du dépôt. Opération manuelle au dashboard Cloudflare.
 
 **Interfaces:**
-- Consomme : les trois buckets de la Task 1.
-- Produit : trois paires Access Key ID / Secret Access Key. Celle du bucket de sauvegardes est consommée par la Task 3 ; celles des assets sont mises de côté pour le sub-project `09`.
+- Consomme : les cinq buckets de la Task 1.
+- Produit : cinq paires Access Key ID / Secret Access Key. Celle du bucket de sauvegardes est consommée par la Task 3 ; celles des buckets applicatifs sont mises de côté pour les sub-projects `09` et `10`.
 
 > Wrangler ne sait pas créer de token R2. Les flags `--token` des commandes consomment un token existant, ils n'en produisent pas. Cette étape est le seul passage manuel obligatoire du sub-project.
 
@@ -104,18 +108,20 @@ Dans le dashboard Cloudflare : **R2** → **Manage API tokens** → **Create Use
 
 **La Secret Access Key ne s'affiche qu'une seule fois.** La copier immédiatement dans le gestionnaire de secrets avant de fermer la page. Elle n'est pas récupérable ensuite, seule une rotation est possible.
 
-- [ ] **Step 2: Créer les deux tokens applicatifs**
+- [ ] **Step 2: Créer les quatre tokens applicatifs**
 
-Répéter l'opération deux fois, avec la permission **Object Read & Write** :
+Répéter l'opération quatre fois, avec la permission **Object Read & Write** :
 
 | Token | Portée | Usage |
 |---|---|---|
-| production | **uniquement** `portfolio-assets` | variables Dokploy |
-| développement | **uniquement** `portfolio-assets-dev` | `.env` local |
+| vitrine, production | **uniquement** `portfolio-assets` | variables Dokploy, sub-project `09` |
+| vitrine, développement | **uniquement** `portfolio-assets-dev` | `.env` local, sub-project `09` |
+| back-office, production | **uniquement** `portfolio-admin` | variables Dokploy, sub-project `10` |
+| back-office, développement | **uniquement** `portfolio-admin-dev` | `.env` local, sub-project `10` |
 
-Deux tokens et non un seul couvrant les deux buckets : un token local capable d'atteindre la production annulerait la séparation, puisqu'une variable `R2_BUCKET` mal renseignée suffirait alors à écrire au mauvais endroit.
+Quatre tokens et non un par environnement couvrant les deux buckets : un token local capable d'atteindre la production annulerait la séparation, puisqu'une variable `R2_BUCKET` mal renseignée suffirait alors à écrire au mauvais endroit ; et le client S3 de la route publique ne doit détenir que le token de la vitrine.
 
-Ces tokens ne seront utilisés qu'au sub-project `09`. Les créer maintenant évite un second passage dans la console.
+Ces tokens ne seront utilisés qu'aux sub-projects `09` et `10`. Les créer maintenant évite un second passage dans la console.
 
 - [ ] **Step 3: Vérifier le cloisonnement**
 
@@ -129,7 +135,7 @@ aws s3 ls s3://portfolio-backups \
   --region auto
 ```
 
-Attendu : **refus d'accès**. C'est le critère du scénario 1 du spec.
+Attendu : **refus d'accès**. C'est le critère du scénario 1 du spec. Rejouer la même commande avec le token `portfolio-assets` sur `s3://portfolio-admin`, puis avec chaque token `-dev` sur `portfolio-assets`, `portfolio-admin` et `portfolio-backups` : refus attendu à chaque fois.
 
 - [ ] **Step 4: Vérifier que le bon token fonctionne**
 
@@ -277,6 +283,8 @@ DROP DATABASE portfolio_restore_test;
 **Files:**
 - Modify: `docs/PRODUCTION.md` (section « 💾 Backup & Recovery »)
 - Modify: `docs/superpowers/specs/espace-admin/README.md` (section Infrastructure)
+- Modify: `docs/ARCHITECTURE.md` (deux diagrammes)
+- Modify: `docs/adrs/011-stockage-assets.md` (Notes complémentaires)
 
 **Interfaces:**
 - Consomme : la configuration réelle des Tasks 1 à 4. La documentation décrit ce qui a été fait et vérifié, pas ce qui était prévu.
@@ -303,23 +311,27 @@ La sauvegarde s'appuie sur le mécanisme natif Dokploy, sans script ni cron sur 
 wrangler r2 bucket create portfolio-backups     --jurisdiction eu
 wrangler r2 bucket create portfolio-assets      --jurisdiction eu
 wrangler r2 bucket create portfolio-assets-dev  --jurisdiction eu
+wrangler r2 bucket create portfolio-admin       --jurisdiction eu
+wrangler r2 bucket create portfolio-admin-dev   --jurisdiction eu
 ```
 
-> Trois buckets : les sauvegardes, les assets de production, les assets de développement. Le développement écrit dans son propre bucket comme il tourne déjà sur sa propre base et non sur celle de production. Le forfait gratuit étant exprimé en usage mensuel et non par bucket, cette séparation ne coûte rien.
+> Cinq buckets : les sauvegardes, la vitrine (`portfolio-assets`, servi par `/api/assets` sans authentification), le back-office (`portfolio-admin`, lu authentifié seulement), et leurs jumeaux de développement. Le développement écrit dans ses propres buckets comme il tourne déjà sur sa propre base et non sur celle de production. Le partage vitrine / back-office suit celui des schemas de la base : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/` (ADR-011, ADR-018). Le forfait gratuit étant exprimé en usage mensuel et non par bucket, ces séparations ne coûtent rien.
 
 > Le flag `--jurisdiction eu` doit être répété sur **chaque** commande visant ces buckets, `info` et `lifecycle` compris.
 
 ### 2. Tokens API
 
-Trois tokens créés au dashboard Cloudflare (R2 → Manage API tokens), Wrangler ne sachant pas en produire :
+Cinq tokens créés au dashboard Cloudflare (R2 → Manage API tokens), Wrangler ne sachant pas en produire :
 
 | Token | Permission | Portée |
 |---|---|---|
 | Sauvegardes | Object Read & Write | `portfolio-backups` uniquement |
-| Application (production) | Object Read & Write | `portfolio-assets` uniquement |
-| Application (développement) | Object Read & Write | `portfolio-assets-dev` uniquement |
+| Vitrine (production) | Object Read & Write | `portfolio-assets` uniquement |
+| Vitrine (développement) | Object Read & Write | `portfolio-assets-dev` uniquement |
+| Back-office (production) | Object Read & Write | `portfolio-admin` uniquement |
+| Back-office (développement) | Object Read & Write | `portfolio-admin-dev` uniquement |
 
-> Le token de l'application ne doit jamais voir le bucket de sauvegardes : une compromission du site ne doit pas permettre d'effacer les backups. Le token de développement ne doit jamais voir le bucket de production : une variable `R2_BUCKET` mal renseignée suffirait sinon à écrire au mauvais endroit. La Secret Access Key ne s'affiche qu'une fois à la création.
+> Aucun token applicatif ne doit voir le bucket de sauvegardes : une compromission du site ne doit pas permettre d'effacer les backups. Un token de développement ne doit jamais voir un bucket de production : une variable `R2_BUCKET` mal renseignée suffirait sinon à écrire au mauvais endroit. Le token de la vitrine ne voit pas le back-office : la route publique ne détient que lui. Un token R2 permanent se restreint à un bucket, jamais à un préfixe, d'où un bucket par usage et par environnement. La Secret Access Key ne s'affiche qu'une fois à la création.
 
 ### 3. Destination Dokploy
 
@@ -370,7 +382,7 @@ Attendu : aucun résultat. La section Ressources peut conserver le lien vers la 
 Dans `docs/superpowers/specs/espace-admin/README.md`, section Infrastructure, remplacer :
 
 ```markdown
-- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Aucune destination configurée à ce jour** : soit le cron manuel du VPS tourne, soit il n'y a aucune sauvegarde. À vérifier en priorité.
+- Dokploy gère nativement les sauvegardes (`backup`, `destination` S3). ⚠️ **Rien n'est sauvegardé à ce jour** : relevé du 2026-09-03, aucune destination, aucune sauvegarde de base, aucun volume backup. Toute perte de la Database est définitive tant que le sub-project `01` n'est pas livré.
 ```
 
 par :
@@ -383,11 +395,23 @@ par :
 
 Dans le diagramme « Livraison et sauvegarde », le nœud R2 porte `(portfolio-backups, post-MVP)`. Retirer la mention post-MVP, la sauvegarde étant en service à l'issue de ce sub-project.
 
-- [ ] **Step 5: Relire la cohérence des trois fichiers**
+Dans le diagramme Runtime, le nœud R2 porte `(portfolio-assets, post-MVP)` : il devient `portfolio-assets + portfolio-admin`, la mention post-MVP restant jusqu'au sub-project `09`.
 
-Vérifier que la rétention est annoncée partout comme « 30 sauvegardes quotidiennes, soit 30 jours », que plus aucune mention de lifecycle rule R2 ne subsiste, et que les noms des trois buckets sont identiques d'un document à l'autre.
+- [ ] **Step 5: Compléter `docs/adrs/011-stockage-assets.md`**
 
-- [ ] **Step 6: Demander la validation avant commit**
+L'ADR acte R2 sans jamais nommer plus d'un bucket d'assets. Ajouter en Notes complémentaires, sans toucher aux sections Options ni Décision, l'ADR restant valide :
+
+- les cinq buckets et leur rôle ;
+- le critère du partage, qui n'est pas « qui édite » mais « servi par une route publique ou non » : l'espace admin écrit dans les deux ;
+- le miroir avec les schemas de la base (ADR-018) : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`, sous-dossier par domaine (`crm`, `administration`, `vente`), niveau de détail ajouté quand le besoin arrive. Une clé d'objet dit alors à elle seule quel schema la référence, quel bucket la porte, quelle route la sert et quel token y accède ;
+- le bucket `documents-prives` à venir avec le domaine freelance, pendant de la base du même nom, token détenu par le seul service `rag-documents`, dépôt depuis l'admin via l'API interne du service ;
+- **le RAG lit en place** : token lecture seule et liste de préfixes autorisés, clé + ETag + date d'indexation en base. Pas de dossier `rag/`, pas de copie : une copie diverge de son original et « ce qui est indexé » est une décision, pas un emplacement.
+
+- [ ] **Step 6: Relire la cohérence des quatre fichiers**
+
+Vérifier que la rétention est annoncée partout comme « 30 sauvegardes quotidiennes, soit 30 jours », que plus aucune mention de lifecycle rule R2 ne subsiste, et que les noms des cinq buckets sont identiques d'un document à l'autre et à l'ADR-011.
+
+- [ ] **Step 7: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message, conformément à la discipline commit du projet. Message proposé :
 

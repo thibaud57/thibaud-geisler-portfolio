@@ -1,10 +1,12 @@
 import { safeExternalUrl } from "@/lib/url"
 import Image from "next/image"
 import { User } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { getTranslations } from "next-intl/server"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
-import { formatDurationRange, getProjectTimeline } from "@/lib/projects"
+import { getProjectTimeline } from "@/lib/projects"
+import { LABEL_CLASS } from "@/lib/typography"
+import { getLiveProjectDuration } from "@/server/queries/projects"
 import type { LocalizedProjectWithRelations } from "@/types/project"
 import { LeadParagraph } from "@/components/ui/lead-paragraph"
 import { FormatBadges } from "./FormatBadges"
@@ -13,16 +15,28 @@ interface Props {
   project: LocalizedProjectWithRelations
 }
 
-export function CaseStudyHeader({ project }: Props) {
-  const t = useTranslations("Projects.caseStudy")
+export async function CaseStudyHeader({ project }: Props) {
+  const t = await getTranslations("Projects.caseStudy")
 
   const timeline = getProjectTimeline(project.startedAt, project.endedAt)
   const { startYear, endYear, inProgress } = timeline
   const endLabel = endYear?.toString() ?? (inProgress ? t("inProgress") : "")
   const { company, teamSize, contractStatus: contract, workMode } = project.clientMeta ?? {}
   const companyUrl = safeExternalUrl(company?.websiteUrl)
+  // Un projet personnel est rattaché à l'entreprise du freelance lui-même : la vitrine montre la
+  // même carte, mais « Personnel » avec une icône, jamais la fiche de cette entreprise.
+  const isPersonal = project.type === "PERSONAL"
 
-  const durationValue = formatDurationRange(timeline, t("inProgress"))
+  // La frise porte déjà les années : Durée dit combien de temps, jusqu'à aujourd'hui en cours.
+  const duration = await getLiveProjectDuration(project.startedAt, project.endedAt)
+  const durationValue = duration
+    ? [
+        duration.years > 0 ? t("meta.durationYears", { count: duration.years }) : null,
+        duration.months > 0 ? t("meta.durationMonths", { count: duration.months }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : null
 
   return (
     <header>
@@ -61,40 +75,44 @@ export function CaseStudyHeader({ project }: Props) {
         />
       )}
 
-      {company ? (
-        <div className="mt-10 flex w-fit flex-col gap-4 rounded-xl border border-border bg-muted/30 p-5 sm:flex-row sm:items-center">
-          {company.logoFilename ? (
+      {isPersonal || company ? (
+        <div className="mt-10 flex w-fit items-center gap-4 rounded-xl border border-border bg-muted/30 p-5">
+          {!isPersonal && company?.logoFilename ? (
             <Image
               src={buildAssetUrl(company.logoFilename)}
               alt={company.name}
               width={56}
               height={56}
-              className="rounded-md object-contain"
+              className="size-14 shrink-0 rounded-md border border-border bg-muted object-contain"
             />
           ) : (
-            <div className="flex size-14 items-center justify-center rounded-md border border-border bg-muted">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
               <User className="size-7 text-muted-foreground" aria-hidden="true" />
             </div>
           )}
           <div className="flex flex-col gap-1">
-            {companyUrl ? (
+            {isPersonal ? (
+              <span className="text-xl font-semibold">{t("personal")}</span>
+            ) : companyUrl ? (
               <a
                 href={companyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xl font-semibold hover:text-primary"
               >
-                {company.name}
+                {company?.name}
               </a>
             ) : (
-              <span className="text-xl font-semibold">{company.name}</span>
+              <span className="text-xl font-semibold">{company?.name}</span>
             )}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              {company.sectors.length > 0 ? (
-                <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
-              ) : null}
-              {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
-            </div>
+            {!isPersonal && company ? (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                {company.sectors.length > 0 ? (
+                  <span>{company.sectors.map((s) => t(`sector.${s}`)).join(" / ")}</span>
+                ) : null}
+                {company.size ? <span>{t(`companySize.${company.size}`)}</span> : null}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -134,9 +152,7 @@ function TimelineMarker({
           variant === "active" && "animate-pulse ring-4 ring-primary/20",
         )}
       />
-      <span className="font-mono text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-        {label}
-      </span>
+      <span className={cn(LABEL_CLASS, "font-mono")}>{label}</span>
     </div>
   )
 }
@@ -144,9 +160,7 @@ function TimelineMarker({
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-        {label}
-      </dt>
+      <dt className={LABEL_CLASS}>{label}</dt>
       <dd className="font-medium text-foreground">{value}</dd>
     </div>
   )

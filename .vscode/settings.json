@@ -8,10 +8,12 @@
     "**/.next": true,
     "**/coverage": true,
     "**/src/generated": true,
-    "**/pnpm-lock.yaml": true
+    "**/pnpm-lock.yaml": true,
+    ".claude/worktrees": true
   },
   "files.watcherExclude": {
     "**/.history/**": true,
+    ".claude/worktrees/**": true,
     "**/node_modules/**": true,
     "**/.next/**": true,
     "**/coverage/**": true,

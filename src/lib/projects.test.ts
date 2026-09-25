@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest"
-import { formatDurationRange, getProjectTimeline } from "./projects"
+import { describe, expect, it, vi } from "vitest"
+import { formatProjectDuration, getProjectDuration, getProjectTimeline } from "./projects"
 
 describe("getProjectTimeline", () => {
   it("détecte un projet en cours (startedAt défini, endedAt null)", () => {
@@ -23,36 +23,34 @@ describe("getProjectTimeline", () => {
   })
 })
 
-describe("formatDurationRange", () => {
-  const inProgressLabel = "En cours"
+describe("getProjectDuration", () => {
+  it("splits the span between the two dates into years and months", () => {
+    const duration = getProjectDuration(new Date(2022, 0, 10), new Date(2025, 2, 1))
 
-  it("retourne null quand aucune startYear (pas de timeline affichable)", () => {
-    expect(
-      formatDurationRange({ startYear: null, endYear: null, inProgress: false }, inProgressLabel),
-    ).toBeNull()
+    expect(duration).toEqual({ years: 3, months: 2 })
   })
 
-  it("formate la plage pluri-années avec la flèche", () => {
-    expect(
-      formatDurationRange({ startYear: 2022, endYear: 2024, inProgress: false }, inProgressLabel),
-    ).toBe("2022 → 2024")
+  it("counts at least one month for a project started and ended within the same month", () => {
+    const duration = getProjectDuration(new Date(2024, 4, 3), new Date(2024, 4, 20))
+
+    expect(duration).toEqual({ years: 0, months: 1 })
   })
 
-  it("remplace endYear par le label 'En cours' quand le projet est en cours", () => {
-    expect(
-      formatDurationRange({ startYear: 2023, endYear: null, inProgress: true }, inProgressLabel),
-    ).toBe("2023 → En cours")
+  it("returns null without both dates or on an inverted range", () => {
+    expect(getProjectDuration(null, new Date(2024, 0, 1))).toBeNull()
+    expect(getProjectDuration(new Date(2024, 0, 1), null)).toBeNull()
+    expect(getProjectDuration(new Date(2024, 4, 20), new Date(2024, 4, 1))).toBeNull()
   })
+})
 
-  it("collapse en une seule année quand start = end et pas en cours", () => {
-    expect(
-      formatDurationRange({ startYear: 2022, endYear: 2022, inProgress: false }, inProgressLabel),
-    ).toBe("2022")
-  })
+describe("formatProjectDuration", () => {
+  it("counts an in-progress project up to today", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 8, 22))
 
-  it("affiche juste l'année quand endYear absent et pas en cours", () => {
-    expect(
-      formatDurationRange({ startYear: 2021, endYear: null, inProgress: false }, inProgressLabel),
-    ).toBe("2021")
+    const label = formatProjectDuration(new Date(2025, 5, 1), null)
+
+    expect(label).toBe("1 an 3 mois")
+    vi.useRealTimers()
   })
 })

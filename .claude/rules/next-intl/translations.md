@@ -23,6 +23,7 @@ paths:
 - Multiplier `useTranslations`/`getTranslations` pour des sous-namespaces du même parent (`'Foo.bar'` + `'Foo.baz'` + `'Foo.qux'`) : 1 hook sur `'Foo'` + dot notation suffit, plus DRY et moins de subscriptions React
 
 ## Gotchas
+- **L'espace admin est monolingue français** (ADR-021) : ses libellés d'interface (`src/app/admin/**`, `src/components/features/admin/**`, `src/components/layout/Admin*`) restent en dur, hors next-intl. Seul le contenu bilingue qu'il édite (`nameFr`/`nameEn`…) relève des colonnes jumelées
 - Depuis next-intl 4.0, **`NextIntlClientProvider` obligatoire** pour tous les Client Components qui utilisent `useTranslations`, sinon erreur de contexte (avant 4.0 : optionnel)
 - `onError` et `getMessageFallback` ne sont **pas hérités** par `NextIntlClientProvider` : les définir explicitement dans un wrapper Client si nécessaire
 - Pour la config initiale (`defineRouting`, `setRequestLocale`, `createNavigation`, layout `[locale]`, types `AppConfig`) : voir `next-intl/setup.md`

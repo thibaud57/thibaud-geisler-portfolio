@@ -97,7 +97,7 @@ RUN pnpm build
 
 ### Description
 
-Trois types de stockage : volumes nommés (gérés par Docker, portables), bind mounts (répertoire hôte monté, dev), tmpfs (mémoire, temporaire). Pour les données persistantes (PostgreSQL, assets), préférer les volumes nommés. Préférer la syntaxe `--mount` à `-v` pour la clarté.
+Trois types de stockage : volumes nommés (gérés par Docker, portables), bind mounts (répertoire hôte monté, dev), tmpfs (mémoire, temporaire). Pour les données persistantes (PostgreSQL), préférer les volumes nommés. Préférer la syntaxe `--mount` à `-v` pour la clarté.
 
 ### Exemple
 

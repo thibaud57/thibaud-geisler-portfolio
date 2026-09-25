@@ -25,7 +25,7 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 
 ```bash
 cp .env.example .env        # chaque variable y est commentée
-just setup                  # install deps + démarre Postgres + applique migrations + seed
+just setup                  # install deps + démarre Postgres + applique migrations
 just dev                    # serveur Next.js sur http://localhost:3000
 ```
 
@@ -33,7 +33,7 @@ just dev                    # serveur Next.js sur http://localhost:3000
 
 ## Architecture
 
-Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et alimentées par un seed idempotent.
+Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et saisies depuis l'espace admin.
 
 Détails complets : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -43,14 +43,16 @@ Bilingue FR (default) / EN via `next-intl 4`, segment `[locale]` dans App Router
 
 ## Assets
 
-Convention de stockage :
+Stockés dans deux buckets Cloudflare R2 privés, jamais sur le filesystem de l'app :
 
-- `assets/projets/{client,personal}/<slug>/<filename>` (logos, captures, médias projet)
-- `assets/documents/<slug>/<filename>` (CV, plaquettes, etc.)
+- `portfolio-assets/projets/{client,personal}/<slug-projet>/<filename>` (couvertures, captures, médias projet, sous le slug du projet)
+- `portfolio-assets/documents/cv/<filename>` (CV)
+- `portfolio-assets/branding/<filename>` (logo, portrait)
+- `portfolio-admin/freelance/crm/entreprises/<slug>/logo.png` (logos d'entreprise, servis sans session tant que l'entreprise a un projet publié, 404 sinon)
 
-Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture filesystem à `process.env.ASSETS_PATH`).
+Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture R2 par le SDK S3).
 
-Détails (validation Zod, defense-in-depth, headers cache) : [`.claude/rules/nextjs/assets.md`](.claude/rules/nextjs/assets.md) et [ADR-011](docs/adrs/).
+Détails (validation Zod, lecture R2, headers cache) : [`.claude/rules/nextjs/assets.md`](.claude/rules/nextjs/assets.md) et [ADR-011](docs/adrs/).
 
 ## Documentation
 

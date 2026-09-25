@@ -119,13 +119,15 @@ ADMIN_EMAIL=                        # Email unique autorisé (whitelist single-u
 
 - [ ] **Step 4: Renseigner le `.env` local et vérifier le démarrage**
 
-Après avoir renseigné les cinq valeurs dans le `.env` local :
+Après avoir renseigné les cinq valeurs dans l'environnement local :
 
 ```bash
-just typecheck
+just check
 ```
 
-Expected: aucune erreur. Une variable manquante produirait une erreur de validation explicite au chargement de `src/env.ts`.
+Expected: aucune erreur. Une variable manquante produit une erreur de validation explicite au chargement de `src/env.ts`.
+
+`just typecheck` ne convient pas ici : `tsc` ne charge pas `src/env.ts`, il ne fait que le typer. La validation t3-env est un contrôle d'exécution, elle ne se déclenche qu'au démarrage de l'application, donc via `just check` ou `just dev`.
 
 ---
 
@@ -353,6 +355,7 @@ Expected: PASS, cinq cas verts.
 import 'server-only'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
+import { APIError } from 'better-auth/api'
 import { nextCookies } from 'better-auth/next-js'
 
 import { env } from '@/env'
@@ -369,12 +372,15 @@ export const auth = betterAuth({
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     },
   },
+  advanced: {
+    ipAddress: { disableIpTracking: true },
+  },
   databaseHooks: {
     user: {
       create: {
         before: async (user) => {
           if (!isAdminEmail(user.email)) {
-            throw new Error('Compte non autorisé')
+            throw new APIError('FORBIDDEN', { message: 'Compte non autorisé' })
           }
           return { data: user }
         },
@@ -385,7 +391,15 @@ export const auth = betterAuth({
 })
 ```
 
-Trois points non négociables : aucune clé `emailAndPassword` n'est déclarée, `nextCookies()` est le dernier plugin, et le hook est un `before` : seul un `before` peut refuser la création, un `after` n'observe qu'un compte déjà créé. La documentation Better Auth décrit la forme des deux hooks sans garantir le comportement transactionnel du second : raison de plus pour ne pas lui confier la whitelist.
+Quatre points non négociables.
+
+Aucune clé `emailAndPassword` n'est déclarée, et `nextCookies()` est le dernier plugin.
+
+Le hook est un `before` : seul un `before` peut refuser la création, un `after` n'observe qu'un compte déjà créé. La documentation Better Auth décrit la forme des deux hooks sans garantir le comportement transactionnel du second : raison de plus pour ne pas lui confier la whitelist.
+
+Le refus lève une `APIError` et non une `Error` nue. Une `Error` produirait un 500, c'est-à-dire un incident technique là où il s'agit d'un refus attendu : chaque tentative avec un mauvais compte ouvrirait une issue Sentry, et le navigateur afficherait une page d'erreur au lieu de revenir sur la connexion. `APIError` porte le statut et le code que la page du sub-project `05` lira dans son paramètre `error`.
+
+`disableIpTracking` coupe le renseignement de `session.ipAddress`, qui est en clair par défaut. `docs/PRODUCTION.md` et le registre des traitements posent la règle inverse, les IP du formulaire de contact étant hachées avec `IP_HASH_SALT`. La donnée n'apprendrait rien ici : un seul utilisateur, sa propre adresse.
 
 - [ ] **Step 2: Écrire le client navigateur**
 
@@ -422,10 +436,13 @@ Expected: aucune erreur.
 **Files:**
 - Modify: `src/lib/prisma-test-setup.ts`
 - Modify: `docs/PRODUCTION.md`
+- Modify: `docs/ARCHITECTURE.md`
+- Modify: `docs/VERSIONS.md`
+- Modify: `docs/registre-traitements.md`
 
 **Interfaces:**
 - Consomme : tout ce qui précède.
-- Produit : un reset de test complet, et la preuve que la whitelist tient face à un vrai compte Google.
+- Produit : un reset de test complet, la preuve que la whitelist tient face à un vrai compte Google, et quatre documents alignés sur l'état constaté.
 
 - [ ] **Step 1: Étendre le reset de test**
 
@@ -469,6 +486,16 @@ SELECT count(*) FROM auth."user";
 
 Expected: toujours une seule ligne, celle du compte autorisé. C'est le critère central du sub-project : sans ce contrôle, la whitelist pourrait être inopérante sans que rien ne le signale.
 
+Vérifier aussi la forme du refus : la réponse porte un statut 4xx et non un 500, et le navigateur revient sur une URL portant un paramètre `error`. C'est ce paramètre que la page de connexion du sub-project `05` traduira en message. Un 500 signalerait que le hook lève une `Error` nue au lieu d'une `APIError`.
+
+- [ ] **Step 4 bis: Vérifier qu'aucune IP n'est enregistrée**
+
+```sql
+SELECT "ipAddress" FROM auth."session";
+```
+
+Expected: `NULL`. Une valeur renseignée signalerait que `advanced.ipAddress.disableIpTracking` n'a pas été posé, en contradiction avec la politique de PRODUCTION.md et du registre des traitements.
+
 - [ ] **Step 5: Vérifier qu'aucun secret n'a fui dans le bundle client**
 
 ```bash
@@ -491,7 +518,19 @@ Deux modifications. Le doc a été purgé de tout ce qui n'existait pas encore l
 
 § Authentification et § Sécurité Backend décrivent Better Auth au post-MVP : passer au présent. Ajouter les cinq variables à § Environnements et les quatre tables du schema `auth` à § Approche Modélisation.
 
-- [ ] **Step 8: Demander la validation avant commit**
+- [ ] **Step 8: Faire remonter Better Auth dans `docs/VERSIONS.md`**
+
+L'entrée Better Auth vit dans l'annexe post-MVP et précise qu'elle « rejoindra le tableau principal à l'implémentation ». C'est ce sub-project : la déplacer vers le tableau des versions en service, avec la version réellement installée, et retirer ce qui n'a plus lieu d'être au futur.
+
+- [ ] **Step 9: Mettre à jour `docs/registre-traitements.md`**
+
+Ajouter le traitement « Authentification de l'administrateur ». Ce que Google renvoie et que Better Auth conserve en base : email, nom et URL de photo de profil, dans `auth.user`. Finalité : contrôle d'accès à l'espace d'administration. Base légale : intérêt légitime du responsable de traitement, qui est aussi l'unique personne concernée. Durée : le temps d'existence du compte, les sessions expirant d'elles-mêmes. Sous-traitant : Google, pour l'authentification. Préciser qu'aucune adresse IP n'est conservée, `disableIpTracking` étant actif, ce qui aligne ce traitement sur la politique déjà appliquée au formulaire de contact.
+
+- [ ] **Step 10: Vérifier le comportement du build CI en multi-schema**
+
+`.github/workflows/deploy.yml` passe un `DATABASE_URL` portant `?schema=public` à la Postgres éphémère du build. Ce paramètre fixe le `search_path` de la connexion et n'empêche pas la création d'autres schemas, Prisma qualifiant ses requêtes en multi-schema. Le vérifier tout de même sur le premier build CI qui embarque ce sub-project, premier à faire appliquer `migrate deploy` avec un schema hors `public` dans cet environnement : les logs doivent montrer les migrations appliquées et le prerender aboutir. En cas d'échec, retirer le paramètre plutôt que de l'étendre, Prisma n'en ayant pas besoin ici.
+
+- [ ] **Step 11: Demander la validation avant commit**
 
 Ne pas committer sans accord explicite de l'utilisateur sur le périmètre et le message. Message proposé :
 

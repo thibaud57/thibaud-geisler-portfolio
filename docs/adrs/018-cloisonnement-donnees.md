@@ -76,15 +76,17 @@ Une base unique, une base par domaine, ou un découpage intermédiaire ?
 
 ```
 Base "portfolio"                  Dokploy Database existante, nom conservé
-├── schema public       Project, Company, Tag, LegalEntity…
+├── schema public       Project, Tag, LegalEntity…
 ├── schema auth         user, session, account, verification
-├── schema freelance    Lead, Contact, Facture, PostLinkedIn…
+├── schema freelance    Company, Lead, Contact, Facture, PostLinkedIn…
 ├── schema dev          Run, Finding, Repo            propriété d'agent-os
 └── schema rag_public   documents, chunks, embeddings  propriété de portfolio-chatbot
 
 Base "documents-prives"           nouvelle, credentials distincts
 └── pgvector : contrats d'assurance, immobilier, administratif
 ```
+
+**`Company` relève du CRM, pas de la vitrine.** Le portfolio public ne la lit que par `ClientMeta`, pour afficher le nom du client d'un projet.
 
 **Le nom `portfolio` n'est pas renommé.** Il n'apparaît que dans les chaînes de connexion, renommer imposerait une interruption de service pour un gain purement cosmétique.
 
@@ -118,3 +120,5 @@ Base "documents-prives"           nouvelle, credentials distincts
 **pgvector** est requis sur les deux bases : `rag_public` pour le chatbot, la base isolée pour les documents personnels.
 
 **Réversibilité.** Extraire un schema vers sa propre base reste possible tant que le code ne dépend pas de jointures inter-schemas. Éviter donc les jointures entre `freelance` et `dev`, dont les propriétaires diffèrent.
+
+**Rôles PostgreSQL.** Un schema sans rôle dédié n'est qu'un préfixe de table : l'étanchéité vient du rôle, pas du nommage. La cible est un rôle par processus, restreint aux schemas dont il est propriétaire (cf. ci-dessus), avec deux ajouts : le chatbot lit aussi `public` ; un rôle `portfolio_migrate`, propriétaire des objets, est réservé aux migrations. Ces rôles se créent avec le premier service externe. À l'intérieur du monolithe, entre une page publique et une action admin, la séparation reste la discipline de code : c'est le même processus qui lit la même configuration d'environnement. C'est le prix du découpage acté en [ADR-015](015-decoupage-services.md) : il vaut d'être écrit plutôt que découvert.

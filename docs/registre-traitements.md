@@ -63,6 +63,48 @@ scope: ["docs", "legal"]
 | Conservation | Gérée par Calendly |
 | Sécurité | Widget chargé après consentement (CMP c15t), HTTPS |
 
+## Traitement 4 : erreurs applicatives (Sentry)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Diagnostic et correction des erreurs applicatives |
+| Base légale | Intérêt légitime (art. 6.1.f) |
+| Personnes concernées | Visiteurs du site déclenchant une erreur applicative |
+| Données | Stack trace et contexte technique de l'erreur (requête, composant). `email` et `ip_address` de `event.user` retirés avant envoi, et toute adresse email détectée dans un message d'exception (ex: rejet SMTP) est masquée. Le filtrage couvre les **deux** canaux alimentés par l'intégration Pino : les issues (`beforeSend`) et les logs (`beforeSendLog`), ce dernier masquant aussi les emails imbriqués dans l'objet `err` sérialisé (`src/lib/sentry-scrub.ts`) |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | Sentry (Functional Software, Inc.) |
+| Transferts hors UE | Aucun : organisation `tg-ws` en région européenne, ingestion `de.sentry.io` (Francfort) |
+| Conservation | 30 jours (plan Developer), géré par Sentry |
+| Sécurité | Filtrage `email` et `ip_address` avant envoi sur les deux canaux (`beforeSend` pour les issues, `beforeSendLog` pour les logs), HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
+
+## Traitement 5 : hébergement des assets du site (Cloudflare R2)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Stockage et diffusion des assets publics du site (CV, portrait, visuels de projets) via la route `/api/assets/[...path]` |
+| Base légale | Intérêt légitime (art. 6.1.f) |
+| Personnes concernées | Thibaud Geisler (CV, portrait) |
+| Données | CV PDF, photo de portrait, visuels de projets et de marque |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | Cloudflare, Inc. (bucket `portfolio-assets`) |
+| Transferts hors UE | Aucun : bucket en juridiction `eu` |
+| Conservation | Durée de vie du site, fichier remplacé à chaque mise à jour |
+| Sécurité | Bucket privé, aucun domaine public configuré, accès exclusif via la route API avec token scopé, HTTPS/TLS |
+
+## Traitement 6 : authentification de l'administrateur (Better Auth)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Contrôle d'accès à l'espace d'administration |
+| Base légale | Intérêt légitime (art. 6.1.f), le responsable de traitement étant aussi l'unique personne concernée |
+| Personnes concernées | Thibaud Geisler, seul compte Google autorisé par la whitelist |
+| Données | Email, nom et URL de la photo de profil renvoyés par Google (`auth.user`), plus les lignes techniques de session (dont le user-agent du navigateur) et de compte OAuth (`auth.session`, `auth.account`) |
+| Destinataire | Thibaud Geisler |
+| Sous-traitant | IONOS (hébergeur du VPS). Google agit en responsable de traitement indépendant pour les données du compte Google ([Controller-Controller Data Protection Terms](https://business.safety.google/controllerterms/)) |
+| Transferts hors UE | Aucun : données conservées sur le VPS IONOS |
+| Conservation | Durée de vie du compte, les sessions expirent d'elles-mêmes |
+| Sécurité | Google comme unique provider, aucun mot de passe stocké. Whitelist par email via le hook `databaseHooks.user.create.before`, tout autre compte rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour le rate limiting de Better Auth, retirée de la session avant écriture (`databaseHooks.session.create.before`), aligné sur la politique déjà appliquée au formulaire de contact (Traitement 1) |
+
 ## Notes
 
 - Mettre à jour à chaque nouveau traitement (espace admin, chatbot, analytics).

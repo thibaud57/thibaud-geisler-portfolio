@@ -30,9 +30,9 @@
 ### Task 1 : Installer les composants et déclarer la navigation
 
 **Files:**
-- Create: `src/components/ui/sidebar.tsx`, `separator.tsx`, `tooltip.tsx`, `avatar.tsx`, `collapsible.tsx`, `scroll-area.tsx` (générés par le CLI)
+- Create: `src/components/ui/sidebar.tsx`, `separator.tsx`, `tooltip.tsx`, `avatar.tsx`, `collapsible.tsx`, `scroll-area.tsx` (générés par le CLI, **s'ils sont absents**)
 - Create: `src/config/admin-nav-items.ts`
-- Create: `src/app/admin/projets/page.tsx`, `src/app/admin/tags/page.tsx`, `src/app/admin/entreprises/page.tsx`, `src/app/admin/assets/page.tsx`
+- Create: `src/app/admin/(protected)/projets/page.tsx`, `(protected)/tags/page.tsx`, `(protected)/entreprises/page.tsx`, `(protected)/assets/page.tsx`
 - Modify: `docs/DESIGN.md` (§ Mapping Composants) : la ligne « Navigation admin → Sidebar » rejoint la section Navigation, la ligne « Primitifs d'interface » se vide entièrement (Tooltip, Separator, ScrollArea, Avatar, Collapsible installés) et disparaît de la section Post-MVP
 
 **Interfaces:**
@@ -44,8 +44,11 @@
 - [ ] **Step 1: Installer les composants shadcn**
 
 ```bash
+ls src/components/ui/   # n'installer que ce qui manque
 pnpm dlx shadcn@latest add sidebar separator tooltip avatar collapsible scroll-area
 ```
+
+Lister d'abord : un sub-project antérieur a pu poser certains de ces composants, et les réinstaller les écraserait. La formule vaut pour tous les sub-projects de l'epic, chacun installant « ce qui est absent » plutôt qu'une liste figée.
 
 Le CLI lit `components.json`, applique le style `radix-nova` et installe les dépendances Radix nécessaires. Il peut ajouter `src/hooks/use-mobile.ts`, dont la sidebar se sert pour détecter le format : c'est attendu.
 
@@ -162,12 +165,21 @@ export function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <AdminSignOutButton />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }
 ```
 
 `collapsible="icon"` garde les icônes visibles une fois repliée, ce qui reste navigable au lieu de disparaître complètement. Le `tooltip` sur chaque bouton n'apparaît que dans cet état replié, quand le libellé est masqué.
+
+**La déconnexion est au pied du rail, pas dans le header.** `docs/DESIGN.md` § Mapping Composants, ligne « Navigation admin », le fixe : le pied porte une bordure haute qui « détache la déconnexion de la navigation, une action n'étant pas une destination ». Comme pour l'en-tête, cette bordure est propre à ce projet, le registry livrant `SidebarFooter` en `flex flex-col gap-2 p-2` nu.
 
 Le `SidebarHeader` et le `SidebarGroupLabel` sont des intitulés de section : ils prennent la famille Label de la scale, `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground`. `text-balance` s'ajoute au-delà d'une dizaine de caractères, l'interlettrage large faisant vite déborder : « Espace admin » en compte 12, « Portfolio » 9.
 
@@ -185,18 +197,20 @@ Expected: aucune erreur. Un échec sur les `href` signifierait qu'une page d'att
 
 ---
 
-### Task 3 : Header et menu du compte
+### Task 3 : Déconnexion, header et bascule de thème
 
 **Files:**
+- Create: `src/components/layout/AdminSignOutButton.tsx`
 - Create: `src/components/layout/AdminHeader.tsx`
-- Create: `src/components/layout/AdminUserMenu.tsx`
 - Create: `src/components/layout/AdminThemeToggle.tsx`
 
 **Interfaces:**
 - Consomme : `authClient` de `src/lib/auth-client.ts`, `useTheme` de `src/lib/theme.ts`.
-- Produit : `<AdminHeader email={string} />`, monté par le layout de la Task 4. Le layout lui passe **uniquement l'email**, jamais l'objet `user`.
+- Produit : `<AdminSignOutButton />`, monté par la sidebar de la Task 2, et `<AdminHeader email={string} />`, monté par le shell de la Task 4. Le shell passe **uniquement l'email**, jamais l'objet `user`.
 
-- [ ] **Step 1: Écrire le menu du compte**
+> Le bouton de déconnexion vit dans la sidebar (DESIGN.md), le header ne porte que le déclencheur de repli, le nom de l'écran, l'email affiché et la bascule de thème. Un `DropdownMenu` de compte n'a plus lieu d'être : il ne contiendrait qu'une adresse email non actionnable.
+
+- [ ] **Step 1: Écrire le bouton de déconnexion**
 
 ```typescript
 'use client'
@@ -205,18 +219,9 @@ import { LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import { authClient } from '@/lib/auth-client'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { SidebarMenuButton } from '@/components/ui/sidebar'
 
-export function AdminUserMenu({ email }: { email: string }) {
+export function AdminSignOutButton() {
   const router = useRouter()
 
   async function handleSignOut() {
@@ -225,40 +230,23 @@ export function AdminUserMenu({ email }: { email: string }) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Menu du compte">
-          <Avatar className="size-7">
-            <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="font-normal text-muted-foreground">
-          {email}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut />
-          Se déconnecter
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SidebarMenuButton onClick={handleSignOut} tooltip="Se déconnecter">
+      <LogOut />
+      <span>Se déconnecter</span>
+    </SidebarMenuButton>
   )
 }
 ```
 
-Ce composant reçoit une chaîne, pas un objet utilisateur. C'est ce qui satisfait le taint posé par `getCurrentUser()`.
-
-`AvatarFallback` seul, sans `AvatarImage` : l'image Google exigerait de déclarer son domaine dans `images.remotePatterns`, ce qui déborde du périmètre.
+`SidebarMenuButton` et non un `Button` nu : c'est ce qui donne au pied la même hauteur et le même comportement replié que les entrées de navigation, `tooltip` compris. La bordure haute du `SidebarFooter`, posée à la Task 2, suffit à le distinguer d'une destination.
 
 - [ ] **Step 2: Écrire le header**
 
 ```typescript
-import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AdminThemeToggle } from '@/components/layout/AdminThemeToggle'
-import { AdminUserMenu } from '@/components/layout/AdminUserMenu'
 
 export function AdminHeader({ email }: { email: string }) {
   return (
@@ -267,16 +255,26 @@ export function AdminHeader({ email }: { email: string }) {
       <Separator orientation="vertical" className="h-6" />
       <div className="ml-auto flex items-center gap-2">
         <AdminThemeToggle />
-        <AdminUserMenu email={email} />
+        <Avatar className="size-7">
+          <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
+        </Avatar>
       </div>
     </header>
   )
 }
 ```
 
-Ce fichier n'a pas de directive `'use client'` : il reste un Server Component qui compose deux composants clients. C'est ce qui évite de rendre client tout le header.
+Ce fichier n'a pas de directive `'use client'` : il reste un Server Component qui compose un composant client. C'est ce qui évite de rendre client tout le header.
+
+Il reçoit une chaîne, pas un objet utilisateur. C'est ce qui satisfait le taint posé par `getCurrentUser()`.
+
+Pas de `DropdownMenu` de compte : la déconnexion vit dans la sidebar, et un menu ne contiendrait plus qu'une adresse email non actionnable. L'avatar affiche l'initiale, et `title={email}` suffit à révéler l'adresse complète.
+
+`AvatarFallback` seul, sans `AvatarImage` : l'image Google exigerait de déclarer son domaine dans `images.remotePatterns`, ce qui déborde du périmètre.
 
 `SidebarTrigger` est ce qui ouvre le tiroir sur mobile et replie la sidebar sur écran large.
+
+**La hauteur de 56px est commune au header et au `SidebarHeader`** (DESIGN.md § Layout) : les deux filets se prolongent alors en une seule ligne d'horizon.
 
 - [ ] **Step 3: Écrire `AdminThemeToggle`**
 
@@ -295,59 +293,73 @@ Expected: aucune erreur.
 ### Task 4 : Assembler le shell et l'écran d'arrivée
 
 **Files:**
-- Modify: `src/app/admin/layout.tsx`
-- Modify: `src/app/admin/page.tsx`
+- Modify: `src/app/admin/(protected)/layout.tsx`
+- Modify: `src/app/admin/(protected)/page.tsx`
 
 **Interfaces:**
 - Consomme : `<AdminSidebar />` de la Task 2, `<AdminHeader />` de la Task 3, `getCurrentUser()` du sub-project `05`.
 - Produit : l'espace admin navigable, base des sub-projects `07` et suivants.
 
-- [ ] **Step 1: Monter le shell dans le layout**
+- [ ] **Step 1: Monter le shell dans le composant `Guard`**
 
-Ce layout **est le root layout de l'arbre `/admin`** : il rend son propre document, le seul autre root layout du dépôt vivant sous `[locale]`. Reprendre le `<html>`/`<body>`, l'import de `globals.css` et le script de thème posés au sub-project `05`, et n'insérer le shell qu'à l'intérieur du `<body>`.
+Le fichier modifié est celui du **groupe protégé**, pas le root layout. Le sub-project `05` a scindé l'arbre : `admin/layout.tsx` porte le document (`<html>`, `<body>`, `globals.css`, thème, `<Toaster />`) et **ne bouge pas ici** ; `admin/(protected)/layout.tsx` porte la garde dans un composant `Guard` déjà monté sous `<Suspense>`. Le shell habille ce `Guard`, ce qui le tient hors de `/admin/login`.
 
 ```typescript
+import { cookies } from 'next/headers'
+import { Suspense, type CSSProperties, type ReactNode } from 'react'
+
 import { AdminHeader } from '@/components/layout/AdminHeader'
 import { AdminSidebar } from '@/components/layout/AdminSidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { fontVariables } from '@/lib/fonts'
 import { getCurrentUser } from '@/lib/get-current-user'
-import { themeInitScript } from '@/lib/theme-script'
 
-import '@/app/globals.css'
-
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+async function Shell({ children }: { children: ReactNode }) {
   const user = await getCurrentUser()
   const email = user.email
 
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get('sidebar_state')?.value !== 'false'
+
   return (
-    <html lang="fr" className={fontVariables} suppressHydrationWarning>
-      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <SidebarProvider style={{ '--sidebar-width': '13rem' } as React.CSSProperties}>
-          <AdminSidebar />
-          <SidebarInset>
-            <AdminHeader email={email} />
-            <main className="px-4 md:px-6">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
-      </body>
-    </html>
+    <SidebarProvider
+      defaultOpen={defaultOpen}
+      style={{ '--sidebar-width': '13rem' } as CSSProperties}
+    >
+      <AdminSidebar />
+      <SidebarInset>
+        <AdminHeader email={email} />
+        <main className="px-4 md:px-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+export default function ProtectedLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<AdminShellSkeleton />}>
+      <Shell>{children}</Shell>
+    </Suspense>
   )
 }
 ```
 
+Quatre points.
+
 La ligne `const email = user.email` est ce qui rend le reste possible : elle extrait la donnée côté serveur. Écrire `<AdminHeader user={user} />` ferait échouer le rendu, l'objet étant tainté.
 
-Le `style` sur `SidebarProvider` porte les 13rem du design system, contre les 16rem par défaut : le composant étale le `style` reçu après ses propres variables, c'est donc l'API prévue et non une surcharge. Le mobile n'est pas concerné, `SidebarMobile` reposant sa propre largeur sur le `Sheet`.
+**La lecture du cookie est la moitié manquante de la persistance du repli.** Le composant shadcn écrit `sidebar_state` tout seul, mais ne le relit pas : sans `defaultOpen`, la sidebar revient déployée à chaque rechargement alors que le cookie est correctement écrit, et le scénario 2 du spec échoue sur sa dernière ligne. Le symptôme fait chercher du côté de l'écriture, où il n'y a rien à corriger. Vérifier le nom exact du cookie dans le `sidebar.tsx` généré par le CLI, la constante y est exportée.
+
+**Tout ce qui est dynamique reste dans `Shell`.** `getCurrentUser()` lit `headers()`, `cookies()` est un accès dynamique lui aussi : avec `cacheComponents: true`, l'un comme l'autre hors de la frontière `<Suspense>` fait échouer le build sur « Uncached data was accessed outside of `<Suspense>` ». Le layout exporté, lui, reste synchrone.
+
+Le `style` sur `SidebarProvider` porte les 13rem du design system, contre les 16rem par défaut : le composant étale le `style` reçu après ses propres variables, c'est donc l'API prévue et non une surcharge. Le mobile n'est pas concerné, la version mobile reposant sa largeur sur le `Sheet`.
 
 `SidebarInset` occupe la largeur restante sans conteneur centré, conformément au design system. Le `<main>` ne porte que le retrait horizontal : le rythme vertical `py-6` à `py-8` appartient à chaque page, qui l'applique sur son conteneur racine.
 
 Aucun `'use cache'` ici ni dans les descendants.
+
+- [ ] **Step 1 bis: Remplacer le fallback vide par un squelette de shell**
+
+Le sub-project `05` avait posé un fallback vide, faute de shell à esquisser. Écrire `AdminShellSkeleton` dans le même fichier : un bloc de 13rem à gauche et une barre de 56px en haut, en `Skeleton` shadcn. Sans lui, la première peinture est une page blanche et le shell surgit d'un coup, ce qui se voit d'autant plus que la vérification de session touche la base.
 
 - [ ] **Step 2: Écrire l'écran d'arrivée**
 
@@ -428,7 +440,9 @@ Expected: la sidebar se replie et se déploie dans les deux cas. Une fois repli�
 
 Sidebar repliée, recharger la page.
 
-Expected: elle est toujours repliée. C'est le cookie posé par shadcn qui l'assure, sans code à écrire.
+Expected: elle est toujours repliée.
+
+Si elle revient déployée, ce n'est **pas** l'écriture du cookie qui est en cause : vérifier dans les outils de développement que `sidebar_state` vaut bien `false`, puis regarder du côté du `defaultOpen` de la Task 4. Le composant écrit ce cookie tout seul, il ne le relit jamais.
 
 - [ ] **Step 5: Vérifier le comportement mobile**
 
@@ -456,9 +470,17 @@ Expected: le shell entier suit, sidebar et header compris, sans zone restée cla
 
 - [ ] **Step 9: Vérifier la déconnexion**
 
-Ouvrir le menu du compte, vérifier que l'email affiché est le bon, puis se déconnecter.
+Vérifier que l'initiale affichée dans le header est celle du bon compte, puis se déconnecter depuis le pied de la sidebar.
 
 Expected: retour sur `/admin/login`, et une nouvelle demande de `/admin` redirige de nouveau vers la connexion.
+
+Vérifier au passage que le pied porte bien sa bordure haute et que « Se déconnecter » se replie en icône comme les entrées de navigation.
+
+- [ ] **Step 9 bis: Vérifier que le shell n'entoure pas la connexion**
+
+Déconnecté, afficher `/admin/login`.
+
+Expected: ni sidebar ni header. Leur présence signalerait que le shell a été monté dans le root layout au lieu du groupe protégé.
 
 - [ ] **Step 10: Vérifier l'absence de sélecteur de langue**
 
@@ -473,6 +495,14 @@ just test
 ```
 
 Expected: tous les tests verts. Ce sub-project n'en ajoute aucun, mais la suite existante ne doit pas régresser.
+
+- [ ] **Step 11 bis: Vérifier le build de production**
+
+```bash
+pnpm build
+```
+
+Expected: aucune erreur. C'est le build, et non le typage, qui sanctionne un `cookies()` ou un `getCurrentUser()` sorti du composant `Shell`.
 
 - [ ] **Step 12: Demander la validation avant commit**
 

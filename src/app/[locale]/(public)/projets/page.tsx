@@ -1,5 +1,7 @@
 import type { Metadata, ResolvingMetadata } from "next"
+import { io } from "next/cache"
 import { getTranslations } from "next-intl/server"
+import { Suspense } from "react"
 
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
@@ -9,6 +11,7 @@ import { findManyPublished } from "@/server/queries/projects"
 import { ProjectsList } from "@/components/features/projects/ProjectsList"
 import { PageShell } from "@/components/layout/PageShell"
 import { JsonLd } from "@/components/seo/json-ld"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 
 export async function generateMetadata(
   { params }: PageProps<"/[locale]/projets">,
@@ -45,13 +48,27 @@ export default async function ProjetsPage({ params }: PageProps<"/[locale]/proje
 
   return (
     <PageShell title={t("pageTitle")} subtitle={t("pageSubtitle")}>
-      <ProjectsListAsync locale={locale} />
+      <Suspense
+        fallback={
+          <StackedSkeleton
+            heights={[
+              "h-12",
+              "h-[510px] lg:h-[475px]",
+              "h-[510px] lg:h-[475px]",
+              "h-[510px] lg:h-[475px]",
+            ]}
+          />
+        }
+      >
+        <ProjectsListAsync locale={locale} />
+      </Suspense>
       <JsonLd data={breadcrumbJsonLd} />
     </PageShell>
   )
 }
 
 async function ProjectsListAsync({ locale }: { locale: Locale }) {
+  await io()
   const projects = await findManyPublished({ locale })
   return <ProjectsList projects={projects} />
 }

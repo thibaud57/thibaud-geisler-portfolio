@@ -235,7 +235,7 @@ pg_dump -s -h localhost portfolio > schema.sql
 - Configurer le mount Docker sur `/var/lib/postgresql` (v18)
 - Activer les data checksums (défaut v18)
 - Utiliser `pg_isready` pour les healthchecks Docker Compose
-- Sauvegarder régulièrement via `pg_dump -Fc` vers Cloudflare R2 post-MVP
+- Sauvegarder régulièrement vers Cloudflare R2 : le backup natif Dokploy (`pg_dump` puis rclone) le fait chaque jour, cf. `docs/PRODUCTION.md` § Stratégie Backup
 
 ## ❌ Anti-Patterns
 

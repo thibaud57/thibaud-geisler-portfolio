@@ -98,12 +98,15 @@
       "stackTitle": "Stack & Expertise",
       "backToList": "Back to projects",
       "inProgress": "In progress",
+      "personal": "Personal",
       "meta": {
         "teamSize": "Team",
         "teamSizeValue": "{count, plural, one {# person} other {# people}}",
         "contract": "Contract",
         "workMode": "Mode",
-        "duration": "Duration"
+        "duration": "Duration",
+        "durationYears": "{count, plural, one {# year} other {# years}}",
+        "durationMonths": "{count, plural, one {# month} other {# months}}"
       },
       "contractStatus": {
         "FREELANCE": "Freelance",
@@ -166,9 +169,15 @@
       "approach": "My approach: Scope your requirements with you, deliver quick prototype, iterate on tangible deliverables, and document for maintenance. I work in Agile mode to ship regularly and continously adapt to your feedback."
     },
     "stats": {
-      "years": { "label": "years of experience" },
-      "missions": { "label": "client projects delivered" },
-      "clients": { "label": "clients supported" }
+      "years": {
+        "label": "years of experience"
+      },
+      "missions": {
+        "label": "client projects delivered"
+      },
+      "clients": {
+        "label": "clients supported"
+      }
     },
     "transition": "AI moves fast. I watch constantly, I keep testing, and I bring into your projects what holds up in production.",
     "stack": {
