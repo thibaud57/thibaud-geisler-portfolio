@@ -1,6 +1,6 @@
 ---
 title: "Dokploy — Self-hosted PaaS"
-version: "0.30.4"
+version: "0.30.7"
 description: "Référence technique pour Dokploy : déploiement, auto-deploy webhook, Traefik et environments."
 date: "2026-09-03"
 keywords: ["dokploy", "paas", "self-hosted", "traefik", "deployment"]
@@ -10,7 +10,7 @@ technologies: ["Docker", "Docker Compose", "Traefik", "GitHub"]
 
 # Description
 
-`Dokploy` est le PaaS self-hosted utilisé pour déployer le portfolio sur le VPS IONOS. Il installe automatiquement Docker Swarm, Traefik (v3.5) et une interface web. Gère le déploiement via webhook GitHub, les environments par projet, les rollbacks registry-based (v0.26+), les certificats Let's Encrypt, et l'orchestration Docker Compose. Pour le portfolio : un projet "portfolio" avec un service application Next.js et un service base PostgreSQL.
+`Dokploy` est le PaaS self-hosted utilisé pour déployer le portfolio sur le VPS IONOS. Il installe automatiquement Docker Swarm, Traefik (v3) et une interface web. Gère le déploiement via webhook GitHub, les environments par projet, les rollbacks registry-based (v0.26+), les certificats Let's Encrypt, et l'orchestration Docker Compose. Pour le portfolio : un projet "portfolio" avec un service application Next.js et un service base PostgreSQL.
 
 ---
 
@@ -98,7 +98,7 @@ NEXT_PUBLIC_SITE_URL=https://thibaud-geisler.com
 
 ### Description
 
-Dokploy embarque Traefik v3.5 comme reverse proxy. Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
+Dokploy embarque Traefik v3 comme reverse proxy (version en place : [PRODUCTION.md § Plateforme d'hébergement](../PRODUCTION.md#plateforme-dhébergement)). Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
 
 ### Exemple
 
@@ -130,6 +130,8 @@ networks:
 - Let's Encrypt : ~10s de délai après premier déploiement
 - HTTP-01 challenge nécessite le port 80 ouvert
 - Le réseau `dokploy-network` est injecté automatiquement
+- **Dokploy ne met jamais à jour l'image Traefik** : il peut seulement recréer le container lors de ses propres mises à jour, sur la version figée dans son code (`TRAEFIK_VERSION`, `packages/server/src/setup/traefik-setup.ts`, surchargeable par variable d'environnement), parfois plus ancienne que celle en place. Relever l'image après chaque montée : `docker ps --filter name=traefik --format '{{.Image}}'`
+- **Traefik ne route que vers un container `healthy`** : `providers.docker.allowEmptyServices` vaut `false` par défaut. Tant que le healthcheck Docker est `starting` ou `unhealthy`, le domaine répond `404`.
 
 ---
 
@@ -167,7 +169,7 @@ Référencement : Application → onglet **Domains** → éditer `www.thibaud-ge
 
 ### Description
 
-Traefik v3.5 sert `br` via son middleware `compress`, mais [ne compresse pas une réponse portant déjà un `Content-Encoding`](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/). Next compressant en gzip par défaut, le middleware seul ne change rien : les deux moitiés sont nécessaires.
+Traefik v3 sert `br` via son middleware `compress`, mais [ne compresse pas une réponse portant déjà un `Content-Encoding`](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/). Next compressant en gzip par défaut, le middleware seul ne change rien : les deux moitiés sont nécessaires.
 
 ### Exemple
 

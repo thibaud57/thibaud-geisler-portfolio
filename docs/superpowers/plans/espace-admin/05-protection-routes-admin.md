@@ -240,52 +240,107 @@ Expected: aucune erreur. Un drapeau `experimental` inconnu de la version install
 
 ---
 
-### Task 4 : Layout protégé, pages et écran d'erreur
+### Task 4 : Document admin, groupe protégé, pages et écran d'erreur
 
 **Files:**
 - Create: `src/app/admin/layout.tsx`
-- Create: `src/app/admin/page.tsx`
-- Create: `src/app/admin/login/page.tsx`
 - Create: `src/app/admin/unauthorized.tsx`
+- Create: `src/app/admin/login/page.tsx`
+- Create: `src/app/admin/(protected)/layout.tsx`
+- Create: `src/app/admin/(protected)/page.tsx`
+- Modify: `src/app/robots.ts`
 
 **Interfaces:**
 - Consomme : `getCurrentUser()` de la Task 3, `authClient` de `src/lib/auth-client.ts` (sub-project `04`).
-- Produit : l'arbre `/admin` protégé, consommé par le sub-project `06` qui y installera le shell.
+- Produit : l'arbre `/admin` protégé, consommé par le sub-project `06` qui installera le shell dans `(protected)/layout.tsx`.
 
-- [ ] **Step 1: Écrire le layout protégé**
+> **La structure de l'arbre est le cœur de cette task**, et deux contraintes la commandent. Un root layout qui appellerait la garde protégerait aussi `/admin/login`, que le visiteur anonyme doit atteindre pour se connecter. Et `unauthorized.tsx` enveloppe les *enfants* du layout qu'il voisine, jamais ce layout lui-même, exactement comme `error.tsx` : un `unauthorized()` levé par le root layout remonterait hors de toute frontière. D'où un route group interne, sans effet sur les URLs :
+>
+> ```
+> src/app/admin/
+> ├── layout.tsx              document seul, aucune garde
+> ├── unauthorized.tsx        frontière des enfants du root layout
+> ├── login/page.tsx          hors garde
+> └── (protected)/
+>     ├── layout.tsx          getCurrentUser(), sous <Suspense>
+>     └── page.tsx
+> ```
+>
+> L'ADR-021 n'interdit qu'un route group **à la place** du segment `admin/`, qui ferait disparaître le segment de l'URL. Un groupe interne laisse `/admin/projets` inchangé.
 
-**Ce fichier est un root layout, pas un layout imbriqué.** Le seul root layout du dépôt vit sous `src/app/[locale]/layout.tsx` (contrainte next-intl, c'est la raison d'être de `globalNotFound`). L'arbre `src/app/admin/` est hors de ce segment : il n'a donc aucun `<html>`/`<body>` au-dessus de lui, et Next refuse un arbre sans document. Prendre modèle sur `src/app/global-not-found.tsx`, qui rend son propre document pour la même raison : `<html>`, `<body>`, l'import de `globals.css` et le script d'initialisation du thème.
+- [ ] **Step 1: Écrire le root layout admin**
+
+**Ce fichier est un root layout, pas un layout imbriqué, et il ne garde rien.** Le seul autre root layout du dépôt vit sous `src/app/[locale]/layout.tsx` (contrainte next-intl, c'est la raison d'être de `globalNotFound`). L'arbre `src/app/admin/` est hors de ce segment : il n'a donc aucun `<html>`/`<body>` au-dessus de lui, et Next refuse un arbre sans document. Prendre modèle sur `src/app/global-not-found.tsx`, qui rend son propre document pour la même raison.
 
 ```typescript
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
+import { Toaster } from '@/components/ui/sonner'
 import { fontVariables } from '@/lib/fonts'
-import { getCurrentUser } from '@/lib/get-current-user'
 import { themeInitScript } from '@/lib/theme-script'
 
 import '@/app/globals.css'
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await getCurrentUser()
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className={fontVariables} suppressHydrationWarning>
       <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
+        <Toaster />
       </body>
     </html>
   )
 }
 ```
 
-Relire `src/app/global-not-found.tsx` avant d'écrire ce fichier et en reprendre exactement la forme, script de thème compris : sans lui, l'espace admin s'affiche en clair puis bascule, ce que le scénario de bascule de thème du sub-project `06` sanctionnera. `lang="fr"` est figé, l'espace admin étant monolingue (ADR-021).
+Quatre points.
 
-Ce layout ne monte aucune navigation : le `LanguageSwitcher` n'a pas de sens ici, et la sidebar arrive au sub-project `06`.
+Aucun `getCurrentUser()` ici : la garde est dans `(protected)/layout.tsx`. La poser à ce niveau rendrait `/admin/login` inatteignable, un visiteur anonyme étant renvoyé vers une page qu'il ne peut pas charger.
+
+Le composant est **synchrone**. Rien n'y est dynamique, et il n'a donc pas besoin de `<Suspense>`.
+
+`<Toaster />` est monté ici. Celui du site public vit dans `src/app/providers.tsx`, sous `[locale]`, hors de cet arbre : sans ce montage, les toasts de succès des sub-projects `07` et suivants ne s'afficheraient jamais, sans erreur ni indice. Vérifier au passage le chemin réel du composant dans `src/components/ui/`.
+
+`metadata.robots` couvre tout l'arbre, page de connexion comprise.
+
+Relire `src/app/global-not-found.tsx` avant d'écrire ce fichier et en reprendre exactement la forme, script de thème compris : sans lui, l'espace admin s'affiche en clair puis bascule, ce que le scénario de bascule de thème du sub-project `06` sanctionnera. `lang="fr"` est figé, l'espace admin étant monolingue (ADR-021).
 
 Ne jamais ajouter `'use cache'` dans ce fichier ni dans ses descendants.
 
-- [ ] **Step 2: Écrire la page d'accueil minimale**
+- [ ] **Step 2: Écrire le layout du groupe protégé**
+
+```typescript
+import { Suspense, type ReactNode } from 'react'
+
+import { getCurrentUser } from '@/lib/get-current-user'
+
+async function Guard({ children }: { children: ReactNode }) {
+  await getCurrentUser()
+  return <>{children}</>
+}
+
+export default function ProtectedLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="p-8" aria-hidden />}>
+      <Guard>{children}</Guard>
+    </Suspense>
+  )
+}
+```
+
+**Le `<Suspense>` n'est pas décoratif.** `getCurrentUser()` lit `headers()`, un accès dynamique. Avec `cacheComponents: true`, tout accès dynamique hors d'une frontière `<Suspense>` fait échouer le build sur « Uncached data was accessed outside of `<Suspense>` » (`.claude/rules/nextjs/rendering-caching.md`). Le fallback est volontairement vide ici : le sub-project `06` le remplacera par le squelette du shell, qu'il monte dans ce même composant `Guard`.
+
+Ce layout ne monte aucune navigation : le `LanguageSwitcher` n'a pas de sens ici, et la sidebar arrive au sub-project `06`.
+
+- [ ] **Step 3: Écrire la page d'accueil minimale**
+
+Sous `src/app/admin/(protected)/page.tsx`, ce qui répond bien à `/admin`, le groupe ne produisant aucun segment.
 
 ```typescript
 export default function AdminHomePage() {
@@ -299,18 +354,37 @@ export default function AdminHomePage() {
 
 Cette page existe pour avoir quelque chose à protéger et vérifier. Le sub-project `06` la remplacera.
 
-- [ ] **Step 3: Écrire la page de connexion**
+- [ ] **Step 4: Écrire la page de connexion**
+
+Sous `src/app/admin/login/page.tsx`, **hors** du groupe protégé.
 
 ```typescript
 'use client'
 
-import { authClient } from '@/lib/auth-client'
-import { Button } from '@/components/ui/button'
+import { use } from 'react'
 
-export default function AdminLoginPage() {
+import { Button } from '@/components/ui/button'
+import { authClient } from '@/lib/auth-client'
+
+const ERROR_MESSAGES: Record<string, string> = {
+  FORBIDDEN: "Ce compte Google n'est pas autorisé à accéder à cet espace.",
+}
+
+export default function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error } = use(searchParams)
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
       <h1 className="font-sans text-2xl font-semibold tracking-tight">Connexion</h1>
+      {error ? (
+        <p className="text-sm text-destructive">
+          {ERROR_MESSAGES[error] ?? 'La connexion a échoué. Réessayez.'}
+        </p>
+      ) : null}
       <Button
         onClick={() =>
           authClient.signIn.social({ provider: 'google', callbackURL: '/admin' })
@@ -325,9 +399,11 @@ export default function AdminLoginPage() {
 
 Un `onClick` et non un `<form>` : une soumission de formulaire suivie d'une redirection vers Google déclencherait `form-action 'self'`, que Chrome et Safari bloquent alors que Firefox l'autorise. Le bug ne se reproduirait donc pas sur toutes les machines.
 
-Cette page est sous `/admin` mais exemptée de session par `requiresSession`, sinon elle serait inatteignable.
+Le paramètre `error` est ce qui reste du refus de la whitelist : le hook du sub-project `04` lève une `APIError` en `FORBIDDEN`, Better Auth ramène l'utilisateur ici avec le code en query. Sans ce traitement, un compte refusé verrait la page de connexion inchangée et recommencerait indéfiniment sans comprendre. **Vérifier le nom réel du paramètre et la valeur du code au moment de l'implémentation**, en menant le scénario 6 bis : le dictionnaire ci-dessus est à ajuster sur ce qui arrive vraiment, et son cas par défaut couvre le reste.
 
-- [ ] **Step 4: Écrire la page `unauthorized`**
+Cette page est sous `/admin` mais exemptée de session par `requiresSession` côté proxy, et hors du groupe protégé côté layout. Les deux sont nécessaires : l'un évite la redirection, l'autre la garde.
+
+- [ ] **Step 5: Écrire la page `unauthorized`**
 
 ```typescript
 import Link from 'next/link'
@@ -347,17 +423,32 @@ export default function Unauthorized() {
 }
 ```
 
-**Le placer sous `src/app/admin/unauthorized.tsx`**, et non à la racine de `src/app/`. La frontière `unauthorized()` est levée par le layout admin : le fichier voisin de ce layout hérite du document qu'il rend (`<html>`/`<body>`, `globals.css`). À la racine de `src/app/`, il n'aurait aucun root layout au-dessus de lui et rendrait une page sans styles, quand il ne ferait pas échouer le build.
+**Le placer sous `src/app/admin/unauthorized.tsx`**, et nulle part ailleurs. Deux erreurs sont possibles, et aucune ne se voit à la lecture du code :
+
+- **À la racine de `src/app/`** : il n'aurait aucun root layout au-dessus de lui, rendrait une page sans styles, quand il ne ferait pas échouer le build.
+- **Dans `(protected)/`** : il n'attraperait rien. Une frontière n'enveloppe que les *enfants* du layout qu'elle voisine, jamais ce layout, et c'est `(protected)/layout.tsx` qui lève `unauthorized()`. Le symptôme serait une erreur non gérée là où on attendait cet écran, et le scénario 5 du spec est ce qui le révèle.
+
+Voisin du root layout, il est capté correctement et hérite du document que celui-ci rend (`<html>`/`<body>`, `globals.css`, thème).
 
 Hors `[locale]`, il ne peut pas utiliser `useTranslations` et porte donc des libellés français en dur, comme `global-error.tsx` le fait déjà pour la même raison.
 
 « Se connecter » est un lien de contenu, posé dans une phrase de prose : DESIGN.md § Conventions lui impose `text-primary underline underline-offset-2` en permanence. La famille lien d'interface, distinguée par la seule couleur, est réservée à la navigation et aux CTA.
 
-- [ ] **Step 5: Vérifier typage et lint**
+- [ ] **Step 6: Exclure `/admin` des robots**
+
+Dans `src/app/robots.ts`, ajouter `/admin` au `disallow`, à côté de `/api/` qui s'y trouve déjà. `/api/auth/` est donc couvert d'office.
+
+Ne rien changer à `sitemap.ts` ni à `llms.txt` : les deux ne décrivent que le site public et n'ont aucune raison de connaître l'espace admin. Le point de vigilance est ailleurs, dans les sub-projects suivants : aucun ne doit y ajouter une route admin.
+
+Cette exclusion n'est pas une mesure de sécurité, l'accès étant gardé. Elle évite simplement qu'un espace privé figure dans un index de moteur ou de modèle.
+
+- [ ] **Step 7: Vérifier typage, lint et build**
 
 ```bash
-just typecheck && just lint
+just typecheck && just lint && pnpm build
 ```
+
+Le build fait partie de la vérification ici, et pas seulement le typage : c'est lui qui sanctionne un accès dynamique hors `<Suspense>`. Une erreur « Uncached data was accessed outside of `<Suspense>` » désigne le `getCurrentUser()` de `(protected)/layout.tsx`, sorti de son composant `Guard`.
 
 Expected: aucune erreur.
 
@@ -411,11 +502,29 @@ Expected: retour sur `/admin`, la page d'accueil s'affiche, et **aucune violatio
 
 Session ouverte, altérer manuellement la valeur du cookie de session dans les outils de développement, puis recharger `/admin`.
 
-Expected: le proxy laisse passer, puisqu'il ne teste que la présence du cookie, et le layout affiche la page `unauthorized`. C'est exactement la répartition voulue : le proxy oriente, le layout tranche.
+Expected: le proxy laisse passer, puisqu'il ne teste que la présence du cookie, et `admin/unauthorized.tsx` s'affiche, avec ses styles et le bon thème. C'est exactement la répartition voulue : le proxy oriente, le layout tranche.
+
+Une erreur non gérée à la place de cet écran signalerait que le fichier n'est pas au bon endroit : voisin du root layout, jamais dans `(protected)/`.
+
+- [ ] **Step 7 bis: Vérifier le retour d'un compte refusé**
+
+Se déconnecter, vider les cookies, puis mener le flux Google avec un compte **non** autorisé.
+
+Expected: retour sur `/admin/login`, avec un message expliquant que ce compte n'est pas autorisé. Relever le nom exact du paramètre et la valeur du code dans l'URL, et ajuster le dictionnaire de la page en conséquence.
+
+Une page d'erreur générique ou un 500 signalerait que le hook du sub-project `04` lève une `Error` nue au lieu d'une `APIError`.
+
+- [ ] **Step 7 ter: Vérifier l'exclusion des robots**
+
+```bash
+curl -s http://localhost:3000/robots.txt | grep -i admin
+```
+
+Expected: une ligne `Disallow: /admin`. Vérifier aussi dans le `<head>` d'une page admin la présence de `<meta name="robots" content="noindex, nofollow">`, et l'absence de toute route admin dans `/sitemap.xml`.
 
 - [ ] **Step 8: Vérifier que le taint bloque réellement**
 
-Vérification jetable, à défaire aussitôt. Ajouter temporairement dans `src/app/admin/page.tsx` un passage de l'objet complet à un Client Component :
+Vérification jetable, à défaire aussitôt. Ajouter temporairement dans `src/app/admin/(protected)/page.tsx` un passage de l'objet complet à un Client Component :
 
 ```typescript
 // TEMPORAIRE — à supprimer après vérification
@@ -442,7 +551,7 @@ Expected: le rendu échoue avec l'erreur du Taint API et le message défini dans
 
 Si la page s'affiche normalement, le taint est inopérant : vérifier que `experimental.taint` est bien actif dans `next.config.ts`.
 
-**Restaurer ensuite `src/app/admin/page.tsx` dans son état du Step 2 de la Task 4.**
+**Restaurer ensuite `src/app/admin/(protected)/page.tsx` dans son état du Step 3 de la Task 4.**
 
 - [ ] **Step 9: Lancer la suite de tests**
 

@@ -1,7 +1,9 @@
 import type { Metadata, ResolvingMetadata } from "next"
+import { io } from "next/cache"
 import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import { OpenCookiePreferencesButton } from "@/components/features/legal/OpenCookiePreferencesButton"
 import { PageShell } from "@/components/layout/PageShell"
@@ -14,8 +16,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
+import { LINK_CLASS } from "@/lib/typography"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
 import { getDataProcessors, getPublisher } from "@/server/queries/legal"
 
@@ -47,12 +51,26 @@ export default async function ConfidentialitePage({
 
   return (
     <PageShell title={t("title")} subtitle={t("lastUpdated")}>
-      <ConfidentialiteContentAsync locale={locale} />
+      <Suspense
+        fallback={
+          <StackedSkeleton
+            heights={[
+              "h-[599px] sm:h-[328px]",
+              "h-[959px] sm:h-[525px]",
+              "h-[959px] sm:h-[525px]",
+              "h-[599px] sm:h-[328px]",
+            ]}
+          />
+        }
+      >
+        <ConfidentialiteContentAsync locale={locale} />
+      </Suspense>
     </PageShell>
   )
 }
 
 async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
+  await io()
   const [t, tLegal, publisher, processors, introContent, cookiesContent] = await Promise.all([
     getTranslations("PrivacyPolicy"),
     getTranslations("Legal"),
@@ -144,10 +162,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
         <p className="text-muted-foreground">
           {t.rich("rights.body", {
             mail: (chunks) => (
-              <a
-                href={`mailto:${pub.publicEmail}`}
-                className="text-primary underline underline-offset-2"
-              >
+              <a href={`mailto:${pub.publicEmail}`} className={LINK_CLASS}>
                 {chunks}
               </a>
             ),
@@ -156,7 +171,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
                 href="https://www.cnil.fr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary underline underline-offset-2"
+                className={LINK_CLASS}
               >
                 {chunks}
               </a>

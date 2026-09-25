@@ -149,7 +149,6 @@ export const env = createEnv({
 - `z.coerce.number()` convertit les strings en nombres (toutes les env vars sont des strings)
 - `@t3-oss/env-nextjs` sépare `server` et `client` : une variable serveur importée depuis un Client Component échoue au build
 - Validation fail-fast au boot, contournée par `SKIP_ENV_VALIDATION=true` pour le build CI/Docker et Vitest
-- Une exception dans le projet : `ASSETS_PATH` reste lu directement sur `process.env`, lecture dynamique avec fallback (voir `.claude/rules/nextjs/assets.md`)
 
 ---
 

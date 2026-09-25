@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
 import { submitContact } from "@/server/actions/contact"
@@ -183,23 +183,25 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>
-        {label}
-        {required ? (
-          <span aria-hidden className="ml-0.5 text-destructive">
-            *
-          </span>
-        ) : null}
-      </Label>
+    <FormField
+      id={id}
+      label={
+        <>
+          {label}
+          {required ? (
+            <span aria-hidden className="ml-0.5 text-destructive">
+              *
+            </span>
+          ) : null}
+        </>
+      }
+      error={errors?.map((code) => (
+        <p key={code} className="mt-1 text-sm text-destructive">
+          {tError(code)}
+        </p>
+      ))}
+    >
       {children}
-      <div id={`${id}-error`} aria-live="polite">
-        {errors?.map((code) => (
-          <p key={code} className="mt-1 text-sm text-destructive">
-            {tError(code)}
-          </p>
-        ))}
-      </div>
-    </div>
+    </FormField>
   )
 }

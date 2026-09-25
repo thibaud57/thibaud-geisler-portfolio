@@ -30,8 +30,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./assets:/app/assets:ro
 
 volumes:
   portfolio_pgdata:

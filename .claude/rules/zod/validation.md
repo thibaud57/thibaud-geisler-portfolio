@@ -10,7 +10,7 @@ paths:
 
 ## À faire
 - Utiliser **`safeParse`** dans les Server Actions et route handlers : retourne `{ success: true, data } | { success: false, error }`, pas besoin de try/catch
-- Retourner **`result.error.flatten().fieldErrors`** pour alimenter l'UI formulaire : objet `{ champ: string[] }` directement exploitable par `useActionState`
+- Retourner **`z.flattenError(result.error).fieldErrors`** pour alimenter l'UI formulaire : objet `{ champ: string[] }` directement exploitable par `useActionState` (forme en usage dans `src/server/actions/contact.ts` et `tags.ts`)
 - Valider les variables d'environnement au boot via **`createEnv` de `@t3-oss/env-nextjs`** (pattern du projet, `src/env.ts`) : fail-fast au démarrage et séparation `server` / `client`. Le `z.parse(process.env)` direct ne vaut que hors Next.js
 - Ne jamais typer `process.env` à la main : le typage vient du schéma
 - Valider **toujours côté serveur** même si une validation client existe déjà : client = feedback UX, serveur = sécurité (seul le serveur est source de vérité)
@@ -23,21 +23,23 @@ paths:
 - Oublier `z.coerce.number()` pour les `FormData` / env vars : `z.number()` strict refusera les strings brutes
 
 ## Gotchas
+- **`result.error.flatten()` est déprécié** au profit de la fonction libre `z.flattenError(error)` : la méthode porte `@deprecated` (constaté sur Zod 4.5.4 le 2026-09-17, `node_modules/zod/v4/classic/errors.d.ts`) et `@typescript-eslint/no-deprecated` fait échouer le lint du projet
 - `Object.fromEntries(formData)` **perd les champs multi-valeurs** (checkbox multi, input `name="tags[]"`) : utiliser `formData.getAll('key')` explicitement et un schéma avec `z.array()`
 - **`safeParseAsync`** obligatoire si le schéma contient un refinement ou un transform asynchrone : sinon erreur runtime "Async refinement encountered in sync mode"
 - Pour **Next.js spécifiquement** : utiliser **`@t3-oss/env-nextjs`** + `createEnv` (sépare `server` / `client`, tree-shake les secrets serveur du bundle client) plutôt que `z.parse(process.env)` direct (voir `nextjs/configuration.md`)
 
 ## Exemples
 ```typescript
-// ✅ Server Action avec safeParse + flatten().fieldErrors
+// ✅ Server Action avec safeParse + z.flattenError
 'use server'
+import { z } from 'zod'
 import { Schema } from '@/lib/schemas/example'
 
 export async function action(_prev: unknown, formData: FormData) {
   const result = Schema.safeParse(Object.fromEntries(formData))
 
   if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors }
+    return { errors: z.flattenError(result.error).fieldErrors }
   }
 
   // result.data est typé automatiquement après le narrowing

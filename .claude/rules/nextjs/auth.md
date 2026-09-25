@@ -15,8 +15,8 @@ paths:
 - Utiliser Better Auth avec Google OAuth comme unique provider (version exacte : `docs/VERSIONS.md`) (whitelist email single-user via hook `databaseHooks.user.create.before`)
 - Toujours définir les cookies de session avec `HttpOnly: true`, `Secure: true` (en prod), `SameSite: 'lax'`, `Path: '/'`, `Max-Age` fini
 - Utiliser `jose` pour tout JWT (Edge-compatible), `jsonwebtoken` dépend de `crypto` Node.js et casse en Edge
-- Centraliser la vérification de session dans un helper `getCurrentUser()` reutilisable dans Server Components / Server Actions / Route Handlers
-- Protéger les routes `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy (double protection)
+- Centraliser la vérification de session dans un helper `getCurrentUser()` reutilisable dans Server Components / Server Actions / Route Handlers, enveloppé dans `cache()` de React : layout protégé et page l'appellent dans le même rendu, la session n'est lue qu'une fois
+- Protéger les routes `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du check proxy, **et** rappeler `getCurrentUser()` dans chaque page du groupe comme en tête de chaque Server Action (cf. Gotchas)
 - Utiliser `nextCookies()` comme **dernier** plugin dans la config Better Auth pour gérer automatiquement les `Set-Cookie` des Server Actions
 - Pour Argon2id custom : config minimale OWASP 19 MiB memory, 2 iterations, parallelism 1
 - Activer `experimental: { authInterrupts: true }` pour utiliser `unauthorized()` / `forbidden()` et les fichiers `unauthorized.tsx` / `forbidden.tsx`
@@ -36,6 +36,11 @@ paths:
 ## Gotchas
 - Better Auth + Next 16 : workaround `use cache` + `getServerSession` = extraire les cookies avant le scope cache et les passer en argument (Issue #5584, contrainte Next.js pas bug Better Auth)
 - Better Auth + Prisma 7 : `prisma.config.ts` charge `.env` via `loadEnvConfig` (`@next/env`) pour la CLI Prisma, et `src/lib/prisma.ts` lit `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs`) au runtime Next. Sinon erreur P1010 "User was denied access"
+- Refus dans un `databaseHooks` pendant le callback OAuth : lever `APIError` avec un `code` dans le body, sinon le callback relance l'erreur en 403 JSON au lieu de rediriger vers `onAPIError.errorURL` (voir `docs/VERSIONS.md` § Conflits Potentiels)
+- `advanced.ipAddress.disableIpTracking` coupe aussi le rate limiting natif : pour ne pas persister l'IP, la retirer dans `databaseHooks.session.create.before` (voir `docs/VERSIONS.md` § Conflits Potentiels)
+- **Un layout protégé ne protège pas le contenu de ses pages** : Next rend page et layout en parallèle, et sérialise le payload RSC de la page même quand le layout lève `unauthorized()`. Un cookie forgé, qui passe le proxy, reçoit alors le contenu. Chaque page appelle `getCurrentUser()` avant de lire ou rendre quoi que ce soit, sous la frontière `<Suspense>` d'un `loading.tsx` de son propre segment (sans elle, Next signale en dev un accès dynamique hors `<Suspense>` à la navigation). Celui de `(protected)/` ne couvre que la page du groupe : il appartient au layout partagé, qu'une navigation entre pages sœurs (`/admin/tags` → `/admin/projets`) ne traverse pas
+- **Chaque segment de route protégé porte son `loading.tsx`**, une ligne qui réexporte celui de `(protected)/` : `getCurrentUser()` lit les en-têtes, donc rend la page dynamique, et sans frontière `<Suspense>` propre au segment Next lève « encountered uncached data during prerendering ». Celui du layout partagé ne couvre pas les segments imbriqués, que la navigation entre pages sœurs ne traverse pas. L'erreur n'apparaît qu'en dev sous session valide, le build reste vert
+- La whitelist de `databaseHooks.user.create.before` ne s'exécute qu'à la création du compte : `getCurrentUser()` revérifie `isAdminEmail` sur chaque session, sinon un compte créé avant un changement d'`ADMIN_EMAIL` garde l'accès
 - Cookies API Next 15+ : `const cookieStore = await cookies()` (async), hard error Next 16 si accès synchrone
 - `SameSite: 'strict'` bloque aussi les navigations top-level cross-site (liens entrants) : utiliser `'lax'` sauf besoin spécifique
 

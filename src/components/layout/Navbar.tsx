@@ -13,6 +13,7 @@ import { ThemeToggle } from "./ThemeToggle"
 
 export async function Navbar() {
   const t = await getTranslations("Nav")
+  const tTheme = await getTranslations("ThemeToggle")
   const locale = await getLocale()
 
   const mobileFooter = (
@@ -27,7 +28,7 @@ export async function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr] lg:px-8">
         <Suspense fallback={<div className="h-10 w-[180px]" />}>
           <Link href="/" aria-label={t("home")} className="shrink-0 justify-self-start">
-            <BrandLogo priority />
+            <BrandLogo preload />
           </Link>
         </Suspense>
 
@@ -39,7 +40,7 @@ export async function Navbar() {
           <Suspense fallback={<div className="size-9" />}>
             <LanguageSwitcher />
           </Suspense>
-          <ThemeToggle />
+          <ThemeToggle label={tTheme("ariaLabel")} />
           <Suspense fallback={<div className="size-9 md:hidden" />}>
             <MobileMenu footerSlot={mobileFooter} />
           </Suspense>

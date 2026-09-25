@@ -6,6 +6,7 @@ import { MotionItem } from "@/components/ui/motion-item"
 import type { Tag, TagKind } from "@/generated/prisma/client"
 import type { LocalizedTag } from "@/i18n/localize-content"
 import { KIND_ORDER } from "@/lib/tags"
+import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 interface Props {
@@ -51,9 +52,7 @@ export async function TechStackBadges({ tags, className }: Props) {
                 KIND_ACCENT[kind],
               )}
             >
-              <h3 className="text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase">
-                {t(kind)}
-              </h3>
+              <h3 className={LABEL_CLASS}>{t(kind)}</h3>
               <div className="mt-5 flex flex-1 flex-wrap content-start gap-2">
                 {group.map((tag) => (
                   <TagBadge key={tag.slug} tag={tag} />

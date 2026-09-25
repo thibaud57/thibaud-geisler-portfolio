@@ -35,7 +35,7 @@ node --experimental-transform-types app.ts  # pour enums / namespaces
 - Pas de vérification de types à l'exécution (utiliser `tsc --noEmit` en CI)
 - Les enums et namespaces nécessitent `--experimental-transform-types`
 - Next.js gère son propre pipeline TypeScript (Turbopack), ce flag concerne surtout les scripts CLI
-- Utile pour `prisma/seed.ts`, scripts de migration, tâches one-shot
+- Utile pour les scripts standalone et les tâches one-shot
 
 ---
 

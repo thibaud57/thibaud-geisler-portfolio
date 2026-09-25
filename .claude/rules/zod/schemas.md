@@ -26,6 +26,8 @@ paths:
 - Zod 4 requiert **TypeScript 5.5+** avec **`strict: true`** obligatoire (VERSIONS.md)
 - **`z.uuid()` v4 ≠ `z.string().uuid()` v3** : strict RFC 9562, rejette les UUID v3/v5 non conformes. Utiliser **`z.guid()`** pour l'équivalent lâche v3
 - Erreurs v4 : `message`, `invalid_type_error`, `required_error` **fusionnés** en un paramètre `error` unique (string ou `(issue) => string`)
+- **`z.coerce.number()` accepte un champ vide** : `Number("")` vaut `0`, donc un input numérique vidé dans un `FormData` passe la validation avec la valeur `0`. Pour un champ requis, contrôler la chaîne avant de convertir : `z.string().trim().min(1, '…').pipe(z.coerce.number<string>())`
+- **`.pipe()` derrière une chaîne exige `z.coerce.number<string>()`** : l'entrée d'un schéma coercé est typée `unknown`, que `.pipe()` refuse en `TS2345` après un `z.string()`. Le générique aligne le type d'entrée (constaté sur Zod 4.5.4 le 2026-09-17)
 - `.strict()` / `.passthrough()` / `.merge()` sur un objet : **dépréciés en v4** → remplacés par `z.strictObject({ ... })`, `z.looseObject({ ... })`, `.extend({ ... })`
 
 ## Exemples
