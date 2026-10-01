@@ -27,8 +27,12 @@ système, puis refait entièrement.
 - **Lire les fiches du design system depuis son export** : même procédure sur le projet du design
   system, dézippé dans `.design-sync/design-system/` (ignoré par git, comme par ESLint, Prettier et
   TypeScript : il porte des `.jsx` et des `.d.ts`). Chaque composant y a sa fiche
-  `components/<groupe>/<Nom>.prompt.md`. `DesignSync` est réservé à `/design-sync` : ré-exporter
-  après chaque sync plutôt que lire en ligne. La copie `_ds/` de la maquette n'a pas les fiches.
+  `components/<groupe>/<Nom>.prompt.md`. Cet export est la copie que `/design-sync` modifie puis
+  envoie : il reste aligné sur le projet en ligne sans nouveau ZIP. Seuls `_ds_bundle.js`,
+  `_ds_manifest.json` et `_adherence.oxlintrc.json`, que l'app régénère à la recompilation, y gardent
+  la date du dernier ZIP. Pour contrôler l'alignement : `list_files` (mêmes chemins des deux côtés),
+  puis `get_file` sur un fichier précis, deux lectures sans plan ni écriture. La copie `_ds/` de la
+  maquette n'a pas les fiches.
 - **Lire un écran, pas le fichier** : l'export porte tous les écrans dans un seul fichier. Repérer
   l'écran par son identifiant (`isTags`, `dlgDeleteTag`…), lire sa plage, puis les valeurs
   calculées qu'il utilise (libellés, colonnes, items) dans le script en fin de fichier.
@@ -63,9 +67,14 @@ système, puis refait entièrement.
   charge directement.
 - **La maquette charge `_ds_src/`, pas `_ds/`** : `_ds/` est l'instantané lié que l'app gère,
   `_ds_src/` une copie écrite à la main. Après un sync du système, y recopier depuis l'export les
-  fichiers qui ont changé, vérifier que chaque composant utilisé par la maquette existe dans le
-  nouveau bundle, puis capturer ses écrans avant et après : un écart hors des composants touchés
-  est une régression.
+  feuilles et le readme qui ont changé, et y compiler le bundle depuis les `.jsx` de l'export :
+  celui de l'app dépasse les 256 Kio que `get_file` rend, celui de l'export date du dernier ZIP.
+  Compilation : un point d'entrée qui importe chaque `.jsx` et publie ses exports sur
+  `window.ThibaudGeislerDesignSystem_75a17b`, passé à `esbuild --bundle --format=iife --jsx=transform
+  --jsx-factory=React.createElement --tsconfig-raw={} --minify-whitespace` (sans minification, le
+  bundle garde en commentaire le chemin local de chaque fichier). Vérifier ensuite que chaque
+  composant utilisé par la maquette existe dans le nouveau bundle, puis capturer ses écrans avant et
+  après : un écart hors des composants touchés est une régression.
 - **Dans la maquette, `style` sur un `x-import` ne garde que la position** (`position`, `inset`,
   `width`, `z-index`…) : le runtime (`support.js`) l'applique à l'hôte, pas au composant. Une
   couleur passe par `dc-props`, qui étale en props un objet calculé dans le script
@@ -95,9 +104,89 @@ système, puis refait entièrement.
   tooltips voisins se posaient donc côte à côte, collant le nom d'un asset à son dossier. Le style
   étant inline, aucune règle CSS ne le bat : c'est la prop `width` du `Tooltip` qui le règle.
 
+## Pas encore dans la maquette
+
+Décisions prises que la maquette ne montre pas, et écrans qu'elle n'a pas. À reporter quand le
+propriétaire le demande ; chaque ligne part une fois faite.
+
+- **Écrans à dessiner** : assistant interne (Feature 3), seconde interface du même assistant que le
+  bot Telegram, dessinée après lui : fenêtre flottante déplaçable et redimensionnable qui connaît
+  la page en cours, fait confirmer chaque écriture et affiche ses propres questions et demandes
+  d'accord dans la conversation, plus une page d'historique qui montre aussi les conversations
+  commencées sur Telegram ; résultats des jobs à valider (Feature 3 : candidats du sourcing à
+  trier, pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ;
+  Accueil (`isHome`), à revoir avec la feature Missions (Feature 4).
+- **Avant de dessiner l'assistant et le chatbot public** : faire les recherches sur ces deux sujets.
+
 ## Journal
 
-- **Clôture de l'epic espace-admin (préparé le 2026-09-25, sync à lancer)** : les sub-projects 08 à
+- **Audit de cohérence code, doc, système et maquette (synchronisé le 2026-10-02)** : `DESIGN.md`
+  corrigé sur neuf points que le code dément (ordre de `LABEL_CLASS`, `leading-none` de
+  `DialogTitle`, rayons des lignes à cocher, `LocationLine` sur `/contact` seul, formulaire de
+  contact en onglets, logo du badge entreprise, taille maximale d'un dépôt, troisième `!important`,
+  retrait de page admin) ; le système suit le code (pager à cinq emplacements, Malt, lien de langue
+  du footer, bouton CV, logo du badge entreprise) et son readme liste chaque écart d'API assumé ;
+  la maquette applique les arbitrages aux écrans sans spec et ses pieds de liste passent par des
+  clés `*Pager`, les `*Foot` portant déjà des totaux ; les plans 10, 18 et 19 donnent à leurs
+  modales un titre qui nomme l'élément et une description qui dit l'action.
+- **Maquette réalignée sur l'ADR-026 (synchronisée le 2026-10-02)** : le Kanban (Dev) passe en
+  cartes stockées en base, liées à une spec ou à un plan du dépôt, avec l'état du run en badge et
+  « Lancer » dans la vue détail, sans issues GitHub ni cron. Les Audits (Dev) lancent leurs runs à
+  la demande avec les mêmes états ; Telegram prévient quand un run attend une réponse ou se
+  termine ; un constat retenu devient une carte du Kanban.
+- **Audits du design system et de la maquette (synchronisé le 2026-10-01)** : les quatre
+  composants CRM non installés (`DateTimeField`, `OptionalDateField`, `MonthField`,
+  `RelatedLinksCard`) passent sous `post-mvp/`, comme `DESIGN.md` les range ; `GoogleSignInButton`
+  entre avec la carte `patterns-admin-login` et le glyphe Google ; les fiches `Sidebar`, `Avatar`,
+  `AssetPreview` et `Footer` nomment les fichiers du code qui les composent ; `DetailDialog` prend
+  un `onEdit` facultatif (plan `08`) ; readme et `github.md` corrigés (rayons, comptes, arbitrages).
+  Maquette : écarts visibles corrigés (actions de ligne, tailles de page, recherche, badges, rail,
+  connexion). Puis `DataTable` mis à l'API du code et `ConfirmDeleteDialog` rendu pilotable :
+  listes livrées et du CRM sur `DataTable`, chaque écran dans `AdminPageShell`, pieds sur
+  `PaginationFooter`, suppressions sur `ConfirmDeleteDialog`. Les en-têtes triables trop étroits
+  ont révélé des largeurs fausses dans les plans 08, 10, 13, 17 et 18, corrigées. Restent composés
+  à la main : les tables des écrans sans spec et le pied des CRA, voir
+  `maquette/ecarts-design-system.md`.
+- **Composants des plans CRM ajoutés au système (synchronisé le 2026-10-01)** : sept
+  composants que les plans `domaine-freelance-crm` emploient et que le système n'avait pas, chacun
+  avec miroir, `.d.ts`, fiche et carte : `DateTimeField`, `OptionalDateField`, `MonthField`,
+  `RelatedLinksCard`, `MultiSelectCombobox` (patterns), `MarkdownContent` (core) et `Editor`
+  (post-MVP, mock de Pages CMS Editor, ADR-024). Échelle compacte du markdown de l'admin, décidée
+  par le propriétaire le même jour : `MarkdownContent` en variante `admin` et l'éditeur partagent
+  « # » 18 px, « ## » 16 px, « ### » 14 px, texte 14 px. Le mock de l'éditeur ne crée plus de
+  paragraphe vide pour une ligne blanche du markdown. `_ds_src/` recompilé (151 exports), puis la
+  maquette branchée dessus : Détails (éditeur et lecture), étude de cas des projets, cards de fiches
+  rattachées, date de rencontre, date et heure d'une action et d'un entretien, date d'un signal,
+  démarrage d'une mission, zones, secteurs et correspondants. Les champs date du système gardent
+  sous eux le conteneur d'erreur vide de `FormField`, comme le code : 8 px de plus qu'un champ fait
+  main, voulu.
+- **Audit des plans, specs et maquette contre les arbitrages (2026-10-01)** : cinq contrôles
+  indépendants. Corrigés : valeurs d'énumération en badge dans les vues détail des plans (19
+  occurrences) et de la maquette, ordre du bloc Pipeline du lead, aide de la card Notes passée par
+  `FormField`, vue Journal des entretiens et des revues qui montre toutes ses colonnes, taux de revue
+  absent rendu par `EmptyValue`, type de signal en badge, champs RCS sur leur propre rangée,
+  `OptionalDateField` créé au plan 05 (date d'assujettissement à la TVA) puis réutilisé par 08 et 19.
+  L'état posé à droite du titre d'une vue détail garde le `Badge` `outline` `meta`, comme dans l'app :
+  l'arbitrage « Valeur d'énumération » le nomme parmi ses exceptions.
+- **Maquette réalignée sur le CRM (synchronisée le 2026-10-01)** : écrans CRM refaits sur
+  les specs `domaine-freelance-crm` (entreprises, leads, contacts, missions, entretiens, actions de
+  prospection, revues hebdo, signaux), arbitrages transverses de `docs/DESIGN.md` appliqués aussi aux
+  tags, projets et assets, couche IA retirée (« Pré-remplir », score calculé). `_ds_src/`
+  resynchronisé : bundle compilé depuis l'export (144 exports, les 72 composants de la maquette
+  présents), `components.css`, `post-mvp.css`, readme. Contrôle par 78 captures : rendu identique au
+  bundle de test, écarts avec la référence limités aux changements voulus. Le rendu a révélé un
+  défaut du système : `NameSlugCell` donnait au nom la police mono du slug, corrigé dans le
+  `components.css` de l'export, envoyé avec le sync des composants le même jour (écart n° 4
+  d'`ecarts-design-system.md`, réglé ; le fichier gagne aussi les écarts 2 et 3). Un audit ligne à ligne des
+  arbitrages de `docs/DESIGN.md` contre la maquette a ensuite fait reprendre ce que le premier
+  passage avait manqué (badges d'énumération des vues détail, état vide filtré commun à toutes les
+  listes, pied de pagination et état vide des assets), puis les écrans Projets et Assets ont été
+  réalignés sur le code livré (nature en boutons radio, card Liens, libellés bilingues en toutes
+  lettres, tags en badges, table au téléphone, tuiles d'asset, titre de suppression qui nomme
+  l'élément) : tous les arbitrages portent leur date de réalignement. Deux logos d'exemple pointent
+  vers des PNG de `branding/logos/` dans le dossier de la maquette, pour que la grille d'assets
+  montre un aperçu réel à côté d'un aperçu manquant.
+- **Clôture de l'epic espace-admin (synchronisé le 2026-09-25)** : les sub-projects 08 à
   14 n'avaient donné lieu à aucun sync, le système en était resté au 07. Seize patterns admin y
   entrent (`RowActionButton`, `TruncateTooltip`, `BadgeList`, `ConfirmDeleteDialog`, `DetailDialog`,
   `OptionsPopover`, `SearchInput`, `FacetFilter`, `PaginationFooter`, `EmptyState`, `TitledBlock`,
@@ -113,11 +202,8 @@ système, puis refait entièrement.
   dossier collés sur une tuile d'asset, un panneau de filtres ouvert qui recouvrait deux pieds de
   pagination, un cadre de vue détail trop court qui coupait ses deux dernières lignes.
   `ecarts-design-system.md` perd son patron « trois badges puis un compteur », que `BadgeList` règle.
-- **Reste ouvert après ce sync** : le `_ds_src/` de la maquette est resté au 19 septembre, donc elle
-  tourne encore sur le système d'avant et ne voit ni les patrons admin, ni `Empty`, ni les
-  composants sortis de `post-mvp/`. Le resynchroniser n'a d'intérêt qu'au prochain écran admin, et
-  demande d'abord que le projet du système ait été ouvert une fois, pour que son bundle soit
-  recompilé : le recopier depuis un bundle jamais rendu reviendrait à propager une erreur inconnue.
+- **Resté ouvert après ce sync, réglé le 2026-10-01** : le `_ds_src/` de la maquette était resté au
+  19 septembre. Resynchronisé une fois le projet du système recompilé par l'app.
 
 - **Sub-project 06, shell admin** : ajout de `BrandMark` et `AdminPageShell` dans
   `components/patterns/`, fiches `Sidebar`, `Avatar` et `Tooltip` mises à jour (installés en
