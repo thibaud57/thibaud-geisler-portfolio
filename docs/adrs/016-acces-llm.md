@@ -81,13 +81,13 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 | Périmètre | Accès | Motif |
 |---|---|---|
 | `portfolio-chatbot` | **OpenRouter** | Principal poste facturé au token, bénéficie du batch, des budgets quotidiens et du provider PydanticAI |
-| `rag-documents` | **`claude -p`** depuis Claude Code, **PydanticAI + provider Anthropic** depuis l'écran admin, fournisseur d'embeddings **à trancher** | Deux chemins d'interrogation : par Claude Code, donc sur l'abonnement ; par l'API interne que consomme l'écran admin, donc au token et sans routeur intermédiaire. L'indexation exige en plus un fournisseur d'embeddings, **qu'Anthropic ne propose pas** |
-| `agent-os` | **Abonnement Claude, jamais de routeur** | Cf. ci-dessous |
-| Génération de contenu | **Abonnement Claude via `claude -p`** | Déclenchée par une personne identifiée. Le CLI, et non PydanticAI : Claude Code n'est pas une API de modèle mais un agent complet, seul l'appel du binaire charge hooks, skills, MCP et `CLAUDE.md` |
+| `rag-documents` | **Claude Code**, qui appelle le CLI du service, **PydanticAI + provider Anthropic** depuis l'écran admin, fournisseur d'embeddings **à trancher** | Deux chemins d'interrogation : par Claude Code, donc sur l'abonnement ; par l'API interne que consomme l'écran admin, donc au token et sans routeur intermédiaire. L'indexation exige en plus un fournisseur d'embeddings, **qu'Anthropic ne propose pas** |
+| `agent-os` | **Abonnement Claude, jamais de routeur ni de clé API** | Cf. ci-dessous, et [ADR-026](026-execution-claude-code-abonnement.md) pour le moteur |
+| Génération de contenu | **Abonnement Claude via `agent-os`** | Déclenchée par une personne identifiée. Le binaire Claude Code, et non PydanticAI : Claude Code n'est pas une API de modèle mais un agent complet, et seul son binaire, lancé en ligne de commande ou piloté par l'Agent SDK, charge hooks, skills, MCP et `CLAUDE.md` |
 
-**Règle absolue : jamais de gateway devant Claude Code.** La documentation Anthropic est explicite : passer par une gateway avec un credential facture l'usage au tarif API et **désactive l'abonnement** pour cette session. Router l'orchestrateur reviendrait à transformer un forfait déjà payé en facturation à l'acte.
+**Règle absolue : jamais de gateway devant Claude Code.** La documentation Anthropic est explicite : passer par une gateway avec un credential facture l'usage au tarif API et **désactive l'abonnement** pour cette session. Router l'orchestrateur reviendrait à transformer un forfait déjà payé en facturation à l'acte. Le même effet vient d'une clé API laissée dans l'environnement : en mode non interactif, Claude Code l'utilise dès qu'elle est présente. Aucune clé API ne cohabite donc avec Claude Code.
 
-**Discipline d'implémentation.** Partout où un modèle est appelé **par API**, le framework est **PydanticAI** et seul le provider change. Ce qui passe par l'abonnement emprunte le CLI, pas PydanticAI. Aucune application ne code un provider en dur. Tout passe par `base_url` et `api_key` venant de la configuration, via `ai-kit`. Basculer de routeur, ou vers une gateway auto-hébergée si un déclencheur se réalise, reste alors un changement de variable d'environnement.
+**Discipline d'implémentation.** Partout où un modèle est appelé **par API**, le framework est **PydanticAI** et seul le provider change. Ce qui passe par l'abonnement emprunte le binaire Claude Code, pas PydanticAI. Aucune application ne code un provider en dur. Tout passe par `base_url` et `api_key` venant de la configuration, via `ai-kit`. Basculer de routeur, ou vers une gateway auto-hébergée si un déclencheur se réalise, reste alors un changement de variable d'environnement.
 
 ---
 
@@ -124,6 +124,7 @@ Relevées le 29 août 2026.
 - [LiteLLM, dimensionnement production](https://docs.litellm.ai/docs/proxy/prod) : « Give each pod 1 vCPU and 4Gi of memory », « 4Gi is a floor rather than a target »
 - [LiteLLM, compromission PyPI de mars 2026](https://docs.litellm.ai/blog/security-update-march-2026) et [injection SQL pré-authentification](https://docs.litellm.ai/blog/cve-2026-42208-litellm-proxy-sql-injection)
 - [Claude Code, gateways](https://code.claude.com/docs/en/gateways) : « usage is billed to your organization's provider account at API rates, and their claude.ai subscriptions aren't used or charged »
+- [Claude Code, Authentication](https://code.claude.com/docs/en/authentication), relevé le 30 septembre 2026 : « In non-interactive mode (`-p`), the key is always used when present »
 - [OpenRouter, FAQ](https://openrouter.ai/docs/faq) : « We pass through the pricing of the underlying providers without any markup », et « 5.5% ($0.80 minimum) » sur les recharges par carte
 - [Tarifs Claude](https://platform.claude.com/docs/en/about-claude/pricing) : Haiku 4.5 à 1 $ et 5 $ par million de jetons, lecture en cache à 0,10 $
 - [Workspaces Anthropic](https://platform.claude.com/docs/en/manage-claude/workspaces) : plafonds de dépense par workspace, workspace Claude Code créé automatiquement

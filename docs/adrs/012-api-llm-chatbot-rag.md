@@ -74,7 +74,7 @@ Quelle API LLM choisir pour alimenter le chatbot RAG du portfolio, en tenant com
 
 # 🎉 Décision
 
-**Périmètre réduit par [ADR-016](016-acces-llm.md).** Le *mode d'accès* est tranché : le chatbot public passe par OpenRouter, les documents personnels par le provider Anthropic en direct, et tout ce qui est déclenché manuellement par l'abonnement Claude via `claude -p`. Partout où un modèle est appelé par API, le framework est PydanticAI et le provider vient de la configuration du package `ai-kit`. Ce qui passe par l'abonnement emprunte le CLI.
+**Périmètre réduit par [ADR-016](016-acces-llm.md).** Le *mode d'accès* est tranché : le chatbot public passe par OpenRouter, les documents personnels par le provider Anthropic en direct, et tout ce qui est déclenché manuellement par l'abonnement Claude, via le binaire Claude Code ([ADR-026](026-execution-claude-code-abonnement.md)). Partout où un modèle est appelé par API, le framework est PydanticAI et le provider vient de la configuration du package `ai-kit`. Ce qui passe par l'abonnement emprunte le binaire Claude Code.
 
 Ce qu'il reste à décider ici : **le choix du modèle** pour le chatbot. OpenRouter les rend tous accessibles derrière la même interface, ce qui rend l'arbitrage réversible en une chaîne de caractères.
 
