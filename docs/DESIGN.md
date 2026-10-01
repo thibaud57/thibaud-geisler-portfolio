@@ -1,7 +1,7 @@
 ---
 title: "DESIGN — Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-09-05"
+date: "2026-10-02"
 keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin", "dataviz"]
 scope: ["docs", "frontend"]
 technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "Motion", "next-intl"]
@@ -55,31 +55,25 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Subtitle (en-tête de page, texte de section) | 1.125rem (18px) | 400 (Regular) | `text-lg` : sous-titres centrés de `PageShell`, CTA final |
 | Body | 1rem (16px) | 400 (Regular) | `text-base` |
 | Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
-| Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium uppercase tracking-[0.25em] text-muted-foreground` : titres de cartes de stack, libellés de stats, libellé de signature de la landing, métadonnées et timeline d'étude de cas, section de la sidebar admin, lignes de groupe et sections de filtres des tables admin. Partagé par la constante `LABEL_CLASS` (`src/lib/typography.ts`). Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
+| Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase` : titres de cartes de stack, libellés de stats, libellé de signature de la landing, métadonnées et timeline d'étude de cas, section de la sidebar admin, lignes de groupe et sections de filtres des tables admin. Partagé par la constante `LABEL_CLASS` (`src/lib/typography.ts`). Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
 | Titre de card marketing | 1.5rem (24px) | 700 (Bold) | `font-display text-2xl font-bold tracking-normal` : cards services et projets. Taille fixe quel que soit le niveau du titre, d'où le `text-2xl` explicite |
 | Display number (chiffre clé) | 3rem (48px), 3.75rem (60px) dès sm | 700 (Bold) | `font-display text-5xl font-bold text-primary sm:text-6xl` : chiffres des stats `/a-propos` |
+| Titre d'écran (admin) | 1.5rem (24px) | 600 (SemiBold) | `font-sans text-2xl font-semibold tracking-tight` : `h1` d'`AdminPageShell`, des pages de formulaire et de la connexion |
+| Titre de modale | 1.125rem (18px) | 600 (SemiBold) | `text-lg font-semibold`, porté par `AlertDialogTitle` et par `DialogTitle`, qui y ajoute `leading-none` |
 
 > Les styles de base H1, H2 et H3 sont appliqués globalement via `@layer base` dans `globals.css` (mobile-first, palier `sm:` pour le desktop). Pas besoin de répéter ces classes sur chaque balise, sauf override ponctuel.
 
 > `font-display` est appliquée par défaut sur H1 via `@layer base`, les autres niveaux utilisant Geist Sans.
 
-> **Exceptions** : `font-display` s'ajoute aussi aux titres de cards marketing et aux H2 des sections de la landing, pour la cohérence éditoriale avec les H1 hero. Les H2 des autres pages, les pages de lecture (légales, case studies) et les pages internes (admin post-MVP, formulaires) gardent Geist Sans. Le `tracking-tight` de la base corrige l'impression de relâchement des grandes tailles : à 24px il étrangle, d'où le `tracking-normal` de la card marketing.
+> **Exceptions** : `font-display` s'ajoute aussi aux titres de cards marketing et aux H2 des sections de la landing, pour la cohérence éditoriale avec les H1 hero. Les H2 des autres pages, les pages de lecture (légales, case studies) et les pages internes (admin, formulaires) gardent Geist Sans. Le `tracking-tight` de la base corrige l'impression de relâchement des grandes tailles : à 24px il étrangle, d'où le `tracking-normal` de la card marketing.
 
 > **Le niveau d'un titre suit la structure de la page, jamais son apparence.** Une card marketing est un cran sous le titre qui la précède : H2 quand elle suit le H1 de la page (`/services`, `/projets`), H3 quand elle vit sous un H2 de section (accueil). `ServiceCard` et `ProjectCard` prennent donc un `headingLevel` de leur appelant, et gardent la même apparence dans les deux cas.
 
-**L'espace admin démarre un cran plus bas** (post-MVP), un écran de liste dense poussant sa première ligne de tableau sous la ligne de flottaison quand son titre occupe 48px.
-
-| Rôle | Balise | Réglage | D'où il vient |
-|------|--------|---------|---------------|
-| Titre d'écran | `h1` | 1.5rem (24px), 600 (SemiBold) | le réglage H3, sans palier responsive là où la vitrine ouvre à 36px |
-| Titre de section | `h2` | 1.125rem (18px), 600 (SemiBold) | `--text-lg` au poids des titres Geist, seul appariement nouveau des trois |
-| Titre de card | — | `CardTitle` | le composant, hors de cette échelle |
-
-> Les balises ne bougent pas, seule l'apparence descend : le niveau suit toujours la structure, sans quoi le plan de navigation par titres perdrait son point d'entrée. Le poids reste 600, celui de tout titre en Geist, 500 étant réservé aux libellés d'interface. Même arbitrage que l'espacement admin resserré à `py-6`–`py-8`, la densité prime sur le souffle.
+> **L'espace admin démarre un cran plus bas** : un titre d'écran de 48px pousserait la première ligne d'une liste dense sous la ligne de flottaison. Seule l'apparence descend, la balise suivant toujours la structure. Le poids reste 600, celui de tout titre en Geist, 500 étant réservé aux libellés d'interface.
 
 ## Palette de Couleurs
 
-### Tokens / Variables CSS
+### Tokens / Variables
 
 > Valeurs en **OKLCH**, format de `globals.css` (convention shadcn/ui + Tailwind CSS v4), pour qu'un écart entre doc et code se voie à la lecture. Les trois nombres sont clarté, saturation, teinte.
 
@@ -103,8 +97,13 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--card-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des cartes |
 | `--popover` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des popovers |
 | `--popover-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des popovers |
+| `--chart-1` | `oklch(0.42 0.05 140)` | `oklch(0.82 0.05 140)` | Première série de graphique, sauge profond. Réservé |
+| `--chart-2` | `oklch(0.62 0.045 140)` | `oklch(0.64 0.045 140)` | Deuxième série, sauge clair. Réservé |
+| `--chart-3` | `oklch(0.45 0.06 250)` | `oklch(0.8 0.06 250)` | Troisième série, ardoise profonde. Réservé |
+| `--chart-4` | `oklch(0.65 0.055 250)` | `oklch(0.62 0.06 250)` | Quatrième série, ardoise claire. Réservé |
+| `--chart-5` | `oklch(0.8 0 0)` | `oklch(0.48 0 0)` | Cinquième série, gris neutre. Réservé |
 
-> Les huit `--sidebar-*` sont les tokens du composant Sidebar (§ Navigation). `--chart-1` à `--chart-5` : voir § Palette dataviz.
+> Les huit `--sidebar-*` sont les tokens du composant Sidebar (§ Navigation). Les `--chart-*` attendent les graphiques (§ Mapping Composants > Post-MVP).
 
 ### Couleurs Sémantiques
 
@@ -112,40 +111,21 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
-| `--success` | `oklch(0.55 0.11 148)` | `oklch(0.72 0.11 148)` | Confirmation formulaire, actions réussies. Réservé (admin post-MVP) |
-| `--warning` | `oklch(0.56 0.11 72)` | `oklch(0.76 0.11 72)` | Avertissements, états attention. Réservé (admin post-MVP) |
-| `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Messages informatifs, aide contextuelle. Ardoise, pas un bleu franc. Réservé (admin post-MVP) |
+| `--success` | `oklch(0.55 0.11 148)` | `oklch(0.72 0.11 148)` | Succès : puce du statut publié d'un projet, liste admin |
+| `--warning` | `oklch(0.56 0.11 72)` | `oklch(0.76 0.11 72)` | Attention : puce du statut brouillon d'un projet, liste admin |
+| `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Messages informatifs, aide contextuelle. Ardoise, pas un bleu franc. Réservé |
 | `--shine` | `oklch(1 0 0 / 0.95)` | `oklch(1 0 0 / 0.95)` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode. Uniquement sur des surfaces `bg-primary`, invisible sur une carte claire |
 
 > Contraintes à tenir si l'un de ces tokens bouge ou si un cinquième s'ajoute : **chroma entre 0,11 et 0,16** (sauf `--info`, à 0,07), au-delà la couleur crie à côté d'un accent à 0,04 ; `--success` en teinte **148**, qui se confondrait avec `--primary` en 140 ; `--info-foreground` sombre en dark, l'ardoise y étant claire.
-
-### Palette dataviz
-
-> Cinq séries pour les graphiques de l'espace admin (`--chart-1` à `--chart-5`).
-
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--chart-1` | `oklch(0.42 0.05 140)` | `oklch(0.82 0.05 140)` | Première série, sauge profond. Réservé (admin post-MVP) |
-| `--chart-2` | `oklch(0.62 0.045 140)` | `oklch(0.64 0.045 140)` | Deuxième série, sauge clair. Réservé (admin post-MVP) |
-| `--chart-3` | `oklch(0.45 0.06 250)` | `oklch(0.8 0.06 250)` | Troisième série, ardoise profonde. Réservé (admin post-MVP) |
-| `--chart-4` | `oklch(0.65 0.055 250)` | `oklch(0.62 0.06 250)` | Quatrième série, ardoise claire. Réservé (admin post-MVP) |
-| `--chart-5` | `oklch(0.8 0 0)` | `oklch(0.48 0 0)` | Cinquième série, gris neutre. Réservé (admin post-MVP) |
-
-**Sauge + ardoise** : deux clartés de sauge (teinte 140, celle de la marque), deux d'ardoise (teinte 250, celle de `--info`), un gris neutre pour fermer. Aucune teinte hors du système : une couleur inventée pour un graphique n'appartient à aucune partie de la marque. La teinte sépare les familles de séries, la clarté sépare à l'intérieur d'une famille.
-
-**Règle d'attribution des couleurs de série, en trois branches** :
-
-- Séries de **même nature** (CA par mois, parts d'un total, donut) : `--chart-1` à `--chart-5` **par position**, sans choix explicite
-- Séries de **natures différentes** dans un même graphique (visites du site contre sessions du chatbot) : rampes **nommées** (`primary`, `info`), la teinte devant faire la distinction que la clarté seule ne fait pas
-- La couleur **porte un sens** : rampe **sémantique** (`--destructive` pour un impayé, `--warning` pour un retard)
-
-> Au-delà de cinq séries, regrouper la queue en « Autres ». Les aplats de graphique visent 3:1 sur le fond (WCAG 1.4.11, composants non textuels), pas les 4,5:1 exigés du texte.
 
 ### Règles
 
 - ✅ Toujours référencer les couleurs par token CSS, jamais de valeur hex en dur dans les composants : un seul endroit à modifier par mode
 - ✅ L'accent vert sauge est utilisé avec parcimonie : CTA, liens, hover states, éléments de marque. Pas de surfaces d'interface entièrement vertes. Les aplats des graphiques échappent à cette règle : ce sont des données, pas du chrome, et leur couleur est la seule chose qui distingue une série d'une autre.
 - ✅ Privilégier le contraste : le texte principal doit toujours avoir un ratio WCAG AA minimum (4.5:1)
+- ✅ Séries de graphique : deux clartés de sauge (teinte 140, celle de la marque), deux d'ardoise (teinte 250, celle de `--info`), un gris pour fermer, aucune teinte hors du système. La teinte sépare les familles de séries, la clarté sépare l'intérieur d'une famille
+- ✅ Couleur d'une série : `--chart-1` à `--chart-5` par position pour des séries de même nature (CA par mois, parts d'un total) ; rampes nommées (`primary`, `info`) pour des natures différentes dans un même graphique (visites du site contre sessions du chatbot) ; rampe sémantique quand la couleur porte un sens (`--destructive` pour un impayé, `--warning` pour un retard). Au-delà de cinq séries, la queue se regroupe en « Autres »
+- ✅ Les aplats de graphique visent 3:1 sur le fond (WCAG 1.4.11, composants non textuels), pas les 4,5:1 du texte
 - ✅ Les gris neutres (`muted`, `border`) n'ont pas de teinte colorée : ils restent purement neutres pour renforcer l'impact du vert sauge quand il apparaît
 - ✅ Une couleur garde sa teinte et son chroma entre light et dark : seule la clarté change, ce qui la maintient lisible sur son fond sans en faire une autre couleur
 
@@ -158,11 +138,11 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Token | Valeur | Usage |
 |-------|--------|-------|
 | `--radius-xs` | `0.125rem` → 2px | Défaut Tailwind, seul palier non dérivé de `--radius`. Réservé |
-| `--radius-sm` | `calc(var(--radius) * 0.6)` → 6px | Badges, tags, petits éléments |
-| `--radius-md` | `calc(var(--radius) * 0.8)` → 8px | Boutons, inputs, éléments UI courants |
-| `--radius-lg` | `var(--radius)` → 10px | Cards, conteneurs |
-| `--radius-xl` | `calc(var(--radius) * 1.4)` → 14px | Sections, éléments larges |
-| `--radius-2xl` | `calc(var(--radius) * 1.8)` → 18px | Conteneurs visuels marketing |
+| `--radius-sm` | `calc(var(--radius) * 0.6)` → 6px | Badges et tags, lignes à cocher des panneaux Filtres et Colonnes et d'une grille de cases, éléments d'un `Command` |
+| `--radius-md` | `calc(var(--radius) * 0.8)` → 8px | Boutons `sm` et `xs`, éléments de menu (`DropdownMenu`, `Select`, `Sidebar`), tooltips, squelettes, tuiles d'asset et de logo, pastilles sociales |
+| `--radius-lg` | `var(--radius)` → 10px | Boutons et champs à la taille par défaut, popovers, menus déroulants, alertes, cards bento |
+| `--radius-xl` | `calc(var(--radius) * 1.4)` → 14px | `Card`, modales, états vides, palette de commandes, sections larges (CTA final, bloc entreprise d'une étude de cas) |
+| `--radius-2xl` | `calc(var(--radius) * 1.8)` → 18px | Couverture d'une étude de cas |
 | `--radius-3xl` | `calc(var(--radius) * 2.2)` → 22px | Cards hero, blocs display. Réservé |
 | `--radius-4xl` | `calc(var(--radius) * 2.6)` → 26px | Surfaces décoratives très arrondies. Réservé |
 
@@ -213,22 +193,15 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 
 | Librairie | Rôle | Périmètre |
 |-----------|------|-----------|
-| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px) |
+| shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px), pour le site public comme pour l'admin. En changer impose de réinstaller tous les composants. Choix de shadcn/ui : [ADR-009](adrs/009-ui-system.md) |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : typographie animée, bento grid, marquee, bordure animée, bouton shimmer, bascule de thème |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé : Background Ripple Effect seul, les candidats étant listés en § Mapping Composants > Post-MVP |
 | ReUI | Composants absents du registry shadcn | Post-MVP admin : `EventCalendar` et `Kanban`. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies et des pages légales (`prose dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
+| `@c15t/nextjs` | Consent Management Platform | Bandeau RGPD et modale de préférences aux tokens du design system, widget Calendly bloqué tant que les cookies marketing sont refusés. Intégration : [knowledges/c15t.md](knowledges/c15t.md) |
 
-> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin (post-MVP) utilise shadcn/ui, sauf pour l'agenda et le kanban, que le registry shadcn n'a pas, et pour la bascule de thème, partagée avec la navbar.
-
-### Style shadcn
-
-`components.json` déclare **`radix-nova`**, appliqué à tout le projet : site public et espace admin partagent `src/components/ui/`. Retenu pour sa compacité, qui sert la densité d'un écran admin sans desservir les pages marketing. **Changer de style imposerait de réinstaller tous les composants**, les hauteurs, rayons et paddings différant de l'un à l'autre. Le choix de shadcn/ui face à du custom est arbitré par [ADR-009](adrs/009-ui-system.md) ; commandes CLI et pièges dans `.claude/rules/shadcn-ui/setup.md`.
-
-### Consentement cookies (CMP)
-
-Le site utilise **`@c15t/nextjs`** comme Consent Management Platform : bandeau RGPD, gating du widget Calendly tant que les cookies marketing ne sont pas acceptés, bouton « Préférences cookies » au footer. Le bandeau et la modale de préférences héritent des tokens du design system. Détail d'intégration : [knowledges/c15t.md](knowledges/c15t.md).
+> Magic UI et Aceternity UI sont **réservés aux surfaces marketing** du site public. L'espace admin utilise shadcn/ui, sauf pour l'agenda et le kanban, que le registry shadcn n'a pas, et pour la bascule de thème, partagée avec la navbar.
 
 ### Convention de structure
 
@@ -267,18 +240,19 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Bouton CTA hero | ShimmerButton | Magic UI | Hero de la landing uniquement, effet shimmer sur `--shine` |
 | Téléchargement CV | DownloadCvButton | composant maison (Button) | Navbar, footer et `/a-propos`, en `variant="outline" size="sm"` dans les deux premiers |
 | Connexion Google | GoogleSignInButton | composant maison (Button) | Seule action de la card de connexion admin, pleine largeur en `variant="outline" size="lg"`, logo Simple Icons en `data-icon="inline-start"`. `outline` : convention des boutons de connexion tiers |
-| Actions de ligne | Button | shadcn/ui | Dernière colonne d'une table admin : « Modifier » et « Supprimer » en `variant="ghost" size="icon-sm"`, glyphe seul, sans `Tooltip` : `aria-label` porte seul le nom de l'élément visé, l'icône (crayon, corbeille) étant universelle |
+| Actions de ligne | Button, composé par `RowActionButton` | shadcn/ui | Dernière colonne d'une table admin : « Modifier » et « Supprimer » en `variant="ghost" size="icon-sm"`, glyphe seul, sans `Tooltip` : `aria-label` porte seul le nom de l'élément visé, l'icône (crayon, corbeille) étant universelle |
 
 ### Formulaires
 
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Champs | Input, Textarea, Label | shadcn/ui | Formulaire contact |
-| Formulaire contact | Card + Input + Textarea + Button + Label | shadcn/ui | Layout 2 colonnes (formulaire / Calendly + réseaux), sans abstraction Form : validation Zod dans la Server Action, erreurs de champ en `text-sm text-destructive` sous l'input, confirmation par toast |
+| Champ de formulaire | Label + contrôle, composé par `FormField` | composant maison | Libellé, contrôle, erreur en `text-sm text-destructive` sous le champ, puis aide (`help`) en `text-xs text-muted-foreground`, persistante et citée par l'`aria-describedby` du contrôle (id `<champ>-help`). Formulaires admin et contact |
+| Formulaire contact | Card + Input + Textarea + Button + Label | shadcn/ui | Une colonne : localisation et réseaux en tête, puis formulaire et Calendly en onglets (§ Navigation). Sans abstraction Form : validation Zod dans la Server Action, erreurs de champ en `text-sm text-destructive` sous l'input, confirmation par toast |
 | Champs à choix fermé | Select, Checkbox | shadcn/ui | `Select` pour une liste fermée d'une dizaine d'options au plus (catégorie d'un tag, lignes par page), validée par Zod côté serveur. Le projet lui donne `position="popper"` et `align="start"` par défaut : le registry ouvre la liste par-dessus le champ, elle s'ouvre ici dessous, calée à gauche. Un formulaire qui contient un `Select` soumet par `onSubmit` et `startTransition`, pas par `<form action>` : React réinitialise un formulaire à action après chaque envoi, et Radix Select répond à ce reset en rappelant `onValueChange` avec sa valeur du premier rendu, ce qui efface le choix à la première erreur de validation. `Checkbox` : cases des filtres d'une liste, cochées sur toute la hauteur de leur ligne. Erreur de champ en `text-sm text-destructive` (14px) sous le champ, comme le formulaire de contact ; l'aide persistante d'un champ en `text-xs text-muted-foreground` (12px), un cran sous l'erreur qu'on doit lire |
-| Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Au-delà d'une dizaine d'options, là où taper vaut mieux que dérouler : icône d'un tag, parmi tout le registre. Panneau à la largeur du déclencheur (`w-(--radix-popper-anchor-width)`, `--radix-popover-trigger-width` n'existant pas), aligné à gauche. La coche se pilote par `data-checked` sur `CommandItem` (contournement de `Command`, § Post-MVP). Une sélection multiple affiche ses choix en badges retirables sous le champ, le champ passant alors pleine largeur au-dessus d'eux : entreprises d'un contact, tags d'un projet, ces derniers numérotés et réordonnables au glisser-déposer (§ Arbitrages) |
+| Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Au-delà d'une dizaine d'options, là où taper vaut mieux que dérouler : icône d'un tag, parmi tout le registre. Panneau à la largeur du déclencheur (`w-(--radix-popper-anchor-width)`, `--radix-popover-trigger-width` n'existant pas), aligné à gauche. La coche se pilote par `data-checked` sur `CommandItem` (contournement de `Command`, § Post-MVP). Une sélection multiple affiche ses choix en badges retirables sous le champ, le champ passant alors pleine largeur au-dessus d'eux (`MultiSelectCombobox`, secteurs d'une entreprise) : entreprises d'un contact, tags d'un projet, ces derniers numérotés et réordonnables au glisser-déposer (§ Arbitrages) |
 | Type de projet | RadioGroup | shadcn/ui | Formulaire projet admin, card Publication : « Client » et « Perso » côte à côte sur une ligne, à côté du statut. Un `Switch` y promettrait un réglage appliqué à l'instant (§ Arbitrages) |
-| Sélecteur de date | Popover + Calendar | shadcn/ui | Formulaire projet admin, card Publication : dates de début et de fin, `locale` française (§ Arbitrages) |
+| Sélecteur de date | Popover + Calendar | shadcn/ui | Formulaire projet admin, card Publication : dates de début et de fin. `locale` française et semaine commençant lundi, à passer au `Calendar`, le registry rendant en anglais |
 
 ### Cards et grilles
 
@@ -298,7 +272,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Simple Icons pour technos/infra/outils, Lucide pour expertises, renderer choisi selon le préfixe `tag.icon` (`"simple-icons:*"` ou `"lucide:*"`). Cards projets, case studies et stack `/a-propos` |
-| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | Type de projet (API, Web App…), nom de l'entreprise (sans logo, qui reste dans l'admin), compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Débordement d'une liste de badges en affichage : trois au plus, puis un « +N » en `outline`, muet sur la vitrine, relu au survol par `Tooltip` dans l'administration. Un champ d'édition, lui, les montre tous (§ Arbitrages) |
+| Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | Type de projet (API, Web App…), nom de l'entreprise, précédé de son logo en 14px quand il existe, compteur de tags, statut "En cours". `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Débordement d'une liste de badges en affichage : trois au plus, puis un « +N » en `outline`, muet sur la vitrine, relu au survol par `Tooltip` dans l'administration. Un champ d'édition, lui, les montre tous (§ Arbitrages) |
 
 ### Feedback et chargement
 
@@ -315,7 +289,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Panneau latéral | Sheet | shadcn/ui | Menu mobile |
 | Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour la confirmation avant suppression. La largeur monte à 640px dès que le formulaire tient sur deux colonnes. Son pied court d'un bord à l'autre en bandeau `muted/50`. La confirmation porte `TriangleAlert` (32px) en `text-destructive` dans `AlertDialogMedia`, sans tuile grise : le projet retire le fond `muted` du registry et du design system. Titre et texte s'alignent à gauche à toutes les largeurs, 24px à droite de l'emplacement de l'icône (le registry en met 16). Une suppression refusée d'avance (élément rattaché ailleurs) désactive en plus le bouton de suppression (§ Arbitrages, « Refus de suppression »). Formulaire en modale : mêmes espacement des champs et libellés bilingues qu'en page (§ Arbitrages) |
-| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | Ouverte au clic d'une ligne de n'importe quelle liste admin (`onRowClick` de `DataTable`), hors colonne Actions et hors glisser-déposer. Corps en blocs titrés séparés par un `Separator`, chacun portant une grille libellé/valeur à deux colonnes, ramenée à une seule quand le bloc n'a qu'un champ. Le libellé reprend le registre du `Label` d'un champ de formulaire (`text-sm font-medium`), la valeur est en `text-sm` : la même donnée se lit au même corps qu'on la consulte ou qu'on l'édite. Aucun écran ne règle cette disposition, le composant la déduit de ce qu'il reçoit : un champ à contenu riche (badges, liens) s'étend sur toute la largeur, et son libellé s'omet quand le titre du bloc nomme déjà le champ. Un écran sans besoin de regroupement fournit ses lignes à plat. En-tête : le titre, puis les métadonnées de l'élément en sous-titre, badges compris (§ Arbitrages). Pied « Fermer » (`outline`) et « Modifier » (`default`, icône crayon) qui referme le détail puis, selon l'écran, navigue vers l'édition ou ouvre une autre modale ; le composant reste ignorant du cas, il appelle juste le callback fourni par l'écran. Même largeur (640px) que la modale d'édition d'un tag |
+| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | Ouverte au clic d'une ligne de n'importe quelle liste admin (`onRowClick` de `DataTable`), hors colonne Actions et hors glisser-déposer. Corps en blocs titrés séparés par un `Separator`, chacun portant une grille libellé/valeur à deux colonnes, ramenée à une seule quand le bloc n'a qu'un champ. Le libellé reprend le registre du `Label` d'un champ de formulaire (`text-sm font-medium`), la valeur est en `text-sm` : la même donnée se lit au même corps qu'on la consulte ou qu'on l'édite. Aucun écran ne règle cette disposition, le composant la déduit de ce qu'il reçoit : un champ à contenu riche (badges, liens) s'étend sur toute la largeur, et son libellé s'omet quand le titre du bloc nomme déjà le champ. Un écran sans besoin de regroupement fournit ses lignes à plat. En-tête : slug sous le titre en `font-mono text-xs`, état (statut d'un projet, engagement d'une entreprise) à droite du titre, rang et nature en sous-titre, le champ quittant alors son bloc. Un bloc sans valeur est retiré, titre compris, jamais rempli de tirets. Pied « Fermer » (`outline`) et « Modifier » (`default`, icône crayon) qui referme le détail puis, selon l'écran, navigue vers l'édition ou ouvre une autre modale ; le composant reste ignorant du cas, il appelle juste le callback fourni par l'écran. Même largeur (640px) que la modale d'édition d'un tag |
+| Consentement cookies | ConsentBanner, ConsentDialog | `@c15t/nextjs` | Bandeau au premier passage ; modale de préférences rouverte par « Gérer mes cookies » au footer (`OpenCookiePreferencesLink`), par la politique de confidentialité et par le widget Calendly bloqué (`OpenCookiePreferencesButton`) |
 | Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur. Seul, `align="end"` sous une barre d'outils (filtres d'une liste), ou en composition (Combobox, sélecteur de date). Son pied se groupe à droite comme celui d'une modale : ghost « Réinitialiser », puis l'unique `default` sauge, « Appliquer » |
 
 ### Contenu et texte
@@ -339,7 +314,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Image d'asset | `AssetImage` | composant maison (`next/image`) | Construit l'URL selon la clé, route publique ou route gardée. Passe `unoptimized` sur les clés du bucket admin : l'optimiseur de `next/image` rejoue la requête côté serveur sans cookie de session, que la garde rejetterait (§ nextjs/assets) |
 | Aperçu cliquable | `AssetPreviewLink` | composant maison | Couverture d'un projet ou logo d'une entreprise dans une vue détail : la tuile `row` mène à l'écran Assets, la recherche déjà posée sur ce fichier. Lien sans fond, seule la vignette prend la bordure `primary` au survol |
 | Sélecteur d'asset | Dialog + Input + Pagination, composés par `AssetPicker` | shadcn/ui | Choix d'un fichier depuis un formulaire. Même grille de tuiles et même pied que l'écran Assets, sans facettes, sous un plafond de `85svh` : la grille défile seule, en-tête et pied restent atteignables. Le choix ne s'applique qu'au bouton « Choisir », un bouton « Retirer » vidant le champ à côté du déclencheur |
-| Dépôt de fichier | Dialog + Select + Input, composés par `AssetUploadDialog` | shadcn/ui | `Select` pour le dossier de destination, champ de sous-dossier affiché seulement quand le dossier en attend un, nom du fichier et sélecteur natif filtré sur les extensions autorisées. Le bouton d'enregistrement porte `Upload` (§ Arbitrages). Les extensions acceptées et la taille maximale viennent du schéma de validation, jamais d'une liste écrite dans le composant |
+| Dépôt de fichier | Dialog + Select + Input, composés par `AssetUploadDialog` | shadcn/ui | `Select` pour le dossier de destination, champ de sous-dossier affiché seulement quand le dossier en attend un, nom du fichier et sélecteur natif filtré sur les extensions autorisées. Le bouton d'enregistrement porte `Upload` (§ Arbitrages). Les extensions acceptées et la taille maximale viennent des constantes que lit aussi la validation serveur, jamais d'une liste écrite dans le composant |
 | Logo d'entreprise | `CompanyLogoTile` | composant maison | Pastille carrée à deux tailles : 16px accolée au nom d'entreprise dans la colonne Entreprise de la liste des projets, 28px dans la colonne Logo de la liste des entreprises. Même règle d'aperçu que les tuiles : contain sur fond neutre, dégradé si le logo manque |
 
 ### Effets visuels
@@ -357,7 +332,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Logo | BrandLogo | composant maison (`next/image`) | Navbar, footer, menu mobile, connexion admin et rail admin, variante claire ou sombre selon le thème. 140px de base, 200px dès `md` par défaut (navbar, footer) ; fixé à 140px sur la connexion, où 200px dépasserait le titre de la card ; 180px dans le menu mobile ; 120px dans le rail, 150px dès `md` |
 | Petit logo | BrandMark | composant maison (`next/image`) | Rail admin replié, à 24px : le logo horizontal ne tient pas dans ses 3rem |
 | Réseaux sociaux | SocialLinks | composant maison (Simple Icons + Lucide) | Pastilles de 36px en navbar mobile, footer et `/contact` |
-| Localisation | LocationLine | composant maison (`country-flag-icons`) | Drapeaux FR et LU, footer et `/contact` |
+| Localisation | LocationLine | composant maison (`country-flag-icons`) | Drapeaux FR et LU, sur `/contact` |
 
 ### Post-MVP (non installés)
 
@@ -369,11 +344,16 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Texte tronqué (vitrine) | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol, comme côté admin (§ Contenu et texte). Sur la vitrine la troncature reste muette, ce câblage n'étant pas fait (§ Badges) |
 | Réglage appliqué à l'instant | Switch | shadcn/ui | Une bascule qui s'engage sans passer par « Enregistrer ». Aucun écran n'en a encore : le type d'un projet, que la maquette montre en `Switch`, est un choix entre deux catégories soumis par un formulaire (§ Arbitrages) |
 | Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
+| Champ markdown (admin) | Editor | Pages CMS Editor (Tiptap), registre shadcn | Détails des fiches et étude de cas d'un projet, saisie à la Notion, `format="markdown"`, images coupées ([ADR-024](adrs/024-editeur-markdown-admin.md)). Éditeur et lecture (`MarkdownContent` en variante `admin`) à une même échelle, `ADMIN_MARKDOWN_CLASS` : `#` `text-lg`, `##` `text-base`, `###` `text-sm`, en `font-semibold`, texte `text-sm` |
+| Champ date et heure | Popover + Calendar + Input, composé par `DateTimeField` | shadcn/ui | Date et heure d'une action de prospection et d'un entretien |
+| Date facultative | Popover + Calendar, composé par `OptionalDateField` | shadcn/ui | Date seule effaçable depuis son panneau : assujettissement à la TVA, rencontre d'une personne, signal |
+| Mois de démarrage | Select, composé par `MonthField` | shadcn/ui | Mois et année d'une mission, valeur `AAAA-MM` |
+| Fiches rattachées | Card + Link, composé par `RelatedLinksCard` | shadcn/ui | Fiches liées en lecture sur une page de modification (leads, missions, entretiens) |
 | Formulaire long en modale | Dialog | shadcn/ui | Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse |
 | Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action. Le composant est **headless** : il ne fournit que le comportement, la carte est entièrement à la charge de l'appelant, qui la compose en `Card` |
 | Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk, comme le fait le Combobox (§ Formulaires) |
-| Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : voir § Palette dataviz |
+| Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : `--chart-*` et § Palette de Couleurs > Règles |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
 | Primitifs d'interface | ScrollArea, Collapsible | shadcn/ui | - |
 | Effets hero | MacbookScroll, Spotlight, Hero Parallax, Aurora Background, Background Beams | Aceternity UI | Candidats |
@@ -465,7 +445,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Container admin | pleine largeur moins la sidebar | sans `max-w-7xl` centré |
 | Barre supérieure admin | `56px` | un cran sous les 64px de la navbar publique. L'en-tête du rail s'aligne dessus, et leurs deux bordures basses n'en forment qu'une |
 | Rail de navigation admin | `13rem` (208px) | contre 16rem par défaut : « Tableau de bord », le plus long libellé, occupe 104px des 152px laissés au texte. Se pose par `style` sur `SidebarProvider` ; le mobile garde la largeur du `Sheet` |
-| Espacement entre sections, admin | `py-6` à `py-8`, retrait `px-4 md:px-6` | porté par `AdminPageShell`, qui rend aussi le titre d'écran et son sous-titre. La densité prime sur le souffle |
+| Padding de page, admin | `px-4 py-6 md:px-6 lg:py-8` | porté par `AdminPageShell`, qui rend aussi le titre d'écran et son sous-titre. La densité prime sur le souffle |
 
 ## Responsive
 
@@ -522,7 +502,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ❌ **Inline styles** : ne jamais utiliser `style={{}}` sauf pour des valeurs dynamiques calculées (ex: positions, dimensions variables)
 - ❌ **Deux styles shadcn dans le même projet** : `components.json` ne porte qu'une valeur `style`, site public et admin partagent `src/components/ui/`. Maintenir deux jeux de composants pour différencier les surfaces est une sur-ingénierie
 
-> **Exceptions admises**, hors du code applicatif : les composants vendored (shadcn, Magic UI, Aceternity) gardent leurs valeurs d'origine, un `shadcn add --overwrite` les rétablirait ; le template OG passe par Satori, qui ne résout ni les variables CSS ni les classes ; le store de thème injecte un `transition: none !important` éphémère le temps de la bascule.
+> **Exceptions admises**, hors du code applicatif : les composants vendored (shadcn, Magic UI, Aceternity) gardent leurs valeurs d'origine, un `shadcn add --overwrite` les rétablirait ; le template OG passe par Satori, qui ne résout ni les variables CSS ni les classes ; le store de thème injecte un `transition: none !important` éphémère le temps de la bascule ; sous `prefers-reduced-motion`, `globals.css` coupe en `!important` les animations des pseudo-éléments `::view-transition-*`, que le navigateur pose avec une spécificité qu'aucune classe ne bat.
 
 ---
 
@@ -530,61 +510,58 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Maquette et design system externes
 
-- **Design system** : [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : ce design system porté dans Claude Design (composants, cartes de référence et kit du site public), synchronisé à la main depuis ce dépôt par `/design-sync`. Fait foi sur les composants
-- **Maquette** : [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : les écrans de l'espace admin, construits sur le design system ci-dessus. Fait foi sur l'apparence des écrans : à lire avec le système avant d'implémenter un écran
-- **Lecture locale** : exports ZIP dézippés dans `.design-sync/maquette/` et `.design-sync/design-system/`, ignorés par git, procédure dans `.design-sync/NOTES.md`. La maquette se ré-exporte quand elle évolue : sa lecture distante s'arrête à 256 Kio sans prévenir, et elle dépasse cette taille. Le design system se ré-exporte après chaque `/design-sync` : l'outil qui le lit en ligne est réservé à ce sync, et c'est dans l'export que se lisent les fiches `.prompt.md` des composants
+- **Design system** : [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : composants, fiches d'usage, cartes et kit du site public. Synchronisé depuis le dépôt par `/design-sync`, fait foi sur les composants
+- **Maquette** : [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : écrans de l'espace admin, fait foi sur l'apparence des écrans
+- **Lecture locale** : export dans `.design-sync/maquette/` et `.design-sync/design-system/`, ignorés par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
 
 ### Arbitrages
 
-Écarts à la maquette ou au design system tranchés par le propriétaire. Ils priment sur eux pour tous les écrans. Le « là où » de chaque ligne décrit ce que montre la source ; une ligne qui porte une date de réalignement n'est plus un écart, son « là où » décrit l'état antérieur qu'un export plus ancien montre encore. Les lignes sans date attendent leur réalignement.
+Écarts à la maquette ou au design system tranchés par le propriétaire. Ils priment sur eux pour tous les écrans.
 
-- **Espacement des formulaires** : 16px (`gap-4`) entre les champs et entre les rangées, en modale comme en écran plein, là où la maquette en montre 12
-- **Erreur de champ** : `text-sm text-destructive` (14px) sous le champ, là où la maquette l'écrit en 12px (réaligné le 2026-09-19)
-- **Refus de suppression** : remplace le texte de la confirmation, en `text-destructive` dès l'ouverture et sans bandeau séparé, là où la maquette garde le texte et ajoute un `Alert` dessous (réaligné le 2026-09-19)
-- **Icône de confirmation** : `TriangleAlert` sans tuile, là où la maquette et le design system la posent sur un fond `muted` (réaligné le 2026-09-19)
-- **Libellés bilingues** : en toutes lettres, « Nom (français) » et « Nom (anglais) », là où la maquette écrit « Nom (FR) » et « Nom (EN) » (réaligné le 2026-09-19)
-- **Séparateur dans un libellé d'interface** : deux-points, là où la maquette emploie un tiret cadratin. Le tiret cadratin reste réservé à la valeur absente d'une cellule de liste
-- **Titre d'une modale de modification** : nomme l'élément, « Modifier Agents IA », là où la maquette écrit « Modifier le tag » (réaligné le 2026-09-19)
-- **Description d'un formulaire en modale** : dit l'action, « Créer un tag pour catégoriser les projets. » ou « Modifier les informations de ce tag. », là où la maquette y explique la langue des noms (réaligné le 2026-09-19)
-- **Choix des colonnes sur toute liste admin** : porté par `DataTable`, donc proposé partout où un écran déclare des colonnes masquables, l'écran des tags compris, là où la maquette ne le montre que sur certaines listes
-- **Colonnes par vue** : la vue « Tous / Toutes » d'une liste affiche toutes ses colonnes par défaut, les autres vues en masquent selon leur objet, là où la maquette en masque d'emblée sur toutes les vues
-- **Badges tronqués** : trois au plus puis un « +N », partout en affichage, là où la maquette en montre deux sur certaines colonnes. Un champ d'édition les montre tous, ils y sont manipulables un par un ; la vue détail aussi, elle est faite pour tout montrer. Un seul composant, `BadgeList`, porte la règle
-- **Valeurs métier affichées** : celles de la base et de ses règles, là où la maquette montre des valeurs d'exemple parfois en retard (trois catégories de tag pour six, « CDD » pour « Stage », « Automatisation » et « Data / IA » pour « CLI » et « IA », un ordre d'affichage à partir de 0 au lieu de 1) (réaligné le 2026-09-19)
-- **Rangée de rattachement d'une tuile** : réservée sur toutes les tuiles d'une grille, icône de lien et filet de séparation toujours visibles même quand l'élément n'est référencé par rien, les badges de rattachement n'apparaissant qu'à partir de la première référence
-- **Pied de pagination** : identique sur toute liste admin, grille de tuiles comprise, sélecteur de lignes par page inclus
-- **Aperçu d'un fichier** : l'image tient entière dans son cadre, jamais recadrée, sur un fond neutre. Le dégradé ne signale plus qu'un aperçu manquant
-- **Chemin sous un aperçu** : le dossier parent seul, le chemin complet au survol. Sur des clés profondes, le début du chemin est commun à tous les fichiers et l'ellipse emporte justement le segment qui les distingue
-- **Titre d'une confirmation de suppression** : nomme le fichier, pas sa clé complète, pour tenir sur une ligne quelle que soit la profondeur du dossier
-- **États vides d'une liste admin** : composant `Empty` (shadcn/ui), composé par `EmptyState`, générique et porté aussi bien par `DataTable` que par `AssetsBrowser`, pour la base vide comme pour les filtres ou la recherche sans résultat, ce dernier avec un bouton « Réinitialiser les filtres » ; l'écran ne fournit que le contenu de la base vide, le texte de l'état filtré étant commun à toutes les listes et à la grille d'assets, et seule l'icône y restant celle de l'écran, là où la maquette écrit ce bloc à la main dans chaque écran avec ses propres mots
-- **Liste admin au téléphone** : la même table que sur grand écran, qui défile horizontalement, sur les trois listes, là où la maquette dessine des cartes empilées pour les seuls projets. Un seul rendu à tenir, et le choix des colonnes reste le moyen d'alléger la table
-- **Clic sur une ligne d'une liste admin** : ouvre une vue détail en modale (`DetailDialog`), dont le bouton « Modifier » mène à l'édition ; le crayon de la colonne Actions y mène directement sans passer par le détail, là où la maquette ne câble cette modale que sur l'écran Entreprises et fait sauter l'étape sur les Projets (clic de ligne = édition directe)
-- **Tooltip sur texte tronqué** : un `Tooltip` s'affiche sur toute cellule ou libellé tronqué d'une liste admin, seulement quand le texte déborde réellement, là où la maquette tronque largement sans jamais en poser un
-- **Tooltip des actions de ligne** : aucun `Tooltip` sur « Modifier » / « Supprimer » d'une liste admin, leur `aria-label` nommant seul l'élément visé, là où la maquette en pose un sur chacun
-- **Colonne Liens d'un projet** : « GitHub » et « Démo » sont des liens cliquables vers `githubUrl` et `demoUrl`, ouverts dans un nouvel onglet, dans la colonne de la table, là où la maquette et le spec n'affichent qu'un texte joint signalant leur présence. La vue détail, elle, suit la card Liens du formulaire : un champ « Lien GitHub » et un champ « Lien démo », dont la valeur est l'adresse elle-même, cliquable
-- **Choix entre deux catégories dans un formulaire à enregistrer** : deux `RadioGroupItem` côte à côte, jamais un `Switch`, là où la maquette en montre un sur le type d'un projet. Un interrupteur promet un réglage appliqué à l'instant, quand ce choix n'est en base qu'après « Enregistrer », et il suppose une valeur par défaut éteinte que deux catégories nommées n'ont pas. Le `Switch` reste pour un réglage qui s'applique immédiatement
-- **Libellés d'un choix à deux catégories** : les formes courtes du mapping d'énumération, « Client » et « Perso », comme les badges de la liste, là où la maquette écrit « Projet client » et « Projet perso ». Les deux options tiennent alors sur une ligne sans grandir la card, et le même mot désigne la même valeur d'un écran à l'autre
-- **Titre d'une card de formulaire** : nomme ce que la card contient réellement après arbitrage, pas ce que la maquette avait prévu d'y mettre. Sur le formulaire de projet, « Liens » là où la maquette écrit « Avancement », les champs d'avancement qu'elle y plaçait n'ayant pas de colonne en base
-- **Sélecteur de date** : `locale` française passée au `Calendar`, mois et jours en français, semaine commençant lundi. Le composant du registry rend en anglais par défaut, ce qu'aucun écran d'un espace admin francophone ne doit montrer
-- **Deux champs courts d'une même card** : côte à côte sur une ligne, en `sm:grid-cols-2` (empilés sous 640px, l'admin restant utilisable au téléphone), là où la maquette empile parfois. Une card de colonne latérale accueille deux URL ou deux dates sans que l'une ait besoin de toute la largeur, et l'empilement fait grandir la colonne pour rien
-- **Résumé d'une saisie sous ses champs** : aucun. La maquette rappelle la période sous les dates (« Depuis le 22/06/2026, en cours »), un texte qui répète ce que les deux champs affichent déjà juste au-dessus. L'aide persistante reste réservée à ce qu'un champ ne peut pas montrer
-- **Champ d'ajout et liste retenue d'une multi-sélection** : empilés en pleine largeur, le champ de recherche au-dessus, là où la maquette les pose côte à côte. Côte à côte, l'enroulement n'a que la moitié de la card, et la colonne du champ reste vide sous lui
-- **Tags retenus d'un formulaire** : badges retirables enroulés sur plusieurs lignes, là où la maquette empile une ligne encadrée par tag. Une liste verticale grandit d'une ligne par tag et déséquilibre sa card bien avant la dizaine, un enroulement d'une ligne tous les quatre ou cinq
-- **Rang d'un élément réordonnable** : chiffre en préfixe du badge, en `font-mono` de 10 px, là où la maquette pose une pastille `bg-muted` de 18 px dans la ligne. La hauteur d'un `Badge` ne loge pas la pastille sans casser l'alignement du texte
-- **Cible d'un glisser-déposer** : anneau `ring-primary` sur l'élément survolé, sans indicateur d'insertion entre deux éléments, là où la maquette ne distingue que l'élément déplacé
-- **Blocs d'une vue détail** : les mêmes que les cards du formulaire d'édition de l'élément, sous les mêmes titres, dans le même ordre, avec les mêmes champs sous les mêmes libellés et à la même place (un champ que le formulaire étale sur sa largeur l'est aussi dans le détail), là où la maquette ne montre qu'une grille plate. Consulter puis modifier devient un seul geste : ce qu'on vient de lire se retrouve là où on va l'éditer. Titres de bloc et libellés de champ viennent de constantes que le formulaire et le détail partagent, jamais de deux chaînes recopiées. Un champ dont la valeur se compte en milliers de caractères, comme un case study, s'y résume à sa présence et à sa taille : le lire relève de l'écran d'édition
-- **Sous-titre d'une vue détail** : ce qui situe l'élément d'un coup d'œil, et cela seulement. Le slug se place sous le titre, en `font-mono text-xs` gris, comme sous le nom dans la colonne d'ouverture de la liste ; l'état (statut d'un projet, engagement d'une entreprise) se pose à droite du titre, sur sa ligne ; le sous-titre porte le rang et la nature (rang d'affichage et statut d'un projet, engagement et décompte de projets d'une entreprise), qu'ils aient une card d'édition ou non ; le champ quitte alors le bloc de sa card plutôt que d'y être répété, et son voisin de rangée prend la largeur libérée plutôt que de laisser un trou. Une valeur calculée depuis les champs d'une card, elle, reste dans le bloc de cette card, comme la durée sous les deux dates dont elle dérive
-- **Fichier dans une vue détail** : couverture d'un projet et logo d'une entreprise s'affichent avec la tuile de l'écran Assets (`AssetPreview`, vignette, nom et dossier), cliquable vers `/admin/assets?q=<clé>`, l'écran s'ouvrant la recherche posée sur ce fichier, là où la maquette n'écrit que le nom du fichier
-- **Bloc vide d'une vue détail** : retiré, titre et séparateur compris, jamais rempli de tirets. Un projet perso n'a pas de méta client, et une colonne de tirets sous son propre titre se lit comme une donnée manquante plutôt que comme une catégorie sans objet
-- **Panneaux Filtres et Colonnes d'une liste admin** : un seul composant, `OptionsPopover`, porte le bouton, le panneau et le pied des deux, les appelants ne fournissant que leurs données. Dedans, le même bloc titré que la vue détail (`TitledBlock`, qui porte seul la règle de grille), séparé d'un `Separator` entre deux axes de filtre, là où la maquette empile une liste plate sous un simple intitulé. Une seule règle de grille, celle de la vue détail : deux colonnes dès qu'il y a plus d'un élément, que ce soit une valeur de filtre ou une colonne masquable, et aucun écran ne déclare sa densité. Le panneau prend la largeur de son contenu, plafonnée à l'écran, pour que deux libellés longs côte à côte n'aient pas à se tronquer
-- **Un même mot pour une même donnée** : l'en-tête de colonne, la vue détail et le champ du formulaire nomment une donnée par la même constante (`*_FIELD_LABELS`), là où la maquette abrège en colonne (« Statut contrat », « Date début », « Nom (FR) ») ce qu'elle écrit en toutes lettres dans le formulaire. La colonne d'ouverture d'une liste porte le nom de l'élément et son slug dessous (`NameSlugCell`), tags compris, là où la maquette leur donne une colonne Slug à part. La nature d'un projet (client ou perso) se nomme « Nature » partout, jamais « Type », pour ne pas se confondre avec « Type de projet »
-- **Valeur d'énumération** : en `Badge` `secondary` partout où elle s'affiche, colonne, carte ou vue détail (taille d'une entreprise, statut de contrat, mode de travail, types d'un projet, secteurs), là où la maquette la met tantôt en badge, tantôt en texte. La nature et la catégorie gardent le `Badge` `outline` `meta`, le statut d'un projet sa puce colorée
-- **Adresse web** : en lien cliquable vers un nouvel onglet, `ExternalUrl`, partout où elle s'affiche (site d'une entreprise, liens d'un projet), là où la maquette l'écrit en texte
-- **Valeur absente** : un seul rendu, `EmptyValue`, tiret cadratin en `text-muted-foreground`, posé par `DataTable` sur toute cellule et par `DetailDialog` sur toute ligne dont la valeur est `null`, là où la maquette alterne tiret plein, tiret gris et cellule vide. Un écran renvoie `null`, jamais son propre tiret
-- **Titre d'une modale** : `text-lg font-semibold` (18px, 600) pour tout `Dialog` et tout `AlertDialog` de l'admin, porté par les composants eux-mêmes, là où le registry livre 16px 500. Le titre d'une vue détail, d'un formulaire en modale, d'un sélecteur d'asset et d'une confirmation de suppression se lisent alors au même niveau
-- **Confirmation de suppression** : un seul composant, `ConfirmDeleteDialog`, dont le titre nomme l'élément (« Supprimer « Agents IA » ? »), jamais son type, et dont le bouton dit « Supprimer » sans complément, là où la maquette écrit tantôt « Supprimer le tag », tantôt « Supprimer le projet ». Le refus métier remplace la description en `text-destructive`, qu'il soit connu au rendu ou opposé par le serveur
-- **Bouton d'enregistrement d'un formulaire** : porte son icône (`Save`, ou `Upload` pour un dépôt) en modale comme en page, là où la maquette ne l'en dote qu'en page
-- **Aide d'un champ** : persistante et rendue sous l'erreur par la prop `help` de `FormField`, qui pose l'id `<champ>-help` que le contrôle cite dans son `aria-describedby`, là où une aide écrite dans le corps du champ passait au-dessus de l'erreur et disparaissait parfois dès la saisie
-- **Choix multiple parmi des valeurs fixes** : une grille de `Checkbox` jusqu'à six valeurs environ (types d'un projet), une Combobox à badges retirables au-delà (secteurs d'une entreprise, tags d'un projet), là où la maquette ne tranche pas
+- **Espacement des formulaires** : 16px (`gap-4`) entre les champs et entre les rangées, en modale comme en page, là où la maquette en montre 12. Maquette réalignée le 2026-10-01
+- **Erreur de champ** : `text-sm text-destructive` sous le champ, là où la maquette l'écrit en 12px. Maquette réalignée le 2026-09-19
+- **Refus de suppression** : remplace le texte de la confirmation, en `text-destructive` dès l'ouverture, là où la maquette ajoute un `Alert` sous le texte. Maquette réalignée le 2026-09-19
+- **Icône de confirmation** : `TriangleAlert` sans tuile, là où la maquette la pose sur un fond `muted`. Maquette réalignée le 2026-09-19
+- **Libellés bilingues** : en toutes lettres, « Nom (français) », là où la maquette écrit « Nom (FR) ». Maquette réalignée le 2026-09-19
+- **Séparateur dans un libellé** : deux-points, le tiret cadratin étant réservé à la valeur absente, là où la maquette emploie un tiret cadratin. Maquette réalignée le 2026-10-02
+- **Titre d'une modale de modification** : nomme l'élément, « Modifier Agents IA », là où la maquette écrit « Modifier le tag ». Maquette réalignée le 2026-10-02
+- **Description d'un formulaire en modale** : dit l'action, « Créer un tag pour catégoriser les projets. », là où la maquette y explique la langue des noms. Maquette réalignée le 2026-10-02
+- **Valeurs métier** : celles de la base (catégories, statuts, formats, ordre d'affichage à partir de 1), là où la maquette montre des valeurs d'exemple. Maquette réalignée le 2026-09-19
+- **Choix des colonnes** : proposé par `DataTable` sur toute liste qui déclare des colonnes masquables, là où la maquette ne le montre que sur certaines listes. Maquette réalignée le 2026-10-01
+- **Colonnes par vue** : la vue complète (« Tous », « Toutes », « Journal ») affiche toutes ses colonnes, les autres en masquent selon leur objet, là où la maquette en masque sur toutes les vues. Maquette réalignée le 2026-10-01
+- **Badges tronqués** : trois puis un « +N » (`BadgeList`), tous en vue détail et dans un champ d'édition, là où la maquette en montre deux. Maquette réalignée le 2026-10-01
+- **Valeur d'énumération** : `Badge` `secondary` en colonne, carte et vue détail ; nature, catégorie et état d'en-tête de vue détail en `Badge` `outline` `meta`, statut d'un projet en puce colorée, là où la maquette alterne badge et texte. Maquette réalignée le 2026-10-02
+- **Valeur absente** : `null`, rendu par `EmptyValue` dans `DataTable` et `DetailDialog`, jamais un tiret écrit par l'écran, là où la maquette alterne tiret plein, tiret gris et cellule vide. Maquette réalignée le 2026-10-02
+- **Adresse web** : lien `ExternalUrl` vers un nouvel onglet, là où la maquette l'écrit en texte. Maquette réalignée le 2026-10-02
+- **Texte tronqué** : `TruncateTooltip`, infobulle seulement si le texte déborde, là où la maquette n'en pose aucune. Maquette réalignée le 2026-10-02
+- **Actions de ligne** : sans `Tooltip`, l'`aria-label` nommant l'élément, là où la maquette en pose un sur chaque action. Maquette réalignée le 2026-10-02
+- **Un même mot pour une même donnée** : colonne, vue détail et formulaire lisent la même constante `*_FIELD_LABELS`, nom et slug réunis dans `NameSlugCell`, « Nature » pour client ou perso, là où la maquette abrège en colonne et donne au slug sa propre colonne. Maquette réalignée le 2026-10-01
+- **Panneaux Filtres et Colonnes** : `OptionsPopover`, blocs `TitledBlock` sur deux colonnes dès plus d'un élément, `Separator` entre deux axes, là où la maquette empile une liste plate. Maquette réalignée le 2026-10-01
+- **États vides** : `EmptyState` pour toute liste et la grille d'assets, l'écran fournissant la base vide, l'état filtré étant commun avec « Réinitialiser les filtres », là où la maquette écrit ce bloc à la main par écran. Maquette réalignée le 2026-10-01
+- **Pied de pagination** : identique sur toute liste, grille de tuiles comprise, sélecteur de lignes par page inclus, là où la maquette l'omet sous la grille d'assets. Maquette réalignée le 2026-10-01
+- **Liste au téléphone** : la même table, qui défile horizontalement, là où la maquette dessine des cartes empilées pour les projets. Maquette réalignée le 2026-10-01
+- **Clic sur une ligne** : ouvre la vue détail (`DetailDialog`) dont « Modifier » mène à l'édition, le crayon de la ligne y menant directement, là où la maquette ne câble la vue détail que sur certains écrans. Maquette réalignée le 2026-10-02
+- **Page ou modale d'édition** : page en cards pour une fiche longue ou qui regroupe d'autres éléments (entreprise, projet, lead, contact, mission, entretien), modale pour une saisie courte (action de prospection, signal, revue hebdo, tag), là où la maquette ouvre lead, contact et entretien en modale. Maquette réalignée le 2026-10-01
+- **Élément rattaché à une fiche** : créé, modifié et supprimé dans une card sous le formulaire de sa fiche, jamais depuis une ligne de liste, la vue détail restant une lecture, là où la maquette n'a pas de card pour l'élément rattaché sur la page de sa fiche. Maquette réalignée le 2026-10-01
+- **Blocs d'une vue détail** : ceux des cards du formulaire, mêmes titres, ordre, champs et libellés, un texte long (étude de cas) résumé à sa présence et sa taille, là où la maquette montre une grille plate. Maquette réalignée le 2026-10-01
+- **Fichier dans une vue détail** : tuile `AssetPreview` cliquable vers `/admin/assets?q=<clé>`, là où la maquette écrit le nom du fichier. Maquette réalignée le 2026-10-01
+- **Confirmation de suppression** : `ConfirmDeleteDialog`, titre qui nomme l'élément, « Supprimer « Agents IA » ? », bouton « Supprimer », refus métier en `text-destructive` à la place de la description, là où la maquette écrit « Supprimer le tag ». Maquette réalignée le 2026-10-01
+- **Bouton d'enregistrement** : icône `Save`, ou `Upload` pour un dépôt, en modale comme en page, là où la maquette ne la met qu'en page. Maquette réalignée le 2026-10-02
+- **Deux champs courts d'une même card** : côte à côte en `sm:grid-cols-2`, là où la maquette les empile parfois. Maquette réalignée le 2026-10-01
+- **Résumé d'une saisie** : aucun texte qui répète les champs au-dessus, là où la maquette rappelle la période sous les dates. Maquette réalignée le 2026-10-01
+- **Choix entre deux catégories** : deux `RadioGroupItem`, le `Switch` étant réservé à un réglage appliqué à l'instant, là où la maquette met un `Switch` sur la nature d'un projet. Maquette réalignée le 2026-10-01
+- **Libellés d'un choix à deux catégories** : formes courtes de l'énumération, « Client » et « Perso », là où la maquette écrit « Projet client ». Maquette réalignée le 2026-10-01
+- **Choix multiple parmi des valeurs fixes** : grille de `Checkbox` jusqu'à six valeurs, Combobox à badges au-delà, là où la maquette ne tranche pas. Maquette réalignée le 2026-10-01
+- **Multi-sélection** : champ de recherche pleine largeur, choix en badges retirables dessous, là où la maquette les pose côte à côte. Maquette réalignée le 2026-10-01
+- **Tags retenus** : badges retirables enroulés, là où la maquette empile une ligne encadrée par tag. Maquette réalignée le 2026-10-01
+- **Rang d'un élément réordonnable** : préfixe du badge en `font-mono text-[10px]`, là où la maquette pose une pastille `bg-muted` de 18px. Maquette réalignée le 2026-10-01
+- **Cible d'un glisser-déposer** : anneau `ring-primary` sur l'élément survolé, là où la maquette ne marque que l'élément déplacé. Maquette réalignée le 2026-10-01
+- **Titre d'une card de formulaire** : nomme son contenu réel, « Liens » sur le projet, là où la maquette écrit « Avancement ». Maquette réalignée le 2026-10-01
+- **Colonne Liens d'un projet** : liens « GitHub » et « Démo » cliquables, là où la maquette écrit un texte joint. Maquette réalignée le 2026-10-01
+- **Rangée de rattachement d'une tuile** : réservée sur toutes les tuiles, icône de lien et filet toujours visibles, là où la maquette la masque sans référence. Maquette réalignée le 2026-10-01
+- **Aperçu d'un fichier** : image entière dans son cadre sur fond neutre, le dégradé réservé à l'aperçu manquant, là où la maquette montre un dégradé partout. Maquette réalignée le 2026-10-01
+- **Chemin sous un aperçu** : dossier parent seul, chemin complet au survol, là où la maquette écrit le chemin complet. Maquette réalignée le 2026-10-01
+- **Titre de la suppression d'un fichier** : nomme le fichier, pas sa clé, là où la maquette écrit la clé complète. Maquette réalignée le 2026-10-01
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)
