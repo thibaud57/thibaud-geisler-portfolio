@@ -83,7 +83,7 @@ Cinq dépôts :
 |---|---|---|
 | `thibaud-geisler-portfolio` | site public, espace admin, tous les fronts, auth, CRUD | TypeScript |
 | `ai-kit` | socle IA partagé, backends interchangeables. **Package installé par les trois autres, pas un service** | Python |
-| `agent-os` | exécute `claude -p` : cycle de dev et jobs de l'espace admin | Python |
+| `agent-os` | exécute Claude Code sur l'abonnement ([ADR-026](026-execution-claude-code-abonnement.md)) : jobs et assistant de l'espace admin, cycle de dev | Python |
 | `portfolio-chatbot` | RAG public, principal consommateur d'API au token | Python |
 | `rag-documents` | documents personnels, base isolée | Python |
 

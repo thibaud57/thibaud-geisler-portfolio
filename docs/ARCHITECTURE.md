@@ -61,7 +61,7 @@ pnpm
 |-----|--------|------|---------|
 | Portfolio App | `/` | Ce dépôt : site public, espace admin, tous les fronts, auth, CRUD | TypeScript |
 
-**Dépôts voisins** (post-MVP, hors de celui-ci, cf. [ADR-015](adrs/015-decoupage-services.md)) : `ai-kit` (socle IA partagé), `agent-os` (exécution de `claude -p` : cycle de dev et jobs de l'espace admin), `portfolio-chatbot` (RAG public), `rag-documents` (documents personnels, base isolée). `ai-kit` est un **package Python** installé par les trois autres, pas un service. Les trois services sont joints en HTTP sur le réseau Docker interne, jamais exposés ([ADR-019](adrs/019-communication-inter-services.md)).
+**Dépôts voisins** (post-MVP, hors de celui-ci, cf. [ADR-015](adrs/015-decoupage-services.md)) : `ai-kit` (socle IA partagé), `agent-os` (exécution de Claude Code sur l'abonnement, lancée par le propriétaire : jobs, assistant interne, cycle de dev, cf. [ADR-026](adrs/026-execution-claude-code-abonnement.md)), `portfolio-chatbot` (RAG public), `rag-documents` (documents personnels, base isolée). `ai-kit` est un **package Python** installé par les trois autres, pas un service. Les trois services sont joints en HTTP sur le réseau Docker interne, jamais exposés ([ADR-019](adrs/019-communication-inter-services.md)).
 
 ## Composants Principaux (Haut Niveau)
 
@@ -352,7 +352,7 @@ Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par de
 | `portfolio-assets` (vitrine, servi sans authentification) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
 | `portfolio-assets` | `documents/cv/` | CV PDF par locale |
 | `portfolio-assets` | `branding/` | Logo, portrait |
-| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
+| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, lu sur le site de l'entreprise ([ADR-023](adrs/023-source-logos-entreprise.md)), seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
 
 ### File Processing
 
@@ -360,7 +360,7 @@ Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le
 
 ### Message Queue / Event Streaming
 
-Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne.
+Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne. Seule exception, le flux des sessions Claude Code d'`agent-os` (état des runs, texte de l'assistant interne) remonte en Server-Sent Events sur le même réseau interne, et ce dépôt le relaie au navigateur ([ADR-026](adrs/026-execution-claude-code-abonnement.md)).
 
 ---
 
@@ -604,13 +604,17 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
 - [ADR-021 : Routing de l'espace admin, hors du segment de locale](adrs/021-routing-espace-admin.md)
 - [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
+- [ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise](adrs/023-source-logos-entreprise.md)
+- [ADR-024 : Éditeur markdown des champs texte longs de l'espace admin](adrs/024-editeur-markdown-admin.md)
+- [ADR-026 : Exécution de Claude Code sur l'abonnement](adrs/026-execution-claude-code-abonnement.md)
 
-> Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
+> Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. L'ADR-026 engage aussi `agent-os` et `ai-kit`. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
 ### À décider
 
 - [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
+- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), orientation provisoire vers un serveur MCP par domaine, authentifié par clé d'API
 
 ### Dépréciées
 
@@ -626,14 +630,15 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 - **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
-- **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs
+- **Domaines freelance et finances** : CRM, suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
+- **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
+- **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 
 **Dans les dépôts voisins**
 
 - **Chatbot RAG public** : front ici, RAG et appel au modèle dans `portfolio-chatbot`. Principal poste facturé au token ([ADR-016](adrs/016-acces-llm.md))
-- **Rédaction assistée et cycle de développement** : exécutés par `agent-os` via Claude Code, donc sur l'abonnement
+- **Agents internes, rédaction assistée et cycle de développement** : exécutés par `agent-os`, qui pilote Claude Code par l'Agent SDK sur l'abonnement, uniquement sur action du propriétaire ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Documents personnels** : `rag-documents`, base isolée, jamais exposée ([ADR-018](adrs/018-cloisonnement-donnees.md))
 
 **Hors application**

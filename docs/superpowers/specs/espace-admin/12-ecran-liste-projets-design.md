@@ -17,7 +17,7 @@ Remplacer la page d'attente `/admin/projets` par trois vues de la liste des proj
 
 Exclut l'édition, portée par le sub-project `13`.
 
-Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette (`docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement »). Aucune colonne ni aucun filtre ne leur est consacré.
+Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette (`docs/BRAINSTORM.md` Feature 8 « Suivi du cycle de développement »). Aucune colonne ni aucun filtre ne leur est consacré.
 
 ### État livré
 

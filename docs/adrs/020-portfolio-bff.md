@@ -97,6 +97,6 @@ Le CRUD des domaines métier vit-il dans Next.js ou dans des services dédiés ?
 
 # 📝 Notes complémentaires
 
-**Serveur MCP.** Le CRUD vivant dans Next.js, exposer un serveur MCP au-dessus des Server Actions devient peu coûteux : une route qui transforme les actions en outils, permettant de piloter le CRM depuis Claude Code. À évaluer face à un CLI, qui consomme nettement moins de contexte pour un usage répétitif, un serveur MCP chargeant la définition de tous ses outils à chaque tour.
+**Outils de l'app pour les agents.** Serveur MCP, CLI ou API appelée en direct, et leur authentification : traité par l'[ADR-025](025-acces-agents-app.md), qui remplace la note qui se trouvait ici.
 
 **Espace admin hors `[locale]/`**, cf. [ADR-021](021-routing-espace-admin.md).
