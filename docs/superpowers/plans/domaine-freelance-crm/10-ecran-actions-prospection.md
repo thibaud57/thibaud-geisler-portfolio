@@ -18,7 +18,7 @@
 - **Rang** : « Premier contact » si aucune action envoyée (statut autre que À faire) de la même personne ne précède, sinon « Relance N ».
 - **Échéance** : personne active = 3 ans après le plus tardif entre la date de création de son rôle Lead et `lastReplyAt` ; personne opposée = 3 ans après `optedOutAt`.
 - **Premier contact d'une entreprise** : la plus ancienne `occurredAt` des actions hors À faire de ses personnes.
-- **Textes** : suppression d'une action « Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré ». » ; ajout aux suppressions de lead « Ses actions de prospection sont supprimées avec lui. »
+- **Textes** : suppression d'une action « Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré ». » ; suppression d'un lead, déjà couverte par le texte du `08` (« ses actions et ses signaux sont supprimés avec elle »), rien à y ajouter
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
 **Rules :** `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/react/hooks.md`, `.claude/rules/vitest/setup.md`.
@@ -1280,12 +1280,15 @@ function buildActionDetail(
       : []),
   ]
 
+  const StatusIcon = ACTION_STATUS_ICONS[action.status]
+
   return {
     title: action.title,
     subtitle: rankLabel(rank),
     // EnumBadge n'a que la variante secondary (04) : l'en-tête garde le Badge outline + meta commun à toutes les vues détail.
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {ACTION_STATUS_LABELS[action.status]}
       </Badge>
     ),
@@ -1687,7 +1690,7 @@ function historySection(
   if (history.length === 0) return []
   return [
     {
-      title: "Historique",
+      title: "Actions",
       rows: [
         {
           fullWidth: true,
@@ -1720,7 +1723,7 @@ function historySection(
           },
 ```
 
-  et insérer `...historySection(history, ranks),` tout à la fin du tableau `sections`, juste après le bloc Réseau du `08` (lui-même en dernière position) et avant `...(onEdit ? { onEdit } : {})` : Historique vient après Réseau dans l'ordre de la vue détail (arbitrage du propriétaire, 2026-10-02), les blocs `15` (Opportunités apportées), `17` (Entretiens) et `19` (Signaux) le suivront à leur tour ;
+  et insérer `...historySection(history, ranks),` tout à la fin du tableau `sections`, juste après le bloc Réseau du `08` (lui-même en dernière position) et avant `...(onEdit ? { onEdit } : {})` : le bloc « Actions » (ex « Historique ») vient après Réseau dans l'ordre de la vue détail (arbitrage du propriétaire, 2026-10-02), les blocs `15` (Opportunités apportées), `17` (Entretiens) et `19` (Signaux) le suivront à leur tour ;
 - dans `facets`, ajouter à la fin (la liste passe dans le composant pour lire `now`, voir ci-dessous) :
 
 ```tsx
@@ -2131,7 +2134,7 @@ Expected: les deux s'affichent à 14 h 30 ; la réponse porte l'heure de l'enreg
 - [ ] **Step 4 : Côté leads**
 
 Ouvrir la vue détail du lead de l'étape 2, puis sa page.
-Expected: bloc Historique en `RelatedLinksList` avec ses actions par date et leur rang, ligne « Dernier contact de sa part » ; sur sa page, la card Actions liste les mêmes actions ; « Nouvelle action » y ouvre le formulaire avec cette personne déjà choisie, et l'action enregistrée apparaît dans la card sans recharger. Dans la liste, sa colonne Actions compte ses actions. Dans Tous, la colonne « À conserver jusqu'au » s'affiche ; le filtre « Échéance : Dépassée » ne garde que les fiches échues (en créer une en base avec une date de création de plus de 3 ans via `just db-studio` pour le vérifier). Cliquer une ligne du bloc Historique.
+Expected: bloc Actions en `RelatedLinksList` avec ses actions par date et leur rang, ligne « Dernier contact de sa part » ; sur sa page, la card Actions liste les mêmes actions ; « Nouvelle action » y ouvre le formulaire avec cette personne déjà choisie, et l'action enregistrée apparaît dans la card sans recharger. Dans la liste, sa colonne Actions compte ses actions. Dans Tous, la colonne « À conserver jusqu'au » s'affiche ; le filtre « Échéance : Dépassée » ne garde que les fiches échues (en créer une en base avec une date de création de plus de 3 ans via `just db-studio` pour le vérifier). Cliquer une ligne du bloc Actions.
 Expected: la liste Journal s'ouvre avec le détail de cette action déjà affiché (`?detail=<id>`).
 
 - [ ] **Step 5 : Personne opposée**

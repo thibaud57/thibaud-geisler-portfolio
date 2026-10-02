@@ -1844,7 +1844,7 @@ Expected: aucune erreur. Si l'éditeur installé au `03` n'accepte pas `id` ou `
 - Modify: `src/components/features/admin/leads/LeadsTable.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 1 à 4 ; `deleteContact` (Task 2) ; `retentionEndOf` (`10`, `@/lib/person-retention`) ; `DataTable`, `DetailDialog`, `EnumBadge`, `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `BadgeList`, `MarkdownContent`, `RowActionButton`, `ConfirmDeleteDialog`, `ErasePersonExchangesDialog` (`08`) ; `LEAD_STATUS_ICONS`, `LEAD_INTEREST_ICONS` (`08`, `@/lib/leads`)
+- Consumes: Tasks 1 à 4 ; `deleteContact` (Task 2) ; `retentionEndOf` (`10`, `@/lib/person-retention`) ; `DataTable`, `DetailDialog`, `EnumBadge`, `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `BadgeList`, `MarkdownContent`, `RowActionButton`, `ConfirmDeleteDialog`, `ErasePersonExchangesDialog`, `RelatedLinksList` (`08`) ; `LEAD_STATUS_LABELS`, `LEAD_INTEREST_LABELS` (`08`, `@/lib/leads`)
 - Produces: `CONTACT_REVIEW_YEARS` (`@/lib/person-retention`) ; `ContactsTable({ contacts, initialDetailId }: { contacts: readonly AdminContact[]; initialDetailId?: string })`
 
 - [ ] **Step 1 : Rappel métier des contacts**
@@ -1940,6 +1940,7 @@ import {
 } from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteContactDialog } from "@/components/features/admin/contacts/DeleteContactDialog"
@@ -1960,12 +1961,7 @@ import {
   CONTACT_TYPE_LABELS,
 } from "@/lib/contacts"
 import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import {
-  LEAD_INTEREST_ICONS,
-  LEAD_INTEREST_LABELS,
-  LEAD_STATUS_ICONS,
-  LEAD_STATUS_LABELS,
-} from "@/lib/leads"
+import { LEAD_INTEREST_LABELS, LEAD_STATUS_LABELS } from "@/lib/leads"
 import { CONTACT_REVIEW_YEARS, retentionEndOf } from "@/lib/person-retention"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
 import { formatShortDate } from "@/lib/projects"
@@ -2150,11 +2146,14 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
     }
   }
 
+  const StatusIcon = CONTACT_STATUS_ICONS[contact.status]
+
   return {
     title: personDisplayName(contact),
     ...(contact.jobRole ? { subtitle: JOB_ROLE_LABELS[contact.jobRole] } : {}),
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {CONTACT_STATUS_LABELS[contact.status]}
       </Badge>
     ),
@@ -2222,7 +2221,7 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
       ...(contact.notes
         ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] }]
         : []),
-      // Symétrique du bloc Réseau du lead, complété ici : le rôle Lead de la même personne, lu en un clic.
+      // Symétrique du bloc Réseau du lead, complété ici : le rôle Lead de la même personne, lu en un clic. Motif `relatedRows` de la maquette : une ligne « Fiche lead : statut · intérêt ».
       ...(contact.hasLeadRole && contact.leadRole
         ? [
             {
@@ -2231,21 +2230,21 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
                 {
                   fullWidth: true,
                   value: (
-                    <Link
-                      href={`/admin/leads/tous?detail=${contact.id}`}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      <EnumBadge
-                        label={LEAD_STATUS_LABELS[contact.leadRole.status]}
-                        icon={LEAD_STATUS_ICONS[contact.leadRole.status]}
-                      />
-                      {contact.leadRole.interest ? (
-                        <EnumBadge
-                          label={LEAD_INTEREST_LABELS[contact.leadRole.interest]}
-                          icon={LEAD_INTEREST_ICONS[contact.leadRole.interest]}
-                        />
-                      ) : null}
-                    </Link>
+                    <RelatedLinksList
+                      links={[
+                        {
+                          id: contact.id,
+                          href: `/admin/leads/tous?detail=${contact.id}`,
+                          label: "Fiche lead",
+                          meta: [
+                            LEAD_STATUS_LABELS[contact.leadRole.status],
+                            contact.leadRole.interest ? LEAD_INTEREST_LABELS[contact.leadRole.interest] : null,
+                          ]
+                            .filter((part): part is string => part !== null)
+                            .join(" · "),
+                        },
+                      ]}
+                    />
                   ),
                 },
               ],
@@ -2377,10 +2376,10 @@ export function ContactsTable({ contacts, initialDetailId }: Props) {
 
 - [ ] **Step 4 : Bloc Réseau du lead**
 
-Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_ICONS`, `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_ICONS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts`, `import { BadgeList } from "@/components/features/admin/BadgeList"` et `import { EnumBadge } from "@/components/features/admin/EnumBadge"` (déjà importé par `08`, inutile de le redemander), puis, dans `buildLeadDetail`, remplacer le bloc Réseau posé par le `08` (`...keepFilled({ title: LEAD_SECTION_TITLES.network, … })`, en dernière position du tableau `sections`, juste avant `...historySection(history, ranks),` du `10`) par :
+Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts` (`RelatedLinksList` déjà importé par le `10` pour le bloc Actions, inutile de le redemander), puis, dans `buildLeadDetail`, remplacer le bloc Réseau posé par le `08` (`...keepFilled({ title: LEAD_SECTION_TITLES.network, … })`, en dernière position du tableau `sections`, juste avant `...historySection(history, ranks),` du `10`) par :
 
 ```tsx
-      // Symétrique du bloc Pipeline du contact : le rôle Contact de la même personne, lu en un clic.
+      // Symétrique du bloc Pipeline du contact : le rôle Contact de la même personne, lu en un clic. Motif `relatedRows` de la maquette : une ligne « Fiche contact : types · statut ».
       ...(lead.hasContactRole && lead.contactRole
         ? [
             {
@@ -2389,27 +2388,21 @@ Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STAT
                 {
                   fullWidth: true,
                   value: (
-                    <Link
-                      href={`/admin/contacts?detail=${lead.id}`}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      <BadgeList
-                        labels={lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type])}
-                        noun="types"
-                        max={Infinity}
-                        empty="Sans type"
-                        icons={Object.fromEntries(
-                          lead.contactRole.types.map((type) => [
-                            CONTACT_TYPE_LABELS[type],
-                            CONTACT_TYPE_ICONS[type],
-                          ]),
-                        )}
-                      />
-                      <EnumBadge
-                        label={CONTACT_STATUS_LABELS[lead.contactRole.status]}
-                        icon={CONTACT_STATUS_ICONS[lead.contactRole.status]}
-                      />
-                    </Link>
+                    <RelatedLinksList
+                      links={[
+                        {
+                          id: lead.id,
+                          href: `/admin/contacts?detail=${lead.id}`,
+                          label: "Fiche contact",
+                          meta: [
+                            lead.contactRole.types.length > 0
+                              ? lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type]).join(", ")
+                              : "Sans type",
+                            CONTACT_STATUS_LABELS[lead.contactRole.status],
+                          ].join(" · "),
+                        },
+                      ]}
+                    />
                   ),
                 },
               ],
@@ -2418,7 +2411,7 @@ Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STAT
         : []),
 ```
 
-Sa position ne change pas : Réseau reste juste avant Historique (`10`), lui-même suivi d'Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`). `LEAD_SECTION_TITLES` est déjà importé dans ce fichier (`08`) et porte `network` depuis la Task 3 : rien de plus à y changer.
+Sa position ne change pas : Réseau reste juste avant le bloc Actions (`10`), lui-même suivi d'Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`). `LEAD_SECTION_TITLES` est déjà importé dans ce fichier (`08`) et porte `network` depuis la Task 3 : rien de plus à y changer.
 
 - [ ] **Step 5 : Vérifier**
 

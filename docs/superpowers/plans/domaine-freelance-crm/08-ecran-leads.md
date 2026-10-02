@@ -400,7 +400,7 @@ export const LEAD_COLUMN_WIDTHS = {
 
 export type LeadColumnKey = keyof typeof LEAD_COLUMN_WIDTHS
 
-// Colonnes de la maquette par vue, sans Stack (retirée des leads), plus Poste ; Tous les montre toutes.
+// Colonnes de la maquette par vue, sans Stack (retirée des leads) ; Tous les montre toutes.
 export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadColumnKey[]> = {
   "en-cours": [
     "status",
@@ -1654,11 +1654,14 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
     }
   }
 
+  const StatusIcon = LEAD_STATUS_ICONS[lead.status]
+
   return {
     title: personDisplayName(lead),
     ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {LEAD_STATUS_LABELS[lead.status]}
       </Badge>
     ),

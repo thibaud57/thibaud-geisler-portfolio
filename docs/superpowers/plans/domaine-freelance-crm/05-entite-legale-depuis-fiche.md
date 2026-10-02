@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Saisir et modifier l'entité légale d'une entreprise directement dans sa fiche, avec le seul nom obligatoire, et la montrer en entier dans la vue détail.
+**Goal:** Saisir et modifier l'entité légale d'une entreprise directement dans sa fiche, toujours affichée, la raison sociale et le siège devenant requis ensemble dès qu'un champ a une valeur, puis la montrer en entier dans la vue détail.
 
 **Architecture:** `LegalEntity` rend sa forme juridique et son siège facultatifs et gagne `rcsNumber`. Les champs de l'entité, préfixés `legalEntity`, rejoignent le schéma Zod de l'entreprise ; l'action écrit l'entité dans la même requête que l'entreprise (création ou `upsert` imbriqués) et la supprime avec elle dans une transaction, sauf si elle sert aux pages légales. Une nouvelle card `LegalEntityCard` remplace l'ancien choix d'entité. Pour l'entité éditrice seulement, la même écriture pose la date d'assujettissement et le régime de TVA sur le `Publisher` lié, lus par les mentions légales et le JSON-LD de la page À propos.
 

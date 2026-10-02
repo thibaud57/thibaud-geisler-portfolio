@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Prérequis** : les plans du `02` et du `03` sont implémentés (`AdminCompany` porte `types`, `relationStatus`, `zones`, `notes`, `details` ; libellés `COMPANY_TYPE_LABELS`, `RELATION_STATUS_LABELS`, `ZONE_LABELS`, `COMPANY_SECTION_TITLES.relation`, `.notes` et `.details`).
-- **Dérivé `worked`** : n'existe pas avant ce plan ; introduit à la Task 2 dans `toAdminCompany` (`src/server/queries/companies.ts`), vrai dès que l'entreprise a au moins un `ClientMeta` vers un projet de type `CLIENT` (un projet `PERSONAL` crée aussi un `ClientMeta`, `src/server/actions/projects.ts`, et ne doit pas compter). Le `15` étendra cette même ligne avec `|| hasAcceptedMission(company)`.
+- **Dérivé `worked`** : n'existe pas avant ce plan ; introduit à la Task 2 dans `toAdminCompany` (`src/server/queries/companies.ts`), vrai dès que l'entreprise a au moins un `ClientMeta` vers un projet de type `CLIENT` (un projet `PERSONAL` crée aussi un `ClientMeta`, `src/server/actions/projects.ts`, et ne doit pas compter). Le `15` étendra cette même ligne avec `|| hasAcceptedOpportunity(company)`.
 - **Filtre des vues** : Travaillées = `worked` ; Recrutement = `types` contient `ESN_RECRUTEMENT`.
 - **Titres et sous-titres exacts** : Toutes « Toutes les entreprises » / « Clients, intermédiaires et prospects. » ; Travaillées « Entreprises travaillées » / « Celles où une mission a été réalisée, en direct ou via une ESN. » ; Recrutement « Recrutement » / « ESN et cabinets, avec leur historique de propositions. ».
 - **Colonnes par défaut** : Toutes, toutes ; Travaillées, Types, Secteurs, Zones, Taille, Statut, Projets ; Recrutement, Types, Zones, Statut, Travaillée.
@@ -178,6 +178,7 @@ Expected: aucune erreur dans `src/server/queries/companies.ts` ; les erreurs res
 - Create: `src/components/features/admin/EnumBadge.tsx`
 - Modify: `src/components/features/admin/BadgeList.tsx` (prop `icons` optionnelle)
 - Modify: `src/components/features/admin/companies/CompaniesTable.tsx` (remplacement complet)
+- Modify: `docs/DESIGN.md` (skill `design-doc`)
 
 **Interfaces:**
 - Consumes: Task 1, Task 2 ; `ADMIN_MARKDOWN_CLASS` (`03`, `@/lib/typography`) ; `AdminCompany` (`@/server/queries/companies`) ; libellés et glyphes `@/lib/companies` (`COMPANY_TYPE_ICONS`, `COMPANY_STATUS_ICONS`), `@/lib/zones` ; `COMPANY_TYPES`, `RELATION_STATUSES` (`@/lib/schemas/company`) ; `IconComponent` (`@/lib/icons`)
@@ -697,6 +698,10 @@ export function CompaniesTable({ companies, view }: Props) {
 
 Run: `just typecheck`
 Expected: plus d'erreur dans `CompaniesTable.tsx` ; seules les pages restent en erreur (`workedOnly`, `COMPANY_SKELETON_WIDTHS`), corrigées à la Task 4.
+
+- [ ] **Step 5 : Mapping de `docs/DESIGN.md`**
+
+Charger le skill `design-doc`, puis déplacer la ligne « Valeur d'énumération à glyphe » de § Post-MVP (non installés) vers § Badges, à sa place logique dans le tableau : le composant `EnumBadge` est installé.
 
 ---
 

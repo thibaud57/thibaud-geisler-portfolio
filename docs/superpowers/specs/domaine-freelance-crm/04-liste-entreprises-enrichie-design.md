@@ -44,11 +44,12 @@ date: "2026-09-26"
 - **À modifier** : `src/app/admin/(protected)/entreprises/travaillees/page.tsx` (vue Travaillées, nouveau sous-titre)
 - **À créer** : `src/app/admin/(protected)/entreprises/recrutement/page.tsx` et `loading.tsx`
 - **À modifier** : `src/config/admin-nav-items.ts` (lien Recrutement)
+- **À modifier** : `docs/DESIGN.md` (ligne « Valeur d'énumération à glyphe » de § Post-MVP vers § Badges, via le skill `design-doc`)
 
 ## Architecture approach
 
 - **Vues** : même motif que la liste des projets. Un type `CompanyView` (`toutes`, `travaillees`, `recrutement`) ; chaque page passe sa vue à `CompaniesTable`, qui filtre les lignes en mémoire (Travaillées : `worked` ; Recrutement : `types` contient `ESN_RECRUTEMENT`) et reconstruit ses colonnes pour la vue. La prop `workedOnly` et sa présélection de filtre disparaissent. Chaque page garde son `getCurrentUser()` et son `loading.tsx` d'une ligne (`.claude/rules/nextjs/auth.md`)
-- **Dérivé travaillée** : `AdminCompany.worked` se calcule dans `toAdminCompany`, la fonction de mapping vers `AdminCompany` (`src/server/queries/companies.ts`), vrai dès que l'entreprise a au moins un `ClientMeta` vers un projet de type `CLIENT`. Un projet `PERSONAL` crée aussi un `ClientMeta` (`src/server/actions/projects.ts`, sans condition de type) et ne doit pas compter ; `_count.clientMetas` reste la source de la colonne Projets, inchangée. Le `15` étendra cette même ligne avec `|| hasAcceptedMission(company)`
+- **Dérivé travaillée** : `AdminCompany.worked` se calcule dans `toAdminCompany`, la fonction de mapping vers `AdminCompany` (`src/server/queries/companies.ts`), vrai dès que l'entreprise a au moins un `ClientMeta` vers un projet de type `CLIENT`. Un projet `PERSONAL` crée aussi un `ClientMeta` (`src/server/actions/projects.ts`, sans condition de type) et ne doit pas compter ; `_count.clientMetas` reste la source de la colonne Projets, inchangée. Le `15` étendra cette même ligne avec `|| hasAcceptedOpportunity(company)`
 - **Pages** :
 
 | Vue | Route | Titre | Sous-titre |

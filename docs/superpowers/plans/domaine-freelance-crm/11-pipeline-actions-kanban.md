@@ -401,12 +401,15 @@ export function buildActionDetail(
       : []),
   ]
 
+  const StatusIcon = ACTION_STATUS_ICONS[action.status]
+
   return {
     title: action.title,
     subtitle: rankLabel(rank),
     // EnumBadge n'a que la variante secondary (04) : l'en-tête garde le Badge outline + meta commun à toutes les vues détail.
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {ACTION_STATUS_LABELS[action.status]}
       </Badge>
     ),

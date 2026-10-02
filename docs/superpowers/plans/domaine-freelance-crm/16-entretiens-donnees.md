@@ -401,7 +401,7 @@ Expected: PASS.
 
 **Interfaces:**
 - Consumes: `InterviewStatus` (Task 1)
-- Produces: `type LeadDisplayStatus = LeadStatus | "DEAL" | "RDV_PLANIFIE"` ; `leadDisplayStatus(lead: LeadStatusSource, now: number): LeadDisplayStatus` ; `leadsForView<T extends LeadViewRow>(leads: readonly T[], view: LeadView, now: number): T[]` ; `AdminLead.interviews: { status, scheduledAt }[]`, `AdminLead.interviewsCount: number`
+- Produces: `type LeadDisplayStatus = LeadStatus | "DEAL" | "RDV_PLANIFIE"` ; `LEAD_DISPLAY_STATUS_ICONS: Record<LeadDisplayStatus, IconComponent | null>` (`RDV_PLANIFIE` en `CalendarCheck`, `DEAL` en `Trophy` repris du `15`) ; `leadDisplayStatus(lead: LeadStatusSource, now: number): LeadDisplayStatus` ; `leadsForView<T extends LeadViewRow>(leads: readonly T[], view: LeadView, now: number): T[]` ; `AdminLead.interviews: { status, scheduledAt }[]`, `AdminLead.interviewsCount: number`
 
 `LeadStatus` (`07`) ne porte déjà plus `RDV_PLANIFIE` dans le schéma v2 : aucune migration n'est nécessaire pour le retirer, cette Task ne touche pas `prisma/schema.prisma`.
 
@@ -462,8 +462,11 @@ Expected: FAIL (le statut affiché ne lit pas encore les entretiens).
 Remplacer le contenu de `src/lib/lead-display-status.ts` par :
 
 ```ts
+import { CalendarCheck, Trophy } from "lucide-react"
+
 import type { InterviewStatus, LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
-import { LEAD_STATUS_LABELS } from "@/lib/leads"
+import type { IconComponent } from "@/lib/icons"
+import { LEAD_STATUS_ICONS, LEAD_STATUS_LABELS } from "@/lib/leads"
 import { LEAD_STATUSES } from "@/lib/schemas/lead"
 
 export type LeadDisplayStatus = LeadStatus | "RDV_PLANIFIE" | "DEAL"
@@ -478,6 +481,13 @@ export const LEAD_DISPLAY_STATUS_LABELS: Record<LeadDisplayStatus, string> = {
   ...LEAD_STATUS_LABELS,
   RDV_PLANIFIE: "RDV planifié",
   DEAL: "Deal",
+}
+
+// Les faits déduits portent leur propre glyphe, pas celui du statut saisi qu'ils recouvrent.
+export const LEAD_DISPLAY_STATUS_ICONS: Record<LeadDisplayStatus, IconComponent | null> = {
+  ...LEAD_STATUS_ICONS,
+  RDV_PLANIFIE: CalendarCheck,
+  DEAL: Trophy,
 }
 
 export interface LeadStatusSource {

@@ -50,7 +50,7 @@
 
 **Interfaces:**
 - Consumes: `LeadStatus`, `OpportunityStatus`
-- Produces: `type LeadDisplayStatus = LeadStatus | "DEAL"` ; `LEAD_DISPLAY_STATUSES: readonly LeadDisplayStatus[]` ; `LEAD_DISPLAY_STATUS_LABELS: Record<LeadDisplayStatus, string>` ; `leadDisplayStatus(lead: LeadStatusSource): LeadDisplayStatus` ; `AdminLead.opportunities: { id, title, status, client: { name } | null }[]`
+- Produces: `type LeadDisplayStatus = LeadStatus | "DEAL"` ; `LEAD_DISPLAY_STATUSES: readonly LeadDisplayStatus[]` ; `LEAD_DISPLAY_STATUS_LABELS: Record<LeadDisplayStatus, string>` ; `LEAD_DISPLAY_STATUS_ICONS: Record<LeadDisplayStatus, IconComponent | null>` ; `leadDisplayStatus(lead: LeadStatusSource): LeadDisplayStatus` ; `AdminLead.opportunities: { id, title, status, client: { name } | null }[]`
 
 `LeadStatus` n'a jamais porté `DEAL` (`07`) : « Deal » est une valeur affichée, jamais saisie.
 
@@ -93,8 +93,11 @@ Expected: FAIL, module introuvable.
 `src/lib/lead-display-status.ts` :
 
 ```ts
+import { Trophy } from "lucide-react"
+
 import type { LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
-import { LEAD_STATUS_LABELS } from "@/lib/leads"
+import type { IconComponent } from "@/lib/icons"
+import { LEAD_STATUS_ICONS, LEAD_STATUS_LABELS } from "@/lib/leads"
 import { LEAD_STATUSES } from "@/lib/schemas/lead"
 
 export type LeadDisplayStatus = LeadStatus | "DEAL"
@@ -104,6 +107,12 @@ export const LEAD_DISPLAY_STATUSES: readonly LeadDisplayStatus[] = [...LEAD_STAT
 export const LEAD_DISPLAY_STATUS_LABELS: Record<LeadDisplayStatus, string> = {
   ...LEAD_STATUS_LABELS,
   DEAL: "Deal",
+}
+
+// Glyphe propre au fait « Deal » (décision maquette du 2026-10-02), pas celui du statut saisi qu'il recouvre.
+export const LEAD_DISPLAY_STATUS_ICONS: Record<LeadDisplayStatus, IconComponent | null> = {
+  ...LEAD_STATUS_ICONS,
+  DEAL: Trophy,
 }
 
 export interface LeadStatusSource {
@@ -1051,16 +1060,18 @@ export function OpportunityForm({ opportunity, referrerOptions, companyOptions, 
               <CardTitle>{OPPORTUNITY_SECTION_TITLES.opportunity}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField id={`${formId}-title`} label={LABELS.title} errors={state.errors.title}>
-                <Input
-                  id={`${formId}-title`}
-                  name="title"
-                  defaultValue={opportunity?.title ?? ""}
-                  placeholder="Refonte d'application"
-                  aria-invalid={!!state.errors.title?.length}
-                  aria-describedby={`${formId}-title-error`}
-                />
-              </FormField>
+              <div className="sm:col-span-2">
+                <FormField id={`${formId}-title`} label={LABELS.title} errors={state.errors.title}>
+                  <Input
+                    id={`${formId}-title`}
+                    name="title"
+                    defaultValue={opportunity?.title ?? ""}
+                    placeholder="Refonte d'application"
+                    aria-invalid={!!state.errors.title?.length}
+                    aria-describedby={`${formId}-title-error`}
+                  />
+                </FormField>
+              </div>
 
               <FormField id={`${formId}-role`} label={LABELS.role} errors={state.errors.role}>
                 <Input
@@ -1720,11 +1731,14 @@ function keepFilled(section: DetailSection): DetailSection[] {
 }
 
 function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => void): DetailContent {
+  const StatusIcon = OPPORTUNITY_STATUS_ICONS[opportunity.status]
+
   return {
     title: opportunity.title,
     subtitle: opportunity.role ?? undefined,
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
       </Badge>
     ),
@@ -2275,10 +2289,10 @@ Expected: aucune erreur.
 
 - [ ] **Step 1 : Statut affiché**
 
-Dans `LeadsTable.tsx`, importer `leadDisplayStatus`, `LEAD_DISPLAY_STATUSES`, `LEAD_DISPLAY_STATUS_LABELS` depuis `@/lib/lead-display-status`, puis :
+Dans `LeadsTable.tsx`, importer `leadDisplayStatus`, `LEAD_DISPLAY_STATUSES`, `LEAD_DISPLAY_STATUS_ICONS`, `LEAD_DISPLAY_STATUS_LABELS` depuis `@/lib/lead-display-status`, puis :
 
-- dans `statusBadge`, remplacer `LEAD_STATUS_LABELS[lead.status]` par `LEAD_DISPLAY_STATUS_LABELS[leadDisplayStatus(lead)]` ;
-- dans `buildLeadDetail`, même remplacement dans le badge de statut de l'en-tête ;
+- dans `statusBadge`, remplacer `LEAD_STATUS_LABELS[lead.status]` par `LEAD_DISPLAY_STATUS_LABELS[leadDisplayStatus(lead)]` et `LEAD_STATUS_ICONS[lead.status]` par `LEAD_DISPLAY_STATUS_ICONS[leadDisplayStatus(lead)]` (sinon un lead « Deal » garderait le glyphe de son statut saisi au lieu du trophée) ;
+- dans `buildLeadDetail`, mêmes remplacements dans le badge de statut de l'en-tête : son libellé, puis son glyphe `StatusIcon`, qui devient `LEAD_DISPLAY_STATUS_ICONS[leadDisplayStatus(lead)]` ;
 - dans les filtres, remplacer l'entrée `status` par :
 
 ```tsx
@@ -2297,7 +2311,7 @@ Dans `LeadsTable.tsx`, importer `leadDisplayStatus`, `LEAD_DISPLAY_STATUSES`, `L
 
 - [ ] **Step 2 : Opportunités apportées**
 
-Importer `OPPORTUNITY_STATUS_LABELS` depuis `@/lib/opportunities`, `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList` (déjà importés par le `10` pour le bloc Historique ; ne pas les redemander si déjà présents), ajouter avant `buildLeadDetail` :
+Importer `OPPORTUNITY_STATUS_LABELS` depuis `@/lib/opportunities`, `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList` (déjà importés par le `10` pour le bloc Actions ; ne pas les redemander si déjà présents), ajouter avant `buildLeadDetail` :
 
 ```tsx
 // Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'opportunité via ?detail=.

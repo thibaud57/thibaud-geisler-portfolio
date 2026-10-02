@@ -31,7 +31,7 @@
 - **Ordre des valeurs de `CompanySector`** : un `ADD VALUE` sans `BEFORE 'AUTRE'` met les nouveaux secteurs après « Autre » en base, et `prisma migrate dev` y voit une dérive. Vérifié à la Task 1, Step 5.
 - **Migration générée par Prisma pour le renommage** : Prisma recrée le type et convertit les colonnes, ce qui fait échouer la conversion de la ligne qui porte `EMARKETING`. Le bloc est remplacé à la Task 1, Step 3.
 - **Ancien formulaire entreprise entre le 02 et le 03** : il n'envoie pas `types`. Une modification qui le remettrait à vide effacerait le rattrapage. Couvert par le test « leaves every CRM field untouched when the form does not send it » (Task 3).
-- **Clés de traduction manquantes** : `CaseStudyHeader` traduit `sector.${s}` et `companySize.${size}` ; une valeur d'enum sans clé dans `messages/*.json` casse la page. `just typecheck` le détecte (Task 2, Step 5).
+- **Clés de traduction manquantes** : `CaseStudyHeader` traduit `sector.${s}` et `companySize.${size}` ; une valeur d'enum sans clé dans `messages/*.json` casse la page. `just typecheck` le détecte (Task 2, Step 6).
 - **Fixtures typées sur l'entreprise publique** : un champ en trop dans une fabrique de test fait échouer le typage après le passage en `select`. Traité à la Task 4, Step 5.
 
 ---

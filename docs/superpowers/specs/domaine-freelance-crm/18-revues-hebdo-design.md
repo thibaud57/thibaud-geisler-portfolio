@@ -29,7 +29,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 
 ## Références de design
 
-- **Maquette** : `isRevue` (vues `recent`, `calendar`, `table`, sélecteur de période, colonnes `REV_COLS`), `dlgReviewForm`, `dlgDeleteReview`, `dlgDetail`
+- **Maquette** : `isRevue` (vues `recent`, `calendar`, `table`, sélecteur de période, colonnes `REV_COLUMNS`), `dlgReviewForm`, `dlgDeleteReview`, `dlgDetail`
 - **Design system** : `patterns/DataTable`, `patterns/OptionsPopover`, `patterns/FacetFilter`, `patterns/PaginationFooter`, `patterns/DetailDialog`, `patterns/ConfirmDeleteDialog`, `patterns/RowActionButton`, `patterns/EmptyState`, `post-mvp/calendar/EventCalendar`, `core/Dialog`, `core/Select`, `core/Calendar`, `core/Popover`, `core/Input`, `core/Textarea`, `core/Badge`
 - Règle de lecture : `.claude/rules/design/claude-design.md`
 
@@ -94,7 +94,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 | Journal | `/admin/revues-hebdo/journal` | toutes | la plus récente d'abord |
 
   Titres et sous-titres de la maquette (`revViewTitle`, `revViewHint`), période par un `Select` au-dessus de la liste (`revPeriodItems`)
-- **Liste** (`ReviewsTable`, motif des listes admin) : colonnes de la maquette (`REV_COLS`, affichées par défaut celles de `revCols` dans Revue, toutes dans Journal, la vue complète, arbitrage « Colonnes par vue ») plus une colonne « Vendredi » affichée par défaut (vues Notion, décidé le 2026-09-27), les taux calculés dans leur colonne ; filtre Statut ; clic vers la vue détail
+- **Liste** (`ReviewsTable`, motif des listes admin) : colonnes de la maquette (`REV_COLUMNS`, affichées par défaut celles de `REV_VIEW_COLS.recent` dans Revue, toutes dans Journal, la vue complète, arbitrage « Colonnes par vue ») plus une colonne « Vendredi » affichée par défaut (vues Notion, décidé le 2026-09-27), les taux calculés dans leur colonne ; filtre Statut ; clic vers la vue détail
 - **Calendrier** (`ReviewsCalendar`, EventCalendar du `12`, vue mois) : une pastille par revue sur son vendredi, journée entière, couleur du statut (Bonne `success`, Moyenne `warning`, Mauvaise `destructive`, sans statut `muted-foreground`), clic vers la vue détail ; ni glisser ni création par clic sur un jour. Les textes français du calendrier du `12` sortent dans `src/lib/event-calendar-fr.ts`, communs aux deux calendriers
 - **Formulaire** (`ReviewFormDialog`) : Date vendredi (`Popover` et `Calendar`, seuls les vendredis choisissables, affichée par le libellé de sa semaine) et bouton « Calculer depuis le CRM » sur une même ligne ; Statut et Motivation ; les sept compteurs par paires (Connexions envoyées et acceptées, Messages envoyés et Conversations engagées, RDV décrochés et Entretiens, Leads actifs et la case en lecture seule « Taux acceptation · réponse · conversion », qui affiche les trois taux calculés et « Calculés à l'enregistrement » avant le premier enregistrement) ; Victoires, Blocages, Plan S+1 ; Notes (`Input` d'une ligne, aide « Une ligne de marqueurs, séparés par | »). Le bouton remplit les compteurs de la semaine choisie et le signale par un toast ; il est désactivé tant qu'aucun vendredi n'est choisi
 - **Vue détail** : titre au libellé de la semaine, sous-titre « clôture le <vendredi> » complété par « · motivation <motivation> » quand elle est renseignée, statut en tête ; blocs Prospection (connexions, messages, conversations, RDV, avec leurs taux), Pipeline (entretiens, leads actifs), Victoires, Blocages, Plan S+1, Notes ; un bloc sans donnée disparaît (arbitrage du `08`)

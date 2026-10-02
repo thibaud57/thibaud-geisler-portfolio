@@ -26,8 +26,8 @@
 ## Review Focus
 
 - **Action Répondu ou Converti sans date de réponse** : `applyStatusRules` y mettrait l'heure de la reprise et repousserait de plusieurs années l'échéance de conservation ; la simulation la refuse (Task 1, fichier d'essai en erreur).
-- **Entreprise du portfolio dont les champs CRM ont déjà été saisis** : les remplacer effacerait une saisie ; la simulation la signale au lieu d'écrire (Task 2, Step 2).
-- **Script lancé sur une autre base que la base locale** : refus avant toute lecture du fichier (Task 1, Step 6).
+- **Entreprise du portfolio dont les champs CRM ont déjà été saisis** : les remplacer effacerait une saisie ; la simulation la signale au lieu d'écrire (Task 1, Step 2).
+- **Script lancé sur une autre base que la base locale** : refus avant toute lecture du fichier (Task 1, Step 3).
 - **Reprise relancée sur une base déjà remplie** : refus tant que les tables CRM ne sont pas vides, la transaction n'ayant rien laissé à moitié (Task 2, Step 5).
 - **Saisie faite en production entre deux chargements** : le `TRUNCATE` l'effacerait ; la procédure la détecte avant le chargement (Task 3, puis Task 6, Step 1).
 

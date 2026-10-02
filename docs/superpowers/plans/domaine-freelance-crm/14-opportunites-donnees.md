@@ -427,6 +427,7 @@ const BASE_FIELDS = {
   workMode: NONE_VALUE,
   daysPerWeek: "",
   onSiteDays: "",
+  zone: NONE_VALUE,
   startMonth: "",
   durationMonths: "",
   notes: "",

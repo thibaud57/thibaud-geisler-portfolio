@@ -1495,12 +1495,14 @@ function buildInterviewDetail(
 ): DetailContent {
   const company = leadingCompany(interview)
   const { opportunity } = interview
+  const StatusIcon = INTERVIEW_STATUS_ICONS[interview.status]
 
   return {
     title,
     subtitle: company?.name ?? "",
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {INTERVIEW_STATUS_LABELS[interview.status]}
       </Badge>
     ),

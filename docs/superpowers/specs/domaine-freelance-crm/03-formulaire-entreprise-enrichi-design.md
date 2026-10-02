@@ -25,7 +25,7 @@ date: "2026-09-26"
 
 ## Références de design
 
-- **Maquette** : `isCompanyForm`, cards Identité, Classification, Relation et Notes
+- **Maquette** : `isCompanyForm`, cards Identité, Classification, Détails, Relation et Notes
 - **Design system** : `core/Card`, `core/Input`, `core/Label`, `core/Select`, `core/Combobox`, `core/Checkbox`, `core/Badge`, `core/Button`
 - Règle de lecture : `.claude/rules/design/claude-design.md`
 

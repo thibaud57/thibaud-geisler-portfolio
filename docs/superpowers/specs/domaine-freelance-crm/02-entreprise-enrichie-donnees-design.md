@@ -131,7 +131,7 @@ Aucune : ce sub-project est autoporté.
   - rejects a submitted but empty types list
   - rejects an unknown type
   - stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order
-  - defaults the relation status to active when the field is absent on creation
+  - leaves the relation status to the database default when the field is absent
   - rejects notes longer than 200 characters
   - stores empty notes and details as null
   - leaves every CRM field untouched when the form does not send it

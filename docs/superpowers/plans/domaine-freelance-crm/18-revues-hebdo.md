@@ -17,7 +17,7 @@
 - **Semaine** : les sept jours qui finissent le vendredi de clôture, du samedi 0 h au samedi suivant 0 h, fuseau `Europe/Paris` (règle de `/crm-weekly-review`) ; la revue stocke son vendredi (`@db.Date`), une seule par vendredi ; le formulaire n'accepte qu'un vendredi, par défaut aujourd'hui si c'est un vendredi, sinon le dernier passé. Aucun refus d'une semaine manquante : une semaine oubliée se rattrape. Libellé « S36 · Semaine du 31/08/2026 » : numéro de semaine ISO sur deux chiffres, puis date du lundi (vendredi − 4), écart à la maquette décidé par le propriétaire ; le vendredi a sa propre colonne « Vendredi ».
 - **Comptage** : Connexions envoyées (Connexion LinkedIn hors À faire, date d'envoi), Connexions acceptées (Connexion LinkedIn Répondu ou Converti, date de réponse), Messages envoyés (DM LinkedIn, Email, SMS/WhatsApp hors À faire, date d'envoi), Conversations engagées (ces canaux, Répondu ou Converti, date de réponse), RDV décrochés (ces canaux, Converti, date de réponse), Entretiens (entretiens au statut Fait, date dans la semaine), Leads actifs (personnes au rôle Lead, non opposées, au statut affiché Suspect, Discussion ou RDV planifié).
 - **Taux** : acceptation = acceptées / envoyées, réponse = conversations / messages, conversion RDV = RDV / conversations ; entier arrondi, « 50 % » (espace insécable), valeur absente (`null`, rendue par `EmptyValue`) si le dénominateur est nul.
-- **Textes** : « Une revue existe déjà pour cette semaine » (`review_week_exists`) ; « Choisissez un vendredi » ; « Un entier de 0 à 999 » ; titres, sous-titres, périodes, colonnes, formulaire et texte de suppression de la maquette (`revViewTitle`, `revViewHint`, `revPeriodItems`, `REV_COLS`, `dlgReviewForm` : « Clôturer la semaine » à la création, « Modifier S36 · Semaine du 31/08/2026 » (`weekLabel`) en modification, `dlgDeleteReview`). Le titre de suppression reste celui de `ConfirmDeleteDialog` (« Supprimer « Semaine du … » ? »), commun aux écrans admin.
+- **Textes** : « Une revue existe déjà pour cette semaine » (`review_week_exists`) ; « Choisissez un vendredi » ; « Un entier de 0 à 999 » ; titres, sous-titres, périodes, colonnes, formulaire et texte de suppression de la maquette (`revViewTitle`, `revViewHint`, `revPeriodItems`, `REV_COLUMNS`, `dlgReviewForm` : « Clôturer la semaine » à la création, « Modifier S36 · Semaine du 31/08/2026 » (`weekLabel`) en modification, `dlgDeleteReview`). Le titre de suppression reste celui de `ConfirmDeleteDialog` (« Supprimer « Semaine du … » ? »), commun aux écrans admin.
 - **Routes** : Revue `/admin/revues-hebdo`, Calendrier `/admin/revues-hebdo/calendrier`, Journal `/admin/revues-hebdo/journal`.
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
@@ -221,7 +221,7 @@ export const REVIEW_FIELD_LABELS = {
   acceptanceRate: "Taux acceptation",
   messagesSent: "Messages envoyés",
   conversationsEngaged: "Conversations engagées",
-  // Libellé court de la liste et de la vue détail (REV_COLS de la maquette), le formulaire gardant le long.
+  // Libellé court de la liste et de la vue détail (REV_COLUMNS de la maquette), le formulaire gardant le long.
   conversations: "Conversations",
   responseRate: "Taux réponse",
   meetingsBooked: "RDV décrochés",
@@ -666,7 +666,7 @@ export const REVIEW_COLUMN_WIDTHS = {
 
 export type ReviewColumnKey = keyof typeof REVIEW_COLUMN_WIDTHS
 
-// Revue : colonnes affichées de la maquette (revCols), plus le vendredi des vues Notion.
+// Revue : colonnes affichées de la maquette (REV_VIEW_COLS.recent), plus le vendredi des vues Notion.
 // Journal, la vue complète, montre toutes ses colonnes (arbitrage « Colonnes par vue »). Le calendrier,
 // sans table, garde celles de Revue pour son squelette de chargement.
 export const REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<ReviewView, readonly ReviewColumnKey[]> = {
@@ -1409,7 +1409,9 @@ import {
   formatRate,
   isoDayToDate,
   REVIEW_FIELD_LABELS as LABELS,
+  REVIEW_MOTIVATION_ICONS,
   REVIEW_MOTIVATION_LABELS,
+  REVIEW_STATUS_ICONS,
   REVIEW_STATUS_LABELS,
   reviewRates,
   weekLabel,
@@ -1605,6 +1607,7 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
           label={LABELS.status}
           options={REVIEW_STATUSES}
           labels={REVIEW_STATUS_LABELS}
+          icons={REVIEW_STATUS_ICONS}
           defaultValue={review?.status ?? NONE_VALUE}
           errors={state.errors.status}
           noneLabel="Non renseigné"
@@ -1616,6 +1619,7 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
           label={LABELS.motivation}
           options={REVIEW_MOTIVATIONS}
           labels={REVIEW_MOTIVATION_LABELS}
+          icons={REVIEW_MOTIVATION_ICONS}
           defaultValue={review?.motivation ?? NONE_VALUE}
           errors={state.errors.motivation}
           noneLabel="Non renseignée"
@@ -1901,7 +1905,7 @@ function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): Detai
     title: weekLabel(review.closingFriday),
     // La motivation n'a plus de bloc : elle se lit dans le sous-titre, à côté de la date de clôture.
     subtitle: review.motivation
-      ? `clôture le ${formatWeekDate(review.closingFriday)} · motivation ${REVIEW_MOTIVATION_LABELS[review.motivation]}`
+      ? `clôture le ${formatWeekDate(review.closingFriday)} · motivation ${REVIEW_MOTIVATION_LABELS[review.motivation].toLowerCase()}`
       : `clôture le ${formatWeekDate(review.closingFriday)}`,
     ...(review.status
       ? {
