@@ -180,7 +180,7 @@ Expected: PASS une fois la Task 2 faite (l'import de type exige le client Prisma
 
 **Interfaces:**
 - Consumes: modèle `Person` (`07`)
-- Produces: modèle `ProspectingAction`, enums `ActionChannel`, `ActionStatus`, relation `Person.prospectingActions` ; `ACTION_CHANNEL_LABELS`, `ACTION_STATUS_LABELS`, `PROSPECTING_ACTION_FIELD_LABELS`
+- Produces: modèle `ProspectingAction`, enums `ActionChannel`, `ActionStatus`, relation `Person.prospectingActions` ; `ACTION_CHANNEL_LABELS`, `ACTION_STATUS_LABELS`, `ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS`, `PROSPECTING_ACTION_FIELD_LABELS`
 
 - [ ] **Step 1 : Enums et modèle**
 
@@ -253,7 +253,10 @@ Expected: migration créée et appliquée en dev et en test : deux types d'enum,
 `src/lib/prospecting-actions.ts` :
 
 ```ts
+import { CircleCheck, ClipboardList, Mail, MessageCircle, MessageSquare, Phone, Reply, Target, UserPlus, VolumeX } from "lucide-react"
+
 import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export const ACTION_CHANNEL_LABELS: Record<ActionChannel, string> = {
   CANDIDATURE: "Candidature",
@@ -265,12 +268,31 @@ export const ACTION_CHANNEL_LABELS: Record<ActionChannel, string> = {
   AUTRE: "Autre",
 }
 
+// Candidature et Autre sans glyphe : non décidés par le propriétaire pour ce canal.
+export const ACTION_CHANNEL_ICONS: Record<ActionChannel, IconComponent | null> = {
+  CANDIDATURE: null,
+  CONNEXION_LINKEDIN: UserPlus,
+  DM_LINKEDIN: MessageSquare,
+  EMAIL: Mail,
+  SMS_WHATSAPP: MessageCircle,
+  CALL: Phone,
+  AUTRE: null,
+}
+
 export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
   A_FAIRE: "À faire",
   FAIT: "Fait",
   REPONDU: "Répondu",
   CONVERTI: "Converti",
   IGNORE: "Ignoré",
+}
+
+export const ACTION_STATUS_ICONS: Record<ActionStatus, IconComponent | null> = {
+  A_FAIRE: ClipboardList,
+  FAIT: CircleCheck,
+  REPONDU: Reply,
+  CONVERTI: Target,
+  IGNORE: VolumeX,
 }
 
 // personId parle de « Personne » ici : le formulaire choisit une personne, pas un rôle.

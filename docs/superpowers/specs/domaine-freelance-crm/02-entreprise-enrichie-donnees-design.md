@@ -28,8 +28,9 @@ Aucune : ce sub-project est autoporté.
 - **À modifier** : `prisma/schema.prisma` (enums `CompanyType`, `RelationStatus`, `Zone` créés, `CompanySector` renommé et complété, champs de `Company`)
 - **À créer** : `prisma/migrations/<horodatage>_company_crm_fields/migration.sql` (généré en `--create-only` puis édité : renommage de valeur, rattrapage des données)
 - **À modifier** : `src/lib/schemas/company.ts` (listes lues depuis les enums Prisma, nouveaux champs, secteurs facultatifs)
-- **À modifier** : `src/lib/companies.ts` (libellés des types, du statut de la relation, des tailles, des secteurs ajoutés, des nouveaux champs)
-- **À créer** : `src/lib/zones.ts` (libellés des zones, partagés avec leads et contacts)
+- **À modifier** : `src/lib/companies.ts` (libellés des types, du statut de la relation, des tailles, des secteurs ajoutés, des nouveaux champs, `COMPANY_TYPE_ICONS`, `COMPANY_STATUS_ICONS`)
+- **À créer** : `src/lib/zones.ts` (`ZONES` dans l'ordre canonique, `ZONE_LABELS`, `sortZones`, partagés avec leads et contacts)
+- **À créer** : `src/lib/zones.test.ts` (`sortZones`)
 - **À modifier** : `src/lib/server-utils.ts` (`optionalStringField`, `optionalStringValues` : champ absent du `FormData` distingué d'un champ vide, réutilisés par leads et contacts)
 - **À modifier** : `src/server/actions/companies.ts` (lecture des nouveaux champs, champ absent laissé inchangé)
 - **À modifier** : `src/server/actions/companies.test.ts` (cas des nouveaux champs ; le cas « rejects an empty sectors list » devient « accepts an empty sectors list »)
@@ -44,7 +45,7 @@ Aucune : ce sub-project est autoporté.
 - **Modèle** (`.claude/rules/prisma/schema-migrations.md`) : sur `Company`, schema `freelance` :
   - `types CompanyType[] @default([])` : `CLIENT_FINAL`, `ESN_RECRUTEMENT`, `PARTENAIRE`, `MA_SOCIETE`
   - `relationStatus RelationStatus @default(ACTIVE)` : `ACTIVE`, `DORMANTE`, `ARCHIVEE`
-  - `zones Zone[] @default([])` : `LUXEMBOURG`, `GRAND_EST`, `PARIS`, `FRANCE`, `BELGIQUE`, `SUISSE`, `ALLEMAGNE`, `EUROPE`, `MONDE`. L'enum `Zone` est partagé : leads et contacts le reprendront au singulier, l'absence de zone remplace la valeur « Inconnu » de Notion
+  - `zones Zone[] @default([])` : `GRAND_EST`, `PARIS`, `FRANCE`, `LUXEMBOURG`, `BELGIQUE`, `SUISSE`, `ALLEMAGNE`, `EUROPE`, `MONDE`, ordre canonique. L'enum `Zone` est partagé : leads et contacts le reprendront au singulier, l'absence de zone remplace la valeur « Inconnu » de Notion
   - `notes String?` : ligne courte de marqueurs (calquée sur la propriété Notes d'une ligne de Notion), au plus 200 caractères
   - `details String?` : corps de fiche markdown long (calqué sur le corps de page structuré de Notion), saisi avec l'éditeur Pages CMS Editor (`03`, ADR-024), rendu dans la vue détail par `MarkdownContent`
   - `CompanySector` : `EMARKETING` renommé `MARKETING_COMMUNICATION`, ajout de `INDUSTRIE`, `HEALTHTECH`, `SECTEUR_PUBLIC`
@@ -66,7 +67,9 @@ Aucune : ce sub-project est autoporté.
   - les listes (`types`, `zones`) se lisent par `getAll` en écartant les chaînes vides, que le formulaire du `03` envoie pour signaler une liste vidée
   - invalidation inchangée : tag `projects` et chemin `/admin/entreprises` (`.claude/rules/nextjs/rendering-caching.md`)
 - **Lecture publique** : `PROJECT_INCLUDE` remplace `company: true` par un `select` de `id`, `slug`, `name`, `logoFilename`, `websiteUrl`, `sectors`, `size`, les seuls champs que `CaseStudyHeader` et `ProjectCard` affichent. Les notes, détails, types et statut ne quittent jamais le serveur
-- **Libellés** : `src/lib/companies.ts` porte les libellés des types (« Client final (donneur d'ordre) », « ESN / Recrutement », « Partenaire », « Ma société »), du statut (« Active », « Dormante », « Archivée »), des tailles, des secteurs ajoutés et `COMPANY_FIELD_LABELS.details = "Détails"` ; `src/lib/zones.ts` ceux des zones. Les champs à plusieurs valeurs ont un libellé au pluriel : « Types », « Secteurs », « Zones »
+- **Libellés** : `src/lib/companies.ts` porte les libellés des types (« Client final », « ESN / Recrutement », « Partenaire », « Ma société »), du statut (« Active », « Dormante », « Archivée »), des tailles, des secteurs ajoutés et `COMPANY_FIELD_LABELS.details = "Détails"` ; `src/lib/zones.ts` ceux des zones. Les champs à plusieurs valeurs ont un libellé au pluriel : « Types », « Secteurs », « Zones »
+- **Glyphes** : `src/lib/companies.ts` exporte aussi `COMPANY_TYPE_ICONS: Record<CompanyType, IconComponent | null>` (Client final `Building2`, ESN / Recrutement `Network`, Partenaire `Handshake`, Ma société `House`) et `COMPANY_STATUS_ICONS: Record<RelationStatus, IconComponent | null>` (Active `CircleCheck`, Dormante `Moon`, Archivée `Archive`), imports nommés depuis `lucide-react`, type `IconComponent` de `@/lib/icons`
+- **Tri des zones** : `src/lib/zones.ts` exporte `sortZones(zones: Zone[]): Zone[]`, qui trie selon l'ordre canonique de `ZONES`. Utilisée dans `companySchema` pour trier `zones` avant écriture ; les sub-projects `03` et `04` l'emploient à l'affichage
 - **Tailles** : catégories légales ([INSEE, décret n° 2008-1354](https://www.insee.fr/fr/metadonnees/definition/c1057)). En admin, le badge porte le nom court (`COMPANY_SIZE_LABELS`) et son tooltip l'effectif (`COMPANY_SIZE_HEADCOUNTS`) : le badge tient dans une colonne étroite, l'effectif reste à un survol (décision du propriétaire, 2026-10-01). Le site public garde le libellé complet :
 
 | Valeur | Admin, badge | Admin, tooltip | Site FR | Site EN |
@@ -121,11 +124,13 @@ Aucune : ce sub-project est autoporté.
 ## Tests à écrire
 
 ### Unit
+- `src/lib/zones.test.ts` :
+  - sorts zones into the canonical order regardless of submission order
 - `src/server/actions/companies.test.ts` :
   - accepts an empty sectors list
   - rejects a submitted but empty types list
   - rejects an unknown type
-  - stores the submitted types, zones, relation status, notes and details
+  - stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order
   - defaults the relation status to active when the field is absent on creation
   - rejects notes longer than 200 characters
   - stores empty notes and details as null

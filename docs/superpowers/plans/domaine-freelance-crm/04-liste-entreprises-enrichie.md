@@ -30,6 +30,8 @@
 - **Statut répété dans la vue détail** : l'arbitrage interdit de répéter en bloc ce que porte l'en-tête. Le bloc Relation ne contient pas le statut.
 - **Notes et Détails** : `notes` est une ligne courte (200 caractères au plus, `02`), en cellule comme en vue détail ; le markdown long vit dans `details`, rendu par `MarkdownContent` dans son propre bloc. Chacun des deux blocs disparaît quand son champ est vide, pour ne pas montrer un bloc sans donnée. Vérifié à la Task 5, Step 4.
 - **`worked` mal filtré** : un projet `PERSONAL` (ex. la société du propriétaire) crée lui aussi un `ClientMeta` et ne doit pas compter comme travaillée, seul un projet `CLIENT` le doit ; `toAdminCompany` est le seul endroit qui pose `worked`, pour que le `15` étende cette même ligne sans dupliquer la règle. Vérifié à la Task 5, Step 3.
+- **Nom répété dans Identité** : le bloc Identité de la vue détail ne reprend pas `name`, déjà porté par l'en-tête (`title: company.name`) ; sinon le même nom apparaît deux fois. Vérifié à la Task 5, Step 4.
+- **`BadgeList` sans `icons`** : le prop reste optionnel pour Secteurs, qui n'a pas de glyphe ; lui en passer un ferait basculer ses badges sur `EnumBadge` sans table d'icônes derrière. Vérifié à la Task 3, Step 4.
 
 ---
 
@@ -173,11 +175,13 @@ Expected: aucune erreur dans `src/server/queries/companies.ts` ; les erreurs res
 
 **Files:**
 - Modify: `src/components/markdown/MarkdownContent.tsx` (variante `admin`)
+- Create: `src/components/features/admin/EnumBadge.tsx`
+- Modify: `src/components/features/admin/BadgeList.tsx` (prop `icons` optionnelle)
 - Modify: `src/components/features/admin/companies/CompaniesTable.tsx` (remplacement complet)
 
 **Interfaces:**
-- Consumes: Task 1, Task 2 ; `ADMIN_MARKDOWN_CLASS` (`03`, `@/lib/typography`) ; `AdminCompany` (`@/server/queries/companies`) ; libellés `@/lib/companies`, `@/lib/zones` ; `COMPANY_TYPES`, `RELATION_STATUSES` (`@/lib/schemas/company`)
-- Produces: `CompaniesTable({ companies, view }: { companies: readonly AdminCompany[]; view: CompanyView })`. La prop `workedOnly` disparaît. `MarkdownContent` gagne `variant?: "public" | "admin"`, que les vues détail des plans `08`, `13`, `15` et `17` réutilisent.
+- Consumes: Task 1, Task 2 ; `ADMIN_MARKDOWN_CLASS` (`03`, `@/lib/typography`) ; `AdminCompany` (`@/server/queries/companies`) ; libellés et glyphes `@/lib/companies` (`COMPANY_TYPE_ICONS`, `COMPANY_STATUS_ICONS`), `@/lib/zones` ; `COMPANY_TYPES`, `RELATION_STATUSES` (`@/lib/schemas/company`) ; `IconComponent` (`@/lib/icons`)
+- Produces: `EnumBadge({ label, icon }: { label: string; icon: IconComponent | null })` ; `BadgeList` étendu de la prop `icons?: Partial<Record<string, IconComponent | null>>` ; `CompaniesTable({ companies, view }: { companies: readonly AdminCompany[]; view: CompanyView })`. La prop `workedOnly` disparaît. `MarkdownContent` gagne `variant?: "public" | "admin"`, que les vues détail des plans `08`, `13`, `15` et `17` réutilisent.
 
 - [ ] **Step 1 : Variante admin de `MarkdownContent`**
 
@@ -224,7 +228,73 @@ et remplacer le `className` du `div` racine par :
 
 Les pages publiques (case study, pages légales) n'en changent pas : elles gardent la variante par défaut.
 
-- [ ] **Step 2 : Réécrire `CompaniesTable.tsx`**
+- [ ] **Step 2 : Créer `EnumBadge` et étendre `BadgeList`**
+
+Créer `src/components/features/admin/EnumBadge.tsx` :
+
+```tsx
+import { Badge } from "@/components/ui/badge"
+import type { IconComponent } from "@/lib/icons"
+
+interface Props {
+  label: string
+  icon: IconComponent | null
+}
+
+// Première liste à badges d'énumération du domaine CRM (02, décision 7) : réutilisé par les plans suivants.
+export function EnumBadge({ label, icon: Icon }: Props) {
+  return (
+    <Badge variant="secondary">
+      {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+      {label}
+    </Badge>
+  )
+}
+```
+
+Dans `src/components/features/admin/BadgeList.tsx`, ajouter l'import et la prop :
+
+```tsx
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
+import type { IconComponent } from "@/lib/icons"
+```
+
+```ts
+interface Props {
+  labels: readonly string[]
+  noun: string
+  max?: number
+  empty?: ReactNode
+  // Fournie : chaque badge bascule sur EnumBadge. Absente : rendu inchangé (secteurs, sans glyphe).
+  icons?: Partial<Record<string, IconComponent | null>>
+}
+
+export function BadgeList({
+  labels,
+  noun,
+  max = MAX_VISIBLE,
+  empty = <EmptyValue />,
+  icons,
+}: Props) {
+```
+
+et remplacer le rendu des badges visibles :
+
+```tsx
+      {shown.map((label) =>
+        icons ? (
+          <EnumBadge key={label} label={label} icon={icons[label] ?? null} />
+        ) : (
+          <Badge key={label} variant="secondary">
+            {label}
+          </Badge>
+        ),
+      )}
+```
+
+Le reste de `BadgeList` (le « +N » et son `Tooltip`) ne change pas.
+
+- [ ] **Step 3 : Réécrire `CompaniesTable.tsx`**
 
 ```tsx
 "use client"
@@ -246,6 +316,7 @@ import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
 import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
 import { BadgeList } from "@/components/features/admin/BadgeList"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
@@ -263,6 +334,8 @@ import {
   COMPANY_SECTOR_LABELS,
   COMPANY_SIZE_HEADCOUNTS,
   COMPANY_SIZE_LABELS,
+  COMPANY_STATUS_ICONS,
+  COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
   RELATION_STATUS_LABELS,
 } from "@/lib/companies"
@@ -294,6 +367,11 @@ function sectorLabels(company: AdminCompany): string[] {
 function zoneLabels(company: AdminCompany): string[] {
   return company.zones.map((zone) => ZONE_LABELS[zone])
 }
+
+// Glyphe par libellé plutôt que par valeur : BadgeList ne connaît que les libellés déjà résolus.
+const TYPE_ICONS_BY_LABEL = Object.fromEntries(
+  COMPANY_TYPES.map((type) => [COMPANY_TYPE_LABELS[type], COMPANY_TYPE_ICONS[type]]),
+)
 
 function sizeBadge(company: AdminCompany) {
   if (!company.size) return null
@@ -341,7 +419,9 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.types,
       width: COMPANY_COLUMN_WIDTHS.types,
       ...hideable(view, "types"),
-      cell: (company) => <BadgeList labels={typeLabels(company)} noun="types" />,
+      cell: (company) => (
+        <BadgeList labels={typeLabels(company)} noun="types" icons={TYPE_ICONS_BY_LABEL} />
+      ),
     },
     {
       key: "sectors",
@@ -355,7 +435,8 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.zones,
       width: COMPANY_COLUMN_WIDTHS.zones,
       ...hideable(view, "zones"),
-      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" />,
+      // Zone est une énumération comme Type, mais sans glyphe à ce jour (02, décision 7) : icons={{}} bascule tout de même sur EnumBadge.
+      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" icons={{}} />,
     },
     {
       key: "size",
@@ -370,7 +451,10 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       width: COMPANY_COLUMN_WIDTHS.relationStatus,
       ...hideable(view, "relationStatus"),
       cell: (company) => (
-        <Badge variant="secondary">{RELATION_STATUS_LABELS[company.relationStatus]}</Badge>
+        <EnumBadge
+          label={RELATION_STATUS_LABELS[company.relationStatus]}
+          icon={COMPANY_STATUS_ICONS[company.relationStatus]}
+        />
       ),
     },
     {
@@ -458,28 +542,32 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
       ]
     : []
 
+  const StatusIcon = COMPANY_STATUS_ICONS[company.relationStatus]
+
   return {
     title: company.name,
     slug: company.slug,
     subtitle: `${projectCount} projet${projectCount > 1 ? "s" : ""}`,
     status: (
       <Badge variant="outline" meta>
+        {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
         {RELATION_STATUS_LABELS[company.relationStatus]}
       </Badge>
     ),
     sections: [
-      // Reprend les champs de la card du formulaire, dans l'ordre, moins slug et statut déjà dans l'en-tête.
+      // Reprend les blocs de la card du formulaire, dans l'ordre, moins le nom et le statut déjà dans l'en-tête.
       {
         title: COMPANY_SECTION_TITLES.identity,
         rows: [
-          { label: COMPANY_FIELD_LABELS.name, value: company.name },
           {
             label: COMPANY_FIELD_LABELS.websiteUrl,
             value: <ExternalUrl url={company.websiteUrl} className="wrap-anywhere" />,
           },
           {
             label: COMPANY_FIELD_LABELS.zones,
-            value: <BadgeList labels={zoneLabels(company)} noun="zones" max={Infinity} />,
+            value: (
+              <BadgeList labels={zoneLabels(company)} noun="zones" max={Infinity} icons={{}} />
+            ),
           },
         ],
       },
@@ -488,7 +576,14 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         rows: [
           {
             label: COMPANY_FIELD_LABELS.types,
-            value: <BadgeList labels={typeLabels(company)} noun="types" max={Infinity} />,
+            value: (
+              <BadgeList
+                labels={typeLabels(company)}
+                noun="types"
+                max={Infinity}
+                icons={TYPE_ICONS_BY_LABEL}
+              />
+            ),
           },
           {
             label: COMPANY_FIELD_LABELS.sectors,
@@ -496,10 +591,7 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
           },
         ],
       },
-      {
-        title: COMPANY_SECTION_TITLES.legalEntity,
-        rows: [{ value: company.legalEntity?.name }],
-      },
+      ...detailsSections,
       {
         title: COMPANY_SECTION_TITLES.relation,
         rows: [
@@ -518,7 +610,10 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         ],
       },
       ...notesSections,
-      ...detailsSections,
+      {
+        title: COMPANY_SECTION_TITLES.legalEntity,
+        rows: [{ value: company.legalEntity?.name }],
+      },
     ],
     onEdit,
   }
@@ -598,7 +693,7 @@ export function CompaniesTable({ companies, view }: Props) {
 }
 ```
 
-- [ ] **Step 3 : Vérifier le typage**
+- [ ] **Step 4 : Vérifier le typage**
 
 Run: `just typecheck`
 Expected: plus d'erreur dans `CompaniesTable.tsx` ; seules les pages restent en erreur (`workedOnly`, `COMPANY_SKELETON_WIDTHS`), corrigées à la Task 4.
@@ -791,4 +886,4 @@ Dans Toutes, filtrer sur la zone Luxembourg puis sur un type.
 Expected: seules les lignes correspondantes restent, les compteurs comptent une entreprise à plusieurs zones dans chacune.
 
 Cliquer la ligne de l'ESN.
-Expected: blocs Identité, Classification, Entité légale, Relation, Logo, Notes, Détails ; statut de la relation en tête, absent du bloc Relation ; le bloc Détails rend le markdown (titre, liste) comme sur le site public. Une entreprise sans notes n'a pas de bloc Notes, une entreprise sans détails n'a pas de bloc Détails. Puis `just stop`.
+Expected: blocs Identité, Classification, Détails, Relation, Logo, Notes, Entité légale, dans cet ordre ; statut de la relation en tête avec son glyphe, absent du bloc Relation ; les badges Types portent leur glyphe ; le bloc Détails rend le markdown (titre, liste) comme sur le site public. Une entreprise sans notes n'a pas de bloc Notes, une entreprise sans détails n'a pas de bloc Détails. Puis `just stop`.

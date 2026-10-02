@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ajouter à une personne le rôle `Contact` (réseau durable, clé `personId`), ses Server Actions et l'écran Contacts (liste, page de création et de modification en cards, détail avec bloc Pipeline symétrique, suppression), où choisir une personne existante sans rôle Contact remplit le formulaire depuis elle, en lecture.
+**Goal:** Ajouter à une personne le rôle `Contact` (réseau durable, clé `personId`), ses Server Actions et l'écran Contacts (liste, page de création et de modification en cards, détail avec bloc Pipeline symétrique, suppression), où choisir « Depuis un lead » un lead sans rôle Contact remplit le formulaire depuis lui, en lecture.
 
 **Architecture:** `Contact` ne porte plus que le rôle (`07`, motif `Lead`) : identité, coordonnées, entreprise, localité et opposition vivent sur `Person`. Les actions vérifient l'identité avant d'écrire une nouvelle personne, ou posent le rôle sur une personne existante après avoir revérifié côté serveur qu'elle n'est ni opposée ni déjà pourvue de ce rôle ; `deleteContact` et `deleteLead` (`07`, complété ici) ne suppriment la personne que si elle ne porte plus aucun rôle. Le formulaire est une page en cards sur le motif de `LeadForm` (`08`) ; les dialogues RGPD `OptOutPersonDialog` et `ErasePersonExchangesDialog` (`08`) servent tels quels, leur prop `person` élargie à la forme structurelle commune aux deux rôles.
 
@@ -14,7 +14,7 @@
 
 - **Prérequis** : plans `07` (`Person`, `Lead`, `personFields`, `linkedin.ts`, `job-roles.ts`, `persons.ts`, `PersonLockedError`, `optOutPerson`, `erasePersonExchanges`), `08` (`LeadForm`, `PERSON_SECTION_TITLES`, `OptOutPersonDialog`, `ErasePersonExchangesDialog`, `DetailDialog` à `onEdit` facultatif, `findCompanyOptions`, `details-templates.ts`), `09` (`ProspectingAction.personId`, `respondedAt`, `occurredAt`, `status`), `10` (`src/lib/person-retention.ts`) implémentés.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : le contact se crée sur `/admin/contacts/nouveau` et se modifie sur `/admin/contacts/<id>`, `<id>` étant l'id de la personne.
-- **Personne existante** : à la création seulement, `createContact` reçoit un `personId` facultatif. Fourni, l'action pose le rôle Contact sur cette personne sans écrire ses champs ; les champs de personne envoyés dans le formulaire sont validés mais ignorés : ils doivent donc rester ceux de la personne choisie (le formulaire les affiche en lecture, jamais vides).
+- **Depuis un lead** : à la création seulement, `createContact` reçoit un `personId` facultatif. Fourni, l'action pose le rôle Contact sur cette personne sans écrire ses champs ; les champs de personne envoyés dans le formulaire sont validés mais ignorés : ils doivent donc rester ceux du lead choisi (le formulaire les affiche en lecture, jamais vides). Le champ `Lead` du formulaire ne propose que des leads (`findLeadsWithoutContactRole()`), pas n'importe quelle personne.
 - **Enums, valeurs exactes** : `ContactType` `COLLEGUE`, `CLIENT`, `PARTENAIRE`, `MENTOR`, `CONTACT_TECH`, `COMMERCIAL` ; `ContactStatus` `ACTIF`, `INACTIF`, `A_RECONTACTER` (défaut `ACTIF`).
 - **Messages** : « Ce contact existe déjà : <nom> » (`contact_exists`, sur `email`/`linkedinUrl` pour un doublon d'identité, sur `personId` pour une personne qui a déjà le rôle), « Cette personne s'est opposée à la prospection le JJ/MM/AAAA » (`contact_opted_out`, fuseau `Europe/Paris`), `contact_opted_out_locked`, `company_not_found`, `person_not_found`, `unknown_error`.
 - **Opposition** : plus d'`optOutContact` propre au contact ; `optOutPerson` et `erasePersonExchanges` (`07`) s'appliquent à la personne, quel que soit son rôle.
@@ -31,7 +31,7 @@
 - **Personne déjà pourvue du rôle entre l'affichage du picker et l'envoi** : `createContact` revérifie côté serveur. Couvert par « refuses to attach the contact role to a person who already has it » (Task 2).
 - **Suppression avec l'autre rôle présent** : `deleteContact` et `deleteLead` gardent la personne. Couvert par « keeps the person when it still has the lead role » (Task 2) et « keeps the person when it still has the contact role » (Task 2, `leads.test.ts`).
 - **Dialogues RGPD partagés** : `OptOutPersonDialog` et `ErasePersonExchangesDialog` acceptent un `AdminContact` sans modification de leur JSX, seul leur type `person` change. Vérifié au typecheck de la Task 4.
-- **Bloc symétrique** : la vue détail du lead montre le rôle Contact quand il existe, réciproquement pour celle du contact, chacun menant à l'autre page par le même id. Vérifié à la Task 7, Step 2.
+- **Bloc symétrique** : la vue détail du lead montre le rôle Contact quand il existe, réciproquement pour celle du contact, chacun menant à l'autre fiche (`?detail=`) par le même id. Vérifié à la Task 8, Step 2.
 
 ---
 
@@ -44,7 +44,7 @@
 
 **Interfaces:**
 - Consumes: modèle `Person` (`07`)
-- Produces: modèle `Contact`, enums `ContactType`, `ContactStatus` ; `CONTACT_TYPE_LABELS`, `CONTACT_STATUS_LABELS`, `CONTACT_FIELD_LABELS`, `CONTACT_SECTION_TITLES` (`@/lib/contacts`)
+- Produces: modèle `Contact`, enums `ContactType`, `ContactStatus` ; `CONTACT_TYPE_LABELS`, `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_ICONS`, `CONTACT_STATUS_ICONS`, `CONTACT_FIELD_LABELS`, `CONTACT_SECTION_TITLES` (`@/lib/contacts`)
 
 - [ ] **Step 1 : Enums et modèle**
 
@@ -100,7 +100,10 @@ Expected: migration créée et appliquée en dev et en test ; elle crée les deu
 Créer `src/lib/contacts.ts` :
 
 ```ts
+import { Briefcase, Building2, Code, GraduationCap, Handshake, Moon, Users, Bell, CircleCheck } from "lucide-react"
+
 import type { ContactStatus, ContactType } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export const CONTACT_TYPE_LABELS: Record<ContactType, string> = {
   COLLEGUE: "Collègue",
@@ -111,10 +114,25 @@ export const CONTACT_TYPE_LABELS: Record<ContactType, string> = {
   COMMERCIAL: "Commercial",
 }
 
+export const CONTACT_TYPE_ICONS: Record<ContactType, IconComponent | null> = {
+  COLLEGUE: Users,
+  CLIENT: Building2,
+  PARTENAIRE: Handshake,
+  MENTOR: GraduationCap,
+  CONTACT_TECH: Code,
+  COMMERCIAL: Briefcase,
+}
+
 export const CONTACT_STATUS_LABELS: Record<ContactStatus, string> = {
   ACTIF: "Actif",
   INACTIF: "Inactif",
   A_RECONTACTER: "À recontacter",
+}
+
+export const CONTACT_STATUS_ICONS: Record<ContactStatus, IconComponent | null> = {
+  ACTIF: CircleCheck,
+  INACTIF: Moon,
+  A_RECONTACTER: Bell,
 }
 
 // Uniquement les champs du rôle : ceux de la personne vivent dans PERSON_FIELD_LABELS (`@/lib/persons`).
@@ -122,7 +140,7 @@ export const CONTACT_FIELD_LABELS = {
   types: "Type",
   status: "Statut",
   lastInteractionAt: "Dernière interaction",
-  reviewAt: "À revoir le",
+  reviewAt: "À conserver jusqu'au",
 } as const
 
 export const CONTACT_SECTION_TITLES = {
@@ -817,7 +835,7 @@ Expected: aucune erreur.
 
 **Interfaces:**
 - Consumes: modèle `Contact` (Task 1) ; `personDisplayName` (`07`, `@/lib/persons`)
-- Produces: `AdminContact`, `findAllContactsForAdmin(): Promise<AdminContact[]>`, `findContactByIdForAdmin(personId: string): Promise<AdminContact | null>` (`@/server/queries/contacts`) ; `AdminLead.hasContactRole` calculé et `AdminLead.contactRole` (`@/server/queries/leads`) ; `PersonWithoutContactRole`, `findPersonsWithoutContactRole()` (`@/server/queries/persons`) ; `LEAD_SECTION_TITLES.network` (`@/lib/leads`) ; `CONTACT_DETAILS_TEMPLATE` (`@/lib/details-templates`) ; `CONTACT_COLUMN_WIDTHS`, `ContactColumnKey`, `CONTACT_DEFAULT_VISIBLE_COLUMNS`, `contactSkeletonWidths()` (`@/lib/admin-table-widths`)
+- Produces: `AdminContact`, `findAllContactsForAdmin(): Promise<AdminContact[]>`, `findContactByIdForAdmin(personId: string): Promise<AdminContact | null>` (`@/server/queries/contacts`) ; `AdminLead.hasContactRole` calculé et `AdminLead.contactRole` (`@/server/queries/leads`) ; `LeadWithoutContactRole`, `findLeadsWithoutContactRole()` (`@/server/queries/persons`) ; `LEAD_SECTION_TITLES.network` (`@/lib/leads`) ; `CONTACT_DETAILS_TEMPLATE` (`@/lib/details-templates`) ; `CONTACT_COLUMN_WIDTHS`, `ContactColumnKey`, `CONTACT_DEFAULT_VISIBLE_COLUMNS`, `contactSkeletonWidths()` (`@/lib/admin-table-widths`)
 
 - [ ] **Step 1 : Lectures des contacts**
 
@@ -968,12 +986,12 @@ Dans `toAdminLead`, remplacer `hasContactRole: false,` par :
 
 À la fin de `LEAD_SECTION_TITLES` dans `src/lib/leads.ts`, ajouter `network: "Réseau",` après `pipeline: "Pipeline",`.
 
-- [ ] **Step 4 : Personnes sans rôle Contact**
+- [ ] **Step 4 : Leads sans rôle Contact**
 
-Dans `src/server/queries/persons.ts` (`JobRole` et `Zone` déjà importés par `07` pour `PersonWithoutLeadRole`), à la fin du fichier :
+Dans `src/server/queries/persons.ts` (`JobRole` et `Zone` déjà importés par `07`), à la fin du fichier :
 
 ```ts
-export interface PersonWithoutContactRole {
+export interface LeadWithoutContactRole {
   id: string
   name: string | null
   jobRole: JobRole | null
@@ -981,17 +999,15 @@ export interface PersonWithoutContactRole {
   email: string | null
   phone: string | null
   linkedinUrl: string | null
-  metAt: Date | null
   notes: string | null
   details: string | null
   company: { id: string; name: string } | null
-  hasLeadRole: boolean
 }
 
-// Pour le formulaire contact : choisir une de ces personnes remplit ses champs en lecture, sans jamais rien copier avant l'enregistrement.
-export async function findPersonsWithoutContactRole(): Promise<PersonWithoutContactRole[]> {
-  const rows = await prisma.person.findMany({
-    where: { optedOutAt: null, contact: { is: null } },
+// Pour le formulaire contact, choix « Depuis un lead » : choisir un de ces leads remplit ses champs en lecture, sans jamais rien copier avant l'enregistrement. Scopé au rôle Lead (`lead: { isNot: null }`) : promouvoir un lead, pas n'importe quelle personne.
+export async function findLeadsWithoutContactRole(): Promise<LeadWithoutContactRole[]> {
+  return prisma.person.findMany({
+    where: { optedOutAt: null, contact: { is: null }, lead: { isNot: null } },
     select: {
       id: true,
       name: true,
@@ -1000,15 +1016,12 @@ export async function findPersonsWithoutContactRole(): Promise<PersonWithoutCont
       email: true,
       phone: true,
       linkedinUrl: true,
-      metAt: true,
       notes: true,
       details: true,
       company: { select: { id: true, name: true } },
-      lead: { select: { personId: true } },
     },
     orderBy: { name: { sort: "asc", nulls: "last" } },
   })
-  return rows.map(({ lead, ...person }) => ({ ...person, hasLeadRole: lead !== null }))
 }
 ```
 
@@ -1083,7 +1096,7 @@ export const CONTACT_COLUMN_WIDTHS = {
 
 export type ContactColumnKey = keyof typeof CONTACT_COLUMN_WIDTHS
 
-// Colonnes affichées de la maquette (CT_COLS) ; Téléphone et « À revoir le » masquables.
+// Colonnes affichées de la maquette (CT_COLS) ; Téléphone et « À conserver jusqu'au » masquables.
 export const CONTACT_DEFAULT_VISIBLE_COLUMNS: readonly ContactColumnKey[] = [
   "types",
   "company",
@@ -1111,19 +1124,52 @@ Expected: aucune erreur.
 ### Task 4 : Formulaire du contact
 
 **Files:**
+- Create: `src/components/features/admin/ReadOnlyField.tsx`
 - Create: `src/components/features/admin/contacts/ContactForm.tsx`
 - Create: `src/app/admin/(protected)/contacts/nouveau/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/contacts/[id]/page.tsx` et `loading.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 1 à 3 ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/`08`, `@/lib/persons`) ; `optOutPerson` (`07`, via `OptOutPersonDialog`) ; `OptOutTarget`, `OptOutPersonDialog`, `SelectField`, `ReadOnlyField` (`08`) ; `Editor` (`03`) ; `ComboboxPopover`, `Checkbox`, `FormField`, `Card`, `AdminBreadcrumb`, `StackedSkeleton`, `RadioGroup`, `MarkdownContent` ; `findCompanyOptions` (`08`) ; `findPersonsWithoutContactRole` (Task 3)
-- Produces: `ContactForm({ contact, companyOptions, personOptions }: { contact: AdminContact | null; companyOptions: readonly CompanyOption[]; personOptions: readonly PersonWithoutContactRole[] })` ; routes `/admin/contacts/nouveau` et `/admin/contacts/<id>`
+- Consumes: Tasks 1 à 3 ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/`08`, `@/lib/persons`) ; `optOutPerson` (`07`, via `OptOutPersonDialog`) ; `OptOutTarget`, `OptOutPersonDialog`, `SelectField` (`08`) ; `Editor` (`03`) ; `ComboboxPopover`, `Checkbox`, `FormField`, `Card`, `AdminBreadcrumb`, `StackedSkeleton`, `RadioGroup` ; `findCompanyOptions` (`08`) ; `findLeadsWithoutContactRole` (Task 3)
+- Produces: `ReadOnlyField` (`@/components/features/admin/ReadOnlyField`, créé ici, repris tel quel du `08`) ; `ContactForm({ contact, companyOptions, leadOptions }: { contact: AdminContact | null; companyOptions: readonly CompanyOption[]; leadOptions: readonly LeadWithoutContactRole[] })` ; routes `/admin/contacts/nouveau` et `/admin/contacts/<id>`
 
 `AdminLead` et `AdminContact` portent chacun un sur-ensemble d'`OptOutTarget` (`08`) : `OptOutPersonDialog` et `ErasePersonExchangesDialog` s'utilisent ici tels quels, sans rien y changer.
 
-- [ ] **Step 1 : Formulaire en cards**
+- [ ] **Step 1 : Champ en lecture, partagé avec un futur formulaire « depuis un lead »**
 
-`src/components/features/admin/contacts/ContactForm.tsx`, sur le motif de `LeadForm` (`08`), `SelectField` et `ReadOnlyField` importés du même endroit partagé :
+Le `08` ne pose plus de choix « Personne existante » sur `LeadForm`, ce champ n'y est donc plus consommé : `ContactForm` en devient le premier et seul consommateur, qui le crée.
+
+`src/components/features/admin/ReadOnlyField.tsx` (le lead choisi se lit, jamais ne s'édite : la valeur réelle voyage par un champ caché) :
+
+```tsx
+import { FormField } from "@/components/ui/form-field"
+
+interface Props {
+  id: string
+  label: string
+  name: string
+  value: string
+  display: string
+}
+
+export function ReadOnlyField({ id, label, name, value, display }: Props) {
+  return (
+    <FormField id={id} label={label} errors={undefined}>
+      <p
+        id={id}
+        className="flex h-9 items-center truncate rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground"
+      >
+        {display}
+      </p>
+      <input type="hidden" name={name} value={value} />
+    </FormField>
+  )
+}
+```
+
+- [ ] **Step 2 : Formulaire en cards**
+
+`src/components/features/admin/contacts/ContactForm.tsx`, sur le motif de `LeadForm` (`08`), `SelectField` importé du même endroit partagé :
 
 ```tsx
 "use client"
@@ -1139,7 +1185,6 @@ import { OptOutPersonDialog } from "@/components/features/admin/persons/OptOutPe
 import { ReadOnlyField } from "@/components/features/admin/ReadOnlyField"
 import { SelectField } from "@/components/features/admin/SelectField"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -1154,7 +1199,9 @@ import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
   CONTACT_FIELD_LABELS,
   CONTACT_SECTION_TITLES,
+  CONTACT_STATUS_ICONS,
   CONTACT_STATUS_LABELS,
+  CONTACT_TYPE_ICONS,
   CONTACT_TYPE_LABELS,
 } from "@/lib/contacts"
 import { CONTACT_DETAILS_TEMPLATE } from "@/lib/details-templates"
@@ -1168,33 +1215,34 @@ import { createContact, updateContact } from "@/server/actions/contacts"
 import { initialContactFormState } from "@/server/actions/contacts.types"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminContact } from "@/server/queries/contacts"
-import type { PersonWithoutContactRole } from "@/server/queries/persons"
+import type { LeadWithoutContactRole } from "@/server/queries/persons"
 
 const CONTACTS_PATH = "/admin/contacts"
 
 interface Props {
   contact: AdminContact | null
   companyOptions: readonly CompanyOption[]
-  personOptions: readonly PersonWithoutContactRole[]
+  leadOptions: readonly LeadWithoutContactRole[]
 }
 
-export function ContactForm({ contact, companyOptions, personOptions }: Props) {
+export function ContactForm({ contact, companyOptions, leadOptions }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = contact ? updateContact.bind(null, contact.id) : createContact
   const [state, formAction, pending] = useActionState(action, initialContactFormState)
   const handleSubmit = useFormActionSubmit(formAction)
 
-  const [mode, setMode] = useState<"new" | "existing">("new")
-  const [selectedPersonId, setSelectedPersonId] = useState(NONE_VALUE)
-  const [personOpen, setPersonOpen] = useState(false)
-  const selectedPerson = personOptions.find((person) => person.id === selectedPersonId) ?? null
-  const readOnly = mode === "existing" && selectedPerson !== null
-  const source = selectedPerson ?? contact
+  const [mode, setMode] = useState<"new" | "fromLead">("new")
+  const [selectedLeadId, setSelectedLeadId] = useState(NONE_VALUE)
+  const [leadOpen, setLeadOpen] = useState(false)
+  const selectedLead = leadOptions.find((lead) => lead.id === selectedLeadId) ?? null
+  const readOnly = mode === "fromLead" && selectedLead !== null
+  const source = selectedLead ?? contact
 
   const [companyId, setCompanyId] = useState(contact?.company?.id ?? NONE_VALUE)
   const [companyOpen, setCompanyOpen] = useState(false)
-  const [metAt, setMetAt] = useState<Date | undefined>(contact?.metAt ?? undefined)
+  // Hors maquette pour un contact : gardé caché pour satisfaire `personFields` sans écraser la date de rencontre d'un lead promu.
+  const [metAt] = useState<Date | undefined>(contact?.metAt ?? undefined)
   const [details, setDetails] = useState(contact ? (contact.details ?? "") : CONTACT_DETAILS_TEMPLATE)
   const [editorKey, setEditorKey] = useState(0)
   const [types, setTypes] = useState<string[]>(contact?.types ?? [])
@@ -1219,16 +1267,15 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
   }, [state, contact, router])
 
   function handleModeChange(next: string) {
-    setMode(next as "new" | "existing")
-    if (next === "new") setSelectedPersonId(NONE_VALUE)
+    setMode(next as "new" | "fromLead")
+    if (next === "new") setSelectedLeadId(NONE_VALUE)
   }
 
-  function handlePersonSelect(person: PersonWithoutContactRole) {
-    setSelectedPersonId(person.id)
-    setPersonOpen(false)
-    setCompanyId(person.company?.id ?? NONE_VALUE)
-    setMetAt(person.metAt ?? undefined)
-    setDetails(person.details ?? "")
+  function handleLeadSelect(lead: LeadWithoutContactRole) {
+    setSelectedLeadId(lead.id)
+    setLeadOpen(false)
+    setCompanyId(lead.company?.id ?? NONE_VALUE)
+    setDetails(lead.details ?? "")
     setEditorKey((key) => key + 1)
   }
 
@@ -1265,7 +1312,7 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
               <CardDescription>
                 {mode === "new"
                   ? "L'entreprise vient du CRM."
-                  : "Le reste de sa fiche vient de la personne choisie, rien n'est recopié."}
+                  : "Le reste de sa fiche vient du lead choisi, rien n'est recopié."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -1274,44 +1321,44 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
                   <RadioGroup value={mode} onValueChange={handleModeChange} className="flex flex-wrap gap-4">
                     <div className="flex items-center gap-2">
                       <RadioGroupItem id={`${formId}-mode-new`} value="new" />
-                      <Label htmlFor={`${formId}-mode-new`}>Nouvelle personne</Label>
+                      <Label htmlFor={`${formId}-mode-new`}>Nouveau contact</Label>
                     </div>
                     <div className="flex items-center gap-2">
-                      <RadioGroupItem id={`${formId}-mode-existing`} value="existing" />
-                      <Label htmlFor={`${formId}-mode-existing`}>Personne existante</Label>
+                      <RadioGroupItem id={`${formId}-mode-fromLead`} value="fromLead" />
+                      <Label htmlFor={`${formId}-mode-fromLead`}>Depuis un lead</Label>
                     </div>
                   </RadioGroup>
-                  {mode === "existing" ? (
-                    <FormField id={`${formId}-personId`} label="Personne" errors={state.errors.personId}>
+                  {mode === "fromLead" ? (
+                    <FormField id={`${formId}-leadId`} label="Lead" errors={state.errors.personId}>
                       <ComboboxPopover
-                        id={`${formId}-personId`}
-                        open={personOpen}
-                        onOpenChange={setPersonOpen}
+                        id={`${formId}-leadId`}
+                        open={leadOpen}
+                        onOpenChange={setLeadOpen}
                         triggerContent={
-                          selectedPerson ? (
-                            <span className="truncate">{personDisplayName(selectedPerson)}</span>
+                          selectedLead ? (
+                            <span className="truncate">{personDisplayName(selectedLead)}</span>
                           ) : (
-                            <span className="text-muted-foreground">Choisir une personne</span>
+                            <span className="text-muted-foreground">Choisir un lead</span>
                           )
                         }
                         ariaInvalid={!!state.errors.personId?.length}
-                        ariaDescribedby={`${formId}-personId-error`}
-                        searchPlaceholder="Chercher une personne"
-                        emptyMessage="Aucune personne ne correspond."
+                        ariaDescribedby={`${formId}-leadId-error`}
+                        searchPlaceholder="Chercher un lead"
+                        emptyMessage="Aucun lead ne correspond."
                       >
                         <CommandGroup>
-                          {personOptions.map((person) => (
+                          {leadOptions.map((lead) => (
                             <CommandItem
-                              key={person.id}
-                              value={person.id}
-                              keywords={[personDisplayName(person)]}
-                              data-checked={selectedPersonId === person.id}
-                              onSelect={() => handlePersonSelect(person)}
+                              key={lead.id}
+                              value={lead.id}
+                              keywords={[personDisplayName(lead)]}
+                              data-checked={selectedLeadId === lead.id}
+                              onSelect={() => handleLeadSelect(lead)}
                             >
-                              <span className="flex min-w-0 items-center gap-2">
-                                <span className="truncate">{personDisplayName(person)}</span>
-                                {person.hasLeadRole ? <Badge variant="outline">Lead</Badge> : null}
-                              </span>
+                              <span className="truncate">{personDisplayName(lead)}</span>
+                              {lead.company ? (
+                                <span className="truncate text-muted-foreground">{lead.company.name}</span>
+                              ) : null}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -1364,69 +1411,67 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
                 />
               )}
 
-              <div className="sm:col-span-2">
-                {readOnly ? (
-                  <ReadOnlyField
+              {readOnly ? (
+                <ReadOnlyField
+                  id={`${formId}-companyId`}
+                  name="companyId"
+                  label={PERSON_FIELD_LABELS.companyId}
+                  value={companyId}
+                  display={selectedCompany?.name ?? "Aucune"}
+                />
+              ) : (
+                <FormField
+                  id={`${formId}-companyId`}
+                  label={PERSON_FIELD_LABELS.companyId}
+                  errors={state.errors.companyId}
+                >
+                  <ComboboxPopover
                     id={`${formId}-companyId`}
-                    name="companyId"
-                    label={PERSON_FIELD_LABELS.companyId}
-                    value={companyId}
-                    display={selectedCompany?.name ?? "Aucune"}
-                  />
-                ) : (
-                  <FormField
-                    id={`${formId}-companyId`}
-                    label={PERSON_FIELD_LABELS.companyId}
-                    errors={state.errors.companyId}
+                    open={companyOpen}
+                    onOpenChange={setCompanyOpen}
+                    triggerContent={
+                      selectedCompany ? (
+                        <span className="truncate">{selectedCompany.name}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Aucune</span>
+                      )
+                    }
+                    ariaInvalid={!!state.errors.companyId?.length}
+                    ariaDescribedby={`${formId}-companyId-error`}
+                    searchPlaceholder="Chercher une entreprise"
+                    emptyMessage="Aucune entreprise ne correspond."
                   >
-                    <ComboboxPopover
-                      id={`${formId}-companyId`}
-                      open={companyOpen}
-                      onOpenChange={setCompanyOpen}
-                      triggerContent={
-                        selectedCompany ? (
-                          <span className="truncate">{selectedCompany.name}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Aucune</span>
-                        )
-                      }
-                      ariaInvalid={!!state.errors.companyId?.length}
-                      ariaDescribedby={`${formId}-companyId-error`}
-                      searchPlaceholder="Chercher une entreprise"
-                      emptyMessage="Aucune entreprise ne correspond."
-                    >
-                      <CommandGroup>
+                    <CommandGroup>
+                      <CommandItem
+                        value={NONE_VALUE}
+                        keywords={["Aucune"]}
+                        data-checked={companyId === NONE_VALUE}
+                        onSelect={() => {
+                          setCompanyId(NONE_VALUE)
+                          setCompanyOpen(false)
+                        }}
+                      >
+                        Aucune
+                      </CommandItem>
+                      {companyOptions.map((company) => (
                         <CommandItem
-                          value={NONE_VALUE}
-                          keywords={["Aucune"]}
-                          data-checked={companyId === NONE_VALUE}
+                          key={company.id}
+                          value={company.id}
+                          keywords={[company.name]}
+                          data-checked={companyId === company.id}
                           onSelect={() => {
-                            setCompanyId(NONE_VALUE)
+                            setCompanyId(company.id)
                             setCompanyOpen(false)
                           }}
                         >
-                          Aucune
+                          {company.name}
                         </CommandItem>
-                        {companyOptions.map((company) => (
-                          <CommandItem
-                            key={company.id}
-                            value={company.id}
-                            keywords={[company.name]}
-                            data-checked={companyId === company.id}
-                            onSelect={() => {
-                              setCompanyId(company.id)
-                              setCompanyOpen(false)
-                            }}
-                          >
-                            {company.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </ComboboxPopover>
-                    <input type="hidden" name="companyId" value={companyId} />
-                  </FormField>
-                )}
-              </div>
+                      ))}
+                    </CommandGroup>
+                  </ComboboxPopover>
+                  <input type="hidden" name="companyId" value={companyId} />
+                </FormField>
+              )}
 
               {readOnly ? (
                 <ReadOnlyField
@@ -1451,9 +1496,7 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
               </div>
             </CardContent>
           </Card>
-          <input type="hidden" name="personId" value={mode === "existing" ? selectedPersonId : NONE_VALUE} />
-          {/* `metAt` : hors maquette pour un contact, gardé caché pour satisfaire `personFields` sans
-              écraser une date de rencontre déjà connue d'une personne existante. */}
+          <input type="hidden" name="personId" value={mode === "fromLead" ? selectedLeadId : NONE_VALUE} />
           <input type="hidden" name="metAt" value={metAt ? toIsoDate(metAt) : ""} />
 
           <Card>
@@ -1537,35 +1580,42 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>{PERSON_SECTION_TITLES.details}</CardTitle>
+              <CardTitle id={`${formId}-details-title`}>{PERSON_SECTION_TITLES.details}</CardTitle>
+              {readOnly ? null : (
+                <CardDescription>
+                  Raccourcis : « # » un titre, « - » une liste, « / » le menu des blocs.
+                </CardDescription>
+              )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-2">
               {readOnly ? (
                 <>
-                  <div className="rounded-md border border-input bg-muted p-3">
+                  <div
+                    aria-labelledby={`${formId}-details-title`}
+                    className="rounded-md border border-input bg-muted p-3"
+                  >
                     <MarkdownContent markdown={source?.details ?? ""} variant="admin" />
                   </div>
                   <input type="hidden" name="details" value={source?.details ?? ""} />
                 </>
               ) : (
                 <>
-                  <FormField
+                  <Editor
+                    key={editorKey}
                     id={`${formId}-details`}
-                    label={PERSON_FIELD_LABELS.details}
-                    errors={state.errors.details}
-                    help="Raccourcis : « # » un titre, « - » une liste, « / » le menu des blocs."
-                  >
-                    <Editor
-                      key={editorKey}
-                      id={`${formId}-details`}
-                      format="markdown"
-                      enableImages={false}
-                      value={details}
-                      onChange={setDetails}
-                      aria-invalid={!!state.errors.details?.length}
-                      aria-describedby={`${formId}-details-help ${formId}-details-error`}
-                    />
-                  </FormField>
+                    aria-labelledby={`${formId}-details-title`}
+                    format="markdown"
+                    enableImages={false}
+                    value={details}
+                    onChange={setDetails}
+                    aria-invalid={!!state.errors.details?.length}
+                    aria-describedby={`${formId}-details-error`}
+                  />
+                  <div id={`${formId}-details-error`} aria-live="polite">
+                    {state.errors.details?.[0] ? (
+                      <p className="text-sm text-destructive">{state.errors.details[0]}</p>
+                    ) : null}
+                  </div>
                   <input type="hidden" name="details" value={details} />
                 </>
               )}
@@ -1585,6 +1635,7 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
                 label={CONTACT_FIELD_LABELS.status}
                 options={CONTACT_STATUSES}
                 labels={CONTACT_STATUS_LABELS}
+                icons={CONTACT_STATUS_ICONS}
                 defaultValue={contact?.status ?? "ACTIF"}
                 errors={state.errors.status}
               />
@@ -1599,21 +1650,25 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
                   aria-describedby={`${formId}-types-error`}
                   className="grid grid-cols-2 gap-x-3 gap-y-2"
                 >
-                  {CONTACT_TYPES.map((type) => (
-                    <label
-                      key={type}
-                      className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Checkbox
-                        checked={types.includes(type)}
-                        onCheckedChange={(checked) => {
-                          toggleType(type, checked === true)
-                        }}
-                        aria-invalid={!!state.errors.types?.length}
-                      />
-                      {CONTACT_TYPE_LABELS[type]}
-                    </label>
-                  ))}
+                  {CONTACT_TYPES.map((type) => {
+                    const Icon = CONTACT_TYPE_ICONS[type]
+                    return (
+                      <label
+                        key={type}
+                        className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Checkbox
+                          checked={types.includes(type)}
+                          onCheckedChange={(checked) => {
+                            toggleType(type, checked === true)
+                          }}
+                          aria-invalid={!!state.errors.types?.length}
+                        />
+                        {Icon ? <Icon aria-hidden /> : null}
+                        {CONTACT_TYPE_LABELS[type]}
+                      </label>
+                    )
+                  })}
                 </div>
                 {types.map((type) => (
                   <input key={type} type="hidden" name="types" value={type} />
@@ -1629,34 +1684,40 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>{PERSON_SECTION_TITLES.notes}</CardTitle>
+              <CardTitle id={`${formId}-notes-title`}>{PERSON_SECTION_TITLES.notes}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-2">
               {readOnly ? (
-                <ReadOnlyField
-                  id={`${formId}-notes`}
-                  name="notes"
-                  label={PERSON_FIELD_LABELS.notes}
-                  value={source?.notes ?? ""}
-                  display={source?.notes ?? ""}
-                />
+                <>
+                  <p
+                    aria-labelledby={`${formId}-notes-title`}
+                    className="flex h-9 items-center truncate rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground"
+                  >
+                    {source?.notes ?? ""}
+                  </p>
+                  <input type="hidden" name="notes" value={source?.notes ?? ""} />
+                </>
               ) : (
-                <FormField
-                  id={`${formId}-notes`}
-                  label={PERSON_FIELD_LABELS.notes}
-                  errors={state.errors.notes}
-                  help="Une ligne de marqueurs, séparés par |"
-                >
+                <>
                   <Input
                     id={`${formId}-notes`}
                     name="notes"
+                    aria-labelledby={`${formId}-notes-title`}
                     maxLength={200}
                     defaultValue={source?.notes ?? ""}
                     placeholder="Ancien collègue | Scala"
                     aria-invalid={!!state.errors.notes?.length}
-                    aria-describedby={`${formId}-notes-help ${formId}-notes-error`}
+                    aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
                   />
-                </FormField>
+                  <div id={`${formId}-notes-error`} aria-live="polite">
+                    {state.errors.notes?.[0] ? (
+                      <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
+                    ) : null}
+                  </div>
+                  <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
+                    Une ligne de marqueurs, séparés par |
+                  </p>
+                </>
               )}
             </CardContent>
           </Card>
@@ -1666,6 +1727,8 @@ export function ContactForm({ contact, companyOptions, personOptions }: Props) {
   )
 }
 ```
+
+Cards Détails et Notes : le `CardTitle` porte l'`id` et sert de libellé par `aria-labelledby`, pour ne pas répéter son titre (même motif que `LeadForm`, `08`). La card Identité garde `ReadOnlyField` (son propre `FormField` interne) pour Nom, Poste, Entreprise et Localité : son titre de card diffère du libellé de chaque champ, la répétition ne s'y pose pas. Grille Identité : Nom + Poste, Entreprise + Localité, la même que `LeadForm`.
 
 - [ ] **Step 2 : Pages de création et de modification**
 
@@ -1679,20 +1742,20 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
-import { findPersonsWithoutContactRole } from "@/server/queries/persons"
+import { findLeadsWithoutContactRole } from "@/server/queries/persons"
 
 const CONTACT_PAGE_SKELETON = ["h-[24px]", "h-[280px]", "h-[200px]", "h-[320px]"]
 
 async function NewContactSection() {
-  const [companyOptions, personOptions] = await Promise.all([
+  const [companyOptions, leadOptions] = await Promise.all([
     findCompanyOptions(),
-    findPersonsWithoutContactRole(),
+    findLeadsWithoutContactRole(),
   ])
 
   return (
     <div className="flex flex-col gap-6">
       <AdminBreadcrumb items={[{ label: "Contacts", href: "/admin/contacts" }, { label: "Nouveau contact" }]} />
-      <ContactForm contact={null} companyOptions={companyOptions} personOptions={personOptions} />
+      <ContactForm contact={null} companyOptions={companyOptions} leadOptions={leadOptions} />
     </div>
   )
 }
@@ -1737,7 +1800,7 @@ async function EditContactSection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[{ label: "Contacts", href: "/admin/contacts" }, { label: personDisplayName(contact) }]}
       />
-      <ContactForm contact={contact} companyOptions={companyOptions} personOptions={[]} />
+      <ContactForm contact={contact} companyOptions={companyOptions} leadOptions={[]} />
     </div>
   )
 }
@@ -1756,7 +1819,7 @@ export default async function EditContactPage({ params }: { params: Promise<{ id
 }
 ```
 
-(`personOptions={[]}` en modification : la card Personne ne s'affiche qu'à la création, `ContactForm` n'en a pas besoin pour éditer une fiche existante.)
+(`leadOptions={[]}` en modification : le choix « Depuis un lead » ne s'affiche qu'à la création, `ContactForm` n'en a pas besoin pour éditer une fiche existante.)
 
 Les dossiers `nouveau/` et `[id]/` reçoivent chacun un `loading.tsx` :
 
@@ -1781,8 +1844,8 @@ Expected: aucune erreur. Si l'éditeur installé au `03` n'accepte pas `id` ou `
 - Modify: `src/components/features/admin/leads/LeadsTable.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 1 à 4 ; `deleteContact` (Task 2) ; `retentionEndOf` (`10`, `@/lib/person-retention`) ; `DataTable`, `DetailDialog`, `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `BadgeList`, `MarkdownContent`, `RowActionButton`, `ConfirmDeleteDialog`, `ErasePersonExchangesDialog` (`08`)
-- Produces: `CONTACT_REVIEW_YEARS` (`@/lib/person-retention`) ; `ContactsTable({ contacts }: { contacts: readonly AdminContact[] })`
+- Consumes: Tasks 1 à 4 ; `deleteContact` (Task 2) ; `retentionEndOf` (`10`, `@/lib/person-retention`) ; `DataTable`, `DetailDialog`, `EnumBadge`, `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `BadgeList`, `MarkdownContent`, `RowActionButton`, `ConfirmDeleteDialog`, `ErasePersonExchangesDialog` (`08`) ; `LEAD_STATUS_ICONS`, `LEAD_INTEREST_ICONS` (`08`, `@/lib/leads`)
+- Produces: `CONTACT_REVIEW_YEARS` (`@/lib/person-retention`) ; `ContactsTable({ contacts, initialDetailId }: { contacts: readonly AdminContact[]; initialDetailId?: string })`
 
 - [ ] **Step 1 : Rappel métier des contacts**
 
@@ -1843,7 +1906,7 @@ export function DeleteContactDialog({ contact }: Props) {
         // Supprimer une fiche en opposition efface la seule trace du « stop » : le dire avant.
         contact.optedOutAt
           ? "La trace de son opposition disparaît : plus rien n'empêchera de recontacter cette personne."
-          : "La fiche relation est retirée. Si cette personne n'est pas aussi un lead, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses missions restent sans apporteur."
+          : "La fiche relation est retirée. Si cette personne n'est pas aussi un lead, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
       }
       successMessage="Contact supprimé"
       onDelete={async () => {
@@ -1875,6 +1938,7 @@ import {
   type DetailSection,
   DetailDialog,
 } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
@@ -1890,11 +1954,18 @@ import {
 import {
   CONTACT_FIELD_LABELS,
   CONTACT_SECTION_TITLES,
+  CONTACT_STATUS_ICONS,
   CONTACT_STATUS_LABELS,
+  CONTACT_TYPE_ICONS,
   CONTACT_TYPE_LABELS,
 } from "@/lib/contacts"
 import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { LEAD_INTEREST_LABELS, LEAD_STATUS_LABELS } from "@/lib/leads"
+import {
+  LEAD_INTEREST_ICONS,
+  LEAD_INTEREST_LABELS,
+  LEAD_STATUS_ICONS,
+  LEAD_STATUS_LABELS,
+} from "@/lib/leads"
 import { CONTACT_REVIEW_YEARS, retentionEndOf } from "@/lib/person-retention"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
 import { formatShortDate } from "@/lib/projects"
@@ -1913,11 +1984,16 @@ function typeLabels(contact: AdminContact): string[] {
   return contact.types.map((type) => CONTACT_TYPE_LABELS[type])
 }
 
+// Glyphe par libellé plutôt que par valeur : BadgeList (04) ne connaît que les libellés déjà résolus.
+const TYPE_ICONS_BY_LABEL = Object.fromEntries(
+  CONTACT_TYPES.map((type) => [CONTACT_TYPE_LABELS[type], CONTACT_TYPE_ICONS[type]]),
+)
+
 function statusBadge(contact: AdminContact) {
   return contact.optedOutAt ? (
     <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
   ) : (
-    <Badge variant="secondary">{CONTACT_STATUS_LABELS[contact.status]}</Badge>
+    <EnumBadge label={CONTACT_STATUS_LABELS[contact.status]} icon={CONTACT_STATUS_ICONS[contact.status]} />
   )
 }
 
@@ -1959,7 +2035,7 @@ const DATA_COLUMNS: readonly Column<AdminContact>[] = [
     header: CONTACT_FIELD_LABELS.types,
     width: CONTACT_COLUMN_WIDTHS.types,
     ...hideable("types"),
-    cell: (contact) => <BadgeList labels={typeLabels(contact)} noun="types" />,
+    cell: (contact) => <BadgeList labels={typeLabels(contact)} noun="types" icons={TYPE_ICONS_BY_LABEL} />,
   },
   {
     key: "company",
@@ -2074,22 +2150,57 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
     }
   }
 
-  const subtitle = [
-    contact.jobRole ? JOB_ROLE_LABELS[contact.jobRole] : null,
-    contact.company?.name ?? null,
-  ]
-    .filter((part): part is string => part !== null)
-    .join(" · ")
-
   return {
     title: personDisplayName(contact),
-    ...(subtitle ? { subtitle } : {}),
+    ...(contact.jobRole ? { subtitle: JOB_ROLE_LABELS[contact.jobRole] } : {}),
     status: (
       <Badge variant="outline" meta>
         {CONTACT_STATUS_LABELS[contact.status]}
       </Badge>
     ),
+    // Ordre du formulaire (Task 4) : Identité, Coordonnées, Détails, Relation, Notes, puis Pipeline (symétrique du Réseau du lead).
     sections: [
+      ...keepFilled({
+        title: PERSON_SECTION_TITLES.person,
+        rows: [
+          {
+            label: PERSON_FIELD_LABELS.companyId,
+            value: contact.company ? (
+              <Link href={`/admin/entreprises?detail=${contact.company.id}`} className="underline-offset-4 hover:underline">
+                {contact.company.name}
+              </Link>
+            ) : null,
+          },
+          { label: PERSON_FIELD_LABELS.zone, value: contact.zone ? <Badge variant="secondary">{ZONE_LABELS[contact.zone]}</Badge> : null },
+        ],
+      }),
+      ...keepFilled({
+        title: PERSON_SECTION_TITLES.contact,
+        rows: [
+          { label: PERSON_FIELD_LABELS.email, value: contact.email },
+          { label: PERSON_FIELD_LABELS.phone, value: contact.phone },
+          {
+            label: PERSON_FIELD_LABELS.linkedinUrl,
+            value: contact.linkedinUrl ? (
+              <ExternalUrl url={contact.linkedinUrl} className="wrap-anywhere" />
+            ) : null,
+            fullWidth: true,
+          },
+        ],
+      }),
+      ...(contact.details
+        ? [
+            {
+              title: PERSON_SECTION_TITLES.details,
+              rows: [
+                {
+                  value: <MarkdownContent markdown={contact.details} variant="admin" />,
+                  fullWidth: true,
+                },
+              ],
+            },
+          ]
+        : []),
       {
         title: CONTACT_SECTION_TITLES.relation,
         rows: [
@@ -2097,8 +2208,9 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
             label: CONTACT_FIELD_LABELS.types,
             value:
               contact.types.length > 0 ? (
-                <BadgeList labels={typeLabels(contact)} noun="types" max={Infinity} />
+                <BadgeList labels={typeLabels(contact)} noun="types" max={Infinity} icons={TYPE_ICONS_BY_LABEL} />
               ) : null,
+            fullWidth: true,
           },
           { label: CONTACT_FIELD_LABELS.lastInteractionAt, value: formatShortDate(contact.lastInteractionAt) },
           {
@@ -2107,20 +2219,9 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
           },
         ],
       },
-      ...keepFilled({
-        title: PERSON_SECTION_TITLES.contact,
-        rows: [
-          { label: PERSON_FIELD_LABELS.zone, value: contact.zone ? <Badge variant="secondary">{ZONE_LABELS[contact.zone]}</Badge> : null },
-          { label: PERSON_FIELD_LABELS.email, value: contact.email },
-          { label: PERSON_FIELD_LABELS.phone, value: contact.phone },
-          {
-            label: PERSON_FIELD_LABELS.linkedinUrl,
-            value: contact.linkedinUrl ? (
-              <ExternalUrl url={contact.linkedinUrl} className="wrap-anywhere" />
-            ) : null,
-          },
-        ],
-      }),
+      ...(contact.notes
+        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] }]
+        : []),
       // Symétrique du bloc Réseau du lead, complété ici : le rôle Lead de la même personne, lu en un clic.
       ...(contact.hasLeadRole && contact.leadRole
         ? [
@@ -2131,31 +2232,21 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
                   fullWidth: true,
                   value: (
                     <Link
-                      href={`/admin/leads/${contact.id}`}
+                      href={`/admin/leads/tous?detail=${contact.id}`}
                       className="flex flex-wrap items-center gap-2"
                     >
-                      <Badge variant="secondary">{LEAD_STATUS_LABELS[contact.leadRole.status]}</Badge>
+                      <EnumBadge
+                        label={LEAD_STATUS_LABELS[contact.leadRole.status]}
+                        icon={LEAD_STATUS_ICONS[contact.leadRole.status]}
+                      />
                       {contact.leadRole.interest ? (
-                        <Badge variant="secondary">{LEAD_INTEREST_LABELS[contact.leadRole.interest]}</Badge>
+                        <EnumBadge
+                          label={LEAD_INTEREST_LABELS[contact.leadRole.interest]}
+                          icon={LEAD_INTEREST_ICONS[contact.leadRole.interest]}
+                        />
                       ) : null}
                     </Link>
                   ),
-                },
-              ],
-            },
-          ]
-        : []),
-      ...(contact.notes
-        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] }]
-        : []),
-      ...(contact.details
-        ? [
-            {
-              title: PERSON_SECTION_TITLES.details,
-              rows: [
-                {
-                  value: <MarkdownContent markdown={contact.details} variant="admin" />,
-                  fullWidth: true,
                 },
               ],
             },
@@ -2189,9 +2280,10 @@ const baseFacets: readonly Facet<AdminContact>[] = [
 
 interface Props {
   contacts: readonly AdminContact[]
+  initialDetailId?: string
 }
 
-export function ContactsTable({ contacts }: Props) {
+export function ContactsTable({ contacts, initialDetailId }: Props) {
   const router = useRouter()
   const [selectedContact, setSelectedContact] = useState<AdminContact | null>(null)
   // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
@@ -2260,6 +2352,7 @@ export function ContactsTable({ contacts }: Props) {
         rows={contacts}
         columns={columns}
         getRowId={(contact) => contact.id}
+        initialDetailId={initialDetailId}
         searchPlaceholder="Rechercher un nom ou une entreprise"
         noun="contact"
         onRowClick={setSelectedContact}
@@ -2284,7 +2377,7 @@ export function ContactsTable({ contacts }: Props) {
 
 - [ ] **Step 4 : Bloc Réseau du lead**
 
-Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts` et `import { BadgeList } from "@/components/features/admin/BadgeList"` (`Badge` y est déjà importé, `08`), puis, dans `buildLeadDetail`, juste après le bloc `PERSON_SECTION_TITLES.contact` (`...keepFilled({...})`), ajouter :
+Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_ICONS`, `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_ICONS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts`, `import { BadgeList } from "@/components/features/admin/BadgeList"` et `import { EnumBadge } from "@/components/features/admin/EnumBadge"` (déjà importé par `08`, inutile de le redemander), puis, dans `buildLeadDetail`, remplacer le bloc Réseau posé par le `08` (`...keepFilled({ title: LEAD_SECTION_TITLES.network, … })`, en dernière position du tableau `sections`, juste avant `...historySection(history, ranks),` du `10`) par :
 
 ```tsx
       // Symétrique du bloc Pipeline du contact : le rôle Contact de la même personne, lu en un clic.
@@ -2297,7 +2390,7 @@ Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STAT
                   fullWidth: true,
                   value: (
                     <Link
-                      href={`/admin/contacts/${lead.id}`}
+                      href={`/admin/contacts?detail=${lead.id}`}
                       className="flex flex-wrap items-center gap-2"
                     >
                       <BadgeList
@@ -2305,8 +2398,17 @@ Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STAT
                         noun="types"
                         max={Infinity}
                         empty="Sans type"
+                        icons={Object.fromEntries(
+                          lead.contactRole.types.map((type) => [
+                            CONTACT_TYPE_LABELS[type],
+                            CONTACT_TYPE_ICONS[type],
+                          ]),
+                        )}
                       />
-                      <Badge variant="secondary">{CONTACT_STATUS_LABELS[lead.contactRole.status]}</Badge>
+                      <EnumBadge
+                        label={CONTACT_STATUS_LABELS[lead.contactRole.status]}
+                        icon={CONTACT_STATUS_ICONS[lead.contactRole.status]}
+                      />
                     </Link>
                   ),
                 },
@@ -2316,7 +2418,7 @@ Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STAT
         : []),
 ```
 
-`LEAD_SECTION_TITLES` est déjà importé dans ce fichier (`08`) et porte `network` depuis la Task 3 : rien de plus à y changer.
+Sa position ne change pas : Réseau reste juste avant Historique (`10`), lui-même suivi d'Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`). `LEAD_SECTION_TITLES` est déjà importé dans ce fichier (`08`) et porte `network` depuis la Task 3 : rien de plus à y changer.
 
 - [ ] **Step 5 : Vérifier**
 
@@ -2359,13 +2461,18 @@ import { contactSkeletonWidths } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllContactsForAdmin } from "@/server/queries/contacts"
 
-async function ContactsSection() {
+async function ContactsSection({ initialDetailId }: { initialDetailId?: string }) {
   const contacts = await findAllContactsForAdmin()
-  return <ContactsTable contacts={contacts} />
+  return <ContactsTable contacts={contacts} initialDetailId={initialDetailId} />
 }
 
-export default async function AdminContactsPage() {
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
+
+export default async function AdminContactsPage({ searchParams }: Props) {
   await getCurrentUser()
+  const { detail } = await searchParams
 
   return (
     <AdminPageShell
@@ -2381,7 +2488,7 @@ export default async function AdminContactsPage() {
       }
     >
       <Suspense fallback={<DataTableSkeleton columnWidths={contactSkeletonWidths()} />}>
-        <ContactsSection />
+        <ContactsSection initialDetailId={detail} />
       </Suspense>
     </AdminPageShell>
   )
@@ -2421,33 +2528,159 @@ Expected: suites `unit` et `integration` vertes, dont celles des leads et des pe
 
 ---
 
-### Task 7 : Parcours manuel
+### Task 7 : `personDetailHref` et bascule de la vue détail d'une action
+
+**Files:**
+- Create: `src/lib/person-links.ts`
+- Test: `src/lib/person-links.test.ts`
+- Modify: `src/server/queries/prospecting-actions.ts`
+- Modify: `src/components/features/admin/prospection/action-detail.tsx`
+
+**Interfaces:**
+- Consumes: rien
+- Produces: `personDetailHref(person: { lead: { id: string } | null; contact: { id: string } | null }): string | null` (`@/lib/person-links`)
+
+Arbitrage « Fiches rattachées » (2026-10-02) : une personne dont le rôle n'est pas fixé par le contexte (l'apporteur d'une opportunité, un correspondant d'entretien, la personne d'une action) mène à sa fiche lead si elle porte ce rôle, sinon à sa fiche contact, sinon n'est pas un lien. `13` est le premier plan où les deux rôles existent : la fonction vit ici ; les plans suivants (`15` pour l'apporteur, `17` pour les correspondants) l'importent plutôt que de recoder la règle.
+
+- [ ] **Step 1 : Écrire les tests qui échouent**
+
+`src/lib/person-links.test.ts` :
+
+```ts
+import { describe, expect, it } from "vitest"
+
+import { personDetailHref } from "./person-links"
+
+describe("personDetailHref", () => {
+  it("resolves to the lead detail route when the person has the lead role", () => {
+    const href = personDetailHref({ lead: { id: "p1" }, contact: null })
+
+    expect(href).toBe("/admin/leads/tous?detail=p1")
+  })
+
+  it("resolves to the contact detail route when the person has only the contact role", () => {
+    const href = personDetailHref({ lead: null, contact: { id: "p2" } })
+
+    expect(href).toBe("/admin/contacts?detail=p2")
+  })
+
+  it("prefers the lead route when the person has both roles", () => {
+    const href = personDetailHref({ lead: { id: "p3" }, contact: { id: "p3" } })
+
+    expect(href).toBe("/admin/leads/tous?detail=p3")
+  })
+
+  it("returns null when the person has neither role", () => {
+    const href = personDetailHref({ lead: null, contact: null })
+
+    expect(href).toBeNull()
+  })
+})
+```
+
+Run: `pnpm vitest run --project unit src/lib/person-links.test.ts`
+Expected: FAIL, module introuvable.
+
+- [ ] **Step 2 : Écrire la fonction**
+
+`src/lib/person-links.ts` :
+
+```ts
+export interface PersonWithRoles {
+  lead: { id: string } | null
+  contact: { id: string } | null
+}
+
+// Lead prioritaire sur Contact quand une personne porte les deux : son pipeline commercial reste la vue la plus utile depuis un lien d'une autre fiche.
+export function personDetailHref(person: PersonWithRoles): string | null {
+  if (person.lead) return `/admin/leads/tous?detail=${person.lead.id}`
+  if (person.contact) return `/admin/contacts?detail=${person.contact.id}`
+  return null
+}
+```
+
+Run: `pnpm vitest run --project unit src/lib/person-links.test.ts`
+Expected: PASS.
+
+- [ ] **Step 3 : La personne d'une action porte ses deux rôles possibles**
+
+Dans `src/server/queries/prospecting-actions.ts` (`adminProspectingActionInclude` du `09`), étendre le `select` de `person` :
+
+```ts
+const adminProspectingActionInclude = {
+  person: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      linkedinUrl: true,
+      optedOutAt: true,
+      company: { select: { id: true, name: true, logoFilename: true } },
+      lead: { select: { id: true } },
+      contact: { select: { id: true } },
+    },
+  },
+} as const
+```
+
+- [ ] **Step 4 : Bascule de la vue détail d'une action**
+
+Dans `src/components/features/admin/prospection/action-detail.tsx` (`11`, extrait du `10`), importer `personDetailHref` depuis `@/lib/person-links` et remplacer le lien de la personne, TODO compris :
+
+```tsx
+        {
+          label: LABELS.personId,
+          value: (() => {
+            const href = personDetailHref(action.person)
+            const name = personDisplayName(action.person)
+            return href ? (
+              <Link href={href} className="font-medium underline-offset-4 hover:underline">
+                {name}
+              </Link>
+            ) : (
+              <span className="font-medium">{name}</span>
+            )
+          })(),
+        },
+```
+
+(la personne d'une action créée avant `07` porte toujours au moins le rôle Lead : `href` n'est concrètement `null` que pour une personne qui aurait perdu son seul rôle, cas limite déjà couvert par la condition.)
+
+Run: `just typecheck`
+Expected: aucune erreur.
+
+---
+
+### Task 8 : Parcours manuel
 
 **Files:**
 - Aucun fichier modifié
 
 **Interfaces:**
-- Consumes: Tasks 1 à 6
+- Consumes: Tasks 1 à 7
 - Produces: rien
 
 - [ ] **Step 1 : Menu et création**
 
 Run: `just dev`, se connecter, ouvrir Contacts.
-Expected: « Contacts & relations » et son sous-titre ; « Nouveau contact » mène à `/admin/contacts/nouveau`, fil d'Ariane « Contacts › Nouveau contact », card Personne avec « Nouvelle personne » coché par défaut, cards Personne, Coordonnées, Détails, Relation, Notes, Détails déjà rempli de Profil, Relation, Historique, Liens, Notes libres. Créer un contact Collègue et Mentor chez une entreprise, localité Luxembourg : retour sur la liste, où il apparaît ; sa vue détail montre Relation, Coordonnées et Détails mis en forme, « Modifier » mène à sa page.
+Expected: « Contacts & relations » et son sous-titre ; « Nouveau contact » mène à `/admin/contacts/nouveau`, fil d'Ariane « Contacts › Nouveau contact », card Identité avec « Nouveau contact » coché par défaut, cards Identité, Coordonnées, Détails, Relation, Notes, Détails déjà rempli de Profil, Relation, Historique, Liens, Notes libres. Créer un contact Collègue et Mentor chez une entreprise, localité Luxembourg : retour sur la liste, où il apparaît ; sa vue détail montre, dans l'ordre, Identité, Coordonnées, Détails, Relation (Types en pleine largeur) et Notes mis en forme, « Modifier » mène à sa page.
 
-- [ ] **Step 2 : Personne existante et blocs symétriques**
+Copier l'identifiant de ce contact et ouvrir `/admin/contacts?detail=<id>` dans un nouvel onglet.
+Expected: sa vue détail s'ouvre directement au chargement, sans clic supplémentaire.
 
-Créer un lead sans rôle Contact. Ouvrir « Nouveau contact », choisir « Personne existante », le sélectionner dans le picker (badge « Lead » visible), cocher Mentor, enregistrer.
-Expected: les cards Personne, Coordonnées et Détails affichent les valeurs du lead en lecture, non modifiables ; après enregistrement, la personne porte les deux rôles ; sa page lead montre un bloc Réseau (Mentor, Actif) menant à sa page contact ; sa page contact montre un bloc Pipeline (statut, intérêt du lead) menant à sa page lead ; ce lead n'est plus proposé dans le picker d'un nouveau contact.
+- [ ] **Step 2 : Depuis un lead et blocs symétriques**
+
+Créer un lead sans rôle Contact. Ouvrir « Nouveau contact », choisir « Depuis un lead », le sélectionner dans le picker, cocher Mentor, enregistrer.
+Expected: les cards Identité, Coordonnées et Détails affichent les valeurs du lead en lecture, non modifiables ; après enregistrement, la personne porte les deux rôles ; sa page lead montre un bloc Réseau (Mentor, Actif) menant à sa page contact ; sa page contact montre un bloc Pipeline (statut, intérêt du lead) menant à sa page lead ; ce lead n'est plus proposé dans le picker d'un nouveau contact.
 
 - [ ] **Step 3 : Doublons**
 
-Créer un contact « Nouvelle personne » avec l'email d'un contact existant ; puis avec le lien LinkedIn d'un contact existant copié en `fr.linkedin.com/in/…/`.
+Créer un contact « Nouveau contact » avec l'email d'un contact existant ; puis avec le lien LinkedIn d'un contact existant copié en `fr.linkedin.com/in/…/`.
 Expected: « Ce contact existe déjà : <nom> » sous Email, puis sous LinkedIn, la page gardant la saisie.
 
 - [ ] **Step 4 : Échéance**
 
-Avec `just db-studio`, poser une action de prospection (statut différent de À faire, `occurredAt` ou `respondedAt`) d'un contact à plus de 3 ans, sans action plus récente ; afficher la colonne « À revoir le » et filtrer sur « Échéance : Dépassée ».
+Avec `just db-studio`, poser une action de prospection (statut différent de À faire, `occurredAt` ou `respondedAt`) d'un contact à plus de 3 ans, sans action plus récente ; afficher la colonne « À conserver jusqu'au » et filtrer sur « Échéance : Dépassée ».
 Expected: ce contact seul ressort, avec une date passée.
 
 - [ ] **Step 5 : Opposition partagée**
@@ -2458,4 +2691,9 @@ Expected: il ne garde qu'email, LinkedIn et date, retour sur la liste, badge « 
 - [ ] **Step 6 : Suppressions symétriques**
 
 Supprimer le contact de la personne aux deux rôles (Step 2).
-Expected: le rôle Contact disparaît, la personne reste, son bloc Réseau disparaît de sa page lead. Puis supprimer ce lead : la personne, ayant perdu son seul rôle restant, disparaît à son tour. Puis `just stop`.
+Expected: le rôle Contact disparaît, la personne reste, son bloc Réseau disparaît de sa page lead. Puis supprimer ce lead : la personne, ayant perdu son seul rôle restant, disparaît à son tour.
+
+- [ ] **Step 7 : `personDetailHref` depuis une action**
+
+Créer une action de prospection pour la personne aux deux rôles (avant sa suppression de l'étape précédente, ou sur une autre personne aux deux rôles), ouvrir sa vue détail (Actions prospection ou Pipeline).
+Expected: le lien de la personne mène à sa fiche lead (`/admin/leads/tous?detail=<id>`), le rôle Lead restant prioritaire sur le rôle Contact. Puis `just stop`.

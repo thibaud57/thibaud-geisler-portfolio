@@ -1,7 +1,7 @@
 ---
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "entite-legale-depuis-fiche"
-goal: "Saisir et modifier l'entité légale d'une entreprise directement dans sa fiche, avec le seul nom obligatoire, et la montrer en entier dans la vue détail."
+goal: "Saisir et modifier l'entité légale d'une entreprise directement dans sa fiche, toujours affichée, la raison sociale et le siège devenant requis ensemble dès qu'un champ a une valeur, puis la montrer en entier dans la vue détail."
 status: "draft"
 complexity: "L"
 tdd_scope: "partial"
@@ -13,11 +13,11 @@ date: "2026-09-26"
 
 ## Scope
 
-Remplace le rattachement à une entité légale existante par une saisie directe dans la card Entité légale du formulaire entreprise : raison sociale seule obligatoire, forme juridique groupée par pays, SIRET, TVA et siège visibles, RCS, téléphone et capital repliés. L'entité s'écrit avec l'entreprise, part avec elle à la suppression sauf si elle sert aux pages légales, et s'affiche en entier dans la vue détail. Pour l'entité éditrice du site seulement, la card gagne aussi le statut de TVA (date d'assujettissement et régime), qui pilote la mention affichée sur les mentions légales et le `vatID` du JSON-LD de la page À propos. Exclut le pré-remplissage assisté (reporté aux agents internes) et tout écran d'administration de l'éditeur ou des sous-traitants.
+Remplace le rattachement à une entité légale existante par une saisie directe dans la card Entité légale du formulaire entreprise, toujours affichée, sans bouton ni bascule : vide, rien n'est enregistré ; dès qu'un champ a une valeur, la raison sociale et le siège complet deviennent requis ensemble. Forme juridique groupée par pays, SIRET, TVA et siège visibles, RCS, téléphone et capital repliés. L'entité s'écrit avec l'entreprise, part avec elle à la suppression sauf si elle sert aux pages légales, et s'affiche en entier dans la vue détail. Pour l'entité éditrice du site seulement, la card gagne aussi le statut de TVA (date d'assujettissement et régime), qui pilote la mention affichée sur les mentions légales et le `vatID` du JSON-LD de la page À propos. Exclut le pré-remplissage assisté (reporté aux agents internes) et tout écran d'administration de l'éditeur ou des sous-traitants.
 
 ### État livré
 
-À la fin de ce sub-project, on peut : créer une entreprise en ne renseignant que la raison sociale de son entité légale, compléter plus tard sa forme juridique (SAS, sous France), son SIRET et son siège, rouvrir la fiche et tout retrouver, lire ces informations dans la vue détail, constater que les mentions légales publiques reflètent une modification de l'entité légale de la société du propriétaire, et poser la date d'assujettissement à la TVA de l'éditeur pour voir les mentions légales et le JSON-LD basculer en conséquence.
+À la fin de ce sub-project, on peut : créer une entreprise en ne renseignant que la raison sociale et le siège de son entité légale, compléter plus tard sa forme juridique (SAS, sous France) et son SIRET, rouvrir la fiche et tout retrouver, lire ces informations dans la vue détail, constater que les mentions légales publiques reflètent une modification de l'entité légale de la société du propriétaire, puis poser la date d'assujettissement à la TVA de l'éditeur pour voir les mentions légales et le JSON-LD basculer en conséquence.
 
 ## Dependencies
 
@@ -68,58 +68,61 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 
   `src/lib/legal-entities.ts` expose `LEGAL_FORMS` (les 13 valeurs), `LEGAL_FORM_GROUPS` (le tableau ci-dessus) et `LEGAL_FORM_LABELS` (libellé par valeur, pour l'admin). Chaque valeur a aussi son libellé dans `messages/{fr,en}.json` sous `Legal.legalStatus`, indexé par la valeur de l'enum, avec le pays entre parenthèses pour une forme hors de France (« SA (Luxembourg) », « Incorporated (US) ») ; les autres pays (Belgique, Suisse, Allemagne, Pays-Bas, Royaume-Uni) et leurs clés sortent du plan, un pays de plus valant une nouvelle migration
 - **Pays du siège** : codes ISO 3166-1 alpha-2 `FR`, `LU`, `BE`, `CH`, `DE`, `NL`, `GB`, `US`, affichés en français par `Intl.DisplayNames` ; un code déjà en base hors de cette liste reste proposé. **Devises** : `EUR`, `CHF`, `USD`, `GBP`
-- **Card** (`LegalEntityCard`, colonne principale, à la place de l'ancien choix d'entité) :
-  - sans entité, un bouton « Renseigner l'entité légale » ouvre les champs ; une fois l'entité enregistrée, la card montre toujours ses champs et ne propose pas de la retirer
+- **Card** (`LegalEntityCard`, colonne principale, à la place de l'ancien choix d'entité) : toujours affichée avec tous ses champs, aucun bouton ni bascule (décision du propriétaire, 2026-10-02)
   - visibles, par paires `sm:grid-cols-2` : Raison sociale | Forme juridique (combobox avec recherche, groupes par pays), SIRET | N° TVA ; séparateur, titre « Siège social », Rue | Code postal, Ville | Pays
-  - repliés sous « Autres informations », ouvert d'office si l'un d'eux a une valeur : Ville du RCS | Numéro RCS (seulement quand le pays du siège n'est pas la France), Téléphone | Capital et devise
+  - repliés sous « Autres informations », ouvert d'office si l'un d'eux a une valeur : en France, Ville du RCS | Téléphone, puis Capital | Devise ; hors de France, Ville du RCS | Numéro RCS, puis Téléphone en pleine largeur, puis Capital | Devise
 - **Validation** (`src/lib/schemas/legal-entity.ts`, `.claude/rules/zod/schemas.md`) :
-  - champs du `FormData` préfixés `legalEntity` : `legalEntityEnabled` (`"true"` / `"false"`, absent = entité inchangée), `legalEntityName`, `legalEntityStatusKey`, `legalEntitySiret`, `legalEntityVatNumber`, `legalEntityRcsCity`, `legalEntityRcsNumber`, `legalEntityPhone`, `legalEntityCapitalAmount`, `legalEntityCapitalCurrency`, `legalEntityStreet`, `legalEntityPostalCode`, `legalEntityCity`, `legalEntityCountry`
-  - raison sociale obligatoire quand l'entité est activée ; tout le reste facultatif
+  - champs du `FormData` préfixés `legalEntity` : `legalEntityName`, `legalEntityStatusKey`, `legalEntitySiret`, `legalEntityVatNumber`, `legalEntityRcsCity`, `legalEntityRcsNumber`, `legalEntityPhone`, `legalEntityCapitalAmount`, `legalEntityCapitalCurrency`, `legalEntityStreet`, `legalEntityPostalCode`, `legalEntityCity`, `legalEntityCountry`
+  - card entièrement vide : aucune erreur, rien n'est enregistré. Dès qu'un de ces champs a une valeur, la raison sociale et les quatre champs du siège deviennent tous requis ensemble (le modèle les exige), chacun avec son message
   - SIRET : espaces retirés, 14 chiffres ; TVA : espaces retirés, majuscules, deux lettres puis 8 à 12 lettres ou chiffres
-  - capital : entier positif ou nul ; devise par défaut `EUR`
-  - siège tout ou rien : dès qu'un des quatre champs est rempli, les quatre sont requis
+  - capital : entier positif ou nul ; devise par défaut `EUR`, exclue du déclenchement ci-dessus (toujours présente, même non modifiée)
   - numéro RCS ignoré pour un siège en France, le SIREN tiré du SIRET en tenant lieu
 - **Écriture** (`.claude/rules/nextjs/server-actions.md`) : l'entité s'écrit dans la même requête Prisma que l'entreprise (création imbriquée, `upsert` à la modification, siège créé, mis à jour ou supprimé selon la saisie), donc tout ou rien. Nouvelle entité : `slug` égal à celui de l'entreprise. Un SIRET déjà pris renvoie `siret_taken` sur le champ SIRET
 - **Suppression** : `deleteCompany` supprime, dans une transaction, l'entreprise puis son entité légale et son siège, sauf si l'entité est l'éditeur du site ou un sous-traitant (`publisher` ou `processings`), auquel cas elle est seulement détachée
 - **Cache** (`.claude/rules/nextjs/rendering-caching.md`) : après toute écriture ou suppression, `updateTag("legal-entity")` s'ajoute à `projects` : l'entité de la société du propriétaire est celle de l'éditeur, lue par les pages légales publiques
 - **TVA de l'éditeur** (décision 17 du propriétaire, 2026-09-30) : `Publisher.vatLiableSince` et `Publisher.vatRegime` sont facultatifs et renseignés ensemble ; leur absence dit la franchise, sans valeur qui la représenterait. `updateCompany` les écrit sur le `Publisher` lié à l'entité, seulement quand ce lien existe (`publisher: { update: … }` dans l'`upsert` de l'entité) : jamais de `Publisher` créé depuis ce formulaire. Assujetti = `vatLiableSince` passée ou du jour : `src/lib/legal/vat-status.ts` expose `isVatLiable`, partagé par les mentions légales (numéro de TVA intracommunautaire affiché à la place de la mention 293 B) et le JSON-LD de la page À propos (`vatID`). Le cache `legal-entity` dure plusieurs jours : une date saisie à l'avance ne bascule qu'à son expiration, une date du jour ou passée bascule dès l'enregistrement via `updateTag`
-- **Vue détail** : le bloc Entité légale liste raison sociale, forme juridique, SIRET (formaté par `formatSiret`), N° TVA, immatriculation (« RCS <ville> <SIREN> » en France, ville et numéro sinon), téléphone, capital et devise, siège sur plusieurs lignes ; il disparaît si l'entreprise n'a pas d'entité
+- **Vue détail** : le bloc Entité légale liste, dans l'ordre, raison sociale, forme juridique, SIRET (formaté par `formatSiret`), N° TVA, siège social sur plusieurs lignes, immatriculation (« RCS <ville> <SIREN> » en France, ville et numéro sinon), téléphone, puis capital et devise ; il disparaît si l'entreprise n'a pas d'entité
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/rendering-caching.md`, `.claude/rules/next-intl/translations.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/design/claude-design.md`
 
 ## Acceptance criteria
 
-### Scénario 1 : entité minimale
+### Scénario 1 : entité vide
 **GIVEN** le formulaire d'une entreprise sans entité légale
-**WHEN** on clique « Renseigner l'entité légale », saisit seulement la raison sociale et enregistre
-**THEN** l'entreprise a une entité légale portant ce nom, sans forme juridique ni siège
+**WHEN** on enregistre sans toucher à la card Entité légale
+**THEN** aucune entité légale n'est créée, aucune erreur ne s'affiche
 
-### Scénario 2 : entité complétée
+### Scénario 2 : entité minimale
+**GIVEN** le formulaire d'une entreprise sans entité légale
+**WHEN** on saisit seulement la raison sociale et un siège complet, sans forme juridique ni SIRET, puis enregistre
+**THEN** l'entreprise a une entité légale portant ce nom et ce siège, sans forme juridique ni SIRET
+
+### Scénario 3 : entité complétée
 **GIVEN** cette entreprise
-**WHEN** on choisit la forme SAS (groupe France), saisit un SIRET avec espaces, un numéro de TVA et un siège complet, puis enregistre
+**WHEN** on choisit la forme SAS (groupe France), saisit un SIRET avec espaces et un numéro de TVA, puis enregistre
 **THEN** l'entité les porte, le SIRET sans espaces, et la vue détail les affiche avec l'immatriculation tirée du SIRET
 
-### Scénario 3 : siège incomplet
-**GIVEN** une entité dont seule la ville du siège est remplie
-**WHEN** on enregistre
-**THEN** la rue, le code postal et le pays sont signalés comme requis, rien n'est enregistré
+### Scénario 4 : siège incomplet
+**GIVEN** le formulaire d'une entreprise sans entité légale
+**WHEN** on saisit seulement la ville du siège et enregistre
+**THEN** la raison sociale, la rue, le code postal et le pays sont signalés comme requis, rien n'est enregistré
 
-### Scénario 4 : SIRET invalide ou pris
+### Scénario 5 : SIRET invalide ou pris
 **GIVEN** un SIRET de 13 chiffres, puis un SIRET déjà porté par une autre entité
 **WHEN** on enregistre
 **THEN** le champ SIRET affiche l'erreur correspondante, rien n'est enregistré
 
-### Scénario 5 : suppression
+### Scénario 6 : suppression
 **GIVEN** une entreprise cliente avec son entité légale et son siège
 **WHEN** on la supprime
 **THEN** l'entité et le siège disparaissent avec elle
 **AND** une entité qui sert d'éditeur ou de sous-traitant n'est jamais supprimée, seulement détachée
 
-### Scénario 6 : mentions légales à jour
+### Scénario 7 : mentions légales à jour
 **GIVEN** l'entité légale de la société du propriétaire
 **WHEN** on modifie son téléphone depuis la fiche entreprise
 **THEN** les mentions légales publiques affichent la nouvelle valeur après enregistrement
 
-### Scénario 7 : passage à l'assujettissement
+### Scénario 8 : passage à l'assujettissement
 **GIVEN** l'entité légale de l'éditeur sans date ni régime de TVA, les mentions légales affichant la mention 293 B
 **WHEN** on choisit une date d'assujettissement passée et un régime dans la card Entité légale, avec un numéro de TVA, et on enregistre
 **THEN** les mentions légales publiques affichent le numéro de TVA intracommunautaire à la place de la mention 293 B, et le JSON-LD de la page À propos porte `vatID`
@@ -128,14 +131,13 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 
 ### Unit
 - `src/server/actions/companies.test.ts` :
-  - creates the legal entity with the company when enabled, with the company slug
-  - rejects an enabled legal entity without a name
+  - creates the legal entity with the company, with the company slug
+  - rejects a legal entity without a name
   - strips spaces from a SIRET and rejects one that is not 14 digits
   - rejects an unknown legal form
   - rejects a partial registered office address
   - ignores the RCS number when the registered office is in France
   - upserts the legal entity on update
-  - deletes the stored registered office when the four address fields are emptied
   - leaves the legal entity untouched when the form does not send it
   - maps a SIRET uniqueness violation to the SIRET field
   - maps a legal entity slug collision to the legal name
@@ -158,7 +160,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 
 - **Entreprise dont l'entité légale existe déjà** (les cinq de l'ancien seed) : la card s'ouvre directement sur ses champs, son `slug` n'est jamais modifié
 - **Siège hors de la liste des pays** : son code reste proposé et affiché par son nom
-- **Siège vidé** : les quatre champs vides suppriment le siège existant, l'entité reste
+- **Siège vidé seul** : impossible tant que la raison sociale ou un autre champ de l'entité garde une valeur, l'erreur « Requis pour un siège complet » bloque l'enregistrement ; seule une entité entièrement vidée (raison sociale comprise) laisse l'ancienne entité inchangée en base, le formulaire ne la supprime jamais
 - **Forme juridique sans libellé public** : impossible, l'enum PostgreSQL garantit une valeur parmi les treize ou absente ; chaque valeur a son message dans `messages/{fr,en}.json`
 - **Date d'assujettissement future** : la mention 293 B reste affichée jusqu'à son échéance, le cache `legal-entity` (plusieurs jours) ne la recalcule qu'à son expiration naturelle
 
@@ -180,12 +182,14 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 **Options envisagées :**
 - **A. Modèle actuel** : forme juridique et siège complet obligatoires
 - **B. Raison sociale seule obligatoire**, siège tout ou rien, informations des mentions légales repliées
+- **C. Raison sociale et siège complet requis ensemble**, dès qu'un champ de l'entité a une valeur
 
-**Choix : B**
+**Choix : C** (révision du choix B, décision du propriétaire, 2026-10-02)
 
 **Rationale :**
-- Choix du propriétaire : une fiche prospect se crée sans friction, sa propre société se remplit en entier pour les mentions légales
-- Les champs visibles sont ceux dont une facture aura besoin (nom, SIRET, TVA, adresse)
+- Choix initial (B) : une fiche prospect se crée sans friction, sa propre société se remplit en entier pour les mentions légales
+- Révisé (C) : un siège partiel ne sert ni à une facture ni aux mentions légales, autant qu'un siège absent ; la raison sociale et le siège complet forment ensemble le socle minimal exploitable d'une entité, les deux ou aucun
+- Les champs visibles restent ceux dont une facture aura besoin (nom, SIRET, TVA, adresse)
 
 ### Décision : formes juridiques groupées par pays
 

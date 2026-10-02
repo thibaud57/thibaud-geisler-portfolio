@@ -4,7 +4,7 @@
 
 **Goal:** Saisir depuis le formulaire entreprise les champs CRM ajoutés au modèle : types, zones, statut de la relation, notes (ligne courte) et détails (markdown, éditeur Pages CMS Editor), ce dernier partagé avec l'étude de cas des projets.
 
-**Architecture:** `CompanyForm` garde sa grille à deux colonnes. La colonne principale étend Identité (zones) et Classification (types en cases, secteurs), puis gagne une card Détails en dernière position, pleine largeur ; la colonne latérale reçoit une nouvelle card Relation (composant `CompanyRelationCard`), le Logo inchangé et une card Notes réduite à un `Input` d'une ligne. Chaque liste envoie toujours un champ caché vide pour que l'action du `02` distingue « vidé » de « absent ». L'éditeur Pages CMS Editor (Tiptap, ADR-024) s'installe par la CLI shadcn et se partage avec l'étude de cas des projets (`ProjectForm.tsx`).
+**Architecture:** `CompanyForm` garde sa grille à deux colonnes. La colonne principale réordonne Identité (nom avant slug, zones triées) et Classification (types en cases avec glyphe, secteurs), puis gagne une card Détails et l'emplacement d'une prop `relatedCards` ; la colonne latérale reçoit une nouvelle card Relation (composant `CompanyRelationCard`, statut avec glyphe), le Logo inchangé, une card Notes réduite à un `Input` d'une ligne, puis la card Entité légale déplacée depuis la colonne principale (contenu inchangé, propriété du `05`). Chaque liste envoie toujours un champ caché vide pour que l'action du `02` distingue « vidé » de « absent ». L'éditeur Pages CMS Editor (Tiptap, ADR-024) s'installe par la CLI shadcn et se partage avec l'étude de cas des projets (`ProjectForm.tsx`).
 
 **Tech Stack:** Next.js 16 (Server Components pour les pages, Client Component pour le formulaire), React 19, shadcn/ui `radix-nova` (Select, Checkbox), Pages CMS Editor (Tiptap) pour les champs markdown.
 
@@ -29,6 +29,8 @@
 - **Sentinelle oubliée sur une liste** : vider toutes les zones n'enverrait plus la clé `zones`, et l'action garderait les anciennes. Vérifié à la Task 4, Step 3.
 - **Libellé relié à l'éditeur** : Pages CMS Editor documente `value`, `onChange`, `format`, `disabled`, `enableImages`, `className` et `editorClassName` (README de `github.com/pagescms/editor`, lu le 2026-09-27), sans `id` ni attributs `aria-*`. Le fichier copié est donc étendu à la Task 3, Step 1 pour les transmettre à la zone d'édition : sans cela, le libellé et le message d'erreur du `FormField` ne sont plus annoncés par un lecteur d'écran. Vérifié à la Task 4 par le clic sur le libellé, qui doit placer le curseur dans l'éditeur.
 - **Gabarit rejoué sur une fiche existante** : `COMPANY_DETAILS_TEMPLATE` ne doit apparaître qu'à la création, jamais réinjecté sur une fiche dont `details` est déjà vide. Vérifié à la Task 4, Step 5.
+- **Entité légale déplacée sans régression** : seul son emplacement bouge (colonne latérale, sous Notes) ; son contenu, sa validation et ses props restent ceux du `05`. Vérifié à la Task 4, Step 1.
+- **Détails et Notes sans `FormField`** : le `CardTitle` porte l'`id` référencé par `aria-labelledby`, sinon le champ perd son libellé accessible. Vérifié à la Task 4, Step 6 par l'inspection du nom accessible de chaque champ.
 
 ---
 
@@ -63,7 +65,7 @@ Expected: aucune erreur (le type n'est pas encore consommé).
 - Create: `src/components/features/admin/companies/CompanyRelationCard.tsx`
 
 **Interfaces:**
-- Consumes: `COMPANY_FIELD_LABELS`, `COMPANY_SIZE_LABELS`, `RELATION_STATUS_LABELS` (`@/lib/companies`), `COMPANY_SIZES`, `RELATION_STATUSES`, `NONE_VALUE` (`@/lib/schemas/company`)
+- Consumes: `COMPANY_FIELD_LABELS`, `COMPANY_SIZE_LABELS`, `RELATION_STATUS_LABELS`, `COMPANY_STATUS_ICONS` (`@/lib/companies`), `COMPANY_SIZES`, `RELATION_STATUSES`, `NONE_VALUE` (`@/lib/schemas/company`)
 - Produces: `CompanyRelationCard` et ses props :
 
 ```ts
@@ -85,11 +87,11 @@ Dans `src/lib/companies.ts`, remplacer `COMPANY_SECTION_TITLES` par :
 export const COMPANY_SECTION_TITLES = {
   identity: "Identité",
   classification: "Classification",
-  legalEntity: "Entité légale",
+  details: "Détails",
   relation: "Relation",
   logo: "Logo",
   notes: "Notes",
-  details: "Détails",
+  legalEntity: "Entité légale",
 } as const
 ```
 
@@ -113,6 +115,7 @@ import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SIZE_LABELS,
+  COMPANY_STATUS_ICONS,
   RELATION_STATUS_LABELS,
 } from "@/lib/companies"
 import { COMPANY_SIZES, NONE_VALUE, RELATION_STATUSES } from "@/lib/schemas/company"
@@ -149,11 +152,15 @@ export function CompanyRelationCard({ formId, errors, defaults }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {RELATION_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {RELATION_STATUS_LABELS[status]}
-                </SelectItem>
-              ))}
+              {RELATION_STATUSES.map((status) => {
+                const Icon = COMPANY_STATUS_ICONS[status]
+                return (
+                  <SelectItem key={status} value={status}>
+                    {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+                    {RELATION_STATUS_LABELS[status]}
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </FormField>
@@ -202,8 +209,8 @@ Expected: aucune erreur dans `CompanyRelationCard.tsx` (le composant n'est pas e
 - Modify: `docs/DESIGN.md`
 
 **Interfaces:**
-- Consumes: `CompanyRelationCard` (Task 2), `AdminCompanyDetail` (Task 1), `COMPANY_TYPES` (`@/lib/schemas/company`), `COMPANY_TYPE_LABELS` (`@/lib/companies`), `ZONES`, `ZONE_LABELS` (`@/lib/zones`)
-- Produces: `CompanyForm` avec les props `company: AdminCompanyDetail | null`, `legalEntities`, `logoAssets` ; `COMPANY_DETAILS_TEMPLATE` (`@/lib/details-templates`) ; l'éditeur Pages CMS Editor, employé par `CompanyForm` et `ProjectForm` ; `ADMIN_MARKDOWN_CLASS: string` (`@/lib/typography`), échelle des champs markdown de l'admin
+- Consumes: `CompanyRelationCard` (Task 2), `AdminCompanyDetail` (Task 1), `COMPANY_TYPES` (`@/lib/schemas/company`), `COMPANY_TYPE_LABELS`, `COMPANY_TYPE_ICONS` (`@/lib/companies`), `ZONES`, `ZONE_LABELS`, `sortZones` (`@/lib/zones`)
+- Produces: `CompanyForm` avec les props `company: AdminCompanyDetail | null`, `legalEntities`, `logoAssets`, `relatedCards?: React.ReactNode` ; `COMPANY_DETAILS_TEMPLATE` (`@/lib/details-templates`) ; l'éditeur Pages CMS Editor, employé par `CompanyForm` et `ProjectForm` ; `ADMIN_MARKDOWN_CLASS: string` (`@/lib/typography`), échelle des champs markdown de l'admin
 
 - [ ] **Step 1 : Installer l'éditeur Pages CMS Editor**
 
@@ -269,7 +276,7 @@ import { CompanyRelationCard } from "@/components/features/admin/companies/Compa
 import { Checkbox } from "@/components/ui/checkbox"
 import { Editor } from "@/components/ui/editor"
 import { COMPANY_DETAILS_TEMPLATE } from "@/lib/details-templates"
-import { ZONE_LABELS, ZONES } from "@/lib/zones"
+import { sortZones, ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompanyDetail } from "@/server/queries/companies"
 ```
 
@@ -282,6 +289,7 @@ import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
+  COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
 } from "@/lib/companies"
 ```
@@ -292,7 +300,7 @@ import {
 import { COMPANY_SECTORS, COMPANY_TYPES, NONE_VALUE } from "@/lib/schemas/company"
 ```
 
-- remplacer `import type { Company, LegalEntity } from "@/generated/prisma/client"` par `import type { LegalEntity } from "@/generated/prisma/client"`. Les imports de `Select` restent : la card Entité légale s'en sert encore.
+- remplacer `import type { Company, LegalEntity } from "@/generated/prisma/client"` par `import type { LegalEntity, Zone } from "@/generated/prisma/client"`. Les imports de `Select` restent : la card Entité légale s'en sert encore.
 
 - après `SECTOR_OPTIONS`, ajouter :
 
@@ -307,6 +315,7 @@ interface Props {
   company: AdminCompanyDetail | null
   legalEntities: Pick<LegalEntity, "id" | "name">[]
   logoAssets: AssetEntry[]
+  relatedCards?: React.ReactNode
 }
 ```
 
@@ -315,7 +324,7 @@ interface Props {
 Remplacer la signature et les `useState` du début du composant par :
 
 ```tsx
-export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
+export function CompanyForm({ company, legalEntities, logoAssets, relatedCards }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = company ? updateCompany.bind(null, company.id) : createCompany
@@ -339,7 +348,9 @@ Le `useEffect`, `handleSubmit` et `sectorsError` restent inchangés.
 
 - [ ] **Step 5 : Card Identité**
 
-Dans la card Identité, envelopper le `FormField` du site web dans `<div className="sm:col-span-2">…</div>`, puis ajouter après lui :
+Dans la card Identité, inverser l'ordre des deux premiers `FormField` (nom avant slug, décision du propriétaire, 2026-10-02) et retirer l'aide du slug : sur le `FormField` du slug, retirer `help="Identifiant d'URL, minuscules et tirets."` puis, dans son `aria-describedby`, retirer `${formId}-slug-help` (ne garde que `${formId}-slug-error`).
+
+Puis envelopper le `FormField` du site web dans `<div className="sm:col-span-2">…</div>`, puis ajouter après lui :
 
 ```tsx
               <div className="sm:col-span-2">
@@ -353,7 +364,7 @@ Dans la card Identité, envelopper le `FormField` du site web dans `<div classNa
                     name="zones"
                     options={ZONE_OPTIONS}
                     selected={zones}
-                    onChange={setZones}
+                    onChange={(values) => setZones(sortZones(values as Zone[]))}
                     placeholder="Ajouter une zone"
                     searchPlaceholder="Chercher une zone"
                     emptyMessage="Aucune zone ne correspond."
@@ -387,21 +398,25 @@ Remplacer tout le contenu de la card Classification (du `CardHeader` à la fin d
                   aria-describedby={`${formId}-types-error ${formId}-types-help`}
                   className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3"
                 >
-                  {COMPANY_TYPES.map((type) => (
-                    <label
-                      key={type}
-                      className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Checkbox
-                        checked={types.includes(type)}
-                        onCheckedChange={(checked) => {
-                          toggleType(type, checked === true)
-                        }}
-                        aria-invalid={!!state.errors.types?.length}
-                      />
-                      {COMPANY_TYPE_LABELS[type]}
-                    </label>
-                  ))}
+                  {COMPANY_TYPES.map((type) => {
+                    const Icon = COMPANY_TYPE_ICONS[type]
+                    return (
+                      <label
+                        key={type}
+                        className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Checkbox
+                          checked={types.includes(type)}
+                          onCheckedChange={(checked) => {
+                            toggleType(type, checked === true)
+                          }}
+                          aria-invalid={!!state.errors.types?.length}
+                        />
+                        {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+                        {COMPANY_TYPE_LABELS[type]}
+                      </label>
+                    )
+                  })}
                 </div>
                 {types.map((type) => (
                   <input key={type} type="hidden" name="types" value={type} />
@@ -439,41 +454,49 @@ Remplacer tout le contenu de la card Classification (du `CardHeader` à la fin d
 
 Le `Select` de taille disparaît de cette card : il vit désormais dans `CompanyRelationCard`.
 
-- [ ] **Step 7 : Card Détails**
+- [ ] **Step 7 : Card Détails et `relatedCards`**
 
-Dans la colonne principale, après la card Entité légale (dernière carte de cette colonne) et avant le `</div>` qui la referme, ajouter :
+Dans la colonne principale, après la card Classification (désormais dernière carte de cette colonne) et avant le `</div>` qui la referme, ajouter :
 
 ```tsx
           <Card>
             <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.details}</CardTitle>
+              <CardTitle id={`${formId}-details-title`}>
+                {COMPANY_SECTION_TITLES.details}
+              </CardTitle>
               <CardDescription>
                 Corps de la fiche. Raccourcis : « # » un titre, « - » une liste, « &gt; » une
                 citation, « / » le menu des blocs.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <FormField
+            <CardContent className="flex flex-col gap-2">
+              <Editor
                 id={`${formId}-details`}
-                label={COMPANY_FIELD_LABELS.details}
-                errors={state.errors.details}
-              >
-                <Editor
-                  id={`${formId}-details`}
-                  format="markdown"
-                  enableImages={false}
-                  value={details}
-                  onChange={setDetails}
-                  aria-invalid={!!state.errors.details?.length}
-                  aria-describedby={`${formId}-details-error`}
-                />
-              </FormField>
+                aria-labelledby={`${formId}-details-title`}
+                format="markdown"
+                enableImages={false}
+                value={details}
+                onChange={setDetails}
+                aria-invalid={!!state.errors.details?.length}
+                aria-describedby={`${formId}-details-error`}
+              />
+              <div id={`${formId}-details-error`} aria-live="polite">
+                {state.errors.details?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.details[0]}</p>
+                ) : null}
+              </div>
               <input type="hidden" name="details" value={details} />
             </CardContent>
           </Card>
+
+          {relatedCards}
 ```
 
-- [ ] **Step 8 : Colonne latérale**
+La card Détails ne reprend plus `FormField` : le `CardTitle` porte l'`id` et sert de libellé par `aria-labelledby`, pour ne pas répéter « Détails » (décision du propriétaire, 2026-10-02). `relatedCards` reste `undefined` tant qu'aucun sub-project ne le passe (Leads au `08`, Opportunités au `15`, Signaux au `19`) : React ne rend rien dans ce cas.
+
+- [ ] **Step 8 : Déplacer Entité légale, colonne latérale**
+
+Déplacer tout le bloc `<Card>` de l'Entité légale (contenu inchangé, propriété du `05`) de la colonne principale vers la fin de la colonne latérale, après la card Notes.
 
 Dans la colonne latérale (`<div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">`), insérer avant la card Logo :
 
@@ -488,32 +511,36 @@ Dans la colonne latérale (`<div className="flex min-w-0 flex-col gap-4 lg:stick
           />
 ```
 
-et après la card Logo :
+et après la card Logo, avant la card Entité légale déplacée :
 
 ```tsx
           <Card>
             <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.notes}</CardTitle>
+              <CardTitle id={`${formId}-notes-title`}>{COMPANY_SECTION_TITLES.notes}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <FormField
+            <CardContent className="flex flex-col gap-2">
+              <Input
                 id={`${formId}-notes`}
-                label={COMPANY_FIELD_LABELS.notes}
-                errors={state.errors.notes}
-                help="Une ligne de marqueurs, séparés par |"
-              >
-                <Input
-                  id={`${formId}-notes`}
-                  name="notes"
-                  defaultValue={company?.notes ?? ""}
-                  placeholder="Leader assurance Luxembourg | Scala/Angular"
-                  aria-invalid={!!state.errors.notes?.length}
-                  aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
-                />
-              </FormField>
+                name="notes"
+                aria-labelledby={`${formId}-notes-title`}
+                defaultValue={company?.notes ?? ""}
+                placeholder="Leader assurance Luxembourg | Scala/Angular"
+                aria-invalid={!!state.errors.notes?.length}
+                aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
+              />
+              <div id={`${formId}-notes-error`} aria-live="polite">
+                {state.errors.notes?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
+                ) : null}
+              </div>
+              <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
+                Une ligne de marqueurs, séparés par |
+              </p>
             </CardContent>
           </Card>
 ```
+
+La card Notes ne reprend plus `FormField`, même raison que Détails. Le `Label` et l'import `FormField` restent utilisés par les autres champs du formulaire (slug, nom, site web, zones, sectors, types).
 
 - [ ] **Step 9 : Basculer l'étude de cas des projets sur l'éditeur**
 
@@ -606,7 +633,7 @@ Expected: aucune erreur (si le formatage échoue : `just format`, puis relancer)
 - [ ] **Step 1 : Démarrer**
 
 Run: `just dev`, se connecter, ouvrir `http://localhost:3000/admin/entreprises/nouvelle`.
-Expected: colonne principale Identité (slug et nom côte à côte, site web puis zones en pleine largeur), Classification (quatre cases de types, aide « Au moins un type est requis. », secteurs), Entité légale, puis Détails en dernière position avec l'éditeur pré-rempli par le gabarit ; colonne latérale Relation (statut, taille), Logo, Notes (`Input` d'une ligne, aide « Une ligne de marqueurs, séparés par | »).
+Expected: colonne principale Identité (nom et slug côte à côte, sans aide sous le slug, site web puis zones en pleine largeur), Classification (quatre cases de types avec leur glyphe, aide « Au moins un type est requis. », secteurs), Détails en dernière position avec l'éditeur pré-rempli par le gabarit ; colonne latérale Relation (statut avec son glyphe, taille), Logo, Notes (`Input` d'une ligne, aide « Une ligne de marqueurs, séparés par | »), Entité légale.
 
 - [ ] **Step 2 : Création complète**
 
@@ -637,8 +664,8 @@ Expected: aucune violation de politique de sécurité (CSP) dans la console.
 Dans l'éditeur d'un des deux formulaires, taper `#` puis un espace en début de ligne (titre), `-` puis un espace (liste), `>` puis un espace (citation), et `/` (menu des blocs).
 Expected: les trois raccourcis transforment la ligne, le menu `/` s'ouvre.
 
-Cliquer le libellé « Détails ».
-Expected: le curseur se place dans l'éditeur.
+Dans les outils d'accessibilité du navigateur, inspecter le champ Détails puis le champ Notes.
+Expected: chacun expose pour nom accessible le texte de sa card (« Détails », « Notes »), porté par `aria-labelledby` vers le `CardTitle`, sans libellé visible répété dans la card.
 
 Saisir un texte markdown varié (titre, liste, citation), enregistrer, rouvrir la fiche.
 Expected: l'éditeur montre la même mise en forme qu'à la saisie ; le markdown stocké peut avoir été normalisé par Tiptap (espaces, marques de liste), sans changement de rendu (ADR-024). Puis arrêter le serveur de production.

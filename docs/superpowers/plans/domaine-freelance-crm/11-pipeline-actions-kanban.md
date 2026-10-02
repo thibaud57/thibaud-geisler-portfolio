@@ -330,21 +330,28 @@ Invoquer le skill `design-doc` pour `docs/DESIGN.md` :
 - Modify: `src/components/features/admin/prospection/ActionsViewPage.tsx`
 
 **Interfaces:**
-- Consumes: `personDisplayName` (`07`, `@/lib/persons`) ; `rankLabel`, `formatShortDateTime` (`10`) ; libellés (`09`)
+- Consumes: `personDisplayName` (`07`, `@/lib/persons`) ; `rankLabel`, `formatShortDateTime` (`10`) ; libellés et glyphes (`09`) ; `EnumBadge` (`04`)
 - Produces: `buildActionDetail(action: AdminProspectingAction, rank: number, onEdit: () => void): DetailContent` ; `ProspectingActionFormDialog({ action, personOptions, defaultPersonId, triggerRef, open, onOpenChange }: { …; open?: boolean; onOpenChange?: (open: boolean) => void })` ; `NewActionHeaderButton()`
 
 - [ ] **Step 1 : Extraire la vue détail**
 
 `src/components/features/admin/prospection/action-detail.tsx` reçoit la fonction `buildActionDetail` de `ProspectingActionsTable.tsx`, désormais exportée :
 
+Hérité tel quel du `10` (sous-titre rang seul, bloc Action commençant par le lien vers le Lead ou le Contact, badges `EnumBadge`) :
+
 ```tsx
+import Link from "next/link"
+
 import type { DetailContent, DetailSection } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { Badge } from "@/components/ui/badge"
 import { rankLabel } from "@/lib/action-rank"
 import { formatShortDateTime } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import {
+  ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
+  ACTION_STATUS_ICONS,
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
 } from "@/lib/prospecting-actions"
@@ -359,7 +366,19 @@ export function buildActionDetail(
     {
       title: "Action",
       rows: [
-        { label: LABELS.channel, value: <Badge variant="secondary">{ACTION_CHANNEL_LABELS[action.channel]}</Badge> },
+        {
+          label: LABELS.personId,
+          value: (
+            // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
+            <Link href={`/admin/leads/tous?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
+              {personDisplayName(action.person)}
+            </Link>
+          ),
+        },
+        {
+          label: LABELS.channel,
+          value: <EnumBadge label={ACTION_CHANNEL_LABELS[action.channel]} icon={ACTION_CHANNEL_ICONS[action.channel]} />,
+        },
         { label: LABELS.occurredAt, value: formatShortDateTime(action.occurredAt) },
         {
           label: LABELS.respondedAt,
@@ -384,7 +403,8 @@ export function buildActionDetail(
 
   return {
     title: action.title,
-    subtitle: `${rankLabel(rank)} · ${personDisplayName(action.person)}`,
+    subtitle: rankLabel(rank),
+    // EnumBadge n'a que la variante secondary (04) : l'en-tête garde le Badge outline + meta commun à toutes les vues détail.
     status: (
       <Badge variant="outline" meta>
         {ACTION_STATUS_LABELS[action.status]}
@@ -513,7 +533,7 @@ Expected: PASS, les suites du `10` comprises.
 - Create: `src/components/features/admin/prospection/ActionsBoard.tsx`
 
 **Interfaces:**
-- Consumes: Task 1 ; composants de la Task 2 ; `buildActionDetail`, `ProspectingActionFormDialog` en mode contrôlé (Task 3) ; `changeProspectingActionStatus` (`09`) ; `rankActions`, `timeOf` (`10`)
+- Consumes: Task 1 ; composants de la Task 2 ; `buildActionDetail`, `ProspectingActionFormDialog` en mode contrôlé (Task 3) ; `changeProspectingActionStatus` (`09`) ; `rankActions`, `timeOf` (`10`) ; `EnumBadge` (`04`) ; `ACTION_CHANNEL_ICONS` (`09`)
 - Produces: `ActionsBoard({ actions, personOptions }: { actions: readonly AdminProspectingAction[]; personOptions: readonly PersonOption[] })`
 
 - [ ] **Step 1 : Écrire le composant**
@@ -537,6 +557,7 @@ import { toast } from "sonner"
 
 import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { EmptyState } from "@/components/features/admin/EmptyState"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { buildActionDetail } from "@/components/features/admin/prospection/action-detail"
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospection/ProspectingActionFormDialog"
@@ -573,7 +594,7 @@ import { rankActions } from "@/lib/action-rank"
 import { timeOf } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import { formatShortDate } from "@/lib/projects"
-import { ACTION_CHANNEL_LABELS, ACTION_STATUS_LABELS } from "@/lib/prospecting-actions"
+import { ACTION_CHANNEL_ICONS, ACTION_CHANNEL_LABELS, ACTION_STATUS_LABELS } from "@/lib/prospecting-actions"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 import { changeProspectingActionStatus } from "@/server/actions/prospecting-actions"
@@ -626,9 +647,10 @@ function BoardCard({
                 {formatShortDate(action.occurredAt)} · {timeOf(action.occurredAt)}
               </time>
             </span>
-            <Badge variant="secondary" className="self-start">
-              {ACTION_CHANNEL_LABELS[action.channel]}
-            </Badge>
+            {/* EnumBadge (04) ne porte pas de className : le self-start, nécessaire dans ce flex-col, vit sur le span qui l'enveloppe. */}
+            <span className="self-start">
+              <EnumBadge label={ACTION_CHANNEL_LABELS[action.channel]} icon={ACTION_CHANNEL_ICONS[action.channel]} />
+            </span>
           </CardContent>
         </Card>
       </KanbanItemHandle>

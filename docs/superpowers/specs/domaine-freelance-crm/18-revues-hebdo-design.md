@@ -13,7 +13,7 @@ date: "2026-09-27"
 
 ## Scope
 
-Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, statut, motivation, Victoires, Blocages, Plan S+1, Notes libres), sa validation, ses Server Actions, le calcul des compteurs d'une semaine depuis le CRM et les trois taux calculés à l'affichage. Crée l'écran Revues hebdo (vues Revue avec sa période, Calendrier et Journal, formulaire en fenêtre avec « Calculer depuis le CRM », vue détail, suppression) et active son entrée de menu. Exclut tout recalcul automatique d'une revue enregistrée et les cibles de performance du toolkit.
+Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, statut, motivation, Victoires, Blocages, Plan S+1, Notes), sa validation, ses Server Actions, le calcul des compteurs d'une semaine depuis le CRM et les trois taux calculés à l'affichage. Crée l'écran Revues hebdo (vues Revue avec sa période, Calendrier et Journal, formulaire en fenêtre avec « Calculer depuis le CRM », vue détail, suppression) et active son entrée de menu. Exclut tout recalcul automatique d'une revue enregistrée et les cibles de performance du toolkit.
 
 ### État livré
 
@@ -60,7 +60,8 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 | `connectionsSent`, `connectionsAccepted`, `messagesSent`, `conversationsEngaged`, `meetingsBooked`, `interviewsHeld`, `activeLeads` | `Int` | défaut `0`, entiers positifs ou nuls ; figés à l'enregistrement |
 | `status` | `ReviewStatus?` : `BONNE`, `MOYENNE`, `MAUVAISE` | jugement sur les résultats |
 | `motivation` | `ReviewMotivation?` : `HAUTE`, `POSITIVE`, `NEUTRE`, `BASSE` | ressenti, distinct du statut |
-| `wins`, `blockers`, `nextWeekPlan`, `notes` | `String?` | Victoires, Blocages, Plan S+1, Notes libres : texte multiligne |
+| `wins`, `blockers`, `nextWeekPlan` | `String?` | Victoires, Blocages, Plan S+1 : texte multiligne |
+| `notes` | `String?` | Notes : une ligne de marqueurs, séparés par `\|` |
 | `createdAt`, `updatedAt` | `DateTime @db.Timestamptz` | |
 
 - **Remodélisation de Notion**, décidée par le propriétaire le 2026-09-27 : le titre « Semaine » et la « Date vendredi » deviennent le seul vendredi de clôture, le titre s'en déduit ; les quatre sections du corps de page Notion deviennent quatre champs texte, comme la maquette ; les trois taux, formules Notion, se calculent à l'affichage et ne se stockent pas
@@ -81,6 +82,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 
   Le toolkit rangeait acceptations, réponses et conversions sur la semaine d'envoi (approximation qu'il signale) et comptait les entretiens par les actions Call ; la date de réponse du `09` et le modèle Entretien du `16` lèvent ces deux approximations
 - **Taux** (`src/lib/weekly-reviews.ts`, fonctions pures) : acceptation = acceptées / envoyées, réponse = conversations / messages, conversion RDV = RDV / conversations ; arrondis à l'entier, affichés « 50 % », valeur absente (`EmptyValue`, arbitrage « Valeur absente ») quand le dénominateur est nul
+- **Glyphes** : `src/lib/weekly-reviews.ts` exporte aussi `REVIEW_STATUS_ICONS: Record<ReviewStatus, IconComponent | null>` (Bonne `ThumbsUp`, Moyenne `Minus`, Mauvaise `ThumbsDown`) et `REVIEW_MOTIVATION_ICONS: Record<ReviewMotivation, IconComponent | null>` (Haute `FaceGrinning`, Positive `FaceSlightlySmiling`, Neutre `FaceNeutral`, Basse `FaceSlightlyFrowning`), imports nommés depuis `lucide-react`, type `IconComponent` de `@/lib/icons`
 - **Validation** (`src/lib/schemas/weekly-review.ts`, `.claude/rules/zod/schemas.md`) : vendredi requis (date ISO, « Choisissez un vendredi » pour un autre jour), compteurs entiers de 0 à 999, statut et motivation facultatifs (sentinelle `NONE_VALUE`), textes vide → `null`
 - **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`) : `createWeeklyReview`, `updateWeeklyReview`, `deleteWeeklyReview` (motif `saveEntity` / `deleteEntity`), `computeWeekCounters(friday)` qui lit actions, entretiens et leads de la semaine et rend les sept compteurs sans rien écrire ; `getCurrentUser()` en tête de chacune. Une seconde revue pour le même vendredi est refusée (`review_week_exists`, « Une revue existe déjà pour cette semaine »), l'unicité en base en dernier recours. Une semaine sans revue se rattrape à tout moment, sans le refus d'une semaine manquante du toolkit (décidé le 2026-09-27) Revalidation en variante `layout` de `/admin/revues-hebdo`
 - **Vues** (`src/lib/review-views.ts`) :
@@ -94,8 +96,8 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
   Titres et sous-titres de la maquette (`revViewTitle`, `revViewHint`), période par un `Select` au-dessus de la liste (`revPeriodItems`)
 - **Liste** (`ReviewsTable`, motif des listes admin) : colonnes de la maquette (`REV_COLS`, affichées par défaut celles de `revCols` dans Revue, toutes dans Journal, la vue complète, arbitrage « Colonnes par vue ») plus une colonne « Vendredi » affichée par défaut (vues Notion, décidé le 2026-09-27), les taux calculés dans leur colonne ; filtre Statut ; clic vers la vue détail
 - **Calendrier** (`ReviewsCalendar`, EventCalendar du `12`, vue mois) : une pastille par revue sur son vendredi, journée entière, couleur du statut (Bonne `success`, Moyenne `warning`, Mauvaise `destructive`, sans statut `muted-foreground`), clic vers la vue détail ; ni glisser ni création par clic sur un jour. Les textes français du calendrier du `12` sortent dans `src/lib/event-calendar-fr.ts`, communs aux deux calendriers
-- **Formulaire** (`ReviewFormDialog`) : Date vendredi (`Popover` et `Calendar`, seuls les vendredis choisissables, affichée par le libellé de sa semaine), Statut, Motivation, bouton « Calculer depuis le CRM » puis les sept compteurs, Victoires, Blocages, Plan S+1, Notes libres (`Textarea`). Le bouton remplit les compteurs de la semaine choisie et le signale par un toast ; il est désactivé tant qu'aucun vendredi n'est choisi
-- **Vue détail** : titre au libellé de la semaine, sous-titre « clôture le <vendredi> », statut en tête ; blocs Prospection (connexions, messages, conversations, RDV, avec leurs taux), Pipeline (entretiens, leads actifs), Ressenti (motivation), Victoires, Blocages, Plan S+1, Notes libres ; un bloc sans donnée disparaît (arbitrage du `08`)
+- **Formulaire** (`ReviewFormDialog`) : Date vendredi (`Popover` et `Calendar`, seuls les vendredis choisissables, affichée par le libellé de sa semaine) et bouton « Calculer depuis le CRM » sur une même ligne ; Statut et Motivation ; les sept compteurs par paires (Connexions envoyées et acceptées, Messages envoyés et Conversations engagées, RDV décrochés et Entretiens, Leads actifs et la case en lecture seule « Taux acceptation · réponse · conversion », qui affiche les trois taux calculés et « Calculés à l'enregistrement » avant le premier enregistrement) ; Victoires, Blocages, Plan S+1 ; Notes (`Input` d'une ligne, aide « Une ligne de marqueurs, séparés par | »). Le bouton remplit les compteurs de la semaine choisie et le signale par un toast ; il est désactivé tant qu'aucun vendredi n'est choisi
+- **Vue détail** : titre au libellé de la semaine, sous-titre « clôture le <vendredi> » complété par « · motivation <motivation> » quand elle est renseignée, statut en tête ; blocs Prospection (connexions, messages, conversations, RDV, avec leurs taux), Pipeline (entretiens, leads actifs), Victoires, Blocages, Plan S+1, Notes ; un bloc sans donnée disparaît (arbitrage du `08`)
 - **Suppression** (`DeleteReviewDialog`) : titre et texte de la maquette (`dlgDeleteReview`)
 - **Menu** : entrée « Revues hebdo » activée, sous-entrées « Revue », « Calendrier », « Journal » (maquette)
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
@@ -208,7 +210,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 ### Décision : qualitatif de la semaine
 
 **Options envisagées :**
-- **A. Quatre champs texte** (Victoires, Blocages, Plan S+1, Notes libres), comme la maquette
+- **A. Quatre champs texte** (Victoires, Blocages, Plan S+1, Notes), comme la maquette
 - **B. Un Détails markdown** avec ces quatre titres, comme les autres fiches
 
 **Choix : A**

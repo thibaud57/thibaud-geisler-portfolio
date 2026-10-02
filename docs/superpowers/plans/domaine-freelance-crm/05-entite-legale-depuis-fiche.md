@@ -15,8 +15,8 @@
 - **Prérequis** : plans `02`, `03` et `04` implémentés (`companySchema`, `optionalStringField`, `CompaniesTable` avec vue détail par blocs, `AdminCompanyDetail`).
 - **`LegalForm`, enum à 13 valeurs exactes**, dans cet ordre de groupes : France `ENTREPRENEUR_INDIVIDUEL`, `EURL`, `SARL`, `SAS`, `SASU`, `SA`, `SNC`, `SCI`, `ASSOCIATION` ; Luxembourg `SARL_LU`, `SARL_S_LU`, `SA_LU` ; États-Unis `INCORPORATED_US` (portée par un sous-traitant américain des pages légales). Aucun autre pays ; un pays de plus vaut une nouvelle migration.
 - **Pays du siège** `FR`, `LU`, `BE`, `CH`, `DE`, `NL`, `GB`, `US` ; **devises** `EUR`, `CHF`, `USD`, `GBP` (défaut `EUR`).
-- **Seule la raison sociale est obligatoire** quand l'entité est activée ; siège tout ou rien ; SIRET 14 chiffres (espaces retirés) ; TVA deux lettres puis 8 à 12 lettres ou chiffres ; capital entier positif ou nul ; numéro RCS ignoré pour un siège en France.
-- **Champs du `FormData`** : `legalEntityEnabled`, `legalEntityName`, `legalEntityStatusKey`, `legalEntitySiret`, `legalEntityVatNumber`, `legalEntityRcsCity`, `legalEntityRcsNumber`, `legalEntityPhone`, `legalEntityCapitalAmount`, `legalEntityCapitalCurrency`, `legalEntityStreet`, `legalEntityPostalCode`, `legalEntityCity`, `legalEntityCountry`, `legalEntityVatLiableSince`, `legalEntityVatRegime`.
+- **Card toujours affichée, aucun bouton ni bascule** : vide, rien n'est enregistré ; dès qu'un champ a une valeur, la raison sociale et les quatre champs du siège deviennent tous requis (le modèle les exige ensemble). SIRET 14 chiffres (espaces retirés) ; TVA deux lettres puis 8 à 12 lettres ou chiffres ; capital entier positif ou nul ; numéro RCS ignoré pour un siège en France.
+- **Champs du `FormData`** : `legalEntityName`, `legalEntityStatusKey`, `legalEntitySiret`, `legalEntityVatNumber`, `legalEntityRcsCity`, `legalEntityRcsNumber`, `legalEntityPhone`, `legalEntityCapitalAmount`, `legalEntityCapitalCurrency`, `legalEntityStreet`, `legalEntityPostalCode`, `legalEntityCity`, `legalEntityCountry`, `legalEntityVatLiableSince`, `legalEntityVatRegime`.
 - **TVA de l'éditeur** (décision 17 du propriétaire, 2026-09-30) : `legalEntityVatLiableSince` et `legalEntityVatRegime` sont facultatifs, pris en compte seulement pour l'entité éditrice, renseignés ensemble ou pas du tout, et exigent `legalEntityVatNumber` une fois renseignés. `updateCompany` les écrit sur le `Publisher` lié à l'entité seulement quand ce lien existe déjà, jamais de `Publisher` créé depuis ce formulaire.
 - **Cache** : toute écriture ou suppression d'entreprise invalide `projects` et `legal-entity`.
 - **`Legal.legalStatus` réindexé par valeur d'enum** : `entrepreneurIndividuel` devient `ENTREPRENEUR_INDIVIDUEL`, `sarl` devient `SARL`, `incorporated` devient `INCORPORATED_US`, mêmes libellés FR et EN.
@@ -27,7 +27,7 @@
 ## Review Focus
 
 - **Champs repliés non envoyés** : si le bloc « Autres informations » était retiré du DOM une fois replié, l'action lirait ces champs comme vides et effacerait capital, RCS et téléphone. Le bloc reste dans le DOM, masqué par l'attribut `hidden`. Vérifié à la Task 6, Step 3.
-- **Siège vidé** : avec l'ancienne cascade, supprimer l'adresse supprimait l'entité, et avec elle, par leurs propres cascades, l'éditeur et ses traitements. La relation passe en `SetNull` (Task 1) ; un test unitaire à Prisma mocké ne voit pas la base, la vérification se fait à la Task 6, Step 4.
+- **Siège vidé** : avec l'ancienne cascade, supprimer l'adresse supprimait l'entité, et avec elle, par leurs propres cascades, l'éditeur et ses traitements. La relation passe en `SetNull` (Task 1). Avec la raison sociale et le siège complet désormais requis ensemble dès qu'un champ est rempli, vider le siège d'une entité existante sans vider aussi le reste n'est plus un cas atteignable depuis le formulaire : la branche `currentAddressId ? { delete: true } : undefined` de `toUpdateData` reste en défense, mais aucun test ne la couvre plus par la Server Action elle-même.
 - **Entité de l'éditeur** : supprimer une entreprise ne doit jamais emporter l'entité de l'éditeur ni celle d'un sous-traitant. Couvert par le test « only detaches a legal entity used as publisher or processor ».
 - **Collision de slug** : une nouvelle entité prend le slug de l'entreprise ; s'il est déjà pris par une entité de l'ancien seed, l'erreur tombe sur la raison sociale, pas sur le slug de l'entreprise. Couvert par le test « maps a legal entity slug collision to the legal name ».
 - **Mentions légales** : une forme juridique ou un siège absents font répondre la page introuvable au lieu de lever une erreur de traduction. Vérifié à la Task 6, Step 6.
@@ -546,10 +546,6 @@ const optionalText = z
   .optional()
 
 export const legalEntityFields = {
-  legalEntityEnabled: z
-    .enum(["true", "false"])
-    .transform((value) => value === "true")
-    .optional(),
   legalEntityName: z
     .string()
     .trim()
@@ -613,11 +609,16 @@ export const legalEntityFields = {
 }
 
 type LegalEntityValues = {
-  legalEntityEnabled?: boolean | undefined
   legalEntityName?: string | undefined
+  legalEntityStatusKey?: LegalForm | null | undefined
+  legalEntitySiret?: string | null | undefined
   legalEntityVatNumber?: string | null | undefined
   legalEntityVatLiableSince?: Date | null | undefined
   legalEntityVatRegime?: VatRegime | null | undefined
+  legalEntityRcsCity?: string | null | undefined
+  legalEntityRcsNumber?: string | null | undefined
+  legalEntityPhone?: string | null | undefined
+  legalEntityCapitalAmount?: number | null | undefined
   legalEntityStreet?: string | null | undefined
   legalEntityPostalCode?: string | null | undefined
   legalEntityCity?: string | null | undefined
@@ -631,20 +632,34 @@ const ADDRESS_FIELDS = [
   "legalEntityCountry",
 ] as const
 
+// Au-delà de la raison sociale et du siège, un champ qui compte pour « l'entité a une valeur ».
+// La devise (toujours un défaut non vide) et les champs de TVA (décision 17, propres au Publisher) en sont exclus.
+const OTHER_ENTITY_FIELDS = [
+  "legalEntityStatusKey",
+  "legalEntitySiret",
+  "legalEntityVatNumber",
+  "legalEntityRcsCity",
+  "legalEntityRcsNumber",
+  "legalEntityPhone",
+  "legalEntityCapitalAmount",
+] as const
+
 export function refineLegalEntity(data: LegalEntityValues, ctx: z.RefinementCtx): void {
-  if (data.legalEntityEnabled !== true) return
+  const hasAnyField =
+    Boolean(data.legalEntityName) ||
+    ADDRESS_FIELDS.some((field) => data[field]) ||
+    OTHER_ENTITY_FIELDS.some((field) => data[field])
 
-  if (!data.legalEntityName) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["legalEntityName"],
-      message: "La raison sociale est requise",
-    })
-  }
+  if (hasAnyField) {
+    if (!data.legalEntityName) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["legalEntityName"],
+        message: "La raison sociale est requise",
+      })
+    }
 
-  // Une adresse à moitié ne sert ni aux factures ni aux mentions : tout ou rien.
-  const filled = ADDRESS_FIELDS.filter((field) => data[field])
-  if (filled.length > 0 && filled.length < ADDRESS_FIELDS.length) {
+    // Dès que l'entité a une valeur, le siège est requis en entier : plus de « tout ou rien » optionnel.
     for (const field of ADDRESS_FIELDS) {
       if (!data[field]) {
         ctx.addIssue({ code: "custom", path: [field], message: "Requis pour un siège complet" })
@@ -701,8 +716,11 @@ const schema = z.object(legalEntityFields).superRefine(refineLegalEntity)
 
 function parse(overrides: Record<string, string> = {}) {
   return schema.safeParse({
-    legalEntityEnabled: "true",
     legalEntityName: "Acme SAS",
+    legalEntityStreet: "11 rue Gouvy",
+    legalEntityPostalCode: "57000",
+    legalEntityCity: "Metz",
+    legalEntityCountry: "FR",
     legalEntityVatNumber: "",
     legalEntityVatLiableSince: "",
     legalEntityVatRegime: "",
@@ -816,8 +834,17 @@ Retirer `legalEntityId: NONE_VALUE` de `BASE_FIELDS`, et supprimer les trois tes
 Ajouter, après `buildFormData` :
 
 ```ts
+// Un nom et un siège complet par défaut : depuis que les deux sont requis ensemble (dès qu'un champ
+// de l'entité est rempli), un test qui ne porte pas sur l'adresse n'a pas à la répéter à chaque appel.
 function withLegalEntity(overrides: Record<string, string> = {}): Record<string, string> {
-  return { legalEntityEnabled: "true", legalEntityName: "Acme SAS", ...overrides }
+  return {
+    legalEntityName: "Acme SAS",
+    legalEntityStreet: "11 rue Gouvy",
+    legalEntityPostalCode: "57000",
+    legalEntityCity: "Metz",
+    legalEntityCountry: "FR",
+    ...overrides,
+  }
 }
 ```
 
@@ -836,22 +863,14 @@ Dans `afterEach` du bloc `updateCompany`, rien ne change ; au début du bloc `up
 Ajouter dans `describe("createCompany")` :
 
 ```ts
-  it("creates the legal entity with the company when enabled, with the company slug", async () => {
+  it("creates the legal entity with the company, with the company slug", async () => {
     vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
 
     await createCompany(
       initialCompanyFormState,
-      buildFormData(
-        withLegalEntity({
-          legalEntityStatusKey: "SAS",
-          legalEntityStreet: "11 rue Gouvy",
-          legalEntityPostalCode: "57000",
-          legalEntityCity: "Metz",
-          legalEntityCountry: "FR",
-        }),
-        ["SAAS"],
-        { types: ["CLIENT_FINAL"] },
-      ),
+      buildFormData(withLegalEntity({ legalEntityStatusKey: "SAS" }), ["SAAS"], {
+        types: ["CLIENT_FINAL"],
+      }),
     )
 
     expect(prisma.company.create).toHaveBeenCalledWith(
@@ -872,7 +891,7 @@ Ajouter dans `describe("createCompany")` :
     )
   })
 
-  it("rejects an enabled legal entity without a name", async () => {
+  it("rejects a legal entity without a name", async () => {
     const state = await createCompany(
       initialCompanyFormState,
       buildFormData(withLegalEntity({ legalEntityName: "" }), ["SAAS"], { types: ["CLIENT_FINAL"] }),
@@ -922,9 +941,11 @@ Ajouter dans `describe("createCompany")` :
   it("rejects a partial registered office address", async () => {
     const state = await createCompany(
       initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityCity: "Metz" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
+      buildFormData(
+        withLegalEntity({ legalEntityStreet: "", legalEntityPostalCode: "", legalEntityCountry: "" }),
+        ["SAAS"],
+        { types: ["CLIENT_FINAL"] },
+      ),
     )
 
     expect(state.errors.legalEntityStreet).toEqual(["Requis pour un siège complet"])
@@ -1016,29 +1037,6 @@ Ajouter dans `describe("updateCompany")` :
               create: objectMatch({ slug: "acme", phone: "+33 3 00 00 00 00" }),
               update: objectMatch({ phone: "+33 3 00 00 00 00" }),
             },
-          },
-        }),
-      }),
-    )
-  })
-
-  it("deletes the stored registered office when the four address fields are emptied", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
-      legalEntity: { addressId: "a1" },
-    } as never)
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
-    await updateCompany(
-      "c1",
-      initialCompanyFormState,
-      buildFormData(withLegalEntity(), ["SAAS"], { types: ["CLIENT_FINAL"] }),
-    )
-
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            upsert: objectMatch({ update: objectMatch({ address: { delete: true } }) }),
           },
         }),
       }),
@@ -1216,7 +1214,8 @@ interface LegalEntityDraft {
 }
 
 function toLegalEntityDraft(data: CompanyInput): LegalEntityDraft | undefined {
-  if (data.legalEntityEnabled !== true) return undefined
+  // Après validation (refineLegalEntity), un nom présent garantit aussi un siège complet : aucun champ rempli n'en tient lieu.
+  if (!data.legalEntityName) return undefined
 
   const address =
     data.legalEntityStreet && data.legalEntityPostalCode && data.legalEntityCity && data.legalEntityCountry
@@ -1342,7 +1341,7 @@ Dans `updateCompany`, remplacer son `persist` par :
 
 ```ts
     async (data) => {
-      const current = data.legalEntityEnabled
+      const current = data.legalEntityName
         ? await prisma.company.findUnique({
             where: { id },
             select: {
@@ -1411,10 +1410,9 @@ function invalidateCompanyCaches(): void {
 }
 ```
 
-Dans `collectValues`, retirer `legalEntityId` et ajouter les quatorze champs de l'entité, tous lus par `optionalStringField` :
+Dans `collectValues`, retirer `legalEntityId` et ajouter les treize champs de l'entité, tous lus par `optionalStringField` :
 
 ```ts
-    legalEntityEnabled: optionalStringField(formData, "legalEntityEnabled"),
     legalEntityName: optionalStringField(formData, "legalEntityName"),
     legalEntityStatusKey: optionalStringField(formData, "legalEntityStatusKey"),
     legalEntitySiret: optionalStringField(formData, "legalEntitySiret"),
@@ -1624,7 +1622,6 @@ interface Props {
 }
 
 export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
-  const [enabled, setEnabled] = useState(legalEntity !== null)
   const [statusKey, setStatusKey] = useState<LegalForm | "">(legalEntity?.legalForm ?? "")
   const [statusOpen, setStatusOpen] = useState(false)
   const [country, setCountry] = useState(legalEntity?.address?.country ?? NO_COUNTRY)
@@ -1646,36 +1643,12 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
 
   const field = (name: string) => `${formId}-${name}`
 
-  if (!enabled) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setEnabled(true)
-            }}
-          >
-            Renseigner l&apos;entité légale
-          </Button>
-          <input type="hidden" name="legalEntityEnabled" value="false" />
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <input type="hidden" name="legalEntityEnabled" value="true" />
-
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id={field("legalEntityName")} label={LABELS.name} errors={errors.legalEntityName}>
             <Input
@@ -1840,38 +1813,69 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
 
         {/* Reste dans le DOM sous hidden : replié, l'action lirait sinon ces champs vides et effacerait capital, RCS et téléphone. */}
         <div id={field("legalEntityMore")} hidden={!moreOpen} className="grid gap-4 sm:grid-cols-2">
-          {/* Rangée à part : sans numéro RCS (siège en France), le téléphone ne remonte pas à côté de la ville. */}
-          <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
-            <FormField id={field("legalEntityRcsCity")} label={LABELS.rcsCity} errors={errors.legalEntityRcsCity}>
-              <Input
-                id={field("legalEntityRcsCity")}
-                name="legalEntityRcsCity"
-                defaultValue={legalEntity?.rcsCity ?? ""}
-              />
-            </FormField>
-            {country !== "FR" ? (
+          {country === "FR" ? (
+            // En France, le SIREN tiré du SIRET tient lieu de numéro RCS : la ville du RCS s'apparie avec le téléphone.
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
               <FormField
-                id={field("legalEntityRcsNumber")}
-                label={LABELS.rcsNumber}
-                errors={errors.legalEntityRcsNumber}
+                id={field("legalEntityRcsCity")}
+                label={LABELS.rcsCity}
+                errors={errors.legalEntityRcsCity}
               >
                 <Input
-                  id={field("legalEntityRcsNumber")}
-                  name="legalEntityRcsNumber"
-                  defaultValue={legalEntity?.rcsNumber ?? ""}
+                  id={field("legalEntityRcsCity")}
+                  name="legalEntityRcsCity"
+                  defaultValue={legalEntity?.rcsCity ?? ""}
                 />
               </FormField>
-            ) : null}
-          </div>
-          <FormField id={field("legalEntityPhone")} label={LABELS.phone} errors={errors.legalEntityPhone}>
-            <Input
-              id={field("legalEntityPhone")}
-              name="legalEntityPhone"
-              type="tel"
-              defaultValue={legalEntity?.phone ?? ""}
-            />
-          </FormField>
-          <div className="grid grid-cols-[2fr_1fr] gap-4">
+              <FormField id={field("legalEntityPhone")} label={LABELS.phone} errors={errors.legalEntityPhone}>
+                <Input
+                  id={field("legalEntityPhone")}
+                  name="legalEntityPhone"
+                  type="tel"
+                  defaultValue={legalEntity?.phone ?? ""}
+                />
+              </FormField>
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+                <FormField
+                  id={field("legalEntityRcsCity")}
+                  label={LABELS.rcsCity}
+                  errors={errors.legalEntityRcsCity}
+                >
+                  <Input
+                    id={field("legalEntityRcsCity")}
+                    name="legalEntityRcsCity"
+                    defaultValue={legalEntity?.rcsCity ?? ""}
+                  />
+                </FormField>
+                <FormField
+                  id={field("legalEntityRcsNumber")}
+                  label={LABELS.rcsNumber}
+                  errors={errors.legalEntityRcsNumber}
+                >
+                  <Input
+                    id={field("legalEntityRcsNumber")}
+                    name="legalEntityRcsNumber"
+                    defaultValue={legalEntity?.rcsNumber ?? ""}
+                  />
+                </FormField>
+              </div>
+              <div className="sm:col-span-2">
+                <FormField id={field("legalEntityPhone")} label={LABELS.phone} errors={errors.legalEntityPhone}>
+                  <Input
+                    id={field("legalEntityPhone")}
+                    name="legalEntityPhone"
+                    type="tel"
+                    defaultValue={legalEntity?.phone ?? ""}
+                  />
+                </FormField>
+              </div>
+            </>
+          )}
+
+          <div className="grid grid-cols-[2fr_1fr] gap-4 sm:col-span-2">
             <FormField
               id={field("legalEntityCapitalAmount")}
               label={LABELS.capitalAmount}
@@ -2046,15 +2050,6 @@ function legalEntitySections(company: AdminCompany): DetailSection[] {
         },
         { label: LEGAL_LABELS.siret, value: entity.siret ? formatSiret(entity.siret) : null },
         { label: LEGAL_LABELS.vatNumber, value: entity.vatNumber },
-        { label: LEGAL_LABELS.registration, value: registration },
-        { label: LEGAL_LABELS.phone, value: entity.phone },
-        {
-          label: LEGAL_LABELS.capitalAmount,
-          value:
-            entity.capitalAmount !== null
-              ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
-              : null,
-        },
         {
           label: LEGAL_LABELS.registeredOffice,
           fullWidth: true,
@@ -2063,6 +2058,17 @@ function legalEntitySections(company: AdminCompany): DetailSection[] {
               {`${entity.address.street}\n${entity.address.postalCode} ${entity.address.city}\n${countryName(entity.address.country)}`}
             </span>
           ) : null,
+        },
+        { label: LEGAL_LABELS.registration, value: registration },
+        { label: LEGAL_LABELS.phone, value: entity.phone },
+        {
+          // Seul sans paire après le siège : pleine largeur plutôt qu'une case vide à côté.
+          label: LEGAL_LABELS.capitalAmount,
+          fullWidth: true,
+          value:
+            entity.capitalAmount !== null
+              ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
+              : null,
         },
       ],
     },
@@ -2109,10 +2115,13 @@ Expected: suites `unit` et `integration` vertes.
 - Consumes: Tasks 1 à 5
 - Produces: rien
 
-- [ ] **Step 1 : Entité minimale**
+- [ ] **Step 1 : Entité vide puis minimale**
 
-Run: `just dev`, se connecter. Créer une entreprise, cliquer « Renseigner l'entité légale », saisir seulement la raison sociale, enregistrer.
-Expected: enregistrement accepté ; la vue détail montre le bloc Entité légale avec la raison sociale et des tirets ailleurs.
+Run: `just dev`, se connecter. Créer une entreprise sans toucher à la card Entité légale, enregistrer.
+Expected: enregistrement accepté, aucune erreur ; la vue détail n'a pas de bloc Entité légale.
+
+Rouvrir la fiche, saisir seulement la raison sociale et un siège complet, sans forme juridique ni SIRET, enregistrer.
+Expected: enregistrement accepté ; la vue détail montre le bloc Entité légale avec la raison sociale et le siège, des tirets ailleurs.
 
 - [ ] **Step 2 : Entité complétée**
 
@@ -2124,15 +2133,15 @@ Expected: la vue détail montre le SIRET formaté, la TVA, le siège sur trois l
 Ouvrir « Autres informations », saisir un téléphone et un capital, enregistrer. Rouvrir la fiche : le bloc s'ouvre seul. Le replier, modifier seulement la raison sociale, enregistrer.
 Expected: téléphone et capital sont conservés.
 
-- [ ] **Step 4 : Siège vidé**
+- [ ] **Step 4 : Siège requis dès qu'un champ est rempli**
 
-Vider les quatre champs du siège, enregistrer, rouvrir la fiche.
-Expected: l'entité est toujours là avec sa raison sociale, sa forme et son SIRET ; le siège est vide ; `just db-studio` ne montre plus l'ancienne adresse.
+Sur cette fiche, vider les quatre champs du siège en gardant la raison sociale, enregistrer.
+Expected: rue, code postal, ville et pays signalés « Requis pour un siège complet » ; rien n'est enregistré, le siège reste celui d'avant en base (`just db-studio`).
 
-- [ ] **Step 5 : Erreurs**
+- [ ] **Step 5 : Erreurs sur une entité neuve**
 
-Saisir seulement la ville du siège, puis un SIRET de 13 chiffres, enregistrer.
-Expected: rue, code postal et pays signalés « Requis pour un siège complet » ; SIRET « Le SIRET compte 14 chiffres » ; rien n'est enregistré.
+Sur une entreprise sans entité légale, saisir seulement la ville du siège, puis un SIRET de 13 chiffres, enregistrer.
+Expected: la raison sociale, la rue, le code postal et le pays sont signalés « requis » (la raison sociale avec « La raison sociale est requise ») ; le SIRET avec « Le SIRET compte 14 chiffres » ; rien n'est enregistré.
 
 - [ ] **Step 6 : Mentions légales**
 

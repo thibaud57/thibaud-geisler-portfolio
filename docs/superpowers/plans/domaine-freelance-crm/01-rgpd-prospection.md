@@ -184,7 +184,7 @@ Charger `Skill[production-doc]` et lire son template avant d'écrire, pour respe
 - [ ] **Step 2 : Écrire la rubrique « Demandes RGPD »**
 
 Dans `docs/PRODUCTION.md`, ajouter une rubrique « Demandes RGPD » qui couvre, pour chaque droit du Traitement 7 (`docs/registre-traitements.md`) :
-- **Accès** (réponse sous 1 mois, exigence CNIL) : procédure écrite qui rassemble tout ce qui concerne une personne (sa fiche, actions de prospection, missions, entretiens, signaux), sans écran dédié
+- **Accès** (réponse sous 1 mois, exigence CNIL) : procédure écrite qui rassemble tout ce qui concerne une personne (sa fiche, actions de prospection, opportunités, entretiens, signaux), sans écran dédié
 - **Rectification** : correction directe de la fiche depuis l'écran (`08`, `13`)
 - **Opposition** (art. 21) : un bouton dédié de l'écran d'administration, à tout moment et sans justification, réduit la fiche à ce qui reconnaît la personne (email, LinkedIn) et pose la date du stop une seule fois ; garde les rôles et l'historique ; une case propose d'enchaîner aussitôt l'effacement des échanges
 - **Effacement** (art. 17.1.c) : à tout moment après le stop, un second geste, disponible sur une fiche déjà opposée, retire ses actions, ses signaux et sa place de correspondant d'entretien, et pose la date de l'effacement une seule fois

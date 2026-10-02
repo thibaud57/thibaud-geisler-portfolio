@@ -13,7 +13,7 @@ date: "2026-09-29"
 
 ## Scope
 
-Crée le modèle `ProspectingAction` (une action envers une personne : connexion, message, email, appel, candidature), ses listes de valeurs, sa validation, ses règles de statut (date d'envoi réelle au passage à Fait, date de réponse posée d'office), ses lectures pour l'admin et ses Server Actions de création, modification, changement de statut seul et suppression. Étend la lecture des leads avec la date de la dernière réponse de leur personne et l'effacement des échanges (`erasePersonExchanges`, `07`) avec la suppression des actions de la personne opposée. Exclut les écrans (`10`, `11`, `12`), le rang « Premier contact / Relance N » (calculé par le `10`) et tout lien vers une mission (`14`).
+Crée le modèle `ProspectingAction` (une action envers une personne : connexion, message, email, appel, candidature), ses listes de valeurs, sa validation, ses règles de statut (date d'envoi réelle au passage à Fait, date de réponse posée d'office), ses lectures pour l'admin et ses Server Actions de création, modification, changement de statut seul et suppression. Étend la lecture des leads avec la date de la dernière réponse de leur personne et l'effacement des échanges (`erasePersonExchanges`, `07`) avec la suppression des actions de la personne opposée. Exclut les écrans (`10`, `11`, `12`), le rang « Premier contact / Relance N » (calculé par le `10`) et tout lien vers une opportunité (`14`).
 
 ### État livré
 
@@ -27,7 +27,7 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
 
 - **À modifier** : `prisma/schema.prisma` (enums `ActionChannel`, `ActionStatus`, modèle `ProspectingAction`, relation `Person.prospectingActions`)
 - **À créer** : `prisma/migrations/<horodatage>_prospecting_actions/migration.sql`
-- **À créer** : `src/lib/prospecting-actions.ts` (libellés des canaux, statuts et champs)
+- **À créer** : `src/lib/prospecting-actions.ts` (libellés et glyphes des canaux et statuts, libellés des champs)
 - **À créer** : `src/lib/prospecting-action-status.ts` et `src/lib/prospecting-action-status.test.ts` (règles de passage d'un statut à l'autre, fonction pure)
 - **À créer** : `src/lib/schemas/prospecting-action.ts`
 - **À créer** : `src/server/actions/prospecting-actions.ts`, `src/server/actions/prospecting-actions.types.ts`, `src/server/actions/prospecting-actions.test.ts`
@@ -52,6 +52,7 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
 
   Index sur `(personId, occurredAt)` : l'historique d'une personne et le rang des relances se lisent dans cet ordre. Vers la personne, pas le rôle : un échange avec une relation réseau se journalisera au même endroit (`13`)
 - **Libellés** (`src/lib/prospecting-actions.ts`) : ceux de la maquette (« Connexion LinkedIn », « DM LinkedIn », « SMS/WhatsApp », « À faire », « Répondu », « Ignoré »…)
+- **Glyphes** : `ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS` dans `src/lib/prospecting-actions.ts`, chacune `Record<Enum, IconComponent | null>` (type `IconComponent` de `@/lib/icons`), glyphes Lucide en imports nommés : canal Connexion LinkedIn `UserPlus`, DM LinkedIn `MessageSquare`, Email `Mail`, SMS/WhatsApp `MessageCircle`, Call `Phone`, Candidature et Autre sans glyphe (`null`) ; statut À faire `ClipboardList`, Fait `CircleCheck`, Répondu `Reply`, Converti `Target`, Ignoré `VolumeX`
 - **Règles de statut** (`src/lib/prospecting-action-status.ts`, fonction pure appelée par toutes les écritures) :
   - quitter À faire pour un autre statut remplace la date par l'heure courante, sauf si la même saisie change aussi la date (rattrapage d'un envoi passé) : la date devient celle de l'envoi réel (règle Notion)
   - passer à Répondu ou Converti sans date de réponse la pose à l'heure courante ; une date de réponse saisie est gardée ; passer de Répondu à Converti garde la date existante

@@ -12,14 +12,14 @@
 
 ## Global Constraints
 
-- **Prérequis** : plans `01` (Traitement 7, puce prospection), `04` (`CompaniesTable`), `15` (`CompaniesTable`, `DeleteCompanyDialog`, card Missions de la page entreprise), `07` (`persons.ts`, `optOutPerson(id)`, `erasePersonExchanges(id)`), `08` (`OptOutPersonDialog`, `SelectField`, `OptionalDateField`), `10`, `13`, `16` et `17` (`LeadsTable`, page du lead et ses cards, `DeleteLeadDialog`) implémentés.
+- **Prérequis** : plans `01` (Traitement 7, puce prospection), `03` (`CompanyForm`, prop `relatedCards`), `04` (`CompaniesTable`), `15` (`CompaniesTable`, `DeleteCompanyDialog`, card Opportunités de la page entreprise), `07` (`persons.ts`, `optOutPerson(id)`, `erasePersonExchanges(id)`), `08` (`OptOutPersonDialog`, `SelectField`, `OptionalDateField`, `RelatedLinksList`, `RelatedLinksCard`, `relatedCards` du formulaire des leads), `10`, `13`, `16` et `17` (`LeadsTable`, page du lead et ses cards, `DeleteLeadDialog`) implémentés.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : un signal se saisit en fenêtre, ouverte depuis la card Signaux de la page de son entreprise ou de son lead ; aucun bouton de ligne ; la vue détail le montre en lecture.
 - **Enums, valeurs exactes** : `SignalType` `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION`, `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`.
 - **Types par rattachement** (listes du toolkit) : entreprise `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION` ; lead outbound `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`. Jamais de signal sur un lead inbound ou opposé. Une contrainte SQL (`Signal_type_check`) impose ce lien en base ; un nouveau type demande de la mettre à jour.
 - **Fraîcheur** (matrice du toolkit, `strategie-canaux.md`) : Offre de poste récent moins de 3 mois, à confirmer jusqu'à 6, périmé au-delà ; Levée 6 et 18 ; Expansion d'équipe et Nouveau produit 6 et 12. Les autres types n'ont ni badge ni place dans « Signal récent ».
 - **Date** : au jour (`DateTime @db.Date`) ; quand la source ne donne que le mois, le 1er à minuit UTC est saisi ; toujours affichée « 12/03/2026 », lue en UTC.
 - **RGPD** : signaux d'une personne gardés à l'opposition simple (`optOutPerson`), supprimés par `erasePersonExchanges(id)` ; supprimés avec leur personne ou leur entreprise.
-- **Textes** : « Nouveau signal », « Modifier le signal <type> · <date> », « Ajouter un signal à <nom>. », « Modifier les informations de ce signal. », « Signal créé », « Signal mis à jour », « Signal supprimé », « Choisissez un type », « Choisissez une date », « Décrivez le signal », « L'adresse du lien n'est pas valide », « Ce type ne concerne pas cette fiche », « Ce lead ne peut pas recevoir de signal » ; suppression « Ses signaux sont supprimés avec elle. ».
+- **Textes** : « Nouveau signal », « Modifier le signal <type> · <date> », « Ajouter un signal à <nom>. », « Modifier les informations de ce signal. », « Signal créé », « Signal mis à jour », « Signal supprimé », « Choisissez un type », « Choisissez une date », « Décrivez le signal », « L'adresse du lien n'est pas valide », « Ce type ne concerne pas cette fiche », « Ce lead ne peut pas recevoir de signal » ; suppression « Ses signaux sont supprimés avec elle. » ; card avant le premier enregistrement « Après l'enregistrement de l'entreprise. », « Après l'enregistrement du lead. ».
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
 **Rules :** `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`.
@@ -43,7 +43,7 @@
 
 **Interfaces:**
 - Consumes: rien
-- Produces: modèle `Signal`, enum `SignalType`, relations `Company.signals`, `Person.signals` ; `COMPANY_SIGNAL_TYPES`, `LEAD_SIGNAL_TYPES`, `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` ; `type SignalOwnerKind = "company" | "lead"` ; `interface SignalOwner { kind: SignalOwnerKind; id: string; name: string }` ; `interface SignalItem { id: string; type: SignalType; occurredOn: Date; content: string; sourceUrl: string | null }` ; `SIGNAL_TYPE_LABELS`, `SIGNAL_FIELD_LABELS`, `SIGNAL_FRESHNESS_LABELS` ; `formatSignalDate(signal): string` ; `type SignalFreshness = "RECENT" | "A_CONFIRMER" | "PERIME"` ; `signalFreshness(signal, now: Date): SignalFreshness | null` ; `hasRecentSignal(signals, now: Date): boolean`
+- Produces: modèle `Signal`, enum `SignalType`, relations `Company.signals`, `Person.signals` ; `COMPANY_SIGNAL_TYPES`, `LEAD_SIGNAL_TYPES`, `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` ; `type SignalOwnerKind = "company" | "lead"` ; `interface SignalOwner { kind: SignalOwnerKind; id: string; name: string }` ; `interface SignalItem { id: string; type: SignalType; occurredOn: Date; content: string; sourceUrl: string | null }` ; `SIGNAL_TYPE_LABELS`, `SIGNAL_TYPE_ICONS`, `SIGNAL_FIELD_LABELS`, `SIGNAL_FRESHNESS_LABELS` ; `formatSignalDate(signal): string` ; `type SignalFreshness = "RECENT" | "A_CONFIRMER" | "PERIME"` ; `signalFreshness(signal, now: Date): SignalFreshness | null` ; `hasRecentSignal(signals, now: Date): boolean`
 
 - [ ] **Step 1 : Enums, modèle et relations**
 
@@ -93,7 +93,7 @@ model Signal {
 }
 ```
 
-Dans `model Company`, après `missionsAsClient` : `signals Signal[]`. Dans `model Person`, après `interviews` : `signals Signal[]`.
+Dans `model Company`, après `opportunitiesAsClient` : `signals Signal[]`. Dans `model Person`, après `interviews` : `signals Signal[]`.
 
 - [ ] **Step 2 : Migration**
 
@@ -188,7 +188,21 @@ Expected: FAIL, module introuvable.
 `src/lib/signals.ts` :
 
 ```ts
+import {
+  Hand,
+  Megaphone,
+  Merge,
+  MessageSquareText,
+  Mic,
+  Package,
+  PenLine,
+  RotateCcw,
+  TrendingUp,
+  Users,
+} from "lucide-react"
+
 import type { SignalType } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 // Listes du toolkit : `📡 Signaux` d'une entreprise, `🔍 Signal` d'un lead outbound.
 export const COMPANY_SIGNAL_TYPES = [
@@ -238,6 +252,19 @@ export const SIGNAL_TYPE_LABELS: Record<SignalType, string> = {
   COMMENTAIRE: "Commentaire",
   CONFERENCE: "Présence en conférence",
   INTERACTION: "Interaction directe",
+}
+
+export const SIGNAL_TYPE_ICONS: Record<SignalType, IconComponent | null> = {
+  OFFRE_POSTE: Megaphone,
+  LEVEE: TrendingUp,
+  EXPANSION: Users,
+  NOUVEAU_PRODUIT: Package,
+  PIVOT: RotateCcw,
+  ACQUISITION: Merge,
+  POST: PenLine,
+  COMMENTAIRE: MessageSquareText,
+  CONFERENCE: Mic,
+  INTERACTION: Hand,
 }
 
 export const SIGNAL_FIELD_LABELS = {
@@ -686,7 +713,7 @@ export const signalsInclude = {
 } as const
 ```
 
-et, dans `adminCompanyInclude`, après `missionsAsClient` : `signals: signalsInclude,`.
+et, dans `adminCompanyInclude`, après `opportunitiesAsClient` : `signals: signalsInclude,`.
 
 Dans `src/server/queries/leads.ts`, importer `signalsInclude` depuis `@/server/queries/companies` et l'ajouter, après `interviews` (entrée posée par le `16`, sa forme finale du `17`), à l'inclusion de la personne dans `adminLeadInclude` (`07`, étendu par `09`, `10`, `16` et `17`) : `signals: signalsInclude,` ; le résultat aplati expose `AdminLead.signals` au format `SignalItem[]`.
 
@@ -748,8 +775,8 @@ Expected: PASS.
 - Create: `src/components/features/admin/signals/SignalsCard.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 1 et 2 ; `SelectField` (`08`), `OptionalDateField` (`05`) ; `ExternalUrl`, `ConfirmDeleteDialog`, `RowActionButton`, `Card`
-- Produces: `SignalFormDialog({ owner, signal }: { owner: SignalOwner; signal: SignalItem | null })` ; `DeleteSignalDialog({ signal })` ; `SignalList({ signals, now, owner })` (boutons Modifier et Supprimer quand `owner` est donné) ; `signalsSection(signals: readonly SignalItem[], now: number): DetailSection[]` (bloc en lecture de la vue détail) ; `SignalsCard({ signals, owner, canAdd }: { signals: readonly SignalItem[]; owner: SignalOwner; canAdd: boolean })`
+- Consumes: Tasks 1 et 2 ; `SelectField` (`08`), `OptionalDateField` (`05`) ; `ExternalUrl`, `ConfirmDeleteDialog`, `RowActionButton`, `RelatedLinksList`, `Card`
+- Produces: `SignalFormDialog({ owner, signal, triggerRef }: { owner: SignalOwner; signal: SignalItem | null; triggerRef?: Ref<HTMLButtonElement> })` ; `DeleteSignalDialog({ signal })` ; `signalRelatedRows(signals, now, options: { owner?: SignalOwner; onOpen?: (signal: SignalItem) => void })` (lignes `RelatedLinksList`, actions Modifier/Supprimer avec `owner`, clic vers la vue détail avec `onOpen`) ; `signalsSection(signals: readonly SignalItem[], now: number, onOpen: (signal: SignalItem) => void): DetailSection[]` (bloc en lecture de la vue détail) ; `interface SignalRelatedOwner extends SignalOwner { href: string }` ; `buildSignalDetail(signal: SignalItem, owner: SignalRelatedOwner, onEdit: () => void): DetailContent` (vue détail propre d'un signal) ; `SignalsCard({ signals, owner, canAdd, pendingLabel }: { signals: readonly SignalItem[]; owner: SignalOwner | null; canAdd: boolean; pendingLabel: string })` (`owner` à `null` tant que la fiche n'est pas enregistrée)
 
 - [ ] **Step 1 : Suppression**
 
@@ -797,7 +824,15 @@ export function DeleteSignalDialog({ signal }: Props) {
 ```tsx
 "use client"
 
-import { useActionState, useCallback, useEffect, useEffectEvent, useId, useState } from "react"
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useState,
+  type Ref,
+} from "react"
 import { Pencil, Plus, Save } from "lucide-react"
 import { toast } from "sonner"
 
@@ -837,9 +872,11 @@ import { initialSignalFormState } from "@/server/actions/signals.types"
 interface Props {
   owner: SignalOwner
   signal: SignalItem | null
+  // La vue détail du signal rouvre ce même dialogue en cliquant ce bouton par ref.
+  triggerRef?: Ref<HTMLButtonElement>
 }
 
-export function SignalFormDialog({ owner, signal }: Props) {
+export function SignalFormDialog({ owner, signal, triggerRef }: Props) {
   const [open, setOpen] = useState(false)
   const [instanceKey, setInstanceKey] = useState(0)
 
@@ -859,6 +896,7 @@ export function SignalFormDialog({ owner, signal }: Props) {
       <DialogTrigger asChild>
         {signal ? (
           <RowActionButton
+            ref={triggerRef}
             aria-label={`Modifier le signal ${SIGNAL_TYPE_LABELS[signal.type]} · ${formatSignalDate(signal)}`}
           >
             <Pencil className="size-4" />
@@ -958,19 +996,6 @@ function SignalForm({
         </div>
 
         <div className="sm:col-span-2">
-          <FormField id={`${formId}-content`} label={LABELS.content} errors={state.errors.content}>
-            <Textarea
-              id={`${formId}-content`}
-              name="content"
-              rows={3}
-              defaultValue={signal?.content ?? ""}
-              aria-invalid={!!state.errors.content?.length}
-              aria-describedby={`${formId}-content-error`}
-            />
-          </FormField>
-        </div>
-
-        <div className="sm:col-span-2">
           <FormField
             id={`${formId}-sourceUrl`}
             label={LABELS.sourceUrl}
@@ -984,6 +1009,19 @@ function SignalForm({
               defaultValue={signal?.sourceUrl ?? ""}
               aria-invalid={!!state.errors.sourceUrl?.length}
               aria-describedby={`${formId}-sourceUrl-error`}
+            />
+          </FormField>
+        </div>
+
+        <div className="sm:col-span-2">
+          <FormField id={`${formId}-content`} label={LABELS.content} errors={state.errors.content}>
+            <Textarea
+              id={`${formId}-content`}
+              name="content"
+              rows={3}
+              defaultValue={signal?.content ?? ""}
+              aria-invalid={!!state.errors.content?.length}
+              aria-describedby={`${formId}-content-error`}
             />
           </FormField>
         </div>
@@ -1005,104 +1043,173 @@ function SignalForm({
 }
 ```
 
-- [ ] **Step 3 : Liste, bloc de la vue détail et card de la page**
+- [ ] **Step 3 : Lignes `RelatedLinksList`, vue détail et card de la page**
 
-`src/components/features/admin/signals/SignalList.tsx` :
+`src/components/features/admin/signals/SignalList.tsx` (le nom du fichier garde l'historique du composant qu'il portait ; il n'exporte plus que des fonctions) :
 
 ```tsx
-"use client"
-
-import type { DetailSection } from "@/components/features/admin/DetailDialog"
+import type { DetailContent, DetailSection } from "@/components/features/admin/DetailDialog"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import type { RelatedLink } from "@/components/features/admin/RelatedLinksList"
+import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
 import { DeleteSignalDialog } from "@/components/features/admin/signals/DeleteSignalDialog"
 import { SignalFormDialog } from "@/components/features/admin/signals/SignalFormDialog"
-import { Badge } from "@/components/ui/badge"
 import {
   formatSignalDate,
+  SIGNAL_FIELD_LABELS,
   SIGNAL_FRESHNESS_LABELS,
   SIGNAL_TYPE_LABELS,
   signalFreshness,
   type SignalItem,
   type SignalOwner,
+  type SignalOwnerKind,
 } from "@/lib/signals"
 
-interface Props {
-  signals: readonly SignalItem[]
-  now: number
-  // Donné sur la page de la fiche pour Modifier/Supprimer ; la vue détail, en lecture, ne le donne pas.
+interface SignalRowOptions {
+  // Donné depuis la card de la page d'une fiche : actions Modifier et Supprimer.
   owner?: SignalOwner
+  // Donné depuis le bloc en lecture d'une vue détail : clic ouvrant la vue détail du signal.
+  onOpen?: (signal: SignalItem) => void
 }
 
-export function SignalList({ signals, now, owner }: Props) {
-  return (
-    <ul className="flex flex-col gap-3">
-      {signals.map((signal) => {
-        const freshness = signalFreshness(signal, new Date(now))
-        return (
-          <li key={signal.id} className="flex items-start gap-2 text-sm">
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <Badge variant="secondary">{SIGNAL_TYPE_LABELS[signal.type]}</Badge>
-                <span className="tabular-nums text-muted-foreground">
-                  {formatSignalDate(signal)}
-                </span>
-                {freshness ? (
-                  <Badge variant={freshness === "RECENT" ? "secondary" : "outline"}>
-                    {SIGNAL_FRESHNESS_LABELS[freshness]}
-                  </Badge>
-                ) : null}
-              </div>
-              <p className="whitespace-pre-line">{signal.content}</p>
-              {signal.sourceUrl ? (
-                <ExternalUrl url={signal.sourceUrl} className="wrap-anywhere" />
-              ) : null}
-            </div>
-            {owner ? (
-              <span className="inline-flex shrink-0 gap-0">
-                <SignalFormDialog owner={owner} signal={signal} />
+// Méta « décote · contenu » ; sans décote pour un type que le toolkit ne note pas (Pivot, Acquisition, Post…).
+export function signalRelatedRows(
+  signals: readonly SignalItem[],
+  now: number,
+  options: SignalRowOptions,
+): RelatedLink[] {
+  return signals.map((signal) => {
+    const freshness = signalFreshness(signal, new Date(now))
+    const freshLabel = freshness ? SIGNAL_FRESHNESS_LABELS[freshness] : null
+    return {
+      id: signal.id,
+      label: SIGNAL_TYPE_LABELS[signal.type],
+      meta: freshLabel ? `${freshLabel} · ${signal.content}` : signal.content,
+      trailing: formatSignalDate(signal),
+      ...(options.onOpen ? { onClick: () => options.onOpen?.(signal) } : {}),
+      ...(options.owner
+        ? {
+            actions: (
+              <>
+                <SignalFormDialog owner={options.owner} signal={signal} />
                 <DeleteSignalDialog signal={signal} />
-              </span>
-            ) : null}
-          </li>
-        )
-      })}
-    </ul>
-  )
+              </>
+            ),
+          }
+        : {}),
+    }
+  })
 }
 
 // Bloc en lecture de la vue détail ; arbitrage « bloc sans donnée » : pas de bloc sans signal.
-export function signalsSection(signals: readonly SignalItem[], now: number): DetailSection[] {
+export function signalsSection(
+  signals: readonly SignalItem[],
+  now: number,
+  onOpen: (signal: SignalItem) => void,
+): DetailSection[] {
   if (signals.length === 0) return []
   return [
     {
       title: "Signaux",
-      rows: [{ fullWidth: true, value: <SignalList signals={signals} now={now} /> }],
+      rows: [{ fullWidth: true, value: <RelatedLinksList links={signalRelatedRows(signals, now, { onOpen })} /> }],
     },
   ]
 }
+
+export interface SignalRelatedOwner extends SignalOwner {
+  // Vers la liste « toutes » de sa fiche : `/admin/entreprises?detail=<id>` ou `/admin/leads/tous?detail=<id>`.
+  href: string
+}
+
+const OWNER_KIND_LABELS: Record<SignalOwnerKind, string> = {
+  company: "Entreprise",
+  lead: "Lead",
+}
+
+// Vue détail propre d'un signal, ouverte à la place de la vue courante depuis les lignes du bloc Signaux.
+export function buildSignalDetail(
+  signal: SignalItem,
+  owner: SignalRelatedOwner,
+  onEdit: () => void,
+): DetailContent {
+  const freshness = signalFreshness(signal, new Date())
+
+  return {
+    title: SIGNAL_TYPE_LABELS[signal.type],
+    subtitle: formatSignalDate(signal),
+    ...(freshness
+      ? {
+          status: (
+            <Badge variant={freshness === "RECENT" ? "secondary" : "outline"} meta>
+              {SIGNAL_FRESHNESS_LABELS[freshness]}
+            </Badge>
+          ),
+        }
+      : {}),
+    sections: [
+      {
+        title: "Signal",
+        rows: [
+          {
+            label: SIGNAL_FIELD_LABELS.sourceUrl,
+            value: signal.sourceUrl ? <ExternalUrl url={signal.sourceUrl} /> : null,
+            fullWidth: true,
+          },
+          {
+            label: SIGNAL_FIELD_LABELS.content,
+            value: <span className="whitespace-pre-line">{signal.content}</span>,
+            fullWidth: true,
+          },
+        ],
+      },
+      {
+        title: "Rattaché à",
+        rows: [
+          {
+            fullWidth: true,
+            value: (
+              <RelatedLinksList
+                links={[{ id: owner.id, label: owner.name, meta: OWNER_KIND_LABELS[owner.kind], href: owner.href }]}
+              />
+            ),
+          },
+        ],
+      },
+    ],
+    onEdit,
+  }
+}
 ```
+
+(import manquant à ajouter à ce fichier : `import { Badge } from "@/components/ui/badge"`, utilisé par `buildSignalDetail`.)
 
 `src/components/features/admin/signals/SignalsCard.tsx` :
 
 ```tsx
 "use client"
 
+import { Plus } from "lucide-react"
 import { useState } from "react"
 
+import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
+import { signalRelatedRows } from "@/components/features/admin/signals/SignalList"
 import { SignalFormDialog } from "@/components/features/admin/signals/SignalFormDialog"
-import { SignalList } from "@/components/features/admin/signals/SignalList"
+import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { SignalItem, SignalOwner } from "@/lib/signals"
 
 interface Props {
   signals: readonly SignalItem[]
-  owner: SignalOwner
+  // `null` tant que la fiche n'est pas enregistrée : la card est visible dès la création (arbitrage « Cards rattachées des pages »).
+  owner: SignalOwner | null
   canAdd: boolean
+  // « de l'entreprise » ou « du lead », pour le texte vide avant le premier enregistrement.
+  pendingLabel: string
 }
 
 // Card de la page d'une fiche (arbitrage « Élément rattaché à une fiche », DESIGN.md), hors du formulaire :
 // chaque signal s'enregistre à part.
-export function SignalsCard({ signals, owner, canAdd }: Props) {
+export function SignalsCard({ signals, owner, canAdd, pendingLabel }: Props) {
   // Instant figé au montage : la fraîcheur reste stable pendant la consultation.
   const [now] = useState(() => Date.now())
 
@@ -1110,17 +1217,24 @@ export function SignalsCard({ signals, owner, canAdd }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Signaux</CardTitle>
-        {canAdd ? (
-          <CardAction>
+        <CardAction>
+          {!owner ? (
+            <Button type="button" size="sm" disabled>
+              <Plus aria-hidden data-icon="inline-start" />
+              Nouveau signal
+            </Button>
+          ) : canAdd ? (
             <SignalFormDialog owner={owner} signal={null} />
-          </CardAction>
-        ) : null}
+          ) : null}
+        </CardAction>
       </CardHeader>
       <CardContent>
-        {signals.length === 0 ? (
+        {!owner ? (
+          <p className="text-sm text-muted-foreground">Après l'enregistrement {pendingLabel}.</p>
+        ) : signals.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun signal.</p>
         ) : (
-          <SignalList signals={signals} now={now} owner={owner} />
+          <RelatedLinksList links={signalRelatedRows(signals, now, { owner })} />
         )}
       </CardContent>
     </Card>
@@ -1139,20 +1253,73 @@ Expected: aucune erreur.
 - Modify: `src/components/features/admin/companies/CompaniesTable.tsx`
 - Modify: `src/components/features/admin/companies/DeleteCompanyDialog.tsx`
 - Modify: `src/app/admin/(protected)/entreprises/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/entreprises/nouvelle/page.tsx`
 
 **Interfaces:**
-- Consumes: `signalsSection`, `SignalsCard` (Task 4) ; `hasRecentSignal` (Task 1) ; `AdminCompany.signals` (Task 2)
+- Consumes: `signalsSection`, `buildSignalDetail`, `SignalRelatedOwner`, `SignalsCard` (Task 4) ; `hasRecentSignal` (Task 1) ; `AdminCompany.signals` (Task 2) ; `CompanyForm`, prop `relatedCards` (`03`) ; cards Leads (`08`) et Opportunités (`15`) déjà posées dans ce fragment, reprises telles quelles
 - Produces: rien
 
 - [ ] **Step 1 : Bloc Signaux de la vue détail**
 
-Dans `CompaniesTable.tsx`, importer `signalsSection` depuis `@/components/features/admin/signals/SignalList` et `hasRecentSignal` depuis `@/lib/signals`. Changer la signature de `buildCompanyDetail` en `buildCompanyDetail(company: AdminCompany, onEdit: () => void, now: number): DetailContent` et insérer, juste après `...missionsSection(company),` :
+Dans `CompaniesTable.tsx`, importer `signalsSection` depuis `@/components/features/admin/signals/SignalList` et `hasRecentSignal` depuis `@/lib/signals`. Changer la signature de `buildCompanyDetail` en `buildCompanyDetail(company: AdminCompany, onEdit: () => void, now: number, onOpenSignal: (signal: SignalItem) => void): DetailContent` et insérer, juste après `...opportunitiesSection(company),` :
 
 ```tsx
-      ...signalsSection(company.signals, now),
+      ...signalsSection(company.signals, now, onOpenSignal),
 ```
 
-- [ ] **Step 2 : Filtre « Signal récent »**
+- [ ] **Step 2 : Vue détail d'un signal depuis l'entreprise**
+
+Un signal n'a pas de page propre : sa vue détail remplace la vue courante dans le même `DetailDialog`, avec les signaux déjà chargés sur `selectedCompany`. Importer `buildSignalDetail`, `type SignalRelatedOwner` depuis `@/components/features/admin/signals/SignalList`, `SignalFormDialog` et `type SignalItem` depuis `@/lib/signals`. Ajouter, après l'état `selectedCompany` :
+
+```tsx
+  const [selectedSignal, setSelectedSignal] = useState<SignalItem | null>(null)
+  const signalEditRefs = useRef(new Map<string, HTMLButtonElement>())
+```
+
+Dans le `useMemo` du détail, brancher sur le signal sélectionné avant la branche entreprise :
+
+```tsx
+  const detail = useMemo<DetailContent | null>(() => {
+    if (selectedSignal && selectedCompany) {
+      const owner: SignalRelatedOwner = {
+        kind: "company",
+        id: selectedCompany.id,
+        name: selectedCompany.name,
+        href: `/admin/entreprises?detail=${selectedCompany.id}`,
+      }
+      return buildSignalDetail(selectedSignal, owner, () => {
+        signalEditRefs.current.get(selectedSignal.id)?.click()
+      })
+    }
+    return selectedCompany
+      ? buildCompanyDetail(selectedCompany, () => { /* inchangé */ }, now, setSelectedSignal)
+      : null
+  }, [selectedCompany, selectedSignal, now, router])
+```
+
+Monter, hors écran, un `SignalFormDialog` par signal de l'entreprise affichée, pour que « Modifier » dans la vue détail du signal ouvre le même formulaire que la card :
+
+```tsx
+  {selectedCompany ? (
+    <div hidden>
+      {selectedCompany.signals.map((signal) => (
+        <SignalFormDialog
+          key={signal.id}
+          owner={{ kind: "company", id: selectedCompany.id, name: selectedCompany.name }}
+          signal={signal}
+          triggerRef={(element) => {
+            if (element) signalEditRefs.current.set(signal.id, element)
+            else signalEditRefs.current.delete(signal.id)
+          }}
+        />
+      ))}
+    </div>
+  ) : null}
+```
+
+Enfin, dans `onOpenChange` du `DetailDialog`, effacer aussi `selectedSignal` quand la fenêtre se ferme.
+
+- [ ] **Step 3 : Filtre « Signal récent »**
 
 Supprimer la constante de module `facets`. Dans `CompaniesTable`, après l'état `selectedCompany`, ajouter :
 
@@ -1194,23 +1361,86 @@ Supprimer la constante de module `facets`. Dans `CompaniesTable`, après l'état
   )
 ```
 
-Dans le `useMemo` du détail, appeler `buildCompanyDetail(selectedCompany, () => { … }, now)` et ajouter `now` à ses dépendances (`[selectedCompany, router, now]`).
+- [ ] **Step 4 : Card Signaux des pages entreprise**
 
-- [ ] **Step 3 : Card Signaux de la page entreprise**
-
-Dans `src/app/admin/(protected)/entreprises/[id]/page.tsx`, importer `SignalsCard` et ajouter sous la card Missions (`15`) :
+Dans `src/app/admin/(protected)/entreprises/[id]/page.tsx`, importer `SignalsCard` depuis `@/components/features/admin/signals/SignalsCard`, puis remplacer le fragment `relatedCards` passé à `CompanyForm` (`08`, card Leads ; `15`, card Opportunités) par le même complété d'une `SignalsCard`, à la suite :
 
 ```tsx
-      <SignalsCard
-        signals={company.signals}
-        owner={{ kind: "company", id: company.id, name: company.name }}
-        canAdd
-      />
+      relatedCards={
+        <>
+          <RelatedLinksCard
+            title="Leads"
+            links={leads.map((lead): RelatedLink => ({
+              id: lead.personId,
+              href: `/admin/leads/${lead.personId}`,
+              label: personDisplayName(lead.person),
+              ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
+            }))}
+            emptyText="Aucun lead dans cette entreprise."
+          />
+          <RelatedLinksCard
+            title="Opportunités"
+            links={[
+              ...company.opportunitiesAsIntermediary.map((opportunity): RelatedLink => ({
+                id: `esn-${opportunity.id}`,
+                href: `/admin/opportunites/${opportunity.id}`,
+                label: opportunity.title,
+                meta: `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ESN`,
+                trailing: formatDailyRate(opportunity.dailyRate),
+              })),
+              ...company.opportunitiesAsClient.map((opportunity): RelatedLink => ({
+                id: `client-${opportunity.id}`,
+                href: `/admin/opportunites/${opportunity.id}`,
+                label: opportunity.title,
+                meta: `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · Client final`,
+                trailing: formatDailyRate(opportunity.dailyRate),
+              })),
+            ]}
+            emptyText="Aucune opportunité pour cette entreprise."
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/opportunites/nouvelle">
+                  <Plus aria-hidden data-icon="inline-start" />
+                  Nouvelle opportunité
+                </Link>
+              </Button>
+            }
+          />
+          <SignalsCard
+            signals={company.signals}
+            owner={{ kind: "company", id: company.id, name: company.name }}
+            canAdd
+            pendingLabel="de l'entreprise"
+          />
+        </>
+      }
 ```
 
-L'entreprise lue par `findCompanyByIdForAdmin` porte ses signaux (Task 2), et les actions revalident `/admin/entreprises` en variante `layout` : la card se met à jour sans recharger.
+(les cards Leads et Opportunités, inchangées, viennent du `08` et du `15` ; leurs imports restent ceux déjà posés là.) L'entreprise lue par `findCompanyByIdForAdmin` porte ses signaux (Task 2), et les actions revalident `/admin/entreprises` en variante `layout` : la card se met à jour sans recharger.
 
-- [ ] **Step 4 : Suppression d'une entreprise**
+Dans `src/app/admin/(protected)/entreprises/nouvelle/page.tsx`, importer `SignalsCard`, puis remplacer de même le fragment `relatedCards` par le même complété d'une `SignalsCard` vide, présente aussi avant le premier enregistrement (arbitrage « Cards rattachées des pages ») :
+
+```tsx
+      relatedCards={
+        <>
+          <RelatedLinksCard title="Leads" links={[]} emptyText="Après l'enregistrement de l'entreprise." />
+          <RelatedLinksCard
+            title="Opportunités"
+            links={[]}
+            emptyText="Après l'enregistrement de l'entreprise."
+            action={
+              <Button variant="outline" size="sm" disabled>
+                <Plus aria-hidden data-icon="inline-start" />
+                Nouvelle opportunité
+              </Button>
+            }
+          />
+          <SignalsCard signals={[]} owner={null} canAdd={false} pendingLabel="de l'entreprise" />
+        </>
+      }
+```
+
+- [ ] **Step 5 : Suppression d'une entreprise**
 
 Dans `DeleteCompanyDialog.tsx`, ajouter à `ConfirmDeleteDialog`, après `name` :
 
@@ -1228,9 +1458,10 @@ Expected: aucune erreur.
 **Files:**
 - Modify: `src/components/features/admin/leads/LeadsTable.tsx`
 - Modify: `src/app/admin/(protected)/leads/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/leads/nouveau/page.tsx`
 
 **Interfaces:**
-- Consumes: `signalsSection`, `SignalsCard` (Task 4) ; `hasRecentSignal` (Task 1) ; `AdminLead.signals` (Task 2) ; `personDisplayName` (`07`, `@/lib/persons`)
+- Consumes: `signalsSection`, `buildSignalDetail`, `SignalRelatedOwner`, `SignalsCard` (Task 4) ; `hasRecentSignal` (Task 1) ; `AdminLead.signals` (Task 2) ; `personDisplayName` (`07`, `@/lib/persons`) ; `LeadForm`, prop `relatedCards` (`08`) ; cards Actions (`10`), Opportunités apportées (`15`) et Entretiens (`17`) déjà posées dans ce fragment, reprises telles quelles
 - Produces: rien
 
 - [ ] **Step 1 : Bloc Signaux de la vue détail**
@@ -1238,12 +1469,33 @@ Expected: aucune erreur.
 Dans `LeadsTable.tsx`, importer `signalsSection` depuis `@/components/features/admin/signals/SignalList` et `hasRecentSignal` depuis `@/lib/signals`. Dans `buildLeadDetail`, insérer juste après `...interviewsSection(lead),`, dans la branche du lead opposé comme dans l'autre :
 
 ```tsx
-        ...signalsSection(lead.signals, now),
+        ...signalsSection(lead.signals, now, onOpenSignal),
 ```
 
-Un lead opposé garde ses signaux comme historique jusqu'à l'effacement de ses échanges : sa vue détail les montre en lecture.
+`buildLeadDetail` gagne le paramètre `onOpenSignal: (signal: SignalItem) => void`. Un lead opposé garde ses signaux comme historique jusqu'à l'effacement de ses échanges : sa vue détail les montre en lecture.
 
-- [ ] **Step 2 : Filtre « Signal récent »**
+- [ ] **Step 2 : Vue détail d'un signal depuis le lead**
+
+Même mécanique que l'entreprise (Task 5, Step 2) : `selectedSignal`, `signalEditRefs`, un `SignalFormDialog` monté hors écran par signal du lead affiché, et la branche du détail avant celle du lead :
+
+```tsx
+  const detail = useMemo<DetailContent | null>(() => {
+    if (selectedSignal && selectedLead) {
+      const owner: SignalRelatedOwner = {
+        kind: "lead",
+        id: selectedLead.id,
+        name: personDisplayName(selectedLead),
+        href: `/admin/leads/tous?detail=${selectedLead.id}`,
+      }
+      return buildSignalDetail(selectedSignal, owner, () => {
+        signalEditRefs.current.get(selectedSignal.id)?.click()
+      })
+    }
+    return selectedLead ? buildLeadDetail(selectedLead, () => { /* inchangé */ }, now, setSelectedSignal) : null
+  }, [selectedLead, selectedSignal, now, router])
+```
+
+- [ ] **Step 3 : Filtre « Signal récent »**
 
 Dans le `useMemo` des `facets`, ajouter en dernière entrée :
 
@@ -1256,22 +1508,85 @@ Dans le `useMemo` des `facets`, ajouter en dernière entrée :
       },
 ```
 
-- [ ] **Step 3 : Card Signaux de la page du lead**
+- [ ] **Step 4 : Card Signaux des pages lead**
 
-Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `SignalsCard` (`personDisplayName` est déjà importé par le `08`), et ajouter sous la card Entretiens (`17`) :
+Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `SignalsCard` depuis `@/components/features/admin/signals/SignalsCard`, puis remplacer le fragment `relatedCards` passé à `LeadForm` (`10`, card Actions ; `15`, card Opportunités apportées ; `17`, card Entretiens) par le même complété d'une `SignalsCard`, à la suite (`personDisplayName` est déjà importé par le `08`) :
 
 ```tsx
-      {/* Le toolkit ne donne de signal qu'à un lead outbound ; un lead passé inbound garde les siens. */}
-      {lead.origin === "OUTBOUND" || lead.signals.length > 0 ? (
-        <SignalsCard
-          signals={lead.signals}
-          owner={{ kind: "lead", id: lead.id, name: personDisplayName(lead) }}
-          canAdd={lead.origin === "OUTBOUND"}
-        />
-      ) : null}
+      relatedCards={
+        <>
+          <LeadActionsCard lead={lead} actions={actions} />
+          <RelatedLinksCard
+            title="Opportunités apportées"
+            links={lead.opportunities.map((opportunity): RelatedLink => ({
+              id: opportunity.id,
+              href: `/admin/opportunites/${opportunity.id}`,
+              label: opportunity.title,
+              meta: opportunity.client
+                ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${opportunity.client.name}`
+                : OPPORTUNITY_STATUS_LABELS[opportunity.status],
+              trailing: formatDailyRate(opportunity.dailyRate),
+            }))}
+            emptyText="Aucune opportunité apportée par ce lead."
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/opportunites/nouvelle">
+                  <Plus aria-hidden data-icon="inline-start" />
+                  Nouvelle opportunité
+                </Link>
+              </Button>
+            }
+          />
+          <RelatedLinksCard
+            title="Entretiens"
+            links={lead.interviews.map((interview): RelatedLink => ({
+              id: interview.id,
+              href: `/admin/entretiens/${interview.id}`,
+              label: `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.opportunity.title}`,
+              meta: INTERVIEW_STATUS_LABELS[interview.status],
+              trailing: formatShortDateTime(interview.scheduledAt),
+            }))}
+            emptyText="Aucun entretien pour ce lead."
+          />
+          {
+            // Le toolkit ne donne de signal qu'à un lead outbound ; un lead passé inbound garde les siens.
+            lead.origin === "OUTBOUND" || lead.signals.length > 0 ? (
+              <SignalsCard
+                signals={lead.signals}
+                owner={{ kind: "lead", id: lead.id, name: personDisplayName(lead) }}
+                canAdd={lead.origin === "OUTBOUND"}
+                pendingLabel="du lead"
+              />
+            ) : null
+          }
+        </>
+      }
 ```
 
-La page d'un lead opposé renvoie vers Tous (`08`) : un lead de cette page n'est jamais opposé.
+(les cards Actions, Opportunités apportées et Entretiens, inchangées, viennent du `10`, du `15` et du `17` ; leurs imports restent ceux déjà posés là.) La page d'un lead opposé renvoie vers Tous (`08`) : un lead de cette page n'est jamais opposé.
+
+Dans `src/app/admin/(protected)/leads/nouveau/page.tsx`, importer `SignalsCard`, puis remplacer de même le fragment `relatedCards` par le même complété d'une `SignalsCard` vide, présente aussi avant le premier enregistrement :
+
+```tsx
+      relatedCards={
+        <>
+          <LeadActionsCard lead={null} actions={[]} />
+          <RelatedLinksCard
+            title="Opportunités apportées"
+            links={[]}
+            emptyText="Après l'enregistrement du lead."
+            action={
+              <Button variant="outline" size="sm" disabled>
+                <Plus aria-hidden data-icon="inline-start" />
+                Nouvelle opportunité
+              </Button>
+            }
+          />
+          <RelatedLinksCard title="Entretiens" links={[]} emptyText="Après l'enregistrement du lead." />
+          <SignalsCard signals={[]} owner={null} canAdd={false} pendingLabel="du lead" />
+        </>
+      }
+```
 
 Run: `just typecheck`
 Expected: aucune erreur.
@@ -1335,13 +1650,13 @@ Expected: suites `unit` et `integration` vertes.
 
 - [ ] **Step 2 : Entreprise**
 
-Run: `just dev`, se connecter, ouvrir la page d'une entreprise.
-Expected: aucune ligne de la liste ne porte de bouton « Nouveau signal ». Sur la page, la card Signaux affiche « Aucun signal. » ; son bouton « Nouveau signal » ne propose que les six types d'entreprise ; une offre de poste datée du 1er du mois courant avec son lien s'enregistre, toast « Signal créé », et la card la montre aussitôt, datée au jour, badge « Récent », lien. Modifier son contenu, puis ajouter une levée datée au jour d'il y a 8 mois : la card montre les deux, la levée en « À confirmer », sans recharger. Dans la liste, la vue détail de l'entreprise montre le bloc Signaux en lecture, sans bouton ; le filtre Signal « Récent » garde l'entreprise ; supprimer l'offre de poste depuis la card, le filtre ne la garde plus.
+Run: `just dev`, se connecter, ouvrir `/admin/entreprises/nouvelle`.
+Expected: aucune ligne de la liste ne porte de bouton « Nouveau signal ». La card Signaux apparaît déjà sous Détails, « Après l'enregistrement de l'entreprise. », bouton « Nouveau signal » désactivé. Enregistrer l'entreprise, ouvrir sa page : la card affiche « Aucun signal. », bouton actif, qui ne propose que les six types d'entreprise. Une offre de poste datée du 1er du mois courant avec son lien s'enregistre, toast « Signal créé », et la card la montre aussitôt, type en libellé, décote « Récent » et contenu en méta, date à droite. Modifier son contenu, puis ajouter une levée datée au jour d'il y a 8 mois : la card montre les deux, la levée en « À confirmer », sans recharger. Dans la liste, ouvrir la vue détail de l'entreprise puis cliquer la ligne de la levée : sa vue détail remplace la vue courante (type en titre, date en sous-titre, badge « À confirmer », lien source et contenu, bloc « Rattaché à » vers l'entreprise), « Modifier » rouvre le formulaire ; le filtre Signal « Récent » garde l'entreprise ; supprimer l'offre de poste depuis la card, le filtre ne la garde plus.
 
 - [ ] **Step 3 : Leads**
 
-Ouvrir la page d'un lead outbound, puis celle d'un lead inbound.
-Expected: le lead outbound a sa card Signaux avec « Nouveau signal » ; un post engageant daté au jour y apparaît, sans badge ; le lead inbound sans signal n'a pas de card Signaux. Passer le lead outbound en « Ne plus contacter » sans cocher l'effacement : dans Leads > Tous, sa vue détail montre toujours le signal en lecture ; sur un second lead outbound avec un signal, cocher l'effacement : son bloc Signaux disparaît. Puis `just stop`.
+Ouvrir `/admin/leads/nouveau`, puis la page d'un lead outbound, puis celle d'un lead inbound.
+Expected: sur la création, la card Signaux affiche « Après l'enregistrement du lead. », bouton désactivé. Le lead outbound a sa card Signaux avec « Nouveau signal » ; un post engageant daté au jour y apparaît, sans badge de décote ; le lead inbound sans signal n'a pas de card Signaux. Passer le lead outbound en « Ne plus contacter » sans cocher l'effacement : dans Leads > Tous, sa vue détail montre toujours le signal en lecture, dont le clic ouvre la vue détail du signal avec un bloc « Rattaché à » vers le lead ; sur un second lead outbound avec un signal, cocher l'effacement : son bloc Signaux disparaît. Puis `just stop`.
 
 - [ ] **Step 4 : Politique**
 

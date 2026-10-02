@@ -43,7 +43,7 @@
 
 **Interfaces:**
 - Consumes: rien
-- Produces: modèle `WeeklyReview`, enums `ReviewStatus`, `ReviewMotivation` ; `REVIEW_STATUS_LABELS`, `REVIEW_MOTIVATION_LABELS`, `REVIEW_FIELD_LABELS` ; `isoDayToDate(isoDay: string): Date` ; `isFridayIso(isoDay: string): boolean` ; `defaultClosingFriday(now: Date): Date` ; `weekLabel(closingFriday: Date): string` ; `formatWeekDate(date: Date): string` ; `interface ReviewCounts` ; `reviewRates(review: ReviewCounts): { acceptance: number | null; response: number | null; meetingConversion: number | null }` ; `formatRate(value: number | null): string | null`
+- Produces: modèle `WeeklyReview`, enums `ReviewStatus`, `ReviewMotivation` ; `REVIEW_STATUS_LABELS`, `REVIEW_STATUS_ICONS`, `REVIEW_MOTIVATION_LABELS`, `REVIEW_MOTIVATION_ICONS`, `REVIEW_FIELD_LABELS` ; `isoDayToDate(isoDay: string): Date` ; `isFridayIso(isoDay: string): boolean` ; `defaultClosingFriday(now: Date): Date` ; `weekLabel(closingFriday: Date): string` ; `formatWeekDate(date: Date): string` ; `interface ReviewCounts` ; `reviewRates(review: ReviewCounts): { acceptance: number | null; response: number | null; meetingConversion: number | null }` ; `formatRate(value: number | null): string | null`
 
 - [ ] **Step 1 : Enums et modèle**
 
@@ -171,7 +171,18 @@ Expected: FAIL, module introuvable.
 `src/lib/weekly-reviews.ts` :
 
 ```ts
+import {
+  FaceGrinning,
+  FaceNeutral,
+  FaceSlightlyFrowning,
+  FaceSlightlySmiling,
+  Minus,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react"
+
 import type { ReviewMotivation, ReviewStatus } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
   BONNE: "Bonne",
@@ -179,11 +190,24 @@ export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
   MAUVAISE: "Mauvaise",
 }
 
+export const REVIEW_STATUS_ICONS: Record<ReviewStatus, IconComponent | null> = {
+  BONNE: ThumbsUp,
+  MOYENNE: Minus,
+  MAUVAISE: ThumbsDown,
+}
+
 export const REVIEW_MOTIVATION_LABELS: Record<ReviewMotivation, string> = {
   HAUTE: "Haute",
   POSITIVE: "Positive",
   NEUTRE: "Neutre",
   BASSE: "Basse",
+}
+
+export const REVIEW_MOTIVATION_ICONS: Record<ReviewMotivation, IconComponent | null> = {
+  HAUTE: FaceGrinning,
+  POSITIVE: FaceSlightlySmiling,
+  NEUTRE: FaceNeutral,
+  BASSE: FaceSlightlyFrowning,
 }
 
 export const REVIEW_FIELD_LABELS = {
@@ -204,10 +228,12 @@ export const REVIEW_FIELD_LABELS = {
   meetingConversion: "Conversion RDV",
   interviewsHeld: "Entretiens",
   activeLeads: "Leads actifs",
+  // Case en lecture seule du formulaire, à côté de Leads actifs : complète la dernière paire de compteurs.
+  computedRates: "Taux acceptation · réponse · conversion",
   wins: "Victoires",
   blockers: "Blocages",
   nextWeekPlan: "Plan S+1",
-  notes: "Notes libres",
+  notes: "Notes",
 } as const
 
 const DAY_MS = 86_400_000
@@ -333,7 +359,7 @@ function sources(overrides: Partial<CounterSources> = {}): CounterSources {
 type LeadSource = CounterSources["leads"][number]
 
 function lead(status: LeadSource["status"], overrides: Partial<LeadSource> = {}): LeadSource {
-  return { status, missions: [], interviews: [], optedOutAt: null, ...overrides }
+  return { status, opportunities: [], interviews: [], optedOutAt: null, ...overrides }
 }
 
 describe("countWeek", () => {
@@ -405,7 +431,7 @@ describe("countWeek", () => {
             interviews: [{ status: "PLANIFIE", scheduledAt: new Date("2026-09-30T10:00:00.000Z") }],
           }),
           lead("NOUVEAU"),
-          lead("DISCUSSION", { missions: [{ status: "ACCEPTEE" }] }),
+          lead("DISCUSSION", { opportunities: [{ status: "ACCEPTEE" }] }),
           lead("SUSPECT", { optedOutAt: new Date("2026-09-01T10:00:00.000Z") }),
         ],
       }),
@@ -1074,7 +1100,7 @@ export async function computeWeekCounters(
           where: { scheduledAt: inWeek },
           select: { status: true, scheduledAt: true },
         }),
-        // Missions apportées et entretiens vivent sur la personne, pas sur le rôle Lead : `Lead` ne porte plus ni l'une ni l'autre relation.
+        // Opportunités apportées et entretiens vivent sur la personne, pas sur le rôle Lead : `Lead` ne porte plus ni l'une ni l'autre relation.
         prisma.lead.findMany({
           where: { person: { optedOutAt: null } },
           select: {
@@ -1082,7 +1108,7 @@ export async function computeWeekCounters(
             person: {
               select: {
                 optedOutAt: true,
-                referredMissions: { select: { status: true } },
+                referredOpportunities: { select: { status: true } },
                 interviews: { select: { status: true, scheduledAt: true } },
               },
             },
@@ -1091,7 +1117,7 @@ export async function computeWeekCounters(
       ])
       const activeLeadSources = leads.map(({ person, ...lead }) => ({
         ...lead,
-        missions: person.referredMissions,
+        opportunities: person.referredOpportunities,
         interviews: person.interviews,
         optedOutAt: person.optedOutAt,
       }))
@@ -1380,10 +1406,12 @@ import { NONE_VALUE } from "@/lib/schemas/person"
 import { cn } from "@/lib/utils"
 import {
   defaultClosingFriday,
+  formatRate,
   isoDayToDate,
   REVIEW_FIELD_LABELS as LABELS,
   REVIEW_MOTIVATION_LABELS,
   REVIEW_STATUS_LABELS,
+  reviewRates,
   weekLabel,
   type ReviewCounts,
 } from "@/lib/weekly-reviews"
@@ -1411,7 +1439,6 @@ const TEXT_FIELDS = [
   { key: "wins", placeholder: "Ce qui a avancé cette semaine" },
   { key: "blockers", placeholder: "Ce qui coince" },
   { key: "nextWeekPlan", placeholder: "Les actions de la semaine prochaine" },
-  { key: "notes", placeholder: "" },
 ] as const
 
 interface Props {
@@ -1522,42 +1549,54 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
       </DialogHeader>
 
       <div className="grid min-h-0 gap-4 overflow-y-auto sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <FormField
-            id={`${formId}-closingFriday`}
-            label={LABELS.closingFriday}
-            errors={state.errors.closingFriday}
+        <FormField
+          id={`${formId}-closingFriday`}
+          label={LABELS.closingFriday}
+          errors={state.errors.closingFriday}
+        >
+          <Popover open={dayOpen} onOpenChange={setDayOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                id={`${formId}-closingFriday`}
+                aria-invalid={!!state.errors.closingFriday?.length}
+                aria-describedby={`${formId}-closingFriday-error`}
+                className={cn("w-full justify-start font-normal", !day && "text-muted-foreground")}
+              >
+                <CalendarIcon aria-hidden data-icon="inline-start" />
+                {day ? weekLabel(isoDayToDate(toIsoDate(day))) : "Choisir un vendredi"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-0">
+              <Calendar
+                locale={fr}
+                mode="single"
+                selected={day}
+                defaultMonth={day ?? new Date()}
+                disabled={{ dayOfWeek: [0, 1, 2, 3, 4, 6] }}
+                onSelect={(next) => {
+                  setDay(next)
+                  setDayOpen(false)
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          <input type="hidden" name="closingFriday" value={day ? toIsoDate(day) : ""} />
+        </FormField>
+
+        {/* Alignée sur la hauteur du champ Date vendredi, elle en complète la ligne. */}
+        <div className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!day || counting}
+            onClick={handleCompute}
+            className="w-full"
           >
-            <Popover open={dayOpen} onOpenChange={setDayOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  id={`${formId}-closingFriday`}
-                  aria-invalid={!!state.errors.closingFriday?.length}
-                  aria-describedby={`${formId}-closingFriday-error`}
-                  className={cn("w-full justify-start font-normal", !day && "text-muted-foreground")}
-                >
-                  <CalendarIcon aria-hidden data-icon="inline-start" />
-                  {day ? weekLabel(isoDayToDate(toIsoDate(day))) : "Choisir un vendredi"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto p-0">
-                <Calendar
-                  locale={fr}
-                  mode="single"
-                  selected={day}
-                  defaultMonth={day ?? new Date()}
-                  disabled={{ dayOfWeek: [0, 1, 2, 3, 4, 6] }}
-                  onSelect={(next) => {
-                    setDay(next)
-                    setDayOpen(false)
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <input type="hidden" name="closingFriday" value={day ? toIsoDate(day) : ""} />
-          </FormField>
+            <Calculator aria-hidden data-icon="inline-start" />
+            {counting ? "Calcul..." : "Calculer depuis le CRM"}
+          </Button>
         </div>
 
         <SelectField
@@ -1582,13 +1621,6 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
           noneLabel="Non renseignée"
         />
 
-        <div className="flex justify-end sm:col-span-2">
-          <Button type="button" variant="outline" disabled={!day || counting} onClick={handleCompute}>
-            <Calculator aria-hidden data-icon="inline-start" />
-            {counting ? "Calcul..." : "Calculer depuis le CRM"}
-          </Button>
-        </div>
-
         {COUNTER_KEYS.map((key) => (
           <FormField key={key} id={`${formId}-${key}`} label={LABELS[key]} errors={state.errors[key]}>
             <Input
@@ -1610,6 +1642,24 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
           </FormField>
         ))}
 
+        {/* Complète la paire de Leads actifs : lecture seule, les taux du dernier enregistrement. */}
+        <FormField id={`${formId}-computedRates`} label={LABELS.computedRates}>
+          <p
+            id={`${formId}-computedRates`}
+            className="flex h-9 items-center rounded-md border px-3 text-sm text-muted-foreground"
+          >
+            {review
+              ? [
+                  reviewRates(review).acceptance,
+                  reviewRates(review).response,
+                  reviewRates(review).meetingConversion,
+                ]
+                  .map((rate) => formatRate(rate) ?? "non calculable")
+                  .join(" · ")
+              : "Calculés à l'enregistrement"}
+          </p>
+        </FormField>
+
         {TEXT_FIELDS.map(({ key, placeholder }) => (
           <div key={key} className="sm:col-span-2">
             <FormField id={`${formId}-${key}`} label={LABELS[key]} errors={state.errors[key]}>
@@ -1625,6 +1675,23 @@ function ReviewForm({ review, onDone }: { review: AdminWeeklyReview | null; onDo
             </FormField>
           </div>
         ))}
+
+        <div className="sm:col-span-2">
+          <FormField
+            id={`${formId}-notes`}
+            label={LABELS.notes}
+            errors={state.errors.notes}
+            help="Une ligne de marqueurs, séparés par |"
+          >
+            <Input
+              id={`${formId}-notes`}
+              name="notes"
+              defaultValue={review?.notes ?? ""}
+              aria-invalid={!!state.errors.notes?.length}
+              aria-describedby={`${formId}-notes-help ${formId}-notes-error`}
+            />
+          </FormField>
+        </div>
       </div>
 
       <DialogFooter className="shrink-0">
@@ -1705,7 +1772,9 @@ import {
   formatRate,
   formatWeekDate,
   REVIEW_FIELD_LABELS as LABELS,
+  REVIEW_MOTIVATION_ICONS,
   REVIEW_MOTIVATION_LABELS,
+  REVIEW_STATUS_ICONS,
   REVIEW_STATUS_LABELS,
   reviewRates,
   weekLabel,
@@ -1788,23 +1857,34 @@ function dataColumns(view: ReviewView): readonly Column<AdminWeeklyReview>[] {
       header: LABELS.status,
       width: REVIEW_COLUMN_WIDTHS.status,
       ...hideable(view, "status"),
-      cell: (review) =>
-        review.status ? <Badge variant="secondary">{REVIEW_STATUS_LABELS[review.status]}</Badge> : null,
+      cell: (review) => {
+        if (!review.status) return null
+        const Icon = REVIEW_STATUS_ICONS[review.status]
+        return (
+          <Badge variant="secondary">
+            {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+            {REVIEW_STATUS_LABELS[review.status]}
+          </Badge>
+        )
+      },
     },
     {
       key: "motivation",
       header: LABELS.motivation,
       width: REVIEW_COLUMN_WIDTHS.motivation,
       ...hideable(view, "motivation"),
-      cell: (review) =>
-        review.motivation ? <Badge variant="secondary">{REVIEW_MOTIVATION_LABELS[review.motivation]}</Badge> : null,
+      cell: (review) => {
+        if (!review.motivation) return null
+        const Icon = REVIEW_MOTIVATION_ICONS[review.motivation]
+        return (
+          <Badge variant="secondary">
+            {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
+            {REVIEW_MOTIVATION_LABELS[review.motivation]}
+          </Badge>
+        )
+      },
     },
   ]
-}
-
-// Arbitrage « bloc sans donnée » : un bloc dont aucun champ n'est renseigné disparaît.
-function keepFilled(section: DetailSection): DetailSection[] {
-  return section.rows.some((row) => row.value !== null && row.value !== undefined) ? [section] : []
 }
 
 function textSection(title: string, text: string | null): DetailSection[] {
@@ -1815,14 +1895,19 @@ function textSection(title: string, text: string | null): DetailSection[] {
 
 function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): DetailContent {
   const rates = reviewRates(review)
+  const StatusIcon = review.status ? REVIEW_STATUS_ICONS[review.status] : null
 
   return {
     title: weekLabel(review.closingFriday),
-    subtitle: `clôture le ${formatWeekDate(review.closingFriday)}`,
+    // La motivation n'a plus de bloc : elle se lit dans le sous-titre, à côté de la date de clôture.
+    subtitle: review.motivation
+      ? `clôture le ${formatWeekDate(review.closingFriday)} · motivation ${REVIEW_MOTIVATION_LABELS[review.motivation]}`
+      : `clôture le ${formatWeekDate(review.closingFriday)}`,
     ...(review.status
       ? {
           status: (
             <Badge variant="outline" meta>
+              {StatusIcon ? <StatusIcon aria-hidden data-icon="inline-start" /> : null}
               {REVIEW_STATUS_LABELS[review.status]}
             </Badge>
           ),
@@ -1849,15 +1934,6 @@ function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): Detai
           { label: LABELS.activeLeads, value: review.activeLeads },
         ],
       },
-      ...keepFilled({
-        title: "Ressenti",
-        rows: [
-          {
-            label: LABELS.motivation,
-            value: review.motivation ? <Badge variant="secondary">{REVIEW_MOTIVATION_LABELS[review.motivation]}</Badge> : null,
-          },
-        ],
-      }),
       ...textSection(LABELS.wins, review.wins),
       ...textSection(LABELS.blockers, review.blockers),
       ...textSection(LABELS.nextWeekPlan, review.nextWeekPlan),
@@ -2147,4 +2223,4 @@ Expected: la revue est posée sur son vendredi, pas la veille, couleur de son st
 - [ ] **Step 4 : Détail et suppression**
 
 Ouvrir la vue détail d'une revue sans motivation ni textes, puis la supprimer.
-Expected: blocs Prospection et Pipeline avec les taux, sans bloc Ressenti ni blocs de texte vides ; la suppression affiche le texte de la maquette et retire la revue des trois vues. Puis `just stop`.
+Expected: sous-titre sans mention de motivation, blocs Prospection et Pipeline avec les taux, sans bloc de texte vide ; la suppression affiche le texte de la maquette et retire la revue des trois vues. Puis `just stop`.
