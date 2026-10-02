@@ -240,7 +240,7 @@ Prérequis : le MVP en production. Livrée en `v2.0.0` le 2026-09-25.
 
 ### Feature 2 : Domaine freelance CRM
 
-Reprise du CRM tenu dans Notion : entreprises, leads, actions de prospection, contacts, missions proposées et leurs entretiens, revues hebdomadaires, signaux. Une personne n'existe qu'une fois : elle porte son identité et son opposition, et prospect (lead) ou relation durable (contact) sont ses rôles. La mission s'y arrête à l'opportunité, de sa proposition à son acceptation : son suivi une fois acceptée relève de la Feature 4.
+Reprise du CRM tenu dans Notion : entreprises, leads, actions de prospection, contacts, opportunités (missions proposées) et leurs entretiens, revues hebdomadaires, signaux. Une personne n'existe qu'une fois : elle porte son identité et son opposition, et prospect (lead) ou relation durable (contact) sont ses rôles. L'opportunité y va de sa proposition à son acceptation : le suivi de la mission acceptée relève de la Feature 4.
 
 Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet ([ADR-020](adrs/020-portfolio-bff.md)).
 
@@ -277,7 +277,7 @@ Prérequis : le CRM (Feature 2) pour les premiers outils ; `ai-kit` et `agent-os
 
 ### Feature 4 : Domaine freelance Missions
 
-Suivi d'une mission une fois acceptée, écran `isMissions` de la maquette. Prolonge la mission du CRM (Feature 2), sans nouveau modèle de mission :
+Suivi d'une mission une fois acceptée, écran `isMissions` de la maquette. Prolonge l'opportunité acceptée du CRM (Feature 2), sans nouveau modèle :
 
 * **Phases contractuelles** : période, TJM, jours, montant et contrat de chaque phase ; le TJM d'une facture vient de sa phase
 * **Chantiers** : ce que le client demande pendant la mission (statut, type, priorité, estimation), en tableau ou en board, avec leurs tâches, livrables et points ouverts

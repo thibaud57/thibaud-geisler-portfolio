@@ -42,7 +42,7 @@
 - Modify: `Justfile` (recette `reprise-notion`, après `dev-login`)
 
 **Interfaces:**
-- Consumes: `companySchema`, `CompanyInput` (`@/lib/schemas/company`) ; `leadSchema` (`@/lib/schemas/lead`) ; `contactSchema` (`@/lib/schemas/contact`) ; `prospectingActionSchema`, `ProspectingActionInput` (`@/lib/schemas/prospecting-action`) ; `missionSchema`, `MissionInput` (`@/lib/schemas/mission`) ; `interviewSchema`, `InterviewInput` (`@/lib/schemas/interview`) ; `signalSchema`, `SignalInput` (`@/lib/schemas/signal`) ; `weeklyReviewSchema`, `WeeklyReviewInput` (`@/lib/schemas/weekly-review`) ; `personFields`, `NONE_VALUE` (`@/lib/schemas/person`, valeur `"aucun"`) ; `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` (`@/lib/signals`) ; `prisma` (`@/lib/prisma`) ; `env` (`@/env`)
+- Consumes: `companySchema`, `CompanyInput` (`@/lib/schemas/company`) ; `leadSchema` (`@/lib/schemas/lead`) ; `contactSchema` (`@/lib/schemas/contact`) ; `prospectingActionSchema`, `ProspectingActionInput` (`@/lib/schemas/prospecting-action`) ; `opportunitySchema`, `OpportunityInput` (`@/lib/schemas/opportunity`) ; `interviewSchema`, `InterviewInput` (`@/lib/schemas/interview`) ; `signalSchema`, `SignalInput` (`@/lib/schemas/signal`) ; `weeklyReviewSchema`, `WeeklyReviewInput` (`@/lib/schemas/weekly-review`) ; `personFields`, `NONE_VALUE` (`@/lib/schemas/person`, valeur `"aucun"`) ; `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` (`@/lib/signals`) ; `prisma` (`@/lib/prisma`) ; `env` (`@/env`)
 - Produces: `importFileSchema`, `ImportFile`, `ListName`, `Issue`, `Row<R, T>`, `Prepared`, `PersonInput`, `LeadRoleInput`, `ContactRoleInput`, `prepare(file: ImportFile): { prepared: Prepared; issues: Issue[] }` ; `checkDatabase(prepared: Prepared): Promise<Issue[]>` ; recette `just reprise-notion FILE *FLAGS`
 
 - [ ] **Step 1 : Format du fichier et validation (`scripts/reprise-notion/import-file.ts`)**
@@ -54,7 +54,7 @@ import { companySchema, type CompanyInput } from "@/lib/schemas/company"
 import { contactSchema } from "@/lib/schemas/contact"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { leadSchema } from "@/lib/schemas/lead"
-import { missionSchema, type MissionInput } from "@/lib/schemas/mission"
+import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
 import { NONE_VALUE, personFields } from "@/lib/schemas/person"
 import {
   prospectingActionSchema,
@@ -104,7 +104,7 @@ export const importFileSchema = z.object({
   leads: z.array(z.object({ ...baseRecord, personKey: key })),
   contacts: z.array(z.object({ ...baseRecord, personKey: key })),
   prospectingActions: z.array(z.object({ ...baseRecord, personKey: key })),
-  missions: z.array(
+  opportunities: z.array(
     z.object({
       ...baseRecord,
       referrerKey: optionalKey,
@@ -113,7 +113,7 @@ export const importFileSchema = z.object({
     }),
   ),
   interviews: z.array(
-    z.object({ ...baseRecord, missionKey: key, correspondentKeys: z.array(key) }),
+    z.object({ ...baseRecord, opportunityKey: key, correspondentKeys: z.array(key) }),
   ),
   signals: z.array(z.object({ ...baseRecord, companyKey: optionalKey, personKey: optionalKey })),
   weeklyReviews: z.array(z.object(baseRecord)),
@@ -142,7 +142,7 @@ export interface Prepared {
   leads: Row<RecordOf<"leads">, LeadRoleInput>[]
   contacts: Row<RecordOf<"contacts">, ContactRoleInput>[]
   prospectingActions: Row<RecordOf<"prospectingActions">, ProspectingActionInput>[]
-  missions: Row<RecordOf<"missions">, MissionInput>[]
+  opportunities: Row<RecordOf<"opportunities">, OpportunityInput>[]
   interviews: Row<RecordOf<"interviews">, InterviewInput>[]
   signals: Row<RecordOf<"signals">, SignalInput>[]
   weeklyReviews: Row<RecordOf<"weeklyReviews">, WeeklyReviewInput>[]
@@ -238,7 +238,7 @@ function checkReferences(
   companyKeys: ReadonlySet<string>,
   personKeys: ReadonlySet<string>,
   leadPersonKeys: ReadonlySet<string>,
-  missionKeys: ReadonlySet<string>,
+  opportunityKeys: ReadonlySet<string>,
   issues: Issue[],
 ): void {
   for (const r of file.persons) checkRef("persons", r.key, r.companyKey, companyKeys, "entreprise", issues)
@@ -247,13 +247,13 @@ function checkReferences(
   for (const r of file.prospectingActions) {
     checkRef("prospectingActions", r.key, r.personKey, personKeys, "personne", issues)
   }
-  for (const r of file.missions) {
-    checkRef("missions", r.key, r.referrerKey, leadPersonKeys, "personne apporteuse (rôle Lead)", issues)
-    checkRef("missions", r.key, r.intermediaryKey, companyKeys, "ESN", issues)
-    checkRef("missions", r.key, r.clientKey, companyKeys, "client final", issues)
+  for (const r of file.opportunities) {
+    checkRef("opportunities", r.key, r.referrerKey, leadPersonKeys, "personne apporteuse (rôle Lead)", issues)
+    checkRef("opportunities", r.key, r.intermediaryKey, companyKeys, "ESN", issues)
+    checkRef("opportunities", r.key, r.clientKey, companyKeys, "client final", issues)
   }
   for (const r of file.interviews) {
-    checkRef("interviews", r.key, r.missionKey, missionKeys, "mission", issues)
+    checkRef("interviews", r.key, r.opportunityKey, opportunityKeys, "opportunité", issues)
     for (const ref of r.correspondentKeys) checkRef("interviews", r.key, ref, personKeys, "correspondant", issues)
   }
   for (const r of file.signals) {
@@ -266,7 +266,7 @@ function checkReferences(
 function checkRules(p: Prepared, issues: Issue[]): void {
   const companyTypes = new Map(p.companies.map((row) => [row.record.key, row.data.types ?? []]))
   const leadOrigins = new Map(p.leads.map((row) => [row.record.personKey, row.data.origin]))
-  const missions = new Map(p.missions.map((row) => [row.record.key, row.record]))
+  const opportunities = new Map(p.opportunities.map((row) => [row.record.key, row.record]))
 
   checkUnique(
     "companies",
@@ -297,16 +297,16 @@ function checkRules(p: Prepared, issues: Issue[]): void {
     }
   }
 
-  for (const { record } of p.missions) {
+  for (const { record } of p.opportunities) {
     const types = record.intermediaryKey === null ? undefined : companyTypes.get(record.intermediaryKey)
     if (types && !types.includes("ESN_RECRUTEMENT")) {
-      issues.push({ list: "missions", key: record.key, message: "ESN sans le type ESN / Recrutement" })
+      issues.push({ list: "opportunities", key: record.key, message: "ESN sans le type ESN / Recrutement" })
     }
   }
 
   for (const { record, data } of p.interviews) {
-    if (data.side === "ESN" && missions.get(record.missionKey)?.intermediaryKey === null) {
-      issues.push({ list: "interviews", key: record.key, message: "mené par l'ESN d'une mission sans ESN" })
+    if (data.side === "ESN" && opportunities.get(record.opportunityKey)?.intermediaryKey === null) {
+      issues.push({ list: "interviews", key: record.key, message: "mené par l'ESN d'une opportunité sans ESN" })
     }
     // Notion ne porte pas l'issue par entretien : la reprise ne doit jamais en inventer une.
     if (data.outcome !== null) {
@@ -341,7 +341,7 @@ export function prepare(file: ImportFile): { prepared: Prepared; issues: Issue[]
   const issues: Issue[] = []
   const companyKeys = checkUniqueKeys("companies", file.companies, issues)
   const personKeys = checkUniqueKeys("persons", file.persons, issues)
-  const missionKeys = checkUniqueKeys("missions", file.missions, issues)
+  const opportunityKeys = checkUniqueKeys("opportunities", file.opportunities, issues)
   checkUniqueKeys("leads", file.leads, issues)
   checkUniqueKeys("contacts", file.contacts, issues)
   checkUniqueKeys("prospectingActions", file.prospectingActions, issues)
@@ -361,13 +361,13 @@ export function prepare(file: ImportFile): { prepared: Prepared; issues: Issue[]
     prospectingActions: parseEach("prospectingActions", file.prospectingActions, prospectingActionSchema, (r) => ({
       personId: r.personKey,
     }), issues),
-    missions: parseEach("missions", file.missions, missionSchema, (r) => ({
+    opportunities: parseEach("opportunities", file.opportunities, opportunitySchema, (r) => ({
       referrerId: r.referrerKey ?? NONE_VALUE,
       intermediaryId: r.intermediaryKey ?? NONE_VALUE,
       clientId: r.clientKey ?? NONE_VALUE,
     }), issues),
     interviews: parseEach("interviews", file.interviews, interviewSchema, (r) => ({
-      missionId: r.missionKey,
+      opportunityId: r.opportunityKey,
       correspondentIds: r.correspondentKeys,
       // Tous les correspondants passent par `persons` : jamais de création inline dans le fichier de reprise.
       newCorrespondents: "[]",
@@ -377,7 +377,7 @@ export function prepare(file: ImportFile): { prepared: Prepared; issues: Issue[]
   }
 
   const leadPersonKeys = new Set(file.leads.map((r) => r.personKey))
-  checkReferences(file, companyKeys, personKeys, leadPersonKeys, missionKeys, issues)
+  checkReferences(file, companyKeys, personKeys, leadPersonKeys, opportunityKeys, issues)
   checkRules(prepared, issues)
   return { prepared, issues }
 }
@@ -418,7 +418,7 @@ export async function checkDatabase(p: Prepared): Promise<Issue[]> {
     prisma.lead.count(),
     prisma.prospectingAction.count(),
     prisma.contact.count(),
-    prisma.mission.count(),
+    prisma.opportunity.count(),
     prisma.interview.count(),
     prisma.signal.count(),
     prisma.weeklyReview.count(),
@@ -637,7 +637,7 @@ Créer `~/reprise-notion/essai.json`, données fictives :
       "createdAt": "2024-03-20T09:00:00+01:00",
       "personKey": "p-lea",
       "values": {
-        "types": ["COMMERCIAL"],
+        "types": ["PARTENAIRE"],
         "status": "ACTIF"
       }
     }
@@ -657,15 +657,15 @@ Créer `~/reprise-notion/essai.json`, données fictives :
       }
     }
   ],
-  "missions": [
+  "opportunities": [
     {
-      "key": "m1",
+      "key": "o1",
       "createdAt": "2024-03-15T10:10:00+01:00",
       "referrerKey": "p-lea",
       "intermediaryKey": "c-esn",
       "clientKey": "c-client",
       "values": {
-        "title": "Mission d'essai",
+        "title": "Opportunité d'essai",
         "role": "",
         "status": "ACCEPTEE",
         "dailyRate": "600",
@@ -685,7 +685,7 @@ Créer `~/reprise-notion/essai.json`, données fictives :
     {
       "key": "i1",
       "createdAt": "2024-03-18T09:00:00+01:00",
-      "missionKey": "m1",
+      "opportunityKey": "o1",
       "correspondentKeys": ["p-lea"],
       "values": {
         "side": "ESN",
@@ -739,7 +739,7 @@ Créer `~/reprise-notion/essai.json`, données fictives :
 }
 ```
 
-`c-lea` fusionne sur `p-lea` : la personne porte les deux rôles, chacun avec sa propre date de création Notion.
+`c-lea` fusionne sur `p-lea` : la personne porte les deux rôles, chacun avec sa propre date de création Notion. Son type de contact (`PARTENAIRE`) est choisi librement : rien ne le déduit plus automatiquement du poste.
 
 Run: `just reprise-notion ~/reprise-notion/essai.json`
 Expected : le tableau donne pour chaque liste autant de fiches valides que dans le fichier (2, 2, 2, 1, 1, 1, 1, 1, 1), aucune erreur, « Simulation : 0 erreur(s), rien n'est écrit ».
@@ -851,7 +851,7 @@ export async function writeAll(p: Prepared): Promise<void> {
         companyIds.set(record.key, existing.id)
       }
 
-      // Un rôle référence l'id de la personne (Lead.personId/Contact.personId sont aussi leur clé primaire) : une seule map suffit pour rôles, missions, entretiens et signaux.
+      // Un rôle référence l'id de la personne (Lead.personId/Contact.personId sont aussi leur clé primaire) : une seule map suffit pour rôles, opportunités, entretiens et signaux.
       const personIds = new Map<string, string>()
       for (const { record, data } of p.persons) {
         const { id } = await tx.person.create({
@@ -894,9 +894,9 @@ export async function writeAll(p: Prepared): Promise<void> {
         })
       }
 
-      const missionIds = new Map<string, string>()
-      for (const { record, data } of p.missions) {
-        const { id } = await tx.mission.create({
+      const opportunityIds = new Map<string, string>()
+      for (const { record, data } of p.opportunities) {
+        const { id } = await tx.opportunity.create({
           data: {
             ...data,
             referrerId: optionalIdOf(personIds, record.referrerKey),
@@ -906,7 +906,7 @@ export async function writeAll(p: Prepared): Promise<void> {
           },
           select: { id: true },
         })
-        missionIds.set(record.key, id)
+        opportunityIds.set(record.key, id)
       }
 
       for (const { record, data } of p.interviews) {
@@ -921,7 +921,7 @@ export async function writeAll(p: Prepared): Promise<void> {
             decision: data.decision,
             notes: data.notes,
             details: data.details,
-            missionId: idOf(missionIds, record.missionKey),
+            opportunityId: idOf(opportunityIds, record.opportunityKey),
             correspondents: { connect: record.correspondentKeys.map((key) => ({ id: idOf(personIds, key) })) },
             createdAt: new Date(record.createdAt),
           },
@@ -1014,10 +1014,10 @@ Run: `just reprise-notion ~/reprise-notion/essai.json --write`
 Expected : « Reprise écrite en une transaction », puis `[logo] reprise-essai-client : …` (example.com ne publie pas d'icône) et « Logos : 1 échec(s)… ».
 
 Contrôler dans l'admin (`just dev`, connexion) :
-- `/admin/entreprises` : « Reprise Essai ESN » avec son client final « Reprise Essai Client » (dérivé de la mission Acceptée), statut Dormante pour ce dernier ;
-- `/admin/leads/tous` : « Léa Essai » s'affiche « Deal » (mission acceptée), porte aussi le rôle Contact (Commercial), « À conserver jusqu'au » 15/03/2027 ; « Marc Essai » porte son LinkedIn ;
+- `/admin/entreprises` : « Reprise Essai ESN » avec son client final « Reprise Essai Client » (dérivé de l'opportunité Acceptée), statut Dormante pour ce dernier ;
+- `/admin/leads/tous` : « Léa Essai » s'affiche « Deal » (opportunité acceptée), porte aussi le rôle Contact (Partenaire), « À conserver jusqu'au » 15/03/2027 ; « Marc Essai » porte son LinkedIn ;
 - page de « Reprise Essai Client » : card Signaux, « Levée », mars 2026, lien ;
-- `/admin/missions` : « Mission d'essai », Acceptée, TJM 600 ; sa page montre l'entretien « Premier contact » du 20/03/2024, Fait, sans issue ;
+- `/admin/opportunites` : « Opportunité d'essai », Acceptée, TJM 600 ; sa page montre l'entretien « Premier contact » du 20/03/2024, Fait, sans issue ;
 - `/admin/revues-hebdo` : la revue « S12 · Semaine du 18/03/2024 » (vendredi de clôture 22/03/2024).
 
 - [ ] **Step 5 : Relance refusée, puis restauration**
@@ -1036,7 +1036,7 @@ Expected : les deux entreprises d'essai et les fiches CRM ont disparu, les six e
 - Modify: `docs/PRODUCTION.md` (§ Backup & Recovery > Procédure : Remplir la base depuis un dump de dev)
 
 **Interfaces:**
-- Consumes: tables CRM des plans `07` à `19` (`freelance."Person"`, `"Lead"`, `"ProspectingAction"`, `"Contact"`, `"Mission"`, `"Interview"`, `"WeeklyReview"`, `"Signal"`, `"_InterviewCorrespondents"`)
+- Consumes: tables CRM des plans `07` à `19` (`freelance."Person"`, `"Lead"`, `"ProspectingAction"`, `"Contact"`, `"Opportunity"`, `"Interview"`, `"WeeklyReview"`, `"Signal"`, `"_InterviewCorrespondents"`)
 - Produces: procédure suivie à la Task 6
 
 - [ ] **Step 1 : Remplacer les étapes de la procédure**
@@ -1061,7 +1061,7 @@ Dans `docs/PRODUCTION.md`, remplacer la liste numérotée de « Procédure : Rem
    UNION ALL SELECT 'Lead', count(*), NULL FROM freelance."Lead"
    UNION ALL SELECT 'ProspectingAction', count(*), NULL FROM freelance."ProspectingAction"
    UNION ALL SELECT 'Contact', count(*), NULL FROM freelance."Contact"
-   UNION ALL SELECT 'Mission', count(*), NULL FROM freelance."Mission"
+   UNION ALL SELECT 'Opportunity', count(*), NULL FROM freelance."Opportunity"
    UNION ALL SELECT 'Interview', count(*), NULL FROM freelance."Interview"
    UNION ALL SELECT 'Signal', count(*), NULL FROM freelance."Signal"
    UNION ALL SELECT 'WeeklyReview', count(*), NULL FROM freelance."WeeklyReview";
@@ -1073,7 +1073,7 @@ Dans `docs/PRODUCTION.md`, remplacer la liste numérotée de « Procédure : Rem
    ```bash
    sudo docker exec $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c '
    pg_restore -l /tmp/content.dump | grep -v _prisma_migrations > /tmp/content.list
-   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Signal\", freelance.\"_InterviewCorrespondents\", freelance.\"Interview\", freelance.\"Mission\", freelance.\"ProspectingAction\", freelance.\"Contact\", freelance.\"Lead\", freelance.\"WeeklyReview\", freelance.\"Person\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
+   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Signal\", freelance.\"_InterviewCorrespondents\", freelance.\"Interview\", freelance.\"Opportunity\", freelance.\"ProspectingAction\", freelance.\"Contact\", freelance.\"Lead\", freelance.\"WeeklyReview\", freelance.\"Person\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
      pg_restore --data-only --disable-triggers -L /tmp/content.list -f - /tmp/content.dump
      echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
    ```
@@ -1089,7 +1089,7 @@ Dans `docs/PRODUCTION.md`, remplacer la liste numérotée de « Procédure : Rem
    ```
    Relire chaque objet copié (`wrangler r2 object get "portfolio-admin/$key" --remote --jurisdiction eu --file relu.png`) : pour une clé `logo-<hash>.png`, les 12 premiers caractères de `sha256sum relu.png` égalent ce hash ; pour une autre clé, `sha256sum` donne la même empreinte sur l'objet de dev et sur celui de production. Supprimer ensuite `logos.txt`, `logo.png` et `relu.png`
 6. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
-7. Smoke test : accueil, `/projets`, une page projet, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des missions
+7. Smoke test : accueil, `/projets`, une page projet, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
 ````
 
 - [ ] **Step 2 : Relecture**
@@ -1134,17 +1134,17 @@ Lire chaque page (propriétés par la requête, corps par `mcp__plugin_Notion_no
 | `leads` | `origin`, `status`, `interest` (`"aucun"` si Unknown ou vide), `channel` (`"aucun"` si vide), `score` (`"0"` à `"10"` ou `""`) | `personKey` |
 | `contacts` | `types`, `status` | `personKey` |
 | `prospectingActions` | `title`, `channel`, `status`, `occurredAt`, `respondedAt` (= `occurredAt` pour Répondu et Converti, `""` sinon), `message` | `personKey` |
-| `missions` | `title`, `role`, `status`, `dailyRate`, `contract`, `workMode`, `daysPerWeek`, `onSiteDays`, `zone` (`"aucun"` si vide ou après arbitrage), `startMonth` (`AAAA-MM` ou `""`), `durationMonths`, `notes`, `details` (`"aucun"` pour un choix vide) | `referrerKey`, `intermediaryKey`, `clientKey` |
-| `interviews` | `side`, `type`, `status`, `outcome` (`"aucun"` toujours, Notion ne le distingue pas par entretien), `scheduledAt`, `score`, `decision` (`"aucun"` sauf 🎬 sans ambiguïté), `notes`, `details` | `missionKey`, `correspondentKeys` |
+| `opportunities` | `title`, `role`, `status`, `dailyRate`, `contract`, `workMode`, `daysPerWeek`, `onSiteDays`, `zone` (`"aucun"` si vide ou après arbitrage), `startMonth` (`AAAA-MM` ou `""`), `durationMonths`, `notes`, `details` (`"aucun"` pour un choix vide) | `referrerKey`, `intermediaryKey`, `clientKey` |
+| `interviews` | `side`, `type`, `status`, `outcome` (`"aucun"` toujours, Notion ne le distingue pas par entretien), `scheduledAt`, `score`, `decision` (`"aucun"` sauf 🎬 sans ambiguïté), `notes`, `details` | `opportunityKey`, `correspondentKeys` |
 | `signals` | `type`, `occurredOn` (`AAAA-MM-JJ`, au 1er du mois si la source ne donne que le mois), `content`, `sourceUrl` | `companyKey` ou `personKey`, jamais les deux |
 | `weeklyReviews` | `closingFriday` (`AAAA-MM-JJ`), sept compteurs (chaînes de chiffres), `status`, `motivation`, `wins`, `blockers`, `nextWeekPlan`, `notes` | aucun |
 
 Règles communes :
-- `key` = identifiant de la page Notion ; `createdAt` d'une fiche `leads` ou `contacts` = son `created_time` de rôle ; `createdAt` d'une entrée `persons` = le plus ancien `created_time` des fiches fusionnées en elle ; pour une mission reconstituée, la date de création de la page qui la décrit en premier (lead, premier entretien ou hub) ;
+- `key` = identifiant de la page Notion ; `createdAt` d'une fiche `leads` ou `contacts` = son `created_time` de rôle ; `createdAt` d'une entrée `persons` = le plus ancien `created_time` des fiches fusionnées en elle ; pour une opportunité reconstituée, la date de création de la page qui la décrit en premier (lead, premier entretien ou hub) ;
 - instants (`occurredAt`, `respondedAt`, `scheduledAt`) avec le décalage Europe/Paris du jour ; date sans heure → `T00:00:00` et ce décalage ;
-- corps de page découpé section par section selon la spec : une section reprise en Détails garde son titre `# <emoji> <titre>`, sous `persons.values.details` qu'elle vienne du lead ou du contact fusionnés ; une ligne 📡 ou 🔍 datée devient une fiche `signals` et sort des Détails ; 📋 Mission, Informations Mission, Package et Budget & Facturation vont à la mission ; Politique ESN, Informations Startup et Culture & Vision vont aux Détails de l'entreprise concernée ; sections de préparation des entretiens et formule Logo.dev ignorées ;
-- **fusion** : un lead et un contact Notion qui partagent l'email ou le LinkedIn (forme normalisée par `normalizeLinkedinProfileUrl`, `07`) donnent une entrée `persons`, une entrée `leads` et une entrée `contacts` référençant la même `personKey` ; un champ divergent entre les deux sources prend la valeur de la fiche la plus récente, l'autre valeur va au relevé ; un interlocuteur d'entretien qui n'est ni lead ni contact devient une entrée `persons` et une entrée `contacts` (type `COMMERCIAL` si son poste est Recruteur, sinon `CONTACT_TECH`) ;
-- **clients finaux d'une ESN** : chaque client final saisi devient une entrée `missions` `ACCEPTEE`, titre « Mission chez `<client>` via `<ESN>` », `referrerKey` nul, aucune date ni TJM, sauf si une mission reconstituée couvre déjà ce couple ;
+- corps de page découpé section par section selon la spec : une section reprise en Détails garde son titre `# <emoji> <titre>`, sous `persons.values.details` qu'elle vienne du lead ou du contact fusionnés ; une ligne 📡 ou 🔍 datée devient une fiche `signals` et sort des Détails ; 📋 Mission, Informations Mission, Package et Budget & Facturation vont à l'opportunité ; Politique ESN, Informations Startup et Culture & Vision vont aux Détails de l'entreprise concernée ; sections de préparation des entretiens et formule Logo.dev ignorées ;
+- **fusion** : un lead et un contact Notion qui partagent l'email ou le LinkedIn (forme normalisée par `normalizeLinkedinProfileUrl`, `07`) donnent une entrée `persons`, une entrée `leads` et une entrée `contacts` référençant la même `personKey` ; un champ divergent entre les deux sources prend la valeur de la fiche la plus récente, l'autre valeur va au relevé ; un interlocuteur d'entretien qui n'est ni lead ni contact devient une entrée `persons` et une entrée `contacts`, dont le type va au relevé des points à trancher ;
+- **clients finaux d'une ESN** : chaque client final saisi devient une entrée `opportunities` `ACCEPTEE`, titre « Opportunité chez `<client>` via `<ESN>` », `referrerKey` nul, aucune date ni TJM, sauf si une opportunité reconstituée couvre déjà ce couple ;
 - **dates d'entreprise reportées en action** : une « Date de premier contact » plus ancienne que toute action déjà construite vers une personne de l'entreprise devient une entrée `prospectingActions` « Premier contact » (`channel "AUTRE"`, `status "FAIT"`, `occurredAt` = cette date à 00:00 Paris) vers la personne la plus anciennement créée de l'entreprise ; une « Dernière interaction » de contact plus tardive que toute action déjà construite vers cette personne devient de même une entrée « Dernier échange » sur elle ;
 - personne opposée : fiche complète dans `persons`, `optedOutAt` à la date de sa demande ; effacement demandé → `exchangesErasedAt` posé et ni ses actions, ni ses signaux, ni sa présence parmi les `correspondentKeys` ne sont écrits ;
 - `dentsu.md`, pages Équipe, Chantiers et comptes-rendus des hubs clients ne sont pas lus.
@@ -1155,11 +1155,12 @@ Règles communes :
 - **Entreprises du portfolio retrouvées** : clé Notion → `existingSlug` ;
 - **Tailles** : entreprises en 1-50, Startup ou Grand compte, avec la valeur proposée ;
 - **Fusions** : chaque couple lead/contact fusionné, les champs divergents et la valeur retenue ;
-- **Missions** : chaque mission reconstituée avec ses sources (chaîne d'entretiens, 📋 Mission d'un lead, bandeau de hub, client final d'une ESN) et les fusions proposées ;
-- **Clients finaux absents des entreprises Notion** : créer l'entreprise ou garder le nom dans les Détails de la mission ;
-- **Entreprises travaillées sans couverture** : chaque entreprise marquée Travaillé dans Notion sans projet `CLIENT` ni mission `ACCEPTEE` après reprise ;
+- **Types des interlocuteurs sans rôle** : chaque interlocuteur d'entretien qui n'est ni lead ni contact, avec le type de contact proposé ;
+- **Opportunités** : chaque opportunité reconstituée avec ses sources (chaîne d'entretiens, 📋 Mission d'un lead, bandeau de hub, client final d'une ESN) et les fusions proposées ;
+- **Clients finaux absents des entreprises Notion** : créer l'entreprise ou garder le nom dans les Détails de l'opportunité ;
+- **Entreprises travaillées sans couverture** : chaque entreprise marquée Travaillé dans Notion sans projet `CLIENT` ni opportunité `ACCEPTEE` après reprise ;
 - **Leads RDV planifié sans entretien daté**, **personnes liées à plusieurs entreprises**, **actions sans personne**, **doublons d'email ou de LinkedIn** ;
-- **Localités multiples** : chaque personne ou mission dont Notion porte plusieurs zones, la plus précise retenue et les autres écartées ;
+- **Localités multiples** : chaque personne ou opportunité dont Notion porte plusieurs zones, la plus précise retenue et les autres écartées ;
 - **Signaux restés en Détails** (sans date ou de type hors liste) ;
 - **Décisions d'entretien** déduites de 🎬.
 
@@ -1194,14 +1195,14 @@ Expected : « Reprise écrite en une transaction », puis la liste des logos en 
 
 - [ ] **Step 3 : Contrôle des comptes**
 
-Comparer chaque liste de l'admin (Entreprises > Toutes, Leads > Tous, Actions de prospection > Journal, Contacts, Missions, Entretiens > Journal, Revues hebdo > Journal) à la colonne « Fichier » du relevé, elle-même égale à la colonne « Notion » aux écarts expliqués près (fusions et missions créées depuis les clients finaux comprises). Puis, pour chaque entreprise marquée Travaillé dans Notion, vérifier qu'elle porte un projet de type `CLIENT` ou une mission `ACCEPTEE` après reprise ; lister les écarts dans `releve.md`.
+Comparer chaque liste de l'admin (Entreprises > Toutes, Leads > Tous, Actions de prospection > Journal, Contacts, Opportunités, Entretiens > Journal, Revues hebdo > Journal) à la colonne « Fichier » du relevé, elle-même égale à la colonne « Notion » aux écarts expliqués près (fusions et opportunités créées depuis les clients finaux comprises). Puis, pour chaque entreprise marquée Travaillé dans Notion, vérifier qu'elle porte un projet de type `CLIENT` ou une opportunité `ACCEPTEE` après reprise ; lister les écarts dans `releve.md`.
 
 - [ ] **Step 4 : Contrôle ponctuel**
 
 Ouvrir dans l'admin, face à la page Notion correspondante :
 - trois entreprises, dont une du portfolio (champs publics inchangés, champs CRM de Notion) et une avec des signaux (type, date au jour ou au mois, lien) ;
-- trois leads, dont un Deal (statut Discussion, affiché « Deal », mission acceptée), une personne fusionnée (rôle Lead et rôle Contact sur la même fiche) et le lead le plus ancien (« À conserver jusqu'au » = sa création Notion + 3 ans, ou sa dernière réponse + 3 ans) ;
-- trois actions (date, heure, statut, message), dont une « Premier contact » ou « Dernier échange » reconstituée si le relevé en porte une, un contact, une mission reconstituée de plusieurs sources, une mission créée depuis un client final, deux entretiens (titre et numéro déduits, statut et issue), une revue (compteurs, taux) ;
+- trois leads, dont un Deal (statut Discussion, affiché « Deal », opportunité acceptée), une personne fusionnée (rôle Lead et rôle Contact sur la même fiche) et le lead le plus ancien (« À conserver jusqu'au » = sa création Notion + 3 ans, ou sa dernière réponse + 3 ans) ;
+- trois actions (date, heure, statut, message), dont une « Premier contact » ou « Dernier échange » reconstituée si le relevé en porte une, un contact, une opportunité reconstituée de plusieurs sources, une opportunité créée depuis un client final, deux entretiens (titre et numéro déduits, statut et issue), une revue (compteurs, taux) ;
 - chaque personne opposée (fiche réduite, date de la demande, `exchangesErasedAt` si l'effacement a été demandé).
 
 Un écart se corrige dans `reprise.json` : restaurer le point (`just db-reset`, `just db-restore dumps/<point>`), puis refaire les Steps 2 à 4.
@@ -1240,7 +1241,7 @@ Refaire en production le contrôle des comptes (Task 5, Step 3) et deux fiches d
 Dans `docs/PRODUCTION.md`, remplacer le blockquote d'en-tête de la procédure par :
 
 ```markdown
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), puis le <date du chargement> pour la reprise du CRM Notion (<n> entreprises, <n> personnes dont <n> fusions, <n> leads, <n> contacts, <n> actions, <n> missions dont <n> depuis un client final, <n> entretiens, <n> signaux, <n> revues), chaque fois après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), puis le <date du chargement> pour la reprise du CRM Notion (<n> entreprises, <n> personnes dont <n> fusions, <n> leads, <n> contacts, <n> actions, <n> opportunités dont <n> depuis un client final, <n> entretiens, <n> signaux, <n> revues), chaque fois après répétition sur une base locale à l'état de la prod.
 ```
 
 en y portant la date et les comptes relevés au Step 3. Puis supprimer le dump de transfert et le point de restauration de `dumps/`.

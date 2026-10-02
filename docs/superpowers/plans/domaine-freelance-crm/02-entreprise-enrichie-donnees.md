@@ -12,7 +12,8 @@
 
 ## Global Constraints
 
-- **Valeurs d'enum exactes** : `CompanyType` = `CLIENT_FINAL`, `ESN_RECRUTEMENT`, `PARTENAIRE`, `MA_SOCIETE` ; `RelationStatus` = `ACTIVE`, `DORMANTE`, `ARCHIVEE` ; `Zone` = `LUXEMBOURG`, `GRAND_EST`, `PARIS`, `FRANCE`, `BELGIQUE`, `SUISSE`, `ALLEMAGNE`, `EUROPE`, `MONDE` ; `CompanySector` = `EMARKETING` renommé `MARKETING_COMMUNICATION`, plus `INDUSTRIE`, `HEALTHTECH`, `SECTEUR_PUBLIC` avant `AUTRE`. Tous `@@schema("freelance")`.
+- **Valeurs d'enum exactes** : `CompanyType` = `CLIENT_FINAL`, `ESN_RECRUTEMENT`, `PARTENAIRE`, `MA_SOCIETE` ; `RelationStatus` = `ACTIVE`, `DORMANTE`, `ARCHIVEE` ; `Zone` = `GRAND_EST`, `PARIS`, `FRANCE`, `LUXEMBOURG`, `BELGIQUE`, `SUISSE`, `ALLEMAGNE`, `EUROPE`, `MONDE`, ordre canonique ; `CompanySector` = `EMARKETING` renommé `MARKETING_COMMUNICATION`, plus `INDUSTRIE`, `HEALTHTECH`, `SECTEUR_PUBLIC` avant `AUTRE`. Tous `@@schema("freelance")`.
+- **Zones triées** : `sortZones(zones)` (`src/lib/zones.ts`) trie toute liste de zones dans l'ordre canonique, utilisée par `companySchema` avant écriture et par les sub-projects `03` et `04` à l'affichage.
 - **Aucun outil de saisie des temps** : champ reporté au suivi de mission.
 - **Champ absent, champ inchangé** : un nouveau champ n'est lu que si le `FormData` porte sa clé.
 - **Messages d'erreur exacts** : « Sélectionne au moins un type », « Les notes tiennent sur une ligne (200 caractères au plus) ».
@@ -89,14 +90,14 @@ enum RelationStatus {
 }
 
 // Segmentation commerciale, pas une géographie : sur quel marché on travaille avec l'entreprise,
-// la personne ou la mission. Le siège légal reste dans Address.country, en code ISO.
+// la personne ou l'opportunité. Le siège légal reste dans Address.country, en code ISO.
 // Plat, volontairement : la valeur la plus précise s'applique, FRANCE couvre le reste du territoire,
 // un filtre cherche la valeur exacte, jamais « contenu dans ».
 enum Zone {
-  LUXEMBOURG
   GRAND_EST
   PARIS
   FRANCE
+  LUXEMBOURG
   BELGIQUE
   SUISSE
   ALLEMAGNE
@@ -143,7 +144,7 @@ CREATE TYPE "freelance"."CompanyType" AS ENUM ('CLIENT_FINAL', 'ESN_RECRUTEMENT'
 
 CREATE TYPE "freelance"."RelationStatus" AS ENUM ('ACTIVE', 'DORMANTE', 'ARCHIVEE');
 
-CREATE TYPE "freelance"."Zone" AS ENUM ('LUXEMBOURG', 'GRAND_EST', 'PARIS', 'FRANCE', 'BELGIQUE', 'SUISSE', 'ALLEMAGNE', 'EUROPE', 'MONDE');
+CREATE TYPE "freelance"."Zone" AS ENUM ('GRAND_EST', 'PARIS', 'FRANCE', 'LUXEMBOURG', 'BELGIQUE', 'SUISSE', 'ALLEMAGNE', 'EUROPE', 'MONDE');
 
 ALTER TABLE "freelance"."Company" ADD COLUMN     "details" TEXT,
 ADD COLUMN     "notes" TEXT,
@@ -209,17 +210,20 @@ Expected: migrations appliquées sur la base de test, sans erreur.
 
 **Interfaces:**
 - Consumes: enums de la Task 1
-- Produces: `COMPANY_SECTOR_LABELS: Record<CompanySector, string>`, `COMPANY_SIZE_LABELS: Record<CompanySize, string>`, `COMPANY_SIZE_HEADCOUNTS: Record<CompanySize, string>`, `COMPANY_TYPE_LABELS: Record<CompanyType, string>`, `RELATION_STATUS_LABELS: Record<RelationStatus, string>`, `COMPANY_FIELD_LABELS` étendu, `ZONES: Zone[]`, `ZONE_LABELS: Record<Zone, string>`
+- Produces: `COMPANY_SECTOR_LABELS: Record<CompanySector, string>`, `COMPANY_SIZE_LABELS: Record<CompanySize, string>`, `COMPANY_SIZE_HEADCOUNTS: Record<CompanySize, string>`, `COMPANY_TYPE_LABELS: Record<CompanyType, string>`, `COMPANY_TYPE_ICONS: Record<CompanyType, IconComponent | null>`, `RELATION_STATUS_LABELS: Record<RelationStatus, string>`, `COMPANY_STATUS_ICONS: Record<RelationStatus, IconComponent | null>`, `COMPANY_FIELD_LABELS` étendu, `ZONES: Zone[]` (ordre canonique), `ZONE_LABELS: Record<Zone, string>`, `sortZones(zones: Zone[]): Zone[]`
 
 - [ ] **Step 1 : Réécrire `src/lib/companies.ts`**
 
 ```ts
+import { Archive, Building2, CircleCheck, Handshake, House, Moon, Network } from "lucide-react"
+
 import type {
   CompanySector,
   CompanySize,
   CompanyType,
   RelationStatus,
 } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export const COMPANY_SECTOR_LABELS: Record<CompanySector, string> = {
   ASSURANCE: "Assurance",
@@ -254,16 +258,29 @@ export const COMPANY_SIZE_HEADCOUNTS: Record<CompanySize, string> = {
 }
 
 export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
-  CLIENT_FINAL: "Client final (donneur d'ordre)",
+  CLIENT_FINAL: "Client final",
   ESN_RECRUTEMENT: "ESN / Recrutement",
   PARTENAIRE: "Partenaire",
   MA_SOCIETE: "Ma société",
+}
+
+export const COMPANY_TYPE_ICONS: Record<CompanyType, IconComponent | null> = {
+  CLIENT_FINAL: Building2,
+  ESN_RECRUTEMENT: Network,
+  PARTENAIRE: Handshake,
+  MA_SOCIETE: House,
 }
 
 export const RELATION_STATUS_LABELS: Record<RelationStatus, string> = {
   ACTIVE: "Active",
   DORMANTE: "Dormante",
   ARCHIVEE: "Archivée",
+}
+
+export const COMPANY_STATUS_ICONS: Record<RelationStatus, IconComponent | null> = {
+  ACTIVE: CircleCheck,
+  DORMANTE: Moon,
+  ARCHIVEE: Archive,
 }
 
 // Partagés par les cards du formulaire entreprise et les blocs de sa vue détail (DESIGN.md § Arbitrages).
@@ -294,22 +311,48 @@ export const COMPANY_FIELD_LABELS = {
 ```ts
 import { Zone } from "@/generated/prisma/browser"
 
+// Déclaration de l'enum Zone dans l'ordre canonique : ZONES le reprend tel quel.
 export const ZONES = Object.values(Zone)
 
 export const ZONE_LABELS: Record<Zone, string> = {
-  LUXEMBOURG: "Luxembourg",
   GRAND_EST: "Grand Est",
   PARIS: "Paris",
   FRANCE: "France",
+  LUXEMBOURG: "Luxembourg",
   BELGIQUE: "Belgique",
   SUISSE: "Suisse",
   ALLEMAGNE: "Allemagne",
   EUROPE: "Europe",
   MONDE: "Monde",
 }
+
+export function sortZones(zones: Zone[]): Zone[] {
+  return [...zones].sort((a, b) => ZONES.indexOf(a) - ZONES.indexOf(b))
+}
 ```
 
-- [ ] **Step 3 : Traductions françaises**
+- [ ] **Step 3 : Écrire le test de `sortZones`**
+
+Créer `src/lib/zones.test.ts` :
+
+```ts
+import { describe, expect, it } from "vitest"
+
+import { sortZones } from "@/lib/zones"
+
+describe("sortZones", () => {
+  it("sorts zones into the canonical order regardless of submission order", () => {
+    const sorted = sortZones(["MONDE", "LUXEMBOURG", "PARIS", "GRAND_EST"])
+
+    expect(sorted).toEqual(["GRAND_EST", "PARIS", "LUXEMBOURG", "MONDE"])
+  })
+})
+```
+
+Run: `pnpm vitest run --project unit src/lib/zones.test.ts`
+Expected: PASS.
+
+- [ ] **Step 4 : Traductions françaises**
 
 Dans `messages/fr.json`, remplacer les blocs `Projects.caseStudy.sector` et `Projects.caseStudy.companySize` par :
 
@@ -338,7 +381,7 @@ Dans `messages/fr.json`, remplacer les blocs `Projects.caseStudy.sector` et `Pro
       },
 ```
 
-- [ ] **Step 4 : Traductions anglaises**
+- [ ] **Step 5 : Traductions anglaises**
 
 Dans `messages/en.json`, mêmes blocs :
 
@@ -367,7 +410,7 @@ Dans `messages/en.json`, mêmes blocs :
       },
 ```
 
-- [ ] **Step 5 : Vérifier le typage**
+- [ ] **Step 6 : Vérifier le typage**
 
 Run: `just typecheck`
 Expected: les seules erreurs restantes, s'il y en a, portent sur `src/lib/schemas/company.ts` (encore sur `EMARKETING`), corrigé à la Task 3. Aucune erreur sur les clés de traduction.
@@ -384,7 +427,7 @@ Expected: les seules erreurs restantes, s'il y en a, portent sur `src/lib/schema
 - Test: `src/server/actions/companies.test.ts`
 
 **Interfaces:**
-- Consumes: enums de la Task 1, `NONE_VALUE` et `nullifyNoneValue` existants
+- Consumes: enums de la Task 1, `sortZones` de la Task 2, `NONE_VALUE` et `nullifyNoneValue` existants
 - Produces: `optionalStringField(formData, key): string | undefined`, `optionalStringValues(formData, key): string[] | undefined` dans `@/lib/server-utils` (réutilisés par leads et contacts) ; `companySchema` étendu, `CompanyInput` ; `COMPANY_SECTORS`, `COMPANY_SIZES`, `COMPANY_TYPES`, `RELATION_STATUSES` dérivés des enums
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
@@ -448,7 +491,7 @@ Ajouter dans `describe("createCompany")` :
     expect(state.errors.types).toBeDefined()
   })
 
-  it("stores the submitted types, zones, relation status, notes and details", async () => {
+  it("stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order", async () => {
     vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
 
     await createCompany(
@@ -468,7 +511,7 @@ Ajouter dans `describe("createCompany")` :
       objectMatch({
         data: objectMatch({
           types: ["CLIENT_FINAL", "PARTENAIRE"],
-          zones: ["LUXEMBOURG", "PARIS"],
+          zones: ["PARIS", "LUXEMBOURG"],
           relationStatus: "DORMANTE",
           notes: "Rencontrée au salon",
           details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
@@ -560,6 +603,7 @@ import {
 import { isCompanyLogoKey } from "@/lib/asset-keys"
 import { nullifyNoneValue } from "@/lib/schemas/none-value"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
+import { sortZones } from "@/lib/zones"
 
 export const COMPANY_SECTORS = Object.values(CompanySector)
 export const COMPANY_SIZES = Object.values(CompanySize)
@@ -613,7 +657,10 @@ export const companySchema = z.object({
     .min(1, "Sélectionne au moins un type")
     .optional(),
   relationStatus: z.enum(RelationStatus, { error: "Statut de relation inconnu" }).optional(),
-  zones: z.array(z.enum(Zone, { error: "Zone inconnue" })).optional(),
+  zones: z
+    .array(z.enum(Zone, { error: "Zone inconnue" }))
+    .transform((value) => sortZones(value))
+    .optional(),
   notes: z
     .string()
     .trim()

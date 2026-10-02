@@ -120,6 +120,18 @@ propriétaire le demande ; chaque ligne part une fois faite.
 
 ## Journal
 
+- **Revue de la maquette par le propriétaire (synchronisée le 2026-10-02)** : formulaires, modales et
+  vues détail passés au crible, deux colonnes sans champ orphelin, ordre logique, vue détail dans
+  l'ordre de son formulaire hors champs placés en tête ; la personne partagée ne se voit plus (lead
+  toujours nouveau, contact « Depuis un lead », correspondant créé en ligne comme contact du type
+  choisi) ; fiches rattachées en `RelatedLinksList`, nouveau composant du système, cliquables vers
+  l'autre fiche, cards rattachées sous Détails ; « Missions » du CRM devenues « Opportunités », menu
+  dans l'ordre du pipeline ; glyphes sur les énumérations (55 glyphes Lucide ajoutés au système) ;
+  `MonthField` en sélecteur de mois ; panneaux de `Popover`, `Select` et `Tooltip` placés sur leur
+  cible dans une modale ; sélecteur d'asset par contexte. Reporté le même jour dans les specs et
+  plans `domaine-freelance-crm` (modèle `Opportunity`, sub-projects `14-opportunites-donnees` et
+  `15-ecran-opportunites`, route `/admin/opportunites`), dans `DESIGN.md` (vue détail, lignes et
+  fiches rattachées, glyphes d'énumération, mois de démarrage) et dans `BRAINSTORM.md`.
 - **Audit de cohérence code, doc, système et maquette (synchronisé le 2026-10-02)** : `DESIGN.md`
   corrigé sur neuf points que le code dément (ordre de `LABEL_CLASS`, `leading-none` de
   `DialogTitle`, rayons des lignes à cocher, `LocationLine` sur `/contact` seul, formulaire de

@@ -600,7 +600,7 @@ Expected: aucune erreur.
 - Create: `src/components/features/admin/prospection/DeleteProspectingActionDialog.tsx`
 
 **Interfaces:**
-- Consumes: Task 4 ; actions et libellés du `09` ; `personDisplayName`, `PersonOption` (`07`, `@/lib/persons`, `@/server/queries/persons`)
+- Consumes: Task 4 ; actions, libellés et glyphes du `09` (`ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS`) ; `personDisplayName`, `PersonOption` (`07`, `@/lib/persons`, `@/server/queries/persons`)
 - Produces: `ProspectingActionFormDialog({ action, personOptions, defaultPersonId, triggerRef }: { action: AdminProspectingAction | null; personOptions: readonly PersonOption[]; defaultPersonId?: string; triggerRef?: Ref<HTMLButtonElement> })` ; `MarkActionDoneButton({ action })` ; `DeleteProspectingActionDialog({ action })`
 
 - [ ] **Step 1 : « Marquer fait »**
@@ -732,7 +732,9 @@ import { timeOf, toInstant } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import { formatShortDate } from "@/lib/projects"
 import {
+  ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
+  ACTION_STATUS_ICONS,
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
 } from "@/lib/prospecting-actions"
@@ -927,16 +929,18 @@ function ProspectingActionForm({
       </DialogHeader>
 
       <div className="grid min-h-0 gap-4 overflow-y-auto sm:grid-cols-2">
-        <FormField id={`${formId}-title`} label={LABELS.title} errors={state.errors.title}>
-          <Input
-            id={`${formId}-title`}
-            name="title"
-            defaultValue={action?.title ?? ""}
-            placeholder="Relance proposition"
-            aria-invalid={!!state.errors.title?.length}
-            aria-describedby={`${formId}-title-error`}
-          />
-        </FormField>
+        <div className="sm:col-span-2">
+          <FormField id={`${formId}-title`} label={LABELS.title} errors={state.errors.title}>
+            <Input
+              id={`${formId}-title`}
+              name="title"
+              defaultValue={action?.title ?? ""}
+              placeholder="Relance proposition"
+              aria-invalid={!!state.errors.title?.length}
+              aria-describedby={`${formId}-title-error`}
+            />
+          </FormField>
+        </div>
 
         <FormField id={`${formId}-personId`} label={LABELS.personId} errors={state.errors.personId}>
           <ComboboxPopover
@@ -991,31 +995,15 @@ function ProspectingActionForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ACTION_CHANNELS.map((channel) => (
-                <SelectItem key={channel} value={channel}>
-                  {ACTION_CHANNEL_LABELS[channel]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
-
-        <FormField id={`${formId}-status`} label={LABELS.status} errors={state.errors.status}>
-          <Select name="status" value={status} onValueChange={setStatus}>
-            <SelectTrigger
-              id={`${formId}-status`}
-              className="w-full"
-              aria-invalid={!!state.errors.status?.length}
-              aria-describedby={`${formId}-status-error`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ACTION_STATUSES.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {ACTION_STATUS_LABELS[value]}
-                </SelectItem>
-              ))}
+              {ACTION_CHANNELS.map((channel) => {
+                const Icon = ACTION_CHANNEL_ICONS[channel]
+                return (
+                  <SelectItem key={channel} value={channel}>
+                    {Icon ? <Icon aria-hidden /> : null}
+                    {ACTION_CHANNEL_LABELS[channel]}
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </FormField>
@@ -1031,16 +1019,42 @@ function ProspectingActionForm({
         />
         <input type="hidden" name="occurredAt" value={toInstant(date, time)} />
 
+        <FormField id={`${formId}-status`} label={LABELS.status} errors={state.errors.status}>
+          <Select name="status" value={status} onValueChange={setStatus}>
+            <SelectTrigger
+              id={`${formId}-status`}
+              className="w-full"
+              aria-invalid={!!state.errors.status?.length}
+              aria-describedby={`${formId}-status-error`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACTION_STATUSES.map((value) => {
+                const Icon = ACTION_STATUS_ICONS[value]
+                return (
+                  <SelectItem key={value} value={value}>
+                    {Icon ? <Icon aria-hidden /> : null}
+                    {ACTION_STATUS_LABELS[value]}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </FormField>
+
         {REPLIED.has(status) ? (
-          <DateTimeField
-            id={`${formId}-respondedAt`}
-            label={LABELS.respondedAt}
-            errors={state.errors.respondedAt}
-            date={respondedDate}
-            onDateChange={setRespondedDate}
-            time={respondedTime}
-            onTimeChange={setRespondedTime}
-          />
+          <div className="sm:col-span-2">
+            <DateTimeField
+              id={`${formId}-respondedAt`}
+              label={LABELS.respondedAt}
+              errors={state.errors.respondedAt}
+              date={respondedDate}
+              onDateChange={setRespondedDate}
+              time={respondedTime}
+              onTimeChange={setRespondedTime}
+            />
+          </div>
         ) : null}
         {/* Vide : le serveur pose l'heure courante au passage à Répondu ou Converti. */}
         <input
@@ -1095,8 +1109,8 @@ Expected: aucune erreur.
 - Modify: `src/config/admin-nav-items.ts`
 
 **Interfaces:**
-- Consumes: Tasks 1, 2, 4, 5 ; `findAllProspectingActionsForAdmin` (`09`) ; `findPersonOptions` (`07`, `@/server/queries/persons`)
-- Produces: `ProspectingActionsTable({ actions, view, personOptions })`, `ActionsViewPage({ view })`
+- Consumes: Tasks 1, 2, 4, 5 ; `findAllProspectingActionsForAdmin` (`09`) ; `findPersonOptions` (`07`, `@/server/queries/persons`) ; `EnumBadge` (`04`) ; `ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS` (`09`) ; prop `initialDetailId` de `DataTable` (`08`)
+- Produces: `ProspectingActionsTable({ actions, view, personOptions, initialDetailId })`, `ActionsViewPage({ view, initialDetailId })`, route `/admin/actions-prospection/journal` qui lit `searchParams.detail`
 
 - [ ] **Step 1 : Table**
 
@@ -1105,6 +1119,7 @@ Expected: aucune erreur.
 
 import { useMemo, useRef, useState } from "react"
 import { Send } from "lucide-react"
+import Link from "next/link"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
@@ -1113,6 +1128,7 @@ import {
   type DetailSection,
   DetailDialog,
 } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProspectingActionDialog } from "@/components/features/admin/prospection/DeleteProspectingActionDialog"
 import { MarkActionDoneButton } from "@/components/features/admin/prospection/MarkActionDoneButton"
@@ -1128,7 +1144,9 @@ import {
 import { formatShortDateTime } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import {
+  ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
+  ACTION_STATUS_ICONS,
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
 } from "@/lib/prospecting-actions"
@@ -1185,14 +1203,18 @@ function buildDataColumns(
       header: LABELS.channel,
       width: ACTION_COLUMN_WIDTHS.channel,
       ...hideable(view, "channel"),
-      cell: (action) => <Badge variant="secondary">{ACTION_CHANNEL_LABELS[action.channel]}</Badge>,
+      cell: (action) => (
+        <EnumBadge label={ACTION_CHANNEL_LABELS[action.channel]} icon={ACTION_CHANNEL_ICONS[action.channel]} />
+      ),
     },
     {
       key: "status",
       header: LABELS.status,
       width: ACTION_COLUMN_WIDTHS.status,
       ...hideable(view, "status"),
-      cell: (action) => <Badge variant="secondary">{ACTION_STATUS_LABELS[action.status]}</Badge>,
+      cell: (action) => (
+        <EnumBadge label={ACTION_STATUS_LABELS[action.status]} icon={ACTION_STATUS_ICONS[action.status]} />
+      ),
     },
     {
       key: "occurredAt",
@@ -1223,7 +1245,19 @@ function buildActionDetail(
     {
       title: "Action",
       rows: [
-        { label: LABELS.channel, value: <Badge variant="secondary">{ACTION_CHANNEL_LABELS[action.channel]}</Badge> },
+        {
+          label: LABELS.personId,
+          value: (
+            // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
+            <Link href={`/admin/leads/tous?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
+              {personDisplayName(action.person)}
+            </Link>
+          ),
+        },
+        {
+          label: LABELS.channel,
+          value: <EnumBadge label={ACTION_CHANNEL_LABELS[action.channel]} icon={ACTION_CHANNEL_ICONS[action.channel]} />,
+        },
         { label: LABELS.occurredAt, value: formatShortDateTime(action.occurredAt) },
         {
           label: LABELS.respondedAt,
@@ -1248,7 +1282,8 @@ function buildActionDetail(
 
   return {
     title: action.title,
-    subtitle: `${rankLabel(rank)} · ${personDisplayName(action.person)}`,
+    subtitle: rankLabel(rank),
+    // EnumBadge n'a que la variante secondary (04) : l'en-tête garde le Badge outline + meta commun à toutes les vues détail.
     status: (
       <Badge variant="outline" meta>
         {ACTION_STATUS_LABELS[action.status]}
@@ -1263,9 +1298,11 @@ interface Props {
   actions: readonly AdminProspectingAction[]
   view: ActionView
   personOptions: readonly PersonOption[]
+  // Ouvre la vue détail de cette ligne au chargement : cible d'un lien ?detail= depuis une autre fiche (lead, 08).
+  initialDetailId?: string
 }
 
-export function ProspectingActionsTable({ actions, view, personOptions }: Props) {
+export function ProspectingActionsTable({ actions, view, personOptions, initialDetailId }: Props) {
   const editTriggerRefs = useRef(new Map<string, HTMLButtonElement>())
   const [selectedAction, setSelectedAction] = useState<AdminProspectingAction | null>(null)
   // Instant figé au montage : le filtre Période reste stable pendant la consultation.
@@ -1358,6 +1395,7 @@ export function ProspectingActionsTable({ actions, view, personOptions }: Props)
         rows={viewActions}
         columns={columns}
         getRowId={(action) => action.id}
+        initialDetailId={initialDetailId}
         searchPlaceholder="Rechercher une action ou une personne"
         noun="action"
         onRowClick={setSelectedAction}
@@ -1403,19 +1441,34 @@ async function NewActionButton() {
   return <ProspectingActionFormDialog action={null} personOptions={personOptions} />
 }
 
-async function ActionsSection({ view }: { view: ActionView }) {
+async function ActionsSection({
+  view,
+  initialDetailId,
+}: {
+  view: ActionView
+  initialDetailId: string | undefined
+}) {
   const [actions, personOptions] = await Promise.all([
     findAllProspectingActionsForAdmin(),
     findPersonOptions(),
   ])
-  return <ProspectingActionsTable actions={actions} view={view} personOptions={personOptions} />
+  return (
+    <ProspectingActionsTable
+      actions={actions}
+      view={view}
+      personOptions={personOptions}
+      initialDetailId={initialDetailId}
+    />
+  )
 }
 
 interface Props {
   view: ActionView
+  // Seule la vue Journal le reçoit : cible d'un lien ?detail=<id> depuis une autre fiche (lead, 08).
+  initialDetailId?: string
 }
 
-export function ActionsViewPage({ view }: Props) {
+export function ActionsViewPage({ view, initialDetailId }: Props) {
   const { title, subtitle } = ACTION_VIEW_PAGES[view]
 
   return (
@@ -1437,7 +1490,7 @@ export function ActionsViewPage({ view }: Props) {
       }
     >
       <Suspense fallback={<DataTableSkeleton columnWidths={actionSkeletonWidths(view)} />}>
-        <ActionsSection view={view} />
+        <ActionsSection view={view} initialDetailId={initialDetailId} />
       </Suspense>
     </AdminPageShell>
   )
@@ -1498,16 +1551,21 @@ export default async function AdminActionsCandidaturesPage() {
 }
 ```
 
-`src/app/admin/(protected)/actions-prospection/journal/page.tsx` :
+`src/app/admin/(protected)/actions-prospection/journal/page.tsx` (seule des cinq vues à lire `searchParams.detail`, cible des liens `?detail=<id>` qui mènent à une action depuis une autre fiche) :
 
 ```tsx
 import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminActionsJournalPage() {
-  await getCurrentUser()
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
 
-  return <ActionsViewPage view="journal" />
+export default async function AdminActionsJournalPage({ searchParams }: Props) {
+  await getCurrentUser()
+  const { detail } = await searchParams
+
+  return <ActionsViewPage view="journal" initialDetailId={detail} />
 }
 ```
 
@@ -1556,11 +1614,11 @@ Expected: aucune erreur (si le typage des `href` échoue, lancer `just dev` une 
 - Modify: `src/components/features/admin/leads/LeadsTable.tsx`
 - Create: `src/components/features/admin/leads/LeadActionsCard.tsx`
 - Modify: `src/server/queries/prospecting-actions.ts`
-- Modify: `src/app/admin/(protected)/leads/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/leads/[id]/page.tsx` et `src/app/admin/(protected)/leads/nouveau/page.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 2 à 5 ; `findAllProspectingActionsForAdmin` (`09`) ; `personDisplayName` (`07`, `@/lib/persons`) ; page `/admin/leads/<id>` (`08`)
-- Produces: `LeadsTable({ leads, view, actions }: { …; actions: readonly AdminProspectingAction[] })` ; `LeadActionsCard({ lead, actions }: { lead: AdminLead; actions: readonly AdminProspectingAction[] })` ; `findProspectingActionsOfPerson(personId: string): Promise<AdminProspectingAction[]>`
+- Consumes: Tasks 2 à 5 ; `findAllProspectingActionsForAdmin` (`09`) ; `personDisplayName` (`07`, `@/lib/persons`) ; page `/admin/leads/<id>` (`08`) ; `relatedCards` (`08`, `LeadForm`) ; `RelatedLinksCard`, `RelatedLinksList`, `RelatedLink` (`08`)
+- Produces: `LeadsTable({ leads, view, actions }: { …; actions: readonly AdminProspectingAction[] })` ; `LeadActionsCard({ lead, actions }: { lead: AdminLead | null; actions: readonly AdminProspectingAction[] })` ; `findProspectingActionsOfPerson(personId: string): Promise<AdminProspectingAction[]>`
 
 - [ ] **Step 1 : La page lit aussi les actions**
 
@@ -1589,6 +1647,7 @@ import { rankActions, rankLabel } from "@/lib/action-rank"
 import { formatShortDateTime } from "@/lib/date-time"
 import { isRetentionOver, retentionEndOf } from "@/lib/person-retention"
 import { ACTION_CHANNEL_LABELS, ACTION_STATUS_LABELS } from "@/lib/prospecting-actions"
+import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
 ```
 
@@ -1620,6 +1679,7 @@ import type { AdminProspectingAction } from "@/server/queries/prospecting-action
 
 ```tsx
 // L'historique se lit aussi pour un lead opposé : ses actions restent, sauf effacement demandé.
+// Arbitrage « Fiches rattachées » : chaque ligne mène, par ?detail=, à la vue détail de l'action dans le Journal (sa vue complète, 10), jamais à sa page d'édition.
 function historySection(
   history: readonly AdminProspectingAction[],
   ranks: Map<string, number>,
@@ -1632,20 +1692,17 @@ function historySection(
         {
           fullWidth: true,
           value: (
-            <ol className="flex flex-col gap-1">
-              {history.map((action) => (
-                <li key={action.id} className="flex flex-wrap gap-x-2 text-sm">
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatShortDateTime(action.occurredAt)}
-                  </span>
-                  <span>{rankLabel(ranks.get(action.id) ?? 0)}</span>
-                  <span className="text-muted-foreground">
-                    {ACTION_CHANNEL_LABELS[action.channel]} · {ACTION_STATUS_LABELS[action.status]}
-                  </span>
-                  <span className="font-medium">{action.title}</span>
-                </li>
-              ))}
-            </ol>
+            <RelatedLinksList
+              links={history.map(
+                (action): RelatedLink => ({
+                  id: action.id,
+                  href: `/admin/actions-prospection/journal?detail=${action.id}`,
+                  label: action.title,
+                  meta: `${rankLabel(ranks.get(action.id) ?? 0)} · ${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
+                  trailing: formatShortDateTime(action.occurredAt),
+                }),
+              )}
+            />
           ),
         },
       ],
@@ -1663,7 +1720,7 @@ function historySection(
           },
 ```
 
-  et insérer `...historySection(history, ranks),` juste après le bloc Détails ;
+  et insérer `...historySection(history, ranks),` tout à la fin du tableau `sections`, juste après le bloc Réseau du `08` (lui-même en dernière position) et avant `...(onEdit ? { onEdit } : {})` : Historique vient après Réseau dans l'ordre de la vue détail (arbitrage du propriétaire, 2026-10-02), les blocs `15` (Opportunités apportées), `17` (Entretiens) et `19` (Signaux) le suivront à leur tour ;
 - dans `facets`, ajouter à la fin (la liste passe dans le composant pour lire `now`, voir ci-dessous) :
 
 ```tsx
@@ -1700,7 +1757,7 @@ function historySection(
 
 Le texte de suppression d'un lead (`DeleteLeadDialog`, `08`) annonce déjà que ses actions partent avec la personne : rien à y changer.
 
-Arbitrage « Élément rattaché à une fiche » de DESIGN.md : les actions d'une personne se créent, se modifient et se suppriment dans une card de la page de son lead, sous le formulaire. La case d'effacement des échanges vit déjà dans `OptOutPersonDialog` (`08`) : rien à y ajouter ici.
+Arbitrage « Élément rattaché à une fiche » de DESIGN.md : les actions d'une personne se créent, se modifient et se suppriment dans une card passée à la prop `relatedCards` de `LeadForm` (`08`), présente aussi à la création. La case d'effacement des échanges vit déjà dans `OptOutPersonDialog` (`08`) : rien à y ajouter ici.
 
 Dans `src/server/queries/prospecting-actions.ts`, ajouter :
 
@@ -1717,14 +1774,17 @@ export async function findProspectingActionsOfPerson(
 }
 ```
 
-`src/components/features/admin/leads/LeadActionsCard.tsx` :
+`src/components/features/admin/leads/LeadActionsCard.tsx`, une `RelatedLinksCard` (`08`) : une action n'a pas de page propre, ses boutons Modifier et Supprimer voyagent dans la prop `actions` de chaque ligne :
 
 ```tsx
 "use client"
 
+import { Plus } from "lucide-react"
+
+import { RelatedLinksCard, type RelatedLink } from "@/components/features/admin/RelatedLinksCard"
 import { DeleteProspectingActionDialog } from "@/components/features/admin/prospection/DeleteProspectingActionDialog"
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospection/ProspectingActionFormDialog"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { rankActions, rankLabel } from "@/lib/action-rank"
 import { formatShortDateTime } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
@@ -1733,11 +1793,28 @@ import type { AdminLead } from "@/server/queries/leads"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
 
 interface Props {
-  lead: AdminLead
+  lead: AdminLead | null
   actions: readonly AdminProspectingAction[]
 }
 
 export function LeadActionsCard({ lead, actions }: Props) {
+  // Pas encore de personId tant que le lead n'est pas enregistré : la card reste vide, bouton désactivé.
+  if (!lead) {
+    return (
+      <RelatedLinksCard
+        title="Actions"
+        links={[]}
+        emptyText="Après l'enregistrement du lead."
+        action={
+          <Button variant="outline" size="sm" disabled>
+            <Plus aria-hidden data-icon="inline-start" />
+            Nouvelle action
+          </Button>
+        }
+      />
+    )
+  }
+
   const ranks = rankActions(actions)
   // Depuis la fiche, une action ne peut viser que cette personne (id = personId).
   const personOptions = [
@@ -1749,44 +1826,27 @@ export function LeadActionsCard({ lead, actions }: Props) {
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Actions</CardTitle>
-        <CardAction>
-          <ProspectingActionFormDialog
-            action={null}
-            personOptions={personOptions}
-            defaultPersonId={lead.id}
-          />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        {actions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune action pour ce lead.</p>
-        ) : (
-          <ol className="flex flex-col gap-2">
-            {actions.map((action) => (
-              <li key={action.id} className="flex items-center gap-2 text-sm">
-                <div className="flex min-w-0 flex-1 flex-wrap gap-x-2">
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatShortDateTime(action.occurredAt)}
-                  </span>
-                  <span>{rankLabel(ranks.get(action.id) ?? 0)}</span>
-                  <span className="text-muted-foreground">
-                    {ACTION_CHANNEL_LABELS[action.channel]} · {ACTION_STATUS_LABELS[action.status]}
-                  </span>
-                  <span className="font-medium">{action.title}</span>
-                </div>
-                <span className="inline-flex shrink-0 gap-0">
-                  <ProspectingActionFormDialog action={action} personOptions={personOptions} />
-                  <DeleteProspectingActionDialog action={action} />
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </CardContent>
-    </Card>
+    <RelatedLinksCard
+      title="Actions"
+      links={actions.map(
+        (action): RelatedLink => ({
+          id: action.id,
+          label: action.title,
+          meta: `${rankLabel(ranks.get(action.id) ?? 0)} · ${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
+          trailing: formatShortDateTime(action.occurredAt),
+          actions: (
+            <>
+              <ProspectingActionFormDialog action={action} personOptions={personOptions} />
+              <DeleteProspectingActionDialog action={action} />
+            </>
+          ),
+        }),
+      )}
+      emptyText="Aucune action pour ce lead."
+      action={
+        <ProspectingActionFormDialog action={null} personOptions={personOptions} defaultPersonId={lead.id} />
+      }
+    />
   )
 }
 ```
@@ -1801,11 +1861,34 @@ Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `LeadActionsCard`
   ])
 ```
 
-et ajouter la card sous le formulaire :
+et passer la card à `relatedCards` :
 
 ```tsx
-      <LeadForm lead={lead} companyOptions={companyOptions} />
-      <LeadActionsCard lead={lead} actions={actions} />
+      <LeadForm
+        lead={lead}
+        companyOptions={companyOptions}
+        relatedCards={
+          <>
+            <LeadActionsCard lead={lead} actions={actions} />
+          </>
+        }
+      />
+```
+
+(le fragment reçoit, à la suite, les cards des plans suivants : Opportunités apportées `15`, Entretiens `17`, Signaux `19`, chacun ajoutant la sienne après celle qui précède, sans retirer celles déjà là.)
+
+Dans `src/app/admin/(protected)/leads/nouveau/page.tsx`, importer `LeadActionsCard` et l'ajouter de même, vide, dans le même fragment :
+
+```tsx
+      <LeadForm
+        lead={null}
+        companyOptions={companyOptions}
+        relatedCards={
+          <>
+            <LeadActionsCard lead={null} actions={[]} />
+          </>
+        }
+      />
 ```
 
 Les actions revalident `/admin/leads` en variante `layout` (`09`) : la card se met à jour sans recharger.
@@ -2034,6 +2117,9 @@ Expected: Actions prospection mène à « Actions à faire » ; ses cinq sous-en
 
 - [ ] **Step 2 : « Marquer fait » et rang**
 
+Ouvrir « Nouveau lead » sans l'enregistrer.
+Expected: la card Actions est présente, vide, « Après l'enregistrement du lead. », bouton « Nouvelle action » désactivé.
+
 Créer pour un lead une connexion LinkedIn À faire datée d'hier, puis cliquer deux fois vite « Marquer fait ».
 Expected: un seul toast « Action marquée faite » (le bouton se désactive pendant l'appel) ; l'action quitte À faire, apparaît dans Connexions à l'heure du clic, rang « Premier contact ». Créer un DM LinkedIn sur le même lead : il s'affiche « Relance 1 ».
 
@@ -2045,7 +2131,8 @@ Expected: les deux s'affichent à 14 h 30 ; la réponse porte l'heure de l'enreg
 - [ ] **Step 4 : Côté leads**
 
 Ouvrir la vue détail du lead de l'étape 2, puis sa page.
-Expected: bloc Historique avec ses actions par date et leur rang, ligne « Dernier contact de sa part » ; sur sa page, la card Actions liste les mêmes actions ; « Nouvelle action » y ouvre le formulaire avec cette personne déjà choisie, et l'action enregistrée apparaît dans la card sans recharger. Dans la liste, sa colonne Actions compte ses actions. Dans Tous, la colonne « À conserver jusqu'au » s'affiche ; le filtre « Échéance : Dépassée » ne garde que les fiches échues (en créer une en base avec une date de création de plus de 3 ans via `just db-studio` pour le vérifier).
+Expected: bloc Historique en `RelatedLinksList` avec ses actions par date et leur rang, ligne « Dernier contact de sa part » ; sur sa page, la card Actions liste les mêmes actions ; « Nouvelle action » y ouvre le formulaire avec cette personne déjà choisie, et l'action enregistrée apparaît dans la card sans recharger. Dans la liste, sa colonne Actions compte ses actions. Dans Tous, la colonne « À conserver jusqu'au » s'affiche ; le filtre « Échéance : Dépassée » ne garde que les fiches échues (en créer une en base avec une date de création de plus de 3 ans via `just db-studio` pour le vérifier). Cliquer une ligne du bloc Historique.
+Expected: la liste Journal s'ouvre avec le détail de cette action déjà affiché (`?detail=<id>`).
 
 - [ ] **Step 5 : Personne opposée**
 

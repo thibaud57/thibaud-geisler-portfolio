@@ -12,12 +12,12 @@
 
 ## Global Constraints
 
-- **Prérequis** : plans `01` (rubrique « Demandes RGPD » de `docs/PRODUCTION.md`), `07` (modèles `Person`/`Lead`, actions `createLead` / `updateLead` / `deleteLead`, `optOutPerson` / `erasePersonExchanges` / `PersonLockedError`, `AdminLead`, `findAllLeadsForAdmin`, `findPersonsWithoutLeadRole`, `PersonOption`, `NONE_VALUE = "aucun"`, `LEAD_ORIGINS`, `LEAD_STATUSES`, `LEAD_INTERESTS`, `LEAD_CHANNELS`, `PERSON_FIELD_LABELS`, `personDisplayName`, libellés, `JOB_ROLES`) et `03` (éditeur `Editor` depuis `@/components/ui/editor`, `src/lib/details-templates.ts`) implémentés ; `ZONES`, `ZONE_LABELS` (`@/lib/zones`, plan `02`).
+- **Prérequis** : plans `01` (rubrique « Demandes RGPD » de `docs/PRODUCTION.md`), `07` (modèles `Person`/`Lead`, actions `createLead` / `updateLead` / `deleteLead`, `optOutPerson` / `erasePersonExchanges` / `PersonLockedError`, `AdminLead`, `findAllLeadsForAdmin`, `PersonOption`, `NONE_VALUE = "aucun"`, `LEAD_ORIGINS`, `LEAD_STATUSES`, `LEAD_INTERESTS`, `LEAD_CHANNELS`, `LEAD_STATUS_ICONS`, `LEAD_INTEREST_ICONS`, `LEAD_ORIGIN_ICONS`, `LEAD_CHANNEL_ICONS`, `PERSON_FIELD_LABELS`, `personDisplayName`, libellés, `JOB_ROLES`) et `03` (éditeur `Editor` depuis `@/components/ui/editor`, `src/lib/details-templates.ts`) implémentés ; `ZONES`, `ZONE_LABELS` (`@/lib/zones`, plan `02`).
 - **Vues et routes** : En cours `/admin/leads`, Chauds `/admin/leads/chauds`, À qualifier `/admin/leads/a-qualifier`, Stand-by `/admin/leads/stand-by`, Tous `/admin/leads/tous` ; création `/admin/leads/nouveau`, modification `/admin/leads/<id>`. Une fiche en opposition (`optedOutAt` non nul) n'entre que dans Tous et sa page de modification renvoie vers Tous.
-- **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : le lead se crée et se modifie sur sa page, en cards Personne, Coordonnées, Détails, Pipeline, Notes ; la ligne ne porte que Modifier (lien vers la page) et Supprimer.
+- **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : le lead se crée et se modifie sur sa page, en cards Identité, Coordonnées, Détails, Pipeline, Notes ; la ligne ne porte que Modifier (lien vers la page) et Supprimer.
 - **Règles des vues** : En cours = Nouveau, Suspect, Discussion ; Chauds = intérêt Hot hors Perdu, Hors ICP ; À qualifier = Nouveau ; Stand-by = Stand-by ; tri par date de rencontre (décroissant pour En cours et Chauds, croissant pour À qualifier et Stand-by), date absente en dernier ; Tous trié par nom, fiches en opposition en dernier. Ni RDV planifié ni Deal, jamais stockés (`07`), n'entrent dans ces filtres à ce stade.
 - **Gabarits** : Outbound = `# 💡 Hypothèse / Angle` (Hypothèse de besoin, Angle de pitch, Objectif du contact) puis `# 🎯 Contexte` ; Inbound = `# 🎯 Contexte`. Appliqués à la création seulement ; un texte saisi n'est jamais écrasé.
-- **Textes** : bouton « Nouveau lead » ; card Personne « Nouvelle personne » / « Personne existante », picker « Choisir une personne » ; suppression « Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses missions restent sans apporteur. » ; opposition « Ne plus contacter « <nom> » ? » et « La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement. Action irréversible. » ; case « La personne demande aussi l'effacement de nos échanges » ; badge « Ne plus contacter ».
+- **Textes** : bouton « Nouveau lead » ; suppression « Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur. » ; opposition « Ne plus contacter « <nom> » ? » et « La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement. Action irréversible. » ; case « La personne demande aussi l'effacement de nos échanges » ; badge « Ne plus contacter ».
 - **Prospect** : entreprise non travaillée (`worked`) avec au moins une personne au rôle Lead, non opposée, au statut Nouveau, Suspect ou Discussion.
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
@@ -164,7 +164,7 @@ export interface LeadViewRow {
 }
 
 const IN_PROGRESS: ReadonlySet<LeadStatus> = new Set(["NOUVEAU", "SUSPECT", "DISCUSSION"])
-// RDV planifié et Deal, jamais stockés, n'entrent pas dans ce filtre : ce sont l'entretien planifié à venir et la mission acceptée, pas un statut de lead.
+// RDV planifié et Deal, jamais stockés, n'entrent pas dans ce filtre : ce sont l'entretien planifié à venir et l'opportunité acceptée, pas un statut de lead.
 const CLOSED: ReadonlySet<LeadStatus> = new Set(["PERDU", "HORS_ICP"])
 
 // Une fiche en opposition n'a plus rien à faire dans une vue de travail : seul Tous la montre, pour la retrouver et la supprimer à l'échéance de conservation.
@@ -310,7 +310,7 @@ import type { LeadOrigin } from "@/generated/prisma/client"
 ```
 
 ```ts
-// Le signal qui déclenche une prospection et la mission proposée par un inbound ont chacun leur propre modèle : il ne reste ici que le texte d'analyse.
+// Le signal qui déclenche une prospection et l'opportunité proposée par un inbound ont chacun leur propre modèle : il ne reste ici que le texte d'analyse.
 export const LEAD_OUTBOUND_DETAILS_TEMPLATE = `# 💡 Hypothèse / Angle
 
 - **Hypothèse de besoin** :
@@ -478,6 +478,8 @@ export function leadSkeletonWidths(view: LeadView): readonly number[] {
 ```ts
 export const LEAD_SECTION_TITLES = {
   pipeline: "Pipeline",
+  // Symétrique du bloc Pipeline du contact (`13`) : le rôle Contact de la même personne, lu en un clic.
+  network: "Réseau",
 } as const
 ```
 
@@ -486,7 +488,7 @@ export const LEAD_SECTION_TITLES = {
 ```ts
 // Titres des blocs communs à toute personne, quel que soit son rôle.
 export const PERSON_SECTION_TITLES = {
-  person: "Personne",
+  person: "Identité",
   contact: "Coordonnées",
   notes: "Notes",
   details: "Détails",
@@ -552,14 +554,13 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/persons/OptOutPersonDialog.tsx`
 - Create: `src/components/features/admin/SelectField.tsx`
-- Create: `src/components/features/admin/ReadOnlyField.tsx`
 - Create: `src/components/features/admin/leads/LeadForm.tsx`
 - Create: `src/app/admin/(protected)/leads/nouveau/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/[id]/page.tsx` et `loading.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 2 et 3 ; `OptionalDateField` (`05`, `@/components/features/admin/OptionalDateField`) ; `createLead`, `updateLead`, `initialLeadFormState`, `findLeadByIdForAdmin` (`07`) ; `optOutPerson`, `erasePersonExchanges` (`07`, `@/server/actions/persons`) ; `findPersonsWithoutLeadRole`, `PersonWithoutLeadRole` (`07`, `@/server/queries/persons`) ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/Task 3, `@/lib/persons`) ; `Editor` (`03`) ; `ComboboxPopover`, `FormField`, `AdminBreadcrumb`, `StackedSkeleton`, `Card`, `Checkbox` ; `formatShortDate`, `toIsoDate` (`@/lib/projects`)
-- Produces: `LeadForm({ lead, companyOptions, personOptions }: { lead: AdminLead | null; companyOptions: readonly CompanyOption[]; personOptions: readonly PersonWithoutLeadRole[] })` ; `OptOutTarget`, `OptOutPersonDialog({ person, onDone }: { person: OptOutTarget; onDone: () => void })` ; `SelectField`, `OptionalDateField`, `ReadOnlyField` (`@/components/features/admin/`) ; routes `/admin/leads/nouveau` et `/admin/leads/<id>`, où les sub-projects suivants ajoutent leurs cards sous le formulaire
+- Consumes: Tasks 2 et 3 ; `OptionalDateField` (`05`, `@/components/features/admin/OptionalDateField`) ; `createLead`, `updateLead`, `initialLeadFormState`, `findLeadByIdForAdmin` (`07`) ; `optOutPerson`, `erasePersonExchanges` (`07`, `@/server/actions/persons`) ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/Task 3, `@/lib/persons`) ; `Editor` (`03`) ; `ComboboxPopover`, `AdminBreadcrumb`, `StackedSkeleton`, `Card`, `Checkbox` ; `IconComponent` (`@/lib/icons`)
+- Produces: `LeadForm({ lead, companyOptions, relatedCards }: { lead: AdminLead | null; companyOptions: readonly CompanyOption[]; relatedCards?: React.ReactNode })` ; `OptOutTarget`, `OptOutPersonDialog({ person, onDone }: { person: OptOutTarget; onDone: () => void })` ; `SelectField`, `OptionalDateField` (`@/components/features/admin/`) ; routes `/admin/leads/nouveau` et `/admin/leads/<id>`, où les sub-projects suivants passent leurs cards via `relatedCards`
 
 - [ ] **Step 1 : Confirmation « ne plus contacter », avec l'effacement en option**
 
@@ -668,9 +669,9 @@ export function OptOutPersonDialog({ person, onDone }: Props) {
 }
 ```
 
-- [ ] **Step 2 : Champs partagés du formulaire**
+- [ ] **Step 2 : Champ select partagé du formulaire**
 
-Deux champs, communs à `LeadForm` et à `ContactForm` (`13`) : extraits ici, au premier plan qui en a besoin, pour que `13`, `15`, `17`, `18` et `19` les importent plutôt que d'en dupliquer une copie locale. Le troisième, `OptionalDateField`, existe depuis le `05`.
+Un champ, commun à `LeadForm` et à `ContactForm` (`13`) : extrait ici, au premier plan qui en a besoin, pour que `13`, `15`, `17`, `18` et `19` l'importent plutôt que d'en dupliquer une copie locale. `OptionalDateField`, l'autre champ partagé, existe depuis le `05`.
 
 `src/components/features/admin/SelectField.tsx` :
 
@@ -679,6 +680,7 @@ Deux champs, communs à `LeadForm` et à `ContactForm` (`13`) : extraits ici, au
 
 import { FormField } from "@/components/ui/form-field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { IconComponent } from "@/lib/icons"
 import { NONE_VALUE } from "@/lib/schemas/person"
 
 interface Props {
@@ -689,11 +691,23 @@ interface Props {
   labels: Readonly<Record<string, string>>
   defaultValue: string
   errors: string[] | undefined
+  // Glyphe devant chaque option, comme les emojis des selects Notion ; absent pour une énumération qui n'en porte pas (Poste, Localité).
+  icons?: Readonly<Record<string, IconComponent | null>>
   // Champ facultatif : cette option envoie la sentinelle, que le schéma traduit en null.
   noneLabel?: string
 }
 
-export function SelectField({ id, name, label, options, labels, defaultValue, errors, noneLabel }: Props) {
+export function SelectField({
+  id,
+  name,
+  label,
+  options,
+  labels,
+  defaultValue,
+  errors,
+  icons,
+  noneLabel,
+}: Props) {
   return (
     <FormField id={id} label={label} errors={errors}>
       <Select name={name} defaultValue={defaultValue}>
@@ -707,41 +721,17 @@ export function SelectField({ id, name, label, options, labels, defaultValue, er
         </SelectTrigger>
         <SelectContent>
           {noneLabel ? <SelectItem value={NONE_VALUE}>{noneLabel}</SelectItem> : null}
-          {options.map((option) => (
-            <SelectItem key={option} value={option}>
-              {labels[option]}
-            </SelectItem>
-          ))}
+          {options.map((option) => {
+            const Icon = icons?.[option]
+            return (
+              <SelectItem key={option} value={option}>
+                {Icon ? <Icon aria-hidden /> : null}
+                {labels[option]}
+              </SelectItem>
+            )
+          })}
         </SelectContent>
       </Select>
-    </FormField>
-  )
-}
-```
-
-`src/components/features/admin/ReadOnlyField.tsx` (une personne existante choisie se lit, jamais ne s'édite : la valeur réelle voyage par un champ caché) :
-
-```tsx
-import { FormField } from "@/components/ui/form-field"
-
-interface Props {
-  id: string
-  label: string
-  name: string
-  value: string
-  display: string
-}
-
-export function ReadOnlyField({ id, label, name, value, display }: Props) {
-  return (
-    <FormField id={id} label={label} errors={undefined}>
-      <p
-        id={id}
-        className="flex h-9 items-center truncate rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground"
-      >
-        {display}
-      </p>
-      <input type="hidden" name={name} value={value} />
     </FormField>
   )
 }
@@ -763,34 +753,32 @@ import { toast } from "sonner"
 import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
 import { OptionalDateField } from "@/components/features/admin/OptionalDateField"
 import { OptOutPersonDialog } from "@/components/features/admin/persons/OptOutPersonDialog"
-import { ReadOnlyField } from "@/components/features/admin/ReadOnlyField"
 import { SelectField } from "@/components/features/admin/SelectField"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 
 import type { LeadOrigin } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { detailsAfterOriginChange } from "@/lib/details-templates"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import {
+  LEAD_CHANNEL_ICONS,
   LEAD_CHANNEL_LABELS,
   LEAD_FIELD_LABELS,
+  LEAD_INTEREST_ICONS,
   LEAD_INTEREST_LABELS,
+  LEAD_ORIGIN_ICONS,
   LEAD_ORIGIN_LABELS,
   LEAD_SECTION_TITLES,
+  LEAD_STATUS_ICONS,
   LEAD_STATUS_LABELS,
 } from "@/lib/leads"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
-import { formatShortDate, toIsoDate } from "@/lib/projects"
 import { LEAD_CHANNELS, LEAD_INTERESTS, LEAD_ORIGINS, LEAD_STATUSES } from "@/lib/schemas/lead"
 import { NONE_VALUE } from "@/lib/schemas/person"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
@@ -798,17 +786,16 @@ import { createLead, updateLead } from "@/server/actions/leads"
 import { initialLeadFormState } from "@/server/actions/leads.types"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminLead } from "@/server/queries/leads"
-import type { PersonWithoutLeadRole } from "@/server/queries/persons"
 
 const LEADS_PATH = "/admin/leads"
 
 interface Props {
   lead: AdminLead | null
   companyOptions: readonly CompanyOption[]
-  personOptions: readonly PersonWithoutLeadRole[]
+  relatedCards?: React.ReactNode
 }
 
-export function LeadForm({ lead, companyOptions, personOptions }: Props) {
+export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = lead ? updateLead.bind(null, lead.id) : createLead
@@ -822,15 +809,6 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
   const [companyId, setCompanyId] = useState(lead?.company?.id ?? NONE_VALUE)
   const [companyOpen, setCompanyOpen] = useState(false)
   const [metAt, setMetAt] = useState<Date | undefined>(lead?.metAt ?? undefined)
-
-  // Card Personne, à la création seulement : une personne au rôle Contact rencontrée en entretien peut devenir aussi prospect sans être recréée.
-  const [mode, setMode] = useState<"new" | "existing">("new")
-  const [personId, setPersonId] = useState("")
-  const [personPickerOpen, setPersonPickerOpen] = useState(false)
-  const selectedPerson = personOptions.find((person) => person.id === personId) ?? null
-  // Personne existante choisie : le reste du formulaire se remplit depuis elle, en lecture.
-  const readOnly = mode === "existing" && selectedPerson !== null
-  const source = selectedPerson ?? lead
 
   const selectedCompany = companyOptions.find((company) => company.id === companyId) ?? null
 
@@ -855,20 +833,6 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
       }
     }
     setOrigin(nextOrigin)
-  }
-
-  function handleModeChange(next: "new" | "existing") {
-    setMode(next)
-    if (next === "new") setPersonId("")
-  }
-
-  function handlePersonSelect(person: PersonWithoutLeadRole) {
-    setPersonId(person.id)
-    setPersonPickerOpen(false)
-    setCompanyId(person.company?.id ?? NONE_VALUE)
-    setMetAt(person.metAt ?? undefined)
-    setDetails(person.details ?? "")
-    setEditorKey((key) => key + 1)
   }
 
   return (
@@ -902,205 +866,92 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
           <Card>
             <CardHeader>
               <CardTitle>{PERSON_SECTION_TITLES.person}</CardTitle>
-              <CardDescription>
-                {mode === "new"
-                  ? "L'entreprise vient du CRM."
-                  : "Le reste de sa fiche vient de la personne choisie, rien n'est recopié."}
-              </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {!lead ? (
-                <RadioGroup
-                  value={mode}
-                  onValueChange={(value) => handleModeChange(value as "new" | "existing")}
-                  className="flex flex-wrap gap-4"
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <FormField id={`${formId}-name`} label={PERSON_FIELD_LABELS.name} errors={state.errors.name}>
+                <Input
+                  id={`${formId}-name`}
+                  name="name"
+                  defaultValue={lead?.name ?? ""}
+                  placeholder="Claire Morel"
+                  aria-invalid={!!state.errors.name?.length}
+                  aria-describedby={`${formId}-name-error`}
+                />
+              </FormField>
+
+              <SelectField
+                id={`${formId}-jobRole`}
+                name="jobRole"
+                label={PERSON_FIELD_LABELS.jobRole}
+                options={JOB_ROLES}
+                labels={JOB_ROLE_LABELS}
+                defaultValue={lead?.jobRole ?? NONE_VALUE}
+                errors={state.errors.jobRole}
+                noneLabel="Non renseigné"
+              />
+
+              <FormField
+                id={`${formId}-companyId`}
+                label={PERSON_FIELD_LABELS.companyId}
+                errors={state.errors.companyId}
+              >
+                <ComboboxPopover
+                  id={`${formId}-companyId`}
+                  open={companyOpen}
+                  onOpenChange={setCompanyOpen}
+                  triggerContent={
+                    selectedCompany ? (
+                      <span className="truncate">{selectedCompany.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Aucune</span>
+                    )
+                  }
+                  ariaInvalid={!!state.errors.companyId?.length}
+                  ariaDescribedby={`${formId}-companyId-error`}
+                  searchPlaceholder="Chercher une entreprise"
+                  emptyMessage="Aucune entreprise ne correspond."
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem id={`${formId}-mode-new`} value="new" />
-                    <Label htmlFor={`${formId}-mode-new`}>Nouvelle personne</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem id={`${formId}-mode-existing`} value="existing" />
-                    <Label htmlFor={`${formId}-mode-existing`}>Personne existante</Label>
-                  </div>
-                </RadioGroup>
-              ) : null}
-
-              {mode === "existing" ? (
-                <FormField id={`${formId}-personId`} label="Personne" errors={state.errors.personId}>
-                  <ComboboxPopover
-                    id={`${formId}-personId`}
-                    open={personPickerOpen}
-                    onOpenChange={setPersonPickerOpen}
-                    triggerContent={
-                      selectedPerson ? (
-                        <span className="truncate">
-                          {personDisplayName(selectedPerson)}
-                          {selectedPerson.company ? ` · ${selectedPerson.company.name}` : ""}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">Choisir une personne</span>
-                      )
-                    }
-                    ariaInvalid={!!state.errors.personId?.length}
-                    ariaDescribedby={`${formId}-personId-error`}
-                    searchPlaceholder="Chercher une personne"
-                    emptyMessage="Aucune personne ne correspond."
-                  >
-                    <CommandGroup>
-                      {personOptions.map((person) => (
-                        <CommandItem
-                          key={person.id}
-                          value={person.id}
-                          keywords={[personDisplayName(person)]}
-                          data-checked={personId === person.id}
-                          onSelect={() => handlePersonSelect(person)}
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate">
-                              {personDisplayName(person)}
-                              {person.company ? ` · ${person.company.name}` : ""}
-                            </span>
-                            {person.hasContactRole ? <Badge variant="outline">Contact</Badge> : null}
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </ComboboxPopover>
-                  <input type="hidden" name="personId" value={personId} />
-                </FormField>
-              ) : (
-                <input type="hidden" name="personId" value={NONE_VALUE} />
-              )}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {readOnly ? (
-                  <ReadOnlyField
-                    id={`${formId}-name`}
-                    name="name"
-                    label={PERSON_FIELD_LABELS.name}
-                    value={source?.name ?? ""}
-                    display={source?.name ?? ""}
-                  />
-                ) : (
-                  <FormField id={`${formId}-name`} label={PERSON_FIELD_LABELS.name} errors={state.errors.name}>
-                    <Input
-                      id={`${formId}-name`}
-                      name="name"
-                      defaultValue={source?.name ?? ""}
-                      placeholder="Claire Morel"
-                      aria-invalid={!!state.errors.name?.length}
-                      aria-describedby={`${formId}-name-error`}
-                    />
-                  </FormField>
-                )}
-
-                {readOnly ? (
-                  <ReadOnlyField
-                    id={`${formId}-jobRole`}
-                    name="jobRole"
-                    label={PERSON_FIELD_LABELS.jobRole}
-                    value={source?.jobRole ?? NONE_VALUE}
-                    display={source?.jobRole ? JOB_ROLE_LABELS[source.jobRole] : "Non renseigné"}
-                  />
-                ) : (
-                  <SelectField
-                    id={`${formId}-jobRole`}
-                    name="jobRole"
-                    label={PERSON_FIELD_LABELS.jobRole}
-                    options={JOB_ROLES}
-                    labels={JOB_ROLE_LABELS}
-                    defaultValue={source?.jobRole ?? NONE_VALUE}
-                    errors={state.errors.jobRole}
-                    noneLabel="Non renseigné"
-                  />
-                )}
-
-                <div className="sm:col-span-2">
-                  {readOnly ? (
-                    <ReadOnlyField
-                      id={`${formId}-companyId`}
-                      name="companyId"
-                      label={PERSON_FIELD_LABELS.companyId}
-                      value={companyId}
-                      display={selectedCompany?.name ?? "Aucune"}
-                    />
-                  ) : (
-                    <FormField
-                      id={`${formId}-companyId`}
-                      label={PERSON_FIELD_LABELS.companyId}
-                      errors={state.errors.companyId}
+                  <CommandGroup>
+                    <CommandItem
+                      value={NONE_VALUE}
+                      keywords={["Aucune"]}
+                      data-checked={companyId === NONE_VALUE}
+                      onSelect={() => {
+                        setCompanyId(NONE_VALUE)
+                        setCompanyOpen(false)
+                      }}
                     >
-                      <ComboboxPopover
-                        id={`${formId}-companyId`}
-                        open={companyOpen}
-                        onOpenChange={setCompanyOpen}
-                        triggerContent={
-                          selectedCompany ? (
-                            <span className="truncate">{selectedCompany.name}</span>
-                          ) : (
-                            <span className="text-muted-foreground">Aucune</span>
-                          )
-                        }
-                        ariaInvalid={!!state.errors.companyId?.length}
-                        ariaDescribedby={`${formId}-companyId-error`}
-                        searchPlaceholder="Chercher une entreprise"
-                        emptyMessage="Aucune entreprise ne correspond."
+                      Aucune
+                    </CommandItem>
+                    {companyOptions.map((company) => (
+                      <CommandItem
+                        key={company.id}
+                        value={company.id}
+                        keywords={[company.name]}
+                        data-checked={companyId === company.id}
+                        onSelect={() => {
+                          setCompanyId(company.id)
+                          setCompanyOpen(false)
+                        }}
                       >
-                        <CommandGroup>
-                          <CommandItem
-                            value={NONE_VALUE}
-                            keywords={["Aucune"]}
-                            data-checked={companyId === NONE_VALUE}
-                            onSelect={() => {
-                              setCompanyId(NONE_VALUE)
-                              setCompanyOpen(false)
-                            }}
-                          >
-                            Aucune
-                          </CommandItem>
-                          {companyOptions.map((company) => (
-                            <CommandItem
-                              key={company.id}
-                              value={company.id}
-                              keywords={[company.name]}
-                              data-checked={companyId === company.id}
-                              onSelect={() => {
-                                setCompanyId(company.id)
-                                setCompanyOpen(false)
-                              }}
-                            >
-                              {company.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </ComboboxPopover>
-                      <input type="hidden" name="companyId" value={companyId} />
-                    </FormField>
-                  )}
-                </div>
+                        {company.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </ComboboxPopover>
+                <input type="hidden" name="companyId" value={companyId} />
+              </FormField>
 
-                {readOnly ? (
-                  <ReadOnlyField
-                    id={`${formId}-zone`}
-                    name="zone"
-                    label={PERSON_FIELD_LABELS.zone}
-                    value={source?.zone ?? NONE_VALUE}
-                    display={source?.zone ? ZONE_LABELS[source.zone] : "Non renseignée"}
-                  />
-                ) : (
-                  <SelectField
-                    id={`${formId}-zone`}
-                    name="zone"
-                    label={PERSON_FIELD_LABELS.zone}
-                    options={ZONES}
-                    labels={ZONE_LABELS}
-                    defaultValue={source?.zone ?? NONE_VALUE}
-                    errors={state.errors.zone}
-                    noneLabel="Non renseignée"
-                  />
-                )}
-              </div>
+              <SelectField
+                id={`${formId}-zone`}
+                name="zone"
+                label={PERSON_FIELD_LABELS.zone}
+                options={ZONES}
+                labels={ZONE_LABELS}
+                defaultValue={lead?.zone ?? NONE_VALUE}
+                errors={state.errors.zone}
+                noneLabel="Non renseignée"
+              />
             </CardContent>
           </Card>
 
@@ -1109,116 +960,79 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
               <CardTitle>{PERSON_SECTION_TITLES.contact}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
-              {readOnly ? (
-                <ReadOnlyField
+              <FormField id={`${formId}-email`} label={PERSON_FIELD_LABELS.email} errors={state.errors.email}>
+                <Input
                   id={`${formId}-email`}
                   name="email"
-                  label={PERSON_FIELD_LABELS.email}
-                  value={source?.email ?? ""}
-                  display={source?.email ?? ""}
+                  type="email"
+                  defaultValue={lead?.email ?? ""}
+                  placeholder="prenom@entreprise.com"
+                  aria-invalid={!!state.errors.email?.length}
+                  aria-describedby={`${formId}-email-error`}
                 />
-              ) : (
-                <FormField id={`${formId}-email`} label={PERSON_FIELD_LABELS.email} errors={state.errors.email}>
-                  <Input
-                    id={`${formId}-email`}
-                    name="email"
-                    type="email"
-                    defaultValue={source?.email ?? ""}
-                    placeholder="prenom@entreprise.com"
-                    aria-invalid={!!state.errors.email?.length}
-                    aria-describedby={`${formId}-email-error`}
-                  />
-                </FormField>
-              )}
+              </FormField>
 
-              {readOnly ? (
-                <ReadOnlyField
+              <FormField id={`${formId}-phone`} label={PERSON_FIELD_LABELS.phone} errors={state.errors.phone}>
+                <Input
                   id={`${formId}-phone`}
                   name="phone"
-                  label={PERSON_FIELD_LABELS.phone}
-                  value={source?.phone ?? ""}
-                  display={source?.phone ?? ""}
+                  type="tel"
+                  defaultValue={lead?.phone ?? ""}
+                  placeholder="+33 6 …"
+                  aria-invalid={!!state.errors.phone?.length}
+                  aria-describedby={`${formId}-phone-error`}
                 />
-              ) : (
-                <FormField id={`${formId}-phone`} label={PERSON_FIELD_LABELS.phone} errors={state.errors.phone}>
-                  <Input
-                    id={`${formId}-phone`}
-                    name="phone"
-                    type="tel"
-                    defaultValue={source?.phone ?? ""}
-                    placeholder="+33 6 …"
-                    aria-invalid={!!state.errors.phone?.length}
-                    aria-describedby={`${formId}-phone-error`}
-                  />
-                </FormField>
-              )}
+              </FormField>
 
               <div className="sm:col-span-2">
-                {readOnly ? (
-                  <ReadOnlyField
+                <FormField
+                  id={`${formId}-linkedinUrl`}
+                  label={PERSON_FIELD_LABELS.linkedinUrl}
+                  errors={state.errors.linkedinUrl}
+                >
+                  <Input
                     id={`${formId}-linkedinUrl`}
                     name="linkedinUrl"
-                    label={PERSON_FIELD_LABELS.linkedinUrl}
-                    value={source?.linkedinUrl ?? ""}
-                    display={source?.linkedinUrl ?? ""}
+                    type="url"
+                    defaultValue={lead?.linkedinUrl ?? ""}
+                    placeholder="linkedin.com/in/…"
+                    aria-invalid={!!state.errors.linkedinUrl?.length}
+                    aria-describedby={`${formId}-linkedinUrl-error`}
                   />
-                ) : (
-                  <FormField
-                    id={`${formId}-linkedinUrl`}
-                    label={PERSON_FIELD_LABELS.linkedinUrl}
-                    errors={state.errors.linkedinUrl}
-                  >
-                    <Input
-                      id={`${formId}-linkedinUrl`}
-                      name="linkedinUrl"
-                      type="url"
-                      defaultValue={source?.linkedinUrl ?? ""}
-                      placeholder="linkedin.com/in/…"
-                      aria-invalid={!!state.errors.linkedinUrl?.length}
-                      aria-describedby={`${formId}-linkedinUrl-error`}
-                    />
-                  </FormField>
-                )}
+                </FormField>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>{PERSON_SECTION_TITLES.details}</CardTitle>
+              <CardTitle id={`${formId}-details-title`}>{PERSON_SECTION_TITLES.details}</CardTitle>
+              <CardDescription>
+                Raccourcis : « # » un titre, « - » une liste, « / » le menu des blocs.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              {readOnly ? (
-                <>
-                  <div className="rounded-md border border-input bg-muted p-3">
-                    <MarkdownContent markdown={source?.details ?? ""} variant="admin" />
-                  </div>
-                  <input type="hidden" name="details" value={source?.details ?? ""} />
-                </>
-              ) : (
-                <>
-                  <FormField
-                    id={`${formId}-details`}
-                    label={PERSON_FIELD_LABELS.details}
-                    errors={state.errors.details}
-                    help="Raccourcis : « # » un titre, « - » une liste, « / » le menu des blocs."
-                  >
-                    <Editor
-                      key={editorKey}
-                      id={`${formId}-details`}
-                      format="markdown"
-                      enableImages={false}
-                      value={details}
-                      onChange={setDetails}
-                      aria-invalid={!!state.errors.details?.length}
-                      aria-describedby={`${formId}-details-help ${formId}-details-error`}
-                    />
-                  </FormField>
-                  <input type="hidden" name="details" value={details} />
-                </>
-              )}
+            <CardContent className="flex flex-col gap-2">
+              <Editor
+                key={editorKey}
+                id={`${formId}-details`}
+                aria-labelledby={`${formId}-details-title`}
+                format="markdown"
+                enableImages={false}
+                value={details}
+                onChange={setDetails}
+                aria-invalid={!!state.errors.details?.length}
+                aria-describedby={`${formId}-details-error`}
+              />
+              <div id={`${formId}-details-error`} aria-live="polite">
+                {state.errors.details?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.details[0]}</p>
+                ) : null}
+              </div>
+              <input type="hidden" name="details" value={details} />
             </CardContent>
           </Card>
+
+          {relatedCards}
         </div>
 
         <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">
@@ -1233,6 +1047,7 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
                 label={LEAD_FIELD_LABELS.status}
                 options={LEAD_STATUSES}
                 labels={LEAD_STATUS_LABELS}
+                icons={LEAD_STATUS_ICONS}
                 defaultValue={lead?.status ?? "NOUVEAU"}
                 errors={state.errors.status}
               />
@@ -1243,6 +1058,7 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
                 label={LEAD_FIELD_LABELS.interest}
                 options={LEAD_INTERESTS}
                 labels={LEAD_INTEREST_LABELS}
+                icons={LEAD_INTEREST_ICONS}
                 defaultValue={lead?.interest ?? NONE_VALUE}
                 errors={state.errors.interest}
                 noneLabel="Non renseigné"
@@ -1259,11 +1075,15 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
                     <SelectValue placeholder="Choisir une origine" />
                   </SelectTrigger>
                   <SelectContent>
-                    {LEAD_ORIGINS.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {LEAD_ORIGIN_LABELS[value]}
-                      </SelectItem>
-                    ))}
+                    {LEAD_ORIGINS.map((value) => {
+                      const Icon = LEAD_ORIGIN_ICONS[value]
+                      return (
+                        <SelectItem key={value} value={value}>
+                          {Icon ? <Icon aria-hidden /> : null}
+                          {LEAD_ORIGIN_LABELS[value]}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </FormField>
@@ -1274,31 +1094,22 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
                 label={LEAD_FIELD_LABELS.channel}
                 options={LEAD_CHANNELS}
                 labels={LEAD_CHANNEL_LABELS}
+                icons={LEAD_CHANNEL_ICONS}
                 defaultValue={lead?.channel ?? NONE_VALUE}
                 errors={state.errors.channel}
                 noneLabel="Non renseigné"
               />
 
-              {readOnly ? (
-                <ReadOnlyField
-                  id={`${formId}-metAt`}
-                  name="metAt"
-                  label={PERSON_FIELD_LABELS.metAt}
-                  value={source?.metAt ? toIsoDate(source.metAt) : ""}
-                  display={source?.metAt ? formatShortDate(source.metAt) : ""}
-                />
-              ) : (
-                <OptionalDateField
-                  id={`${formId}-metAt`}
-                  name="metAt"
-                  label={PERSON_FIELD_LABELS.metAt}
-                  value={metAt}
-                  onChange={setMetAt}
-                  errors={state.errors.metAt}
-                />
-              )}
+              <OptionalDateField
+                id={`${formId}-metAt`}
+                name="metAt"
+                label={PERSON_FIELD_LABELS.metAt}
+                value={metAt}
+                onChange={setMetAt}
+                errors={state.errors.metAt}
+              />
 
-              <FormField id={`${formId}-score`} label={LEAD_FIELD_LABELS.score} errors={state.errors.score} help="De 0 à 10.">
+              <FormField id={`${formId}-score`} label={LEAD_FIELD_LABELS.score} errors={state.errors.score}>
                 <Input
                   id={`${formId}-score`}
                   name="score"
@@ -1309,7 +1120,7 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
                   step={1}
                   defaultValue={lead?.score?.toString() ?? ""}
                   aria-invalid={!!state.errors.score?.length}
-                  aria-describedby={`${formId}-score-help ${formId}-score-error`}
+                  aria-describedby={`${formId}-score-error`}
                 />
               </FormField>
             </CardContent>
@@ -1317,35 +1128,27 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>{PERSON_SECTION_TITLES.notes}</CardTitle>
+              <CardTitle id={`${formId}-notes-title`}>{PERSON_SECTION_TITLES.notes}</CardTitle>
             </CardHeader>
-            <CardContent>
-              {readOnly ? (
-                <ReadOnlyField
-                  id={`${formId}-notes`}
-                  name="notes"
-                  label={PERSON_FIELD_LABELS.notes}
-                  value={source?.notes ?? ""}
-                  display={source?.notes ?? ""}
-                />
-              ) : (
-                <FormField
-                  id={`${formId}-notes`}
-                  label={PERSON_FIELD_LABELS.notes}
-                  errors={state.errors.notes}
-                  help="Une ligne de marqueurs, séparés par |"
-                >
-                  <Input
-                    id={`${formId}-notes`}
-                    name="notes"
-                    maxLength={200}
-                    defaultValue={source?.notes ?? ""}
-                    placeholder="Décideur technique | Scala/Angular"
-                    aria-invalid={!!state.errors.notes?.length}
-                    aria-describedby={`${formId}-notes-help ${formId}-notes-error`}
-                  />
-                </FormField>
-              )}
+            <CardContent className="flex flex-col gap-2">
+              <Input
+                id={`${formId}-notes`}
+                name="notes"
+                aria-labelledby={`${formId}-notes-title`}
+                maxLength={200}
+                defaultValue={lead?.notes ?? ""}
+                placeholder="Décideur technique | Scala/Angular"
+                aria-invalid={!!state.errors.notes?.length}
+                aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
+              />
+              <div id={`${formId}-notes-error`} aria-live="polite">
+                {state.errors.notes?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
+                ) : null}
+              </div>
+              <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
+                Une ligne de marqueurs, séparés par |
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -1354,6 +1157,8 @@ export function LeadForm({ lead, companyOptions, personOptions }: Props) {
   )
 }
 ```
+
+Les cards Détails et Notes ne reprennent plus `FormField` : le `CardTitle` porte l'`id` et sert de libellé par `aria-labelledby`, pour ne pas répéter son titre (décision du propriétaire, 2026-10-02 ; même motif que `CompanyForm`, `03`). Un lead se crée toujours de zéro : plus de choix « Nouvelle personne / Personne existante », `LeadForm` ne reçoit donc plus de `personOptions`.
 
 - [ ] **Step 4 : Pages de création et de modification**
 
@@ -1367,20 +1172,16 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
-import { findPersonsWithoutLeadRole } from "@/server/queries/persons"
 
 const LEAD_PAGE_SKELETON = ["h-[24px]", "h-[280px]", "h-[200px]", "h-[320px]"]
 
 async function NewLeadSection() {
-  const [companyOptions, personOptions] = await Promise.all([
-    findCompanyOptions(),
-    findPersonsWithoutLeadRole(),
-  ])
+  const companyOptions = await findCompanyOptions()
 
   return (
     <div className="flex flex-col gap-6">
       <AdminBreadcrumb items={[{ label: "Leads", href: "/admin/leads" }, { label: "Nouveau lead" }]} />
-      <LeadForm lead={null} companyOptions={companyOptions} personOptions={personOptions} />
+      <LeadForm lead={null} companyOptions={companyOptions} />
     </div>
   )
 }
@@ -1425,9 +1226,7 @@ async function EditLeadSection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[{ label: "Leads", href: "/admin/leads" }, { label: personDisplayName(lead) }]}
       />
-      {/* Le picker « Personne existante » n'a de sens qu'à la création : LeadForm ne l'affiche
-      jamais en modification, quel que soit le contenu de personOptions. */}
-      <LeadForm lead={lead} companyOptions={companyOptions} personOptions={[]} />
+      <LeadForm lead={lead} companyOptions={companyOptions} />
     </div>
   )
 }
@@ -1446,7 +1245,7 @@ export default async function EditLeadPage({ params }: { params: Promise<{ id: s
 }
 ```
 
-Les cards des éléments rattachés à la personne (actions `10`, missions `15`, entretiens `17`, signaux `19`) se placeront sous `LeadForm`, dans la `div` de `EditLeadSection`, hors du `<form>` : elles ont leurs propres boutons et leur propre enregistrement (arbitrage « Élément rattaché à une fiche » de DESIGN.md).
+Les éléments rattachés à la personne (actions `10`, opportunités apportées `15`, entretiens `17`, signaux `19`) passeront chacun leur card par la prop `relatedCards` de `LeadForm`, rendue dans sa colonne principale après Détails : elles ont leurs propres boutons et leur propre enregistrement (arbitrage « Élément rattaché à une fiche » de DESIGN.md). `relatedCards` reste `undefined` tant qu'aucun sub-project ne le passe.
 
 Les dossiers `nouveau/` et `[id]/` reçoivent chacun un `loading.tsx` :
 
@@ -1466,10 +1265,11 @@ Expected: aucune erreur. Si l'éditeur installé au `03` n'accepte pas `id` ou `
 - Create: `src/components/features/admin/leads/DeleteLeadDialog.tsx`
 - Create: `src/components/features/admin/persons/ErasePersonExchangesDialog.tsx`
 - Create: `src/components/features/admin/leads/LeadsTable.tsx`
+- Modify: `src/components/features/admin/DataTable.tsx` (prop `initialDetailId`)
 
 **Interfaces:**
-- Consumes: Tasks 1, 3, 4 ; `deleteLead` (`07`) ; `erasePersonExchanges` (`07`, `@/server/actions/persons`) ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/Task 3, `@/lib/persons`) ; `ConfirmDeleteDialog`, `DataTable`, `DetailDialog`, `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `MarkdownContent`, `RowActionButton`
-- Produces: `LeadsTable({ leads, view }: { leads: readonly AdminLead[]; view: LeadView })`, `ErasePersonExchangesDialog({ person }: { person: OptOutTarget })`
+- Consumes: Tasks 1, 3, 4 ; `deleteLead` (`07`) ; `erasePersonExchanges` (`07`, `@/server/actions/persons`) ; `personDisplayName`, `PERSON_FIELD_LABELS`, `PERSON_SECTION_TITLES` (`07`/Task 3, `@/lib/persons`) ; `ConfirmDeleteDialog`, `DataTable`, `DetailDialog`, `EnumBadge` (`04`), `ExternalUrl`, `TruncateTooltip`, `CompanyLogoTile`, `MarkdownContent`, `RowActionButton`
+- Produces: `LeadsTable({ leads, view, initialDetailId }: { leads: readonly AdminLead[]; view: LeadView; initialDetailId?: string })`, `ErasePersonExchangesDialog({ person }: { person: OptOutTarget })`
 
 - [ ] **Step 1 : Suppression**
 
@@ -1507,7 +1307,7 @@ export function DeleteLeadDialog({ lead }: Props) {
         // Supprimer une fiche en opposition efface la seule trace du « stop » : le dire avant.
         lead.optedOutAt
           ? "La trace de son opposition disparaît : plus rien n'empêchera de recontacter cette personne."
-          : "Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses missions restent sans apporteur."
+          : "Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
       }
       successMessage="Lead supprimé"
       onDelete={async () => {
@@ -1619,6 +1419,7 @@ import {
   type DetailSection,
   DetailDialog,
 } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
@@ -1634,11 +1435,15 @@ import {
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import { leadsForView, type LeadView } from "@/lib/lead-views"
 import {
+  LEAD_CHANNEL_ICONS,
   LEAD_CHANNEL_LABELS,
   LEAD_FIELD_LABELS,
+  LEAD_INTEREST_ICONS,
   LEAD_INTEREST_LABELS,
+  LEAD_ORIGIN_ICONS,
   LEAD_ORIGIN_LABELS,
   LEAD_SECTION_TITLES,
+  LEAD_STATUS_ICONS,
   LEAD_STATUS_LABELS,
 } from "@/lib/leads"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
@@ -1654,7 +1459,8 @@ function TruncatedCell({ value }: { value: string | null | undefined }) {
   return <TruncateTooltip className="block w-full">{value}</TruncateTooltip>
 }
 
-function enumBadge(label: string | null) {
+// Sans glyphe : Poste et Localité ne figurent pas dans la table des glyphes d'énumération (`07`).
+function labelBadge(label: string | null) {
   return label ? <Badge variant="secondary">{label}</Badge> : null
 }
 
@@ -1662,7 +1468,7 @@ function statusBadge(lead: AdminLead) {
   return lead.optedOutAt ? (
     <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
   ) : (
-    <Badge variant="secondary">{LEAD_STATUS_LABELS[lead.status]}</Badge>
+    <EnumBadge label={LEAD_STATUS_LABELS[lead.status]} icon={LEAD_STATUS_ICONS[lead.status]} />
   )
 }
 
@@ -1711,7 +1517,10 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       header: LEAD_FIELD_LABELS.interest,
       width: LEAD_COLUMN_WIDTHS.interest,
       ...hideable(view, "interest"),
-      cell: (lead) => enumBadge(lead.interest ? LEAD_INTEREST_LABELS[lead.interest] : null),
+      cell: (lead) =>
+        lead.interest ? (
+          <EnumBadge label={LEAD_INTEREST_LABELS[lead.interest]} icon={LEAD_INTEREST_ICONS[lead.interest]} />
+        ) : null,
     },
     {
       key: "score",
@@ -1728,14 +1537,17 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       header: LEAD_FIELD_LABELS.origin,
       width: LEAD_COLUMN_WIDTHS.origin,
       ...hideable(view, "origin"),
-      cell: (lead) => enumBadge(LEAD_ORIGIN_LABELS[lead.origin]),
+      cell: (lead) => <EnumBadge label={LEAD_ORIGIN_LABELS[lead.origin]} icon={LEAD_ORIGIN_ICONS[lead.origin]} />,
     },
     {
       key: "channel",
       header: LEAD_FIELD_LABELS.channel,
       width: LEAD_COLUMN_WIDTHS.channel,
       ...hideable(view, "channel"),
-      cell: (lead) => enumBadge(lead.channel ? LEAD_CHANNEL_LABELS[lead.channel] : null),
+      cell: (lead) =>
+        lead.channel ? (
+          <EnumBadge label={LEAD_CHANNEL_LABELS[lead.channel]} icon={LEAD_CHANNEL_ICONS[lead.channel]} />
+        ) : null,
     },
     {
       key: "metAt",
@@ -1751,7 +1563,7 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       header: PERSON_FIELD_LABELS.jobRole,
       width: LEAD_COLUMN_WIDTHS.jobRole,
       ...hideable(view, "jobRole"),
-      cell: (lead) => enumBadge(lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null),
+      cell: (lead) => labelBadge(lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null),
     },
     {
       key: "company",
@@ -1766,7 +1578,7 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       header: PERSON_FIELD_LABELS.zone,
       width: LEAD_COLUMN_WIDTHS.zone,
       ...hideable(view, "zone"),
-      cell: (lead) => enumBadge(lead.zone ? ZONE_LABELS[lead.zone] : null),
+      cell: (lead) => labelBadge(lead.zone ? ZONE_LABELS[lead.zone] : null),
     },
     {
       key: "linkedinUrl",
@@ -1842,41 +1654,27 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
     }
   }
 
-  const subtitle = [lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null, lead.company?.name ?? null]
-    .filter((part): part is string => part !== null)
-    .join(" · ")
-
   return {
     title: personDisplayName(lead),
-    ...(subtitle ? { subtitle } : {}),
+    ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
     status: (
       <Badge variant="outline" meta>
         {LEAD_STATUS_LABELS[lead.status]}
       </Badge>
     ),
+    // Ordre du formulaire (`08`) : Identité, Coordonnées, Détails, Pipeline, Notes, Réseau. Le poste est déjà dans le sous-titre, le statut déjà en tête.
     sections: [
-      // Le statut n'y figure pas : l'en-tête le porte déjà.
-      {
-        title: LEAD_SECTION_TITLES.pipeline,
-        rows: [
-          {
-            label: LEAD_FIELD_LABELS.interest,
-            value: lead.interest ? <Badge variant="secondary">{LEAD_INTEREST_LABELS[lead.interest]}</Badge> : null,
-          },
-          { label: LEAD_FIELD_LABELS.origin, value: <Badge variant="secondary">{LEAD_ORIGIN_LABELS[lead.origin]}</Badge> },
-          {
-            label: LEAD_FIELD_LABELS.channel,
-            value: lead.channel ? <Badge variant="secondary">{LEAD_CHANNEL_LABELS[lead.channel]}</Badge> : null,
-          },
-          { label: PERSON_FIELD_LABELS.metAt, value: formatShortDate(lead.metAt) },
-          { label: LEAD_FIELD_LABELS.score, value: lead.score === null ? null : `${lead.score} / 10` },
-        ],
-      },
       ...keepFilled({
         title: PERSON_SECTION_TITLES.person,
         rows: [
-          { label: PERSON_FIELD_LABELS.jobRole, value: lead.jobRole ? <Badge variant="secondary">{JOB_ROLE_LABELS[lead.jobRole]}</Badge> : null },
-          { label: PERSON_FIELD_LABELS.companyId, value: lead.company?.name ?? null },
+          {
+            label: PERSON_FIELD_LABELS.companyId,
+            value: lead.company ? (
+              <Link href={`/admin/entreprises?detail=${lead.company.id}`} className="underline-offset-4 hover:underline">
+                {lead.company.name}
+              </Link>
+            ) : null,
+          },
           { label: PERSON_FIELD_LABELS.zone, value: lead.zone ? <Badge variant="secondary">{ZONE_LABELS[lead.zone]}</Badge> : null },
         ],
       }),
@@ -1890,12 +1688,10 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
             value: lead.linkedinUrl ? (
               <ExternalUrl url={lead.linkedinUrl} className="wrap-anywhere" />
             ) : null,
+            fullWidth: true,
           },
         ],
       }),
-      ...(lead.notes
-        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: lead.notes, fullWidth: true }] }]
-        : []),
       ...(lead.details
         ? [
             {
@@ -1909,6 +1705,48 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
             },
           ]
         : []),
+      {
+        title: LEAD_SECTION_TITLES.pipeline,
+        rows: [
+          // Intérêt perd Statut comme partenaire de paire (déjà dans l'en-tête) : pleine largeur plutôt qu'une case vide à côté.
+          {
+            label: LEAD_FIELD_LABELS.interest,
+            value: lead.interest ? (
+              <EnumBadge label={LEAD_INTEREST_LABELS[lead.interest]} icon={LEAD_INTEREST_ICONS[lead.interest]} />
+            ) : null,
+            fullWidth: true,
+          },
+          {
+            label: LEAD_FIELD_LABELS.origin,
+            value: <EnumBadge label={LEAD_ORIGIN_LABELS[lead.origin]} icon={LEAD_ORIGIN_ICONS[lead.origin]} />,
+          },
+          {
+            label: LEAD_FIELD_LABELS.channel,
+            value: lead.channel ? (
+              <EnumBadge label={LEAD_CHANNEL_LABELS[lead.channel]} icon={LEAD_CHANNEL_ICONS[lead.channel]} />
+            ) : null,
+          },
+          { label: PERSON_FIELD_LABELS.metAt, value: formatShortDate(lead.metAt) },
+          { label: LEAD_FIELD_LABELS.score, value: lead.score === null ? null : `${lead.score} / 10` },
+        ],
+      },
+      ...(lead.notes
+        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: lead.notes, fullWidth: true }] }]
+        : []),
+      // Réseau : lien vers la fiche contact, actif seulement quand hasContactRole existe (`13`) ; reste vide et retiré jusque là.
+      ...keepFilled({
+        title: LEAD_SECTION_TITLES.network,
+        rows: [
+          {
+            value: lead.hasContactRole ? (
+              <Link href={`/admin/contacts?detail=${lead.id}`} className="underline-offset-4 hover:underline">
+                Voir la fiche contact
+              </Link>
+            ) : null,
+            fullWidth: true,
+          },
+        ],
+      }),
     ],
     ...(onEdit ? { onEdit } : {}),
   }
@@ -1953,9 +1791,10 @@ const facets: readonly Facet<AdminLead>[] = [
 interface Props {
   leads: readonly AdminLead[]
   view: LeadView
+  initialDetailId?: string
 }
 
-export function LeadsTable({ leads, view }: Props) {
+export function LeadsTable({ leads, view, initialDetailId }: Props) {
   const router = useRouter()
   const [selectedLead, setSelectedLead] = useState<AdminLead | null>(null)
 
@@ -2010,6 +1849,7 @@ export function LeadsTable({ leads, view }: Props) {
         rows={viewLeads}
         columns={columns}
         getRowId={(lead) => lead.id}
+        initialDetailId={initialDetailId}
         searchPlaceholder="Rechercher un nom ou une entreprise"
         noun="lead"
         onRowClick={setSelectedLead}
@@ -2032,7 +1872,31 @@ export function LeadsTable({ leads, view }: Props) {
 }
 ```
 
-- [ ] **Step 4 : Vérifier le typage**
+- [ ] **Step 4 : `DataTable` gagne un lien profond vers une vue détail**
+
+Dans `src/components/features/admin/DataTable.tsx`, ajouter `useEffect` à l'import de `react` déjà présent.
+
+Dans `Props<T, K>`, après `onRowClick`, ajouter :
+
+```ts
+  // Ouvre la vue détail de cette ligne au chargement : cible d'un `RelatedLinksList` qui vise `?detail=<id>` sur cette page.
+  initialDetailId?: string
+```
+
+Dans la déstructuration des props de `DataTable`, ajouter `initialDetailId`, puis après la déclaration de `justDraggedRef` :
+
+```ts
+  // Une seule ouverture par chargement : un changement ultérieur de rows ou de onRowClick ne doit pas la rejouer.
+  const appliedInitialDetailId = useRef(false)
+  useEffect(() => {
+    if (appliedInitialDetailId.current || !initialDetailId || !onRowClick) return
+    appliedInitialDetailId.current = true
+    const row = rows.find((candidate) => getRowId(candidate) === initialDetailId)
+    if (row) onRowClick(row)
+  }, [initialDetailId, rows, getRowId, onRowClick])
+```
+
+- [ ] **Step 5 : Vérifier le typage**
 
 Run: `just typecheck`
 Expected: aucune erreur.
@@ -2046,16 +1910,19 @@ Expected: aucune erreur.
 - Create: `src/app/admin/(protected)/leads/chauds/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/a-qualifier/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/stand-by/page.tsx` et `loading.tsx`
-- Create: `src/app/admin/(protected)/leads/tous/page.tsx` et `loading.tsx`
+- Create: `src/app/admin/(protected)/leads/tous/page.tsx` et `loading.tsx` (lit aussi `searchParams.detail`)
 - Modify: `src/config/admin-nav-items.ts`
+- Create: `src/components/features/admin/RelatedLinksList.tsx`
 - Create: `src/components/features/admin/RelatedLinksCard.tsx`
 - Modify: `src/server/queries/leads.ts`
-- Modify: `src/app/admin/(protected)/entreprises/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/entreprises/[id]/page.tsx` et `src/app/admin/(protected)/entreprises/nouvelle/page.tsx` (card Leads via `relatedCards`)
+- Modify: `src/app/admin/(protected)/entreprises/page.tsx` (lit aussi `searchParams.detail`)
+- Modify: `src/components/features/admin/companies/CompaniesTable.tsx` (prop `initialDetailId`)
 - Modify: `docs/DESIGN.md` (ligne « Fiches rattachées »)
 
 **Interfaces:**
-- Consumes: `LeadsTable` (Task 5) ; route `/admin/leads/nouveau` (Task 4) ; `LEAD_VIEW_PAGES`, `LeadView` (Task 1) ; `leadSkeletonWidths` (Task 3) ; `findAllLeadsForAdmin` (`07`) ; `personDisplayName` (`07`, `@/lib/persons`)
-- Produces: `LeadsViewPage({ view }: { view: LeadView })` ; `RelatedLinksCard({ title, links, emptyText, action })`, `interface RelatedLink { id: string; href: Route; label: string; meta?: string }` ; `findLeadsOfCompany(companyId: string)`
+- Consumes: `LeadsTable` (Task 5) ; route `/admin/leads/nouveau` (Task 4) ; `LEAD_VIEW_PAGES`, `LeadView` (Task 1) ; `leadSkeletonWidths` (Task 3) ; `findAllLeadsForAdmin` (`07`) ; `personDisplayName` (`07`, `@/lib/persons`) ; `relatedCards` (`03`, `CompanyForm`) ; `initialDetailId` (Task 5, `DataTable`)
+- Produces: `LeadsViewPage({ view, initialDetailId }: { view: LeadView; initialDetailId?: string })` ; `RelatedLinksList({ links })`, `interface RelatedLink { id: string; href?: string; onClick?: () => void; label: string; meta?: string; trailing?: string; actions?: React.ReactNode }` ; `RelatedLinksCard({ title, links, emptyText, action })` ; `findLeadsOfCompany(companyId: string)`
 
 - [ ] **Step 1 : Coquille commune**
 
@@ -2074,16 +1941,23 @@ import { leadSkeletonWidths } from "@/lib/admin-table-widths"
 import { LEAD_VIEW_PAGES, type LeadView } from "@/lib/lead-views"
 import { findAllLeadsForAdmin } from "@/server/queries/leads"
 
-async function LeadsSection({ view }: { view: LeadView }) {
+interface SectionProps {
+  view: LeadView
+  initialDetailId?: string
+}
+
+async function LeadsSection({ view, initialDetailId }: SectionProps) {
   const leads = await findAllLeadsForAdmin()
-  return <LeadsTable leads={leads} view={view} />
+  return <LeadsTable leads={leads} view={view} initialDetailId={initialDetailId} />
 }
 
 interface Props {
   view: LeadView
+  // Seule la vue Tous le reçoit : cible de `?detail=<id>` depuis un `RelatedLinksList`.
+  initialDetailId?: string
 }
 
-export function LeadsViewPage({ view }: Props) {
+export function LeadsViewPage({ view, initialDetailId }: Props) {
   const { title, subtitle } = LEAD_VIEW_PAGES[view]
 
   return (
@@ -2100,7 +1974,7 @@ export function LeadsViewPage({ view }: Props) {
       }
     >
       <Suspense fallback={<DataTableSkeleton columnWidths={leadSkeletonWidths(view)} />}>
-        <LeadsSection view={view} />
+        <LeadsSection view={view} initialDetailId={initialDetailId} />
       </Suspense>
     </AdminPageShell>
   )
@@ -2161,16 +2035,21 @@ export default async function AdminLeadsStandByPage() {
 }
 ```
 
-`src/app/admin/(protected)/leads/tous/page.tsx` :
+`src/app/admin/(protected)/leads/tous/page.tsx` (seule des cinq vues à lire `searchParams.detail`, cible des `RelatedLinksList` menant à un lead) :
 
 ```tsx
 import { LeadsViewPage } from "@/components/features/admin/leads/LeadsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminLeadsTousPage() {
-  await getCurrentUser()
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
 
-  return <LeadsViewPage view="tous" />
+export default async function AdminLeadsTousPage({ searchParams }: Props) {
+  await getCurrentUser()
+  const { detail } = await searchParams
+
+  return <LeadsViewPage view="tous" initialDetailId={detail} />
 }
 ```
 
@@ -2205,31 +2084,95 @@ par :
       },
 ```
 
-- [ ] **Step 4 : Card Leads de la page entreprise**
+- [ ] **Step 4 : `RelatedLinksList`, `RelatedLinksCard` et la card Leads de la page entreprise**
 
-Arbitrage « Élément rattaché à une fiche » de DESIGN.md : la page d'une fiche liste ses fiches rattachées dans des cards sous le formulaire, chacune menant à sa page. La card est commune : missions (`15`) et entretiens (`17`) la reprennent.
+Arbitrage « Élément rattaché à une fiche » de DESIGN.md : la page d'une fiche passe ses fiches rattachées à la prop `relatedCards` de son formulaire, chacune menant à sa page. `RelatedLinksList` (les lignes) et `RelatedLinksCard` (la card qui l'enveloppe) sont communes : opportunités (`15`) et entretiens (`17`) les reprennent, ainsi que les blocs rattachés d'une `DetailDialog` (`07`/Task 5).
+
+`src/components/features/admin/RelatedLinksList.tsx` :
+
+```tsx
+import Link from "next/link"
+import type { ReactNode } from "react"
+
+import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+
+export interface RelatedLink {
+  id: string
+  // La page propre de l'élément. Omis quand `onClick` l'ouvre à la place, depuis une vue détail.
+  href?: string
+  onClick?: () => void
+  label: string
+  // Une ligne libre, tronquée avec une infobulle quand la ligne est trop étroite.
+  meta?: string
+  // Une date ou un chiffre, sur sa propre ligne plus petite sous le libellé et la méta.
+  trailing?: string
+  // Les boutons propres de la ligne (crayon, corbeille) pour un élément sans page à lui, édité depuis la page de son parent.
+  actions?: ReactNode
+}
+
+interface Props {
+  links: readonly RelatedLink[]
+}
+
+// Lignes « libellé : méta », partagées par `RelatedLinksCard` (la page d'une fiche) et les blocs rattachés d'une `DetailDialog`. Une ligne sans `href` ni `onClick` (un signal sans fiche propre déjà ouvert) se lit en texte brut.
+export function RelatedLinksList({ links }: Props) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {links.map((link) => {
+        const clickable = Boolean(link.href ?? link.onClick)
+        return (
+          <li key={link.id} className="flex flex-col gap-0.5 text-sm">
+            <span className="flex min-w-0 items-center gap-1.5">
+              {clickable ? (
+                <Link
+                  href={link.href ?? "#"}
+                  onClick={
+                    link.onClick
+                      ? (event) => {
+                          event.preventDefault()
+                          link.onClick?.()
+                        }
+                      : undefined
+                  }
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <span className="font-medium">{link.label}</span>
+              )}
+              {link.meta ? (
+                <>
+                  <span aria-hidden="true">:</span>
+                  <TruncateTooltip className="min-w-0 text-muted-foreground">{link.meta}</TruncateTooltip>
+                </>
+              ) : null}
+              {link.actions ? <span className="ml-auto flex gap-0">{link.actions}</span> : null}
+            </span>
+            {link.trailing ? <span className="text-xs text-muted-foreground">{link.trailing}</span> : null}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+```
 
 `src/components/features/admin/RelatedLinksCard.tsx` :
 
 ```tsx
-import type { Route } from "next"
-import Link from "next/link"
 import type { ReactNode } from "react"
 
+import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export interface RelatedLink {
-  id: string
-  href: Route
-  label: string
-  meta?: string
-}
+export type { RelatedLink }
 
 interface Props {
   title: string
   links: readonly RelatedLink[]
   emptyText: string
-  // Création d'un élément rattaché depuis la page de sa fiche, jamais depuis une ligne de liste.
+  // Création d'un élément rattaché depuis la page de SA fiche, jamais depuis une ligne de liste.
   action?: ReactNode
 }
 
@@ -2244,16 +2187,7 @@ export function RelatedLinksCard({ title, links, emptyText, action }: Props) {
         {links.length === 0 ? (
           <p className="text-sm text-muted-foreground">{emptyText}</p>
         ) : (
-          <ul className="flex flex-col gap-1">
-            {links.map((link) => (
-              <li key={link.id} className="flex flex-wrap gap-x-2 text-sm">
-                <Link href={link.href} className="font-medium underline-offset-4 hover:underline">
-                  {link.label}
-                </Link>
-                {link.meta ? <span className="text-muted-foreground">{link.meta}</span> : null}
-              </li>
-            ))}
-          </ul>
+          <RelatedLinksList links={links} />
         )}
       </CardContent>
     </Card>
@@ -2277,30 +2211,79 @@ export async function findLeadsOfCompany(companyId: string) {
 }
 ```
 
-Dans `src/app/admin/(protected)/entreprises/[id]/page.tsx`, dans la section qui lit l'entreprise, lire aussi `findLeadsOfCompany(id)` dans le même `Promise.all`, puis ajouter sous `<CompanyForm … />` :
+Dans `src/app/admin/(protected)/entreprises/[id]/page.tsx`, lire aussi `findLeadsOfCompany(id)` dans le `Promise.all` d'`EditCompanySection`, construire la card et la passer à `CompanyForm` :
 
 ```tsx
-      <RelatedLinksCard
-        title="Leads"
-        links={leads.map(
-          (lead): RelatedLink => ({
-            id: lead.personId,
-            href: `/admin/leads/${lead.personId}`,
-            label: personDisplayName(lead.person),
-            ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
-          }),
-        )}
-        emptyText="Aucun lead dans cette entreprise."
+      <CompanyForm
+        company={company}
+        legalEntities={legalEntities}
+        logoAssets={logoAssets}
+        relatedCards={
+          <RelatedLinksCard
+            title="Leads"
+            links={leads.map(
+              (lead): RelatedLink => ({
+                id: lead.personId,
+                href: `/admin/leads/${lead.personId}`,
+                label: personDisplayName(lead.person),
+                ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
+              }),
+            )}
+            emptyText="Aucun lead dans cette entreprise."
+          />
+        }
       />
 ```
 
-(imports : `RelatedLinksCard` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksCard`, `personDisplayName` depuis `@/lib/persons`, `JOB_ROLE_LABELS` depuis `@/lib/job-roles`, `findLeadsOfCompany` depuis `@/server/queries/leads`.)
+(imports à ajouter : `RelatedLinksCard` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksCard`, `personDisplayName` depuis `@/lib/persons`, `JOB_ROLE_LABELS` depuis `@/lib/job-roles`, `findLeadsOfCompany` depuis `@/server/queries/leads`. La maquette ne porte aucune action dans l'en-tête de cette card, côté entreprise : pas de bouton « Nouveau lead » ici, décision du propriétaire du 2026-10-02 ; la création d'un élément rattaché depuis une fiche qui ne le crée pas elle-même reste une question ouverte, tranchée au cas par cas.)
 
-- [ ] **Step 5 : Mapping de `docs/DESIGN.md`**
+Dans `src/app/admin/(protected)/entreprises/nouvelle/page.tsx`, décision du propriétaire (2026-10-02) : la card Leads est présente dès la création, vide, en lecture, sans bouton. Ajouter à `CompanyForm` :
+
+```tsx
+      <CompanyForm
+        company={null}
+        legalEntities={legalEntities}
+        logoAssets={logoAssets}
+        relatedCards={
+          <RelatedLinksCard
+            title="Leads"
+            links={[]}
+            emptyText="Après l'enregistrement de l'entreprise."
+          />
+        }
+      />
+```
+
+(mêmes imports que ci-dessus, sans `findLeadsOfCompany` ni `personDisplayName` ni `JOB_ROLE_LABELS`, inutiles sur une liste toujours vide.)
+
+- [ ] **Step 5 : `?detail=` sur la page des entreprises**
+
+Arbitrage « Lien profond vers une vue détail » (`08`) : la page `/admin/entreprises` (vue Toutes) est, comme `/admin/leads/tous`, la cible des `RelatedLinksList` qui mènent à une entreprise.
+
+Dans `src/app/admin/(protected)/entreprises/page.tsx` :
+
+```tsx
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
+
+async function CompaniesSection({ initialDetailId }: { initialDetailId?: string }) {
+  const companies = await findAllCompaniesForAdmin()
+  return <CompaniesTable companies={companies} initialDetailId={initialDetailId} />
+}
+
+export default async function AdminEntreprisesPage({ searchParams }: Props) {
+  await getCurrentUser()
+  const { detail } = await searchParams
+```
+
+(remplace la signature actuelle de `CompaniesSection` et d'`AdminEntreprisesPage` ; dans le JSX, `<CompaniesSection />` devient `<CompaniesSection initialDetailId={detail} />`.) `CompaniesTable` gagne la même prop `initialDetailId?: string`, transmise à `DataTable` (Task 5, Step 4) ; son propre `onRowClick` existant ouvre déjà sa `DetailDialog`.
+
+- [ ] **Step 6 : Mapping de `docs/DESIGN.md`**
 
 Charger le skill `design-doc`, puis déplacer la ligne « Fiches rattachées » de § Post-MVP (non installés) vers § Cards et grilles, sans sa dernière phrase (« Rejoint § … ») : le composant est installé.
 
-- [ ] **Step 6 : Qualité**
+- [ ] **Step 7 : Qualité**
 
 Run: `just typecheck`
 Expected: aucune erreur (si le typage des `href` échoue, lancer `just dev` une fois pour régénérer les types de routes, puis relancer).
@@ -2318,37 +2301,68 @@ Expected: suites `unit` et `integration` vertes.
 **Files:**
 - Modify: `src/server/queries/companies.ts` (dérivé `isProspect`)
 - Modify: `src/lib/admin-table-widths.ts` (`CompanyView` étendu, colonnes de la vue Prospects)
-- Modify: `src/components/features/admin/companies/CompaniesTable.tsx` (`VIEW_FILTER.prospects`)
+- Modify: `src/components/features/admin/companies/CompaniesTable.tsx` (`VIEW_FILTER.prospects`, prop `initialDetailId`)
 - Create: `src/app/admin/(protected)/entreprises/prospects/page.tsx` et `loading.tsx`
 - Modify: `src/config/admin-nav-items.ts` (entrée Prospects)
 
 **Interfaces:**
 - Consumes: `toAdminCompany`, `AdminCompany`, `adminCompanyInclude` (`04`, `@/server/queries/companies`, point d'entrée unique des dérivés) ; `CompanyView`, `COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS` (`04`, `@/lib/admin-table-widths`) ; `CompaniesViewPage` (`04`) ; type `LeadStatus` (`@/generated/prisma/client`)
-- Produces: `AdminCompany.isProspect: boolean` ; `CompanyView` étendu de `"prospects"` ; route `/admin/entreprises/prospects`
+- Produces: `AdminCompany.isProspect: boolean`, `AdminCompany.leads: AdminCompanyLead[]` ; `CompanyView` étendu de `"prospects"` ; route `/admin/entreprises/prospects` ; bloc « Leads » de la vue détail d'une entreprise (`RelatedLinksList`)
 
-- [ ] **Step 1 : Calculer `isProspect`**
+- [ ] **Step 1 : Calculer `isProspect` et lire les leads de l'entreprise**
 
-`toAdminCompany` (`src/server/queries/companies.ts`) est le point d'entrée unique des dérivés d'`AdminCompany` : `worked` (`04`) y a déjà posé le motif, `isProspect` le suit à côté.
+`toAdminCompany` (`src/server/queries/companies.ts`) est le point d'entrée unique des dérivés d'`AdminCompany` : `worked` (`04`) y a déjà posé le motif, `isProspect` le suit à côté. `leads` (bloc « Leads » de la vue détail, arbitrage « Fiches rattachées ») reprend la même relation `persons`, complétée des champs à afficher.
 
 Dans l'`include` de `findAllCompaniesForAdmin`, ajouter :
 
 ```ts
-      // Chargé seulement pour calculer `isProspect` dans `toAdminCompany`, jamais renvoyé.
-      persons: { select: { optedOutAt: true, lead: { select: { status: true } } } },
+      // isProspect lit optedOutAt et lead.status ; leads (bloc Leads de la vue détail) reprend les mêmes
+      // lignes, limitées au rôle Lead (seul rôle qui existe côté entreprise avant le `13`).
+      persons: {
+        select: {
+          id: true,
+          name: true,
+          jobRole: true,
+          email: true,
+          linkedinUrl: true,
+          optedOutAt: true,
+          lead: { select: { status: true } },
+        },
+      },
 ```
 
 Dans `AdminCompanyRaw`, ajouter au même niveau que `clientMetas` :
 
 ```ts
-    persons: { select: { optedOutAt: true; lead: { select: { status: true } } } }
+    persons: {
+      select: {
+        id: true
+        name: true
+        jobRole: true
+        email: true
+        linkedinUrl: true
+        optedOutAt: true
+        lead: { select: { status: true } }
+      }
+    }
 ```
 
 Remplacer `AdminCompany` et `toAdminCompany` par :
 
 ```ts
+export interface AdminCompanyLead {
+  id: string
+  name: string | null
+  jobRole: JobRole | null
+  email: string | null
+  linkedinUrl: string | null
+  optedOutAt: Date | null
+}
+
 export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
   worked: boolean
   isProspect: boolean
+  leads: AdminCompanyLead[]
 }
 
 const PROSPECT_STATUSES: readonly LeadStatus[] = ["NOUVEAU", "SUSPECT", "DISCUSSION"]
@@ -2362,13 +2376,52 @@ function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): 
       (person) =>
         !person.optedOutAt && person.lead !== null && PROSPECT_STATUSES.includes(person.lead.status),
     )
-  return { ...company, worked, isProspect }
+  // Une personne sans rôle Lead n'existe pas encore côté entreprise avant le `13` (Contact) : le filtre reste homogène avec isProspect.
+  const leads = persons
+    .filter((person) => person.lead !== null)
+    .map(({ lead: _lead, ...person }) => person)
+  return { ...company, worked, isProspect, leads }
 }
 ```
 
-(import `LeadStatus` depuis `@/generated/prisma/client` en tête de fichier.)
+(imports à ajouter en tête de fichier : `LeadStatus` et `JobRole` depuis `@/generated/prisma/client`.)
 
-- [ ] **Step 2 : Vue et colonnes**
+- [ ] **Step 2 : Bloc Leads de la vue détail**
+
+Dans `src/components/features/admin/companies/CompaniesTable.tsx`, importer `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList`, `personDisplayName` depuis `@/lib/persons`, `JOB_ROLE_LABELS` depuis `@/lib/job-roles`. Ajouter, avant `buildCompanyDetail` (`04`) :
+
+```tsx
+// Arbitrage « Fiches rattachées » : chaque bloc rattaché est un RelatedLinksList, qui mène à la vue détail de l'autre fiche.
+function leadsSection(company: AdminCompany): DetailSection[] {
+  if (company.leads.length === 0) return []
+  return [
+    {
+      title: "Leads",
+      rows: [
+        {
+          fullWidth: true,
+          value: (
+            <RelatedLinksList
+              links={company.leads.map(
+                (lead): RelatedLink => ({
+                  id: lead.id,
+                  href: `/admin/leads/tous?detail=${lead.id}`,
+                  label: personDisplayName(lead),
+                  ...(lead.jobRole ? { meta: JOB_ROLE_LABELS[lead.jobRole] } : {}),
+                }),
+              )}
+            />
+          ),
+        },
+      ],
+    },
+  ]
+}
+```
+
+puis, dans `buildCompanyDetail`, ajouter `...leadsSection(company),` à la toute fin du tableau `sections`, après le bloc `COMPANY_SECTION_TITLES.legalEntity` (dernier bloc du `04`) : Leads est le premier des trois blocs de fin de vue détail d'une entreprise (Leads, Opportunités `15`, Signaux `19`), chacun ajouté par son plan à la suite du précédent.
+
+- [ ] **Step 3 : Vue et colonnes**
 
 Dans `src/lib/admin-table-widths.ts`, remplacer :
 
@@ -2405,7 +2458,7 @@ Dans `src/components/features/admin/companies/CompaniesTable.tsx`, dans `VIEW_FI
   prospects: (company) => company.isProspect,
 ```
 
-- [ ] **Step 3 : Page et menu**
+- [ ] **Step 4 : Page et menu**
 
 `src/app/admin/(protected)/entreprises/prospects/page.tsx` :
 
@@ -2444,7 +2497,36 @@ par :
       { label: "Prospects", href: "/admin/entreprises/prospects" },
 ```
 
-- [ ] **Step 4 : Qualité**
+- [ ] **Step 5 : `CompaniesTable` gagne `initialDetailId`**
+
+Lien profond vers une vue détail (`08`, Task 5, Step 4) : la page `/admin/entreprises` (vue Toutes) le lit depuis `searchParams.detail` et le transmet à `CompaniesTable`, qui le passe à `DataTable`.
+
+Dans `src/components/features/admin/companies/CompaniesTable.tsx`, remplacer :
+
+```ts
+interface Props {
+  companies: readonly AdminCompany[]
+  view: CompanyView
+}
+
+export function CompaniesTable({ companies, view }: Props) {
+```
+
+par :
+
+```ts
+interface Props {
+  companies: readonly AdminCompany[]
+  view: CompanyView
+  initialDetailId?: string
+}
+
+export function CompaniesTable({ companies, view, initialDetailId }: Props) {
+```
+
+puis, dans l'appel à `<DataTable …>`, ajouter `initialDetailId={initialDetailId}` à côté de `onRowClick={setSelectedCompany}`.
+
+- [ ] **Step 6 : Qualité**
 
 Run: `just typecheck`
 Expected: aucune erreur (si le typage du `href` échoue, lancer `just dev` une fois pour régénérer les types de routes, puis relancer).
@@ -2473,10 +2555,12 @@ Expected: Leads dans le menu mène à « Leads en cours » (Nouveau et Discussio
 Depuis « Leads à qualifier », cliquer « Nouveau lead » : la page `/admin/leads/nouveau` s'ouvre, fil d'Ariane « Leads › Nouveau lead ». Saisir un nom, une entreprise, une date de rencontre, une localité, enregistrer.
 Expected: « Lead créé », retour sur la liste, où le lead apparaît sans recharger ; sa date de rencontre est bien celle choisie (pas la veille). Ouvrir la page de son entreprise : la card Leads le liste et son nom mène à la page du lead. Cette entreprise, non travaillée, apparaît maintenant dans Entreprises > Prospects.
 
-- [ ] **Step 3 : Personne existante**
+- [ ] **Step 3 : Card Leads de l'entreprise et lien profond**
 
-Depuis la page d'une entreprise, ouvrir sa card Leads et créer un premier lead outbound dessus. Revenir sur « Nouveau lead », cliquer « Personne existante », choisir cette même personne dans le picker.
-Expected: Poste, Entreprise, Localité, Coordonnées, Détails et Notes disparaissent du formulaire, Pipeline reste éditable. Enregistrer refuse avec « Ce lead existe déjà : <nom> » sous le champ Personne, puisqu'elle a déjà le rôle. Recharger la page, choisir une autre personne sans rôle Lead, enregistrer : « Lead créé », aucune nouvelle personne n'apparaît dans la card Leads de l'entreprise au-delà de celle choisie.
+Ouvrir « Nouvelle entreprise » sans l'enregistrer : la card Leads est présente, vide, « Après l'enregistrement de l'entreprise. », sans bouton ; aucun choix « Nouvelle personne / Personne existante » n'apparaît nulle part, le lead se crée toujours de zéro. Enregistrer l'entreprise, ouvrir sa card Leads : elle n'a toujours pas d'action dans son en-tête. Depuis le menu, créer un lead rattaché à cette entreprise, revenir sur la fiche entreprise.
+Expected: la card Leads le liste, son nom mène à sa page. Depuis Leads > Tous, copier son identifiant et ouvrir `/admin/leads/tous?detail=<id>` dans un nouvel onglet.
+Expected: la vue détail de ce lead s'ouvre directement au chargement, sans clic supplémentaire. Faire de même avec l'identifiant de l'entreprise sur `/admin/entreprises?detail=<id>`. Depuis Entreprises, ouvrir la vue détail de cette même entreprise (clic sur sa ligne).
+Expected: un bloc « Leads » clôt la vue détail, après Entité légale, listant ce lead ; cliquer sa ligne ouvre `/admin/leads/tous?detail=<id>` et sa vue détail directement.
 
 - [ ] **Step 4 : Gabarit et éditeur**
 
@@ -2486,7 +2570,7 @@ Expected: Outbound pose Hypothèse / Angle et Contexte ; Inbound remplace par Co
 - [ ] **Step 5 : Doublon et détail**
 
 Créer un lead avec le lien LinkedIn d'un lead existant copié en `fr.linkedin.com/in/…/`.
-Expected: « Ce lead existe déjà : <nom> » sous LinkedIn, la saisie reste en place. Cliquer ensuite la ligne d'un lead complet : blocs Pipeline, Personne, Coordonnées, Notes et Détails mis en forme, statut en tête ; « Modifier » mène à sa page, comme le crayon de la ligne.
+Expected: « Ce lead existe déjà : <nom> » sous LinkedIn, la saisie reste en place. Cliquer ensuite la ligne d'un lead complet : blocs Identité, Coordonnées, Détails mis en forme, Pipeline et Notes, statut en tête, glyphes visibles sur Statut, Intérêt, Origine et Canal ; « Modifier » mène à sa page, comme le crayon de la ligne.
 
 - [ ] **Step 6 : Opposition en deux temps et suppression**
 

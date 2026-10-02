@@ -4,7 +4,7 @@
 
 **Goal:** Créer la personne et son rôle de lead : table, validation, lectures admin et Server Actions (créer, modifier, supprimer, opposition RGPD en deux temps), avec une personne unique par email et par profil LinkedIn.
 
-**Architecture:** Deux modèles Prisma dans le schema `freelance` : `Person` (identité, coordonnées, entreprise, opposition) et `Lead` (pipeline, clé `personId`, `onDelete: Cascade` vers `Person`), avec cinq enums dont `JobRole` réutilisable. Deux champs texte sur `Person`, comme `Company` (`02`) : `notes` en ligne courte (200 caractères au plus) et `details` en markdown long. Un schéma Zod partagé (`personFields`) normalise email et lien LinkedIn et exige un nom ; `leadSchema` l'étend des champs du rôle et d'un `personId` facultatif. Les actions leads suivent le motif `saveEntity` / `deleteEntity` des entreprises, vérifient l'identité avant d'écrire pour nommer le doublon ou la personne opposée, créent la personne et le rôle dans une même transaction ou, `personId` fourni, posent seulement le rôle sur une personne existante sans le toucher ; les actions RGPD (`optOutPerson`, `erasePersonExchanges`) vivent à part, sur la personne.
+**Architecture:** Deux modèles Prisma dans le schema `freelance` : `Person` (identité, coordonnées, entreprise, opposition) et `Lead` (pipeline, clé `personId`, `onDelete: Cascade` vers `Person`), avec cinq enums dont `JobRole` réutilisable. Deux champs texte sur `Person`, comme `Company` (`02`) : `notes` en ligne courte (200 caractères au plus) et `details` en markdown long. Un schéma Zod partagé (`personFields`) normalise email et lien LinkedIn et exige un nom ; `leadSchema` l'étend des champs du rôle. Les actions leads suivent le motif `saveEntity` / `deleteEntity` des entreprises, vérifient l'identité avant d'écrire pour nommer le doublon ou la personne opposée, créent toujours la personne et le rôle dans une même transaction ; les actions RGPD (`optOutPerson`, `erasePersonExchanges`) vivent à part, sur la personne.
 
 **Tech Stack:** Prisma 7, PostgreSQL 18, Zod 4, Next.js 16 Server Actions, Vitest 4.
 
@@ -13,12 +13,12 @@
 ## Global Constraints
 
 - **Prérequis** : `01` livré (registre RGPD, Traitement 7) ; `02` implémenté (enum `Zone` dans le schema `freelance`, `src/lib/zones.ts`).
-- **Enums, valeurs exactes** : `LeadOrigin` `INBOUND`, `OUTBOUND` ; `LeadStatus` `NOUVEAU`, `SUSPECT`, `DISCUSSION`, `HORS_ICP`, `PERDU`, `STAND_BY` (ni `RDV_PLANIFIE` ni `DEAL`, déduits plus tard des entretiens et des missions) ; `LeadInterest` `HOT`, `WARM`, `COLD`, sans valeur « inconnu » ; `LeadChannel` `LINKEDIN`, `SITE_WEB`, `CANDIDATURE`, `PLATEFORME`, `REFERENCE`, `EVENEMENT`, `COLD_EMAIL`, `COLD_CALL`, `AUTRE` ; `JobRole` `CTO`, `TECH_LEAD`, `RECRUTEUR`, `DEVELOPPEUR`, `CEO`, `PRODUCT_OWNER`, `C_LEVEL`, `MANAGER`, `AUTRE`.
+- **Enums, valeurs exactes** : `LeadOrigin` `INBOUND`, `OUTBOUND` ; `LeadStatus` `NOUVEAU`, `SUSPECT`, `DISCUSSION`, `HORS_ICP`, `PERDU`, `STAND_BY` (ni `RDV_PLANIFIE` ni `DEAL`, déduits plus tard des entretiens et des opportunités) ; `LeadInterest` `HOT`, `WARM`, `COLD`, sans valeur « inconnu » ; `LeadChannel` `LINKEDIN`, `SITE_WEB`, `CANDIDATURE`, `PLATEFORME`, `REFERENCE`, `EVENEMENT`, `COLD_EMAIL`, `COLD_CALL`, `AUTRE` ; `JobRole` `CTO`, `TECH_LEAD`, `RECRUTEUR`, `DEVELOPPEUR`, `CEO`, `PRODUCT_OWNER`, `C_LEVEL`, `MANAGER`, `AUTRE`.
 - **Défauts** : statut `NOUVEAU` ; `interest` facultatif, `LeadInterest?` sans défaut, vide si non renseigné (aucun enum du CRM ne porte de valeur sentinelle).
 - **Lien LinkedIn** : forme unique `https://www.linkedin.com/in/<identifiant>`, identifiant en minuscules ; tout lien hors `/in/…` refusé avec « Lien de profil LinkedIn attendu (linkedin.com/in/…) ».
 - **Nom obligatoire** : `personNameField` exige une chaîne non vide ; il n'est nul que sur une personne opposée, après `optOutPerson`.
-- **Personne existante** : `createLead` reçoit un `personId` facultatif. Fourni, l'action pose le rôle Lead sur cette personne sans écrire ses champs ; les champs de personne envoyés dans le formulaire sont validés mais ignorés.
-- **Messages** : « Ce lead existe déjà : <nom> » (`lead_exists`, sur le champ `email`/`linkedinUrl` pour un doublon d'identité, ou sur `personId` pour une personne qui a déjà le rôle), « Cette personne s'est opposée à la prospection le JJ/MM/AAAA » (`lead_opted_out`, date au fuseau `Europe/Paris`), `lead_opted_out_locked`, `company_not_found`, « Les notes tiennent sur une ligne (200 caractères au plus) », `unknown_error`.
+- **Toujours une nouvelle personne** : `createLead` ne reçoit pas de `personId` ; il crée systématiquement une nouvelle personne et son rôle Lead.
+- **Messages** : « Ce lead existe déjà : <nom> » (`lead_exists`, sur le champ `email`/`linkedinUrl` pour un doublon d'identité), « Cette personne s'est opposée à la prospection le JJ/MM/AAAA » (`lead_opted_out`, date au fuseau `Europe/Paris`), `lead_opted_out_locked`, `company_not_found`, « Les notes tiennent sur une ligne (200 caractères au plus) », `unknown_error`.
 - **Opposition** (`optOutPerson`, sur `Person`) : garde `email`, `linkedinUrl`, les rôles et leurs champs propres, inchangés ; vide `name`, `jobRole`, `zone`, `phone`, `metAt`, `notes`, `details`, `companyId` ; pose `optedOutAt`. Sans email ni LinkedIn, la personne est supprimée.
 - **Effacement** (`erasePersonExchanges`, sur `Person`) : uniquement sur une personne opposée, pose `exchangesErasedAt` une seule fois ; à ce stade, rien à supprimer (actions, entretiens et signaux n'existent pas encore).
 - **Chemin revalidé** : `/admin/leads`, variante `layout` (toutes les vues du `08`).
@@ -32,7 +32,6 @@
 - **Opposition répétée et date du stop autour de minuit** : un second « stop » garde la date du premier, point de départ des 3 ans ; un stop à 23 h 30 UTC le 11 mars tombe le 12 mars à Paris, date que le message doit donner. Couvert par « keeps the first opt-out date when a person opts out twice » (Task 4) et la date `2026-03-11T23:30:00Z` du test « refuses a person who opted out, giving the date » (Task 5).
 - **Lien LinkedIn accentué** (`/in/Jérôme-Dupont`, `/in/j%C3%A9r%C3%B4me-dupont`) : même forme unique. Couvert par « normalizes the host, the case, a trailing slash and query parameters » (Task 1).
 - **Suppression sans autre rôle** : `deleteLead` retire le rôle puis supprime la personne par deux écritures explicites, jamais via la seule cascade `Lead → Person` qui empêcherait de garder la personne le jour où un second rôle existera. Couvert par « removes the person along with the lead role » (Task 5).
-- **Personne déjà attachée entre l'affichage du picker et l'envoi** : `createLead` revérifie côté serveur que la personne choisie n'a pas déjà le rôle Lead. Couvert par « refuses to attach the lead role to a person who already has it » (Task 5).
 
 ---
 
@@ -139,7 +138,7 @@ Expected: PASS.
 
 **Interfaces:**
 - Consumes: enum `Zone` (plan `02`)
-- Produces: modèles `Person`, `Lead`, enums `LeadOrigin`, `LeadStatus`, `LeadInterest`, `LeadChannel`, `JobRole` ; `JOB_ROLES`, `JOB_ROLE_LABELS` ; `LEAD_ORIGIN_LABELS`, `LEAD_STATUS_LABELS`, `LEAD_INTEREST_LABELS`, `LEAD_CHANNEL_LABELS`, `LEAD_FIELD_LABELS`
+- Produces: modèles `Person`, `Lead`, enums `LeadOrigin`, `LeadStatus`, `LeadInterest`, `LeadChannel`, `JobRole` ; `JOB_ROLES`, `JOB_ROLE_LABELS` ; `LEAD_ORIGIN_LABELS`, `LEAD_STATUS_LABELS`, `LEAD_INTEREST_LABELS`, `LEAD_CHANNEL_LABELS`, `LEAD_FIELD_LABELS`, `LEAD_ORIGIN_ICONS`, `LEAD_STATUS_ICONS`, `LEAD_INTEREST_ICONS`, `LEAD_CHANNEL_ICONS`
 
 - [ ] **Step 1 : Enums**
 
@@ -153,7 +152,7 @@ enum LeadOrigin {
   @@schema("freelance")
 }
 
-// Statuts saisis seulement : Deal et RDV planifié se déduisent (mission acceptée, entretien planifié à venir).
+// Statuts saisis seulement : Deal et RDV planifié se déduisent (opportunité acceptée, entretien planifié à venir).
 enum LeadStatus {
   NOUVEAU
   SUSPECT
@@ -294,16 +293,43 @@ export const JOB_ROLE_LABELS: Record<JobRole, string> = {
 Créer `src/lib/leads.ts` :
 
 ```ts
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Ban,
+  Calendar,
+  CirclePause,
+  CircleX,
+  FileText,
+  Flame,
+  Globe,
+  Handshake,
+  Mail,
+  MessagesSquare,
+  Phone,
+  Search,
+  Snowflake,
+  Sparkles,
+  Store,
+  Sun,
+} from "lucide-react"
+
 import type {
   LeadChannel,
   LeadInterest,
   LeadOrigin,
   LeadStatus,
 } from "@/generated/prisma/client"
+import { LinkedinIcon, type IconComponent } from "@/lib/icons"
 
 export const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   INBOUND: "Inbound",
   OUTBOUND: "Outbound",
+}
+
+export const LEAD_ORIGIN_ICONS: Record<LeadOrigin, IconComponent | null> = {
+  INBOUND: ArrowDownLeft,
+  OUTBOUND: ArrowUpRight,
 }
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
@@ -315,10 +341,25 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   STAND_BY: "Stand-by",
 }
 
+export const LEAD_STATUS_ICONS: Record<LeadStatus, IconComponent | null> = {
+  NOUVEAU: Sparkles,
+  SUSPECT: Search,
+  DISCUSSION: MessagesSquare,
+  HORS_ICP: Ban,
+  PERDU: CircleX,
+  STAND_BY: CirclePause,
+}
+
 export const LEAD_INTEREST_LABELS: Record<LeadInterest, string> = {
   HOT: "Hot",
   WARM: "Warm",
   COLD: "Cold",
+}
+
+export const LEAD_INTEREST_ICONS: Record<LeadInterest, IconComponent | null> = {
+  HOT: Flame,
+  WARM: Sun,
+  COLD: Snowflake,
 }
 
 export const LEAD_CHANNEL_LABELS: Record<LeadChannel, string> = {
@@ -331,6 +372,18 @@ export const LEAD_CHANNEL_LABELS: Record<LeadChannel, string> = {
   COLD_EMAIL: "Cold Email",
   COLD_CALL: "Cold Call",
   AUTRE: "Autre",
+}
+
+export const LEAD_CHANNEL_ICONS: Record<LeadChannel, IconComponent | null> = {
+  LINKEDIN: LinkedinIcon,
+  SITE_WEB: Globe,
+  CANDIDATURE: FileText,
+  PLATEFORME: Store,
+  REFERENCE: Handshake,
+  EVENEMENT: Calendar,
+  COLD_EMAIL: Mail,
+  COLD_CALL: Phone,
+  AUTRE: null,
 }
 
 // Uniquement les champs du rôle : ceux de la personne vivent dans PERSON_FIELD_LABELS (`@/lib/persons`).
@@ -463,7 +516,7 @@ import { z } from "zod"
 
 import { LeadChannel, LeadInterest, LeadOrigin, LeadStatus } from "@/generated/prisma/browser"
 import { nullifyNoneValue } from "@/lib/schemas/none-value"
-import { NONE_VALUE, optionalTextField, personFields } from "@/lib/schemas/person"
+import { NONE_VALUE, personFields } from "@/lib/schemas/person"
 
 export const LEAD_ORIGINS = Object.values(LeadOrigin)
 export const LEAD_STATUSES = Object.values(LeadStatus)
@@ -472,8 +525,6 @@ export const LEAD_CHANNELS = Object.values(LeadChannel)
 
 export const leadSchema = z.object({
   ...personFields,
-  // Facultatif : posé quand le rôle se pose sur une personne existante plutôt que d'en créer une ; `personFields` reste alors validé mais ignoré.
-  personId: optionalTextField,
   origin: z.enum(LeadOrigin, { error: "Choisissez une origine" }),
   status: z.enum(LeadStatus, { error: "Statut inconnu" }),
   interest: z
@@ -869,7 +920,6 @@ import { createLead, deleteLead, updateLead } from "./leads"
 import { initialLeadFormState } from "./leads.types"
 
 const BASE_FIELDS = {
-  personId: "",
   name: "Claire Morel",
   jobRole: NONE_VALUE,
   zone: NONE_VALUE,
@@ -1040,33 +1090,6 @@ describe("createLead", () => {
     expect(prisma.person.findFirst).not.toHaveBeenCalled()
   })
 
-  it("attaches the lead role to an existing person instead of creating one", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Claire Morel",
-      optedOutAt: null,
-      lead: null,
-    } as never)
-
-    const state = await createLead(initialLeadFormState, buildFormData({ personId: "p1" }))
-
-    expect(state.ok).toBe(true)
-    expect(prisma.person.create).not.toHaveBeenCalled()
-    expect(prisma.lead.create).toHaveBeenCalledWith(objectMatch({ data: objectMatch({ personId: "p1" }) }))
-  })
-
-  it("refuses to attach the lead role to a person who already has it", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Claire Morel",
-      optedOutAt: null,
-      lead: { personId: "p1" },
-    } as never)
-
-    const state = await createLead(initialLeadFormState, buildFormData({ personId: "p1" }))
-
-    expect(state.message).toBe("lead_exists")
-    expect(state.errors.personId).toEqual(["Ce lead existe déjà : Claire Morel"])
-    expect(prisma.lead.create).not.toHaveBeenCalled()
-  })
 })
 
 describe("updateLead", () => {
@@ -1140,7 +1163,7 @@ const OPT_OUT_DATE = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris",
 })
 
-type IdentityField = "personId" | "email" | "linkedinUrl"
+type IdentityField = "email" | "linkedinUrl"
 
 class LeadConflictError extends Error {
   readonly field: IdentityField
@@ -1155,7 +1178,6 @@ class LeadConflictError extends Error {
 
 function collectValues(formData: FormData): LeadFormState["values"] {
   return {
-    personId: stringField(formData, "personId"),
     name: stringField(formData, "name"),
     jobRole: stringField(formData, "jobRole"),
     zone: stringField(formData, "zone"),
@@ -1200,25 +1222,6 @@ async function assertNewIdentity(data: LeadInput, currentPersonId: string | null
   throw new LeadConflictError(field, "lead_exists", `Ce lead existe déjà : ${existing.name ?? ""}`)
 }
 
-// Revérifie l'opposition et le rôle existant : la personne a pu changer entre l'affichage du picker et l'envoi.
-async function assertLeadRoleAvailable(personId: string): Promise<void> {
-  const person = await prisma.person.findUnique({
-    where: { id: personId },
-    select: { name: true, optedOutAt: true, lead: { select: { personId: true } } },
-  })
-  if (!person) throw new Error(`Personne ${personId} introuvable`)
-  if (person.optedOutAt) {
-    throw new LeadConflictError(
-      "personId",
-      "lead_opted_out",
-      `Cette personne s'est opposée à la prospection le ${OPT_OUT_DATE.format(person.optedOutAt)}`,
-    )
-  }
-  if (person.lead) {
-    throw new LeadConflictError("personId", "lead_exists", `Ce lead existe déjà : ${person.name ?? ""}`)
-  }
-}
-
 function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormState | null {
   if (err instanceof LeadConflictError) {
     const errors: LeadFormState["errors"] = {}
@@ -1230,11 +1233,7 @@ function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormSt
   }
   if (isPrismaError(err, "P2002")) {
     const constraint = violatedConstraint(err)
-    const field: IdentityField = constraint.includes("email")
-      ? "email"
-      : constraint.includes("linkedinUrl")
-        ? "linkedinUrl"
-        : "personId"
+    const field: IdentityField = constraint.includes("email") ? "email" : "linkedinUrl"
     const errors: LeadFormState["errors"] = {}
     errors[field] = ["Ce lead existe déjà"]
     return { ok: false, errors, message: "lead_exists", values }
@@ -1279,9 +1278,9 @@ function saveLead(
   })
 }
 
-// Sépare les champs de la personne et du rôle, toujours écrits dans la même transaction ; `personId` est une directive de création, jamais une colonne persistée.
+// Sépare les champs de la personne et du rôle, toujours écrits dans la même transaction.
 function splitLeadInput(data: LeadInput) {
-  const { personId: _personId, origin, status, interest, channel, score, ...person } = data
+  const { origin, status, interest, channel, score, ...person } = data
   return { person, lead: { origin, status, interest, channel, score } }
 }
 
@@ -1297,13 +1296,8 @@ export async function createLead(
     { success: "lead:created", failure: "lead:create_failed" },
     formData,
     async (data) => {
-      const { person, lead } = splitLeadInput(data)
-      // Personne existante du picker : ses champs, en lecture seule côté client, ne sont jamais écrits, seul le rôle se pose.
-      if (data.personId) {
-        await assertLeadRoleAvailable(data.personId)
-        return prisma.lead.create({ data: { ...lead, personId: data.personId } })
-      }
       await assertNewIdentity(data, null)
+      const { person, lead } = splitLeadInput(data)
       return prisma.$transaction(async (tx) => {
         const created = await tx.person.create({ data: person })
         return tx.lead.create({ data: { ...lead, personId: created.id } })
@@ -1376,7 +1370,7 @@ Expected: PASS.
 
 **Interfaces:**
 - Consumes: modèles `Person`, `Lead` (Task 2) ; `personDisplayName` (Task 4, `@/lib/persons`)
-- Produces: `AdminLead` (la personne aplatie sur son rôle : `id` = `personId`, champs de la personne, `company: { id, name, logoFilename } | null`, champs du rôle, `hasContactRole: false`), `findAllLeadsForAdmin(): Promise<AdminLead[]>`, `findLeadByIdForAdmin(personId: string): Promise<AdminLead | null>` (`@/server/queries/leads`) ; `PersonOption = { id: string; name: string; company: { name: string } | null }`, `findPersonOptions(): Promise<PersonOption[]>`, `findPersonOptionsWithLeadRole(): Promise<PersonOption[]>` ; `PersonWithoutLeadRole` (tous les champs de la personne, `company: { id, name } | null`, `hasContactRole: false`), `findPersonsWithoutLeadRole(): Promise<PersonWithoutLeadRole[]>` (`@/server/queries/persons`)
+- Produces: `AdminLead` (la personne aplatie sur son rôle : `id` = `personId`, champs de la personne, `company: { id, name, logoFilename } | null`, champs du rôle, `hasContactRole: false`), `findAllLeadsForAdmin(): Promise<AdminLead[]>`, `findLeadByIdForAdmin(personId: string): Promise<AdminLead | null>` (`@/server/queries/leads`) ; `PersonOption = { id: string; name: string; company: { name: string } | null }`, `findPersonOptions(): Promise<PersonOption[]>`, `findPersonOptionsWithLeadRole(): Promise<PersonOption[]>` (`@/server/queries/persons`)
 
 - [ ] **Step 1 : Écrire les lectures des leads**
 
@@ -1475,7 +1469,6 @@ Créer `src/server/queries/persons.ts` :
 ```ts
 import "server-only"
 
-import type { JobRole, Zone } from "@/generated/prisma/client"
 import { personDisplayName } from "@/lib/persons"
 import { prisma } from "@/lib/prisma"
 
@@ -1522,45 +1515,6 @@ export async function findPersonOptionsWithLeadRole(): Promise<PersonOption[]> {
     orderBy: { name: { sort: "asc", nulls: "last" } },
   })
   return rows.map(toPersonOption)
-}
-
-// Choisir une de ces personnes remplit le formulaire depuis elle, en lecture, sans rien copier avant l'enregistrement (symétrique de `PersonWithoutContactRole`).
-export interface PersonWithoutLeadRole {
-  id: string
-  name: string | null
-  jobRole: JobRole | null
-  zone: Zone | null
-  email: string | null
-  phone: string | null
-  linkedinUrl: string | null
-  metAt: Date | null
-  notes: string | null
-  details: string | null
-  company: { id: string; name: string } | null
-  hasContactRole: boolean
-}
-
-// Picker « Personne existante » : une personne non opposée qui n'a pas encore ce rôle, par exemple un contact rencontré en entretien qui devient aussi prospect.
-export async function findPersonsWithoutLeadRole(): Promise<PersonWithoutLeadRole[]> {
-  const rows = await prisma.person.findMany({
-    where: { optedOutAt: null, lead: null },
-    select: {
-      id: true,
-      name: true,
-      jobRole: true,
-      zone: true,
-      email: true,
-      phone: true,
-      linkedinUrl: true,
-      metAt: true,
-      notes: true,
-      details: true,
-      company: { select: { id: true, name: true } },
-    },
-    orderBy: { name: { sort: "asc", nulls: "last" } },
-  })
-  // hasContactRole reste false tant que le rôle Contact n'existe pas : déjà dans le type, prêt à être recalculé plutôt qu'ajouté.
-  return rows.map((row) => ({ ...row, hasContactRole: false }))
 }
 ```
 

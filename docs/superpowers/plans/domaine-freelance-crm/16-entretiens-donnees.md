@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Le modèle `Interview` rattaché à une mission (correspondants, type, statut, issue, date, score, décision), son titre déduit de l'ordre dans la mission, ses gabarits, ses Server Actions, et le statut « RDV planifié » d'un lead déduit de ses entretiens à venir.
+**Goal:** Le modèle `Interview` rattaché à une opportunité (correspondants, type, statut, issue, date, score, décision), son titre déduit de l'ordre dans l'opportunité, ses gabarits, ses Server Actions, et le statut « RDV planifié » d'un lead déduit de ses entretiens à venir.
 
-**Architecture:** Modèle Prisma `Interview` dans le schema `freelance`, en cascade sous `Mission`, relié aux personnes par une relation plusieurs-à-plusieurs. Des fonctions pures testées portent le numéro et l'entretien précédent (`interviews`), le statut affiché du lead (`lead-display-status`, étendu depuis le `15`) et les gabarits. Les actions vérifient mission, côté et correspondants avant d'écrire, créent dans la même transaction une personne au rôle Contact pour un correspondant inconnu ; `erasePersonExchanges` retire la personne de ses entretiens quand l'effacement est demandé.
+**Architecture:** Modèle Prisma `Interview` dans le schema `freelance`, en cascade sous `Opportunity`, relié aux personnes par une relation plusieurs-à-plusieurs. Des fonctions pures testées portent le numéro et l'entretien précédent (`interviews`), le statut affiché du lead (`lead-display-status`, étendu depuis le `15`) et les gabarits. Les actions vérifient l'opportunité, le côté et les correspondants avant d'écrire, créent dans la même transaction une personne au rôle Contact du type choisi pour un correspondant inconnu ; `erasePersonExchanges` retire la personne de ses entretiens quand l'effacement est demandé.
 
 **Tech Stack:** Prisma 7, PostgreSQL 18, Zod 4, Next.js 16 Server Actions, Vitest 4.
 
@@ -12,27 +12,28 @@
 
 ## Global Constraints
 
-- **Prérequis** : plans `07` (`Person`, `Lead`, `personFields`, `NONE_VALUE`, `findPersonOptions()`, `erasePersonExchanges`), `08` (`lead-views`, `details-templates` et `detailsAfterOriginChange`, `LeadsTable`), `09` (`erasePersonExchanges`, qui supprime les actions), `10` (`AdminLead._count`, instant `now` de `LeadsTable`), `13` (modèle `Contact`, `ContactType`, `ContactStatus`), `14` (modèle `Mission`, qui porte TJM, contrat, lieu, mode, ESN et client final) et `15` (`lead-display-status`, vues des leads relues sur lui, `AdminLead.missions`) implémentés.
+- **Prérequis** : plans `07` (`Person`, `Lead`, `personFields`, `NONE_VALUE`, `findPersonOptions()`, `erasePersonExchanges`), `08` (`lead-views`, `details-templates` et `detailsAfterOriginChange`, `LeadsTable`), `09` (`erasePersonExchanges`, qui supprime les actions), `10` (`AdminLead._count`, instant `now` de `LeadsTable`), `13` (modèle `Contact`, `ContactType`, `ContactStatus`, `CONTACT_TYPES`), `14` (modèle `Opportunity`, qui porte TJM, contrat, lieu, mode, ESN et client final) et `15` (`lead-display-status`, vues des leads relues sur lui, `AdminLead.opportunities`) implémentés.
 - **Enums, valeurs exactes** : `InterviewSide` `ESN`, `CLIENT_FINAL` ; `InterviewType` `PREMIER_CONTACT`, `RECRUTEUR_RH`, `TECHNIQUE`, `MANAGER_EQUIPE`, `NEGOCIATION` ; `InterviewStatus` `PLANIFIE`, `FAIT`, `ANNULE` (défaut `PLANIFIE`) ; `InterviewOutcome` `POSITIF`, `NEGATIF`, `SANS_SUITE` ; `InterviewDecision` `OUI_TRES_INTERESSE`, `OUI_SOUS_CONDITIONS`, `NON`.
 - **Libellés** : Premier contact, Recruteur/RH, Technique, Manager/Équipe, Négociation ; Planifié, Fait, Annulé ; Positif, Négatif, Sans suite ; « Oui, très intéressé », « Oui, sous conditions », « Non, pas pour moi ».
-- **Titre** : « Premier contact », sinon « Entretien N · <type> », N comptant les entretiens hors Premier contact de la mission, rangés par date puis création.
-- **Statut affiché du lead** : « Deal » si une mission apportée est `ACCEPTEE`, sinon « RDV planifié » si la personne au rôle Lead est correspondante d'un entretien `PLANIFIE` dont la date n'est pas passée, sinon le statut saisi. `LeadStatus` ne porte déjà plus `RDV_PLANIFIE` dans le schéma v2 : aucune migration n'est nécessaire pour le retirer.
+- **Glyphes** (`.claude/rules/design/claude-design.md`) : `INTERVIEW_TYPE_ICONS` (Premier contact `Coffee`, Recruteur/RH `UserSearch`, Technique `Code`, Manager/Équipe `Users`, Négociation `BadgeEuro`), `INTERVIEW_STATUS_ICONS` (Planifié `CalendarClock`, Fait `CircleCheck`, Annulé `CircleX`), `INTERVIEW_OUTCOME_ICONS` (Positif `ThumbsUp`, Négatif `ThumbsDown`, Sans suite `CircleMinus`), `INTERVIEW_DECISION_ICONS` (Oui très intéressé `Rocket`, Oui sous conditions `Scale`, Non pas pour moi `Ban`).
+- **Titre** : « Premier contact », sinon « Entretien N · <type> », N comptant les entretiens hors Premier contact de l'opportunité, rangés par date puis création.
+- **Statut affiché du lead** : « Deal » si une opportunité apportée est `ACCEPTEE`, sinon « RDV planifié » si la personne au rôle Lead est correspondante d'un entretien `PLANIFIE` dont la date n'est pas passée, sinon le statut saisi. `LeadStatus` ne porte déjà plus `RDV_PLANIFIE` dans le schéma v2 : aucune migration n'est nécessaire pour le retirer.
 - **Issue** : ne se saisit et ne s'enregistre que si `status` vaut `FAIT`, vidée sinon.
-- **Correspondants** : personnes non opposées ; un correspondant inconnu est créé personne au rôle Contact (`types` `COMMERCIAL` si `jobRole` `RECRUTEUR`, sinon `CONTACT_TECH`, `status` `ACTIF`), dans la même transaction que l'entretien.
-- **Messages** : « Choisissez une mission », « Cette mission n'a pas d'ESN : l'entretien est mené par le client final » (`mission_without_intermediary`), `mission_not_found`, `correspondent_not_found`, `correspondent_exists`, `unknown_error`.
-- **Liens** : mission `onDelete: Cascade` ; correspondants plusieurs-à-plusieurs `InterviewCorrespondents` vers `Person`.
-- **Chemins revalidés** : `/admin/entretiens`, `/admin/missions`, `/admin/leads`, variante `layout`.
+- **Correspondants** : personnes non opposées ; un correspondant inconnu est créé personne au rôle Contact (`types` `[contactType]`, le type choisi par l'utilisateur sur le brouillon, requis, `status` `ACTIF`), dans la même transaction que l'entretien.
+- **Messages** : « Choisissez une opportunité », « Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final » (`opportunity_without_intermediary`), `opportunity_not_found`, « Choisissez un type de contact », `correspondent_not_found`, `correspondent_exists`, `unknown_error`.
+- **Liens** : opportunité `onDelete: Cascade` ; correspondants plusieurs-à-plusieurs `InterviewCorrespondents` vers `Person`.
+- **Chemins revalidés** : `/admin/entretiens`, `/admin/opportunites`, `/admin/leads`, variante `layout`.
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
 **Rules :** `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/vitest/setup.md`.
 
 ## Review Focus
 
-- **Deux entretiens à la même heure dans une mission** : numéro stable, départagé par la création. Couvert par « keeps a stable number for two interviews at the same time » (Task 2).
+- **Deux entretiens à la même heure dans une opportunité** : numéro stable, départagé par la création. Couvert par « keeps a stable number for two interviews at the same time » (Task 2).
 - **Modifier les correspondants d'un entretien** : la liste enregistrée (existants et nouveaux) remplace l'ancienne. Couvert par « replaces the correspondents on update » (Task 5).
 - **Même correspondant envoyé deux fois** : compté une fois, pas pris pour une personne disparue. Couvert par « connects the correspondents on create » (Task 5).
 - **Nouveau correspondant à l'email déjà connu** : refusé (`correspondent_exists`), jamais dupliqué. Couvert par « refuses a new correspondent whose email is already known » (Task 5).
-- **Mission supprimée** : ses entretiens partent avec elle, sans erreur de clé. Vérifié à la Task 7, Step 3.
+- **Opportunité supprimée** : ses entretiens partent avec elle, sans erreur de clé. Vérifié à la Task 7, Step 3.
 
 ---
 
@@ -43,12 +44,12 @@
 - Create: `prisma/migrations/<horodatage>_interviews/migration.sql`
 
 **Interfaces:**
-- Consumes: `Mission`, `Person`
-- Produces: modèle `Interview`, enums `InterviewSide`, `InterviewType`, `InterviewStatus`, `InterviewOutcome`, `InterviewDecision` ; `Person.interviews`, `Mission.interviews`
+- Consumes: `Opportunity`, `Person`
+- Produces: modèle `Interview`, enums `InterviewSide`, `InterviewType`, `InterviewStatus`, `InterviewOutcome`, `InterviewDecision` ; `Person.interviews`, `Opportunity.interviews`
 
 - [ ] **Step 1 : Enums et modèle**
 
-Dans `prisma/schema.prisma`, après l'enum `MissionStatus` :
+Dans `prisma/schema.prisma`, après l'enum `OpportunityStatus` :
 
 ```prisma
 enum InterviewSide {
@@ -95,12 +96,12 @@ enum InterviewDecision {
 }
 ```
 
-Après le modèle `Mission` :
+Après le modèle `Opportunity` :
 
 ```prisma
 model Interview {
   id          String             @id @default(uuid(7))
-  // L'entreprise se lit sur la mission : ESN ou client final, jamais ressaisie.
+  // L'entreprise se lit sur l'opportunité : ESN ou client final, jamais ressaisie.
   side        InterviewSide
   type        InterviewType
   status      InterviewStatus    @default(PLANIFIE)
@@ -111,24 +112,24 @@ model Interview {
   notes       String?
   details     String?
 
-  missionId      String
-  mission        Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  correspondents Person[] @relation("InterviewCorrespondents")
+  opportunityId  String
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  correspondents Person[]    @relation("InterviewCorrespondents")
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
-  @@index([missionId, scheduledAt])
+  @@index([opportunityId, scheduledAt])
   @@schema("freelance")
 }
 ```
 
-Dans `Mission`, après `client Company? …` : `interviews     Interview[]` ; dans `Person`, après `referredMissions Mission[]` (`14`) : `interviews Interview[] @relation("InterviewCorrespondents")` (le `19` ajoutera `signals Signal[]` juste après).
+Dans `Opportunity`, après `client Company? …` : `interviews     Interview[]` ; dans `Person`, après `referredOpportunities Opportunity[]` (`14`) : `interviews Interview[] @relation("InterviewCorrespondents")` (le `19` ajoutera `signals Signal[]` juste après).
 
 - [ ] **Step 2 : Migration**
 
 Run: `pnpm prisma migrate dev --name interviews`, puis `just db-test`
-Expected: migration créée et appliquée en dev et en test ; elle crée les cinq types d'enum (`InterviewSide`, `InterviewType`, `InterviewStatus`, `InterviewOutcome`, `InterviewDecision`), la table `"freelance"."Interview"`, l'index `(missionId, scheduledAt)`, la clé étrangère vers `Mission` en `ON DELETE CASCADE` et la table de liaison `"freelance"."_InterviewCorrespondents"` vers `Person`. Aucune modification à la main.
+Expected: migration créée et appliquée en dev et en test ; elle crée les cinq types d'enum (`InterviewSide`, `InterviewType`, `InterviewStatus`, `InterviewOutcome`, `InterviewDecision`), la table `"freelance"."Interview"`, l'index `(opportunityId, scheduledAt)`, la clé étrangère vers `Opportunity` en `ON DELETE CASCADE` et la table de liaison `"freelance"."_InterviewCorrespondents"` vers `Person`. Aucune modification à la main.
 
 Run: `just typecheck`
 Expected: aucune erreur.
@@ -142,8 +143,8 @@ Expected: aucune erreur.
 - Test: `src/lib/interviews.test.ts`
 
 **Interfaces:**
-- Consumes: enums (Task 1)
-- Produces: `INTERVIEW_TYPE_LABELS`, `INTERVIEW_STATUS_LABELS`, `INTERVIEW_OUTCOME_LABELS`, `INTERVIEW_DECISION_LABELS`, `INTERVIEW_SIDE_LABELS`, `INTERVIEW_FIELD_LABELS` ; `interface OrderedInterview` ; `interviewPlaces(interviews: readonly OrderedInterview[]): Map<string, { number: number | null; previousId: string | null }>` ; `interviewTitle(type: InterviewType, number: number | null): string`
+- Consumes: enums (Task 1) ; `IconComponent` (`@/lib/icons`)
+- Produces: `INTERVIEW_TYPE_LABELS`, `INTERVIEW_STATUS_LABELS`, `INTERVIEW_OUTCOME_LABELS`, `INTERVIEW_DECISION_LABELS`, `INTERVIEW_SIDE_LABELS`, `INTERVIEW_FIELD_LABELS`, `INTERVIEW_TYPE_ICONS`, `INTERVIEW_STATUS_ICONS`, `INTERVIEW_OUTCOME_ICONS`, `INTERVIEW_DECISION_ICONS` ; `interface OrderedInterview` ; `interviewPlaces(interviews: readonly OrderedInterview[]): Map<string, { number: number | null; previousId: string | null }>` ; `interviewTitle(type: InterviewType, number: number | null): string`
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
 
@@ -158,7 +159,7 @@ import { interviewPlaces, interviewTitle } from "./interviews"
 
 interface TestInterview {
   id: string
-  missionId: string
+  opportunityId: string
   type: InterviewType
   scheduledAt: Date
   createdAt: Date
@@ -167,7 +168,7 @@ interface TestInterview {
 function interview(overrides: Partial<TestInterview> = {}): TestInterview {
   return {
     id: "i1",
-    missionId: "m1",
+    opportunityId: "o1",
     type: "RECRUTEUR_RH",
     scheduledAt: new Date(2026, 8, 1, 10, 0),
     createdAt: new Date(2026, 7, 20),
@@ -175,16 +176,16 @@ function interview(overrides: Partial<TestInterview> = {}): TestInterview {
   }
 }
 
-const MISSION_INTERVIEWS = [
+const OPPORTUNITY_INTERVIEWS = [
   interview({ id: "tech", type: "TECHNIQUE", scheduledAt: new Date(2026, 8, 15, 10, 0) }),
   interview({ id: "first", type: "PREMIER_CONTACT", scheduledAt: new Date(2026, 8, 1, 10, 0) }),
   interview({ id: "hr", type: "RECRUTEUR_RH", scheduledAt: new Date(2026, 8, 8, 10, 0) }),
-  interview({ id: "other", missionId: "m2", type: "TECHNIQUE", scheduledAt: new Date(2026, 8, 2, 10, 0) }),
+  interview({ id: "other", opportunityId: "o2", type: "TECHNIQUE", scheduledAt: new Date(2026, 8, 2, 10, 0) }),
 ]
 
 describe("interviewPlaces", () => {
-  it("numbers interviews after the first contact within their mission, by date", () => {
-    const places = interviewPlaces(MISSION_INTERVIEWS)
+  it("numbers interviews after the first contact within their opportunity, by date", () => {
+    const places = interviewPlaces(OPPORTUNITY_INTERVIEWS)
 
     expect(places.get("first")?.number).toBeNull()
     expect(places.get("hr")?.number).toBe(1)
@@ -192,8 +193,8 @@ describe("interviewPlaces", () => {
     expect(places.get("other")?.number).toBe(1)
   })
 
-  it("names the previous interview of the same mission", () => {
-    const places = interviewPlaces(MISSION_INTERVIEWS)
+  it("names the previous interview of the same opportunity", () => {
+    const places = interviewPlaces(OPPORTUNITY_INTERVIEWS)
 
     expect(places.get("tech")?.previousId).toBe("hr")
     expect(places.get("hr")?.previousId).toBe("first")
@@ -234,6 +235,23 @@ Expected: FAIL, module introuvable.
 `src/lib/interviews.ts` :
 
 ```ts
+import {
+  Ban,
+  BadgeEuro,
+  CalendarClock,
+  CircleCheck,
+  CircleMinus,
+  CircleX,
+  Code,
+  Coffee,
+  Rocket,
+  Scale,
+  ThumbsDown,
+  ThumbsUp,
+  UserSearch,
+  Users,
+} from "lucide-react"
+
 import type {
   InterviewDecision,
   InterviewOutcome,
@@ -241,6 +259,7 @@ import type {
   InterviewStatus,
   InterviewType,
 } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   PREMIER_CONTACT: "Premier contact",
@@ -250,10 +269,24 @@ export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   NEGOCIATION: "Négociation",
 }
 
+export const INTERVIEW_TYPE_ICONS: Record<InterviewType, IconComponent | null> = {
+  PREMIER_CONTACT: Coffee,
+  RECRUTEUR_RH: UserSearch,
+  TECHNIQUE: Code,
+  MANAGER_EQUIPE: Users,
+  NEGOCIATION: BadgeEuro,
+}
+
 export const INTERVIEW_STATUS_LABELS: Record<InterviewStatus, string> = {
   PLANIFIE: "Planifié",
   FAIT: "Fait",
   ANNULE: "Annulé",
+}
+
+export const INTERVIEW_STATUS_ICONS: Record<InterviewStatus, IconComponent | null> = {
+  PLANIFIE: CalendarClock,
+  FAIT: CircleCheck,
+  ANNULE: CircleX,
 }
 
 export const INTERVIEW_OUTCOME_LABELS: Record<InterviewOutcome, string> = {
@@ -262,10 +295,22 @@ export const INTERVIEW_OUTCOME_LABELS: Record<InterviewOutcome, string> = {
   SANS_SUITE: "Sans suite",
 }
 
+export const INTERVIEW_OUTCOME_ICONS: Record<InterviewOutcome, IconComponent | null> = {
+  POSITIF: ThumbsUp,
+  NEGATIF: ThumbsDown,
+  SANS_SUITE: CircleMinus,
+}
+
 export const INTERVIEW_DECISION_LABELS: Record<InterviewDecision, string> = {
   OUI_TRES_INTERESSE: "Oui, très intéressé",
   OUI_SOUS_CONDITIONS: "Oui, sous conditions",
   NON: "Non, pas pour moi",
+}
+
+export const INTERVIEW_DECISION_ICONS: Record<InterviewDecision, IconComponent | null> = {
+  OUI_TRES_INTERESSE: Rocket,
+  OUI_SOUS_CONDITIONS: Scale,
+  NON: Ban,
 }
 
 export const INTERVIEW_SIDE_LABELS: Record<InterviewSide, string> = {
@@ -274,7 +319,7 @@ export const INTERVIEW_SIDE_LABELS: Record<InterviewSide, string> = {
 }
 
 export const INTERVIEW_FIELD_LABELS = {
-  missionId: "Mission",
+  opportunityId: "Opportunité",
   side: "Mené par",
   correspondentIds: "Correspondants",
   type: "Type",
@@ -289,7 +334,7 @@ export const INTERVIEW_FIELD_LABELS = {
 
 export interface OrderedInterview {
   id: string
-  missionId: string
+  opportunityId: string
   type: InterviewType
   scheduledAt: Date
   createdAt: Date
@@ -306,19 +351,19 @@ function byDateThenCreation(a: OrderedInterview, b: OrderedInterview): number {
   )
 }
 
-// Numéro et entretien précédent se déduisent de l'ordre dans la mission, la création départageant une même heure.
+// Numéro et entretien précédent se déduisent de l'ordre dans l'opportunité, la création départageant une même heure.
 export function interviewPlaces(
   interviews: readonly OrderedInterview[],
 ): Map<string, InterviewPlace> {
-  const byMission = new Map<string, OrderedInterview[]>()
+  const byOpportunity = new Map<string, OrderedInterview[]>()
   for (const interview of interviews) {
-    const list = byMission.get(interview.missionId) ?? []
+    const list = byOpportunity.get(interview.opportunityId) ?? []
     list.push(interview)
-    byMission.set(interview.missionId, list)
+    byOpportunity.set(interview.opportunityId, list)
   }
 
   const places = new Map<string, InterviewPlace>()
-  for (const list of byMission.values()) {
+  for (const list of byOpportunity.values()) {
     list.sort(byDateThenCreation)
     let count = 0
     list.forEach((interview, index) => {
@@ -372,7 +417,7 @@ Dans `src/lib/lead-display-status.test.ts` :
   it("shows a scheduled meeting when the lead is a correspondent of an upcoming planned interview", () => {
     const lead = {
       status: "DISCUSSION" as const,
-      missions: [],
+      opportunities: [],
       interviews: [{ status: "PLANIFIE" as const, scheduledAt: new Date(2026, 8, 28, 10, 0) }],
     }
 
@@ -384,7 +429,7 @@ Dans `src/lib/lead-display-status.test.ts` :
   it("keeps Deal ahead of a scheduled meeting", () => {
     const lead = {
       status: "DISCUSSION" as const,
-      missions: [{ status: "ACCEPTEE" as const }],
+      opportunities: [{ status: "ACCEPTEE" as const }],
       interviews: [{ status: "PLANIFIE" as const, scheduledAt: new Date(2026, 8, 28, 10, 0) }],
     }
 
@@ -396,7 +441,7 @@ Dans `src/lib/lead-display-status.test.ts` :
   it("ignores a past interview and one no longer planned", () => {
     const lead = {
       status: "DISCUSSION" as const,
-      missions: [],
+      opportunities: [],
       interviews: [
         { status: "PLANIFIE" as const, scheduledAt: new Date(2026, 8, 27, 9, 0) },
         { status: "FAIT" as const, scheduledAt: new Date(2026, 8, 28, 10, 0) },
@@ -417,7 +462,7 @@ Expected: FAIL (le statut affiché ne lit pas encore les entretiens).
 Remplacer le contenu de `src/lib/lead-display-status.ts` par :
 
 ```ts
-import type { InterviewStatus, LeadStatus, MissionStatus } from "@/generated/prisma/client"
+import type { InterviewStatus, LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
 import { LEAD_STATUS_LABELS } from "@/lib/leads"
 import { LEAD_STATUSES } from "@/lib/schemas/lead"
 
@@ -437,13 +482,13 @@ export const LEAD_DISPLAY_STATUS_LABELS: Record<LeadDisplayStatus, string> = {
 
 export interface LeadStatusSource {
   status: LeadStatus
-  missions: readonly { status: MissionStatus }[]
+  opportunities: readonly { status: OpportunityStatus }[]
   interviews: readonly { status: InterviewStatus; scheduledAt: Date }[]
 }
 
 // Deal et RDV planifié sont des faits déduits qui l'emportent sur le statut saisi, le deal d'abord.
 export function leadDisplayStatus(lead: LeadStatusSource, now: number): LeadDisplayStatus {
-  if (lead.missions.some((mission) => mission.status === "ACCEPTEE")) return "DEAL"
+  if (lead.opportunities.some((opportunity) => opportunity.status === "ACCEPTEE")) return "DEAL"
   const hasUpcomingMeeting = lead.interviews.some(
     (interview) => interview.status === "PLANIFIE" && interview.scheduledAt.getTime() >= now,
   )
@@ -604,7 +649,7 @@ export function detailsAfterOriginChange(
 - ajouter à la fin :
 
 ```ts
-// Réduits à l'échange : mission et package vivent sur la mission, culture d'entreprise dans son Détails.
+// Réduits à l'échange : opportunité et package vivent sur l'opportunité, culture d'entreprise dans son Détails.
 const INTERVIEW_FIRST_CONTACT_TEMPLATE = `# 📋 Contexte du contact
 
 # 🚩 Red flags
@@ -661,7 +706,7 @@ Expected: PASS, les tests des gabarits de leads compris.
 - Create: `src/server/queries/interviews.ts`
 
 **Interfaces:**
-- Consumes: modèle et enums (Task 1) ; `personFields`, `NONE_VALUE`, `notesField`, `optionalTextField` (`src/lib/schemas/person.ts`, `07`) ; `nullifyNoneValue` ; `saveEntity`, `deleteEntity` (`./shared`) ; `stringField`, `stringValues` (`@/lib/server-utils`)
+- Consumes: modèle et enums (Task 1) ; `ContactType` (`@/generated/prisma/browser`, `13`) ; `personFields`, `NONE_VALUE`, `notesField`, `optionalTextField` (`src/lib/schemas/person.ts`, `07`) ; `nullifyNoneValue` ; `saveEntity`, `deleteEntity` (`./shared`) ; `stringField`, `stringValues` (`@/lib/server-utils`)
 - Produces: `interviewSchema`, `InterviewInput`, `INTERVIEW_SIDES`, `INTERVIEW_TYPES`, `INTERVIEW_STATUSES`, `INTERVIEW_OUTCOMES`, `INTERVIEW_DECISIONS` ; `InterviewFormState`, `InterviewFormMessage`, `initialInterviewFormState` ; `createInterview(prev, formData)`, `updateInterview(id, prev, formData)`, `deleteInterview(id)` ; `AdminInterview`, `findAllInterviewsForAdmin(): Promise<AdminInterview[]>`
 
 - [ ] **Step 1 : Schéma**
@@ -672,6 +717,7 @@ Expected: PASS, les tests des gabarits de leads compris.
 import { z } from "zod"
 
 import {
+  ContactType,
   InterviewDecision,
   InterviewOutcome,
   InterviewSide,
@@ -687,12 +733,15 @@ export const INTERVIEW_STATUSES = Object.values(InterviewStatus)
 export const INTERVIEW_OUTCOMES = Object.values(InterviewOutcome)
 export const INTERVIEW_DECISIONS = Object.values(InterviewDecision)
 
-// Un correspondant inconnu du CRM : les mêmes champs qu'une personne, le nom déjà obligatoire par `personFields`.
-const newCorrespondentSchema = z.object({ ...personFields })
+// Un correspondant inconnu du CRM : les mêmes champs qu'une personne, plus le type de contact choisi par l'utilisateur.
+const newCorrespondentSchema = z.object({
+  ...personFields,
+  contactType: z.enum(ContactType, { error: "Choisissez un type de contact" }),
+})
 
 export const interviewSchema = z
   .object({
-    missionId: z.string().trim().min(1, "Choisissez une mission"),
+    opportunityId: z.string().trim().min(1, "Choisissez une opportunité"),
     side: z.enum(InterviewSide, { error: "Choisissez qui mène l'entretien" }),
     // Un correspondant envoyé deux fois n'en fait qu'un.
     correspondentIds: z
@@ -749,8 +798,8 @@ import type { FormActionState } from "@/lib/form-state"
 import type { InterviewInput } from "@/lib/schemas/interview"
 
 export type InterviewFormMessage =
-  | "mission_not_found"
-  | "mission_without_intermediary"
+  | "opportunity_not_found"
+  | "opportunity_without_intermediary"
   | "correspondent_not_found"
   | "correspondent_exists"
   | "unknown_error"
@@ -780,7 +829,7 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/prisma", () => {
   const client = {
     interview: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    mission: { findUnique: vi.fn() },
+    opportunity: { findUnique: vi.fn() },
     person: { count: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
   }
   // Le mock rejoue la transaction avec le même client : pas de vraie base derrière `tx`.
@@ -803,7 +852,7 @@ import { initialInterviewFormState } from "./interviews.types"
 const MEETING = new Date("2026-09-28T08:00:00.000Z")
 
 const BASE_FIELDS = {
-  missionId: "m1",
+  opportunityId: "o1",
   side: "ESN",
   type: "RECRUTEUR_RH",
   status: "PLANIFIE",
@@ -836,7 +885,7 @@ function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
 
 // `vi.clearAllMocks` n'efface que les appels : les réponses sont remises à chaque test.
 beforeEach(() => {
-  vi.mocked(prisma.mission.findUnique).mockResolvedValue({ intermediaryId: "c-esn" } as never)
+  vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: "c-esn" } as never)
   vi.mocked(prisma.person.count).mockResolvedValue(0)
   vi.mocked(prisma.person.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.person.create).mockResolvedValue({ id: "new-1" } as never)
@@ -849,13 +898,13 @@ afterEach(() => {
 })
 
 describe("createInterview", () => {
-  it("rejects a missing mission or date", async () => {
+  it("rejects a missing opportunity or date", async () => {
     const state = await createInterview(
       initialInterviewFormState,
-      buildFormData({ missionId: "", scheduledAt: "" }),
+      buildFormData({ opportunityId: "", scheduledAt: "" }),
     )
 
-    expect(state.errors.missionId).toEqual(["Choisissez une mission"])
+    expect(state.errors.opportunityId).toEqual(["Choisissez une opportunité"])
     expect(state.errors.scheduledAt).toBeDefined()
     expect(prisma.interview.create).not.toHaveBeenCalled()
   })
@@ -869,14 +918,14 @@ describe("createInterview", () => {
     expect(state.errors.scheduledAt).toBeDefined()
   })
 
-  it("refuses an interview led by the intermediary of a mission without one", async () => {
-    vi.mocked(prisma.mission.findUnique).mockResolvedValue({ intermediaryId: null } as never)
+  it("refuses an interview led by the intermediary of an opportunity without one", async () => {
+    vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: null } as never)
 
     const state = await createInterview(initialInterviewFormState, buildFormData({ side: "ESN" }))
 
-    expect(state.message).toBe("mission_without_intermediary")
+    expect(state.message).toBe("opportunity_without_intermediary")
     expect(state.errors.side).toEqual([
-      "Cette mission n'a pas d'ESN : l'entretien est mené par le client final",
+      "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
     ])
     expect(prisma.interview.create).not.toHaveBeenCalled()
   })
@@ -905,14 +954,14 @@ describe("createInterview", () => {
     )
   })
 
-  it("creates a Contact-role person for a new correspondent", async () => {
+  it("creates a Contact-role person of the chosen type for a new correspondent", async () => {
     vi.mocked(prisma.person.create).mockResolvedValue({ id: "new-1" } as never)
 
     await createInterview(
       initialInterviewFormState,
       buildFormData({
         newCorrespondents: JSON.stringify([
-          { name: "Nadia Kader", jobRole: "RECRUTEUR", email: "nadia@example.com" },
+          { name: "Nadia Kader", jobRole: "RECRUTEUR", contactType: "COMMERCIAL", email: "nadia@example.com" },
         ]),
       }),
     )
@@ -930,13 +979,27 @@ describe("createInterview", () => {
     )
   })
 
+  it("refuses a new correspondent without a contact type", async () => {
+    const state = await createInterview(
+      initialInterviewFormState,
+      buildFormData({
+        newCorrespondents: JSON.stringify([{ name: "Nadia Kader", email: "nadia@example.com" }]),
+      }),
+    )
+
+    expect(state.errors.newCorrespondents).toBeDefined()
+    expect(prisma.interview.create).not.toHaveBeenCalled()
+  })
+
   it("refuses a new correspondent whose email is already known", async () => {
     vi.mocked(prisma.person.findFirst).mockResolvedValue({ id: "existing" } as never)
 
     const state = await createInterview(
       initialInterviewFormState,
       buildFormData({
-        newCorrespondents: JSON.stringify([{ name: "Nadia Kader", email: "nadia@example.com" }]),
+        newCorrespondents: JSON.stringify([
+          { name: "Nadia Kader", contactType: "COMMERCIAL", email: "nadia@example.com" },
+        ]),
       }),
     )
 
@@ -970,7 +1033,7 @@ describe("createInterview", () => {
     const result = createInterview(initialInterviewFormState, buildFormData())
 
     await expect(result).rejects.toThrow()
-    expect(prisma.mission.findUnique).not.toHaveBeenCalled()
+    expect(prisma.opportunity.findUnique).not.toHaveBeenCalled()
   })
 })
 
@@ -1012,14 +1075,14 @@ import { stringField, stringValues } from "@/lib/server-utils"
 import { deleteEntity, saveEntity } from "./shared"
 import type { InterviewFormMessage, InterviewFormState } from "./interviews.types"
 
-// L'entretien s'affiche sur sa mission et fait le statut « RDV planifié » de ses correspondants.
+// L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants.
 function invalidateInterviewCaches(): void {
   revalidatePath("/admin/entretiens", "layout")
-  revalidatePath("/admin/missions", "layout")
+  revalidatePath("/admin/opportunites", "layout")
   revalidatePath("/admin/leads", "layout")
 }
 
-type RuleField = "missionId" | "side" | "correspondentIds" | "newCorrespondents"
+type RuleField = "opportunityId" | "side" | "correspondentIds" | "newCorrespondents"
 
 class InterviewRuleError extends Error {
   readonly field: RuleField
@@ -1034,7 +1097,7 @@ class InterviewRuleError extends Error {
 
 function collectValues(formData: FormData): InterviewFormState["values"] {
   return {
-    missionId: stringField(formData, "missionId"),
+    opportunityId: stringField(formData, "opportunityId"),
     side: stringField(formData, "side"),
     correspondentIds: stringValues(formData, "correspondentIds"),
     newCorrespondents: stringField(formData, "newCorrespondents"),
@@ -1049,20 +1112,24 @@ function collectValues(formData: FormData): InterviewFormState["values"] {
   }
 }
 
-// Mener côté ESN suppose que la mission en a une ; les correspondants existants doivent exister et ne pas être opposés.
+// Mener côté ESN suppose que l'opportunité en a une ; les correspondants existants doivent exister et ne pas être opposés.
 async function assertInterviewTargets(data: InterviewInput): Promise<void> {
-  const mission = await prisma.mission.findUnique({
-    where: { id: data.missionId },
+  const opportunity = await prisma.opportunity.findUnique({
+    where: { id: data.opportunityId },
     select: { intermediaryId: true },
   })
-  if (!mission) {
-    throw new InterviewRuleError("missionId", "mission_not_found", "Cette mission n'existe plus, recharge la page")
+  if (!opportunity) {
+    throw new InterviewRuleError(
+      "opportunityId",
+      "opportunity_not_found",
+      "Cette opportunité n'existe plus, recharge la page",
+    )
   }
-  if (data.side === "ESN" && !mission.intermediaryId) {
+  if (data.side === "ESN" && !opportunity.intermediaryId) {
     throw new InterviewRuleError(
       "side",
-      "mission_without_intermediary",
-      "Cette mission n'a pas d'ESN : l'entretien est mené par le client final",
+      "opportunity_without_intermediary",
+      "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
     )
   }
   if (data.correspondentIds.length > 0) {
@@ -1115,7 +1182,7 @@ async function createNewCorrespondents(
         companyId: correspondent.companyId,
         contact: {
           create: {
-            types: correspondent.jobRole === "RECRUTEUR" ? ["COMMERCIAL"] : ["CONTACT_TECH"],
+            types: [correspondent.contactType],
             status: "ACTIF",
           },
         },
@@ -1236,7 +1303,7 @@ export async function deleteInterview(id: string): Promise<InterviewFormState> {
 ```
 
 Run: `pnpm vitest run --project unit src/server/actions/interviews.test.ts`
-Expected: PASS (11 tests).
+Expected: PASS (12 tests).
 
 - [ ] **Step 5 : Lecture**
 
@@ -1249,7 +1316,7 @@ import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 
 const adminInterviewInclude = {
-  mission: {
+  opportunity: {
     select: {
       id: true,
       title: true,
@@ -1316,7 +1383,7 @@ Expected: FAIL, `interviews` absent des données écrites.
 
 - [ ] **Step 2 : Retirer la personne de ses entretiens**
 
-Dans `erasePersonExchanges` (`src/server/actions/persons.ts`), ajouter `interviews: { set: [] }` aux données écrites sur la personne : l'entretien et sa mission restent, seule l'identification de la personne en part.
+Dans `erasePersonExchanges` (`src/server/actions/persons.ts`), ajouter `interviews: { set: [] }` aux données écrites sur la personne : l'entretien et son opportunité restent, seule l'identification de la personne en part.
 
 Run: `pnpm vitest run --project unit src/server/actions/persons.test.ts`
 Expected: PASS, les tests du `07` et du `09` compris.
@@ -1345,7 +1412,7 @@ Expected: suites `unit` et `integration` vertes.
 
 - [ ] **Step 2 : Entretien et correspondants**
 
-Run: `just db-studio`, puis, dans Studio : une mission via une ESN, deux leads ; créer un entretien Planifié demain, `side` `ESN`, relié à la mission et aux deux leads.
+Run: `just db-studio`, puis, dans Studio : une opportunité via une ESN, deux leads ; créer un entretien Planifié demain, `side` `ESN`, relié à l'opportunité et aux deux leads.
 Expected: `status` à `PLANIFIE` par défaut, `outcome` vide ; la table `_InterviewCorrespondents` porte deux lignes vers `Person`.
 
 Run: `just dev`, se connecter, ouvrir Leads > Tous.
@@ -1353,5 +1420,5 @@ Expected: les deux leads affichent « RDV planifié ». Passer l'entretien à `F
 
 - [ ] **Step 3 : Suppressions**
 
-Supprimer la mission dans Studio.
+Supprimer l'opportunité dans Studio.
 Expected: l'entretien disparaît avec elle, les deux leads restent. Supprimer les fiches de test ; `just stop`, fermer Studio.

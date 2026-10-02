@@ -5,7 +5,7 @@ goal: "Enregistrer les signaux qui qualifient une entreprise ou un lead outbound
 status: "draft"
 complexity: "L"
 tdd_scope: "partial"
-depends_on: ["01-rgpd-prospection-design.md", "04-liste-entreprises-enrichie-design.md", "07-leads-donnees-design.md", "08-ecran-leads-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "15-ecran-missions-design.md", "16-entretiens-donnees-design.md", "17-ecran-entretiens-design.md"]
+depends_on: ["01-rgpd-prospection-design.md", "03-formulaire-entreprise-enrichi-design.md", "04-liste-entreprises-enrichie-design.md", "07-leads-donnees-design.md", "08-ecran-leads-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "15-ecran-opportunites-design.md", "16-entretiens-donnees-design.md", "17-ecran-entretiens-design.md"]
 date: "2026-09-27"
 ---
 
@@ -22,19 +22,20 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 ## Dependencies
 
 - `01-rgpd-prospection-design.md` (statut: draft) : Traitement 7 du registre et puce prospection de la politique, dont la liste des données s'enrichit des signaux
+- `03-formulaire-entreprise-enrichi-design.md` (statut: draft) : `CompanyForm`, prop `relatedCards`
 - `04-liste-entreprises-enrichie-design.md` (statut: draft) : `CompaniesTable`, facettes et vue détail des entreprises
 - `07-leads-donnees-design.md` (statut: draft) : `Person`, `erasePersonExchanges(id)`, que ce sub-project étend aux signaux
-- `08-ecran-leads-design.md` (statut: draft) : `LeadsTable`, vue détail et page des leads, `OptOutPersonDialog`, arbitrages de page, `SelectField`, `OptionalDateField`
+- `08-ecran-leads-design.md` (statut: draft) : `LeadsTable`, vue détail et page des leads, `OptOutPersonDialog`, arbitrages de page, `SelectField`, `OptionalDateField`, `RelatedLinksList`, `RelatedLinksCard`, `initialDetailId` et la lecture de `searchParams.detail`
 - `10-ecran-actions-prospection-design.md` (statut: draft) : textes de suppression d'un lead et case d'effacement des échanges, facette calculée sur l'instant figé de la table (motif « Échéance dépassée »)
 - `13-contacts-design.md` (statut: draft) : `hasContactRole`, repris dans le texte de suppression d'un lead qui garde par ailleurs son rôle Contact
-- `15-ecran-missions-design.md` (statut: draft) : refus de suppression d'une entreprise
+- `15-ecran-opportunites-design.md` (statut: draft) : refus de suppression d'une entreprise
 - `16-entretiens-donnees-design.md` (statut: draft) : `erasePersonExchanges(id)` retire aussi la personne de ses entretiens
 - `17-ecran-entretiens-design.md` (statut: draft) : card Entretiens de la page du lead, sous laquelle se place la card Signaux
 
 ## Références de design
 
-- **Maquette** : `dlgDetail` (bloc d'une vue détail), `isCompanyForm` (cards d'une page) ; la maquette n'a ni écran ni fenêtre de signal, le formulaire suit le motif des fenêtres de formulaire de l'admin (`dlgActionForm`)
-- **Design system** : `patterns/DetailDialog`, `patterns/ConfirmDeleteDialog`, `patterns/RowActionButton`, `patterns/ExternalUrl`, `patterns/FacetFilter`, `core/Card`, `core/Dialog`, `core/Select`, `core/Calendar`, `core/Popover`, `core/Input`, `core/Textarea`, `core/Badge`
+- **Maquette** : `dlgSignalForm` (modale), `dlgDetail` (bloc d'une vue détail d'entreprise ou de lead ; vue détail propre d'un signal), `isCompanyForm` (cards d'une page) ; aucun écran dédié aux signaux, le formulaire suit le motif des fenêtres de formulaire de l'admin
+- **Design system** : `patterns/RelatedLinksList`, `patterns/RelatedLinksCard`, `patterns/DetailDialog`, `patterns/ConfirmDeleteDialog`, `patterns/RowActionButton`, `patterns/ExternalUrl`, `patterns/FacetFilter`, `core/Card`, `core/Dialog`, `core/Select`, `core/Calendar`, `core/Popover`, `core/Input`, `core/Textarea`, `core/Badge`
 - Règle de lecture : `.claude/rules/design/claude-design.md`
 
 ## Files touched
@@ -47,10 +48,10 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 - **À modifier** : `src/server/actions/persons.ts` et `src/server/actions/persons.test.ts` (`erasePersonExchanges` supprime aussi les signaux de la personne)
 - **À modifier** : `src/server/queries/companies.ts`, `src/server/queries/leads.ts` (signaux de chaque fiche)
 - **À créer** : `src/components/features/admin/signals/SignalFormDialog.tsx`, `DeleteSignalDialog.tsx`, `SignalList.tsx`, `SignalsCard.tsx`
-- **À modifier** : `src/components/features/admin/companies/CompaniesTable.tsx` (bloc Signaux en lecture, facette)
+- **À modifier** : `src/components/features/admin/companies/CompaniesTable.tsx` (bloc Signaux en lecture, facette, vue détail d'un signal)
 - **À modifier** : `src/components/features/admin/companies/DeleteCompanyDialog.tsx` (signaux supprimés avec l'entreprise)
 - **À modifier** : `src/app/admin/(protected)/entreprises/[id]/page.tsx` (card Signaux)
-- **À modifier** : `src/components/features/admin/leads/LeadsTable.tsx` (bloc Signaux en lecture, facette)
+- **À modifier** : `src/components/features/admin/leads/LeadsTable.tsx` (bloc Signaux en lecture, facette, vue détail d'un signal)
 - **À modifier** : `src/app/admin/(protected)/leads/[id]/page.tsx` (card Signaux)
 - **À modifier** : `docs/registre-traitements.md` (Traitement 7, données), `content/legal/fr/confidentialite-intro.md`, `content/legal/en/confidentialite-intro.md` (puce prospection, données)
 
@@ -87,12 +88,14 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 | Expansion d'équipe, Nouveau produit | moins de 6 mois | 6 à 12 mois | plus de 12 mois |
 
   Les autres types n'ont pas de règle dans le toolkit : ni badge, ni place dans le filtre « Signal récent »
+- **Glyphes** : `src/lib/signals.ts` exporte aussi `SIGNAL_TYPE_ICONS: Record<SignalType, IconComponent | null>` (Offre de poste `Megaphone`, Levée `TrendingUp`, Expansion d'équipe `Users`, Nouveau produit `Package`, Pivot `RotateCcw`, Acquisition `Merge`, Post engageant `PenLine`, Commentaire `MessageSquareText`, Présence en conférence `Mic`, Interaction directe `Hand`), imports nommés depuis `lucide-react`, type `IconComponent` de `@/lib/icons`
 - **Validation** (`src/lib/schemas/signal.ts`, `.claude/rules/zod/schemas.md`) : date requise (date ISO) ; contenu requis ; lien vide → `null`
 - **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, motif `saveEntity` / `deleteEntity`) : `createCompanySignal(companyId)`, `createPersonSignal(personId)`, `updateSignal(id)`, `deleteSignal(id)`, `getCurrentUser()` en tête de chacune. La création sur une personne vérifie qu'elle porte le rôle Lead avec `origin OUTBOUND` et n'est pas opposée ; la modification relit le rattachement du signal pour valider le type et refuse un signal d'une personne opposée ; la suppression reste toujours possible. Revalidation en variante `layout` de `/admin/entreprises` et `/admin/leads`
 - **RGPD** (`01`) : les signaux d'une personne restent après une opposition simple (`optOutPerson`), comme ses actions, et sont supprimés par `erasePersonExchanges(id)` dans la même transaction que ses actions ; ils partent avec la personne supprimée (rôle Lead retiré sans qu'il lui reste de rôle), ceux d'une entreprise avec l'entreprise. Le Traitement 7 et la puce prospection de la politique (FR, EN) ajoutent à leurs données « signaux d'activité professionnelle publique (publications, commentaires, présence en conférence) », les sources déclarées couvrant déjà profils publics et événements
-- **Card Signaux** (`SignalsCard`, arbitrage « Élément rattaché à une fiche » de DESIGN.md) sur la page d'une entreprise (sous la card Missions du `15`) et d'un lead (sous la card Entretiens du `17`), hors du formulaire : du plus récent au plus ancien, chaque signal avec son type, sa date, son badge de fraîcheur, son contenu, son lien (`ExternalUrl`) et ses boutons Modifier et Supprimer ; bouton « Nouveau signal » dans l'en-tête de la card, pour une entreprise et pour un lead outbound ; « Aucun signal. » sans signal. Sur la page d'un lead inbound, la card n'apparaît que s'il garde des signaux d'une origine précédente, sans bouton d'ajout. Aucun bouton de ligne
-- **Saisie** (`SignalFormDialog`, fenêtre, arbitrage « Page ou modale d'édition ») : Type (`SelectField`), Date (`OptionalDateField` du `05`, un seul calendrier, obligatoire ; quand la source ne donne que le mois, le 1er du mois s'y saisit), Contenu (`Textarea`), Lien source (`Input`)
-- **Bloc Signaux** (`signalsSection`) dans les vues détail d'une entreprise et d'un lead, en lecture : la même liste, sans boutons ; bloc absent sans signal (arbitrage du `08`). Un lead opposé n'a plus de page (`08`) : sa vue détail montre ses signaux gardés
+- **Card Signaux** (`SignalsCard`, arbitrage « Élément rattaché à une fiche » de DESIGN.md) sur la page d'une entreprise (sous la card Opportunités du `15`) et d'un lead (sous la card Entretiens du `17`), hors du formulaire, en `RelatedLinksList` (type en libellé, décote puis contenu en méta, date en `trailing`, crayon et corbeille en `actions`) du plus récent au plus ancien ; bouton « Nouveau signal » dans l'en-tête de la card, pour une entreprise et pour un lead outbound. Présente aussi en création, vide avec « Après l'enregistrement de l'entreprise. » ou « Après l'enregistrement du lead. » et bouton désactivé (arbitrage « Cards rattachées des pages ») ; « Aucun signal. » sans signal une fois la fiche enregistrée. Sur la page d'un lead inbound, la card n'apparaît que s'il garde des signaux d'une origine précédente, sans bouton d'ajout. Gérée depuis sa propre card, jamais par un bouton de ligne de la liste des entreprises ou des leads
+- **Saisie** (`SignalFormDialog`, fenêtre, arbitrage « Page ou modale d'édition ») : Type (`SelectField`) et Date (`OptionalDateField` du `05`, un seul calendrier, obligatoire ; quand la source ne donne que le mois, le 1er du mois s'y saisit), puis Lien source (`Input`), puis Contenu (`Textarea`)
+- **Bloc Signaux** (`signalsSection`) dans les vues détail d'une entreprise et d'un lead, en `RelatedLinksList` en lecture : la même liste sans `actions`, chaque ligne ouvrant la vue détail du signal à la place de la vue courante (données déjà chargées) ; bloc absent sans signal (arbitrage du `08`). Un lead opposé n'a plus de page (`08`) : sa vue détail montre ses signaux gardés
+- **Vue détail d'un signal** (`buildSignalDetail`), ouverte depuis les lignes Signaux des vues détail de l'entreprise et du lead : titre le type, sous-titre la date, badge de décote en tête ; bloc Signal (Lien source, Contenu) ; bloc « Rattaché à » en `RelatedLinksList` d'une ligne vers l'entreprise ou le lead (`href` avec `?detail=<id>`, comme toute fiche à page propre) ; bouton Modifier ouvrant `SignalFormDialog` sur ce signal
 - **Filtre « Signal récent »** : facette à une option dans les listes Entreprises et Leads, toutes vues, calculée sur l'instant figé au montage de la table, motif du filtre « Échéance dépassée » (`10`)
 - **Suppressions** : la confirmation de suppression d'une entreprise garde « Ses signaux sont supprimés avec elle. » ; celle d'un lead et le texte de la confirmation « Ne plus contacter » (`08`) nomment déjà ses signaux à côté de ses actions
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
@@ -131,6 +134,13 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 **WHEN** on passe le premier en « Ne plus contacter » sans la case d'effacement, le second avec
 **THEN** le signal du premier reste dans le bloc Signaux de sa vue détail, celui du second est supprimé
 
+### Scénario 7 : vue détail d'un signal
+**GIVEN** la vue détail d'une entreprise avec un signal
+**WHEN** on clique sa ligne dans le bloc Signaux
+**THEN** la vue détail du signal remplace la vue courante, avec son type en titre, sa date en sous-titre et son badge de décote
+**AND** son bloc « Rattaché à » mène, par un lien, à la vue détail de l'entreprise
+**AND** son bouton Modifier ouvre `SignalFormDialog` sur ce signal
+
 ## Tests à écrire
 
 ### Unit
@@ -154,7 +164,7 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 - **Lead opposé sans effacement** : ses signaux restent dans le bloc de sa vue détail comme historique, en lecture ; sa fiche n'ayant plus de page, ils ne partent qu'avec l'effacement de ses échanges ou la suppression du lead
 - **Signal daté dans le futur** (conférence à venir) : accepté, et récent pour les types notés
 - **Date au mois courant** : récente dès le 1er du mois, l'âge se comptant depuis le 1er
-- **Entreprise rattachée à des projets ou des missions** : sa suppression reste refusée (`15`), ses signaux avec elle
+- **Entreprise rattachée à des projets ou des opportunités** : sa suppression reste refusée (`15`), ses signaux avec elle
 
 ## Architectural decisions
 

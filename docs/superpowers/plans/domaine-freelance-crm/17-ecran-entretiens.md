@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** L'écran Entretiens (À venir, Journal, page de création et de modification en cards, détail, suppression), la card Entretiens avec « Nouvel entretien » sur la page d'une mission, le bloc Entretiens des missions, le bloc, la colonne et la card Entretiens des leads.
+**Goal:** L'écran Entretiens (À venir, Journal, page de création et de modification en cards, détail, suppression), la card Entretiens avec « Nouvel entretien » sur la page d'une opportunité, le bloc Entretiens des opportunités, le bloc, la colonne et la card Entretiens des leads.
 
-**Architecture:** Un module pur testé (`interview-views`) porte les deux vues. `InterviewsTable` reprend le motif des listes admin et calcule les titres sur tous les entretiens (`interviewPlaces`, `16`) ; `InterviewForm` reprend le motif de `LeadForm` (`08`) : page en cards, avec une mission de départ passée par `?mission=<id>` depuis la card Entretiens de la page d'une mission, un correspondant choisi parmi les personnes non opposées ou ajouté en ligne (nouvelle personne), et une issue visible et obligatoire seulement quand le statut vaut Fait. Le champ date et heure du formulaire des actions (`10`) sort dans un composant partagé.
+**Architecture:** Un module pur testé (`interview-views`) porte les deux vues. `InterviewsTable` reprend le motif des listes admin et calcule les titres sur tous les entretiens (`interviewPlaces`, `16`) ; `InterviewForm` reprend le motif de `LeadForm` (`08`) : page en cards, avec une opportunité de départ passée par `?opportunity=<id>` depuis la card Entretiens de la page d'une opportunité, un correspondant choisi parmi les personnes non opposées ou ajouté en ligne (nouveau contact, au type choisi) ; une issue visible et obligatoire seulement quand le statut vaut Fait. Le champ date et heure du formulaire des actions (`10`) sort dans un composant partagé.
 
 **Tech Stack:** Next.js 16 App Router, React 19, shadcn/ui `radix-nova` (Card, RadioGroup, Select, Popover, Calendar, Command), Pages CMS Editor (ADR-024), Vitest 4.
 
@@ -12,13 +12,14 @@
 
 ## Global Constraints
 
-- **Prérequis** : plans `07` (`findPersonOptions()`, `PersonOption`, `personFields`, `JOB_ROLES`, `JOB_ROLE_LABELS`), `08` (`LeadForm`, page du lead, `RelatedLinksCard`, `findCompanyOptions()`, `CompanyOption`, `SelectField`), `10` (`DateTimeField` local à `ProspectingActionFormDialog`, `timeOf`, `toInstant`, `formatShortDateTime`), `15` (`MissionsTable`, `DeleteMissionDialog`, `AdminMission`, page de la mission, `findMissionByIdForAdmin`) et `16` (`AdminInterview`, `findAllInterviewsForAdmin`, `createInterview`, `updateInterview`, `deleteInterview`, `interviewPlaces`, `interviewTitle`, libellés `INTERVIEW_*`, `interviewDetailsTemplate`, `detailsAfterTemplateChange`, `AdminLead.interviews`, `AdminLead.interviewsCount`) implémentés.
+- **Prérequis** : plans `04` (`EnumBadge`), `07` (`findPersonOptions()`, `PersonOption`, `personFields`, `JOB_ROLES`, `JOB_ROLE_LABELS`), `08` (`LeadForm`, page du lead, `RelatedLinksList`, `RelatedLinksCard`, `findCompanyOptions()`, `CompanyOption`, `SelectField`), `10` (`DateTimeField` local à `ProspectingActionFormDialog`, `timeOf`, `toInstant`, `formatShortDateTime`, `LeadActionsCard`), `13` (`CONTACT_TYPES`, `CONTACT_TYPE_LABELS`, `CONTACT_TYPE_ICONS`, `personDetailHref`, `src/lib/person-links.ts`), `15` (`OpportunitiesTable`, `DeleteOpportunityDialog`, `AdminOpportunity`, page de l'opportunité, `findOpportunityByIdForAdmin`, card Opportunités apportées de la page du lead) et `16` (`AdminInterview`, `findAllInterviewsForAdmin`, `createInterview`, `updateInterview`, `deleteInterview`, `interviewPlaces`, `interviewTitle`, libellés et glyphes `INTERVIEW_*`, `interviewDetailsTemplate`, `detailsAfterTemplateChange`, `AdminLead.interviews`, `AdminLead.interviewsCount`) implémentés.
 - **Routes et titres** : À venir `/admin/entretiens` « Entretiens à venir », sous-titre « Ceux qui restent à tenir, le prochain en premier. » ; Journal `/admin/entretiens/journal` « Journal des entretiens », sous-titre « Toutes les fiches, passées et à venir, la plus récente en premier. »
 - **Vues** : À venir = statut `PLANIFIE` et date non passée, le prochain d'abord ; Journal = tous, le plus récent d'abord.
-- **Missions proposées** : non closes (ni `REFUSEE`, ni `DECLINEE`, ni `ABANDONNEE`), la mission déjà reliée restant affichée.
-- **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : l'entretien se crée sur `/admin/entretiens/nouveau` (mission de départ par `?mission=<id>`) et se modifie sur `/admin/entretiens/<id>`, en cards Mission, Échange, Détails, Évaluation, Notes ; la ligne ne porte que Modifier (lien) et Supprimer ; aucun bouton de ligne sur les missions, « Nouvel entretien » vit dans la card Entretiens de la page d'une mission.
-- **Issue** : champ masqué tant que le statut n'est pas Fait, facultative dès qu'il le devient (`16`).
-- **Textes** : suppression d'un entretien « Les entretiens suivants de la mission se renumérotent. » ; suppression d'une mission « Ses entretiens sont supprimés avec elle. L'apporteur, l'ESN et le client final restent. »
+- **Opportunités proposées** : non closes (ni `REFUSEE`, ni `DECLINEE`, ni `ABANDONNEE`), l'opportunité déjà reliée restant affichée.
+- **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : l'entretien se crée sur `/admin/entretiens/nouveau` (opportunité de départ par `?opportunity=<id>`) et se modifie sur `/admin/entretiens/<id>`, en cards Opportunité, Échange, Détails, Évaluation, Notes ; la ligne ne porte que Modifier (lien) et Supprimer ; aucun bouton de ligne sur les opportunités, « Nouvel entretien » vit dans la card Entretiens de la page d'une opportunité.
+- **Issue** : champ masqué tant que le statut n'est pas Fait, facultative dès qu'il le devient (`16`) ; Statut occupe alors seul la pleine largeur de sa ligne.
+- **Correspondant inconnu** : « Nouveau contact », grille Nom et Poste, Entreprise et Type de contact (requis, choisi par l'utilisateur), Email et LinkedIn ; aide « Chaque nouvelle personne devient un contact du type choisi. Le reste de sa fiche se complète depuis Contacts. »
+- **Textes** : suppression d'un entretien « Les entretiens suivants de l'opportunité se renumérotent. » ; suppression d'une opportunité « Ses entretiens sont supprimés avec elle. L'apporteur, l'ESN et le client final restent. »
 - **Menu** : entrée « Entretiens », sous-entrées « À venir » et « Journal ».
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
@@ -26,11 +27,12 @@
 
 ## Review Focus
 
-- **Mission changée pour une mission sans ESN alors que « Mené par » est sur l'ESN** : le choix passe au client final, sans enregistrement refusé ensuite. Vérifié à la Task 7, Step 2.
+- **Opportunité changée pour une opportunité sans ESN alors que « Mené par » est sur l'ESN** : le choix passe au client final, sans enregistrement refusé ensuite. Vérifié à la Task 7, Step 2.
 - **Titre dans la vue À venir** : « Entretien 2 » reste « Entretien 2 » même si l'entretien 1, passé, n'est pas dans la vue. Vérifié à la Task 7, Step 3 (les titres se calculent sur tous les entretiens).
-- **Entretien d'une mission close ouvert en modification** : sa mission reste affichée dans le champ. Vérifié à la Task 7, Step 4.
+- **Entretien d'une opportunité close ouvert en modification** : son opportunité reste affichée dans le champ. Vérifié à la Task 7, Step 4.
 - **Correspondant opposé** : il reste affiché dans le formulaire et la vue détail d'un entretien existant, sans être proposé pour un autre. Vérifié à la Task 7, Step 4.
-- **Statut changé de Fait à Planifié** : Issue se masque sans bloquer l'enregistrement. Vérifié à la Task 7, Step 2.
+- **Statut changé de Fait à Planifié** : Issue se masque sans bloquer l'enregistrement, Statut reprend la pleine largeur. Vérifié à la Task 7, Step 2.
+- **Nouveau contact sans type choisi** : refusé, le type de contact étant requis. Vérifié à la Task 4, Step 2.
 
 ---
 
@@ -247,23 +249,24 @@ Expected: aucune erreur.
 ### Task 3 : Lectures et largeurs
 
 **Files:**
-- Modify: `src/server/queries/missions.ts`
+- Modify: `src/server/queries/opportunities.ts`
 - Modify: `src/server/queries/leads.ts`
+- Modify: `src/server/queries/interviews.ts`
 - Modify: `src/lib/admin-table-widths.ts`
 
 **Interfaces:**
-- Consumes: modèle `Interview` (`16`) ; `findCompanyOptions()`, `CompanyOption` (`08`, posée pour la combobox Entreprise de `LeadForm`)
-- Produces: `AdminMission.interviews: { id, missionId, type, status, scheduledAt, createdAt }[]` ; `findMissionOptions()`, `type MissionOption = { id, title, intermediary: { name } | null, client: { name } | null }` ; `AdminLead.interviews: { id, type, status, scheduledAt, mission: { title } }[]` ; `INTERVIEW_COLUMN_WIDTHS`, `InterviewColumnKey`, `INTERVIEW_DEFAULT_VISIBLE_COLUMNS`, `interviewSkeletonWidths()` ; `LEAD_COLUMN_WIDTHS.interviewsCount`
+- Consumes: modèle `Interview` (`16`) ; `findCompanyOptions()`, `CompanyOption` (`08`, posée pour la combobox Entreprise de `LeadForm`) ; `personDetailHref` (`13`, `@/lib/person-links`)
+- Produces: `AdminOpportunity.interviews: { id, opportunityId, type, status, scheduledAt, createdAt }[]` ; `findOpportunityOptions()`, `type OpportunityOption = { id, title, intermediary: { name } | null, client: { name } | null }` ; `AdminLead.interviews: { id, type, status, scheduledAt, opportunity: { title } }[]` ; `AdminInterview.correspondents` étendu de `lead: { id } | null` et `contact: { id } | null` ; `INTERVIEW_COLUMN_WIDTHS`, `InterviewColumnKey`, `INTERVIEW_DEFAULT_VISIBLE_COLUMNS`, `interviewSkeletonWidths()` ; `LEAD_COLUMN_WIDTHS.interviewsCount`
 
-- [ ] **Step 1 : Missions**
+- [ ] **Step 1 : Opportunités**
 
-Dans `src/server/queries/missions.ts`, ajouter à `adminMissionInclude` :
+Dans `src/server/queries/opportunities.ts`, ajouter à `adminOpportunityInclude` :
 
 ```ts
   interviews: {
     select: {
       id: true,
-      missionId: true,
+      opportunityId: true,
       type: true,
       status: true,
       scheduledAt: true,
@@ -276,9 +279,9 @@ Dans `src/server/queries/missions.ts`, ajouter à `adminMissionInclude` :
 puis, à la fin du fichier :
 
 ```ts
-// Missions sur lesquelles planifier un entretien : jamais une opportunité close.
-export async function findMissionOptions() {
-  return prisma.mission.findMany({
+// Opportunités sur lesquelles planifier un entretien : jamais une opportunité close.
+export async function findOpportunityOptions() {
+  return prisma.opportunity.findMany({
     where: { status: { notIn: ["REFUSEE", "DECLINEE", "ABANDONNEE"] } },
     select: {
       id: true,
@@ -290,7 +293,7 @@ export async function findMissionOptions() {
   })
 }
 
-export type MissionOption = Awaited<ReturnType<typeof findMissionOptions>>[number]
+export type OpportunityOption = Awaited<ReturnType<typeof findOpportunityOptions>>[number]
 ```
 
 - [ ] **Step 2 : Leads**
@@ -304,15 +307,36 @@ Dans `src/server/queries/leads.ts`, remplacer l'entrée `interviews` de `adminLe
           type: true,
           status: true,
           scheduledAt: true,
-          mission: { select: { title: true } },
+          opportunity: { select: { title: true } },
         },
         orderBy: { scheduledAt: "desc" },
       },
 ```
 
-et, dans `AdminLead`, élargir `interviews` à `{ id: string; type: InterviewType; status: InterviewStatus; scheduledAt: Date; mission: { title: string } }[]` (import de type `InterviewType`) ; `toAdminLead` lit déjà `row.person.interviews`.
+et, dans `AdminLead`, élargir `interviews` à `{ id: string; type: InterviewType; status: InterviewStatus; scheduledAt: Date; opportunity: { title: string } }[]` (import de type `InterviewType`) ; `toAdminLead` lit déjà `row.person.interviews`.
 
-- [ ] **Step 3 : Largeurs**
+- [ ] **Step 3 : Correspondants, lead ou contact**
+
+Dans `src/server/queries/interviews.ts` (`adminInterviewInclude` du `16`), étendre le `select` de `correspondents` pour que la vue détail (Task 6, Step 1) puisse résoudre la fiche de chacun par `personDetailHref` (`13`) :
+
+```ts
+  correspondents: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      linkedinUrl: true,
+      optedOutAt: true,
+      lead: { select: { id: true } },
+      contact: { select: { id: true } },
+    },
+    orderBy: { name: "asc" },
+  },
+```
+
+(remplace le `select` plus court posé par le `16`, qui n'avait que `id`, `name`, `email`, `linkedinUrl`, `optedOutAt` ; `opportunity` ne change pas.)
+
+- [ ] **Step 4 : Largeurs**
 
 Dans `src/lib/admin-table-widths.ts` :
 
@@ -323,7 +347,7 @@ Dans `src/lib/admin-table-widths.ts` :
 export const INTERVIEW_COLUMN_WIDTHS = {
   // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
   title: 210,
-  mission: 200,
+  opportunity: 200,
   side: 180,
   scheduledAt: 150,
   type: 140,
@@ -340,11 +364,11 @@ export const INTERVIEW_COLUMN_WIDTHS = {
 
 export type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
 
-// À venir : colonnes affichées de la maquette (entrCols), plus Mission, portée par l'entretien.
+// À venir : colonnes affichées de la maquette (entrCols), plus Opportunité, portée par l'entretien.
 // Journal, la vue complète, montre toutes ses colonnes (arbitrage « Colonnes par vue »).
 export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<InterviewView, readonly InterviewColumnKey[]> = {
   "a-venir": [
-    "mission",
+    "opportunity",
     "side",
     "scheduledAt",
     "type",
@@ -356,7 +380,7 @@ export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<InterviewView, reado
     "score",
   ],
   journal: [
-    "mission",
+    "opportunity",
     "side",
     "scheduledAt",
     "type",
@@ -395,8 +419,8 @@ Expected: aucune erreur.
 - Create: `src/app/admin/(protected)/entretiens/nouveau/page.tsx` et `loading.tsx`, `src/app/admin/(protected)/entretiens/[id]/page.tsx` et `loading.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 2 et 3 ; actions, libellés, gabarits (`16`) ; `SelectField`, `MultiSelectCombobox`, `ComboboxPopover`, `RowActionButton`, `ConfirmDeleteDialog`, `Editor`, `RadioGroup`, `Card`, `AdminBreadcrumb`, `StackedSkeleton` ; `timeOf`, `toInstant` ; `personDisplayName` (`@/lib/persons`) ; `JOB_ROLES`, `JOB_ROLE_LABELS` (`@/lib/job-roles`, `07`) ; `findPersonOptions()` (`07`) ; `findCompanyOptions()`, `CompanyOption` (`08`)
-- Produces: `InterviewForm({ interview, defaultMissionId, missionOptions, personOptions, companyOptions }: { interview: AdminInterview | null; defaultMissionId?: string; missionOptions: readonly MissionOption[]; personOptions: readonly PersonOption[]; companyOptions: readonly CompanyOption[] })` ; `DeleteInterviewDialog({ interview, title })` ; `findInterviewByIdForAdmin(id)` ; routes `/admin/entretiens/nouveau` (mission de départ par `?mission=<id>`) et `/admin/entretiens/<id>`
+- Consumes: Tasks 2 et 3 ; actions, libellés, glyphes, gabarits (`16`) ; `EnumBadge` (`04`) ; `CONTACT_TYPES`, `CONTACT_TYPE_LABELS`, `CONTACT_TYPE_ICONS` (`13`) ; `SelectField`, `MultiSelectCombobox`, `ComboboxPopover`, `RowActionButton`, `ConfirmDeleteDialog`, `Editor`, `RadioGroup`, `Card`, `AdminBreadcrumb`, `StackedSkeleton` ; `timeOf`, `toInstant` ; `personDisplayName` (`@/lib/persons`) ; `JOB_ROLES`, `JOB_ROLE_LABELS` (`@/lib/job-roles`, `07`) ; `findPersonOptions()` (`07`) ; `findCompanyOptions()`, `CompanyOption` (`08`)
+- Produces: `InterviewForm({ interview, defaultOpportunityId, opportunityOptions, personOptions, companyOptions }: { interview: AdminInterview | null; defaultOpportunityId?: string; opportunityOptions: readonly OpportunityOption[]; personOptions: readonly PersonOption[]; companyOptions: readonly CompanyOption[] })` ; `DeleteInterviewDialog({ interview, title })` ; `findInterviewByIdForAdmin(id)` ; routes `/admin/entretiens/nouveau` (opportunité de départ par `?opportunity=<id>`) et `/admin/entretiens/<id>`
 
 - [ ] **Step 1 : Suppression**
 
@@ -414,12 +438,12 @@ import type { AdminInterview } from "@/server/queries/interviews"
 
 interface Props {
   interview: AdminInterview
-  // Titre déduit de l'ordre de l'entretien dans sa mission, calculé par la table.
+  // Titre déduit de l'ordre de l'entretien dans son opportunité, calculé par la table.
   title: string
 }
 
 export function DeleteInterviewDialog({ interview, title }: Props) {
-  const name = `${title} · ${interview.mission.title}`
+  const name = `${title} · ${interview.opportunity.title}`
 
   return (
     <ConfirmDeleteDialog
@@ -429,7 +453,7 @@ export function DeleteInterviewDialog({ interview, title }: Props) {
         </RowActionButton>
       }
       name={name}
-      description="Les entretiens suivants de la mission se renumérotent."
+      description="Les entretiens suivants de l'opportunité se renumérotent."
       successMessage="Entretien supprimé"
       onDelete={async () => {
         const result = await deleteInterview(interview.id)
@@ -442,7 +466,7 @@ export function DeleteInterviewDialog({ interview, title }: Props) {
 
 - [ ] **Step 2 : Formulaire en cards**
 
-`src/components/features/admin/entretiens/InterviewForm.tsx`, sur le motif de `LeadForm` (`08`) ; les cards reprennent les blocs de la vue détail. Ouvert depuis la card Entretiens d'une mission (`?mission=<id>`), il y revient après l'enregistrement :
+`src/components/features/admin/entretiens/InterviewForm.tsx`, sur le motif de `LeadForm` (`08`) ; les cards reprennent les blocs de la vue détail. Ouvert depuis la card Entretiens d'une opportunité (`?opportunity=<id>`), il y revient après l'enregistrement :
 
 ```tsx
 "use client"
@@ -473,26 +497,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { InterviewSide, InterviewStatus, InterviewType, JobRole } from "@/generated/prisma/client"
+import type { ContactType, InterviewSide, InterviewStatus, InterviewType, JobRole } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
+import { CONTACT_TYPE_ICONS, CONTACT_TYPE_LABELS } from "@/lib/contacts"
 import { timeOf, toInstant } from "@/lib/date-time"
 import { detailsAfterTemplateChange, interviewDetailsTemplate } from "@/lib/details-templates"
 import {
+  INTERVIEW_DECISION_ICONS,
   INTERVIEW_DECISION_LABELS,
   INTERVIEW_FIELD_LABELS as LABELS,
+  INTERVIEW_OUTCOME_ICONS,
   INTERVIEW_OUTCOME_LABELS,
+  INTERVIEW_STATUS_ICONS,
   INTERVIEW_STATUS_LABELS,
+  INTERVIEW_TYPE_ICONS,
   INTERVIEW_TYPE_LABELS,
 } from "@/lib/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import { personDisplayName } from "@/lib/persons"
+import { CONTACT_TYPES } from "@/lib/schemas/contact"
 import { INTERVIEW_DECISIONS, INTERVIEW_OUTCOMES, INTERVIEW_STATUSES, INTERVIEW_TYPES } from "@/lib/schemas/interview"
 import { NONE_VALUE } from "@/lib/schemas/person"
 import { createInterview, updateInterview } from "@/server/actions/interviews"
 import { initialInterviewFormState } from "@/server/actions/interviews.types"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminInterview } from "@/server/queries/interviews"
-import type { MissionOption } from "@/server/queries/missions"
+import type { OpportunityOption } from "@/server/queries/opportunities"
 import type { PersonOption } from "@/server/queries/persons"
 
 interface NewCorrespondentDraft {
@@ -500,12 +530,21 @@ interface NewCorrespondentDraft {
   name: string
   jobRole: JobRole | ""
   companyId: string
+  contactType: ContactType | ""
   email: string
   linkedinUrl: string
 }
 
 function emptyCorrespondentDraft(): NewCorrespondentDraft {
-  return { key: crypto.randomUUID(), name: "", jobRole: "", companyId: "", email: "", linkedinUrl: "" }
+  return {
+    key: crypto.randomUUID(),
+    name: "",
+    jobRole: "",
+    companyId: "",
+    contactType: "",
+    email: "",
+    linkedinUrl: "",
+  }
 }
 
 function toNewCorrespondentPayload(draft: NewCorrespondentDraft) {
@@ -513,6 +552,7 @@ function toNewCorrespondentPayload(draft: NewCorrespondentDraft) {
     name: draft.name.trim() || undefined,
     jobRole: draft.jobRole || undefined,
     companyId: draft.companyId || undefined,
+    contactType: draft.contactType || undefined,
     email: draft.email.trim() || undefined,
     linkedinUrl: draft.linkedinUrl.trim() || undefined,
   }
@@ -525,7 +565,7 @@ interface NewCorrespondentRowProps {
   onRemove: () => void
 }
 
-// Un correspondant inconnu : les mêmes champs qu'une personne, encodés en JSON à l'enregistrement.
+// Un correspondant inconnu : les mêmes champs qu'une personne, plus le type de contact choisi, encodés en JSON à l'enregistrement.
 function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewCorrespondentRowProps) {
   return (
     <div className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-2">
@@ -560,6 +600,25 @@ function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewC
           ))}
         </SelectContent>
       </Select>
+      <Select
+        value={draft.contactType}
+        onValueChange={(value) => onChange({ ...draft, contactType: value as ContactType })}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Type de contact" />
+        </SelectTrigger>
+        <SelectContent>
+          {CONTACT_TYPES.map((value) => {
+            const Icon = CONTACT_TYPE_ICONS[value]
+            return (
+              <SelectItem key={value} value={value}>
+                {Icon ? <Icon aria-hidden /> : null}
+                {CONTACT_TYPE_LABELS[value]}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
       <Input
         type="email"
         placeholder="Email"
@@ -575,7 +634,6 @@ function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewC
         onChange={(event) => {
           onChange({ ...draft, linkedinUrl: event.target.value })
         }}
-        className="sm:col-span-2"
       />
       <Button
         type="button"
@@ -593,17 +651,17 @@ function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewC
 
 interface Props {
   interview: AdminInterview | null
-  // Mission de départ d'un nouvel entretien, ouvert depuis la card Entretiens de sa page.
-  defaultMissionId?: string
-  missionOptions: readonly MissionOption[]
+  // Opportunité de départ d'un nouvel entretien, ouvert depuis la card Entretiens de sa page.
+  defaultOpportunityId?: string
+  opportunityOptions: readonly OpportunityOption[]
   personOptions: readonly PersonOption[]
   companyOptions: readonly CompanyOption[]
 }
 
 export function InterviewForm({
   interview,
-  defaultMissionId,
-  missionOptions,
+  defaultOpportunityId,
+  opportunityOptions,
   personOptions,
   companyOptions,
 }: Props) {
@@ -612,32 +670,32 @@ export function InterviewForm({
   const action = interview ? updateInterview.bind(null, interview.id) : createInterview
   const [state, formAction, pending] = useActionState(action, initialInterviewFormState)
   const handleSubmit = useFormActionSubmit(formAction)
-  const returnPath: Route = defaultMissionId
-    ? `/admin/missions/${defaultMissionId}`
+  const returnPath: Route = defaultOpportunityId
+    ? `/admin/opportunites/${defaultOpportunityId}`
     : "/admin/entretiens"
 
-  // La mission d'un entretien existant peut être close, donc sortie des choix : elle reste affichée.
-  const missions: readonly MissionOption[] =
-    interview && !missionOptions.some((option) => option.id === interview.missionId)
+  // L'opportunité d'un entretien existant peut être close, donc sortie des choix : elle reste affichée.
+  const opportunities: readonly OpportunityOption[] =
+    interview && !opportunityOptions.some((option) => option.id === interview.opportunityId)
       ? [
           {
-            id: interview.mission.id,
-            title: interview.mission.title,
-            intermediary: interview.mission.intermediary
-              ? { name: interview.mission.intermediary.name }
+            id: interview.opportunity.id,
+            title: interview.opportunity.title,
+            intermediary: interview.opportunity.intermediary
+              ? { name: interview.opportunity.intermediary.name }
               : null,
-            client: interview.mission.client ? { name: interview.mission.client.name } : null,
+            client: interview.opportunity.client ? { name: interview.opportunity.client.name } : null,
           },
-          ...missionOptions,
+          ...opportunityOptions,
         ]
-      : missionOptions
+      : opportunityOptions
 
   const [now] = useState(() => new Date())
-  const [missionId, setMissionId] = useState(interview?.missionId ?? defaultMissionId ?? "")
-  const [missionOpen, setMissionOpen] = useState(false)
-  const selectedMission = missions.find((mission) => mission.id === missionId) ?? null
+  const [opportunityId, setOpportunityId] = useState(interview?.opportunityId ?? defaultOpportunityId ?? "")
+  const [opportunityOpen, setOpportunityOpen] = useState(false)
+  const selectedOpportunity = opportunities.find((opportunity) => opportunity.id === opportunityId) ?? null
   const [side, setSide] = useState<InterviewSide>(
-    interview?.side ?? (selectedMission?.intermediary ? "ESN" : "CLIENT_FINAL"),
+    interview?.side ?? (selectedOpportunity?.intermediary ? "ESN" : "CLIENT_FINAL"),
   )
   const [correspondentIds, setCorrespondentIds] = useState<string[]>(
     interview?.correspondents.map((person) => person.id) ?? [],
@@ -662,10 +720,10 @@ export function InterviewForm({
       .map((person) => ({ value: person.id, label: personDisplayName(person) })),
   ]
 
-  function handleMissionChange(nextId: string) {
-    setMissionId(nextId)
-    const next = missions.find((mission) => mission.id === nextId)
-    // Une mission en client direct ne peut pas être menée côté ESN.
+  function handleOpportunityChange(nextId: string) {
+    setOpportunityId(nextId)
+    const next = opportunities.find((opportunity) => opportunity.id === nextId)
+    // Une opportunité en client direct ne peut pas être menée côté ESN.
     if (side === "ESN" && !next?.intermediary) setSide("CLIENT_FINAL")
   }
 
@@ -706,7 +764,7 @@ export function InterviewForm({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-sans text-2xl font-semibold tracking-tight">
           {interview
-            ? `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.mission.title}`
+            ? `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.opportunity.title}`
             : "Nouvel entretien"}
         </h1>
         <div className="flex flex-wrap gap-2">
@@ -724,47 +782,51 @@ export function InterviewForm({
         <div className="flex min-w-0 flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>Mission</CardTitle>
+              <CardTitle>Opportunité</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <FormField id={`${formId}-missionId`} label={LABELS.missionId} errors={state.errors.missionId}>
+              <FormField id={`${formId}-opportunityId`} label={LABELS.opportunityId} errors={state.errors.opportunityId}>
                 <ComboboxPopover
-                  id={`${formId}-missionId`}
-                  open={missionOpen}
-                  onOpenChange={setMissionOpen}
+                  id={`${formId}-opportunityId`}
+                  open={opportunityOpen}
+                  onOpenChange={setOpportunityOpen}
                   triggerContent={
-                    selectedMission ? (
-                      <span className="truncate">{selectedMission.title}</span>
+                    selectedOpportunity ? (
+                      <span className="truncate">{selectedOpportunity.title}</span>
                     ) : (
-                      <span className="text-muted-foreground">Choisir une mission</span>
+                      <span className="text-muted-foreground">Choisir une opportunité</span>
                     )
                   }
-                  ariaInvalid={!!state.errors.missionId?.length}
-                  ariaDescribedby={`${formId}-missionId-error`}
-                  searchPlaceholder="Chercher une mission"
-                  emptyMessage="Aucune mission ne correspond."
+                  ariaInvalid={!!state.errors.opportunityId?.length}
+                  ariaDescribedby={`${formId}-opportunityId-error`}
+                  searchPlaceholder="Chercher une opportunité"
+                  emptyMessage="Aucune opportunité ne correspond."
                 >
                   <CommandGroup>
-                    {missions.map((mission) => (
+                    {opportunities.map((opportunity) => (
                       <CommandItem
-                        key={mission.id}
-                        value={mission.id}
-                        keywords={[mission.title, mission.intermediary?.name ?? "", mission.client?.name ?? ""]}
-                        data-checked={missionId === mission.id}
+                        key={opportunity.id}
+                        value={opportunity.id}
+                        keywords={[
+                          opportunity.title,
+                          opportunity.intermediary?.name ?? "",
+                          opportunity.client?.name ?? "",
+                        ]}
+                        data-checked={opportunityId === opportunity.id}
                         onSelect={() => {
-                          handleMissionChange(mission.id)
-                          setMissionOpen(false)
+                          handleOpportunityChange(opportunity.id)
+                          setOpportunityOpen(false)
                         }}
                       >
-                        <span className="truncate">{mission.title}</span>
+                        <span className="truncate">{opportunity.title}</span>
                         <span className="truncate text-muted-foreground">
-                          {mission.intermediary?.name ?? mission.client?.name ?? ""}
+                          {opportunity.intermediary?.name ?? opportunity.client?.name ?? ""}
                         </span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </ComboboxPopover>
-                <input type="hidden" name="missionId" value={missionId} />
+                <input type="hidden" name="opportunityId" value={opportunityId} />
               </FormField>
 
               <FormField id={`${formId}-side`} label={LABELS.side} errors={state.errors.side}>
@@ -782,16 +844,16 @@ export function InterviewForm({
                     <RadioGroupItem
                       id={`${formId}-side-esn`}
                       value="ESN"
-                      disabled={!selectedMission?.intermediary}
+                      disabled={!selectedOpportunity?.intermediary}
                     />
                     <Label htmlFor={`${formId}-side-esn`}>
-                      ESN{selectedMission?.intermediary ? ` · ${selectedMission.intermediary.name}` : " (aucune)"}
+                      ESN{selectedOpportunity?.intermediary ? ` · ${selectedOpportunity.intermediary.name}` : " (aucune)"}
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem id={`${formId}-side-client`} value="CLIENT_FINAL" />
                     <Label htmlFor={`${formId}-side-client`}>
-                      Client final{selectedMission?.client ? ` · ${selectedMission.client.name}` : ""}
+                      Client final{selectedOpportunity?.client ? ` · ${selectedOpportunity.client.name}` : ""}
                     </Label>
                   </div>
                 </RadioGroup>
@@ -815,34 +877,57 @@ export function InterviewForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {INTERVIEW_TYPES.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {INTERVIEW_TYPE_LABELS[value]}
-                      </SelectItem>
-                    ))}
+                    {INTERVIEW_TYPES.map((value) => {
+                      const Icon = INTERVIEW_TYPE_ICONS[value]
+                      return (
+                        <SelectItem key={value} value={value}>
+                          {Icon ? <Icon aria-hidden /> : null}
+                          {INTERVIEW_TYPE_LABELS[value]}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </FormField>
 
-              <FormField id={`${formId}-status`} label={LABELS.status} errors={state.errors.status}>
-                <Select name="status" value={status} onValueChange={handleStatusChange}>
-                  <SelectTrigger
-                    id={`${formId}-status`}
-                    className="w-full"
-                    aria-invalid={!!state.errors.status?.length}
-                    aria-describedby={`${formId}-status-error`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INTERVIEW_STATUSES.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {INTERVIEW_STATUS_LABELS[value]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
+              <div>
+                <DateTimeField
+                  id={`${formId}-scheduledAt`}
+                  label={LABELS.scheduledAt}
+                  errors={state.errors.scheduledAt}
+                  date={date}
+                  onDateChange={setDate}
+                  time={time}
+                  onTimeChange={setTime}
+                />
+                <input type="hidden" name="scheduledAt" value={toInstant(date, time)} />
+              </div>
+
+              <div className={status === "FAIT" ? undefined : "sm:col-span-2"}>
+                <FormField id={`${formId}-status`} label={LABELS.status} errors={state.errors.status}>
+                  <Select name="status" value={status} onValueChange={handleStatusChange}>
+                    <SelectTrigger
+                      id={`${formId}-status`}
+                      className="w-full"
+                      aria-invalid={!!state.errors.status?.length}
+                      aria-describedby={`${formId}-status-error`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INTERVIEW_STATUSES.map((value) => {
+                        const Icon = INTERVIEW_STATUS_ICONS[value]
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {Icon ? <Icon aria-hidden /> : null}
+                            {INTERVIEW_STATUS_LABELS[value]}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              </div>
 
               {status === "FAIT" ? (
                 <FormField id={`${formId}-outcome`} label={LABELS.outcome} errors={state.errors.outcome}>
@@ -857,28 +942,19 @@ export function InterviewForm({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NONE_VALUE}>Non renseignée</SelectItem>
-                      {INTERVIEW_OUTCOMES.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {INTERVIEW_OUTCOME_LABELS[value]}
-                        </SelectItem>
-                      ))}
+                      {INTERVIEW_OUTCOMES.map((value) => {
+                        const Icon = INTERVIEW_OUTCOME_ICONS[value]
+                        return (
+                          <SelectItem key={value} value={value}>
+                            {Icon ? <Icon aria-hidden /> : null}
+                            {INTERVIEW_OUTCOME_LABELS[value]}
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                 </FormField>
               ) : null}
-
-              <div className="sm:col-span-2">
-                <DateTimeField
-                  id={`${formId}-scheduledAt`}
-                  label={LABELS.scheduledAt}
-                  errors={state.errors.scheduledAt}
-                  date={date}
-                  onDateChange={setDate}
-                  time={time}
-                  onTimeChange={setTime}
-                />
-                <input type="hidden" name="scheduledAt" value={toInstant(date, time)} />
-              </div>
 
               <div className="flex min-w-0 flex-col gap-3 sm:col-span-2">
                 <FormField
@@ -893,7 +969,7 @@ export function InterviewForm({
                     selected={correspondentIds}
                     onChange={setCorrespondentIds}
                     placeholder="Ajouter un correspondant"
-                    searchPlaceholder="Chercher une personne"
+                    searchPlaceholder="Chercher un lead ou un contact"
                     emptyMessage="Aucune personne ne correspond."
                     ariaInvalid={!!state.errors.correspondentIds?.length}
                     ariaDescribedby={`${formId}-correspondentIds-error`}
@@ -924,8 +1000,14 @@ export function InterviewForm({
                   }}
                 >
                   <UserPlus aria-hidden data-icon="inline-start" />
-                  Nouvelle personne
+                  Nouveau contact
                 </Button>
+                {newCorrespondents.length > 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Chaque nouvelle personne devient un contact du type choisi. Le reste de sa fiche se complète
+                    depuis Contacts.
+                  </p>
+                ) : null}
                 <input
                   type="hidden"
                   name="newCorrespondents"
@@ -968,7 +1050,7 @@ export function InterviewForm({
               <CardTitle>Évaluation</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <FormField id={`${formId}-score`} label={LABELS.score} errors={state.errors.score} help="De 0 à 10.">
+              <FormField id={`${formId}-score`} label={LABELS.score} errors={state.errors.score}>
                 <Input
                   id={`${formId}-score`}
                   name="score"
@@ -979,7 +1061,7 @@ export function InterviewForm({
                   step={1}
                   defaultValue={interview?.score?.toString() ?? ""}
                   aria-invalid={!!state.errors.score?.length}
-                  aria-describedby={`${formId}-score-help ${formId}-score-error`}
+                  aria-describedby={`${formId}-score-error`}
                 />
               </FormField>
 
@@ -989,6 +1071,7 @@ export function InterviewForm({
                 label={LABELS.decision}
                 options={INTERVIEW_DECISIONS}
                 labels={INTERVIEW_DECISION_LABELS}
+                icons={INTERVIEW_DECISION_ICONS}
                 defaultValue={interview?.decision ?? NONE_VALUE}
                 errors={state.errors.decision}
                 noneLabel="Non renseignée"
@@ -1045,7 +1128,7 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
-import { findMissionOptions } from "@/server/queries/missions"
+import { findOpportunityOptions } from "@/server/queries/opportunities"
 import { findPersonOptions } from "@/server/queries/persons"
 
 const INTERVIEW_PAGE_SKELETON = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]
@@ -1053,16 +1136,18 @@ const INTERVIEW_PAGE_SKELETON = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px
 async function NewInterviewSection({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string }>
+  searchParams: Promise<{ opportunity?: string }>
 }) {
-  const [{ mission }, missionOptions, personOptions, companyOptions] = await Promise.all([
+  const [{ opportunity }, opportunityOptions, personOptions, companyOptions] = await Promise.all([
     searchParams,
-    findMissionOptions(),
+    findOpportunityOptions(),
     findPersonOptions(),
     findCompanyOptions(),
   ])
-  // Seule une mission proposable devient la mission de départ.
-  const defaultMissionId = missionOptions.some((option) => option.id === mission) ? mission : undefined
+  // Seule une opportunité proposable devient l'opportunité de départ.
+  const defaultOpportunityId = opportunityOptions.some((option) => option.id === opportunity)
+    ? opportunity
+    : undefined
 
   return (
     <div className="flex flex-col gap-6">
@@ -1071,8 +1156,8 @@ async function NewInterviewSection({
       />
       <InterviewForm
         interview={null}
-        {...(defaultMissionId ? { defaultMissionId } : {})}
-        missionOptions={missionOptions}
+        {...(defaultOpportunityId ? { defaultOpportunityId } : {})}
+        opportunityOptions={opportunityOptions}
         personOptions={personOptions}
         companyOptions={companyOptions}
       />
@@ -1083,7 +1168,7 @@ async function NewInterviewSection({
 export default async function NewInterviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mission?: string }>
+  searchParams: Promise<{ opportunity?: string }>
 }) {
   await getCurrentUser()
 
@@ -1110,15 +1195,15 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { INTERVIEW_TYPE_LABELS } from "@/lib/interviews"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findInterviewByIdForAdmin } from "@/server/queries/interviews"
-import { findMissionOptions } from "@/server/queries/missions"
+import { findOpportunityOptions } from "@/server/queries/opportunities"
 import { findPersonOptions } from "@/server/queries/persons"
 
 const INTERVIEW_PAGE_SKELETON = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]
 
 async function EditInterviewSection({ id }: { id: string }) {
-  const [interview, missionOptions, personOptions, companyOptions] = await Promise.all([
+  const [interview, opportunityOptions, personOptions, companyOptions] = await Promise.all([
     findInterviewByIdForAdmin(id),
-    findMissionOptions(),
+    findOpportunityOptions(),
     findPersonOptions(),
     findCompanyOptions(),
   ])
@@ -1129,12 +1214,12 @@ async function EditInterviewSection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[
           { label: "Entretiens", href: "/admin/entretiens" },
-          { label: `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.mission.title}` },
+          { label: `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.opportunity.title}` },
         ]}
       />
       <InterviewForm
         interview={interview}
-        missionOptions={missionOptions}
+        opportunityOptions={opportunityOptions}
         personOptions={personOptions}
         companyOptions={companyOptions}
       />
@@ -1179,7 +1264,7 @@ Expected: aucune erreur.
 
 **Interfaces:**
 - Consumes: Tasks 1, 3 et 4 ; `findAllInterviewsForAdmin`, `interviewPlaces`, `interviewTitle` (`16`) ; `RowActionButton` ; `formatDailyRate` (`15`)
-- Produces: `InterviewsTable({ interviews, view })`, `InterviewsViewPage({ view })`
+- Produces: `InterviewsTable({ interviews, view, initialDetailId })`, `InterviewsViewPage({ view, initialDetailId })`
 
 - [ ] **Step 1 : Table**
 
@@ -1201,6 +1286,7 @@ import {
   type DetailSection,
   DetailDialog,
 } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteInterviewDialog } from "@/components/features/admin/entretiens/DeleteInterviewDialog"
@@ -1214,17 +1300,22 @@ import {
 import { formatShortDateTime } from "@/lib/date-time"
 import { interviewsForView, type InterviewView } from "@/lib/interview-views"
 import {
+  INTERVIEW_DECISION_ICONS,
   INTERVIEW_DECISION_LABELS,
   INTERVIEW_FIELD_LABELS as LABELS,
+  INTERVIEW_OUTCOME_ICONS,
   INTERVIEW_OUTCOME_LABELS,
+  INTERVIEW_STATUS_ICONS,
   INTERVIEW_STATUS_LABELS,
+  INTERVIEW_TYPE_ICONS,
   INTERVIEW_TYPE_LABELS,
   interviewPlaces,
   interviewTitle,
 } from "@/lib/interviews"
-import { formatDailyRate, MISSION_FIELD_LABELS } from "@/lib/missions"
+import { formatDailyRate, OPPORTUNITY_FIELD_LABELS } from "@/lib/opportunities"
+import { personDetailHref } from "@/lib/person-links"
 import { personDisplayName } from "@/lib/persons"
-import { CONTRACT_STATUS_LABELS, WORK_MODE_LABELS } from "@/lib/projects"
+import { CONTRACT_STATUS_ICONS, CONTRACT_STATUS_LABELS, WORK_MODE_ICONS, WORK_MODE_LABELS } from "@/lib/projects"
 import { INTERVIEW_OUTCOMES, INTERVIEW_STATUSES, INTERVIEW_TYPES } from "@/lib/schemas/interview"
 import { ZONE_LABELS } from "@/lib/zones"
 import type { AdminInterview } from "@/server/queries/interviews"
@@ -1232,7 +1323,7 @@ import type { AdminInterview } from "@/server/queries/interviews"
 const OPTED_OUT_LABEL = "Ne plus contacter"
 
 function leadingCompany(interview: AdminInterview) {
-  return interview.side === "ESN" ? interview.mission.intermediary : interview.mission.client
+  return interview.side === "ESN" ? interview.opportunity.intermediary : interview.opportunity.client
 }
 
 function TruncatedCell({ value }: { value: string | null | undefined }) {
@@ -1263,7 +1354,7 @@ function buildDataColumns(
       sortValue: (interview) => titles.get(interview.id) ?? "",
       searchValue: (interview) =>
         [
-          interview.mission.title,
+          interview.opportunity.title,
           leadingCompany(interview)?.name ?? "",
           ...correspondentNames(interview),
         ].join(" "),
@@ -1274,12 +1365,12 @@ function buildDataColumns(
       ),
     },
     {
-      key: "mission",
-      header: LABELS.missionId,
-      width: INTERVIEW_COLUMN_WIDTHS.mission,
-      ...hideable(view, "mission"),
-      sortValue: (interview) => interview.mission.title,
-      cell: (interview) => <TruncatedCell value={interview.mission.title} />,
+      key: "opportunity",
+      header: LABELS.opportunityId,
+      width: INTERVIEW_COLUMN_WIDTHS.opportunity,
+      ...hideable(view, "opportunity"),
+      sortValue: (interview) => interview.opportunity.title,
+      cell: (interview) => <TruncatedCell value={interview.opportunity.title} />,
     },
     {
       key: "side",
@@ -1310,14 +1401,18 @@ function buildDataColumns(
       header: LABELS.type,
       width: INTERVIEW_COLUMN_WIDTHS.type,
       ...hideable(view, "type"),
-      cell: (interview) => <Badge variant="secondary">{INTERVIEW_TYPE_LABELS[interview.type]}</Badge>,
+      cell: (interview) => (
+        <EnumBadge label={INTERVIEW_TYPE_LABELS[interview.type]} icon={INTERVIEW_TYPE_ICONS[interview.type]} />
+      ),
     },
     {
       key: "status",
       header: LABELS.status,
       width: INTERVIEW_COLUMN_WIDTHS.status,
       ...hideable(view, "status"),
-      cell: (interview) => <Badge variant="secondary">{INTERVIEW_STATUS_LABELS[interview.status]}</Badge>,
+      cell: (interview) => (
+        <EnumBadge label={INTERVIEW_STATUS_LABELS[interview.status]} icon={INTERVIEW_STATUS_ICONS[interview.status]} />
+      ),
     },
     {
       key: "outcome",
@@ -1326,7 +1421,7 @@ function buildDataColumns(
       ...hideable(view, "outcome"),
       cell: (interview) =>
         interview.outcome ? (
-          <Badge variant="secondary">{INTERVIEW_OUTCOME_LABELS[interview.outcome]}</Badge>
+          <EnumBadge label={INTERVIEW_OUTCOME_LABELS[interview.outcome]} icon={INTERVIEW_OUTCOME_ICONS[interview.outcome]} />
         ) : null,
     },
     {
@@ -1335,8 +1430,8 @@ function buildDataColumns(
       width: INTERVIEW_COLUMN_WIDTHS.zone,
       ...hideable(view, "zone"),
       cell: (interview) =>
-        interview.mission.zone ? (
-          <Badge variant="secondary">{ZONE_LABELS[interview.mission.zone]}</Badge>
+        interview.opportunity.zone ? (
+          <Badge variant="secondary">{ZONE_LABELS[interview.opportunity.zone]}</Badge>
         ) : null,
     },
     {
@@ -1345,7 +1440,7 @@ function buildDataColumns(
       width: INTERVIEW_COLUMN_WIDTHS.workMode,
       ...hideable(view, "workMode"),
       cell: (interview) =>
-        interview.mission.workMode ? WORK_MODE_LABELS[interview.mission.workMode] : null,
+        interview.opportunity.workMode ? WORK_MODE_LABELS[interview.opportunity.workMode] : null,
     },
     {
       key: "dailyRate",
@@ -1354,8 +1449,8 @@ function buildDataColumns(
       align: "right",
       className: "tabular-nums",
       ...hideable(view, "dailyRate"),
-      sortValue: (interview) => interview.mission.dailyRate ?? -1,
-      cell: (interview) => formatDailyRate(interview.mission.dailyRate),
+      sortValue: (interview) => interview.opportunity.dailyRate ?? -1,
+      cell: (interview) => formatDailyRate(interview.opportunity.dailyRate),
     },
     {
       key: "score",
@@ -1373,7 +1468,9 @@ function buildDataColumns(
       width: INTERVIEW_COLUMN_WIDTHS.decision,
       ...hideable(view, "decision"),
       cell: (interview) =>
-        interview.decision ? INTERVIEW_DECISION_LABELS[interview.decision] : null,
+        interview.decision ? (
+          <EnumBadge label={INTERVIEW_DECISION_LABELS[interview.decision]} icon={INTERVIEW_DECISION_ICONS[interview.decision]} />
+        ) : null,
     },
     {
       key: "correspondents",
@@ -1393,15 +1490,15 @@ function keepFilled(section: DetailSection): DetailSection[] {
 function buildInterviewDetail(
   interview: AdminInterview,
   title: string,
-  previous: { title: string; scheduledAt: Date } | null,
+  previous: { id: string; title: string; scheduledAt: Date } | null,
   onEdit: () => void,
 ): DetailContent {
   const company = leadingCompany(interview)
-  const { mission } = interview
+  const { opportunity } = interview
 
   return {
     title,
-    subtitle: [mission.title, company?.name].filter((part): part is string => !!part).join(" · "),
+    subtitle: company?.name ?? "",
     status: (
       <Badge variant="outline" meta>
         {INTERVIEW_STATUS_LABELS[interview.status]}
@@ -1409,68 +1506,81 @@ function buildInterviewDetail(
     ),
     sections: [
       {
+        // La ligne cliquable fait aussi office de titre : l'opportunité se retrouve avant ses conditions.
+        title: "Opportunité",
+        rows: [
+          {
+            fullWidth: true,
+            value: (
+              <Link href={`/admin/opportunites/toutes?detail=${opportunity.id}`} className="font-medium hover:underline">
+                {opportunity.title}
+              </Link>
+            ),
+          },
+          { label: OPPORTUNITY_FIELD_LABELS.dailyRate, value: formatDailyRate(opportunity.dailyRate) },
+          {
+            label: OPPORTUNITY_FIELD_LABELS.contract,
+            value: opportunity.contract ? (
+              <EnumBadge
+                label={CONTRACT_STATUS_LABELS[opportunity.contract]}
+                icon={CONTRACT_STATUS_ICONS[opportunity.contract]}
+              />
+            ) : null,
+          },
+          {
+            label: OPPORTUNITY_FIELD_LABELS.workMode,
+            value: opportunity.workMode ? (
+              <EnumBadge label={WORK_MODE_LABELS[opportunity.workMode]} icon={WORK_MODE_ICONS[opportunity.workMode]} />
+            ) : null,
+          },
+          {
+            label: OPPORTUNITY_FIELD_LABELS.zone,
+            value: opportunity.zone ? <Badge variant="secondary">{ZONE_LABELS[opportunity.zone]}</Badge> : null,
+          },
+        ],
+      },
+      {
+        // Statut et mené par sont déjà portés par l'en-tête et le sous-titre, inutile de les répéter ici.
         title: "Échange",
         rows: [
-          { label: LABELS.type, value: <Badge variant="secondary">{INTERVIEW_TYPE_LABELS[interview.type]}</Badge> },
-          { label: LABELS.status, value: <Badge variant="secondary">{INTERVIEW_STATUS_LABELS[interview.status]}</Badge> },
-          {
-            label: LABELS.outcome,
-            value: interview.outcome ? <Badge variant="secondary">{INTERVIEW_OUTCOME_LABELS[interview.outcome]}</Badge> : null,
-          },
+          { label: LABELS.type, value: <EnumBadge label={INTERVIEW_TYPE_LABELS[interview.type]} icon={INTERVIEW_TYPE_ICONS[interview.type]} /> },
           { label: LABELS.scheduledAt, value: formatShortDateTime(interview.scheduledAt) },
-          { label: LABELS.side, value: company?.name ?? null },
+          ...(interview.outcome
+            ? [
+                {
+                  label: LABELS.outcome,
+                  fullWidth: true,
+                  value: <EnumBadge label={INTERVIEW_OUTCOME_LABELS[interview.outcome]} icon={INTERVIEW_OUTCOME_ICONS[interview.outcome]} />,
+                },
+              ]
+            : []),
           {
             label: LABELS.correspondentIds,
+            fullWidth: true,
             value:
               interview.correspondents.length > 0 ? (
                 <span className="flex flex-wrap gap-2">
-                  {interview.correspondents.map((person) => (
-                    <span key={person.id} className="inline-flex items-center gap-1">
-                      {personDisplayName(person)}
-                      {person.optedOutAt ? <Badge variant="outline">{OPTED_OUT_LABEL}</Badge> : null}
-                    </span>
-                  ))}
+                  {interview.correspondents.map((person) => {
+                    // Un correspondant peut n'avoir ni rôle Lead ni rôle Contact (perdu après une suppression) : personDetailHref (13) rend alors null, le nom reste en texte simple.
+                    const href = personDetailHref(person)
+                    return (
+                      <span key={person.id} className="inline-flex items-center gap-1">
+                        {href ? (
+                          <Link href={href} className="hover:underline">
+                            {personDisplayName(person)}
+                          </Link>
+                        ) : (
+                          <span>{personDisplayName(person)}</span>
+                        )}
+                        {person.optedOutAt ? <Badge variant="outline">{OPTED_OUT_LABEL}</Badge> : null}
+                      </span>
+                    )
+                  })}
                 </span>
               ) : null,
           },
         ],
       },
-      ...keepFilled({
-        title: "Évaluation",
-        rows: [
-          { label: LABELS.score, value: interview.score === null ? null : `${interview.score} / 10` },
-          {
-            label: LABELS.decision,
-            value: interview.decision ? <Badge variant="secondary">{INTERVIEW_DECISION_LABELS[interview.decision]}</Badge> : null,
-          },
-        ],
-      }),
-      ...keepFilled({
-        title: "Mission",
-        rows: [
-          { label: MISSION_FIELD_LABELS.dailyRate, value: formatDailyRate(mission.dailyRate) },
-          { label: MISSION_FIELD_LABELS.contract, value: mission.contract ? <Badge variant="secondary">{CONTRACT_STATUS_LABELS[mission.contract]}</Badge> : null },
-          { label: MISSION_FIELD_LABELS.workMode, value: mission.workMode ? <Badge variant="secondary">{WORK_MODE_LABELS[mission.workMode]}</Badge> : null },
-          {
-            label: MISSION_FIELD_LABELS.zone,
-            value: mission.zone ? <Badge variant="secondary">{ZONE_LABELS[mission.zone]}</Badge> : null,
-          },
-        ],
-      }),
-      ...(previous
-        ? [
-            {
-              title: "Entretien précédent",
-              rows: [
-                {
-                  fullWidth: true,
-                  value: `${previous.title} · ${formatShortDateTime(previous.scheduledAt)}`,
-                },
-              ],
-            },
-          ]
-        : []),
-      ...(interview.notes ? [{ title: "Notes", rows: [{ value: interview.notes, fullWidth: true }] }] : []),
       ...(interview.details
         ? [
             {
@@ -1479,6 +1589,34 @@ function buildInterviewDetail(
                 {
                   value: <MarkdownContent markdown={interview.details} variant="admin" />,
                   fullWidth: true,
+                },
+              ],
+            },
+          ]
+        : []),
+      ...keepFilled({
+        title: "Évaluation",
+        rows: [
+          { label: LABELS.score, value: interview.score === null ? null : `${interview.score} / 10` },
+          {
+            label: LABELS.decision,
+            value: interview.decision ? <EnumBadge label={INTERVIEW_DECISION_LABELS[interview.decision]} icon={INTERVIEW_DECISION_ICONS[interview.decision]} /> : null,
+          },
+        ],
+      }),
+      ...(interview.notes ? [{ title: "Notes", rows: [{ value: interview.notes, fullWidth: true }] }] : []),
+      ...(previous
+        ? [
+            {
+              title: "Entretien précédent",
+              rows: [
+                {
+                  fullWidth: true,
+                  value: (
+                    <Link href={`/admin/entretiens/journal?detail=${previous.id}`} className="hover:underline">
+                      {previous.title} · {formatShortDateTime(previous.scheduledAt)}
+                    </Link>
+                  ),
                 },
               ],
             },
@@ -1513,11 +1651,15 @@ const facets: readonly Facet<AdminInterview>[] = [
 interface Props {
   interviews: readonly AdminInterview[]
   view: InterviewView
+  // Ouvre la vue détail de cette ligne au chargement (lien « Entretien précédent », card d'une opportunité ou d'un lead).
+  initialDetailId?: string
 }
 
-export function InterviewsTable({ interviews, view }: Props) {
+export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
   const router = useRouter()
-  const [selectedInterview, setSelectedInterview] = useState<AdminInterview | null>(null)
+  const [selectedInterview, setSelectedInterview] = useState<AdminInterview | null>(
+    () => interviews.find((interview) => interview.id === initialDetailId) ?? null,
+  )
   // Instant figé au montage : la vue À venir reste stable pendant la consultation.
   const [now] = useState(() => Date.now())
 
@@ -1549,7 +1691,7 @@ export function InterviewsTable({ interviews, view }: Props) {
         cell: (interview) => (
           <span className="inline-flex gap-0">
             <RowActionButton
-              aria-label={`Modifier ${titles.get(interview.id) ?? ""} · ${interview.mission.title}`}
+              aria-label={`Modifier ${titles.get(interview.id) ?? ""} · ${interview.opportunity.title}`}
               asChild
             >
               <Link href={`/admin/entretiens/${interview.id}`}>
@@ -1571,7 +1713,7 @@ export function InterviewsTable({ interviews, view }: Props) {
     return buildInterviewDetail(
       selectedInterview,
       titles.get(selectedInterview.id) ?? "",
-      previous ? { title: titles.get(previous.id) ?? "", scheduledAt: previous.scheduledAt } : null,
+      previous ? { id: previous.id, title: titles.get(previous.id) ?? "", scheduledAt: previous.scheduledAt } : null,
       () => {
         router.push(`/admin/entretiens/${selectedInterview.id}`)
       },
@@ -1584,10 +1726,11 @@ export function InterviewsTable({ interviews, view }: Props) {
         rows={viewInterviews}
         columns={columns}
         getRowId={(interview) => interview.id}
-        searchPlaceholder="Rechercher une mission, une entreprise ou un correspondant"
+        searchPlaceholder="Rechercher une opportunité, une entreprise ou un correspondant"
         noun="entretien"
         onRowClick={setSelectedInterview}
         rowLabel={(interview) => titles.get(interview.id) ?? ""}
+        initialDetailId={initialDetailId}
         facets={facets}
         empty={{
           icon: MessageCircle,
@@ -1623,16 +1766,23 @@ import { interviewSkeletonWidths } from "@/lib/admin-table-widths"
 import { INTERVIEW_VIEW_PAGES, type InterviewView } from "@/lib/interview-views"
 import { findAllInterviewsForAdmin } from "@/server/queries/interviews"
 
-async function InterviewsSection({ view }: { view: InterviewView }) {
+async function InterviewsSection({
+  view,
+  initialDetailId,
+}: {
+  view: InterviewView
+  initialDetailId?: string
+}) {
   const interviews = await findAllInterviewsForAdmin()
-  return <InterviewsTable interviews={interviews} view={view} />
+  return <InterviewsTable interviews={interviews} view={view} initialDetailId={initialDetailId} />
 }
 
 interface Props {
   view: InterviewView
+  initialDetailId?: string
 }
 
-export function InterviewsViewPage({ view }: Props) {
+export function InterviewsViewPage({ view, initialDetailId }: Props) {
   const { title, subtitle } = INTERVIEW_VIEW_PAGES[view]
 
   return (
@@ -1649,7 +1799,7 @@ export function InterviewsViewPage({ view }: Props) {
       }
     >
       <Suspense fallback={<DataTableSkeleton columnWidths={interviewSkeletonWidths(view)} />}>
-        <InterviewsSection view={view} />
+        <InterviewsSection view={view} initialDetailId={initialDetailId} />
       </Suspense>
     </AdminPageShell>
   )
@@ -1664,10 +1814,15 @@ export function InterviewsViewPage({ view }: Props) {
 import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminInterviewsPage() {
+export default async function AdminInterviewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ detail?: string }>
+}) {
   await getCurrentUser()
+  const { detail } = await searchParams
 
-  return <InterviewsViewPage view="a-venir" />
+  return <InterviewsViewPage view="a-venir" initialDetailId={detail} />
 }
 ```
 
@@ -1677,10 +1832,15 @@ export default async function AdminInterviewsPage() {
 import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminInterviewsJournalPage() {
+export default async function AdminInterviewsJournalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ detail?: string }>
+}) {
   await getCurrentUser()
+  const { detail } = await searchParams
 
-  return <InterviewsViewPage view="journal" />
+  return <InterviewsViewPage view="journal" initialDetailId={detail} />
 }
 ```
 
@@ -1717,34 +1877,37 @@ Expected: aucune erreur (si le typage des `href` échoue, lancer `just dev` une 
 
 ---
 
-### Task 6 : Côté missions et leads
+### Task 6 : Côté opportunités et leads
 
 **Files:**
-- Modify: `src/components/features/admin/missions/MissionsTable.tsx`
-- Modify: `src/components/features/admin/missions/DeleteMissionDialog.tsx`
-- Modify: `src/app/admin/(protected)/missions/[id]/page.tsx`
+- Modify: `src/components/features/admin/opportunities/OpportunitiesTable.tsx`
+- Modify: `src/components/features/admin/opportunities/DeleteOpportunityDialog.tsx`
+- Modify: `src/app/admin/(protected)/opportunites/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/opportunites/nouvelle/page.tsx`
 - Modify: `src/components/features/admin/leads/LeadsTable.tsx`
 - Modify: `src/app/admin/(protected)/leads/[id]/page.tsx`
+- Modify: `src/app/admin/(protected)/leads/nouveau/page.tsx`
 
 **Interfaces:**
-- Consumes: Tasks 3 et 4 ; `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS`, `INTERVIEW_TYPE_LABELS` (`16`) ; `RelatedLinksCard`, `RelatedLink` (`08`) ; pages de la mission (`15`) et du lead (`08`)
+- Consumes: Tasks 3 et 4 ; `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS`, `INTERVIEW_TYPE_LABELS` (`16`) ; `RelatedLinksList`, `RelatedLinksCard`, `RelatedLink` (`08`) ; pages de l'opportunité (`15`) et du lead (`08`)
 - Produces: rien
 
-- [ ] **Step 1 : Suppression d'une mission**
+- [ ] **Step 1 : Suppression d'une opportunité**
 
-Dans `DeleteMissionDialog.tsx`, remplacer la description par « Ses entretiens sont supprimés avec elle. L'apporteur, l'ESN et le client final restent. »
+Dans `DeleteOpportunityDialog.tsx`, remplacer la description par « Ses entretiens sont supprimés avec elle. L'apporteur, l'ESN et le client final restent. »
 
-- [ ] **Step 2 : Bloc Entretiens d'une mission**
+- [ ] **Step 2 : Bloc Entretiens d'une opportunité**
 
-Dans `MissionsTable.tsx` :
+Dans `OpportunitiesTable.tsx` :
 
-- importer `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS` depuis `@/lib/interviews`, `formatShortDateTime` depuis `@/lib/date-time` ;
-- ajouter avant `buildMissionDetail` :
+- importer `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS` depuis `@/lib/interviews`, `formatShortDateTime` depuis `@/lib/date-time`, `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList` ;
+- ajouter avant `buildOpportunityDetail` :
 
 ```tsx
-function interviewsSection(mission: AdminMission): DetailSection[] {
-  if (mission.interviews.length === 0) return []
-  const places = interviewPlaces(mission.interviews)
+// Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'entretien via ?detail= sur sa vue complète (le Journal).
+function interviewsSection(opportunity: AdminOpportunity): DetailSection[] {
+  if (opportunity.interviews.length === 0) return []
+  const places = interviewPlaces(opportunity.interviews)
   return [
     {
       title: "Entretiens",
@@ -1752,21 +1915,17 @@ function interviewsSection(mission: AdminMission): DetailSection[] {
         {
           fullWidth: true,
           value: (
-            <ol className="flex flex-col gap-1">
-              {mission.interviews.map((interview) => (
-                <li key={interview.id} className="flex flex-wrap gap-x-2 text-sm">
-                  <span className="font-medium">
-                    {interviewTitle(interview.type, places.get(interview.id)?.number ?? null)}
-                  </span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatShortDateTime(interview.scheduledAt)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {INTERVIEW_STATUS_LABELS[interview.status]}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <RelatedLinksList
+              links={opportunity.interviews.map(
+                (interview): RelatedLink => ({
+                  id: interview.id,
+                  href: `/admin/entretiens/journal?detail=${interview.id}`,
+                  label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
+                  meta: INTERVIEW_STATUS_LABELS[interview.status],
+                  trailing: formatShortDateTime(interview.scheduledAt),
+                }),
+              )}
+            />
           ),
         },
       ],
@@ -1775,43 +1934,76 @@ function interviewsSection(mission: AdminMission): DetailSection[] {
 }
 ```
 
-  et, dans `buildMissionDetail`, insérer `...interviewsSection(mission),` juste avant le bloc Notes.
+  puis, dans `buildOpportunityDetail`, insérer `...interviewsSection(opportunity),` à la toute fin du tableau `sections`, juste après le bloc Notes (`15`) et avant `onEdit,` : Entretiens clôt la vue détail d'une opportunité (arbitrage du propriétaire, 2026-10-02), après Notes plutôt qu'avant.
 
-- [ ] **Step 3 : Card Entretiens de la page d'une mission**
+- [ ] **Step 3 : Card Entretiens de la page d'une opportunité, en création comme en modification**
 
-Arbitrage « Élément rattaché à une fiche » de DESIGN.md : un entretien se crée depuis la page de sa mission, jamais par un bouton de ligne. La mission lue par `findMissionByIdForAdmin` porte ses entretiens (Task 3). Dans `src/app/admin/(protected)/missions/[id]/page.tsx`, importer `Plus` (`lucide-react`), `Link` (`next/link`), `Button`, `RelatedLinksCard`, `type RelatedLink`, `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS` (`@/lib/interviews`) et `formatShortDateTime` (`@/lib/date-time`), puis, dans `EditMissionSection`, calculer :
+Arbitrage « Élément rattaché à une fiche » de DESIGN.md : un entretien se crée depuis la page de son opportunité, jamais par un bouton de ligne. L'opportunité lue par `findOpportunityByIdForAdmin` porte ses entretiens (Task 3). `OpportunityForm` rend déjà `relatedCards` dans sa colonne principale, après Détails (`15`).
+
+Dans `src/app/admin/(protected)/opportunites/[id]/page.tsx`, importer `Plus` (`lucide-react`), `Link` (`next/link`), `Button`, `RelatedLinksCard`, `type RelatedLink`, `interviewPlaces`, `interviewTitle`, `INTERVIEW_STATUS_LABELS` (`@/lib/interviews`) et `formatShortDateTime` (`@/lib/date-time`), puis, dans `EditOpportunitySection`, calculer :
 
 ```tsx
-  // Titres calculés sur les entretiens de la mission : « Entretien 2 » suit l'ordre de la mission.
-  const places = interviewPlaces(mission.interviews)
+  // Titres calculés sur les entretiens de l'opportunité : « Entretien 2 » suit l'ordre de l'opportunité.
+  const places = interviewPlaces(opportunity.interviews)
 ```
 
-et ajouter sous `<MissionForm … />` :
+et passer à `<OpportunityForm … />` :
 
 ```tsx
-      <RelatedLinksCard
-        title="Entretiens"
-        links={mission.interviews.map(
-          (interview): RelatedLink => ({
-            id: interview.id,
-            href: `/admin/entretiens/${interview.id}`,
-            label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
-            meta: `${formatShortDateTime(interview.scheduledAt)} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
-          }),
-        )}
-        emptyText="Aucun entretien pour cette mission."
-        action={
-          <Button size="sm" asChild>
-            <Link href={`/admin/entretiens/nouveau?mission=${mission.id}`}>
-              <Plus aria-hidden data-icon="inline-start" />
-              Nouvel entretien
-            </Link>
-          </Button>
+      <OpportunityForm
+        opportunity={opportunity}
+        referrerOptions={referrerOptions}
+        companyOptions={companyOptions}
+        relatedCards={
+          <RelatedLinksCard
+            title="Entretiens"
+            links={opportunity.interviews.map(
+              (interview): RelatedLink => ({
+                id: interview.id,
+                href: `/admin/entretiens/${interview.id}`,
+                label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
+                meta: INTERVIEW_STATUS_LABELS[interview.status],
+                trailing: formatShortDateTime(interview.scheduledAt),
+              }),
+            )}
+            emptyText="Aucun entretien pour cette opportunité."
+            action={
+              <Button size="sm" asChild>
+                <Link href={`/admin/entretiens/nouveau?opportunity=${opportunity.id}`}>
+                  <Plus aria-hidden data-icon="inline-start" />
+                  Nouvel entretien
+                </Link>
+              </Button>
+            }
+          />
         }
       />
 ```
 
-La page `/admin/entretiens/nouveau` n'accepte comme mission de départ qu'une mission proposable (Task 4) : sur une mission close, le formulaire s'ouvre sans mission choisie.
+Dans `src/app/admin/(protected)/opportunites/nouvelle/page.tsx`, importer les mêmes modules et passer, dans `NewOpportunitySection`, la même card vide et le bouton désactivé (aucune opportunité à relier encore) :
+
+```tsx
+      <OpportunityForm
+        opportunity={null}
+        referrerOptions={referrerOptions}
+        companyOptions={companyOptions}
+        relatedCards={
+          <RelatedLinksCard
+            title="Entretiens"
+            links={[]}
+            emptyText="Après l'enregistrement de l'opportunité."
+            action={
+              <Button size="sm" disabled>
+                <Plus aria-hidden data-icon="inline-start" />
+                Nouvel entretien
+              </Button>
+            }
+          />
+        }
+      />
+```
+
+La page `/admin/entretiens/nouveau` n'accepte comme opportunité de départ qu'une opportunité proposable (Task 4) : sur une opportunité close, le formulaire s'ouvre sans opportunité choisie.
 
 - [ ] **Step 4 : Bloc et colonne Entretiens d'un lead**
 
@@ -1836,6 +2028,7 @@ Dans `LeadsTable.tsx` :
 - ajouter avant `buildLeadDetail` :
 
 ```tsx
+// Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'entretien via ?detail= sur sa vue complète (le Journal).
 function interviewsSection(lead: AdminLead): DetailSection[] {
   if (lead.interviews.length === 0) return []
   return [
@@ -1845,19 +2038,17 @@ function interviewsSection(lead: AdminLead): DetailSection[] {
         {
           fullWidth: true,
           value: (
-            <ol className="flex flex-col gap-1">
-              {lead.interviews.map((interview) => (
-                <li key={interview.id} className="flex flex-wrap gap-x-2 text-sm">
-                  <span className="tabular-nums text-muted-foreground">
-                    {formatShortDateTime(interview.scheduledAt)}
-                  </span>
-                  <span className="font-medium">{INTERVIEW_TYPE_LABELS[interview.type]}</span>
-                  <span className="text-muted-foreground">
-                    {interview.mission.title} · {INTERVIEW_STATUS_LABELS[interview.status]}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <RelatedLinksList
+              links={lead.interviews.map(
+                (interview): RelatedLink => ({
+                  id: interview.id,
+                  href: `/admin/entretiens/journal?detail=${interview.id}`,
+                  label: INTERVIEW_TYPE_LABELS[interview.type],
+                  meta: `${interview.opportunity.title} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
+                  trailing: formatShortDateTime(interview.scheduledAt),
+                }),
+              )}
+            />
           ),
         },
       ],
@@ -1866,25 +2057,76 @@ function interviewsSection(lead: AdminLead): DetailSection[] {
 }
 ```
 
-  et, dans les deux branches de `buildLeadDetail`, insérer `...interviewsSection(lead),` juste après `...missionsSection(lead),` (`15`).
+  et, dans les deux branches de `buildLeadDetail`, insérer `...interviewsSection(lead),` juste après `...opportunitiesSection(lead),` (`15`) : Entretiens suit Opportunités apportées, avant Signaux (`19`).
 
-- [ ] **Step 5 : Card Entretiens de la page d'un lead**
+- [ ] **Step 5 : Card Entretiens de la page d'un lead, en création comme en modification**
 
-Le lead lu par `findLeadByIdForAdmin` porte ses entretiens (Task 3). Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `INTERVIEW_STATUS_LABELS`, `INTERVIEW_TYPE_LABELS` (`@/lib/interviews`) et `formatShortDateTime` (`@/lib/date-time`), et ajouter sous la card Missions apportées (`15`) :
+Le lead lu par `findLeadByIdForAdmin` porte ses entretiens (Task 3). Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `INTERVIEW_STATUS_LABELS`, `INTERVIEW_TYPE_LABELS` (`@/lib/interviews`) et `formatShortDateTime` (`@/lib/date-time`), puis remplacer le fragment `relatedCards` de `LeadForm` (`10`, `15`) par le même complété d'une card Entretiens, juste après la card Opportunités apportées :
 
 ```tsx
-      <RelatedLinksCard
-        title="Entretiens"
-        links={lead.interviews.map(
-          (interview): RelatedLink => ({
-            id: interview.id,
-            href: `/admin/entretiens/${interview.id}`,
-            label: `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.mission.title}`,
-            meta: `${formatShortDateTime(interview.scheduledAt)} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
-          }),
-        )}
-        emptyText="Aucun entretien pour ce lead."
-      />
+        relatedCards={
+          <>
+            <LeadActionsCard lead={lead} actions={actions} />
+            <RelatedLinksCard
+              title="Opportunités apportées"
+              links={lead.opportunities.map(
+                (opportunity): RelatedLink => ({
+                  id: opportunity.id,
+                  href: `/admin/opportunites/${opportunity.id}`,
+                  label: opportunity.title,
+                  meta: opportunity.client
+                    ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${opportunity.client.name}`
+                    : OPPORTUNITY_STATUS_LABELS[opportunity.status],
+                  trailing: formatDailyRate(opportunity.dailyRate),
+                }),
+              )}
+              emptyText="Aucune opportunité apportée par ce lead."
+              action={
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/admin/opportunites/nouvelle">
+                    <Plus aria-hidden data-icon="inline-start" />
+                    Nouvelle opportunité
+                  </Link>
+                </Button>
+              }
+            />
+            <RelatedLinksCard
+              title="Entretiens"
+              links={lead.interviews.map(
+                (interview): RelatedLink => ({
+                  id: interview.id,
+                  href: `/admin/entretiens/${interview.id}`,
+                  label: `${INTERVIEW_TYPE_LABELS[interview.type]} · ${interview.opportunity.title}`,
+                  meta: INTERVIEW_STATUS_LABELS[interview.status],
+                  trailing: formatShortDateTime(interview.scheduledAt),
+                }),
+              )}
+              emptyText="Aucun entretien pour ce lead."
+            />
+          </>
+        }
+```
+
+(la card Opportunités apportées, inchangée, vient du `15` ; ses imports `OPPORTUNITY_STATUS_LABELS`, `formatDailyRate`, `Plus`, `Button`, `Link` restent ceux déjà posés là.) Un entretien se crée depuis l'opportunité, jamais depuis le lead : sa card ne porte pas d'`action`. Dans `src/app/admin/(protected)/leads/nouveau/page.tsx`, remplacer de même le fragment `relatedCards` par le même complété d'une card Entretiens vide :
+
+```tsx
+        relatedCards={
+          <>
+            <LeadActionsCard lead={null} actions={[]} />
+            <RelatedLinksCard
+              title="Opportunités apportées"
+              links={[]}
+              emptyText="Après l'enregistrement du lead."
+              action={
+                <Button variant="outline" size="sm" disabled>
+                  <Plus aria-hidden data-icon="inline-start" />
+                  Nouvelle opportunité
+                </Button>
+              }
+            />
+            <RelatedLinksCard title="Entretiens" links={[]} emptyText="Après l'enregistrement du lead." />
+          </>
+        }
 ```
 
 - [ ] **Step 6 : Qualité**
@@ -1909,27 +2151,30 @@ Expected: suites `unit` et `integration` vertes.
 - Consumes: Tasks 1 à 6
 - Produces: rien
 
-- [ ] **Step 1 : Depuis une mission**
+- [ ] **Step 1 : Depuis une opportunité**
 
-Run: `just dev`, se connecter ; avoir une mission via une ESN et une mission en client direct, un lead non opposé.
-Expected: l'entrée Entretiens mène à « Entretiens à venir ». Sur la page de la mission via l'ESN, la card Entretiens est vide ; son bouton « Nouvel entretien » ouvre la page `/admin/entretiens/nouveau?mission=<id>`, mission déjà choisie, Détails au gabarit Premier contact. Passer le type à Recruteur/RH puis Technique : le gabarit suit ; écrire une ligne puis changer de type : le texte reste. Ajouter le lead en correspondant, puis « Nouvelle personne » (nom, poste Recruteur, email) : la ligne apparaît avec ses champs. Enregistrer un Technique planifié demain, mené par l'ESN, avec les deux correspondants : retour sur la page de la mission, dont la card liste « Entretien 1 · Technique » ; il figure dans À venir, TJM et localité de la mission affichés ; le lead et la nouvelle personne (retrouvée dans Contacts, rôle Contact, type Commercial) affichent tous deux le lien vers cet entretien. Aucune ligne de la liste des missions ne porte de bouton « Nouvel entretien ».
+Run: `just dev`, se connecter ; avoir une opportunité via une ESN et une opportunité en client direct, un lead non opposé. Ouvrir la page de création d'une opportunité.
+Expected: sa card Entretiens est vide, « Après l'enregistrement de l'opportunité. », bouton « Nouvel entretien » désactivé.
 
-- [ ] **Step 2 : Mené par et issue**
+Sur la page de l'opportunité via l'ESN (une fois enregistrée). Expected: l'entrée Entretiens mène à « Entretiens à venir ». La card Entretiens est vide ; son bouton « Nouvel entretien » ouvre la page `/admin/entretiens/nouveau?opportunity=<id>`, opportunité déjà choisie, Détails au gabarit Premier contact. Passer le type à Recruteur/RH puis Technique : le gabarit suit ; chaque option du select Type porte son glyphe ; écrire une ligne puis changer de type : le texte reste. Ajouter le lead en correspondant (recherche « Chercher un lead ou un contact »), puis « Nouveau contact » (nom, poste Recruteur, entreprise, type de contact Commercial, email) : la ligne apparaît avec ses champs, dont le select Type de contact à glyphes. Enregistrer un Technique planifié demain, mené par l'ESN, avec les deux correspondants : retour sur la page de l'opportunité, dont la card liste « Entretien 1 · Technique », statut en méta, date en dessous ; il figure dans À venir, TJM et localité de l'opportunité affichés ; le lead et le nouveau contact (retrouvé dans Contacts, rôle Contact, type Commercial) affichent tous deux le lien vers cet entretien ; la card Entretiens de la page du lead vide avant l'enregistrement. Aucune ligne de la liste des opportunités ne porte de bouton « Nouvel entretien ».
 
-Cliquer « Nouvel entretien » dans l'en-tête de l'écran Entretiens, choisir la mission via l'ESN, laisser « ESN », puis changer pour la mission en client direct.
-Expected: l'option ESN devient « ESN (aucune) », désactivée, et le choix passe au client final. Passer Statut à Fait : Issue apparaît, facultative ; la laisser vide n'empêche pas l'enregistrement. La choisir : l'enregistrement aboutit et ramène à l'écran Entretiens. Repasser Statut à Planifié sur un entretien Fait : Issue se masque, l'enregistrement aboutit toujours.
+- [ ] **Step 2 : Mené par, échange et issue**
+
+Cliquer « Nouvel entretien » dans l'en-tête de l'écran Entretiens, choisir l'opportunité via l'ESN, laisser « ESN », puis changer pour l'opportunité en client direct.
+Expected: l'option ESN devient « ESN (aucune) », désactivée, et le choix passe au client final. Dans la card Échange, Type et Date et heure se tiennent sur la même ligne, Statut occupe seul la ligne suivante tant qu'Issue est masquée. Passer Statut à Fait : Issue apparaît à ses côtés sur la même ligne, facultative, glyphe visible dans son select ; la laisser vide n'empêche pas l'enregistrement. La choisir : l'enregistrement aboutit et ramène à l'écran Entretiens. Repasser Statut à Planifié sur un entretien Fait : Issue se masque et Statut reprend la pleine largeur, l'enregistrement aboutit toujours.
 
 - [ ] **Step 3 : Journal, titres et précédent**
 
-Créer sur la mission via l'ESN un Premier contact la semaine dernière (statut Fait, issue Positif) ; ouvrir le Journal puis la vue détail du Technique.
-Expected: le Technique vient en premier ; il s'intitule toujours « Entretien 1 · Technique » dans À venir comme au Journal ; sa vue détail nomme le Premier contact comme entretien précédent, avec sa date.
+Créer sur l'opportunité via l'ESN un Premier contact la semaine dernière (statut Fait, issue Positif) ; ouvrir le Journal puis la vue détail du Technique.
+Expected: le Technique vient en premier ; il s'intitule toujours « Entretien 1 · Technique » dans À venir comme au Journal ; son sous-titre est le nom de l'ESN seul ; son bloc Opportunité porte une ligne cliquable vers la page de l'opportunité, puis TJM, Contrat, Mode, Localité ; son bloc Échange ne répète ni le statut ni l'ESN, Correspondants cliquables vers Contacts ; sa vue détail nomme le Premier contact comme entretien précédent, cliquable. Cliquer ce lien.
+Expected: ouvre le Journal avec la vue détail du Premier contact déjà affichée (`?detail=`).
 
-- [ ] **Step 4 : Mission close et correspondant opposé**
+- [ ] **Step 4 : Opportunité close et correspondant opposé**
 
-Passer la mission via l'ESN à Refusée, puis le lead en « ne plus contacter » ; rouvrir la page du Technique (crayon de la ligne ou « Modifier » de sa vue détail).
-Expected: la mission reste affichée dans le champ, sans être proposée à un nouvel entretien ; le bouton « Nouvel entretien » de sa page ouvre le formulaire sans mission choisie ; le lead opposé reste parmi les correspondants, marqué « Ne plus contacter » dans la vue détail, et n'est plus proposé pour un autre entretien.
+Passer l'opportunité via l'ESN à Refusée, puis le lead en « ne plus contacter » ; rouvrir la page du Technique (crayon de la ligne ou « Modifier » de sa vue détail).
+Expected: l'opportunité reste affichée dans le champ, sans être proposée à un nouvel entretien ; le bouton « Nouvel entretien » de sa page ouvre le formulaire sans opportunité choisie ; le lead opposé reste parmi les correspondants, marqué « Ne plus contacter » dans la vue détail, et n'est plus proposé pour un autre entretien.
 
 - [ ] **Step 5 : Fiches reliées et suppressions**
 
-Ouvrir la vue détail puis la page de la mission et du lead ; afficher Leads > Tous. Supprimer le Premier contact, puis la mission.
-Expected: bloc Entretiens sur les deux vues détail, card Entretiens sur les deux pages, chaque entretien menant à sa page ; colonne Entretiens du lead à 1 ; après suppression du Premier contact, le Technique reste « Entretien 1 · Technique » ; la suppression de la mission prévient que ses entretiens partent avec elle et les supprime. Puis `just stop`.
+Ouvrir la vue détail puis la page de l'opportunité et du lead ; afficher Leads > Tous. Supprimer le Premier contact, puis l'opportunité.
+Expected: bloc Entretiens sur les deux vues détail, card Entretiens sur les deux pages, chaque entretien menant à sa page ; colonne Entretiens du lead à 1 ; après suppression du Premier contact, le Technique reste « Entretien 1 · Technique » ; la suppression de l'opportunité prévient que ses entretiens partent avec elle et les supprime. Puis `just stop`.
