@@ -57,6 +57,28 @@ curl -s -X POST http://localhost:3000/fr/contact \
 
 Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.
 
+Sur l'image de production (Next 16.3.6, React 19.3.0), ce POST multipart répond **500 « Connection closed. »** alors que la même action soumise par un navigateur réussit (constaté le 2026-10-03). Y piloter le formulaire par le MCP Playwright, ou encoder le corps par `encodeReply` comme pour l'admin.
+
+## Vérifier l'image de production sans `.env`
+
+Une montée de Next, de Prisma ou du SDK Sentry se prouve sur l'image que le déploiement construit, pas seulement en dev. L'image se build et tourne sans aucun secret, contre un Postgres jetable :
+
+```bash
+docker build -t portfolio-verif \
+  --build-arg NEXT_PUBLIC_SENTRY_DSN="$(gh variable get NEXT_PUBLIC_SENTRY_DSN)" .   # idem pour les 3 autres NEXT_PUBLIC_* (variables du dépôt, publiques par construction)
+docker network create verif-net
+docker run -d --name verif-pg --network verif-net -e POSTGRES_USER=verif -e POSTGRES_PASSWORD=verif -e POSTGRES_DB=portfolio postgres:18-alpine
+docker run -d --name verif-app --network verif-net -p 3100:3000 \
+  -e DATABASE_URL="postgresql://verif:verif@verif-pg:5432/portfolio" \
+  -e SKIP_ENV_VALIDATION=true -e SENTRY_ENVIRONMENT=verification portfolio-verif
+docker rm -f verif-app verif-pg && docker network rm verif-net && docker rmi portfolio-verif   # en fin de run
+```
+
+- La CMD applique les migrations avant de servir : `docker logs verif-app` doit les lister, puis les routes publiques répondent 200 sur une base vide
+- Attendus sans secrets, sans rapport avec le changement : `/api/auth/*` en 500 (`BETTER_AUTH_SECRET` absent), images `/_next/image` en 400 (bucket R2 non configuré), action contact en `smtp_error`
+- `SENTRY_ENVIRONMENT=verification` isole les événements du run dans Sentry. Ils créent pourtant de vraies issues dans le projet : les résoudre en fin de run par `sentry issue resolve <SHORT-ID>` (sans préfixe d'org : `tg-ws/<SHORT-ID>` affiche l'issue sans la résoudre), après avoir vérifié leur `firstSeen`
+- Les spans d'un run se listent par `sentry api "organizations/tg-ws/events/?dataset=spans&field=span.op&field=span.description&field=timestamp&query=environment:verification&statsPeriod=1h&project=-1&sort=-timestamp"`, ceux d'une trace précise avec `query=trace:<trace_id>`
+
 ## Piloter une Server Action de l'espace admin
 
 Un formulaire rendu dans une modale fermée n'est pas dans le HTML : ni champs `$ACTION_*`, ni id d'action à y récupérer. L'id se lit dans le manifeste du build de dev, une fois la page servie au moins une fois :
@@ -198,3 +220,4 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - Dans la modale de dépôt, choisir le fichier remplace le « Nom du fichier » déjà saisi par le nom du fichier : choisir le fichier d'abord, puis renommer.
 - Git Bash réécrit en chemin Windows tout argument qui commence par `/` : `node script.mjs /admin/assets` reçoit `C:/Program Files/Git/admin/assets`. Préfixer la commande par `MSYS_NO_PATHCONV=1`.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.
+- Le hook `block_sensitive_files.py` refuse toute commande où `.env`, `.key`, `.token`, `.pem` (et autres extensions de secrets) apparaît en mot entier, même dans du code : un `node -e` qui lit `t.key` sur les tags d'un événement Sentry est bloqué. Écrire `t["key"]` (constaté le 2026-10-03).
