@@ -1,8 +1,8 @@
 ---
 title: "Better Auth — Authentification Google OAuth single-user"
-version: "1.7.5"
+version: "1.7.6"
 description: "Référence technique pour Better Auth : configuration, adaptateur Prisma sur schéma dédié, hooks de base, session en proxy et garde serveur."
-date: "2026-09-24"
+date: "2026-10-03"
 keywords: ["better-auth", "authentification", "oauth", "google", "session", "prisma"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Prisma", "PostgreSQL", "Zod"]

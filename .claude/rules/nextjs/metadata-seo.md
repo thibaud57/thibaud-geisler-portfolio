@@ -15,75 +15,37 @@ paths:
 # Next.js — Metadata & SEO
 
 ## À faire
-- Pour `viewport.themeColor`, aligner les couleurs sur les tokens `--background` light/dark de la palette définie dans `DESIGN.md` plutôt que des hex en dur déconnectés du design system
-- Déclarer `metadataBase: new URL('https://example.com')` dans le root layout pour que toutes les URLs relatives (OG images, canonical) soient résolues correctement
-- Utiliser `title: { template: '%s | Site Name', default: 'Site Name' }` dans le root layout pour appliquer automatiquement le template aux pages enfants
-- Utiliser `generateMetadata` async pour les pages dynamiques (`/items/[slug]`), avec `await params` obligatoire
-- Définir `alternates.canonical` sur les pages dynamiques pour éviter le contenu dupliqué
-- Définir `alternates.languages` avec une clé `'x-default'` pour le SEO multilingue FR/EN
-- Exporter `viewport` ou `generateViewport` **séparément** de `metadata` (themeColor, colorScheme, viewport sont retirés de l'objet `metadata` depuis Next 14)
-- Utiliser les fichiers `app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts` pour les metadata dynamiques (retournent `MetadataRoute.Robots` / `Sitemap` / `Manifest`)
-- Générer les images OG dynamiques via `opengraph-image.tsx` + `ImageResponse` (flexbox uniquement, pas de grid)
-- Dimensionner les images OG en **1200x630 px** pour un affichage optimal toutes plateformes
-- Échapper `<` en `\u003c` dans `JSON.stringify` des JSON-LD pour éviter l'injection de `</script>`
-- Injecter le JSON-LD dans un Server Component via `<script type="application/ld+json" dangerouslySetInnerHTML={...}>`
+- Déclarer `metadataBase` dans le root layout : toutes les URLs relatives (OG images, canonical) s'y résolvent
+- Utiliser `title: { template: '%s | Site Name', default: 'Site Name' }` dans le root layout pour titrer automatiquement les pages enfants
+- Utiliser `generateMetadata` async pour les pages dynamiques, avec `await params`
+- Définir `alternates.canonical` sur les pages dynamiques, et `alternates.languages` avec une clé `'x-default'` pour le FR/EN
+- Exporter `viewport` ou `generateViewport` **séparément** de `metadata` : `themeColor`, `colorScheme` et `viewport` ont quitté l'objet `metadata` en Next 14
+- Aligner `viewport.themeColor` sur les tokens `--background` light/dark de DESIGN.md, pas sur des hex déconnectés du design system
+- Servir `robots`, `sitemap` et `manifest` par `app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts` (`MetadataRoute.Robots` / `Sitemap` / `Manifest`)
+- Générer les images OG par `opengraph-image.tsx` + `ImageResponse`, en **1200×630 px** et en flexbox uniquement (`display: grid` n'est pas supporté)
+- Injecter le JSON-LD dans un Server Component par `<script type="application/ld+json" dangerouslySetInnerHTML={...}>`, en échappant `<` en `<` dans le `JSON.stringify` (sinon un `</script>` injecté ferme la balise)
 
 ## À éviter
-- Exporter à la fois `metadata` statique et `generateMetadata` dans le même segment (impossible, choisir un mode)
-- Mettre `themeColor`, `colorScheme` ou `viewport` dans l'objet `metadata` : **dépréciés** Next 14, utiliser l'export `viewport` séparé
-- Compter sur un deep merge des `alternates` ou `openGraph.images` entre parent et enfant : le merge est **shallow**, la valeur enfant écrase complètement la parente
-- Utiliser `next/font` dans `ImageResponse` : ne fonctionne pas, charger les fichiers font manuellement avec `readFile`
-- Utiliser `display: grid` dans `ImageResponse` : seul `flex` est supporté
+- Exporter `metadata` statique et `generateMetadata` dans le même segment : choisir un mode
+- Compter sur un deep merge des `alternates` ou `openGraph.images` entre parent et enfant : le merge est **shallow**, l'enfant écrase le parent
 
 ## Gotchas
-- Next 15.2+ : streaming metadata activé sur les pages dynamiques (UI streamé immédiatement, `<meta>` injectés dans le `<body>` une fois `generateMetadata` résolu). Next sert un rendu **bloquant** aux user-agents matchant [`htmlLimitedBots`](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots) : LinkedIn, Twitter, Facebook, Slack, Discord, WhatsApp, Bingbot, DuckDuckBot, applebot, yandex. Googlebot en est volontairement exclu, il exécute le JS
-- **Auditer le SEO avec un UA de bot, jamais `curl` nu** : un crawl anonyme déclenche le streaming et fait croire à des métadonnées absentes du `<head>`, alors que les bots concernés reçoivent un rendu bloquant. Comparer les offsets de `<title>` et `</head>` par UA (`curl -A "LinkedInBot/1.0"`) avant de conclure à un problème
-- Ne PAS désactiver le streaming globalement via `htmlLimitedBots: /.*/` : bugs connus avec `cacheComponents` + PPR sur 16.2.x-16.3.0 (mêmes issues). Le levier est une expression **ciblée** qui reprend la liste par défaut de Next (`node_modules/next/dist/shared/lib/router/utils/html-bots.js`, l'option la remplace au lieu de l'étendre) et ajoute les crawlers HTML-only manquants : `TelegramBot`, `Bluesky`, `Mastodon`. À vérifier après déploiement par un `curl -A` avec chacun d'eux
-- Codemod dispo pour migrer viewport : `npx @next/codemod metadata-to-viewport-export`
-- React 19 supporte nativement `<title>`, `<meta>`, `<link>` dans le JSX (hoist auto dans `<head>`) : garder la Metadata API pour le SEO structurel, utiliser les balises natives pour les métadonnées locales (widget, Client Component)
+- **`export const runtime` est interdit dans un `opengraph-image.tsx`** quand `cacheComponents: true` : le build rejette ce segment config, le projet l'a retiré de ses images OG (`docs/VERSIONS.md` § Next.js)
+- Next 15.2+ : streaming metadata sur les pages dynamiques (`<meta>` injectés dans le `<body>` une fois `generateMetadata` résolu). Next sert un rendu **bloquant** aux user-agents de [`htmlLimitedBots`](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots) (LinkedIn, Twitter, Facebook, Slack, Discord, WhatsApp, Bingbot…). Googlebot en est volontairement exclu, il exécute le JS
+- **Auditer le SEO avec un UA de bot, jamais `curl` nu** : un crawl anonyme reçoit le streaming et fait croire à des métadonnées absentes du `<head>`. Comparer les offsets de `<title>` et `</head>` par UA (`curl -A "LinkedInBot/1.0"`)
+- Ne PAS désactiver le streaming par `htmlLimitedBots: /.*/` (bugs connus avec `cacheComponents` + PPR sur 16.2.x-16.3.0). Le levier est une expression ciblée qui reprend la liste par défaut de Next (`node_modules/next/dist/shared/lib/router/utils/html-bots.js`, l'option la remplace au lieu de l'étendre) et ajoute `TelegramBot`, `Bluesky`, `Mastodon`
+- React 19 hoiste nativement `<title>`, `<meta>`, `<link>` du JSX dans `<head>` : garder la Metadata API pour le SEO structurel, les balises natives pour les métadonnées locales
+- Polices dans un `ImageResponse` : voir `nextjs/fonts.md`
 
 ## Exemples
 ```typescript
-// ✅ Root layout : metadataBase + title template + viewport séparé
+// ✅ Root layout : metadataBase, template de titre, viewport séparé
 export const metadata: Metadata = {
   metadataBase: new URL('https://example.com'),
   title: { template: '%s | My Site', default: 'My Site' },
-  description: '...',
 }
+export const viewport: Viewport = { themeColor: [{ media: '(prefers-color-scheme: dark)', color: '…' }] }
 
-export const viewport: Viewport = {
-  themeColor: [{ media: '(prefers-color-scheme: dark)', color: '...' }],
-}
-
-// ❌ themeColor dans metadata (déprécié Next 14, utiliser export viewport)
+// ❌ themeColor dans metadata (retiré en Next 14)
 export const metadata: Metadata = { themeColor: '#000' }
-```
-
-```typescript
-// ✅ generateMetadata dynamique avec params async
-export async function generateMetadata(
-  { params }: { params: Promise<{ slug: string }> }
-): Promise<Metadata> {
-  const { slug } = await params
-  const item = await getItem(slug)
-  return {
-    title: item.title,
-    alternates: { canonical: `/items/${slug}` },
-    openGraph: { images: [{ url: `/items/${slug}/opengraph-image`, width: 1200, height: 630 }] },
-  }
-}
-
-// ❌ params synchrone (hard error Next 16)
-export async function generateMetadata({ params }: { params: { slug: string } }) { ... }
-```
-
-```typescript
-// ✅ app/sitemap.ts — retourne MetadataRoute.Sitemap
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const items = await getItems()
-  return [
-    { url: 'https://example.com', lastModified: new Date() },
-    ...items.map(item => ({ url: `https://example.com/items/${item.slug}`, lastModified: item.updatedAt })),
-  ]
-}
 ```

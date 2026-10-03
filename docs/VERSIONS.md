@@ -212,7 +212,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - `export const runtime` devient interdit quand `cacheComponents: true`. **Constat projet** (commit `8a2b1d8`, le build rejette ce segment config) et non règle documentée upstream : la release 16.3.0 ne mentionne que la dépréciation du runtime edge, et le guide Cache Components se limite à « requires the Node.js runtime ». Le projet l'a retiré des `opengraph-image.tsx`
 
 **Compatibilité Écosystème** :
-- React 19.2 : ✅ (inclus)
+- React 19.3 : ✅ (peer `^19.0.0` de `next@16.3.6`, 19.3.0 installée)
 - shadcn/ui : ✅
 - next-intl : ✅ (>= 4.4 requis, 4.14.7 installée)
 - Prisma 7 : ✅ (setup standard, build Turbopack vérifié, voir § Prisma ORM > Issues connues)
@@ -400,7 +400,7 @@ pnpm dlx shadcn@latest add @aceternity/<component>
 pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 ```
 
-**Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `13.2.0` installée. Utiliser la syntaxe namespacée.
+**Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `13.4.4` installée. Utiliser la syntaxe namespacée.
 
 ### 7. next-intl
 
@@ -1008,7 +1008,7 @@ import { defineConfig } from 'prisma/config'
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: process.env.DATABASE_URL!,
+    url: process.env["DATABASE_URL"] ?? "",
   },
   migrations: {
     path: 'prisma/migrations',
@@ -1019,7 +1019,7 @@ export default defineConfig({
 Trois points qui se trompent facilement :
 
 - **L'adapter n'est pas ici.** `PrismaPg` se configure à l'instanciation du client, dans `src/lib/prisma.ts`. Ce fichier ne porte que la config CLI.
-- **`process.env.DATABASE_URL!`, pas le helper `env()` de `prisma/config`.** Ce dernier throw `PrismaConfigEnvError` **au chargement du fichier**, ce qui casse toute commande CLI, `prisma generate` compris, alors même qu'elle n'a pas besoin de l'URL. Position officielle Prisma ([issue #28590](https://github.com/prisma/prisma/issues/28590)). `process.env` est lu paresseusement.
+- **`process.env["DATABASE_URL"] ?? ""`, pas le helper `env()` de `prisma/config`.** Ce dernier throw `PrismaConfigEnvError` **au chargement du fichier**, ce qui casse toute commande CLI, `prisma generate` compris, alors même qu'elle n'a pas besoin de l'URL. Position officielle Prisma ([issue #28590](https://github.com/prisma/prisma/issues/28590)). Le repli `?? ""` sert le stage `deps` du Dockerfile, qui génère le client sans `DATABASE_URL`.
 - **Les deux lignes `@next/env` passent avant les autres imports**, sinon `defineConfig` s'évalue sur un `process.env` encore vide.
 
 ## prisma/schema.prisma (generator)
@@ -1032,10 +1032,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "freelance", "auth"]
 }
 ```
 
-> Le bloc `datasource` ne porte **plus** de `url` en Prisma 7 : elle vient de `prisma.config.ts`. La laisser ici contredit la config et fait diverger les deux sources.
+> Le bloc `datasource` ne porte **plus** de `url` en Prisma 7 : elle vient de `prisma.config.ts`. La laisser ici contredit la config et fait diverger les deux sources. `schemas` déclare les trois schémas PostgreSQL du projet ([ADR-018](adrs/018-cloisonnement-donnees.md)), chaque modèle et enum portant son `@@schema(...)`.
 
 ## tsconfig.json (points critiques)
 
@@ -1055,7 +1056,7 @@ datasource db {
     "incremental": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "types": ["node", "vitest/globals", "react/canary"],
+    "types": ["node", "vitest/globals", "react/canary", "react/experimental"],
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"]
@@ -1066,13 +1067,14 @@ datasource db {
 
 - `moduleResolution: "bundler"` requis par Prisma 7. Ne pas activer `preserveSymlinks: true`, incompatible pnpm.
 - `allowJs` élargit ce que `tsc --noEmit` vérifie (les configs JS entrent dans le périmètre), `resolveJsonModule` autorise les imports de JSON. Les deux sont actifs dans le fichier réel.
-- `types` est **explicite** : TypeScript 6 a retiré l'auto-discovery des `@types/*`, ce qui n'est pas déclaré ici n'est pas chargé.
+- `types` est **explicite** : TypeScript 6 a retiré l'auto-discovery des `@types/*`, ce qui n'est pas déclaré ici n'est pas chargé. `react/canary` et `react/experimental` y exposent les API React pas encore dans les types stables (`experimental_taint*`).
 - `jsx: "react-jsx"` (runtime automatique) et non le `preserve` du template Next par défaut. Le bundler fait la transformation dans les deux cas, la valeur ne joue que sur ce que `tsc --noEmit` vérifie. Ne pas la « corriger » vers `preserve` en croyant s'aligner sur Next.
 
 ## next.config.ts (points critiques)
 
 ```ts
 import bundleAnalyzer from '@next/bundle-analyzer'
+import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
@@ -1091,10 +1093,16 @@ const nextConfig: NextConfig = {
   // outputFileTracingIncludes, env, headers de sécurité et CSP : voir le fichier réel
 }
 
-export default withBundleAnalyzer(withNextIntl(nextConfig))
+export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
+  org: 'tg-ws',
+  project: 'thibaud-geisler-portfolio',
+  // absent des types, mais requis sous Turbopack pour l'upload des source maps
+  _experimental: { useRunAfterProductionCompileHook: true },
+})
 ```
 
-- **L'ordre des wrappers est porteur.** `withNextIntl` au plus près de la config, les plugins d'analyse par-dessus.
+- **L'ordre des wrappers est porteur.** `withNextIntl` au plus près de la config, `withSentryConfig` en dernier : les source maps doivent refléter les transformations des autres plugins.
+- `_experimental.useRunAfterProductionCompileHook` déclenche l'upload des source maps Sentry après la compilation Turbopack (Next >= 15.4.1). L'option manque aux types du SDK, d'où un `@ts-expect-error` dans le fichier réel.
 - `cacheComponents: true` remplace `experimental.ppr` et `experimental.dynamicIO`, supprimés en Next 16. Conséquence en 16.3 : `export const runtime` devient interdit dans l'arbre concerné.
 - `experimental.globalNotFound: true` conditionne la structure des routes : le root layout vivant sous `[locale]`, c'est lui qui rend `global-not-found.tsx` joignable. Le retirer casse le 404 des URLs hors routes.
 - `createNextIntlPlugin` reçoit le chemin du fichier de requête, il ne le devine pas.

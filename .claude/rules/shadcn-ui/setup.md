@@ -22,7 +22,7 @@ paths:
 
 ## Gotchas
 - Nouveau système de styles au format `{base}-{style}` : `nova`, `vega`, `maia`, `lyra`, `mira`, `luma`, `sera`, `rhea`, sur les bases `radix` ou `base`. Ils **s'ajoutent** à `new-york`, qui reste disponible et pris en charge ; le défaut du CLI est désormais le preset `nova`, seul **`default`** est déprécié. Le projet n'utilise ni `new-york` ni `default`, il est en `radix-nova`
-- Composants shadcn mis à jour pour **React 19** : `forwardRef` **retiré**, les refs sont passées directement en props (pattern R19)
+- Composants shadcn mis à jour pour **React 19** : `forwardRef` **retiré**, les refs passent en props (règles React 19 : `react/components.md`)
 - Couleurs en **OKLCH** au lieu de HSL (convention shadcn v4 + Tailwind v4)
 - **Le code livré par `add` demande trois corrections avant commit**, constatées le 2026-09-22 sur `calendar`, `switch` et `radio-group` :
   - **`import { cn } from "cn"`** au lieu de `@/lib/utils`, et le CLI **installe un paquet npm `cn`** pour satisfaire cet import. Réécrire l'import, puis `pnpm remove cn`. Le paquet revient à chaque nouveau composant, le retirer une fois ne suffit pas

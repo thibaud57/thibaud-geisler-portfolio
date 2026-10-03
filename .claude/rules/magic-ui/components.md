@@ -8,72 +8,42 @@ paths:
 ## À faire
 - Installer via le CLI shadcn avec syntaxe namespace : **`pnpm dlx shadcn@latest add @magicui/<component>`** (registry déclaré dans `components.json`, voir [DESIGN.md § Outils & Discovery](../../../docs/DESIGN.md))
 - Composants copiés dans **`src/components/magicui/`** (séparé de `src/components/ui/` qui contient shadcn/ui pur)
-- Importer **`motion`** via `motion/react` (jamais `framer-motion` qui est legacy), installé automatiquement par le CLI shadcn
-- Toujours **`'use client'`** sur les composants qui consomment Magic UI : les composants Magic UI sont eux-mêmes Client Components (animations Intersection Observer + hooks)
-- **Périmètre projet** : voir [DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour la répartition exacte entre Magic UI, Aceternity UI et shadcn/ui, et les catégories autorisées pour ce projet
-- **Limiter à 2-3 effets maximum par page** (DESIGN.md) : éviter la surcharge visuelle et la distraction du contenu
-- **Intensité subtile** (DESIGN.md) : durée 200-400ms, easing `ease-out` pour les entrées et `ease-in-out` pour les transitions, intention = renforcer la qualité sans distraire le contenu
-- Utiliser **`BlurFade`** pour les entrées animées au scroll (pattern Intersection Observer recommandé pour les sections marketing)
-- **Combiner avec shadcn/ui** : shadcn pour l'UI fonctionnelle (Form, Button, Dialog), Magic UI pour les enrichissements visuels. Les deux libs partagent le même `cn()` (`src/lib/utils.ts`) et les tokens CSS sémantiques
+- Importer **`motion`** via `motion/react`, jamais `framer-motion`
+- Marquer **`'use client'`** tout composant qui consomme Magic UI : ses composants sont eux-mêmes Client Components (Intersection Observer + hooks), un parent Server Component casse au runtime
+- **Périmètre projet** : voir [DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour la répartition entre Magic UI, Aceternity UI et shadcn/ui
+- Limiter à **2-3 effets par page**, d'intensité subtile : durée 200-400ms, easing `ease-out` pour les entrées et `ease-in-out` pour les transitions (DESIGN.md)
+- Utiliser **`BlurFade`** pour les entrées animées au scroll des sections marketing
+- **Combiner avec shadcn/ui** : shadcn pour l'UI fonctionnelle (Form, Button, Dialog), Magic UI pour les enrichissements visuels, avec le même `cn()` (`src/lib/utils.ts`) et les mêmes tokens CSS
 
 ## À éviter
-- Utiliser le package **`magicui-cli`** : **legacy/abandonné**, utiliser `pnpm dlx shadcn@latest add` à la place
-- Importer depuis **`framer-motion`** : utiliser **`motion/react`** (Motion v12+, voir VERSIONS.md)
-- Appliquer Magic UI à l'aveugle sur tous les éléments : distraction visuelle, contre les principes DESIGN.md (intensité subtile, intention)
-- Oublier **`'use client'`** dans le composant parent qui consomme Magic UI : erreur de runtime React Server Components
-- Utiliser Magic UI dans l'**espace admin** (post-MVP) : DESIGN.md le réserve **strictement** aux surfaces marketing du site public
+- Utiliser le package **`magicui-cli`** : legacy, abandonné
+- Appliquer Magic UI à l'aveugle sur tous les éléments : distraction visuelle, contre les principes DESIGN.md
+- Utiliser Magic UI dans l'**espace admin** : DESIGN.md le réserve aux surfaces marketing du site public
 - Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `tailwind-merge`, `class-variance-authority`)
 
 ## Gotchas
-- **Pas de versioning sémantique** (modèle copy-paste via registry shadcn) : pas de `pnpm update` possible, les composants restent figés au moment de l'install. Relancer `shadcn@latest add --overwrite <component>` pour récupérer les updates upstream
+- **Pas de versioning sémantique** (copy-paste via registry shadcn) : les composants restent figés à l'install, relancer `shadcn@latest add --overwrite <component>` pour récupérer l'upstream
 - Magic UI : **Tailwind v4 + React 19 par défaut depuis avril 2025**, plus besoin de `tailwind.config.ts`
-- **Issue shadcn CLI > 2.8.0 + Magic UI** : peut générer des imports sans alias `@/` dans certains composants Magic UI → vérifier/ajuster les imports `@/lib/utils` après chaque `add`
-- Site **`v3.magicui.design`** conserve la variante Tailwind v3 pour l'ancienne méthode. Utiliser **`magicui.design`** (v4) pour ce projet
-- Pour la **philosophie copy-paste** (versionnement, modification, ownership) partagée avec shadcn-ui : voir `shadcn-ui/setup.md`
+- **Issue shadcn CLI > 2.8.0 + Magic UI** : imports parfois générés sans alias `@/` → vérifier les imports `@/lib/utils` après chaque `add`
+- `v3.magicui.design` garde la variante Tailwind v3 : utiliser **`magicui.design`** (v4)
+- Philosophie copy-paste (versionnement, modification, ownership) partagée avec shadcn-ui : voir `shadcn-ui/setup.md`
 
 ## Exemples
 ```bash
-# ✅ Installer via syntaxe namespace (registry @magicui déclaré dans components.json)
+# ✅ Installer via syntaxe namespace
 pnpm dlx shadcn@latest add @magicui/blur-fade
-pnpm dlx shadcn@latest add @magicui/marquee
-pnpm dlx shadcn@latest add @magicui/number-ticker
 
 # ❌ Package npm legacy abandonné
 pnpm add magicui-cli
 ```
 
 ```typescript
-// ✅ BlurFade en îlot client + Server Component parent
-// src/app/[locale]/(public)/page.tsx — Server Component
-export default function HomePage() {
-  return (
-    <main>
-      <HeroSection /> {/* îlot client pour les animations */}
-    </main>
-  )
-}
-
-// src/components/features/home/HeroSection.tsx — Client Component
+// ✅ Îlot client : effet Magic UI autour d'un composant shadcn
 'use client'
-export function HeroSection() {
+export function Cta() {
   return (
     <BlurFade delay={0.25} inView>
-      <h1 className="text-5xl font-bold font-display">Portfolio</h1>
-    </BlurFade>
-  )
-}
-```
-
-```typescript
-// ✅ Combinaison shadcn (fonctionnel) + Magic UI (effet visuel)
-'use client'
-export function CTASection() {
-  return (
-    <BlurFade delay={0.5}>
-      <div className="flex gap-4">
-        <Button variant="outline">En savoir plus</Button>
-        <ShimmerButton>Contactez-moi</ShimmerButton>
-      </div>
+      <Button>Contact</Button>
     </BlurFade>
   )
 }

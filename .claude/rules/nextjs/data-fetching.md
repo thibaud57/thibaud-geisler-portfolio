@@ -8,111 +8,40 @@ paths:
 # Next.js — Data Fetching (Server Components)
 
 ## À faire
-- Faire les queries DB/API directement dans les Server Components `async`, pas de layer API intermédiaire
-- Wrapper toute query DB/API avec **`'use cache'`** (Next 16 stable, requiert `cacheComponents: true`) + `cacheLife()` + `cacheTag()` pour participer au Data Cache et être inclus dans le static shell au prerender
-- Utiliser `Promise.all()` pour paralléliser les fetches indépendants (éviter waterfalls TTFB)
-- Pour les routes dynamiques `/[slug]`, `generateStaticParams` retourne tous les slugs publics au build → tous prerendered en `◐ Partial Prerender`. **Requiert que la DB soit accessible au build** (sinon `EmptyGenerateStaticParamsError`). Optionnel avec `cacheComponents: true`, voir l'arbitrage dans `.claude/rules/nextjs/routing.md`
+- Faire les queries directement dans les Server Components `async`, sans couche API intermédiaire
+- Lire la base du site public **sous `<Suspense>`, après `await io()`**, en appelant une query `'use cache'` + `cacheLife()` + `cacheTag()` de `src/server/queries/` : le composant sort du prerender, la query se met en cache à la requête ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md))
+- Paralléliser les lectures indépendantes par `Promise.all()`, jamais deux `await` indépendants à la suite (waterfall)
 - `await cookies()`, `await headers()`, `await draftMode()`, `await searchParams`, `await params` : APIs async, hard error si sync en Next 16
-- Utiliser `after(callback)` importé depuis `next/server` pour logging/analytics non bloquants après la réponse
-- Ajouter `import 'server-only'` en haut de tout module qui accède à Prisma (garde-fou : erreur si importé dans un Client Component)
+- Utiliser `after(callback)` de `next/server` pour le logging ou l'analytics non bloquants, en lisant `cookies()`/`headers()` **avant** : ils lèvent une erreur dans le callback
+- Ouvrir tout module qui accède à Prisma par `import 'server-only'`
 
 ## À éviter
-- Enchaîner deux `await` indépendants l'un après l'autre (waterfall) : paralléliser avec `Promise.all()`
-- Utiliser `unstable_noStore()` : déprécié, remplacé par `connection()` (mais voir gotcha bug R19.2 ci-dessous)
-- Utiliser `cache()` de React sur les queries Prisma : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions pures appelées plusieurs fois dans le même render sans IO, et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()` et ne peut donc pas passer par `'use cache'`
-- Compter sur le Data Cache automatique pour les queries Prisma : elles ne participent pas au cache `fetch()`, wrap explicite obligatoire avec `'use cache'`
-- **Wrapper un Server Component async dans `<Suspense>` quand toutes ses queries sont déjà en `'use cache'`** : redondant et ajoute une frontière inutile dans le shell statique (cf. règle XOR ci-dessous)
-- Appeler `cookies()` ou `headers()` dans un callback `after()` : runtime error, lire les valeurs avant et les passer en paramètre
-- Créer une Promise dans le corps du render et la passer à `use()` : boucle infinie, la Promise doit venir d'un parent
+- Rendre une query `'use cache'` sans `io()` préalable dans le site public : le composant entrerait dans le shell statique et lirait la base au build
+- Envelopper une query Prisma par `cache()` de React : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions sans IO appelées plusieurs fois dans un rendu, et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()`
+- Compter sur le cache automatique pour les queries Prisma : elles ne participent pas au cache `fetch()`
 
 ## Gotchas
-- **`'use cache'` XOR `<Suspense>` (règle binaire Next 16, doc officielle)** : un Server Component async doit être SOIT entièrement cacheable via `'use cache'` (inclus dans le static shell au prerender) SOIT sous `<Suspense>` (streamed runtime). Jamais les deux. `<Suspense>` n'est obligatoire QUE pour les composants qui accèdent à `cookies()`/`headers()`/`searchParams`/`connection()` ou font des fetches non cachés. Exception : Client Components avec hooks runtime (`usePathname`, `useLocale`) rendus dans le root layout (Navbar/Footer). Ces zones exigent quand même un Suspense parent (validé empiriquement par erreur de build "Uncached data accessed outside of `<Suspense>`")
-- **Le build ne lit jamais la base** ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)) : toute lecture Prisma du site public s'ouvre par `await io()` sous `<Suspense>`, donc ni `generateStaticParams`, ni `'use cache'` au prerender, ni `DATABASE_URL` au build. C'est ce qui rend le build possible dans un sandbox BuildKit sans réseau ([moby/buildkit#978](https://github.com/moby/buildkit/issues/978)), sur GHA comme sur le VPS. Le build reste sur GHA (`deploy.yml`) pour d'autres raisons, décrites dans `docs/PRODUCTION.md` § Déploiement (tag de release, image versionnée, Trivy, ressources du VPS)
-- **`connection()` runtime + multi-Suspense + `cacheComponents: true` = bug HierarchyRequestError** au reveal côté client sur pages denses (≥7 markers `$?` ou Client Components hydratant lourds). Cause : interaction Activity wrap Next 16 + multi-Suspense streamées (issue [vercel/next.js#86577](https://github.com/vercel/next.js/issues/86577) Open). Mitigation : ne PAS utiliser `connection()` runtime, préférer le pattern `'use cache'` qui n'introduit pas de zone dynamique streamée
-- Prisma 7 + Next 16 `cacheComponents: true` : `new Date()` interne Prisma 7 peut déclencher *"used new Date() before accessing uncached data"* dans les composants qui lisent Prisma sans cache. La query wrappée `'use cache'` absorbe ce cas dans son scope cache ([prisma#28588](https://github.com/prisma/prisma/issues/28588))
-- `cache()` React et `'use cache'` Next 16 opèrent dans des scopes isolés : superposer les 2 sur la même fonction est redondant. Préférer `'use cache'` seul (Data Cache persistant + dedup per-request automatique) dès que `cacheComponents: true`
-- **Erreur intermittente au build `"use cache" cannot be used outside of App Router. Expected a WorkStore`** sur la collecte de page data d'une route avec `generateStaticParams` appelant un helper `'use cache'` : vue une fois sur Next 16.3.3, non reproduite sur 5 builds dont 3 avec `.next` supprimé. Le pattern est celui que Next documente (fonction ordinaire qui appelle un helper caché, jamais l'inverse), l'erreur relève d'une perte de contexte `AsyncLocalStorage` sous Turbopack, famille documentée en [discussion #86978](https://github.com/vercel/next.js/discussions/86978). Ne PAS remplacer par une query non cachée, ça n'éliminerait pas la cause et casserait le cache partagé avec `sitemap.ts`. Si ça revient : relancer le job, garder le log complet, ouvrir une issue chez Next en citant la discussion
-- Activer `logging: { fetches: { fullUrl: true } }` dans `next.config.ts` pour tracer waterfalls et débugger HIT/MISS en dev
+- **Le build ne lit jamais la base** : ni `generateStaticParams` sur des données, ni `'use cache'` au prerender, ni `DATABASE_URL` au build. C'est ce qui rend le build possible dans un sandbox BuildKit sans réseau ([moby/buildkit#978](https://github.com/moby/buildkit/issues/978)). Le build reste sur GHA (`deploy.yml`) pour d'autres raisons (`docs/PRODUCTION.md` § Déploiement)
+- Les Client Components à hooks runtime (`usePathname`, `useLocale`) rendus dans le layout racine (Navbar, Footer) exigent un `<Suspense>` parent, sans quoi le build lève « Uncached data accessed outside of `<Suspense>` ». Règle XOR complète : `nextjs/rendering-caching.md`
+- Prisma 7 + `cacheComponents` : le `new Date()` interne de Prisma peut déclencher « used new Date() before accessing uncached data » hors cache, la query `'use cache'` l'absorbe ([prisma#28588](https://github.com/prisma/prisma/issues/28588))
+- « `"use cache"` cannot be used outside of App Router. Expected a WorkStore » a été vue une fois sur Next 16.3.3, avec un `generateStaticParams` appelant un helper `'use cache'`, non reproduite ensuite : perte de contexte `AsyncLocalStorage` sous Turbopack ([discussion #86978](https://github.com/vercel/next.js/discussions/86978)). Si elle revient, relancer, garder le log, ouvrir une issue chez Next
 
 ## Exemples
 ```typescript
-// ✅ Pattern Next 16 moderne : 'use cache' sur la query, pas de Suspense autour du composant
-import 'server-only'
-import { cacheLife, cacheTag } from 'next/cache'
-
-export async function getYearsOfExperience() {
-  'use cache'
-  cacheLife('days')
-  cacheTag('about-stats')
-  return prisma.experience.aggregate({ _max: { startedAt: true } })
-}
-
-// Page : pas de Suspense autour, le composant est inclus dans le static shell
-async function StatsAsync() {
-  const [years, missions] = await Promise.all([
-    getYearsOfExperience(),
-    countMissionsDelivered(),
-  ])
-  return <NumberTickerStats stats={[years, missions]} />
-}
-
-export default function Page() {
-  return <StatsAsync /> // ✅ pas de <Suspense> nécessaire
-}
-```
-
-```typescript
-// ✅ Suspense obligatoire UNIQUEMENT pour les zones qui lisent runtime APIs
-async function ContactTabsAsync({ searchParams }: { searchParams: Promise<{ service?: string }> }) {
-  const { service } = await searchParams // ← runtime API → exige Suspense parent
-  return <ContactTabs prefill={service} />
-}
-
-export default function Page({ searchParams }) {
-  return (
-    <Suspense fallback={null}>
-      <ContactTabsAsync searchParams={searchParams} />
-    </Suspense>
-  )
-}
-```
-
-```typescript
-// ✅ Route dynamique /[slug] sans generateStaticParams : params descend sous <Suspense>
-export default function Page({ params }: PageProps<"/[locale]/projets/[slug]">) {
-  return (
-    <Suspense fallback={<Skeleton />}>
-      <Content params={params} />
-    </Suspense>
-  )
+// ✅ Motif du site public : Suspense, io(), puis query cachée
+export default function Page({ params }: PageProps<'/[locale]/projets/[slug]'>) {
+  return <Suspense fallback={<Skeleton />}><Content params={params} /></Suspense>
 }
 
 async function Content({ params }) {
+  await io()
   const { locale, slug } = await params
-  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne, mis en cache à la requête
+  const project = await findPublishedBySlug(slug, locale) // 'use cache' interne
   return <CaseStudy project={project} />
 }
-```
 
-```typescript
-// ✅ Parallel fetching avec Promise.all (évite waterfall)
-const [a, b] = await Promise.all([getA(), getB()]) // 'use cache' chacune
-
-// ❌ Waterfall accidentel
-const a = await getA()
-const b = await getB() // attend a inutilement
-```
-
-```typescript
-// ✅ after() pour logging non bloquant après la réponse
-async function Page() {
-  const data = await getData()
-  after(() => log(data.id))
-  return <View data={data} />
+// ❌ Query cachée rendue sans io() : lue au build
+export default async function Page() {
+  return <List items={await getItems()} />
 }
-
-// ❌ cookies() ou headers() dans le callback after() → runtime error
-after(async () => {
-  const session = await cookies() // erreur, lire AVANT after()
-})
 ```

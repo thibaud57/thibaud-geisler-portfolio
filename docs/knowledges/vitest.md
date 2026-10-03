@@ -1,8 +1,8 @@
 ---
 title: "Vitest — Framework de test"
-version: "4.1.11"
-description: "Référence technique pour Vitest 4 : config Next.js, mocks, coverage et Testing Library."
-date: "2026-09-03"
+version: "5.0.3"
+description: "Référence technique pour Vitest 5 : config Next.js, mocks, coverage et Testing Library."
+date: "2026-10-03"
 keywords: ["vitest", "testing", "mocks", "coverage", "react"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
@@ -10,7 +10,7 @@ technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
 
 # Description
 
-`Vitest` est le framework de test utilisé dans le portfolio pour les tests unitaires (fonctions pures, helpers, Server Actions critiques, schémas Zod) et d'intégration (formulaire contact avec SMTP mock, queries Prisma sur PostgreSQL de test). Intégration native avec Vite, support TypeScript, compatible Testing Library React et jsdom. La v4 apporte Vite 8, `test.extend` avec inférence automatique, et un reporter `agent` pour les AI coding agents.
+`Vitest` est le framework de test utilisé dans le portfolio pour les tests unitaires (fonctions pures, helpers, Server Actions critiques, schémas Zod) et d'intégration (formulaire contact avec SMTP mock, queries Prisma sur PostgreSQL de test). Intégration native avec Vite, support TypeScript, compatible Testing Library React et jsdom. La v4 apporte Vite 8, `test.extend` avec inférence automatique, et un reporter `agent` pour les AI coding agents. La v5 (3 septembre 2026) exige Vite >= 6.4 et Node.js >= 22.12, fait de `vite` une peer obligatoire et active `clearMocks` par défaut.
 
 ---
 
@@ -31,7 +31,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // Résolution des alias `@/*` par l'option native Vitest 4, sans plugin dédié
+  // Résolution des alias `@/*` par l'option native depuis Vitest 4, sans plugin dédié
   resolve: { tsconfigPaths: true },
   test: {
     environment: 'jsdom',
@@ -62,6 +62,42 @@ import '@testing-library/jest-dom/vitest'
 
 ---
 
+## Projects unit / integration et mock de server-only
+
+### Description
+
+`vitest.config.ts` sépare deux projects : `unit` (jsdom, parallèle) pour les composants et la logique, `integration` (node, sérialisé) pour les tests qui écrivent dans le Postgres de test. Le module `server-only`, qui garde les modules serveur, n'a pas d'implémentation hors du bundler Next : il est remplacé par un module vide via un alias.
+
+### Exemple
+
+```ts
+// vitest.config.ts (condensé)
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    tsconfigPaths: true,
+    alias: { 'server-only': new URL('./__mocks__/server-only.ts', import.meta.url).pathname },
+  },
+  test: {
+    globals: true,
+    setupFiles: ['./vitest.env-loader.ts', './vitest.setup.ts'],
+    projects: [
+      { extends: true, test: { name: 'unit', environment: 'jsdom', exclude: ['src/**/*.integration.test.{ts,tsx}'] } },
+      { extends: true, test: { name: 'integration', environment: 'node', include: ['src/**/*.integration.test.{ts,tsx}'], pool: 'forks', maxWorkers: 1, fileParallelism: false } },
+    ],
+  },
+})
+```
+
+### Points Importants
+
+- Sans l'alias, tout test qui importe une Server Action ou un module `import 'server-only'` échoue dès l'import
+- `maxWorkers: 1` + `fileParallelism: false` sur `integration` : les fichiers partagent une base, en parallèle ils se marchent dessus (truncate et insert concurrents)
+- Un test d'intégration se nomme `*.integration.test.ts`, c'est ce suffixe qui l'oriente vers le bon project
+- `vitest.env-loader.ts` charge la configuration d'environnement via `@next/env`, avant tout import qui lit `process.env`
+
+---
+
 ## Tests unitaires (fonctions et schémas)
 
 ### Description
@@ -73,6 +109,7 @@ Tests canoniques pour les fonctions pures (helpers, formatters) et les schémas 
 ```ts
 // src/lib/schemas/contact.test.ts (test colocalisé)
 import { describe, it, expect } from 'vitest'
+import { z } from 'zod'
 import { contactSchema } from './contact'
 
 describe('contactSchema', () => {
@@ -93,7 +130,7 @@ describe('contactSchema', () => {
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.email).toBeDefined()
+      expect(z.flattenError(result.error).fieldErrors.email).toBeDefined()
     }
   })
 })
@@ -104,7 +141,7 @@ describe('contactSchema', () => {
 - `toBe` pour primitives, `toEqual` pour objets
 - `toStrictEqual` pour comparaison stricte (types + `undefined`)
 - `toThrow(/pattern/)` pour les erreurs (wrap dans arrow function)
-- Pour async : `await expect(promise).rejects.toThrow('msg')`
+- Pour async : `await expect(promise).rejects.toThrow('msg')`. Le `await` est obligatoire : depuis Vitest 5, une assertion `resolves` ou `rejects` non attendue fait échouer le test (simple warning avant)
 
 ---
 
@@ -161,7 +198,7 @@ Trois niveaux de mocking : `vi.fn()` pour créer une fonction mock, `vi.spyOn()`
 ### Exemple
 
 ```ts
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Mock module entier (hoisted)
 vi.mock('@/lib/mailer', () => ({
@@ -174,8 +211,6 @@ import { transporter } from '@/lib/mailer'
 import { submitContact } from '@/server/actions/contact'
 
 describe('submitContact', () => {
-  afterEach(() => vi.clearAllMocks())
-
   it('appelle sendMail avec les bons params', async () => {
     const formData = new FormData()
     formData.set('name', 'Alice')
@@ -195,8 +230,9 @@ describe('submitContact', () => {
 ### Points Importants
 
 - `vi.mock` est hoisted : pas besoin de le mettre avant les imports dans le texte
+- `vi.mock` reste au top-level du fichier : appelé dans une fonction, un bloc ou un callback `describe`/`it`, il lève une erreur depuis Vitest 5 (simple warning avant)
 - Pour mock partiel : `vi.mock('./module', async (orig) => ({ ...(await orig()), fn: vi.fn() }))`
-- `vi.clearAllMocks()` dans `afterEach` pour éviter la pollution
+- **`clearMocks: true` par défaut depuis Vitest 5** : l'historique d'appels de chaque mock est vidé avant chaque test, un `vi.clearAllMocks()` en `afterEach` devient redondant. Les implémentations posées par `mockResolvedValue` restent en place, seul `mockReset` les retire
 - `vi.spyOn` moins invasif que `vi.mock` quand possible
 
 ---
@@ -251,12 +287,12 @@ pnpm exec vitest run --coverage
 
 ### Description
 
-Installation de Vitest dans un projet Next.js 16 avec Testing Library. 6 packages à installer : core Vitest, plugin React Vite, résolution des alias TypeScript, jsdom pour le DOM, puis la suite Testing Library (React + jest-dom + user-event). Versions compatibles Vitest 4.x confirmées en mars 2026.
+Installation de Vitest dans un projet Next.js 16 avec Testing Library : core Vitest, plugin React Vite, jsdom pour le DOM, puis la suite Testing Library (React + jest-dom + user-event). Les alias TypeScript ne demandent plus de paquet depuis Vitest 4, et `vite`, peer obligatoire de Vitest 5, est installé seul par pnpm.
 
 ### Syntaxe
 
 ```bash
-# 1. Core Vitest + plugin React (les alias `@/*` passent par resolve.tsconfigPaths, natif en Vitest 4)
+# 1. Core Vitest + plugin React (les alias `@/*` passent par resolve.tsconfigPaths, natif depuis Vitest 4)
 pnpm add -D vitest @vitejs/plugin-react
 
 # 2. Testing Library (pour tester les composants React)
@@ -269,7 +305,7 @@ pnpm add -D jsdom \
 
 ### Points Importants
 
-- Versions compatibles Vitest 4.x confirmées : `@testing-library/react ^16.3.2`, `@testing-library/jest-dom ^6.9.1`, `@testing-library/user-event ^14.6.1`
+- Versions en place avec Vitest 5.0.3, suite verte le 3 octobre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.6`, `jsdom ^30.1.1`
 - `jsdom` requis pour tester les composants React (DOM simulé)
 - Alternative plus rapide : `happy-dom` à la place de `jsdom`
 - `@testing-library/jest-dom` s'importe via `'@testing-library/jest-dom/vitest'` dans le fichier setup (pas l'import standard)
@@ -331,7 +367,7 @@ pnpm exec vitest -t "submitContact"  # filtrer par nom de test
 - Créer `userEvent.setup()` avant chaque `render`
 - Mocker les Server Actions et nodemailer (jamais d'envoi réel en test)
 - Utiliser `getByRole` (accessibilité) à la place de `getByTestId`
-- Exécuter `vi.clearAllMocks()` dans `afterEach`
+- Laisser `clearMocks` à son défaut `true` (Vitest 5) plutôt que d'appeler `vi.clearAllMocks()` dans chaque fichier
 - Maintenir une DB de test séparée pour les tests d'intégration Prisma
 
 ## ❌ Anti-Patterns
@@ -340,15 +376,18 @@ pnpm exec vitest -t "submitContact"  # filtrer par nom de test
 - Ne pas utiliser `jsdom` pour des tests de logique pure (utiliser `node`)
 - Ne pas oublier de mocker SMTP (jamais d'envoi réel)
 - Ne pas partager l'état de mocks entre tests (pollution)
+- Ne pas appeler `vi.mock` dans un `describe`, un `it` ou une fonction : erreur depuis Vitest 5
 - Ne pas viser 100% de coverage au détriment de la pertinence des tests
 
 ---
 
-# 🔗 ressources
+# 🔗 Ressources
 
 ## Documentation Officielle
 
 - [Vitest : Guide](https://vitest.dev/guide/)
+- [Vitest : Migration Guide](https://vitest.dev/guide/migration/)
+- [Vitest 5.0](https://vitest.dev/blog/vitest-5.html)
 - [Vitest : API expect](https://vitest.dev/api/expect.html)
 - [Vitest : Mocking](https://vitest.dev/guide/mocking)
 

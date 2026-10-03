@@ -54,9 +54,13 @@ packages:
 
 # Chaque package est listé explicitement, les patterns glob ne sont pas supportés
 allowBuilds:
-  esbuild: true
+  "@parcel/watcher": true
   "@prisma/engines": true
+  "@swc/core": true
+  msw: true
   prisma: true
+  sharp: true
+  unrs-resolver: true
 ```
 
 ### Points Importants
@@ -110,7 +114,7 @@ pnpm install --frozen-lockfile
 
 ```yaml
 # .github/workflows/ci.yml
-- uses: pnpm/action-setup@<sha> # v6.0.10
+- uses: pnpm/action-setup@<sha> # v6.1.0
   with:
     version: 10
 - run: pnpm install --frozen-lockfile

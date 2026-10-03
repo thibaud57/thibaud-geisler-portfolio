@@ -24,57 +24,45 @@ Le fichier canonique s'appelle `compose.yaml` (pas `docker-compose.yml`). Struct
 
 ### Exemple
 
+Le projet répartit ses services sur deux fichiers : `compose.yaml`, seul lu par Dokploy en production, ne déclare que l'application ; `compose.override.yaml`, chargé automatiquement en local, ajoute le Postgres de dev et rend l'application optionnelle.
+
 ```yaml
-# compose.yaml
+# compose.yaml : production (Dokploy), image tirée de GHCR, jamais buildée ici
 services:
-  db:
-    image: postgres:18.3
+  nextjs:
+    image: ghcr.io/thibaud57/thibaud-geisler-portfolio:latest
+    pull_policy: always
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql
-    networks:
-      - portfolio
+    env_file: .env
+    init: true          # Node en PID 1 ne récolte pas les processus orphelins
+    mem_limit: 1g       # sans plafond, l'OOM killer peut tuer un autre service du VPS
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      start_period: 60s # couvre `prisma migrate deploy`, lancé avant le serveur
 
-  app:
-    build:
-      context: .
-      target: production
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      SMTP_HOST: ${SMTP_HOST}
-    ports:
-      - "3000:3000"
-    networks:
-      - portfolio
+# compose.override.yaml : dev local uniquement
+services:
+  postgres:
+    image: postgres:18-alpine
+    volumes:
+      - portfolio_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portfolio} -d ${POSTGRES_DB:-portfolio}"]
+  nextjs:
+    profiles: [validation]   # lancé seulement par `just docker-up`
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
-
-volumes:
-  pgdata:
-
-networks:
-  portfolio:
-    driver: bridge
 ```
 
 ### Points Importants
 
 - Pas de champ `version:` en v5
-- `${VAR}` interpole depuis `.env` ou l'environnement du shell
-- `$${VAR}` échappe : référence la var d'env du conteneur, pas de l'hôte
-- Tout est à plat sous `services:`, `volumes:`, `networks:`
+- **Aucun `build:`** : l'image est construite en CI et poussée sur GHCR, Dokploy la tire (`pull_policy: always`). En production, Postgres est une Dokploy Database autonome, pas un service de ce fichier
+- Le profil `validation` garde l'application éteinte au quotidien : `just db` ne lance que Postgres et laisse le port 3000 à `just dev`
+- Le healthcheck passe par `node -e fetch(...)` : l'image alpine n'embarque pas `curl`
+- `${VAR:-défaut}` interpole depuis `.env` avec une valeur de repli, `$${VAR}` référence la variable du conteneur et non de l'hôte
+- Aucun réseau déclaré : le réseau par défaut du projet suffit en local, Dokploy branche ses services sur `dokploy-network`
 
 ---
 
@@ -87,19 +75,21 @@ Combiner `healthcheck` et `depends_on: condition: service_healthy` garantit que 
 ### Exemple
 
 ```yaml
+# compose.override.yaml
 services:
-  db:
-    image: postgres:18.3
+  postgres:
+    image: postgres:18-alpine
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U portfolio -d portfolio"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portfolio} -d ${POSTGRES_DB:-portfolio}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+      start_interval: 2s
 
-  app:
+  nextjs:
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
 ```
 
@@ -108,7 +98,8 @@ services:
 - `service_started` (défaut) ne vérifie que le démarrage du conteneur
 - `service_healthy` attend le passage du healthcheck
 - `service_completed_successfully` pour les jobs (migrations)
-- `start_period` donne le temps au service de démarrer avant d'évaluer les retries
+- `start_period` donne le temps au service de démarrer avant d'évaluer les retries, `start_interval` sonde plus souvent pendant cette fenêtre
+- Ce couplage n'existe qu'en local : en production, Postgres est une Dokploy Database, hors du fichier
 
 ---
 
@@ -121,17 +112,15 @@ Les volumes nommés sont la méthode recommandée pour persister les données en
 ### Exemple
 
 ```yaml
+# compose.override.yaml
 services:
-  db:
-    image: postgres:18.3
+  postgres:
+    image: postgres:18-alpine
     volumes:
-      - pgdata:/var/lib/postgresql   # v18 : /var/lib/postgresql, pas /data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - portfolio_pgdata:/var/lib/postgresql   # v18 : /var/lib/postgresql, pas /data
 
 volumes:
-  pgdata:
-    # Pour réutiliser un volume existant créé hors compose
-    # external: true
+  portfolio_pgdata:
 ```
 
 ### Points Importants
@@ -147,29 +136,22 @@ volumes:
 
 ### Description
 
-Compose crée automatiquement un réseau bridge nommé `{projet}_default`. Tous les services y sont connectés et se résolvent par leur nom de service (DNS interne). Dans le portfolio, `app` accède à `db:5432` via le DNS Docker.
+Compose crée automatiquement un réseau bridge nommé `{projet}_default`. Tous les services y sont connectés et se résolvent par leur nom de service (DNS interne). En local, `nextjs` joint `postgres:5432` par ce DNS, sans réseau déclaré.
 
 ### Exemple
 
 ```yaml
+# compose.override.yaml
 services:
-  app:
+  nextjs:
     environment:
-      DATABASE_URL: postgresql://user:pass@db:5432/portfolio  # "db" = nom du service
-
-  db:
-    image: postgres:18.3
-
-networks:
-  # Définition explicite (optionnelle) pour isoler plusieurs stacks
-  portfolio:
-    driver: bridge
+      DATABASE_URL: postgresql://${POSTGRES_USER:-portfolio}:${POSTGRES_PASSWORD:-portfolio}@postgres:5432/${POSTGRES_DB:-portfolio}  # "postgres" = nom du service
 ```
 
 ### Points Importants
 
 - Tous les services d'un même compose sont sur le même réseau par défaut
-- Résolution DNS par nom de service (`db`, `app`, pas par IP)
+- Résolution DNS par nom de service (`postgres`, `nextjs`, pas par IP)
 - Réseaux multiples pour isoler des groupes de services
 - En Dokploy : le réseau `dokploy-network` est injecté automatiquement
 
@@ -187,8 +169,8 @@ Les commandes essentielles pour démarrer, arrêter, consulter l'état et les lo
 
 ```bash
 # Démarrage
-docker compose up -d                      # arrière-plan
-docker compose up -d --build              # rebuild avant up
+docker compose up -d                      # arrière-plan (postgres seul, nextjs est sous profil)
+docker compose --profile validation up -d # avec l'image applicative (recette `just docker-up`)
 docker compose up -d --wait               # attend que tous soient healthy
 
 # Arrêt
@@ -197,14 +179,14 @@ docker compose down --volumes             # + supprime volumes (DANGEREUX)
 
 # Logs
 docker compose logs -f                    # stream tous les services
-docker compose logs -f --tail 100 app    # un service, dernières 100 lignes
+docker compose logs -f --tail 100 nextjs # un service, dernières 100 lignes
 
 # État
 docker compose ps                         # services en cours
 docker compose ps -a                      # tous (y compris arrêtés)
 
 # Exec
-docker compose exec db psql -U portfolio portfolio
+docker compose exec postgres psql -U portfolio portfolio
 ```
 
 ### Points Importants
@@ -231,7 +213,8 @@ docker compose exec db psql -U portfolio portfolio
 
 - Ne pas utiliser `docker compose down --volumes` en prod sans backup
 - Ne pas mélanger `depends_on: service_started` et attentes manuelles
-- Ne pas exposer les ports de la DB publiquement (enlever `ports:` sur `db` en prod)
+- Ne pas exposer les ports de la DB publiquement : le `5432:5432` ne vit que dans l'override de dev
+- Ne pas ajouter de `build:` à `compose.yaml` : Dokploy est en pull-only, l'image vient de GHCR
 - Ne pas oublier le changement de mount PostgreSQL v18
 - Ne pas committer `compose.override.yaml` si contient des secrets
 

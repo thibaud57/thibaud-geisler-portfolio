@@ -1,8 +1,8 @@
 ---
 title: "Next.js — Framework full-stack"
-version: "16.3.3"
+version: "16.3.6"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
-date: "2026-04-13"
+date: "2026-10-03"
 keywords: ["nextjs", "app-router", "server-components", "server-actions", "turbopack"]
 scope: ["docs"]
 technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
@@ -104,31 +104,32 @@ Fonctions async côté serveur marquées `'use server'`, invoquées depuis des f
 ### Exemple
 
 ```ts
-// src/server/actions/contact.ts
+// src/server/actions/contact.ts (extrait : honeypot et rate limit omis)
 'use server'
+import 'server-only'
+import { z } from 'zod'
+import { MAIL_FROM, MAIL_TO, transporter } from '@/lib/mailer'
 import { contactSchema } from '@/lib/schemas/contact'
-import { transporter } from '@/lib/mailer'
-import { logger } from '@/lib/logger'
+import { createActionLogger } from '@/lib/server-utils'
 
-export async function submitContact(_prev: unknown, formData: FormData) {
-  const result = contactSchema.safeParse(Object.fromEntries(formData))
-  if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors }
-  }
+export async function submitContact(
+  _prevState: ContactFormState,
+  formData: FormData,
+): Promise<ContactFormState> {
+  return createActionLogger('submitContact', async ({ log }) => {
+    const result = contactSchema.safeParse(Object.fromEntries(formData))
+    if (!result.success) {
+      return { ok: false, errors: z.flattenError(result.error).fieldErrors, message: null }
+    }
 
-  try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM,
-      to: process.env.MAIL_TO,
-      replyTo: result.data.email,
-      subject: `Contact portfolio — ${result.data.name}`,
-      text: result.data.message,
-    })
-    return { success: true }
-  } catch (err) {
-    logger.error({ err }, 'Failed to send contact')
-    return { error: 'Erreur serveur' }
-  }
+    try {
+      await transporter.sendMail({ from: MAIL_FROM, to: MAIL_TO, replyTo: result.data.email, subject, text })
+      return { ok: true, errors: {}, message: null }
+    } catch (err) {
+      log.error({ err, event: 'email:failed' })
+      return { ok: false, errors: {}, message: 'smtp_error' }
+    }
+  })
 }
 ```
 
@@ -136,7 +137,8 @@ export async function submitContact(_prev: unknown, formData: FormData) {
 
 - Directive `'use server'` en haut du fichier (module) ou inline dans une fonction
 - Toujours valider les entrées avec Zod avant mutation
-- Retourner un objet `{ errors | success | error }` pour `useActionState`
+- Retourner un état typé et stable pour `useActionState` (ici `{ ok, errors, message, values? }`), le même à chaque sortie de l'action
+- Envelopper le corps dans `createActionLogger` (`src/lib/server-utils.ts`) : il fournit `log` et `ip`, et pose l'instrumentation Sentry de l'action
 - Vérifier l'auth dans chaque action (sécurité défense en profondeur)
 
 ---

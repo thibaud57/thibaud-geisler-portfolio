@@ -1,65 +1,39 @@
 ---
 paths:
   - "src/app/api/**/route.ts"
+  - "src/app/admin/**/route.ts"
 ---
 
 # Next.js — API Route Handlers
 
 ## À faire
-- Exporter des fonctions nommées par méthode HTTP (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `OPTIONS`) dans `route.ts`
-- Toujours `await params` dans les route handlers dynamiques (`[id]`) : `Promise` obligatoire
-- Utiliser `NextResponse.json(data, { status })` pour retourner du JSON avec un status HTTP
-- Extraire le body manuellement via `await request.json()`, `await request.formData()` ou `await request.text()` selon le `Content-Type`
-- Défaut attendu sur un `GET` route handler : dynamic (exécuté à chaque requête). Pour cacher la réponse côté serveur, extraire la lecture dans une fonction helper avec `'use cache'` + `cacheLife()` + `cacheTag()` et l'appeler depuis le handler (la directive `'use cache'` ne peut pas être posée dans le body du handler lui-même)
-- Centraliser les headers CORS dans un objet réutilisable et créer un handler `OPTIONS` pour les requêtes préflight
+- Exporter des fonctions nommées par méthode HTTP (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) dans `route.ts`
+- Toujours `await params` dans les route handlers dynamiques (`[id]`, `[...path]`) : `Promise` obligatoire
+- Retourner du JSON par `NextResponse.json(data, { status })`
+- Extraire le body selon le `Content-Type` : `await request.json()`, `await request.formData()` ou `await request.text()`
+- Compter sur le comportement par défaut d'un `GET` : dynamique, exécuté à chaque requête. Pour cacher côté serveur, extraire la lecture dans un helper `'use cache'` + `cacheLife()` + `cacheTag()` appelé par le handler : la directive ne se pose pas dans le body du handler
 - Valider toute entrée utilisateur avec Zod avant usage (mêmes règles que les Server Actions)
-- Écouter `request.signal` (abort event) pour nettoyer les streams quand le client se déconnecte
 
 ## À éviter
 - Créer un `route.ts` et un `page.tsx` au même niveau de route (conflit de résolution)
-- Accéder synchronement à `params` : hard error Next 16
-- Combiner `Access-Control-Allow-Origin: *` avec `Access-Control-Allow-Credentials: true` (incompatibles, CORS bloqué)
-- `await` la boucle dans le `start()` d'un `ReadableStream` pour SSE : bloque le retour de la réponse, lancer le travail async en background
-- Utiliser `export const dynamic = 'force-static' | 'force-dynamic' | ...` ou `export const runtime = ...` dans un projet où `cacheComponents: true` est activé dans `next.config.ts` : **incompatible**, throw au build (cf. `nextjs/configuration.md` et `nextjs/rendering-caching.md`)
+- Accéder synchroniquement à `params` : hard error Next 16
+- Poser `export const dynamic` ou `export const runtime` : **incompatibles** avec `cacheComponents: true`, throw au build. Le runtime reste Node.js par défaut, suffisant pour Prisma
 
 ## Gotchas
-- Next 15 breaking change : les `GET` route handlers ne sont **plus cachés par défaut**, exécution per-request par défaut
-- Avec `cacheComponents: true` (config projet recommandée), les segment configs `dynamic` et `runtime` sont interdits (le runtime reste Node.js par défaut, suffisant pour Prisma) : utiliser la directive `'use cache'` dans une fonction helper pour opt-in au caching serveur, ou laisser le comportement dynamique par défaut et s'appuyer sur `Cache-Control` côté client/CDN
-- SSE derrière Nginx : `X-Accel-Buffering: no` obligatoire dans les headers pour désactiver le buffering du proxy
+- Next 15 : les `GET` route handlers ne sont **plus cachés par défaut**
 - `cookies()` / `headers()` de `next/headers` sont async dans les route handlers (hard error Next 16 si sync)
+- Le projet n'a ni CORS ni SSE (`docs/ARCHITECTURE.md`) : si un client tiers apparaît, centraliser les en-têtes CORS et ne jamais combiner `Access-Control-Allow-Origin: *` avec `Allow-Credentials: true` ; pour du SSE, écouter `request.signal` pour libérer le flux et ne pas `await` la boucle dans `start()`
 
 ## Exemples
 ```typescript
-// ✅ GET dynamique avec params async (Next 16 hard error si sync)
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// ✅ GET dynamique avec params async
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   return NextResponse.json({ id })
 }
 
 // ❌ accès synchrone à params (hard error Next 16)
-export async function GET(request, { params }: { params: { id: string } }) {
+export async function GET(_request, { params }: { params: { id: string } }) {
   return NextResponse.json({ id: params.id })
-}
-```
-
-```typescript
-// ✅ SSE : ne pas await la boucle dans start(), écouter request.signal pour cleanup
-export async function GET(request: NextRequest) {
-  const stream = new ReadableStream({
-    start(controller) {
-      const interval = setInterval(() => { ... }, 1000)
-      request.signal.addEventListener('abort', () => clearInterval(interval))
-    },
-  })
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      'X-Accel-Buffering': 'no', // Nginx
-    },
-  })
 }
 ```

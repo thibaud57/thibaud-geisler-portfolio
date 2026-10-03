@@ -9,7 +9,7 @@ paths:
 
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` (ex: `deps → builder → runner`) pour isoler toolchain/devDeps du runtime image
-- Image de base **`node:24-alpine`** (ligne 24 « Krypton », LTS active ; Alpine pour poids minimum). Node 26 est Current jusqu'à sa bascule LTS attendue vers octobre 2026. Ne pas migrer avant
+- Image de base **`node:24-alpine`** (ligne LTS 24 « Krypton », Alpine pour le poids). Ne pas passer à Node 26 avant qu'il devienne Active LTS, le 28 octobre 2026 (`docs/VERSIONS.md` § Montées Bloquées)
 - Activer pnpm via **`corepack enable`** dans le stage `deps`, pas `npm install -g pnpm` (corepack est la voie officielle depuis Node 16.10+)
 - Copier **`package.json`** et **`pnpm-lock.yaml`** AVANT le code source dans le stage `deps` pour maximiser le cache de layers Docker
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
@@ -26,7 +26,7 @@ paths:
 
 ## Gotchas
 - **Node 20 EOL 30 avril 2026** : `node:24-alpine` non négociable pour tout nouveau build, ne pas utiliser `node:20-*` (VERSIONS.md)
-- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou compose si le service a beaucoup de connexions, pas dans le Dockerfile (voir `docker-compose/compose.md`)
+- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou par `ulimits:` dans le compose si le service a beaucoup de connexions, jamais dans le Dockerfile (détail : `docs/knowledges/docker.md` § ulimit nofile v29)
 
 ## Exemples
 ```dockerfile

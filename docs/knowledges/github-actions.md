@@ -10,7 +10,7 @@ technologies: ["Node.js", "pnpm", "Vitest", "Dokploy"]
 
 # Description
 
-`GitHub Actions` est le service CI du portfolio. Le workflow principal exécute lint + tests sur chaque push et pull request, sur un runner `ubuntu-24.04`. Le déploiement est porté par un second workflow, `deploy.yml`, déclenché sur le tag `v*` : build de l'image, push sur GHCR, puis appel de l'API Dokploy qui tire l'image sans rien builder. Pattern canonique : `actions/checkout@v7`, `pnpm/action-setup@v6`, `actions/setup-node@v7` avec `cache: 'pnpm'`.
+`GitHub Actions` est le service CI du portfolio. Le workflow principal, `ci.yml`, tourne sur les pull requests vers `main` et `develop` et sur les push vers `main`, sur un runner `ubuntu-24.04` : il lance `just lint`, `typecheck`, `test`, `build` et `audit`, et saute ces étapes quand le diff ne touche que de la documentation. Deux autres workflows complètent : `security.yml` (scan Trivy hebdomadaire de l'image publiée) et `release-please.yml` (version et tag). Le déploiement est porté par un second workflow, `deploy.yml`, déclenché sur le tag `v*` : build de l'image, push sur GHCR, puis appel de l'API Dokploy qui tire l'image sans rien builder. Pattern canonique : `actions/checkout@v7`, `pnpm/action-setup@v6`, `actions/setup-node@v7` avec `cache: 'pnpm'`.
 
 ---
 
@@ -22,82 +22,73 @@ technologies: ["Node.js", "pnpm", "Vitest", "Dokploy"]
 
 Les workflows sont des fichiers YAML dans `.github/workflows/`. Chaque workflow définit ses triggers (`on:`), ses jobs (`jobs:`) et les étapes (`steps:`). Les jobs s'exécutent en parallèle par défaut, sauf si `needs:` crée une dépendance.
 
+`ci.yml` suit un schéma à trois jobs, imposé par le required check `ci` de la branch protection : `changes` détecte si le diff touche du code, `quality` fait le travail, `ci` agrège et seul ce dernier est requis. Un diff purement documentaire saute `quality` sans bloquer la PR.
+
 ### Exemple
 
 ```yaml
-# .github/workflows/ci.yml
-name: CI
-
+# .github/workflows/ci.yml (condensé)
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
-  test:
+  changes:
     runs-on: ubuntu-24.04
-
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: portfolio_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfolio_test
-
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
-
-      - uses: pnpm/action-setup@<sha> # v6.0.10
+      - uses: dorny/paths-filter@<sha> # v4.0.3
+        id: filter
         with:
-          version: 10
+          predicate-quantifier: every
+          filters: |
+            source: ['**', '!**/*.md', '!docs/**', '!.claude/**']
 
+  quality:
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@<sha> # v7.0.1
+      - uses: pnpm/action-setup@<sha> # v6.1.0, version lue dans `packageManager`
       - uses: actions/setup-node@<sha> # v7.0.0
-        with:
-          node-version: '24'
-          cache: 'pnpm'
+        with: { node-version: '24', cache: 'pnpm' }
+      - uses: extractions/setup-just@<sha> # v4.0.0
+      - run: pnpm install --frozen-lockfile
+      - run: just lint
+      - run: just typecheck
+      - run: just test
+      - run: just build
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Type check
-        run: pnpm exec tsc --noEmit
-
-      - name: Run Prisma migrations
-        run: pnpm exec prisma migrate deploy
-
-      - name: Tests
-        run: pnpm exec vitest run
+  ci:
+    needs: [changes, quality]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - run: '[[ "${{ needs.quality.result }}" != "failure" && "${{ needs.quality.result }}" != "cancelled" ]]'
 ```
 
 ### Points Importants
 
 - `runs-on: ubuntu-24.04` (pas `ubuntu-latest` pour la reproductibilité)
-- `concurrency: cancel-in-progress: true` annule les runs redondants sur la même branche
+- Les commandes passent par `just`, comme en local : la CI ne réinvente pas les recettes du `Justfile`
+- `cancel-in-progress` seulement sur les PR : un run sur `main` va toujours au bout
 - `permissions: contents: read` applique le principe du moindre privilège
-- `on: push + pull_request` couvre les deux cas essentiels
 - `timeout-minutes: 15` sur le job : évite qu'un test hangué consomme les 6h (360 min) de timeout par défaut et bloque les minutes CI
+- Le job `ci` porte `if: always()` : sans lui, un `quality` sauté marquerait le check requis comme ignoré et bloquerait le merge
 
 ---
 
@@ -112,21 +103,21 @@ GitHub Actions permet de démarrer des services auxiliaires pour les tests d'int
 ```yaml
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18-alpine
     env:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: portfolio_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test_db
     options: >-
-      --health-cmd pg_isready
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
+      --health-cmd="pg_isready -U test -d test_db"
+      --health-interval=10s
+      --health-timeout=5s
+      --health-retries=5
     ports:
       - 5432:5432
 
 env:
-  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/portfolio_test
+  DATABASE_URL: postgresql://test:test@localhost:5432/test_db
 ```
 
 ### Points Importants
@@ -135,6 +126,7 @@ env:
 - `--health-cmd pg_isready` : attend que Postgres soit prêt
 - Les données sont éphémères (détruit à la fin du job)
 - `env.DATABASE_URL` utilise `localhost` (pas le nom du service)
+- La base sert aux tests d'intégration (`prisma migrate deploy` puis `just test`). `just build`, lui, reçoit une URL volontairement injoignable (`127.0.0.1:1`) : depuis [ADR-022](../adrs/022-rendu-public-sans-donnee-au-build.md), le build ne lit plus la base, et un accès résiduel casserait la CI au lieu de passer inaperçu
 
 ---
 
@@ -147,10 +139,8 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 ### Exemple
 
 ```yaml
-# Option 1 : cache automatique via setup-node
-- uses: pnpm/action-setup@<sha> # v6.0.10
-  with:
-    version: 10
+# Option 1 : cache automatique via setup-node (celle du projet)
+- uses: pnpm/action-setup@<sha> # v6.1.0, sans `version:` : lue dans `packageManager`
 
 - uses: actions/setup-node@<sha> # v7.0.0
   with:
@@ -178,6 +168,8 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 - `--frozen-lockfile` échoue si le lockfile est désynchronisé
 - Le cache est partagé entre workflows du même repo
 - Option 2 (explicite) préférée pour les monorepos complexes
+- Le projet cache aussi `.next/cache` par `actions/cache`, clé sur le lockfile et les sources : le build Next réutilise sa compilation précédente
+- Ne pas pinner `version:` dans `pnpm/action-setup` : un second pin diverge silencieusement de `packageManager` au prochain bump de pnpm
 
 ---
 
@@ -190,28 +182,27 @@ Dans le portfolio, le déploiement **est** porté par GitHub Actions. `deploy.ym
 ### Exemple
 
 ```yaml
-# Alternative : déclenchement explicite via API Dokploy
-jobs:
-  deploy:
-    runs-on: ubuntu-24.04
-    needs: [test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Trigger Dokploy deployment
-        run: |
-          curl -X POST '${{ secrets.DOKPLOY_URL }}/api/application.deploy' \
-            -H 'x-api-key: ${{ secrets.DOKPLOY_AUTH_TOKEN }}' \
-            -H 'Content-Type: application/json' \
-            -d '{"applicationId": "${{ secrets.DOKPLOY_APPLICATION_ID }}"}'
+# .github/workflows/deploy.yml (dernière étape, après le build et le push sur GHCR)
+- name: Trigger Dokploy compose redeploy
+  run: |
+    for i in 1 2 3; do
+      curl -fsSL --max-time 30 -X POST \
+        "${{ secrets.DOKPLOY_URL }}/api/compose.redeploy" \
+        -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
+        -H "Content-Type: application/json" \
+        -d '{"composeId":"${{ secrets.DOKPLOY_COMPOSE_ID }}"}' && exit 0
+      echo "Attempt $i failed, retrying in $((i*5))s..."
+      sleep $((i*5))
+    done
+    exit 1
 ```
 
 ### Points Importants
 
-- Pattern actuel : build en GHA, image sur GHCR, puis appel de l'API Dokploy depuis le workflow
-- Le build est en CI parce que `next build` a besoin d'une base joignable au prerender, ce qu'un build sur le VPS ne garantit pas
-- Secrets stockés dans GitHub Settings > Secrets
-- `needs: [test]` garantit que les tests passent avant le deploy
+- Pattern : build en GHA sur tag `v*`, image sur GHCR, puis `compose.redeploy` sur l'application Compose Dokploy (pas `application.deploy`, qui viserait une application Dokploy classique)
+- Trois tentatives espacées : un redémarrage de Dokploy pendant l'appel ne fait pas échouer la release
+- Le tag n'est posé que sur `main`, après merge d'une PR dont la CI est verte : le deploy ne relance pas les tests
+- Secrets stockés dans GitHub Settings > Secrets, les `NEXT_PUBLIC_*` dans les variables du dépôt
 
 ---
 

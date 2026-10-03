@@ -1,7 +1,7 @@
 ---
 paths:
   - "src/lib/schemas/**/*.ts"
-  - "src/lib/env*.ts"
+  - "src/env.ts"
   - "src/server/**/*.ts"
   - "src/app/api/**/*.ts"
 ---
