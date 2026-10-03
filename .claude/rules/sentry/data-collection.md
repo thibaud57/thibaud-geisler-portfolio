@@ -2,7 +2,6 @@
 paths:
   - "src/instrumentation-client.ts"
   - "sentry.*.config.ts"
-  - "src/sentry.*.config.ts"
   - "src/lib/sentry-scrub.ts"
 ---
 

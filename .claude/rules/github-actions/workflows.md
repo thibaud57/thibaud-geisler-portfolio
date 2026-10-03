@@ -4,136 +4,51 @@ paths:
   - ".github/workflows/**/*.yaml"
 ---
 
-# GitHub Actions — Workflows CI (lint, typecheck, tests, build, audit)
+# GitHub Actions — Workflow CI (lint, typecheck, tests, build, audit)
 
 ## À faire
-- Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis et casse les runs)
-- **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@3d3c42e… # v7.0.1`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files`, mars 2025, secrets exfiltrés sur des milliers de dépôts). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble ; l'inventaire des versions vit dans VERSIONS.md § GitHub Actions, les workflows sont la source
-- **`pnpm/action-setup` AVANT `setup-node`** pour que le cache pnpm fonctionne (setup-node a besoin de trouver pnpm sur le PATH)
-- **Node 24** explicite dans `setup-node` : `node-version: '24'`. Le Node système de l'image runner n'est jamais celui du projet et change à chaque image (22.23.2 sur `ubuntu24/20260831.293.1`) : toujours l'overrider, ne jamais s'y fier
-- **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node@v7` (le cache auto a été retiré en v6)
-- Install reproductible : **`pnpm install --frozen-lockfile`** (échoue si lockfile désynchronisé avec `package.json`)
-- **Concurrency** : `concurrency.group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict ; `false` sur `release-please.yml` et `deploy.yml`, une release interrompue laisserait un état incomplet
-- **Permissions minimales** au niveau workflow : `permissions: contents: read` (principe du moindre privilège, le défaut = toutes permissions)
-- **`timeout-minutes: 15`** sur chaque job : évite qu'un test qui hang consomme les 6h de timeout par défaut et bloque les minutes CI (15 min suffit largement pour lint + typecheck + tests d'un MVP)
-- **Service container Postgres** pour tests d'intégration : `image: postgres:18-alpine` (même tag que `compose.override.yaml`, sinon la CI teste une autre image que le dev), healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner (pas le nom du service)
-- **Garder `deploy.yml` séparé de `ci.yml`** : déclenché sur push tag `v*` (tag créé par release-please, authentifié par GitHub App), il build l'image Docker, la pousse sur GHCR puis déclenche le redeploy Dokploy par curl. Dokploy reste en pull-only, il ne rebuild jamais localement. Voir PRODUCTION.md
-- **Condition `startsWith(github.ref, 'refs/tags/v')` sur le job de `deploy.yml`** : un dispatch depuis une branche publierait `latest` hors release. Ne pas restreindre à `main`, le rollback se dispatche sur le ref d'un tag
-- **Un workflow par rôle** : `ci.yml` qualité, `release-please.yml` release, `deploy.yml` build et déploiement, `security.yml` scan Trivy hebdomadaire de l'image `latest`. Le scan reste hors de `deploy.yml` : `security-events: write` n'a pas à côtoyer les secrets de déploiement, et seul un run sur la branche par défaut alimente l'onglet Security
-- **Token de GitHub App quand l'événement produit doit déclencher un autre workflow** : `actions/create-github-app-token@v3` avant le step qui pousse, puis passer `steps.<id>.outputs.token`. Le `id:` du step est **load-bearing** : sans lui l'expression résout à vide, l'action consommatrice retombe sur son défaut `github.token`, le run reste vert et plus rien ne se déclenche. Laisser `owner` et `repositories` vides scope le token au dépôt courant. Le bloc `permissions:` du workflow gouverne le `GITHUB_TOKEN`, plus les droits réels : le mettre à `contents: read` quand rien ne l'utilise, les droits vivant dans les permissions de l'App
-- **Pattern agrégateur** si required check en branch protection avec exclusion doc-only : split en 3 jobs (`changes` via `dorny/paths-filter@v4` avec `predicate-quantifier: every` → `quality` conditionnel sur source → `ci` agrégateur qui tourne toujours `if: always()` et retourne success si quality OK ou skipped). Évite que les PR doc-only soient bloquées par le required check. Ajouter `pull-requests: read` aux permissions (paths-filter API). Voir exemple ci-dessous
-- **Les PR de release échappent au filtre de chemins** : elles touchent `package.json` et le manifest, donc `source` rend `true` et `quality` tournerait pour un diff sans code. Exclure `package.json` du filtre serait le mauvais remède, une PR ne touchant que ce fichier sauterait alors la CI pour de bon. Le skip passe par une condition sur le job `quality` : `&& !startsWith(github.head_ref, 'release-please--')`. `github.head_ref` n'étant renseigné que sur les événements `pull_request`, il est vide au push sur la branche de production et le garde-fou y reste intact
+- Runner épinglé **`ubuntu-24.04`** (pas `ubuntu-latest`, qui bascule sans préavis)
+- **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@3d3c42e… # v7.0.1`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files`, mars 2025, secrets exfiltrés sur des milliers de dépôts). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble, l'inventaire vit dans VERSIONS.md § GitHub Actions
+- **`pnpm/action-setup` AVANT `setup-node`**, sans `version:` : setup-node doit trouver pnpm sur le PATH pour le cache, et la version se lit dans `packageManager`
+- **Node 24** explicite dans `setup-node` (`node-version: '24'`) : le Node système de l'image runner change à chaque image, ne jamais s'y fier
+- **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node` (le cache auto a été retiré en v6), puis **`pnpm install --frozen-lockfile`**
+- **Concurrency** : `group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict
+- **Permissions minimales** au niveau workflow (`contents: read`), le défaut accordant tout
+- **`timeout-minutes: 15`** sur les jobs de qualité : un test qui hang ne consomme pas les 6 h par défaut
+- **Service container Postgres** pour les tests d'intégration : `image: postgres:18-alpine` (même tag que `compose.override.yaml`), healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner
+- **`just build` avec une `DATABASE_URL` injoignable** (`127.0.0.1:1`) et `SKIP_ENV_VALIDATION: 'true'` : depuis ADR-022 le build ne lit plus la base, un accès résiduel doit casser la CI au lieu de passer inaperçu
+- **Pattern agrégateur** pour un required check compatible doc-only : `changes` (`dorny/paths-filter` avec `predicate-quantifier: every`) → `quality` conditionnel → `ci` en `if: always()`, qui réussit si `quality` est vert ou sauté. Ajouter `pull-requests: read` aux permissions (API de paths-filter)
+- **Sauter `quality` sur les PR de release** par `&& !startsWith(github.head_ref, 'release-please--')` : elles touchent `package.json`, donc `source` rend `true`. Exclure `package.json` du filtre ferait sauter la CI à une vraie PR de dépendances. `github.head_ref` est vide au push, le garde-fou y reste intact
 
 ## À éviter
-- **Compter sur le `GITHUB_TOKEN` intégré quand l'événement produit doit réveiller un autre workflow** : GitHub ne déclenche aucun workflow sur les événements qu'il émet (garde-fou anti-récursion). Un tag poussé ainsi ne lance pas le workflow abonné à `push: tags`, sans la moindre erreur : le run est vert et la chaîne s'arrête. Passer par un token de GitHub App
-- Valeurs sensibles en clair : toujours `${{ secrets.NAME }}`, ne jamais `echo` un secret dans les logs (cf. `nodemailer/email.md` pour le pattern de mock SMTP en tests)
-- Omettre `permissions:` au niveau workflow : par défaut GitHub accorde toutes les permissions, toujours restreindre explicitement
+- Valeurs sensibles en clair : toujours `${{ secrets.NAME }}`, ne jamais `echo` un secret dans les logs
+- Omettre `permissions:` au niveau workflow
 
 ## Gotchas
-- **`actions/setup-node` v5 → v6** : le cache automatique pour pnpm a été retiré, `cache: 'pnpm'` est désormais obligatoire pour bénéficier du cache (VERSIONS.md)
-- **`pnpm/action-setup` v3 → v4** : erreur levée si le champ `packageManager` dans `package.json` contredit la version spécifiée dans l'action (avant : silencieux) (VERSIONS.md)
-- **Node 20 est EOL depuis le 30 avril 2026** : ne jamais l'utiliser. Le défaut de `ubuntu-24.04` n'est pas Node 20 mais la version système de l'image du moment (22.23.2 fin août 2026), qui bouge sans préavis : l'override `node-version: '24'` dans `setup-node@v7` est ce qui rend le runtime déterministe (VERSIONS.md)
+- **`actions/setup-node` v5 → v6** : le cache automatique pour pnpm a été retiré, `cache: 'pnpm'` est obligatoire (VERSIONS.md)
+- **`pnpm/action-setup` v3 → v4** : erreur si `packageManager` contredit une `version:` passée à l'action. Un pin en double diverge en silence au prochain bump de pnpm, d'où l'absence de `version:`
+- **Node 20 est EOL depuis le 30 avril 2026** : seul l'override `node-version: '24'` rend le runtime déterministe
+- Release, déploiement et tokens : voir `github-actions/release-deploy.md`
 
 ## Exemples
 ```yaml
-# ✅ Workflow CI minimal : lint + typecheck + tests (pas de deploy)
-name: ci
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+# ✅ Job quality : setup déterministe, commandes via just
+quality:
+  needs: changes
+  if: needs.changes.outputs.source == 'true' && !startsWith(github.head_ref, 'release-please--')
+  runs-on: ubuntu-24.04
+  timeout-minutes: 15
+  steps:
+    - uses: actions/checkout@<sha> # v7.0.1
+    - uses: pnpm/action-setup@<sha> # v6.1.0
+    - uses: actions/setup-node@<sha> # v7.0.0
+      with: { node-version: '24', cache: 'pnpm' }
+    - run: pnpm install --frozen-lockfile
+    - run: just lint && just typecheck && just test
+    - run: just build
+      env: { DATABASE_URL: 'postgresql://test:test@127.0.0.1:1/test_db' }
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-permissions:
-  contents: read
-
-jobs:
-  test:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@<sha> # v7.0.1
-      - uses: pnpm/action-setup@<sha> # v6.0.10
-      - uses: actions/setup-node@<sha> # v7.0.0
-        with:
-          node-version: '24'
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
-      - run: pnpm run typecheck
-      - run: pnpm run test
-```
-
-```yaml
-# ✅ Pattern agrégateur pour required check compatible doc-only
-permissions:
-  contents: read
-  pull-requests: read  # requis par paths-filter
-
-jobs:
-  changes:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    outputs:
-      source: ${{ steps.filter.outputs.source }}
-    steps:
-      - uses: actions/checkout@<sha> # v7.0.1
-      - uses: dorny/paths-filter@<sha> # v4.0.3
-        id: filter
-        with:
-          predicate-quantifier: every   # obligatoire pour que les négations excluent réellement (défaut 'some' = OR → ** matche toujours et rend les négations inertes)
-          filters: |
-            source:
-              - '**'
-              - '!**/*.md'
-              - '!docs/**'
-              - '!.claude/**'
-
-  quality:
-    needs: changes
-    if: needs.changes.outputs.source == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      # lint + typecheck + test + build…
-
-  ci:  # job agrégateur : nom du required check GitHub
-    needs: [changes, quality]
-    if: always()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Verify
-        run: |
-          if [[ "${{ needs.changes.result }}" != "success" ]]; then exit 1; fi
-          if [[ "${{ needs.quality.result }}" == "failure" || "${{ needs.quality.result }}" == "cancelled" ]]; then exit 1; fi
-```
-
-```yaml
-# ✅ Service container postgres:18 pour tests d'intégration
-jobs:
-  test:
-    runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U test -d test_db"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    env:
-      DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-    steps:
-      # ...
+# ❌ Tag mobile et version pnpm pinnée en double
+- uses: pnpm/action-setup@v6
+  with: { version: 10 }
 ```

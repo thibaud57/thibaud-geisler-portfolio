@@ -7,9 +7,9 @@ paths:
   - "src/server/queries/assets.ts"
   - "src/lib/schemas/asset.ts"
   - "src/lib/asset-keys.ts"
+  - "src/lib/asset-content-types.ts"
   - "src/lib/assets.ts"
   - "src/lib/r2.ts"
-  - ".env*"
 ---
 
 # Next.js — Assets dynamiques (ADR-011)
@@ -20,19 +20,17 @@ paths:
 - **Une seule exception, le logo d'entreprise** : il reste dans `portfolio-admin` (donnée du CRM) mais s'affiche sur la page publique des projets de l'entreprise, donc `/api/assets/[...path]` sert les clés `freelance/crm/entreprises/**` depuis le bucket admin, sans session et sans cache (`isCompanyLogoKey`), **et seulement si l'entreprise a un projet publié** : le logo d'un prospect du CRM répond 404 sans lire R2, quel que soit le slug deviné. Toute autre clé `freelance/` reste derrière `/admin/api/assets` (`isGuardedAssetKey`), qui décide de l'URL publique (`buildAssetUrl`). L'espace admin, lui, lit tout le bucket admin par la route gardée (`AssetImage` : `buildGuardedAssetUrl` + `unoptimized`), donc aussi le logo d'une entreprise pas encore en ligne
 - **Organisation `portfolio-assets`** : `branding/<fichier>` (2 segments, logo, portrait), `documents/cv/<fichier>` (3 segments, CV, un fichier par locale `cv-thibaud-geisler-<locale>.pdf`), `projets/{client,personal}/<slug-projet>/<fichier>` (4 segments, couverture, captures, vidéos du projet, sous **son propre** slug, `Project.slug`, plus le slug de l'entreprise pour un projet client)
 - **L'emplacement choisi au dépôt détermine le bucket, jamais l'inverse** : le dossier sélectionné (`branding`, `documents/cv`, `projets/{client,personal}`, `freelance/crm/entreprises`) fixe à lui seul la destination, aucun autre paramètre ne l'influence
-- Valider chaque segment du `path` via un schéma Zod strict (regex `^[a-z0-9][a-z0-9._-]*$` par segment, insensible à la casse) et valider que le **dernier segment** porte une extension whitelist (png/jpg/jpeg/webp/svg/pdf). Profondeur max 5 segments, clé entière limitée à 1 024 caractères : au-delà, R2 répond `InvalidObjectName`, que la route renverrait en 500 au lieu de 400. Le chemin validé devient directement la clé d'objet R2
+- Valider chaque segment du `path` via un schéma Zod strict (regex `^[a-z0-9][a-z0-9._-]*$` par segment, insensible à la casse) : elle rejette tout séparateur interne (`/`, `\`) et, en imposant un premier caractère alphanumérique, `.` et `..`. Le **dernier segment** porte une extension whitelist (png/jpg/jpeg/webp/svg/pdf). Profondeur max 5 segments, exactement la plus profonde des structures valides (`freelance/crm/entreprises/<slug>/<fichier>`), clé entière limitée à 1 024 caractères : au-delà, R2 répond `InvalidObjectName`, que la route renverrait en 500 au lieu de 400. Le chemin validé devient directement la clé d'objet R2
 - Relayer le corps de la réponse en flux (`object.Body.transformToWebStream()`) plutôt que de le charger en mémoire : le CV en PDF étant le plus lourd des assets, cela évite de le tamponner entièrement à chaque requête
 - Retourner `Cache-Control` conditionnel : `public, max-age=31536000, immutable` en production (assets immutables, convention : changer le filename pour invalider, pas le cache) et `no-cache, no-store, must-revalidate` en dev (sinon Chrome garde 1 an le premier fichier servi localement, pénible au moindre remplacement d'asset)
 - Retourner `NextResponse.json({ error }, { status: 400 })` pour path invalide (avant tout appel R2), `{ status: 404 }` pour clé absente (distinction HTTP standard, pas de `security through obscurity` sur des assets publics par nature)
 - Logger warn sur 400 (signal potentiellement hostile), debug sur 404 (bruit normal)
 - Configurer le client S3 avec `region: "auto"`, l'endpoint `https://<R2_ACCOUNT_ID>.eu.r2.cloudflarestorage.com` (juridiction `eu` des buckets) et `requestChecksumCalculation: "WHEN_REQUIRED"`
-- Pour référencer un asset dans `next/image`, utiliser le **chemin relatif** que construit `buildAssetUrl()`, jamais une URL absolue ni `images.remotePatterns` : voir `nextjs/images-fonts.md`
+- Pour référencer un asset dans `next/image`, utiliser le **chemin relatif** que construit `buildAssetUrl()`, jamais une URL absolue ni `images.remotePatterns` : voir `nextjs/images.md`
 
 ## À éviter
 - Stocker les assets dynamiques dans `public/` : couplage au build, pas de hashing, incompatible avec l'upload depuis l'espace admin (ADR-011 contrainte actée, indépendante du choix de stockage)
-- Accepter des segments contenant `/` ou `\` : chaque entrée du tableau `path` issu du catch-all Next doit être un segment atomique (la regex rejette tout séparateur interne). Rejeter `..` et `.` : le motif de segment l'exclut déjà en imposant de commencer par un caractère alphanumérique
 - Ajouter `export const dynamic` dans la route handler : incompatible avec `cacheComponents: true` (cf. `nextjs/api-routes.md`). Le `Cache-Control` HTTP + comportement dynamic par défaut suffisent
-- Dépasser 5 segments de profondeur : la limite dure empêche l'explosion arborescente et correspond exactement à la plus profonde des quatre structures valides, `freelance/crm/entreprises/<slug>/<fichier>` (`portfolio-admin`)
 - Introduire une interface `AssetStorage` : une seule implémentation existe, l'écrire directement (YAGNI)
 
 ## Gotchas

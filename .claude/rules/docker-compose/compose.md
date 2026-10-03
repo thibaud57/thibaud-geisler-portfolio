@@ -1,84 +1,55 @@
 ---
 paths:
   - "compose.yaml"
-  - "compose.yml"
   - "compose.override.yaml"
-  - "docker-compose.yaml"
-  - "docker-compose.yml"
 ---
 
 # Docker Compose — services, volumes, healthchecks
 
 ## À faire
-- Nommer le fichier **`compose.yaml`** (nom canonique v5) et démarrer directement par `services:`, **sans** `version:` (ignoré en v5, bruit inutile)
+- Nommer le fichier **`compose.yaml`** (nom canonique v5) et démarrer directement par `services:`, **sans** `version:` (ignoré en v5)
 - Utiliser la syntaxe **`docker compose`** (plugin CLI officiel), jamais `docker-compose` (binaire v1 supprimé avril 2025)
-- **Mount volume Postgres 18** sur `pgdata:/var/lib/postgresql`, **JAMAIS** `/var/lib/postgresql/data` (breaking change v17→v18 : `PGDATA` passe à `/var/lib/postgresql/18/docker`, ancien mount casse le conteneur)
-- **Healthcheck `pg_isready`** sur le service `db` + **`depends_on.db.condition: service_healthy`** sur le service `app` : évite que le conteneur `app` démarre avant que Postgres soit prêt
-- Résoudre les services entre eux par **nom de service DNS** interne (ex: `postgresql://user:pass@db:5432/...`), jamais par IP ni `localhost`
-- Déclarer les volumes persistants en **volumes nommés** (section `volumes:` top-level), jamais en bind mount pour les données Postgres (permissions, portabilité)
-- Définir **`restart: unless-stopped`** sur tous les services de production : redémarrage automatique après un crash (OOM, exception non gérée) ou un reboot du VPS, tout en respectant un `docker compose stop` manuel (contrairement à `restart: always`)
-- **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`, sans lui le routage ne dit rien de l'état de l'app. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
-- **`init: true` et `mem_limit` sur le service app** : Node en PID 1 ne récolte pas les processus orphelins (`sh -c` lui cède la place par `exec`) ; sans plafond, l'OOM killer du VPS peut tuer un autre service
-- **Séparer config prod et overrides dev via `compose.yaml` + `compose.override.yaml`** : `compose.yaml` prod-ready (volumes nommés persistants, pas de bind mount host, pas d'exposition de port interne, pas de safe net `DATABASE_URL`). Les overrides dev (exposition port DB pour DBeaver/psql, override `DATABASE_URL` si `.env` contient `localhost`) vont dans `compose.override.yaml`, auto-chargé par `docker compose up` en local et ignoré par Dokploy en prod
-- **Profile `validation` si dev natif + container app** : placer le service app sous `profiles: [validation]` dans `compose.override.yaml` (port app libre en dev pour le natif, container lancé seulement avec `--profile validation`)
-- Pour la **config runtime du service app Next.js** (`output: standalone`, `HOSTNAME`, health endpoint, env vars) : voir `nextjs/production-deployment.md`
-- Pour le **build multi-stage du service app** (base image, cache, USER non-root) : voir `docker/dockerfile.md`
+- Persister Postgres dans un **volume nommé** monté sur **`/var/lib/postgresql`**, jamais `/var/lib/postgresql/data` (Postgres 18 déplace `PGDATA`, l'ancien mount casse le conteneur) ni un bind mount
+- **Healthcheck `pg_isready`** sur la base + **`depends_on.<db>.condition: service_healthy`** sur l'application : `service_started`, le défaut, laisserait l'app démarrer avant que Postgres accepte les connexions
+- Résoudre les services entre eux par **nom de service DNS** interne (`postgresql://user:pass@postgres:5432/...`), jamais par IP ni `localhost`
+- Définir **`restart: unless-stopped`** sur tous les services de production : redémarrage après un crash ou un reboot du VPS, tout en respectant un `docker compose stop` manuel
+- **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
+- **`init: true` et `mem_limit` sur le service app** : Node en PID 1 ne récolte pas les processus orphelins ; sans plafond, l'OOM killer du VPS peut tuer un autre service
+- **Borner les logs** du service app : `logging.driver: json-file` avec `max-size` et `max-file`, Dokploy ne fait aucune rotation
+- **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé), les overrides dev (port de la base pour un client SQL, `DATABASE_URL` vers le service) dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy
+- **Profile `validation`** sur le service app dans `compose.override.yaml` : le port 3000 reste libre pour le dev natif, le container ne se lance qu'avec `--profile validation`
 
 ## À éviter
-- Exposer publiquement les ports du service `db` (`ports: "5432:5432"`) en production : garder l'accès interne au réseau compose uniquement (déplacer l'exposition dans `compose.override.yaml` pour le dev)
-- Mettre des overrides dev-specific (bind-mount de dossiers host, `DATABASE_URL` pointant vers `localhost`, exposition de ports internes) directement dans `compose.yaml` : pollue la config prod et mélange les contextes, préférer `compose.override.yaml`
-- Utiliser **`depends_on: service_started`** (défaut) quand le dépendant a besoin de la DB prête : préférer **`service_healthy`** couplé à un healthcheck
-- `docker compose down --volumes` sans backup : suppression irréversible du volume de données Postgres
+- Ajouter un **`build:`** à `compose.yaml` : l'image se construit en CI et Dokploy la tire en pull-only (`pull_policy: always`)
+- Exposer publiquement le port de la base en production : l'exposition ne vit que dans `compose.override.yaml`
+- Mettre des réglages de dev (bind mounts, `DATABASE_URL` vers `localhost`, ports internes) dans `compose.yaml`
+- `docker compose down --volumes` sans backup : suppression irréversible des données Postgres
 
 ## Gotchas
-- Docker Compose v1 (`docker-compose`) **entièrement supprimé** depuis avril 2025 → utiliser `docker compose` (plugin CLI) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
-- Docker Compose v5 : champ **`version:`** dans le YAML désormais **ignoré** (saut direct v2→v5, plus besoin de déclarer la version) (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
-- **PostgreSQL 18 Docker breaking** : `PGDATA` passe à `/var/lib/postgresql/18/docker`, réutiliser l'ancien mount `/var/lib/postgresql/data` avec l'image `postgres:18` casse le conteneur au démarrage (VERSIONS.md)
-- **`compose.override.yaml` auto-chargé** par `docker compose up` si présent à côté de `compose.yaml` (convention officielle), mais **Dokploy ne charge que `compose.yaml`** par défaut, donc les overrides dev sont naturellement ignorés en prod sans config Dokploy particulière
+- Docker Compose v5 ignore le champ **`version:`**, et la v1 (`docker-compose`) est supprimée depuis avril 2025 (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
+- **`compose.override.yaml` est auto-chargé** par `docker compose up` en local, mais **Dokploy ne charge que `compose.yaml`** : les overrides dev sont ignorés en prod sans config particulière
+- En production, Postgres est une Dokploy Database autonome, pas un service de `compose.yaml`
+- Config runtime Next.js du service app (`output: standalone`, `HOSTNAME`, health endpoint) : voir `nextjs/production-deployment.md`. Build de l'image : voir `docker/dockerfile.md`
 
 ## Exemples
 ```yaml
-# ✅ compose.yaml générique app + db avec mount v18 correct et healthcheck
+# ✅ compose.yaml : image tirée, healthcheck, logs bornés
 services:
   app:
-    build: .
+    image: ghcr.io/<org>/<app>:latest
+    pull_policy: always
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://user:pass@db:5432/mydb
+    init: true
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
 
-  db:
+# ✅ compose.override.yaml : base de dev, montée sur le chemin Postgres 18
+services:
+  postgres:
     image: postgres:18-alpine
-    restart: unless-stopped
+    ports: ["5432:5432"]
     volumes:
-      - pgdata:/var/lib/postgresql       # ✅ v18
-      # - pgdata:/var/lib/postgresql/data  ❌ casse le conteneur en v18
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: mydb
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d mydb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-volumes:
-  pgdata:
-```
-
-```yaml
-# ✅ compose.override.yaml — overrides dev auto-chargés en local, ignorés par Dokploy en prod
-services:
-  db:
-    # exposition pour clients SQL locaux (DBeaver, psql)
-    ports:
-      - '5432:5432'
-  app:
-    environment:
-      # override du .env host (localhost) vers le service DNS compose
-      DATABASE_URL: postgresql://user:pass@db:5432/mydb
+      - pgdata:/var/lib/postgresql       # ❌ /var/lib/postgresql/data casse Postgres 18
 ```

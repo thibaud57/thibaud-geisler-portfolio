@@ -20,43 +20,53 @@ technologies: ["Node.js", "Next.js", "PostgreSQL", "Dokploy"]
 
 ### Description
 
-Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime (binaires compilés uniquement). Dans le portfolio, Next.js est conteneurisé en trois stages : deps, build, production.
+Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime. Le `Dockerfile` du portfolio compte cinq stages : `base` (Node 24 alpine, corepack), `deps` (install complet et génération du client Prisma), `builder` (build Next.js standalone), `deploy-prisma` (dépendances de production à plat pour la CLI Prisma) et `runner` (image finale).
 
 ### Exemple
 
 ```dockerfile
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 FROM node:24-alpine AS base
+RUN apk add --no-cache libc6-compat && corepack enable
+WORKDIR /app
 
 FROM base AS deps
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+COPY prisma ./prisma
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 
-FROM base AS build
-WORKDIR /app
+FROM base AS builder
+ENV SKIP_ENV_VALIDATION=true
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN corepack enable && pnpm exec prisma generate && pnpm build
+COPY --from=deps /app/src/generated ./src/generated
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" pnpm exec next build
 
-FROM base AS production
-WORKDIR /app
-RUN addgroup -g 1001 -S nodejs && adduser -S -u 1001 -G nodejs nextjs
-ENV NODE_ENV=production
-COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+FROM base AS deploy-prisma
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml prisma.config.ts ./
+COPY prisma ./prisma
+RUN pnpm deploy --legacy --prod --filter=. /prod
+
+FROM base AS runner
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=deploy-prisma --chown=nextjs:nodejs /prod/node_modules ./node_modules
 USER nextjs
-EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
 ```
 
 ### Points Importants
 
 - Nommer les stages avec `AS <name>` pour éviter les erreurs de réordonnancement
-- Copier uniquement les artefacts compilés dans le stage final
-- Utiliser un utilisateur non-root (`USER nextjs`)
-- Image de base minimale (`alpine` ou `distroless`)
-- `output: 'standalone'` dans `next.config.ts` pour le runtime minimal
+- `output: 'standalone'` dans `next.config.ts` produit le runtime minimal copié dans `runner`
+- `pnpm deploy --legacy --prod` sort un `node_modules` sans les liens symboliques `.pnpm` : c'est ce qui permet à la CLI Prisma de lancer `migrate deploy` au démarrage du conteneur
+- Le token Sentry passe par un secret BuildKit (`--mount=type=secret`), jamais par un `ARG` qui resterait dans une couche de l'image
+- `SKIP_ENV_VALIDATION=true` au build : les secrets serveur n'existent qu'au runtime, injectés par Dokploy. Les `NEXT_PUBLIC_*` arrivent par `ARG`, sinon ils seraient `undefined` dans le bundle
+- Utilisateur non-root (`USER nextjs`), et `npm`/`npx` retirés de l'image finale : jamais exécutés au runtime, ils sortent leurs dépendances des alertes Trivy
 
 ---
 
@@ -194,6 +204,7 @@ services:
 - Ajuster dans `daemon.json` pour l'ensemble de l'hôte
 - Override par conteneur via `--ulimit` ou `ulimits:` dans Compose
 - PostgreSQL et Node.js peuvent hit la limite sans configuration explicite
+- Le projet ne déclare aucun `ulimits` dans `compose.yaml` ni `compose.override.yaml`, et la valeur du `daemon.json` du VPS n'est pas relevée ici : à vérifier si une erreur `EMFILE` (too many open files) apparaît
 
 ---
 

@@ -2,7 +2,6 @@
 paths:
   - "src/**/*.ts"
   - "src/**/*.tsx"
-  - "prisma/**/*.ts"
   - "__mocks__/**/*.ts"
   - "*.config.ts"
   - "vitest.setup.ts"
@@ -31,7 +30,7 @@ paths:
 - TypeScript 6 : **`strict: true`** par défaut (ne pas le forcer à `false`)
 - TypeScript 6 : **`module: esnext`** par défaut (plus `commonjs`). Casse les imports CJS existants, migrer les `require()` vers `import`
 - TypeScript 6 : **`moduleResolution: node`** (node10) **déprécié** → utiliser `bundler` (Next 16 / Turbopack) ou `nodenext`
-- TypeScript 6 : **`types: []`** par défaut (plus d'auto-discovery des `@types/*`). Déclarer explicitement les types utilisés (ex: `["node", "vitest/globals"]`)
+- TypeScript 6 : **`types: []`** par défaut (plus d'auto-discovery des `@types/*`). Déclarer explicitement les types utilisés (le projet : `["node", "vitest/globals", "react/canary", "react/experimental"]`)
 
 ## Exemples
 ```typescript
