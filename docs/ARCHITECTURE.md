@@ -486,7 +486,7 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 
 - **Secrets** : variables d'environnement gérées dans Dokploy (jamais dans le repo)
 - **Réseau** : seuls les ports 80/443 exposés publiquement (reverse proxy Dokploy)
-- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake
+- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake. Note A+ chez SSL Labs (relevé du 2026-09-21)
 
 ### Scalabilité & Performance
 
