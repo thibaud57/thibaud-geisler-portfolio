@@ -1,8 +1,7 @@
 ---
 paths:
   - "src/server/queries/**/*.ts"
-  - "src/app/**/page.tsx"
-  - "src/app/**/layout.tsx"
+  - "src/app/**/{page,layout}.tsx"
 ---
 
 # Next.js — Data Fetching (Server Components)

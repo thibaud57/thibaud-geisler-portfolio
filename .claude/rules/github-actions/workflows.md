@@ -1,7 +1,6 @@
 ---
 paths:
-  - ".github/workflows/**/*.yml"
-  - ".github/workflows/**/*.yaml"
+  - ".github/workflows/*.{yml,yaml}"
 ---
 
 # GitHub Actions — Workflow CI (lint, typecheck, tests, build, audit)

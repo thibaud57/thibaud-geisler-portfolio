@@ -1,15 +1,9 @@
 ---
 paths:
-  - "src/app/**/page.tsx"
-  - "src/app/**/layout.tsx"
-  - "src/app/robots.ts"
-  - "src/app/sitemap.ts"
-  - "src/app/manifest.ts"
+  - "src/app/**/{page,layout}.tsx"
+  - "src/app/{robots,sitemap,manifest}.ts"
   - "src/app/favicon.ico"
-  - "src/app/**/icon.*"
-  - "src/app/**/apple-icon.*"
-  - "src/app/**/opengraph-image.*"
-  - "src/app/**/twitter-image.*"
+  - "src/app/**/{icon,apple-icon,opengraph-image,twitter-image}.*"
 ---
 
 # Next.js — Metadata & SEO

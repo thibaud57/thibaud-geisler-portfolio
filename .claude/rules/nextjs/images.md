@@ -1,8 +1,7 @@
 ---
 paths:
   - "next.config.ts"
-  - "src/app/**/*.tsx"
-  - "src/components/**/*.tsx"
+  - "src/{app,components}/**/*.tsx"
 ---
 
 # Next.js — Images (next/image)

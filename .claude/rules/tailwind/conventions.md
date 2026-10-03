@@ -1,7 +1,6 @@
 ---
 paths:
-  - "src/app/**/*.tsx"
-  - "src/components/**/*.tsx"
+  - "src/{app,components}/**/*.tsx"
 ---
 
 # Tailwind CSS — Conventions de code & usage

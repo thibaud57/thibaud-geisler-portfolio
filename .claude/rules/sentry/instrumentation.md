@@ -1,10 +1,8 @@
 ---
 paths:
-  - "src/instrumentation.ts"
-  - "src/instrumentation-client.ts"
+  - "src/instrumentation*.ts"
   - "sentry.*.config.ts"
-  - "src/app/**/error.tsx"
-  - "src/app/global-error.tsx"
+  - "src/app/**/*error.tsx"
 ---
 
 # Sentry — Instrumentation (ADR-017)
