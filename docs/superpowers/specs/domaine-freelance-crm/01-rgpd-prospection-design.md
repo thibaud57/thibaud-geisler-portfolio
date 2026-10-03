@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "rgpd-prospection"
 goal: "Mettre le registre des traitements et la politique de confidentialité en règle pour la prospection et le réseau professionnel, avant que la base stocke des personnes."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: []
@@ -13,7 +13,7 @@ date: "2026-09-26"
 
 ## Scope
 
-Déclare au registre un traitement unique « relations professionnelles », couvrant les prospects (leads) et le réseau professionnel (contacts), et en informe publiquement dans la politique de confidentialité FR et EN, avec la phrase type à glisser dans le premier message de prospection. Aucun consentement ni message préalable : la prospection B2B repose sur l'intérêt légitime. Exclut l'état « ne plus contacter », porté par `07-leads-donnees-design.md`, la date du dernier contact émanant d'un lead, déduite des actions de prospection (`09`), ainsi que toute purge automatisée.
+Déclare au registre un traitement unique « relations professionnelles », couvrant les prospects (leads) et le réseau professionnel (contacts), et en informe publiquement dans la politique de confidentialité FR et EN, en fixant la modalité d'information au premier contact : en couches, en langage courant dans le message. Aucun consentement ni message préalable : la prospection B2B repose sur l'intérêt légitime. Exclut l'état « ne plus contacter », porté par `07-leads-donnees-design.md`, la date du dernier contact émanant d'un lead, déduite des actions de prospection (`09`), ainsi que toute purge automatisée.
 
 ### État livré
 
@@ -45,9 +45,10 @@ Aucune : ce sub-project est autoporté.
   - **Sous-traitants** : IONOS (hébergeur du VPS et de la base), Cloudflare (bucket `portfolio-backups` des sauvegardes de la base, juridiction `eu`)
   - **Transferts hors UE** : aucun
   - **Conservation** : prospect, 3 ans à compter de la collecte ou du dernier contact émanant de lui, puis relance pour savoir s'il souhaite rester ou suppression ; personne qui s'est opposée, email et profil LinkedIn seuls conservés 3 ans, durée minimale recommandée par la CNIL, pour la seule gestion de l'opposition ; réseau, durée de la relation, suppression à la demande de la personne
-  - **Information des personnes** : phrase type dans le premier message (texte fixé en Décision ci-dessous) ; pour une personne jamais contactée, exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la politique de confidentialité
+  - **Information des personnes** : en couches, au plus tard au premier message (Décision ci-dessous) : le message, signé et motivé, se termine par une invitation claire à dire non (art. 21.4), en langage courant ; le lien vers la politique figure dans la section Infos du profil LinkedIn et dans la signature email, la politique portant le détail ; pour une personne jamais contactée, exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la politique de confidentialité
   - **Stockage** : base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne
   - **Sécurité** : espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS
+  - **Analyse d'intérêt légitime** : tenue en interne (mise en balance des intérêts, hors dépôt, elle expose le raisonnement sur les risques), revue à chaque nouvelle source, nouveau canal ou changement d'outil
   - **AIPD** : non nécessaire à cette échelle (aucune donnée sensible, aucune décision automatisée à effet juridique), à réévaluer si les agents internes se mettent à noter les personnes
 - **Sources des durées**, citées dans le Traitement 7 : délibération CNIL n° 2021-131 du 23 septembre 2021, référentiel « gestion des activités commerciales » (« trois ans à compter de leur collecte par le responsable de traitement ou du dernier contact émanant du prospect ») ; page CNIL « Comment utiliser une liste repoussoir » (« au minimum 3 ans »), consultée le 2026-09-26. Aucune durée CNIL n'existe pour un réseau professionnel hors prospection, la durée de la relation est un choix du propriétaire documenté ici
 - **Politique publique** : la finalité s'ajoute en troisième puce de la section « 2. Finalités et bases légales » du markdown `confidentialite-intro.md`, au format des deux puces existantes, et porte elle-même ses durées, ses sources, l'intérêt légitime poursuivi, le moyen de s'opposer et la possibilité de demander l'effacement complet de l'historique des échanges. Aucune ligne `DataProcessing` n'est créée ni modifiée (Décision ci-dessous)
@@ -82,7 +83,7 @@ Aucune : ce sub-project est autoporté.
 ### Scénario 5 : registre complet
 **GIVEN** `docs/registre-traitements.md`
 **WHEN** on lit le Traitement 7
-**THEN** il renseigne finalité, base légale, les catégories de personnes (leads, contacts et l'entreprise individuelle d'un prospect ou d'un client), données, sources, destinataire, sous-traitants, transferts hors UE (aucun), conservation par catégorie avec ses sources CNIL, information des personnes avec la phrase type FR et EN, stockage, sécurité et l'AIPD
+**THEN** il renseigne finalité, base légale, les catégories de personnes (leads, contacts et l'entreprise individuelle d'un prospect ou d'un client), données, sources, destinataire, sous-traitants, transferts hors UE (aucun), conservation par catégorie avec ses sources CNIL, information des personnes en couches (invitation à dire non dans le message, lien vers la politique dans le profil LinkedIn et la signature email), stockage, sécurité, l'analyse d'intérêt légitime tenue en interne et l'AIPD
 
 ### Scénario 6 : prérequis levé dans l'architecture
 **GIVEN** `docs/ARCHITECTURE.md` § Protection Données
@@ -128,16 +129,18 @@ Aucune : ce sub-project est autoporté.
 - La table « Durées de conservation » est indexée par sous-traitant, pas par finalité : une durée par catégorie de personne n'y trouve pas sa place
 - Pas de migration de données pour un texte
 
-### Décision : phrase type du premier message
+### Décision : information au premier contact
 
 **Options envisagées :**
-- **A. Une phrase courte** avec le lien vers la politique et le droit de dire stop, séparé du reste
+- **A. Une phrase type juridique** dans chaque premier message, avec le lien vers la politique et le mot « stop »
 - **B. Le détail complet de l'article 14** dans chaque message
+- **C. L'information en couches** : un message humain qui se termine par une invitation claire à dire non, le lien vers la politique dans le profil LinkedIn et la signature email, le détail dans la politique publique
+- **D. Aucune information au premier contact**, la politique publique seule
 
-**Choix : A**
+**Choix : C**
 
 **Rationale :**
-- L'article 14.3.b autorise l'information au plus tard à la première communication, l'article 21.4 exige que le droit d'opposition y soit présenté clairement et séparément : le lien renvoie au détail, la phrase isole l'opposition
-- Texte retenu, consigné au Traitement 7 :
-  - FR : « Je vous contacte à titre professionnel. Vos coordonnées sont traitées selon ma politique de confidentialité : https://thibaud-geisler.com/fr/confidentialite. Vous pouvez vous y opposer à tout moment : un simple « stop » en réponse suffit. »
-  - EN : « I am contacting you in a professional capacity. Your contact details are processed under my privacy policy: https://thibaud-geisler.com/en/confidentialite. You can object at any time: simply reply "stop". »
+- L'article 14.3.b impose l'information au plus tard à la première communication et l'article 21.4 exige que le droit d'opposition y soit présenté clairement et séparément : D est exclu, l'exception d'effort disproportionné (art. 14.5.b) ne jouant pas dès qu'un moyen de contact existe (recommandations CNIL « réutilisateurs de données publiées sur Internet » du 12 juin 2024, fiche 2 ; sanction Kaspr du 5 décembre 2024)
+- Les lignes directrices WP29/EDPB sur la transparence (WP260 rev.01, § 36-39) admettent l'information en couches : le message n'a à porter que ce qui n'est pas évident par lui-même, identité et finalité l'étant dans un message signé et motivé ; reste la source, souvent dite (« j'ai vu votre profil »), et le droit de dire non ; la recommandation CNIL de 2024 valide « une ligne et un lien »
+- A a d'abord été retenu puis écarté en revue (2026-10-03) : au regard des textes, C porte la même information que A, le droit d'opposition dans le message et le détail accessible par lien, sans qu'aucune formule imposée ne soit exigée par les lignes directrices. Une clôture du type « si ce n'est pas pertinent pour vous, dites-le-moi et je ne reviendrai pas vers vous » vaut présentation claire et séparée du droit d'opposition
+- Les formulations de clôture et la mise en place du lien (profil, signature) sont des consignes d'usage, tenues dans la documentation interne du freelance, pas dans le dépôt

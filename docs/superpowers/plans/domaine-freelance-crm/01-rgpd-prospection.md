@@ -41,7 +41,7 @@
 
 **Interfaces:**
 - Consumes: rien
-- Produces: le Traitement 7 et sa phrase type, que la Task 2 reprend mot pour mot pour les durées
+- Produces: le Traitement 7, que la Task 2 reprend mot pour mot pour les durées
 
 - [ ] **Step 1 : Mettre à jour la date du registre**
 
@@ -65,15 +65,11 @@ Insérer, entre la fin du tableau du « Traitement 6 » et la ligne `## Notes`, 
 | Sous-traitants | IONOS (hébergeur du VPS et de la base), Cloudflare (bucket `portfolio-backups` des sauvegardes de la base, juridiction `eu`) |
 | Transferts hors UE | Aucun |
 | Conservation | Prospect : 3 ans à compter de la collecte ou du dernier contact émanant de lui, puis relance pour savoir s'il souhaite rester, suppression sans réponse positive ([délibération CNIL n° 2021-131 du 23 septembre 2021](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000045538574)). Personne qui s'est opposée : email et profil LinkedIn seuls, conservés 3 ans, durée minimale recommandée par la CNIL, pour la seule gestion de l'opposition ([CNIL, liste repoussoir](https://www.cnil.fr/fr/comment-utiliser-une-liste-repoussoir-pour-respecter-lopposition-la-prospection-commerciale), consultée le 2026-09-26). Réseau : durée de la relation, suppression à la demande de la personne ; aucune durée CNIL n'existe hors prospection, choix du responsable |
-| Information des personnes | Au plus tard au premier message (art. 14.3.b), par la phrase type ci-dessous, le droit d'opposition présenté séparément (art. 21.4). Personne jamais contactée : exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la [politique de confidentialité](https://thibaud-geisler.com/fr/confidentialite) |
+| Information des personnes | Au plus tard au premier message (art. 14.3.b), en couches : le message, signé et motivé, nomme ou rend évidente la source (profil ou publication consultés) et se termine par une invitation claire à dire non, présentée séparément du reste (art. 21.4), en langage courant ; le lien vers la [politique de confidentialité](https://thibaud-geisler.com/fr/confidentialite) figure dans la section Infos du profil LinkedIn et dans la signature email, la politique portant le détail (source, durées, droits). Personne jamais contactée : exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la politique |
 | Stockage | Base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne |
 | Sécurité | Espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS |
+| Analyse d'intérêt légitime | Tenue en interne (mise en balance des intérêts), revue à chaque nouvelle source, nouveau canal ou changement d'outil |
 | AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si les agents internes se mettent à noter les personnes |
-
-Phrase type du premier message :
-
-- FR : « Je vous contacte à titre professionnel. Vos coordonnées sont traitées selon ma politique de confidentialité : https://thibaud-geisler.com/fr/confidentialite. Vous pouvez vous y opposer à tout moment : un simple « stop » en réponse suffit. »
-- EN : « I am contacting you in a professional capacity. Your contact details are processed under my privacy policy: https://thibaud-geisler.com/en/confidentialite. You can object at any time: simply reply "stop". »
 ```
 
 - [ ] **Step 3 : Renvoyer au Traitement 7 depuis l'architecture**
@@ -113,7 +109,7 @@ Vérifier : le tableau du Traitement 7 a bien deux colonnes sur chaque ligne (au
 À la fin de `content/legal/fr/confidentialite-intro.md`, après la puce « Prise de rendez-vous Calendly », ajouter sur une seule ligne :
 
 ```markdown
-- **Prospection et relations professionnelles** : si je vous ai contacté ou si vous faites partie de mon réseau professionnel, je conserve vos nom, poste, entreprise, coordonnées professionnelles, profil LinkedIn et nos échanges. Ces données proviennent de profils professionnels publics (LinkedIn, site de votre entreprise), de candidatures et plateformes de mission, de recommandations, d'événements professionnels ou de nos échanges directs, et sont hébergées par IONOS et sauvegardées chez Cloudflare, dans l'Union européenne. Base légale : intérêt légitime de l'éditeur à proposer ses services à des professionnels, en rapport avec leur activité (RGPD art. 6-1-f). Durée : 3 ans à compter de la collecte ou de votre dernier contact pour un prospect, durée de la relation pour le réseau professionnel. Vous pouvez vous opposer à tout moment à la prospection, sans justification, en répondant « stop » à mon message ou en écrivant à l'adresse indiquée dans la section 5 ; seuls votre adresse email et votre profil LinkedIn sont alors conservés, 3 ans, pour ne plus vous solliciter. L'historique de nos échanges est conservé sans être réutilisé jusqu'au terme de sa durée de conservation et vous pouvez en demander l'effacement complet à tout moment.
+- **Prospection et relations professionnelles** : si je vous ai contacté ou si vous faites partie de mon réseau professionnel, je conserve vos nom, poste, entreprise, coordonnées professionnelles, profil LinkedIn et nos échanges. Ces données proviennent de profils professionnels publics (LinkedIn, site de votre entreprise), de candidatures et plateformes de mission, de recommandations, d'événements professionnels ou de nos échanges directs, et sont hébergées par IONOS et sauvegardées chez Cloudflare, dans l'Union européenne. Base légale : intérêt légitime de l'éditeur à proposer ses services à des professionnels, en rapport avec leur activité (RGPD art. 6-1-f). Durée : 3 ans à compter de la collecte ou de votre dernier contact pour un prospect, durée de la relation pour le réseau professionnel. Vous pouvez vous opposer à tout moment à la prospection, sans justification, en me le disant en réponse à mon message ou en écrivant à l'adresse indiquée dans la section 5 ; seuls votre adresse email et votre profil LinkedIn sont alors conservés, 3 ans, pour ne plus vous solliciter. L'historique de nos échanges est conservé sans être réutilisé jusqu'au terme de sa durée de conservation et vous pouvez en demander l'effacement complet à tout moment.
 ```
 
 - [ ] **Step 2 : Ajouter la puce anglaise**
@@ -121,7 +117,7 @@ Vérifier : le tableau du Traitement 7 a bien deux colonnes sur chaque ligne (au
 À la fin de `content/legal/en/confidentialite-intro.md`, après la puce « Calendly scheduling », ajouter sur une seule ligne :
 
 ```markdown
-- **Prospecting and professional relationships**: if I have contacted you or you are part of my professional network, I keep your name, job title, company, professional contact details, LinkedIn profile and our exchanges. This data comes from public professional profiles (LinkedIn, your company's website), job applications and freelance platforms, referrals, professional events or our direct exchanges, and is hosted by IONOS and backed up with Cloudflare, within the European Union. Legal basis: legitimate interest of the publisher in offering its services to professionals, in connection with their activity (GDPR art. 6-1-f). Retention: 3 years from collection or from your last contact for a prospect, the duration of the relationship for the professional network. You can object to prospecting at any time, without giving a reason, by replying "stop" to my message or by writing to the address given in section 5; only your email address and LinkedIn profile are then kept, for 3 years, so that you are not contacted again. The history of our exchanges is kept without being reused until the end of its retention period, and you can request its complete erasure at any time.
+- **Prospecting and professional relationships**: if I have contacted you or you are part of my professional network, I keep your name, job title, company, professional contact details, LinkedIn profile and our exchanges. This data comes from public professional profiles (LinkedIn, your company's website), job applications and freelance platforms, referrals, professional events or our direct exchanges, and is hosted by IONOS and backed up with Cloudflare, within the European Union. Legal basis: legitimate interest of the publisher in offering its services to professionals, in connection with their activity (GDPR art. 6-1-f). Retention: 3 years from collection or from your last contact for a prospect, the duration of the relationship for the professional network. You can object to prospecting at any time, without giving a reason, by telling me so in reply to my message or by writing to the address given in section 5; only your email address and LinkedIn profile are then kept, for 3 years, so that you are not contacted again. The history of our exchanges is kept without being reused until the end of its retention period, and you can request its complete erasure at any time.
 ```
 
 - [ ] **Step 3 : Mentionner l'opposition dans « Vos droits » en français**
