@@ -1,7 +1,6 @@
 ---
 paths:
-  - "compose.yaml"
-  - "compose.override.yaml"
+  - "compose*.yaml"
 ---
 
 # Docker Compose — services, volumes, healthchecks

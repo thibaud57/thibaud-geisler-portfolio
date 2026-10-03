@@ -1,7 +1,6 @@
 ---
 paths:
-  - "Dockerfile"
-  - "Dockerfile.*"
+  - "Dockerfile*"
   - ".dockerignore"
 ---
 

@@ -1,8 +1,6 @@
 ---
 paths:
-  - "src/lib/auth.ts"
-  - "src/lib/auth-client.ts"
-  - "src/lib/get-current-user.ts"
+  - "src/lib/{auth*,get-current-user}.ts"
   - "src/app/admin/**/*.tsx"
   - "src/app/api/auth/**/*.ts"
 ---

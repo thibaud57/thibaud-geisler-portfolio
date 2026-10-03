@@ -1,9 +1,7 @@
 ---
 paths:
-  - "vitest.config.ts"
-  - "vitest.setup.ts"
-  - "src/**/*.test.ts"
-  - "src/**/*.test.tsx"
+  - "vitest.{config,setup}.ts"
+  - "src/**/*.test.{ts,tsx}"
 ---
 
 # Vitest — Configuration, environnements, coverage

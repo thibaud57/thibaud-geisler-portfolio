@@ -1,7 +1,6 @@
 ---
 paths:
-  - ".github/workflows/**/*.yml"
-  - ".github/workflows/**/*.yaml"
+  - ".github/workflows/*.{yml,yaml}"
 ---
 
 # GitHub Actions — Release, déploiement et tokens

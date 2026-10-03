@@ -1,7 +1,6 @@
 ---
 paths:
-  - "src/**/*.ts"
-  - "src/**/*.tsx"
+  - "src/**/*.{ts,tsx}"
   - "__mocks__/**/*.ts"
   - "*.config.ts"
   - "vitest.setup.ts"

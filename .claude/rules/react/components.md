@@ -1,7 +1,6 @@
 ---
 paths:
-  - "src/app/**/*.tsx"
-  - "src/components/**/*.tsx"
+  - "src/{app,components}/**/*.tsx"
 ---
 
 # React 19 — Refs, Context, formulaires et pièges JSX
