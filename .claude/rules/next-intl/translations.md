@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/app/[locale]/**/*.tsx"
+  - "src/app/**/*.tsx"
   - "src/components/**/*.tsx"
   - "messages/**/*.json"
 ---

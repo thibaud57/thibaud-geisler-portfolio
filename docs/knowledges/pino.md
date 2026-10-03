@@ -26,13 +26,16 @@ Pattern recommandé : créer une instance unique exportée depuis `src/lib/logge
 
 ```ts
 // src/lib/logger.ts
+import 'server-only'
 import pino from 'pino'
+
+import { env } from '@/env'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
-  base: { service: 'portfolio' },
+  level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+  base: { service: 'thibaud-geisler-portfolio' },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: (label) => ({ level: label }),
@@ -48,7 +51,8 @@ export const logger = pino({
 
 ### Points Importants
 
-- Un logger partagé, importé partout côté serveur
+- Un logger partagé, importé partout côté serveur, protégé par `server-only`
+- `LOG_LEVEL` se lit par `env` (`@/env`, t3-env), comme toute variable d'environnement du projet
 - En dev : transport `pino-pretty` pour la lisibilité
 - En prod : output JSON brut vers stdout, capturé par Dokploy
 - `formatters.level` envoie le label texte (`info`) au lieu du numéro (`30`)
@@ -160,14 +164,8 @@ L'option `redact` masque automatiquement certaines propriétés dans les logs av
 const logger = pino({
   level: 'info',
   redact: {
-    paths: [
-      'user.password',
-      'user.email',
-      '*.authorization',
-      'req.headers.cookie',
-      'smtp.pass',
-    ],
-    remove: true,
+    paths: ['*.password', '*.pass', '*.secret', '*.token', '*.key', 'req.headers.authorization', 'req.headers.cookie'],
+    censor: '[REDACTED]',
   },
 })
 ```
@@ -175,7 +173,7 @@ const logger = pino({
 ### Points Importants
 
 - Supporte les wildcards pour matcher plusieurs propriétés
-- `remove: true` supprime le champ (par défaut : remplace par `[Redacted]`)
+- Le projet remplace la valeur par `censor: '[REDACTED]'` plutôt que de supprimer le champ (`remove: true`) : un champ masqué reste visible dans le log, ce qui montre qu'il existait
 - Compléter par une revue manuelle des logs avant la mise en prod
 - Ne pas s'y fier à 100% : éviter par défaut de mettre des secrets dans les objets loggés
 

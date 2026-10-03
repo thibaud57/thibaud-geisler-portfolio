@@ -81,34 +81,36 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 ### Exemple
 
 ```css
-/* src/app/globals.css */
+/* src/app/globals.css (extrait) */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
-  --primary: hsl(222.2 47.4% 11.2%);
-  --primary-foreground: hsl(210 40% 98%);
-  --radius: 0.5rem;
-}
-
-.dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.53 0.04 140);
+  --primary-foreground: oklch(1 0 0);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --primary: oklch(0.68 0.03 140);
+  --primary-foreground: oklch(0.145 0 0);
 }
 ```
 
@@ -118,6 +120,8 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 - `@theme inline` permet d'exposer les variables aux utilitaires Tailwind
 - Le dark mode surcharge les tokens via la classe `.dark`
 - Changer les valeurs CSS repaint automatiquement tous les composants shadcn/ui
+- Les tokens du projet sont en `oklch()` : la palette complète, light et dark, est tenue dans `docs/DESIGN.md` § Identité Visuelle
+- `@import "shadcn/tailwind.css"`, posé par `shadcn init`, fournit les variantes `data-open:`/`data-closed:` et les animations partagées des composants : ce n'est pas du code mort
 
 ---
 
@@ -130,37 +134,28 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 ### Exemple
 
 ```tsx
-// src/components/ui/button.tsx (extrait)
+// src/components/ui/button.tsx (extrait, classes abrégées)
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Slot } from 'radix-ui'
 import { cn } from '@/lib/utils'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground',
-        outline: 'border border-input bg-background',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-      },
-      size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 px-3',
-        lg: 'h-11 px-8',
-        icon: 'h-10 w-10',
-      },
-    },
-    defaultVariants: { variant: 'default', size: 'default' },
+const buttonVariants = cva('group/button inline-flex items-center rounded-lg text-sm font-medium …', {
+  variants: {
+    variant: { default: '…', outline: '…', secondary: '…', ghost: '…', destructive: '…', link: '…' },
+    size: { default: 'h-8 …', xs: 'h-6 …', sm: 'h-7 …', lg: 'h-9 …', icon: 'size-8', 'icon-xs': 'size-6 …', 'icon-sm': 'size-7 …', 'icon-lg': 'size-9' },
   },
-)
+  defaultVariants: { variant: 'default', size: 'default' },
+})
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>
-
-export function Button({ className, variant, size, ...props }: ButtonProps) {
+function Button({
+  className, variant = 'default', size = 'default', asChild = false, ...props
+}: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : 'button'
   return (
-    <button
+    <Comp
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
@@ -170,6 +165,9 @@ export function Button({ className, variant, size, ...props }: ButtonProps) {
 
 ### Points Importants
 
+- Les variantes et tailles réelles (hauteurs 32/28/24 px, variantes `icon-*`) sont décrites dans `docs/DESIGN.md`, la fiche ne les recopie pas
+- `asChild` rend l'enfant (un `Link`, par exemple) avec les styles du bouton, via `Slot.Root` de `radix-ui`
+- `data-slot`, `data-variant` et `data-size` permettent de styler un bouton selon son contexte (`in-data-[slot=button-group]:…`)
 - `cn()` (clsx + tailwind-merge) résout les conflits de classes Tailwind
 - `VariantProps` extrait automatiquement les types des variants
 - `defaultVariants` fournit des valeurs par défaut

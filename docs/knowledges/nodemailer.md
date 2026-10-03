@@ -1,8 +1,8 @@
 ---
 title: "nodemailer — SMTP Email"
-version: "9.1.1"
+version: "10.0.13"
 description: "Référence technique pour nodemailer : SMTP, Server Actions Next.js et sécurité pour le formulaire de contact."
-date: "2026-04-13"
+date: "2026-10-03"
 keywords: ["nodemailer", "smtp", "email", "nextjs", "server-action"]
 scope: ["docs"]
 technologies: ["Node.js", "Next.js", "TypeScript"]
@@ -11,6 +11,8 @@ technologies: ["Node.js", "Next.js", "TypeScript"]
 # Description
 
 `nodemailer` est la librairie de référence Node.js pour l'envoi d'emails via SMTP. Utilisée dans le portfolio pour envoyer les soumissions du formulaire de contact vers la boîte mail professionnelle via le relais SMTP IONOS. Exclusivement côté serveur : import strictement interdit dans les composants client ou l'Edge Runtime. Les v8.0.4 et v8.0.5 corrigent chacune une CVE de type CRLF injection, de sévérité faible à modérée : GHSA-c7w3-x93f-qmm8 (CVSS 2.3, faible) corrigée en 8.0.4, GHSA-vvjj-xcjg-gr5g (CVSS 4.9, modérée) corrigée en 8.0.5.
+
+La v10 (10.0.0 du 3 septembre 2026) réécrit la librairie en TypeScript, avec un double build ESM et CommonJS et ses propres déclarations de types : `@types/nodemailer` n'a plus lieu d'être, et le projet l'a retiré. Elle exige Node.js 20. Les 10.0.0 à 10.0.10 cassaient l'entrée CommonJS et la forme des types, rétablies en 10.0.11 (27 septembre 2026).
 
 ---
 
@@ -26,8 +28,7 @@ Le transporter est un objet réutilisable qui gère la connexion au serveur SMTP
 
 ```ts
 // src/lib/mailer.ts
-import nodemailer from 'nodemailer'
-import type { Transporter } from 'nodemailer'
+import nodemailer, { type Transporter } from 'nodemailer'
 
 export const transporter: Transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -46,6 +47,7 @@ export const transporter: Transporter = nodemailer.createTransport({
 - Port 465 + `secure: true` = TLS direct
 - Créer le transport au niveau module, pas dans la Server Action
 - Jamais exposer `SMTP_USER`/`SMTP_PASS` côté client : utiliser des variables d'env sans préfixe `NEXT_PUBLIC_`
+- `Transporter`, `SendMailOptions` et `SentMessageInfo` s'importent depuis la racine du paquet, typés par nodemailer lui-même depuis la v10. Le type du `port` est élargi à `string | number`, le comportement runtime est inchangé
 
 ---
 
@@ -72,7 +74,7 @@ const contactSchema = z.object({
 export async function submitContact(prevState: unknown, formData: FormData) {
   const result = contactSchema.safeParse(Object.fromEntries(formData))
   if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors }
+    return { errors: z.flattenError(result.error).fieldErrors }
   }
 
   const { name, email, message } = result.data
@@ -157,7 +159,7 @@ MAIL_TO=thibaud@thibaud-geisler.com
 
 ### Points Importants
 
-- Fixer nodemailer à `^8.0.5` minimum pour bénéficier des correctifs CRLF
+- Fixer nodemailer à `^8.0.5` minimum pour bénéficier des correctifs CRLF, et jamais sur une 10.x antérieure à 10.0.11
 - Ne jamais passer `req.body.*` dans les options du transport (host, name, auth)
 - Les valeurs sensibles passent par Dokploy en prod, `.env.local` en dev
 - Placer `.env.local` dans `.gitignore`
@@ -172,7 +174,7 @@ MAIL_TO=thibaud@thibaud-geisler.com
 - Valider toutes les entrées avec Zod avant `sendMail`
 - Utiliser `replyTo` pour rediriger les réponses vers l'expéditeur du formulaire
 - Mocker le transport dans les tests (jamais d'envoi réel en CI)
-- Fixer au minimum `nodemailer@^8.0.5` pour les correctifs CRLF
+- Fixer au minimum `nodemailer@^8.0.5` pour les correctifs CRLF, `>= 10.0.11` sur la ligne 10
 - Wrapper `sendMail` dans un try/catch au niveau Server Action et logger avec Pino
 
 ## ❌ Anti-Patterns
@@ -182,6 +184,7 @@ MAIL_TO=thibaud@thibaud-geisler.com
 - Ne pas concaténer des valeurs user-controlled dans les options du transport
 - Ne pas recréer un transport à chaque appel de Server Action
 - Ne pas committer `.env.local` ni les credentials IONOS
+- Ne pas réinstaller `@types/nodemailer` : la v10 fournit ses types, et DefinitelyTyped n'a publié ni 9.x ni 10.x
 
 ---
 
@@ -192,6 +195,7 @@ MAIL_TO=thibaud@thibaud-geisler.com
 - [nodemailer : Documentation](https://nodemailer.com/)
 - [SMTP transport](https://nodemailer.com/smtp)
 - [GitHub : nodemailer](https://github.com/nodemailer/nodemailer)
+- [CHANGELOG](https://github.com/nodemailer/nodemailer/blob/master/CHANGELOG.md)
 
 ## Ressources Complémentaires
 

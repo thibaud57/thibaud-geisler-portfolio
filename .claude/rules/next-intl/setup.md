@@ -2,63 +2,52 @@
 paths:
   - "src/i18n/**/*.ts"
   - "src/proxy.ts"
-  - "proxy.ts"
-  - "src/app/[locale]/**/layout.tsx"
-  - "src/app/[locale]/**/page.tsx"
+  - "src/app/**/layout.tsx"
+  - "src/app/**/page.tsx"
   - "next.config.ts"
 ---
 
 # next-intl — Setup, routing & static rendering
 
 ## À faire
-- Utiliser **`next-intl`** (≥ 4.4, **4.9.1 recommandé**) avec segment dynamique `[locale]` à la racine de `app/`
-- Centraliser la config dans `src/i18n/routing.ts` via **`defineRouting()`** avec `locales: ['fr', 'en']`, `defaultLocale: 'fr'`
-- Choisir le mode **`localePrefix`** dans `defineRouting()` selon la stratégie SEO : `'always'` (fr/en explicites dans l'URL) | `'as-needed'` (locale par défaut sans prefix) | `'never'` (cookie/header only)
-- Appeler **`setRequestLocale(locale)` obligatoirement** dans chaque `layout.tsx` ET chaque `page.tsx` pour supporter le rendu statique (Next.js rend layouts et pages indépendamment)
-- Utiliser **`hasLocale(routing.locales, value)`** comme type guard pour narrower `string → Locale` et appeler `notFound()` si invalide
+- Utiliser **`next-intl`** avec le segment dynamique `[locale]` à la racine de `app/` (version exacte : `docs/VERSIONS.md`)
+- Centraliser la config dans `src/i18n/routing.ts` via **`defineRouting()`** : `locales: ['fr', 'en']`, `defaultLocale: 'fr'`, `localePrefix: 'always'` (fr et en toujours explicites dans l'URL)
+- Résoudre la locale dans `src/i18n/request.ts` par **`locale` de `next/root-params`** (`rootLocale()`), avec repli sur `defaultLocale` quand elle est absente (hors du segment, ex. `global-not-found.tsx`) : elle est disponible au rendu statique sans être annoncée page par page
+- Ouvrir chaque `layout.tsx` et `page.tsx` par **`setupLocalePage(params)`** (`src/i18n/locale-guard.ts`), et `generateMetadata` par **`setupLocaleMetadata(params)`** (`src/lib/seo.ts`) : ils valident la locale par `hasLocale` et appellent `notFound()` sinon
 - Importer les APIs navigation localisées via **`createNavigation(routing)`** : `Link`, `redirect`, `useRouter`, `usePathname`, `getPathname`
-- Déclarer `<html lang={locale}>` dans le root layout `app/[locale]/layout.tsx` pour l'accessibilité et le SEO
-- Wrapper les enfants dans `<NextIntlClientProvider>` dans le layout (les messages sont **hérités automatiquement** depuis next-intl 4.0)
-- **Typer les locales et messages** via l'augmentation `declare module 'next-intl' { interface AppConfig { Locale: ...; Messages: ... } }` pour autocomplete IDE et erreurs compile-time
-- Ajouter **`openGraph.locale`** (`fr_FR`, `en_US`) dans la Metadata API pour les partages sociaux
-- **Métadata localisée** : utiliser `getTranslations` dans `generateMetadata` pour titrer chaque page selon la locale
+- Déclarer `<html lang={locale}>` dans le root layout `app/[locale]/layout.tsx`
+- Wrapper les enfants dans `<NextIntlClientProvider>` dans le layout, sans props : messages, locale et fuseau sont hérités depuis next-intl 4.0
+- **Typer les locales et messages** via l'augmentation `declare module 'next-intl' { interface AppConfig { Locale: ...; Messages: ... } }`
+- Localiser les métadonnées : `getTranslations` dans `generateMetadata`, et **`openGraph.locale`** (`fr_FR`, `en_US`) pour les partages sociaux
 
 ## À éviter
+- Appeler **`setRequestLocale`** : abandonné par le projet au profit de `next/root-params`, il n'apporte plus rien
+- Lire **`requestLocale`** dans `getRequestConfig` : déprécié, remplacé par `rootLocale()`
 - Utiliser la config `i18n` dans `next.config.ts` : **Pages Router only**, provoque des bugs/warnings en App Router
 - Utiliser **`localeDetection: false`** : déprécié next-intl 4.0, remplacer par `localeCookie: false`
-- Oublier `setRequestLocale` dans un layout ou une page : casse le rendu statique par locale
-- Passer explicitement `locale`, `messages`, `timeZone` en props à `<NextIntlClientProvider>` : hérités automatiquement depuis la 4.0
 
 ## Gotchas
 - Next 15+ : `params` est async, `await params` obligatoire (hard error Next 16)
-- **next-intl 4.9.1 + Next.js ≥ 16.2** obligatoire pour `use cache` (incompatibilité Next 16.0/16.1 résolue via root params API en 16.2)
+- `getTranslations()` sous `'use cache'` exige **Next.js >= 16.3** : c'est la 16.3.0 qui active les root params par défaut (`docs/VERSIONS.md` § next-intl)
 - **Distribution ESM-only** depuis next-intl 4 (sauf `next-intl/plugin`) : `"type": "module"` dans `package.json` obligatoire
-- **`getRequestConfig`** : argument `locale` déprécié → utiliser `await requestLocale` (next-intl 4)
-- **Cookies de locale** : expiration **par session par défaut** depuis next-intl 4 (pas persistent comme avant)
-- `createMessagesDeclaration` (type-safe arguments ICU) nécessite `allowArbitraryExtensions: true` dans `tsconfig.json`
+- **Cookies de locale** : expiration par session par défaut depuis next-intl 4
 - Ordre de détection de la locale : prefix URL → cookie `NEXT_LOCALE` → header `Accept-Language` → `defaultLocale`
+- Un glob de `paths` ne peut pas nommer `[locale]` : les crochets y sont une classe de caractères, `src/app/[locale]/**` ne matche rien. Écrire `src/app/**`
 
 ## Exemples
 ```typescript
-// ✅ defineRouting centralise la config (locales, defaultLocale, localePrefix)
-export const routing = defineRouting({
-  locales: ['fr', 'en'],
-  defaultLocale: 'fr',
-  localePrefix: 'always', // choix du projet : /fr et /en toujours explicites
+// ✅ request.ts : locale lue par root params, repli hors segment
+export default getRequestConfig(async ({ locale: override }) => {
+  const requested = override ?? (await rootLocale())
+  const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale
+  return { locale, messages: (await import(`../../messages/${locale}.json`)).default }
 })
 ```
 
 ```typescript
-// ✅ Layout [locale] avec setRequestLocale obligatoire + hasLocale type guard
-export function generateStaticParams() {
-  return routing.locales.map(locale => ({ locale }))
-}
-
+// ✅ Layout [locale] : garde de locale, sans setRequestLocale
 export default async function LocaleLayout({ children, params }) {
-  const { locale } = await params
-  if (!hasLocale(routing.locales, locale)) notFound()
-  setRequestLocale(locale) // OBLIGATOIRE pour SSG par locale
-
+  const { locale } = await setupLocalePage(params)
   return (
     <html lang={locale}>
       <body><NextIntlClientProvider>{children}</NextIntlClientProvider></body>
@@ -66,15 +55,6 @@ export default async function LocaleLayout({ children, params }) {
   )
 }
 
-// ❌ oubli setRequestLocale → casse le rendu statique par locale
-```
-
-```typescript
-// ✅ AppConfig augmentation pour type-safety locales + messages
-declare module 'next-intl' {
-  interface AppConfig {
-    Locale: (typeof routing.locales)[number]
-    Messages: typeof messages
-  }
-}
+// ❌ setRequestLocale : abandonné, la locale vient de next/root-params
+setRequestLocale(locale)
 ```

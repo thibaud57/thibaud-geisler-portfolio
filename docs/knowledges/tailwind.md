@@ -60,13 +60,13 @@ En v4, le dark mode par classe ne se configure plus via `darkMode: 'class'` dans
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
 }
 
 .dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
 }
 
 @theme inline {
@@ -163,11 +163,13 @@ export default {
 ```css
 /* src/app/globals.css */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* tokens sémantiques */
+  /* tokens sémantiques en oklch(), cf. docs/DESIGN.md */
 }
 ```
 

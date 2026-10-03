@@ -2,7 +2,6 @@
 paths:
   - "Dockerfile"
   - "next.config.ts"
-  - "instrumentation.ts"
   - "src/instrumentation.ts"
   - "src/app/api/health/route.ts"
 ---
@@ -15,48 +14,31 @@ paths:
 - Lancer le serveur avec `node server.js` en mode standalone (pas `next start`)
 - Définir `HOSTNAME="0.0.0.0"` dans le container Docker pour écouter sur toutes les interfaces
 - Installer `libc6-compat` via `apk add --no-cache libc6-compat` dans le Dockerfile alpine pour que `sharp` fonctionne
-- Créer `instrumentation.ts` à la racine avec `register()` et `onRequestError()` pour bootstrap observabilité (Pino, Sentry, etc.)
-- Exposer `GET /api/health` en s'appuyant sur le dynamic par défaut (aucun `export const dynamic`, incompatible avec `cacheComponents: true`) + `Cache-Control: no-cache, no-store, must-revalidate`, exclure du matcher proxy auth
-- Valider les variables d'environnement au build via `@t3-oss/env-nextjs` + Zod pour bloquer les builds invalides
-- Configurer `proxy_set_header X-Forwarded-Host $host;` côté reverse proxy (Nginx/Caddy) pour les Server Actions
-- Configurer un `cacheHandler` custom (Redis) si multi-replicas, sinon le cache filesystem se désynchronise
-- Pour le logging applicatif self-hosted (Pino singleton, transports dev/prod, `serverExternalPackages`, child loggers, redact) : voir `pino/logger.md`
-- Pour les règles **Docker génériques** du Dockerfile (multi-stage, base image `node:24-alpine`, `corepack enable`, cache layering COPY, `pnpm install --frozen-lockfile`, USER non-root, `.dockerignore`) : voir `docker/dockerfile.md`
-- Pour la config **Docker Compose** du service (volumes, healthcheck `pg_isready`, `depends_on: service_healthy`) : voir `docker-compose/compose.md`
+- Déclarer `src/instrumentation.ts` avec `register()` et `onRequestError()` pour amorcer l'observabilité (Pino, Sentry)
+- Exposer `GET /api/health` sur le dynamique par défaut (aucun `export const dynamic`, incompatible avec `cacheComponents: true`) avec `Cache-Control: no-cache, no-store, must-revalidate`, exclu du matcher du proxy
+- Valider les variables d'environnement via `@t3-oss/env-nextjs` + Zod, avec `SKIP_ENV_VALIDATION` au build : les secrets serveur n'existent qu'au runtime
+- Configurer un `cacheHandler` custom (Redis) si l'app passe en multi-replicas : le cache filesystem se désynchroniserait entre instances
 
 ## À éviter
-- Utiliser `output: 'export'` : pas de Server Actions, ISR, middleware/proxy, Route Handlers Node, image optimization serveur, `cookies()`/`headers()` runtime (incompatible avec ce projet)
-- Mettre des secrets dans `Dockerfile`, `.env.production` committé, ou le code source : utiliser les env vars Dokploy
-- Utiliser `console.log` en production self-hosted : pas de rotation, pas de niveaux, pas de contexte
-- Cacher la réponse de `/api/health` : un CDN qui cache un 200 route du trafic vers une instance morte
-- Utiliser `serverRuntimeConfig` / `publicRuntimeConfig` : **supprimés** Next 16, passer par `process.env`
+- Utiliser `output: 'export'` : ni Server Actions, ni proxy, ni Route Handlers Node, ni `cookies()`/`headers()` runtime
+- Mettre des secrets dans le `Dockerfile`, un fichier d'environnement committé ou le code source : utiliser les variables Dokploy
+- Utiliser `console.log` en production self-hosted : ni rotation, ni niveaux, ni contexte
+- Cacher la réponse de `/api/health` : un cache qui garde un 200 enverrait du trafic vers une instance morte
 
 ## Gotchas
-- Next 16 : Turbopack est le bundler **par défaut en dev ET build**, y compris dans le Dockerfile de ce projet. L'opt-out `next build --webpack` existe toujours (plugin webpack custom, régression de bundler) mais ne doit pas être posé sans erreur reproduite : dev et prod cessent alors d'utiliser le même bundler
-- **Prisma 7 + Turbopack build** : une erreur de résolution du module WASM (`query_compiler_fast_bg.postgresql.mjs` not found) a justifié un opt-out `--webpack`, **retiré le 3 septembre 2026** faute de reproduction sur Next 16.3.3 + Prisma 7.10.0 (build Docker et runtime vérifiés, voir `docs/VERSIONS.md` § Prisma ORM). Revalider le build de l'image à chaque montée de Next ou de Prisma, le flag se remet en une ligne
-- Next 15 : `serverComponentsExternalPackages` renommé `serverExternalPackages`, l'ancien nom provoque un warning
-- `sharp` auto-installé depuis Next 15 : vérifier sa présence dans les deps de production en self-hosted
-- Build Docker côté GitHub Actions (`deploy.yml`), sans aucune base : le rendu public ne lit rien au build (ADR-022), et une requête Prisma au prerender casserait le build → push GHCR → Dokploy pull-only. Ce build n'a lieu qu'au tag : l'image ne se construit nulle part avant, un changement du `Dockerfile` se valide par un `docker build` local. L'issue Prisma #29025 (hash mismatch) reste possible si le build CI et le runtime divergent : toujours figer la version Prisma + même image base Node.
-- Codemod automatique disponible : `next upgrade latest` (Next 16.1+) applique les migrations
+- Next 16 : Turbopack est le bundler **par défaut en dev ET build**, y compris dans le Dockerfile. L'opt-out `next build --webpack` ne se pose pas sans erreur reproduite : dev et prod cesseraient d'utiliser le même bundler
+- **Prisma 7 + Turbopack build** : l'opt-out `--webpack` posé pour une erreur WASM (`query_compiler_fast_bg.postgresql.mjs`) a été **retiré le 3 septembre 2026**, build de l'image revérifié sur Next 16.3.6 le 3 octobre 2026 (`docs/VERSIONS.md` § Prisma ORM). Revalider à chaque montée de Next ou de Prisma
+- `sharp` est auto-installé depuis Next 15 : vérifier sa présence dans les deps de production en self-hosted
+- Le build Docker tourne sur GitHub Actions (`deploy.yml`) sans aucune base : le rendu public ne lit rien au build (ADR-022). Il n'a lieu qu'au tag, un changement du `Dockerfile` se valide donc par un `docker build` local. L'issue Prisma #29025 (hash mismatch) impose la même version Prisma et la même image Node entre build et runtime
+- Codemod disponible : `next upgrade latest` (Next 16.1+) applique les migrations
+- Logging : `pino/logger.md`. Dockerfile générique : `docker/dockerfile.md`. Compose : `docker-compose/compose.md`. En-tête `X-Forwarded-Host` des Server Actions : `nextjs/server-actions-security.md`
 
 ## Exemples
 ```typescript
-// ✅ instrumentation.ts : register() côté serveur uniquement + onRequestError
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    // bootstrap des loggers, tracing, etc.
-  }
-}
-export const onRequestError = async (error, request, context) => { ... }
-```
-
-```typescript
-// ✅ /api/health : dynamic par défaut (cacheComponents: true = PAS d'export const dynamic) + Cache-Control no-cache
+// ✅ /api/health : dynamique par défaut + Cache-Control no-cache
 export async function GET() {
-  return Response.json({ status: 'ok' }, {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-  })
+  return Response.json({ status: 'ok' }, { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } })
 }
 
-// ❌ export const dynamic = 'force-dynamic' : incompatible avec cacheComponents: true, throw au build
+// ❌ export const dynamic = 'force-dynamic' : incompatible avec cacheComponents, throw au build
 ```

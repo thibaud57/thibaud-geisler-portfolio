@@ -1,8 +1,8 @@
 ---
 title: "Node.js — Runtime JavaScript"
-version: "24.14.1"
+version: "24"
 description: "Référence technique pour Node.js 24 : runtime, TypeScript natif, test runner, env files."
-date: "2026-04-13"
+date: "2026-10-03"
 keywords: ["nodejs", "runtime", "typescript", "esm"]
 scope: ["docs"]
 technologies: ["TypeScript", "pnpm", "Next.js"]
@@ -10,7 +10,7 @@ technologies: ["TypeScript", "pnpm", "Next.js"]
 
 # Description
 
-`Node.js` 24 est le runtime JavaScript utilisé dans le portfolio, en LTS Active. La v24 apporte TypeScript natif via type stripping, le chargement natif des `.env` via `--env-file`, un test runner mature, `URLPattern` global, et V8 13.6 (Float16Array, RegExp.escape, using keyword). Node.js 20 passe en EOL le 30 avril 2026, d'où la migration vers v24.
+`Node.js` 24 « Krypton » est le runtime JavaScript utilisé dans le portfolio. La fiche documente la ligne, pas un patch : `node:24-alpine` et `node-version: '24'` résolvent la dernière 24.x à chaque build (24.21.0 le 3 octobre 2026). La ligne est en Active LTS jusqu'au 20 octobre 2026, en Maintenance LTS ensuite, et la 26 devient Active LTS le 28 octobre 2026. La v24 apporte TypeScript natif via type stripping, le chargement natif des `.env` via `--env-file`, un test runner mature, `URLPattern` global, et V8 13.6 (Float16Array, RegExp.escape, using keyword). Node.js 20 passe en EOL le 30 avril 2026, d'où la migration vers v24.
 
 ---
 

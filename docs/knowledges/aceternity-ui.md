@@ -10,7 +10,7 @@ technologies: ["Next.js", "shadcn/ui", "Tailwind CSS", "motion"]
 
 # Description
 
-`Aceternity UI` est une collection de composants React premium aux effets visuels avancés (Aurora Background, Spotlight, 3D Card, Infinite Moving Cards), distribuée en copy-paste via le registry shadcn. Pas de package npm : les composants sont copiés dans `src/components/ui/` et modifiables. Utilisée dans le portfolio pour les effets hero et les sections visuelles impactantes, en complément de shadcn/ui (UI fonctionnelle) et Magic UI.
+`Aceternity UI` est une collection de composants React premium aux effets visuels avancés (Aurora Background, Spotlight, 3D Card, Infinite Moving Cards), distribuée en copy-paste via le registry shadcn. Pas de package npm : les composants sont copiés dans `src/components/aceternity/` (alias `aceternity` de `components.json`) et modifiables. Le portfolio l'emploie pour le fond animé du hero (`BackgroundRippleEffect`), en complément de shadcn/ui (UI fonctionnelle) et Magic UI.
 
 ---
 
@@ -25,16 +25,14 @@ Aceternity UI s'appuie sur le CLI shadcn. Les composants sont référencés via 
 ### Exemple
 
 ```bash
-# Installer un composant Aceternity via shadcn CLI
-pnpm dlx shadcn@latest add @aceternity/aurora-background
-pnpm dlx shadcn@latest add @aceternity/spotlight
-pnpm dlx shadcn@latest add @aceternity/3d-card
+# Installer un composant Aceternity via shadcn CLI (écrit dans src/components/aceternity/)
+pnpm dlx shadcn@latest add @aceternity/background-ripple-effect
 ```
 
 ### Points Importants
 
 - Le CLI shadcn gère tout : copy du code, installation des deps
-- Chaque composant est modifiable dans `src/components/ui/`
+- Chaque composant est modifiable dans `src/components/aceternity/`, séparé des composants shadcn de `src/components/ui/`
 - Prévisualiser avec `--dry-run` avant d'écrire
 - Nécessite un `components.json` shadcn initialisé
 
@@ -49,14 +47,14 @@ Aceternity UI utilise le package `motion` (anciennement framer-motion). L'API es
 ### Exemple
 
 ```tsx
-// src/components/features/hero.tsx
 'use client'
 import { motion } from 'motion/react'
-import { AuroraBackground } from '@/components/ui/aurora-background'
+import { BackgroundRippleEffect } from '@/components/aceternity/background-ripple-effect'
 
 export function Hero() {
   return (
-    <AuroraBackground>
+    <section className="relative">
+      <BackgroundRippleEffect />
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -66,7 +64,7 @@ export function Hero() {
         <h1 className="text-5xl font-bold">Thibaud Geisler</h1>
         <p className="text-xl">IA & Full-Stack</p>
       </motion.div>
-    </AuroraBackground>
+    </section>
   )
 }
 ```
@@ -90,12 +88,12 @@ Tous les composants Aceternity utilisent des hooks React (`useState`, `useEffect
 
 ```tsx
 // Le composant généré par le CLI contient déjà 'use client'
-// src/components/ui/aurora-background.tsx
+// src/components/aceternity/background-ripple-effect.tsx
 'use client'
 import { cn } from '@/lib/utils'
 import React from 'react'
 
-export const AuroraBackground = ({ children, className, ...props }) => {
+export const BackgroundRippleEffect = ({ children, className, ...props }) => {
   return (
     <div className={cn('relative flex flex-col', className)} {...props}>
       {/* ... logique de rendu */}
@@ -146,6 +144,7 @@ export function cn(...inputs: ClassValue[]) {
 ## ✅ Recommandations
 
 - Installer via shadcn CLI avec la syntaxe `@aceternity/<component>`
+- Documenter toute modification locale en commentaire de tête du fichier copié, avec le lien vers la version upstream et le pourquoi du diff (cf. `background-ripple-effect.tsx`) : sans lui, une réinstallation par le CLI écrase la modification sans que personne le voie
 - Importer `motion` depuis `motion/react` (pas `framer-motion`)
 - Marquer explicitement `'use client'` dans les composants parents qui utilisent Aceternity
 - Combiner shadcn/ui (UI fonctionnelle) + Aceternity (effets visuels premium)

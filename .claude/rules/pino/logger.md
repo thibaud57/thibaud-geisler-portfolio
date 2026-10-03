@@ -1,85 +1,45 @@
 ---
 paths:
   - "src/lib/logger.ts"
-  - "src/lib/logger/**/*.ts"
-  - "instrumentation.ts"
   - "src/instrumentation.ts"
+  - "next.config.ts"
 ---
 
-# Pino — Logger structuré
+# Pino — Setup du logger
 
 ## À faire
-- Exporter un **logger singleton** depuis `src/lib/logger.ts` et le réutiliser dans tout le code serveur (évite la multiplication des transports sous-jacents)
+- Exporter un **logger singleton** depuis `src/lib/logger.ts`, protégé par `import 'server-only'`, et le réutiliser dans tout le code serveur
 - Définir le niveau depuis `env` (`@/env`, t3-env) avec fallback `debug` en dev et `info` en prod : `level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info')`. Seul `NODE_ENV` se lit sur `process.env`, il n'est pas dans le schéma
-- Activer le transport `pino-pretty` **uniquement en dev**, output JSON brut en prod (capturé par Dokploy stdout)
-- Créer un **child logger par Server Action / requête** avec bindings statiques (`action`, `requestId: crypto.randomUUID()`) pour tracer le flow d'exécution
-- Logger les erreurs avec `err` en **premier argument** : `logger.error({ err }, 'message')`. Pino capture automatiquement `message`, `stack`, `type`
-- Respecter les niveaux : `info` événements normaux, `warn` dégradés non bloquants (rate limit, retry), `error` échecs bloquants
-- Activer `redact` pour masquer automatiquement les champs sensibles (`*.authorization`, `req.headers.cookie`, `smtp.pass`). Préférer `censor: '[REDACTED]'` à `remove: true` : la clé reste visible dans la ligne, ce qui permet de constater au débogage qu'un champ sensible a bien été intercepté, là où `remove` le fait disparaître sans laisser de trace
-- Déclarer `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : les 3 packages sont **obligatoires**, `thread-stream` est le worker thread sous-jacent que Next.js doit traiter comme module externe
-- Installer explicitement **`thread-stream`** : `pnpm add thread-stream` (dépendance runtime de Pino, pas toujours résolue automatiquement)
-- Charger le logger au démarrage côté serveur uniquement via **`instrumentation.ts`** : `if (process.env.NEXT_RUNTIME === 'nodejs') await import('./lib/logger')` dans `register()`
-- Utiliser `formatters.level` pour envoyer le **label texte** (`info`) au lieu du numéro (`30`), plus lisible dans les logs Dokploy
-- Définir `base: { service: '<nom-app>' }` pour injecter automatiquement le nom du service dans chaque log
+- Activer le transport `pino-pretty` **uniquement en dev**, sortie JSON brute en prod (capturée par Dokploy sur stdout)
+- Déclarer `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : les trois sont **obligatoires**, `thread-stream` est le worker thread que Next.js doit traiter comme module externe
+- Installer explicitement **`thread-stream`** en dépendance directe : Pino ne le résout pas toujours seul
+- Charger le logger côté serveur uniquement via **`instrumentation.ts`** : `if (process.env.NEXT_RUNTIME === 'nodejs') await import('./lib/logger')` dans `register()`
+- Utiliser `formatters.level` pour envoyer le **label texte** (`info`) au lieu du numéro (`30`)
+- Définir `base: { service: 'thibaud-geisler-portfolio' }` pour nommer le service dans chaque ligne
+- Activer `redact` avec `censor: '[REDACTED]'` sur les champs sensibles (`*.password`, `*.token`, `req.headers.authorization`, `req.headers.cookie`…) : la clé reste visible, ce qui prouve au débogage que le champ a été intercepté, là où `remove: true` le fait disparaître sans trace
 
 ## À éviter
-- Importer Pino dans un Client Component : module serveur uniquement, dépend de `worker_threads` Node.js
-- Activer `pino-pretty` en production : overhead non négligeable et format non parseable par Dokploy/Datadog
-- Créer plusieurs instances de `pino()` dans le code : multiplie les transports et fragmente la configuration
-- Logger des secrets ou données sensibles même en `debug` (`SMTP_PASS`, `DATABASE_URL`, tokens d'auth, clés API)
-- Utiliser `console.log` à la place de Pino : pas de structure, pas de niveaux, pas de filtrage, casse l'observabilité Dokploy
-- Laisser le niveau `debug` en production : impact performance même filtré côté logger
+- Importer Pino dans un Client Component : module serveur, dépend de `worker_threads`
+- Activer `pino-pretty` en production : overhead, et format que Dokploy ne parse pas
+- Créer plusieurs instances de `pino()` : multiplie les transports et fragmente la configuration
 
 ## Gotchas
-- Pino 10.3.1 + Next.js App Router : `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` est **obligatoire** sinon erreur de bundling au build/runtime (les worker threads ne peuvent pas être bundlés par Webpack/Turbopack)
-- Pino 10.3.1 fixe un memory leak dans le transport avec `--import preload` (sanitisation `NODE_OPTIONS`). Upgrade obligatoire depuis < 10.3.1
+- `serverExternalPackages` manquant : erreur de bundling au build ou au runtime, les worker threads ne se bundlent pas sous Turbopack
+- Pino 10.2.0 corrige un memory leak des transports lancés avec `--import preload` (PR #2374), la 10.3.1 assainit les preloads `NODE_OPTIONS` invalides des workers (PR #2391)
 - Node.js ≥ 20 requis pour Pino 10
+- Child loggers, niveaux et format des événements : voir `pino/usage.md`
 
 ## Exemples
 ```typescript
-// ✅ Singleton avec transport conditionnel (pino-pretty en dev seulement)
-const isDev = process.env.NODE_ENV !== 'production'
-
+// ✅ Singleton, transport pretty en dev seulement, champs sensibles masqués
 export const logger = pino({
-  level: isDev ? 'debug' : 'info',
-  base: { service: '<nom-app>' },
+  level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+  base: { service: 'thibaud-geisler-portfolio' },
+  redact: { paths: ['*.password', 'req.headers.cookie'], censor: '[REDACTED]' },
   formatters: { level: (label) => ({ level: label }) },
   transport: isDev ? { target: 'pino-pretty' } : undefined,
 })
 
-// ❌ pino-pretty actif en prod (overhead + format non parseable)
+// ❌ pino-pretty actif en prod
 export const logger = pino({ transport: { target: 'pino-pretty' } })
-```
-
-```typescript
-// ✅ Child logger par Server Action avec bindings statiques + err en premier arg
-export async function submitForm(prev: FormState, formData: FormData) {
-  const log = logger.child({ action: 'submitForm', requestId: crypto.randomUUID() })
-  log.info('Processing')
-  try {
-    // ...
-    log.info('Success')
-  } catch (err) {
-    log.error({ err }, 'Failed') // Pino capture stack/type automatiquement
-  }
-}
-```
-
-```typescript
-// ✅ instrumentation.ts : bootstrap Pino côté serveur uniquement
-export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./lib/logger')
-  }
-}
-```
-
-```typescript
-// ✅ redact pour masquer automatiquement les champs sensibles
-export const logger = pino({
-  redact: {
-    paths: ['*.authorization', 'req.headers.cookie', '*.password', 'smtp.pass'],
-    censor: '[REDACTED]',
-  },
-})
 ```
