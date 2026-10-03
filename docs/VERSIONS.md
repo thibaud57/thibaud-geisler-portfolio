@@ -44,7 +44,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | Zod | `4.6.5` | ✅ | Validateurs string déplacés en top-level |
-| nodemailer | `10.0.13` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` devenu redondant |
+| nodemailer | `10.0.13` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` retiré |
 | Pino | `10.3.1` | ⚠️ | `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` requis dans `next.config.ts`, les trois. `thread-stream@4.2.0` est installé en dépendance directe |
 | @next/env | `16.3.6` | ✅ | Chargement `.env` dans `prisma.config.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
@@ -53,7 +53,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | @c15t/nextjs | `2.2.1` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
 | react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
 | remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
-| Sentry (`@sentry/nextjs`) | `11.1.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : tracing des Server Actions affecté par un bug SDK connu (#18871) en 10.x, non revalidé en v11, capture d'erreur et tracing routes/queries opérationnels. Détail : [knowledges/sentry.md](knowledges/sentry.md) |
+| Sentry (`@sentry/nextjs`) | `11.1.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : tracing des Server Actions perdu par un bug SDK connu (#18871), reproduit en 11.1.0 le 3 octobre 2026, capture d'erreur et tracing routes/queries opérationnels. Détail : [knowledges/sentry.md](knowledges/sentry.md) |
 | @aws-sdk/client-s3 | `3.1141.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.6` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
 
@@ -531,10 +531,10 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 
 **Compatibilité Écosystème** :
 - Node.js >= 20 : ✅ (minimum imposé par la v10)
-- TypeScript : ✅ via les types embarqués depuis la v10. `@types/nodemailer@8.0.1` reste dans les devDependencies sans servir : TypeScript lit les types du paquet avant ceux de `@types`, et `tsconfig.json` ne le liste pas dans `types`. Typecheck vert en CI avec les deux installés. DefinitelyTyped n'a publié ni 9.x ni 10.x
+- TypeScript : ✅ via les types embarqués depuis la v10. `@types/nodemailer` est retiré des devDependencies le 3 octobre 2026, typecheck vert sans lui. DefinitelyTyped n'a publié ni 9.x ni 10.x : ne pas le réinstaller
 - SMTP IONOS : ✅ (STARTTLS/TLS/SMTPS)
 
-**Recommandation** : ✅ nodemailer 10.0.13, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse, et jamais une 10.x antérieure à 10.0.11. `@types/nodemailer`, redondant, peut être retiré.
+**Recommandation** : ✅ nodemailer 10.0.13, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse, et jamais une 10.x antérieure à 10.0.11.
 
 ### 3. Pino
 
@@ -679,7 +679,7 @@ Moteur de rendu du contenu éditorial : il transforme le markdown des case studi
 ### 10. Sentry (`@sentry/nextjs`)
 
 **Version actuelle** : `11.1.0` (28 septembre 2026)
-**Stabilité** : ⚠️ (tracing des Server Actions sous Turbopack non revalidé depuis le bug connu de la 10.x)
+**Stabilité** : ⚠️ (tracing des Server Actions perdu sous Turbopack, bug de la 10.x reproduit en 11.1.0)
 
 Monitoring d'erreurs et tracing applicatif en cloud, le self-hosted étant exclu par [ADR-017](adrs/017-observabilite-cloud.md) (4 cœurs et 16 Go de RAM minimum, hors de portée du VPS). Capture d'erreur vérifiée fonctionnelle côté serveur, edge et navigateur ; tracing actif pour les routes, pages et queries Prisma, sans tracing navigateur ni Session Replay. Fiche détaillée : [knowledges/sentry.md](knowledges/sentry.md).
 
@@ -691,12 +691,12 @@ Monitoring d'erreurs et tracing applicatif en cloud, le self-hosted étant exclu
 - Node.js 20.19.0 et Next.js 14 minimum
 - Spans envoyés par lots au fil de l'eau (span streaming) par défaut
 
-**`SENTRY_DATA_COLLECTION`** (`src/lib/sentry-scrub.ts`) ferme chaque catégorie et se passe aux trois `Sentry.init` (serveur, edge, navigateur). `beforeSend` et `beforeSendLog` restent en place : ils filtrent ce que `dataCollection` ne couvre pas, le texte des messages d'erreur et des logs Pino. Vérifié à l'exécution le 3 octobre 2026 par `getDataCollectionOptions()` : toutes les catégories résolues à `false`.
+**`SENTRY_DATA_COLLECTION`** (`src/lib/sentry-scrub.ts`) ferme chaque catégorie et se passe aux trois `Sentry.init` (serveur, edge, navigateur). `beforeSend` et `beforeSendLog` restent en place : ils filtrent ce que `dataCollection` ne couvre pas, le texte des messages d'erreur et des logs Pino. Vérifié le 3 octobre 2026 à deux niveaux : `getDataCollectionOptions()` résout toutes les catégories à `false`, et l'événement réellement reçu par Sentry depuis l'image de production (erreur SMTP de l'action contact) n'a ni cookie, ni en-tête, ni corps de requête, ni IP, ni le contenu du formulaire.
 
 **Compatibilité Écosystème** :
 - Next.js 16 : ✅ App Router, fichiers d'instrumentation `instrumentation.ts` / `instrumentation-client.ts`. L'annotation de composants sous Turbopack exige Next 16
 - React 19 : ✅
-- Turbopack : ⚠️ bundler par défaut du projet, dev comme build (opt-out Webpack retiré le 3 septembre 2026). Tracing des Server Actions affecté par le bug SDK [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) en 10.x (voir `docs/knowledges/sentry.md` § Bundler et incidents connus pour le détail). L'issue est fermée le 19 janvier 2026 sur une non-reproduction, sans correctif identifié : ne pas la tenir pour résolue en v11 avant un test réel. Capture d'erreur et tracing routes/queries inaffectés. À revalider à chaque montée du SDK.
+- Turbopack : ⚠️ bundler par défaut du projet, dev comme build (opt-out Webpack retiré le 3 septembre 2026). Tracing des Server Actions affecté par le bug SDK [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) en 10.x (voir `docs/knowledges/sentry.md` § Bundler et incidents connus pour le détail). L'issue est fermée le 19 janvier 2026 sur une non-reproduction, sans correctif identifié. **Reproduit en 11.1.0 le 3 octobre 2026** sur l'image de production : l'erreur de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, mais la trace ne compte aucun span après plus de 4 minutes, quand les spans des GET voisins arrivent en quelques secondes. Capture d'erreur et tracing routes/queries inaffectés. À revalider à chaque montée du SDK.
 - Pino 10 : ✅ `pinoIntegration` couvre `>=8.0.0 <11`
 
 **Recommandation** : ⚠️ 11.1.0 avec `SENTRY_DATA_COLLECTION` dans chaque `Sentry.init` : une config Sentry qui l'omet collecte tout. `11.4.0` disponible.
@@ -842,7 +842,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 
 **Issues connues & gotchas** :
 - **`.env` non chargé automatiquement au runtime** : Prisma 7 a supprimé le chargement auto. Charger via `@next/env` (`loadEnvConfig(process.cwd())`) dans `prisma.config.ts`, recommandation officielle Next.js. Cause de l'erreur P1010 si oublié.
-- **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). L'opt-out `next build --webpack`, posé pour une erreur de résolution du module WASM `query_compiler_fast_bg.postgresql.mjs`, **a été retiré du Dockerfile le 3 septembre 2026** : sur Next 16.3.3 + Prisma 7.10.0, le build Turbopack compile, prerende l'intégralité des pages contre une base réelle, et l'image finale sert les routes qui interrogent la base (vérifié en CI et sur un build Docker complet). Aucune issue upstream ouverte n'a pu être retrouvée côté `prisma/orm` ou `vercel/next.js`. À revérifier à chaque montée de Next ou de Prisma, le workaround tient en un flag.
+- **Turbopack build + Prisma 7 WASM** : Turbopack est le bundler **par défaut** de `next build` en Next 16 (plus Webpack). L'opt-out `next build --webpack`, posé pour une erreur de résolution du module WASM `query_compiler_fast_bg.postgresql.mjs`, **a été retiré du Dockerfile le 3 septembre 2026** : sur Next 16.3.3 + Prisma 7.10.0, le build Turbopack compile, prerende l'intégralité des pages contre une base réelle, et l'image finale sert les routes qui interrogent la base (vérifié en CI et sur un build Docker complet). Revérifié le 3 octobre 2026 sur Next 16.3.6 : image buildée en Turbopack, migrations appliquées au démarrage, routes publiques et sitemap en 200 contre une base PostgreSQL 18. Aucune issue upstream ouverte n'a pu être retrouvée côté `prisma/orm` ou `vercel/next.js`. À revérifier à chaque montée de Next ou de Prisma, le workaround tient en un flag.
 - **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible quand `prisma generate` est relancé au déploiement sur une machine ou une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']` dans `next.config.ts`. **Le projet n'est pas concerné** : build et client Prisma sortent de la même base `node:24-alpine`, `.dockerignore` exclut `node_modules` et `src/generated`, et Dokploy est en pull-only. Détail des stages et du pipeline : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement. À revérifier si `.dockerignore` change ou si le déploiement cesse d'être en pull-only.
 - **Server Components + `'use cache'` au prerender** : la base doit être joignable au build, ce qui conditionne le pipeline de déploiement. Règle et gotcha `connection()` : `.claude/rules/nextjs/data-fetching.md`, pipeline : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement
 - **`postinstall: "prisma generate"`** obligatoire dans `package.json` (convention standard Prisma)
@@ -912,7 +912,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
-| Next.js 16.3.6 | Prisma 7.10.0 | ✅ | Setup standard. Build Turbopack (défaut Next 16) vérifié en CI (`just build`), en image Docker sur 16.3.3, l'opt-out `--webpack` posé pour l'erreur WASM `query_compiler_fast_bg.postgresql.mjs` a été retiré |
+| Next.js 16.3.6 | Prisma 7.10.0 | ✅ | Setup standard. Build Turbopack (défaut Next 16) vérifié en CI (`just build`) et en image Docker sur 16.3.6 (3 octobre 2026), l'opt-out `--webpack` posé pour l'erreur WASM `query_compiler_fast_bg.postgresql.mjs` a été retiré |
 | Next.js 16.3.6 | next-intl 4.14.7 | ✅ | Nécessite Next.js >= 16.3 pour `use cache` (root params) |
 | Next.js 16.3.6 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.1 requis |
 | Next.js 16.3.6 | Pino 10.3.1 | ⚠️ | `serverExternalPackages` requis |
@@ -932,10 +932,10 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | `postgres:18-alpine` | Volume Docker | ⚠️ | PG18+ change le chemin par défaut : monter `/var/lib/postgresql`, pas `/var/lib/postgresql/data` |
 | Next.js 16.3.6 | Better Auth 1.7.6 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (workaround trivial, Issue #5584) |
 | Prisma 7.10.0 | Better Auth 1.7.6 | ✅ | L'URL de base est disponible au runtime via les variables d'environnement. `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth |
-| Sentry 11.1.0 | Next.js 16.3.6 | ⚠️ | Turbopack supporté (annotation de composants : Next 16 requis). Tracing des Server Actions non revalidé depuis le bug #18871 de la 10.x |
+| Sentry 11.1.0 | Next.js 16.3.6 | ⚠️ | Turbopack supporté (annotation de composants : Next 16 requis). Tracing des Server Actions perdu (bug #18871, reproduit en 11.1.0 sur l'image de production) |
 | Vitest 5.0.3 | Vite 8.2.2 | ✅ | Vite est une peer obligatoire depuis Vitest 5 (>= 6.4), installée automatiquement par pnpm |
 | Vitest 5.0.3 | jsdom 30.1.1 | ✅ | Suite de tests verte en CI |
-| nodemailer 10.0.13 | TypeScript 6.0.3 | ✅ | Types embarqués, lus avant `@types/nodemailer` |
+| nodemailer 10.0.13 | TypeScript 6.0.3 | ✅ | Types embarqués, sans `@types/nodemailer` |
 
 ---
 
@@ -949,7 +949,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Pino + Next.js App Router (bundling) | 🟡 Moyen | `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` |
 | next-intl + `use cache` (Next 16.0 à 16.2) | 🟡 Moyen | Utiliser Next.js >= 16.3 (le projet est en 16.3.6) |
 | TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS, migrer les `require()` si présents |
-| Prisma 7 + Turbopack build (défaut Next 16) | ✅ Traité | Erreur WASM non reproduite sur 16.3.3 + 7.10.0 : opt-out `--webpack` retiré du Dockerfile. Revérifier le build Docker à chaque montée de Next ou de Prisma : sur 16.3.6, build Turbopack vérifié en CI, image Docker à revérifier au prochain déploiement |
+| Prisma 7 + Turbopack build (défaut Next 16) | ✅ Traité | Erreur WASM non reproduite sur 16.3.3 + 7.10.0 : opt-out `--webpack` retiré du Dockerfile. Revérifier le build Docker à chaque montée de Next ou de Prisma, fait sur 16.3.6 le 3 octobre 2026 |
 | Prisma 7 + CI/CD avec build séparé | 🟢 Faible | Hash mismatch possible si `prisma generate` est rejoué au déploiement sur une base Node différente de celle du build (issue #29025). Le projet **est** en build séparé (GitHub Actions), mais reste non concerné : Dokploy est en pull-only et ne régénère rien. Détail en § Prisma ORM |
 | Sentry 11 sans `dataCollection` | ✅ Traité | Le défaut collecte cookies, corps de requête, IP et variables locales. `SENTRY_DATA_COLLECTION` (`src/lib/sentry-scrub.ts`) ferme chaque catégorie dans les trois `Sentry.init` |
 | nodemailer 10.0.0 à 10.0.10 (entrée CommonJS cassée) | 🟢 Faible | Rester sur `>= 10.0.11` |

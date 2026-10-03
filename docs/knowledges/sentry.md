@@ -1,8 +1,8 @@
 ---
 title: "Sentry — Monitoring d'erreurs applicatives"
-version: "10.72.0"
+version: "11.1.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
-date: "2026-09-03"
+date: "2026-10-03"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Pino", "Docker", "GitHub Actions"]
@@ -79,7 +79,7 @@ export async function myAction(prevState: State, formData: FormData): Promise<St
 - Chaque Server Action exposée doit être wrappée individuellement : pas de mécanisme global équivalent à `onRequestError`
 - Le callback retourne ce que retourne la Server Action : le wrapping n'altère ni le type de retour ni la gestion d'erreur métier
 - Pertinent pour toute future Server Action de l'espace admin (post-MVP), pas seulement le formulaire de contact
-- **Le wrapping seul ne garantit pas la remontée** : sur ce projet (`10.74.0`, dev Turbopack), le span `function.server_action` est bien créé et flush côté SDK (`Sentry.init({ debug: true })` le confirme dans les logs), mais aucune transaction n'apparaît côté dashboard après plusieurs minutes. Symptôme identique à #18871 (perte silencieuse au niveau transport), jamais documenté par Sentry pour le tracing spécifiquement, seulement pour la capture d'erreur. Voir § Bundler et incidents connus
+- **Le wrapping seul ne garantit pas la remontée** : sur ce projet (`10.74.0`, dev Turbopack), le span `function.server_action` est bien créé et flush côté SDK (`Sentry.init({ debug: true })` le confirme dans les logs), mais aucune transaction n'apparaît côté dashboard après plusieurs minutes. Symptôme identique à #18871 (perte silencieuse au niveau transport), jamais documenté par Sentry pour le tracing spécifiquement, seulement pour la capture d'erreur. **Reproduit en `11.1.0` le 2026-10-03** sur l'image Docker de production : l'erreur SMTP de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, la trace ne compte aucun span après plus de 4 minutes, quand les spans des GET voisins arrivent en quelques secondes. Voir § Bundler et incidents connus
 
 ---
 
@@ -193,28 +193,43 @@ withSentryConfig(config, { tunnelRoute: '/sentry-tunnel' })
 
 ### Description
 
-Sentry capte par défaut de quoi identifier un utilisateur, ce qui touche directement le registre des traitements du projet. Deux leviers : l'option de collecte globale, et un filtre appliqué avant chaque envoi.
+Sentry capte par défaut de quoi identifier un utilisateur, ce qui touche directement le registre des traitements du projet. Deux leviers : l'option de collecte par catégorie, et un filtre appliqué avant chaque envoi.
 
-`sendDefaultPii` est déprécié depuis la 10.54.0 au profit de `dataCollection`, avec suppression annoncée en v11. Si les deux sont présentes, `dataCollection` l'emporte.
+Le SDK v11 supprime `sendDefaultPii` au profit de `dataCollection` et **inverse le défaut** : « sendDefaultPii is replaced by dataCollection, which controls each category of collected data separately » (guide de migration v10 vers v11). Sans `dataCollection`, il collecte identité et IP, cookies, en-têtes, corps de requête et de réponse, paramètres d'URL, données des requêtes base de données et variables locales des stack frames. Le projet ferme chaque catégorie dans `SENTRY_DATA_COLLECTION` (`src/lib/sentry-scrub.ts`), passé aux trois `Sentry.init`.
 
 ### Exemple
 
 ```typescript
+export const SENTRY_DATA_COLLECTION = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: false,
+  httpBodies: [],
+  urlQueryParams: false,
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+  genAI: { inputs: false, outputs: false },
+  graphQL: { document: false, variables: false },
+} satisfies NonNullable<Parameters<typeof init>[0]["dataCollection"]>
+
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  beforeSend(event) {
-    if (event.user) delete event.user.email
-    return event
-  },
+  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
+  dataCollection: SENTRY_DATA_COLLECTION,
+  beforeSend: scrubSentryEvent,
 })
 ```
 
 ### Points Importants
 
 - **La région de l'organisation est irréversible** : le choix entre les États-Unis et l'Europe (`de.sentry.io`, datacenter de Francfort) se fait à la création de l'organisation et ne peut plus changer. À trancher avant de créer le projet
-- Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée
-- `beforeSend` doit retourner un événement valide ou `null` pour l'abandonner, jamais `undefined`
-- **`beforeSend` ne couvre que les issues.** Avec `pinoIntegration`, `log.levels` alimente en parallèle le produit *Logs* de Sentry, qui passe par `beforeSendLog` et transporte l'objet Pino entier (`err` sérialisé compris). `enableLogs` vaut `true` par défaut (`@sentry/core` : `enableLogs ?? _experiments?.enableLogs ?? true`), donc ce second canal est actif sans rien déclarer. Filtrer les deux, sinon la donnée masquée dans l'issue repart en clair dans le log
+- **`DataCollection` n'est pas exporté par `@sentry/nextjs`** (seulement par `@sentry/core`, inaccessible sous pnpm strict) : le type se dérive de la signature de `init`, d'où le `satisfies` ci-dessus
+- Les catégories laissées ouvertes ne masquent que les valeurs dont le nom figure dans la denylist du SDK (`token`, `auth`, `password`…) : le contenu du formulaire de contact, lui, partirait en clair
+- Vérifier le résultat par `Sentry.getClient()?.getDataCollectionOptions()`, dans un process neuf : le SDK Next ne s'initialise qu'une fois, un second `init` dans le même process garde la config du premier. Relevé le 2026-10-03 en `11.1.0` : toutes les catégories résolues à `false`
+- **Prouver sur l'événement reçu, pas seulement sur la config** : `sentry api "organizations/<org>/issues/<SHORT-ID>/events/latest/"` rend l'événement tel que stocké. Relevé le 2026-10-03 sur une erreur serveur réelle en `11.1.0` : `request.cookies`, `headers` et `query` vides, `data` à `null`, `user.ip_address` à `null`, ni l'email ni le message saisis dans le formulaire. Sentry renseigne quand même `user.geo` depuis l'IP qui lui envoie l'événement : pour un événement serveur, c'est la localisation du serveur, pas celle du visiteur
+- Côté navigateur, `userInfo: false` fait passer `sdk.settings.infer_ip` de `auto` à `never` dans l'événement envoyé (constat du projet techno-tagger en `@sentry/angular` 11.1.0)
+- `beforeSend` doit retourner un événement valide ou `null` pour l'abandonner, jamais `undefined`. Il reste nécessaire avec `dataCollection` : il filtre le texte des messages d'erreur, que les catégories ne couvrent pas
+- **`beforeSend` ne couvre que les issues.** Avec `pinoIntegration`, `log.levels` alimente en parallèle le produit *Logs* de Sentry, qui passe par `beforeSendLog` et transporte l'objet Pino entier (`err` sérialisé compris). L'option `enableLogs` est supprimée en v11 : les logs s'activent dès qu'une intégration de logging est déclarée, donc ce second canal est actif sans rien déclarer. Filtrer les deux, sinon la donnée masquée dans l'issue repart en clair dans le log
 - Le projet hache déjà les IP dans les logs Pino (`ip_hash` salé) : la même exigence vaut ici, et l'ajout de Sentry impose de mettre à jour [registre-traitements.md](../registre-traitements.md)
 
 ---
@@ -247,7 +262,7 @@ Sentry.init({
 - Sans distinguer les deux, une erreur Pino remonte à la fois en Log et en Issue
 - Plage supportée : Pino `>=8.0.0 <11`. Le projet est en Pino 10
 - L'intégration exige le runtime Node.js, elle ne fonctionne pas en Edge
-- Depuis le SDK 10.71.0, `enableLogs: true` n'est plus nécessaire
+- `enableLogs` n'est plus nécessaire depuis le SDK 10.71.0 et n'existe plus en v11 : déclarer `pinoIntegration` suffit à activer les logs
 
 ---
 
@@ -263,7 +278,7 @@ Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-bu
 
 ### Points Importants
 
-- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix. **Reproduit sur ce projet le 2026-09 pour le tracing des Server Actions** (pas seulement la capture d'erreur du rapport original) : `sentry.server.config.ts` avec `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard Sentry après plusieurs minutes d'attente. Contournement non officiel proposé dans le fil (non testé ici, à évaluer si le besoin devient bloquant) : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`)
+- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix. **Reproduit sur ce projet le 2026-09 pour le tracing des Server Actions** (pas seulement la capture d'erreur du rapport original) : `sentry.server.config.ts` avec `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard Sentry après plusieurs minutes d'attente. Contournement non officiel proposé dans le fil (non testé ici, à évaluer si le besoin devient bloquant) : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`). Le changelog et le guide de migration de la v11 ne citent pas l'issue, et le symptôme se reproduit en `11.1.0` (relevé du 2026-10-03, image de production)
 - [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Même remarque, et le projet a bien un `proxy.ts`
 - [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`** : c'est celui qui le concerne vraiment. Corrigée par la PR #21351, version de publication non confirmée
 - [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs. À surveiller dès que les Server Actions admin utiliseront `redirect()` ou `notFound()`
@@ -305,7 +320,7 @@ next build --webpack                    # opt-out ponctuel, plus utilisé par le
 - Trancher la région de l'organisation avant de créer le projet, ce choix ne se rattrape pas
 - Séparer `log.levels` et `error.levels` dans l'intégration Pino, pour ne pas transformer chaque log en issue
 - Garder `SENTRY_AUTH_TOKEN` au stage de build uniquement, via un secret BuildKit
-- Filtrer les données personnelles dans `beforeSend` et répercuter l'ajout dans le registre des traitements
+- Passer `dataCollection: SENTRY_DATA_COLLECTION` à chaque `Sentry.init`, puis filtrer le reste dans `beforeSend` et `beforeSendLog`, et répercuter tout ajout de collecte dans le registre des traitements
 - Étendre la CSP en même temps que l'installation, sinon rien ne remonte du navigateur et le silence ressemble à une absence d'erreurs
 - Relire le `next.config.ts` après le passage du wizard : il ignore les wrappers déjà en place
 
@@ -317,6 +332,7 @@ next build --webpack                    # opt-out ponctuel, plus utilisé par le
 - Ne pas commiter `.env.sentry-build-plugin`
 - Ne pas laisser `log.levels` à sa valeur par défaut : tous les niveaux partent, y compris `debug`, et le quota de logs s'épuise
 - Ne pas laisser la route de tunnel traverser le proxy sans l'exclure du matcher
+- Ne pas appeler `Sentry.init` sans `dataCollection` en v11 : l'option absente collecte cookies, corps de requête, IP et variables locales
 - Ne pas activer Session Replay sans raison : entre 36 et 50 Ko gzip s'ajoutent au bundle client, contre moins de 20 Ko pour le cœur du SDK
 
 ---
@@ -332,6 +348,8 @@ next build --webpack                    # opt-out ponctuel, plus utilisé par le
 - [Intégration Pino](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/pino/)
 - [Rapport de violations CSP](https://docs.sentry.io/platforms/javascript/guides/nextjs/security-policy-reporting/)
 - [Migration v9 vers v10](https://docs.sentry.io/platforms/javascript/migration/v9-to-v10/)
+- [Migration v10 vers v11](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)
+- [Options, dont `dataCollection`](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/)
 - [Région européenne](https://sentry.zendesk.com/hc/en-us/articles/25074658211227-About-Sentry-s-EU-Region)
 - [Tarifs](https://sentry.io/pricing/)
 
