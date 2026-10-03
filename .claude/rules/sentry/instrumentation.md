@@ -14,8 +14,6 @@ paths:
 - Déclarer un seul point d'entrée `instrumentation.ts` exportant `register()`, qui importe la config serveur ou edge selon `process.env.NEXT_RUNTIME`
 - Exporter `onRequestError` depuis `instrumentation.ts` en appelant `Sentry.captureRequestError` : c'est ce qui capture les erreurs des Server Components, du proxy et du middleware (SDK >= 8.28.0). Une assignation directe suffit s'il n'y a rien d'autre à faire ; composer un wrapper est légitime pour y ajouter un log applicatif (ex: `logger.error` pour une procédure d'incident), à condition d'untracker ce logger de `pinoIntegration` (voir Gotchas) pour ne pas dupliquer l'issue
 - Nommer le fichier client `instrumentation-client.ts` : `sentry.client.config.ts` est l'ancienne convention, encore tolérée mais obsolète
-- Filtrer les données personnelles dans `beforeSend`, qui doit retourner un event valide ou `null`, jamais `undefined`
-- **Filtrer aussi dans `beforeSendLog` dès que `pinoIntegration` est active** : `log.levels` alimente le produit *Logs* de Sentry, un canal distinct des issues que `beforeSend` ne voit jamais. Il transporte l'objet Pino entier, `err` sérialisé compris, et `enableLogs` vaut `true` par défaut. Filtrer un seul des deux canaux laisse la donnée fuiter par l'autre
 - Utiliser `Sentry.pinoIntegration()` pour brancher le logger existant, jamais un transport maison (SDK >= 10.18.0, Pino `>=8.0.0 <11`)
 - Restreindre explicitement `log.levels` dans l'intégration Pino : le défaut envoie tous les niveaux, `debug` compris, et épuise le quota de logs
 - Déclarer `error.levels` explicitement pour choisir quels niveaux Pino créent **en plus** une issue, sinon une même erreur remonte deux fois. Même risque si un `logger.error()` explicite suit un `Sentry.captureRequestError`/`captureException` déjà posé pour la même erreur : `pinoIntegration` intercepte tout `logger.error()` du process par défaut (`diagnostics_channel`, pas seulement une instance précise). Untracker un child logger dédié à cet appel (`Sentry.pinoIntegration.untrackLogger(logger.child({}))`) évite le doublon sans désactiver la capture Pino du reste de l'app
@@ -26,16 +24,13 @@ paths:
 - Auto-héberger Sentry : 4 cœurs, 16 Go de RAM et 16 Go de swap au minimum, hors de portée du VPS (`docs/adrs/017-observabilite-cloud.md`)
 - Suivre un guide qui crée `sentry.client.config.ts` : la majorité des tutoriels en ligne sont sur l'ancienne convention
 - Traiter `sentry.server.config.ts` et `sentry.edge.config.ts` comme des points d'entrée directs : ils sont importés par `register()`
-- Utiliser `sendDefaultPii` : déprécié depuis 10.54.0 au profit de `dataCollection`, supprimé en v11. Si les deux coexistent, `dataCollection` gagne
 - Appeler `pinoIntegration()` sur le runtime Edge : elle exige Node.js
 - Activer Session Replay sans besoin identifié : 36 à 50 Ko gzip s'ajoutent au bundle client, contre moins de 20 Ko pour le cœur du SDK
-- Ajouter une capture de PII sans mettre à jour `docs/registre-traitements.md`
 
 ## Gotchas
 - **`captureException` dans un Server Component casse le prerendering quand `cacheComponents: true`** (c'est la configuration du projet). Issue getsentry/sentry-javascript#21333, corrigée par la PR #21351, version de publication non confirmée : à tester avant mise en production
 - `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs (issue #10466). Pertinent dès qu'une Server Action utilise `redirect()` ou `notFound()`
-- Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack, qui est **le bundler du build de production depuis le 3 septembre 2026** (opt-out `--webpack` retiré) : les traiter comme actifs, vérifier la version du SDK face à ces fixes et provoquer une erreur serveur réelle pour valider la remontée
-- Depuis le SDK v10, l'IP n'est plus inférée côté navigateur quand la collecte de PII est désactivée
+- Les incidents de perte silencieuse d'events serveur (#18871, #21713) ne concernent que Turbopack, qui est **le bundler du build de production depuis le 3 septembre 2026** (opt-out `--webpack` retiré) : les traiter comme actifs (ni le changelog ni le guide de migration de la v11 ne citent #18871) et provoquer une erreur serveur réelle pour valider la remontée
 - **`instrumentation-client.ts` est chargé par le navigateur sur toutes les pages** : ne pas y importer `@/env`, qui embarque Zod (60 Kio) et son test `new Function`, refusé par la CSP (bonnes pratiques Lighthouse à 96, relevé du 2026-09-25). Y lire `process.env["NEXT_PUBLIC_SENTRY_DSN"]`, inliné au build
 - La région de l'organisation Sentry (États-Unis ou Europe) est **irréversible** : elle se choisit à la création, avant tout code
 
@@ -65,12 +60,6 @@ Sentry.init({
       error: { levels: ['error', 'fatal'] },
     }),
   ],
-  beforeSend(event) {
-    if (event.user) delete event.user.email
-    // Un message d'erreur (ex: rejet SMTP) peut embarquer un email hors de event.user
-    if (event.message) event.message = redactEmails(event.message)
-    return event                      // null pour abandonner, jamais undefined
-  },
 })
 
 // ❌ log.levels au défaut : tous les niveaux partent, debug compris
