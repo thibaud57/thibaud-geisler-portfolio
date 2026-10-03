@@ -1,14 +1,8 @@
 ---
 paths:
-  - "src/app/api/assets/**/*.ts"
-  - "src/app/admin/(protected)/api/assets/**/*.ts"
-  - "src/server/config/assets.ts"
-  - "src/server/actions/assets.ts"
-  - "src/server/queries/assets.ts"
-  - "src/lib/schemas/asset.ts"
-  - "src/lib/asset-keys.ts"
-  - "src/lib/asset-content-types.ts"
-  - "src/lib/assets.ts"
+  - "src/app/**/api/assets/**"
+  - "src/server/**/assets.ts"
+  - "src/lib/**/asset*.ts"
   - "src/lib/r2.ts"
 ---
 

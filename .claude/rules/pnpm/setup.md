@@ -1,8 +1,7 @@
 ---
 paths:
   - "package.json"
-  - "pnpm-workspace.yaml"
-  - "pnpm-lock.yaml"
+  - "pnpm-*.yaml"
   - ".npmrc"
 ---
 

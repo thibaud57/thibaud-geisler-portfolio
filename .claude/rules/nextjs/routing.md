@@ -1,12 +1,6 @@
 ---
 paths:
-  - "src/app/**/page.tsx"
-  - "src/app/**/layout.tsx"
-  - "src/app/**/template.tsx"
-  - "src/app/**/loading.tsx"
-  - "src/app/**/error.tsx"
-  - "src/app/**/not-found.tsx"
-  - "src/app/**/default.tsx"
+  - "src/app/**/{page,layout,template,loading,error,not-found,default}.tsx"
 ---
 
 # Next.js — Routing & Navigation
