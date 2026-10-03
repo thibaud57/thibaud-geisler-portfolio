@@ -4,7 +4,7 @@ description: "Vision globale du portfolio personnel thibaud-geisler.com : platef
 date: "2026-08-29"
 keywords: ["brainstorm", "portfolio", "freelance", "platform", "ia", "rag", "admin"]
 scope: ["docs", "planning"]
-technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Python"]
+technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Cloudflare R2", "Sentry", "Python"]
 ---
 
 # 🎯 Vision Projet
@@ -79,7 +79,7 @@ Le portfolio est un **hub** : chaque application développée a sa propre démo 
 
 * Hébergement : Dokploy (self-hosted)
 * Conteneurisation : Docker + Docker Compose. PostgreSQL provisionné comme Dokploy Database autonome, joint par le réseau interne
-* CI/CD : GitHub Actions porte lint, tests et build de l'image, poussée sur GHCR. Dokploy est en pull-only, déclenché par les tags de release
+* CI/CD : GitHub Actions, déploiement Dokploy en pull-only sur tag de release (pipeline détaillé dans [ARCHITECTURE.md](ARCHITECTURE.md))
 * Domaine & SMTP : IONOS
 
 ## Services Externes
@@ -210,7 +210,7 @@ Justification positionnement MVP : le formulaire de contact (Feature 4) collecte
 
 Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur).
 
-Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Doc interne (non publique, non bloquante pour la prod) → à formaliser post-launch.
+Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Document interne, non publié, tenu dans [registre-traitements.md](registre-traitements.md).
 
 ---
 

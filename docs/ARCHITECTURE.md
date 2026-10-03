@@ -4,7 +4,7 @@ description: "Documentation de l'architecture du portfolio personnel thibaud-gei
 date: "2026-09-04"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Better Auth", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
+technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
@@ -354,6 +354,10 @@ Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par de
 | `portfolio-assets` | `branding/` | Logo, portrait |
 | `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, lu sur le site de l'entreprise ([ADR-023](adrs/023-source-logos-entreprise.md)), seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
 
+Les deux buckets se partagent sur l'accès en lecture, pas sur l'auteur, l'espace admin écrivant dans les deux : `portfolio-assets` porte ce qu'une route publique sert, `portfolio-admin` ce qui n'est lu qu'authentifié. Le partage reprend celui des schémas de la base ([ADR-018](adrs/018-cloisonnement-donnees.md)) : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`, un sous-dossier par domaine ajouté quand le besoin arrive : une clé d'objet dit ainsi à elle seule quel schéma la référence, quel bucket la porte, quelle route la sert et quel token y accède. Le logo d'entreprise fait exception, servi sans session seulement si l'entreprise a un projet publié : celui d'un prospect du CRM reste invisible. Chaque bucket, en juridiction `eu`, a son double `-dev` et son propre token. Un cinquième, `portfolio-backups`, porte les sauvegardes de la base.
+
+Post-MVP, un bucket `documents-prives`, pendant de la base du même nom, sera détenu par le seul service `rag-documents`. Le RAG lit les documents en place (token en lecture seule, préfixes autorisés, clé, ETag et date d'indexation en base), sans dossier dédié ni copie : une copie diverge de son original, et ce qui est indexé est une décision, pas un emplacement.
+
 ### File Processing
 
 Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le MVP.
@@ -482,7 +486,7 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 
 - **Secrets** : variables d'environnement gérées dans Dokploy (jamais dans le repo)
 - **Réseau** : seuls les ports 80/443 exposés publiquement (reverse proxy Dokploy)
-- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake. Note A+ chez SSL Labs (relevé du 2026-09-21)
+- **HTTPS** : certificats Let's Encrypt automatiques via Dokploy. Options TLS de Traefik au profil Mozilla *intermediate* : TLS 1.2 minimum, `sniStrict` actif, donc une connexion sur l'IP nue est refusée dès le handshake
 
 ### Scalabilité & Performance
 
