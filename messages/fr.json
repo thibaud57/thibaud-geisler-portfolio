@@ -364,7 +364,7 @@
   },
   "PrivacyPolicy": {
     "title": "Politique de confidentialité",
-    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "lastUpdated": "Dernière mise à jour : 3 octobre 2026",
     "recipients": {
       "title": "3. Destinataires et sous-traitants",
       "intro": "Les données personnelles peuvent être transmises aux sous-traitants suivants pour les finalités décrites :",
@@ -386,7 +386,7 @@
     },
     "rights": {
       "title": "5. Vos droits",
-      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
+      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez vous opposer à tout moment, sans justification, à la prospection. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
     },
     "transfers": {
       "title": "6. Transferts de données hors Union européenne",

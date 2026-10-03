@@ -364,7 +364,7 @@
   },
   "PrivacyPolicy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: April 28, 2026",
+    "lastUpdated": "Last updated: October 3, 2026",
     "recipients": {
       "title": "3. Recipients and processors",
       "intro": "Personal data may be shared with the following processors for the described purposes:",
@@ -386,7 +386,7 @@
     },
     "rights": {
       "title": "5. Your rights",
-      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
+      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can object to prospecting at any time, without giving a reason. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
     },
     "transfers": {
       "title": "6. Data transfers outside the European Union",

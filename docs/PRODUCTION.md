@@ -376,6 +376,18 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
 
+## Demandes RGPD
+
+Procédure pour une demande reçue sur une personne du Traitement 7, prospection et réseau professionnel ([registre-traitements.md](registre-traitements.md)).
+
+| Droit | Procédure |
+|-------|-----------|
+| **Accès** (réponse sous 1 mois, exigence CNIL) | Aucun écran dédié : réunir à la main tout ce qui concerne la personne (sa fiche, ses actions de prospection, ses opportunités, ses entretiens, ses signaux) |
+| **Rectification** | Correction directe de la fiche depuis l'écran d'administration (`08`, `13`) |
+| **Opposition** (art. 21) | Bouton dédié de l'écran d'administration, actionnable à tout moment et sans justification : réduit la fiche à ce qui identifie la personne (email, LinkedIn), pose `Person.optedOutAt` une seule fois, conserve les rôles et l'historique. Une case permet d'enchaîner aussitôt l'effacement des échanges |
+| **Effacement** des échanges (art. 17.1.c) | À tout moment après l'opposition : second geste, disponible sur une fiche déjà opposée, retire les actions de prospection, les signaux et la place de correspondant d'entretien de la personne, pose `Person.exchangesErasedAt` une seule fois |
+| **Journal des demandes** | Date de la demande, nature, réponse, date de l'effacement le cas échéant. Tenu hors de ce dépôt, dans une note privée, parce qu'il contient des noms |
+
 ## Security Headers
 
 Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-Powered-By: Next.js`).
@@ -637,6 +649,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 3. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
 4. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
 5. Smoke test : accueil, `/projets`, formulaire de contact
+6. **Rejouer les demandes RGPD survenues depuis l'horodatage de la sauvegarde restaurée** (§ Demandes RGPD) : les oppositions et effacements à partir de `Person.optedOutAt` et `Person.exchangesErasedAt`, les rectifications à partir du journal des demandes. Les sauvegardes gardent 30 jours, une restauration peut ramener des données déjà traitées
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
