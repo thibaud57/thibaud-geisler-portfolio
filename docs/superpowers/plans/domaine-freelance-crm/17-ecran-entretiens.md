@@ -485,6 +485,7 @@ import { SelectField } from "@/components/features/admin/SelectField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
@@ -581,11 +582,7 @@ function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewC
           <SelectValue placeholder="Poste" />
         </SelectTrigger>
         <SelectContent>
-          {JOB_ROLES.map((value) => (
-            <SelectItem key={value} value={value}>
-              {JOB_ROLE_LABELS[value]}
-            </SelectItem>
-          ))}
+          <EnumSelectItems values={JOB_ROLES} labels={JOB_ROLE_LABELS} />
         </SelectContent>
       </Select>
       <Select value={draft.companyId} onValueChange={(value) => onChange({ ...draft, companyId: value })}>
@@ -608,15 +605,7 @@ function NewCorrespondentRow({ draft, companyOptions, onChange, onRemove }: NewC
           <SelectValue placeholder="Type de contact" />
         </SelectTrigger>
         <SelectContent>
-          {CONTACT_TYPES.map((value) => {
-            const Icon = CONTACT_TYPE_ICONS[value]
-            return (
-              <SelectItem key={value} value={value}>
-                {Icon ? <Icon aria-hidden /> : null}
-                {CONTACT_TYPE_LABELS[value]}
-              </SelectItem>
-            )
-          })}
+          <EnumSelectItems values={CONTACT_TYPES} labels={CONTACT_TYPE_LABELS} icons={CONTACT_TYPE_ICONS} />
         </SelectContent>
       </Select>
       <Input
@@ -877,15 +866,11 @@ export function InterviewForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {INTERVIEW_TYPES.map((value) => {
-                      const Icon = INTERVIEW_TYPE_ICONS[value]
-                      return (
-                        <SelectItem key={value} value={value}>
-                          {Icon ? <Icon aria-hidden /> : null}
-                          {INTERVIEW_TYPE_LABELS[value]}
-                        </SelectItem>
-                      )
-                    })}
+                    <EnumSelectItems
+                      values={INTERVIEW_TYPES}
+                      labels={INTERVIEW_TYPE_LABELS}
+                      icons={INTERVIEW_TYPE_ICONS}
+                    />
                   </SelectContent>
                 </Select>
               </FormField>
@@ -915,15 +900,11 @@ export function InterviewForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {INTERVIEW_STATUSES.map((value) => {
-                        const Icon = INTERVIEW_STATUS_ICONS[value]
-                        return (
-                          <SelectItem key={value} value={value}>
-                            {Icon ? <Icon aria-hidden /> : null}
-                            {INTERVIEW_STATUS_LABELS[value]}
-                          </SelectItem>
-                        )
-                      })}
+                      <EnumSelectItems
+                        values={INTERVIEW_STATUSES}
+                        labels={INTERVIEW_STATUS_LABELS}
+                        icons={INTERVIEW_STATUS_ICONS}
+                      />
                     </SelectContent>
                   </Select>
                 </FormField>
@@ -942,15 +923,11 @@ export function InterviewForm({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NONE_VALUE}>Non renseignée</SelectItem>
-                      {INTERVIEW_OUTCOMES.map((value) => {
-                        const Icon = INTERVIEW_OUTCOME_ICONS[value]
-                        return (
-                          <SelectItem key={value} value={value}>
-                            {Icon ? <Icon aria-hidden /> : null}
-                            {INTERVIEW_OUTCOME_LABELS[value]}
-                          </SelectItem>
-                        )
-                      })}
+                      <EnumSelectItems
+                        values={INTERVIEW_OUTCOMES}
+                        labels={INTERVIEW_OUTCOME_LABELS}
+                        icons={INTERVIEW_OUTCOME_ICONS}
+                      />
                     </SelectContent>
                   </Select>
                 </FormField>

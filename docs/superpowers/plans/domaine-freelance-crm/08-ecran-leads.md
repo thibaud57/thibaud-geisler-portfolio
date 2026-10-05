@@ -678,6 +678,7 @@ Un champ, commun à `LeadForm` et à `ContactForm` (`13`) : extrait ici, au prem
 ```tsx
 "use client"
 
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { FormField } from "@/components/ui/form-field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { IconComponent } from "@/lib/icons"
@@ -688,11 +689,11 @@ interface Props {
   name: string
   label: string
   options: readonly string[]
-  labels: Readonly<Record<string, string>>
+  labels: Record<string, string>
   defaultValue: string
   errors: string[] | undefined
-  // Glyphe devant chaque option, comme les emojis des selects Notion ; absent pour une énumération qui n'en porte pas (Poste, Localité).
-  icons?: Readonly<Record<string, IconComponent | null>>
+  // Table de glyphes de l'énumération quand elle existe ; absente pour Poste et Localité, qui n'en portent pas.
+  icons?: Record<string, IconComponent | null>
   // Champ facultatif : cette option envoie la sentinelle, que le schéma traduit en null.
   noneLabel?: string
 }
@@ -721,15 +722,7 @@ export function SelectField({
         </SelectTrigger>
         <SelectContent>
           {noneLabel ? <SelectItem value={NONE_VALUE}>{noneLabel}</SelectItem> : null}
-          {options.map((option) => {
-            const Icon = icons?.[option]
-            return (
-              <SelectItem key={option} value={option}>
-                {Icon ? <Icon aria-hidden /> : null}
-                {labels[option]}
-              </SelectItem>
-            )
-          })}
+          <EnumSelectItems values={options} labels={labels} icons={icons} />
         </SelectContent>
       </Select>
     </FormField>
@@ -760,7 +753,8 @@ import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 
 import type { LeadOrigin } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
@@ -1075,15 +1069,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
                     <SelectValue placeholder="Choisir une origine" />
                   </SelectTrigger>
                   <SelectContent>
-                    {LEAD_ORIGINS.map((value) => {
-                      const Icon = LEAD_ORIGIN_ICONS[value]
-                      return (
-                        <SelectItem key={value} value={value}>
-                          {Icon ? <Icon aria-hidden /> : null}
-                          {LEAD_ORIGIN_LABELS[value]}
-                        </SelectItem>
-                      )
-                    })}
+                    <EnumSelectItems values={LEAD_ORIGINS} labels={LEAD_ORIGIN_LABELS} icons={LEAD_ORIGIN_ICONS} />
                   </SelectContent>
                 </Select>
               </FormField>

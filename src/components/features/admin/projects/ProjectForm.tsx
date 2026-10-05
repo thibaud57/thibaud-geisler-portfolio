@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
 import { AssetPicker } from "@/components/features/admin/assets/AssetPicker"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { ClientMetaFields } from "@/components/features/admin/projects/ClientMetaFields"
 import { ProjectTagsField } from "@/components/features/admin/projects/ProjectTagsField"
 import { useImageFallback } from "@/components/features/projects/useImageFallback"
@@ -20,13 +21,7 @@ import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -385,11 +380,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROJECT_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {PROJECT_STATUS_LABELS[status]}
-                        </SelectItem>
-                      ))}
+                      <EnumSelectItems values={PROJECT_STATUSES} labels={PROJECT_STATUS_LABELS} />
                     </SelectContent>
                   </Select>
                 </FormField>

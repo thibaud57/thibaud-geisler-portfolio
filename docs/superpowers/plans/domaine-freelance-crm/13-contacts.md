@@ -1653,10 +1653,7 @@ export function ContactForm({ contact, companyOptions, leadOptions }: Props) {
                   {CONTACT_TYPES.map((type) => {
                     const Icon = CONTACT_TYPE_ICONS[type]
                     return (
-                      <label
-                        key={type}
-                        className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                      >
+                      <label key={type} className="flex min-w-0 items-center gap-2 text-sm">
                         <Checkbox
                           checked={types.includes(type)}
                           onCheckedChange={(checked) => {

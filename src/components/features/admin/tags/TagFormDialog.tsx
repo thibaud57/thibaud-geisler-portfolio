@@ -13,6 +13,7 @@ import { Pencil, Plus, Save } from "lucide-react"
 import { toast } from "sonner"
 
 import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { Button } from "@/components/ui/button"
@@ -29,13 +30,7 @@ import {
 } from "@/components/ui/dialog"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import type { Tag, TagKind } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
@@ -237,11 +232,7 @@ function TagForm({
                 <SelectValue placeholder="Choisir une catégorie" />
               </SelectTrigger>
               <SelectContent>
-                {KIND_ORDER.map((kind) => (
-                  <SelectItem key={kind} value={kind}>
-                    {TAG_KIND_LABELS[kind]}
-                  </SelectItem>
-                ))}
+                <EnumSelectItems values={KIND_ORDER} labels={TAG_KIND_LABELS} />
               </SelectContent>
             </Select>
           </FormField>

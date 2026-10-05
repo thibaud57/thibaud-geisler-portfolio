@@ -717,14 +717,9 @@ import {
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 
 import type { ActionStatus } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
@@ -995,15 +990,11 @@ function ProspectingActionForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ACTION_CHANNELS.map((channel) => {
-                const Icon = ACTION_CHANNEL_ICONS[channel]
-                return (
-                  <SelectItem key={channel} value={channel}>
-                    {Icon ? <Icon aria-hidden /> : null}
-                    {ACTION_CHANNEL_LABELS[channel]}
-                  </SelectItem>
-                )
-              })}
+              <EnumSelectItems
+                values={ACTION_CHANNELS}
+                labels={ACTION_CHANNEL_LABELS}
+                icons={ACTION_CHANNEL_ICONS}
+              />
             </SelectContent>
           </Select>
         </FormField>
@@ -1030,15 +1021,11 @@ function ProspectingActionForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ACTION_STATUSES.map((value) => {
-                const Icon = ACTION_STATUS_ICONS[value]
-                return (
-                  <SelectItem key={value} value={value}>
-                    {Icon ? <Icon aria-hidden /> : null}
-                    {ACTION_STATUS_LABELS[value]}
-                  </SelectItem>
-                )
-              })}
+              <EnumSelectItems
+                values={ACTION_STATUSES}
+                labels={ACTION_STATUS_LABELS}
+                icons={ACTION_STATUS_ICONS}
+              />
             </SelectContent>
           </Select>
         </FormField>

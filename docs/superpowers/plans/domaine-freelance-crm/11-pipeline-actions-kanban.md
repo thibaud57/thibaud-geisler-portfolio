@@ -547,15 +547,7 @@ Expected: PASS, les suites du `10` comprises.
 "use client"
 
 import { startTransition, useMemo, useState } from "react"
-import {
-  CircleCheck,
-  ClipboardList,
-  MessageCircle,
-  Send,
-  Target,
-  VolumeX,
-  type LucideIcon,
-} from "lucide-react"
+import { Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
@@ -597,7 +589,12 @@ import { rankActions } from "@/lib/action-rank"
 import { timeOf } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import { formatShortDate } from "@/lib/projects"
-import { ACTION_CHANNEL_ICONS, ACTION_CHANNEL_LABELS, ACTION_STATUS_LABELS } from "@/lib/prospecting-actions"
+import {
+  ACTION_CHANNEL_ICONS,
+  ACTION_CHANNEL_LABELS,
+  ACTION_STATUS_ICONS,
+  ACTION_STATUS_LABELS,
+} from "@/lib/prospecting-actions"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 import { changeProspectingActionStatus } from "@/server/actions/prospecting-actions"
@@ -606,12 +603,12 @@ import type { AdminProspectingAction } from "@/server/queries/prospecting-action
 
 type BoardValue = Record<string, AdminProspectingAction[]>
 
-const COLUMN_ICONS: Record<ActionStatus, { icon: LucideIcon; className: string }> = {
-  A_FAIRE: { icon: ClipboardList, className: "text-muted-foreground" },
-  FAIT: { icon: CircleCheck, className: "text-info" },
-  REPONDU: { icon: MessageCircle, className: "text-success" },
-  CONVERTI: { icon: Target, className: "text-primary" },
-  IGNORE: { icon: VolumeX, className: "text-destructive" },
+const COLUMN_ICON_CLASSES: Record<ActionStatus, string> = {
+  A_FAIRE: "text-muted-foreground",
+  FAIT: "text-info",
+  REPONDU: "text-success",
+  CONVERTI: "text-primary",
+  IGNORE: "text-destructive",
 }
 
 function getActionId(action: AdminProspectingAction): string {
@@ -670,14 +667,14 @@ function BoardColumn({
   actions: readonly AdminProspectingAction[]
   onOpen: (action: AdminProspectingAction) => void
 }) {
-  const { icon: Icon, className } = COLUMN_ICONS[status]
+  const Icon = ACTION_STATUS_ICONS[status]
 
   return (
     <KanbanColumn value={status} className="min-w-0">
       <Card className="flex-1">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2">
-            <Icon aria-hidden className={cn("size-4 shrink-0", className)} />
+            {Icon ? <Icon aria-hidden className={cn("size-4 shrink-0", COLUMN_ICON_CLASSES[status])} /> : null}
             <span className={cn(LABEL_CLASS, "text-xs whitespace-nowrap")}>
               {ACTION_STATUS_LABELS[status]}
             </span>

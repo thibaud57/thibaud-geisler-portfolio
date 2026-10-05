@@ -857,6 +857,7 @@ import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
   formatSignalDate,
   SIGNAL_FIELD_LABELS as LABELS,
+  SIGNAL_TYPE_ICONS,
   SIGNAL_TYPE_LABELS,
   signalTypesFor,
   type SignalItem,
@@ -980,6 +981,7 @@ function SignalForm({
           label={LABELS.type}
           options={types}
           labels={SIGNAL_TYPE_LABELS}
+          icons={SIGNAL_TYPE_ICONS}
           defaultValue={signal?.type ?? types[0] ?? ""}
           errors={state.errors.type}
         />

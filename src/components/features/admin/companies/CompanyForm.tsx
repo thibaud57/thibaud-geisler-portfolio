@@ -32,6 +32,7 @@ import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
+  COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
 } from "@/lib/companies"
 import { COMPANY_SECTORS, COMPANY_TYPES, NONE_VALUE } from "@/lib/schemas/company"
@@ -201,18 +202,22 @@ export function CompanyForm({ company, legalEntities, logoAssets, relatedCards }
                   aria-describedby={`${formId}-types-error ${formId}-types-help`}
                   className="grid grid-cols-2 gap-x-4 gap-y-2"
                 >
-                  {COMPANY_TYPES.map((type) => (
-                    <label key={type} className="flex min-w-0 items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={types.includes(type)}
-                        onCheckedChange={(checked) => {
-                          toggleType(type, checked === true)
-                        }}
-                        aria-invalid={!!state.errors.types?.length}
-                      />
-                      {COMPANY_TYPE_LABELS[type]}
-                    </label>
-                  ))}
+                  {COMPANY_TYPES.map((type) => {
+                    const Icon = COMPANY_TYPE_ICONS[type]
+                    return (
+                      <label key={type} className="flex min-w-0 items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={types.includes(type)}
+                          onCheckedChange={(checked) => {
+                            toggleType(type, checked === true)
+                          }}
+                          aria-invalid={!!state.errors.types?.length}
+                        />
+                        {Icon ? <Icon aria-hidden className="size-4 shrink-0" /> : null}
+                        {COMPANY_TYPE_LABELS[type]}
+                      </label>
+                    )
+                  })}
                 </div>
                 {types.map((type) => (
                   <input key={type} type="hidden" name="types" value={type} />

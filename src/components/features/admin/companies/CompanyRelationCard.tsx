@@ -1,5 +1,6 @@
 "use client"
 
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FormField } from "@/components/ui/form-field"
 import {
@@ -52,15 +53,11 @@ export function CompanyRelationCard({ formId, errors, defaults }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {RELATION_STATUSES.map((status) => {
-                const Icon = COMPANY_STATUS_ICONS[status]
-                return (
-                  <SelectItem key={status} value={status}>
-                    {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
-                    {RELATION_STATUS_LABELS[status]}
-                  </SelectItem>
-                )
-              })}
+              <EnumSelectItems
+                values={RELATION_STATUSES}
+                labels={RELATION_STATUS_LABELS}
+                icons={COMPANY_STATUS_ICONS}
+              />
             </SelectContent>
           </Select>
         </FormField>
@@ -77,11 +74,7 @@ export function CompanyRelationCard({ formId, errors, defaults }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>Non renseignée</SelectItem>
-              {COMPANY_SIZES.map((size) => (
-                <SelectItem key={size} value={size}>
-                  {COMPANY_SIZE_LABELS[size]}
-                </SelectItem>
-              ))}
+              <EnumSelectItems values={COMPANY_SIZES} labels={COMPANY_SIZE_LABELS} />
             </SelectContent>
           </Select>
         </FormField>

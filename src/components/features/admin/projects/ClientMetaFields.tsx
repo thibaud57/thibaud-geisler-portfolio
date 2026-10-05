@@ -3,6 +3,7 @@
 import { useId, useState } from "react"
 
 import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
@@ -93,11 +94,7 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {WORK_MODES.map((mode) => (
-                <SelectItem key={mode} value={mode}>
-                  {WORK_MODE_LABELS[mode]}
-                </SelectItem>
-              ))}
+              <EnumSelectItems values={WORK_MODES} labels={WORK_MODE_LABELS} />
             </SelectContent>
           </Select>
         </FormField>
@@ -118,11 +115,7 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>Non renseigné</SelectItem>
-              {CONTRACT_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {CONTRACT_STATUS_LABELS[status]}
-                </SelectItem>
-              ))}
+              <EnumSelectItems values={CONTRACT_STATUSES} labels={CONTRACT_STATUS_LABELS} />
             </SelectContent>
           </Select>
         </FormField>

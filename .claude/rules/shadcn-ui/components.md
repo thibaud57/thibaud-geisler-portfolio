@@ -15,6 +15,7 @@ paths:
 - **Composants primitifs Server-friendly** : `Button`, `Card`, `Input`, `Label`, `Badge` fonctionnent en Server Components (pas de hook interne)
 - **Composants interactifs Client-only** : `Dialog`, `Sheet`, `Popover`, `Select`, `DropdownMenu`, `Tooltip` utilisent des hooks Radix → marqués `'use client'` automatiquement par shadcn
 - **Isoler les îlots clients le plus bas possible** : un formulaire interactif = `'use client'`, mais sa page parente reste Server Component
+- **Options d'une énumération dans un `Select`** : `EnumSelectItems` (`src/components/features/admin/`), avec `values`, `labels` et la table `*_ICONS` quand l'énumération en a une (DESIGN.md § Icônes). Jamais une boucle de `SelectItem` écrite à la main : seule la sentinelle « Non renseigné » reste un `SelectItem` posé directement
 - **États hover/focus/disabled intégrés** (DESIGN.md) : ne pas redéfinir manuellement sur les composants shadcn, déjà accessibles et stylés
 - **Bordures plutôt qu'ombres** (DESIGN.md) : `Card`, `Dialog`, `Popover` utilisent `--border` par défaut, pas `shadow-*`. Privilégier la hiérarchie via fond (`--card` vs `--background`) et bordures
 - **Icônes** (DESIGN.md) : utiliser **Lucide React** (inclus avec shadcn) pour toutes les icônes d'interface (flèches, menu, settings, mail) ; **Simple Icons** via `@icons-pack/react-simple-icons` pour les logos marques et technologies (Python, React, Docker, LinkedIn). Style stroke uniquement, tailles cohérentes : 16px inline, 20px UI standard, 24px standalone

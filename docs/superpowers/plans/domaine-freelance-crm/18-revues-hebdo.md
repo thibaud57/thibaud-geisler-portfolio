@@ -1747,6 +1747,7 @@ import {
   type DetailSection,
   DetailDialog,
 } from "@/components/features/admin/DetailDialog"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { DeleteReviewDialog } from "@/components/features/admin/revues/DeleteReviewDialog"
 import { ReviewFormDialog } from "@/components/features/admin/revues/ReviewFormDialog"
 import { ReviewsCalendar } from "@/components/features/admin/revues/ReviewsCalendar"
@@ -1861,32 +1862,23 @@ function dataColumns(view: ReviewView): readonly Column<AdminWeeklyReview>[] {
       header: LABELS.status,
       width: REVIEW_COLUMN_WIDTHS.status,
       ...hideable(view, "status"),
-      cell: (review) => {
-        if (!review.status) return null
-        const Icon = REVIEW_STATUS_ICONS[review.status]
-        return (
-          <Badge variant="secondary">
-            {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
-            {REVIEW_STATUS_LABELS[review.status]}
-          </Badge>
-        )
-      },
+      cell: (review) =>
+        review.status ? (
+          <EnumBadge label={REVIEW_STATUS_LABELS[review.status]} icon={REVIEW_STATUS_ICONS[review.status]} />
+        ) : null,
     },
     {
       key: "motivation",
       header: LABELS.motivation,
       width: REVIEW_COLUMN_WIDTHS.motivation,
       ...hideable(view, "motivation"),
-      cell: (review) => {
-        if (!review.motivation) return null
-        const Icon = REVIEW_MOTIVATION_ICONS[review.motivation]
-        return (
-          <Badge variant="secondary">
-            {Icon ? <Icon aria-hidden data-icon="inline-start" /> : null}
-            {REVIEW_MOTIVATION_LABELS[review.motivation]}
-          </Badge>
-        )
-      },
+      cell: (review) =>
+        review.motivation ? (
+          <EnumBadge
+            label={REVIEW_MOTIVATION_LABELS[review.motivation]}
+            icon={REVIEW_MOTIVATION_ICONS[review.motivation]}
+          />
+        ) : null,
     },
   ]
 }
