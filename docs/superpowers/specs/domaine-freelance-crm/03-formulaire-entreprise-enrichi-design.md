@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "formulaire-entreprise-enrichi"
 goal: "Saisir depuis le formulaire entreprise les champs CRM ajoutés au modèle : types, zones, statut de la relation, notes et détails, ce dernier avec l'éditeur markdown Pages CMS Editor installé pour tout l'admin."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["02-entreprise-enrichie-donnees-design.md"]
