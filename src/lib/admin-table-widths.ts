@@ -20,15 +20,53 @@ export const TAG_SKELETON_WIDTHS: readonly number[] = [
 export const COMPANY_COLUMN_WIDTHS = {
   logo: 44,
   name: 211,
+  types: 179,
   sectors: 179,
-  size: 96,
+  zones: 160,
+  size: 140,
+  relationStatus: 150,
+  worked: 104,
   legalEntity: 160,
   websiteUrl: 150,
+  notes: 220,
   projects: 96,
   actions: 88,
 } as const
 
-export const COMPANY_SKELETON_WIDTHS: readonly number[] = Object.values(COMPANY_COLUMN_WIDTHS)
+export type CompanyColumnKey = keyof typeof COMPANY_COLUMN_WIDTHS
+
+export type CompanyView = "toutes" | "travaillees" | "recrutement"
+
+// Source unique des colonnes visibles par défaut par vue, lue par la table comme par son squelette.
+export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
+  CompanyView,
+  readonly CompanyColumnKey[]
+> = {
+  toutes: [
+    "types",
+    "sectors",
+    "zones",
+    "size",
+    "relationStatus",
+    "worked",
+    "legalEntity",
+    "websiteUrl",
+    "notes",
+    "projects",
+  ],
+  travaillees: ["types", "sectors", "zones", "size", "relationStatus", "projects"],
+  recrutement: ["types", "zones", "relationStatus", "worked"],
+}
+
+export function companySkeletonWidths(view: CompanyView): readonly number[] {
+  const keys: readonly CompanyColumnKey[] = [
+    "logo",
+    "name",
+    ...COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => COMPANY_COLUMN_WIDTHS[key])
+}
 
 export const PROJECT_COLUMN_WIDTHS = {
   titre: 240,

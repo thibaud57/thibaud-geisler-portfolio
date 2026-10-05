@@ -2028,45 +2028,42 @@ const CAPITAL_FORMATTER = new Intl.NumberFormat("fr")
 
 function legalEntitySections(company: AdminCompany): DetailSection[] {
   const entity = company.legalEntity
-  // Arbitrage « bloc sans donnée » : pas de bloc pour une entreprise sans entité légale.
-  if (!entity) return []
-
-  const siren = sirenFromSiret(entity.siret)
+  const siren = entity ? sirenFromSiret(entity.siret) : null
   const registration =
-    entity.address?.country === "FR"
+    entity?.address?.country === "FR"
       ? entity.rcsCity && siren
         ? `RCS ${entity.rcsCity} ${siren}`
         : null
-      : [entity.rcsCity, entity.rcsNumber].filter(Boolean).join(" ") || null
+      : [entity?.rcsCity, entity?.rcsNumber].filter(Boolean).join(" ") || null
 
   return [
     {
       title: COMPANY_SECTION_TITLES.legalEntity,
       rows: [
-        { label: LEGAL_LABELS.name, value: entity.name },
+        { label: LEGAL_LABELS.name, value: entity?.name },
         {
           label: LEGAL_LABELS.legalForm,
-          value: entity.legalForm ? <Badge variant="secondary">{LEGAL_FORM_LABELS[entity.legalForm]}</Badge> : null,
+          value: entity?.legalForm ? <Badge variant="secondary">{LEGAL_FORM_LABELS[entity.legalForm]}</Badge> : null,
         },
-        { label: LEGAL_LABELS.siret, value: entity.siret ? formatSiret(entity.siret) : null },
-        { label: LEGAL_LABELS.vatNumber, value: entity.vatNumber },
+        { label: LEGAL_LABELS.siret, value: entity?.siret ? formatSiret(entity.siret) : null },
+        { label: LEGAL_LABELS.vatNumber, value: entity?.vatNumber },
         {
           label: LEGAL_LABELS.registeredOffice,
           fullWidth: true,
-          value: entity.address ? (
+          value: entity?.address ? (
             <span className="whitespace-pre-line">
               {`${entity.address.street}\n${entity.address.postalCode} ${entity.address.city}\n${countryName(entity.address.country)}`}
             </span>
           ) : null,
         },
         { label: LEGAL_LABELS.registration, value: registration },
-        { label: LEGAL_LABELS.phone, value: entity.phone },
+        { label: LEGAL_LABELS.phone, value: entity?.phone },
         {
           // Seul sans paire après le siège : pleine largeur plutôt qu'une case vide à côté.
           label: LEGAL_LABELS.capitalAmount,
           fullWidth: true,
           value:
-            entity.capitalAmount !== null
+            entity && entity.capitalAmount !== null
               ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
               : null,
         },
@@ -2118,7 +2115,7 @@ Expected: suites `unit` et `integration` vertes.
 - [ ] **Step 1 : Entité vide puis minimale**
 
 Run: `just dev`, se connecter. Créer une entreprise sans toucher à la card Entité légale, enregistrer.
-Expected: enregistrement accepté, aucune erreur ; la vue détail n'a pas de bloc Entité légale.
+Expected: enregistrement accepté, aucune erreur ; la vue détail montre le bloc Entité légale avec des tirets sur chaque ligne.
 
 Rouvrir la fiche, saisir seulement la raison sociale et un siège complet, sans forme juridique ni SIRET, enregistrer.
 Expected: enregistrement accepté ; la vue détail montre le bloc Entité légale avec la raison sociale et le siège, des tirets ailleurs.

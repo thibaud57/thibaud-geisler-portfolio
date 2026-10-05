@@ -1103,17 +1103,21 @@ export function signalRelatedRows(
   })
 }
 
-// Bloc en lecture de la vue détail ; arbitrage « bloc sans donnée » : pas de bloc sans signal.
+// Bloc en lecture de la vue détail.
 export function signalsSection(
   signals: readonly SignalItem[],
   now: number,
   onOpen: (signal: SignalItem) => void,
 ): DetailSection[] {
-  if (signals.length === 0) return []
   return [
     {
       title: "Signaux",
-      rows: [{ fullWidth: true, value: <RelatedLinksList links={signalRelatedRows(signals, now, { onOpen })} /> }],
+      rows: [
+        {
+          fullWidth: true,
+          value: signals.length === 0 ? null : <RelatedLinksList links={signalRelatedRows(signals, now, { onOpen })} />,
+        },
+      ],
     },
   ]
 }
@@ -1658,7 +1662,7 @@ Expected: aucune ligne de la liste ne porte de bouton « Nouveau signal ». La c
 - [ ] **Step 3 : Leads**
 
 Ouvrir `/admin/leads/nouveau`, puis la page d'un lead outbound, puis celle d'un lead inbound.
-Expected: sur la création, la card Signaux affiche « Après l'enregistrement du lead. », bouton désactivé. Le lead outbound a sa card Signaux avec « Nouveau signal » ; un post engageant daté au jour y apparaît, sans badge de décote ; le lead inbound sans signal n'a pas de card Signaux. Passer le lead outbound en « Ne plus contacter » sans cocher l'effacement : dans Leads > Tous, sa vue détail montre toujours le signal en lecture, dont le clic ouvre la vue détail du signal avec un bloc « Rattaché à » vers le lead ; sur un second lead outbound avec un signal, cocher l'effacement : son bloc Signaux disparaît. Puis `just stop`.
+Expected: sur la création, la card Signaux affiche « Après l'enregistrement du lead. », bouton désactivé. Le lead outbound a sa card Signaux avec « Nouveau signal » ; un post engageant daté au jour y apparaît, sans badge de décote ; le lead inbound sans signal n'a pas de card Signaux. Passer le lead outbound en « Ne plus contacter » sans cocher l'effacement : dans Leads > Tous, sa vue détail montre toujours le signal en lecture, dont le clic ouvre la vue détail du signal avec un bloc « Rattaché à » vers le lead ; sur un second lead outbound avec un signal, cocher l'effacement : son bloc Signaux ne montre plus qu'un tiret. Puis `just stop`.
 
 - [ ] **Step 4 : Politique**
 

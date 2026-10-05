@@ -1930,11 +1930,7 @@ import { useRouter } from "next/navigation"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import {
-  type DetailContent,
-  type DetailSection,
-  DetailDialog,
-} from "@/components/features/admin/DetailDialog"
+import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
@@ -2107,11 +2103,6 @@ const DATA_COLUMNS: readonly Column<AdminContact>[] = [
   },
 ]
 
-// Arbitrage « bloc sans donnée » : un bloc dont aucun champ n'est renseigné disparaît.
-function keepFilled(section: DetailSection): DetailSection[] {
-  return section.rows.some((row) => row.value !== null && row.value !== undefined) ? [section] : []
-}
-
 function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefined): DetailContent {
   if (contact.optedOutAt) {
     return {
@@ -2156,7 +2147,7 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
     ),
     // Ordre du formulaire (Task 4) : Identité, Coordonnées, Détails, Relation, Notes, puis Pipeline (symétrique du Réseau du lead).
     sections: [
-      ...keepFilled({
+      {
         title: PERSON_SECTION_TITLES.person,
         rows: [
           {
@@ -2169,8 +2160,8 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
           },
           { label: PERSON_FIELD_LABELS.zone, value: contact.zone ? <Badge variant="secondary">{ZONE_LABELS[contact.zone]}</Badge> : null },
         ],
-      }),
-      ...keepFilled({
+      },
+      {
         title: PERSON_SECTION_TITLES.contact,
         rows: [
           { label: PERSON_FIELD_LABELS.email, value: contact.email },
@@ -2183,20 +2174,16 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
             fullWidth: true,
           },
         ],
-      }),
-      ...(contact.details
-        ? [
-            {
-              title: PERSON_SECTION_TITLES.details,
-              rows: [
-                {
-                  value: <MarkdownContent markdown={contact.details} variant="admin" />,
-                  fullWidth: true,
-                },
-              ],
-            },
-          ]
-        : []),
+      },
+      {
+        title: PERSON_SECTION_TITLES.details,
+        rows: [
+          {
+            value: contact.details ? <MarkdownContent markdown={contact.details} variant="admin" /> : null,
+            fullWidth: true,
+          },
+        ],
+      },
       {
         title: CONTACT_SECTION_TITLES.relation,
         rows: [
@@ -2215,39 +2202,34 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
           },
         ],
       },
-      ...(contact.notes
-        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] }]
-        : []),
+      { title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] },
       // Symétrique du bloc Réseau du lead, complété ici : le rôle Lead de la même personne, lu en un clic. Motif `relatedRows` de la maquette : une ligne « Fiche lead : statut · intérêt ».
-      ...(contact.hasLeadRole && contact.leadRole
-        ? [
-            {
-              title: CONTACT_SECTION_TITLES.pipeline,
-              rows: [
-                {
-                  fullWidth: true,
-                  value: (
-                    <RelatedLinksList
-                      links={[
-                        {
-                          id: contact.id,
-                          href: `/admin/leads/tous?detail=${contact.id}`,
-                          label: "Fiche lead",
-                          meta: [
-                            LEAD_STATUS_LABELS[contact.leadRole.status],
-                            contact.leadRole.interest ? LEAD_INTEREST_LABELS[contact.leadRole.interest] : null,
-                          ]
-                            .filter((part): part is string => part !== null)
-                            .join(" · "),
-                        },
-                      ]}
-                    />
-                  ),
-                },
-              ],
-            },
-          ]
-        : []),
+      {
+        title: CONTACT_SECTION_TITLES.pipeline,
+        rows: [
+          {
+            fullWidth: true,
+            value:
+              contact.hasLeadRole && contact.leadRole ? (
+                <RelatedLinksList
+                  links={[
+                    {
+                      id: contact.id,
+                      href: `/admin/leads/tous?detail=${contact.id}`,
+                      label: "Fiche lead",
+                      meta: [
+                        LEAD_STATUS_LABELS[contact.leadRole.status],
+                        contact.leadRole.interest ? LEAD_INTEREST_LABELS[contact.leadRole.interest] : null,
+                      ]
+                        .filter((part): part is string => part !== null)
+                        .join(" · "),
+                    },
+                  ]}
+                />
+              ) : null,
+          },
+        ],
+      },
     ],
     ...(onEdit ? { onEdit } : {}),
   }
@@ -2373,39 +2355,36 @@ export function ContactsTable({ contacts, initialDetailId }: Props) {
 
 - [ ] **Step 4 : Bloc Réseau du lead**
 
-Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts` (`RelatedLinksList` déjà importé par le `10` pour le bloc Actions, inutile de le redemander), puis, dans `buildLeadDetail`, remplacer le bloc Réseau posé par le `08` (`...keepFilled({ title: LEAD_SECTION_TITLES.network, … })`, en dernière position du tableau `sections`, juste avant `...historySection(history, ranks),` du `10`) par :
+Dans `src/components/features/admin/leads/LeadsTable.tsx`, ajouter `CONTACT_STATUS_LABELS`, `CONTACT_TYPE_LABELS` à un import depuis `@/lib/contacts` (`RelatedLinksList` déjà importé par le `10` pour le bloc Actions, inutile de le redemander), puis, dans `buildLeadDetail`, remplacer le bloc Réseau posé par le `08` (`{ title: LEAD_SECTION_TITLES.network, … }`, en dernière position du tableau `sections`, juste avant `...historySection(history, ranks),` du `10`) par :
 
 ```tsx
       // Symétrique du bloc Pipeline du contact : le rôle Contact de la même personne, lu en un clic. Motif `relatedRows` de la maquette : une ligne « Fiche contact : types · statut ».
-      ...(lead.hasContactRole && lead.contactRole
-        ? [
-            {
-              title: LEAD_SECTION_TITLES.network,
-              rows: [
-                {
-                  fullWidth: true,
-                  value: (
-                    <RelatedLinksList
-                      links={[
-                        {
-                          id: lead.id,
-                          href: `/admin/contacts?detail=${lead.id}`,
-                          label: "Fiche contact",
-                          meta: [
-                            lead.contactRole.types.length > 0
-                              ? lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type]).join(", ")
-                              : "Sans type",
-                            CONTACT_STATUS_LABELS[lead.contactRole.status],
-                          ].join(" · "),
-                        },
-                      ]}
-                    />
-                  ),
-                },
-              ],
-            },
-          ]
-        : []),
+      {
+        title: LEAD_SECTION_TITLES.network,
+        rows: [
+          {
+            fullWidth: true,
+            value:
+              lead.hasContactRole && lead.contactRole ? (
+                <RelatedLinksList
+                  links={[
+                    {
+                      id: lead.id,
+                      href: `/admin/contacts?detail=${lead.id}`,
+                      label: "Fiche contact",
+                      meta: [
+                        lead.contactRole.types.length > 0
+                          ? lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type]).join(", ")
+                          : "Sans type",
+                        CONTACT_STATUS_LABELS[lead.contactRole.status],
+                      ].join(" · "),
+                    },
+                  ]}
+                />
+              ) : null,
+          },
+        ],
+      },
 ```
 
 Sa position ne change pas : Réseau reste juste avant le bloc Actions (`10`), lui-même suivi d'Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`). `LEAD_SECTION_TITLES` est déjà importé dans ce fichier (`08`) et porte `network` depuis la Task 3 : rien de plus à y changer.
@@ -2681,7 +2660,7 @@ Expected: il ne garde qu'email, LinkedIn et date, retour sur la liste, badge « 
 - [ ] **Step 6 : Suppressions symétriques**
 
 Supprimer le contact de la personne aux deux rôles (Step 2).
-Expected: le rôle Contact disparaît, la personne reste, son bloc Réseau disparaît de sa page lead. Puis supprimer ce lead : la personne, ayant perdu son seul rôle restant, disparaît à son tour.
+Expected: le rôle Contact disparaît, la personne reste, son bloc Réseau ne montre plus qu'un tiret dans sa vue détail de lead. Puis supprimer ce lead : la personne, ayant perdu son seul rôle restant, disparaît à son tour.
 
 - [ ] **Step 7 : `personDetailHref` depuis une action**
 

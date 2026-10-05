@@ -32,6 +32,8 @@ export interface DetailSection {
 }
 
 export interface DetailContent {
+  // Ce qui identifie la fiche à gauche de son nom dans la liste (logo d'entreprise), repris à gauche du titre.
+  leading?: ReactNode
   title: string
   slug?: string
   subtitle?: ReactNode
@@ -69,16 +71,27 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
     <Dialog open={detail !== null} onOpenChange={onOpenChange}>
       {/* Plafond et défilement interne : un détail complet dépasse la hauteur de l'écran, et le
           pied doit rester atteignable. `svh`, que la barre d'URL mobile ne fausse pas. */}
-      <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-160">
-        <DialogHeader className="shrink-0 pr-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <DialogTitle>{shown.title}</DialogTitle>
-            {shown.status ? <span className="text-sm">{shown.status}</span> : null}
+      {/* Radix saute les liens et focaliserait le premier déclencheur d'infobulle d'une valeur :
+          l'infobulle s'ouvrirait seule et le premier Échap la fermerait au lieu de la modale. */}
+      <DialogContent
+        className="flex max-h-[85svh] flex-col sm:max-w-160"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus()
+        }}
+      >
+        <DialogHeader className="shrink-0 flex-row items-start gap-3 pr-8">
+          {shown.leading ? <div className="shrink-0">{shown.leading}</div> : null}
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <DialogTitle>{shown.title}</DialogTitle>
+              {shown.status ? <span className="text-sm">{shown.status}</span> : null}
+            </div>
+            {shown.slug ? (
+              <p className="-mt-1 font-mono text-xs text-muted-foreground">{shown.slug}</p>
+            ) : null}
+            {shown.subtitle ? <DialogDescription>{shown.subtitle}</DialogDescription> : null}
           </div>
-          {shown.slug ? (
-            <p className="-mt-1 font-mono text-xs text-muted-foreground">{shown.slug}</p>
-          ) : null}
-          {shown.subtitle ? <DialogDescription>{shown.subtitle}</DialogDescription> : null}
         </DialogHeader>
         {/* overflow-x-hidden : une ligne cliquable étend son fond de survol en marge négative, ce
             qui vaudrait une barre horizontale à une zone qui ne défile que verticalement. */}

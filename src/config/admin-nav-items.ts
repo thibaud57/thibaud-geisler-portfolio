@@ -83,7 +83,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
         subItems: [
           { label: "Toutes", href: "/admin/entreprises" },
           { label: "Travaillées", href: "/admin/entreprises/travaillees" },
-          { label: "Recrutement" },
+          { label: "Recrutement", href: "/admin/entreprises/recrutement" },
           { label: "Prospects" },
         ],
       },

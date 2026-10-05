@@ -1459,11 +1459,6 @@ function buildDataColumns(
   ]
 }
 
-// Arbitrage « bloc sans donnée » : un bloc dont aucun champ n'est renseigné disparaît.
-function keepFilled(section: DetailSection): DetailSection[] {
-  return section.rows.some((row) => row.value !== null && row.value !== undefined) ? [section] : []
-}
-
 function buildInterviewDetail(
   interview: AdminInterview,
   title: string,
@@ -1524,15 +1519,13 @@ function buildInterviewDetail(
         rows: [
           { label: LABELS.type, value: <EnumBadge label={INTERVIEW_TYPE_LABELS[interview.type]} icon={INTERVIEW_TYPE_ICONS[interview.type]} /> },
           { label: LABELS.scheduledAt, value: formatShortDateTime(interview.scheduledAt) },
-          ...(interview.outcome
-            ? [
-                {
-                  label: LABELS.outcome,
-                  fullWidth: true,
-                  value: <EnumBadge label={INTERVIEW_OUTCOME_LABELS[interview.outcome]} icon={INTERVIEW_OUTCOME_ICONS[interview.outcome]} />,
-                },
-              ]
-            : []),
+          {
+            label: LABELS.outcome,
+            fullWidth: true,
+            value: interview.outcome ? (
+              <EnumBadge label={INTERVIEW_OUTCOME_LABELS[interview.outcome]} icon={INTERVIEW_OUTCOME_ICONS[interview.outcome]} />
+            ) : null,
+          },
           {
             label: LABELS.correspondentIds,
             fullWidth: true,
@@ -1560,20 +1553,16 @@ function buildInterviewDetail(
           },
         ],
       },
-      ...(interview.details
-        ? [
-            {
-              title: "Détails",
-              rows: [
-                {
-                  value: <MarkdownContent markdown={interview.details} variant="admin" />,
-                  fullWidth: true,
-                },
-              ],
-            },
-          ]
-        : []),
-      ...keepFilled({
+      {
+        title: "Détails",
+        rows: [
+          {
+            value: interview.details ? <MarkdownContent markdown={interview.details} variant="admin" /> : null,
+            fullWidth: true,
+          },
+        ],
+      },
+      {
         title: "Évaluation",
         rows: [
           { label: LABELS.score, value: interview.score === null ? null : `${interview.score} / 10` },
@@ -1582,25 +1571,21 @@ function buildInterviewDetail(
             value: interview.decision ? <EnumBadge label={INTERVIEW_DECISION_LABELS[interview.decision]} icon={INTERVIEW_DECISION_ICONS[interview.decision]} /> : null,
           },
         ],
-      }),
-      ...(interview.notes ? [{ title: "Notes", rows: [{ value: interview.notes, fullWidth: true }] }] : []),
-      ...(previous
-        ? [
-            {
-              title: "Entretien précédent",
-              rows: [
-                {
-                  fullWidth: true,
-                  value: (
-                    <Link href={`/admin/entretiens/journal?detail=${previous.id}`} className="hover:underline">
-                      {previous.title} · {formatShortDateTime(previous.scheduledAt)}
-                    </Link>
-                  ),
-                },
-              ],
-            },
-          ]
-        : []),
+      },
+      { title: "Notes", rows: [{ value: interview.notes, fullWidth: true }] },
+      {
+        title: "Entretien précédent",
+        rows: [
+          {
+            fullWidth: true,
+            value: previous ? (
+              <Link href={`/admin/entretiens/journal?detail=${previous.id}`} className="hover:underline">
+                {previous.title} · {formatShortDateTime(previous.scheduledAt)}
+              </Link>
+            ) : null,
+          },
+        ],
+      },
     ],
     onEdit,
   }
@@ -1885,7 +1870,6 @@ Dans `OpportunitiesTable.tsx` :
 ```tsx
 // Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'entretien via ?detail= sur sa vue complète (le Journal).
 function interviewsSection(opportunity: AdminOpportunity): DetailSection[] {
-  if (opportunity.interviews.length === 0) return []
   const places = interviewPlaces(opportunity.interviews)
   return [
     {
@@ -1893,19 +1877,20 @@ function interviewsSection(opportunity: AdminOpportunity): DetailSection[] {
       rows: [
         {
           fullWidth: true,
-          value: (
-            <RelatedLinksList
-              links={opportunity.interviews.map(
-                (interview): RelatedLink => ({
-                  id: interview.id,
-                  href: `/admin/entretiens/journal?detail=${interview.id}`,
-                  label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
-                  meta: INTERVIEW_STATUS_LABELS[interview.status],
-                  trailing: formatShortDateTime(interview.scheduledAt),
-                }),
-              )}
-            />
-          ),
+          value:
+            opportunity.interviews.length === 0 ? null : (
+              <RelatedLinksList
+                links={opportunity.interviews.map(
+                  (interview): RelatedLink => ({
+                    id: interview.id,
+                    href: `/admin/entretiens/journal?detail=${interview.id}`,
+                    label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
+                    meta: INTERVIEW_STATUS_LABELS[interview.status],
+                    trailing: formatShortDateTime(interview.scheduledAt),
+                  }),
+                )}
+              />
+            ),
         },
       ],
     },
@@ -2009,26 +1994,26 @@ Dans `LeadsTable.tsx` :
 ```tsx
 // Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'entretien via ?detail= sur sa vue complète (le Journal).
 function interviewsSection(lead: AdminLead): DetailSection[] {
-  if (lead.interviews.length === 0) return []
   return [
     {
       title: "Entretiens",
       rows: [
         {
           fullWidth: true,
-          value: (
-            <RelatedLinksList
-              links={lead.interviews.map(
-                (interview): RelatedLink => ({
-                  id: interview.id,
-                  href: `/admin/entretiens/journal?detail=${interview.id}`,
-                  label: INTERVIEW_TYPE_LABELS[interview.type],
-                  meta: `${interview.opportunity.title} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
-                  trailing: formatShortDateTime(interview.scheduledAt),
-                }),
-              )}
-            />
-          ),
+          value:
+            lead.interviews.length === 0 ? null : (
+              <RelatedLinksList
+                links={lead.interviews.map(
+                  (interview): RelatedLink => ({
+                    id: interview.id,
+                    href: `/admin/entretiens/journal?detail=${interview.id}`,
+                    label: INTERVIEW_TYPE_LABELS[interview.type],
+                    meta: `${interview.opportunity.title} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
+                    trailing: formatShortDateTime(interview.scheduledAt),
+                  }),
+                )}
+              />
+            ),
         },
       ],
     },

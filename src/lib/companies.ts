@@ -86,6 +86,7 @@ export const COMPANY_FIELD_LABELS = {
   legalEntityId: "Entité légale",
   types: "Types",
   relationStatus: "Statut de la relation",
+  worked: "Travaillée",
   zones: "Zones",
   notes: "Notes",
   details: "Détails",

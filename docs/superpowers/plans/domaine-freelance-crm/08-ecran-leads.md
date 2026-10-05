@@ -1604,11 +1604,6 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
   ]
 }
 
-// Arbitrage « bloc sans donnée » : un bloc dont aucun champ n'est renseigné disparaît.
-function keepFilled(section: DetailSection): DetailSection[] {
-  return section.rows.some((row) => row.value !== null && row.value !== undefined) ? [section] : []
-}
-
 function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): DetailContent {
   if (lead.optedOutAt) {
     return {
@@ -1653,7 +1648,7 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
     ),
     // Ordre du formulaire (`08`) : Identité, Coordonnées, Détails, Pipeline, Notes, Réseau. Le poste est déjà dans le sous-titre, le statut déjà en tête.
     sections: [
-      ...keepFilled({
+      {
         title: PERSON_SECTION_TITLES.person,
         rows: [
           {
@@ -1666,8 +1661,8 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
           },
           { label: PERSON_FIELD_LABELS.zone, value: lead.zone ? <Badge variant="secondary">{ZONE_LABELS[lead.zone]}</Badge> : null },
         ],
-      }),
-      ...keepFilled({
+      },
+      {
         title: PERSON_SECTION_TITLES.contact,
         rows: [
           { label: PERSON_FIELD_LABELS.email, value: lead.email },
@@ -1680,20 +1675,16 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
             fullWidth: true,
           },
         ],
-      }),
-      ...(lead.details
-        ? [
-            {
-              title: PERSON_SECTION_TITLES.details,
-              rows: [
-                {
-                  value: <MarkdownContent markdown={lead.details} variant="admin" />,
-                  fullWidth: true,
-                },
-              ],
-            },
-          ]
-        : []),
+      },
+      {
+        title: PERSON_SECTION_TITLES.details,
+        rows: [
+          {
+            value: lead.details ? <MarkdownContent markdown={lead.details} variant="admin" /> : null,
+            fullWidth: true,
+          },
+        ],
+      },
       {
         title: LEAD_SECTION_TITLES.pipeline,
         rows: [
@@ -1719,11 +1710,9 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
           { label: LEAD_FIELD_LABELS.score, value: lead.score === null ? null : `${lead.score} / 10` },
         ],
       },
-      ...(lead.notes
-        ? [{ title: PERSON_SECTION_TITLES.notes, rows: [{ value: lead.notes, fullWidth: true }] }]
-        : []),
-      // Réseau : lien vers la fiche contact, actif seulement quand hasContactRole existe (`13`) ; reste vide et retiré jusque là.
-      ...keepFilled({
+      { title: PERSON_SECTION_TITLES.notes, rows: [{ value: lead.notes, fullWidth: true }] },
+      // Réseau : lien vers la fiche contact, actif seulement quand hasContactRole existe (`13`) ; tiret jusque là.
+      {
         title: LEAD_SECTION_TITLES.network,
         rows: [
           {
@@ -1735,7 +1724,7 @@ function buildLeadDetail(lead: AdminLead, onEdit: (() => void) | undefined): Det
             fullWidth: true,
           },
         ],
-      }),
+      },
     ],
     ...(onEdit ? { onEdit } : {}),
   }
@@ -2382,25 +2371,25 @@ Dans `src/components/features/admin/companies/CompaniesTable.tsx`, importer `Rel
 ```tsx
 // Arbitrage « Fiches rattachées » : chaque bloc rattaché est un RelatedLinksList, qui mène à la vue détail de l'autre fiche.
 function leadsSection(company: AdminCompany): DetailSection[] {
-  if (company.leads.length === 0) return []
   return [
     {
       title: "Leads",
       rows: [
         {
           fullWidth: true,
-          value: (
-            <RelatedLinksList
-              links={company.leads.map(
-                (lead): RelatedLink => ({
-                  id: lead.id,
-                  href: `/admin/leads/tous?detail=${lead.id}`,
-                  label: personDisplayName(lead),
-                  ...(lead.jobRole ? { meta: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-                }),
-              )}
-            />
-          ),
+          value:
+            company.leads.length === 0 ? null : (
+              <RelatedLinksList
+                links={company.leads.map(
+                  (lead): RelatedLink => ({
+                    id: lead.id,
+                    href: `/admin/leads/tous?detail=${lead.id}`,
+                    label: personDisplayName(lead),
+                    ...(lead.jobRole ? { meta: JOB_ROLE_LABELS[lead.jobRole] } : {}),
+                  }),
+                )}
+              />
+            ),
         },
       ],
     },

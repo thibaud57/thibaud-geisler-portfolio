@@ -1725,11 +1725,6 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
   ]
 }
 
-// Arbitrage « bloc sans donnée » : un bloc dont aucun champ n'est renseigné disparaît.
-function keepFilled(section: DetailSection): DetailSection[] {
-  return section.rows.some((row) => row.value !== null && row.value !== undefined) ? [section] : []
-}
-
 function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => void): DetailContent {
   const StatusIcon = OPPORTUNITY_STATUS_ICONS[opportunity.status]
 
@@ -1743,7 +1738,7 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
       </Badge>
     ),
     sections: [
-      ...keepFilled({
+      {
         title: OPPORTUNITY_SECTION_TITLES.relations,
         rows: [
           {
@@ -1787,21 +1782,17 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
             ) : null,
           },
         ],
-      }),
-      ...(opportunity.details
-        ? [
-            {
-              title: OPPORTUNITY_SECTION_TITLES.details,
-              rows: [
-                {
-                  value: <MarkdownContent markdown={opportunity.details} variant="admin" />,
-                  fullWidth: true,
-                },
-              ],
-            },
-          ]
-        : []),
-      ...keepFilled({
+      },
+      {
+        title: OPPORTUNITY_SECTION_TITLES.details,
+        rows: [
+          {
+            value: opportunity.details ? <MarkdownContent markdown={opportunity.details} variant="admin" /> : null,
+            fullWidth: true,
+          },
+        ],
+      },
+      {
         title: OPPORTUNITY_SECTION_TITLES.conditions,
         rows: [
           { label: LABELS.dailyRate, value: formatDailyRate(opportunity.dailyRate) },
@@ -1829,17 +1820,15 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
           },
           { label: LABELS.daysPerWeek, value: formatRhythm(opportunity.daysPerWeek, opportunity.onSiteDays) },
         ],
-      }),
-      ...keepFilled({
+      },
+      {
         title: OPPORTUNITY_SECTION_TITLES.calendar,
         rows: [
           { label: LABELS.startMonth, value: formatStartMonth(opportunity.startMonth) },
           { label: LABELS.durationMonths, value: formatDuration(opportunity.durationMonths) },
         ],
-      }),
-      ...(opportunity.notes
-        ? [{ title: OPPORTUNITY_SECTION_TITLES.notes, rows: [{ value: opportunity.notes, fullWidth: true }] }]
-        : []),
+      },
+      { title: OPPORTUNITY_SECTION_TITLES.notes, rows: [{ value: opportunity.notes, fullWidth: true }] },
     ],
     onEdit,
   }
@@ -2156,28 +2145,28 @@ function opportunitiesSection(company: AdminCompany): DetailSection[] {
     ...company.opportunitiesAsIntermediary.map((opportunity) => ({ opportunity, role: "ESN" })),
     ...company.opportunitiesAsClient.map((opportunity) => ({ opportunity, role: "Client final" })),
   ]
-  if (opportunities.length === 0) return []
   return [
     {
       title: "Opportunités",
       rows: [
         {
           fullWidth: true,
-          value: (
-            <RelatedLinksList
-              links={opportunities.map(
-                ({ opportunity, role }): RelatedLink => ({
-                  id: `${role}-${opportunity.id}`,
-                  href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
-                  label: opportunity.title,
-                  meta: `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${role}`,
-                  ...(opportunity.dailyRate !== null
-                    ? { trailing: formatDailyRate(opportunity.dailyRate) ?? undefined }
-                    : {}),
-                }),
-              )}
-            />
-          ),
+          value:
+            opportunities.length === 0 ? null : (
+              <RelatedLinksList
+                links={opportunities.map(
+                  ({ opportunity, role }): RelatedLink => ({
+                    id: `${role}-${opportunity.id}`,
+                    href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
+                    label: opportunity.title,
+                    meta: `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${role}`,
+                    ...(opportunity.dailyRate !== null
+                      ? { trailing: formatDailyRate(opportunity.dailyRate) ?? undefined }
+                      : {}),
+                  }),
+                )}
+              />
+            ),
         },
       ],
     },
@@ -2316,27 +2305,27 @@ Importer `OPPORTUNITY_STATUS_LABELS` depuis `@/lib/opportunities`, `RelatedLinks
 ```tsx
 // Arbitrage « Fiches rattachées » : RelatedLinksList, chaque ligne menant à la vue détail de l'opportunité via ?detail=.
 function opportunitiesSection(lead: AdminLead): DetailSection[] {
-  if (lead.opportunities.length === 0) return []
   return [
     {
       title: "Opportunités apportées",
       rows: [
         {
           fullWidth: true,
-          value: (
-            <RelatedLinksList
-              links={lead.opportunities.map(
-                (opportunity): RelatedLink => ({
-                  id: opportunity.id,
-                  href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
-                  label: opportunity.title,
-                  meta: opportunity.client
-                    ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${opportunity.client.name}`
-                    : OPPORTUNITY_STATUS_LABELS[opportunity.status],
-                }),
-              )}
-            />
-          ),
+          value:
+            lead.opportunities.length === 0 ? null : (
+              <RelatedLinksList
+                links={lead.opportunities.map(
+                  (opportunity): RelatedLink => ({
+                    id: opportunity.id,
+                    href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
+                    label: opportunity.title,
+                    meta: opportunity.client
+                      ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${opportunity.client.name}`
+                      : OPPORTUNITY_STATUS_LABELS[opportunity.status],
+                  }),
+                )}
+              />
+            ),
         },
       ],
     },
