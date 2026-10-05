@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "entreprise-enrichie-donnees"
 goal: "Porter sur Company les champs de la fiche entreprise du CRM (types, statut de la relation, zones, notes), corriger secteurs et tailles et fermer le site public aux champs CRM."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: []
