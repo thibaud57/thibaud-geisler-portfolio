@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -133,6 +134,8 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
   )
   const defaultGithubUrl = fieldDefault(state.values?.githubUrl, project?.githubUrl)
   const defaultDemoUrl = fieldDefault(state.values?.demoUrl, project?.demoUrl)
+  const [caseStudyMarkdownFr, setCaseStudyMarkdownFr] = useState(defaultCaseStudyFr)
+  const [caseStudyMarkdownEn, setCaseStudyMarkdownEn] = useState(defaultCaseStudyEn)
 
   const displayOrderValue = stringValue(state.values?.displayOrder) ?? String(defaultDisplayOrder)
   const defaultStatus = stringValue(state.values?.status) ?? project?.status ?? "DRAFT"
@@ -239,7 +242,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   {PROJECT_FORMATS.map((format) => (
                     <label
                       key={format}
-                      className="-mx-2 flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                      className="-mx-2 flex min-h-8 items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
                     >
                       <Checkbox
                         name="formats"
@@ -320,7 +323,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardHeader>
               <CardTitle>{PROJECT_SECTION_TITLES.caseStudy}</CardTitle>
               <CardDescription>
-                Markdown brut, une zone par langue. Le rendu se relit sur le site public.
+                Une zone par langue. Le rendu se relit sur le site public.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -329,31 +332,33 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                 label={PROJECT_FIELD_LABELS.caseStudyMarkdownFr}
                 errors={state.errors.caseStudyMarkdownFr}
               >
-                <Textarea
+                <Editor
                   id={`${formId}-caseStudyMarkdownFr`}
-                  name="caseStudyMarkdownFr"
-                  rows={8}
-                  defaultValue={defaultCaseStudyFr}
-                  className="resize-y font-mono text-sm"
+                  format="markdown"
+                  enableImages={false}
+                  value={caseStudyMarkdownFr}
+                  onChange={setCaseStudyMarkdownFr}
                   aria-invalid={!!state.errors.caseStudyMarkdownFr?.length}
                   aria-describedby={`${formId}-caseStudyMarkdownFr-error`}
                 />
               </FormField>
+              <input type="hidden" name="caseStudyMarkdownFr" value={caseStudyMarkdownFr} />
               <FormField
                 id={`${formId}-caseStudyMarkdownEn`}
                 label={PROJECT_FIELD_LABELS.caseStudyMarkdownEn}
                 errors={state.errors.caseStudyMarkdownEn}
               >
-                <Textarea
+                <Editor
                   id={`${formId}-caseStudyMarkdownEn`}
-                  name="caseStudyMarkdownEn"
-                  rows={4}
-                  defaultValue={defaultCaseStudyEn}
-                  className="resize-y font-mono text-sm"
+                  format="markdown"
+                  enableImages={false}
+                  value={caseStudyMarkdownEn}
+                  onChange={setCaseStudyMarkdownEn}
                   aria-invalid={!!state.errors.caseStudyMarkdownEn?.length}
                   aria-describedby={`${formId}-caseStudyMarkdownEn-error`}
                 />
               </FormField>
+              <input type="hidden" name="caseStudyMarkdownEn" value={caseStudyMarkdownEn} />
             </CardContent>
           </Card>
         </div>
@@ -405,7 +410,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                     className="flex h-8 items-center gap-4"
                   >
                     {PROJECT_TYPES.map((value) => (
-                      <label key={value} className="flex cursor-pointer items-center gap-2 text-sm">
+                      <label key={value} className="flex items-center gap-2 text-sm">
                         <RadioGroupItem value={value} />
                         {PROJECT_TYPE_LABELS[value]}
                       </label>

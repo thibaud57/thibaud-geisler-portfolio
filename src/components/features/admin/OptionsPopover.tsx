@@ -85,7 +85,7 @@ export function OptionsPopover({
               {group.options.map((option) => (
                 <label
                   key={option.key}
-                  className="-mx-2 flex h-8 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                  className="-mx-2 flex h-8 items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
                 >
                   <Checkbox
                     checked={option.checked}

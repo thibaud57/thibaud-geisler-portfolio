@@ -8,9 +8,12 @@ import { toast } from "sonner"
 
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
 import { AssetPicker } from "@/components/features/admin/assets/AssetPicker"
+import { CompanyRelationCard } from "@/components/features/admin/companies/CompanyRelationCard"
 import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { MultiSelectCombobox } from "@/components/features/admin/MultiSelectCombobox"
@@ -22,38 +25,55 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import type { Company, LegalEntity } from "@/generated/prisma/client"
+import type { LegalEntity, Zone } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
+import { COMPANY_DETAILS_TEMPLATE } from "@/lib/details-templates"
 import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
-  COMPANY_SIZE_LABELS,
+  COMPANY_TYPE_LABELS,
 } from "@/lib/companies"
-import { COMPANY_SECTORS, COMPANY_SIZES, NONE_VALUE } from "@/lib/schemas/company"
+import { COMPANY_SECTORS, COMPANY_TYPES, NONE_VALUE } from "@/lib/schemas/company"
+import { sortZones, ZONE_LABELS, ZONES } from "@/lib/zones"
 import { createCompany, updateCompany } from "@/server/actions/companies"
 import { initialCompanyFormState } from "@/server/actions/companies.types"
 import type { AssetEntry } from "@/server/queries/assets"
+import type { AdminCompanyDetail } from "@/server/queries/companies"
 
 const SECTOR_OPTIONS = COMPANY_SECTORS.map((value) => ({
   value,
   label: COMPANY_SECTOR_LABELS[value],
 }))
+const ZONE_OPTIONS = ZONES.map((value) => ({ value, label: ZONE_LABELS[value] }))
 
 interface Props {
-  company: Company | null
+  company: AdminCompanyDetail | null
   legalEntities: Pick<LegalEntity, "id" | "name">[]
   logoAssets: AssetEntry[]
+  relatedCards?: React.ReactNode
 }
 
-export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
+export function CompanyForm({ company, legalEntities, logoAssets, relatedCards }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = company ? updateCompany.bind(null, company.id) : createCompany
   const [state, formAction, pending] = useActionState(action, initialCompanyFormState)
   const [sectors, setSectors] = useState<string[]>(company?.sectors ?? [])
+  const [types, setTypes] = useState<string[]>(company?.types ?? [])
+  const [zones, setZones] = useState<string[]>(company?.zones ?? [])
+  // Le gabarit ne s'applique qu'à la création : une fiche existante garde son contenu enregistré, vide ou non.
+  const [details, setDetails] = useState(
+    company ? (company.details ?? "") : COMPANY_DETAILS_TEMPLATE,
+  )
   const [logoFilename, setLogoFilename] = useState<string | null>(company?.logoFilename ?? null)
   const { showImage: showLogo, onError: onLogoError } = useImageFallback(logoFilename)
+
+  function toggleType(type: string, checked: boolean) {
+    setTypes((current) =>
+      checked ? [...current, type] : current.filter((value) => value !== type),
+    )
+  }
 
   useEffect(() => {
     if (state.ok === true) {
@@ -93,21 +113,6 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <FormField
-                id={`${formId}-slug`}
-                label={COMPANY_FIELD_LABELS.slug}
-                errors={state.errors.slug}
-                help="Identifiant d'URL, minuscules et tirets."
-              >
-                <Input
-                  id={`${formId}-slug`}
-                  name="slug"
-                  defaultValue={company?.slug ?? ""}
-                  placeholder="globex"
-                  aria-invalid={!!state.errors.slug?.length}
-                  aria-describedby={`${formId}-slug-help ${formId}-slug-error`}
-                />
-              </FormField>
-              <FormField
                 id={`${formId}-name`}
                 label={COMPANY_FIELD_LABELS.name}
                 errors={state.errors.name}
@@ -122,20 +127,59 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                 />
               </FormField>
               <FormField
-                id={`${formId}-websiteUrl`}
-                label={COMPANY_FIELD_LABELS.websiteUrl}
-                errors={state.errors.websiteUrl}
+                id={`${formId}-slug`}
+                label={COMPANY_FIELD_LABELS.slug}
+                errors={state.errors.slug}
               >
                 <Input
-                  id={`${formId}-websiteUrl`}
-                  name="websiteUrl"
-                  type="url"
-                  defaultValue={company?.websiteUrl ?? ""}
-                  placeholder="https://"
-                  aria-invalid={!!state.errors.websiteUrl?.length}
-                  aria-describedby={`${formId}-websiteUrl-error`}
+                  id={`${formId}-slug`}
+                  name="slug"
+                  defaultValue={company?.slug ?? ""}
+                  placeholder="globex"
+                  aria-invalid={!!state.errors.slug?.length}
+                  aria-describedby={`${formId}-slug-error`}
                 />
               </FormField>
+              <div className="sm:col-span-2">
+                <FormField
+                  id={`${formId}-websiteUrl`}
+                  label={COMPANY_FIELD_LABELS.websiteUrl}
+                  errors={state.errors.websiteUrl}
+                >
+                  <Input
+                    id={`${formId}-websiteUrl`}
+                    name="websiteUrl"
+                    type="url"
+                    defaultValue={company?.websiteUrl ?? ""}
+                    placeholder="https://"
+                    aria-invalid={!!state.errors.websiteUrl?.length}
+                    aria-describedby={`${formId}-websiteUrl-error`}
+                  />
+                </FormField>
+              </div>
+              <div className="sm:col-span-2">
+                <FormField
+                  id={`${formId}-zones`}
+                  label={COMPANY_FIELD_LABELS.zones}
+                  errors={state.errors.zones}
+                >
+                  <MultiSelectCombobox
+                    id={`${formId}-zones`}
+                    name="zones"
+                    options={ZONE_OPTIONS}
+                    selected={zones}
+                    onChange={(values) => {
+                      setZones(sortZones(values as Zone[]))
+                    }}
+                    placeholder="Ajouter une zone"
+                    searchPlaceholder="Chercher une zone"
+                    emptyMessage="Aucune zone ne correspond."
+                    ariaInvalid={!!state.errors.zones?.length}
+                    ariaDescribedby={`${formId}-zones-error`}
+                  />
+                  <input type="hidden" name="zones" value="" />
+                </FormField>
+              </div>
             </CardContent>
           </Card>
 
@@ -143,10 +187,46 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
             <CardHeader>
               <CardTitle>{COMPANY_SECTION_TITLES.classification}</CardTitle>
               <CardDescription>
-                Cherchez puis sélectionnez. Une valeur choisie s&apos;ajoute sous le champ.
+                Cochez les types, cherchez puis ajoutez les secteurs.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <span id={`${formId}-types-label`} className="text-sm font-medium">
+                  {COMPANY_FIELD_LABELS.types}
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby={`${formId}-types-label`}
+                  aria-describedby={`${formId}-types-error ${formId}-types-help`}
+                  className="grid grid-cols-2 gap-x-4 gap-y-2"
+                >
+                  {COMPANY_TYPES.map((type) => (
+                    <label key={type} className="flex min-w-0 items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={types.includes(type)}
+                        onCheckedChange={(checked) => {
+                          toggleType(type, checked === true)
+                        }}
+                        aria-invalid={!!state.errors.types?.length}
+                      />
+                      {COMPANY_TYPE_LABELS[type]}
+                    </label>
+                  ))}
+                </div>
+                {types.map((type) => (
+                  <input key={type} type="hidden" name="types" value={type} />
+                ))}
+                <input type="hidden" name="types" value="" />
+                <div id={`${formId}-types-error`} aria-live="polite">
+                  {state.errors.types?.[0] ? (
+                    <p className="text-sm text-destructive">{state.errors.types[0]}</p>
+                  ) : null}
+                </div>
+                <p id={`${formId}-types-help`} className="text-xs text-muted-foreground">
+                  Au moins un type est requis.
+                </p>
+              </div>
               <FormField
                 id={`${formId}-sectors`}
                 label={COMPANY_FIELD_LABELS.sectors}
@@ -165,67 +245,50 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                   ariaDescribedby={`${formId}-sectors-error`}
                 />
               </FormField>
-              <FormField
-                id={`${formId}-size`}
-                label={COMPANY_FIELD_LABELS.size}
-                errors={state.errors.size}
-              >
-                <Select name="size" defaultValue={company?.size ?? NONE_VALUE}>
-                  <SelectTrigger
-                    id={`${formId}-size`}
-                    className="w-full"
-                    aria-invalid={!!state.errors.size?.length}
-                    aria-describedby={`${formId}-size-error`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_VALUE}>Non renseignée</SelectItem>
-                    {COMPANY_SIZES.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {COMPANY_SIZE_LABELS[size]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
+              <CardTitle id={`${formId}-details-title`}>{COMPANY_SECTION_TITLES.details}</CardTitle>
+              <CardDescription>
+                Corps de la fiche. Raccourcis : « # » un titre, « - » une liste, « &gt; » une
+                citation, « / » le menu des blocs.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <FormField
-                id={`${formId}-legalEntityId`}
-                label={COMPANY_FIELD_LABELS.legalEntityId}
-                errors={state.errors.legalEntityId}
-              >
-                <Select name="legalEntityId" defaultValue={company?.legalEntityId ?? NONE_VALUE}>
-                  <SelectTrigger
-                    id={`${formId}-legalEntityId`}
-                    className="w-full"
-                    aria-invalid={!!state.errors.legalEntityId?.length}
-                    aria-describedby={`${formId}-legalEntityId-error`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_VALUE}>Aucune</SelectItem>
-                    {legalEntities.map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id}>
-                        {entity.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
+            <CardContent className="flex flex-col gap-2">
+              <Editor
+                id={`${formId}-details`}
+                aria-labelledby={`${formId}-details-title`}
+                format="markdown"
+                enableImages={false}
+                value={details}
+                onChange={setDetails}
+                aria-invalid={!!state.errors.details?.length}
+                aria-describedby={`${formId}-details-error`}
+              />
+              <div id={`${formId}-details-error`} aria-live="polite">
+                {state.errors.details?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.details[0]}</p>
+                ) : null}
+              </div>
+              <input type="hidden" name="details" value={details} />
             </CardContent>
           </Card>
+
+          {relatedCards}
         </div>
 
         <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">
+          <CompanyRelationCard
+            formId={formId}
+            errors={state.errors}
+            defaults={{
+              relationStatus: company?.relationStatus ?? "ACTIVE",
+              size: company?.size ?? null,
+            }}
+          />
+
           <Card>
             <CardHeader>
               <CardTitle>{COMPANY_SECTION_TITLES.logo}</CardTitle>
@@ -258,6 +321,63 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                 <p className="text-sm text-destructive">{state.errors.logoFilename[0]}</p>
               ) : null}
               <input type="hidden" name="logoFilename" value={logoFilename ?? ""} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle id={`${formId}-notes-title`}>{COMPANY_SECTION_TITLES.notes}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Input
+                id={`${formId}-notes`}
+                name="notes"
+                aria-labelledby={`${formId}-notes-title`}
+                defaultValue={company?.notes ?? ""}
+                placeholder="Leader assurance Luxembourg | Scala/Angular"
+                aria-invalid={!!state.errors.notes?.length}
+                aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
+              />
+              <div id={`${formId}-notes-error`} aria-live="polite">
+                {state.errors.notes?.[0] ? (
+                  <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
+                ) : null}
+              </div>
+              <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
+                Une ligne de marqueurs, séparés par |
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                id={`${formId}-legalEntityId`}
+                label={COMPANY_FIELD_LABELS.legalEntityId}
+                errors={state.errors.legalEntityId}
+              >
+                <Select name="legalEntityId" defaultValue={company?.legalEntityId ?? NONE_VALUE}>
+                  <SelectTrigger
+                    id={`${formId}-legalEntityId`}
+                    className="w-full"
+                    aria-invalid={!!state.errors.legalEntityId?.length}
+                    aria-describedby={`${formId}-legalEntityId-error`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_VALUE}>Aucune</SelectItem>
+                    {legalEntities.map((entity) => (
+                      <SelectItem key={entity.id} value={entity.id}>
+                        {entity.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
             </CardContent>
           </Card>
         </div>

@@ -197,4 +197,6 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - Après une navigation client, Next 16 garde la page précédente cachée dans le DOM : deux formulaires coexistent (`/admin/projets/nouveau` puis `[id]`) et un `getByLabel` échoue en strict mode. Cibler `form:visible`.
 - Dans la modale de dépôt, choisir le fichier remplace le « Nom du fichier » déjà saisi par le nom du fichier : choisir le fichier d'abord, puis renommer.
 - Git Bash réécrit en chemin Windows tout argument qui commence par `/` : `node script.mjs /admin/assets` reçoit `C:/Program Files/Git/admin/assets`. Préfixer la commande par `MSYS_NO_PATHCONV=1`.
+- Les tables du CRM vivent dans le schéma `freelance` : `select … from freelance."Company"`, un `"Company"` nu répond « relation does not exist ».
+- L'éditeur markdown (Tiptap) se lit par son champ caché (`input[name=details]`, `input[name^=caseStudyMarkdown]`), qui porte le markdown sérialisé, et se pilote au clavier dans `.ProseMirror` (`# `, `- `, `> `, `/`). Le menu `/` est un `[data-tippy-root]`.
 - Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.

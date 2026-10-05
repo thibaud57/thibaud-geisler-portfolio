@@ -90,8 +90,7 @@ enum CompanySector {
   @@schema("freelance")
 }
 
-// Ce qu'est l'entreprise sur le marché. Pas d'état de relation ici : prospect et travaillée se déduisent.
-// CLIENT_FINAL = donneur d'ordre qui achète en direct, par opposition à l'ESN qui place.
+// Ce qu'est l'entreprise sur le marché, pas son état de relation : CLIENT_FINAL achète en direct, par opposition à l'ESN qui place.
 enum CompanyType {
   CLIENT_FINAL
   ESN_RECRUTEMENT
@@ -109,10 +108,8 @@ enum RelationStatus {
   @@schema("freelance")
 }
 
-// Segmentation commerciale, pas une géographie : sur quel marché on travaille avec l'entreprise,
-// la personne ou l'opportunité. Le siège légal reste dans Address.country, en code ISO.
-// Plat, volontairement : la valeur la plus précise s'applique, FRANCE couvre le reste du territoire,
-// un filtre cherche la valeur exacte, jamais « contenu dans ».
+// Segmentation commerciale (marché travaillé), pas le siège légal qui reste dans Address.country.
+// Plat volontairement : un filtre cherche la valeur exacte, jamais « contenu dans », FRANCE couvre le reste du territoire.
 enum Zone {
   GRAND_EST
   PARIS

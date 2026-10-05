@@ -36,3 +36,5 @@ export async function findAvailableLegalEntities(currentId?: string) {
     orderBy: { name: "asc" },
   })
 }
+
+export type AdminCompanyDetail = NonNullable<Awaited<ReturnType<typeof findCompanyByIdForAdmin>>>

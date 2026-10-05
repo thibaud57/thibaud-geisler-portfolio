@@ -253,6 +253,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Champ de recherche | Combobox (Popover + Command) | shadcn/ui | Composition, pas un composant du registry. Au-delà d'une dizaine d'options, là où taper vaut mieux que dérouler : icône d'un tag, parmi tout le registre. Panneau à la largeur du déclencheur (`w-(--radix-popper-anchor-width)`, `--radix-popover-trigger-width` n'existant pas), aligné à gauche. La coche se pilote par `data-checked` sur `CommandItem` (contournement de `Command`, § Post-MVP). Une sélection multiple affiche ses choix en badges retirables sous le champ, le champ passant alors pleine largeur au-dessus d'eux (`MultiSelectCombobox`, secteurs d'une entreprise) : entreprises d'un contact, tags d'un projet, ces derniers numérotés et réordonnables au glisser-déposer (§ Arbitrages) |
 | Type de projet | RadioGroup | shadcn/ui | Formulaire projet admin, card Publication : « Client » et « Perso » côte à côte sur une ligne, à côté du statut. Un `Switch` y promettrait un réglage appliqué à l'instant (§ Arbitrages) |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Formulaire projet admin, card Publication : dates de début et de fin. `locale` française et semaine commençant lundi, à passer au `Calendar`, le registry rendant en anglais |
+| Champ markdown (admin) | Editor | Pages CMS Editor (Tiptap), registre shadcn | Détails des fiches et étude de cas d'un projet, saisie à la Notion, `format="markdown"`, images coupées ([ADR-024](adrs/024-editeur-markdown-admin.md)). Éditeur et lecture admin (`MarkdownContent` en variante `admin`, prévue avec la vue détail) à une même échelle, `ADMIN_MARKDOWN_CLASS` : `#` `text-lg`, `##` `text-base`, `###` `text-sm`, en `font-semibold`, texte `text-sm` |
 
 ### Cards et grilles
 
@@ -344,7 +345,6 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Texte tronqué (vitrine) | Tooltip | shadcn/ui | Ce qu'une ellipse a coupé se relit au survol, comme côté admin (§ Contenu et texte). Sur la vitrine la troncature reste muette, ce câblage n'étant pas fait (§ Badges) |
 | Réglage appliqué à l'instant | Switch | shadcn/ui | Une bascule qui s'engage sans passer par « Enregistrer ». Aucun écran n'en a encore : le type d'un projet, que la maquette montre en `Switch`, est un choix entre deux catégories soumis par un formulaire (§ Arbitrages) |
 | Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
-| Champ markdown (admin) | Editor | Pages CMS Editor (Tiptap), registre shadcn | Détails des fiches et étude de cas d'un projet, saisie à la Notion, `format="markdown"`, images coupées ([ADR-024](adrs/024-editeur-markdown-admin.md)). Éditeur et lecture (`MarkdownContent` en variante `admin`) à une même échelle, `ADMIN_MARKDOWN_CLASS` : `#` `text-lg`, `##` `text-base`, `###` `text-sm`, en `font-semibold`, texte `text-sm` |
 | Champ date et heure | Popover + Calendar + Input, composé par `DateTimeField` | shadcn/ui | Date et heure d'une action de prospection et d'un entretien |
 | Date facultative | Popover + Calendar, composé par `OptionalDateField` | shadcn/ui | Date seule effaçable depuis son panneau : assujettissement à la TVA, rencontre d'une personne, signal |
 | Mois de démarrage | Popover + Button, composé par `MonthField` | shadcn/ui | Démarrage d'une opportunité : le bouton des champs date ouvre une grille des douze mois sous une année à faire défiler, avec « Effacer » ; valeur `AAAA-MM` entière ou vide |
@@ -571,6 +571,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Aperçu d'un fichier** : image entière dans son cadre sur fond neutre, le dégradé réservé à l'aperçu manquant, là où la maquette montre un dégradé partout. Maquette réalignée le 2026-10-01
 - **Chemin sous un aperçu** : dossier parent seul, chemin complet au survol, là où la maquette écrit le chemin complet. Maquette réalignée le 2026-10-01
 - **Titre de la suppression d'un fichier** : nomme le fichier, pas sa clé, là où la maquette écrit la clé complète. Maquette réalignée le 2026-10-01
+- **Menus du champ markdown** : libellés en français, menu « / » et sélecteur de bloc gardant toutes les entrées de l'éditeur (Texte, Titre 1 à 3, Liste à puces, Liste numérotée, Liste de tâches, Tableau, Citation, Bloc de code), là où le design system ne montre que titres, listes et citation
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

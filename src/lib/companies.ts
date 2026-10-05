@@ -70,8 +70,11 @@ export const COMPANY_STATUS_ICONS: Record<RelationStatus, IconComponent | null> 
 export const COMPANY_SECTION_TITLES = {
   identity: "Identité",
   classification: "Classification",
-  legalEntity: "Entité légale",
+  details: "Détails",
+  relation: "Relation",
   logo: "Logo",
+  notes: "Notes",
+  legalEntity: "Entité légale",
 } as const
 
 export const COMPANY_FIELD_LABELS = {
