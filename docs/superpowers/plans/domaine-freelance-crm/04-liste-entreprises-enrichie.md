@@ -28,7 +28,7 @@
 - **Page sans `loading.tsx`** : sans frontière `Suspense` propre au segment, Next lève « encountered uncached data during prerendering » en dev sous session valide (rule `nextjs/auth.md`). Chaque nouvelle page a le sien (Task 4).
 - **Colonnes par défaut figées au changement de vue** : `DataTable` initialise ses colonnes masquées une seule fois ; les colonnes sont reconstruites par vue (`useMemo` sur `view`), et chaque vue est une page distincte, donc un nouveau montage. Vérifié à la Task 5, Step 2.
 - **Statut répété dans la vue détail** : l'arbitrage interdit de répéter en bloc ce que porte l'en-tête. Le bloc Relation ne contient pas le statut.
-- **Notes et Détails** : `notes` est une ligne courte (200 caractères au plus, `02`), en cellule comme en vue détail ; le markdown long vit dans `details`, rendu par `MarkdownContent` dans son propre bloc. Chacun des deux blocs disparaît quand son champ est vide, pour ne pas montrer un bloc sans donnée. Vérifié à la Task 5, Step 4.
+- **Notes et Détails** : `notes` est une ligne courte (200 caractères au plus, `02`), en cellule comme en vue détail ; le markdown long vit dans `details`, rendu par `MarkdownContent` dans son propre bloc. Comme tous les blocs de la vue détail, chacun reste affiché quand son champ est vide, la valeur rendue par `EmptyValue` (arbitrage « Bloc vide d'une vue détail »). Vérifié à la Task 5, Step 4.
 - **`worked` mal filtré** : un projet `PERSONAL` (ex. la société du propriétaire) crée lui aussi un `ClientMeta` et ne doit pas compter comme travaillée, seul un projet `CLIENT` le doit ; `toAdminCompany` est le seul endroit qui pose `worked`, pour que le `15` étende cette même ligne sans dupliquer la règle. Vérifié à la Task 5, Step 3.
 - **Nom répété dans Identité** : le bloc Identité de la vue détail ne reprend pas `name`, déjà porté par l'en-tête (`title: company.name`) ; sinon le même nom apparaît deux fois. Vérifié à la Task 5, Step 4.
 - **`BadgeList` sans `icons`** : le prop reste optionnel pour Secteurs, qui n'a pas de glyphe ; lui en passer un ferait basculer ses badges sur `EnumBadge` sans table d'icônes derrière. Vérifié à la Task 3, Step 4.
@@ -307,15 +307,11 @@ import { useRouter } from "next/navigation"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import {
-  type DetailContent,
-  type DetailSection,
-  DetailDialog,
-} from "@/components/features/admin/DetailDialog"
+import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
-import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
+import { CompanyLogoLink } from "@/components/features/admin/CompanyLogoLink"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
@@ -352,7 +348,8 @@ const VIEW_FILTER: Record<CompanyView, (company: AdminCompany) => boolean> = {
   recrutement: (company) => company.types.includes("ESN_RECRUTEMENT"),
 }
 
-function TruncatedCell({ value }: { value: string | null | undefined }) {
+// Fonction et non composant : DataTable ne pose EmptyValue que sur un null reçu, pas sur un élément qui rend null.
+function truncatedCell(value: string | null | undefined) {
   if (!value) return null
   return <TruncateTooltip className="block w-full">{value}</TruncateTooltip>
 }
@@ -436,8 +433,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.zones,
       width: COMPANY_COLUMN_WIDTHS.zones,
       ...hideable(view, "zones"),
-      // Zone est une énumération comme Type, mais sans glyphe à ce jour (02, décision 7) : icons={{}} bascule tout de même sur EnumBadge.
-      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" icons={{}} />,
+      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" />,
     },
     {
       key: "size",
@@ -472,7 +468,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       width: COMPANY_COLUMN_WIDTHS.legalEntity,
       className: "text-muted-foreground",
       ...hideable(view, "legalEntity"),
-      cell: (company) => <TruncatedCell value={company.legalEntity?.name} />,
+      cell: (company) => truncatedCell(company.legalEntity?.name),
     },
     {
       key: "websiteUrl",
@@ -492,7 +488,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       width: COMPANY_COLUMN_WIDTHS.notes,
       className: "text-muted-foreground",
       ...hideable(view, "notes"),
-      cell: (company) => <TruncatedCell value={company.notes} />,
+      cell: (company) => truncatedCell(company.notes),
     },
     {
       key: "projects",
@@ -525,27 +521,11 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
 
 function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailContent {
   const projectCount = company._count.clientMetas
-  // Arbitrage « bloc sans donnée » : pas de bloc rempli d'un tiret quand la donnée est vide.
-  const notesSections: DetailSection[] = company.notes
-    ? [{ title: COMPANY_SECTION_TITLES.notes, rows: [{ value: company.notes, fullWidth: true }] }]
-    : []
-  const detailsSections: DetailSection[] = company.details
-    ? [
-        {
-          title: COMPANY_SECTION_TITLES.details,
-          rows: [
-            {
-              value: <MarkdownContent markdown={company.details} variant="admin" />,
-              fullWidth: true,
-            },
-          ],
-        },
-      ]
-    : []
 
   const StatusIcon = COMPANY_STATUS_ICONS[company.relationStatus]
 
   return {
+    leading: <CompanyLogoLink logoFilename={company.logoFilename} companyName={company.name} />,
     title: company.name,
     slug: company.slug,
     subtitle: `${projectCount} projet${projectCount > 1 ? "s" : ""}`,
@@ -562,13 +542,15 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         rows: [
           {
             label: COMPANY_FIELD_LABELS.websiteUrl,
-            value: <ExternalUrl url={company.websiteUrl} className="wrap-anywhere" />,
+            value: company.websiteUrl ? (
+              <ExternalUrl url={company.websiteUrl} className="wrap-anywhere" />
+            ) : null,
+            fullWidth: true,
           },
           {
             label: COMPANY_FIELD_LABELS.zones,
-            value: (
-              <BadgeList labels={zoneLabels(company)} noun="zones" max={Infinity} icons={{}} />
-            ),
+            value: <BadgeList labels={zoneLabels(company)} noun="zones" max={Infinity} />,
+            fullWidth: true,
           },
         ],
       },
@@ -585,14 +567,26 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
                 icons={TYPE_ICONS_BY_LABEL}
               />
             ),
+            fullWidth: true,
           },
           {
             label: COMPANY_FIELD_LABELS.sectors,
             value: <BadgeList labels={sectorLabels(company)} noun="secteurs" max={Infinity} />,
+            fullWidth: true,
           },
         ],
       },
-      ...detailsSections,
+      {
+        title: COMPANY_SECTION_TITLES.details,
+        rows: [
+          {
+            value: company.details ? (
+              <MarkdownContent markdown={company.details} variant="admin" />
+            ) : null,
+            fullWidth: true,
+          },
+        ],
+      },
       {
         title: COMPANY_SECTION_TITLES.relation,
         rows: [
@@ -601,16 +595,9 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         ],
       },
       {
-        title: COMPANY_SECTION_TITLES.logo,
-        rows: [
-          {
-            value: company.logoFilename ? (
-              <AssetPreviewLink assetKey={company.logoFilename} />
-            ) : null,
-          },
-        ],
+        title: COMPANY_SECTION_TITLES.notes,
+        rows: [{ value: company.notes || null, fullWidth: true }],
       },
-      ...notesSections,
       {
         title: COMPANY_SECTION_TITLES.legalEntity,
         rows: [{ value: company.legalEntity?.name }],
@@ -891,4 +878,4 @@ Dans Toutes, filtrer sur la zone Luxembourg puis sur un type.
 Expected: seules les lignes correspondantes restent, les compteurs comptent une entreprise à plusieurs zones dans chacune.
 
 Cliquer la ligne de l'ESN.
-Expected: blocs Identité, Classification, Détails, Relation, Logo, Notes, Entité légale, dans cet ordre ; statut de la relation en tête avec son glyphe, absent du bloc Relation ; les badges Types portent leur glyphe ; le bloc Détails rend le markdown (titre, liste) comme sur le site public. Une entreprise sans notes n'a pas de bloc Notes, une entreprise sans détails n'a pas de bloc Détails. Puis `just stop`.
+Expected: logo à gauche du nom, cliquable vers son fichier dans Assets quand il existe ; blocs Identité, Classification, Détails, Relation, Notes, Entité légale, dans cet ordre ; statut de la relation en tête avec son glyphe, absent du bloc Relation ; les badges Types portent leur glyphe ; le bloc Détails rend le markdown (titre, liste) comme sur le site public. Une entreprise sans notes, détails ni entité légale garde ces blocs, avec un tiret ; sans logo, la tuile d'en-tête montre son placeholder. À l'ouverture, aucune infobulle ne s'ouvre et le premier Échap ferme la modale. Puis `just stop`.

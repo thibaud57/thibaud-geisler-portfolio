@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "liste-entreprises-enrichie"
 goal: "Afficher et filtrer les entreprises selon leurs champs CRM, avec les vues Toutes, Travaillées et Recrutement et une vue détail alignée sur le formulaire."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "none"
 depends_on: ["02-entreprise-enrichie-donnees-design.md", "03-formulaire-entreprise-enrichi-design.md"]
@@ -33,8 +33,10 @@ date: "2026-09-26"
 ## Files touched
 
 - **À créer** : `src/components/features/admin/EnumBadge.tsx` (`EnumBadge`, badge avec glyphe)
-- **À modifier** : `src/components/features/admin/BadgeList.tsx` (prop `icons` optionnelle, bascule sur `EnumBadge`)
+- **À modifier** : `src/components/features/admin/BadgeList.tsx` (prop `icons` optionnelle, chaque badge rendu par `EnumBadge`)
 - **À modifier** : `src/components/features/admin/companies/CompaniesTable.tsx` (prop `view`, colonnes, filtres, vue détail réordonnée, glyphes)
+- **À modifier** : `src/components/features/admin/DetailDialog.tsx` (focus initial sur la modale, prop `leading` de l'en-tête)
+- **À créer** : `src/components/features/admin/CompanyLogoLink.tsx` (`CompanyLogoTile` cliquable vers son fichier dans Assets)
 - **À modifier** : `src/components/markdown/MarkdownContent.tsx` (prop `variant`, `"admin"` pour les Détails des fiches)
 - **À modifier** : `src/lib/admin-table-widths.ts` (largeurs des colonnes, `CompanyView`, colonnes par défaut par vue, largeurs du squelette par vue)
 - **À modifier** : `src/server/queries/companies.ts` (`AdminCompany` gagne le dérivé `worked`, calculé dans `toAdminCompany` depuis les `ClientMeta` liés à un projet `CLIENT`)
@@ -64,7 +66,7 @@ date: "2026-09-26"
   - Statut : `EnumBadge` du libellé de `RELATION_STATUS_LABELS` et du glyphe `COMPANY_STATUS_ICONS`
   - Travaillée : « Oui » ou « Non », lu depuis le dérivé
   - Notes : une ligne tronquée, texte entier au survol par `TruncateTooltip`
-- **`EnumBadge`** (`src/components/features/admin/EnumBadge.tsx`) : `EnumBadge({ label, icon }: { label: string; icon: IconComponent | null })`, `Badge` `secondary` avec le glyphe en `data-icon="inline-start"` puis le libellé. Créé ici, première liste à badges d'énumération du domaine, réutilisé ensuite par les sub-projects suivants. `BadgeList` gagne une prop `icons?: Partial<Record<string, IconComponent | null>>` : fournie, chaque badge affiché bascule sur `EnumBadge` ; absente, il garde son rendu `Badge` actuel. Fournie pour Types (`COMPANY_TYPE_ICONS`) puis, sans glyphe à ce jour, pour Zones (énumération elle aussi)
+- **`EnumBadge`** (`src/components/features/admin/EnumBadge.tsx`) : `EnumBadge({ label, icon, ...badgeProps })`, `Badge` (`secondary` par défaut, `outline` `meta` pour l'état d'en-tête de la vue détail) avec le glyphe en `data-icon="inline-start"` puis le libellé. Créé ici, première liste à badges d'énumération du domaine, réutilisé ensuite par les sub-projects suivants. `BadgeList` rend chaque badge par `EnumBadge` et gagne une prop `icons?: Partial<Record<string, IconComponent | null>>`, fournie pour Types (`COMPANY_TYPE_ICONS`) ; sans elle (Secteurs, Zones), le badge n'a pas de glyphe et garde son rendu
 - **Colonnes visibles par défaut** (arbitrage « Colonnes par vue ») :
 
 | Vue | Colonnes masquables visibles par défaut |
@@ -74,7 +76,7 @@ date: "2026-09-26"
 | Recrutement | Types, Zones, Statut, Travaillée |
 
 - **Filtres** : Statut (une valeur), Types et Zones (plusieurs valeurs par ligne, déjà gérées par `Facet.value`, `ZONES` dans l'ordre canonique du `02`). L'ancien filtre « Travaillée » disparaît, la vue Travaillées le remplace
-- **Vue détail** (arbitrage « Blocs d'une vue détail ») : en-tête avec le nom, le slug, le nombre de projets en sous-titre et le statut de la relation en badge, avec son glyphe `COMPANY_STATUS_ICONS` ; blocs dans l'ordre des cards du formulaire du `03`, moins le nom déjà porté par l'en-tête : Identité (site web, zones), Classification (types, secteurs), Détails en pleine largeur, rendu par le composant existant `MarkdownContent` en variante `admin`, à l'échelle de l'éditeur (`ADMIN_MARKDOWN_CLASS` du `03`, prop `variant` ajoutée ici) (`src/components/markdown/MarkdownContent.tsx`), Relation (taille, travaillée ; le statut est déjà en tête, arbitrage « sous-titre d'une vue détail »), Logo, Notes (la ligne), Entité légale. Les blocs Notes et Détails disparaissent chacun quand ils sont vides (arbitrage « bloc sans donnée ») ; les listes y montrent tous leurs badges, avec leur glyphe
+- **Vue détail** (arbitrage « Blocs d'une vue détail ») : en-tête avec le logo à gauche du nom (`CompanyLogoTile` de la liste, cliquable vers son fichier dans Assets quand il existe, par la nouvelle prop `leading` de `DetailContent` ; arbitrage « Image d'identité d'une vue détail »), le nom, le slug, le nombre de projets en sous-titre et le statut de la relation en badge, avec son glyphe `COMPANY_STATUS_ICONS` ; blocs dans l'ordre des cards du formulaire du `03`, moins le nom déjà porté par l'en-tête : Identité (site web, zones), Classification (types, secteurs), ces quatre champs en pleine largeur comme dans le formulaire (lien et badges, ligne « Vue détail (admin) » de `docs/DESIGN.md`), Détails en pleine largeur, rendu par le composant existant `MarkdownContent` en variante `admin`, à l'échelle de l'éditeur (`ADMIN_MARKDOWN_CLASS` du `03`, prop `variant` ajoutée ici) (`src/components/markdown/MarkdownContent.tsx`), Relation (taille, travaillée ; le statut est déjà en tête, arbitrage « sous-titre d'une vue détail »), Notes (la ligne), Entité légale ; la card Logo du formulaire n'a pas de bloc, le logo étant en tête. Tous les blocs restent affichés, une valeur absente rendue par `EmptyValue` (arbitrage « Bloc vide d'une vue détail ») ; le focus initial se pose sur la modale, pas sur le premier déclencheur d'infobulle (badge Taille) ; les listes y montrent tous leurs badges, avec leur glyphe
 - **Menu** : la sous-entrée Recrutement du groupe CRM > Entreprises reçoit son `href`, ce qui suffit à l'activer ; Prospects reste sans `href`, le `08` l'activera
 - **Squelette de chargement** : largeurs dérivées des colonnes visibles de la vue, comme pour les projets
 - **Rules** : `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/design/claude-design.md`
@@ -100,8 +102,8 @@ date: "2026-09-26"
 ### Scénario 4 : vue détail
 **GIVEN** une ESN avec des zones, une ligne de notes et des détails
 **WHEN** on clique sa ligne
-**THEN** la vue détail montre les blocs Identité, Classification, Détails, Relation, Logo, Notes et Entité légale, dans cet ordre, la case Travaillée lue depuis le dérivé et le statut de la relation en tête
-**AND** pour une entreprise sans notes, le bloc Notes n'apparaît pas ; pour une entreprise sans détails, le bloc Détails n'apparaît pas
+**THEN** la vue détail montre les blocs Identité, Classification, Détails, Relation, Notes et Entité légale, dans cet ordre, la case Travaillée lue depuis le dérivé, le logo à gauche du nom et le statut de la relation en tête
+**AND** pour une entreprise sans notes, sans détails ni entité légale, ces blocs restent affichés avec un tiret `EmptyValue` ; sans logo, la tuile d'en-tête montre son placeholder et n'est pas cliquable
 
 ## Edge cases
 
