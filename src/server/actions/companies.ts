@@ -6,13 +6,19 @@ import { revalidatePath, updateTag } from "next/cache"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
-import { isPrismaError, stringField, stringValues, violatedConstraint } from "@/lib/server-utils"
+import {
+  isPrismaError,
+  optionalStringField,
+  optionalStringValues,
+  stringField,
+  stringValues,
+  violatedConstraint,
+} from "@/lib/server-utils"
 
 import { deleteEntity, saveEntity } from "./shared"
 import { type CompanyFormState } from "./companies.types"
 
-// Seule source des champs lus depuis le FormData : un champ ajouté ici sans l'être côté validation
-// (ou l'inverse) désynchroniserait silencieusement ce qui est validé de ce qui est réaffiché en cas d'échec.
+// Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.
 function collectValues(formData: FormData): CompanyFormState["values"] {
   return {
     slug: stringField(formData, "slug"),
@@ -22,6 +28,11 @@ function collectValues(formData: FormData): CompanyFormState["values"] {
     websiteUrl: stringField(formData, "websiteUrl"),
     legalEntityId: stringField(formData, "legalEntityId"),
     logoFilename: stringField(formData, "logoFilename"),
+    types: optionalStringValues(formData, "types"),
+    relationStatus: optionalStringField(formData, "relationStatus"),
+    zones: optionalStringValues(formData, "zones"),
+    notes: optionalStringField(formData, "notes"),
+    details: optionalStringField(formData, "details"),
   }
 }
 

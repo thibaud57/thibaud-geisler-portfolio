@@ -128,15 +128,18 @@
         "LOGICIELS_ENTREPRISE": "Enterprise Software",
         "ECOMMERCE": "E-commerce",
         "IA_AUTOMATISATION": "AI / Automation",
-        "EMARKETING": "E-marketing",
+        "MARKETING_COMMUNICATION": "Marketing / Communications",
         "BANQUE": "Banking",
+        "INDUSTRIE": "Industry",
+        "HEALTHTECH": "Healthtech",
+        "SECTEUR_PUBLIC": "Public sector",
         "AUTRE": "Other"
       },
       "companySize": {
-        "TPE": "Small (1-50)",
-        "PME": "Medium (50-250)",
-        "ETI": "Mid-large (250-5000)",
-        "GROUPE": "Enterprise (5000+)"
+        "TPE": "Micro-enterprise (fewer than 10 employees)",
+        "PME": "SME (10 to 249 employees)",
+        "ETI": "Mid-sized company (250 to 4,999 employees)",
+        "GROUPE": "Large enterprise (5,000+ employees)"
       },
       "kind": {
         "EXPERTISE": "Expertise",

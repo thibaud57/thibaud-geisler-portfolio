@@ -345,3 +345,50 @@ describe("findPublishedBySlug", () => {
     expect(result).toBeNull()
   })
 })
+
+describe("findPublishedBySlug company payload", () => {
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  it("does not expose the CRM fields of a published project's company", async () => {
+    await prisma.company.create({
+      data: {
+        slug: "acme",
+        name: "Acme",
+        sectors: ["SAAS"],
+        types: ["CLIENT_FINAL"],
+        relationStatus: "DORMANTE",
+        zones: ["LUXEMBOURG"],
+        notes: "Note interne",
+        details: "# 🏢 À propos\n\nDétails internes.",
+      },
+    })
+    await prisma.project.create({
+      data: {
+        slug: "mission",
+        titleFr: "Mission",
+        titleEn: "Mission",
+        descriptionFr: "d",
+        descriptionEn: "d",
+        type: "CLIENT",
+        status: "PUBLISHED",
+        clientMeta: {
+          create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } },
+        },
+      },
+    })
+
+    const project = await findPublishedBySlug("mission", "fr")
+
+    expect(Object.keys(project?.clientMeta?.company ?? {}).sort()).toEqual([
+      "id",
+      "logoFilename",
+      "name",
+      "sectors",
+      "size",
+      "slug",
+      "websiteUrl",
+    ])
+  })
+})

@@ -30,7 +30,6 @@ function renderWithIntl(ui: ReactElement) {
 type Company = NonNullable<NonNullable<LocalizedProjectWithRelations["clientMeta"]>["company"]>
 
 function createCompany(overrides?: Partial<Company>): Company {
-  const now = new Date()
   return {
     id: "company-id",
     slug: "personnel",
@@ -38,10 +37,7 @@ function createCompany(overrides?: Partial<Company>): Company {
     websiteUrl: null,
     sectors: [],
     size: null,
-    legalEntityId: null,
     logoFilename: null,
-    createdAt: now,
-    updatedAt: now,
     ...overrides,
   }
 }

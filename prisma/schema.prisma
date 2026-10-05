@@ -80,9 +80,49 @@ enum CompanySector {
   LOGICIELS_ENTREPRISE
   ECOMMERCE
   IA_AUTOMATISATION
-  EMARKETING
+  MARKETING_COMMUNICATION
   BANQUE
+  INDUSTRIE
+  HEALTHTECH
+  SECTEUR_PUBLIC
   AUTRE
+
+  @@schema("freelance")
+}
+
+// Ce qu'est l'entreprise sur le marché. Pas d'état de relation ici : prospect et travaillée se déduisent.
+// CLIENT_FINAL = donneur d'ordre qui achète en direct, par opposition à l'ESN qui place.
+enum CompanyType {
+  CLIENT_FINAL
+  ESN_RECRUTEMENT
+  PARTENAIRE
+  MA_SOCIETE
+
+  @@schema("freelance")
+}
+
+enum RelationStatus {
+  ACTIVE
+  DORMANTE
+  ARCHIVEE
+
+  @@schema("freelance")
+}
+
+// Segmentation commerciale, pas une géographie : sur quel marché on travaille avec l'entreprise,
+// la personne ou l'opportunité. Le siège légal reste dans Address.country, en code ISO.
+// Plat, volontairement : la valeur la plus précise s'applique, FRANCE couvre le reste du territoire,
+// un filtre cherche la valeur exacte, jamais « contenu dans ».
+enum Zone {
+  GRAND_EST
+  PARIS
+  FRANCE
+  LUXEMBOURG
+  BELGIQUE
+  SUISSE
+  ALLEMAGNE
+  EUROPE
+  MONDE
 
   @@schema("freelance")
 }
@@ -177,13 +217,18 @@ model ClientMeta {
 }
 
 model Company {
-  id           String          @id @default(uuid(7))
-  slug         String          @unique
-  name         String
-  logoFilename String?
-  websiteUrl   String?
-  sectors      CompanySector[]
-  size         CompanySize?
+  id             String          @id @default(uuid(7))
+  slug           String          @unique
+  name           String
+  logoFilename   String?
+  websiteUrl     String?
+  sectors        CompanySector[]
+  size           CompanySize?
+  types          CompanyType[]   @default([])
+  relationStatus RelationStatus  @default(ACTIVE)
+  zones          Zone[]          @default([])
+  notes          String?
+  details        String?
 
   legalEntityId String?      @unique
   legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)

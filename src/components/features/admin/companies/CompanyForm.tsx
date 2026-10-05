@@ -151,7 +151,6 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                 id={`${formId}-sectors`}
                 label={COMPANY_FIELD_LABELS.sectors}
                 errors={state.errors.sectors}
-                help="Au moins un secteur est requis."
               >
                 <MultiSelectCombobox
                   id={`${formId}-sectors`}
@@ -163,7 +162,7 @@ export function CompanyForm({ company, legalEntities, logoAssets }: Props) {
                   searchPlaceholder="Chercher un secteur"
                   emptyMessage="Aucun secteur ne correspond."
                   ariaInvalid={!!sectorsError}
-                  ariaDescribedby={`${formId}-sectors-help ${formId}-sectors-error`}
+                  ariaDescribedby={`${formId}-sectors-error`}
                 />
               </FormField>
               <FormField

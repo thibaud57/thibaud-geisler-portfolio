@@ -28,14 +28,20 @@ const BASE_FIELDS = {
 function buildFormData(
   overrides: Record<string, string> = {},
   sectors: string[] = ["SAAS"],
+  lists: Record<string, string[]> = {},
 ): FormData {
   const data = new FormData()
   for (const [key, value] of Object.entries({ ...BASE_FIELDS, ...overrides })) {
     data.set(key, value)
   }
   for (const sector of sectors) data.append("sectors", sector)
+  for (const [key, values] of Object.entries(lists)) {
+    for (const value of values) data.append(key, value)
+  }
   return data
 }
+
+const CRM_FIELDS = ["types", "zones", "relationStatus", "notes", "details"] as const
 
 // Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
 function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
@@ -106,10 +112,15 @@ describe("createCompany", () => {
     expect(state.errors.sectors).toBeDefined()
   })
 
-  it("rejects an empty sectors list", async () => {
+  it("accepts an empty sectors list", async () => {
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+
     const state = await createCompany(initialCompanyFormState, buildFormData({}, []))
 
-    expect(state.errors.sectors).toBeDefined()
+    expect(state.ok).toBe(true)
+    expect(prisma.company.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ sectors: [] }) }),
+    )
   })
 
   it("keeps every submitted sector", async () => {
@@ -248,6 +259,91 @@ describe("createCompany", () => {
 
     expect(prisma.company.create).not.toHaveBeenCalled()
   })
+
+  it("rejects a submitted but empty types list", async () => {
+    const state = await createCompany(
+      initialCompanyFormState,
+      buildFormData({}, ["SAAS"], { types: [""] }),
+    )
+
+    expect(state.errors.types).toEqual(["Sélectionne au moins un type"])
+    expect(prisma.company.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects an unknown type", async () => {
+    const state = await createCompany(
+      initialCompanyFormState,
+      buildFormData({}, ["SAAS"], { types: ["FOURNISSEUR"] }),
+    )
+
+    expect(state.errors.types).toBeDefined()
+  })
+
+  it("stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order", async () => {
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+
+    await createCompany(
+      initialCompanyFormState,
+      buildFormData(
+        {
+          relationStatus: "DORMANTE",
+          notes: "  Rencontrée au salon  ",
+          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+        },
+        ["SAAS"],
+        { types: ["CLIENT_FINAL", "PARTENAIRE"], zones: ["LUXEMBOURG", "PARIS"] },
+      ),
+    )
+
+    expect(prisma.company.create).toHaveBeenCalledWith(
+      objectMatch({
+        data: objectMatch({
+          types: ["CLIENT_FINAL", "PARTENAIRE"],
+          zones: ["PARIS", "LUXEMBOURG"],
+          relationStatus: "DORMANTE",
+          notes: "Rencontrée au salon",
+          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+        }),
+      }),
+    )
+  })
+
+  it("rejects notes longer than 200 characters", async () => {
+    const state = await createCompany(
+      initialCompanyFormState,
+      buildFormData({ notes: "a".repeat(201) }, ["SAAS"], { types: ["CLIENT_FINAL"] }),
+    )
+
+    expect(state.errors.notes).toEqual([
+      "Les notes tiennent sur une ligne (200 caractères au plus)",
+    ])
+    expect(prisma.company.create).not.toHaveBeenCalled()
+  })
+
+  it("leaves the relation status to the database default when the field is absent", async () => {
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+
+    await createCompany(initialCompanyFormState, buildFormData())
+
+    const data = vi.mocked(prisma.company.create).mock.calls[0]?.[0]?.data as Record<
+      string,
+      unknown
+    >
+    expect(data["relationStatus"]).toBeUndefined()
+  })
+
+  it("stores empty notes and details as null", async () => {
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+
+    await createCompany(
+      initialCompanyFormState,
+      buildFormData({ notes: "   ", details: "   " }, ["SAAS"], { types: ["CLIENT_FINAL"] }),
+    )
+
+    expect(prisma.company.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ notes: null, details: null }) }),
+    )
+  })
 })
 
 describe("updateCompany", () => {
@@ -300,6 +396,18 @@ describe("updateCompany", () => {
     await expect(updateCompany("c1", initialCompanyFormState, buildFormData())).rejects.toThrow()
 
     expect(prisma.company.update).not.toHaveBeenCalled()
+  })
+
+  it("leaves every CRM field untouched when the form does not send it", async () => {
+    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+
+    await updateCompany("c1", initialCompanyFormState, buildFormData())
+
+    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
+      string,
+      unknown
+    >
+    for (const field of CRM_FIELDS) expect(data[field]).toBeUndefined()
   })
 })
 
