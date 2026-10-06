@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-09-14"
+date: "2026-10-06"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **14 septembre 2026**.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 octobre 2026**.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -56,6 +56,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Sentry (`@sentry/nextjs`) | `10.74.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). Turbopack : tracing des Server Actions affecté par un bug SDK connu (#18871), capture d'erreur et tracing routes/queries opérationnels. Détail : [knowledges/sentry.md](knowledges/sentry.md) |
 | @aws-sdk/client-s3 | `3.1131.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.5` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
+| sharp | `0.35.4` | ✅ | Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Même version que la dépendance optionnelle de Next 16.3.3, épinglée sans `^` pour garder une seule copie dans le lockfile |
 
 ## Tests
 
@@ -697,6 +698,22 @@ Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5
 
 **Recommandation** : ✅ Better Auth 1.7.5 en place. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
 
+### 12. sharp
+
+**Version actuelle** : `0.35.4`
+**Stabilité** : ✅
+
+Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Version lue dans `pnpm-lock.yaml` au 6 octobre 2026.
+
+**Compatibilité Écosystème** :
+- Next.js 16.3.3 : ✅ même version que sa dépendance optionnelle (`^0.35.3`), une seule copie de `sharp` installée
+- Docker alpine : ✅ `libc6-compat` déjà posé par le `Dockerfile`
+- pnpm : ✅ autorisé à compiler via `allowBuilds` dans `pnpm-workspace.yaml`
+
+**Point de vigilance** : garder la version alignée sur celle de Next à chaque montée de Next. Un écart installerait une seconde copie de `sharp` (binaires natifs en double).
+
+**Recommandation** : ✅ sharp 0.35.4 en place, épinglée sans `^`.
+
 ## Tests
 
 ### 1. Vitest
@@ -1334,6 +1351,7 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [nodemailer : GitHub Releases](https://github.com/nodemailer/nodemailer/releases)
 - [Pino : getpino.io](https://getpino.io)
 - [pino-nextjs-example](https://github.com/pinojs/pino-nextjs-example)
+- [sharp : Documentation](https://sharp.pixelplumbing.com/)
 - [Better Auth : Changelog](https://better-auth.com/changelog)
 - [Better Auth + Prisma + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
 - [Google Cloud Console : OAuth 2.0](https://console.cloud.google.com/apis/credentials)

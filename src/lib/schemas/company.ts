@@ -22,6 +22,10 @@ export const RELATION_STATUSES = Object.values(RelationStatus)
 
 const WEBSITE_URL_SCHEMA = z.url({ protocol: /^https?$/ })
 
+export function isValidWebsiteUrl(value: string): boolean {
+  return WEBSITE_URL_SCHEMA.safeParse(value).success
+}
+
 export const companySchema = z
   .object({
     slug: z
@@ -49,7 +53,7 @@ export const companySchema = z
       // Zod 4 remonte le message de z.url() plutôt que l'`error` du z.union parent : un refine sur z.string() garde un seul message.
       .string()
       .trim()
-      .refine((value) => value === "" || WEBSITE_URL_SCHEMA.safeParse(value).success, {
+      .refine((value) => value === "" || isValidWebsiteUrl(value), {
         error: "L'adresse du site n'est pas valide",
       })
       .transform(emptyToNull),

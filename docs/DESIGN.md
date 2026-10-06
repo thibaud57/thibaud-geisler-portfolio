@@ -575,6 +575,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Chemin sous un aperçu** : dossier parent seul, chemin complet au survol, là où la maquette écrit le chemin complet. Maquette réalignée le 2026-10-01
 - **Titre de la suppression d'un fichier** : nomme le fichier, pas sa clé, là où la maquette écrit la clé complète. Maquette réalignée le 2026-10-01
 - **Menus du champ markdown** : libellés en français, menu « / » et sélecteur de bloc gardant toutes les entrées de l'éditeur (Texte, Titre 1 à 3, Liste à puces, Liste numérotée, Liste de tâches, Tableau, Citation, Bloc de code), là où le design system ne montre que titres, listes et citation
+- **Fichier d'un formulaire** : `AssetField` pour le logo d'une entreprise et la couverture d'un projet, aperçu entier dans son cadre sur fond neutre (`AssetFrame`, le cadre d'`AssetPreview`), nom du fichier dessous, boutons sur une rangée, là où la maquette borne l'image à une fraction du cadre et n'écrit la légende que sur le logo
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

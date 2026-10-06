@@ -7,12 +7,10 @@ import { Calendar as CalendarIcon, Save } from "lucide-react"
 import { fr } from "date-fns/locale"
 import { toast } from "sonner"
 
-import { AssetImage } from "@/components/features/admin/assets/AssetImage"
-import { AssetPicker } from "@/components/features/admin/assets/AssetPicker"
+import { AssetField } from "@/components/features/admin/assets/AssetField"
 import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { ClientMetaFields } from "@/components/features/admin/projects/ClientMetaFields"
 import { ProjectTagsField } from "@/components/features/admin/projects/ProjectTagsField"
-import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -92,7 +90,6 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
   const [coverFilename, setCoverFilename] = useState<string | null>(
     () => stringValue(state.values?.coverFilename) ?? project?.coverFilename ?? null,
   )
-  const { showImage: showCover, onError: onCoverError } = useImageFallback(coverFilename)
 
   const [startedAt, setStartedAt] = useState<Date | undefined>(() =>
     resolveDate(stringValue(state.values?.startedAt), project?.startedAt),
@@ -550,35 +547,21 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             <CardHeader>
               <CardTitle>{PROJECT_SECTION_TITLES.cover}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-muted">
-                {showCover && coverFilename ? (
-                  <AssetImage
-                    assetKey={coverFilename}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 35vw, 100vw"
-                    className="object-contain"
-                    onError={onCoverError}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-linear-to-br from-primary/20 to-accent/20 text-xs text-muted-foreground">
-                    Aucune couverture
-                  </div>
-                )}
-              </div>
-              <AssetPicker
+            <CardContent>
+              <AssetField
+                name="coverFilename"
                 value={coverFilename}
                 onChange={setCoverFilename}
                 assets={coverAssets}
-                title="Choisir la couverture"
-                description="Une image du bucket, servie par /api/assets. Le fichier se dépose depuis Assets."
-                triggerLabel="Choisir une couverture"
+                picker={{
+                  title: "Choisir la couverture",
+                  description:
+                    "Une image du bucket, servie par /api/assets. Le fichier se dépose depuis Assets.",
+                  triggerLabel: "Choisir une couverture",
+                }}
+                sizes="(min-width: 1024px) 35vw, 100vw"
+                error={state.errors.coverFilename?.[0]}
               />
-              {state.errors.coverFilename?.[0] ? (
-                <p className="text-sm text-destructive">{state.errors.coverFilename[0]}</p>
-              ) : null}
-              <input type="hidden" name="coverFilename" value={coverFilename ?? ""} />
             </CardContent>
           </Card>
 

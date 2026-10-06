@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation"
 import { Save } from "lucide-react"
 import { toast } from "sonner"
 
-import { AssetImage } from "@/components/features/admin/assets/AssetImage"
-import { AssetPicker } from "@/components/features/admin/assets/AssetPicker"
+import { CompanyLogoCard } from "@/components/features/admin/companies/CompanyLogoCard"
 import { LegalEntityCard } from "@/components/features/admin/companies/LegalEntityCard"
 import { CompanyRelationCard } from "@/components/features/admin/companies/CompanyRelationCard"
-import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -61,7 +59,8 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
     company ? (company.details ?? "") : COMPANY_DETAILS_TEMPLATE,
   )
   const [logoFilename, setLogoFilename] = useState<string | null>(company?.logoFilename ?? null)
-  const { showImage: showLogo, onError: onLogoError } = useImageFallback(logoFilename)
+  const [slug, setSlug] = useState(company?.slug ?? "")
+  const [websiteUrl, setWebsiteUrl] = useState(company?.websiteUrl ?? "")
 
   function toggleType(type: string, checked: boolean) {
     setTypes((current) =>
@@ -128,7 +127,10 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                 <Input
                   id={`${formId}-slug`}
                   name="slug"
-                  defaultValue={company?.slug ?? ""}
+                  value={slug}
+                  onChange={(event) => {
+                    setSlug(event.target.value)
+                  }}
                   placeholder="globex"
                   aria-invalid={!!state.errors.slug?.length}
                   aria-describedby={`${formId}-slug-error`}
@@ -144,7 +146,10 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                     id={`${formId}-websiteUrl`}
                     name="websiteUrl"
                     type="url"
-                    defaultValue={company?.websiteUrl ?? ""}
+                    value={websiteUrl}
+                    onChange={(event) => {
+                      setWebsiteUrl(event.target.value)
+                    }}
                     placeholder="https://"
                     aria-invalid={!!state.errors.websiteUrl?.length}
                     aria-describedby={`${formId}-websiteUrl-error`}
@@ -287,40 +292,14 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
             }}
           />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.logo}</CardTitle>
-              <CardDescription>
-                Choisi parmi les logos déposés dans l&apos;espace Assets.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-linear-to-br from-primary/20 to-accent/20">
-                {showLogo && logoFilename ? (
-                  <AssetImage
-                    assetKey={logoFilename}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 35vw, 100vw"
-                    className="object-cover"
-                    onError={onLogoError}
-                  />
-                ) : null}
-              </div>
-              <AssetPicker
-                value={logoFilename}
-                onChange={setLogoFilename}
-                assets={logoAssets}
-                title="Choisir un logo"
-                description="Une image du dossier entreprises. Le dépôt se fait depuis Assets."
-                triggerLabel="Choisir un logo"
-              />
-              {state.errors.logoFilename?.[0] ? (
-                <p className="text-sm text-destructive">{state.errors.logoFilename[0]}</p>
-              ) : null}
-              <input type="hidden" name="logoFilename" value={logoFilename ?? ""} />
-            </CardContent>
-          </Card>
+          <CompanyLogoCard
+            logoFilename={logoFilename}
+            onLogoFilenameChange={setLogoFilename}
+            logoAssets={logoAssets}
+            websiteUrl={websiteUrl}
+            slug={slug}
+            error={state.errors.logoFilename?.[0]}
+          />
 
           <Card>
             <CardHeader>
