@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 
 import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { OPTED_OUT_CLEARED } from "@/lib/persons"
+import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/persons"
 import { prisma } from "@/lib/prisma"
 import { createActionLogger } from "@/lib/server-utils"
 
@@ -24,8 +24,7 @@ export async function optOutPerson(id: string): Promise<PersonActionState> {
         if (!person) throw new Error(`Personne ${id} introuvable`)
         // Un second « stop » ne repousse pas la date du premier, point de départ des 3 ans.
         if (person.optedOutAt) return "already_opted_out"
-        // Sans email ni LinkedIn, rien ne permettrait de reconnaître la personne : sa fiche n'a plus d'objet.
-        if (!person.email && !person.linkedinUrl) {
+        if (optOutDeletesPerson(person)) {
           await tx.person.delete({ where: { id } })
           return "deleted"
         }

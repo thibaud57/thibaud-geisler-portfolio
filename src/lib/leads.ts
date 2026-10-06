@@ -94,3 +94,8 @@ export const LEAD_FIELD_LABELS = {
   channel: "Canal",
   score: "Score",
 } as const
+
+export const LEAD_SECTION_TITLES = {
+  pipeline: "Pipeline",
+  network: "Réseau",
+} as const

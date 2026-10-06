@@ -3,16 +3,23 @@ import { Suspense } from "react"
 
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
+import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
+import type { RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
+import { COMPANY_SECTION_TITLES } from "@/lib/companies"
+import { JOB_ROLE_LABELS } from "@/lib/job-roles"
+import { personDisplayName } from "@/lib/persons"
 import { findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
+import { findLeadsOfCompany } from "@/server/queries/leads"
 
 async function EditCompanySection({ id }: { id: string }) {
-  const [company, logoAssets] = await Promise.all([
+  const [company, logoAssets, leads] = await Promise.all([
     findCompanyByIdForAdmin(id),
     listAdminAssets(COMPANY_LOGO_FOLDER),
+    findLeadsOfCompany(id),
   ])
   if (!company) notFound()
 
@@ -21,7 +28,22 @@ async function EditCompanySection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[{ label: "Entreprises", href: "/admin/entreprises" }, { label: company.name }]}
       />
-      <CompanyForm company={company} logoAssets={logoAssets} />
+      <CompanyForm
+        company={company}
+        logoAssets={logoAssets}
+        relatedCards={
+          <RelatedLinksCard
+            title={COMPANY_SECTION_TITLES.leads}
+            links={leads.map((lead): RelatedLink => ({
+              id: lead.personId,
+              href: `/admin/leads/${lead.personId}`,
+              label: personDisplayName(lead.person),
+              ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
+            }))}
+            emptyText="Aucun lead dans cette entreprise."
+          />
+        }
+      />
     </div>
   )
 }

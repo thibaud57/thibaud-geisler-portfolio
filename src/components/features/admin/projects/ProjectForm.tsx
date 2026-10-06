@@ -38,7 +38,7 @@ import {
 import { cn } from "@/lib/utils"
 import { createProject, updateProject } from "@/server/actions/projects"
 import { initialProjectFormState } from "@/server/actions/projects.types"
-import type { AdminCompany } from "@/server/queries/companies"
+import type { CompanyOption } from "@/server/queries/companies"
 import type { AssetEntry } from "@/server/queries/assets"
 import type { AdminProjectDetail } from "@/server/queries/projects"
 import type { AdminTag } from "@/server/queries/tags"
@@ -73,7 +73,7 @@ function resolveDate(
 interface Props {
   project: AdminProjectDetail | null
   tags: AdminTag[]
-  companies: AdminCompany[]
+  companies: readonly CompanyOption[]
   coverAssets: AssetEntry[]
   defaultDisplayOrder: number
 }

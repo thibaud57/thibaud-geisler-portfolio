@@ -5,7 +5,7 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { ProjectForm } from "@/components/features/admin/projects/ProjectForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findAllCompaniesForAdmin } from "@/server/queries/companies"
+import { findCompanyOptions } from "@/server/queries/companies"
 import { listAssets } from "@/server/queries/assets"
 import { findProjectForAdmin } from "@/server/queries/projects"
 import { findAllTagsForAdmin } from "@/server/queries/tags"
@@ -14,7 +14,7 @@ async function EditProjectSection({ id }: { id: string }) {
   const [project, tags, companies, coverAssets] = await Promise.all([
     findProjectForAdmin(id),
     findAllTagsForAdmin(),
-    findAllCompaniesForAdmin(),
+    findCompanyOptions(),
     listAssets("projets/"),
   ])
   if (!project) notFound()

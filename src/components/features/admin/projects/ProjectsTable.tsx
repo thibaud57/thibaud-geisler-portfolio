@@ -9,6 +9,7 @@ import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
 import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import { actionsColumn, hideableColumn } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
 import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
@@ -20,7 +21,6 @@ import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/pris
 import {
   PROJECT_COLUMN_WIDTHS,
   PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS,
-  type ProjectColumnKey,
   type ProjectView,
 } from "@/lib/admin-table-widths"
 import {
@@ -92,17 +92,8 @@ function renderProjectLinks(project: AdminProjectListItem): ReactNode {
   )
 }
 
-function hideable(
-  view: ProjectView,
-  key: Exclude<ProjectColumnKey, "titre" | "actions">,
-): Pick<Column<AdminProjectListItem>, "hideable" | "defaultVisible"> {
-  return {
-    hideable: true,
-    defaultVisible: PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS[view].includes(key),
-  }
-}
-
 function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[] {
+  const visibleByDefault = PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   return [
     {
       key: "titre",
@@ -116,7 +107,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       key: "nature",
       header: PROJECT_FIELD_LABELS.type,
       width: PROJECT_COLUMN_WIDTHS.nature,
-      ...hideable(view, "nature"),
+      ...hideableColumn(visibleByDefault, "nature"),
       cell: (project) => (
         <Badge variant="outline" meta>
           {PROJECT_TYPE_LABELS[project.type]}
@@ -127,7 +118,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       key: "formats",
       header: PROJECT_FIELD_LABELS.formats,
       width: PROJECT_COLUMN_WIDTHS.formats,
-      ...hideable(view, "formats"),
+      ...hideableColumn(visibleByDefault, "formats"),
       cell: (project) => (
         <BadgeList
           labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
@@ -139,7 +130,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       key: "entreprise",
       header: PROJECT_FIELD_LABELS.companyId,
       width: PROJECT_COLUMN_WIDTHS.entreprise,
-      ...hideable(view, "entreprise"),
+      ...hideableColumn(visibleByDefault, "entreprise"),
       cell: (project) => {
         const company = project.clientMeta?.company
         if (!company) return null
@@ -156,7 +147,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: PROJECT_FIELD_LABELS.contractStatus,
       width: PROJECT_COLUMN_WIDTHS.contrat,
       className: "whitespace-nowrap",
-      ...hideable(view, "contrat"),
+      ...hideableColumn(visibleByDefault, "contrat"),
       cell: (project) =>
         project.clientMeta?.contractStatus ? (
           <Badge variant="secondary">
@@ -170,7 +161,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.debut,
       className: "whitespace-nowrap text-muted-foreground",
       sortValue: (project) => project.startedAt?.getTime() ?? 0,
-      ...hideable(view, "debut"),
+      ...hideableColumn(visibleByDefault, "debut"),
       cell: (project) => formatShortDate(project.startedAt),
     },
     {
@@ -179,7 +170,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.fin,
       className: "whitespace-nowrap text-muted-foreground",
       sortValue: (project) => project.endedAt?.getTime() ?? 0,
-      ...hideable(view, "fin"),
+      ...hideableColumn(visibleByDefault, "fin"),
       cell: (project) => formatShortDate(project.endedAt),
     },
     {
@@ -187,7 +178,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: "Durée",
       width: PROJECT_COLUMN_WIDTHS.duree,
       className: "whitespace-nowrap text-muted-foreground",
-      ...hideable(view, "duree"),
+      ...hideableColumn(visibleByDefault, "duree"),
       cell: (project) => formatProjectDuration(project.startedAt, project.endedAt),
     },
     {
@@ -196,7 +187,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.equipe,
       align: "right",
       className: "tabular-nums text-muted-foreground",
-      ...hideable(view, "equipe"),
+      ...hideableColumn(visibleByDefault, "equipe"),
       cell: (project) =>
         project.clientMeta?.teamSize != null ? String(project.clientMeta.teamSize) : null,
     },
@@ -205,7 +196,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: PROJECT_SECTION_TITLES.links,
       width: PROJECT_COLUMN_WIDTHS.liens,
       className: "whitespace-nowrap",
-      ...hideable(view, "liens"),
+      ...hideableColumn(visibleByDefault, "liens"),
       cell: renderProjectLinks,
     },
     {
@@ -213,25 +204,19 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: PROJECT_FIELD_LABELS.status,
       width: PROJECT_COLUMN_WIDTHS.statut,
       className: "whitespace-nowrap",
-      ...hideable(view, "statut"),
+      ...hideableColumn(visibleByDefault, "statut"),
       cell: (project) => renderProjectStatus(project.status),
     },
-    {
-      key: "actions",
-      header: "Actions",
-      width: PROJECT_COLUMN_WIDTHS.actions,
-      align: "right",
-      cell: (project) => (
-        <span className="inline-flex gap-0">
-          <RowActionButton aria-label={`Modifier ${project.titleFr}`} asChild>
-            <Link href={`/admin/projets/${project.id}`}>
-              <Pencil className="size-4" />
-            </Link>
-          </RowActionButton>
-          <DeleteProjectDialog project={project} />
-        </span>
-      ),
-    },
+    actionsColumn<AdminProjectListItem>((project) => (
+      <>
+        <RowActionButton aria-label={`Modifier ${project.titleFr}`} asChild>
+          <Link href={`/admin/projets/${project.id}`}>
+            <Pencil className="size-4" />
+          </Link>
+        </RowActionButton>
+        <DeleteProjectDialog project={project} />
+      </>
+    )),
   ]
 }
 

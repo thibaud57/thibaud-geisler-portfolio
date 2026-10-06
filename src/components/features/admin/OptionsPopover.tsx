@@ -69,8 +69,12 @@ export function OptionsPopover({
         </Button>
       </PopoverTrigger>
       {/* Largeur au contenu, plafonnée à l'écran : deux libellés longs côte à côte (un dossier
-          d'assets) n'ont pas à se tronquer, un panneau court garde la largeur par défaut. */}
-      <PopoverContent align="end" className="w-max max-w-[calc(100vw-2rem)] min-w-72">
+          d'assets) n'ont pas à se tronquer, un panneau court garde la largeur par défaut. Hauteur
+          bornée à la place sous le bouton : au-delà, le pied « Appliquer » sortirait de l'écran. */}
+      <PopoverContent
+        align="end"
+        className="max-h-(--radix-popover-content-available-height) w-max max-w-[calc(100vw-2rem)] min-w-72 overflow-y-auto"
+      >
         {visibleGroups.map((group, index) => (
           <Fragment key={group.key}>
             {index > 0 ? <Separator /> : null}

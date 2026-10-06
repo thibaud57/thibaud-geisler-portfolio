@@ -13,7 +13,13 @@ import {
   DetailDialog,
   type DetailSection,
 } from "@/components/features/admin/DetailDialog"
+import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import {
+  actionsColumn,
+  hideableColumn,
+  truncatedCell,
+} from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
 import { BadgeList } from "@/components/features/admin/BadgeList"
@@ -26,7 +32,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   COMPANY_COLUMN_WIDTHS,
   COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS,
-  type CompanyColumnKey,
   type CompanyView,
 } from "@/lib/admin-table-widths"
 import {
@@ -47,7 +52,11 @@ import {
   LEGAL_FORM_LABELS,
   sirenFromSiret,
 } from "@/lib/legal-entities"
+import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
+import { JOB_ROLE_LABELS } from "@/lib/job-roles"
+import { LEAD_STATUS_LABELS } from "@/lib/leads"
 import { formatSiret } from "@/lib/legal/format-siret"
+import { personDisplayName } from "@/lib/persons"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompany } from "@/server/queries/companies"
@@ -58,12 +67,7 @@ const VIEW_FILTER: Record<CompanyView, (company: AdminCompany) => boolean> = {
   toutes: () => true,
   travaillees: (company) => company.worked,
   recrutement: (company) => company.types.includes("ESN_RECRUTEMENT"),
-}
-
-// Fonction et non composant : DataTable ne pose EmptyValue que sur un null reçu, pas sur un élément qui rend null.
-function truncatedCell(value: string | null | undefined) {
-  if (!value) return null
-  return <TruncateTooltip className="block w-full">{value}</TruncateTooltip>
+  prospects: (company) => company.isProspect,
 }
 
 function typeLabels(company: AdminCompany): string[] {
@@ -101,17 +105,8 @@ function sizeBadge(company: AdminCompany) {
   )
 }
 
-function hideable(
-  view: CompanyView,
-  key: Exclude<CompanyColumnKey, "logo" | "name" | "actions">,
-): Pick<Column<AdminCompany>, "hideable" | "defaultVisible"> {
-  return {
-    hideable: true,
-    defaultVisible: COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS[view].includes(key),
-  }
-}
-
 function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
+  const visibleByDefault = COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   return [
     {
       key: "logo",
@@ -132,7 +127,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       key: "types",
       header: COMPANY_FIELD_LABELS.types,
       width: COMPANY_COLUMN_WIDTHS.types,
-      ...hideable(view, "types"),
+      ...hideableColumn(visibleByDefault, "types"),
       cell: (company) => (
         <BadgeList labels={typeLabels(company)} noun="types" icons={TYPE_ICONS_BY_LABEL} />
       ),
@@ -141,28 +136,28 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       key: "sectors",
       header: COMPANY_FIELD_LABELS.sectors,
       width: COMPANY_COLUMN_WIDTHS.sectors,
-      ...hideable(view, "sectors"),
+      ...hideableColumn(visibleByDefault, "sectors"),
       cell: (company) => <BadgeList labels={sectorLabels(company)} noun="secteurs" />,
     },
     {
       key: "zones",
       header: COMPANY_FIELD_LABELS.zones,
       width: COMPANY_COLUMN_WIDTHS.zones,
-      ...hideable(view, "zones"),
+      ...hideableColumn(visibleByDefault, "zones"),
       cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" />,
     },
     {
       key: "size",
       header: COMPANY_FIELD_LABELS.size,
       width: COMPANY_COLUMN_WIDTHS.size,
-      ...hideable(view, "size"),
+      ...hideableColumn(visibleByDefault, "size"),
       cell: sizeBadge,
     },
     {
       key: "relationStatus",
       header: COMPANY_FIELD_LABELS.relationStatus,
       width: COMPANY_COLUMN_WIDTHS.relationStatus,
-      ...hideable(view, "relationStatus"),
+      ...hideableColumn(visibleByDefault, "relationStatus"),
       cell: (company) => (
         <EnumBadge
           label={RELATION_STATUS_LABELS[company.relationStatus]}
@@ -175,7 +170,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.worked,
       width: COMPANY_COLUMN_WIDTHS.worked,
       className: "text-muted-foreground",
-      ...hideable(view, "worked"),
+      ...hideableColumn(visibleByDefault, "worked"),
       cell: workedLabel,
     },
     {
@@ -183,14 +178,14 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.legalEntity,
       width: COMPANY_COLUMN_WIDTHS.legalEntity,
       className: "text-muted-foreground",
-      ...hideable(view, "legalEntity"),
+      ...hideableColumn(visibleByDefault, "legalEntity"),
       cell: (company) => truncatedCell(company.legalEntity?.name),
     },
     {
       key: "websiteUrl",
       header: COMPANY_FIELD_LABELS.websiteUrl,
       width: COMPANY_COLUMN_WIDTHS.websiteUrl,
-      ...hideable(view, "websiteUrl"),
+      ...hideableColumn(visibleByDefault, "websiteUrl"),
       cell: (company) =>
         company.websiteUrl ? (
           <TruncateTooltip className="block w-full">
@@ -203,7 +198,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.notes,
       width: COMPANY_COLUMN_WIDTHS.notes,
       className: "text-muted-foreground",
-      ...hideable(view, "notes"),
+      ...hideableColumn(visibleByDefault, "notes"),
       cell: (company) => truncatedCell(company.notes),
     },
     {
@@ -212,26 +207,20 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       width: COMPANY_COLUMN_WIDTHS.projects,
       align: "right",
       className: "tabular-nums text-muted-foreground",
-      ...hideable(view, "projects"),
+      ...hideableColumn(visibleByDefault, "projects"),
       sortValue: (company) => company._count.clientMetas,
       cell: (company) => company._count.clientMetas,
     },
-    {
-      key: "actions",
-      header: "Actions",
-      width: COMPANY_COLUMN_WIDTHS.actions,
-      align: "right",
-      cell: (company) => (
-        <span className="inline-flex gap-0">
-          <RowActionButton aria-label={`Modifier ${company.name}`} asChild>
-            <Link href={`/admin/entreprises/${company.id}`}>
-              <Pencil className="size-4" />
-            </Link>
-          </RowActionButton>
-          <DeleteCompanyDialog company={company} />
-        </span>
-      ),
-    },
+    actionsColumn<AdminCompany>((company) => (
+      <>
+        <RowActionButton aria-label={`Modifier ${company.name}`} asChild>
+          <Link href={`/admin/entreprises/${company.id}`}>
+            <Pencil className="size-4" />
+          </Link>
+        </RowActionButton>
+        <DeleteCompanyDialog company={company} />
+      </>
+    )),
   ]
 }
 
@@ -290,6 +279,36 @@ function legalEntitySections(company: AdminCompany): DetailSection[] {
             entity && entity.capitalAmount !== null
               ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
               : null,
+        },
+      ],
+    },
+  ]
+}
+
+function leadsSection(company: AdminCompany): DetailSection[] {
+  return [
+    {
+      title: COMPANY_SECTION_TITLES.leads,
+      rows: [
+        {
+          fullWidth: true,
+          value:
+            company.leads.length === 0 ? null : (
+              <RelatedLinksList
+                links={company.leads.map((lead): RelatedLink => ({
+                  id: lead.id,
+                  href: `${ADMIN_LEADS_PATH}?detail=${lead.id}`,
+                  label: personDisplayName(lead),
+                  // Poste puis statut : la ligne dit où en est le lead sans l'ouvrir.
+                  meta: [
+                    lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null,
+                    LEAD_STATUS_LABELS[lead.status],
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                }))}
+              />
+            ),
         },
       ],
     },
@@ -378,6 +397,7 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         ],
       },
       ...legalEntitySections(company),
+      ...leadsSection(company),
     ],
     onEdit,
   }
@@ -410,11 +430,14 @@ const facets: readonly Facet<AdminCompany>[] = [
 interface Props {
   companies: readonly AdminCompany[]
   view: CompanyView
+  initialDetailId?: string
 }
 
-export function CompaniesTable({ companies, view }: Props) {
+export function CompaniesTable({ companies, view, initialDetailId }: Props) {
   const router = useRouter()
-  const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(
+    () => companies.find((company) => company.id === initialDetailId) ?? null,
+  )
 
   const viewCompanies = useMemo(() => companies.filter(VIEW_FILTER[view]), [companies, view])
   const columns = useMemo<readonly Column<AdminCompany>[]>(() => buildColumns(view), [view])

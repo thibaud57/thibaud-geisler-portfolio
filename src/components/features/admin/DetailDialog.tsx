@@ -39,9 +39,8 @@ export interface DetailContent {
   subtitle?: ReactNode
   status?: ReactNode
   sections: readonly DetailSection[]
-  // Navigation (Entreprises, Projets) ou ouverture d'une autre modale (Tags) : au composant de
-  // rester ignorant du cas, il se contente d'appeler ce callback après sa propre fermeture.
-  onEdit: () => void
+  // Appelé après la fermeture : le composant ignore s'il s'agit d'une navigation ou de l'ouverture d'une autre modale.
+  onEdit?: () => void
 }
 
 interface Props {
@@ -125,10 +124,12 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
               Fermer
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleEdit}>
-            <Pencil aria-hidden data-icon="inline-start" />
-            Modifier
-          </Button>
+          {shown.onEdit ? (
+            <Button type="button" onClick={handleEdit}>
+              <Pencil aria-hidden data-icon="inline-start" />
+              Modifier
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

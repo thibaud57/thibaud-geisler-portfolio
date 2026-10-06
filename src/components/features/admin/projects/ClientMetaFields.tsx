@@ -18,7 +18,7 @@ import {
 import type { ContractStatus, WorkMode } from "@/generated/prisma/client"
 import { CONTRACT_STATUS_LABELS, PROJECT_FIELD_LABELS, WORK_MODE_LABELS } from "@/lib/projects"
 import { NONE_VALUE } from "@/lib/schemas/project"
-import type { AdminCompany } from "@/server/queries/companies"
+import type { CompanyOption } from "@/server/queries/companies"
 
 const WORK_MODES = Object.keys(WORK_MODE_LABELS) as WorkMode[]
 const CONTRACT_STATUSES = Object.keys(CONTRACT_STATUS_LABELS) as ContractStatus[]
@@ -26,7 +26,7 @@ const CONTRACT_STATUSES = Object.keys(CONTRACT_STATUS_LABELS) as ContractStatus[
 type FieldKey = "companyId" | "workMode" | "contractStatus" | "teamSize" | "deliverablesCount"
 
 interface Props {
-  companies: AdminCompany[]
+  companies: readonly CompanyOption[]
   defaultValues: Partial<Record<FieldKey, string>>
   errors: Partial<Record<FieldKey, string[]>>
 }

@@ -4,7 +4,7 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { ProjectForm } from "@/components/features/admin/projects/ProjectForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findAllCompaniesForAdmin } from "@/server/queries/companies"
+import { findCompanyOptions } from "@/server/queries/companies"
 import { listAssets } from "@/server/queries/assets"
 import { countProjects } from "@/server/queries/projects"
 import { findAllTagsForAdmin } from "@/server/queries/tags"
@@ -12,7 +12,7 @@ import { findAllTagsForAdmin } from "@/server/queries/tags"
 async function NewProjectSection() {
   const [tags, companies, coverAssets, projectCount] = await Promise.all([
     findAllTagsForAdmin(),
-    findAllCompaniesForAdmin(),
+    findCompanyOptions(),
     listAssets("projets/"),
     countProjects(),
   ])

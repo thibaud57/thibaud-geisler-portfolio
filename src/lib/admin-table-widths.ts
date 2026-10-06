@@ -1,7 +1,12 @@
 // Module sans "use client" : partagé entre les tables clientes (DataTable) et les pages serveur
 // (DataTableSkeleton), pour que le squelette ne dérive jamais silencieusement de la table.
 
+import type { LeadView } from "@/lib/lead-views"
+
 export const ORDER_COLUMN_WIDTH = 52
+
+// Une seule largeur pour toutes les listes : une ligne porte au plus deux actions.
+export const ACTIONS_COLUMN_WIDTH = 88
 
 export const TAG_COLUMN_WIDTHS = {
   name: 280,
@@ -9,7 +14,7 @@ export const TAG_COLUMN_WIDTHS = {
   kind: 110,
   icon: 170,
   usage: 84,
-  actions: 76,
+  actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
 export const TAG_SKELETON_WIDTHS: readonly number[] = [
@@ -30,32 +35,36 @@ export const COMPANY_COLUMN_WIDTHS = {
   websiteUrl: 150,
   notes: 220,
   projects: 96,
-  actions: 88,
+  actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
 export type CompanyColumnKey = keyof typeof COMPANY_COLUMN_WIDTHS
 
-export type CompanyView = "toutes" | "travaillees" | "recrutement"
+export type CompanyView = "toutes" | "travaillees" | "recrutement" | "prospects"
+
+const ALL_COMPANY_COLUMNS: readonly CompanyColumnKey[] = [
+  "types",
+  "sectors",
+  "zones",
+  "size",
+  "relationStatus",
+  "worked",
+  "legalEntity",
+  "websiteUrl",
+  "notes",
+  "projects",
+]
 
 // Source unique des colonnes visibles par défaut par vue, lue par la table comme par son squelette.
 export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   CompanyView,
   readonly CompanyColumnKey[]
 > = {
-  toutes: [
-    "types",
-    "sectors",
-    "zones",
-    "size",
-    "relationStatus",
-    "worked",
-    "legalEntity",
-    "websiteUrl",
-    "notes",
-    "projects",
-  ],
+  toutes: ALL_COMPANY_COLUMNS,
   travaillees: ["types", "sectors", "zones", "size", "relationStatus", "projects"],
   recrutement: ["types", "zones", "relationStatus", "worked"],
+  // Une entreprise prospect n'est jamais travaillée : la colonne y serait constante.
+  prospects: ALL_COMPANY_COLUMNS.filter((key) => key !== "worked"),
 }
 
 export function companySkeletonWidths(view: CompanyView): readonly number[] {
@@ -80,7 +89,7 @@ export const PROJECT_COLUMN_WIDTHS = {
   equipe: 110,
   liens: 130,
   statut: 112,
-  actions: 88,
+  actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
 export type ProjectColumnKey = keyof typeof PROJECT_COLUMN_WIDTHS
@@ -116,4 +125,95 @@ export function projectSkeletonWidths(view: ProjectView): readonly number[] {
     "actions",
   ]
   return [ORDER_COLUMN_WIDTH, ...keys.map((key) => PROJECT_COLUMN_WIDTHS[key])]
+}
+
+export const LEAD_COLUMN_WIDTHS = {
+  // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
+  name: 200,
+  status: 130,
+  interest: 104,
+  score: 90,
+  origin: 110,
+  channel: 130,
+  metAt: 160,
+  jobRole: 140,
+  company: 180,
+  zone: 140,
+  linkedinUrl: 170,
+  email: 200,
+  phone: 140,
+  notes: 220,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type LeadColumnKey = keyof typeof LEAD_COLUMN_WIDTHS
+
+export const LEAD_PAGE_SKELETON: string[] = ["h-[24px]", "h-[280px]", "h-[200px]", "h-[320px]"]
+
+const ALL_LEAD_COLUMNS: readonly LeadColumnKey[] = [
+  "status",
+  "interest",
+  "score",
+  "origin",
+  "channel",
+  "metAt",
+  "jobRole",
+  "company",
+  "zone",
+  "linkedinUrl",
+  "email",
+  "phone",
+  "notes",
+]
+
+// Source unique des colonnes visibles par défaut par vue : sans elle, le squelette annoncerait une vue qui n'arrive pas.
+export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadColumnKey[]> = {
+  "en-cours": ALL_LEAD_COLUMNS,
+  chauds: [
+    "status",
+    "score",
+    "origin",
+    "channel",
+    "metAt",
+    "jobRole",
+    "company",
+    "zone",
+    "linkedinUrl",
+    "email",
+    "phone",
+    "notes",
+  ],
+  "a-qualifier": [
+    "origin",
+    "channel",
+    "metAt",
+    "jobRole",
+    "company",
+    "zone",
+    "linkedinUrl",
+    "email",
+    "phone",
+    "notes",
+  ],
+  "stand-by": [
+    "interest",
+    "score",
+    "origin",
+    "channel",
+    "metAt",
+    "jobRole",
+    "company",
+    "zone",
+    "notes",
+  ],
+  tous: ALL_LEAD_COLUMNS,
+}
+
+export function leadSkeletonWidths(view: LeadView): readonly number[] {
+  const keys: readonly LeadColumnKey[] = [
+    "name",
+    ...LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => LEAD_COLUMN_WIDTHS[key])
 }

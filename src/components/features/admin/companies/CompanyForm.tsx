@@ -19,7 +19,7 @@ import { MultiSelectCombobox } from "@/components/features/admin/MultiSelectComb
 
 import type { Zone } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
-import { COMPANY_DETAILS_TEMPLATE } from "@/lib/details-templates"
+import { COMPANY_DETAILS_TEMPLATE, DETAILS_EDITOR_HELP } from "@/lib/details-templates"
 import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
@@ -254,10 +254,7 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
           <Card>
             <CardHeader>
               <CardTitle id={`${formId}-details-title`}>{COMPANY_SECTION_TITLES.details}</CardTitle>
-              <CardDescription>
-                Corps de la fiche. Raccourcis : « # » un titre, « - » une liste, « &gt; » une
-                citation, « / » le menu des blocs.
-              </CardDescription>
+              <CardDescription>{DETAILS_EDITOR_HELP}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               <Editor

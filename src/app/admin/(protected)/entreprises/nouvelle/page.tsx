@@ -2,9 +2,11 @@ import { Suspense } from "react"
 
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
+import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
+import { COMPANY_SECTION_TITLES } from "@/lib/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 
 async function NewCompanySection() {
@@ -18,7 +20,17 @@ async function NewCompanySection() {
           { label: "Nouvelle entreprise" },
         ]}
       />
-      <CompanyForm company={null} logoAssets={logoAssets} />
+      <CompanyForm
+        company={null}
+        logoAssets={logoAssets}
+        relatedCards={
+          <RelatedLinksCard
+            title={COMPANY_SECTION_TITLES.leads}
+            links={[]}
+            emptyText="Après l'enregistrement de l'entreprise."
+          />
+        }
+      />
     </div>
   )
 }

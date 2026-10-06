@@ -79,3 +79,15 @@ export async function findLeadByIdForAdmin(personId: string): Promise<AdminLead 
   const row = await prisma.lead.findUnique({ where: { personId }, include: adminLeadInclude })
   return row ? toAdminLead(row) : null
 }
+
+// Leads d'une entreprise : une fiche en opposition a perdu son entreprise, elle n'y apparaît plus. Relation lue imbriquée exprès, cette liste ne sert qu'à construire des liens ; `AdminLead` reste la seule forme aplatie.
+export async function findLeadsOfCompany(companyId: string) {
+  return prisma.lead.findMany({
+    where: { person: { companyId } },
+    select: {
+      personId: true,
+      person: { select: { name: true, email: true, linkedinUrl: true, jobRole: true } },
+    },
+    orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
+  })
+}

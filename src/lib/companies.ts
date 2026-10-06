@@ -75,6 +75,7 @@ export const COMPANY_SECTION_TITLES = {
   logo: "Logo",
   notes: "Notes",
   legalEntity: "Entité légale",
+  leads: "Leads",
 } as const
 
 export const COMPANY_FIELD_LABELS = {

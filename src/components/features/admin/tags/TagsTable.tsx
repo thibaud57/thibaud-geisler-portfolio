@@ -15,6 +15,7 @@ import {
   type DetailRow,
 } from "@/components/features/admin/DetailDialog"
 import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
+import { actionsColumn } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteTagDialog } from "@/components/features/admin/tags/DeleteTagDialog"
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
@@ -149,25 +150,19 @@ export function TagsTable({ tags }: Props) {
   const columns = useMemo<readonly Column<AdminTag>[]>(
     () => [
       ...buildColumns(),
-      {
-        key: "actions",
-        header: "Actions",
-        width: TAG_COLUMN_WIDTHS.actions,
-        align: "right",
-        cell: (tag) => (
-          <span className="inline-flex gap-0">
-            <TagFormDialog
-              tag={tag}
-              counts={counts}
-              triggerRef={(element) => {
-                if (element) editTriggerRefs.current.set(tag.id, element)
-                else editTriggerRefs.current.delete(tag.id)
-              }}
-            />
-            <DeleteTagDialog tag={tag} />
-          </span>
-        ),
-      },
+      actionsColumn<AdminTag>((tag) => (
+        <>
+          <TagFormDialog
+            tag={tag}
+            counts={counts}
+            triggerRef={(element) => {
+              if (element) editTriggerRefs.current.set(tag.id, element)
+              else editTriggerRefs.current.delete(tag.id)
+            }}
+          />
+          <DeleteTagDialog tag={tag} />
+        </>
+      )),
     ],
     [counts],
   )

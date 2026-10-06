@@ -9,18 +9,24 @@ import { Button } from "@/components/ui/button"
 import { companySkeletonWidths, type CompanyView } from "@/lib/admin-table-widths"
 import { findAllCompaniesForAdmin } from "@/server/queries/companies"
 
-async function CompaniesSection({ view }: { view: CompanyView }) {
+interface SectionProps {
+  view: CompanyView
+  initialDetailId?: string
+}
+
+async function CompaniesSection({ view, initialDetailId }: SectionProps) {
   const companies = await findAllCompaniesForAdmin()
-  return <CompaniesTable companies={companies} view={view} />
+  return <CompaniesTable companies={companies} view={view} initialDetailId={initialDetailId} />
 }
 
 interface Props {
   view: CompanyView
   title: string
   subtitle: string
+  initialDetailId?: string
 }
 
-export function CompaniesViewPage({ view, title, subtitle }: Props) {
+export function CompaniesViewPage({ view, title, subtitle, initialDetailId }: Props) {
   return (
     <AdminPageShell
       title={title}
@@ -35,7 +41,7 @@ export function CompaniesViewPage({ view, title, subtitle }: Props) {
       }
     >
       <Suspense fallback={<DataTableSkeleton columnWidths={companySkeletonWidths(view)} />}>
-        <CompaniesSection view={view} />
+        <CompaniesSection view={view} initialDetailId={initialDetailId} />
       </Suspense>
     </AdminPageShell>
   )
