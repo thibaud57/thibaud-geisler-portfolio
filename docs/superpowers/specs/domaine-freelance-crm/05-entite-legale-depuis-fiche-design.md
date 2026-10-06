@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "entite-legale-depuis-fiche"
 goal: "Saisir et modifier l'entité légale d'une entreprise directement dans sa fiche, toujours affichée, la raison sociale et le siège devenant requis ensemble dès qu'un champ a une valeur, puis la montrer en entier dans la vue détail."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["02-entreprise-enrichie-donnees-design.md", "03-formulaire-entreprise-enrichi-design.md", "04-liste-entreprises-enrichie-design.md"]
@@ -68,7 +68,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 
   `src/lib/legal-entities.ts` expose `LEGAL_FORMS` (les 13 valeurs), `LEGAL_FORM_GROUPS` (le tableau ci-dessus) et `LEGAL_FORM_LABELS` (libellé par valeur, pour l'admin). Chaque valeur a aussi son libellé dans `messages/{fr,en}.json` sous `Legal.legalStatus`, indexé par la valeur de l'enum, avec le pays entre parenthèses pour une forme hors de France (« SA (Luxembourg) », « Incorporated (US) ») ; les autres pays (Belgique, Suisse, Allemagne, Pays-Bas, Royaume-Uni) et leurs clés sortent du plan, un pays de plus valant une nouvelle migration
 - **Pays du siège** : codes ISO 3166-1 alpha-2 `FR`, `LU`, `BE`, `CH`, `DE`, `NL`, `GB`, `US`, affichés en français par `Intl.DisplayNames` ; un code déjà en base hors de cette liste reste proposé. **Devises** : `EUR`, `CHF`, `USD`, `GBP`
-- **Card** (`LegalEntityCard`, colonne principale, à la place de l'ancien choix d'entité) : toujours affichée avec tous ses champs, aucun bouton ni bascule (décision du propriétaire, 2026-10-02)
+- **Card** (`LegalEntityCard`, colonne latérale sous Notes, à la place de l'ancien choix d'entité, décision du propriétaire du 2026-10-06) : toujours affichée avec tous ses champs, aucun bouton ni bascule (décision du propriétaire, 2026-10-02)
   - visibles, par paires `sm:grid-cols-2` : Raison sociale | Forme juridique (combobox avec recherche, groupes par pays), SIRET | N° TVA ; séparateur, titre « Siège social », Rue | Code postal, Ville | Pays
   - repliés sous « Autres informations », ouvert d'office si l'un d'eux a une valeur : en France, Ville du RCS | Téléphone, puis Capital | Devise ; hors de France, Ville du RCS | Numéro RCS, puis Téléphone en pleine largeur, puis Capital | Devise
 - **Validation** (`src/lib/schemas/legal-entity.ts`, `.claude/rules/zod/schemas.md`) :
