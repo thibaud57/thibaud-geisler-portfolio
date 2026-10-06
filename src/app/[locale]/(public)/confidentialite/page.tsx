@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
+import { countryName } from "@/lib/legal-entities"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
 import { LINK_CLASS } from "@/lib/typography"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
@@ -83,8 +84,6 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
   if (!publisher?.publisher) notFound()
   const pub = publisher.publisher
 
-  const regionFormatter = new Intl.DisplayNames([locale], { type: "region" })
-
   const transfersOutsideEu = processors.flatMap((entry) => {
     const framework = entry.processing.outsideEuFramework
     return framework !== null ? [{ ...entry, framework }] : []
@@ -111,7 +110,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
             {processors.map((entry) => {
               const purpose =
                 locale === "fr" ? entry.processing.purposeFr : entry.processing.purposeEn
-              const country = regionFormatter.of(entry.address.country) ?? entry.address.country
+              const country = entry.address ? countryName(entry.address.country, locale) : null
               return (
                 <TableRow key={entry.processing.slug}>
                   <TableCell className="font-medium">{entry.name}</TableCell>
@@ -186,10 +185,11 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
           <p className="text-muted-foreground">{t("transfers.intro")}</p>
           <ul className="flex flex-col gap-2">
             {transfersOutsideEu.map((entry) => {
-              const country = regionFormatter.of(entry.address.country) ?? entry.address.country
+              const country = entry.address ? countryName(entry.address.country, locale) : null
               return (
                 <li key={entry.processing.slug}>
-                  <span className="font-semibold">{entry.name}</span> ({country}) -{" "}
+                  <span className="font-semibold">{entry.name}</span>
+                  {country ? ` (${country})` : null} -{" "}
                   {tLegal(`outsideEuFramework.${entry.framework}`)}
                 </li>
               )

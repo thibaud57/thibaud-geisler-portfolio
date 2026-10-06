@@ -124,9 +124,11 @@ enum Zone {
   @@schema("freelance")
 }
 
+// Régime d'imposition une fois assujetti : il fixe les déclarations (CA12 annuelle avec acomptes
+// pour le réel simplifié, CA3 pour le réel normal). En franchise, pas de régime : le champ reste vide.
 enum VatRegime {
-  FRANCHISE
-  ASSUJETTI
+  REEL_SIMPLIFIE
+  REEL_NORMAL
 
   @@schema("public")
 }
@@ -278,20 +280,43 @@ model Address {
   @@schema("public")
 }
 
+// Formes juridiques des deux marchés visés, France puis Luxembourg, plus l'Incorporated américaine
+// que portent déjà des sous-traitants des pages légales. Un nouveau pays = une migration, accepté :
+// la liste est fermée et courte, l'enum garantit la valeur en base et dans le code.
+enum LegalForm {
+  ENTREPRENEUR_INDIVIDUEL
+  EURL
+  SARL
+  SAS
+  SASU
+  SA
+  SNC
+  SCI
+  ASSOCIATION
+  SARL_LU
+  SARL_S_LU
+  SA_LU
+  INCORPORATED_US
+
+  @@schema("public")
+}
+
 model LegalEntity {
-  id              String  @id @default(uuid(7))
-  slug            String  @unique
+  id              String     @id @default(uuid(7))
+  slug            String     @unique
   name            String
-  legalStatusKey  String
-  siret           String? @unique
+  legalForm       LegalForm?
+  siret           String?    @unique
   vatNumber       String?
   rcsCity         String?
+  rcsNumber       String?
   phone           String?
   capitalAmount   Int?
   capitalCurrency String?
 
-  addressId String  @unique
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  // SetNull : vider le siège depuis la fiche supprime l'adresse, l'entité doit rester.
+  addressId String?  @unique
+  address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
 
   publisher   Publisher?
   processings DataProcessing[] @relation("DataProcessingProcessor")
@@ -303,6 +328,8 @@ model LegalEntity {
   @@schema("public")
 }
 
+// L'éditeur du site. Assujetti = date et régime renseignés ensemble, avec le numéro de TVA de
+// l'entité légale ; vides = franchise en base, et les pages légales affichent la mention 293 B.
 model Publisher {
   id            String      @id @default(uuid(7))
   legalEntityId String      @unique
@@ -310,7 +337,9 @@ model Publisher {
 
   apeCode          String
   registrationType String
-  vatRegime        VatRegime
+  // La franchise cesse au fait générateur : les factures d'avant restent sans TVA.
+  vatLiableSince   DateTime?  @db.Date
+  vatRegime        VatRegime?
   publicEmail      String
 
   createdAt DateTime @default(now()) @db.Timestamptz

@@ -406,9 +406,19 @@
   },
   "Legal": {
     "legalStatus": {
-      "entrepreneurIndividuel": "Sole proprietorship",
-      "sarl": "LLC",
-      "incorporated": "Incorporated (US)"
+      "ENTREPRENEUR_INDIVIDUEL": "Sole proprietorship",
+      "EURL": "EURL",
+      "SARL": "LLC",
+      "SAS": "SAS",
+      "SASU": "SASU",
+      "SA": "SA",
+      "SNC": "SNC",
+      "SCI": "SCI",
+      "ASSOCIATION": "Association",
+      "SARL_LU": "S.à r.l. (Luxembourg)",
+      "SARL_S_LU": "S.à r.l.-S (Luxembourg)",
+      "SA_LU": "SA (Luxembourg)",
+      "INCORPORATED_US": "Incorporated (US)"
     },
     "ape": {
       "6201Z": "Computer programming"

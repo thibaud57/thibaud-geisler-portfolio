@@ -6,13 +6,12 @@ import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
-import { findAvailableLegalEntities, findCompanyByIdForAdmin } from "@/server/queries/companies"
+import { findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 
 async function EditCompanySection({ id }: { id: string }) {
-  const [company, legalEntities, logoAssets] = await Promise.all([
+  const [company, logoAssets] = await Promise.all([
     findCompanyByIdForAdmin(id),
-    findAvailableLegalEntities(id),
     listAdminAssets(COMPANY_LOGO_FOLDER),
   ])
   if (!company) notFound()
@@ -22,7 +21,7 @@ async function EditCompanySection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[{ label: "Entreprises", href: "/admin/entreprises" }, { label: company.name }]}
       />
-      <CompanyForm company={company} legalEntities={legalEntities} logoAssets={logoAssets} />
+      <CompanyForm company={company} logoAssets={logoAssets} />
     </div>
   )
 }

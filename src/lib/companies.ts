@@ -83,7 +83,7 @@ export const COMPANY_FIELD_LABELS = {
   websiteUrl: "Site web",
   sectors: "Secteurs",
   size: "Taille",
-  legalEntityId: "Entité légale",
+  legalEntity: "Entité légale",
   types: "Types",
   relationStatus: "Statut de la relation",
   worked: "Travaillée",

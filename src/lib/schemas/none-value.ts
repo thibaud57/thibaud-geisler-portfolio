@@ -8,3 +8,8 @@ export function nullifyNoneValue<T extends string, S extends string>(
 ): Exclude<T, S | ""> | null {
   return (value as string) === sentinel || value === "" ? null : (value as Exclude<T, S | "">)
 }
+
+export const emptyToNull = (value: string) => (value === "" ? null : value)
+
+// Sentinelle « Non renseigné » des Select nullables (un SelectItem Radix refuse value="").
+export const NONE_VALUE = "aucune"

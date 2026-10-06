@@ -5,14 +5,10 @@ import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
-import { findAvailableLegalEntities } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 
 async function NewCompanySection() {
-  const [legalEntities, logoAssets] = await Promise.all([
-    findAvailableLegalEntities(),
-    listAdminAssets(COMPANY_LOGO_FOLDER),
-  ])
+  const logoAssets = await listAdminAssets(COMPANY_LOGO_FOLDER)
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,7 +18,7 @@ async function NewCompanySection() {
           { label: "Nouvelle entreprise" },
         ]}
       />
-      <CompanyForm company={null} legalEntities={legalEntities} logoAssets={logoAssets} />
+      <CompanyForm company={null} logoAssets={logoAssets} />
     </div>
   )
 }

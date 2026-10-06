@@ -3,9 +3,9 @@ import "server-only"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 
-const legalEntitySelect = { legalEntity: { select: { id: true, name: true } } } as const
+const legalEntityInclude = { legalEntity: { include: { address: true, publisher: true } } } as const
 
-const adminCompanyInclude = legalEntitySelect
+const adminCompanyInclude = legalEntityInclude
 
 type AdminCompanyRaw = Prisma.CompanyGetPayload<{
   include: typeof adminCompanyInclude & {
@@ -41,19 +41,7 @@ export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
 export async function findCompanyByIdForAdmin(id: string) {
   return prisma.company.findUnique({
     where: { id },
-    include: legalEntitySelect,
-  })
-}
-
-// Propose les entités libres, plus celle déjà rattachée à l'entreprise en cours d'édition : sans
-// cette seconde branche, modifier une entreprise perdrait son entité légale du select.
-export async function findAvailableLegalEntities(currentId?: string) {
-  return prisma.legalEntity.findMany({
-    where: {
-      OR: [{ company: null }, ...(currentId ? [{ company: { id: currentId } }] : [])],
-    },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
+    include: legalEntityInclude,
   })
 }
 

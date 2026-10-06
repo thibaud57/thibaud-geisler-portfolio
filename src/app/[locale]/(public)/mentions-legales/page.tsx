@@ -9,8 +9,10 @@ import { PageShell } from "@/components/layout/PageShell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
+import { countryName, sirenFromSiret } from "@/lib/legal-entities"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
+import { isVatLiable } from "@/lib/legal/vat-status"
 import { LINK_CLASS } from "@/lib/typography"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
 import { getHostingProvider, getPublisher } from "@/server/queries/legal"
@@ -66,20 +68,28 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
     loadLegalContent(locale, "mentions"),
   ])
 
-  if (!publisher?.publisher || !hosting) notFound()
+  // Facultatifs en base, mais requis ici pour l'éditeur comme pour l'hébergeur.
+  if (
+    !publisher?.publisher ||
+    !hosting ||
+    !publisher.address ||
+    !hosting.address ||
+    !publisher.legalForm ||
+    !hosting.legalForm
+  ) {
+    notFound()
+  }
   const pub = publisher.publisher
   const siret = publisher.siret ?? ""
-  const siren = siret.slice(0, 9)
+  const siren = sirenFromSiret(siret) ?? ""
 
-  const regionFormatter = new Intl.DisplayNames([locale], { type: "region" })
   const numberFormatter = new Intl.NumberFormat(locale)
 
-  const publisherCountry =
-    regionFormatter.of(publisher.address.country) ?? publisher.address.country
-  const hostingCountry = regionFormatter.of(hosting.address.country) ?? hosting.address.country
+  const publisherCountry = countryName(publisher.address.country, locale)
+  const hostingCountry = countryName(hosting.address.country, locale)
 
   const hostingLegalStatus = tLegal(
-    `legalStatus.${hosting.legalStatusKey}` as Parameters<typeof tLegal>[0],
+    `legalStatus.${hosting.legalForm}` as Parameters<typeof tLegal>[0],
   )
   const hostingCapital =
     hosting.capitalAmount !== null && hosting.capitalCurrency !== null
@@ -90,7 +100,7 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
         })
       : hostingLegalStatus
 
-  const hostingSiren = hosting.siret?.slice(0, 9) ?? ""
+  const hostingSiren = sirenFromSiret(hosting.siret) ?? ""
 
   return (
     <div className="space-y-12">
@@ -102,9 +112,7 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dd>{publisher.name}</dd>
 
           <dt className="font-semibold">{t("identity.statusLabel")}</dt>
-          <dd>
-            {tLegal(`legalStatus.${publisher.legalStatusKey}` as Parameters<typeof tLegal>[0])}
-          </dd>
+          <dd>{tLegal(`legalStatus.${publisher.legalForm}` as Parameters<typeof tLegal>[0])}</dd>
 
           <dt className="font-semibold">{t("identity.sirenLabel")}</dt>
           <dd>{siren}</dd>
@@ -144,14 +152,14 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dt className="font-semibold">{t("identity.directorLabel")}</dt>
           <dd>{publisher.name}</dd>
         </dl>
-        {pub.vatRegime === "FRANCHISE" ? (
-          <p className="text-sm text-muted-foreground">{t("identity.vatNotApplicable")}</p>
-        ) : publisher.vatNumber ? (
+        {isVatLiable(pub) ? (
           <p>
             <span className="font-semibold">{t("identity.vatNumberLabel")} :</span>{" "}
             {publisher.vatNumber}
           </p>
-        ) : null}
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("identity.vatNotApplicable")}</p>
+        )}
       </section>
 
       <section className="flex flex-col gap-6">

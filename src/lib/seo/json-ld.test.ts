@@ -176,6 +176,20 @@ describe("buildProfilePagePerson", () => {
     })
   })
 
+  it("adds vatID when the publisher is VAT liable", () => {
+    const result = buildProfilePagePerson(
+      buildProfileInput({ legal: { ...LEGAL_FIXTURE, vatId: "FR00000000000" } }),
+    )
+
+    expect(result.mainEntity.vatID).toBe("FR00000000000")
+  })
+
+  it("leaves vatID out without a VAT number", () => {
+    const result = buildProfilePagePerson(buildProfileInput({ legal: LEGAL_FIXTURE }))
+
+    expect(result.mainEntity.vatID).toBeUndefined()
+  })
+
   it("quand legal est absent, mainEntity n'a pas address, taxID, identifier (rétro-compat sub SEO 05)", () => {
     const result = buildProfilePagePerson(buildProfileInput())
     expect(result.mainEntity.address).toBeUndefined()

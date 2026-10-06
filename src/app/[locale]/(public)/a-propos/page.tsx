@@ -16,6 +16,7 @@ import { EXPERTISE } from "@/config/expertise"
 import { contactEmail, socialSameAs } from "@/config/social-links"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { buildAssetUrl } from "@/lib/assets"
+import { isVatLiable } from "@/lib/legal/vat-status"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildProfilePagePerson, type ProfilePagePersonInput } from "@/lib/seo/json-ld"
 import {
@@ -119,7 +120,16 @@ async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
     image: `${siteUrl}${buildAssetUrl("branding/portrait.jpg")}`,
     sameAs: socialSameAs,
     expertise: EXPERTISE,
-    legal: publisher?.siret ? { siret: publisher.siret, address: publisher.address } : undefined,
+    legal:
+      publisher?.siret && publisher.address
+        ? {
+            siret: publisher.siret,
+            address: publisher.address,
+            ...(isVatLiable(publisher.publisher) && publisher.vatNumber
+              ? { vatId: publisher.vatNumber }
+              : {}),
+          }
+        : undefined,
   })
 
   return <JsonLd data={profileJsonLd} />

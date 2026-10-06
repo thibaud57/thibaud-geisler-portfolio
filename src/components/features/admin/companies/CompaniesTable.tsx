@@ -8,7 +8,11 @@ import { useRouter } from "next/navigation"
 import { CompanyLogoLink } from "@/components/features/admin/CompanyLogoLink"
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
+import {
+  type DetailContent,
+  DetailDialog,
+  type DetailSection,
+} from "@/components/features/admin/DetailDialog"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
@@ -36,6 +40,14 @@ import {
   COMPANY_TYPE_LABELS,
   RELATION_STATUS_LABELS,
 } from "@/lib/companies"
+import {
+  countryName,
+  isFrenchCountry,
+  LEGAL_ENTITY_FIELD_LABELS,
+  LEGAL_FORM_LABELS,
+  sirenFromSiret,
+} from "@/lib/legal-entities"
+import { formatSiret } from "@/lib/legal/format-siret"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompany } from "@/server/queries/companies"
@@ -168,7 +180,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
     },
     {
       key: "legalEntity",
-      header: COMPANY_FIELD_LABELS.legalEntityId,
+      header: COMPANY_FIELD_LABELS.legalEntity,
       width: COMPANY_COLUMN_WIDTHS.legalEntity,
       className: "text-muted-foreground",
       ...hideable(view, "legalEntity"),
@@ -219,6 +231,67 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
           <DeleteCompanyDialog company={company} />
         </span>
       ),
+    },
+  ]
+}
+
+const CAPITAL_FORMATTER = new Intl.NumberFormat("fr")
+
+function registrationLabel(entity: NonNullable<AdminCompany["legalEntity"]>): string | null {
+  if (isFrenchCountry(entity.address?.country)) {
+    const siren = sirenFromSiret(entity.siret)
+    return entity.rcsCity && siren ? `RCS ${entity.rcsCity} ${siren}` : null
+  }
+  return [entity.rcsCity, entity.rcsNumber].filter(Boolean).join(" ") || null
+}
+
+function legalEntitySections(company: AdminCompany): DetailSection[] {
+  const entity = company.legalEntity
+
+  return [
+    {
+      title: COMPANY_SECTION_TITLES.legalEntity,
+      rows: [
+        { label: LEGAL_ENTITY_FIELD_LABELS.name, value: entity?.name },
+        {
+          label: LEGAL_ENTITY_FIELD_LABELS.legalForm,
+          value: entity?.legalForm ? (
+            <Badge variant="secondary">{LEGAL_FORM_LABELS[entity.legalForm]}</Badge>
+          ) : null,
+        },
+        {
+          label: LEGAL_ENTITY_FIELD_LABELS.siret,
+          value: entity?.siret ? formatSiret(entity.siret) : null,
+        },
+        { label: LEGAL_ENTITY_FIELD_LABELS.vatNumber, value: entity?.vatNumber },
+        {
+          label: LEGAL_ENTITY_FIELD_LABELS.registeredOffice,
+          fullWidth: true,
+          value: entity?.address ? (
+            <span className="whitespace-pre-line">
+              {[
+                entity.address.street,
+                `${entity.address.postalCode} ${entity.address.city}`,
+                countryName(entity.address.country),
+              ].join("\n")}
+            </span>
+          ) : null,
+        },
+        {
+          label: LEGAL_ENTITY_FIELD_LABELS.registration,
+          value: entity ? registrationLabel(entity) : null,
+        },
+        { label: LEGAL_ENTITY_FIELD_LABELS.phone, value: entity?.phone },
+        {
+          // Seul sans paire après le siège : pleine largeur plutôt qu'une case vide à côté.
+          label: LEGAL_ENTITY_FIELD_LABELS.capitalAmount,
+          fullWidth: true,
+          value:
+            entity && entity.capitalAmount !== null
+              ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
+              : null,
+        },
+      ],
     },
   ]
 }
@@ -304,10 +377,7 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
           { value: company.notes || null, fullWidth: true },
         ],
       },
-      {
-        title: COMPANY_SECTION_TITLES.legalEntity,
-        rows: [{ value: company.legalEntity?.name }],
-      },
+      ...legalEntitySections(company),
     ],
     onEdit,
   }

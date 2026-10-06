@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
 import { AssetPicker } from "@/components/features/admin/assets/AssetPicker"
+import { LegalEntityCard } from "@/components/features/admin/companies/LegalEntityCard"
 import { CompanyRelationCard } from "@/components/features/admin/companies/CompanyRelationCard"
 import { useImageFallback } from "@/components/features/projects/useImageFallback"
 import { Button } from "@/components/ui/button"
@@ -17,15 +18,8 @@ import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { MultiSelectCombobox } from "@/components/features/admin/MultiSelectCombobox"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
-import type { LegalEntity, Zone } from "@/generated/prisma/client"
+import type { Zone } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { COMPANY_DETAILS_TEMPLATE } from "@/lib/details-templates"
 import {
@@ -35,7 +29,7 @@ import {
   COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
 } from "@/lib/companies"
-import { COMPANY_SECTORS, COMPANY_TYPES, NONE_VALUE } from "@/lib/schemas/company"
+import { COMPANY_SECTORS, COMPANY_TYPES } from "@/lib/schemas/company"
 import { sortZones, ZONE_LABELS, ZONES } from "@/lib/zones"
 import { createCompany, updateCompany } from "@/server/actions/companies"
 import { initialCompanyFormState } from "@/server/actions/companies.types"
@@ -50,12 +44,11 @@ const ZONE_OPTIONS = ZONES.map((value) => ({ value, label: ZONE_LABELS[value] })
 
 interface Props {
   company: AdminCompanyDetail | null
-  legalEntities: Pick<LegalEntity, "id" | "name">[]
   logoAssets: AssetEntry[]
   relatedCards?: React.ReactNode
 }
 
-export function CompanyForm({ company, legalEntities, logoAssets, relatedCards }: Props) {
+export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = company ? updateCompany.bind(null, company.id) : createCompany
@@ -354,37 +347,11 @@ export function CompanyForm({ company, legalEntities, logoAssets, relatedCards }
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.legalEntity}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                id={`${formId}-legalEntityId`}
-                label={COMPANY_FIELD_LABELS.legalEntityId}
-                errors={state.errors.legalEntityId}
-              >
-                <Select name="legalEntityId" defaultValue={company?.legalEntityId ?? NONE_VALUE}>
-                  <SelectTrigger
-                    id={`${formId}-legalEntityId`}
-                    className="w-full"
-                    aria-invalid={!!state.errors.legalEntityId?.length}
-                    aria-describedby={`${formId}-legalEntityId-error`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_VALUE}>Aucune</SelectItem>
-                    {legalEntities.map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id}>
-                        {entity.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </CardContent>
-          </Card>
+          <LegalEntityCard
+            formId={formId}
+            errors={state.errors}
+            legalEntity={company?.legalEntity ?? null}
+          />
         </div>
       </div>
     </form>
