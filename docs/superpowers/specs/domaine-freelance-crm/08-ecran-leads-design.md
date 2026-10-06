@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "ecran-leads"
 goal: "Lister, filtrer, créer, modifier, supprimer et opposer (RGPD en deux temps) les leads depuis l'espace admin, avec les vues En cours, Chauds, À qualifier, Stand-by et Tous ; active aussi la vue Prospects des entreprises."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["01-rgpd-prospection-design.md", "02-entreprise-enrichie-donnees-design.md", "03-formulaire-entreprise-enrichi-design.md", "07-leads-donnees-design.md"]
@@ -13,11 +13,11 @@ date: "2026-09-29"
 
 ## Scope
 
-Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec recherche, colonnes masquables et filtres, page de création et de modification en cards (Identité, Coordonnées, Détails, Pipeline, Notes) avec le champ Détails pré-rempli selon l'origine, vue détail, suppression et opposition RGPD en deux temps (`OptOutPersonDialog`, `ErasePersonExchangesDialog`). Active aussi la vue Prospects des entreprises, dérivée du rôle Lead. Exclut les éléments rattachés à la personne (actions `10`, opportunités `15`, entretiens `17`, signaux `19`), qui ajoutent chacun leur card sous le formulaire et leur bloc à la vue détail, les colonnes Actions et Entretiens, le rôle Contact (`13`) et le calcul automatique du score (agents internes).
+Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec recherche, colonnes masquables et filtres, page de création et de modification en cards (Identité, Coordonnées, Détails, Pipeline, Notes) avec le champ Détails pré-rempli selon l'origine, vue détail, suppression et opposition RGPD en deux temps (`OptOutPersonDialog`, `ErasePersonExchangesDialog`). Active aussi la vue Prospects des entreprises, dérivée du rôle Lead. Exclut les éléments rattachés à la personne (actions `10`, opportunités `15`, entretiens `17`, signaux `19`), qui ajoutent chacun leur card sous le formulaire et leur bloc à la vue détail, les colonnes Actions et Entretiens, le rôle Contact (`13`), le calcul automatique du score (agents internes) et la purge des fiches en opposition à l'échéance de leur conservation (`01`), `deleteLead` refusant de les supprimer (`07`).
 
 ### État livré
 
-À la fin de ce sub-project, on peut : ouvrir Leads dans le menu et arriver sur la vue En cours, créer un lead outbound depuis la page « Nouveau lead » et trouver Détails pré-rempli par Hypothèse / Angle et Contexte, le retrouver dans En cours puis dans À qualifier, ouvrir sa vue détail, le modifier sur sa page, l'opposer (« Ne plus contacter » puis, sur sa fiche déjà opposée, « Effacer les échanges ») et ne plus le voir que dans Tous, marqué comme tel ; ouvrir Entreprises > Prospects et y retrouver les entreprises non travaillées portant au moins un lead actif.
+À la fin de ce sub-project, on peut : ouvrir Leads dans le menu et arriver sur la vue Tous, créer un lead outbound depuis la page « Nouveau lead » et trouver Détails pré-rempli par Hypothèse / Angle et Contexte, le retrouver dans En cours puis dans À qualifier, ouvrir sa vue détail, le modifier sur sa page, l'opposer (« Ne plus contacter » puis, sur sa fiche déjà opposée, « Effacer les échanges ») et ne plus le voir que dans Tous, marqué comme tel ; ouvrir Entreprises > Prospects et y retrouver les entreprises non travaillées portant au moins un lead actif.
 
 ## Dependencies
 
@@ -34,9 +34,8 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 
 ## Files touched
 
-- **À créer** : `src/app/admin/(protected)/leads/page.tsx` et `loading.tsx` (vue En cours)
-- **À créer** : `src/app/admin/(protected)/leads/chauds/`, `a-qualifier/`, `stand-by/`, chacun `page.tsx` et `loading.tsx`
-- **À créer** : `src/app/admin/(protected)/leads/tous/page.tsx` et `loading.tsx` (lit aussi `searchParams.detail`)
+- **À créer** : `src/app/admin/(protected)/leads/page.tsx` et `loading.tsx` (vue Tous, lit aussi `searchParams.detail`)
+- **À créer** : `src/app/admin/(protected)/leads/en-cours/`, `chauds/`, `a-qualifier/`, `stand-by/`, chacun `page.tsx` et `loading.tsx`
 - **À créer** : `src/components/features/admin/leads/LeadsViewPage.tsx` (coquille commune aux cinq pages : titre, sous-titre, bouton « Nouveau lead », table de la vue)
 - **À créer** : `src/components/features/admin/leads/LeadsTable.tsx` (colonnes, filtres, vue détail, actions de ligne, `initialDetailId`)
 - **À créer** : `src/components/features/admin/leads/LeadForm.tsx` (formulaire en cards, création et modification, prop `relatedCards`)
@@ -51,7 +50,7 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 - **À modifier** : `src/lib/admin-table-widths.ts` (largeurs des colonnes des leads, colonnes visibles par vue, largeurs du squelette)
 - **À modifier** : `src/server/queries/companies.ts` (options d'entreprise du formulaire : identifiant et nom seulement ; dérivé `isProspect`)
 - **À modifier** : `src/components/features/admin/DetailDialog.tsx` (bouton « Modifier » facultatif, absent pour une fiche en opposition)
-- **À modifier** : `src/components/features/admin/DataTable.tsx` (prop `initialDetailId`, ouvre la vue détail de cette ligne au chargement)
+- **À créer** : `src/components/features/admin/table-cells.tsx` (`truncatedCell` et `hideableColumn`, partagés par les tables des leads, des entreprises et des projets)
 - **À modifier** : `src/config/admin-nav-items.ts` (entrée Leads et ses cinq sous-entrées ; entrée Prospects sous Entreprises)
 - **À créer** : `src/components/features/admin/RelatedLinksList.tsx` (lignes « libellé : méta » des fiches rattachées, miroir `.design-sync/design-system/components/post-mvp/cards/RelatedLinksList.*`)
 - **À créer** : `src/components/features/admin/RelatedLinksCard.tsx` (enveloppe `RelatedLinksList` d'un titre et d'une action d'en-tête, reprise par `15` et `17`)
@@ -62,7 +61,7 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 - **À créer** : `src/app/admin/(protected)/entreprises/prospects/page.tsx` et `loading.tsx`
 - **À modifier** : `src/components/features/admin/companies/CompaniesTable.tsx` (vue Prospects, `VIEW_FILTER.prospects`, `initialDetailId`)
 - **À modifier** : `docs/PRODUCTION.md` (rubrique « Demandes RGPD » : boutons « Ne plus contacter » et « Effacer les échanges », noms concrets)
-- **À modifier** : `docs/DESIGN.md` (ligne « Fiches rattachées » de § Post-MVP vers § Cards et grilles, via le skill `design-doc`)
+- **À modifier** : `docs/DESIGN.md` (ligne « Fiches rattachées » de § Post-MVP vers § Cards et grilles, via le skill `design-doc` ; arbitrage « Card Identité d'une personne », décision du propriétaire du 2026-10-06)
 
 ## Architecture approach
 
@@ -70,19 +69,19 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 
 | Vue | Route | Titre | Lignes | Tri par défaut |
 |---|---|---|---|---|
-| En cours | `/admin/leads` | Leads en cours | statut Nouveau, Suspect ou Discussion | date de rencontre, plus récentes d'abord |
+| Tous | `/admin/leads` | Tous les leads | toutes, fiches en opposition comprises | nom, fiches en opposition en dernier |
+| En cours | `/admin/leads/en-cours` | Leads en cours | statut Nouveau, Suspect ou Discussion | date de rencontre, plus récentes d'abord |
 | Chauds | `/admin/leads/chauds` | Leads chauds | intérêt Hot, statut ni Perdu ni Hors ICP | date de rencontre, plus récentes d'abord |
 | À qualifier | `/admin/leads/a-qualifier` | Leads à qualifier | statut Nouveau | date de rencontre, plus anciennes d'abord |
 | Stand-by | `/admin/leads/stand-by` | Leads en stand-by | statut Stand-by | date de rencontre, plus anciennes d'abord |
-| Tous | `/admin/leads/tous` | Tous les leads | toutes, fiches en opposition comprises | nom, fiches en opposition en dernier |
 
   Sous-titres : ceux de la maquette (`leadViewHint`). Une date de rencontre absente se range après les autres, quel que soit le sens. RDV planifié et Deal, jamais stockés (`07`), n'entrent pas encore dans ces filtres : leur calcul rejoindra les vues quand les entretiens (`16`) et les opportunités (`15`) existeront
 - **Pages** : chaque page garde son `getCurrentUser()` et son `loading.tsx` d'une ligne (`.claude/rules/nextjs/auth.md`), lit `findAllLeadsForAdmin` et les options d'entreprise, sans `'use cache'` comme les autres écrans admin
 - **Liste** (`DataTable`) : recherche sur le nom et le nom de l'entreprise. Colonnes : Nom (toujours affiché), Statut, Intérêt (cellule vide si non renseigné, `LeadInterest?` ne porte pas de valeur « inconnu »), Score, Origine, Canal, Date de rencontre (`formatShortDate`, triable), Poste, Entreprise (tuile `CompanyLogoTile` et nom), Localité, LinkedIn et Email (`ExternalUrl`), Téléphone, Notes (une ligne, `TruncateTooltip`), Actions (Modifier, lien vers la page du lead ; Supprimer). Statut, Intérêt, Origine et Canal en `EnumBadge` (`04`, glyphe et libellé). Le bouton « Nouveau lead » de l'en-tête mène à `/admin/leads/nouveau`. Poste reprend la colonne `jobRole` de la maquette (`LEAD_VIEW_COLS`), déjà visible par défaut dans chaque vue
 - **Colonnes visibles par défaut** (arbitrage « Colonnes par vue ») : celles de la maquette (`LEAD_VIEW_COLS`), moins Stack, Actions et Entretiens ; Tous les montre toutes
 - **Filtres** : Statut, Intérêt (Hot, Warm, Cold seulement, sans option pour l'absence de valeur), Origine, Poste, Localité, chacun à une valeur par ligne désormais que la localité est au singulier ; la vue Chauds reste `interest === "HOT"`
-- **Fiche en opposition** dans Tous : nom remplacé par l'email ou le lien LinkedIn (`personDisplayName`), badge « Ne plus contacter » à la place du statut, action Modifier absente, Supprimer disponible, action « Effacer les échanges » disponible tant que `exchangesErasedAt` n'est pas posée
-- **Lien profond vers une vue détail** : `DataTable` gagne une prop `initialDetailId?: string` qui ouvre la vue détail de cette ligne au chargement ; les pages `/admin/leads/tous` et `/admin/entreprises` la lisent depuis `searchParams.detail`, pour les lignes de `RelatedLinksList` qui visent `?detail=<id>` sur ces deux routes
+- **Fiche en opposition** dans Tous : nom remplacé par l'email ou le lien LinkedIn (`personDisplayName`), badge « Ne plus contacter » à la place du statut, actions Modifier et Supprimer absentes (`07` refuse l'une et l'autre, la fiche vidée étant la seule trace du « stop »), action « Effacer les échanges » disponible tant que `exchangesErasedAt` n'est pas posée
+- **Lien profond vers une vue détail** : `LeadsTable` et `CompaniesTable` reçoivent une prop `initialDetailId?: string` qui initialise leur fiche sélectionnée, la vue détail de cette ligne s'ouvrant au chargement ; les pages `/admin/leads` et `/admin/entreprises` (vues complètes) la lisent depuis `searchParams.detail`, pour les lignes de `RelatedLinksList` qui visent `?detail=<id>` sur ces deux routes
 - **Formulaire** (`LeadForm`, page `/admin/leads/nouveau` ou `/admin/leads/<id>`, motif `CompanyForm` : titre et boutons Annuler, Enregistrer en tête, deux colonnes de cards, retour à la liste après enregistrement ; arbitrage « Page ou modale d'édition » de DESIGN.md) :
   - champs de la maquette (`isLeadForm`) rangés dans les cards des blocs de la vue détail : Identité (Nom et Poste, Entreprise en combobox des entreprises du CRM et Localité en `Select` simple), Coordonnées (Email et Téléphone, LinkedIn en pleine largeur), Détails (éditeur, ADR-024) dans la colonne principale ; Pipeline (Statut et Intérêt en `Select` avec l'option « Non renseigné » (`NONE_VALUE`), Origine et Canal, Date de rencontre en `Calendar` français et Score de 0 à 10) et Notes (une ligne, aide « Une ligne de marqueurs, séparés par | ») dans la colonne latérale ; `Select` avec un glyphe devant chaque option pour Statut, Intérêt, Origine et Canal
   - cards Identité, Coordonnées, Détails et Notes : le `CardTitle` sert de libellé (`aria-labelledby`), aucun libellé répété dedans
@@ -96,22 +95,22 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
   - Outbound : `# 💡 Hypothèse / Angle` (Hypothèse de besoin, Angle de pitch, Objectif du contact), `# 🎯 Contexte` ; le signal qui a déclenché la prospection devient une ligne du modèle Signal (`19`), les conditions annoncées d'une offre de poste relèvent de l'opportunité (`14`)
   - Inbound : `# 🎯 Contexte`
 - **Vue détail** (`DetailDialog`, arbitrage « Blocs d'une vue détail ») : en-tête avec le nom et le poste seul en sous-titre, le statut en badge ; blocs Identité (Entreprise cliquable en `?detail=` vers sa vue détail, Localité), Coordonnées (Email, Téléphone, LinkedIn en pleine largeur), Détails rendu par `MarkdownContent` en variante `admin` (`04`) en pleine largeur, Pipeline (Statut n'y figurant pas, déjà en tête : Intérêt, Origine, Canal, Date de rencontre, Score), Notes, Réseau (lien `?detail=` vers la vue détail du contact quand `hasContactRole` est vrai, encore toujours faux avant `13`), puis, en `RelatedLinksList` et en `?detail=`, les blocs ajoutés par `10` (Actions), `15` (Opportunités apportées), `17` (Entretiens) et `19` (Signaux), chacun gardant son titre avec une ligne `EmptyValue` quand la personne n'a rien de ce type (arbitrage « Bloc vide d'une vue détail »). Fiche en opposition : un seul bloc Opposition (email, LinkedIn, date du stop, date d'effacement des échanges si posée), sans bouton Modifier (`onEdit` devenu facultatif dans `DetailDialog`)
-- **Suppression** (`DeleteLeadDialog`, `ConfirmDeleteDialog`) : « Supprimer « <nom> » ? » et « Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur. » ; `hasContactRole` (`07`, toujours `false` avant `13`) prévu dans `AdminLead` pour que `13` fasse varier ce texte sans y retoucher ; pour une fiche en opposition, « La trace de son opposition disparaît : plus rien n'empêchera de recontacter cette personne. », puisque la supprimer efface la seule trace du « stop »
+- **Suppression** (`DeleteLeadDialog`, `ConfirmDeleteDialog`) : « Supprimer « <nom> » ? » et « Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur. » ; `hasContactRole` (`07`, toujours `false` avant `13`) prévu dans `AdminLead` pour que `13` fasse varier ce texte sans y retoucher ; jamais proposée sur une fiche en opposition (`07`)
 - **Opposition RGPD, deux dialogues** (`src/components/features/admin/persons/`, `AlertDialog`) :
   - `OptOutPersonDialog` : bouton de l'en-tête de la page, à côté d'Annuler, en modification seulement ; confirmation « Ne plus contacter « <nom> » ? » et « La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement. Action irréversible. », plus une case à cocher « La personne demande aussi l'effacement de nos échanges » qui, cochée, enchaîne `optOutPerson` puis `erasePersonExchanges` (`07`) dans la même confirmation ; affiche un toast et mène à Tous
   - `ErasePersonExchangesDialog` : disponible dans Leads > Tous sur une fiche déjà opposée sans `exchangesErasedAt`, appelle seule `erasePersonExchanges`
 - **Page entreprise** : `CompanyForm` (`03`) reçoit sa prop `relatedCards` avec la card Leads (`RelatedLinksCard` enveloppant `RelatedLinksList`), ses leads par nom avec leur poste en méta, chacun menant à sa page ; présente aussi à la création, vide avec « Après l'enregistrement de l'entreprise. ». La maquette ne porte aucune action dans l'en-tête de cette card côté entreprise : pas de bouton de création (décision du propriétaire, 2026-10-02), à la différence des cards Opportunités (`15`) et Signaux (`19`), déjà décidées avec un bouton
-- **Vue détail de l'entreprise** (`CompaniesTable`, `04`) : bloc « Leads » en fin de vue détail, en `RelatedLinksList`, chaque ligne menant en `?detail=` à la vue détail du lead ; premier des trois blocs de fin de vue détail d'une entreprise (Leads, Opportunités `15`, Signaux `19`), chacun ajouté par son plan à la suite du précédent
-- **Vue Prospects des entreprises** (`src/server/queries/companies.ts`, `AdminCompany.isProspect`) : une entreprise est prospect si elle n'est pas travaillée (`worked`, dérivé du `04`) et porte au moins une personne au rôle Lead, non opposée, au statut Nouveau, Suspect ou Discussion. Page `/admin/entreprises/prospects` sur le motif des autres vues d'entreprise, entrée de menu Prospects sous Entreprises, `VIEW_FILTER.prospects` dans `CompaniesTable` ; colonnes et facettes des entreprises inchangées
-- **Menu** : l'entrée Leads reçoit son `href` et ses cinq sous-entrées, dans l'ordre des vues ci-dessus
+- **Vue détail de l'entreprise** (`CompaniesTable`, `04`) : bloc « Leads » en fin de vue détail, en `RelatedLinksList`, chaque ligne nommant le lead avec son poste et son statut en méta (« Recruteur · Discussion », comme la maquette) et menant en `?detail=` à sa vue détail ; premier des trois blocs de fin de vue détail d'une entreprise (Leads, Opportunités `15`, Signaux `19`), chacun ajouté par son plan à la suite du précédent
+- **Vue Prospects des entreprises** (`src/server/queries/companies.ts`, `AdminCompany.isProspect`) : une entreprise est prospect si elle n'est pas travaillée (`worked`, dérivé du `04`) et porte au moins une personne au rôle Lead, non opposée, au statut Nouveau, Suspect ou Discussion. Page `/admin/entreprises/prospects` sur le motif des autres vues d'entreprise, entrée de menu Prospects sous Entreprises, `VIEW_FILTER.prospects` dans `CompaniesTable` ; colonnes de Toutes sauf « Travaillée », constante dans cette vue, facettes inchangées
+- **Menu** : l'entrée Leads reçoit son `href` (`/admin/leads`, Tous) et ses cinq sous-entrées dans l'ordre de la maquette : En cours, Chauds, À qualifier, Stand-by, Tous
 - **Rules** : `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
 
 ## Acceptance criteria
 
-### Scénario 1 : arrivée sur En cours
+### Scénario 1 : arrivée sur Tous, puis En cours
 **GIVEN** des leads aux statuts Nouveau, Discussion, Perdu et Stand-by
-**WHEN** on clique Leads dans le menu
-**THEN** la page `/admin/leads` affiche « Leads en cours » avec les seuls leads Nouveau et Discussion, les plus récemment rencontrés d'abord
+**WHEN** on clique Leads dans le menu, puis sa sous-entrée En cours
+**THEN** la page `/admin/leads` affiche « Tous les leads » avec tous ces leads, puis `/admin/leads/en-cours` affiche « Leads en cours » avec les seuls leads Nouveau et Discussion, les plus récemment rencontrés d'abord
 
 ### Scénario 2 : création d'un lead outbound
 **GIVEN** la page « Nouveau lead » ouverte
@@ -133,7 +132,7 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 ### Scénario 5 : opposition simple
 **GIVEN** un lead ouvert sur sa page
 **WHEN** on clique « Ne plus contacter » sans cocher la case d'effacement, puis confirme
-**THEN** il disparaît de toutes les vues sauf Tous, où il porte le badge « Ne plus contacter » sans action Modifier, avec l'action « Effacer les échanges » disponible
+**THEN** il disparaît de toutes les vues sauf Tous, où il porte le badge « Ne plus contacter » sans action Modifier ni Supprimer, avec l'action « Effacer les échanges » disponible
 **AND** sa vue détail ne montre que l'email, le LinkedIn et la date du stop
 
 ### Scénario 6 : opposition avec effacement
@@ -187,10 +186,10 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 - **A. Tous**, comme la liste des entreprises et la maquette
 - **B. En cours**, la vue de travail quotidienne de Notion, absente du menu de la maquette
 
-**Choix : B**
+**Choix : A**
 
 **Rationale :**
-- Choix du propriétaire ; les cinq vues figurent au menu, Tous restant à un clic
+- Décision du propriétaire du 2026-10-06 : la vue complète est la base et la page par défaut de toute liste, les autres vues reprennent sa table, filtrée ou non, avec autant de colonnes ou moins (`.claude/rules/nextjs/routing.md`) ; En cours reste la première sous-entrée du menu
 
 ### Décision : page ou modale
 
@@ -213,7 +212,7 @@ Crée l'écran Leads de l'espace admin : cinq vues dans le menu, liste avec rech
 
 **Rationale :**
 - Une fiche vidée n'a plus rien à faire dans une vue de travail
-- Elle reste trouvable pour la supprimer à l'échéance des 3 ans (`01`)
+- Elle reste trouvable pour vérifier une opposition ou effacer ses échanges après coup
 
 ### Décision : un dialogue d'opposition ou deux
 

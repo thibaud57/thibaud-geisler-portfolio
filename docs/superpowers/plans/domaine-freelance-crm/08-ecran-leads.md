@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Prérequis** : plans `01` (rubrique « Demandes RGPD » de `docs/PRODUCTION.md`), `07` (modèles `Person`/`Lead`, actions `createLead` / `updateLead` / `deleteLead`, `optOutPerson` / `erasePersonExchanges` / `PersonLockedError`, `AdminLead`, `findAllLeadsForAdmin`, `PersonOption`, `NONE_VALUE = "aucun"`, `LEAD_ORIGINS`, `LEAD_STATUSES`, `LEAD_INTERESTS`, `LEAD_CHANNELS`, `LEAD_STATUS_ICONS`, `LEAD_INTEREST_ICONS`, `LEAD_ORIGIN_ICONS`, `LEAD_CHANNEL_ICONS`, `PERSON_FIELD_LABELS`, `personDisplayName`, libellés, `JOB_ROLES`) et `03` (éditeur `Editor` depuis `@/components/ui/editor`, `src/lib/details-templates.ts`) implémentés ; `ZONES`, `ZONE_LABELS` (`@/lib/zones`, plan `02`).
-- **Vues et routes** : En cours `/admin/leads`, Chauds `/admin/leads/chauds`, À qualifier `/admin/leads/a-qualifier`, Stand-by `/admin/leads/stand-by`, Tous `/admin/leads/tous` ; création `/admin/leads/nouveau`, modification `/admin/leads/<id>`. Une fiche en opposition (`optedOutAt` non nul) n'entre que dans Tous et sa page de modification renvoie vers Tous.
+- **Vues et routes** (décision du propriétaire du 2026-10-06, la vue complète en page d'arrivée) : Tous `/admin/leads`, En cours `/admin/leads/en-cours`, Chauds `/admin/leads/chauds`, À qualifier `/admin/leads/a-qualifier`, Stand-by `/admin/leads/stand-by` ; création `/admin/leads/nouveau`, modification `/admin/leads/<id>`. Une fiche en opposition (`optedOutAt` non nul) n'entre que dans Tous et sa page de modification renvoie vers Tous.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : le lead se crée et se modifie sur sa page, en cards Identité, Coordonnées, Détails, Pipeline, Notes ; la ligne ne porte que Modifier (lien vers la page) et Supprimer.
 - **Règles des vues** : En cours = Nouveau, Suspect, Discussion ; Chauds = intérêt Hot hors Perdu, Hors ICP ; À qualifier = Nouveau ; Stand-by = Stand-by ; tri par date de rencontre (décroissant pour En cours et Chauds, croissant pour À qualifier et Stand-by), date absente en dernier ; Tous trié par nom, fiches en opposition en dernier. Ni RDV planifié ni Deal, jamais stockés (`07`), n'entrent dans ces filtres à ce stade.
 - **Gabarits** : Outbound = `# 💡 Hypothèse / Angle` (Hypothèse de besoin, Angle de pitch, Objectif du contact) puis `# 🎯 Contexte` ; Inbound = `# 🎯 Contexte`. Appliqués à la création seulement ; un texte saisi n'est jamais écrasé.
@@ -167,7 +167,7 @@ const IN_PROGRESS: ReadonlySet<LeadStatus> = new Set(["NOUVEAU", "SUSPECT", "DIS
 // RDV planifié et Deal, jamais stockés, n'entrent pas dans ce filtre : ce sont l'entretien planifié à venir et l'opportunité acceptée, pas un statut de lead.
 const CLOSED: ReadonlySet<LeadStatus> = new Set(["PERDU", "HORS_ICP"])
 
-// Une fiche en opposition n'a plus rien à faire dans une vue de travail : seul Tous la montre, pour la retrouver et la supprimer à l'échéance de conservation.
+// Une fiche en opposition n'a plus rien à faire dans une vue de travail : seul Tous la montre, pour vérifier une opposition ou effacer ses échanges après coup.
 const VIEW_FILTERS: Record<LeadView, (lead: LeadViewRow) => boolean> = {
   "en-cours": (lead) => !lead.optedOutAt && IN_PROGRESS.has(lead.status),
   chauds: (lead) => !lead.optedOutAt && lead.interest === "HOT" && !CLOSED.has(lead.status),
@@ -841,7 +841,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
               person={lead}
               onDone={() => {
                 // La fiche vidée ne vit plus que dans Tous.
-                router.push("/admin/leads/tous")
+                router.push("/admin/leads")
               }}
             />
           ) : null}
@@ -1205,7 +1205,7 @@ async function EditLeadSection({ id }: { id: string }) {
   const [lead, companyOptions] = await Promise.all([findLeadByIdForAdmin(id), findCompanyOptions()])
   if (!lead) notFound()
   // Une fiche en opposition ne se modifie plus : sa trace se lit dans Tous.
-  if (lead.optedOutAt) redirect("/admin/leads/tous")
+  if (lead.optedOutAt) redirect("/admin/leads")
 
   return (
     <div className="flex flex-col gap-6">
@@ -1259,7 +1259,7 @@ Expected: aucune erreur. Si l'éditeur installé au `03` n'accepte pas `id` ou `
 
 - [ ] **Step 1 : Suppression**
 
-Le texte non opposé porte désormais la phrase sur le rôle Contact du brief ; `AdminLead.hasContactRole` (`07`, toujours `false` avant `13`) ne fait pas encore varier ce texte, `13` s'en chargera.
+Le texte porte la phrase sur le rôle Contact du brief ; `AdminLead.hasContactRole` (`07`, toujours `false` avant `13`) ne fait pas encore varier ce texte, `13` s'en chargera. Le dialogue n'est jamais monté sur une fiche en opposition : `deleteLead` la refuse (`07`), sa fiche vidée étant la seule trace du « stop ».
 
 `src/components/features/admin/leads/DeleteLeadDialog.tsx` :
 
@@ -1289,12 +1289,7 @@ export function DeleteLeadDialog({ lead }: Props) {
         </RowActionButton>
       }
       name={name}
-      description={
-        // Supprimer une fiche en opposition efface la seule trace du « stop » : le dire avant.
-        lead.optedOutAt
-          ? "La trace de son opposition disparaît : plus rien n'empêchera de recontacter cette personne."
-          : "Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
-      }
+      description="Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
       successMessage="Lead supprimé"
       onDelete={async () => {
         const result = await deleteLead(lead.id)
@@ -1788,17 +1783,21 @@ export function LeadsTable({ leads, view, initialDetailId }: Props) {
         align: "right",
         cell: (lead) => (
           <span className="inline-flex gap-0">
-            {lead.optedOutAt ? null : (
-              <RowActionButton aria-label={`Modifier ${personDisplayName(lead)}`} asChild>
-                <Link href={`/admin/leads/${lead.id}`}>
-                  <Pencil className="size-4" />
-                </Link>
-              </RowActionButton>
+            {/* Une fiche en opposition ne se modifie ni ne se supprime (`07`) : seul l'effacement des échanges lui reste. */}
+            {lead.optedOutAt ? (
+              lead.exchangesErasedAt ? null : (
+                <ErasePersonExchangesDialog person={lead} />
+              )
+            ) : (
+              <>
+                <RowActionButton aria-label={`Modifier ${personDisplayName(lead)}`} asChild>
+                  <Link href={`/admin/leads/${lead.id}`}>
+                    <Pencil className="size-4" />
+                  </Link>
+                </RowActionButton>
+                <DeleteLeadDialog lead={lead} />
+              </>
             )}
-            {lead.optedOutAt && !lead.exchangesErasedAt ? (
-              <ErasePersonExchangesDialog person={lead} />
-            ) : null}
-            <DeleteLeadDialog lead={lead} />
           </span>
         ),
       },
@@ -1884,11 +1883,11 @@ Expected: aucune erreur.
 
 **Files:**
 - Create: `src/components/features/admin/leads/LeadsViewPage.tsx`
-- Create: `src/app/admin/(protected)/leads/page.tsx`, `src/app/admin/(protected)/leads/loading.tsx`
+- Create: `src/app/admin/(protected)/leads/page.tsx` et `loading.tsx` (vue Tous, lit aussi `searchParams.detail`)
+- Create: `src/app/admin/(protected)/leads/en-cours/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/chauds/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/a-qualifier/page.tsx` et `loading.tsx`
 - Create: `src/app/admin/(protected)/leads/stand-by/page.tsx` et `loading.tsx`
-- Create: `src/app/admin/(protected)/leads/tous/page.tsx` et `loading.tsx` (lit aussi `searchParams.detail`)
 - Modify: `src/config/admin-nav-items.ts`
 - Create: `src/components/features/admin/RelatedLinksList.tsx`
 - Create: `src/components/features/admin/RelatedLinksCard.tsx`
@@ -1961,13 +1960,31 @@ export function LeadsViewPage({ view, initialDetailId }: Props) {
 
 - [ ] **Step 2 : Les cinq pages**
 
-`src/app/admin/(protected)/leads/page.tsx` :
+`src/app/admin/(protected)/leads/page.tsx` (vue Tous, base de la liste, seule des cinq vues à lire `searchParams.detail`, cible des `RelatedLinksList` menant à un lead) :
 
 ```tsx
 import { LeadsViewPage } from "@/components/features/admin/leads/LeadsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminLeadsPage() {
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
+
+export default async function AdminLeadsPage({ searchParams }: Props) {
+  await getCurrentUser()
+  const { detail } = await searchParams
+
+  return <LeadsViewPage view="tous" initialDetailId={detail} />
+}
+```
+
+`src/app/admin/(protected)/leads/en-cours/page.tsx` :
+
+```tsx
+import { LeadsViewPage } from "@/components/features/admin/leads/LeadsViewPage"
+import { getCurrentUser } from "@/lib/get-current-user"
+
+export default async function AdminLeadsEnCoursPage() {
   await getCurrentUser()
 
   return <LeadsViewPage view="en-cours" />
@@ -2013,25 +2030,7 @@ export default async function AdminLeadsStandByPage() {
 }
 ```
 
-`src/app/admin/(protected)/leads/tous/page.tsx` (seule des cinq vues à lire `searchParams.detail`, cible des `RelatedLinksList` menant à un lead) :
-
-```tsx
-import { LeadsViewPage } from "@/components/features/admin/leads/LeadsViewPage"
-import { getCurrentUser } from "@/lib/get-current-user"
-
-interface Props {
-  searchParams: Promise<{ detail?: string }>
-}
-
-export default async function AdminLeadsTousPage({ searchParams }: Props) {
-  await getCurrentUser()
-  const { detail } = await searchParams
-
-  return <LeadsViewPage view="tous" initialDetailId={detail} />
-}
-```
-
-Chacun des cinq dossiers (`leads/`, `chauds/`, `a-qualifier/`, `stand-by/`, `tous/`) reçoit un `loading.tsx` :
+Chacun des cinq dossiers (`leads/`, `en-cours/`, `chauds/`, `a-qualifier/`, `stand-by/`) reçoit un `loading.tsx` :
 
 ```tsx
 export { default } from "@/app/admin/(protected)/loading"
@@ -2053,11 +2052,11 @@ par :
         icon: UserPlus,
         href: "/admin/leads",
         subItems: [
-          { label: "En cours", href: "/admin/leads" },
+          { label: "En cours", href: "/admin/leads/en-cours" },
           { label: "Chauds", href: "/admin/leads/chauds" },
           { label: "À qualifier", href: "/admin/leads/a-qualifier" },
           { label: "Stand-by", href: "/admin/leads/stand-by" },
-          { label: "Tous", href: "/admin/leads/tous" },
+          { label: "Tous", href: "/admin/leads" },
         ],
       },
 ```
@@ -2236,7 +2235,7 @@ Dans `src/app/admin/(protected)/entreprises/nouvelle/page.tsx`, décision du pro
 
 - [ ] **Step 5 : `?detail=` sur la page des entreprises**
 
-Arbitrage « Lien profond vers une vue détail » (`08`) : la page `/admin/entreprises` (vue Toutes) est, comme `/admin/leads/tous`, la cible des `RelatedLinksList` qui mènent à une entreprise.
+Arbitrage « Lien profond vers une vue détail » (`08`) : la page `/admin/entreprises` (vue Toutes) est, comme `/admin/leads` (vue Tous), la cible des `RelatedLinksList` qui mènent à une entreprise.
 
 Dans `src/app/admin/(protected)/entreprises/page.tsx` :
 
@@ -2335,6 +2334,7 @@ export interface AdminCompanyLead {
   email: string | null
   linkedinUrl: string | null
   optedOutAt: Date | null
+  status: LeadStatus
 }
 
 export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
@@ -2355,9 +2355,9 @@ function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): 
         !person.optedOutAt && person.lead !== null && PROSPECT_STATUSES.includes(person.lead.status),
     )
   // Une personne sans rôle Lead n'existe pas encore côté entreprise avant le `13` (Contact) : le filtre reste homogène avec isProspect.
-  const leads = persons
-    .filter((person) => person.lead !== null)
-    .map(({ lead: _lead, ...person }) => person)
+  const leads = persons.flatMap(({ lead, ...person }) =>
+    lead ? [{ ...person, status: lead.status }] : [],
+  )
   return { ...company, worked, isProspect, leads }
 }
 ```
@@ -2366,7 +2366,7 @@ function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): 
 
 - [ ] **Step 2 : Bloc Leads de la vue détail**
 
-Dans `src/components/features/admin/companies/CompaniesTable.tsx`, importer `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList`, `personDisplayName` depuis `@/lib/persons`, `JOB_ROLE_LABELS` depuis `@/lib/job-roles`. Ajouter, avant `buildCompanyDetail` (`04`) :
+Dans `src/components/features/admin/companies/CompaniesTable.tsx`, importer `RelatedLinksList` et `type RelatedLink` depuis `@/components/features/admin/RelatedLinksList`, `personDisplayName` depuis `@/lib/persons`, `JOB_ROLE_LABELS` depuis `@/lib/job-roles`, `LEAD_STATUS_LABELS` depuis `@/lib/leads`. Ajouter, avant `buildCompanyDetail` (`04`) :
 
 ```tsx
 // Arbitrage « Fiches rattachées » : chaque bloc rattaché est un RelatedLinksList, qui mène à la vue détail de l'autre fiche.
@@ -2383,9 +2383,12 @@ function leadsSection(company: AdminCompany): DetailSection[] {
                 links={company.leads.map(
                   (lead): RelatedLink => ({
                     id: lead.id,
-                    href: `/admin/leads/tous?detail=${lead.id}`,
+                    href: `/admin/leads?detail=${lead.id}`,
                     label: personDisplayName(lead),
-                    ...(lead.jobRole ? { meta: JOB_ROLE_LABELS[lead.jobRole] } : {}),
+                    // Poste puis statut, comme la maquette : la ligne dit où en est le lead sans l'ouvrir.
+                    meta: [lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null, LEAD_STATUS_LABELS[lead.status]]
+                      .filter(Boolean)
+                      .join(" · "),
                   }),
                 )}
               />
@@ -2526,7 +2529,7 @@ Expected: aucune erreur (si le formatage échoue : `just format`, puis relancer)
 - [ ] **Step 1 : Menu et vues**
 
 Run: `just dev`, se connecter. Créer au préalable quelques leads aux statuts Nouveau, Discussion, Perdu et Stand-by, dont un Hot en Discussion, avec des dates de rencontre différentes et une sans date.
-Expected: Leads dans le menu mène à « Leads en cours » (Nouveau et Discussion, plus récents d'abord, sans date en dernier) ; Chauds, À qualifier, Stand-by et Tous montrent leurs seuls leads ; l'entrée active suit la page ; le squelette de chargement a le bon nombre de colonnes.
+Expected: Leads dans le menu mène à « Tous les leads » (tous, triés par nom, fiches opposées en dernier) ; En cours (Nouveau et Discussion, plus récents d'abord, sans date en dernier), Chauds, À qualifier et Stand-by montrent leurs seuls leads ; l'entrée active suit la page ; le squelette de chargement a le bon nombre de colonnes.
 
 - [ ] **Step 2 : Création depuis une autre vue**
 
@@ -2536,9 +2539,9 @@ Expected: « Lead créé », retour sur la liste, où le lead apparaît sans rec
 - [ ] **Step 3 : Card Leads de l'entreprise et lien profond**
 
 Ouvrir « Nouvelle entreprise » sans l'enregistrer : la card Leads est présente, vide, « Après l'enregistrement de l'entreprise. », sans bouton ; aucun choix « Nouvelle personne / Personne existante » n'apparaît nulle part, le lead se crée toujours de zéro. Enregistrer l'entreprise, ouvrir sa card Leads : elle n'a toujours pas d'action dans son en-tête. Depuis le menu, créer un lead rattaché à cette entreprise, revenir sur la fiche entreprise.
-Expected: la card Leads le liste, son nom mène à sa page. Depuis Leads > Tous, copier son identifiant et ouvrir `/admin/leads/tous?detail=<id>` dans un nouvel onglet.
+Expected: la card Leads le liste, son nom mène à sa page. Depuis Leads > Tous, copier son identifiant et ouvrir `/admin/leads?detail=<id>` dans un nouvel onglet.
 Expected: la vue détail de ce lead s'ouvre directement au chargement, sans clic supplémentaire. Faire de même avec l'identifiant de l'entreprise sur `/admin/entreprises?detail=<id>`. Depuis Entreprises, ouvrir la vue détail de cette même entreprise (clic sur sa ligne).
-Expected: un bloc « Leads » clôt la vue détail, après Entité légale, listant ce lead ; cliquer sa ligne ouvre `/admin/leads/tous?detail=<id>` et sa vue détail directement.
+Expected: un bloc « Leads » clôt la vue détail, après Entité légale, listant ce lead ; cliquer sa ligne ouvre `/admin/leads?detail=<id>` et sa vue détail directement.
 
 - [ ] **Step 4 : Gabarit et éditeur**
 
@@ -2553,7 +2556,7 @@ Expected: « Ce lead existe déjà : <nom> » sous LinkedIn, la saisie reste en 
 - [ ] **Step 6 : Opposition en deux temps et suppression**
 
 Ouvrir un lead sur sa page, cliquer « Ne plus contacter » sans cocher la case, confirmer.
-Expected: toast, arrivée sur Tous ; le lead n'apparaît plus que dans Tous, badge « Ne plus contacter », sans bouton Modifier, avec une action « Effacer les échanges » sur sa ligne ; sa vue détail ne montre que l'email, le LinkedIn et la date du stop, sans « Modifier ». Rouvrir `/admin/leads/<id>` de ce lead : renvoi vers Tous.
+Expected: toast, arrivée sur Tous ; le lead n'apparaît plus que dans Tous, badge « Ne plus contacter », sans bouton Modifier ni Supprimer, avec une action « Effacer les échanges » sur sa ligne ; sa vue détail ne montre que l'email, le LinkedIn et la date du stop, sans « Modifier ». Rouvrir `/admin/leads/<id>` de ce lead : renvoi vers Tous.
 
 Cliquer « Effacer les échanges » sur sa ligne, confirmer.
 Expected: toast, l'action disparaît de la ligne ; sa vue détail montre désormais la date d'effacement.
@@ -2561,7 +2564,7 @@ Expected: toast, l'action disparaît de la ligne ; sa vue détail montre désorm
 Ouvrir un second lead sur sa page, cliquer « Ne plus contacter », cocher « La personne demande aussi l'effacement de nos échanges », confirmer.
 Expected: toast, arrivée sur Tous ; sa ligne dans Tous ne porte pas l'action « Effacer les échanges », sa vue détail montre déjà la date d'effacement.
 
-Cliquer Supprimer sur la ligne d'un lead opposé : le texte prévient que la trace de l'opposition disparaîtra. Annuler. Cliquer Supprimer sur la ligne d'un lead non opposé : le texte parle du statut Perdu et du rôle Contact. Annuler, puis `just stop`.
+La ligne d'un lead opposé ne porte aucune action Supprimer. Cliquer Supprimer sur la ligne d'un lead non opposé : le texte parle du statut Perdu et du rôle Contact. Annuler, puis `just stop`.
 
 - [ ] **Step 7 : Compléter PRODUCTION.md**
 
