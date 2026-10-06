@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "logo-depuis-site-web"
 goal: "Récupérer d'un bouton l'icône que déclare la page du champ site web d'une entreprise et la ranger en PNG dans R2 comme logo de sa fiche."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["03-formulaire-entreprise-enrichi-design.md"]
