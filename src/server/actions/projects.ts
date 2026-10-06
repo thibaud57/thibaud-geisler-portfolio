@@ -208,6 +208,7 @@ function saveProject(
     schema: projectSchema,
     input: values,
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateProjectCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),

@@ -1,15 +1,17 @@
 import { z } from "zod"
 
 import { CAPITAL_CURRENCIES, LEGAL_FORMS, VAT_REGIMES } from "@/lib/legal-entities"
-import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-value"
+import {
+  emptyToNull,
+  NONE_VALUE,
+  nullableEnumField,
+  nullifyNoneValue,
+} from "@/lib/schemas/none-value"
 
 const optionalText = z.string().trim().transform(emptyToNull).optional()
 
 const nullableEnum = <T extends string>(values: readonly T[], error: string) =>
-  z
-    .union([z.enum(values), z.literal(NONE_VALUE), z.literal("")], { error })
-    .transform((value) => nullifyNoneValue(value, NONE_VALUE))
-    .optional()
+  nullableEnumField(values, error).optional()
 
 export const legalEntityFields = {
   legalEntityName: z

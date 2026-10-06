@@ -124,6 +124,63 @@ enum Zone {
   @@schema("freelance")
 }
 
+enum LeadOrigin {
+  INBOUND
+  OUTBOUND
+
+  @@schema("freelance")
+}
+
+// Statuts saisis seulement : Deal et RDV planifié se déduisent (opportunité acceptée, entretien planifié à venir).
+enum LeadStatus {
+  NOUVEAU
+  SUSPECT
+  DISCUSSION
+  HORS_ICP
+  PERDU
+  STAND_BY
+
+  @@schema("freelance")
+}
+
+// Vide quand on ne sait pas, comme partout ailleurs : pas de valeur « inconnu ».
+enum LeadInterest {
+  HOT
+  WARM
+  COLD
+
+  @@schema("freelance")
+}
+
+enum LeadChannel {
+  LINKEDIN
+  SITE_WEB
+  CANDIDATURE
+  PLATEFORME
+  REFERENCE
+  EVENEMENT
+  COLD_EMAIL
+  COLD_CALL
+  AUTRE
+
+  @@schema("freelance")
+}
+
+// Partagé avec les contacts : un même poste se filtre de la même façon dans les deux listes.
+enum JobRole {
+  CTO
+  TECH_LEAD
+  RECRUTEUR
+  DEVELOPPEUR
+  CEO
+  PRODUCT_OWNER
+  C_LEVEL
+  MANAGER
+  AUTRE
+
+  @@schema("freelance")
+}
+
 // Régime d'imposition une fois assujetti : il fixe les déclarations (CA12 annuelle avec acomptes
 // pour le réel simplifié, CA3 pour le réel normal). En franchise, pas de régime : le champ reste vide.
 enum VatRegime {
@@ -233,8 +290,55 @@ model Company {
   legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
 
   clientMetas ClientMeta[]
+  persons     Person[]
   createdAt   DateTime     @default(now()) @db.Timestamptz
   updatedAt   DateTime     @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+// Une personne, quels que soient ses rôles : prospect, relation durable, interlocuteur d'un entretien.
+// C'est elle qui porte l'opposition et la durée de conservation.
+model Person {
+  id                String    @id @default(uuid(7))
+  // Nul seulement pour une personne en opposition, vidée de tout sauf ce qui la reconnaît.
+  name              String?
+  jobRole           JobRole?
+  zone              Zone?
+  email             String?   @unique
+  phone             String?
+  linkedinUrl       String?   @unique
+  metAt             DateTime? @db.Date
+  notes             String?
+  details           String?
+  // Art. 21 : la date du stop, posée une seule fois. Art. 17.1.c : la date de l'effacement des échanges.
+  optedOutAt        DateTime? @db.Timestamptz
+  exchangesErasedAt DateTime? @db.Timestamptz
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  lead Lead?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([companyId])
+  @@schema("freelance")
+}
+
+// Le rôle « prospect » d'une personne : ce qui décrit le pipeline, rien de ce qui la décrit elle.
+model Lead {
+  personId String        @id
+  person   Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
+  origin   LeadOrigin
+  status   LeadStatus    @default(NOUVEAU)
+  interest LeadInterest?
+  channel  LeadChannel?
+  score    Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   @@schema("freelance")
 }

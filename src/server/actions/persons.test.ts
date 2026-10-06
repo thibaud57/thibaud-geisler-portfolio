@@ -1,0 +1,140 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("@/lib/logger", () => ({
+  logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
+}))
+vi.mock("@/lib/prisma", () => {
+  const prisma = {
+    person: {
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    $transaction: vi.fn(),
+  }
+  prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
+    callback(prisma),
+  )
+  return { prisma }
+})
+vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+
+import { prisma } from "@/lib/prisma"
+
+import { erasePersonExchanges, optOutPerson } from "./persons"
+
+// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
+function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
+  const matcher: unknown = expect.objectContaining(value)
+  return matcher as Record<string, unknown>
+}
+
+beforeEach(() => {
+  vi.mocked(prisma.person.update).mockResolvedValue({ id: "p1" } as never)
+})
+
+describe("optOutPerson", () => {
+  afterEach(() => vi.clearAllMocks())
+
+  it("clears everything but email and LinkedIn when a person opts out", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "claire@acme.example",
+      linkedinUrl: null,
+      optedOutAt: null,
+    } as never)
+
+    const state = await optOutPerson("p1")
+
+    expect(state.ok).toBe(true)
+    const data = vi.mocked(prisma.person.update).mock.calls[0]?.[0]?.data as Record<string, unknown>
+    expect(data).toEqual(
+      objectMatch({
+        name: null,
+        jobRole: null,
+        zone: null,
+        phone: null,
+        metAt: null,
+        notes: null,
+        details: null,
+        companyId: null,
+        optedOutAt: expect.any(Date) as unknown,
+      }),
+    )
+    expect(data).not.toHaveProperty("email")
+    expect(data).not.toHaveProperty("linkedinUrl")
+  })
+
+  it("deletes a person that opts out without email nor LinkedIn", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: null,
+      linkedinUrl: null,
+      optedOutAt: null,
+    } as never)
+
+    await optOutPerson("p1")
+
+    expect(prisma.person.delete).toHaveBeenCalledWith({ where: { id: "p1" } })
+    expect(prisma.person.update).not.toHaveBeenCalled()
+  })
+
+  it("keeps the first opt-out date when a person opts out twice", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "claire@acme.example",
+      linkedinUrl: null,
+      optedOutAt: new Date("2026-03-12T09:00:00Z"),
+    } as never)
+
+    const state = await optOutPerson("p1")
+
+    expect(state.ok).toBe(true)
+    expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(prisma.person.delete).not.toHaveBeenCalled()
+  })
+})
+
+describe("erasePersonExchanges", () => {
+  afterEach(() => vi.clearAllMocks())
+
+  it("erases the exchange trace only once", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: new Date("2026-03-12T09:00:00Z"),
+      exchangesErasedAt: null,
+    } as never)
+
+    const state = await erasePersonExchanges("p1")
+
+    expect(state.ok).toBe(true)
+    expect(prisma.person.update).toHaveBeenCalledWith(
+      objectMatch({
+        where: { id: "p1" },
+        data: objectMatch({ exchangesErasedAt: expect.any(Date) as unknown }),
+      }),
+    )
+  })
+
+  it("refuses to erase exchanges of a person who never opted out", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: null,
+      exchangesErasedAt: null,
+    } as never)
+
+    const state = await erasePersonExchanges("p1")
+
+    expect(state.ok).toBe(true)
+    expect(prisma.person.update).not.toHaveBeenCalled()
+  })
+
+  it("keeps the first erasure date when exchanges are erased twice", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: new Date("2026-03-10T09:00:00Z"),
+      exchangesErasedAt: new Date("2026-03-12T09:00:00Z"),
+    } as never)
+
+    const state = await erasePersonExchanges("p1")
+
+    expect(state.ok).toBe(true)
+    expect(prisma.person.update).not.toHaveBeenCalled()
+  })
+})

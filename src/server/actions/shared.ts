@@ -3,17 +3,18 @@ import { z } from "zod"
 
 import { createActionLogger } from "@/lib/server-utils"
 
-interface ActionEvents {
+export interface ActionEvents {
   success: string
   failure: string
 }
 
-interface SaveEntityConfig<TInput extends { slug: string }, TState, TPersistResult> {
+interface SaveEntityConfig<TInput extends object, TState, TPersistResult> {
   actionName: string
   events: ActionEvents
   schema: z.ZodType<TInput>
   input: unknown
   persist: (data: TInput) => Promise<TPersistResult>
+  successLogFields: (data: TInput, persisted: TPersistResult) => Record<string, unknown>
   invalidateCaches: () => void
   onValidationError: (fieldErrors: Partial<Record<keyof TInput, string[]>>) => TState
   onSuccess: (result: TPersistResult, data: TInput) => TState
@@ -21,7 +22,7 @@ interface SaveEntityConfig<TInput extends { slug: string }, TState, TPersistResu
   onUnknownError: (err: unknown) => TState
 }
 
-export function saveEntity<TInput extends { slug: string }, TState, TPersistResult>(
+export function saveEntity<TInput extends object, TState, TPersistResult>(
   config: SaveEntityConfig<TInput, TState, TPersistResult>,
 ): Promise<TState> {
   return createActionLogger(config.actionName, async ({ log }) => {
@@ -34,7 +35,7 @@ export function saveEntity<TInput extends { slug: string }, TState, TPersistResu
       const persisted = await config.persist(result.data)
       // Après l'écriture réussie seulement : une invalidation précédant un échec purgerait le cache sans raison.
       config.invalidateCaches()
-      log.info({ event: config.events.success, slug: result.data.slug })
+      log.info({ event: config.events.success, ...config.successLogFields(result.data, persisted) })
       return config.onSuccess(persisted, result.data)
     } catch (err) {
       const mapped = config.mapError(err)

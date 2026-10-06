@@ -116,6 +116,7 @@ function saveTag(
     schema: tagSchema,
     input: Object.fromEntries(formData),
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateTagCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),

@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 // Un SelectItem Radix refuse value="" : un Select nullable rend un sentinel comme premier
 // item, retraduit en null par cette fonction. Les deux génériques (T pour la valeur, S pour le
 // sentinel) préservent le littéral d'enum de la branche non sentinelle : un helper non générique
@@ -13,3 +15,8 @@ export const emptyToNull = (value: string) => (value === "" ? null : value)
 
 // Sentinelle « Non renseigné » des Select nullables (un SelectItem Radix refuse value="").
 export const NONE_VALUE = "aucune"
+
+export const nullableEnumField = <T extends string>(values: readonly T[], error: string) =>
+  z
+    .union([z.enum(values), z.literal(NONE_VALUE), z.literal("")], { error })
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE))

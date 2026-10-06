@@ -244,6 +244,7 @@ function saveCompany(
     schema: companySchema,
     input: values,
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateCompanyCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
