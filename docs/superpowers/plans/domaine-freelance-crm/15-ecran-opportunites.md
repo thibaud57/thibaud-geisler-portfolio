@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Prérequis** : plans `02` (`ZONES`, `ZONE_LABELS` dans `src/lib/zones.ts`), `03` (éditeur `Editor` du champ Détails), `04` (`CompaniesTable` et sa vue détail), `07` (`findPersonOptionsWithLeadRole`, `personDisplayName` dans `src/lib/persons.ts`, `NONE_VALUE` dans `src/lib/schemas/person.ts`), `08` (`LeadsTable`, `lead-views`, `LeadForm`, pages du lead et de l'entreprise, `RelatedLinksCard`, `RelatedLinksList`, prop `relatedCards` des formulaires, prop `initialDetailId` de `DataTable`, `findCompanyOptions`, `SelectField` avec son prop `icons`), `10` (état de `LeadsTable` et `LeadsViewPage` après ses ajouts), `13` (`personDetailHref`, `src/lib/person-links.ts`, pour l'apporteur d'une opportunité, qui peut être lead ou contact) et `14` (`Opportunity`, `createOpportunity`, `updateOpportunity`, `deleteOpportunity`, `AdminOpportunity`, `findAllOpportunitiesForAdmin`, `OPPORTUNITY_STATUS_LABELS`, `OPPORTUNITY_STATUS_ICONS`, `OPPORTUNITY_FIELD_LABELS`, `formatStartMonth`, `toMonthValue`, `CONTRACT_STATUS_ICONS`, `WORK_MODE_ICONS`) implémentés.
-- **Routes et titres** : En cours `/admin/opportunites` « Opportunités en cours », Acceptées `/admin/opportunites/acceptees` « Opportunités acceptées », Toutes `/admin/opportunites/toutes` « Toutes les opportunités » ; création `/admin/opportunites/nouvelle`, modification `/admin/opportunites/<id>`.
+- **Routes et titres** : En cours `/admin/opportunites/en-cours` « Opportunités en cours », Acceptées `/admin/opportunites/acceptees` « Opportunités acceptées », Toutes `/admin/opportunites` « Toutes les opportunités » (route racine, page d'arrivée du menu) ; création `/admin/opportunites/nouvelle`, modification `/admin/opportunites/<id>`.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Cards rattachées des pages » de DESIGN.md) : l'opportunité se crée et se modifie sur sa page, en cards Opportunité, Relations, Détails, Conditions, Calendrier, Notes ; la ligne ne porte que Modifier (lien) et Supprimer.
 - **Sous-titres** : « Opportunités proposées, en process ou avec une offre reçue. », « Opportunités gagnées, point de départ du suivi de mission. », « Toutes les opportunités, en pause et closes comprises. »
 - **Vues** : En cours = `PROPOSEE`, `EN_PROCESS`, `OFFRE_RECUE`, démarrage le plus proche d'abord ; Acceptées = `ACCEPTEE`, démarrage le plus récent d'abord ; Toutes = toutes, mise à jour la plus récente d'abord ; sans démarrage, en dernier.
@@ -22,7 +22,7 @@
 - **Entreprises** : `worked` s'étend aux opportunités `ACCEPTEE` (comme ESN ou comme client final, en plus des `ClientMeta` du `04`) ; `endClients` se calcule depuis elles (`joinedEndClientNames`, dédoublonné, trié `localeCompare("fr")`) ; la colonne « Clients finaux » de `CompaniesTable` devient un livrable du `15` (le `04` ne la fournit plus), visible par défaut dans Toutes et Travaillées ; Travaillées inclut désormais les entreprises à opportunité acceptée.
 - **Statut affiché du lead** : « Deal » dès qu'une opportunité apportée est `ACCEPTEE`, sinon le statut saisi ; En cours et Chauds excluent un lead « Deal ».
 - **Glyphes** : `OPPORTUNITY_STATUS_ICONS`, `CONTRACT_STATUS_ICONS`, `WORK_MODE_ICONS` (`14`) affichés via `EnumBadge` dans la liste, la vue détail et les `Select` du formulaire (statut, contrat, mode de travail) ; la Localité reste en `Badge` simple, sans glyphe.
-- **Détail depuis une autre fiche** : chaque page de vue lit `searchParams.detail` et le passe en `initialDetailId` à `OpportunitiesTable`, qui le transmet à `DataTable` (prop ajoutée par le `08`), pour ouvrir le détail d'une opportunité au chargement.
+- **Détail depuis une autre fiche** : seule la page Toutes, route racine, lit `searchParams.detail` et le passe en `initialDetailId` à `OpportunitiesTable`, qui le transmet à `DataTable` (prop ajoutée par le `08`), pour ouvrir le détail d'une opportunité au chargement.
 - **Textes** : suppression d'une opportunité « L'apporteur, l'ESN et le client final restent. » ; refus de suppression d'une entreprise « Cette entreprise est rattachée à <liens> et ne peut pas être supprimée. », <liens> ne nommant que les comptes non nuls.
 - **Menu** : entrée « Opportunités » du groupe CRM, entre Revues hebdo et Entretiens.
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
@@ -1503,7 +1503,7 @@ Expected: PASS, les tests du `14` inchangés.
 **Files:**
 - Create: `src/components/features/admin/opportunities/OpportunitiesTable.tsx`
 - Create: `src/components/features/admin/opportunities/OpportunitiesViewPage.tsx`
-- Create: `src/app/admin/(protected)/opportunites/page.tsx` et `loading.tsx`, `acceptees/page.tsx` et `loading.tsx`, `toutes/page.tsx` et `loading.tsx`
+- Create: `src/app/admin/(protected)/opportunites/page.tsx` et `loading.tsx` (Toutes), `en-cours/page.tsx` et `loading.tsx`, `acceptees/page.tsx` et `loading.tsx`
 - Modify: `src/config/admin-nav-items.ts`
 
 **Interfaces:**
@@ -2002,7 +2002,7 @@ export function OpportunitiesViewPage({ view, initialDetailId }: Props) {
 
 - [ ] **Step 3 : Les trois pages**
 
-Chacune lit `searchParams.detail` (motif du `08`, `.claude/rules/nextjs/routing.md`) et le transmet en `initialDetailId`, pour ouvrir le détail d'une opportunité depuis la fiche d'un lead ou d'une entreprise.
+Seule la page Toutes, route racine, lit `searchParams.detail` (motif du `08`, `.claude/rules/nextjs/routing.md`) et le transmet en `initialDetailId`, pour ouvrir le détail d'une opportunité depuis la fiche d'un lead ou d'une entreprise.
 
 `src/app/admin/(protected)/opportunites/page.tsx` :
 
@@ -2018,7 +2018,20 @@ export default async function AdminOpportunitesPage({
   await getCurrentUser()
   const { detail } = await searchParams
 
-  return <OpportunitiesViewPage view="en-cours" initialDetailId={detail} />
+  return <OpportunitiesViewPage view="toutes" initialDetailId={detail} />
+}
+```
+
+`src/app/admin/(protected)/opportunites/en-cours/page.tsx` :
+
+```tsx
+import { OpportunitiesViewPage } from "@/components/features/admin/opportunities/OpportunitiesViewPage"
+import { getCurrentUser } from "@/lib/get-current-user"
+
+export default async function AdminOpportunitesEnCoursPage() {
+  await getCurrentUser()
+
+  return <OpportunitiesViewPage view="en-cours" />
 }
 ```
 
@@ -2028,33 +2041,10 @@ export default async function AdminOpportunitesPage({
 import { OpportunitiesViewPage } from "@/components/features/admin/opportunities/OpportunitiesViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminOpportunitesAccepteesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ detail?: string }>
-}) {
+export default async function AdminOpportunitesAccepteesPage() {
   await getCurrentUser()
-  const { detail } = await searchParams
 
-  return <OpportunitiesViewPage view="acceptees" initialDetailId={detail} />
-}
-```
-
-`src/app/admin/(protected)/opportunites/toutes/page.tsx` :
-
-```tsx
-import { OpportunitiesViewPage } from "@/components/features/admin/opportunities/OpportunitiesViewPage"
-import { getCurrentUser } from "@/lib/get-current-user"
-
-export default async function AdminOpportunitesToutesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ detail?: string }>
-}) {
-  await getCurrentUser()
-  const { detail } = await searchParams
-
-  return <OpportunitiesViewPage view="toutes" initialDetailId={detail} />
+  return <OpportunitiesViewPage view="acceptees" />
 }
 ```
 
@@ -2074,9 +2064,9 @@ Dans `src/config/admin-nav-items.ts`, importer `Handshake` depuis `lucide-react`
         icon: Handshake,
         href: "/admin/opportunites",
         subItems: [
-          { label: "En cours", href: "/admin/opportunites" },
+          { label: "En cours", href: "/admin/opportunites/en-cours" },
           { label: "Acceptées", href: "/admin/opportunites/acceptees" },
-          { label: "Toutes", href: "/admin/opportunites/toutes" },
+          { label: "Toutes", href: "/admin/opportunites" },
         ],
       },
 ```
@@ -2157,7 +2147,7 @@ function opportunitiesSection(company: AdminCompany): DetailSection[] {
                 links={opportunities.map(
                   ({ opportunity, role }): RelatedLink => ({
                     id: `${role}-${opportunity.id}`,
-                    href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
+                    href: `/admin/opportunites?detail=${opportunity.id}`,
                     label: opportunity.title,
                     meta: `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${role}`,
                     ...(opportunity.dailyRate !== null
@@ -2317,7 +2307,7 @@ function opportunitiesSection(lead: AdminLead): DetailSection[] {
                 links={lead.opportunities.map(
                   (opportunity): RelatedLink => ({
                     id: opportunity.id,
-                    href: `/admin/opportunites/toutes?detail=${opportunity.id}`,
+                    href: `/admin/opportunites?detail=${opportunity.id}`,
                     label: opportunity.title,
                     meta: opportunity.client
                       ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]} · ${opportunity.client.name}`
@@ -2404,7 +2394,7 @@ Expected: suites `unit` et `integration` vertes.
 - [ ] **Step 1 : Menu et création**
 
 Run: `just dev`, se connecter ; avoir un lead en Discussion d'intérêt Hot, une entreprise de type ESN / Recrutement et une entreprise cliente.
-Expected: l'entrée Opportunités, entre Revues hebdo et Entretiens, mène à « Opportunités en cours ». « Nouvelle opportunité » mène à `/admin/opportunites/nouvelle`, cards Opportunité, Relations, Détails, Conditions, Calendrier, Notes ; Détails pré-rempli (Contexte, Profil recherché, Contenu technique) ; le statut, le contrat et le mode de travail affichent leur glyphe dans leur liste ; la liste ESN ne propose que l'entreprise ESN ; une fois l'ESN choisie, la liste Client final ne la propose plus. Créer l'opportunité (lead, ESN, client, TJM 650, Freelance, Hybride, 4 j dont 2 sur site, avril 2026, 6 mois) : elle apparaît dans En cours, « 650 € », « 4 j dont 2 sur site », « avril 2026 ».
+Expected: l'entrée Opportunités, entre Revues hebdo et Entretiens, mène à « Toutes les opportunités ». « Nouvelle opportunité » mène à `/admin/opportunites/nouvelle`, cards Opportunité, Relations, Détails, Conditions, Calendrier, Notes ; Détails pré-rempli (Contexte, Profil recherché, Contenu technique) ; le statut, le contrat et le mode de travail affichent leur glyphe dans leur liste ; la liste ESN ne propose que l'entreprise ESN ; une fois l'ESN choisie, la liste Client final ne la propose plus. Créer l'opportunité (lead, ESN, client, TJM 650, Freelance, Hybride, 4 j dont 2 sur site, avril 2026, 6 mois) : elle apparaît dans En cours, « 650 € », « 4 j dont 2 sur site », « avril 2026 ».
 
 - [ ] **Step 2 : Mois et règles**
 

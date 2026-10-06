@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Prérequis** : plans `04` (`EnumBadge`), `07` (`findPersonOptions()`, `PersonOption`, `personFields`, `JOB_ROLES`, `JOB_ROLE_LABELS`), `08` (`LeadForm`, page du lead, `RelatedLinksList`, `RelatedLinksCard`, `findCompanyOptions()`, `CompanyOption`, `SelectField`), `10` (`DateTimeField` local à `ProspectingActionFormDialog`, `timeOf`, `toInstant`, `formatShortDateTime`, `LeadActionsCard`), `13` (`CONTACT_TYPES`, `CONTACT_TYPE_LABELS`, `CONTACT_TYPE_ICONS`, `personDetailHref`, `src/lib/person-links.ts`), `15` (`OpportunitiesTable`, `DeleteOpportunityDialog`, `AdminOpportunity`, page de l'opportunité, `findOpportunityByIdForAdmin`, card Opportunités apportées de la page du lead) et `16` (`AdminInterview`, `findAllInterviewsForAdmin`, `createInterview`, `updateInterview`, `deleteInterview`, `interviewPlaces`, `interviewTitle`, libellés et glyphes `INTERVIEW_*`, `interviewDetailsTemplate`, `detailsAfterTemplateChange`, `AdminLead.interviews`, `AdminLead.interviewsCount`) implémentés.
-- **Routes et titres** : À venir `/admin/entretiens` « Entretiens à venir », sous-titre « Ceux qui restent à tenir, le prochain en premier. » ; Journal `/admin/entretiens/journal` « Journal des entretiens », sous-titre « Toutes les fiches, passées et à venir, la plus récente en premier. »
+- **Routes et titres** : À venir `/admin/entretiens/a-venir` « Entretiens à venir », sous-titre « Ceux qui restent à tenir, le prochain en premier. » ; Journal `/admin/entretiens` « Journal des entretiens » (route racine, page d'arrivée du menu), sous-titre « Toutes les fiches, passées et à venir, la plus récente en premier. »
 - **Vues** : À venir = statut `PLANIFIE` et date non passée, le prochain d'abord ; Journal = tous, le plus récent d'abord.
 - **Opportunités proposées** : non closes (ni `REFUSEE`, ni `DECLINEE`, ni `ABANDONNEE`), l'opportunité déjà reliée restant affichée.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : l'entretien se crée sur `/admin/entretiens/nouveau` (opportunité de départ par `?opportunity=<id>`) et se modifie sur `/admin/entretiens/<id>`, en cards Opportunité, Échange, Détails, Évaluation, Notes ; la ligne ne porte que Modifier (lien) et Supprimer ; aucun bouton de ligne sur les opportunités, « Nouvel entretien » vit dans la card Entretiens de la page d'une opportunité.
@@ -364,7 +364,7 @@ export const INTERVIEW_COLUMN_WIDTHS = {
 
 export type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
 
-// À venir : colonnes affichées de la maquette (entrCols), plus Opportunité, portée par l'entretien.
+// À venir : colonnes affichées de la maquette (entrCols), plus Opportunité, portée par l'entretien, sans Statut, toujours Planifié dans cette vue, ni Issue, qui n'existe qu'une fois l'entretien fait.
 // Journal, la vue complète, montre toutes ses colonnes (arbitrage « Colonnes par vue »).
 export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<InterviewView, readonly InterviewColumnKey[]> = {
   "a-venir": [
@@ -372,8 +372,6 @@ export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<InterviewView, reado
     "side",
     "scheduledAt",
     "type",
-    "status",
-    "outcome",
     "zone",
     "workMode",
     "dailyRate",
@@ -1236,7 +1234,7 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/entretiens/InterviewsTable.tsx`
 - Create: `src/components/features/admin/entretiens/InterviewsViewPage.tsx`
-- Create: `src/app/admin/(protected)/entretiens/page.tsx` et `loading.tsx`, `src/app/admin/(protected)/entretiens/journal/page.tsx` et `loading.tsx`
+- Create: `src/app/admin/(protected)/entretiens/page.tsx` et `loading.tsx` (Journal), `src/app/admin/(protected)/entretiens/a-venir/page.tsx` et `loading.tsx`
 - Modify: `src/config/admin-nav-items.ts`
 
 **Interfaces:**
@@ -1486,7 +1484,7 @@ function buildInterviewDetail(
           {
             fullWidth: true,
             value: (
-              <Link href={`/admin/opportunites/toutes?detail=${opportunity.id}`} className="font-medium hover:underline">
+              <Link href={`/admin/opportunites?detail=${opportunity.id}`} className="font-medium hover:underline">
                 {opportunity.title}
               </Link>
             ),
@@ -1579,7 +1577,7 @@ function buildInterviewDetail(
           {
             fullWidth: true,
             value: previous ? (
-              <Link href={`/admin/entretiens/journal?detail=${previous.id}`} className="hover:underline">
+              <Link href={`/admin/entretiens?detail=${previous.id}`} className="hover:underline">
                 {previous.title} · {formatShortDateTime(previous.scheduledAt)}
               </Link>
             ) : null,
@@ -1772,7 +1770,7 @@ export function InterviewsViewPage({ view, initialDetailId }: Props) {
 
 - [ ] **Step 3 : Pages**
 
-`src/app/admin/(protected)/entretiens/page.tsx` :
+`src/app/admin/(protected)/entretiens/page.tsx` (Journal, la vue complète, seule des deux vues à lire `searchParams.detail`) :
 
 ```tsx
 import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
@@ -1786,25 +1784,20 @@ export default async function AdminInterviewsPage({
   await getCurrentUser()
   const { detail } = await searchParams
 
-  return <InterviewsViewPage view="a-venir" initialDetailId={detail} />
+  return <InterviewsViewPage view="journal" initialDetailId={detail} />
 }
 ```
 
-`src/app/admin/(protected)/entretiens/journal/page.tsx` :
+`src/app/admin/(protected)/entretiens/a-venir/page.tsx` :
 
 ```tsx
 import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminInterviewsJournalPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ detail?: string }>
-}) {
+export default async function AdminInterviewsUpcomingPage() {
   await getCurrentUser()
-  const { detail } = await searchParams
 
-  return <InterviewsViewPage view="journal" initialDetailId={detail} />
+  return <InterviewsViewPage view="a-venir" />
 }
 ```
 
@@ -1830,8 +1823,8 @@ par :
         icon: MessageCircle,
         href: "/admin/entretiens",
         subItems: [
-          { label: "À venir", href: "/admin/entretiens" },
-          { label: "Journal", href: "/admin/entretiens/journal" },
+          { label: "À venir", href: "/admin/entretiens/a-venir" },
+          { label: "Journal", href: "/admin/entretiens" },
         ],
       },
 ```
@@ -1883,7 +1876,7 @@ function interviewsSection(opportunity: AdminOpportunity): DetailSection[] {
                 links={opportunity.interviews.map(
                   (interview): RelatedLink => ({
                     id: interview.id,
-                    href: `/admin/entretiens/journal?detail=${interview.id}`,
+                    href: `/admin/entretiens?detail=${interview.id}`,
                     label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
                     meta: INTERVIEW_STATUS_LABELS[interview.status],
                     trailing: formatShortDateTime(interview.scheduledAt),
@@ -2006,7 +1999,7 @@ function interviewsSection(lead: AdminLead): DetailSection[] {
                 links={lead.interviews.map(
                   (interview): RelatedLink => ({
                     id: interview.id,
-                    href: `/admin/entretiens/journal?detail=${interview.id}`,
+                    href: `/admin/entretiens?detail=${interview.id}`,
                     label: INTERVIEW_TYPE_LABELS[interview.type],
                     meta: `${interview.opportunity.title} · ${INTERVIEW_STATUS_LABELS[interview.status]}`,
                     trailing: formatShortDateTime(interview.scheduledAt),
@@ -2120,7 +2113,7 @@ Expected: suites `unit` et `integration` vertes.
 Run: `just dev`, se connecter ; avoir une opportunité via une ESN et une opportunité en client direct, un lead non opposé. Ouvrir la page de création d'une opportunité.
 Expected: sa card Entretiens est vide, « Après l'enregistrement de l'opportunité. », bouton « Nouvel entretien » désactivé.
 
-Sur la page de l'opportunité via l'ESN (une fois enregistrée). Expected: l'entrée Entretiens mène à « Entretiens à venir ». La card Entretiens est vide ; son bouton « Nouvel entretien » ouvre la page `/admin/entretiens/nouveau?opportunity=<id>`, opportunité déjà choisie, Détails au gabarit Premier contact. Passer le type à Recruteur/RH puis Technique : le gabarit suit ; chaque option du select Type porte son glyphe ; écrire une ligne puis changer de type : le texte reste. Ajouter le lead en correspondant (recherche « Chercher un lead ou un contact »), puis « Nouveau contact » (nom, poste Recruteur, entreprise, type de contact Commercial, email) : la ligne apparaît avec ses champs, dont le select Type de contact à glyphes. Enregistrer un Technique planifié demain, mené par l'ESN, avec les deux correspondants : retour sur la page de l'opportunité, dont la card liste « Entretien 1 · Technique », statut en méta, date en dessous ; il figure dans À venir, TJM et localité de l'opportunité affichés ; le lead et le nouveau contact (retrouvé dans Contacts, rôle Contact, type Commercial) affichent tous deux le lien vers cet entretien ; la card Entretiens de la page du lead vide avant l'enregistrement. Aucune ligne de la liste des opportunités ne porte de bouton « Nouvel entretien ».
+Sur la page de l'opportunité via l'ESN (une fois enregistrée). Expected: l'entrée Entretiens mène à « Journal des entretiens ». La card Entretiens est vide ; son bouton « Nouvel entretien » ouvre la page `/admin/entretiens/nouveau?opportunity=<id>`, opportunité déjà choisie, Détails au gabarit Premier contact. Passer le type à Recruteur/RH puis Technique : le gabarit suit ; chaque option du select Type porte son glyphe ; écrire une ligne puis changer de type : le texte reste. Ajouter le lead en correspondant (recherche « Chercher un lead ou un contact »), puis « Nouveau contact » (nom, poste Recruteur, entreprise, type de contact Commercial, email) : la ligne apparaît avec ses champs, dont le select Type de contact à glyphes. Enregistrer un Technique planifié demain, mené par l'ESN, avec les deux correspondants : retour sur la page de l'opportunité, dont la card liste « Entretien 1 · Technique », statut en méta, date en dessous ; il figure dans À venir, TJM et localité de l'opportunité affichés ; le lead et le nouveau contact (retrouvé dans Contacts, rôle Contact, type Commercial) affichent tous deux le lien vers cet entretien ; la card Entretiens de la page du lead vide avant l'enregistrement. Aucune ligne de la liste des opportunités ne porte de bouton « Nouvel entretien ».
 
 - [ ] **Step 2 : Mené par, échange et issue**
 

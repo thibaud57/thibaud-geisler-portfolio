@@ -2215,7 +2215,7 @@ function buildContactDetail(contact: AdminContact, onEdit: (() => void) | undefi
                   links={[
                     {
                       id: contact.id,
-                      href: `/admin/leads/tous?detail=${contact.id}`,
+                      href: `/admin/leads?detail=${contact.id}`,
                       label: "Fiche lead",
                       meta: [
                         LEAD_STATUS_LABELS[contact.leadRole.status],
@@ -2524,7 +2524,7 @@ describe("personDetailHref", () => {
   it("resolves to the lead detail route when the person has the lead role", () => {
     const href = personDetailHref({ lead: { id: "p1" }, contact: null })
 
-    expect(href).toBe("/admin/leads/tous?detail=p1")
+    expect(href).toBe("/admin/leads?detail=p1")
   })
 
   it("resolves to the contact detail route when the person has only the contact role", () => {
@@ -2536,7 +2536,7 @@ describe("personDetailHref", () => {
   it("prefers the lead route when the person has both roles", () => {
     const href = personDetailHref({ lead: { id: "p3" }, contact: { id: "p3" } })
 
-    expect(href).toBe("/admin/leads/tous?detail=p3")
+    expect(href).toBe("/admin/leads?detail=p3")
   })
 
   it("returns null when the person has neither role", () => {
@@ -2562,7 +2562,7 @@ export interface PersonWithRoles {
 
 // Lead prioritaire sur Contact quand une personne porte les deux : son pipeline commercial reste la vue la plus utile depuis un lien d'une autre fiche.
 export function personDetailHref(person: PersonWithRoles): string | null {
-  if (person.lead) return `/admin/leads/tous?detail=${person.lead.id}`
+  if (person.lead) return `/admin/leads?detail=${person.lead.id}`
   if (person.contact) return `/admin/contacts?detail=${person.contact.id}`
   return null
 }
@@ -2665,4 +2665,4 @@ Expected: le rôle Contact disparaît, la personne reste, son bloc Réseau ne mo
 - [ ] **Step 7 : `personDetailHref` depuis une action**
 
 Créer une action de prospection pour la personne aux deux rôles (avant sa suppression de l'étape précédente, ou sur une autre personne aux deux rôles), ouvrir sa vue détail (Actions prospection ou Pipeline).
-Expected: le lien de la personne mène à sa fiche lead (`/admin/leads/tous?detail=<id>`), le rôle Lead restant prioritaire sur le rôle Contact. Puis `just stop`.
+Expected: le lien de la personne mène à sa fiche lead (`/admin/leads?detail=<id>`), le rôle Lead restant prioritaire sur le rôle Contact. Puis `just stop`.

@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **Prérequis** : plans `07` (`Person`, `Lead`, `findPersonOptions`, `personDisplayName`, `PERSON_FIELD_LABELS`), `08` (écran des leads : `LeadsTable`, `LeadsViewPage`, `DeleteLeadDialog`, `OptOutPersonDialog`, `LEAD_COLUMN_WIDTHS`, `LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS`, `LEAD_SECTION_TITLES`), `09` (`ProspectingAction`, `ACTION_CHANNELS`, `ACTION_STATUSES`, libellés, `createProspectingAction`, `updateProspectingAction`, `changeProspectingActionStatus`, `deleteProspectingAction`, `AdminProspectingAction`, `findAllProspectingActionsForAdmin`, `AdminLead.lastReplyAt`, `erasePersonExchanges` étendue) et `04` (`toAdminCompany`, `AdminCompanyRaw`, `COMPANY_COLUMN_WIDTHS`, `CompaniesTable`, dérivé `worked`) implémentés.
-- **Routes** : À faire `/admin/actions-prospection`, Connexions `/connexions`, Discussions `/discussions`, Candidatures `/candidatures`, Journal `/journal` (sous `/admin/actions-prospection`).
+- **Routes** : Journal `/admin/actions-prospection` (route racine, page d'arrivée du menu), À faire `/a-faire`, Connexions `/connexions`, Discussions `/discussions`, Candidatures `/candidatures` (sous `/admin/actions-prospection`).
 - **Vues** : À faire = statut À faire ; Connexions = Connexion LinkedIn et Fait ; Discussions = DM LinkedIn, Email ou SMS/WhatsApp et Fait ; Candidatures = Candidature et Fait ; Journal = toutes, À faire d'abord puis plus récentes. Tri par défaut des quatre premières : date croissante.
 - **Rang** : « Premier contact » si aucune action envoyée (statut autre que À faire) de la même personne ne précède, sinon « Relance N ».
 - **Échéance** : personne active = 3 ans après le plus tardif entre la date de création de son rôle Lead et `lastReplyAt` ; personne opposée = 3 ans après `optedOutAt`.
@@ -1092,12 +1092,12 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/prospection/ProspectingActionsTable.tsx`
 - Create: `src/components/features/admin/prospection/ActionsViewPage.tsx`
-- Create: `src/app/admin/(protected)/actions-prospection/page.tsx` et `loading.tsx`, puis `connexions/`, `discussions/`, `candidatures/`, `journal/`, chacun `page.tsx` et `loading.tsx`
+- Create: `src/app/admin/(protected)/actions-prospection/page.tsx` et `loading.tsx` (Journal), puis `a-faire/`, `connexions/`, `discussions/`, `candidatures/`, chacun `page.tsx` et `loading.tsx`
 - Modify: `src/config/admin-nav-items.ts`
 
 **Interfaces:**
 - Consumes: Tasks 1, 2, 4, 5 ; `findAllProspectingActionsForAdmin` (`09`) ; `findPersonOptions` (`07`, `@/server/queries/persons`) ; `EnumBadge` (`04`) ; `ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS` (`09`) ; prop `initialDetailId` de `DataTable` (`08`)
-- Produces: `ProspectingActionsTable({ actions, view, personOptions, initialDetailId })`, `ActionsViewPage({ view, initialDetailId })`, route `/admin/actions-prospection/journal` qui lit `searchParams.detail`
+- Produces: `ProspectingActionsTable({ actions, view, personOptions, initialDetailId })`, `ActionsViewPage({ view, initialDetailId })`, route `/admin/actions-prospection` (Journal) qui lit `searchParams.detail`
 
 - [ ] **Step 1 : Table**
 
@@ -1236,7 +1236,7 @@ function buildActionDetail(
           label: LABELS.personId,
           value: (
             // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
-            <Link href={`/admin/leads/tous?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
+            <Link href={`/admin/leads?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
               {personDisplayName(action.person)}
             </Link>
           ),
@@ -1489,13 +1489,31 @@ export function ActionsViewPage({ view, initialDetailId }: Props) {
 
 - [ ] **Step 3 : Les cinq pages**
 
-`src/app/admin/(protected)/actions-prospection/page.tsx` :
+`src/app/admin/(protected)/actions-prospection/page.tsx` (Journal, la vue complète, seule des cinq vues à lire `searchParams.detail`, cible des liens `?detail=<id>` qui mènent à une action depuis une autre fiche) :
 
 ```tsx
 import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-export default async function AdminActionsPage() {
+interface Props {
+  searchParams: Promise<{ detail?: string }>
+}
+
+export default async function AdminActionsPage({ searchParams }: Props) {
+  await getCurrentUser()
+  const { detail } = await searchParams
+
+  return <ActionsViewPage view="journal" initialDetailId={detail} />
+}
+```
+
+`src/app/admin/(protected)/actions-prospection/a-faire/page.tsx` :
+
+```tsx
+import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
+import { getCurrentUser } from "@/lib/get-current-user"
+
+export default async function AdminActionsAFairePage() {
   await getCurrentUser()
 
   return <ActionsViewPage view="a-faire" />
@@ -1541,24 +1559,6 @@ export default async function AdminActionsCandidaturesPage() {
 }
 ```
 
-`src/app/admin/(protected)/actions-prospection/journal/page.tsx` (seule des cinq vues à lire `searchParams.detail`, cible des liens `?detail=<id>` qui mènent à une action depuis une autre fiche) :
-
-```tsx
-import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
-import { getCurrentUser } from "@/lib/get-current-user"
-
-interface Props {
-  searchParams: Promise<{ detail?: string }>
-}
-
-export default async function AdminActionsJournalPage({ searchParams }: Props) {
-  await getCurrentUser()
-  const { detail } = await searchParams
-
-  return <ActionsViewPage view="journal" initialDetailId={detail} />
-}
-```
-
 Chacun des cinq dossiers reçoit un `loading.tsx` :
 
 ```tsx
@@ -1581,11 +1581,11 @@ par :
         icon: Send,
         href: "/admin/actions-prospection",
         subItems: [
-          { label: "À faire", href: "/admin/actions-prospection" },
+          { label: "À faire", href: "/admin/actions-prospection/a-faire" },
           { label: "Connexions", href: "/admin/actions-prospection/connexions" },
           { label: "Discussions", href: "/admin/actions-prospection/discussions" },
           { label: "Candidatures", href: "/admin/actions-prospection/candidatures" },
-          { label: "Journal", href: "/admin/actions-prospection/journal" },
+          { label: "Journal", href: "/admin/actions-prospection" },
         ],
       },
 ```
@@ -1686,7 +1686,7 @@ function historySection(
               links={history.map(
                 (action): RelatedLink => ({
                   id: action.id,
-                  href: `/admin/actions-prospection/journal?detail=${action.id}`,
+                  href: `/admin/actions-prospection?detail=${action.id}`,
                   label: action.title,
                   meta: `${rankLabel(ranks.get(action.id) ?? 0)} · ${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
                   trailing: formatShortDateTime(action.occurredAt),
@@ -2103,7 +2103,7 @@ Expected: suites `unit` et `integration` vertes.
 - [ ] **Step 1 : Menu et vues**
 
 Run: `just dev`, se connecter.
-Expected: Actions prospection mène à « Actions à faire » ; ses cinq sous-entrées s'activent sur leur page ; le squelette de chargement a le bon nombre de colonnes.
+Expected: Actions prospection mène à « Journal des actions » ; ses cinq sous-entrées s'activent sur leur page ; le squelette de chargement a le bon nombre de colonnes.
 
 - [ ] **Step 2 : « Marquer fait » et rang**
 

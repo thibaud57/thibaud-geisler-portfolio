@@ -17,7 +17,7 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 
 ### État livré
 
-À la fin de ce sub-project, on peut : ouvrir Actions prospection sur « Actions à faire », marquer faite une connexion LinkedIn et la retrouver dans Connexions, créer l'action suivante depuis la card Actions de la page du lead et la voir « Relance 1 », lire les deux dans l'historique du lead ; dans Leads > Tous, faire ressortir un lead à l'échéance dépassée ; ouvrir la fiche de l'entreprise de ce lead et y lire sa date de premier contact.
+À la fin de ce sub-project, on peut : ouvrir Actions prospection sur le Journal, passer à « Actions à faire », marquer faite une connexion LinkedIn et la retrouver dans Connexions, créer l'action suivante depuis la card Actions de la page du lead et la voir « Relance 1 », lire les deux dans l'historique du lead ; dans Leads > Tous, faire ressortir un lead à l'échéance dépassée ; ouvrir la fiche de l'entreprise de ce lead et y lire sa date de premier contact.
 
 ## Dependencies
 
@@ -37,7 +37,7 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 - **À créer** : `src/lib/action-views.ts` et `src/lib/action-views.test.ts` (appartenance, tri et titres des vues)
 - **À créer** : `src/lib/action-rank.ts` et `src/lib/action-rank.test.ts` (rang « Premier contact / Relance N », par personne)
 - **À créer** : `src/lib/person-retention.ts` et `src/lib/person-retention.test.ts` (`RETENTION_YEARS`, `retentionEndOf`, `isRetentionOver`, date « À conserver jusqu'au »)
-- **À créer** : `src/app/admin/(protected)/actions-prospection/page.tsx` et `loading.tsx` (À faire), puis `connexions/`, `discussions/`, `candidatures/`, `journal/`, chacun `page.tsx` et `loading.tsx` (`journal/page.tsx` lit aussi `searchParams.detail`)
+- **À créer** : `src/app/admin/(protected)/actions-prospection/page.tsx` et `loading.tsx` (Journal, lit aussi `searchParams.detail`), puis `a-faire/`, `connexions/`, `discussions/`, `candidatures/`, chacun `page.tsx` et `loading.tsx`
 - **À créer** : `src/components/features/admin/prospection/ActionsViewPage.tsx`, `ProspectingActionsTable.tsx`, `ProspectingActionFormDialog.tsx`, `DeleteProspectingActionDialog.tsx`, `MarkActionDoneButton.tsx`
 - **À modifier** : `src/lib/admin-table-widths.ts` (largeurs des colonnes des actions, colonnes visibles par vue, colonnes ajoutées aux leads et aux entreprises)
 - **À modifier** : `src/server/queries/leads.ts` (nombre d'actions de la personne, `createdAt` du rôle)
@@ -57,19 +57,19 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 
 | Vue | Route | Titre (maquette) | Actions | Tri par défaut |
 |---|---|---|---|---|
-| À faire | `/admin/actions-prospection` | Actions à faire | statut À faire | date croissante |
+| À faire | `/admin/actions-prospection/a-faire` | Actions à faire | statut À faire | date croissante |
 | Connexions | `/admin/actions-prospection/connexions` | Connexions | Connexion LinkedIn, statut Fait | date croissante |
 | Discussions | `/admin/actions-prospection/discussions` | Discussions | DM LinkedIn, Email ou SMS/WhatsApp, statut Fait | date croissante |
 | Candidatures | `/admin/actions-prospection/candidatures` | Candidatures | Candidature, statut Fait | date croissante |
-| Journal | `/admin/actions-prospection/journal` | Journal des actions | toutes | À faire d'abord, puis date décroissante |
+| Journal | `/admin/actions-prospection` | Journal des actions | toutes | À faire d'abord, puis date décroissante |
 
-  Sous-titres : ceux de la maquette (`actViewHint`). Les entrées Pipeline (`11`) et Calendrier (`12`) s'ajouteront au même menu
+  Sous-titres : ceux de la maquette (`actViewHint`). Journal, la vue complète, est la route racine et la page d'arrivée du menu (`.claude/rules/nextjs/routing.md`). Les entrées Pipeline (`11`) et Calendrier (`12`) s'ajouteront au même menu
 - **Rang** (`src/lib/action-rank.ts`, fonction pure) : pour chaque personne, une action est « Premier contact » si aucune action déjà envoyée (tout statut sauf À faire) de la même personne ne la précède, sinon « Relance N », N étant le nombre de ces actions antérieures ; règle Notion (« une relance se reconnaît par chronologie »), absente de la maquette, ajoutée par décision du propriétaire. Calculé sur toutes les actions, quelle que soit la vue
 - **Liste** (`DataTable`) : recherche sur le titre et le nom de la personne. Colonnes : Action (toujours affichée), Rang, Canal (`EnumBadge`, `04`), Statut (`EnumBadge`), Date et heure (triable), Personne (tuile `CompanyLogoTile` de son entreprise et nom, `personDisplayName`, `07`), Actions de ligne. Colonnes visibles par défaut : celles de la maquette (`ACT_VIEW_COLS`) plus Rang ; Journal les montre toutes
 - **Filtres** : Statut, Canal et Période (« 7 jours », « 30 jours » autour d'aujourd'hui, passés ou à venir, comme la maquette)
 - **« Marquer fait »** (`MarkActionDoneButton`) : bouton de ligne sur une action À faire, appelle `changeProspectingActionStatus(id, "FAIT")` (`09`), dont les règles posent l'heure réelle d'envoi ; toast de confirmation
 - **Formulaire** (`ProspectingActionFormDialog`, `Dialog` à 640 px, saisie courte en modale selon l'arbitrage « Page ou modale d'édition » de DESIGN.md) : ouvert depuis l'écran des actions ou depuis la card Actions de la page d'un lead, sa personne alors déjà choisie. Grille à deux colonnes : Action pleine largeur ; Personne (combobox des personnes non opposées, `findPersonOptions`, `07`, avec leur entreprise) et Canal (`Select` avec glyphe devant chaque option) ; Date (`Calendar` en français) et heure (`Input` `type="time"`) comme un seul champ apparié à Statut (`Select` avec glyphe) ; « Réponse reçue le » (date et heure) pleine largeur, affiché quand le statut est Répondu ou Converti ; Message (`Textarea`, texte simple : le texte exact envoyé, pas une fiche mise en forme). Une nouvelle action s'ouvre à la date et l'heure courantes. Les champs cachés envoient des instants ISO complets, calculés dans le fuseau du navigateur (`09`)
-- **Vue détail** (`DetailDialog`) : titre de l'action, rang seul en sous-titre, statut en badge ; bloc Action commençant par une ligne cliquable vers la vue détail de la personne (`/admin/leads/tous?detail=<id>`, seul rôle qui existe à ce stade ; le `13` bascule ce lien sur `personDetailHref`, qui résout vers le lead ou le contact selon ses rôles), puis Canal (`EnumBadge`), Date et heure, Réponse reçue le ; bloc Message (retours à la ligne conservés), affiché avec une ligne `EmptyValue` sans message (arbitrage « Bloc vide d'une vue détail ») ; « Modifier » ouvre la modale
+- **Vue détail** (`DetailDialog`) : titre de l'action, rang seul en sous-titre, statut en badge ; bloc Action commençant par une ligne cliquable vers la vue détail de la personne (`/admin/leads?detail=<id>`, seul rôle qui existe à ce stade ; le `13` bascule ce lien sur `personDetailHref`, qui résout vers le lead ou le contact selon ses rôles), puis Canal (`EnumBadge`), Date et heure, Réponse reçue le ; bloc Message (retours à la ligne conservés), affiché avec une ligne `EmptyValue` sans message (arbitrage « Bloc vide d'une vue détail ») ; « Modifier » ouvre la modale
 - **Suppression** (`DeleteProspectingActionDialog`) : « Supprimer « <titre> » ? » et « Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré ». »
 - **Côté leads** (écran du `08`) :
   - colonne « Actions » : le nombre d'actions de la personne (`AdminLead.actionsCount`, en-tête « Relances » dans la maquette : le nombre comprend le premier contact, d'où le libellé), triable
@@ -78,15 +78,15 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
   - page du lead (`08`) : card Actions passée à la prop `relatedCards` de `LeadForm` (arbitrage « Élément rattaché à une fiche »), ses actions par date croissante avec leur rang, chacune avec Modifier et Supprimer, et un bouton « Nouvelle action » (sa personne déjà choisie) ; sans action, « Aucune action pour ce lead. » ; présente aussi à la création, vide avec « Après l'enregistrement du lead. » et bouton désactivé
 - **Premier contact des entreprises** (`src/lib/company-first-contact.ts`, fonction pure testée, appelée par `toAdminCompany`, `04`, `src/server/queries/companies.ts`) : `firstContactAt` est la plus ancienne `occurredAt` des actions hors À faire des personnes de l'entreprise (`persons.prospectingActions`, sélection minimale ajoutée à l'`include` du `08`) ; colonne « Premier contact » dans `CompaniesTable` (largeur dans `COMPANY_COLUMN_WIDTHS`), visible par défaut dans Toutes (arbitrage « Colonnes par vue »), Recrutement et Prospects, masquée par défaut dans Travaillées ; ligne « Premier contact » dans le bloc Relation de la vue détail, à côté de Travaillée
 - **Lectures** : la page lit une fois toutes les actions et les regroupe par personne pour l'historique ; `findAllLeadsForAdmin` gagne le nombre d'actions de la personne ; `findPersonOptions()` (`07`, personnes non opposées) sert le formulaire. Sans `'use cache'`, comme les autres lectures admin
-- **Lien profond vers une vue détail** : seule la page Journal (`/admin/actions-prospection/journal`), la vue complète des actions, lit `searchParams.detail` et le passe en `initialDetailId` à `ProspectingActionsTable`, qui le transmet à `DataTable` (prop du `08`) ; cible des blocs `RelatedLinksList` qui mènent à une action depuis la vue détail d'un lead
-- **Menu** : l'entrée Actions prospection reçoit son `href` et ses cinq sous-entrées, dans l'ordre des vues
+- **Lien profond vers une vue détail** : seule la page Journal (`/admin/actions-prospection`), la vue complète et la route racine de la liste, lit `searchParams.detail` et le passe en `initialDetailId` à `ProspectingActionsTable`, qui le transmet à `DataTable` (prop du `08`) ; cible des blocs `RelatedLinksList` qui mènent à une action depuis la vue détail d'un lead
+- **Menu** : l'entrée Actions prospection reçoit son `href` (la route racine, le Journal) et ses cinq sous-entrées, dans l'ordre des vues
 - **Rules** : `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
 
 ## Acceptance criteria
 
 ### Scénario 1 : À faire et « Marquer fait »
 **GIVEN** une connexion LinkedIn À faire planifiée hier
-**WHEN** on ouvre Actions prospection et clique « Marquer fait » sur sa ligne
+**WHEN** on ouvre Actions prospection, passe à la vue À faire et clique « Marquer fait » sur sa ligne
 **THEN** elle quitte À faire, apparaît dans Connexions avec l'heure du clic, et le toast le confirme
 
 ### Scénario 2 : rang des relances

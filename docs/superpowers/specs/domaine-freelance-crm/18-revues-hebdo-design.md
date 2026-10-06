@@ -47,7 +47,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 - **À créer** : `src/server/queries/weekly-reviews.ts`
 - **À modifier** : `src/lib/admin-table-widths.ts` (colonnes des revues)
 - **À créer** : `src/components/features/admin/revues/ReviewsTable.tsx`, `ReviewFormDialog.tsx`, `DeleteReviewDialog.tsx`, `ReviewsCalendar.tsx`, `ReviewsViewPage.tsx`
-- **À créer** : `src/app/admin/(protected)/revues-hebdo/page.tsx`, `calendrier/page.tsx`, `journal/page.tsx`, chacun avec son `loading.tsx`
+- **À créer** : `src/app/admin/(protected)/revues-hebdo/page.tsx` (Journal), `revue/page.tsx`, `calendrier/page.tsx`, chacun avec son `loading.tsx`
 - **À modifier** : `src/config/admin-nav-items.ts` (entrée Revues hebdo activée)
 
 ## Architecture approach
@@ -89,9 +89,9 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 
 | Vue | Route | Lignes | Tri |
 |---|---|---|---|
-| Revue | `/admin/revues-hebdo` | revues dont le vendredi tombe dans la période choisie : 30 derniers jours (défaut), mois en cours, année en cours | la plus récente d'abord |
+| Revue | `/admin/revues-hebdo/revue` | revues dont le vendredi tombe dans la période choisie : 30 derniers jours (défaut), mois en cours, année en cours | la plus récente d'abord |
 | Calendrier | `/admin/revues-hebdo/calendrier` | toutes, une par vendredi | aucun |
-| Journal | `/admin/revues-hebdo/journal` | toutes | la plus récente d'abord |
+| Journal | `/admin/revues-hebdo` | toutes | la plus récente d'abord |
 
   Titres et sous-titres de la maquette (`revViewTitle`, `revViewHint`), période par un `Select` au-dessus de la liste (`revPeriodItems`)
 - **Liste** (`ReviewsTable`, motif des listes admin) : colonnes de la maquette (`REV_COLUMNS`, affichées par défaut celles de `REV_VIEW_COLS.recent` dans Revue, toutes dans Journal, la vue complète, arbitrage « Colonnes par vue ») plus une colonne « Vendredi » affichée par défaut (vues Notion, décidé le 2026-09-27), les taux calculés dans leur colonne, Statut et Motivation en `EnumBadge` avec leur glyphe ; filtre Statut ; clic vers la vue détail
@@ -99,7 +99,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 - **Formulaire** (`ReviewFormDialog`) : Date vendredi (`Popover` et `Calendar`, seuls les vendredis choisissables, affichée par le libellé de sa semaine) et bouton « Calculer depuis le CRM » sur une même ligne ; Statut et Motivation en `SelectField` avec leurs glyphes ; les sept compteurs par paires (Connexions envoyées et acceptées, Messages envoyés et Conversations engagées, RDV décrochés et Entretiens, Leads actifs et la case en lecture seule « Taux acceptation · réponse · conversion », qui affiche les trois taux calculés et « Calculés à l'enregistrement » avant le premier enregistrement) ; Victoires, Blocages, Plan S+1 ; Notes (`Input` d'une ligne, aide « Une ligne de marqueurs, séparés par | »). Le bouton remplit les compteurs de la semaine choisie et le signale par un toast ; il est désactivé tant qu'aucun vendredi n'est choisi
 - **Vue détail** : titre au libellé de la semaine, sous-titre « clôture le <vendredi> » complété par « · motivation <motivation> » quand elle est renseignée, statut en tête avec son glyphe ; blocs Prospection (connexions, messages, conversations, RDV, avec leurs taux), Pipeline (entretiens, leads actifs), Victoires, Blocages, Plan S+1, Notes ; chaque bloc reste affiché avec une ligne `EmptyValue` sans donnée (arbitrage « Bloc vide d'une vue détail »)
 - **Suppression** (`DeleteReviewDialog`) : titre et texte de la maquette (`dlgDeleteReview`)
-- **Menu** : entrée « Revues hebdo » activée, sous-entrées « Revue », « Calendrier », « Journal » (maquette)
+- **Menu** : entrée « Revues hebdo » activée, sous-entrées « Revue », « Calendrier », « Journal » (maquette), Journal étant la route racine et la page d'arrivée du menu
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
 
 ## Acceptance criteria

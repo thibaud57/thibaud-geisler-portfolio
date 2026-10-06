@@ -1015,7 +1015,7 @@ Expected : « Reprise écrite en une transaction », puis `[logo] reprise-essai-
 
 Contrôler dans l'admin (`just dev`, connexion) :
 - `/admin/entreprises` : « Reprise Essai ESN » avec son client final « Reprise Essai Client » (dérivé de l'opportunité Acceptée), statut Dormante pour ce dernier ;
-- `/admin/leads/tous` : « Léa Essai » s'affiche « Deal » (opportunité acceptée), porte aussi le rôle Contact (Partenaire), « À conserver jusqu'au » 15/03/2027 ; « Marc Essai » porte son LinkedIn ;
+- `/admin/leads` : « Léa Essai » s'affiche « Deal » (opportunité acceptée), porte aussi le rôle Contact (Partenaire), « À conserver jusqu'au » 15/03/2027 ; « Marc Essai » porte son LinkedIn ;
 - page de « Reprise Essai Client » : card Signaux, « Levée », mars 2026, lien ;
 - `/admin/opportunites` : « Opportunité d'essai », Acceptée, TJM 600 ; sa page montre l'entretien « Premier contact » du 20/03/2024, Fait, sans issue ;
 - `/admin/revues-hebdo` : la revue « S12 · Semaine du 18/03/2024 » (vendredi de clôture 22/03/2024).
@@ -1113,7 +1113,7 @@ Tâche menée par une session Claude avec le MCP Notion et le propriétaire ; au
 - [ ] **Step 1 : Préalables**
 
 Vérifier, avant toute lecture de Notion :
-- la release qui porte `01` à `19` est en production (`/fr/confidentialite` affiche la puce « Prospection et relations professionnelles », `/admin/leads/tous` répond) ;
+- la release qui porte `01` à `19` est en production (`/fr/confidentialite` affiche la puce « Prospection et relations professionnelles », `/admin/leads` répond) ;
 - aucune fiche CRM n'a été saisie en production depuis ce déploiement (sinon la reporter en dev, la Task 6 l'exigeant) ;
 - le propriétaire fournit, depuis son journal privé des demandes RGPD, la liste des personnes opposées : identité, date de la demande, effacement des échanges demandé ou non. Elle ne s'écrit que dans `~/reprise-notion/releve.md`.
 

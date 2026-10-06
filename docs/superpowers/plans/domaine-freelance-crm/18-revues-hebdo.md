@@ -18,7 +18,7 @@
 - **Comptage** : Connexions envoyées (Connexion LinkedIn hors À faire, date d'envoi), Connexions acceptées (Connexion LinkedIn Répondu ou Converti, date de réponse), Messages envoyés (DM LinkedIn, Email, SMS/WhatsApp hors À faire, date d'envoi), Conversations engagées (ces canaux, Répondu ou Converti, date de réponse), RDV décrochés (ces canaux, Converti, date de réponse), Entretiens (entretiens au statut Fait, date dans la semaine), Leads actifs (personnes au rôle Lead, non opposées, au statut affiché Suspect, Discussion ou RDV planifié).
 - **Taux** : acceptation = acceptées / envoyées, réponse = conversations / messages, conversion RDV = RDV / conversations ; entier arrondi, « 50 % » (espace insécable), valeur absente (`null`, rendue par `EmptyValue`) si le dénominateur est nul.
 - **Textes** : « Une revue existe déjà pour cette semaine » (`review_week_exists`) ; « Choisissez un vendredi » ; « Un entier de 0 à 999 » ; titres, sous-titres, périodes, colonnes, formulaire et texte de suppression de la maquette (`revViewTitle`, `revViewHint`, `revPeriodItems`, `REV_COLUMNS`, `dlgReviewForm` : « Clôturer la semaine » à la création, « Modifier S36 · Semaine du 31/08/2026 » (`weekLabel`) en modification, `dlgDeleteReview`). Le titre de suppression reste celui de `ConfirmDeleteDialog` (« Supprimer « Semaine du … » ? »), commun aux écrans admin.
-- **Routes** : Revue `/admin/revues-hebdo`, Calendrier `/admin/revues-hebdo/calendrier`, Journal `/admin/revues-hebdo/journal`.
+- **Routes** : Revue `/admin/revues-hebdo/revue`, Calendrier `/admin/revues-hebdo/calendrier`, Journal `/admin/revues-hebdo` (route racine, page d'arrivée du menu).
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
 **Rules :** `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`.
@@ -1724,7 +1724,7 @@ Expected: aucune erreur.
 **Files:**
 - Create: `src/components/features/admin/revues/ReviewsTable.tsx`
 - Create: `src/components/features/admin/revues/ReviewsViewPage.tsx`
-- Create: `src/app/admin/(protected)/revues-hebdo/page.tsx`, `calendrier/page.tsx`, `journal/page.tsx`, chacun avec son `loading.tsx`
+- Create: `src/app/admin/(protected)/revues-hebdo/page.tsx` (Journal), `revue/page.tsx`, `calendrier/page.tsx`, chacun avec son `loading.tsx`
 - Modify: `src/config/admin-nav-items.ts`
 
 **Interfaces:**
@@ -2111,13 +2111,26 @@ export function ReviewsViewPage({ view }: Props) {
 
 - [ ] **Step 3 : Pages**
 
-`src/app/admin/(protected)/revues-hebdo/page.tsx` :
+`src/app/admin/(protected)/revues-hebdo/page.tsx` (Journal, la vue complète) :
 
 ```tsx
 import { ReviewsViewPage } from "@/components/features/admin/revues/ReviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
 export default async function AdminReviewsPage() {
+  await getCurrentUser()
+
+  return <ReviewsViewPage view="journal" />
+}
+```
+
+`src/app/admin/(protected)/revues-hebdo/revue/page.tsx` :
+
+```tsx
+import { ReviewsViewPage } from "@/components/features/admin/revues/ReviewsViewPage"
+import { getCurrentUser } from "@/lib/get-current-user"
+
+export default async function AdminReviewsPeriodPage() {
   await getCurrentUser()
 
   return <ReviewsViewPage view="revue" />
@@ -2134,19 +2147,6 @@ export default async function AdminReviewsCalendarPage() {
   await getCurrentUser()
 
   return <ReviewsViewPage view="calendrier" />
-}
-```
-
-`src/app/admin/(protected)/revues-hebdo/journal/page.tsx` :
-
-```tsx
-import { ReviewsViewPage } from "@/components/features/admin/revues/ReviewsViewPage"
-import { getCurrentUser } from "@/lib/get-current-user"
-
-export default async function AdminReviewsJournalPage() {
-  await getCurrentUser()
-
-  return <ReviewsViewPage view="journal" />
 }
 ```
 
@@ -2172,9 +2172,9 @@ par :
         icon: CalendarClock,
         href: "/admin/revues-hebdo",
         subItems: [
-          { label: "Revue", href: "/admin/revues-hebdo" },
+          { label: "Revue", href: "/admin/revues-hebdo/revue" },
           { label: "Calendrier", href: "/admin/revues-hebdo/calendrier" },
-          { label: "Journal", href: "/admin/revues-hebdo/journal" },
+          { label: "Journal", href: "/admin/revues-hebdo" },
         ],
       },
 ```
@@ -2204,7 +2204,7 @@ Expected: suites `unit` et `integration` vertes.
 - [ ] **Step 1 : Calcul et enregistrement**
 
 Run: `just dev`, se connecter ; avoir, entre le dernier samedi et le prochain vendredi, des connexions et des DM envoyés, une réponse reçue et une conversion, un entretien Fait, quelques leads Suspect ou Discussion ; une connexion datée du samedi d'avant. Si possible, navigateur dans un fuseau à l'ouest de Greenwich (outils de développement, capteurs de position).
-Expected: Revues hebdo mène à « Revue hebdo » ; « Clôturer la semaine » propose aujourd'hui si c'est un vendredi, sinon le dernier vendredi passé, affiché « S<NN> · Semaine du <lundi> » ; le calendrier ne laisse cliquer que des vendredis. Choisir le prochain vendredi ; « Calculer depuis le CRM » remplit les sept compteurs conformément aux données, sans la connexion du samedi d'avant ; toast « Compteurs calculés depuis le CRM ». Corriger Conversations engagées, écrire une victoire, enregistrer : la revue apparaît dans la vue Revue sur le vendredi cliqué (colonne Vendredi), avec ses trois taux.
+Expected: Revues hebdo mène à « Journal des revues » ; « Clôturer la semaine » propose aujourd'hui si c'est un vendredi, sinon le dernier vendredi passé, affiché « S<NN> · Semaine du <lundi> » ; le calendrier ne laisse cliquer que des vendredis. Choisir le prochain vendredi ; « Calculer depuis le CRM » remplit les sept compteurs conformément aux données, sans la connexion du samedi d'avant ; toast « Compteurs calculés depuis le CRM ». Corriger Conversations engagées, écrire une victoire, enregistrer : la revue apparaît dans la vue Revue sur le vendredi cliqué (colonne Vendredi), avec ses trois taux.
 
 - [ ] **Step 2 : Doublon et vues**
 

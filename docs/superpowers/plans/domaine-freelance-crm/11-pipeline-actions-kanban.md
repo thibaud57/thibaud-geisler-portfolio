@@ -370,7 +370,7 @@ export function buildActionDetail(
           label: LABELS.personId,
           value: (
             // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
-            <Link href={`/admin/leads/tous?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
+            <Link href={`/admin/leads?detail=${action.person.id}`} className="font-medium underline-offset-4 hover:underline">
               {personDisplayName(action.person)}
             </Link>
           ),

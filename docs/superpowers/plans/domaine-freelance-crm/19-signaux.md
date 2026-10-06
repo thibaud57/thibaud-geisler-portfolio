@@ -1123,7 +1123,7 @@ export function signalsSection(
 }
 
 export interface SignalRelatedOwner extends SignalOwner {
-  // Vers la liste « toutes » de sa fiche : `/admin/entreprises?detail=<id>` ou `/admin/leads/tous?detail=<id>`.
+  // Vers la liste « toutes » de sa fiche : `/admin/entreprises?detail=<id>` ou `/admin/leads?detail=<id>`.
   href: string
 }
 
@@ -1491,7 +1491,7 @@ Même mécanique que l'entreprise (Task 5, Step 2) : `selectedSignal`, `signalEd
         kind: "lead",
         id: selectedLead.id,
         name: personDisplayName(selectedLead),
-        href: `/admin/leads/tous?detail=${selectedLead.id}`,
+        href: `/admin/leads?detail=${selectedLead.id}`,
       }
       return buildSignalDetail(selectedSignal, owner, () => {
         signalEditRefs.current.get(selectedSignal.id)?.click()
