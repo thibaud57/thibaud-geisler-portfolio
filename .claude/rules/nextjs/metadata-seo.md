@@ -25,9 +25,10 @@ paths:
 
 ## Gotchas
 - **`export const runtime` est interdit dans un `opengraph-image.tsx`** quand `cacheComponents: true` : le build rejette ce segment config, le projet l'a retiré de ses images OG (`docs/VERSIONS.md` § Next.js)
-- Next 15.2+ : streaming metadata sur les pages dynamiques (`<meta>` injectés dans le `<body>` une fois `generateMetadata` résolu). Next sert un rendu **bloquant** aux user-agents de [`htmlLimitedBots`](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots) (LinkedIn, Twitter, Facebook, Slack, Discord, WhatsApp, Bingbot…). Googlebot en est volontairement exclu, il exécute le JS
+- Next 15.2+ : streaming metadata sur les pages dynamiques (`<meta>` injectés dans le `<body>` une fois `generateMetadata` résolu). Next sert un rendu **bloquant** aux user-agents de [`htmlLimitedBots`](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots) (LinkedIn, Twitter, Facebook, Slack, Discord, WhatsApp, Bingbot…). Next en exclut Googlebot, supposé lire le DOM rendu, mais Google n'accepte le canonical que dans le `<head>` : le projet l'ajoute, sans quoi les pages projet sortent sans canonical (Search Console, 2026-10-07)
+- **L'inspection d'URL de Search Console ne voit pas ce problème** : `Google-InspectionTool` est servi en bloquant. Vérifier avec l'UA Googlebot
 - **Auditer le SEO avec un UA de bot, jamais `curl` nu** : un crawl anonyme reçoit le streaming et fait croire à des métadonnées absentes du `<head>`. Comparer les offsets de `<title>` et `</head>` par UA (`curl -A "LinkedInBot/1.0"`)
-- Ne PAS désactiver le streaming par `htmlLimitedBots: /.*/` (bugs connus avec `cacheComponents` + PPR sur 16.2.x-16.3.0). Le levier est une expression ciblée qui reprend la liste par défaut de Next (`node_modules/next/dist/shared/lib/router/utils/html-bots.js`, l'option la remplace au lieu de l'étendre) et ajoute `TelegramBot`, `Bluesky`, `Mastodon`
+- Ne PAS désactiver le streaming par `htmlLimitedBots: /.*/` (bugs connus avec `cacheComponents` + PPR sur 16.2.x-16.3.0). Le levier est une expression ciblée qui reprend la liste par défaut de Next (`node_modules/next/dist/shared/lib/router/utils/html-bots.js`, l'option la remplace au lieu de l'étendre) et ajoute `Googlebot`, `TelegramBot`, `Bluesky`, `Mastodon`
 - React 19 hoiste nativement `<title>`, `<meta>`, `<link>` du JSX dans `<head>` : garder la Metadata API pour le SEO structurel, les balises natives pour les métadonnées locales
 - Polices dans un `ImageResponse` : voir `nextjs/fonts.md`
 
