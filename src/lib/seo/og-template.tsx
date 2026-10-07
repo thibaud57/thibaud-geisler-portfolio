@@ -29,7 +29,7 @@ export function OgTemplate({ kind, title, subtitle, locale }: OgTemplateProps) {
         display: "flex",
         flexDirection: "column",
         backgroundColor: COLORS.background,
-        padding: 80,
+        padding: "64px 80px",
         fontFamily: "Geist",
       }}
     >
@@ -73,8 +73,8 @@ export function OgTemplate({ kind, title, subtitle, locale }: OgTemplateProps) {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 24,
-          marginTop: 60,
+          gap: 16,
+          marginTop: 32,
         }}
       >
         <div
@@ -96,10 +96,8 @@ export function OgTemplate({ kind, title, subtitle, locale }: OgTemplateProps) {
             fontSize: 32,
             fontWeight: 400,
             lineHeight: 1.4,
-            display: "-webkit-box",
-            WebkitLineClamp: 4,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            display: "block",
+            lineClamp: 4,
           }}
         >
           {subtitle}
