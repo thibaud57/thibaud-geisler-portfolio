@@ -236,7 +236,7 @@ export async function AboutHero({ locale, className }: Props) {
 ```
 
 Notes :
-- `preload` (renommé depuis `priority` en Next 16) = image LCP above-the-fold, voir `.claude/rules/nextjs/images-fonts.md`.
+- `preload` (renommé depuis `priority` en Next 16) = image LCP above-the-fold, voir `.claude/rules/nextjs/images.md`.
 - `buildAssetUrl('branding/portrait.webp')` génère `/api/assets/branding/portrait.webp`.
 - Sur mobile (`order-1`/`order-2`) : portrait d'abord, headline dessous. Sur desktop : headline à gauche, portrait à droite (plus naturel en lecture FR).
 
