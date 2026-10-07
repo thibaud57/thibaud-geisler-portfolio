@@ -4,7 +4,7 @@ import { setupLocaleMetadata } from "@/lib/seo"
 import { loadOgFonts } from "@/lib/seo/og-fonts"
 import { OgTemplate } from "@/lib/seo/og-template"
 
-export const alt = "Thibaud Geisler · Portfolio IA & développement full-stack"
+export const alt = "Thibaud Geisler · Tech Lead IA & Full-Stack freelance"
 
 export const size = {
   width: 1200,
