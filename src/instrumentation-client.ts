@@ -8,6 +8,8 @@ Sentry.init({
   dsn: process.env["NEXT_PUBLIC_SENTRY_DSN"],
   tracesSampleRate: 0,
   beforeSend: scrubSentryEvent,
+  // Rejet sans handler de React quand une View Transition avorte : sans impact, seule l'animation saute.
+  ignoreErrors: [/Transition was aborted because of/],
 })
 
 // Export attendu nommément par le SDK, qui réclame ce hook au démarrage tant qu'il est absent :
