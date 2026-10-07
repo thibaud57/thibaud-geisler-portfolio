@@ -3,7 +3,7 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
+import { ADMIN_LEADS_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/persons"
 import { prisma } from "@/lib/prisma"
@@ -58,11 +58,13 @@ export async function erasePersonExchanges(id: string): Promise<PersonActionStat
         if (!person.optedOutAt) return "not_opted_out"
         if (person.exchangesErasedAt) return "already_erased"
 
-        // TODO: supprimer ici, dans cette même transaction, les actions, entretiens et signaux de la personne quand ces modèles existeront.
+        // TODO: supprimer ici, dans cette même transaction, les entretiens et signaux de la personne quand ces modèles existeront.
+        await tx.prospectingAction.deleteMany({ where: { personId: id } })
         await tx.person.update({ where: { id }, data: { exchangesErasedAt: new Date() } })
         return "erased"
       })
       revalidatePath(ADMIN_LEADS_PATH, "layout")
+      revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
       log.info({ event: "person:exchanges_erased", id, outcome })
       return { ok: true, message: null }
     } catch (err) {

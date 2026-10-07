@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", () => {
       delete: vi.fn(),
       findUnique: vi.fn(),
     },
+    prospectingAction: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   }
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
@@ -79,6 +80,18 @@ describe("optOutPerson", () => {
     expect(prisma.person.update).not.toHaveBeenCalled()
   })
 
+  it("does not touch the person's prospecting actions on a simple stop", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "claire@acme.example",
+      linkedinUrl: null,
+      optedOutAt: null,
+    } as never)
+
+    await optOutPerson("p1")
+
+    expect(prisma.prospectingAction.deleteMany).not.toHaveBeenCalled()
+  })
+
   it("keeps the first opt-out date when a person opts out twice", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
       email: "claire@acme.example",
@@ -112,6 +125,17 @@ describe("erasePersonExchanges", () => {
         data: objectMatch({ exchangesErasedAt: expect.any(Date) as unknown }),
       }),
     )
+  })
+
+  it("erases the person's prospecting actions along with the exchange trace", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: new Date("2026-03-12T09:00:00Z"),
+      exchangesErasedAt: null,
+    } as never)
+
+    await erasePersonExchanges("p1")
+
+    expect(prisma.prospectingAction.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
   })
 
   it("refuses to erase exchanges of a person who never opted out", async () => {

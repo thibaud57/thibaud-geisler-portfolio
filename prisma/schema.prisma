@@ -166,6 +166,28 @@ enum LeadChannel {
   @@schema("freelance")
 }
 
+enum ActionChannel {
+  CANDIDATURE
+  CONNEXION_LINKEDIN
+  DM_LINKEDIN
+  EMAIL
+  SMS_WHATSAPP
+  CALL
+  AUTRE
+
+  @@schema("freelance")
+}
+
+enum ActionStatus {
+  A_FAIRE
+  FAIT
+  REPONDU
+  CONVERTI
+  IGNORE
+
+  @@schema("freelance")
+}
+
 // Partagé avec les contacts : un même poste se filtre de la même façon dans les deux listes.
 enum JobRole {
   CTO
@@ -318,7 +340,8 @@ model Person {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  lead Lead?
+  lead               Lead?
+  prospectingActions ProspectingAction[]
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -340,6 +363,29 @@ model Lead {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
+  @@schema("freelance")
+}
+
+model ProspectingAction {
+  id          String        @id @default(uuid(7))
+  title       String
+  channel     ActionChannel
+  status      ActionStatus  @default(A_FAIRE)
+  // Planifiée tant que l'action est À faire, date d'envoi réelle ensuite.
+  occurredAt  DateTime      @db.Timestamptz
+  message     String?
+  // Dernier contact émanant de la personne, point de départ des 3 ans de conservation (registre, Traitement 7).
+  respondedAt DateTime?     @db.Timestamptz
+
+  // Cascade : le message est une donnée personnelle. Vers la personne, pas le rôle :
+  // un échange avec une relation réseau se journalise au même endroit.
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([personId, occurredAt])
   @@schema("freelance")
 }
 

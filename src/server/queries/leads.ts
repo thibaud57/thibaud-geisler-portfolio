@@ -13,7 +13,15 @@ import { prisma } from "@/lib/prisma"
 
 const adminLeadInclude = {
   person: {
-    include: { company: { select: { id: true, name: true, logoFilename: true } } },
+    include: {
+      company: { select: { id: true, name: true, logoFilename: true } },
+      prospectingActions: {
+        where: { respondedAt: { not: null } },
+        orderBy: { respondedAt: "desc" },
+        take: 1,
+        select: { respondedAt: true },
+      },
+    },
   },
 } as const
 
@@ -32,6 +40,8 @@ export interface AdminLead {
   details: string | null
   optedOutAt: Date | null
   exchangesErasedAt: Date | null
+  // Traitement 7 (registre) : point de départ des 3 ans de conservation, avec la date de création du rôle.
+  lastReplyAt: Date | null
   company: { id: string; name: string; logoFilename: string | null } | null
   origin: LeadOrigin
   status: LeadStatus
@@ -56,6 +66,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     details: row.person.details,
     optedOutAt: row.person.optedOutAt,
     exchangesErasedAt: row.person.exchangesErasedAt,
+    lastReplyAt: row.person.prospectingActions[0]?.respondedAt ?? null,
     company: row.person.company,
     origin: row.origin,
     status: row.status,
