@@ -12,7 +12,7 @@
 
 **Rules à respecter (lecture dynamique) :**
 - `.claude/rules/nextjs/metadata-seo.md` (cœur : ImageResponse, flex only, 1200×630, JSON-LD)
-- `.claude/rules/nextjs/images-fonts.md` (chargement fonts via `readFile`, jamais `next/font` dans `ImageResponse`, format `.ttf`)
+- `.claude/rules/nextjs/fonts.md` (chargement fonts via `readFile`, jamais `next/font` dans `ImageResponse`, format `.ttf`)
 - `.claude/rules/nextjs/routing.md` (params async, `notFound()`, hard error Next 16)
 - `.claude/rules/nextjs/data-fetching.md` (`'use cache'` + `cacheTag` mutualisation per-request)
 - `.claude/rules/nextjs/server-client-components.md` (composant Server, `'server-only'`)
