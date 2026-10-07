@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "actions-prospection-donnees"
 goal: "Créer le modèle des actions envers une personne, leurs règles de statut et leurs Server Actions, avec la date de réponse qui fixe le dernier contact émanant d'elle."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["07-leads-donnees-design.md"]
