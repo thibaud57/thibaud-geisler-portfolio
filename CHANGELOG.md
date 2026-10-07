@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.2...v2.0.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **seo:** renouvelle l'URL de l'image OG d'accueil restée en échec dans le cache LinkedIn ([#164](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/164)) ([68f1b48](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/68f1b48a09c6977ef316c1f0a84b064dafd7cb95))
+
 ## [2.0.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.1...v2.0.2) (2026-10-07)
 
 
