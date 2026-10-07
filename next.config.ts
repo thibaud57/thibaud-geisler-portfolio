@@ -48,10 +48,11 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Reprend la liste par défaut de Next (l'option la remplace, elle ne l'étend pas) et y ajoute les
   // crawlers HTML-only que le prerender des slugs protégeait : sans rendu bloquant, ils liraient
-  // les métadonnées streamées après </head>. Jamais /.*/ : bugs connus avec Cache Components
-  // (.claude/rules/nextjs/metadata-seo.md).
+  // les métadonnées streamées après </head>. Googlebot aussi : Google n'accepte le canonical que
+  // dans le <head> (Search Console : « canonique déclarée : aucune » sur les pages projet).
+  // Jamais /.*/ : bugs connus avec Cache Components (.claude/rules/nextjs/metadata-seo.md).
   htmlLimitedBots:
-    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Bluesky|Mastodon/i,
+    /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Bluesky|Mastodon/i,
   experimental: {
     // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
     // global-not-found.tsx porte le 404 des URLs qui ne matchent aucune route.
