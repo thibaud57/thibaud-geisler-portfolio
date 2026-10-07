@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.1...v2.0.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **seo:** images OG en 502, troncature des descriptions et bruit Sentry des View Transitions ([#161](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/161)) ([82b2506](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/82b2506e03a3f751948546a2f66c5f9683762a38))
+
 ## [2.0.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.0...v2.0.1) (2026-09-25)
 
 

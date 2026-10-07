@@ -19,7 +19,7 @@ paths:
 - Vérifier qu'une police Google figure dans le jeu de métriques de Next avant de l'adopter, sinon passer par `next/font/local` (cf. Gotchas)
 
 ## À éviter
-- Importer `next/font` dans un `ImageResponse` : ne fonctionne pas, charger le fichier par `readFile` (`.woff2` compris)
+- Importer `next/font` dans un `ImageResponse` : ne fonctionne pas, charger le fichier par `readFile`, en `.ttf` ou `.otf` (cf. Gotchas)
 - Poser `preload: false` sur une police (cf. Gotchas)
 
 ## Gotchas
@@ -28,15 +28,15 @@ paths:
   - Si absente → `next/font/local`, qui mesure le fichier réel avec `fontkit`
   - Contrôler : le CSS de build porte `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`
 - **`preload: false` casse la police** (Next 16.3.3 + Turbopack) : le fichier devient `-s.<hash>` mais le hint du payload RSC garde `-s.p.<hash>`, d'où un **500** à chaque rendu (vu sur `Geist_Mono`, 2026-09-05)
-- **Un seul woff2 par police suffit** : `fontkit` le mesure comme un TTF et satori l'accepte pour les `ImageResponse` (PNG identique au bit près)
+- **`ImageResponse` ne lit pas le woff2** : satori lève `Unsupported OpenType signature wOF2`, l'image OG part en **502**. Garder un `.ttf` pour les OG à côté du `.woff2` du navigateur (garde-fou : `og-fonts.integration.test.tsx`)
 
 ## Exemples
 ```typescript
 // ✅ Police locale avec variable CSS et swap
 const display = localFont({ src: './fonts/Display-Bold.woff2', variable: '--font-display', display: 'swap' })
 
-// ✅ ImageResponse : police lue sur disque
-const font = await readFile(join(process.cwd(), 'src/lib/seo/fonts/Display-Bold.woff2'))
+// ✅ ImageResponse : police lue sur disque, en TTF
+const font = await readFile(join(process.cwd(), 'src/lib/seo/fonts/Display-Bold.ttf'))
 
 // ❌ next/font dans ImageResponse, et preload: false
 const mono = Geist_Mono({ subsets: ['latin'], preload: false })
