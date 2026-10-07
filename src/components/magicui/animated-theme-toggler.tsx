@@ -185,20 +185,24 @@ export const AnimatedThemeToggler = ({
       viewportWidth,
       viewportHeight,
     )
-    void transition.ready.then(() => {
-      document.documentElement.animate(
-        {
-          clipPath,
-        },
-        {
-          duration,
-          // Star: linear avoids easing overshoot that fights polygon interpolation at t→1; VT group duration is synced above.
-          easing: shape === "star" ? "linear" : "ease-in-out",
-          fill: "forwards",
-          pseudoElement: "::view-transition-new(root)",
-        },
-      )
-    })
+    // Transition avortée : thème appliqué quand même, seule l'animation saute.
+    void transition.ready.then(
+      () => {
+        document.documentElement.animate(
+          {
+            clipPath,
+          },
+          {
+            duration,
+            // Star: linear avoids easing overshoot that fights polygon interpolation at t→1; VT group duration is synced above.
+            easing: shape === "star" ? "linear" : "ease-in-out",
+            fill: "forwards",
+            pseudoElement: "::view-transition-new(root)",
+          },
+        )
+      },
+      () => undefined,
+    )
   }, [shape, fromCenter, duration, isDark, setTheme])
 
   return (
