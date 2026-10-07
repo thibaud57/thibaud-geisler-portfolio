@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.3...v2.0.4) (2026-10-07)
+
+
+### Bug Fixes
+
+* **seo:** sert les métadonnées des pages projet dans le &lt;head&gt; à Googlebot ([#166](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/166)) ([8e25716](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/8e257161d62c8c506c95bb8c4c6f662a0f98ce0e))
+
 ## [2.0.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.2...v2.0.3) (2026-10-07)
 
 
