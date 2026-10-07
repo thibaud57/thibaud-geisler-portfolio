@@ -32,7 +32,7 @@ paths:
 - Omettre `sizes` sur une image `fill` : Next.js génère un `srcset` limité (1x/2x) au lieu du jeu complet adaptatif
 - Servir des images dynamiques depuis `public/` : pas de hashing, pas de cache-busting, couplage au build. Utiliser une route API dédiée
 - Utiliser des SVG en `<Image>` sans `unoptimized` : l'optimisation n'apporte rien pour les SVG
-- Importer `next/font` dans `ImageResponse` : **ne fonctionne pas**, charger manuellement le fichier de police via `readFile` (`.woff2` compris, cf. Gotchas)
+- Importer `next/font` dans `ImageResponse` : **ne fonctionne pas**, charger manuellement le fichier de police via `readFile`, en `.ttf` ou `.otf` (cf. Gotchas)
 - Charger une police Google **peu répandue** via `next/font/google` sans vérifier sa couverture métriques (cf. Gotchas) : le fallback ajusté est abandonné en silence et le swap provoque du CLS
 
 ## Gotchas
@@ -41,7 +41,7 @@ paths:
   - **Si absente → `next/font/local`** : il parse le fichier réel avec `fontkit` et calcule les overrides quelle que soit la police, sans dépendre du snapshot
   - **Contrôler après coup** : le CSS de build doit porter `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`/`ascent-override`
 - **`preload: false` sur une police la casse** (Next 16.3.3 + Turbopack) : le fichier est renommé `-s.<hash>`, le CSS suit, mais le hint du payload RSC garde `-s.p.<hash>` → **500** à chaque rendu. Vu sur `Geist_Mono`, 2026-09-05
-- **Un seul woff2 par police suffit** : `fontkit` le mesure comme un TTF (`size-adjust` identique avant/après conversion) et **satori l'accepte** pour les `ImageResponse` (PNG identique au bit près). Un TTF gardé « pour les OG » est du poids mort
+- **`ImageResponse` ne lit pas le woff2** : satori lève `Unsupported OpenType signature wOF2`, l'image OG part en **502**. Garder un `.ttf` pour les OG à côté du `.woff2` du navigateur (garde-fou : `og-fonts.integration.test.tsx`)
 - Next 16 : `images.minimumCacheTTL` passe de 60s à **4h** (14400s), réduit le coût de revalidation
 - Next 16 : `images.qualities` restreint à `[75]` par défaut, toute autre valeur est coercée sauf déclaration explicite (`qualities: [25, 50, 75, 100]`)
 - Next 16 : `images.imageSizes` perd la valeur `16` par défaut (retina fetch 32px minimum)

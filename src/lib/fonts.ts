@@ -17,8 +17,6 @@ const geistMono = Geist_Mono({
 // ne contient pas Sansation, donc la @font-face de fallback ajustée n'est jamais générée et le
 // swap décale la mise en page (CLS desktop à 0,28 sur les titres longs). En local, Next mesure
 // le fichier avec fontkit et calcule size-adjust/ascent-override quelle que soit la police.
-// Un seul .woff2 pour le navigateur et les images OG : satori le lit aussi (rendu identique
-// au bit près face au .ttf, supprimé depuis).
 const sansation = localFont({
   src: "./seo/fonts/Sansation-Bold.woff2",
   weight: "700",
