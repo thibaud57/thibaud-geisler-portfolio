@@ -538,7 +538,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Adresse web** : lien `ExternalUrl` vers un nouvel onglet, là où la maquette l'écrit en texte. Maquette réalignée le 2026-10-02
 - **Texte tronqué** : `TruncateTooltip`, infobulle seulement si le texte déborde, là où la maquette n'en pose aucune. Maquette réalignée le 2026-10-02
 - **Actions de ligne** : sans `Tooltip`, l'`aria-label` nommant l'élément, là où la maquette en pose un sur chaque action. Maquette réalignée le 2026-10-02
-- **Largeur de la colonne Actions** : 88px sur toute liste, deux actions au plus par ligne, là où la maquette donne 120px aux leads
+- **Largeur de la colonne Actions** : 88px sur toute liste, trois actions au plus par ligne (trois `RowActionButton` de 20px et le `p-2` de la cellule y tiennent), là où la maquette donne 120px aux leads et aux actions de prospection
 - **Un même mot pour une même donnée** : colonne, vue détail et formulaire lisent la même constante `*_FIELD_LABELS`, nom et slug réunis dans `NameSlugCell`, « Nature » pour client ou perso, là où la maquette abrège en colonne et donne au slug sa propre colonne. Maquette réalignée le 2026-10-01
 - **Panneaux Filtres et Colonnes** : `OptionsPopover`, blocs `TitledBlock` sur deux colonnes dès plus d'un élément, `Separator` entre deux axes, là où la maquette empile une liste plate. Maquette réalignée le 2026-10-01
 - **États vides** : `EmptyState` pour toute liste et la grille d'assets, l'écran fournissant la base vide, l'état filtré étant commun avec « Réinitialiser les filtres », là où la maquette écrit ce bloc à la main par écran. Maquette réalignée le 2026-10-01
@@ -554,6 +554,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Fiches rattachées d'une vue détail** : `RelatedLinksList`, chaque ligne menant à la vue détail de l'autre fiche, là où la maquette les écrivait en texte. Maquette réalignée le 2026-10-02
 - **Fichier dans une vue détail** : tuile `AssetPreview` cliquable vers `/admin/assets?q=<clé>` pour un fichier qui ne sert pas d'image d'identité (couverture d'un projet), là où la maquette écrit le nom du fichier. Maquette réalignée le 2026-10-01
 - **Confirmation de suppression** : `ConfirmDeleteDialog`, titre qui nomme l'élément, « Supprimer « Agents IA » ? », bouton « Supprimer », refus métier en `text-destructive` à la place de la description, là où la maquette écrit « Supprimer le tag ». Maquette réalignée le 2026-10-01
+- **Toast d'enregistrement** : « <Élément> créé » à la création, « <Élément> mis à jour » à la modification, accordé à l'élément (« Action créée »), là où la maquette écrit « Action enregistrée »
 - **Bouton d'enregistrement** : icône `Save`, ou `Upload` pour un dépôt, en modale comme en page, là où la maquette ne la met qu'en page. Maquette réalignée le 2026-10-02
 - **Deux champs courts d'une même card** : côte à côte en `sm:grid-cols-2`, là où la maquette les empile parfois. Maquette réalignée le 2026-10-01
 - **Ordre d'un formulaire** : aucun champ seul sur une demi-ligne (pleine largeur sinon), nom ou titre d'abord et avant le slug, puis rattachements, qualification, chiffres, dates, textes longs, les formulaires semblables sur la même grille, là où la maquette laissait des champs orphelins et posait le slug avant le nom. Maquette réalignée le 2026-10-02

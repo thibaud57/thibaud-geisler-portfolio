@@ -57,6 +57,7 @@ import { JOB_ROLE_LABELS } from "@/lib/job-roles"
 import { LEAD_STATUS_LABELS } from "@/lib/leads"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { personDisplayName } from "@/lib/persons"
+import { formatShortInstantDate } from "@/lib/date-time"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompany } from "@/server/queries/companies"
@@ -172,6 +173,15 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       className: "text-muted-foreground",
       ...hideableColumn(visibleByDefault, "worked"),
       cell: workedLabel,
+    },
+    {
+      key: "firstContactAt",
+      header: COMPANY_FIELD_LABELS.firstContactAt,
+      width: COMPANY_COLUMN_WIDTHS.firstContactAt,
+      className: "tabular-nums text-muted-foreground",
+      ...hideableColumn(visibleByDefault, "firstContactAt"),
+      sortValue: (company) => company.firstContactAt?.getTime() ?? 0,
+      cell: (company) => formatShortInstantDate(company.firstContactAt),
     },
     {
       key: "legalEntity",
@@ -387,6 +397,11 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
         rows: [
           { label: COMPANY_FIELD_LABELS.size, value: sizeBadge(company) },
           { label: COMPANY_FIELD_LABELS.worked, value: workedLabel(company) },
+          {
+            label: COMPANY_FIELD_LABELS.firstContactAt,
+            value: formatShortInstantDate(company.firstContactAt),
+            fullWidth: true,
+          },
         ],
       },
       {

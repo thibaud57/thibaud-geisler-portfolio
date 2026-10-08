@@ -7,9 +7,14 @@ import { useRouter } from "next/navigation"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
+import {
+  type DetailContent,
+  DetailDialog,
+  type DetailSection,
+} from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import {
   actionsColumn,
@@ -21,7 +26,11 @@ import { DeleteLeadDialog } from "@/components/features/admin/leads/DeleteLeadDi
 import { ErasePersonExchangesDialog } from "@/components/features/admin/persons/ErasePersonExchangesDialog"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
+import { rankActions } from "@/lib/action-rank"
+import { byOccurredAtAsc } from "@/lib/action-views"
+import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
 import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin-table-widths"
+import { formatShortDateTime, formatShortInstantDate } from "@/lib/date-time"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import { leadsForView, type LeadView } from "@/lib/lead-views"
 import {
@@ -42,11 +51,14 @@ import {
   PERSON_SECTION_TITLES,
   personDisplayName,
 } from "@/lib/persons"
+import { isRetentionOver, retentionEndOf } from "@/lib/person-retention"
 import { formatShortDate } from "@/lib/projects"
+import { toActionLink } from "@/lib/prospecting-actions"
 import { LEAD_INTERESTS, LEAD_ORIGINS, LEAD_STATUSES } from "@/lib/schemas/lead"
 import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminLead } from "@/server/queries/leads"
+import type { ActionTimelineRow } from "@/server/queries/prospecting-actions"
 
 // Sans glyphe : Poste et Localité ne figurent pas dans la table des glyphes d'énumération.
 function labelBadge(label: string | null) {
@@ -233,6 +245,25 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       cell: (lead) => truncatedCell(lead.phone),
     },
     {
+      key: "actionsCount",
+      header: "Relances",
+      width: LEAD_COLUMN_WIDTHS.actionsCount,
+      align: "right",
+      className: "tabular-nums text-muted-foreground",
+      ...hideableColumn(visibleByDefault, "actionsCount"),
+      sortValue: (lead) => lead.actionsCount,
+      cell: (lead) => lead.actionsCount,
+    },
+    {
+      key: "retentionEnd",
+      header: "À conserver jusqu'au",
+      width: LEAD_COLUMN_WIDTHS.retentionEnd,
+      className: "tabular-nums text-muted-foreground",
+      ...hideableColumn(visibleByDefault, "retentionEnd"),
+      sortValue: (lead) => retentionEndOf(lead).getTime(),
+      cell: (lead) => formatShortInstantDate(retentionEndOf(lead)),
+    },
+    {
       key: "notes",
       header: PERSON_FIELD_LABELS.notes,
       width: LEAD_COLUMN_WIDTHS.notes,
@@ -243,7 +274,36 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
   ]
 }
 
-function buildLeadDetail(lead: AdminLead, onEdit: () => void): DetailContent {
+// L'historique se lit aussi pour un lead opposé : ses actions restent, sauf effacement demandé.
+function historySection(
+  history: readonly ActionTimelineRow[],
+  ranks: Map<string, number>,
+): DetailSection {
+  return {
+    title: LEAD_SECTION_TITLES.actions,
+    rows: [
+      {
+        fullWidth: true,
+        value:
+          history.length === 0 ? null : (
+            <RelatedLinksList
+              links={history.map((action): RelatedLink => ({
+                ...toActionLink(action, ranks.get(action.id) ?? 0),
+                href: `${ADMIN_PROSPECTING_ACTIONS_PATH}?detail=${action.id}`,
+              }))}
+            />
+          ),
+      },
+    ],
+  }
+}
+
+function buildLeadDetail(
+  lead: AdminLead,
+  history: readonly ActionTimelineRow[],
+  ranks: Map<string, number>,
+  onEdit: () => void,
+): DetailContent {
   if (lead.optedOutAt) {
     return {
       title: personDisplayName(lead),
@@ -261,6 +321,7 @@ function buildLeadDetail(lead: AdminLead, onEdit: () => void): DetailContent {
             },
           ],
         },
+        historySection(history, ranks),
       ],
     }
   }
@@ -322,6 +383,12 @@ function buildLeadDetail(lead: AdminLead, onEdit: () => void): DetailContent {
             label: LEAD_FIELD_LABELS.score,
             value: lead.score === null ? null : `${lead.score} / 10`,
           },
+          // Pleine largeur : metAt et Score restent la paire du formulaire, et la ligne ne reste pas à moitié vide.
+          {
+            label: LEAD_FIELD_LABELS.lastReplyAt,
+            value: formatShortDateTime(lead.lastReplyAt),
+            fullWidth: true,
+          },
         ],
       },
       { title: PERSON_SECTION_TITLES.notes, rows: [{ value: lead.notes, fullWidth: true }] },
@@ -332,12 +399,13 @@ function buildLeadDetail(lead: AdminLead, onEdit: () => void): DetailContent {
           { value: null, fullWidth: true },
         ],
       },
+      historySection(history, ranks),
     ],
     onEdit,
   }
 }
 
-const facets: readonly Facet<AdminLead>[] = [
+const baseFacets: readonly Facet<AdminLead>[] = [
   {
     key: "status",
     label: LEAD_FIELD_LABELS.status,
@@ -374,19 +442,42 @@ const facets: readonly Facet<AdminLead>[] = [
   },
 ]
 
+function retentionFacet(now: Date): Facet<AdminLead> {
+  return {
+    key: "retention",
+    label: "Échéance",
+    options: [{ value: "overdue", label: "Dépassée" }],
+    value: (lead) => (isRetentionOver(lead, now) ? ["overdue"] : []),
+  }
+}
+
 interface Props {
   leads: readonly AdminLead[]
   view: LeadView
+  actions: readonly ActionTimelineRow[]
   initialDetailId?: string
 }
 
-export function LeadsTable({ leads, view, initialDetailId }: Props) {
+export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   const router = useRouter()
   const [selectedLead, setSelectedLead] = useState<AdminLead | null>(
     () => leads.find((lead) => lead.id === initialDetailId) ?? null,
   )
+  // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
+  const [now] = useState(() => new Date())
 
   const viewLeads = useMemo(() => leadsForView(leads, view), [leads, view])
+  const facets = useMemo(() => [...baseFacets, retentionFacet(now)], [now])
+  const ranks = useMemo(() => rankActions(actions), [actions])
+  const historyByPerson = useMemo(() => {
+    const map = new Map<string, ActionTimelineRow[]>()
+    for (const action of [...actions].sort(byOccurredAtAsc)) {
+      const list = map.get(action.personId) ?? []
+      list.push(action)
+      map.set(action.personId, list)
+    }
+    return map
+  }, [actions])
 
   const columns = useMemo<readonly Column<AdminLead>[]>(
     () => [...buildDataColumns(view), actionsColumn(rowActions)],
@@ -396,11 +487,11 @@ export function LeadsTable({ leads, view, initialDetailId }: Props) {
   const detail = useMemo<DetailContent | null>(
     () =>
       selectedLead
-        ? buildLeadDetail(selectedLead, () => {
+        ? buildLeadDetail(selectedLead, historyByPerson.get(selectedLead.id) ?? [], ranks, () => {
             router.push(`/admin/leads/${selectedLead.id}`)
           })
         : null,
-    [selectedLead, router],
+    [selectedLead, historyByPerson, ranks, router],
   )
 
   return (

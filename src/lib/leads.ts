@@ -93,9 +93,11 @@ export const LEAD_FIELD_LABELS = {
   interest: "Intérêt",
   channel: "Canal",
   score: "Score",
+  lastReplyAt: "Dernier contact de sa part",
 } as const
 
 export const LEAD_SECTION_TITLES = {
   pipeline: "Pipeline",
   network: "Réseau",
+  actions: "Actions",
 } as const

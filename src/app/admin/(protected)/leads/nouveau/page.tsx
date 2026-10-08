@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 
+import { LeadActionsCard } from "@/components/features/admin/leads/LeadActionsCard"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
@@ -15,7 +16,15 @@ async function NewLeadSection() {
       <AdminBreadcrumb
         items={[{ label: "Leads", href: "/admin/leads" }, { label: "Nouveau lead" }]}
       />
-      <LeadForm lead={null} companyOptions={companyOptions} />
+      <LeadForm
+        lead={null}
+        companyOptions={companyOptions}
+        relatedCards={
+          <>
+            <LeadActionsCard lead={null} actions={[]} />
+          </>
+        }
+      />
     </div>
   )
 }

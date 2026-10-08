@@ -6,7 +6,11 @@ export interface ActionTiming {
   respondedAt: Date | null
 }
 
-const REPLIED: ReadonlySet<ActionStatus> = new Set(["REPONDU", "CONVERTI"])
+const REPLIED: ReadonlySet<string> = new Set<ActionStatus>(["REPONDU", "CONVERTI"])
+
+export function isRepliedStatus(status: string): boolean {
+  return REPLIED.has(status)
+}
 
 // `current` vaut null à la création (l'action garde sa date) ; `next.respondedAt` nul signifie « non saisie ».
 export function applyStatusRules(
@@ -21,7 +25,7 @@ export function applyStatusRules(
     next.status !== "A_FAIRE" &&
     next.occurredAt.getTime() === current.occurredAt.getTime()
 
-  const respondedAt = REPLIED.has(next.status)
+  const respondedAt = isRepliedStatus(next.status)
     ? (next.respondedAt ?? current?.respondedAt ?? now)
     : null
 

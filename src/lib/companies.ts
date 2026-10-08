@@ -88,6 +88,7 @@ export const COMPANY_FIELD_LABELS = {
   types: "Types",
   relationStatus: "Statut de la relation",
   worked: "Travaillée",
+  firstContactAt: "Premier contact",
   zones: "Zones",
   notes: "Notes",
   details: "Détails",

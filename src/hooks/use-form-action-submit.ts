@@ -11,6 +11,8 @@ export function useFormActionSubmit(
 ) {
   return (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
+    // L'événement synthétique remonte dans l'arbre React à travers les portails : un dialogue rendu dans le <form> d'une fiche soumettrait aussi celle-ci.
+    event.stopPropagation()
     const formData = new FormData(event.currentTarget)
     if (prepare && !prepare(formData)) return
     startTransition(() => {

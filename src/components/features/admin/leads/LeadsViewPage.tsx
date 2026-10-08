@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { leadSkeletonWidths } from "@/lib/admin-table-widths"
 import { LEAD_VIEW_PAGES, type LeadView } from "@/lib/lead-views"
 import { findAllLeadsForAdmin } from "@/server/queries/leads"
+import { findActionTimelinesForAdmin } from "@/server/queries/prospecting-actions"
 
 interface Props {
   view: LeadView
@@ -16,8 +17,13 @@ interface Props {
 }
 
 async function LeadsSection({ view, initialDetailId }: Props) {
-  const leads = await findAllLeadsForAdmin()
-  return <LeadsTable leads={leads} view={view} initialDetailId={initialDetailId} />
+  const [leads, actions] = await Promise.all([
+    findAllLeadsForAdmin(),
+    findActionTimelinesForAdmin(),
+  ])
+  return (
+    <LeadsTable leads={leads} view={view} actions={actions} initialDetailId={initialDetailId} />
+  )
 }
 
 export function LeadsViewPage({ view, initialDetailId }: Props) {

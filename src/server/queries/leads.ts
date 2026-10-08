@@ -21,6 +21,7 @@ const adminLeadInclude = {
         take: 1,
         select: { respondedAt: true },
       },
+      _count: { select: { prospectingActions: true } },
     },
   },
 } as const
@@ -48,6 +49,8 @@ export interface AdminLead {
   interest: LeadInterest | null
   channel: LeadChannel | null
   score: number | null
+  createdAt: Date
+  actionsCount: number
   hasContactRole: boolean
 }
 
@@ -73,6 +76,8 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     interest: row.interest,
     channel: row.channel,
     score: row.score,
+    createdAt: row.createdAt,
+    actionsCount: row.person._count.prospectingActions,
     hasContactRole: false,
   }
 }

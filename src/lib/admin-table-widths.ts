@@ -1,11 +1,12 @@
 // Module sans "use client" : partagé entre les tables clientes (DataTable) et les pages serveur
 // (DataTableSkeleton), pour que le squelette ne dérive jamais silencieusement de la table.
 
+import type { ActionView } from "@/lib/action-views"
 import type { LeadView } from "@/lib/lead-views"
 
 export const ORDER_COLUMN_WIDTH = 52
 
-// Une seule largeur pour toutes les listes : une ligne porte au plus deux actions.
+// Une seule largeur pour toutes les listes : une ligne porte au plus trois actions.
 export const ACTIONS_COLUMN_WIDTH = 88
 
 export const TAG_COLUMN_WIDTHS = {
@@ -31,6 +32,7 @@ export const COMPANY_COLUMN_WIDTHS = {
   size: 140,
   relationStatus: 150,
   worked: 104,
+  firstContactAt: 150,
   legalEntity: 160,
   websiteUrl: 150,
   notes: 220,
@@ -49,6 +51,7 @@ const ALL_COMPANY_COLUMNS: readonly CompanyColumnKey[] = [
   "size",
   "relationStatus",
   "worked",
+  "firstContactAt",
   "legalEntity",
   "websiteUrl",
   "notes",
@@ -62,7 +65,7 @@ export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
 > = {
   toutes: ALL_COMPANY_COLUMNS,
   travaillees: ["types", "sectors", "zones", "size", "relationStatus", "projects"],
-  recrutement: ["types", "zones", "relationStatus", "worked"],
+  recrutement: ["types", "zones", "relationStatus", "worked", "firstContactAt"],
   // Une entreprise prospect n'est jamais travaillée : la colonne y serait constante.
   prospects: ALL_COMPANY_COLUMNS.filter((key) => key !== "worked"),
 }
@@ -142,6 +145,8 @@ export const LEAD_COLUMN_WIDTHS = {
   linkedinUrl: 170,
   email: 200,
   phone: 140,
+  actionsCount: 110,
+  retentionEnd: 180,
   notes: 220,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
@@ -163,6 +168,7 @@ const ALL_LEAD_COLUMNS: readonly LeadColumnKey[] = [
   "linkedinUrl",
   "email",
   "phone",
+  "actionsCount",
   "notes",
 ]
 
@@ -181,6 +187,7 @@ export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadCo
     "linkedinUrl",
     "email",
     "phone",
+    "actionsCount",
     "notes",
   ],
   "a-qualifier": [
@@ -193,6 +200,7 @@ export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadCo
     "linkedinUrl",
     "email",
     "phone",
+    "actionsCount",
     "notes",
   ],
   "stand-by": [
@@ -204,9 +212,12 @@ export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadCo
     "jobRole",
     "company",
     "zone",
+    "actionsCount",
     "notes",
   ],
-  tous: ALL_LEAD_COLUMNS,
+  tous: ALL_LEAD_COLUMNS.flatMap((key) =>
+    key === "actionsCount" ? [key, "retentionEnd" as const] : [key],
+  ),
 }
 
 export function leadSkeletonWidths(view: LeadView): readonly number[] {
@@ -216,4 +227,33 @@ export function leadSkeletonWidths(view: LeadView): readonly number[] {
     "actions",
   ]
   return keys.map((key) => LEAD_COLUMN_WIDTHS[key])
+}
+
+export const ACTION_COLUMN_WIDTHS = {
+  title: 240,
+  rank: 130,
+  channel: 160,
+  status: 120,
+  occurredAt: 150,
+  person: 210,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type ActionColumnKey = keyof typeof ACTION_COLUMN_WIDTHS
+
+export const ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<ActionView, readonly ActionColumnKey[]> = {
+  "a-faire": ["rank", "channel", "occurredAt", "person"],
+  connexions: ["rank", "occurredAt", "person"],
+  discussions: ["rank", "channel", "occurredAt", "person"],
+  candidatures: ["rank", "occurredAt", "person"],
+  journal: ["rank", "channel", "status", "occurredAt", "person"],
+}
+
+export function actionSkeletonWidths(view: ActionView): readonly number[] {
+  const keys: readonly ActionColumnKey[] = [
+    "title",
+    ...ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => ACTION_COLUMN_WIDTHS[key])
 }

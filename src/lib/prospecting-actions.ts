@@ -12,6 +12,8 @@ import {
 } from "lucide-react"
 
 import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
+import { rankLabel } from "@/lib/action-rank"
+import { formatShortDateTime } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const ACTION_CHANNEL_LABELS: Record<ActionChannel, string> = {
@@ -49,6 +51,24 @@ export const ACTION_STATUS_ICONS: Record<ActionStatus, IconComponent | null> = {
   REPONDU: Reply,
   CONVERTI: Target,
   IGNORE: VolumeX,
+}
+
+export function toActionLink(
+  action: {
+    id: string
+    title: string
+    channel: ActionChannel
+    status: ActionStatus
+    occurredAt: Date
+  },
+  rank: number,
+) {
+  return {
+    id: action.id,
+    label: action.title,
+    meta: `${rankLabel(rank)} · ${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
+    trailing: formatShortDateTime(action.occurredAt),
+  }
 }
 
 // personId parle de « Personne » ici : le formulaire choisit une personne, pas un rôle.

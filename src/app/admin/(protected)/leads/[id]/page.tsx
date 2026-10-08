@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
 
+import { LeadActionsCard } from "@/components/features/admin/leads/LeadActionsCard"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
@@ -10,9 +11,14 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadByIdForAdmin } from "@/server/queries/leads"
+import { findProspectingActionsOfPerson } from "@/server/queries/prospecting-actions"
 
 async function EditLeadSection({ id }: { id: string }) {
-  const [lead, companyOptions] = await Promise.all([findLeadByIdForAdmin(id), findCompanyOptions()])
+  const [lead, companyOptions, actions] = await Promise.all([
+    findLeadByIdForAdmin(id),
+    findCompanyOptions(),
+    findProspectingActionsOfPerson(id),
+  ])
   if (!lead) notFound()
   // Une fiche en opposition ne se modifie plus : sa trace se lit dans Tous.
   if (lead.optedOutAt) redirect(ADMIN_LEADS_PATH)
@@ -22,7 +28,15 @@ async function EditLeadSection({ id }: { id: string }) {
       <AdminBreadcrumb
         items={[{ label: "Leads", href: "/admin/leads" }, { label: personDisplayName(lead) }]}
       />
-      <LeadForm lead={lead} companyOptions={companyOptions} />
+      <LeadForm
+        lead={lead}
+        companyOptions={companyOptions}
+        relatedCards={
+          <>
+            <LeadActionsCard lead={lead} actions={actions} />
+          </>
+        }
+      />
     </div>
   )
 }
