@@ -30,12 +30,32 @@ const SHORT_DATE_TIME = new Intl.DateTimeFormat("fr-FR", {
   timeZone: TIME_ZONE,
 })
 
+const SHORT_TIME = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: TIME_ZONE,
+})
+
 export function formatShortInstantDate(date: Date | null): string | null {
   return date ? SHORT_DATE.format(date) : null
+}
+
+export function formatShortInstantTime(date: Date): string {
+  return SHORT_TIME.format(date)
 }
 
 export function formatShortDateTime(date: Date): string
 export function formatShortDateTime(date: Date | null): string | null
 export function formatShortDateTime(date: Date | null): string | null {
   return date ? SHORT_DATE_TIME.format(date).replace(",", "") : null
+}
+
+const DAY_MS = 86_400_000
+
+// Jours de calendrier, l'heure ignorée : une action de J-7 reste dans « 7 jours » quelle que soit l'heure de consultation. L'arrondi absorbe les journées de 23 h ou 25 h des changements d'heure.
+export function calendarDaysBetween(a: Date, b: Date): number {
+  const dayA = new Date(a.getFullYear(), a.getMonth(), a.getDate())
+  const dayB = new Date(b.getFullYear(), b.getMonth(), b.getDate())
+  return Math.round(Math.abs(dayA.getTime() - dayB.getTime()) / DAY_MS)
 }

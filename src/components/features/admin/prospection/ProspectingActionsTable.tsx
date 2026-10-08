@@ -2,56 +2,34 @@
 
 import { useMemo, useState } from "react"
 import { Send } from "lucide-react"
-import Link from "next/link"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import {
-  type DetailContent,
-  type DetailSection,
-  DetailDialog,
-} from "@/components/features/admin/DetailDialog"
+import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { actionsColumn, hideableColumn } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProspectingActionDialog } from "@/components/features/admin/prospection/DeleteProspectingActionDialog"
+import {
+  buildActionDetail,
+  channelBadge,
+} from "@/components/features/admin/prospection/action-detail"
 import { MarkActionDoneButton } from "@/components/features/admin/prospection/MarkActionDoneButton"
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospection/ProspectingActionFormDialog"
 import { rankActions, rankLabel } from "@/lib/action-rank"
 import { actionsForView, type ActionView } from "@/lib/action-views"
-import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
 import { ACTION_COLUMN_WIDTHS, ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin-table-widths"
-import { formatShortDateTime } from "@/lib/date-time"
+import { calendarDaysBetween, formatShortDateTime } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
 import {
-  ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
   ACTION_STATUS_ICONS,
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
 } from "@/lib/prospecting-actions"
 import { ACTION_CHANNELS, ACTION_STATUSES } from "@/lib/schemas/prospecting-action"
-import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import type { PersonOption } from "@/server/queries/persons"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
-
-const DAY_MS = 86_400_000
-
-// Jours de calendrier, l'heure ignorée : une action de J-7 reste dans « 7 jours » quelle que soit l'heure de consultation. L'arrondi absorbe les journées de 23 h ou 25 h des changements d'heure.
-function calendarDaysBetween(a: Date, b: Date): number {
-  const dayA = new Date(a.getFullYear(), a.getMonth(), a.getDate())
-  const dayB = new Date(b.getFullYear(), b.getMonth(), b.getDate())
-  return Math.round(Math.abs(dayA.getTime() - dayB.getTime()) / DAY_MS)
-}
-
-function channelBadge(action: AdminProspectingAction) {
-  return (
-    <EnumBadge
-      label={ACTION_CHANNEL_LABELS[action.channel]}
-      icon={ACTION_CHANNEL_ICONS[action.channel]}
-    />
-  )
-}
 
 function personCell(action: AdminProspectingAction) {
   return (
@@ -126,62 +104,6 @@ function buildDataColumns(
       cell: personCell,
     },
   ]
-}
-
-function buildActionDetail(
-  action: AdminProspectingAction,
-  rank: number,
-): Omit<DetailContent, "onEdit"> {
-  const sections: DetailSection[] = [
-    {
-      title: "Action",
-      rows: [
-        {
-          label: LABELS.personId,
-          value: (
-            // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
-            <Link
-              href={`${ADMIN_LEADS_PATH}?detail=${action.person.id}`}
-              className={STANDALONE_LINK_CLASS}
-            >
-              {personDisplayName(action.person)}
-            </Link>
-          ),
-        },
-        { label: LABELS.channel, value: channelBadge(action) },
-        { label: LABELS.occurredAt, value: formatShortDateTime(action.occurredAt) },
-        {
-          label: LABELS.respondedAt,
-          value: formatShortDateTime(action.respondedAt),
-        },
-      ],
-    },
-    {
-      title: LABELS.message,
-      rows: [
-        {
-          value: action.message ? (
-            <span className="whitespace-pre-line">{action.message}</span>
-          ) : null,
-          fullWidth: true,
-        },
-      ],
-    },
-  ]
-
-  return {
-    title: action.title,
-    subtitle: rankLabel(rank),
-    status: (
-      <EnumBadge
-        label={ACTION_STATUS_LABELS[action.status]}
-        icon={ACTION_STATUS_ICONS[action.status]}
-        variant="outline"
-        meta
-      />
-    ),
-    sections,
-  }
 }
 
 interface Props {
@@ -259,12 +181,9 @@ export function ProspectingActionsTable({ actions, view, personOptions, initialD
   const detail = useMemo<DetailContent | null>(
     () =>
       selectedAction
-        ? {
-            ...buildActionDetail(selectedAction, ranks.get(selectedAction.id) ?? 0),
-            onEdit: () => {
-              setEditingAction(selectedAction)
-            },
-          }
+        ? buildActionDetail(selectedAction, ranks.get(selectedAction.id) ?? 0, () => {
+            setEditingAction(selectedAction)
+          })
         : null,
     [selectedAction, ranks],
   )

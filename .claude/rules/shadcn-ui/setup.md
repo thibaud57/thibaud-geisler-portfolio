@@ -2,6 +2,7 @@
 paths:
   - "components.json"
   - "src/components/ui/**/*.tsx"
+  - "src/components/reui/**/*.tsx"
 ---
 
 # shadcn/ui — Setup, CLI & philosophie
@@ -28,6 +29,7 @@ paths:
   - **`import { cn } from "cn"`** au lieu de `@/lib/utils`, et le CLI **installe un paquet npm `cn`** pour satisfaire cet import. Réécrire l'import, puis `pnpm remove cn`. Le paquet revient à chaque nouveau composant, le retirer une fois ne suffit pas
   - **`modifiers.focused` dans `calendar.tsx`** viole `noPropertyAccessFromIndexSignature` (TS4111). Passer en notation crochet, et **extraire une variable** avant de la mettre en dépendance d'un effet : `modifiers["focused"]` dans un tableau de deps échoue à `react-hooks/exhaustive-deps`, qui ne sait pas l'analyser
   - **`Calendar` rend en anglais** sans prop `locale`, semaine commençant dimanche. Lui passer la locale du projet
+- **`Kanban` du registre `@reui` : passer `id={React.useId()}` au `DndContext`** après chaque `add`. Sans id, dnd-kit numérote son `aria-describedby` (`DndDescribedBy-N`) par un compteur de module qui avance à chaque rendu serveur : l'hydratation ne correspond plus et les instructions du lecteur d'écran pointent vers un id absent (constaté le 2026-10-08, `@dnd-kit/core` 6.3.1)
 - Pour les **composants Magic UI / Aceternity UI** ajoutés via le même CLI shadcn (issue imports `@/`, philosophie partagée) : voir `magic-ui/components.md` et `aceternity-ui/components.md`
 
 ## Exemples

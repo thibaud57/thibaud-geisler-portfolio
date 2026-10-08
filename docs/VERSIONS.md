@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-06"
+date: "2026-10-08"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 octobre 2026**.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 octobre 2026**, sauf les lignes ReUI et dnd-kit, relevées le **8 octobre 2026**.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -35,6 +35,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | shadcn/ui (CLI) | `shadcn@4.21.0` | ✅ | Composants copiés localement, style `radix-nova` |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
+| ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. Au 8 octobre 2026, seul `Kanban` est installé |
+| dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) | `6.3.1`, `10.0.0`, `3.2.2` | ✅ | Glisser-déposer du `Kanban` ReUI, que ces paquets servent au 8 octobre 2026. Relevé dans `pnpm-lock.yaml` le 8 octobre 2026 |
 | next-intl | `4.14.2` | ✅ | Nécessite Next.js >= 16.3 pour `use cache` |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
@@ -399,7 +401,36 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `13.2.0` installée. Utiliser la syntaxe namespacée.
 
-### 7. next-intl
+### 7. ReUI
+
+**Version actuelle** : pas de versioning sémantique (copy-paste via registry shadcn)
+**Stabilité** : ✅
+
+Registre déclaré dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`), `{style}` se résolvant en `radix-nova`. Au 8 octobre 2026, seul `Kanban` est installé (`src/components/reui/kanban.tsx`).
+
+**Compatibilité Écosystème** :
+- shadcn CLI : ✅ (`pnpm dlx shadcn@latest add @reui/kanban`)
+- React 19 / Tailwind CSS 4 : ✅
+
+**Issues connues** :
+- Le code livré demande les mêmes corrections que les autres registries (import `cn` depuis le paquet npm `cn` à réécrire vers `@/lib/utils`, puis `pnpm remove cn`), plus `Context.Provider` à passer en `<Context value>` et les lectures indexées à sécuriser pour `noUncheckedIndexedAccess`. Voir `.claude/rules/shadcn-ui/setup.md`
+
+**Recommandation** : ✅ Relire le fichier livré et lancer `just typecheck` et `just lint` après chaque ajout.
+
+### 8. dnd-kit
+
+**Versions actuelles** : `@dnd-kit/core` `6.3.1`, `@dnd-kit/sortable` `10.0.0`, `@dnd-kit/utilities` `3.2.2` (`@dnd-kit/accessibility` `3.1.1` en transitive)
+**Stabilité** : ✅
+
+Tirés par `Kanban` de ReUI lors de son installation. Au 8 octobre 2026, aucun autre code du projet ne les importe.
+
+**Compatibilité Écosystème** :
+- React 19 : ✅ (peer `react >=16.8.0` sur les quatre paquets, `react-dom >=16.8.0` sur `core`)
+- `@dnd-kit/sortable` 10.0.0 exige `@dnd-kit/core` `^6.3.0`
+
+**Recommandation** : ✅ Ne pas les mettre à jour isolément du composant `Kanban`, qui en épouse l'API.
+
+### 9. next-intl
 
 **Version actuelle** : `4.14.2`
 **Stabilité** : ✅
@@ -429,7 +460,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ next-intl 4.14.2 avec Next.js 16.3+.
 
-### 8. @icons-pack/react-simple-icons
+### 10. @icons-pack/react-simple-icons
 
 **Version actuelle** : `13.15.1`
 **Stabilité** : ✅
@@ -448,7 +479,7 @@ Wrapper React de Simple Icons. Les icônes sont importées nommément depuis le 
 
 **Recommandation** : ✅ 13.15.1.
 
-### 9. country-flag-icons
+### 11. country-flag-icons
 
 **Version actuelle** : `1.6.20`
 **Stabilité** : ✅
@@ -1342,6 +1373,8 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [shadcn/ui : React 19](https://ui.shadcn.com/docs/react-19)
 - [Magic UI : Docs](https://magicui.design/docs)
 - [Aceternity UI : Install Next.js](https://ui.aceternity.com/docs/install-nextjs)
+- [ReUI : Docs](https://reui.io)
+- [dnd-kit : Docs](https://docs.dndkit.com)
 - [next-intl 4.0 Blog](https://next-intl.dev/blog/next-intl-4-0)
 
 ### Librairies applicatives

@@ -1,7 +1,7 @@
 ---
 title: "DESIGN — Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-10-02"
+date: "2026-10-08"
 keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin", "dataviz"]
 scope: ["docs", "frontend"]
 technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "Motion", "next-intl"]
@@ -196,7 +196,7 @@ Voir `components.json` (racine projet) pour la déclaration des registries / nam
 | shadcn/ui | Composants fonctionnels (Radix UI + Tailwind) | Boutons, forms, modales, navigation, cards, tables, toute l'UI fonctionnelle. Style **`radix-nova`** (compact : contrôles à 32px, paliers `sm` 28px et `xs` 24px, `rounded-lg`, padding 10px), pour le site public comme pour l'admin. En changer impose de réinstaller tous les composants. Choix de shadcn/ui : [ADR-009](adrs/009-ui-system.md) |
 | Magic UI | Effets visuels copy-paste | Enrichissements marketing : typographie animée, bento grid, marquee, bordure animée, bouton shimmer, bascule de thème |
 | Aceternity UI | Effets visuels copy-paste | Effets hero premium. Installé : Background Ripple Effect seul, les candidats étant listés en § Mapping Composants > Post-MVP |
-| ReUI | Composants absents du registry shadcn | Post-MVP admin : `EventCalendar` et `Kanban`. Registry compatible shadcn CLI, à déclarer dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
+| ReUI | Composants absents du registry shadcn | Admin : `Kanban` installé (pipeline des actions de prospection), `EventCalendar` en Post-MVP. Registry compatible shadcn CLI, déclaré dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`) |
 | Tailwind CSS | Styling utilitaire | Tout le styling, composition de classes |
 | `@tailwindcss/typography` | Rendu markdown (plugin Tailwind) | Classes `prose` appliquées sur le markdown des case studies et des pages légales (`prose dark:prose-invert max-w-none`). Chargé via `@plugin` dans `globals.css` |
 | `@c15t/nextjs` | Consent Management Platform | Bandeau RGPD et modale de préférences aux tokens du design system, widget Calendly bloqué tant que les cookies marketing sont refusés. Intégration : [knowledges/c15t.md](knowledges/c15t.md) |
@@ -212,7 +212,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | shadcn/ui | `src/components/ui/` | Défaut shadcn CLI |
 | Magic UI | `src/components/magicui/` | Défaut Magic UI |
 | Aceternity UI | `src/components/aceternity/` | Défaut Aceternity = `ui/`, customisé via `-p src/components/aceternity` ou `aliases` dans `components.json` |
-| ReUI | `src/components/reui/` | Post-MVP, même principe que les deux précédents |
+| ReUI | `src/components/reui/` | Au 8 octobre 2026, `Kanban` est le seul composant installé, rangé là par le registre, même principe que les deux précédents |
 
 ## Mapping Composants
 
@@ -270,6 +270,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Card de connexion admin | Card + Separator | shadcn/ui | Centrée en `max-w-sm` sur `/admin/login`. En-tête centré : logo, `Separator`, titre à l'échelle admin, `CardDescription`. Contenu : avis d'erreur éventuel puis bouton de connexion |
 | Lignes rattachées | Link + `TruncateTooltip`, composé par `RelatedLinksList` | composant maison | Une ligne par fiche rattachée, « libellé : méta » sur une ligne : le libellé en lien vers la page de la fiche, la méta tronquée avec une infobulle quand elle déborde. Réservé : `trailing` (une date ou un chiffre sur une seconde ligne plus petite), `actions` (crayon et corbeille d'un élément sans page propre) et `onClick` (ouvre une vue détail en place) |
 | Fiches rattachées | Card, composé par `RelatedLinksCard` sur `RelatedLinksList` | shadcn/ui | Card d'une page de fiche, dans la colonne principale sous Détails, présente aussi en création. Page d'une entreprise : card « Leads », vide avec « Après l'enregistrement de l'entreprise. » à la création, sans action d'en-tête. Le bloc « Leads » de la vue détail d'une entreprise reprend les mêmes lignes, sans la card |
+| Tableau kanban | Kanban | ReUI | Pipeline des actions de prospection (admin), puis espace Dev. Glisser-déposer par dnd-kit. **Headless** : colonne et carte sont à la charge de l'appelant, composées en `Card` (colonne : icône du statut, libellé au registre Label en `text-xs`, compteur en `Badge` `outline` ; carte `size="sm"`). Une seule rangée de colonnes de 13.75rem au moins, qui défile horizontalement, à la hauteur de l'écran (§ Arbitrages). Enregistrement unique au lâcher par `onValueCommit`, un échec réalignant le tableau sur la dernière lecture du serveur ; `restoreOnCancel` annule le geste à Échap. Aucune poignée de colonne quand leur ordre est fixe |
 
 ### Badges
 
@@ -352,8 +353,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Champ date et heure | Popover + Calendar + Input, composé par `DateTimeField` | shadcn/ui | Date et heure d'une action de prospection et d'un entretien |
 | Mois de démarrage | Popover + Button, composé par `MonthField` | shadcn/ui | Démarrage d'une opportunité : le bouton des champs date ouvre une grille des douze mois sous une année à faire défiler, avec « Effacer » ; valeur `AAAA-MM` entière ou vide |
 | Formulaire long en modale | Dialog | shadcn/ui | Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse |
-| Tableau kanban | Kanban | ReUI | Espace Dev (« Kanban · Audits »). Glisser-déposer par dnd-kit, une dépendance réelle contrairement aux autres entrées ReUI. `onMove` bascule d'un aperçu direct à un point de commit unique, à brancher sur une Server Action. Le composant est **headless** : il ne fournit que le comportement, la carte est entièrement à la charge de l'appelant, qui la compose en `Card` |
-| Agenda mensuel | EventCalendar | ReUI | Registry `@reui` à déclarer dans `components.json`, même CLI. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
+| Agenda mensuel | EventCalendar | ReUI | Registry `@reui` déjà déclaré dans `components.json`. Vue mois ; ne persiste rien, `onEventUpdate` à brancher sur Prisma |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk, comme le fait le Combobox (§ Formulaires) |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : `--chart-*` et § Palette de Couleurs > Règles |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
@@ -580,6 +580,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Titre de la suppression d'un fichier** : nomme le fichier, pas sa clé, là où la maquette écrit la clé complète. Maquette réalignée le 2026-10-01
 - **Menus du champ markdown** : libellés en français, menu « / » et sélecteur de bloc gardant toutes les entrées de l'éditeur (Texte, Titre 1 à 3, Liste à puces, Liste numérotée, Liste de tâches, Tableau, Citation, Bloc de code), là où le design system ne montre que titres, listes et citation
 - **Fichier d'un formulaire** : `AssetField` pour le logo d'une entreprise et la couverture d'un projet, aperçu entier dans son cadre sur fond neutre (`AssetFrame`, le cadre d'`AssetPreview`), nom du fichier dessous, boutons sur une rangée, là où la maquette borne l'image à une fraction du cadre et n'écrit la légende que sur le logo
+- **Hauteur d'un tableau kanban** : le tableau remplit la hauteur de l'écran sous l'en-tête, colonnes pleine hauteur même vides, cartes qui défilent dans leur colonne (`overflow-y-auto`), scrollbar masquée par `no-scrollbar` comme celle du menu latéral, la page ne défilant jamais, là où la maquette donne aux colonnes la hauteur de leur contenu
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)
@@ -592,7 +593,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 ## Ressources Complémentaires
 - [Magic UI](https://magicui.design) : effets visuels copy-paste (ADR-009)
 - [Aceternity UI](https://ui.aceternity.com) : effets visuels copy-paste (ADR-009)
-- [ReUI](https://reui.io) : registry compatible shadcn CLI, `EventCalendar` pour l'agenda admin et `Kanban` pour l'espace Dev (post-MVP)
+- [ReUI](https://reui.io) : registry compatible shadcn CLI, `Kanban` pour le pipeline des actions de prospection et l'espace Dev, `EventCalendar` pour l'agenda admin (post-MVP)
 - [Radix UI](https://www.radix-ui.com) : primitives accessibles sous-jacentes à shadcn/ui
 - [Geist Font](https://vercel.com/font) : polices Geist Sans et Geist Mono (Vercel)
 - [Sansation](https://fonts.google.com/specimen/Sansation) : police display, par Bernd Montag, sous licence OFL
