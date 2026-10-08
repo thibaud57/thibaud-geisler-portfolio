@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "pipeline-actions-kanban"
 goal: "Voir les actions de prospection en colonnes de statut et changer le statut d'une action en glissant sa carte, avec le Kanban ReUI."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["09-actions-prospection-donnees-design.md", "10-ecran-actions-prospection-design.md", "07-leads-donnees-design.md"]
