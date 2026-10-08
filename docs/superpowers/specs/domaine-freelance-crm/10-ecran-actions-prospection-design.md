@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "ecran-actions-prospection"
 goal: "Suivre les actions de prospection dans l'espace admin (vues À faire, Connexions, Discussions, Candidatures, Journal, rang des relances, formulaire, « Marquer fait »), montrer leur historique et leurs échéances de conservation côté leads, et le premier contact d'une entreprise."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["09-actions-prospection-donnees-design.md", "08-ecran-leads-design.md", "07-leads-donnees-design.md", "04-liste-entreprises-enrichie-design.md"]
