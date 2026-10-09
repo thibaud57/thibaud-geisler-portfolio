@@ -42,7 +42,7 @@
 - Modify: `Justfile` (recette `reprise-notion`, après `dev-login`)
 
 **Interfaces:**
-- Consumes: `companySchema`, `CompanyInput` (`@/lib/schemas/company`) ; `leadSchema` (`@/lib/schemas/lead`) ; `contactSchema` (`@/lib/schemas/contact`) ; `prospectingActionSchema`, `ProspectingActionInput` (`@/lib/schemas/prospecting-action`) ; `opportunitySchema`, `OpportunityInput` (`@/lib/schemas/opportunity`) ; `interviewSchema`, `InterviewInput` (`@/lib/schemas/interview`) ; `signalSchema`, `SignalInput` (`@/lib/schemas/signal`) ; `weeklyReviewSchema`, `WeeklyReviewInput` (`@/lib/schemas/weekly-review`) ; `personFields`, `NONE_VALUE` (`@/lib/schemas/person`, valeur `"aucun"`) ; `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` (`@/lib/signals`) ; `prisma` (`@/lib/prisma`) ; `env` (`@/env`)
+- Consumes: `companySchema`, `CompanyInput` (`@/lib/schemas/company`) ; `leadSchema` (`@/lib/schemas/lead`) ; `networkContactSchema` (`@/lib/schemas/network-contact`) ; `prospectingActionSchema`, `ProspectingActionInput` (`@/lib/schemas/prospecting-action`) ; `opportunitySchema`, `OpportunityInput` (`@/lib/schemas/opportunity`) ; `interviewSchema`, `InterviewInput` (`@/lib/schemas/interview`) ; `signalSchema`, `SignalInput` (`@/lib/schemas/signal`) ; `weeklyReviewSchema`, `WeeklyReviewInput` (`@/lib/schemas/weekly-review`) ; `personFields`, `NONE_VALUE` (`@/lib/schemas/person`, valeur `"aucun"`) ; `signalTypesFor(kind: SignalOwnerKind): readonly SignalType[]` (`@/lib/signals`) ; `prisma` (`@/lib/prisma`) ; `env` (`@/env`)
 - Produces: `importFileSchema`, `ImportFile`, `ListName`, `Issue`, `Row<R, T>`, `Prepared`, `PersonInput`, `LeadRoleInput`, `ContactRoleInput`, `prepare(file: ImportFile): { prepared: Prepared; issues: Issue[] }` ; `checkDatabase(prepared: Prepared): Promise<Issue[]>` ; recette `just reprise-notion FILE *FLAGS`
 
 - [ ] **Step 1 : Format du fichier et validation (`scripts/reprise-notion/import-file.ts`)**
@@ -51,7 +51,7 @@
 import { z } from "zod"
 
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
-import { contactSchema } from "@/lib/schemas/contact"
+import { networkContactSchema } from "@/lib/schemas/network-contact"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { leadSchema } from "@/lib/schemas/lead"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
@@ -83,7 +83,7 @@ const leadRoleSchema = leadSchema.pick({
   channel: true,
   score: true,
 })
-const contactRoleSchema = contactSchema.pick({ types: true, status: true })
+const contactRoleSchema = networkContactSchema.pick({ types: true, status: true })
 const personSchema = z.object(personFields)
 
 export type PersonInput = z.infer<typeof personSchema>

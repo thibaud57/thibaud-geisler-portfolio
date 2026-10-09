@@ -514,7 +514,7 @@ import {
 } from "@/lib/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import { personDisplayName } from "@/lib/persons"
-import { CONTACT_TYPES } from "@/lib/schemas/contact"
+import { CONTACT_TYPES } from "@/lib/schemas/network-contact"
 import { INTERVIEW_DECISIONS, INTERVIEW_OUTCOMES, INTERVIEW_STATUSES, INTERVIEW_TYPES } from "@/lib/schemas/interview"
 import { NONE_VALUE } from "@/lib/schemas/person"
 import { createInterview, updateInterview } from "@/server/actions/interviews"
