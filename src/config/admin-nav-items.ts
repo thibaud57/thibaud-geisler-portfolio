@@ -109,6 +109,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
           { label: "Discussions", href: "/admin/actions-prospection/discussions" },
           { label: "Candidatures", href: "/admin/actions-prospection/candidatures" },
           { label: "Pipeline", href: "/admin/actions-prospection/pipeline" },
+          { label: "Calendrier", href: "/admin/actions-prospection/calendrier" },
           { label: "Journal", href: "/admin/actions-prospection" },
         ],
       },

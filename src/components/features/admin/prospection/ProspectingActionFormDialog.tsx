@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -57,6 +58,8 @@ interface Props {
   // Mode contrôlé : le parent pilote l'ouverture, aucun déclencheur n'est rendu.
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  // Nouvelle action seulement.
+  defaultDate?: Date
 }
 
 export function ProspectingActionFormDialog({
@@ -66,6 +69,7 @@ export function ProspectingActionFormDialog({
   cardTrigger = false,
   open: controlledOpen,
   onOpenChange,
+  defaultDate,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [instanceKey, setInstanceKey] = useState(0)
@@ -113,6 +117,7 @@ export function ProspectingActionFormDialog({
           action={action}
           personOptions={personOptions}
           defaultPersonId={defaultPersonId}
+          defaultDate={defaultDate}
           onDone={handleDone}
         />
       </DialogContent>
@@ -191,11 +196,13 @@ function ProspectingActionForm({
   action,
   personOptions,
   defaultPersonId,
+  defaultDate,
   onDone,
 }: {
   action: AdminProspectingAction | null
   personOptions: readonly PersonOption[]
   defaultPersonId: string | undefined
+  defaultDate: Date | undefined
   onDone: () => void
 }) {
   const formId = useId()
@@ -212,7 +219,7 @@ function ProspectingActionForm({
   const [personId, setPersonId] = useState(action?.person.id ?? defaultPersonId ?? "")
   const [personOpen, setPersonOpen] = useState(false)
   const [status, setStatus] = useState<string>(action?.status ?? "A_FAIRE")
-  const [date, setDate] = useState<Date | undefined>(action?.occurredAt ?? now)
+  const [date, setDate] = useState<Date | undefined>(action?.occurredAt ?? defaultDate ?? now)
   const [time, setTime] = useState(timeOf(action?.occurredAt ?? now))
   const [respondedDate, setRespondedDate] = useState<Date | undefined>(
     action?.respondedAt ?? undefined,
@@ -251,7 +258,7 @@ function ProspectingActionForm({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid min-h-0 gap-4 overflow-y-auto sm:grid-cols-2">
+      <DialogBody className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <FormField id={`${formId}-title`} label={LABELS.title} errors={state.errors.title}>
             <Input
@@ -397,7 +404,7 @@ function ProspectingActionForm({
             />
           </FormField>
         </div>
-      </div>
+      </DialogBody>
 
       <DialogFooter className="shrink-0">
         <DialogClose asChild>

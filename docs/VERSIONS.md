@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-08"
+date: "2026-10-09"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 octobre 2026**, sauf les lignes ReUI et dnd-kit, relevées le **8 octobre 2026**.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **6 octobre 2026**, sauf la ligne dnd-kit, relevée le **8 octobre 2026**, et les lignes ReUI et @date-fns/tz, relevées le **9 octobre 2026**.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -35,8 +35,9 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | shadcn/ui (CLI) | `shadcn@4.21.0` | ✅ | Composants copiés localement, style `radix-nova` |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
-| ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. Au 8 octobre 2026, seul `Kanban` est installé |
+| ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. `Kanban` et `EventCalendar` installés |
 | dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) | `6.3.1`, `10.0.0`, `3.2.2` | ✅ | Glisser-déposer du `Kanban` ReUI, que ces paquets servent au 8 octobre 2026. Relevé dans `pnpm-lock.yaml` le 8 octobre 2026 |
+| @date-fns/tz | `1.5.0` | ✅ | Fuseaux horaires de l'`EventCalendar` ReUI, compagnon de `date-fns` (`4.4.0`). Relevé dans `pnpm-lock.yaml` le 9 octobre 2026 |
 | next-intl | `4.14.2` | ✅ | Nécessite Next.js >= 16.3 pour `use cache` |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
@@ -406,7 +407,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 **Version actuelle** : pas de versioning sémantique (copy-paste via registry shadcn)
 **Stabilité** : ✅
 
-Registre déclaré dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`), `{style}` se résolvant en `radix-nova`. Au 8 octobre 2026, seul `Kanban` est installé (`src/components/reui/kanban.tsx`).
+Registre déclaré dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`), `{style}` se résolvant en `radix-nova`. Au 9 octobre 2026, `Kanban` (`src/components/reui/kanban.tsx`) et `EventCalendar` (`src/components/reui/event-calendar/`) sont installés.
 
 **Compatibilité Écosystème** :
 - shadcn CLI : ✅ (`pnpm dlx shadcn@latest add @reui/kanban`)

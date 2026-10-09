@@ -11,7 +11,7 @@ export function toInstant(date: Date | undefined, time: string): string {
 }
 
 // Fuseau fixé : le rendu serveur (UTC) et l'hydratation navigateur doivent produire le même texte.
-const TIME_ZONE = "Europe/Paris"
+export const TIME_ZONE = "Europe/Paris"
 
 const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "2-digit",

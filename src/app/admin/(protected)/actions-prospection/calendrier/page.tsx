@@ -1,0 +1,33 @@
+import { Suspense } from "react"
+
+import { ActionsCalendar } from "@/components/features/admin/prospection/ActionsCalendar"
+import { NewActionHeaderButton } from "@/components/features/admin/prospection/NewActionHeaderButton"
+import { AdminPageShell } from "@/components/layout/AdminPageShell"
+import { Skeleton } from "@/components/ui/skeleton"
+import { getCurrentUser } from "@/lib/get-current-user"
+import { findPersonOptions } from "@/server/queries/persons"
+import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
+
+async function CalendarSection() {
+  const [actions, personOptions] = await Promise.all([
+    findAllProspectingActionsForAdmin(),
+    findPersonOptions(),
+  ])
+  return <ActionsCalendar actions={actions} personOptions={personOptions} />
+}
+
+export default async function AdminActionsCalendarPage() {
+  await getCurrentUser()
+
+  return (
+    <AdminPageShell
+      title="Calendrier des actions"
+      subtitle="Chaque action posée sur sa date."
+      actions={<NewActionHeaderButton />}
+    >
+      <Suspense fallback={<Skeleton className="h-160 rounded-xl" aria-hidden />}>
+        <CalendarSection />
+      </Suspense>
+    </AdminPageShell>
+  )
+}

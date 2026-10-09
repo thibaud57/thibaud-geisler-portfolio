@@ -10,12 +10,16 @@ vi.mock("@/lib/prisma", () => ({
     prospectingAction: {
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
+      findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
   },
 }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+
+import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
@@ -23,6 +27,7 @@ import { prisma } from "@/lib/prisma"
 import {
   changeProspectingActionStatus,
   createProspectingAction,
+  rescheduleProspectingAction,
   updateProspectingAction,
 } from "./prospecting-actions"
 import { initialProspectingActionFormState } from "./prospecting-actions.types"
@@ -155,5 +160,66 @@ describe("changeProspectingActionStatus", () => {
       where: { id: "a1" },
       data: { status: "REPONDU", occurredAt: MONDAY, respondedAt: NOW },
     })
+  })
+})
+
+describe("rescheduleProspectingAction", () => {
+  const THURSDAY = new Date("2026-03-12T08:00:00Z")
+
+  it("moves a to-do action to its new time", async () => {
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 1 })
+
+    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+
+    expect(state.ok).toBe(true)
+    expect(prisma.prospectingAction.updateMany).toHaveBeenCalledWith({
+      where: { id: "a1", status: "A_FAIRE" },
+      data: { occurredAt: THURSDAY },
+    })
+  })
+
+  it("refuses to move an action already sent", async () => {
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue({ id: "a1" } as never)
+
+    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.occurredAt).toEqual(["Seule une action à faire se replanifie"])
+  })
+
+  it("tells a deleted action apart from one already sent", async () => {
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue(null)
+
+    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.occurredAt).toEqual(["Cette action a été supprimée"])
+  })
+
+  it("refreshes the screens after a refusal, which showed a stale action", async () => {
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue({ id: "a1" } as never)
+
+    await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+
+    expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("rejects a date without its time zone offset", async () => {
+    const state = await rescheduleProspectingAction("a1", "2026-03-12T09:00")
+
+    expect(state.errors.occurredAt).toBeDefined()
+    expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
+  })
+
+  it("rejects a reschedule without a session, before touching the database", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+    const result = rescheduleProspectingAction("a1", THURSDAY.toISOString())
+
+    await expect(result).rejects.toThrow()
+    expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
   })
 })

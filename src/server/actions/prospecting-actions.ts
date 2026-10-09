@@ -153,6 +153,54 @@ export async function changeProspectingActionStatus(
   })
 }
 
+// La garde vit dans la requête (updateMany conditionné au statut), pas seulement dans le calendrier : une action passée à Fait dans un autre onglet garde sa date réelle d'envoi.
+export async function rescheduleProspectingAction(
+  id: string,
+  occurredAt: string,
+): Promise<ProspectingActionFormState> {
+  await getCurrentUser()
+
+  return createActionLogger("rescheduleProspectingAction", async ({ log }) => {
+    const parsed = prospectingActionSchema.shape.occurredAt.safeParse(occurredAt)
+    if (!parsed.success) {
+      return { ok: false, errors: { occurredAt: ["Date invalide"] }, message: null }
+    }
+
+    try {
+      const { count } = await prisma.prospectingAction.updateMany({
+        where: { id, status: "A_FAIRE" },
+        data: { occurredAt: parsed.data },
+      })
+      if (count === 0) {
+        const stillExists = await prisma.prospectingAction.findUnique({
+          where: { id },
+          select: { id: true },
+        })
+        // L'écran montrait une action périmée (passée à Fait ou supprimée ailleurs) : la revalidation le réaligne sur la base, sans quoi chaque nouvel essai échouerait.
+        invalidateActionCaches()
+        log.warn({ event: "prospecting_action:reschedule_refused", id })
+        return {
+          ok: false,
+          errors: {
+            occurredAt: [
+              stillExists
+                ? "Seule une action à faire se replanifie"
+                : "Cette action a été supprimée",
+            ],
+          },
+          message: null,
+        }
+      }
+      invalidateActionCaches()
+      log.info({ event: "prospecting_action:rescheduled", id })
+      return { ok: true, errors: {}, message: null }
+    } catch (err) {
+      log.error({ err, event: "prospecting_action:reschedule_failed", id })
+      return { ok: false, errors: {}, message: "unknown_error" }
+    }
+  })
+}
+
 export async function deleteProspectingAction(id: string): Promise<ProspectingActionFormState> {
   await getCurrentUser()
 
