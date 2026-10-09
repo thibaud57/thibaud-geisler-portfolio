@@ -105,6 +105,17 @@ function DialogFooter({
   )
 }
 
+// Une zone qui défile rogne tout ce qui dépasse, sur les deux axes : elle s'étend jusqu'aux bords de la modale et se rembourre d'autant, pour que l'anneau de focus des champs tienne dans ce padding.
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn("-mx-4 -my-1 min-h-0 overflow-y-auto px-4 py-1", className)}
+      {...props}
+    />
+  )
+}
+
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
@@ -133,6 +144,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

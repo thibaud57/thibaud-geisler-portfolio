@@ -32,6 +32,10 @@ paths:
 ## Gotchas
 - Pour la **config initiale** (`@import "tailwindcss"`, `@theme`, `@custom-variant dark`, PostCSS, container queries, breaking changes v3→v4) : voir `tailwind/setup.md`
 - Pour la **palette de couleurs du projet** (tokens OKLCH, vert sauge `--primary`, dark/light variants) : voir `DESIGN.md` section Palette de Couleurs
+- **Un conteneur qui défile rogne l'anneau de focus** des éléments collés à son bord : `overflow-y-auto` passe aussi l'axe horizontal en `auto`, et `overflow-hidden` coupe tout. Les 3px du `ring-3` disparaissent sans erreur (constaté le 2026-10-09 sur le formulaire d'action, la vue détail et les listes). Réserver la place au lieu de rétrécir le contenu :
+  - **Dans une modale** : `DialogBody` (`ui/dialog.tsx`), qui défile jusqu'au bord de la modale (`-mx-4 px-4`). Les champs ne bougent pas
+  - **Ailleurs** : marge négative compensée par un padding au moins égal à l'anneau (`-mx-1 px-1`, comme les colonnes du Pipeline)
+  - **Ligne de table cliquable** : contour de focus en retrait (`focus-visible:-outline-offset-2`)
 
 ## Exemples
 ```typescript

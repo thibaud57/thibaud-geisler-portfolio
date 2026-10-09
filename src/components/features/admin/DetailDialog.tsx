@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -94,7 +95,7 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
         </DialogHeader>
         {/* overflow-x-hidden : une ligne cliquable étend son fond de survol en marge négative, ce
             qui vaudrait une barre horizontale à une zone qui ne défile que verticalement. */}
-        <div className="flex min-h-0 flex-col gap-4 overflow-x-hidden overflow-y-auto">
+        <DialogBody className="flex flex-col gap-4 overflow-x-hidden">
           {shown.sections.map((section, index) => (
             <Fragment key={index}>
               {index > 0 ? <Separator /> : null}
@@ -117,7 +118,7 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
               </TitledBlock>
             </Fragment>
           ))}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">

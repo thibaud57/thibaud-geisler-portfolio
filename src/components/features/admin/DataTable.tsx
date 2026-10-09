@@ -485,6 +485,8 @@ export function DataTable<T, K extends string = string>({
         {...buildClickRowProps(row)}
         className={cn(
           draggable ? "cursor-grab" : onRowClick && "cursor-pointer",
+          // Contour de focus en retrait : la table défile dans un conteneur qui rognerait un contour extérieur.
+          onRowClick && "focus-visible:outline-2 focus-visible:-outline-offset-2",
           isValidDropTarget && dragOverId === rowId && "bg-muted",
         )}
       >
