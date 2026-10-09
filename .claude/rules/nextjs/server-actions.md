@@ -20,7 +20,7 @@ paths:
 - Lire un champ à valeurs multiples par `Object.fromEntries(formData)` : il ne garde que la dernière valeur, passer par `formData.getAll` (`stringValues` de `server-utils.ts`)
 
 ## Gotchas
-- Pour vider un formulaire après succès, changer la `key` du `<form>` plutôt qu'appeler `form.reset()` (mieux compatible avec les composants contrôlés)
+- **React 19 réinitialise les champs non contrôlés d'un `<form action>` après l'action**, sans code à écrire. Changer la `key` ne sert qu'à remettre à zéro l'état des composants placés sous elle (champs contrôlés), un state du parent y survit. Ce reset natif efface aussi les contrôles Radix : d'où `useFormActionSubmit` (cf. `shadcn-ui/components.md`)
 - `useActionState`, `useFormStatus`, `useOptimistic` côté client : voir `react/components.md`
 - Authentification, rate limiting, fichiers et CSRF : voir `nextjs/server-actions-security.md`. Logging : `pino/usage.md`. Email : `nodemailer/sending.md`
 

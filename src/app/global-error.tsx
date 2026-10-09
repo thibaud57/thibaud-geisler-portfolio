@@ -27,10 +27,10 @@ const messages = {
 
 interface Props {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }
 
-export default function GlobalError({ error, reset }: Props) {
+export default function GlobalError({ error, retry }: Props) {
   const locale = useUrlLocale()
   const t = messages[locale]
 
@@ -46,7 +46,7 @@ export default function GlobalError({ error, reset }: Props) {
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <button
               type="button"
-              onClick={reset}
+              onClick={retry}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-foreground px-5 text-sm font-medium text-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               {t.retry}

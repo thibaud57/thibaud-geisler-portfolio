@@ -35,7 +35,7 @@ async function EditProjectSection({ id }: { id: string }) {
   )
 }
 
-export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditProjectPage({ params }: PageProps<"/admin/projets/[id]">) {
   await getCurrentUser()
   const { id } = await params
 

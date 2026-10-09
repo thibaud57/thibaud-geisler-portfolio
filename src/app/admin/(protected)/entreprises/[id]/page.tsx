@@ -27,7 +27,7 @@ async function EditCompanySection({ id }: { id: string }) {
   )
 }
 
-export default async function EditCompanyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditCompanyPage({ params }: PageProps<"/admin/entreprises/[id]">) {
   await getCurrentUser()
   const { id } = await params
 

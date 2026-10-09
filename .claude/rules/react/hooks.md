@@ -10,7 +10,7 @@ paths:
 ## À faire
 - Respecter les **Rules of Hooks** : appel uniquement au **top-level** d'un composant ou custom hook, jamais dans `if`, `for`, `try/catch`, callback
 - Lister **toutes** les deps utilisées dans `useEffect`/`useMemo`/`useCallback` (règle `exhaustive-deps` via `eslint-plugin-react-hooks@6+`)
-- Retourner une fonction de cleanup depuis `useEffect` pour subscriptions, timers, sockets (sinon cassé par le double appel de StrictMode)
+- Retourner une fonction de cleanup depuis `useEffect` pour subscriptions, timers, sockets : StrictMode monte, démonte puis remonte chaque Effect en dev, à l'hydratation aussi depuis React 19.3
 - Poser un flag `let ignore = false` dans un `useEffect` qui fait un fetch async : une réponse obsolète arrivée après coup est ignorée
 - Utiliser `useEffectEvent` (stable depuis React 19.2) pour sortir d'un Effect la logique non réactive (lire `theme` sans le mettre en dep)
 - S'abonner à un store externe (media query, URL, thème) par **`useSyncExternalStore`**, avec un `getServerSnapshot` dédié au SSR

@@ -15,7 +15,7 @@ paths:
 - **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
 - **`init: true` et `mem_limit` sur le service app** : Node en PID 1 ne récolte pas les processus orphelins ; sans plafond, l'OOM killer du VPS peut tuer un autre service
 - **Borner les logs** du service app : `logging.driver: json-file` avec `max-size` et `max-file`, Dokploy ne fait aucune rotation
-- **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé), les overrides dev (port de la base pour un client SQL, `DATABASE_URL` vers le service) dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy
+- **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé), et dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy, tout le service `postgres` de dev (image, volume, healthcheck, port pour un client SQL)
 - **Profile `validation`** sur le service app dans `compose.override.yaml` : le port 3000 reste libre pour le dev natif, le container ne se lance qu'avec `--profile validation`
 
 ## À éviter
@@ -23,9 +23,10 @@ paths:
 - Exposer publiquement le port de la base en production : l'exposition ne vit que dans `compose.override.yaml`
 - Mettre des réglages de dev (bind mounts, `DATABASE_URL` vers `localhost`, ports internes) dans `compose.yaml`
 - `docker compose down --volumes` sans backup : suppression irréversible des données Postgres
+- `docker volume prune -a` et `docker system prune -a --volumes` : `-a` inclut les volumes nommés inutilisés, donc le volume Postgres de dev dès que son conteneur est arrêté
 
 ## Gotchas
-- Docker Compose v5 ignore le champ **`version:`**, et la v1 (`docker-compose`) est supprimée depuis avril 2025 (PRODUCTION.md § Mises à jour > Plateforme d'hébergement)
+- Version de Docker Compose et de l'Engine : PRODUCTION.md § Mises à jour > Plateforme d'hébergement
 - **`compose.override.yaml` est auto-chargé** par `docker compose up` en local, mais **Dokploy ne charge que `compose.yaml`** : les overrides dev sont ignorés en prod sans config particulière
 - En production, Postgres est une Dokploy Database autonome, pas un service de `compose.yaml`
 - Config runtime Next.js du service app (`output: standalone`, `HOSTNAME`, health endpoint) : voir `nextjs/production-deployment.md`. Build de l'image : voir `docker/dockerfile.md`

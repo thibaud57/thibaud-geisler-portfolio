@@ -1,8 +1,8 @@
 ---
 title: "Next.js — Framework full-stack"
-version: "16.3.6"
+version: "16.4.0"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
-date: "2026-10-03"
+date: "2026-10-09"
 keywords: ["nextjs", "app-router", "server-components", "server-actions", "turbopack"]
 scope: ["docs"]
 technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
@@ -10,7 +10,7 @@ technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
 
 # Description
 
-`Next.js` 16 est le framework fullstack du portfolio. La v16 rend Turbopack par défaut en dev et build, renomme `middleware.ts` en `proxy.ts`, impose des params async obligatoires (plus de sync access), et active Partial Prerendering via `cacheComponents: true`. Utilisé en monolithe : pages publiques en Server Components, formulaire de contact en Server Action, espace admin futur via le segment `admin/`.
+`Next.js` 16 est le framework fullstack du portfolio. La v16 rend Turbopack par défaut en dev et build, renomme `middleware.ts` en `proxy.ts`, impose des params async obligatoires (plus de sync access), et active Partial Prerendering via `cacheComponents: true`. La 16.4 (octobre 2026) active le strict route matching par défaut et demande `partialPrefetching` explicite à côté de `cacheComponents`. Utilisé en monolithe : pages publiques en Server Components, formulaire de contact en Server Action, espace admin futur via le segment `admin/`.
 
 ---
 
@@ -49,7 +49,9 @@ src/app/
 - Le root `layout.tsx` est obligatoire et doit contenir `<html>` et `<body>`
 - Les route groups `(name)/` sont exclus de l'URL finale
 - `loading.tsx` affiche un fallback Suspense pendant le chargement
-- `error.tsx` crée un Error Boundary (nécessite `'use client'`)
+- `error.tsx` crée un Error Boundary (nécessite `'use client'`). Son bouton de nouvel essai appelle la prop `retry`, qui re-fetch et re-rend le segment ; `reset` ne vide que l'état d'erreur
+- Strict route matching (défaut depuis 16.4) : une URL qui ne forme pas un arbre de routes complet est rejetée, les catch-all incomplets élagués. Le rewrite du proxy vers un chemin sans page (slug projet inconnu, 404 via `global-not-found`) passe : vérifié sur l'image le 9 octobre 2026. Échappatoire temporaire : `deprecated.looseRouteMatching: true`
+- Pages, layouts et Route Handlers se typent par les helpers globaux de `typedRoutes` : `PageProps<'/route'>`, `LayoutProps<'/route'>`, `RouteContext<'/route'>`
 
 ---
 

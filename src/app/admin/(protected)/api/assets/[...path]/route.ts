@@ -2,11 +2,10 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { adminR2, R2_ADMIN_BUCKET } from "@/lib/r2"
 import { serveAsset } from "@/server/config/assets"
 
-interface RouteContext {
-  params: Promise<{ path: string[] }>
-}
-
-export async function GET(_request: Request, context: RouteContext): Promise<Response> {
+export async function GET(
+  _request: Request,
+  context: RouteContext<"/admin/api/assets/[...path]">,
+): Promise<Response> {
   await getCurrentUser()
 
   const { path: raw } = await context.params

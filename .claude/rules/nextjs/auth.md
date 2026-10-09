@@ -9,7 +9,7 @@ paths:
 
 ## À faire
 - Utiliser Better Auth avec Google OAuth comme unique provider (version exacte : `docs/VERSIONS.md`), whitelist email single-user dans `databaseHooks.user.create.before`
-- Définir les cookies de session avec `HttpOnly: true`, `Secure: true` (en prod), `SameSite: 'lax'`, `Path: '/'`, `Max-Age` fini
+- Laisser à Better Auth les attributs des cookies de session : il les pose `httpOnly` et `secure` en production (`advanced.useSecureCookies` force `secure`). Ne les surcharger que sur un besoin avéré, en gardant `SameSite: 'lax'` (cf. Gotchas)
 - Centraliser la vérification de session dans `getCurrentUser()`, enveloppé dans `cache()` de React : layout protégé et page l'appellent dans le même rendu, la session n'est lue qu'une fois
 - Protéger `admin/` par un layout protégé qui appelle `getCurrentUser()` en plus du proxy, **et** rappeler `getCurrentUser()` dans chaque page du groupe comme en tête de chaque Server Action (cf. Gotchas)
 - Placer `nextCookies()` en **dernier** plugin de la config Better Auth : il gère les `Set-Cookie` des Server Actions
@@ -31,6 +31,7 @@ paths:
 - **Chaque segment protégé porte son `loading.tsx`**, une ligne qui réexporte celui de `(protected)/` : `getCurrentUser()` lit les en-têtes, donc rend la page dynamique, et sans frontière `<Suspense>` propre au segment Next lève « encountered uncached data during prerendering ». Celui du layout partagé ne couvre pas les segments imbriqués, qu'une navigation entre pages sœurs ne traverse pas. L'erreur n'apparaît qu'en dev sous session valide
 - La whitelist de `databaseHooks.user.create.before` ne s'exécute qu'à la création du compte : `getCurrentUser()` revérifie `isAdminEmail` sur chaque session, sinon un compte créé avant un changement d'`ADMIN_EMAIL` garde l'accès
 - `SameSite: 'strict'` bloque aussi les navigations top-level cross-site (liens entrants) : garder `'lax'`
+- **Monter Next dès qu'une release de sécurité sort** : plusieurs bypass du proxy (sévérité High), corrigés en mai et juillet 2026, n'avaient pas d'autre mitigation complète que le patch. Next annonce ces releases environ une fois par mois sur son blog
 
 ## Exemples
 ```typescript

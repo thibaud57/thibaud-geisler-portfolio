@@ -19,7 +19,7 @@ paths:
 - Utiliser le package **`magicui-cli`** : legacy, abandonné
 - Appliquer Magic UI à l'aveugle sur tous les éléments : distraction visuelle, contre les principes DESIGN.md
 - Utiliser Magic UI dans l'**espace admin** : DESIGN.md le réserve aux surfaces marketing du site public
-- Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `tailwind-merge`, `class-variance-authority`)
+- Dupliquer les dépendances déjà installées par shadcn/ui (`motion`, `cn`, `class-variance-authority`), ou réinstaller `clsx` et `tailwind-merge`, que le paquet `cn` remplace
 
 ## Gotchas
 - **Pas de versioning sémantique** (copy-paste via registry shadcn) : les composants restent figés à l'install, relancer `shadcn@latest add --overwrite <component>` pour récupérer l'upstream

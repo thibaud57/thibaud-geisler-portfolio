@@ -11,7 +11,7 @@ paths:
 - Exporter un **logger singleton** depuis `src/lib/logger.ts`, protégé par `import 'server-only'`, et le réutiliser dans tout le code serveur
 - Définir le niveau depuis `env` (`@/env`, t3-env) avec fallback `debug` en dev et `info` en prod : `level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info')`. Seul `NODE_ENV` se lit sur `process.env`, il n'est pas dans le schéma
 - Activer le transport `pino-pretty` **uniquement en dev**, sortie JSON brute en prod (capturée par Dokploy sur stdout)
-- Déclarer `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : les trois sont **obligatoires**, `thread-stream` est le worker thread que Next.js doit traiter comme module externe
+- Garder `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']` dans `next.config.ts` : la liste d'opt-out par défaut de Next contient déjà les trois, la déclaration explicite documente la dépendance et survit à un retrait de cette liste
 - Installer explicitement **`thread-stream`** en dépendance directe : Pino ne le résout pas toujours seul
 - Charger le logger côté serveur uniquement via **`instrumentation.ts`** : `if (process.env.NEXT_RUNTIME === 'nodejs') await import('./lib/logger')` dans `register()`
 - Utiliser `formatters.level` pour envoyer le **label texte** (`info`) au lieu du numéro (`30`)
@@ -24,8 +24,7 @@ paths:
 - Créer plusieurs instances de `pino()` : multiplie les transports et fragmente la configuration
 
 ## Gotchas
-- `serverExternalPackages` manquant : erreur de bundling au build ou au runtime, les worker threads ne se bundlent pas sous Turbopack
-- Pino 10.2.0 corrige un memory leak des transports lancés avec `--import preload` (PR #2374), la 10.3.1 assainit les preloads `NODE_OPTIONS` invalides des workers (PR #2391)
+- Les worker threads de Pino ne se bundlent pas sous Turbopack : c'est la liste `serverExternalPackages` (celle de Next ou celle du projet) qui les laisse en module externe
 - Node.js ≥ 20 requis pour Pino 10
 - Child loggers, niveaux et format des événements : voir `pino/usage.md`
 

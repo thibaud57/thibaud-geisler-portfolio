@@ -23,7 +23,7 @@ paths:
 - **Recréer un composant** équivalent à un shadcn existant (Button, Input, Card) au lieu d'utiliser celui de la lib
 
 ## Gotchas
-- **`Select` dans un `<form action>` perd son choix à chaque envoi** : React réinitialise le formulaire après l'action, et Radix Select répond à l'événement `reset` en rappelant `onValueChange` avec sa valeur du premier rendu (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Le contournement (`onSubmit` + `startTransition(() => formAction(formData))`, sans reset) vit dans le hook `useFormActionSubmit` : l'appeler plutôt que le réécrire, tout formulaire admin portant un `Select` passe par lui
+- **Un contrôle de formulaire Radix dans un `<form action>` perd son choix à chaque envoi** (`Select`, `RadioGroup`, `Switch`, `Slider`) : React réinitialise le formulaire après l'action, et ces contrôles écoutent l'événement `reset` pour revenir à leur valeur du premier rendu par leur callback de changement (`onValueChange`, `onCheckedChange` pour `Switch`). Comportement voulu par Radix depuis `radix-ui` 1.6.2, pas un bug à attendre de corriger (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Le contournement (`onSubmit` + `startTransition(() => formAction(formData))`, sans reset) vit dans le hook `useFormActionSubmit` : l'appeler plutôt que le réécrire, tout formulaire admin portant un `Select` passe par lui
 - Pour la **convention de structure des sous-dossiers UI** (séparation `ui/`, `magicui/`, `aceternity/`) : voir `DESIGN.md` § Stack UI > Convention de structure
 
 ## Exemples

@@ -487,7 +487,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Composition de Styles
 
-**Utilitaire** : `cn()` (shadcn/ui), wrapper autour de `clsx` + `tailwind-merge` pour composer les classes Tailwind sans conflit.
+**Utilitaire** : `cn()` (shadcn/ui), fourni par le paquet `cn` et réexporté par `src/lib/utils.ts`, pour composer les classes Tailwind sans conflit. Il remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026, avec la même sortie annoncée.
 
 **Ordre d'application** : `layout → spacing → typography → colors → effects → responsive`
 

@@ -9,7 +9,7 @@ paths:
 # Sentry — Build, source maps et CSP
 
 ## À faire
-- Appliquer `withSentryConfig` en **dernier**, donc en wrapper le plus externe : `withSentryConfig(withBundleAnalyzer(withNextIntl(config)), options)`. La doc l'impose pour que les source maps reflètent les transformations des autres plugins
+- Appliquer `withSentryConfig` en **dernier**, donc en wrapper le plus externe : `withSentryConfig(withNextIntl(config), options)`. La doc l'impose pour que les source maps reflètent les transformations des autres plugins
 - Passer `SENTRY_AUTH_TOKEN` au seul stage de build, via un secret BuildKit monté à la commande, jamais un `ARG` qui persiste dans une couche d'image
 - Garder le host d'ingestion dans `connect-src` de la CSP (`next.config.ts`) : sans lui, rien ne remonte du navigateur et le silence ressemble à une absence d'erreurs
 - Lire le host d'ingestion dans Project Settings puis SDK Setup puis Client Keys : il contient l'identifiant d'organisation et n'est pas devinable
@@ -24,7 +24,7 @@ paths:
 - Laisser `silent` à sa valeur par défaut en local : le build devient verbeux sans bénéfice, préférer `silent: !process.env.CI`
 
 ## Gotchas
-- Le build de production est en **Turbopack** depuis le retrait de l'opt-out `--webpack` (3 septembre 2026, voir `docs/VERSIONS.md` § Prisma ORM). Conséquence pour Sentry : en Turbopack l'upload des source maps est **toujours post-build**, via le hook Next `runAfterProductionCompile` que le SDK active par l'option `_experimental.useRunAfterProductionCompileHook` de `withSentryConfig` (Next >= 15.4.1). Les options du plugin webpack (`unstable_sentryWebpackPluginOptions`) ne s'appliquent pas dans ce mode
+- Le build de production est en **Turbopack** depuis le retrait de l'opt-out `--webpack` (3 septembre 2026, voir `docs/VERSIONS.md` § Prisma ORM). Conséquence pour Sentry : en Turbopack l'upload des source maps est **toujours post-build**, via le hook Next `runAfterProductionCompile`. L'option `useRunAfterProductionCompileHook` de `withSentryConfig` vaut `true` par défaut sous Turbopack : rien à poser. Les options `webpack.*` n'ont aucun effet dans ce mode
 - L'organisation du projet est `tg-ws`, en région européenne (Francfort). Son host d'ingestion est `o4511826481774592.ingest.de.sentry.io` : le segment de région est **`de`**, pas `eu`. Vérifiable via `sentry org view tg-ws --json`, champ `links.regionUrl`
 - `tunnelRoute` a fait l'objet d'une CVE de type SSRF sur les versions 7.26.0 à 7.76.x (GHSA-2rmr-xw8m-22q9), corrigée en 7.77.0. Sans objet aujourd'hui, mais la route élargit la surface d'attaque et doit valider sa cible
 - Le wizard `@sentry/wizard` est un TUI interactif : il exige une saisie et une connexion au compte, il ne peut pas tourner en CI
@@ -33,12 +33,12 @@ paths:
 ```typescript
 // ✅ Sentry en wrapper le plus externe
 export default withSentryConfig(
-  withBundleAnalyzer(withNextIntl(nextConfig)),
+  withNextIntl(nextConfig),
   { org, project, authToken: process.env.SENTRY_AUTH_TOKEN, silent: !process.env.CI },
 )
 
 // ❌ Sentry à l'intérieur : les source maps ne reflètent pas les transformations suivantes
-export default withBundleAnalyzer(withSentryConfig(withNextIntl(nextConfig), { ... }))
+export default withNextIntl(withSentryConfig(nextConfig, { ... }))
 ```
 
 ```dockerfile

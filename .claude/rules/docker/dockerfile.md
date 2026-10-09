@@ -7,54 +7,52 @@ paths:
 # Docker — Dockerfile (multi-stage, cache, base image)
 
 ## À faire
-- Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` (ex: `deps → builder → runner`) pour isoler toolchain/devDeps du runtime image
-- Image de base **`node:24-alpine`** (ligne LTS 24 « Krypton », Alpine pour le poids). Ne pas passer à Node 26 avant qu'il devienne Active LTS, le 28 octobre 2026 (`docs/VERSIONS.md` § Montées Bloquées)
-- Activer pnpm via **`corepack enable`** dans le stage `deps`, pas `npm install -g pnpm` (corepack est la voie officielle depuis Node 16.10+)
-- Copier **`package.json`** et **`pnpm-lock.yaml`** AVANT le code source dans le stage `deps` pour maximiser le cache de layers Docker
+- Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` pour isoler toolchain/devDeps du runtime image. Le projet enchaîne `base` (Node + pnpm, hérité par tous) → `deps` → `builder` → `deploy-prisma` → `runner`
+- Image de base **`node:<ligne LTS>-alpine`** : runtime sur une ligne LTS uniquement. La ligne exécutée et ses dates de bascule vivent dans `docs/VERSIONS.md` § Montées Bloquées, pas ici. Le tag de ligne flottant est assumé (chaque build suit le dernier patch), le digest `@sha256:` reste l'option si la reproductibilité stricte devient nécessaire
+- Activer pnpm via **`corepack enable`** dans le stage `base`, pas `npm install -g pnpm` : la version se lit dans `packageManager`
+- Copier **`package.json`**, **`pnpm-lock.yaml`** et **`pnpm-workspace.yaml`** AVANT le code source pour maximiser le cache de layers. Le troisième porte `allowBuilds` : sans lui, une dépendance à scripts de build fait échouer l'install (`strictDepBuilds`, cf. `pnpm/setup.md`)
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
-- Exploiter le **cache BuildKit** pour le store pnpm : `RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile`. Évite de retélécharger les dépendances à chaque rebuild (BuildKit activé par défaut Docker 23+, cache persisté sur le VPS entre rebuilds Dokploy)
+- Monter un **cache BuildKit** sur le store pnpm (`RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store`) : il profite aux builds locaux. Le build de production tourne sur un runner GitHub Actions éphémère, où seul le cache de couches (`cache-from: type=gha`) évite de réinstaller
 - Créer un **utilisateur non-root** dédié (`addgroup` + `adduser`) et l'activer via `USER` dans le stage final `runner`
-- Maintenir un **`.dockerignore`** à la racine excluant au minimum `node_modules`, `.next`, `.git`, `.env*`, `README.md` pour réduire le build context
-- Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `libc6-compat` pour sharp, `/api/health`, `instrumentation.ts`) : voir `nextjs/production-deployment.md`
+- Lancer le process en **forme exec**. Un enchaînement par `sh -c` (migration puis serveur) finit par **`exec node server.js`** : sinon `sh` reste parent de Node, ne lui relaie pas le `SIGTERM` de `docker stop`, et Docker tue le conteneur au bout de 10 s
+- Maintenir un **`.dockerignore`** excluant `node_modules`, `.next`, `.git`, `.env*`, `*.md`, et tout fichier qui change sans entrer dans le build (`.github`, `compose*.yaml`, `Justfile`, `Dockerfile`) : chaque fichier du contexte peut invalider `COPY . .`, donc `next build`
+- Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `/api/health`, `instrumentation.ts`) : voir `nextjs/production-deployment.md`
 
 ## À éviter
 - `COPY . .` avant l'installation des dépendances : invalide le cache de layers à chaque modification de code
 - Épingler le tag **`latest`** pour l'image de base en production : non reproductible, un rebuild peut casser sans changement code
+- Utiliser une ligne Node arrivée en fin de vie (`node:20-*` depuis le 30 avril 2026)
 - Lancer le stage final en **root** : risque de sécurité, toujours un USER non-root dédié
 - Copier `node_modules` depuis l'hôte via le build context : toujours réinstaller dans le build pour des binaires natifs corrects (cross-arch Alpine vs host)
 
 ## Gotchas
-- **Node 20 EOL 30 avril 2026** : `node:24-alpine` non négociable pour tout nouveau build, ne pas utiliser `node:20-*` (VERSIONS.md)
+- **Corepack est distribué avec Node jusqu'à la ligne 24 incluse** : à partir de Node 25, `npm install -g corepack` avant `corepack enable`. À traiter avec la montée de ligne, et le `runner` supprime npm (alertes Trivy) : l'installer dans `base`
+- `init: true` du compose relaie les signaux à son enfant direct, `sh`, pas au Node lancé par `sh -c` : il ne remplace pas `exec`
 - **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou par `ulimits:` dans le compose si le service a beaucoup de connexions, jamais dans le Dockerfile (détail : `docs/knowledges/docker.md` § ulimit nofile v29)
 
 ## Exemples
 ```dockerfile
-# ✅ Dockerfile multi-stage : deps → builder → runner non-root
-FROM node:24-alpine AS deps
+# ✅ Stage base commun, manifests avant le code, runner non-root, exec en fin de sh -c
+FROM node:24-alpine AS base
 WORKDIR /app
 RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
-FROM node:24-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN corepack enable && pnpm run build
-
-FROM node:24-alpine AS runner
-WORKDIR /app
+FROM base AS runner
 RUN addgroup -S app && adduser -S -G app appuser
 COPY --from=builder --chown=appuser:app /app/dist ./
 USER appuser
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node migrate.js && exec node server.js"]
 ```
 
 ```dockerfile
-# ❌ COPY . . avant install → cache invalidé à chaque commit
+# ❌ COPY . . avant install, et sh reste parent de node (SIGTERM jamais relayé)
 FROM node:24-alpine AS deps
-WORKDIR /app
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
+CMD ["sh", "-c", "node migrate.js && node server.js"]
 ```

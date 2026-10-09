@@ -10,7 +10,8 @@ paths:
 
 ## À faire
 - Utiliser **`next-intl`** avec le segment dynamique `[locale]` à la racine de `app/` (version exacte : `docs/VERSIONS.md`)
-- Centraliser la config dans `src/i18n/routing.ts` via **`defineRouting()`** : `locales: ['fr', 'en']`, `defaultLocale: 'fr'`, `localePrefix: 'always'` (fr et en toujours explicites dans l'URL)
+- Centraliser la config dans `src/i18n/routing.ts` via **`defineRouting()`** : `locales: ['fr', 'en']`, `defaultLocale: 'fr'`, `localePrefix: 'always'` (fr et en toujours explicites dans l'URL), `alternateLinks: false` (les hreflang viennent des métadonnées, cf. `nextjs/metadata-seo.md`)
+- Déclarer `generateStaticParams` des locales sur le layout `[locale]` : avec `cacheComponents`, chaque root param doit avoir au moins une valeur, sinon le build échoue
 - Résoudre la locale dans `src/i18n/request.ts` par **`locale` de `next/root-params`** (`rootLocale()`), avec repli sur `defaultLocale` quand elle est absente (hors du segment, ex. `global-not-found.tsx`) : elle est disponible au rendu statique sans être annoncée page par page
 - Ouvrir chaque `layout.tsx` et `page.tsx` par **`setupLocalePage(params)`** (`src/i18n/locale-guard.ts`), et `generateMetadata` par **`setupLocaleMetadata(params)`** (`src/lib/seo.ts`) : ils valident la locale par `hasLocale` et appellent `notFound()` sinon
 - Importer les APIs navigation localisées via **`createNavigation(routing)`** : `Link`, `redirect`, `useRouter`, `usePathname`, `getPathname`
@@ -23,7 +24,6 @@ paths:
 - Appeler **`setRequestLocale`** : abandonné par le projet au profit de `next/root-params`, il n'apporte plus rien
 - Lire **`requestLocale`** dans `getRequestConfig` : déprécié, remplacé par `rootLocale()`
 - Utiliser la config `i18n` dans `next.config.ts` : **Pages Router only**, provoque des bugs/warnings en App Router
-- Utiliser **`localeDetection: false`** : déprécié next-intl 4.0, remplacer par `localeCookie: false`
 
 ## Gotchas
 - Next 15+ : `params` est async, `await params` obligatoire (hard error Next 16)
