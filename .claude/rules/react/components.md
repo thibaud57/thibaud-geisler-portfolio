@@ -12,10 +12,11 @@ paths:
 - Utiliser `useId()` pour les IDs d'accessibilité (`htmlFor`, `aria-describedby`), jamais pour des keys de listes
 - Brancher une Server Action par `useActionState` (de `react`) et lire l'état du formulaire par `useFormStatus` dans un **composant enfant** du `<form>`
 - Utiliser `useOptimistic` pour un retour d'interface immédiat, annulé automatiquement en cas d'échec
+- Placer `<ViewTransition>` (stable depuis React 19.3) dans chaque page ou dans un composant de page, jamais dans un layout : un layout persiste entre les navigations, `enter` et `exit` n'y déclenchent jamais. Garder la neutralisation par `prefers-reduced-motion`
 
 ## À éviter
-- `forwardRef` : **déprécié** en React 19 (codemod disponible)
-- `<Context.Provider>` : **déprécié** en React 19 (codemod disponible)
+- `forwardRef` : inutile en React 19, forme legacy encore supportée dont la dépréciation est annoncée (codemod disponible)
+- `<Context.Provider>` : même statut, `<Context value={...}>` le remplace (codemod disponible)
 - `element.ref` : **déprécié**, utiliser `element.props.ref`
 - `useFormState` de `react-dom` : **déprécié**, remplacé par `useActionState` de `react`
 - `propTypes` ou `defaultProps` sur les function components, et `ReactDOM.render` : **supprimés** en React 19 (`createRoot` à la place du second)

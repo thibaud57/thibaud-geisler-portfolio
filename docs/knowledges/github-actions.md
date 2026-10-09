@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
       - uses: pnpm/action-setup@<sha> # v6.1.0, version lue dans `packageManager`
-      - uses: actions/setup-node@<sha> # v7.0.0
+      - uses: actions/setup-node@<sha> # v7.1.0
         with: { node-version: '24', cache: 'pnpm' }
       - uses: extractions/setup-just@<sha> # v4.0.0
       - run: pnpm install --frozen-lockfile
@@ -88,7 +88,7 @@ jobs:
 - `cancel-in-progress` seulement sur les PR : un run sur `main` va toujours au bout
 - `permissions: contents: read` applique le principe du moindre privilège
 - `timeout-minutes: 15` sur le job : évite qu'un test hangué consomme les 6h (360 min) de timeout par défaut et bloque les minutes CI
-- Le job `ci` porte `if: always()` : sans lui, un `quality` sauté marquerait le check requis comme ignoré et bloquerait le merge
+- Le job `ci` porte `if: always()` : sans condition, un `quality` sauté marquerait le check requis comme ignoré et bloquerait le merge. Ne pas le remplacer par `!cancelled()`, conseillé pour un step ordinaire : un job sauté compte comme réussi pour un check requis, un run annulé laisserait alors merger sans `quality`. Sous `always()`, `ci` tourne et échoue sur un `quality` annulé
 
 ---
 
@@ -142,7 +142,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 # Option 1 : cache automatique via setup-node (celle du projet)
 - uses: pnpm/action-setup@<sha> # v6.1.0, sans `version:` : lue dans `packageManager`
 
-- uses: actions/setup-node@<sha> # v7.0.0
+- uses: actions/setup-node@<sha> # v7.1.0
   with:
     node-version: '24'
     cache: 'pnpm'
@@ -184,13 +184,17 @@ Dans le portfolio, le déploiement **est** porté par GitHub Actions. `deploy.ym
 ```yaml
 # .github/workflows/deploy.yml (dernière étape, après le build et le push sur GHCR)
 - name: Trigger Dokploy compose redeploy
+  env:
+    DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+    DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+    DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
   run: |
     for i in 1 2 3; do
       curl -fsSL --max-time 30 -X POST \
-        "${{ secrets.DOKPLOY_URL }}/api/compose.redeploy" \
-        -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
+        "$DOKPLOY_URL/api/compose.redeploy" \
+        -H "x-api-key: $DOKPLOY_TOKEN" \
         -H "Content-Type: application/json" \
-        -d '{"composeId":"${{ secrets.DOKPLOY_COMPOSE_ID }}"}' && exit 0
+        -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}" && exit 0
       echo "Attempt $i failed, retrying in $((i*5))s..."
       sleep $((i*5))
     done
@@ -202,7 +206,8 @@ Dans le portfolio, le déploiement **est** porté par GitHub Actions. `deploy.ym
 - Pattern : build en GHA sur tag `v*`, image sur GHCR, puis `compose.redeploy` sur l'application Compose Dokploy (pas `application.deploy`, qui viserait une application Dokploy classique)
 - Trois tentatives espacées : un redémarrage de Dokploy pendant l'appel ne fait pas échouer la release
 - Le tag n'est posé que sur `main`, après merge d'une PR dont la CI est verte : le deploy ne relance pas les tests
-- Secrets stockés dans GitHub Settings > Secrets, les `NEXT_PUBLIC_*` dans les variables du dépôt
+- Secrets stockés dans GitHub Settings > Secrets, les `NEXT_PUBLIC_*` dans les variables du dépôt. Les secrets passent par `env:` du step, jamais interpolés dans le `run:` (cf. § Secrets et permissions)
+- Ni pnpm ni Node sur le runner de `deploy.yml` : le Dockerfile installe lui-même les dépendances (steps retirés le 9 octobre 2026, ils exécutaient des lifecycle scripts dans un job qui porte `packages: write`)
 
 ---
 
@@ -229,8 +234,9 @@ jobs:
 
 ### Points Importants
 
-- `${{ secrets.NAME }}` : injection à l'exécution, invisible dans les logs
-- `permissions:` par défaut = toutes permissions (à restreindre)
+- `${{ secrets.NAME }}` : injection à l'exécution, masquée dans les logs. Dans un `run:`, la passer par `env:` et lire `$NAME` : interpolée directement, la valeur est écrite dans le script avant que le shell ne le lise
+- Sans `permissions:`, un job hérite du défaut du dépôt (Settings > Actions > General) : `read`, sans approbation de PR par les workflows, depuis le 9 octobre 2026 (auparavant `write` et approbation autorisée). Aucun workflow n'en dépend, release-please passe par le token d'App
+- Restreindre aussi le token d'une GitHub App par les inputs `permission-<scope>` de `actions/create-github-app-token`, sinon il reçoit toutes les permissions de l'installation
 - `contents: read` suffit pour un CI de tests
 - Ne jamais `echo` un secret dans les logs
 
@@ -249,11 +255,13 @@ jobs:
 
 ## ❌ Anti-Patterns
 
-- Ne pas utiliser `ubuntu-latest` (instable, change sans prévenir)
+- Ne pas utiliser `ubuntu-latest` : il bascule de lui-même vers chaque nouvelle LTS (vers 26.04 entre le 19 octobre et le 19 novembre 2026)
+- Ne pas passer de glob à accolades à `hashFiles` (`src/**/*.{ts,tsx}`) : il rend une chaîne vide sans erreur, et la clé de cache ne change plus. Un glob par argument
+- Ne pas laisser un step `continue-on-error: true` sans signal : il conclut en succès, doubler d'un `::warning::` sur `steps.<id>.outcome == 'failure'`
 - Ne pas utiliser `actions/checkout@v4` ou antérieur (updates de sécurité)
 - Ne pas hardcoder des valeurs sensibles dans le YAML
 - Ne pas oublier `--frozen-lockfile` (risque de versions divergentes)
-- Ne pas omettre `permissions:` (toutes permissions par défaut)
+- Ne pas omettre `permissions:` au niveau workflow (le job hériterait du défaut du dépôt)
 
 ---
 

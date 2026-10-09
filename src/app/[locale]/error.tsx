@@ -10,10 +10,10 @@ import { useReportError } from "@/hooks/use-report-error"
 
 interface Props {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }
 
-export default function Error({ error, reset }: Props) {
+export default function Error({ error, retry }: Props) {
   const t = useTranslations("ErrorPage")
   const tCommon = useTranslations("Common")
 
@@ -25,7 +25,7 @@ export default function Error({ error, reset }: Props) {
         <AlertCircle aria-hidden className="size-16 text-destructive" strokeWidth={1.5} />
         <p className="text-base text-muted-foreground">{t("description")}</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-          <Button type="button" size="lg" onClick={reset}>
+          <Button type="button" size="lg" onClick={retry}>
             {tCommon("retry")}
           </Button>
           <Button asChild variant="outline" size="lg">

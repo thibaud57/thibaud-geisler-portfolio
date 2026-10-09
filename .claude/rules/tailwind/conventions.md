@@ -6,7 +6,7 @@ paths:
 # Tailwind CSS — Conventions de code & usage
 
 ## À faire
-- **`cn()` obligatoire** : composer les classes Tailwind par `cn()` (`src/lib/utils.ts`, wrapper `clsx` + `tailwind-merge`) pour un override propre par props, sans conflit
+- **`cn()` obligatoire** : composer les classes Tailwind par `cn()` (paquet `cn`, réexporté par `src/lib/utils.ts`, même sortie que `clsx` + `tailwind-merge` v3) pour un override propre par props, sans conflit
 - Référencer les couleurs par **token CSS sémantique** (`bg-primary`, `text-foreground`, `border-border`, `bg-card`), jamais par une couleur Tailwind brute (`bg-green-600`) ni un hex (`text-[#8FA68E]`) : seuls les tokens suivent le passage light/dark
 - **Mobile-first** : style de base pour mobile, puis élargir avec `sm:`, `md:`, `lg:`, `xl:`
 - **Ordre d'application** dans `cn()` : `layout → spacing → typography → colors → effects → responsive`

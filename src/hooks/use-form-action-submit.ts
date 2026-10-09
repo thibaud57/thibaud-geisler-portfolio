@@ -1,8 +1,9 @@
 import { startTransition, type SubmitEvent } from "react"
 
 // À utiliser à la place de <form action={...}> : React réinitialise le form après l'envoi, et
-// Radix Select rappelle onValueChange avec sa valeur initiale sur ce reset, effaçant les champs
-// contrôlés dès la première erreur de validation.
+// les contrôles de formulaire Radix (Select, RadioGroup, Switch, Slider) écoutent ce reset pour
+// revenir à leur valeur initiale par leur callback de changement (onValueChange, onCheckedChange),
+// effaçant les champs contrôlés dès la première erreur de validation.
 export function useFormActionSubmit(
   formAction: (formData: FormData) => void,
   // Retour explicite sur tous les chemins (noImplicitReturns) : true poursuit la soumission,

@@ -1,17 +1,18 @@
 # syntax=docker/dockerfile:1.7
 
 # =============================================================================
-# Base — Node 24 alpine + libc6-compat (sharp) + pnpm via corepack
+# Base — Node 24 alpine + pnpm via corepack. Pas de libc6-compat : sharp et les moteurs
+# Prisma publient des binaires musl.
 # =============================================================================
 FROM node:24-alpine AS base
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 RUN corepack enable
 
 
 # =============================================================================
 # Stage: deps — Install full (deps + devDeps) + génération client Prisma
-# Cache mount sur le store pnpm pour accélérer les rebuilds Dokploy.
+# Cache mount sur le store pnpm : profite aux builds locaux. Le runner GHA de deploy.yml repart
+# à froid, seul son cache de couches (`cache-from: type=gha`) évite de réinstaller.
 # =============================================================================
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -50,8 +51,8 @@ COPY --from=deps /app/src/generated ./src/generated
 
 # --- Build Next.js ---------------------------------------------------------
 # Turbopack (défaut Next 16). L'opt-out `--webpack` posé pour l'issue WASM
-# Prisma 7 (query_compiler_fast_bg.postgresql.mjs) a été retiré : build et
-# runtime vérifiés sur Next 16.3.3 + Prisma 7.10.0 (docs/VERSIONS.md § Prisma ORM).
+# Prisma 7 (query_compiler_fast_bg.postgresql.mjs) a été retiré. Build et runtime se
+# revérifient à chaque montée de Next ou de Prisma (dernier relevé : docs/VERSIONS.md § Prisma ORM).
 RUN --mount=type=secret,id=sentry_auth_token \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
     pnpm exec next build
@@ -99,4 +100,5 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./
 # --- Run -------------------------------------------------------------------
 USER nextjs
 EXPOSE 3000
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
+# `exec` : sans lui, sh reste le parent de Node et ne lui relaie pas le SIGTERM de `docker stop`.
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && exec node server.js"]

@@ -1,6 +1,6 @@
 ---
 title: "shadcn/ui — Composants UI copy-paste"
-version: "4.21.0"
+version: "4.21.4"
 description: "Référence technique pour shadcn/ui : philosophie copy-paste, CLI et patterns pour le portfolio."
 date: "2026-04-13"
 keywords: ["shadcn", "ui", "radix", "tailwind", "components"]
@@ -25,8 +25,8 @@ Les composants ne sont pas installés comme dépendances npm : ils sont copiés 
 ### Exemple
 
 ```bash
-# Initialiser shadcn/ui dans le projet
-pnpm dlx shadcn@latest init -t next
+# Initialiser shadcn/ui dans le projet (base Radix : Base UI est le défaut depuis juillet 2026)
+pnpm dlx shadcn@latest init -t next -b radix
 
 # Ajouter des composants
 pnpm dlx shadcn@latest add button card dialog form
@@ -168,7 +168,7 @@ function Button({
 - Les variantes et tailles réelles (hauteurs 32/28/24 px, variantes `icon-*`) sont décrites dans `docs/DESIGN.md`, la fiche ne les recopie pas
 - `asChild` rend l'enfant (un `Link`, par exemple) avec les styles du bouton, via `Slot.Root` de `radix-ui`
 - `data-slot`, `data-variant` et `data-size` permettent de styler un bouton selon son contexte (`in-data-[slot=button-group]:…`)
-- `cn()` (clsx + tailwind-merge) résout les conflits de classes Tailwind
+- `cn()` résout les conflits de classes Tailwind. Il vient du paquet `cn`, que le registry importe depuis septembre 2026 et que `src/lib/utils.ts` réexporte depuis la migration `shadcn migrate cn` du 9 octobre 2026 (même sortie annoncée que `clsx` + `tailwind-merge` v3)
 - `VariantProps` extrait automatiquement les types des variants
 - `defaultVariants` fournit des valeurs par défaut
 - La prop `className` peut toujours surcharger les classes du variant
@@ -224,19 +224,23 @@ export function ContactForm() {
 
 ### Description
 
-Commande à lancer une seule fois au démarrage du projet pour créer `components.json`, configurer les aliases et installer les dépendances de base (tailwind-merge, clsx, class-variance-authority).
+Commande à lancer une seule fois au démarrage du projet pour créer `components.json`, configurer les aliases et installer les dépendances de base (`cn`, class-variance-authority).
 
 ### Syntaxe
 
 ```bash
-pnpm dlx shadcn@latest init -t next
-pnpm dlx shadcn@latest init --defaults
-pnpm dlx shadcn@latest init -y -t next --no-monorepo
+pnpm dlx shadcn@latest init -t next -b radix
+pnpm dlx shadcn@latest init -y -t next -b radix --no-monorepo
+
+# Projet antérieur à septembre 2026 : remplacer clsx + tailwind-merge par le paquet cn
+pnpm dlx shadcn@latest migrate cn
 ```
 
 ### Points Importants
 
 - `-t next` cible Next.js (valeurs possibles : `next | vite | astro | laravel`)
+- `-b` choisit la base (`base | radix | aria`) : depuis juillet 2026, le défaut est Base UI, `-b radix` garde Radix, qui n'est pas déprécié
+- `migrate cn` ne réécrit que les fichiers qui importent `clsx`, `tailwind-merge` ou `cnfast` (ici, seul `src/lib/utils.ts`, devenu `export { cn } from "cn"`) puis retire ces paquets. Les composants qui importent `cn` depuis `@/lib/utils` restent intacts
 - `--defaults` applique les défauts du CLI (couleur `zinc`, CSS variables activées). Le projet utilise `radix-nova` et `neutral`, donc ne pas initialiser avec `--defaults`
 - Génère `components.json` à la racine, référence de config pour les commandes `add`
 - À relancer avec `-f` uniquement pour forcer une reconfig
@@ -302,4 +306,5 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background
 
 - [Radix UI : Primitives](https://www.radix-ui.com/primitives)
 - [class-variance-authority](https://cva.style/docs)
-- [tailwind-merge](https://github.com/dcastil/tailwind-merge)
+- [cn](https://github.com/shadcn-ui/cn) (remplaçant de `clsx` + `tailwind-merge`)
+- [Changelog shadcn : `cn`](https://ui.shadcn.com/docs/changelog/2026-09-cn) et [Base UI par défaut](https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default)

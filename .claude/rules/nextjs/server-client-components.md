@@ -11,9 +11,9 @@ paths:
 - Placer `'use client'` le plus bas possible dans l'arbre (pattern "leaf client component") pour minimiser le bundle JS client
 - Passer un Server Component en `children` d'un Client Component pour le maintenir côté serveur tout en ayant de l'interactivité autour
 - Faire des Server Components `async` et `await` directement dans le corps du composant, sans `useEffect` ni state de chargement
-- Wrapper dans `<Suspense fallback={...}>` UNIQUEMENT les Server Components async qui accèdent à des runtime APIs (`cookies()`, `headers()`, `searchParams`, `connection()`) ou font des fetches non cachés. Pour les composants entièrement en `'use cache'`, le `<Suspense>` est redondant : le contenu est inclus dans le static shell au prerender (cf. règle XOR dans `nextjs/rendering-caching.md`)
-- Installer le package `server-only` sur les modules qui accèdent à la DB/secrets, `client-only` sur ceux qui utilisent `window`/`document`
-- Activer `experimental: { taint: true }` et tainter les objets sensibles (user avec `passwordHash`, tokens) avec `experimental_taintObjectReference` / `experimental_taintUniqueValue`
+- Wrapper dans `<Suspense fallback={...}>` UNIQUEMENT les Server Components async qui accèdent à des runtime APIs (`cookies()`, `headers()`, `searchParams`, `connection()`, `io()`) ou font des fetches non cachés. Pour les composants entièrement en `'use cache'`, le `<Suspense>` est redondant : le contenu est inclus dans le static shell au prerender (cf. règle XOR dans `nextjs/rendering-caching.md`)
+- Ouvrir par `import 'server-only'` les modules qui accèdent à la DB ou aux secrets, par `import 'client-only'` ceux qui utilisent `window`/`document`. Next gère ces imports en interne : le paquet ne s'installe que si le lint signale une dépendance absente
+- Activer `experimental: { taint: true }` et tainter les objets sensibles (user avec `passwordHash`, tokens) avec `experimental_taintObjectReference` / `experimental_taintUniqueValue`. API expérimentale que la doc Next ne recommande pas seule en production : revérifier à chaque montée de Next et de React que l'option et ses exports existent encore
 - S'assurer que les props passées d'un Server vers Client Component sont sérialisables (`string`, `number`, `Date`, `Map`, `Set`, `Promise`, `FormData`, Server Actions)
 
 ## À éviter
@@ -26,7 +26,7 @@ paths:
 
 ## Gotchas
 - Next 16 (hard error) : `params` et `searchParams` sont `Promise`, `await` obligatoire, l'accès synchrone est une erreur bloquante
-- Context React ne traverse pas la frontière RSC (pas de runtime React global côté serveur) : `useContext` et `<Context>` ne fonctionnent pas dans les Server Components
+- Un Server Component ne crée ni ne lit un Context (`createContext`, `useContext`). Depuis React 19.3, il peut en revanche rendre `<Ctx value={...}>` d'un Context importé d'un module `'use client'`
 - Un Client Component est quand même pré-rendu en HTML côté serveur (SSR), `'use client'` ne désactive pas le SSR
 - Le Taint API protège uniquement l'instance exacte : les transformations (`.toUpperCase()`, base64) créent des valeurs non tainted
 

@@ -12,7 +12,7 @@ paths:
 - Déclarer les schémas **au niveau module** dans `src/lib/schemas/` (pas à l'intérieur d'une fonction) : partage client/serveur et pas de re-compilation à chaque appel
 - Dériver les types via **`z.infer<typeof Schema>`** : JAMAIS dupliquer le type TypeScript à la main à côté du schéma
 - Préférer les **validators top-level v4** (`z.email()`, `z.url()`, `z.iso.datetime()`) aux formes chaînées v3 (`z.string().email()`) : plus rapide et tree-shakable
-- Utiliser **`z.coerce.number()`** / `z.coerce.boolean()` pour convertir les valeurs brutes `FormData` ou `process.env` (toutes en string à la base)
+- Utiliser **`z.coerce.number()`** pour convertir les nombres bruts de `FormData` ou `process.env` (toutes en string à la base), et **`z.stringbool()`** pour leurs booléens (`"true"`/`"false"`, `"1"`/`"0"`…)
 - `.refine()` pour les validations mono-champ, **`.superRefine()`** pour les validations cross-champs (multi-erreurs via `ctx.addIssue`)
 - `.transform()` pour normaliser après validation (trim, lowercase) : distinguer **`z.input<typeof S>`** (avant transform) et **`z.output<typeof S>`** (après, alias de `z.infer`)
 
@@ -20,6 +20,7 @@ paths:
 - Dupliquer le type TypeScript à la main à côté du schéma : divergence inévitable, toujours passer par `z.infer`
 - Utiliser `z.any()` / `z.unknown()` pour contourner la validation : perd la garantie runtime, utiliser un schéma discriminé
 - Chaîner `z.string().email()` / `.uuid()` / `.url()` : **déprécié en v4**, les validators top-level sont obligatoires
+- `z.coerce.boolean()` sur une chaîne : c'est `Boolean(input)`, donc `"false"` et `"0"` donnent `true`
 - Déclarer un schéma à l'intérieur d'un handler ou d'une Server Action : recompilation à chaque appel, et impossible à importer depuis un test unitaire
 
 ## Gotchas
@@ -28,7 +29,7 @@ paths:
 - Erreurs v4 : `message`, `invalid_type_error`, `required_error` **fusionnés** en un paramètre `error` unique (string ou `(issue) => string`)
 - **`z.coerce.number()` accepte un champ vide** : `Number("")` vaut `0`, donc un input numérique vidé dans un `FormData` passe la validation avec la valeur `0`. Pour un champ requis, contrôler la chaîne avant de convertir : `z.string().trim().min(1, '…').pipe(z.coerce.number<string>())`
 - **`.pipe()` derrière une chaîne exige `z.coerce.number<string>()`** : l'entrée d'un schéma coercé est typée `unknown`, que `.pipe()` refuse en `TS2345` après un `z.string()`. Le générique aligne le type d'entrée (constaté sur Zod 4.5.4 le 2026-09-17)
-- `.strict()` / `.passthrough()` / `.merge()` sur un objet : **dépréciés en v4** → remplacés par `z.strictObject({ ... })`, `z.looseObject({ ... })`, `.extend({ ... })`
+- `.passthrough()` / `.merge()` sur un objet : **dépréciés en v4** → `z.looseObject({ ... })`, `.extend({ ... })`. `.strict()` reste disponible mais legacy → `z.strictObject({ ... })`
 
 ## Exemples
 ```typescript

@@ -213,13 +213,13 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 **Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
 
-**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js`.
+**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && exec node server.js`. Le `exec` fait de Node le destinataire du `SIGTERM` de l'arrêt du container : il s'arrête en moins d'une seconde au lieu d'être tué au bout de 10 s.
 
 > ⚠️ **Le déploiement coupe brièvement le service, en `404`** : un Compose recrée le container, il n'y a pas de rolling update, et Traefik ne route que vers un container `healthy` ([knowledges/dokploy.md](knowledges/dokploy.md#traefik-et-lets-encrypt)). Le temps du `prisma migrate deploy` puis du démarrage Next, le domaine répond `404` : c'est une protection, pas une panne (moins de 10 s mesurées au redeploy du 2026-09-21, sans migration). Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la fenêtre : dans ce cas, l'appliquer manuellement avant le déploiement.
 
 > ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s, et toutes les 5 s (défaut Docker) pendant le `start_period` de 60 s qui couvre les migrations. Il conditionne le routage Traefik et rend l'état du container observable : `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
-> ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
+> ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base, exécutée à chaque requête par `await connection()` (sans lui, `cacheComponents` la prérendait au build et le healthcheck lisait un fichier figé). Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
 > ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que `deploy.yml` apporte : déploiement sur tag de release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
 
@@ -251,7 +251,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 - [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`.
 - [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
-- [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
+- [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && exec node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
 > Items techniques et assets de bootstrap, implémentés et validés empiriquement. Pas d'ADR : pas de décision architecturale structurelle, juste des optimisations, workarounds Docker/Next.js et assets de branding.
@@ -356,12 +356,16 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
-| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job, et restreint par les inputs `permission-contents`, `permission-issues` et `permission-pull-requests` aux trois droits que demande release-please. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
 
 > **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod est ce qui garantit le typage et une erreur explicite dès le démarrage quand une variable manque. Deux exceptions : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`, et `src/instrumentation-client.ts`, chargé par le navigateur sur toutes les pages publiques, où `@/env` embarquerait Zod. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
+
+> ℹ️ **Permissions par défaut des workflows GitHub Actions** : en lecture seule, sans approbation de PR par les workflows, depuis le 9 octobre 2026 (Settings → Actions → General → Workflow permissions ; avant : écriture et approbation autorisée). Chaque workflow déclare en plus ses `permissions:`, et release-please passe par le token d'App. Vérifier par `gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/workflow` (`read`, `false`).
+
+> ℹ️ **Secrets dans un `run:`** : toujours par `env:` du step (`$DOKPLOY_TOKEN`), jamais par `${{ secrets.X }}` interpolé dans le script, qui l'écrirait dans le script avant que le shell ne le lise.
 
 ### Rotation
 
@@ -435,10 +439,12 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Outil | Scope | Fréquence | Config |
 |-------|-------|-----------|--------|
 | Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle | [.github/dependabot.yml](../.github/dependabot.yml) : PRs vers `develop`, 5 ouvertes au plus, mineures et patchs groupés en une PR `minor-patch`, majeures isolées |
-| `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : il signale, il n'arrête pas le pipeline |
+| `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : un step suivant émet un `::warning::` visible dans le résumé du run quand il échoue, il n'arrête pas le pipeline |
 | Trivy | Image `latest` de GHCR, celle que tire Dokploy : sévérités `CRITICAL` et `HIGH` corrigeables | Hebdomadaire, et à la demande par `gh workflow run security.yml` | Workflow `security.yml`, rapport dans l'onglet Security du dépôt (Code scanning, catégorie `trivy-image`). Ne bloque aucune release |
 
 > ⚠️ **Les PRs Dependabot visent `develop`, jamais `main`** : elles n'atteignent la production qu'au prochain merge d'epic. Un correctif de sécurité urgent passe par un `hotfix/*`.
+
+> ⚠️ **pnpm 11 refuse en install figée toute version publiée depuis moins de 24 h** (`minimumReleaseAge`), en CI comme dans le Dockerfile. Le cooldown par défaut de Dependabot (3 jours) en protège ses PRs de version, pas ses PRs de sécurité : une CI rouge le jour de la publication se relance le lendemain. Une montée manuelle trop récente laisse des `minimumReleaseAgeExclude` dans `pnpm-workspace.yaml`, à retirer avant de pousser (détail : [knowledges/pnpm.md](knowledges/pnpm.md)).
 
 ---
 
@@ -698,9 +704,9 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ## Optimisations
 
-- [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
+- [x] Taille des bundles JS surveillée (alors par `@next/bundle-analyzer`, remplacé le 9 octobre 2026 par `next analyze`, seul analyseur qui lise un build Turbopack) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
 - [x] Baseline LCP/CLS/TBT prise sur les pages clés × 2 locales. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
-- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images.md](../.claude/rules/nextjs/images.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
+- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images.md](../.claude/rules/nextjs/images.md) : `priority` est déprécié depuis Next 16, renommé `preload`). Le logo de la navbar, rendu en deux variantes light/dark, voit ses deux variantes préchargées : React 19 précharge aussi une image `loading="eager"`, le passage de l'un à l'autre n'y change rien (constaté le 9 octobre 2026)
 - [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf desktop 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
 - [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/fonts.md](../.claude/rules/nextjs/fonts.md)
 - [x] **`Sansation-Bold` en woff2 pour le navigateur** (`v1.6.3`) : 45 → 16 Ko, 8 Ko de moins sur le chemin critique du LCP. Les OG gardent des `.ttf` ([fonts.md](../.claude/rules/nextjs/fonts.md))

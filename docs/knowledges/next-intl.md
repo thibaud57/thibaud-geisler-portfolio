@@ -1,8 +1,8 @@
 ---
 title: "next-intl — Internationalisation Next.js"
-version: "4.14.7"
+version: "4.14.9"
 description: "Référence technique pour next-intl : i18n App Router, locale routing, useTranslations et static rendering."
-date: "2026-10-03"
+date: "2026-10-09"
 keywords: ["next-intl", "i18n", "nextjs", "locale", "app-router"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "TypeScript"]
@@ -31,12 +31,16 @@ import { defineRouting } from 'next-intl/routing'
 export const routing = defineRouting({
   locales: ['fr', 'en'],
   defaultLocale: 'fr',
+  localePrefix: 'always',
+  alternateLinks: false,
 })
 ```
 
 ### Points Importants
 
 - Une seule source de vérité pour toutes les locales
+- `alternateLinks` (vrai par défaut) fait poser au middleware un header `Link` hreflang sur chaque réponse, calculé sans les métadonnées de la page. Le projet le coupe depuis le 9 octobre 2026 : les hreflang (x-default compris) viennent des seules `alternates.languages` de `src/lib/seo.ts`
+- `localeDetection: false` coupe la détection par `Accept-Language` et par cookie, `localeCookie: false` seulement le cookie : deux options distinctes, aucune dépréciée
 - `defaultLocale` utilisé quand la détection échoue
 - Passée au middleware et à la config de requête
 - Typer les locales via l'augmentation `AppConfig`

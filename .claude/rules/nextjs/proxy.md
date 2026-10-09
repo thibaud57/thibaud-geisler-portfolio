@@ -26,7 +26,8 @@ paths:
 - Next 16 : le runtime `edge` n'est plus supporté pour `proxy.ts`, utiliser `nodejs` exclusivement
 - Codemod automatique dispo : `npx @next/codemod@canary middleware-to-proxy .`
 - Le proxy s'exécute **avant** le rendering mais **après** les redirects statiques de `next.config.ts`
-- Better Auth : protéger les routes `admin/` via check d'existence du cookie de session uniquement, la validation DB se fait dans le layout protégé ou la Server Action
+- Better Auth : protéger les routes `admin/` via check d'existence du cookie de session uniquement, par `getSessionCookie(request)` de `better-auth/cookies`. Il ne lit pas la config de `auth.ts` : un nom ou un préfixe de cookie personnalisé se repasse en options. La validation DB se fait dans le layout protégé ou la Server Action
+- **Le proxy n'est pas une frontière d'autorisation** : un matcher qui exclut un chemin l'exclut aussi pour les Server Functions de ce chemin, et un bypass du proxy reste possible tant que Next n'est pas patché. Chaque page et chaque Server Function vérifie elle-même (cf. `nextjs/server-actions-security.md`)
 - Next 16 exige **au moins un** des deux exports, default ou nommé `proxy`. Le build échoue seulement si aucun n'existe. Rien n'interdit de garder `export default` en y enveloppant la logique custom
 - **Exception étroite à l'interdiction d'appel DB** : sans `generateStaticParams`, une route dynamique part sans vérifier qu'elle existe, le statut HTTP se fige à 200 et `notFound()` ne peut plus le changer une fois le stream commencé ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)). Le seul remède est un check avant stream, et le proxy est le seul point qui s'exécute avant. L'exception se limite au motif d'URL des pages projet (`/<locale>/projets/<slug>`), à un `select` d'un seul champ sans contenu, non caché, et à un repli qui laisse passer la requête si la base ne répond pas plutôt que de fabriquer un faux 404. Rien d'autre dans ce projet ne justifie un appel DB en proxy
 
@@ -35,8 +36,7 @@ paths:
 // ✅ proxy.ts léger : check cookie + redirect, matcher strict
 export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/protected')) {
-    const session = request.cookies.get('session')?.value
-    if (!session) return NextResponse.redirect(new URL('/login', request.url))
+    if (!getSessionCookie(request)) return NextResponse.redirect(new URL('/login', request.url))
   }
   return NextResponse.next()
 }

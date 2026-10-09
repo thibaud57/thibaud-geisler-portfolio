@@ -83,7 +83,7 @@ export default defineConfig({
     setupFiles: ['./vitest.env-loader.ts', './vitest.setup.ts'],
     projects: [
       { extends: true, test: { name: 'unit', environment: 'jsdom', exclude: ['src/**/*.integration.test.{ts,tsx}'] } },
-      { extends: true, test: { name: 'integration', environment: 'node', include: ['src/**/*.integration.test.{ts,tsx}'], pool: 'forks', maxWorkers: 1, fileParallelism: false } },
+      { extends: true, test: { name: 'integration', environment: 'node', include: ['src/**/*.integration.test.{ts,tsx}'], pool: 'forks', fileParallelism: false } },
     ],
   },
 })
@@ -92,7 +92,7 @@ export default defineConfig({
 ### Points Importants
 
 - Sans l'alias, tout test qui importe une Server Action ou un module `import 'server-only'` échoue dès l'import
-- `maxWorkers: 1` + `fileParallelism: false` sur `integration` : les fichiers partagent une base, en parallèle ils se marchent dessus (truncate et insert concurrents)
+- `fileParallelism: false` sur `integration` (il ramène à lui seul `maxWorkers` à 1) : les fichiers partagent une base, en parallèle ils se marchent dessus (truncate et insert concurrents)
 - Un test d'intégration se nomme `*.integration.test.ts`, c'est ce suffixe qui l'oriente vers le bon project
 - `vitest.env-loader.ts` charge la configuration d'environnement via `@next/env`, avant tout import qui lit `process.env`
 
@@ -305,7 +305,8 @@ pnpm add -D jsdom \
 
 ### Points Importants
 
-- Versions en place avec Vitest 5.0.3, suite verte le 3 octobre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.6`, `jsdom ^30.1.1`
+- Versions en place avec Vitest 5.0.3, suite verte le 9 octobre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/dom ^10.4.2`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.6`, `jsdom ^30.1.2`
+- `@testing-library/dom` est une peer **obligatoire** de `@testing-library/jest-dom` 7 : déclarée en devDependency le 9 octobre 2026, elle n'arrivait avant que par l'auto-install des peers de pnpm
 - `jsdom` requis pour tester les composants React (DOM simulé)
 - Alternative plus rapide : `happy-dom` à la place de `jsdom`
 - `@testing-library/jest-dom` s'importe via `'@testing-library/jest-dom/vitest'` dans le fichier setup (pas l'import standard)

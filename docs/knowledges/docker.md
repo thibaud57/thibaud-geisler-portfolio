@@ -27,7 +27,7 @@ Pattern fondamental pour réduire la taille des images de production : séparer 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
 FROM node:24-alpine AS base
-RUN apk add --no-cache libc6-compat && corepack enable
+RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
@@ -56,7 +56,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=deploy-prisma --chown=nextjs:nodejs /prod/node_modules ./node_modules
 USER nextjs
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && exec node server.js"]
 ```
 
 ### Points Importants
@@ -67,6 +67,9 @@ CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node
 - Le token Sentry passe par un secret BuildKit (`--mount=type=secret`), jamais par un `ARG` qui resterait dans une couche de l'image
 - `SKIP_ENV_VALIDATION=true` au build : les secrets serveur n'existent qu'au runtime, injectés par Dokploy. Les `NEXT_PUBLIC_*` arrivent par `ARG`, sinon ils seraient `undefined` dans le bundle
 - Utilisateur non-root (`USER nextjs`), et `npm`/`npx` retirés de l'image finale : jamais exécutés au runtime, ils sortent leurs dépendances des alertes Trivy
+- **`exec` en fin de `sh -c`** : sans lui, `sh` reste parent de Node et ne lui relaie pas le `SIGTERM` de `docker stop`, que Docker conclut par un `SIGKILL` au bout de 10 s. Relevé le 9 octobre 2026 avec `exec` : arrêt en 0,37 s, code de sortie 143 (`SIGTERM` reçu par Node). `init: true` du compose ne suffit pas, il relaie à `sh`, pas au petit-fils
+- Pas de `libc6-compat` : `sharp` et les moteurs Prisma publient des binaires musl. Retiré le 9 octobre 2026 après une image testée (migrations appliquées, AVIF servi par `/_next/image`)
+- `corepack enable` dans `base` suffit tant que l'image est en Node 24 : Corepack n'est plus distribué avec Node à partir de la ligne 25, il faudra alors l'installer
 
 ---
 

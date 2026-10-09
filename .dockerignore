@@ -11,3 +11,12 @@ coverage
 .playwright-mcp
 src/generated
 dumps/
+# Hors build : laissés dans le contexte, leur moindre modification invaliderait `COPY . .`
+# et relancerait `next build`.
+.github
+.design-sync
+Dockerfile
+.dockerignore
+compose*.yaml
+Justfile
+*.tsbuildinfo
