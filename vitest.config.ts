@@ -33,7 +33,6 @@ export default defineConfig({
           environment: "node",
           include: ["src/**/*.integration.test.{ts,tsx}"],
           pool: "forks",
-          maxWorkers: 1,
           fileParallelism: false,
         },
       },

@@ -20,7 +20,7 @@ technologies: ["Next.js", "shadcn/ui", "Tailwind CSS", "motion"]
 
 ### Description
 
-Aceternity UI s'appuie sur le CLI shadcn. Les composants sont référencés via `@aceternity/<component>` depuis la v4 du CLI, ou via URL directe du registry. Chaque composant installe aussi ses dépendances (typiquement `motion`, `clsx`, `tailwind-merge`).
+Aceternity UI s'appuie sur le CLI shadcn. Les composants sont référencés via `@aceternity/<component>` depuis la v4 du CLI, ou via URL directe du registry. Chaque composant installe aussi ses dépendances (typiquement `motion`, et selon l'âge du composant `cn` ou `clsx` + `tailwind-merge`).
 
 ### Exemple
 
@@ -71,7 +71,7 @@ export function Hero() {
 
 ### Points Importants
 
-- Package `motion` installé (pas `framer-motion`)
+- Package `motion` installé (pas `framer-motion`), en v14 depuis le 9 octobre 2026 : aucun breaking change de l'API React entre 13 et 14 (guide de migration officiel)
 - Import : `from 'motion/react'` (pas `'motion'` sans sous-chemin)
 - API identique à framer-motion : `initial`, `animate`, `whileInView`, etc.
 - Les composants doivent être marqués `'use client'`
@@ -116,26 +116,21 @@ export const BackgroundRippleEffect = ({ children, className, ...props }) => {
 
 ### Description
 
-Tous les composants Aceternity utilisent la fonction `cn()` (combinaison `clsx` + `tailwind-merge`) pour gérer les classes conditionnelles sans conflits. Partagée avec shadcn/ui dans `src/lib/utils.ts`. Si shadcn/ui est déjà installé, `cn` existe déjà.
+Tous les composants Aceternity utilisent la fonction `cn()` pour gérer les classes conditionnelles sans conflits. Partagée avec shadcn/ui dans `src/lib/utils.ts`, qui réexporte depuis le 9 octobre 2026 le paquet `cn` (remplaçant de `clsx` + `tailwind-merge`, cf. `shadcn-ui.md`).
 
 ### Exemple
 
 ```ts
-// src/lib/utils.ts (partagé avec shadcn/ui)
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+// src/lib/utils.ts (partagé avec shadcn/ui, Aceternity et Magic UI)
+export { cn } from "cn"
 ```
 
 ### Points Importants
 
 - `cn()` est partagé entre shadcn/ui, Aceternity et Magic UI
 - Pas besoin de le dupliquer si shadcn/ui est déjà initialisé
-- Dépendances : `clsx`, `tailwind-merge`, `motion`
-- Le CLI shadcn installe automatiquement ces deps
+- Dépendances : `cn`, `motion`
+- Un composant ancien du registry peut réinstaller `clsx` et `tailwind-merge` : les retirer et pointer son import vers `@/lib/utils`
 
 ---
 

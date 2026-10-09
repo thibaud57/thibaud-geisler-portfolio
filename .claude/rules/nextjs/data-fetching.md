@@ -16,6 +16,7 @@ paths:
 
 ## À éviter
 - Rendre une query `'use cache'` sans `io()` préalable dans le site public : le composant entrerait dans le shell statique et lirait la base au build
+- Placer `await io()` dans la fonction `'use cache'` : il y est sans effet. Il suspend le composant appelant au prerender, c'est donc là qu'il se pose
 - Envelopper une query Prisma par `cache()` de React : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions sans IO appelées plusieurs fois dans un rendu, et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()`
 - Compter sur le cache automatique pour les queries Prisma : elles ne participent pas au cache `fetch()`
 

@@ -1,6 +1,6 @@
 ---
 title: "Pino — Logger JSON structuré"
-version: "10.3.1"
+version: "10.4.0"
 description: "Référence technique pour Pino : logger JSON, child loggers, transports et intégration Next.js."
 date: "2026-04-13"
 keywords: ["pino", "logger", "json", "observability", "nextjs"]
@@ -10,7 +10,7 @@ technologies: ["Node.js", "Next.js", "TypeScript"]
 
 # Description
 
-`Pino` est le logger Node.js de référence pour l'output JSON structuré. Il est rapide, faible overhead, et bundlé avec ses types TypeScript nativement. Dans le portfolio, Pino écrit en stdout pour être capturé par Dokploy et consultable dans l'onglet Logs. Niveaux utilisés : `info`, `warn`, `error`. Configuration obligatoire : ajouter `pino`, `pino-pretty` et `thread-stream` dans `serverExternalPackages` de `next.config.ts` pour éviter les erreurs de bundling des worker threads par Next.js.
+`Pino` est le logger Node.js de référence pour l'output JSON structuré. Il est rapide, faible overhead, et bundlé avec ses types TypeScript nativement. Dans le portfolio, Pino écrit en stdout pour être capturé par Dokploy et consultable dans l'onglet Logs. Niveaux utilisés : `info`, `warn`, `error`. Les worker threads ne se bundlent pas : `pino`, `pino-pretty` et `thread-stream` restent des modules externes par `serverExternalPackages`, liste que Next fournit déjà et que `next.config.ts` redéclare.
 
 ---
 
@@ -128,7 +128,7 @@ logger.error({ err, formData }, 'Form validation failed')
 
 ### Description
 
-Pino utilise des worker threads via `thread-stream`. Sans configuration explicite, Next.js tente de bundler ces modules, ce qui casse le runtime. Ajouter `pino`, `pino-pretty` et `thread-stream` dans `serverExternalPackages` force Next.js à les traiter comme des modules Node.js externes.
+Pino utilise des worker threads via `thread-stream`, qui ne se bundlent pas. `pino`, `pino-pretty` et `thread-stream` figurent dans la liste `serverExternalPackages` par défaut de Next (`node_modules/next/dist/lib/server-external-packages.jsonc`), qui les traite donc déjà comme des modules Node.js externes. Le projet les redéclare dans `next.config.ts` pour documenter la dépendance et ne pas dépendre de cette liste.
 
 ### Exemple
 
@@ -145,7 +145,7 @@ export default nextConfig
 
 ### Points Importants
 
-- Obligatoire pour Pino + Next.js, sinon erreur au démarrage ou à l'exécution
+- Sans cette exclusion (la liste de Next ou celle du projet), erreur au démarrage ou à l'exécution
 - `thread-stream` peut nécessiter une installation explicite (`pnpm add thread-stream`)
 - Avec Turbopack : vérifier la version Next.js (bug corrigé en 16.1.0-canary.16+)
 - Ne pas importer Pino côté client : module serveur uniquement

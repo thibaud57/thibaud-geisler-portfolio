@@ -30,6 +30,7 @@ paths:
 - TypeScript 6 : **`module: esnext`** par défaut (plus `commonjs`). Casse les imports CJS existants, migrer les `require()` vers `import`
 - TypeScript 6 : **`moduleResolution: node`** (node10) **déprécié** → utiliser `bundler` (Next 16 / Turbopack) ou `nodenext`
 - TypeScript 6 : **`types: []`** par défaut (plus d'auto-discovery des `@types/*`). Déclarer explicitement les types utilisés (le projet : `["node", "vitest/globals", "react/canary", "react/experimental"]`)
+- TypeScript 6 : `lib: ["dom"]` suffit, `dom.iterable` et `dom.asynciterable` y sont intégrés. **`noUncheckedSideEffectImports`** vaut `true` par défaut (un `import './x.css'` introuvable devient une erreur) et `esModuleInterop: false` est refusé
 
 ## Exemples
 ```typescript

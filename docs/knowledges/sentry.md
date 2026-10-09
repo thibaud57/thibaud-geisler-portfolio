@@ -1,6 +1,6 @@
 ---
 title: "Sentry — Monitoring d'erreurs applicatives"
-version: "11.1.0"
+version: "11.6.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
 date: "2026-10-03"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
@@ -80,6 +80,8 @@ export async function myAction(prevState: State, formData: FormData): Promise<St
 - Le callback retourne ce que retourne la Server Action : le wrapping n'altère ni le type de retour ni la gestion d'erreur métier
 - Pertinent pour toute future Server Action de l'espace admin (post-MVP), pas seulement le formulaire de contact
 - **Le wrapping seul ne garantit pas la remontée** : sur ce projet (`10.74.0`, dev Turbopack), le span `function.server_action` est bien créé et flush côté SDK (`Sentry.init({ debug: true })` le confirme dans les logs), mais aucune transaction n'apparaît côté dashboard après plusieurs minutes. Symptôme identique à #18871 (perte silencieuse au niveau transport), jamais documenté par Sentry pour le tracing spécifiquement, seulement pour la capture d'erreur. **Reproduit en `11.1.0` le 2026-10-03** sur l'image Docker de production : l'erreur SMTP de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, la trace ne compte aucun span après plus de 4 minutes, quand les spans des GET voisins arrivent en quelques secondes. Voir § Bundler et incidents connus
+- Sentry décrit le tracing des Server Actions sous Turbopack comme une limite structurelle : « server actions don't emit OTel spans Sentry can hook into » (blog Sentry du 24 mars 2026). Les notes 11.2 à 11.6 ne citent aucun correctif : non revalidé en `11.6.0`
+- Depuis `11.5.0`, `forbidden()` et `unauthorized()` ne sont plus capturés comme erreurs, comme `redirect()` et `notFound()` avant eux (#10466, fermée en 2024)
 
 ---
 
@@ -89,13 +91,13 @@ export async function myAction(prevState: State, formData: FormData): Promise<St
 
 `withSentryConfig` doit être le **dernier** wrapper appliqué, donc le plus externe. La doc le formule ainsi : « Make sure adding Sentry options is the last code to run before exporting ». La raison est que les source maps doivent refléter les transformations opérées par les autres plugins.
 
-Le projet enchaîne déjà deux wrappers, l'ordre final est donc contraint.
+Le projet enchaîne aussi le wrapper next-intl, l'ordre final est donc contraint.
 
 ### Exemple
 
 ```typescript
 export default withSentryConfig(
-  withBundleAnalyzer(withNextIntl(nextConfig)),
+  withNextIntl(nextConfig),
   {
     org: '<org-slug>',
     project: '<project-slug>',
@@ -108,7 +110,7 @@ export default withSentryConfig(
 
 ### Points Importants
 
-- Ordre imposé : `withSentryConfig(withBundleAnalyzer(withNextIntl(config)), options)`
+- Ordre imposé : `withSentryConfig(withNextIntl(config), options)`. `@next/bundle-analyzer`, qui s'intercalait, a été retiré le 9 octobre 2026 : il ne sert qu'un build Webpack, `next analyze` le remplace sous Turbopack
 - `silent: !process.env.CI` garde le build local lisible tout en conservant les logs d'upload en CI
 - `sourcemaps.deleteSourcemapsAfterUpload` vaut `true` par défaut, ce qui évite d'embarquer les source maps dans l'image finale
 
@@ -120,7 +122,7 @@ export default withSentryConfig(
 
 Sans source maps uploadées, les stack traces sont illisibles : du code minifié. L'upload se déclenche au build et réclame un `SENTRY_AUTH_TOKEN`, qui est un secret de build, pas un secret de runtime.
 
-Le moment de l'upload dépend du bundler : Webpack pousse pendant le build, Turbopack après, via `useRunAfterProductionCompileHook`.
+Le moment de l'upload dépend du bundler : Webpack pousse pendant le build, Turbopack après, via l'option `useRunAfterProductionCompileHook`, `true` par défaut sous Turbopack.
 
 ### Exemple
 
@@ -135,7 +137,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
 - `SENTRY_AUTH_TOKEN` est un secret de **build** : il ne doit pas se retrouver dans les variables d'environnement Dokploy du conteneur, seulement dans le workflow GitHub Actions
 - Le passage par un secret BuildKit plutôt qu'un `ARG` évite qu'il persiste dans une couche de l'image. Ce pattern est une pratique Docker générique, Sentry ne documente pas le cas multi-stage
 - La doc officielle se limite à « Make sure to also add it to your CI »
-- Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation : `_experimental.useRunAfterProductionCompileHook` est le mode à activer, et il exige Next >= 15.4.1
+- Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation, par le hook Next `runAfterProductionCompile` (Next >= 15.4.1). L'option `useRunAfterProductionCompileHook`, de premier niveau dans `withSentryConfig`, vaut `true` par défaut sous Turbopack : rien à poser. Le `_experimental.useRunAfterProductionCompileHook` d'avant le SDK 11 était ignoré, retiré de `next.config.ts` le 9 octobre 2026
 - Laisser `deleteSourcemapsAfterUpload` actif : des source maps servies publiquement exposeraient le code source
 - Un échec d'upload est silencieux (relevé du 2026-09-25) : un token invalide ne fait pas échouer le build, et `CI` n'entrant pas dans le build Docker, `silent: !process.env["CI"]` masque aussi les logs. Seule la présence d'un bundle côté Sentry le prouve : `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/`
 
@@ -225,7 +227,8 @@ Sentry.init({
 - **La région de l'organisation est irréversible** : le choix entre les États-Unis et l'Europe (`de.sentry.io`, datacenter de Francfort) se fait à la création de l'organisation et ne peut plus changer. À trancher avant de créer le projet
 - **`DataCollection` n'est pas exporté par `@sentry/nextjs`** (seulement par `@sentry/core`, inaccessible sous pnpm strict) : le type se dérive de la signature de `init`, d'où le `satisfies` ci-dessus
 - Les catégories laissées ouvertes ne masquent que les valeurs dont le nom figure dans la denylist du SDK (`token`, `auth`, `password`…) : le contenu du formulaire de contact, lui, partirait en clair
-- Vérifier le résultat par `Sentry.getClient()?.getDataCollectionOptions()`, dans un process neuf : le SDK Next ne s'initialise qu'une fois, un second `init` dans le même process garde la config du premier. Relevé le 2026-10-03 en `11.1.0` : toutes les catégories résolues à `false`
+- Vérifier le résultat par `Sentry.getClient()?.getDataCollectionOptions()`, dans un process neuf : le SDK Next serveur ne s'initialise qu'une fois, un second `init` dans le même process y garde la config du premier (navigateur et edge remplacent au contraire le client, avec un warning depuis `11.5.0`). Relevé le 2026-10-03 en `11.1.0` : toutes les catégories résolues à `false`
+- `satisfies` ne vérifie pas que la constante couvre toutes les catégories : confronter ses clés à la doc `dataCollection` à chaque montée. `frameContextLines` (lignes de code source autour de chaque frame, défaut `5`) reste au défaut, sans donnée personnelle
 - **Prouver sur l'événement reçu, pas seulement sur la config** : `sentry api "organizations/<org>/issues/<SHORT-ID>/events/latest/"` rend l'événement tel que stocké. Relevé le 2026-10-03 sur une erreur serveur réelle en `11.1.0` : `request.cookies`, `headers` et `query` vides, `data` à `null`, `user.ip_address` à `null`, ni l'email ni le message saisis dans le formulaire. Sentry renseigne quand même `user.geo` (pays, ville) depuis l'IP qui lui envoie l'événement : pour un événement serveur, c'est la localisation du serveur, pour un événement navigateur celle du visiteur
 - **Rien côté projet Sentry ne retire `user.geo`** (testé le 2026-10-03) : ni l'option « Prevent Storing of IP Addresses » (`scrubIPAddresses`, laissée active car elle empêche le stockage de l'IP), ni une règle de scrubbing avancé sur `$user.geo.*`, la géolocalisation étant calculée après ces règles. Piste non vérifiée : `tunnelRoute` fait transiter les événements navigateur par le serveur, reste à mesurer quelle IP Sentry retient alors
 - Côté navigateur, `userInfo: false` fait passer `sdk.settings.infer_ip` de `auto` à `never` dans l'événement envoyé (constat du projet techno-tagger en `@sentry/angular` 11.1.0)
@@ -275,14 +278,14 @@ Next.js 16 fait de Turbopack le bundler par défaut, et Sentry y a eu plusieurs 
 
 Le portfolio y est exposé : l'opt-out Webpack qui l'en protégeait (`next build --webpack`, posé pour une issue WASM de Prisma 7) a été retiré du [Dockerfile](../../Dockerfile) le 3 septembre 2026, l'erreur n'étant plus reproductible. Dev, CI et image de production tournent désormais tous sous Turbopack : c'est un gain de cohérence, mais l'intégration Sentry devra être validée dans ce contexte, pas dans celui d'un build Webpack.
 
-Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-build**, par le hook Next `runAfterProductionCompile` que le SDK active via `_experimental.useRunAfterProductionCompileHook` (Next >= 15.4.1). Les options du plugin Webpack ne s'appliquent pas.
+Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-build**, par le hook Next `runAfterProductionCompile` (Next >= 15.4.1), que l'option `useRunAfterProductionCompileHook` active par défaut sous Turbopack. Les options `webpack.*` ne s'appliquent pas.
 
 ### Points Importants
 
-- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix. **Reproduit sur ce projet le 2026-09 pour le tracing des Server Actions** (pas seulement la capture d'erreur du rapport original) : `sentry.server.config.ts` avec `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard Sentry après plusieurs minutes d'attente. Contournement non officiel proposé dans le fil (non testé ici, à évaluer si le besoin devient bloquant) : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`). Le changelog et le guide de migration de la v11 ne citent pas l'issue, et le symptôme se reproduit en `11.1.0` (relevé du 2026-10-03, image de production)
-- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Même remarque, et le projet a bien un `proxy.ts`
-- [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`** : c'est celui qui le concerne vraiment. Corrigée par la PR #21351, version de publication non confirmée
-- [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` intercepte `NEXT_REDIRECT` et `NEXT_NOT_FOUND`, qui sont des exceptions de contrôle de flux et non des erreurs. À surveiller dès que les Server Actions admin utiliseront `redirect()` ou `notFound()`
+- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix. **Reproduit sur ce projet le 2026-09 pour le tracing des Server Actions** (pas seulement la capture d'erreur du rapport original) : `sentry.server.config.ts` avec `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard Sentry après plusieurs minutes d'attente. Contournement non officiel proposé dans le fil (non testé ici, à évaluer si le besoin devient bloquant) : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`). Le changelog et le guide de migration de la v11 ne citent pas l'issue, et le symptôme se reproduit en `11.1.0` (relevé du 2026-10-03, image de production). Autre explication possible du symptôme côté tracing : Sentry décrit les Server Actions sous Turbopack comme une limite structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026). Les notes 11.2 à 11.6 ne citent ni l'une ni l'autre : non revalidé en `11.6.0`
+- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Fermée le 6 juillet 2026, corrigée côté Next (« fixed with vercel/next.js#95357 »), version de Next qui porte le correctif non établie
+- [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`**. Corrigée par la PR #21351, publiée en `10.57.0`
+- [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` capturait `NEXT_REDIRECT` et `NEXT_NOT_FOUND` comme des erreurs. Fermée en 2024 par #10474, et `11.5.0` exclut à leur tour `forbidden()` et `unauthorized()` (#25088)
 - **L'opt-out Webpack est retiré** depuis le 3 septembre 2026 : les incidents Turbopack ci-dessus sont à traiter comme actifs, pas comme théoriques
 - **Conséquence pratique** : ne pas considérer l'intégration comme acquise parce qu'elle compile. Provoquer une erreur serveur réelle et vérifier qu'elle apparaît dans Sentry
 

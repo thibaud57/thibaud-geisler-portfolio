@@ -9,6 +9,7 @@ paths:
 ## À faire
 - Vérifier l'authentification dans **chaque** Server Action exportée de l'espace admin par `await getCurrentUser()`, en première ligne et **hors** de `createActionLogger` : dans l'instrumentation, `unauthorized()` serait avalé et masqué en `unknown_error`. Même si le proxy protège la route, un matcher modifié peut retirer la couverture sans bruit
 - Valider taille et type MIME des fichiers `FormData` côté serveur, sans se fier à l'attribut `accept` du champ
+- Garder toute limite de fichier annoncée sous `experimental.serverActions.bodySizeLimit` (1 MB par défaut), avec une marge : la limite porte sur le corps brut, overhead `multipart/form-data` compris
 - Écrire les fichiers reçus dans le bucket Cloudflare R2 concerné, jamais sur le filesystem du conteneur, éphémère et non partagé (cf. `nextjs/assets.md`)
 - Limiter le débit des actions publiques (formulaire de contact) : compteur par IP en mémoire, suffisant en instance unique, à remplacer par un store partagé (Upstash Ratelimit, Arcjet) en multi-replicas
 

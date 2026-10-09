@@ -1,10 +1,8 @@
-import bundleAnalyzer from "@next/bundle-analyzer"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 import { withSentryConfig } from "@sentry/nextjs/config"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
-const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env["ANALYZE"] === "true" })
 
 const isDev = process.env.NODE_ENV !== "production"
 
@@ -92,12 +90,10 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
+export default withSentryConfig(withNextIntl(nextConfig), {
   org: "tg-ws",
   project: "thibaud-geisler-portfolio",
   authToken: process.env["SENTRY_AUTH_TOKEN"],
   silent: !process.env["CI"],
   widenClientFileUpload: true,
-  // @ts-expect-error useRunAfterProductionCompileHook is undocumented in types but required for Turbopack
-  _experimental: { useRunAfterProductionCompileHook: true },
 })

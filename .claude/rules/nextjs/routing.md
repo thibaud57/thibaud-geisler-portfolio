@@ -7,12 +7,13 @@ paths:
 
 ## À faire
 - Toujours `await params` et `await searchParams` dans les pages, layouts, route handlers et `generateMetadata` (Promise obligatoire)
+- Typer pages, layouts et route handlers par les helpers globaux que génère `typedRoutes` : `PageProps<'/route'>`, `LayoutProps<'/route'>`, `RouteContext<'/route'>`, jamais par un type de `params` écrit à la main
 - Utiliser le route group `(public)/` pour partager un layout sans affecter l'URL. `admin/` est un **segment réel** : il produit l'URL `/admin` (ADR-021)
-- Ne pas poser `generateStaticParams` sur `/projets/[slug]` : sans lui, les paramètres sont des données de requête, la page passe la promesse `params` à un composant sous `<Suspense>` et se rend à la première visite, puis est servie du disque. Avec `cacheComponents`, un `generateStaticParams` ne peut pas rendre un tableau vide et un paramètre fictif est déconseillé par Next : le build ne doit pas dépendre de la base ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)). Les métadonnées des crawlers HTML-only sont couvertes par `htmlLimitedBots`, cf. `nextjs/metadata-seo.md`. `dynamicParams` ne doit PAS être exporté (build cassé avec `cacheComponents`)
+- Ne pas poser `generateStaticParams` sur `/projets/[slug]` : sans lui, les paramètres sont des données de requête, la page passe la promesse `params` à un composant sous `<Suspense>` et se rend à la première visite, puis est servie du disque. La coquille servie à l'instant d'une première visite dépend de `partialPrefetching: true` : sans lui, la requête attend le rendu complet. Avec `cacheComponents`, un `generateStaticParams` ne peut pas rendre un tableau vide et un paramètre fictif est déconseillé par Next : le build ne doit pas dépendre de la base ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md)). Les métadonnées des crawlers HTML-only sont couvertes par `htmlLimitedBots`, cf. `nextjs/metadata-seo.md`. `dynamicParams` ne doit PAS être exporté (build cassé avec `cacheComponents`)
 - Retourner `notFound()` côté serveur quand une ressource Prisma n'existe pas : consommé par `not-found.tsx` le plus proche
-- Utiliser `redirect()` (307) et `permanentRedirect()` (308) dans Server Components / Server Actions / Route Handlers
+- Utiliser `redirect()` (307) et `permanentRedirect()` (308) dans Server Components et Route Handlers. Dans une Server Action, `redirect()` déclenche une navigation client quand JavaScript est disponible, un 303 seulement sans JavaScript
 - Appeler `unstable_rethrow(error)` dans tout `try/catch` qui pourrait avaler `redirect()`, `notFound()`, `unauthorized()` ou `forbidden()`
-- Faire `error.tsx` et `global-error.tsx` en Client Components (`'use client'`), `global-error.tsx` doit inclure `<html>` et `<body>`
+- Faire `error.tsx` et `global-error.tsx` en Client Components (`'use client'`), `global-error.tsx` doit inclure `<html>` et `<body>`. Brancher le bouton de nouvel essai sur la prop **`retry`**, qui re-fetch et re-rend le segment, Server Components compris : `reset` ne vide que l'état d'erreur
 - Wrapper `useSearchParams()` dans un `<Suspense>` au niveau page, sinon erreur au build sur les pages statiques
 - Utiliser `<Link href>` pour la navigation client-side (prefetch auto, pas de full reload, state des layouts préservé)
 - Construire les liens actifs manuellement avec `usePathname()` dans un Client Component
@@ -25,6 +26,7 @@ paths:
 - Utiliser `useRouter`, `usePathname`, `useSearchParams` dans un Server Component (hooks Client Component uniquement)
 
 ## Gotchas
+- **Next 16.4 : strict route matching par défaut**. Une URL qui ne forme pas un arbre de routes complet est rejetée, les pages inatteignables sont signalées au build, les catch-all incomplets élagués. Échappatoire temporaire : `deprecated.looseRouteMatching: true`. Le rewrite du proxy vers un chemin sans page (slug projet inconnu, servi en 404 par `global-not-found`) passe le build : revérifier son 404 à chaque montée de Next
 - Next 16 : `default.tsx` est **obligatoire** (hard error au build) pour chaque parallel route `@slot`, retourner `null` si aucun slot actif
 - Next 15 → 16 : `params` et `searchParams` passent de warning à hard error si accès synchrone
 - Un layout ne se re-rend pas quand on navigue entre ses pages enfants (state et DOM préservés)
@@ -33,13 +35,8 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ Dynamic route avec params async + generateStaticParams
-export async function generateStaticParams() {
-  const items = await getItems()
-  return items.map(item => ({ slug: item.slug }))
-}
-
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+// ✅ Dynamic route : params async, typé par le helper global de typedRoutes
+export default async function Page({ params }: PageProps<'/items/[slug]'>) {
   const { slug } = await params
   const item = await getItem(slug)
   if (!item) notFound()

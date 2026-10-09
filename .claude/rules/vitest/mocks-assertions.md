@@ -16,8 +16,8 @@ paths:
 
 ## À éviter
 - Ajouter `afterEach(() => vi.clearAllMocks())` dans un nouveau fichier : redondant avec le défaut de Vitest 5
-- `resetAllMocks()`, qui remplace les implémentations par `undefined`
-- Faire dépendre `vi.mock()` de variables locales : le mock est **hoisted** au top du fichier, les variables ne sont pas encore définies au moment de l'exécution
+- `resetAllMocks()`, qui efface aussi les implémentations posées après coup (`vi.fn()` retombe sur `undefined`, `vi.fn(impl)` revient à `impl`)
+- Faire dépendre `vi.mock()` de variables locales : le mock est **hoisted** au top du fichier, les variables ne sont pas encore définies au moment de l'exécution. Une valeur partagée avec la factory se déclare par **`vi.hoisted(() => ...)`**, top-level, avant le `vi.mock`
 - Compter sur l'ordre d'exécution des tests : Vitest exécute les fichiers en parallèle (non-déterministe par design)
 - Partager du state entre tests via `beforeAll` : préférer `beforeEach`/`afterEach` pour l'isolation
 

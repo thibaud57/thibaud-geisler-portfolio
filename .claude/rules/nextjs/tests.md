@@ -8,7 +8,8 @@ paths:
 ## À faire
 - Mocker **`next/navigation`** (`useRouter`, `usePathname`, `useSearchParams`, `redirect`) via `vi.mock()` : non disponibles en jsdom
 - Mocker **`next/cache`** (`revalidateTag`, `revalidatePath`, `updateTag`) pour tester les Server Actions en isolation
-- Mocker **`next/image`** : Vitest + jsdom ne résout pas les imports d'images (`SyntaxError`), `vi.mock('next/image')` retourne un `<img>` simple
+- Mocker **`next/image`** seulement si un test importe une image statique (Vitest + jsdom lève alors une `SyntaxError`) : `vi.mock('next/image')` retourne un `<img>` simple. Aucun test du projet n'en a eu besoin
+- Mocker partiellement **`next/server`** pour un Route Handler qui appelle `connection()` : hors requête, l'API lève « `connection` was called outside a request scope »
 - Pour un **Server Component async** (non testable dans Vitest/jsdom) : extraire le data fetching dans une fonction testable et tester le composant de présentation en lui passant les données en props
 - Pour une **Server Action** : tester la logique (validation Zod, transformation), en mockant `next/cache` et `next/navigation`
 - Construire les fixtures par **factory functions** (`createUser(overrides?)`) plutôt que des constantes partagées, qu'un test pourrait muter
