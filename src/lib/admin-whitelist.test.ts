@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import { isAdminEmail } from "./admin-whitelist"
 
-const ADMIN_EMAIL = "admin@exemple.fr"
+const ADMIN_EMAIL = "admin@example.com"
 
 describe("isAdminEmail", () => {
-  it.each(["admin@exemple.fr", "Admin@Exemple.FR", "  admin@exemple.fr  "])(
+  it.each(["admin@example.com", "Admin@Example.COM", "  admin@example.com  "])(
     "autorise %j, égal à adminEmail à la casse et aux espaces près",
     (email) => {
       const allowed = isAdminEmail(email, ADMIN_EMAIL)
@@ -15,13 +15,13 @@ describe("isAdminEmail", () => {
   )
 
   it("normalise aussi adminEmail", () => {
-    const allowed = isAdminEmail("admin@exemple.fr", "  Admin@Exemple.FR ")
+    const allowed = isAdminEmail("admin@example.com", "  Admin@Example.COM ")
 
     expect(allowed).toBe(true)
   })
 
   it.each([
-    ["intrus@exemple.fr", ADMIN_EMAIL],
+    ["intrus@example.com", ADMIN_EMAIL],
     ["", ADMIN_EMAIL],
     [null, ADMIN_EMAIL],
     [undefined, ADMIN_EMAIL],

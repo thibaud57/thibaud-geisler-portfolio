@@ -6,7 +6,7 @@ describe("scrubSentryEvent", () => {
   it("retire l'email et l'adresse IP de l'objet user", () => {
     const event = {
       type: undefined,
-      user: { id: "u1", email: "client@exemple.fr", ip_address: "203.0.113.7" },
+      user: { id: "u1", email: "client@example.com", ip_address: "203.0.113.7" },
     }
 
     const result = scrubSentryEvent(event)
@@ -15,11 +15,11 @@ describe("scrubSentryEvent", () => {
   })
 
   it("conserve les propriétés non sensibles de user", () => {
-    const event = { type: undefined, user: { id: "u1", username: "thibaud" } }
+    const event = { type: undefined, user: { id: "u1", username: "alice" } }
 
     const result = scrubSentryEvent(event)
 
-    expect(result.user).toEqual({ id: "u1", username: "thibaud" })
+    expect(result.user).toEqual({ id: "u1", username: "alice" })
   })
 
   it("traverse un événement sans objet user sans lever", () => {
@@ -42,7 +42,7 @@ describe("scrubSentryEvent", () => {
     const event = {
       type: undefined,
       exception: {
-        values: [{ type: "Error", value: "Recipient address rejected: visiteur@exemple.fr" }],
+        values: [{ type: "Error", value: "Recipient address rejected: visiteur@example.com" }],
       },
     }
 
@@ -54,7 +54,7 @@ describe("scrubSentryEvent", () => {
   })
 
   it("retire un email en clair dans event.message", () => {
-    const event = { type: undefined, message: "Échec envoi à visiteur@exemple.fr" }
+    const event = { type: undefined, message: "Échec envoi à visiteur@example.com" }
 
     const result = scrubSentryEvent(event)
 
@@ -62,7 +62,7 @@ describe("scrubSentryEvent", () => {
   })
 
   it("retire l'intégralité d'un email à domaine composé, sans laisser le TLD", () => {
-    const event = { type: undefined, message: "rejet pour Jean.Dupont+tag@sous.exemple.co.uk" }
+    const event = { type: undefined, message: "rejet pour Camille.Fictif+tag@sub.example.com" }
 
     const result = scrubSentryEvent(event)
 
@@ -80,7 +80,7 @@ describe("scrubSentryEvent", () => {
 
 describe("scrubSentryLog", () => {
   it("retire un email du message du log", () => {
-    const log = { level: "error" as const, message: "envoi refusé pour visiteur@exemple.fr" }
+    const log = { level: "error" as const, message: "envoi refusé pour visiteur@example.com" }
 
     const result = scrubSentryLog(log)
 
@@ -95,8 +95,8 @@ describe("scrubSentryLog", () => {
         event: "email:failed",
         err: {
           type: "Error",
-          message: "Recipient address rejected: visiteur@exemple.fr",
-          stack: "Error: Recipient address rejected: visiteur@exemple.fr\n    at send",
+          message: "Recipient address rejected: visiteur@example.com",
+          stack: "Error: Recipient address rejected: visiteur@example.com\n    at send",
         },
       },
     }
@@ -105,7 +105,7 @@ describe("scrubSentryLog", () => {
 
     const err = result.attributes?.["err"] as Record<string, string>
     expect(err["message"]).toBe("Recipient address rejected: [email redacted]")
-    expect(err["stack"]).not.toContain("visiteur@exemple.fr")
+    expect(err["stack"]).not.toContain("visiteur@example.com")
   })
 
   it("conserve les attributs non sensibles et les types non-string", () => {
