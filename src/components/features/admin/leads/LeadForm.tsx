@@ -6,13 +6,12 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { CompanyCombobox } from "@/components/features/admin/CompanyCombobox"
 import { OptionalDateField } from "@/components/features/admin/OptionalDateField"
 import { OptOutPersonDialog } from "@/components/features/admin/persons/OptOutPersonDialog"
 import { SelectField } from "@/components/features/admin/SelectField"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
@@ -59,10 +58,8 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
   const [origin, setOrigin] = useState<LeadOrigin | "">(lead?.origin ?? "")
   const [details, setDetails] = useState(lead?.details ?? "")
   const [companyId, setCompanyId] = useState(lead?.company?.id ?? NONE_VALUE)
-  const [companyOpen, setCompanyOpen] = useState(false)
   const [metAt, setMetAt] = useState<Date | undefined>(lead?.metAt ?? undefined)
 
-  const selectedCompany = companyOptions.find((company) => company.id === companyId) ?? null
   // Un booléen plutôt que `lead` en dépendance : chaque revalidation livre un nouvel objet lead, qui rejouerait le toast du dernier état.
   const isEdit = lead !== null
 
@@ -74,6 +71,9 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
       toast.error("Une erreur est survenue, réessayez")
     } else if (state.ok === false && state.message === "lead_opted_out_locked") {
       toast.error("Cette personne s'est opposée à la prospection : sa fiche ne se modifie plus")
+    } else if (state.ok === false && state.message === "lead_not_found") {
+      toast.error("Ce lead a été supprimé")
+      router.push(ADMIN_LEADS_PATH)
     }
   }, [state, isEdit, router])
 
@@ -96,6 +96,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
           {lead ? (
             <OptOutPersonDialog
               person={lead}
+              hasContactRole={lead.contactRole !== null}
               onDone={() => {
                 // La fiche vidée ne vit plus que dans Tous.
                 router.push(ADMIN_LEADS_PATH)
@@ -145,57 +146,13 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
                 noneLabel="Non renseigné"
               />
 
-              <FormField
+              <CompanyCombobox
                 id={`${formId}-companyId`}
-                label={PERSON_FIELD_LABELS.companyId}
+                options={companyOptions}
+                value={companyId}
+                onChange={setCompanyId}
                 errors={state.errors.companyId}
-              >
-                <ComboboxPopover
-                  id={`${formId}-companyId`}
-                  open={companyOpen}
-                  onOpenChange={setCompanyOpen}
-                  triggerContent={
-                    selectedCompany ? (
-                      <span className="truncate">{selectedCompany.name}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Aucune</span>
-                    )
-                  }
-                  ariaInvalid={!!state.errors.companyId?.length}
-                  ariaDescribedby={`${formId}-companyId-error`}
-                  searchPlaceholder="Chercher une entreprise"
-                  emptyMessage="Aucune entreprise ne correspond."
-                >
-                  <CommandGroup>
-                    <CommandItem
-                      value={NONE_VALUE}
-                      keywords={["Aucune"]}
-                      data-checked={companyId === NONE_VALUE}
-                      onSelect={() => {
-                        setCompanyId(NONE_VALUE)
-                        setCompanyOpen(false)
-                      }}
-                    >
-                      Aucune
-                    </CommandItem>
-                    {companyOptions.map((company) => (
-                      <CommandItem
-                        key={company.id}
-                        value={company.id}
-                        keywords={[company.name]}
-                        data-checked={companyId === company.id}
-                        onSelect={() => {
-                          setCompanyId(company.id)
-                          setCompanyOpen(false)
-                        }}
-                      >
-                        {company.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </ComboboxPopover>
-                <input type="hidden" name="companyId" value={companyId} />
-              </FormField>
+              />
 
               <SelectField
                 id={`${formId}-zone`}
@@ -272,23 +229,20 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
               <CardTitle id={`${formId}-details-title`}>{PERSON_SECTION_TITLES.details}</CardTitle>
               <CardDescription>{DETAILS_EDITOR_HELP}</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Editor
-                id={`${formId}-details`}
-                aria-labelledby={`${formId}-details-title`}
-                format="markdown"
-                enableImages={false}
-                value={details}
-                onChange={setDetails}
-                aria-invalid={!!state.errors.details?.length}
-                aria-describedby={`${formId}-details-error`}
-              />
-              <div id={`${formId}-details-error`} aria-live="polite">
-                {state.errors.details?.[0] ? (
-                  <p className="text-sm text-destructive">{state.errors.details[0]}</p>
-                ) : null}
-              </div>
-              <input type="hidden" name="details" value={details} />
+            <CardContent>
+              <FormField id={`${formId}-details`} errors={state.errors.details}>
+                <Editor
+                  id={`${formId}-details`}
+                  aria-labelledby={`${formId}-details-title`}
+                  format="markdown"
+                  enableImages={false}
+                  value={details}
+                  onChange={setDetails}
+                  aria-invalid={!!state.errors.details?.length}
+                  aria-describedby={`${formId}-details-error`}
+                />
+                <input type="hidden" name="details" value={details} />
+              </FormField>
             </CardContent>
           </Card>
 
@@ -384,25 +338,23 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
             <CardHeader>
               <CardTitle id={`${formId}-notes-title`}>{PERSON_SECTION_TITLES.notes}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Input
+            <CardContent>
+              <FormField
                 id={`${formId}-notes`}
-                name="notes"
-                aria-labelledby={`${formId}-notes-title`}
-                maxLength={200}
-                defaultValue={lead?.notes ?? ""}
-                placeholder="Décideur technique | Scala/Angular"
-                aria-invalid={!!state.errors.notes?.length}
-                aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
-              />
-              <div id={`${formId}-notes-error`} aria-live="polite">
-                {state.errors.notes?.[0] ? (
-                  <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
-                ) : null}
-              </div>
-              <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
-                Une ligne de marqueurs, séparés par |
-              </p>
+                errors={state.errors.notes}
+                help="Une ligne de marqueurs, séparés par |"
+              >
+                <Input
+                  id={`${formId}-notes`}
+                  name="notes"
+                  aria-labelledby={`${formId}-notes-title`}
+                  maxLength={200}
+                  defaultValue={lead?.notes ?? ""}
+                  placeholder="Décideur technique | Scala/Angular"
+                  aria-invalid={!!state.errors.notes?.length}
+                  aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
+                />
+              </FormField>
             </CardContent>
           </Card>
         </div>

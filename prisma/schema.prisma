@@ -166,6 +166,25 @@ enum LeadChannel {
   @@schema("freelance")
 }
 
+enum ContactType {
+  COLLEGUE
+  CLIENT
+  PARTENAIRE
+  MENTOR
+  CONTACT_TECH
+  COMMERCIAL
+
+  @@schema("freelance")
+}
+
+enum ContactStatus {
+  ACTIF
+  INACTIF
+  A_RECONTACTER
+
+  @@schema("freelance")
+}
+
 enum ActionChannel {
   CANDIDATURE
   CONNEXION_LINKEDIN
@@ -341,6 +360,7 @@ model Person {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   lead               Lead?
+  contact            Contact?
   prospectingActions ProspectingAction[]
 
   createdAt DateTime @default(now()) @db.Timestamptz
@@ -359,6 +379,19 @@ model Lead {
   interest LeadInterest?
   channel  LeadChannel?
   score    Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+// Le rôle « réseau durable ». Promouvoir un lead = ajouter ce rôle à sa personne, sans rien copier.
+model Contact {
+  personId String        @id
+  person   Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
+  types    ContactType[] @default([])
+  status   ContactStatus @default(ACTIF)
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz

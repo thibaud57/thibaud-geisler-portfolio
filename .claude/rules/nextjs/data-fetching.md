@@ -9,7 +9,7 @@ paths:
 
 ## À faire
 - Faire les queries DB/API directement dans les Server Components `async`, pas de layer API intermédiaire
-- Wrapper toute query DB/API avec **`'use cache'`** (Next 16 stable, requiert `cacheComponents: true`) + `cacheLife()` + `cacheTag()` pour participer au Data Cache et être inclus dans le static shell au prerender
+- Wrapper toute query DB/API avec **`'use cache'`** (Next 16 stable, requiert `cacheComponents: true`) + `cacheLife()` + `cacheTag()` pour participer au Data Cache et être inclus dans le static shell au prerender. **Exception : les lectures de l'espace admin** (`*ForAdmin` et assimilées) restent sans `'use cache'`, sous le `<Suspense>` de leur page, gardée par `getCurrentUser()` : l'administration doit relire la base juste après ses propres mutations
 - Utiliser `Promise.all()` pour paralléliser les fetches indépendants (éviter waterfalls TTFB)
 - Pour les routes dynamiques `/[slug]`, `generateStaticParams` retourne tous les slugs publics au build → tous prerendered en `◐ Partial Prerender`. **Requiert que la DB soit accessible au build** (sinon `EmptyGenerateStaticParamsError`). Optionnel avec `cacheComponents: true`, voir l'arbitrage dans `.claude/rules/nextjs/routing.md`
 - `await cookies()`, `await headers()`, `await draftMode()`, `await searchParams`, `await params` : APIs async, hard error si sync en Next 16

@@ -1,6 +1,8 @@
 import "server-only"
 
 import type {
+  ContactStatus,
+  ContactType,
   JobRole,
   LeadChannel,
   LeadInterest,
@@ -15,6 +17,7 @@ const adminLeadInclude = {
   person: {
     include: {
       company: { select: { id: true, name: true, logoFilename: true } },
+      contact: { select: { types: true, status: true } },
       prospectingActions: {
         where: { respondedAt: { not: null } },
         orderBy: { respondedAt: "desc" },
@@ -51,7 +54,7 @@ export interface AdminLead {
   score: number | null
   createdAt: Date
   actionsCount: number
-  hasContactRole: boolean
+  contactRole: { types: ContactType[]; status: ContactStatus } | null
 }
 
 // La personne aplatie sur son rôle Lead : liste et formulaire lisent une seule forme, jamais une relation imbriquée.
@@ -78,7 +81,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     score: row.score,
     createdAt: row.createdAt,
     actionsCount: row.person._count.prospectingActions,
-    hasContactRole: false,
+    contactRole: row.person.contact,
   }
 }
 

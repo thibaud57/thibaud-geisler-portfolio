@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => {
     person: {
       create: vi.fn(),
       update: vi.fn(),
-      delete: vi.fn(),
+      deleteMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -82,6 +82,8 @@ beforeEach(() => {
   vi.mocked(prisma.person.update).mockResolvedValue({ id: "p1" } as never)
   vi.mocked(prisma.lead.create).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.lead.update).mockResolvedValue({ personId: "p1" } as never)
+  vi.mocked(prisma.lead.delete).mockResolvedValue({ personId: "p1" } as never)
+  vi.mocked(prisma.person.deleteMany).mockResolvedValue({ count: 1 })
 })
 
 describe("createLead", () => {
@@ -120,7 +122,7 @@ describe("createLead", () => {
     await createLead(
       initialLeadFormState,
       buildFormData({
-        email: " jeanne.dupont@example.com ",
+        email: " Claire.Morel@Example.COM ",
         linkedinUrl: "fr.linkedin.com/in/jeanne-dupont-4b2a1c/",
       }),
     )
@@ -128,7 +130,7 @@ describe("createLead", () => {
     expect(prisma.person.create).toHaveBeenCalledWith(
       objectMatch({
         data: objectMatch({
-          email: "jeanne.dupont@example.com",
+          email: "claire.morel@example.com",
           linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
         }),
       }),
@@ -149,17 +151,38 @@ describe("createLead", () => {
   it("refuses an email or LinkedIn already used by another person, naming it", async () => {
     vi.mocked(prisma.person.findFirst).mockResolvedValue({
       name: "Claire Morel",
-      email: "claire@acme.example",
+      email: "claire@example.com",
       optedOutAt: null,
+      lead: { personId: "p2" },
+      contact: null,
     } as never)
 
     const state = await createLead(
       initialLeadFormState,
-      buildFormData({ email: "claire@acme.example" }),
+      buildFormData({ email: "claire@example.com" }),
     )
 
     expect(state.message).toBe("lead_exists")
     expect(state.errors.email).toEqual(["Ce lead existe déjà : Claire Morel"])
+    expect(prisma.person.create).not.toHaveBeenCalled()
+  })
+
+  it("tells that the person is already a contact when only the contact role exists", async () => {
+    vi.mocked(prisma.person.findFirst).mockResolvedValue({
+      name: "Jeanne Exemple",
+      email: "jeanne@example.com",
+      optedOutAt: null,
+      lead: null,
+      contact: { personId: "p2" },
+    } as never)
+
+    const state = await createLead(
+      initialLeadFormState,
+      buildFormData({ email: "jeanne@example.com" }),
+    )
+
+    expect(state.message).toBe("lead_exists")
+    expect(state.errors.email).toEqual(["Cette personne est déjà un contact : Jeanne Exemple"])
     expect(prisma.person.create).not.toHaveBeenCalled()
   })
 
@@ -190,7 +213,7 @@ describe("createLead", () => {
     )
 
     expect(state.message).toBe("lead_exists")
-    expect(state.errors.linkedinUrl).toEqual(["Ce lead existe déjà"])
+    expect(state.errors.linkedinUrl).toEqual(["Cette personne existe déjà"])
   })
 
   it("maps a missing company to the company field", async () => {
@@ -206,7 +229,7 @@ describe("createLead", () => {
     await createLead(
       initialLeadFormState,
       buildFormData({
-        email: "claire@acme.example",
+        email: "claire@example.com",
         linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
       }),
     )
@@ -232,11 +255,41 @@ describe("updateLead", () => {
   it("ignores the lead being edited when checking duplicates", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
 
-    await updateLead("p1", initialLeadFormState, buildFormData({ email: "claire@acme.example" }))
+    await updateLead("p1", initialLeadFormState, buildFormData({ email: "claire@example.com" }))
 
     expect(prisma.person.findFirst).toHaveBeenCalledWith(
       objectMatch({ where: objectMatch({ NOT: { id: "p1" } }) }),
     )
+  })
+
+  it("reports the lock rather than a duplicate when the person opposed since the page loaded", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: new Date() } as never)
+    vi.mocked(prisma.person.findFirst).mockResolvedValue({
+      name: "Jeanne Exemple",
+      email: "jeanne@example.com",
+      optedOutAt: null,
+      lead: { personId: "p2" },
+      contact: null,
+    } as never)
+
+    const state = await updateLead(
+      "p1",
+      initialLeadFormState,
+      buildFormData({ email: "jeanne@example.com" }),
+    )
+
+    expect(state.message).toBe("lead_opted_out_locked")
+    expect(prisma.person.findFirst).not.toHaveBeenCalled()
+  })
+
+  it("reports a lead deleted since the page loaded", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
+    vi.mocked(prisma.lead.update).mockRejectedValue({ code: "P2025" })
+
+    const state = await updateLead("p1", initialLeadFormState, buildFormData())
+
+    expect(state.ok).toBe(false)
+    expect(state.message).toBe("lead_not_found")
   })
 
   it("refuses to update an opted-out lead", async () => {
@@ -253,11 +306,22 @@ describe("updateLead", () => {
 describe("deleteLead", () => {
   afterEach(() => vi.clearAllMocks())
 
-  it("removes the person along with the lead role", async () => {
+  it("deletes the person through one conditional statement that spares any other role", async () => {
     await deleteLead("p1")
 
     expect(prisma.lead.delete).toHaveBeenCalledWith({ where: { personId: "p1" } })
-    expect(prisma.person.delete).toHaveBeenCalledWith({ where: { id: "p1" } })
+    expect(prisma.person.deleteMany).toHaveBeenCalledWith({
+      where: { id: "p1", lead: { is: null }, contact: { is: null } },
+    })
+  })
+
+  it("refuses a lead already deleted elsewhere, without touching the person", async () => {
+    vi.mocked(prisma.lead.delete).mockRejectedValue({ code: "P2025" })
+
+    const state = await deleteLead("p1")
+
+    expect(state.message).toBe("lead_not_found")
+    expect(prisma.person.deleteMany).not.toHaveBeenCalled()
   })
 
   it("refuses to delete an opted-out lead, keeping its opposition", async () => {
@@ -267,6 +331,6 @@ describe("deleteLead", () => {
 
     expect(state.message).toBe("lead_opted_out_locked")
     expect(prisma.lead.delete).not.toHaveBeenCalled()
-    expect(prisma.person.delete).not.toHaveBeenCalled()
+    expect(prisma.person.deleteMany).not.toHaveBeenCalled()
   })
 })

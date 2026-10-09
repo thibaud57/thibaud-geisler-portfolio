@@ -6,6 +6,7 @@ export type LeadFormMessage =
   | "lead_opted_out"
   | "lead_opted_out_locked"
   | "company_not_found"
+  | "lead_not_found"
   | "unknown_error"
   | null
 

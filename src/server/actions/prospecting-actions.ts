@@ -3,11 +3,7 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import {
-  ADMIN_COMPANIES_PATH,
-  ADMIN_LEADS_PATH,
-  ADMIN_PROSPECTING_ACTIONS_PATH,
-} from "@/lib/admin-routes"
+import { ADMIN_COMPANIES_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { applyStatusRules } from "@/lib/prospecting-action-status"
@@ -17,15 +13,16 @@ import {
 } from "@/lib/schemas/prospecting-action"
 import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
 
+import { revalidatePersonLists } from "./person-guards"
 import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
 import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
 const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true } as const
 
-// Variante "layout" : les vues actions, leads et entreprises (le premier contact dérive des actions) se rafraîchissent toutes.
+// Variante "layout" : les vues actions, leads, contacts et entreprises se rafraîchissent toutes (le premier contact, la dernière interaction et la date de revue en dérivent).
 function invalidateActionCaches(): void {
   revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
-  revalidatePath(ADMIN_LEADS_PATH, "layout")
+  revalidatePersonLists()
   revalidatePath(ADMIN_COMPANIES_PATH, "layout")
 }
 

@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react"
 
+import { ADMIN_CONTACTS_PATH } from "@/lib/admin-routes"
 import { LinkedinIcon } from "@/lib/icons"
 
 // LinkedinIcon (src/lib/icons.tsx) n'est pas un LucideIcon (Simple Icons a retiré ce logo) : type
@@ -115,7 +116,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
       },
       { label: "Revues hebdo", icon: CalendarClock },
       { label: "Entretiens", icon: MessageCircle },
-      { label: "Contacts", icon: User },
+      { label: "Contacts", icon: User, href: ADMIN_CONTACTS_PATH },
     ],
   },
   {

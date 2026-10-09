@@ -12,6 +12,8 @@ const adminProspectingActionInclude = {
       linkedinUrl: true,
       optedOutAt: true,
       company: { select: { id: true, name: true, logoFilename: true } },
+      lead: { select: { personId: true } },
+      contact: { select: { personId: true } },
     },
   },
 } as const

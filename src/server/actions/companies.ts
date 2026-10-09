@@ -17,6 +17,7 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
+import { revalidatePersonLists } from "./person-guards"
 import { deleteEntity, saveEntity } from "./shared"
 import { type CompanyFormState } from "./companies.types"
 
@@ -223,6 +224,8 @@ function invalidateCompanyCaches(): void {
   updateTag("projects")
   updateTag("legal-entity")
   revalidatePath("/admin/entreprises")
+  // Les listes de leads et de contacts affichent le nom et le logo de l'entreprise.
+  revalidatePersonLists()
 }
 
 interface SaveCompanyEvents {

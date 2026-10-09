@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", () => {
       findUnique: vi.fn(),
     },
     prospectingAction: { deleteMany: vi.fn() },
+    contact: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   }
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
@@ -41,9 +42,10 @@ describe("optOutPerson", () => {
 
   it("clears everything but email and LinkedIn when a person opts out", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "claire@example.com",
       linkedinUrl: null,
       optedOutAt: null,
+      lead: { personId: "p1" },
     } as never)
 
     const state = await optOutPerson("p1")
@@ -67,11 +69,41 @@ describe("optOutPerson", () => {
     expect(data).not.toHaveProperty("linkedinUrl")
   })
 
+  it("removes the contact role when a person opts out", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "jeanne.exemple@example.com",
+      linkedinUrl: null,
+      optedOutAt: null,
+      lead: { personId: "p1" },
+    } as never)
+
+    await optOutPerson("p1")
+
+    expect(prisma.contact.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
+  })
+
+  it("refuses to oppose a person without the lead role", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "jeanne.exemple@example.com",
+      linkedinUrl: null,
+      optedOutAt: null,
+      lead: null,
+    } as never)
+
+    const state = await optOutPerson("p1")
+
+    expect(state).toEqual({ ok: false, message: "unknown_error" })
+    expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(prisma.person.delete).not.toHaveBeenCalled()
+    expect(prisma.contact.deleteMany).not.toHaveBeenCalled()
+  })
+
   it("deletes a person that opts out without email nor LinkedIn", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
       email: null,
       linkedinUrl: null,
       optedOutAt: null,
+      lead: { personId: "p1" },
     } as never)
 
     await optOutPerson("p1")
@@ -82,9 +114,10 @@ describe("optOutPerson", () => {
 
   it("does not touch the person's prospecting actions on a simple stop", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "claire@example.com",
       linkedinUrl: null,
       optedOutAt: null,
+      lead: { personId: "p1" },
     } as never)
 
     await optOutPerson("p1")
@@ -94,7 +127,7 @@ describe("optOutPerson", () => {
 
   it("keeps the first opt-out date when a person opts out twice", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "claire@example.com",
       linkedinUrl: null,
       optedOutAt: new Date("2026-03-12T09:00:00Z"),
     } as never)

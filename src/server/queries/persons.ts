@@ -41,3 +41,36 @@ export function findPersonOptions(): Promise<PersonOption[]> {
 export function findPersonOptionsWithLeadRole(): Promise<PersonOption[]> {
   return findSelectablePersons({ lead: { isNot: null } })
 }
+
+// Limité au rôle Lead : « Depuis un lead » promeut un lead en contact, pas n'importe quelle personne.
+const attachableLeadWhere = {
+  optedOutAt: null,
+  contact: { is: null },
+  lead: { isNot: null },
+} satisfies Prisma.PersonWhereInput
+
+export function findLeadsWithoutContactRole(): Promise<PersonOption[]> {
+  return findSelectablePersons(attachableLeadWhere)
+}
+
+const attachableLeadSelect = {
+  id: true,
+  name: true,
+  jobRole: true,
+  zone: true,
+  email: true,
+  phone: true,
+  linkedinUrl: true,
+  notes: true,
+  details: true,
+  company: { select: { name: true } },
+} as const
+
+export type AttachableLead = Prisma.PersonGetPayload<{ select: typeof attachableLeadSelect }>
+
+export function findAttachableLead(personId: string): Promise<AttachableLead | null> {
+  return prisma.person.findFirst({
+    where: { id: personId, ...attachableLeadWhere },
+    select: attachableLeadSelect,
+  })
+}

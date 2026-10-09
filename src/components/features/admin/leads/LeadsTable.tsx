@@ -5,7 +5,6 @@ import { Pencil, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
 import {
   type DetailContent,
@@ -18,7 +17,10 @@ import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import {
   actionsColumn,
+  companyCell,
   hideableColumn,
+  labelBadge,
+  linkedinLink,
   truncatedCell,
 } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
@@ -28,9 +30,16 @@ import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
 import { rankActions } from "@/lib/action-rank"
 import { byOccurredAtAsc } from "@/lib/action-views"
-import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
+import {
+  ADMIN_COMPANIES_PATH,
+  ADMIN_CONTACTS_PATH,
+  ADMIN_LEADS_PATH,
+  ADMIN_PROSPECTING_ACTIONS_PATH,
+} from "@/lib/admin-routes"
 import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin-table-widths"
+import { CONTACT_STATUS_LABELS, CONTACT_TYPE_LABELS } from "@/lib/contacts"
 import { formatShortDateTime, formatShortInstantDate } from "@/lib/date-time"
+import { detailHref } from "@/lib/detail-links"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import { leadsForView, type LeadView } from "@/lib/lead-views"
 import {
@@ -59,11 +68,6 @@ import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminLead } from "@/server/queries/leads"
 import type { ActionTimelineRow } from "@/server/queries/prospecting-actions"
-
-// Sans glyphe : Poste et Localité ne figurent pas dans la table des glyphes d'énumération.
-function labelBadge(label: string | null) {
-  return label ? <Badge variant="secondary">{label}</Badge> : null
-}
 
 function interestBadge(lead: AdminLead) {
   if (!lead.interest) return null
@@ -103,10 +107,6 @@ function statusBadge(lead: AdminLead, badgeProps?: Omit<ComponentProps<typeof Ba
   )
 }
 
-function linkedinLink(lead: AdminLead) {
-  return lead.linkedinUrl ? <ExternalUrl url={lead.linkedinUrl} className="wrap-anywhere" /> : null
-}
-
 // Une fiche en opposition ne se modifie ni ne se supprime : seul l'effacement des échanges lui reste.
 function rowActions(lead: AdminLead) {
   if (lead.optedOutAt && lead.exchangesErasedAt) return null
@@ -114,22 +114,12 @@ function rowActions(lead: AdminLead) {
   return (
     <>
       <RowActionButton aria-label={`Modifier ${personDisplayName(lead)}`} asChild>
-        <Link href={`/admin/leads/${lead.id}`}>
+        <Link href={`${ADMIN_LEADS_PATH}/${lead.id}`}>
           <Pencil className="size-4" />
         </Link>
       </RowActionButton>
       <DeleteLeadDialog lead={lead} />
     </>
-  )
-}
-
-function companyCell(lead: AdminLead) {
-  if (!lead.company) return null
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <CompanyLogoTile logoFilename={lead.company.logoFilename} size="sm" />
-      <TruncateTooltip className="min-w-0">{lead.company.name}</TruncateTooltip>
-    </span>
   )
 }
 
@@ -289,7 +279,7 @@ function historySection(
             <RelatedLinksList
               links={history.map((action): RelatedLink => ({
                 ...toActionLink(action, ranks.get(action.id) ?? 0),
-                href: `${ADMIN_PROSPECTING_ACTIONS_PATH}?detail=${action.id}`,
+                href: detailHref(ADMIN_PROSPECTING_ACTIONS_PATH, action.id),
               }))}
             />
           ),
@@ -339,7 +329,7 @@ function buildLeadDetail(
             label: PERSON_FIELD_LABELS.companyId,
             value: lead.company ? (
               <Link
-                href={`/admin/entreprises?detail=${lead.company.id}`}
+                href={detailHref(ADMIN_COMPANIES_PATH, lead.company.id)}
                 className={STANDALONE_LINK_CLASS}
               >
                 {lead.company.name}
@@ -395,8 +385,26 @@ function buildLeadDetail(
       {
         title: LEAD_SECTION_TITLES.network,
         rows: [
-          // TODO: lien vers la vue détail du contact quand le rôle Contact existera (`hasContactRole`) ; la valeur reste absente d'ici là.
-          { value: null, fullWidth: true },
+          {
+            fullWidth: true,
+            value: lead.contactRole ? (
+              <RelatedLinksList
+                links={[
+                  {
+                    id: lead.id,
+                    href: detailHref(ADMIN_CONTACTS_PATH, lead.id),
+                    label: "Fiche contact",
+                    meta: [
+                      lead.contactRole.types.length > 0
+                        ? lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type]).join(", ")
+                        : "Sans type",
+                      CONTACT_STATUS_LABELS[lead.contactRole.status],
+                    ].join(" · "),
+                  },
+                ]}
+              />
+            ) : null,
+          },
         ],
       },
       historySection(history, ranks),
@@ -488,7 +496,7 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
     () =>
       selectedLead
         ? buildLeadDetail(selectedLead, historyByPerson.get(selectedLead.id) ?? [], ranks, () => {
-            router.push(`/admin/leads/${selectedLead.id}`)
+            router.push(`${ADMIN_LEADS_PATH}/${selectedLead.id}`)
           })
         : null,
     [selectedLead, historyByPerson, ranks, router],

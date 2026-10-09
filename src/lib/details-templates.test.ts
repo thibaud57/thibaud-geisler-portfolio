@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { detailsAfterOriginChange, leadDetailsTemplate } from "./details-templates"
+import {
+  CONTACT_DETAILS_TEMPLATE,
+  detailsAfterOriginChange,
+  leadDetailsTemplate,
+} from "./details-templates"
 
 describe("leadDetailsTemplate", () => {
   it("gives the outbound template the hypothesis and context sections", () => {
@@ -45,5 +49,19 @@ describe("detailsAfterOriginChange", () => {
     const details = detailsAfterOriginChange(written, "INBOUND", "OUTBOUND")
 
     expect(details).toBe(written)
+  })
+})
+
+describe("CONTACT_DETAILS_TEMPLATE", () => {
+  it("gives the contact template its five sections", () => {
+    const headings = CONTACT_DETAILS_TEMPLATE.split("\n").filter((line) => line.startsWith("# "))
+
+    expect(headings).toEqual([
+      "# 💼 Profil",
+      "# 🤝 Relation",
+      "# 📅 Historique",
+      "# 🔗 Liens",
+      "# 📝 Notes libres",
+    ])
   })
 })

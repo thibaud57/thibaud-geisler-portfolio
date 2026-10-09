@@ -3,8 +3,8 @@ import Link from "next/link"
 import type { DetailContent, DetailSection } from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { rankLabel } from "@/lib/action-rank"
-import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
 import { formatShortDateTime } from "@/lib/date-time"
+import { personDetailHref } from "@/lib/person-links"
 import { personDisplayName } from "@/lib/persons"
 import {
   ACTION_CHANNEL_ICONS,
@@ -31,20 +31,21 @@ export function buildActionDetail(
   rank: number,
   onEdit: () => void,
 ): DetailContent {
+  const personHref = personDetailHref(action.person)
+  const personName = personDisplayName(action.person)
+
   const sections: DetailSection[] = [
     {
       title: "Action",
       rows: [
         {
           label: LABELS.personId,
-          value: (
-            // TODO(13) : basculer sur personDetailHref une fois le rôle Contact disponible (la personne peut alors être lead ou contact).
-            <Link
-              href={`${ADMIN_LEADS_PATH}?detail=${action.person.id}`}
-              className={STANDALONE_LINK_CLASS}
-            >
-              {personDisplayName(action.person)}
+          value: personHref ? (
+            <Link href={personHref} className={STANDALONE_LINK_CLASS}>
+              {personName}
             </Link>
+          ) : (
+            <span className="font-medium">{personName}</span>
           ),
         },
         { label: LABELS.channel, value: channelBadge(action) },

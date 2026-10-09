@@ -29,10 +29,11 @@ import { erasePersonExchanges, optOutPerson } from "@/server/actions/persons"
 
 interface Props {
   person: PersonRef
+  hasContactRole: boolean
   onDone: () => void
 }
 
-export function OptOutPersonDialog({ person, onDone }: Props) {
+export function OptOutPersonDialog({ person, hasContactRole, onDone }: Props) {
   const [open, setOpen] = useState(false)
   const [eraseToo, setEraseToo] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -84,8 +85,9 @@ export function OptOutPersonDialog({ person, onDone }: Props) {
           <AlertDialogTitle>Ne plus contacter « {personDisplayName(person)} » ?</AlertDialogTitle>
           <AlertDialogDescription>
             {deletesRecord
-              ? "Sans email ni lien LinkedIn, rien ne permettrait de reconnaître cette personne : sa fiche est supprimée. Action irréversible."
-              : "La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement. Action irréversible."}
+              ? "Sans email ni lien LinkedIn, rien ne permettrait de reconnaître cette personne : sa fiche est supprimée."
+              : "La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement."}
+            {hasContactRole ? " La personne sort aussi de vos contacts." : ""} Action irréversible.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {deletesRecord ? null : (

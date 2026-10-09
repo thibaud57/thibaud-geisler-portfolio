@@ -27,7 +27,11 @@ export function DeleteLeadDialog({ lead }: Props) {
       successMessage="Lead supprimé"
       onDelete={async () => {
         const result = await deleteLead(lead.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
+        if (result.ok) return { ok: true }
+        return {
+          ok: false,
+          denied: result.message === "lead_not_found" ? "Ce lead a déjà été supprimé" : null,
+        }
       }}
     />
   )

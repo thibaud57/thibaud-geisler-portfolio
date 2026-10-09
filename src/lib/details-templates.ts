@@ -52,3 +52,19 @@ export function detailsAfterOriginChange(
   const untouched = details.trim() === "" || sameText(details, leadDetailsTemplate(previousOrigin))
   return untouched ? leadDetailsTemplate(nextOrigin) : details
 }
+
+// Titres de la fiche Notion ; poste, entreprise et types restent des champs, pas du texte.
+export const CONTACT_DETAILS_TEMPLATE = `# 💼 Profil
+
+# 🤝 Relation
+
+- **Rencontre** :
+
+# 📅 Historique
+
+- **JJ/MM/AAAA** :
+
+# 🔗 Liens
+
+# 📝 Notes libres
+`

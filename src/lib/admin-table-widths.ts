@@ -155,6 +155,8 @@ export type LeadColumnKey = keyof typeof LEAD_COLUMN_WIDTHS
 
 export const LEAD_PAGE_SKELETON: string[] = ["h-[24px]", "h-[280px]", "h-[200px]", "h-[320px]"]
 
+export const CONTACT_PAGE_SKELETON = LEAD_PAGE_SKELETON
+
 const ALL_LEAD_COLUMNS: readonly LeadColumnKey[] = [
   "status",
   "interest",
@@ -227,6 +229,40 @@ export function leadSkeletonWidths(view: LeadView): readonly number[] {
     "actions",
   ]
   return keys.map((key) => LEAD_COLUMN_WIDTHS[key])
+}
+
+export const CONTACT_COLUMN_WIDTHS = {
+  // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
+  name: 200,
+  types: 190,
+  company: 180,
+  status: 130,
+  lastInteractionAt: 170,
+  zone: 140,
+  email: 200,
+  phone: 140,
+  linkedinUrl: 170,
+  reviewAt: 180,
+  notes: 220,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type ContactColumnKey = keyof typeof CONTACT_COLUMN_WIDTHS
+
+export const CONTACT_DEFAULT_VISIBLE_COLUMNS: readonly ContactColumnKey[] = [
+  "types",
+  "company",
+  "status",
+  "lastInteractionAt",
+  "zone",
+  "email",
+  "linkedinUrl",
+  "notes",
+]
+
+export function contactSkeletonWidths(): readonly number[] {
+  const keys: readonly ContactColumnKey[] = ["name", ...CONTACT_DEFAULT_VISIBLE_COLUMNS, "actions"]
+  return keys.map((key) => CONTACT_COLUMN_WIDTHS[key])
 }
 
 export const ACTION_COLUMN_WIDTHS = {

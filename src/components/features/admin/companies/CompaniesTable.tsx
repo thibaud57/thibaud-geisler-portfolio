@@ -58,6 +58,7 @@ import { LEAD_STATUS_LABELS } from "@/lib/leads"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { personDisplayName } from "@/lib/persons"
 import { formatShortInstantDate } from "@/lib/date-time"
+import { detailHref } from "@/lib/detail-links"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompany } from "@/server/queries/companies"
@@ -307,7 +308,7 @@ function leadsSection(company: AdminCompany): DetailSection[] {
               <RelatedLinksList
                 links={company.leads.map((lead): RelatedLink => ({
                   id: lead.id,
-                  href: `${ADMIN_LEADS_PATH}?detail=${lead.id}`,
+                  href: detailHref(ADMIN_LEADS_PATH, lead.id),
                   label: personDisplayName(lead),
                   // Poste puis statut : la ligne dit où en est le lead sans l'ouvrir.
                   meta: [
