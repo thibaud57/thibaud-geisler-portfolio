@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "opportunites-donnees"
 goal: "Créer le modèle Opportunity, apportée par un lead, qui porte une seule fois ce que Notion ressaisit à chaque étape (TJM, contrat, ESN, client final, lieu, rythme), avec sa validation, ses lectures et ses Server Actions."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["02-entreprise-enrichie-donnees-design.md", "07-leads-donnees-design.md"]
@@ -73,7 +73,7 @@ Crée le modèle `Opportunity` (de la proposition à l'acceptation), ses liens v
 | `details` | `String?` | markdown (ADR-024) : contexte, profil recherché, contenu technique |
 | `createdAt`, `updatedAt` | `DateTime @db.Timestamptz` | |
 
-- **Contrainte SQL** : `CHECK ("intermediaryId" IS DISTINCT FROM "clientId")`, nommée `Opportunity_intermediary_client_check`, que Prisma ne sait pas écrire et que la migration ajoute à la main, en plus du refus applicatif (« Le client final ne peut pas être l'ESN »)
+- **Contrainte SQL** : `CHECK ("intermediaryId" <> "clientId")`, nommée `Opportunity_intermediary_client_check`, que Prisma ne sait pas écrire et que la migration ajoute à la main, en plus du refus applicatif (« Le client final ne peut pas être l'ESN ») ; `<>` laisse passer une opportunité sans ESN ou sans client final, là où `IS DISTINCT FROM` refuserait deux colonnes vides
 - **Écarts avec Notion**, décidés par le propriétaire le 2026-09-27 : le Contrat Notion (ESN, Freelance Direct, Startup, CDI) mêlait trois faits, l'ESN se lit sur le lien, « Startup » sur le type de l'entreprise cliente, reste le contrat, dans l'enum déjà utilisé par les projets pour qu'une opportunité acceptée devienne un projet sans conversion ; le statut Notion de l'entretien mêlait étape et issue, l'issue (Offre reçue, Accepté, Refusé, En pause) passe à l'opportunité ; la Priorité Notion n'est pas reprise, l'intérêt du lead la porte déjà ; le démarrage se tient au mois, rarement connu au jour
 - **Statuts** (`src/lib/opportunities.ts`) : Proposée, En process (entretiens en cours), Offre reçue, En pause, Acceptée, Refusée (par le client), Déclinée (par le propriétaire), Abandonnée (opportunité annulée)
 - **Validation** (`src/lib/schemas/opportunity.ts`, `.claude/rules/zod/schemas.md`) : titre requis ; listes facultatives avec la sentinelle `NONE_VALUE` ; TJM entier positif ; rythme de 1 à 5, jours sur site de 0 à 5 et jamais au-delà du rythme (« Pas plus de jours sur site que de jours travaillés ») ; démarrage reçu en `AAAA-MM`, enregistré au premier du mois ; durée de 1 à 60 ; client final distinct de l'ESN (« Le client final ne peut pas être l'ESN ») ; notes 200 caractères au plus, même message que `02` ; vide → `null`

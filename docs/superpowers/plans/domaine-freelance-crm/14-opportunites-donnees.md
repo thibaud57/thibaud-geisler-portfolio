@@ -123,7 +123,7 @@ Expected: un dossier de migration créé, non appliqué.
 À la fin du fichier généré, ajouter la contrainte que Prisma ne sait pas écrire :
 
 ```sql
-ALTER TABLE "freelance"."Opportunity" ADD CONSTRAINT "Opportunity_intermediary_client_check" CHECK ("intermediaryId" IS DISTINCT FROM "clientId");
+ALTER TABLE "freelance"."Opportunity" ADD CONSTRAINT "Opportunity_intermediary_client_check" CHECK ("intermediaryId" <> "clientId");
 ```
 
 Run: `pnpm prisma migrate dev`, puis `just db-test`
