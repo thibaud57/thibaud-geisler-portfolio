@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "entretiens-donnees"
 goal: "Créer le modèle des entretiens d'une opportunité, avec leurs correspondants, leur numéro déduit de l'ordre et leurs Server Actions, et déduire des entretiens à venir le statut « RDV planifié » d'un lead."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 depends_on: ["07-leads-donnees-design.md", "08-ecran-leads-design.md", "09-actions-prospection-donnees-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "14-opportunites-donnees-design.md", "15-ecran-opportunites-design.md"]
