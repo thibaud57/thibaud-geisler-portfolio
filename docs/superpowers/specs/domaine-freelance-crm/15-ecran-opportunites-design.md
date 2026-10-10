@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "ecran-opportunites"
 goal: "Lister, filtrer, créer, modifier et supprimer les opportunités depuis l'espace admin, les montrer sur les fiches entreprise et lead, et déduire le statut « Deal » d'un lead de ses opportunités acceptées."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["02-entreprise-enrichie-donnees-design.md", "03-formulaire-entreprise-enrichi-design.md", "04-liste-entreprises-enrichie-design.md", "07-leads-donnees-design.md", "08-ecran-leads-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "14-opportunites-donnees-design.md"]
