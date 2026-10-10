@@ -185,6 +185,19 @@ enum ContactStatus {
   @@schema("freelance")
 }
 
+enum OpportunityStatus {
+  PROPOSEE
+  EN_PROCESS
+  OFFRE_RECUE
+  EN_PAUSE
+  ACCEPTEE
+  REFUSEE
+  DECLINEE
+  ABANDONNEE
+
+  @@schema("freelance")
+}
+
 enum ActionChannel {
   CANDIDATURE
   CONNEXION_LINKEDIN
@@ -332,8 +345,12 @@ model Company {
 
   clientMetas ClientMeta[]
   persons     Person[]
-  createdAt   DateTime     @default(now()) @db.Timestamptz
-  updatedAt   DateTime     @updatedAt @db.Timestamptz
+
+  opportunitiesAsIntermediary Opportunity[] @relation("OpportunityIntermediary")
+  opportunitiesAsClient       Opportunity[] @relation("OpportunityClient")
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
 
   @@schema("freelance")
 }
@@ -359,9 +376,10 @@ model Person {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
-  lead               Lead?
-  contact            Contact?
-  prospectingActions ProspectingAction[]
+  lead                  Lead?
+  contact               Contact?
+  prospectingActions    ProspectingAction[]
+  referredOpportunities Opportunity[]       @relation("OpportunityReferrer")
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -396,6 +414,41 @@ model Contact {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
+  @@schema("freelance")
+}
+
+model Opportunity {
+  id             String            @id @default(uuid(7))
+  title          String
+  role           String?
+  status         OpportunityStatus @default(PROPOSEE)
+  dailyRate      Int?
+  contract       ContractStatus?
+  workMode       WorkMode?
+  daysPerWeek    Int?
+  onSiteDays     Int?
+  zone           Zone?
+  // Toujours le premier du mois : un démarrage se connaît au mois, un jour saisi serait inventé.
+  startMonth     DateTime?         @db.Date
+  durationMonths Int?
+  notes          String?
+  details        String?
+
+  // Qui a apporté l'opportunité : un fait de l'opportunité, qui survit au retrait d'un rôle.
+  referrerId     String?
+  referrer       Person?  @relation("OpportunityReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  // Vide pour un client direct.
+  intermediaryId String?
+  intermediary   Company? @relation("OpportunityIntermediary", fields: [intermediaryId], references: [id], onDelete: Restrict)
+  clientId       String?
+  client         Company? @relation("OpportunityClient", fields: [clientId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([referrerId])
+  @@index([intermediaryId])
+  @@index([clientId])
   @@schema("freelance")
 }
 

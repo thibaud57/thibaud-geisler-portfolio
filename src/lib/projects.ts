@@ -1,3 +1,13 @@
+import {
+  Briefcase,
+  Building,
+  FilePenLine,
+  GraduationCap,
+  Repeat,
+  Shuffle,
+  Wifi,
+} from "lucide-react"
+
 import type {
   ContractStatus,
   ProjectFormat,
@@ -5,6 +15,7 @@ import type {
   ProjectType,
   WorkMode,
 } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export interface ProjectTimeline {
   startYear: number | null
@@ -76,6 +87,19 @@ export const WORK_MODE_LABELS: Record<WorkMode, string> = {
   REMOTE: "Remote",
   HYBRIDE: "Hybride",
   PRESENTIEL: "Sur site",
+}
+
+export const CONTRACT_STATUS_ICONS: Record<ContractStatus, IconComponent | null> = {
+  FREELANCE: Briefcase,
+  CDI: FilePenLine,
+  STAGE: GraduationCap,
+  ALTERNANCE: Repeat,
+}
+
+export const WORK_MODE_ICONS: Record<WorkMode, IconComponent | null> = {
+  REMOTE: Wifi,
+  HYBRIDE: Shuffle,
+  PRESENTIEL: Building,
 }
 
 export interface ProjectDuration {
