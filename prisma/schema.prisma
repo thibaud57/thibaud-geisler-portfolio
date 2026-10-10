@@ -198,6 +198,49 @@ enum OpportunityStatus {
   @@schema("freelance")
 }
 
+enum InterviewSide {
+  ESN
+  CLIENT_FINAL
+
+  @@schema("freelance")
+}
+
+enum InterviewType {
+  PREMIER_CONTACT
+  RECRUTEUR_RH
+  TECHNIQUE
+  MANAGER_EQUIPE
+  NEGOCIATION
+
+  @@schema("freelance")
+}
+
+// Où en est l'entretien.
+enum InterviewStatus {
+  PLANIFIE
+  FAIT
+  ANNULE
+
+  @@schema("freelance")
+}
+
+// Ce qu'il a donné, une fois fait.
+enum InterviewOutcome {
+  POSITIF
+  NEGATIF
+  SANS_SUITE
+
+  @@schema("freelance")
+}
+
+enum InterviewDecision {
+  OUI_TRES_INTERESSE
+  OUI_SOUS_CONDITIONS
+  NON
+
+  @@schema("freelance")
+}
+
 enum ActionChannel {
   CANDIDATURE
   CONNEXION_LINKEDIN
@@ -380,6 +423,7 @@ model Person {
   contact               Contact?
   prospectingActions    ProspectingAction[]
   referredOpportunities Opportunity[]       @relation("OpportunityReferrer")
+  interviews            Interview[]         @relation("InterviewCorrespondents")
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -442,6 +486,7 @@ model Opportunity {
   intermediary   Company? @relation("OpportunityIntermediary", fields: [intermediaryId], references: [id], onDelete: Restrict)
   clientId       String?
   client         Company? @relation("OpportunityClient", fields: [clientId], references: [id], onDelete: Restrict)
+  interviews     Interview[]
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -449,6 +494,30 @@ model Opportunity {
   @@index([referrerId])
   @@index([intermediaryId])
   @@index([clientId])
+  @@schema("freelance")
+}
+
+model Interview {
+  id          String             @id @default(uuid(7))
+  // L'entreprise se lit sur l'opportunité : ESN ou client final, jamais ressaisie.
+  side        InterviewSide
+  type        InterviewType
+  status      InterviewStatus    @default(PLANIFIE)
+  outcome     InterviewOutcome?
+  scheduledAt DateTime           @db.Timestamptz
+  score       Int?
+  decision    InterviewDecision?
+  notes       String?
+  details     String?
+
+  opportunityId  String
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  correspondents Person[]    @relation("InterviewCorrespondents")
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([opportunityId, scheduledAt])
   @@schema("freelance")
 }
 

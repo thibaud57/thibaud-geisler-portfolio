@@ -7,7 +7,7 @@ export const ACTION_CHANNELS = Object.values(ActionChannel)
 export const ACTION_STATUSES = Object.values(ActionStatus)
 
 // Instant avec décalage : sans lui, le serveur lirait la date en UTC, décalée d'une ou deux heures côté client.
-const instant = z.iso.datetime({ offset: true, error: "Date et heure requises" })
+export const instant = z.iso.datetime({ offset: true, error: "Date et heure requises" })
 
 export const prospectingActionSchema = z.object({
   title: z

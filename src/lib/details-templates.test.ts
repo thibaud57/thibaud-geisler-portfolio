@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   CONTACT_DETAILS_TEMPLATE,
   detailsAfterOriginChange,
+  interviewDetailsTemplate,
   leadDetailsTemplate,
   OPPORTUNITY_DETAILS_TEMPLATE,
 } from "./details-templates"
@@ -74,5 +75,47 @@ describe("OPPORTUNITY_DETAILS_TEMPLATE", () => {
     )
 
     expect(headings).toEqual(["# 🎯 Contexte", "# 👤 Profil recherché", "# 🛠️ Contenu technique"])
+  })
+})
+
+describe("interviewDetailsTemplate", () => {
+  function headingsOf(template: string): string[] {
+    return template.split("\n").filter((line) => line.startsWith("# "))
+  }
+
+  it("gives each interview type its template", () => {
+    const firstContact = headingsOf(interviewDetailsTemplate("PREMIER_CONTACT"))
+    const hr = headingsOf(interviewDetailsTemplate("RECRUTEUR_RH"))
+    const negotiation = headingsOf(interviewDetailsTemplate("NEGOCIATION"))
+    const technical = headingsOf(interviewDetailsTemplate("TECHNIQUE"))
+
+    expect(firstContact).toEqual([
+      "# 📋 Contexte du contact",
+      "# 🚩 Red flags",
+      "# ✅ Green flags",
+      "# ➡️ Suite",
+    ])
+    expect(hr).toEqual([
+      "# 🎯 Objectifs",
+      "# 💪 Préparation ciblée",
+      "# 🗒️ Déroulé",
+      "# 🎯 Évaluation",
+      "# 🚩 Red flags",
+      "# ✅ Green flags",
+      "# 🎬 Pourquoi et conditions",
+      "# ➡️ Suite",
+    ])
+    expect(negotiation).toEqual(hr)
+    expect(technical).toEqual([
+      "# 🎯 Objectifs",
+      "# 💪 Préparation ciblée",
+      "# 💻 Exercice technique",
+      "# 🗒️ Déroulé",
+      "# 🎯 Évaluation",
+      "# 🚩 Red flags",
+      "# ✅ Green flags",
+      "# 🎬 Pourquoi et conditions",
+      "# ➡️ Suite",
+    ])
   })
 })

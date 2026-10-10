@@ -1,4 +1,4 @@
-import type { LeadOrigin } from "@/generated/prisma/client"
+import type { InterviewType, LeadOrigin } from "@/generated/prisma/client"
 
 export const DETAILS_EDITOR_HELP =
   "Raccourcis : « # » un titre, « - » une liste, « > » une citation, « / » le menu des blocs."
@@ -43,14 +43,26 @@ function sameText(a: string, b: string): boolean {
   return a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim()
 }
 
-// Un texte saisi n'est jamais écrasé : seul un Détails vide, ou resté tel que le gabarit de l'origine précédente l'a posé, suit le changement d'origine.
+// Un texte saisi n'est jamais écrasé : seul un Détails resté vide ou au gabarit précédent suit le changement.
+export function detailsAfterTemplateChange(
+  details: string,
+  previousTemplate: string,
+  nextTemplate: string,
+): string {
+  const untouched = details.trim() === "" || sameText(details, previousTemplate)
+  return untouched ? nextTemplate : details
+}
+
 export function detailsAfterOriginChange(
   details: string,
   previousOrigin: LeadOrigin | "",
   nextOrigin: LeadOrigin | "",
 ): string {
-  const untouched = details.trim() === "" || sameText(details, leadDetailsTemplate(previousOrigin))
-  return untouched ? leadDetailsTemplate(nextOrigin) : details
+  return detailsAfterTemplateChange(
+    details,
+    leadDetailsTemplate(previousOrigin),
+    leadDetailsTemplate(nextOrigin),
+  )
 }
 
 // Titres de la fiche Notion ; poste, entreprise et types restent des champs, pas du texte.
@@ -76,3 +88,46 @@ export const OPPORTUNITY_DETAILS_TEMPLATE = `# 🎯 Contexte
 
 # 🛠️ Contenu technique
 `
+
+// Réduits à l'échange : opportunité et package vivent sur l'opportunité, culture d'entreprise dans son Détails.
+const INTERVIEW_FIRST_CONTACT_TEMPLATE = `# 📋 Contexte du contact
+
+# 🚩 Red flags
+
+# ✅ Green flags
+
+# ➡️ Suite
+`
+
+const INTERVIEW_HEADINGS = [
+  "# 🎯 Objectifs",
+  "# 💪 Préparation ciblée",
+  "# 🗒️ Déroulé",
+  "# 🎯 Évaluation",
+  "# 🚩 Red flags",
+  "# ✅ Green flags",
+  "# 🎬 Pourquoi et conditions",
+  "# ➡️ Suite",
+]
+
+function headingsTemplate(headings: readonly string[]): string {
+  return `${headings.join("\n\n")}\n`
+}
+
+const INTERVIEW_TEMPLATE = headingsTemplate(INTERVIEW_HEADINGS)
+// L'exercice technique se prépare : il suit la préparation ciblée.
+const TECHNICAL_INTERVIEW_TEMPLATE = headingsTemplate(
+  INTERVIEW_HEADINGS.toSpliced(2, 0, "# 💻 Exercice technique"),
+)
+
+const INTERVIEW_TEMPLATES: Record<InterviewType, string> = {
+  PREMIER_CONTACT: INTERVIEW_FIRST_CONTACT_TEMPLATE,
+  RECRUTEUR_RH: INTERVIEW_TEMPLATE,
+  MANAGER_EQUIPE: INTERVIEW_TEMPLATE,
+  NEGOCIATION: INTERVIEW_TEMPLATE,
+  TECHNIQUE: TECHNICAL_INTERVIEW_TEMPLATE,
+}
+
+export function interviewDetailsTemplate(type: InterviewType | ""): string {
+  return type === "" ? "" : INTERVIEW_TEMPLATES[type]
+}

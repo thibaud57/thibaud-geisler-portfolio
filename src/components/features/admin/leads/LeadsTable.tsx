@@ -96,7 +96,11 @@ function channelBadge(lead: AdminLead) {
   )
 }
 
-function statusBadge(lead: AdminLead, badgeProps?: Omit<ComponentProps<typeof Badge>, "children">) {
+function statusBadge(
+  lead: AdminLead,
+  now: number,
+  badgeProps?: Omit<ComponentProps<typeof Badge>, "children">,
+) {
   if (lead.optedOutAt) {
     return (
       <Badge variant="outline" {...badgeProps}>
@@ -104,7 +108,7 @@ function statusBadge(lead: AdminLead, badgeProps?: Omit<ComponentProps<typeof Ba
       </Badge>
     )
   }
-  const displayStatus = leadDisplayStatus(lead)
+  const displayStatus = leadDisplayStatus(lead, now)
   return (
     <EnumBadge
       label={LEAD_DISPLAY_STATUS_LABELS[displayStatus]}
@@ -130,7 +134,7 @@ function rowActions(lead: AdminLead) {
   )
 }
 
-function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
+function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLead>[] {
   const visibleByDefault = LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   return [
     {
@@ -150,7 +154,7 @@ function buildDataColumns(view: LeadView): readonly Column<AdminLead>[] {
       header: LEAD_FIELD_LABELS.status,
       width: LEAD_COLUMN_WIDTHS.status,
       ...hideableColumn(visibleByDefault, "status"),
-      cell: statusBadge,
+      cell: (lead) => statusBadge(lead, now),
     },
     {
       key: "interest",
@@ -322,11 +326,12 @@ function buildLeadDetail(
   history: readonly ActionTimelineRow[],
   ranks: Map<string, number>,
   onEdit: () => void,
+  now: number,
 ): DetailContent {
   if (lead.optedOutAt) {
     return {
       title: personDisplayName(lead),
-      status: statusBadge(lead, { variant: "outline", meta: true }),
+      status: statusBadge(lead, now, { variant: "outline", meta: true }),
       sections: [
         {
           title: PERSON_SECTION_TITLES.optOut,
@@ -349,7 +354,7 @@ function buildLeadDetail(
   return {
     title: personDisplayName(lead),
     ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-    status: statusBadge(lead, { variant: "outline", meta: true }),
+    status: statusBadge(lead, now, { variant: "outline", meta: true }),
     // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
     sections: [
       {
@@ -444,8 +449,8 @@ function buildLeadDetail(
   }
 }
 
-const baseFacets: readonly Facet<AdminLead>[] = [
-  {
+function statusFacet(now: number): Facet<AdminLead> {
+  return {
     key: "status",
     label: LEAD_FIELD_LABELS.status,
     options: LEAD_DISPLAY_STATUSES.map((status) => ({
@@ -453,8 +458,11 @@ const baseFacets: readonly Facet<AdminLead>[] = [
       label: LEAD_DISPLAY_STATUS_LABELS[status],
     })),
     // Une fiche en opposition affiche « Ne plus contacter » à la place du statut : un filtre sur le statut ne doit pas la lister.
-    value: (lead) => (lead.optedOutAt ? [] : [leadDisplayStatus(lead)]),
-  },
+    value: (lead) => (lead.optedOutAt ? [] : [leadDisplayStatus(lead, now)]),
+  }
+}
+
+const baseFacets: readonly Facet<AdminLead>[] = [
   {
     key: "interest",
     label: LEAD_FIELD_LABELS.interest,
@@ -507,9 +515,13 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   )
   // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
   const [now] = useState(() => new Date())
+  const nowMs = now.getTime()
 
-  const viewLeads = useMemo(() => leadsForView(leads, view), [leads, view])
-  const facets = useMemo(() => [...baseFacets, retentionFacet(now)], [now])
+  const viewLeads = useMemo(() => leadsForView(leads, view, nowMs), [leads, view, nowMs])
+  const facets = useMemo(
+    () => [statusFacet(nowMs), ...baseFacets, retentionFacet(now)],
+    [nowMs, now],
+  )
   const ranks = useMemo(() => rankActions(actions), [actions])
   const historyByPerson = useMemo(() => {
     const map = new Map<string, ActionTimelineRow[]>()
@@ -522,18 +534,24 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   }, [actions])
 
   const columns = useMemo<readonly Column<AdminLead>[]>(
-    () => [...buildDataColumns(view), actionsColumn(rowActions)],
-    [view],
+    () => [...buildDataColumns(view, nowMs), actionsColumn(rowActions)],
+    [view, nowMs],
   )
 
   const detail = useMemo<DetailContent | null>(
     () =>
       selectedLead
-        ? buildLeadDetail(selectedLead, historyByPerson.get(selectedLead.id) ?? [], ranks, () => {
-            router.push(`${ADMIN_LEADS_PATH}/${selectedLead.id}`)
-          })
+        ? buildLeadDetail(
+            selectedLead,
+            historyByPerson.get(selectedLead.id) ?? [],
+            ranks,
+            () => {
+              router.push(`${ADMIN_LEADS_PATH}/${selectedLead.id}`)
+            },
+            nowMs,
+          )
         : null,
-    [selectedLead, historyByPerson, ranks, router],
+    [selectedLead, historyByPerson, ranks, router, nowMs],
   )
 
   return (

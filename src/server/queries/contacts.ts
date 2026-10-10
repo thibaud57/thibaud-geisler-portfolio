@@ -22,6 +22,7 @@ const adminContactInclude = {
       company: companySelect,
       lead: { select: { status: true, interest: true } },
       referredOpportunities: { select: { status: true } },
+      interviews: { select: { status: true, scheduledAt: true } },
     },
   },
 } as const
@@ -91,14 +92,18 @@ function toContactRecord(row: ContactRow): ContactRecord {
 function toAdminContact(
   row: AdminContactRow,
   interaction: InteractionDates | undefined,
+  now: number,
 ): AdminContact {
   const lastInteractionAt = latestInteractionOf(interaction)
-  const { lead, referredOpportunities } = row.person
+  const { lead, referredOpportunities, interviews } = row.person
   return {
     ...toContactRecord(row),
     leadRole: lead
       ? {
-          status: leadDisplayStatus({ status: lead.status, opportunities: referredOpportunities }),
+          status: leadDisplayStatus(
+            { status: lead.status, opportunities: referredOpportunities, interviews },
+            now,
+          ),
           interest: lead.interest,
         }
       : null,
@@ -123,7 +128,8 @@ export async function findAllContactsForAdmin(): Promise<AdminContact[]> {
     }),
   ])
   const maxByPerson = new Map(interactions.map((group) => [group.personId, group._max]))
-  return rows.map((row) => toAdminContact(row, maxByPerson.get(row.personId)))
+  const now = Date.now()
+  return rows.map((row) => toAdminContact(row, maxByPerson.get(row.personId), now))
 }
 
 export async function findContactByIdForAdmin(personId: string): Promise<ContactRecord | null> {

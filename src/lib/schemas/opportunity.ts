@@ -14,7 +14,7 @@ const optionalId = z
   .trim()
   .transform((value) => nullifyNoneValue(value, NONE_VALUE))
 
-function optionalInt(min: number, max: number, message: string) {
+export function optionalInt(min: number, max: number, message: string) {
   return z
     .string()
     .trim()

@@ -31,6 +31,7 @@ const companyLeadPersonSelect = {
   optedOutAt: true,
   lead: { select: { status: true } },
   referredOpportunities: { select: { status: true } },
+  interviews: { select: { status: true, scheduledAt: true } },
 } as const
 
 const companyPersonSelect = {
@@ -53,7 +54,7 @@ type AdminCompanyRaw = Prisma.CompanyGetPayload<{
 
 type AdminCompanyLead = Omit<
   AdminCompanyRaw["persons"][number],
-  "lead" | "optedOutAt" | "prospectingActions" | "referredOpportunities"
+  "lead" | "optedOutAt" | "prospectingActions" | "referredOpportunities" | "interviews"
 > & {
   status: LeadDisplayStatus
 }
@@ -67,7 +68,10 @@ export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
 }
 
 // Seul point de calcul de worked, isProspect, endClients et firstContactAt : une règle recalculée ailleurs finirait par diverger de celle-ci.
-function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): AdminCompany {
+function toAdminCompany(
+  { clientMetas, persons, ...company }: AdminCompanyRaw,
+  now: number,
+): AdminCompany {
   // Un projet personnel crée aussi un ClientMeta (src/server/actions/projects.ts) : seul un projet CLIENT compte comme travaillée.
   const worked =
     clientMetas.some((meta) => meta.project.type === "CLIENT") || hasAcceptedOpportunity(company)
@@ -76,14 +80,18 @@ function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): 
     persons.some(
       (person) =>
         person.lead !== null &&
-        isActiveLead({
-          status: person.lead.status,
-          opportunities: person.referredOpportunities,
-          optedOutAt: person.optedOutAt,
-        }),
+        isActiveLead(
+          {
+            status: person.lead.status,
+            opportunities: person.referredOpportunities,
+            interviews: person.interviews,
+            optedOutAt: person.optedOutAt,
+          },
+          now,
+        ),
     )
   const leads = persons.flatMap(
-    ({ id, name, jobRole, email, linkedinUrl, lead, referredOpportunities }) =>
+    ({ id, name, jobRole, email, linkedinUrl, lead, referredOpportunities, interviews }) =>
       lead
         ? [
             {
@@ -92,10 +100,10 @@ function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): 
               jobRole,
               email,
               linkedinUrl,
-              status: leadDisplayStatus({
-                status: lead.status,
-                opportunities: referredOpportunities,
-              }),
+              status: leadDisplayStatus(
+                { status: lead.status, opportunities: referredOpportunities, interviews },
+                now,
+              ),
             },
           ]
         : [],
@@ -128,7 +136,8 @@ export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
     orderBy: { name: "asc" },
   })
 
-  return companies.map(toAdminCompany)
+  const now = Date.now()
+  return companies.map((company) => toAdminCompany(company, now))
 }
 
 export async function findCompanyByIdForAdmin(id: string) {

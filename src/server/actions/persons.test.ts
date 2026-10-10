@@ -194,4 +194,16 @@ describe("erasePersonExchanges", () => {
     expect(state.ok).toBe(true)
     expect(prisma.person.update).not.toHaveBeenCalled()
   })
+
+  it("removes the person from its interviews", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: new Date("2026-09-01"),
+      exchangesErasedAt: null,
+    } as never)
+
+    await erasePersonExchanges("p1")
+
+    const data = vi.mocked(prisma.person.update).mock.calls[0]?.[0]?.data as Record<string, unknown>
+    expect(data).toHaveProperty("interviews", { set: [] })
+  })
 })

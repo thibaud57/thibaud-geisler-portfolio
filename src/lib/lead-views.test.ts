@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest"
 
-import type { LeadInterest, LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
+import type {
+  InterviewStatus,
+  LeadInterest,
+  LeadStatus,
+  OpportunityStatus,
+} from "@/generated/prisma/client"
 
 import { isActiveLead, LEAD_VIEWS, leadsForView } from "./lead-views"
+
+const NOW = new Date(2026, 8, 27, 12, 0).getTime()
 
 const STATUSES: readonly LeadStatus[] = [
   "NOUVEAU",
@@ -23,6 +30,7 @@ interface TestLead {
   email: string | null
   linkedinUrl: string | null
   opportunities: { status: OpportunityStatus }[]
+  interviews: { status: InterviewStatus; scheduledAt: Date }[]
 }
 
 function lead(overrides: Partial<TestLead> = {}): TestLead {
@@ -36,6 +44,7 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
     email: null,
     linkedinUrl: null,
     opportunities: [],
+    interviews: [],
     ...overrides,
   }
 }
@@ -50,19 +59,26 @@ describe("isActiveLead", () => {
     const optedOut = lead({ optedOutAt: new Date("2026-03-12T09:00:00Z") })
     const fresh = lead({ status: "NOUVEAU" })
 
-    const results = [deal, optedOut, fresh].map(isActiveLead)
+    const results = [deal, optedOut, fresh].map((row) => isActiveLead(row, NOW))
 
     expect(results).toEqual([false, false, true])
   })
 })
 
 describe("leadsForView", () => {
-  it("keeps only new, suspect and discussion leads in the in-progress view", () => {
-    const leads = STATUSES.map((status) => lead({ id: status, status }))
+  it("keeps only new, suspect, discussion and scheduled leads in the in-progress view", () => {
+    const leads = [
+      ...STATUSES.map((status) => lead({ id: status, status })),
+      lead({
+        id: "meeting",
+        status: "STAND_BY",
+        interviews: [{ status: "PLANIFIE", scheduledAt: new Date(2026, 8, 28, 10, 0) }],
+      }),
+    ]
 
-    const rows = leadsForView(leads, "en-cours")
+    const rows = leadsForView(leads, "en-cours", NOW)
 
-    expect(idsOf(rows).sort()).toEqual(["DISCUSSION", "NOUVEAU", "SUSPECT"])
+    expect(idsOf(rows).sort()).toEqual(["DISCUSSION", "NOUVEAU", "SUSPECT", "meeting"])
   })
 
   it("keeps hot leads outside deal, lost and out-of-profile in the hot view", () => {
@@ -79,7 +95,7 @@ describe("leadsForView", () => {
       lead({ id: "warm-DISCUSSION", status: "DISCUSSION", interest: "WARM" }),
     ]
 
-    const rows = leadsForView(leads, "chauds")
+    const rows = leadsForView(leads, "chauds", NOW)
 
     expect(idsOf(rows)).toEqual(["hot-DISCUSSION"])
   })
@@ -92,8 +108,8 @@ describe("leadsForView", () => {
       opportunities: [{ status: "ACCEPTEE" }],
     })
 
-    const ongoing = leadsForView([deal], "en-cours")
-    const hot = leadsForView([deal], "chauds")
+    const ongoing = leadsForView([deal], "en-cours", NOW)
+    const hot = leadsForView([deal], "chauds", NOW)
 
     expect(ongoing).toEqual([])
     expect(hot).toEqual([])
@@ -105,7 +121,7 @@ describe("leadsForView", () => {
       lead({ id: "new", status: "NOUVEAU" }),
     ]
 
-    const rows = leadsForView(leads, "stand-by")
+    const rows = leadsForView(leads, "stand-by", NOW)
 
     expect(idsOf(rows)).toEqual(["parked"])
   })
@@ -121,7 +137,7 @@ describe("leadsForView", () => {
     const standBy = lead({ id: "opted-out-stand-by", status: "STAND_BY", optedOutAt: new Date() })
 
     const visibleIn = LEAD_VIEWS.filter(
-      (view) => leadsForView([optedOut, standBy], view).length > 0,
+      (view) => leadsForView([optedOut, standBy], view, NOW).length > 0,
     )
 
     expect(visibleIn).toEqual(["tous"])
@@ -134,8 +150,8 @@ describe("leadsForView", () => {
       lead({ id: "march", metAt: new Date(2026, 2, 10) }),
     ]
 
-    const newestFirst = leadsForView(leads, "en-cours")
-    const oldestFirst = leadsForView(leads, "a-qualifier")
+    const newestFirst = leadsForView(leads, "en-cours", NOW)
+    const oldestFirst = leadsForView(leads, "a-qualifier", NOW)
 
     expect(idsOf(newestFirst)).toEqual(["march", "january", "none"])
     expect(idsOf(oldestFirst)).toEqual(["january", "march", "none"])
@@ -149,7 +165,7 @@ describe("leadsForView", () => {
       lead({ id: "aaron-out", name: "Aaron Durand", optedOutAt: new Date("2026-02-12T09:00:00Z") }),
     ]
 
-    const rows = leadsForView(leads, "tous")
+    const rows = leadsForView(leads, "tous", NOW)
 
     expect(idsOf(rows)).toEqual(["alice", "zoe", "aaron-out", "bob-out"])
   })
@@ -168,7 +184,7 @@ describe("leadsForView", () => {
       lead({ id: "out-email-bob", name: null, email: "bob@example.com", optedOutAt }),
     ]
 
-    const rows = leadsForView(leads, "tous")
+    const rows = leadsForView(leads, "tous", NOW)
 
     expect(idsOf(rows)).toEqual(["active", "out-email-bob", "out-linkedin", "out-email-zoe"])
   })

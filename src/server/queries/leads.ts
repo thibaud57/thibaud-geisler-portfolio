@@ -3,6 +3,8 @@ import "server-only"
 import type {
   ContactStatus,
   ContactType,
+  InterviewOutcome,
+  InterviewStatus,
   JobRole,
   LeadChannel,
   LeadInterest,
@@ -29,6 +31,7 @@ const adminLeadInclude = {
         take: 1,
         select: { respondedAt: true },
       },
+      interviews: { select: { status: true, outcome: true, scheduledAt: true } },
       _count: { select: { prospectingActions: true } },
     },
   },
@@ -59,6 +62,7 @@ export interface AdminLead {
   score: number | null
   createdAt: Date
   actionsCount: number
+  interviews: { status: InterviewStatus; outcome: InterviewOutcome | null; scheduledAt: Date }[]
   contactRole: { types: ContactType[]; status: ContactStatus } | null
   opportunities: OpportunitySummary[]
 }
@@ -87,6 +91,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     score: row.score,
     createdAt: row.createdAt,
     actionsCount: row.person._count.prospectingActions,
+    interviews: row.person.interviews,
     contactRole: row.person.contact,
     opportunities: row.person.referredOpportunities,
   }

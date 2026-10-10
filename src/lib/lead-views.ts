@@ -19,22 +19,31 @@ interface LeadViewRow extends LeadStatusSource {
   linkedinUrl: string | null
 }
 
-const IN_PROGRESS: ReadonlySet<LeadDisplayStatus> = new Set(["NOUVEAU", "SUSPECT", "DISCUSSION"])
+const IN_PROGRESS: ReadonlySet<LeadDisplayStatus> = new Set([
+  "NOUVEAU",
+  "SUSPECT",
+  "DISCUSSION",
+  "RDV_PLANIFIE",
+])
 
 // Une fiche en opposition n'est jamais active, quel que soit le statut saisi, et un lead Deal sort du pipeline : la règle est partagée par tout écran qui distingue les leads actifs.
 export function isActiveLead(
-  lead: Pick<LeadViewRow, "status" | "opportunities" | "optedOutAt">,
+  lead: Pick<LeadViewRow, "status" | "opportunities" | "interviews" | "optedOutAt">,
+  now: number,
 ): boolean {
-  return !lead.optedOutAt && IN_PROGRESS.has(leadDisplayStatus(lead))
+  return !lead.optedOutAt && IN_PROGRESS.has(leadDisplayStatus(lead, now))
 }
 
 const CLOSED: ReadonlySet<LeadDisplayStatus> = new Set(["DEAL", "PERDU", "HORS_ICP"])
 
-const VIEW_FILTERS: Record<Exclude<LeadView, "tous">, (lead: LeadViewRow) => boolean> = {
-  "en-cours": (lead) => IN_PROGRESS.has(leadDisplayStatus(lead)),
-  chauds: (lead) => lead.interest === "HOT" && !CLOSED.has(leadDisplayStatus(lead)),
-  "a-qualifier": (lead) => leadDisplayStatus(lead) === "NOUVEAU",
-  "stand-by": (lead) => leadDisplayStatus(lead) === "STAND_BY",
+const VIEW_FILTERS: Record<
+  Exclude<LeadView, "tous">,
+  (lead: LeadViewRow, now: number) => boolean
+> = {
+  "en-cours": (lead, now) => IN_PROGRESS.has(leadDisplayStatus(lead, now)),
+  chauds: (lead, now) => lead.interest === "HOT" && !CLOSED.has(leadDisplayStatus(lead, now)),
+  "a-qualifier": (lead, now) => leadDisplayStatus(lead, now) === "NOUVEAU",
+  "stand-by": (lead, now) => leadDisplayStatus(lead, now) === "STAND_BY",
 }
 
 // Date absente en dernier dans les deux sens : un lead jamais rencontré n'est ni le plus récent ni le plus ancien.
@@ -62,16 +71,21 @@ const VIEW_SORTS: Record<LeadView, (a: LeadViewRow, b: LeadViewRow) => number> =
 
 // Une fiche en opposition n'a plus rien à faire dans une vue de travail : seul Tous la montre, pour vérifier une opposition ou effacer ses échanges après coup.
 // L'ordre rendu ici est l'ordre d'affichage par défaut : DataTable garde celui des lignes reçues tant qu'aucune colonne n'est triée.
-export function leadsForView<T extends LeadViewRow>(leads: readonly T[], view: LeadView): T[] {
+export function leadsForView<T extends LeadViewRow>(
+  leads: readonly T[],
+  view: LeadView,
+  now: number,
+): T[] {
   return leads
-    .filter((lead) => view === "tous" || (!lead.optedOutAt && VIEW_FILTERS[view](lead)))
+    .filter((lead) => view === "tous" || (!lead.optedOutAt && VIEW_FILTERS[view](lead, now)))
     .sort(VIEW_SORTS[view])
 }
 
 export const LEAD_VIEW_PAGES: Record<LeadView, { title: string; subtitle: string }> = {
   "en-cours": {
     title: "Leads en cours",
-    subtitle: "Pipeline actif : Nouveau, Suspect, Discussion. Plus récents en premier.",
+    subtitle:
+      "Pipeline actif : Nouveau, Suspect, Discussion, RDV planifié. Plus récents en premier.",
   },
   chauds: {
     title: "Leads chauds",
