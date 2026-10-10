@@ -4,6 +4,7 @@ import {
   CONTACT_DETAILS_TEMPLATE,
   detailsAfterOriginChange,
   leadDetailsTemplate,
+  OPPORTUNITY_DETAILS_TEMPLATE,
 } from "./details-templates"
 
 describe("leadDetailsTemplate", () => {
@@ -63,5 +64,15 @@ describe("CONTACT_DETAILS_TEMPLATE", () => {
       "# 🔗 Liens",
       "# 📝 Notes libres",
     ])
+  })
+})
+
+describe("OPPORTUNITY_DETAILS_TEMPLATE", () => {
+  it("gives the opportunity template its three sections", () => {
+    const headings = OPPORTUNITY_DETAILS_TEMPLATE.split("\n").filter((line) =>
+      line.startsWith("# "),
+    )
+
+    expect(headings).toEqual(["# 🎯 Contexte", "# 👤 Profil recherché", "# 🛠️ Contenu technique"])
   })
 })

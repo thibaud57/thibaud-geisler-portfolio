@@ -34,6 +34,7 @@ import {
   ADMIN_COMPANIES_PATH,
   ADMIN_CONTACTS_PATH,
   ADMIN_LEADS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
   ADMIN_PROSPECTING_ACTIONS_PATH,
 } from "@/lib/admin-routes"
 import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin-table-widths"
@@ -41,6 +42,12 @@ import { CONTACT_STATUS_LABELS, CONTACT_TYPE_LABELS } from "@/lib/contacts"
 import { formatShortDateTime, formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/detail-links"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
+import {
+  LEAD_DISPLAY_STATUS_ICONS,
+  LEAD_DISPLAY_STATUS_LABELS,
+  LEAD_DISPLAY_STATUSES,
+  leadDisplayStatus,
+} from "@/lib/lead-display-status"
 import { leadsForView, type LeadView } from "@/lib/lead-views"
 import {
   LEAD_CHANNEL_ICONS,
@@ -51,8 +58,6 @@ import {
   LEAD_ORIGIN_ICONS,
   LEAD_ORIGIN_LABELS,
   LEAD_SECTION_TITLES,
-  LEAD_STATUS_ICONS,
-  LEAD_STATUS_LABELS,
 } from "@/lib/leads"
 import {
   OPTED_OUT_LABEL,
@@ -60,10 +65,11 @@ import {
   PERSON_SECTION_TITLES,
   personDisplayName,
 } from "@/lib/persons"
+import { toOpportunityLink } from "@/lib/opportunities"
 import { isRetentionOver, retentionEndOf } from "@/lib/person-retention"
 import { formatShortDate } from "@/lib/projects"
 import { toActionLink } from "@/lib/prospecting-actions"
-import { LEAD_INTERESTS, LEAD_ORIGINS, LEAD_STATUSES } from "@/lib/schemas/lead"
+import { LEAD_INTERESTS, LEAD_ORIGINS } from "@/lib/schemas/lead"
 import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminLead } from "@/server/queries/leads"
@@ -98,10 +104,11 @@ function statusBadge(lead: AdminLead, badgeProps?: Omit<ComponentProps<typeof Ba
       </Badge>
     )
   }
+  const displayStatus = leadDisplayStatus(lead)
   return (
     <EnumBadge
-      label={LEAD_STATUS_LABELS[lead.status]}
-      icon={LEAD_STATUS_ICONS[lead.status]}
+      label={LEAD_DISPLAY_STATUS_LABELS[displayStatus]}
+      icon={LEAD_DISPLAY_STATUS_ICONS[displayStatus]}
       {...badgeProps}
     />
   )
@@ -288,6 +295,28 @@ function historySection(
   }
 }
 
+function opportunitiesSection(lead: AdminLead): DetailSection {
+  return {
+    title: LEAD_SECTION_TITLES.opportunities,
+    rows: [
+      {
+        fullWidth: true,
+        value:
+          lead.opportunities.length === 0 ? null : (
+            <RelatedLinksList
+              links={lead.opportunities.map((opportunity) =>
+                toOpportunityLink(opportunity, {
+                  href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
+                  metaSuffix: opportunity.client?.name,
+                }),
+              )}
+            />
+          ),
+      },
+    ],
+  }
+}
+
 function buildLeadDetail(
   lead: AdminLead,
   history: readonly ActionTimelineRow[],
@@ -312,6 +341,7 @@ function buildLeadDetail(
           ],
         },
         historySection(history, ranks),
+        opportunitiesSection(lead),
       ],
     }
   }
@@ -408,6 +438,7 @@ function buildLeadDetail(
         ],
       },
       historySection(history, ranks),
+      opportunitiesSection(lead),
     ],
     onEdit,
   }
@@ -417,9 +448,12 @@ const baseFacets: readonly Facet<AdminLead>[] = [
   {
     key: "status",
     label: LEAD_FIELD_LABELS.status,
-    options: LEAD_STATUSES.map((status) => ({ value: status, label: LEAD_STATUS_LABELS[status] })),
-    // Une fiche en opposition affiche « Ne plus contacter » à la place du statut : un filtre sur le statut stocké ne doit pas la lister.
-    value: (lead) => (lead.optedOutAt ? [] : [lead.status]),
+    options: LEAD_DISPLAY_STATUSES.map((status) => ({
+      value: status,
+      label: LEAD_DISPLAY_STATUS_LABELS[status],
+    })),
+    // Une fiche en opposition affiche « Ne plus contacter » à la place du statut : un filtre sur le statut ne doit pas la lister.
+    value: (lead) => (lead.optedOutAt ? [] : [leadDisplayStatus(lead)]),
   },
   {
     key: "interest",

@@ -3,11 +3,14 @@ import { Suspense } from "react"
 
 import { LeadActionsCard } from "@/components/features/admin/leads/LeadActionsCard"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
+import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
-import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
+import { ADMIN_LEADS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
 import { LEAD_PAGE_SKELETON } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { LEAD_SECTION_TITLES } from "@/lib/leads"
+import { toOpportunityLink } from "@/lib/opportunities"
 import { personDisplayName } from "@/lib/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadByIdForAdmin } from "@/server/queries/leads"
@@ -34,6 +37,16 @@ async function EditLeadSection({ id }: { id: string }) {
         relatedCards={
           <>
             <LeadActionsCard lead={lead} actions={actions} />
+            <RelatedLinksCard
+              title={LEAD_SECTION_TITLES.opportunities}
+              links={lead.opportunities.map((opportunity) =>
+                toOpportunityLink(opportunity, {
+                  href: `${ADMIN_OPPORTUNITIES_PATH}/${opportunity.id}`,
+                  metaSuffix: opportunity.client?.name,
+                }),
+              )}
+              emptyText="Aucune opportunité apportée par ce lead."
+            />
           </>
         }
       />

@@ -24,11 +24,18 @@ async function NewCompanySection() {
         company={null}
         logoAssets={logoAssets}
         relatedCards={
-          <RelatedLinksCard
-            title={COMPANY_SECTION_TITLES.leads}
-            links={[]}
-            emptyText="Après l'enregistrement de l'entreprise."
-          />
+          <>
+            <RelatedLinksCard
+              title={COMPANY_SECTION_TITLES.leads}
+              links={[]}
+              emptyText="Après l'enregistrement de l'entreprise."
+            />
+            <RelatedLinksCard
+              title={COMPANY_SECTION_TITLES.opportunities}
+              links={[]}
+              emptyText="Après l'enregistrement de l'entreprise."
+            />
+          </>
         }
       />
     </div>

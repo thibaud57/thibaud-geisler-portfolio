@@ -254,6 +254,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Type de projet | RadioGroup | shadcn/ui | Formulaire projet admin, card Publication : « Client » et « Perso » côte à côte sur une ligne, à côté du statut. Un `Switch` y promettrait un réglage appliqué à l'instant (§ Arbitrages) |
 | Sélecteur de date | Popover + Calendar | shadcn/ui | Formulaire projet admin, card Publication : dates de début et de fin. `locale` française et semaine commençant lundi, à passer au `Calendar`, le registry rendant en anglais |
 | Date facultative | Popover + Calendar, composé par `OptionalDateField` | shadcn/ui | Date seule effaçable depuis son panneau : assujettissement à la TVA, rencontre d'une personne, signal |
+| Mois de démarrage | Popover + Button, composé par `MonthField` | shadcn/ui | Démarrage d'une opportunité : le bouton des champs date ouvre une grille des douze mois sous une année à faire défiler, avec « Effacer » ; valeur `AAAA-MM` entière ou vide |
 | Champ markdown (admin) | Editor | Pages CMS Editor (Tiptap), registre shadcn | Détails des fiches et étude de cas d'un projet, saisie à la Notion, `format="markdown"`, images coupées ([ADR-024](adrs/024-editeur-markdown-admin.md)). Éditeur et lecture admin (`MarkdownContent` en variante `admin`, prévue avec la vue détail) à une même échelle, `ADMIN_MARKDOWN_CLASS` : `#` `text-lg`, `##` `text-base`, `###` `text-sm`, en `font-semibold`, texte `text-sm` |
 
 ### Cards et grilles
@@ -352,7 +353,6 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Réglage appliqué à l'instant | Switch | shadcn/ui | Une bascule qui s'engage sans passer par « Enregistrer ». Aucun écran n'en a encore : le type d'un projet, que la maquette montre en `Switch`, est un choix entre deux catégories soumis par un formulaire (§ Arbitrages) |
 | Champ de mots clés | Input + Badge | shadcn/ui | Composition, pas un composant du registry. Saisie libre qui s'accumule en badges retirables sous le champ, comme une sélection multiple de `Combobox` |
 | Champ date et heure | Popover + Calendar + Input, composé par `DateTimeField` | shadcn/ui | Date et heure d'une action de prospection et d'un entretien |
-| Mois de démarrage | Popover + Button, composé par `MonthField` | shadcn/ui | Démarrage d'une opportunité : le bouton des champs date ouvre une grille des douze mois sous une année à faire défiler, avec « Effacer » ; valeur `AAAA-MM` entière ou vide |
 | Formulaire long en modale | Dialog | shadcn/ui | Passé la dizaine de champs, le corps du formulaire défile seul sous un plafond de `85svh`, en-tête et pied fixes, pour que « Enregistrer » reste atteignable ; `svh` et non `vh`, que la barre d'URL mobile fausse |
 | Palette de commandes | Command | shadcn/ui | État sélectionné incorrect en `radix-nova`, issue [#9228](https://github.com/shadcn-ui/ui/issues/9228) ouverte au 29/08/2026. Contournable en pilotant la coche soi-même plutôt que par cmdk, comme le fait le Combobox (§ Formulaires) |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : `--chart-*` et § Palette de Couleurs > Règles |

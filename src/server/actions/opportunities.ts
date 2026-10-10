@@ -3,11 +3,8 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import {
-  ADMIN_COMPANIES_PATH,
-  ADMIN_LEADS_PATH,
-  ADMIN_OPPORTUNITIES_PATH,
-} from "@/lib/admin-routes"
+import { ADMIN_COMPANIES_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
+import { isEsn } from "@/lib/companies"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
@@ -15,12 +12,13 @@ import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-uti
 
 import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
 import type { OpportunityFormState } from "./opportunities.types"
+import { revalidatePersonLists } from "./person-guards"
 
-// Les fiches lead et entreprise montrent leurs opportunités : leurs vues se rafraîchissent aussi.
+// Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent) : leurs vues se rafraîchissent aussi.
 function invalidateOpportunityCaches(): void {
   revalidatePath(ADMIN_OPPORTUNITIES_PATH, "layout")
-  revalidatePath(ADMIN_LEADS_PATH, "layout")
   revalidatePath(ADMIN_COMPANIES_PATH, "layout")
+  revalidatePersonLists()
 }
 
 class IntermediaryNotEsnError extends Error {}
@@ -54,7 +52,7 @@ async function assertIntermediaryIsEsn(intermediaryId: string | null): Promise<v
     where: { id: intermediaryId },
     select: { types: true },
   })
-  if (company && !company.types.includes("ESN_RECRUTEMENT")) throw new IntermediaryNotEsnError()
+  if (company && !isEsn(company)) throw new IntermediaryNotEsnError()
 }
 
 function mapOpportunityError(
@@ -89,6 +87,7 @@ function saveOpportunity(
   events: ActionEvents,
   formData: FormData,
   write: (data: OpportunityInput) => Promise<{ id: string }>,
+  storedIntermediaryId?: () => Promise<string | null>,
 ): Promise<OpportunityFormState> {
   const values = collectValues(formData)
 
@@ -98,7 +97,10 @@ function saveOpportunity(
     schema: opportunitySchema,
     input: values,
     persist: async (data) => {
-      await assertIntermediaryIsEsn(data.intermediaryId)
+      // Une ESN déjà reliée qui a perdu son type reste acceptée, sinon plus aucune modification ne passerait : seul un nouveau choix est revérifié.
+      const unchanged =
+        storedIntermediaryId !== undefined && data.intermediaryId === (await storedIntermediaryId())
+      if (!unchanged) await assertIntermediaryIsEsn(data.intermediaryId)
       return write(data)
     },
     successLogFields: (_data, opportunity) => ({ id: opportunity.id }),
@@ -137,6 +139,9 @@ export async function updateOpportunity(
     { success: "opportunity:updated", failure: "opportunity:update_failed" },
     formData,
     (data) => prisma.opportunity.update({ where: { id }, data }),
+    async () =>
+      (await prisma.opportunity.findUnique({ where: { id }, select: { intermediaryId: true } }))
+        ?.intermediaryId ?? null,
   )
 }
 

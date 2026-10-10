@@ -26,6 +26,15 @@ function optionalInt(min: number, max: number, message: string) {
     .transform((value) => (value === "" ? null : Number(value)))
 }
 
+export const DAYS_PER_WEEK = ["1", "2", "3", "4", "5"] as const
+export const ON_SITE_DAYS = ["0", "1", "2", "3", "4", "5"] as const
+
+function optionalDays(values: readonly string[], message: string) {
+  return nullableEnumField(values, message).transform((value) =>
+    value === null ? null : Number(value),
+  )
+}
+
 // Minuit UTC : un fuseau à l'ouest de Greenwich décalerait sinon la colonne date au mois précédent.
 const startMonthField = z
   .string()
@@ -50,8 +59,8 @@ export const opportunitySchema = z
     dailyRate: optionalInt(1, POSTGRES_INT_MAX, "Le TJM est un entier positif"),
     contract: nullableEnumField(Object.values(ContractStatus), "Contrat inconnu"),
     workMode: nullableEnumField(Object.values(WorkMode), "Mode de travail inconnu"),
-    daysPerWeek: optionalInt(1, 5, "Entre 1 et 5 jours par semaine"),
-    onSiteDays: optionalInt(0, 5, "Entre 0 et 5 jours sur site"),
+    daysPerWeek: optionalDays(DAYS_PER_WEEK, "Entre 1 et 5 jours par semaine"),
+    onSiteDays: optionalDays(ON_SITE_DAYS, "Entre 0 et 5 jours sur site"),
     zone: nullableEnumField(ZONES, "Localité inconnue"),
     startMonth: startMonthField,
     durationMonths: optionalInt(1, 60, "Une durée de 1 à 60 mois"),

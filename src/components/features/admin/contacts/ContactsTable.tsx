@@ -37,7 +37,8 @@ import {
 import { formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/detail-links"
 import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { LEAD_INTEREST_LABELS, LEAD_STATUS_LABELS } from "@/lib/leads"
+import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/lead-display-status"
+import { LEAD_INTEREST_LABELS } from "@/lib/leads"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
 import { CONTACT_STATUSES, CONTACT_TYPES } from "@/lib/schemas/network-contact"
 import { STANDALONE_LINK_CLASS } from "@/lib/typography"
@@ -182,7 +183,7 @@ const COLUMNS: readonly Column<AdminContact>[] = [...DATA_COLUMNS, actionsColumn
 
 function pipelineMeta(leadRole: NonNullable<AdminContact["leadRole"]>): string {
   return [
-    LEAD_STATUS_LABELS[leadRole.status],
+    LEAD_DISPLAY_STATUS_LABELS[leadRole.status],
     leadRole.interest ? LEAD_INTEREST_LABELS[leadRole.interest] : null,
   ]
     .filter((part): part is string => part !== null)

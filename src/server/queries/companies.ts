@@ -1,13 +1,26 @@
 import "server-only"
 
+import { hasAcceptedOpportunity, joinedEndClientNames } from "@/lib/companies"
 import { firstContactAtOf } from "@/lib/company-first-contact"
+import { leadDisplayStatus, type LeadDisplayStatus } from "@/lib/lead-display-status"
 import { isActiveLead } from "@/lib/lead-views"
 import { prisma } from "@/lib/prisma"
-import type { LeadStatus, Prisma } from "@/generated/prisma/client"
+import type { Prisma } from "@/generated/prisma/client"
+import { opportunitySummarySelect } from "@/server/queries/opportunities"
 
 const legalEntityInclude = { legalEntity: { include: { address: true, publisher: true } } } as const
 
-const adminCompanyInclude = legalEntityInclude
+const adminCompanyInclude = {
+  ...legalEntityInclude,
+  opportunitiesAsIntermediary: { select: opportunitySummarySelect, orderBy: { updatedAt: "desc" } },
+  opportunitiesAsClient: { select: opportunitySummarySelect, orderBy: { updatedAt: "desc" } },
+} as const
+
+const companyCounts = {
+  _count: {
+    select: { clientMetas: true, opportunitiesAsIntermediary: true, opportunitiesAsClient: true },
+  },
+} as const
 
 const companyLeadPersonSelect = {
   id: true,
@@ -17,6 +30,7 @@ const companyLeadPersonSelect = {
   linkedinUrl: true,
   optedOutAt: true,
   lead: { select: { status: true } },
+  referredOpportunities: { select: { status: true } },
 } as const
 
 const companyPersonSelect = {
@@ -30,18 +44,18 @@ const companyPersonSelect = {
 } as const
 
 type AdminCompanyRaw = Prisma.CompanyGetPayload<{
-  include: typeof adminCompanyInclude & {
-    _count: { select: { clientMetas: true } }
-    clientMetas: { select: { project: { select: { type: true } } } }
-    persons: { select: typeof companyPersonSelect }
-  }
+  include: typeof adminCompanyInclude &
+    typeof companyCounts & {
+      clientMetas: { select: { project: { select: { type: true } } } }
+      persons: { select: typeof companyPersonSelect }
+    }
 }>
 
 type AdminCompanyLead = Omit<
   AdminCompanyRaw["persons"][number],
-  "lead" | "optedOutAt" | "prospectingActions"
+  "lead" | "optedOutAt" | "prospectingActions" | "referredOpportunities"
 > & {
-  status: LeadStatus
+  status: LeadDisplayStatus
 }
 
 export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
@@ -49,23 +63,51 @@ export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
   isProspect: boolean
   leads: AdminCompanyLead[]
   firstContactAt: Date | null
+  endClients: string[]
 }
 
-// Seul point de calcul de worked, isProspect et firstContactAt : une règle recalculée ailleurs finirait par diverger de celle-ci.
+// Seul point de calcul de worked, isProspect, endClients et firstContactAt : une règle recalculée ailleurs finirait par diverger de celle-ci.
 function toAdminCompany({ clientMetas, persons, ...company }: AdminCompanyRaw): AdminCompany {
   // Un projet personnel crée aussi un ClientMeta (src/server/actions/projects.ts) : seul un projet CLIENT compte comme travaillée.
-  const worked = clientMetas.some((meta) => meta.project.type === "CLIENT")
+  const worked =
+    clientMetas.some((meta) => meta.project.type === "CLIENT") || hasAcceptedOpportunity(company)
   const isProspect =
     !worked &&
     persons.some(
       (person) =>
         person.lead !== null &&
-        isActiveLead({ status: person.lead.status, optedOutAt: person.optedOutAt }),
+        isActiveLead({
+          status: person.lead.status,
+          opportunities: person.referredOpportunities,
+          optedOutAt: person.optedOutAt,
+        }),
     )
-  const leads = persons.flatMap(({ id, name, jobRole, email, linkedinUrl, lead }) =>
-    lead ? [{ id, name, jobRole, email, linkedinUrl, status: lead.status }] : [],
+  const leads = persons.flatMap(
+    ({ id, name, jobRole, email, linkedinUrl, lead, referredOpportunities }) =>
+      lead
+        ? [
+            {
+              id,
+              name,
+              jobRole,
+              email,
+              linkedinUrl,
+              status: leadDisplayStatus({
+                status: lead.status,
+                opportunities: referredOpportunities,
+              }),
+            },
+          ]
+        : [],
   )
-  return { ...company, worked, isProspect, leads, firstContactAt: firstContactAtOf(persons) }
+  return {
+    ...company,
+    worked,
+    isProspect,
+    leads,
+    firstContactAt: firstContactAtOf(persons),
+    endClients: joinedEndClientNames(company),
+  }
 }
 
 // Sans 'use cache', comme les tags : l'administration doit lire la base juste après ses propres
@@ -74,7 +116,7 @@ export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
   const companies = await prisma.company.findMany({
     include: {
       ...adminCompanyInclude,
-      _count: { select: { clientMetas: true } },
+      ...companyCounts,
       // Chargé seulement pour calculer `worked` dans `toAdminCompany`, jamais renvoyé.
       clientMetas: { select: { project: { select: { type: true } } } },
       // Toutes les personnes : le premier contact compte aussi celles sans lead. isProspect et `leads` filtrent sur lead dans toAdminCompany.
@@ -92,7 +134,7 @@ export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
 export async function findCompanyByIdForAdmin(id: string) {
   return prisma.company.findUnique({
     where: { id },
-    include: legalEntityInclude,
+    include: adminCompanyInclude,
   })
 }
 
@@ -100,7 +142,7 @@ export type AdminCompanyDetail = NonNullable<Awaited<ReturnType<typeof findCompa
 
 export async function findCompanyOptions() {
   return prisma.company.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, types: true },
     orderBy: { name: "asc" },
   })
 }

@@ -5,10 +5,10 @@ import type {
   ContactType,
   JobRole,
   LeadInterest,
-  LeadStatus,
   Prisma,
   Zone,
 } from "@/generated/prisma/client"
+import { type LeadDisplayStatus, leadDisplayStatus } from "@/lib/lead-display-status"
 import { activityEndOf, CONTACT_REVIEW_YEARS } from "@/lib/person-retention"
 import { prisma } from "@/lib/prisma"
 
@@ -21,6 +21,7 @@ const adminContactInclude = {
     include: {
       company: companySelect,
       lead: { select: { status: true, interest: true } },
+      referredOpportunities: { select: { status: true } },
     },
   },
 } as const
@@ -48,7 +49,7 @@ export interface ContactRecord {
 }
 
 export interface AdminContact extends ContactRecord {
-  leadRole: { status: LeadStatus; interest: LeadInterest | null } | null
+  leadRole: { status: LeadDisplayStatus; interest: LeadInterest | null } | null
   lastInteractionAt: Date | null
   reviewAt: Date
 }
@@ -92,9 +93,15 @@ function toAdminContact(
   interaction: InteractionDates | undefined,
 ): AdminContact {
   const lastInteractionAt = latestInteractionOf(interaction)
+  const { lead, referredOpportunities } = row.person
   return {
     ...toContactRecord(row),
-    leadRole: row.person.lead,
+    leadRole: lead
+      ? {
+          status: leadDisplayStatus({ status: lead.status, opportunities: referredOpportunities }),
+          interest: lead.interest,
+        }
+      : null,
     lastInteractionAt,
     // Une personne opposée n'a jamais de rôle Contact : seule la revue métier se lit ici, jamais le délai légal.
     // `lastInteractionAt` tient lieu de « dernière réponse » faute de réponse propre au réseau.

@@ -3,6 +3,7 @@
 
 import type { ActionView } from "@/lib/action-views"
 import type { LeadView } from "@/lib/lead-views"
+import type { OpportunityView } from "@/lib/opportunity-views"
 
 export const ORDER_COLUMN_WIDTH = 52
 
@@ -33,6 +34,7 @@ export const COMPANY_COLUMN_WIDTHS = {
   relationStatus: 150,
   worked: 104,
   firstContactAt: 150,
+  endClients: 220,
   legalEntity: 160,
   websiteUrl: 150,
   notes: 220,
@@ -52,6 +54,7 @@ const ALL_COMPANY_COLUMNS: readonly CompanyColumnKey[] = [
   "relationStatus",
   "worked",
   "firstContactAt",
+  "endClients",
   "legalEntity",
   "websiteUrl",
   "notes",
@@ -64,10 +67,11 @@ export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   readonly CompanyColumnKey[]
 > = {
   toutes: ALL_COMPANY_COLUMNS,
-  travaillees: ["types", "sectors", "zones", "size", "relationStatus", "projects"],
+  travaillees: ["types", "sectors", "zones", "size", "relationStatus", "endClients", "projects"],
   recrutement: ["types", "zones", "relationStatus", "worked", "firstContactAt"],
-  // Une entreprise prospect n'est jamais travaillée : la colonne y serait constante.
-  prospects: ALL_COMPANY_COLUMNS.filter((key) => key !== "worked"),
+  // Une entreprise prospect n'est jamais travaillée : Travaillée y serait constante, et Clients finaux
+  // (lus sur les opportunités acceptées) toujours vide.
+  prospects: ALL_COMPANY_COLUMNS.filter((key) => key !== "worked" && key !== "endClients"),
 }
 
 export function companySkeletonWidths(view: CompanyView): readonly number[] {
@@ -293,3 +297,68 @@ export function actionSkeletonWidths(view: ActionView): readonly number[] {
   ]
   return keys.map((key) => ACTION_COLUMN_WIDTHS[key])
 }
+
+export const OPPORTUNITY_COLUMN_WIDTHS = {
+  title: 220,
+  status: 130,
+  referrer: 180,
+  intermediary: 180,
+  client: 180,
+  dailyRate: 90,
+  contract: 120,
+  workMode: 120,
+  rhythm: 170,
+  zone: 160,
+  startMonth: 130,
+  duration: 100,
+  notes: 220,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type OpportunityColumnKey = keyof typeof OPPORTUNITY_COLUMN_WIDTHS
+
+export const OPPORTUNITY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
+  OpportunityView,
+  readonly OpportunityColumnKey[]
+> = {
+  "en-cours": ["status", "intermediary", "client", "dailyRate", "workMode", "rhythm", "startMonth"],
+  acceptees: [
+    "intermediary",
+    "client",
+    "dailyRate",
+    "contract",
+    "rhythm",
+    "startMonth",
+    "duration",
+  ],
+  toutes: [
+    "status",
+    "referrer",
+    "intermediary",
+    "client",
+    "dailyRate",
+    "contract",
+    "workMode",
+    "rhythm",
+    "zone",
+    "startMonth",
+    "duration",
+    "notes",
+  ],
+}
+
+export function opportunitySkeletonWidths(view: OpportunityView): readonly number[] {
+  const keys: readonly OpportunityColumnKey[] = [
+    "title",
+    ...OPPORTUNITY_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => OPPORTUNITY_COLUMN_WIDTHS[key])
+}
+
+export const OPPORTUNITY_PAGE_SKELETON: string[] = [
+  "h-[24px]",
+  "h-[200px]",
+  "h-[220px]",
+  "h-[320px]",
+]

@@ -4,9 +4,11 @@ import type {
   CompanySector,
   CompanySize,
   CompanyType,
+  OpportunityStatus,
   RelationStatus,
 } from "@/generated/prisma/client"
 import type { IconComponent } from "@/lib/icons"
+import { OPPORTUNITY_FIELD_LABELS } from "@/lib/opportunities"
 
 export const COMPANY_SECTOR_LABELS: Record<CompanySector, string> = {
   ASSURANCE: "Assurance",
@@ -76,6 +78,7 @@ export const COMPANY_SECTION_TITLES = {
   notes: "Notes",
   legalEntity: "Entité légale",
   leads: "Leads",
+  opportunities: "Opportunités",
 } as const
 
 export const COMPANY_FIELD_LABELS = {
@@ -89,7 +92,68 @@ export const COMPANY_FIELD_LABELS = {
   relationStatus: "Statut de la relation",
   worked: "Travaillée",
   firstContactAt: "Premier contact",
+  endClients: "Clients finaux",
   zones: "Zones",
   notes: "Notes",
   details: "Détails",
 } as const
+
+// Rien n'est écrit : le client final se lit sur les opportunités gagnées, jamais saisi sur l'ESN.
+export function joinedEndClientNames(company: {
+  opportunitiesAsIntermediary: readonly {
+    status: OpportunityStatus
+    client: { id: string; name: string } | null
+  }[]
+}): string[] {
+  const names = new Map<string, string>()
+  for (const opportunity of company.opportunitiesAsIntermediary) {
+    if (opportunity.status === "ACCEPTEE" && opportunity.client) {
+      names.set(opportunity.client.id, opportunity.client.name)
+    }
+  }
+  return [...names.values()].sort((a, b) => a.localeCompare(b, "fr"))
+}
+
+export function hasAcceptedOpportunity(company: {
+  opportunitiesAsIntermediary: readonly { status: OpportunityStatus }[]
+  opportunitiesAsClient: readonly { status: OpportunityStatus }[]
+}): boolean {
+  return (
+    company.opportunitiesAsIntermediary.some((opportunity) => opportunity.status === "ACCEPTEE") ||
+    company.opportunitiesAsClient.some((opportunity) => opportunity.status === "ACCEPTEE")
+  )
+}
+
+export function isEsn(company: { types: readonly CompanyType[] }): boolean {
+  return company.types.includes("ESN_RECRUTEMENT")
+}
+
+// Une entreprise peut être l'ESN d'une opportunité et le client final d'une autre : chaque ligne dit son rôle.
+export function companyOpportunities<T>(company: {
+  opportunitiesAsIntermediary: readonly T[]
+  opportunitiesAsClient: readonly T[]
+}): { opportunity: T; role: string }[] {
+  return [
+    ...company.opportunitiesAsIntermediary.map((opportunity) => ({
+      opportunity,
+      role: OPPORTUNITY_FIELD_LABELS.intermediaryId,
+    })),
+    ...company.opportunitiesAsClient.map((opportunity) => ({
+      opportunity,
+      role: OPPORTUNITY_FIELD_LABELS.clientId,
+    })),
+  ]
+}
+
+function counted(count: number, singular: string, plural: string): string | null {
+  return count === 0 ? null : `${count} ${count > 1 ? plural : singular}`
+}
+
+export function companyLinksLabel(projects: number, opportunities: number): string {
+  return [
+    counted(projects, "projet", "projets"),
+    counted(opportunities, "opportunité", "opportunités"),
+  ]
+    .filter((part): part is string => part !== null)
+    .join(" et ")
+}

@@ -100,4 +100,5 @@ export const LEAD_SECTION_TITLES = {
   pipeline: "Pipeline",
   network: "Réseau",
   actions: "Actions",
+  opportunities: "Opportunités apportées",
 } as const

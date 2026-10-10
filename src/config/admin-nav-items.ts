@@ -10,6 +10,7 @@ import {
   Columns3,
   Folder,
   FolderKanban,
+  Handshake,
   House,
   ImageIcon,
   Landmark,
@@ -24,7 +25,7 @@ import {
   Wallet,
 } from "lucide-react"
 
-import { ADMIN_CONTACTS_PATH } from "@/lib/admin-routes"
+import { ADMIN_CONTACTS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
 import { LinkedinIcon } from "@/lib/icons"
 
 // LinkedinIcon (src/lib/icons.tsx) n'est pas un LucideIcon (Simple Icons a retiré ce logo) : type
@@ -115,6 +116,16 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
         ],
       },
       { label: "Revues hebdo", icon: CalendarClock },
+      {
+        label: "Opportunités",
+        icon: Handshake,
+        href: ADMIN_OPPORTUNITIES_PATH,
+        subItems: [
+          { label: "En cours", href: "/admin/opportunites/en-cours" },
+          { label: "Acceptées", href: "/admin/opportunites/acceptees" },
+          { label: "Toutes", href: ADMIN_OPPORTUNITIES_PATH },
+        ],
+      },
       { label: "Entretiens", icon: MessageCircle },
       { label: "Contacts", icon: User, href: ADMIN_CONTACTS_PATH },
     ],

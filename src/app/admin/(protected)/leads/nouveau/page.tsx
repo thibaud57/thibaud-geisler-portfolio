@@ -2,10 +2,12 @@ import { Suspense } from "react"
 
 import { LeadActionsCard } from "@/components/features/admin/leads/LeadActionsCard"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
+import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { LEAD_PAGE_SKELETON } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { LEAD_SECTION_TITLES } from "@/lib/leads"
 import { findCompanyOptions } from "@/server/queries/companies"
 
 async function NewLeadSection() {
@@ -22,6 +24,11 @@ async function NewLeadSection() {
         relatedCards={
           <>
             <LeadActionsCard lead={null} actions={[]} />
+            <RelatedLinksCard
+              title={LEAD_SECTION_TITLES.opportunities}
+              links={[]}
+              emptyText="Après l'enregistrement du lead."
+            />
           </>
         }
       />

@@ -12,11 +12,16 @@ import type {
   Zone,
 } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
 
 const adminLeadInclude = {
   person: {
     include: {
       company: { select: { id: true, name: true, logoFilename: true } },
+      referredOpportunities: {
+        select: opportunitySummarySelect,
+        orderBy: { updatedAt: "desc" },
+      },
       contact: { select: { types: true, status: true } },
       prospectingActions: {
         where: { respondedAt: { not: null } },
@@ -55,6 +60,7 @@ export interface AdminLead {
   createdAt: Date
   actionsCount: number
   contactRole: { types: ContactType[]; status: ContactStatus } | null
+  opportunities: OpportunitySummary[]
 }
 
 // La personne aplatie sur son rôle Lead : liste et formulaire lisent une seule forme, jamais une relation imbriquée.
@@ -82,6 +88,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     createdAt: row.createdAt,
     actionsCount: row.person._count.prospectingActions,
     contactRole: row.person.contact,
+    opportunities: row.person.referredOpportunities,
   }
 }
 

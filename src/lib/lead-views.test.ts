@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import type { LeadInterest, LeadStatus } from "@/generated/prisma/client"
+import type { LeadInterest, LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
 
-import { LEAD_VIEWS, leadsForView } from "./lead-views"
+import { isActiveLead, LEAD_VIEWS, leadsForView } from "./lead-views"
 
 const STATUSES: readonly LeadStatus[] = [
   "NOUVEAU",
@@ -22,6 +22,7 @@ interface TestLead {
   name: string | null
   email: string | null
   linkedinUrl: string | null
+  opportunities: { status: OpportunityStatus }[]
 }
 
 function lead(overrides: Partial<TestLead> = {}): TestLead {
@@ -34,6 +35,7 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
     name: "Claire Morel",
     email: null,
     linkedinUrl: null,
+    opportunities: [],
     ...overrides,
   }
 }
@@ -41,6 +43,18 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
 function idsOf(leads: readonly TestLead[]): string[] {
   return leads.map((row) => row.id)
 }
+
+describe("isActiveLead", () => {
+  it("treats a lead with an accepted opportunity as not active", () => {
+    const deal = lead({ status: "DISCUSSION", opportunities: [{ status: "ACCEPTEE" }] })
+    const optedOut = lead({ optedOutAt: new Date("2026-03-12T09:00:00Z") })
+    const fresh = lead({ status: "NOUVEAU" })
+
+    const results = [deal, optedOut, fresh].map(isActiveLead)
+
+    expect(results).toEqual([false, false, true])
+  })
+})
 
 describe("leadsForView", () => {
   it("keeps only new, suspect and discussion leads in the in-progress view", () => {
@@ -51,17 +65,38 @@ describe("leadsForView", () => {
     expect(idsOf(rows).sort()).toEqual(["DISCUSSION", "NOUVEAU", "SUSPECT"])
   })
 
-  it("keeps hot leads outside lost and out-of-profile in the hot view", () => {
+  it("keeps hot leads outside deal, lost and out-of-profile in the hot view", () => {
     const leads = [
       ...(["PERDU", "HORS_ICP", "DISCUSSION"] as const).map((status) =>
         lead({ id: `hot-${status}`, status, interest: "HOT" }),
       ),
+      lead({
+        id: "hot-deal",
+        status: "DISCUSSION",
+        interest: "HOT",
+        opportunities: [{ status: "ACCEPTEE" }],
+      }),
       lead({ id: "warm-DISCUSSION", status: "DISCUSSION", interest: "WARM" }),
     ]
 
     const rows = leadsForView(leads, "chauds")
 
     expect(idsOf(rows)).toEqual(["hot-DISCUSSION"])
+  })
+
+  it("keeps a lead with an accepted opportunity out of the ongoing and hot views", () => {
+    const deal = lead({
+      id: "deal",
+      status: "DISCUSSION",
+      interest: "HOT",
+      opportunities: [{ status: "ACCEPTEE" }],
+    })
+
+    const ongoing = leadsForView([deal], "en-cours")
+    const hot = leadsForView([deal], "chauds")
+
+    expect(ongoing).toEqual([])
+    expect(hot).toEqual([])
   })
 
   it("keeps stand-by leads in the stand-by view only", () => {

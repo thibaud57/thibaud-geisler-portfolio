@@ -1,12 +1,16 @@
-import type { LeadInterest, LeadStatus } from "@/generated/prisma/client"
+import type { LeadInterest } from "@/generated/prisma/client"
+import {
+  leadDisplayStatus,
+  type LeadDisplayStatus,
+  type LeadStatusSource,
+} from "@/lib/lead-display-status"
 import { personDisplayName } from "@/lib/persons"
 
 export const LEAD_VIEWS = ["en-cours", "chauds", "a-qualifier", "stand-by", "tous"] as const
 
 export type LeadView = (typeof LEAD_VIEWS)[number]
 
-interface LeadViewRow {
-  status: LeadStatus
+interface LeadViewRow extends LeadStatusSource {
   interest: LeadInterest | null
   optedOutAt: Date | null
   metAt: Date | null
@@ -15,20 +19,22 @@ interface LeadViewRow {
   linkedinUrl: string | null
 }
 
-const IN_PROGRESS: ReadonlySet<LeadStatus> = new Set(["NOUVEAU", "SUSPECT", "DISCUSSION"])
+const IN_PROGRESS: ReadonlySet<LeadDisplayStatus> = new Set(["NOUVEAU", "SUSPECT", "DISCUSSION"])
 
-// Une fiche en opposition n'est jamais active, quel que soit le statut stocké : la règle est partagée par tout écran qui distingue les leads actifs.
-export function isActiveLead(lead: Pick<LeadViewRow, "status" | "optedOutAt">): boolean {
-  return !lead.optedOutAt && IN_PROGRESS.has(lead.status)
+// Une fiche en opposition n'est jamais active, quel que soit le statut saisi, et un lead Deal sort du pipeline : la règle est partagée par tout écran qui distingue les leads actifs.
+export function isActiveLead(
+  lead: Pick<LeadViewRow, "status" | "opportunities" | "optedOutAt">,
+): boolean {
+  return !lead.optedOutAt && IN_PROGRESS.has(leadDisplayStatus(lead))
 }
 
-const CLOSED: ReadonlySet<LeadStatus> = new Set(["PERDU", "HORS_ICP"])
+const CLOSED: ReadonlySet<LeadDisplayStatus> = new Set(["DEAL", "PERDU", "HORS_ICP"])
 
 const VIEW_FILTERS: Record<Exclude<LeadView, "tous">, (lead: LeadViewRow) => boolean> = {
-  "en-cours": (lead) => IN_PROGRESS.has(lead.status),
-  chauds: (lead) => lead.interest === "HOT" && !CLOSED.has(lead.status),
-  "a-qualifier": (lead) => lead.status === "NOUVEAU",
-  "stand-by": (lead) => lead.status === "STAND_BY",
+  "en-cours": (lead) => IN_PROGRESS.has(leadDisplayStatus(lead)),
+  chauds: (lead) => lead.interest === "HOT" && !CLOSED.has(leadDisplayStatus(lead)),
+  "a-qualifier": (lead) => leadDisplayStatus(lead) === "NOUVEAU",
+  "stand-by": (lead) => leadDisplayStatus(lead) === "STAND_BY",
 }
 
 // Date absente en dernier dans les deux sens : un lead jamais rencontré n'est ni le plus récent ni le plus ancien.

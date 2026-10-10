@@ -58,3 +58,46 @@ export function formatStartMonth(date: Date | null): string | null {
 export function toMonthValue(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
 }
+
+export const OPPORTUNITY_SECTION_TITLES = {
+  opportunity: "Opportunité",
+  conditions: "Conditions",
+  calendar: "Calendrier",
+  relations: "Relations",
+  notes: "Notes",
+  details: "Détails",
+} as const
+
+export function formatDailyRate(rate: number | null): string | null {
+  return rate === null ? null : `${rate} €`
+}
+
+export function formatDuration(months: number | null): string | null {
+  return months === null ? null : `${months} mois`
+}
+
+export function formatDays(days: number): string
+export function formatDays(days: number | null): string | null
+export function formatDays(days: number | null): string | null {
+  return days === null ? null : `${days} j`
+}
+
+export function formatRhythm(daysPerWeek: number | null, onSiteDays: number | null): string | null {
+  const days = formatDays(daysPerWeek)
+  if (days === null) return onSiteDays === null ? null : `${onSiteDays} j sur site`
+  return onSiteDays === null ? days : `${days} dont ${onSiteDays} sur site`
+}
+
+export function toOpportunityLink(
+  opportunity: { id: string; title: string; status: OpportunityStatus; dailyRate: number | null },
+  { href, metaSuffix, idPrefix }: { href: string; metaSuffix?: string | null; idPrefix?: string },
+) {
+  const status = OPPORTUNITY_STATUS_LABELS[opportunity.status]
+  return {
+    id: idPrefix ? `${idPrefix}-${opportunity.id}` : opportunity.id,
+    href,
+    label: opportunity.title,
+    meta: metaSuffix ? `${status} · ${metaSuffix}` : status,
+    trailing: formatDailyRate(opportunity.dailyRate) ?? undefined,
+  }
+}

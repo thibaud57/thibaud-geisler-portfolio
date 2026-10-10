@@ -68,3 +68,11 @@ export const CONTACT_DETAILS_TEMPLATE = `# 💼 Profil
 
 # 📝 Notes libres
 `
+
+// Secteur et taille vivent sur l'entreprise, TJM/lieu/rythme sur l'opportunité : il ne reste ici que le texte.
+export const OPPORTUNITY_DETAILS_TEMPLATE = `# 🎯 Contexte
+
+# 👤 Profil recherché
+
+# 🛠️ Contenu technique
+`

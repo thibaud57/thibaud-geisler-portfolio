@@ -224,7 +224,7 @@ function invalidateCompanyCaches(): void {
   updateTag("projects")
   updateTag("legal-entity")
   revalidatePath("/admin/entreprises")
-  // Les listes de leads et de contacts affichent le nom et le logo de l'entreprise.
+  // Les listes de leads, de contacts et d'opportunités affichent le nom et le logo de l'entreprise.
   revalidatePersonLists()
 }
 

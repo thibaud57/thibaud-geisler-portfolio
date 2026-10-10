@@ -43,6 +43,8 @@ import {
   COMPANY_STATUS_ICONS,
   COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
+  companyOpportunities,
+  isEsn,
   RELATION_STATUS_LABELS,
 } from "@/lib/companies"
 import {
@@ -52,10 +54,11 @@ import {
   LEGAL_FORM_LABELS,
   sirenFromSiret,
 } from "@/lib/legal-entities"
-import { ADMIN_LEADS_PATH } from "@/lib/admin-routes"
+import { ADMIN_LEADS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
 import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { LEAD_STATUS_LABELS } from "@/lib/leads"
+import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/lead-display-status"
 import { formatSiret } from "@/lib/legal/format-siret"
+import { toOpportunityLink } from "@/lib/opportunities"
 import { personDisplayName } from "@/lib/persons"
 import { formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/detail-links"
@@ -68,7 +71,7 @@ export type { CompanyView }
 const VIEW_FILTER: Record<CompanyView, (company: AdminCompany) => boolean> = {
   toutes: () => true,
   travaillees: (company) => company.worked,
-  recrutement: (company) => company.types.includes("ESN_RECRUTEMENT"),
+  recrutement: isEsn,
   prospects: (company) => company.isProspect,
 }
 
@@ -183,6 +186,13 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       ...hideableColumn(visibleByDefault, "firstContactAt"),
       sortValue: (company) => company.firstContactAt?.getTime() ?? 0,
       cell: (company) => formatShortInstantDate(company.firstContactAt),
+    },
+    {
+      key: "endClients",
+      header: COMPANY_FIELD_LABELS.endClients,
+      width: COMPANY_COLUMN_WIDTHS.endClients,
+      ...hideableColumn(visibleByDefault, "endClients"),
+      cell: (company) => <BadgeList labels={company.endClients} noun="clients" />,
     },
     {
       key: "legalEntity",
@@ -313,11 +323,38 @@ function leadsSection(company: AdminCompany): DetailSection[] {
                   // Poste puis statut : la ligne dit où en est le lead sans l'ouvrir.
                   meta: [
                     lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null,
-                    LEAD_STATUS_LABELS[lead.status],
+                    LEAD_DISPLAY_STATUS_LABELS[lead.status],
                   ]
                     .filter(Boolean)
                     .join(" · "),
                 }))}
+              />
+            ),
+        },
+      ],
+    },
+  ]
+}
+
+function opportunitiesSection(company: AdminCompany): DetailSection[] {
+  const opportunities = companyOpportunities(company)
+
+  return [
+    {
+      title: COMPANY_SECTION_TITLES.opportunities,
+      rows: [
+        {
+          fullWidth: true,
+          value:
+            opportunities.length === 0 ? null : (
+              <RelatedLinksList
+                links={opportunities.map(({ opportunity, role }) =>
+                  toOpportunityLink(opportunity, {
+                    href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
+                    metaSuffix: role,
+                    idPrefix: role,
+                  }),
+                )}
               />
             ),
         },
@@ -403,6 +440,14 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
             value: formatShortInstantDate(company.firstContactAt),
             fullWidth: true,
           },
+          {
+            label: COMPANY_FIELD_LABELS.endClients,
+            value:
+              company.endClients.length > 0 ? (
+                <BadgeList labels={company.endClients} noun="clients" max={Infinity} />
+              ) : null,
+            fullWidth: true,
+          },
         ],
       },
       {
@@ -414,6 +459,7 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
       },
       ...legalEntitySections(company),
       ...leadsSection(company),
+      ...opportunitiesSection(company),
     ],
     onEdit,
   }

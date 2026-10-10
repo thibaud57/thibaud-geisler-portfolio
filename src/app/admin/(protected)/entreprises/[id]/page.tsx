@@ -7,9 +7,11 @@ import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import type { RelatedLink } from "@/components/features/admin/RelatedLinksList"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
-import { COMPANY_SECTION_TITLES } from "@/lib/companies"
+import { COMPANY_SECTION_TITLES, companyOpportunities } from "@/lib/companies"
 import { JOB_ROLE_LABELS } from "@/lib/job-roles"
+import { toOpportunityLink } from "@/lib/opportunities"
 import { personDisplayName } from "@/lib/persons"
 import { findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
@@ -32,16 +34,29 @@ async function EditCompanySection({ id }: { id: string }) {
         company={company}
         logoAssets={logoAssets}
         relatedCards={
-          <RelatedLinksCard
-            title={COMPANY_SECTION_TITLES.leads}
-            links={leads.map((lead): RelatedLink => ({
-              id: lead.personId,
-              href: `/admin/leads/${lead.personId}`,
-              label: personDisplayName(lead.person),
-              ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
-            }))}
-            emptyText="Aucun lead dans cette entreprise."
-          />
+          <>
+            <RelatedLinksCard
+              title={COMPANY_SECTION_TITLES.leads}
+              links={leads.map((lead): RelatedLink => ({
+                id: lead.personId,
+                href: `/admin/leads/${lead.personId}`,
+                label: personDisplayName(lead.person),
+                ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
+              }))}
+              emptyText="Aucun lead dans cette entreprise."
+            />
+            <RelatedLinksCard
+              title={COMPANY_SECTION_TITLES.opportunities}
+              links={companyOpportunities(company).map(({ opportunity, role }) =>
+                toOpportunityLink(opportunity, {
+                  href: `${ADMIN_OPPORTUNITIES_PATH}/${opportunity.id}`,
+                  metaSuffix: role,
+                  idPrefix: role,
+                }),
+              )}
+              emptyText="Aucune opportunité pour cette entreprise."
+            />
+          </>
         }
       />
     </div>

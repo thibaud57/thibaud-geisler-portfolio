@@ -7,7 +7,7 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    opportunity: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    opportunity: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
     company: { findUnique: vi.fn() },
   },
 }))
@@ -63,6 +63,7 @@ beforeEach(() => {
   vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["ESN_RECRUTEMENT"] } as never)
   vi.mocked(prisma.opportunity.create).mockResolvedValue({ id: "o1" } as never)
   vi.mocked(prisma.opportunity.update).mockResolvedValue({ id: "o1" } as never)
+  vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: null } as never)
 })
 
 afterEach(() => {
@@ -121,6 +122,17 @@ describe("createOpportunity", () => {
           onSiteDays: 2,
         }),
       }),
+    )
+  })
+
+  it("accepts an unspecified rhythm and on-site days", async () => {
+    await createOpportunity(
+      initialOpportunityFormState,
+      buildFormData({ daysPerWeek: NONE_VALUE, onSiteDays: NONE_VALUE }),
+    )
+
+    expect(prisma.opportunity.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ daysPerWeek: null, onSiteDays: null }) }),
     )
   })
 
@@ -218,5 +230,19 @@ describe("updateOpportunity", () => {
       "L'ESN doit être une entreprise de type ESN / Recrutement",
     ])
     expect(prisma.opportunity.update).not.toHaveBeenCalled()
+  })
+
+  it("keeps an intermediary that lost its ESN type when it is unchanged", async () => {
+    vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: "c1" } as never)
+    vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["CLIENT_FINAL"] } as never)
+
+    const state = await updateOpportunity(
+      "o1",
+      initialOpportunityFormState,
+      buildFormData({ intermediaryId: "c1", status: "ACCEPTEE" }),
+    )
+
+    expect(state.ok).toBe(true)
+    expect(prisma.opportunity.update).toHaveBeenCalled()
   })
 })

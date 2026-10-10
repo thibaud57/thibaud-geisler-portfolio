@@ -15,11 +15,21 @@ interface Props {
   value: string
   onChange: (companyId: string) => void
   errors?: string[]
+  label?: string
+  name?: string
 }
 
-export function CompanyCombobox({ id, options, value, onChange, errors }: Props) {
+export function CompanyCombobox({
+  id,
+  options,
+  value,
+  onChange,
+  errors,
+  label = PERSON_FIELD_LABELS.companyId,
+  name = "companyId",
+}: Props) {
   const [open, setOpen] = useState(false)
-  const selected = options.find((company) => company.id === value) ?? null
+  const selectedName = options.find((company) => company.id === value)?.name
 
   function select(companyId: string) {
     onChange(companyId)
@@ -27,14 +37,14 @@ export function CompanyCombobox({ id, options, value, onChange, errors }: Props)
   }
 
   return (
-    <FormField id={id} label={PERSON_FIELD_LABELS.companyId} errors={errors}>
+    <FormField id={id} label={label} errors={errors}>
       <ComboboxPopover
         id={id}
         open={open}
         onOpenChange={setOpen}
         triggerContent={
-          selected ? (
-            <span className="truncate">{selected.name}</span>
+          selectedName ? (
+            <span className="truncate">{selectedName}</span>
           ) : (
             <span className="text-muted-foreground">Aucune</span>
           )
@@ -70,7 +80,7 @@ export function CompanyCombobox({ id, options, value, onChange, errors }: Props)
           ))}
         </CommandGroup>
       </ComboboxPopover>
-      <input type="hidden" name="companyId" value={value} />
+      <input type="hidden" name={name} value={value} />
     </FormField>
   )
 }
