@@ -27,7 +27,7 @@ paths:
   - Vérifier : `node -e "console.log('<nom-minuscules>' in require('next/dist/server/capsize-font-metrics.json'))"`
   - Si absente → `next/font/local`, qui mesure le fichier réel avec `fontkit`
   - Contrôler : le CSS de build porte `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`
-- **`preload: false` casse la police** (Next 16.3.3 + Turbopack) : le fichier devient `-s.<hash>` mais le hint du payload RSC garde `-s.p.<hash>`, d'où un **500** à chaque rendu (vu sur `Geist_Mono`, 2026-09-05)
+- **`preload: false` casse la police** (Next 16.3.3 + Turbopack) : le fichier devient `-s.<hash>` mais le hint du payload RSC garde `-s.p.<hash>`, d'où un **500** à chaque rendu (vu sur `Geist_Mono`, 2026-09-05, non revérifié sur Next 16.4)
 - **`ImageResponse` ne lit pas le woff2** : satori lève `Unsupported OpenType signature wOF2`, l'image OG part en **502**. Garder un `.ttf` pour les OG à côté du `.woff2` du navigateur (garde-fou : `og-fonts.integration.test.tsx`)
 
 ## Exemples

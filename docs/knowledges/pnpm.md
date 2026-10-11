@@ -1,8 +1,8 @@
 ---
 title: "pnpm — Package Manager"
-version: "11.28.2"
-description: "Référence technique pour pnpm 11 : installation, builds autorisés, délai de publication, scripts et CI."
-date: "2026-10-09"
+version: "12.11.2"
+description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
+date: "2026-10-11"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs", "supply-chain"]
 scope: ["docs"]
 technologies: ["Node.js", "TypeScript", "Next.js"]
@@ -10,7 +10,7 @@ technologies: ["Node.js", "TypeScript", "Next.js"]
 
 # Description
 
-`pnpm` est le package manager utilisé dans le portfolio. Contrairement à npm/yarn, pnpm utilise un store content-addressable partagé et des symlinks, ce qui réduit drastiquement l'espace disque et le temps d'installation. Depuis la v10, les lifecycle scripts sont désactivés par défaut ; la v11 (avril 2026) durcit encore la chaîne d'approvisionnement : une dépendance à scripts de build non déclarée fait échouer l'install, et une version publiée depuis moins d'un jour est refusée par défaut. Le projet est passé de 10.33.0 à 11.28.2 le 9 octobre 2026.
+`pnpm` est le package manager utilisé dans le portfolio. Contrairement à npm/yarn, pnpm utilise un store content-addressable partagé et des symlinks, ce qui réduit drastiquement l'espace disque et le temps d'installation. Depuis la v10, les lifecycle scripts sont désactivés par défaut ; la v11 (avril 2026) durcit encore la chaîne d'approvisionnement : une dépendance à scripts de build non déclarée fait échouer l'install, et une version publiée depuis moins d'un jour est refusée par défaut. Le projet est passé de 10.33.0 à 11.28.2 le 9 octobre 2026, puis à 12.11.2 le 11 octobre 2026 (la v12 garde les commandes, réglages et format de lockfile de la v11).
 
 ---
 
@@ -157,8 +157,11 @@ pnpm install --frozen-lockfile
 - `--frozen-lockfile` est automatique en CI (variable `CI=true`)
 - Protège contre les modifications involontaires du lockfile en pipeline
 - Commit systématiquement `pnpm-lock.yaml`
-- Pour régénérer le lockfile : `pnpm install --no-frozen-lockfile` (la forme `--frozen-lockfile false` disparaît en pnpm 12)
-- Le lockfile reste en `lockfileVersion: '9.0'` de pnpm 9 à 12 : le passage en pnpm 11 n'a demandé aucune régénération
+- Pour régénérer le lockfile : `pnpm install --no-frozen-lockfile` (la forme `--frozen-lockfile false` n'existe plus en pnpm 12, [notes 12.0](https://pnpm.io/blog/releases/12.0))
+- pnpm 12 : `pnpm-lock.yaml` porte un second document YAML `packageManagerDependencies` (la résolution de pnpm lui-même, ~158 lignes). `pnpm install --frozen-lockfile` échoue avec `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE` s'il manque (constaté le 2026-10-11 sur 12.11.2). `corepack use pnpm@<version>` le produit
+- pnpm 12 : les cycles de dépendances sont cassés dans un ordre canonique. Les lockfiles existants restent valides, le premier install qui re-résout peut réécrire des variantes de peers (un diff unique, [notes 12.0](https://pnpm.io/blog/releases/12.0))
+- pnpm 12 : une clé inconnue de `pnpm-workspace.yaml` fait échouer la commande (`ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`) quand `packageManager` épingle la version qui tourne, sinon elle donne un warning ([notes 12.0](https://pnpm.io/blog/releases/12.0))
+- Le lockfile reste en `lockfileVersion: '9.0'` de pnpm 9 à 12 : le passage en pnpm 11 n'a demandé aucune régénération, celui en pnpm 12 a ajouté le document `packageManagerDependencies`
 
 ---
 
@@ -177,11 +180,11 @@ Méthode recommandée pour installer/activer pnpm : via `corepack`, distribué a
 corepack enable pnpm
 
 # Épingler la version pnpm dans le package.json du projet courant
-corepack use pnpm@11.28.2
-# → "packageManager": "pnpm@11.28.2+sha512.<hash>" dans package.json
+corepack use pnpm@12.11.2
+# → "packageManager": "pnpm@12.11.2+sha512.<hash>" dans package.json, et document packageManagerDependencies dans pnpm-lock.yaml
 
 # Activer une version globalement (optionnel)
-corepack prepare pnpm@11.28.2 --activate
+corepack prepare pnpm@12.11.2 --activate
 ```
 
 ### Points Importants
@@ -189,7 +192,9 @@ corepack prepare pnpm@11.28.2 --activate
 - Pas besoin d'installer pnpm globalement (`npm install -g pnpm`) : `corepack enable` suffit
 - `corepack use` épingle la version au projet, garantit la reproductibilité entre développeurs, Dockerfile et CI
 - Le champ `packageManager` de `package.json` est lu par pnpm, `pnpm/action-setup` et corepack. pnpm 11 remplace `managePackageManagerVersions` et `packageManagerStrict*` par `pmOnFail`
-- pnpm 12 (binaire natif en Rust) est écarté tant que Dependabot ne le supporte pas, et des échecs Corepack + pnpm 12 ont été rapportés avec d'anciens Corepack (`docs/VERSIONS.md` § Montées Bloquées)
+- `engines.pnpm` suit la majeure épinglée (`>=12.0.0`). Les métadonnées npm de pnpm 12.11.2 déclarent `engines.node >=18` (relevé le 2026-10-11)
+- Corepack de `node:24-alpine` : `docker build --target deploy-prisma` passe avec pnpm 12.11.2, `pnpm deploy --legacy --prod` compris (2026-10-11)
+- Dependabot : pas de support pnpm 12 publié. `dependabot-core` v0.399.0 (2026-10-05) est la dernière release ; les PR [#16513](https://github.com/dependabot/dependabot-core/pull/16513) et [#16517](https://github.com/dependabot/dependabot-core/pull/16517) sont fusionnées le 2026-10-09, la [#16521](https://github.com/dependabot/dependabot-core/pull/16521) est ouverte. Ses PR npm peuvent échouer d'ici là
 
 ---
 
@@ -280,6 +285,7 @@ pnpm peers check                      # liste les peers non satisfaites (pnpm 11
 - [pnpm : Site](https://pnpm.io)
 - [CLI Reference](https://pnpm.io/pnpm-cli)
 - [Migration v10 → v11](https://pnpm.io/migration)
+- [pnpm 12.0 release](https://pnpm.io/blog/releases/12.0)
 - [Settings : dependency resolution (`minimumReleaseAge`)](https://pnpm.io/settings/dependency-resolution)
 - [Continuous Integration](https://pnpm.io/continuous-integration)
 
