@@ -5,7 +5,7 @@
 
 ### Bug Fixes
 
-* sort Zod du bundle public, borne la longueur des clés d'asset et retire npm de l'image ([#146](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/146)) ([b87ecab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b87ecab85ad16296cafae8b09dcb257cd3aeed62))
+* sort Zod du bundle public, borne la longueur des clés d'asset et retire npm de l'image ([#146](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/146)) ([f3d6c3a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f3d6c3a8a3c6beef610f5bfbb6879e1a8cc3a9d3))
 
 ## [2.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.6...v2.0.0) (2026-09-25)
 
@@ -16,278 +16,278 @@
 
 ### Features
 
-* **espace-admin:** back-office single-user, authentification Google et base multi-schéma ([#143](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/143)) ([b2e9919](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b2e9919c2adb5345d73dbfc2835b999c13aeb304))
+* **espace-admin:** back-office single-user, authentification Google et base multi-schéma ([#143](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/143)) ([be7b2e8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/be7b2e809720cd1711afe43895ba6f6bd9cebe76))
 
 ## [1.6.6](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.5...v1.6.6) (2026-09-08)
 
 
 ### Bug Fixes
 
-* **build:** repare le build Docker casse par deux regressions du lot d'alignement ([#139](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/139)) ([e2e2264](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e2e2264b8f03073e6fbdf372ed768b0a46903fd8))
+* **build:** repare le build Docker casse par deux regressions du lot d'alignement ([#139](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/139)) ([3238bbd](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3238bbd3ffed24122253ec6a22eab72e16997b94))
 
 ## [1.6.5](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.4...v1.6.5) (2026-09-08)
 
 
 ### Bug Fixes
 
-* linter tout le dépôt et aligne DESIGN.md, les plans et les specs sur radix-nova ([#137](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/137)) ([66ecc5f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/66ecc5fe1b211820ecb2795a165b881155dee00f))
+* linter tout le dépôt et aligne DESIGN.md, les plans et les specs sur radix-nova ([#137](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/137)) ([ee09441](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ee094410d00ae22445cf7a3a3bbe3c441b413e85))
 
 ## [1.6.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.3...v1.6.4) (2026-09-05)
 
 
 ### Bug Fixes
 
-* nettoyage motion et will-change, Brotli en production et diagnostic LCP ([#132](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/132)) ([61c0e96](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/61c0e9696e6d482ba8ecfcd924cab9ec80cee565))
+* nettoyage motion et will-change, Brotli en production et diagnostic LCP ([#132](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/132)) ([1761ffd](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/1761ffdefe0170c2a4bc6fce085ac3029d2e331e))
 
 ## [1.6.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.2...v1.6.3) (2026-09-05)
 
 
 ### Bug Fixes
 
-* LCP mobile, accessibilité des titres et resserrement des tokens sémantiques ([#129](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/129)) ([a1f3401](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a1f3401973b385bedd02fa723c55b7c08e283ef5))
+* LCP mobile, accessibilité des titres et resserrement des tokens sémantiques ([#129](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/129)) ([efe7a41](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/efe7a41033484761f572c994b67279bbf238cb6a))
 
 ## [1.6.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.1...v1.6.2) (2026-09-04)
 
 
 ### Bug Fixes
 
-* prérendu SEO des pages projet et allègement du JS d'animation ([#126](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/126)) ([5dddd1c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5dddd1ceac6d58f379126e896e1582adfbc38346))
+* prérendu SEO des pages projet et allègement du JS d'animation ([#126](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/126)) ([8e40517](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/8e40517354614e32bbd21e3ed6942fe421965267))
 
 ## [1.6.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.6.0...v1.6.1) (2026-09-04)
 
 
 ### Bug Fixes
 
-* CLS des pages publiques, validation des URL externes et cohérence documentaire ([#122](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/122)) ([52d1571](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/52d1571c4d0ef9693ad52923aae2412141d41a43))
+* CLS des pages publiques, validation des URL externes et cohérence documentaire ([#122](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/122)) ([5cc4540](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5cc4540a62a91e108a58fc1fcfd43b37bda4f2f1))
 
 ## [1.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.1...v1.6.0) (2026-09-04)
 
 
 ### Features
 
-* audit complet app ([#119](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/119)) ([641b4cc](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/641b4cc1bab946d09f3dc829d739925a020d6e1e))
+* audit complet app ([#119](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/119)) ([541bfaf](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/541bfaf4621635f39889cdba48ca7e209b99af74))
 
 ## [1.5.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.5.0...v1.5.1) (2026-09-01)
 
 
 ### Bug Fixes
 
-* **ui:** thème stable au changement de langue et icônes du registre ([#115](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/115)) ([825cfe1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/825cfe1cf6e5f110a4c78c78075d30ba01922b24))
+* **ui:** thème stable au changement de langue et icônes du registre ([#115](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/115)) ([2936524](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/293652478bfbc141ab537a50cfc1fc4078c09a40))
 
 ## [1.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.2...v1.5.0) (2026-09-01)
 
 
 ### Features
 
-* **projets:** ajoute une mission client et bascule release-please sur une GitHub App ([#111](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/111)) ([1fda717](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/1fda717a90b54ecd94f4e1bf8fd2da8528a1f164))
+* **projets:** ajoute une mission client et bascule release-please sur une GitHub App ([#111](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/111)) ([633f39b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/633f39bc9b73274901ed1375cd967a943851631a))
 
 ## [1.4.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.1...v1.4.2) (2026-08-25)
 
 
 ### Bug Fixes
 
-* **deps:** montée globale des dépendances, Next 16.3.3 et actions GitHub v7 ([#101](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/101)) ([4e3f2de](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4e3f2defeb9df825ee97fbecf7b83d718fdceee2))
+* **deps:** montée globale des dépendances, Next 16.3.3 et actions GitHub v7 ([#101](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/101)) ([ab6f485](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ab6f485626fb1c8840334fbf75a10dbcd057c774))
 
 ## [1.4.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.4.0...v1.4.1) (2026-05-19)
 
 
 ### Bug Fixes
 
-* **rgpd:** conformité du point de collecte et registre des traitements ([#90](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/90)) ([a8c9423](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a8c9423e83d357e80a7e32227cc3766c5a181c1c))
+* **rgpd:** conformité du point de collecte et registre des traitements ([#90](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/90)) ([747a165](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/747a16519982006e51f4788fd0cf110965ad5436))
 
 ## [1.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.1...v1.4.0) (2026-05-18)
 
 
 ### Features
 
-* hacher les IP en logs et clarifier la rétention RGPD ([#87](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/87)) ([dad2757](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/dad2757ac319180ac42e892a2eb2ec7e44c237bf))
+* hacher les IP en logs et clarifier la rétention RGPD ([#87](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/87)) ([af1c846](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/af1c846e4003475484e115d32387282fdf084433))
 
 ## [1.3.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.3.0...v1.3.1) (2026-05-13)
 
 
 ### Bug Fixes
 
-* **icons:** remplacer import * par registre statique pour tree-shaking ([#84](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/84)) ([c99e86f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c99e86f5a791a521c5438362778d84fc0c0a0b88))
+* **icons:** remplacer import * par registre statique pour tree-shaking ([#84](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/84)) ([dae05ba](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/dae05bac194e8a60c9c6702a1f465e16ed2ea0a6))
 
 ## [1.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.2...v1.3.0) (2026-05-13)
 
 
 ### Features
 
-* **env:** centraliser ASSETS_PATH via createEnv ([#80](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/80)) ([aba610e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/aba610ed9a52339eb9ad008ad54d6980f2b8bac1))
+* **env:** centraliser ASSETS_PATH via createEnv ([#80](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/80)) ([a849ae9](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a849ae9c20d46bb1b68c7bbb3fd92552dbb5a311))
 
 ## [1.2.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.1...v1.2.2) (2026-05-05)
 
 
 ### Bug Fixes
 
-* **deploy:** make GHA + GHCR + Dokploy pull-only pipeline actually work end-to-end ([#73](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/73)) ([404fa63](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/404fa630c30e2b07438620495d5db9ec02c9d697))
+* **deploy:** make GHA + GHCR + Dokploy pull-only pipeline actually work end-to-end ([#73](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/73)) ([4d12605](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4d12605bfb0025a3a53f52eff48aece0a8030d05))
 
 ## [1.2.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.2.0...v1.2.1) (2026-05-05)
 
 
 ### Bug Fixes
 
-* **deploy:** trigger on tag only + network host for build CI ([#71](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/71)) ([5d83ee0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5d83ee06d0d1a94bfca4c642620f06ac5743c921))
+* **deploy:** trigger on tag only + network host for build CI ([#71](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/71)) ([19b1839](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/19b18393b56dcc7490651dd60480337ff45f2132))
 
 ## [1.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.4...v1.2.0) (2026-05-05)
 
 
 ### Features
 
-* Next 16 PPR modernization + GitHub Actions + GHCR + Dokploy pull-only ([#68](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/68)) ([801e83f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/801e83ff5c1c5f6d2f1d9a018fc4c0e062bda186))
+* Next 16 PPR modernization + GitHub Actions + GHCR + Dokploy pull-only ([#68](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/68)) ([68f47fa](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/68f47fa25f175a420dc63a010158df2650899d0b))
 
 ## [1.1.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.3...v1.1.4) (2026-05-05)
 
 
 ### Bug Fixes
 
-* **rendering:** gate connection() to build-only to prevent PPR Activity race ([#63](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/63)) ([c531a11](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c531a11e9ebe708849af5a02d48fe016491e2e0b))
+* **rendering:** gate connection() to build-only to prevent PPR Activity race ([#63](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/63)) ([8657052](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/865705250a3bb7f5b9a6534bfe633333f6703ed2))
 
 ## [1.1.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.2...v1.1.3) (2026-05-05)
 
 
 ### Bug Fixes
 
-* **cookies:** prevent ConsentLanguageSync infinite loop with c15t 2.0.4 ([#61](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/61)) ([03d2012](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/03d201205d34bc2a41530ed686cf8d2a66c7623e))
+* **cookies:** prevent ConsentLanguageSync infinite loop with c15t 2.0.4 ([#61](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/61)) ([aa9779c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/aa9779c2764cfbbbae3388d3c95d945997894dd8))
 
 ## [1.1.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.1...v1.1.2) (2026-05-05)
 
 
 ### Bug Fixes
 
-* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([82e44a2](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/82e44a2abdac96311ede4618b87cdbacc6fdd1bf))
-* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([a1e1543](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a1e154384b357a8ffbcf61c127ee4270939acb8d))
+* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([2f68f78](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2f68f780b2e31b19423a083a2bd648cbeb4a559a))
+* **seed:** pre-bundle seed at build to avoid runtime tsx dependency ([830db94](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/830db94203b7a5c50688a1c4e02b840e63cc7617))
 
 ## [1.1.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.1.0...v1.1.1) (2026-05-03)
 
 
 ### Bug Fixes
 
-* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([d4875e6](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d4875e6ed004934a8b3e53c648973c41bb6a03e1))
-* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([6d82794](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6d82794bdb8c4a7c936d573d70a4661661d288ef))
+* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([792872d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/792872d321e94097856d68c9e099d6dcb65af388))
+* **seed:** make tsx + esbuild available at runtime for prisma db seed in prod ([e0d4202](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e0d420256890bd6c7cef2d39b101e9e8155e7687))
 
 ## [1.1.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v1.0.0...v1.1.0) (2026-05-03)
 
 
 ### Features
 
-* **home:** rich-text accent on hero h1 ([11ef7e7](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/11ef7e7b2fe160e3055e85febea02378eddfa3a7))
-* post-MEP polish (compose port fix + hero accent + content polish) ([2180d3c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2180d3cc45b4cd5ad899e7170f1aa805cfe64229))
+* **home:** rich-text accent on hero h1 ([88c84d4](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/88c84d424120e8b861170271690ae6a093ec1cc4))
+* post-MEP polish (compose port fix + hero accent + content polish) ([e5c6237](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e5c62374c631f4091556011a1c1fcbe010ea1c83))
 
 
 ### Bug Fixes
 
-* **compose:** move host port binding from prod to dev override ([743734c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/743734cff04fd2ef895eeb62a0612825a979db5a))
+* **compose:** move host port binding from prod to dev override ([c981611](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c981611cc98ece6abac4bd798337183ef6812255))
 
 ## [1.0.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.8.0...v1.0.0) (2026-05-03)
 
 
 ### Features
 
-* **branding:** add custom favicon set (ico + svg + apple-icon) ([71fea51](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/71fea51b7bde13f449ea7c3978ef9081acb2c44a))
-* first production release (MEP v1.0.0) ([a90ba3d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a90ba3d5aaa8dc7efb1297b207c3882180dd5838))
-* **seed:** add LinkedIn link to skill-prof case study (FR + EN) ([6bdc2f8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6bdc2f864690096b5795cf8b2254bb910cca9df0))
-* **seed:** add rag-drive-agent project + pre-MEP polish ([80c2ad8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/80c2ad87852dc8e43c9c96128e67f3d3f9fba6f6))
+* **branding:** add custom favicon set (ico + svg + apple-icon) ([2518c65](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2518c65b71c144bf7bc3dbd65965c3d502a48bb7))
+* first production release (MEP v1.0.0) ([59a9922](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/59a992216c7cf15f7b34413609f87045d0cceed6))
+* **seed:** add LinkedIn link to skill-prof case study (FR + EN) ([859ec18](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/859ec18e38d9a31dbccae5538dc1dc4511e5ab1e))
+* **seed:** add rag-drive-agent project + pre-MEP polish ([5cff1db](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5cff1db41aeedc28f47242602f37f9ec4e7cdedc))
 
 
 ### Bug Fixes
 
-* **deploy:** make production build dokploy-ready + align docs ([d320c36](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d320c36317c557a2eca0999727c153cbd2375d27))
-* **layout:** mobile-first typo scale + min-w-0 main for table overflow ([2b3d8f3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2b3d8f36c4aca49591210553344e94dbc412fb1e))
+* **deploy:** make production build dokploy-ready + align docs ([08b9337](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/08b9337befe25b4e665570edb509f1144edbde35))
+* **layout:** mobile-first typo scale + min-w-0 main for table overflow ([d445c0f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d445c0fbd93ce397745ecd7e9759e7582f7afa40))
 
 
 ### Miscellaneous Chores
 
-* release v1.0.0 ([fa41ece](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/fa41ecee10dc293152d6227bd6c6686c40de7174))
+* release v1.0.0 ([2cf9031](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2cf9031fc3ca4fd7fe7bf7bc12c429c4a2a0a5fe))
 
 ## [0.8.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.7.0...v0.8.0) (2026-04-30)
 
 
 ### Features
 
-* **legal:** conformite RGPD/LCEN (feature 7) ([#39](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/39)) ([2a577cd](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2a577cdf681645c3e94ffc964c1e704bafbaecdc))
-* release 0.8.0 - conformite legale + fixes infra ([cc6d000](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cc6d000304d119ce56eca0f45cf1f2984f678ed6))
-* release 0.8.0 - conformite legale RGPD/LCEN + footer SIRET + fixes infra ([9b19088](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/9b19088ba70cbcab5d00cd55491d6f3295b06fff))
+* **legal:** conformite RGPD/LCEN (feature 7) ([#39](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/39)) ([e4387c3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e4387c33ff3ea6d8bf7f36b60227729726a0d441))
+* release 0.8.0 - conformite legale + fixes infra ([86758cf](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/86758cf6f3a221d2fc6b4271ab792759f4f7cd75))
+* release 0.8.0 - conformite legale RGPD/LCEN + footer SIRET + fixes infra ([766ca86](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/766ca86ac6dd302508d51540e1551e8b1d689b08))
 
 ## [0.7.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.6.0...v0.7.0) (2026-04-28)
 
 
 ### Features
 
-* release v0.7.0 - SEO référencement complet + UX polish ([#37](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/37)) ([4f2dda1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4f2dda181509d59750bffba13a21717e309f0dd4))
+* release v0.7.0 - SEO référencement complet + UX polish ([#37](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/37)) ([4e460fc](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4e460fc577b3f03072a34a8b2c4a92a1191556b3))
 
 ## [0.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.5.0...v0.6.0) (2026-04-27)
 
 
 ### Features
 
-* formulaire contact complet + text effects landing + theme toggler animé ([#32](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/32)) ([4b7dc35](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4b7dc3560f8c41bec839b9d28729e63cd91808de))
+* formulaire contact complet + text effects landing + theme toggler animé ([#32](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/32)) ([4425d70](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4425d7024c56cba1e64bfabdce350d6c41646fad))
 
 ## [0.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.4.0...v0.5.0) (2026-04-26)
 
 
 ### Features
 
-* pages publiques portfolio + decompose formulaire de contact ([#28](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/28)) ([5824833](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/58248338e9e2cb25069d96bf58f8da3fdb16b1c3))
+* pages publiques portfolio + decompose formulaire de contact ([#28](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/28)) ([f088fd1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f088fd169fe855762052d702aada6146ef99430a))
 
 ## [0.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.3.0...v0.4.0) (2026-04-24)
 
 
 ### Features
 
-* release includes gestion-et-exposition-des-assets (PDF support + CV download button) ([#21](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/21)) ([f0eb4f3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f0eb4f3404c929cdc4631951214bf29b6ff66870))
+* release includes gestion-et-exposition-des-assets (PDF support + CV download button) ([#21](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/21)) ([326e32f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/326e32fea4825391eea49efa2ede133b13647553))
 
 ## [0.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.2.0...v0.3.0) (2026-04-23)
 
 
 ### Features
 
-* **i18n:** helper localizeProject/localizeTag + queries locale-aware + UI localisée ([3052b4d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3052b4d818368f266287596a5f3735561cb0a7df))
-* **projets:** ajoute schéma Prisma Project, ClientMeta, Company, Tag, ProjectTag ([f5ec7f1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f5ec7f11c600c185edc6dbbdec7872edf3f9c04c))
-* **projets:** page /projets publique avec BentoGrid filtrable (variante editorial) ([cfef2ab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cfef2abab5b4cfe8a7e2112609d188f133ea3c9d))
-* **projets:** page case study /projets/[slug] avec generateStaticParams + markdown ([ff438a0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff438a017b4d742cd476acc91728a28ac3b99654))
-* **projets:** route GET /api/assets/[filename] with Zod path traversal guard ([0d98789](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0d98789bcf037fe4801cc3dc823ac304ef8fbb57))
-* **projets:** seed Prisma idempotent depuis fichiers TS + case studies .md séparés ([eb86857](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/eb868573b3fa0f79d388032a4a89027dc40481be))
-* **projets:** singleton Prisma + queries findMany/findBySlug + 7 tests integration ([b60e5f0](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b60e5f04ea99f6244c320d44da634e698deb5108))
-* **seed:** add 9 case studies markdown (4 client + 5 personal) ([d6ffcb4](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d6ffcb4f0b6fd7149dc9791123b3c292341278a5))
-* **seed:** add tags, companies and projects seed data ([a7f7dab](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a7f7dab868b81d0eee6981532f65975123760048))
-* **ui:** effet BorderBeam sur badge "En cours" et CTA démo + doc DESIGN.md ([ffd60ae](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ffd60aed25392d41e82a5c289ac46eaf04df9e4a))
+* **i18n:** helper localizeProject/localizeTag + queries locale-aware + UI localisée ([32193bf](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/32193bf2a5a3537666c9bc5e592ec62323d8ceee))
+* **projets:** ajoute schéma Prisma Project, ClientMeta, Company, Tag, ProjectTag ([4d46cb2](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4d46cb29b70495bf5539fa44934c5258b2ef24a9))
+* **projets:** page /projets publique avec BentoGrid filtrable (variante editorial) ([12afe87](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/12afe870beff81081d0dbd049670b52745d4c135))
+* **projets:** page case study /projets/[slug] avec generateStaticParams + markdown ([439e98f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/439e98f4c2c89716417f1af8ef9197a9b1dd43a6))
+* **projets:** route GET /api/assets/[filename] with Zod path traversal guard ([aaa7f19](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/aaa7f19b311f570dea8ce4c34b7c22805dbe694d))
+* **projets:** seed Prisma idempotent depuis fichiers TS + case studies .md séparés ([530df2b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/530df2b27b920fc9f9ff4fa7bb326faee394197c))
+* **projets:** singleton Prisma + queries findMany/findBySlug + 7 tests integration ([b6e7a88](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b6e7a88be13e61f33833c1202bf0090686daafbb))
+* **seed:** add 9 case studies markdown (4 client + 5 personal) ([7141ac4](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/7141ac47f25f8d63e99575a26df64616ca17af80))
+* **seed:** add tags, companies and projects seed data ([19dc1f7](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/19dc1f78fb2618389a793ec6ddbda379504d87f4))
+* **ui:** effet BorderBeam sur badge "En cours" et CTA démo + doc DESIGN.md ([74bd69f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/74bd69fdc5252742a3a6c4885441526403ea43b6))
 
 
 ### Bug Fixes
 
-* **ci:** apply Prisma migrations to test DB + drop vite-tsconfig-paths plugin ([3f6d16d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3f6d16d1d6d4a4d7db1c1e7001e9132ead673400))
-* **ci:** prisma migrate deploy direct au lieu de just db-test ([7fa9a2a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/7fa9a2a5767a3525304762c9f6348c1edc0d7868))
-* **tests:** isoler portfolio_test de portfolio_dev via setupFile Vitest ([bd29d69](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/bd29d6924c28d98615f25d0c98fa42a5042d7006))
+* **ci:** apply Prisma migrations to test DB + drop vite-tsconfig-paths plugin ([3c393ad](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3c393ad63212632cd46140479e572386d49b9f60))
+* **ci:** prisma migrate deploy direct au lieu de just db-test ([0518c3b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0518c3b3eeb61849bf1bafe5ae68fd8cb1b377b8))
+* **tests:** isoler portfolio_test de portfolio_dev via setupFile Vitest ([fc76e7b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/fc76e7b98208893096c6354ffc8361e4bfc2a9f7))
 
 ## [0.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v0.1.0...v0.2.0) (2026-04-20)
 
 
 ### Features
 
-* **i18n:** add AppConfig augmentation and align localePrefix with spec ([312e4ce](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/312e4cef2460282fe687178ccb9e0d9374409063))
-* **i18n:** add country flag icons to LanguageSwitcher ([f48bb03](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f48bb036b491d66a2e70c3c7f2cd05e3b2a1d30c))
-* **i18n:** add locale detection proxy with next-intl middleware ([29ea57b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/29ea57b81697403f9804e0ce16bcb7d6014fbace))
-* **i18n:** wire FR/EN translations for public pages and state screens ([0311b12](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0311b125253da7eb0bf44b34361a4e6893ed4762))
-* **i18n:** wire LanguageSwitcher with localized router and typed locales ([010bc7d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/010bc7d89cc8d65d2369c8bcf5690bcf67e0676d))
-* **seo:** add localized metadata, hreflang alternates and multilingual sitemap ([c656f04](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c656f045cfa18fe686fd0113f5e141896a624b4f))
+* **i18n:** add AppConfig augmentation and align localePrefix with spec ([e22515a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e22515a2adbde2cea035db5de8dc49fce098436f))
+* **i18n:** add country flag icons to LanguageSwitcher ([831faec](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/831faecc7a425ba733cf9dfbece178754a4be438))
+* **i18n:** add locale detection proxy with next-intl middleware ([497654a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/497654ad8afaf0f00acfdfbbd54ee73001e325a0))
+* **i18n:** wire FR/EN translations for public pages and state screens ([a09335d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/a09335db2d7b021a2828301dbc9fcacd1a9afbb7))
+* **i18n:** wire LanguageSwitcher with localized router and typed locales ([3e3a8da](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/3e3a8dab75ea1766d3c1f4089431964147b8470a))
+* **seo:** add localized metadata, hreflang alternates and multilingual sitemap ([dff0a05](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/dff0a052c95501d7e8e4bb76eac84c33f687671a))
 
 
 ### Bug Fixes
 
-* **ci:** add predicate-quantifier=every to paths-filter for proper exclusions ([cd24a44](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/cd24a44b03d25d73dd4f97ae7b19635d9d49e91c))
-* **ci:** add pull-requests:read permission for paths-filter API access ([058759e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/058759e9c86daf82cf88d40d0f7d48bdf4c78214))
-* **ci:** add timeout-minutes on changes + ci aggregator jobs ([32125f6](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/32125f63b5810eac3cb0e0694ae6ded202ab8f94))
-* **ci:** aggregator also fails if changes detection job fails ([e6204f8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e6204f8d5578f690a60d091f29e87a6edb24511f))
-* **ci:** refactor with paths-filter + ci aggregator job ([11a4036](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/11a4036ea7f11f265fc14b246fa3e84ed653e3ba))
-* **ci:** rename test job to quality (lint + typecheck + test + build + audit) ([f4627f9](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f4627f99a2aae7cab677996c50dba5cf20fdd8d6))
-* **ci:** skip runs on doc-only changes ([36decca](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/36decca587fc762d999c84e17a93642c44e0b8e4))
-* **ci:** skip runs on doc-only changes (md, docs/, .claude/) ([42ad21e](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/42ad21e58c06313c6237519065ffe387becccf8d))
-* **i18n:** align LanguageSwitcher flag type with country-flag-icons ([2a6c788](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2a6c7880bb301228f9a60d38d30d2cece79d9a00))
-* **i18n:** localize global-error via URL-based locale detection ([59ea56f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/59ea56f6d2944cd26a934d4a17375f44ef6ddf25))
-* **theme:** silence React 19 script tag warning from next-themes ([f908b46](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/f908b4686e6d9819b4d743a049194754dd46a39d))
-* **ui:** restore cursor pointer on interactive elements after Tailwind v4 ([2733d93](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/2733d93392062f5a8fde92bd589d05f05f168946))
+* **ci:** add predicate-quantifier=every to paths-filter for proper exclusions ([6848d6d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6848d6d09e5fdc2e94fac02b5ab3a6857cbd702a))
+* **ci:** add pull-requests:read permission for paths-filter API access ([c4c743b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c4c743b75a9e43d82031df9336c427b13f1db573))
+* **ci:** add timeout-minutes on changes + ci aggregator jobs ([b081020](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b08102085a7fb020f23442f975788f38b1befa9a))
+* **ci:** aggregator also fails if changes detection job fails ([0a1b842](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0a1b84269ec810ffed57f5ca673cf3e86ddba0be))
+* **ci:** refactor with paths-filter + ci aggregator job ([bdafecf](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/bdafecf0ea1b0a5c8944f5a9a9d2a166be443707))
+* **ci:** rename test job to quality (lint + typecheck + test + build + audit) ([70a7b93](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/70a7b937985f74219384463356ce52980db7c3e6))
+* **ci:** skip runs on doc-only changes ([50bb6c7](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/50bb6c760e817c524abf96228403c9c0352f05e7))
+* **ci:** skip runs on doc-only changes (md, docs/, .claude/) ([fa9bcf1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/fa9bcf19289d90ad5b5a1c20dd12cf67ff22099b))
+* **i18n:** align LanguageSwitcher flag type with country-flag-icons ([41ff281](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/41ff2814a9ca09c696333faed3ad7e9215b9fc44))
+* **i18n:** localize global-error via URL-based locale detection ([d3c4972](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d3c49729eeddb14e823ab306bef8147639958287))
+* **theme:** silence React 19 script tag warning from next-themes ([d000840](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d00084051c1ab669dae8e8fb5e6dc4cd8a12a805))
+* **ui:** restore cursor pointer on interactive elements after Tailwind v4 ([faca903](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/faca9036daf9b1b597efa35fcf39d21bd014da2e))
 
 ## 0.1.0 (2026-04-18)
 
@@ -295,7 +295,7 @@
 ### Features
 
 * **automation:** Claude Code skills + rules + SessionStart hook + CLAUDE.md ([27db703](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/27db703bf00c0874cf5a198c0cf5f21b2fad48c9))
-* bootstrap initial Next.js 16 + Prisma 7 portfolio ([6d5b9b3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6d5b9b3f9c390a3f3835621bca6c99e21220cf54))
+* bootstrap initial Next.js 16 + Prisma 7 portfolio ([54584f3](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/54584f345eeb52782d88b4c44f6b9b6ead8badbf))
 * **ci:** GitHub Actions CI + Dependabot + release-please ([c1d2401](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/c1d240170fb0aac3061d3c22e83ac7af1066e13f))
 * **db:** Prisma 7 + PostgreSQL 18 + schema skeleton ([1cbdc6c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/1cbdc6c27c8589f4fe25379d1b67aa644848598c))
 * **design:** shadcn/ui Nova preset + 12 primitives + Magic UI / Aceternity registries ([ffd55c5](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ffd55c5104640444fefa0b425bd5606228fb713e))
@@ -309,14 +309,14 @@
 
 ### Bug Fixes
 
-* **ci:** group concurrency by head_ref to cancel duplicate push + pull_request runs ([5020bf8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5020bf88426bf2693c1992f4e7df6b4ec891dd59))
-* **ci:** trigger CI on push main only + all PRs to avoid duplicate runs ([973fc70](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/973fc70d4bbfda26b9ae6a9b12a3b1534a5a50b3))
-* **tests:** rename health route test to match integration.test pattern ([e92aad1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e92aad1691ac319716413a5f9ff4d50b903395c6))
+* **ci:** group concurrency by head_ref to cancel duplicate push + pull_request runs ([5a4610d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5a4610d78b7a757e0c96971747181e84aee3d0f9))
+* **ci:** trigger CI on push main only + all PRs to avoid duplicate runs ([d0de816](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d0de816c17298a16f399d58e83248c2e07693e60))
+* **tests:** rename health route test to match integration.test pattern ([3663774](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/36637744bfc81d489c44e1169e6068b667121218))
 
 
 ### Documentation
 
-* technical documentation (ARCHITECTURE + VERSIONS + PRODUCTION + DESIGN + BRAINSTORM + ADRs + knowledges) ([ea0184c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ea0184c105d83d56a09bdaa90ee4f621f923adfc))
+* technical documentation (ARCHITECTURE + VERSIONS + PRODUCTION + DESIGN + BRAINSTORM + ADRs + knowledges) ([666557f](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/666557f3160411a357a965f4d74d5b71e389de78))
 
 ## Historique Versions
 
