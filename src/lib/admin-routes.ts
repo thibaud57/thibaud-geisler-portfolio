@@ -6,6 +6,7 @@ export const ADMIN_PROSPECTING_ACTIONS_PATH = "/admin/actions-prospection"
 export const ADMIN_COMPANIES_PATH = "/admin/entreprises"
 export const ADMIN_OPPORTUNITIES_PATH = "/admin/opportunites"
 export const ADMIN_INTERVIEWS_PATH = "/admin/entretiens"
+export const ADMIN_WEEKLY_REVIEWS_PATH = "/admin/revues-hebdo"
 
 export function isAdminPath(pathname: string): boolean {
   return pathname === ADMIN_ROOT || pathname.startsWith(`${ADMIN_ROOT}/`)

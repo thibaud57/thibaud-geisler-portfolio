@@ -1,3 +1,5 @@
+import { TZDate } from "@date-fns/tz"
+
 export function timeOf(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
 }
@@ -51,7 +53,26 @@ export function formatShortDateTime(date: Date | null): string | null {
   return date ? SHORT_DATE_TIME.format(date).replace(",", "") : null
 }
 
-const DAY_MS = 86_400_000
+export const DAY_MS = 86_400_000
+
+// Une date sans heure (@db.Date) arrive à minuit UTC : son jour se lit avec les getters UTC, jamais dans le fuseau du runtime.
+export function dateOnlyToLocal(dateOnly: Date): Date {
+  return new Date(dateOnly.getUTCFullYear(), dateOnly.getUTCMonth(), dateOnly.getUTCDate())
+}
+
+// Minuit de Paris, changement d'heure compris : additionner des multiples de DAY_MS décalerait d'une heure.
+export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
+  return new Date(
+    new TZDate(
+      dateOnly.getUTCFullYear(),
+      dateOnly.getUTCMonth(),
+      dateOnly.getUTCDate() + offsetDays,
+      0,
+      0,
+      TIME_ZONE,
+    ).getTime(),
+  )
+}
 
 // Jours de calendrier, l'heure ignorée : une action de J-7 reste dans « 7 jours » quelle que soit l'heure de consultation. L'arrondi absorbe les journées de 23 h ou 25 h des changements d'heure.
 export function calendarDaysBetween(a: Date, b: Date): number {

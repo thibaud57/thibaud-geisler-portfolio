@@ -5,6 +5,7 @@ import type { ActionView } from "@/lib/action-views"
 import type { InterviewView } from "@/lib/interview-views"
 import type { LeadView } from "@/lib/lead-views"
 import type { OpportunityView } from "@/lib/opportunity-views"
+import type { ReviewView } from "@/lib/review-views"
 
 export const ORDER_COLUMN_WIDTH = 52
 
@@ -427,3 +428,68 @@ export function interviewSkeletonWidths(view: InterviewView): readonly number[] 
 }
 
 export const INTERVIEW_PAGE_SKELETON: string[] = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]
+
+export const REVIEW_COLUMN_WIDTHS = {
+  // Libellé le plus long : « S53 · Semaine du 28/12/2026 ».
+  week: 240,
+  friday: 110,
+  // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
+  connectionsSent: 180,
+  connectionsAccepted: 190,
+  acceptanceRate: 150,
+  messagesSent: 160,
+  conversationsEngaged: 140,
+  responseRate: 130,
+  meetingsBooked: 140,
+  meetingConversion: 150,
+  interviewsHeld: 110,
+  activeLeads: 120,
+  status: 110,
+  motivation: 110,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type ReviewColumnKey = keyof typeof REVIEW_COLUMN_WIDTHS
+
+const REVIEW_REVUE_COLUMNS: readonly ReviewColumnKey[] = [
+  "friday",
+  "connectionsSent",
+  "connectionsAccepted",
+  "acceptanceRate",
+  "messagesSent",
+  "responseRate",
+  "meetingsBooked",
+  "activeLeads",
+  "status",
+  "motivation",
+]
+
+export const REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<ReviewView, readonly ReviewColumnKey[]> = {
+  revue: REVIEW_REVUE_COLUMNS,
+  // Calendrier n'a pas de table : son squelette de chargement reprend les colonnes de Revue.
+  calendrier: REVIEW_REVUE_COLUMNS,
+  journal: [
+    "friday",
+    "connectionsSent",
+    "connectionsAccepted",
+    "acceptanceRate",
+    "messagesSent",
+    "conversationsEngaged",
+    "responseRate",
+    "meetingsBooked",
+    "meetingConversion",
+    "interviewsHeld",
+    "activeLeads",
+    "status",
+    "motivation",
+  ],
+}
+
+export function reviewSkeletonWidths(view: ReviewView): readonly number[] {
+  const keys: readonly ReviewColumnKey[] = [
+    "week",
+    ...REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => REVIEW_COLUMN_WIDTHS[key])
+}

@@ -29,6 +29,7 @@ import {
   ADMIN_CONTACTS_PATH,
   ADMIN_INTERVIEWS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
+  ADMIN_WEEKLY_REVIEWS_PATH,
 } from "@/lib/admin-routes"
 import { LinkedinIcon } from "@/lib/icons"
 
@@ -119,7 +120,16 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
           { label: "Journal", href: "/admin/actions-prospection" },
         ],
       },
-      { label: "Revues hebdo", icon: CalendarClock },
+      {
+        label: "Revues hebdo",
+        icon: CalendarClock,
+        href: ADMIN_WEEKLY_REVIEWS_PATH,
+        subItems: [
+          { label: "Revue", href: "/admin/revues-hebdo/revue" },
+          { label: "Calendrier", href: "/admin/revues-hebdo/calendrier" },
+          { label: "Journal", href: ADMIN_WEEKLY_REVIEWS_PATH },
+        ],
+      },
       {
         label: "Opportunités",
         icon: Handshake,

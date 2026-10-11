@@ -3,22 +3,20 @@
 import { useActionState, useEffect, useId, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Calendar as CalendarIcon, Save } from "lucide-react"
-import { fr } from "date-fns/locale"
+import { Save } from "lucide-react"
 import { toast } from "sonner"
 
 import { AssetField } from "@/components/features/admin/assets/AssetField"
+import { DatePicker } from "@/components/features/admin/DatePicker"
 import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { ClientMetaFields } from "@/components/features/admin/projects/ClientMetaFields"
 import { ProjectTagsField } from "@/components/features/admin/projects/ProjectTagsField"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Editor } from "@/components/ui/editor"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,7 +24,6 @@ import { Textarea } from "@/components/ui/textarea"
 import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
-  formatShortDate,
   parseIsoDate,
   PROJECT_FORMAT_LABELS,
   PROJECT_FIELD_LABELS,
@@ -35,7 +32,6 @@ import {
   PROJECT_TYPE_LABELS,
   toIsoDate,
 } from "@/lib/projects"
-import { cn } from "@/lib/utils"
 import { createProject, updateProject } from "@/server/actions/projects"
 import { initialProjectFormState } from "@/server/actions/projects.types"
 import type { CompanyOption } from "@/server/queries/companies"
@@ -94,11 +90,9 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
   const [startedAt, setStartedAt] = useState<Date | undefined>(() =>
     resolveDate(stringValue(state.values?.startedAt), project?.startedAt),
   )
-  const [startOpen, setStartOpen] = useState(false)
   const [endedAt, setEndedAt] = useState<Date | undefined>(() =>
     resolveDate(stringValue(state.values?.endedAt), project?.endedAt),
   )
-  const [endOpen, setEndOpen] = useState(false)
 
   useEffect(() => {
     if (state.ok === true) {
@@ -414,36 +408,12 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   label={PROJECT_FIELD_LABELS.startedAt}
                   errors={state.errors.startedAt}
                 >
-                  <Popover open={startOpen} onOpenChange={setStartOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        id={`${formId}-startedAt`}
-                        aria-invalid={!!state.errors.startedAt?.length}
-                        aria-describedby={`${formId}-startedAt-error`}
-                        className={cn(
-                          "w-full justify-start font-normal",
-                          !startedAt && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon aria-hidden data-icon="inline-start" />
-                        {startedAt ? formatShortDate(startedAt) : "Choisir une date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        locale={fr}
-                        mode="single"
-                        selected={startedAt}
-                        defaultMonth={startedAt ?? new Date()}
-                        onSelect={(date) => {
-                          setStartedAt(date)
-                          setStartOpen(false)
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    id={`${formId}-startedAt`}
+                    value={startedAt}
+                    onChange={setStartedAt}
+                    invalid={!!state.errors.startedAt?.length}
+                  />
                   <input
                     type="hidden"
                     name="startedAt"
@@ -456,49 +426,15 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                   label={PROJECT_FIELD_LABELS.endedAt}
                   errors={state.errors.endedAt}
                 >
-                  <Popover open={endOpen} onOpenChange={setEndOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        id={`${formId}-endedAt`}
-                        aria-invalid={!!state.errors.endedAt?.length}
-                        aria-describedby={`${formId}-endedAt-error`}
-                        className={cn(
-                          "w-full justify-start font-normal",
-                          !endedAt && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon aria-hidden data-icon="inline-start" />
-                        {endedAt ? formatShortDate(endedAt) : "En cours"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" className="w-auto p-0">
-                      <Calendar
-                        locale={fr}
-                        mode="single"
-                        selected={endedAt}
-                        defaultMonth={endedAt ?? startedAt ?? new Date()}
-                        onSelect={(date) => {
-                          setEndedAt(date)
-                          setEndOpen(false)
-                        }}
-                      />
-                      <div className="flex justify-end border-t border-border p-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEndedAt(undefined)
-                            setEndOpen(false)
-                          }}
-                        >
-                          Aucune date de fin
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    id={`${formId}-endedAt`}
+                    value={endedAt}
+                    onChange={setEndedAt}
+                    invalid={!!state.errors.endedAt?.length}
+                    placeholder="En cours"
+                    defaultMonth={startedAt}
+                    clearLabel="Aucune date de fin"
+                  />
                   <input type="hidden" name="endedAt" value={endedAt ? toIsoDate(endedAt) : ""} />
                 </FormField>
               </div>

@@ -2,6 +2,7 @@ import type { EventCalendarI18nOverrides } from "@/components/reui/event-calenda
 import type { CalendarEvent } from "@/components/reui/event-calendar/event-calendar-types"
 import type { ActionStatus } from "@/generated/prisma/client"
 import { formatShortInstantTime } from "@/lib/date-time"
+import { EVENT_CALENDAR_FR } from "@/lib/event-calendar-fr"
 
 const STATUS_COLORS: Record<ActionStatus, string> = {
   A_FAIRE: "var(--color-warning)",
@@ -34,31 +35,14 @@ export function actionEvents<T extends CalendarActionRow>(
 }
 
 export const ACTION_CALENDAR_I18N: EventCalendarI18nOverrides = {
+  ...EVENT_CALENDAR_FR,
   labels: {
-    today: "Aujourd'hui",
-    previous: "Précédent",
-    next: "Suivant",
+    ...EVENT_CALENDAR_FR.labels,
     addEvent: "Nouvelle action",
-    allDay: "Toute la journée",
-    more: (count) => `+${count} autres`,
     noEvents: "Aucune action",
     loading: "Chargement des actions",
     event: "action",
     events: (count) => (count === 1 ? "1 action" : `${count} actions`),
-    selectView: "Choisir la vue",
-    week: (weekNumber) => `S${weekNumber}`,
-    goToDate: "Aller à la date",
-    dropNotAllowed: "Déplacement impossible",
-    continues: "suite",
-    timeRange: (from, to) => `${from} - ${to}`,
-  },
-  viewNames: { month: "Mois" },
-  formats: {
-    dayTitle: "EEEE d MMMM yyyy",
-    moreDayHeader: "EEEE d MMMM",
-    eventTime: "HH:mm",
-    timeGutter: "HH'h'",
-    timeGutterMinute: "HH:mm",
   },
   functions: {
     // Le format par défaut écrirait « 09:00 - 09:00 » pour un événement sans durée.

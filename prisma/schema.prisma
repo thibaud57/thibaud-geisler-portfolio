@@ -241,6 +241,23 @@ enum InterviewDecision {
   @@schema("freelance")
 }
 
+enum ReviewStatus {
+  BONNE
+  MOYENNE
+  MAUVAISE
+
+  @@schema("freelance")
+}
+
+enum ReviewMotivation {
+  HAUTE
+  POSITIVE
+  NEUTRE
+  BASSE
+
+  @@schema("freelance")
+}
+
 enum ActionChannel {
   CANDIDATURE
   CONNEXION_LINKEDIN
@@ -518,6 +535,31 @@ model Interview {
   updatedAt DateTime @updatedAt @db.Timestamptz
 
   @@index([opportunityId, scheduledAt])
+  @@schema("freelance")
+}
+
+model WeeklyReview {
+  id                   String            @id @default(uuid(7))
+  // Vendredi de clôture : la période comptée et le libellé s'en déduisent. Une revue par vendredi.
+  closingFriday        DateTime          @unique @db.Date
+  // Figés à l'enregistrement : un recalcul réécrirait l'historique.
+  connectionsSent      Int               @default(0)
+  connectionsAccepted  Int               @default(0)
+  messagesSent         Int               @default(0)
+  conversationsEngaged Int               @default(0)
+  meetingsBooked       Int               @default(0)
+  interviewsHeld       Int               @default(0)
+  activeLeads          Int               @default(0)
+  status               ReviewStatus?
+  motivation           ReviewMotivation?
+  wins                 String?
+  blockers             String?
+  nextWeekPlan         String?
+  notes                String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
   @@schema("freelance")
 }
 
