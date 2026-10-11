@@ -10,7 +10,7 @@ paths:
 - Déclarer **`allowBuilds`** dans **`pnpm-workspace.yaml`** (racine du repo, même en single-repo) et y **lister chaque dépendance à scripts de build** : `true` si son script est nécessaire (binaire natif compilé ou téléchargé), `false` si le projet s'en passe (`esbuild`, dont le binaire vient de `@esbuild/<plateforme>`). Depuis pnpm 11 (`strictDepBuilds`), une dépendance absente de la liste fait échouer l'install
 - Écrire ces entrées par **`pnpm approve-builds <pkg>`** (ou `'!<pkg>'` pour refuser), non interactif depuis pnpm 11
 - Déclarer les **`overrides`** dans le même `pnpm-workspace.yaml`, et les commenter : un override force une version dans tout l'arbre, il doit dire pourquoi et quand le retirer
-- Pinner pnpm par **`"packageManager": "pnpm@<version>+sha512.<hash>"`** dans `package.json`, écrit par `corepack use pnpm@<version>` : seule source pour le dev local (corepack), le Dockerfile et la CI (`pnpm/action-setup`)
+- Pinner pnpm par **`"packageManager": "pnpm@<version>+sha512.<hash>"`** dans `package.json`, écrit par `corepack use pnpm@<version>` : seule source pour le dev local (corepack), le Dockerfile et la CI (`pnpm/action-setup`). Aligner `engines.pnpm` sur la majeure épinglée
 - Après l'ajout d'une dep native autorisée, lancer **`pnpm rebuild`** : il exécute les build scripts sans re-résoudre tout l'arbre
 - Retirer les **`minimumReleaseAgeExclude`** qu'écrit `pnpm add` pour une version de moins de 24 h dès que le délai est passé, puis vérifier par `pnpm install --frozen-lockfile` (cf. Gotchas)
 
@@ -25,6 +25,8 @@ paths:
 - **Le champ `pnpm` ignoré ne fait pas échouer l'install** : pnpm l'annonce (`The "pnpm" field in package.json is no longer read by pnpm…`) puis installe quand même, le réglage est perdu sans erreur
 - **Une transitive figée dans le lockfile ne se met à jour par aucune commande de mise à jour** : ni `overrides`, ni `pnpm update <pkg> --depth Infinity`, ni `pnpm dedupe`, ni `pnpm install --force/--lockfile-only/--fix-lockfile`. Seule une re-résolution complète (lockfile supprimé) la débloque, et elle remonte alors toutes les autres (vérifié le 2026-09-05 sur `vite@8.0.8`, passé à 8.2.2 en résolution fraîche)
 - `onlyBuiltDependencies`, `neverBuiltDependencies` et `ignoredBuiltDependencies` sont supprimés depuis pnpm 11.0 : `allowBuilds` (map `package → boolean`, apparue en 10.26) les remplace tous
+- **pnpm 12 exige le second document `packageManagerDependencies` dans `pnpm-lock.yaml`** : sans lui, `pnpm install --frozen-lockfile` échoue (`ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE`, constaté le 2026-10-11). Le régénérer par `corepack use pnpm@<version>` à chaque montée de pnpm, jamais à la main
+- **Dependabot ne publie pas encore le support de pnpm 12** (dernière release `dependabot-core` v0.399.0 du 2026-10-05, PR #16513 et #16517 fusionnées le 2026-10-09, #16521 ouverte) : ses PR npm peuvent échouer, voir `docs/VERSIONS.md` § pnpm
 - **pnpm 12 transforme toute clé inconnue de `pnpm-workspace.yaml` en erreur** (`ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`) quand `packageManager` épingle la version qui tourne : n'y garder que des clés reconnues
 - **`public-hoist-pattern` ne hisse rien par défaut depuis pnpm 10** (eslint/prettier inclus) : un package qui suppose un `node_modules` plat peut casser, `publicHoistPattern` se règle dans `pnpm-workspace.yaml`
 
