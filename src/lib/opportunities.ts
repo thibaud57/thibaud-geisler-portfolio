@@ -66,6 +66,7 @@ export const OPPORTUNITY_SECTION_TITLES = {
   relations: "Relations",
   notes: "Notes",
   details: "Détails",
+  interviews: "Entretiens",
 } as const
 
 export function formatDailyRate(rate: number | null): string | null {

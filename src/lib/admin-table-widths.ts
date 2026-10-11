@@ -2,6 +2,7 @@
 // (DataTableSkeleton), pour que le squelette ne dérive jamais silencieusement de la table.
 
 import type { ActionView } from "@/lib/action-views"
+import type { InterviewView } from "@/lib/interview-views"
 import type { LeadView } from "@/lib/lead-views"
 import type { OpportunityView } from "@/lib/opportunity-views"
 
@@ -150,6 +151,7 @@ export const LEAD_COLUMN_WIDTHS = {
   email: 200,
   phone: 140,
   actionsCount: 110,
+  interviewsCount: 110,
   retentionEnd: 180,
   notes: 220,
   actions: ACTIONS_COLUMN_WIDTH,
@@ -222,7 +224,7 @@ export const LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<LeadView, readonly LeadCo
     "notes",
   ],
   tous: ALL_LEAD_COLUMNS.flatMap((key) =>
-    key === "actionsCount" ? [key, "retentionEnd" as const] : [key],
+    key === "actionsCount" ? [key, "interviewsCount" as const, "retentionEnd" as const] : [key],
   ),
 }
 
@@ -362,3 +364,66 @@ export const OPPORTUNITY_PAGE_SKELETON: string[] = [
   "h-[220px]",
   "h-[320px]",
 ]
+
+export const INTERVIEW_COLUMN_WIDTHS = {
+  // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
+  title: 210,
+  opportunity: 200,
+  side: 180,
+  scheduledAt: 150,
+  type: 140,
+  status: 110,
+  outcome: 110,
+  zone: 150,
+  workMode: 120,
+  dailyRate: 90,
+  score: 90,
+  decision: 210,
+  correspondents: 200,
+  actions: ACTIONS_COLUMN_WIDTH,
+} as const
+
+export type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
+
+// À venir masque Statut, toujours Planifié dans cette vue, et Issue, qui n'existe qu'une fois l'entretien fait.
+// Journal, la vue complète, montre toutes ses colonnes (arbitrage « Colonnes par vue »).
+export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
+  InterviewView,
+  readonly InterviewColumnKey[]
+> = {
+  "a-venir": [
+    "opportunity",
+    "side",
+    "scheduledAt",
+    "type",
+    "zone",
+    "workMode",
+    "dailyRate",
+    "score",
+  ],
+  journal: [
+    "opportunity",
+    "side",
+    "scheduledAt",
+    "type",
+    "status",
+    "outcome",
+    "zone",
+    "workMode",
+    "dailyRate",
+    "score",
+    "decision",
+    "correspondents",
+  ],
+}
+
+export function interviewSkeletonWidths(view: InterviewView): readonly number[] {
+  const keys: readonly InterviewColumnKey[] = [
+    "title",
+    ...INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS[view],
+    "actions",
+  ]
+  return keys.map((key) => INTERVIEW_COLUMN_WIDTHS[key])
+}
+
+export const INTERVIEW_PAGE_SKELETON: string[] = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]

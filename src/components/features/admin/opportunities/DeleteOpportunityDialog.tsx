@@ -20,7 +20,7 @@ export function DeleteOpportunityDialog({ opportunity }: Props) {
         </RowActionButton>
       }
       name={opportunity.title}
-      description="L'apporteur, l'ESN et le client final restent."
+      description="Ses entretiens sont supprimés avec elle. L'apporteur, l'ESN et le client final restent."
       successMessage="Opportunité supprimée"
       onDelete={async () => {
         const result = await deleteOpportunity(opportunity.id)

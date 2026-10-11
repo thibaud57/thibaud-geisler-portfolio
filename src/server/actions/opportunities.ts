@@ -14,7 +14,7 @@ import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
 import type { OpportunityFormState } from "./opportunities.types"
 import { revalidatePersonLists } from "./person-guards"
 
-// Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent) : leurs vues se rafraîchissent aussi.
+// Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent), les entretiens leur titre, tarif, zone et contrat, et supprimer une opportunité supprime ses entretiens : leurs vues se rafraîchissent aussi (les entretiens via `revalidatePersonLists`).
 function invalidateOpportunityCaches(): void {
   revalidatePath(ADMIN_OPPORTUNITIES_PATH, "layout")
   revalidatePath(ADMIN_COMPANIES_PATH, "layout")

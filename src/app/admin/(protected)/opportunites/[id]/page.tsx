@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { OpportunityForm } from "@/components/features/admin/opportunities/OpportunityForm"
+import { OpportunityInterviewsCard } from "@/components/features/admin/opportunities/OpportunityInterviewsCard"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
@@ -31,6 +32,7 @@ async function EditOpportunitySection({ id }: { id: string }) {
         opportunity={opportunity}
         referrerOptions={referrerOptions}
         companyOptions={companyOptions}
+        relatedCards={<OpportunityInterviewsCard opportunity={opportunity} />}
       />
     </div>
   )

@@ -25,7 +25,11 @@ import {
   Wallet,
 } from "lucide-react"
 
-import { ADMIN_CONTACTS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
+import {
+  ADMIN_CONTACTS_PATH,
+  ADMIN_INTERVIEWS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin-routes"
 import { LinkedinIcon } from "@/lib/icons"
 
 // LinkedinIcon (src/lib/icons.tsx) n'est pas un LucideIcon (Simple Icons a retiré ce logo) : type
@@ -126,7 +130,15 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
           { label: "Toutes", href: ADMIN_OPPORTUNITIES_PATH },
         ],
       },
-      { label: "Entretiens", icon: MessageCircle },
+      {
+        label: "Entretiens",
+        icon: MessageCircle,
+        href: ADMIN_INTERVIEWS_PATH,
+        subItems: [
+          { label: "À venir", href: "/admin/entretiens/a-venir" },
+          { label: "Journal", href: ADMIN_INTERVIEWS_PATH },
+        ],
+      },
       { label: "Contacts", icon: User, href: ADMIN_CONTACTS_PATH },
     ],
   },

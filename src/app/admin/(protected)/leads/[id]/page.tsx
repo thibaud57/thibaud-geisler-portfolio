@@ -6,9 +6,14 @@ import { LeadForm } from "@/components/features/admin/leads/LeadForm"
 import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
-import { ADMIN_LEADS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
+import {
+  ADMIN_INTERVIEWS_PATH,
+  ADMIN_LEADS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin-routes"
 import { LEAD_PAGE_SKELETON } from "@/lib/admin-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { toLeadInterviewLinks } from "@/lib/interviews"
 import { LEAD_SECTION_TITLES } from "@/lib/leads"
 import { toOpportunityLink } from "@/lib/opportunities"
 import { personDisplayName } from "@/lib/persons"
@@ -46,6 +51,14 @@ async function EditLeadSection({ id }: { id: string }) {
                 }),
               )}
               emptyText="Aucune opportunité apportée par ce lead."
+            />
+            <RelatedLinksCard
+              title={LEAD_SECTION_TITLES.interviews}
+              links={toLeadInterviewLinks(
+                lead.interviews,
+                (id) => `${ADMIN_INTERVIEWS_PATH}/${id}`,
+              )}
+              emptyText="Aucun entretien pour ce lead."
             />
           </>
         }

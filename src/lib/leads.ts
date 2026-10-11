@@ -101,4 +101,5 @@ export const LEAD_SECTION_TITLES = {
   network: "Réseau",
   actions: "Actions",
   opportunities: "Opportunités apportées",
+  interviews: "Entretiens",
 } as const

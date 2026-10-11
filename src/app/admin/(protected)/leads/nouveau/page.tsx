@@ -29,6 +29,11 @@ async function NewLeadSection() {
               links={[]}
               emptyText="Après l'enregistrement du lead."
             />
+            <RelatedLinksCard
+              title={LEAD_SECTION_TITLES.interviews}
+              links={[]}
+              emptyText="Après l'enregistrement du lead."
+            />
           </>
         }
       />

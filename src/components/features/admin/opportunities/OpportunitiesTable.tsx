@@ -6,26 +6,38 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
+import {
+  type DetailContent,
+  DetailDialog,
+  type DetailSection,
+} from "@/components/features/admin/DetailDialog"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
+import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import {
   actionsColumn,
   companyCell,
+  contractBadge,
   hideableColumn,
-  labelBadge,
   truncatedCell,
+  workModeBadge,
+  zoneBadge,
 } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteOpportunityDialog } from "@/components/features/admin/opportunities/DeleteOpportunityDialog"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
-import { ADMIN_COMPANIES_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
+import {
+  ADMIN_COMPANIES_PATH,
+  ADMIN_INTERVIEWS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin-routes"
 import {
   OPPORTUNITY_COLUMN_WIDTHS,
   OPPORTUNITY_VIEW_DEFAULT_VISIBLE_COLUMNS,
 } from "@/lib/admin-table-widths"
 import { detailHref } from "@/lib/detail-links"
+import { toOpportunityInterviewLinks } from "@/lib/interviews"
 import {
   formatDailyRate,
   formatDays,
@@ -41,10 +53,8 @@ import { opportunitiesForView, type OpportunityView } from "@/lib/opportunity-vi
 import { personDetailHref } from "@/lib/person-links"
 import { OPTED_OUT_LABEL, personDisplayName } from "@/lib/persons"
 import {
-  CONTRACT_STATUS_ICONS,
   CONTRACT_STATUS_LABELS,
   CONTRACT_STATUSES,
-  WORK_MODE_ICONS,
   WORK_MODE_LABELS,
   WORK_MODES,
 } from "@/lib/projects"
@@ -64,30 +74,6 @@ function statusBadge(
       {...badgeProps}
     />
   )
-}
-
-function contractBadge(opportunity: AdminOpportunity) {
-  if (!opportunity.contract) return null
-  return (
-    <EnumBadge
-      label={CONTRACT_STATUS_LABELS[opportunity.contract]}
-      icon={CONTRACT_STATUS_ICONS[opportunity.contract]}
-    />
-  )
-}
-
-function workModeBadge(opportunity: AdminOpportunity) {
-  if (!opportunity.workMode) return null
-  return (
-    <EnumBadge
-      label={WORK_MODE_LABELS[opportunity.workMode]}
-      icon={WORK_MODE_ICONS[opportunity.workMode]}
-    />
-  )
-}
-
-function zoneBadge(opportunity: AdminOpportunity) {
-  return labelBadge(opportunity.zone ? ZONE_LABELS[opportunity.zone] : null)
 }
 
 function rowActions(opportunity: AdminOpportunity) {
@@ -250,6 +236,25 @@ function companyLink(company: AdminOpportunity["client"]) {
   )
 }
 
+function interviewsSection(opportunity: AdminOpportunity): DetailSection {
+  return {
+    title: OPPORTUNITY_SECTION_TITLES.interviews,
+    rows: [
+      {
+        fullWidth: true,
+        value:
+          opportunity.interviews.length === 0 ? null : (
+            <RelatedLinksList
+              links={toOpportunityInterviewLinks(opportunity.interviews, (id) =>
+                detailHref(ADMIN_INTERVIEWS_PATH, id),
+              )}
+            />
+          ),
+      },
+    ],
+  }
+}
+
 function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => void): DetailContent {
   return {
     title: opportunity.title,
@@ -302,6 +307,7 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
         title: OPPORTUNITY_SECTION_TITLES.notes,
         rows: [{ value: opportunity.notes, fullWidth: true }],
       },
+      interviewsSection(opportunity),
     ],
     onEdit,
   }

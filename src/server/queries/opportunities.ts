@@ -2,6 +2,7 @@ import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { orderedInterviewSelect } from "@/server/queries/interviews"
 
 const adminOpportunityInclude = {
   referrer: {
@@ -17,6 +18,10 @@ const adminOpportunityInclude = {
   },
   intermediary: { select: { id: true, name: true, logoFilename: true } },
   client: { select: { id: true, name: true, logoFilename: true } },
+  interviews: {
+    select: { ...orderedInterviewSelect, status: true },
+    orderBy: { scheduledAt: "asc" },
+  },
 } as const
 
 export type AdminOpportunity = Prisma.OpportunityGetPayload<{
@@ -46,3 +51,18 @@ export async function findAllOpportunitiesForAdmin(): Promise<AdminOpportunity[]
 export async function findOpportunityByIdForAdmin(id: string): Promise<AdminOpportunity | null> {
   return prisma.opportunity.findUnique({ where: { id }, include: adminOpportunityInclude })
 }
+
+export async function findOpportunityOptions() {
+  return prisma.opportunity.findMany({
+    where: { status: { notIn: ["REFUSEE", "DECLINEE", "ABANDONNEE"] } },
+    select: {
+      id: true,
+      title: true,
+      intermediary: { select: { name: true } },
+      client: { select: { name: true } },
+    },
+    orderBy: { title: "asc" },
+  })
+}
+
+export type OpportunityOption = Awaited<ReturnType<typeof findOpportunityOptions>>[number]

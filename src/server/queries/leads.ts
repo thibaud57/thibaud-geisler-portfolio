@@ -3,8 +3,6 @@ import "server-only"
 import type {
   ContactStatus,
   ContactType,
-  InterviewOutcome,
-  InterviewStatus,
   JobRole,
   LeadChannel,
   LeadInterest,
@@ -14,6 +12,7 @@ import type {
   Zone,
 } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { orderedInterviewSelect } from "@/server/queries/interviews"
 import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
 
 const adminLeadInclude = {
@@ -31,7 +30,24 @@ const adminLeadInclude = {
         take: 1,
         select: { respondedAt: true },
       },
-      interviews: { select: { status: true, outcome: true, scheduledAt: true } },
+      interviews: {
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          outcome: true,
+          scheduledAt: true,
+          createdAt: true,
+          opportunity: {
+            select: {
+              id: true,
+              title: true,
+              interviews: { select: orderedInterviewSelect },
+            },
+          },
+        },
+        orderBy: { scheduledAt: "desc" },
+      },
       _count: { select: { prospectingActions: true } },
     },
   },
@@ -62,7 +78,7 @@ export interface AdminLead {
   score: number | null
   createdAt: Date
   actionsCount: number
-  interviews: { status: InterviewStatus; outcome: InterviewOutcome | null; scheduledAt: Date }[]
+  interviews: LeadWithPerson["person"]["interviews"]
   contactRole: { types: ContactType[]; status: ContactStatus } | null
   opportunities: OpportunitySummary[]
 }

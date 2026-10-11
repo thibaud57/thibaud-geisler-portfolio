@@ -33,6 +33,7 @@ import { byOccurredAtAsc } from "@/lib/action-views"
 import {
   ADMIN_COMPANIES_PATH,
   ADMIN_CONTACTS_PATH,
+  ADMIN_INTERVIEWS_PATH,
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
   ADMIN_PROSPECTING_ACTIONS_PATH,
@@ -41,6 +42,7 @@ import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/adm
 import { CONTACT_STATUS_LABELS, CONTACT_TYPE_LABELS } from "@/lib/contacts"
 import { formatShortDateTime, formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/detail-links"
+import { toLeadInterviewLinks } from "@/lib/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/job-roles"
 import {
   LEAD_DISPLAY_STATUS_ICONS,
@@ -256,6 +258,16 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
       cell: (lead) => lead.actionsCount,
     },
     {
+      key: "interviewsCount",
+      header: "Entretiens",
+      width: LEAD_COLUMN_WIDTHS.interviewsCount,
+      align: "right",
+      className: "tabular-nums text-muted-foreground",
+      ...hideableColumn(visibleByDefault, "interviewsCount"),
+      sortValue: (lead) => lead.interviews.length,
+      cell: (lead) => lead.interviews.length,
+    },
+    {
       key: "retentionEnd",
       header: "À conserver jusqu'au",
       width: LEAD_COLUMN_WIDTHS.retentionEnd,
@@ -321,6 +333,25 @@ function opportunitiesSection(lead: AdminLead): DetailSection {
   }
 }
 
+function interviewsSection(lead: AdminLead): DetailSection {
+  return {
+    title: LEAD_SECTION_TITLES.interviews,
+    rows: [
+      {
+        fullWidth: true,
+        value:
+          lead.interviews.length === 0 ? null : (
+            <RelatedLinksList
+              links={toLeadInterviewLinks(lead.interviews, (id) =>
+                detailHref(ADMIN_INTERVIEWS_PATH, id),
+              )}
+            />
+          ),
+      },
+    ],
+  }
+}
+
 function buildLeadDetail(
   lead: AdminLead,
   history: readonly ActionTimelineRow[],
@@ -347,6 +378,7 @@ function buildLeadDetail(
         },
         historySection(history, ranks),
         opportunitiesSection(lead),
+        interviewsSection(lead),
       ],
     }
   }
@@ -444,6 +476,7 @@ function buildLeadDetail(
       },
       historySection(history, ranks),
       opportunitiesSection(lead),
+      interviewsSection(lead),
     ],
     onEdit,
   }

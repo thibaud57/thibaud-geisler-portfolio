@@ -10,6 +10,7 @@ import { CommandGroup, CommandItem } from "@/components/ui/command"
 export interface ComboboxOption {
   value: string
   label: string
+  hint?: string
 }
 
 interface Props {
@@ -72,13 +73,20 @@ export function MultiSelectCombobox({
             <CommandItem
               key={option.value}
               value={option.value}
-              keywords={[option.label]}
+              keywords={option.hint ? [option.label, option.hint] : [option.label]}
               data-checked={selected.includes(option.value)}
               onSelect={() => {
                 toggle(option.value)
               }}
             >
-              {option.label}
+              {option.hint ? (
+                <>
+                  <span className="truncate">{option.label}</span>
+                  <span className="truncate text-muted-foreground">{option.hint}</span>
+                </>
+              ) : (
+                option.label
+              )}
             </CommandItem>
           ))}
         </CommandGroup>

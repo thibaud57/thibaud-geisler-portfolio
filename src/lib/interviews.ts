@@ -23,6 +23,7 @@ import type {
   InterviewStatus,
   InterviewType,
 } from "@/generated/prisma/client"
+import { formatShortDateTime } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
@@ -138,4 +139,49 @@ export function interviewTitle(type: InterviewType, number: number | null): stri
   return number === null
     ? INTERVIEW_TYPE_LABELS[type]
     : `Entretien ${number} · ${INTERVIEW_TYPE_LABELS[type]}`
+}
+
+type LinkedInterview = Pick<Interview, "id" | "type" | "status" | "scheduledAt">
+
+export function toInterviewLink(
+  interview: LinkedInterview,
+  places: ReadonlyMap<string, InterviewPlace>,
+  href: string,
+  metaPrefix?: string,
+) {
+  const status = INTERVIEW_STATUS_LABELS[interview.status]
+  return {
+    id: interview.id,
+    href,
+    label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
+    meta: metaPrefix ? `${metaPrefix} · ${status}` : status,
+    trailing: formatShortDateTime(interview.scheduledAt),
+  }
+}
+
+export function toOpportunityInterviewLinks(
+  interviews: readonly (LinkedInterview & OrderedInterview)[],
+  hrefOf: (interviewId: string) => string,
+) {
+  const places = interviewPlaces(interviews)
+  return interviews.map((interview) => toInterviewLink(interview, places, hrefOf(interview.id)))
+}
+
+// Le numéro se calcule sur tous les entretiens de l'opportunité, pas seulement sur ceux du lead.
+export function toLeadInterviewLinks(
+  interviews: readonly (LinkedInterview & {
+    opportunity: { id: string; title: string; interviews: readonly OrderedInterview[] }
+  })[],
+  hrefOf: (interviewId: string) => string,
+) {
+  const placesByOpportunity = new Map<string, Map<string, InterviewPlace>>()
+  return interviews.map((interview) => {
+    const { opportunity } = interview
+    let places = placesByOpportunity.get(opportunity.id)
+    if (!places) {
+      places = interviewPlaces(opportunity.interviews)
+      placesByOpportunity.set(opportunity.id, places)
+    }
+    return toInterviewLink(interview, places, hrefOf(interview.id), opportunity.title)
+  })
 }

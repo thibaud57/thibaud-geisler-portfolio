@@ -1,14 +1,13 @@
 "use client"
 
 import { useActionState, useEffect, useEffectEvent, useId, useState } from "react"
-import { fr } from "date-fns/locale"
-import { Calendar as CalendarIcon, Pencil, Plus, Save } from "lucide-react"
+import { Pencil, Plus, Save } from "lucide-react"
 import { toast } from "sonner"
 
 import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { DateTimeField } from "@/components/features/admin/DateTimeField"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 import {
   Dialog,
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/dialog"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
@@ -31,7 +29,6 @@ import { EnumSelectItems } from "@/components/features/admin/EnumSelectItems"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { timeOf, toInstant } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/persons"
-import { formatShortDate } from "@/lib/projects"
 import { isRepliedStatus } from "@/lib/prospecting-action-status"
 import {
   ACTION_CHANNEL_ICONS,
@@ -41,7 +38,6 @@ import {
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
 } from "@/lib/prospecting-actions"
 import { ACTION_CHANNELS, ACTION_STATUSES } from "@/lib/schemas/prospecting-action"
-import { cn } from "@/lib/utils"
 import {
   createProspectingAction,
   updateProspectingAction,
@@ -122,73 +118,6 @@ export function ProspectingActionFormDialog({
         />
       </DialogContent>
     </Dialog>
-  )
-}
-
-function DateTimeField({
-  id,
-  label,
-  errors,
-  date,
-  onDateChange,
-  time,
-  onTimeChange,
-  required = false,
-}: {
-  id: string
-  label: string
-  errors: string[] | undefined
-  date: Date | undefined
-  onDateChange: (date: Date | undefined) => void
-  time: string
-  onTimeChange: (time: string) => void
-  required?: boolean
-}) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <FormField id={id} label={label} errors={errors}>
-      <div className="grid grid-cols-[1fr_7rem] gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              id={id}
-              aria-invalid={!!errors?.length}
-              aria-describedby={`${id}-error`}
-              className={cn("w-full justify-start font-normal", !date && "text-muted-foreground")}
-            >
-              <CalendarIcon aria-hidden data-icon="inline-start" />
-              {date ? formatShortDate(date) : "Choisir une date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-0">
-            <Calendar
-              locale={fr}
-              mode="single"
-              required={required}
-              selected={date}
-              defaultMonth={date ?? new Date()}
-              onSelect={(next: Date | undefined) => {
-                onDateChange(next)
-                // Une date sans heure donnerait une valeur vide, que le serveur remplacerait par l'instant courant.
-                if (next && !time) onTimeChange(timeOf(new Date()))
-                setOpen(false)
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-        <Input
-          type="time"
-          aria-label={`${label}, heure`}
-          value={time}
-          onChange={(event) => {
-            onTimeChange(event.target.value)
-          }}
-        />
-      </div>
-    </FormField>
   )
 }
 
