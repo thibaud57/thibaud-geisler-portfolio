@@ -18,9 +18,10 @@ export function loadOgFonts(): Promise<OgFont[]> {
 async function readFontsFromDisk(): Promise<OgFont[]> {
   const fontsDir = join(process.cwd(), "src", "lib", "seo", "fonts")
 
+  // satori ne lit pas le woff2 : l'image OG part en 502.
   const [sansationBold, geistRegular] = await Promise.all([
-    readFile(join(fontsDir, "Sansation-Bold.woff2")),
-    readFile(join(fontsDir, "Geist-Regular.woff2")),
+    readFile(join(fontsDir, "Sansation-Bold.ttf")),
+    readFile(join(fontsDir, "Geist-Regular.ttf")),
   ])
 
   return [

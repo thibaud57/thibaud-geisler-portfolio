@@ -1,8 +1,8 @@
 ---
 title: "React — Librairie UI"
-version: "19.2.8"
+version: "19.3.0"
 description: "Référence technique pour React 19 : Server Components, Actions, hooks modernes et patterns Next.js."
-date: "2026-04-13"
+date: "2026-10-03"
 keywords: ["react", "server-components", "actions", "hooks", "nextjs"]
 scope: ["docs"]
 technologies: ["Next.js", "TypeScript"]
@@ -11,6 +11,8 @@ technologies: ["Next.js", "TypeScript"]
 # Description
 
 `React` 19 est la version utilisée par Next.js 16 dans le portfolio. Elle introduit les Server Components stables, les Actions (mutations via formulaires), le hook `use()`, et simplifie les patterns historiques (ref comme prop, Context comme Provider direct). Utilisée principalement via App Router : composants serveur par défaut, îlots clients marqués `'use client'` pour l'interactivité.
+
+La 19.3 (9 septembre 2026) stabilise `<ViewTransition>`, que le portfolio emploie pour le fondu entre pages, ainsi que les Fragment Refs. Elle ajoute `use(browser())` pour sortir un sous-arbre du rendu serveur, et rend chaque Transition indépendamment des autres, sans breaking change annoncé.
 
 ---
 
@@ -173,8 +175,42 @@ En v19, `<Context>` peut être utilisé directement comme provider sans la synta
 
 - Plus besoin de `.Provider`, le Context lui-même est callable
 - `<Context.Provider>` reste fonctionnel (pas de breaking change immédiat)
-- Garder les Context Providers dans des Client Components wrappant `{children}`
+- Garder les Context Providers dans des Client Components wrappant `{children}`. Depuis la 19.3, un `<Context>` exporté par un module `'use client'` peut aussi se rendre directement depuis un Server Component, sans composant intermédiaire
 - `use(Context)` (nouveau hook) fonctionne même après early return
+
+---
+
+## View Transitions
+
+### Description
+
+`<ViewTransition>` anime l'entrée et la sortie d'un sous-arbre par l'API View Transition du navigateur. Canary jusqu'en 19.2, stable depuis la 19.3. Le portfolio l'emploie pour le fondu entre pages, dans `PageShell` et sur la page d'accueil, avec la classe de transition `page-fade`.
+
+### Exemple
+
+```tsx
+import { ViewTransition } from 'react'
+
+export function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <ViewTransition enter="page-fade" exit="page-fade">
+      <main>{children}</main>
+    </ViewTransition>
+  )
+}
+```
+
+```css
+::view-transition-old(.page-fade) { animation: 200ms ease-in-out both page-fade-out; }
+::view-transition-new(.page-fade) { animation: 200ms ease-out both page-fade-in; }
+```
+
+### Points Importants
+
+- `enter` et `exit` nomment une classe de transition, l'animation elle-même vit dans le CSS (`src/app/globals.css`) via `::view-transition-old` et `::view-transition-new`
+- `addTransitionType` (19.3) fait varier l'animation d'une même mise à jour selon son origine
+- La bascule de thème appelle `document.startViewTransition` directement (`animated-theme-toggler.tsx`), hors du composant React, avec un repli quand le navigateur ne la supporte pas
+- `tsconfig.json` charge `react/canary` et `react/experimental` dans `types`, posés quand l'API n'était exposée que par ces canaux
 
 ---
 
@@ -211,3 +247,4 @@ En v19, `<Context>` peut être utilisé directement comme provider sans la synta
 
 - [React 19 Upgrade Guide](https://react.dev/blog/2024/04/25/react-19-upgrade-guide)
 - [React 19.2](https://react.dev/blog/2025/10/01/react-19-2)
+- [React 19.3](https://react.dev/blog/2026/09/09/react-19-3)

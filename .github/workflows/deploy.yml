@@ -9,6 +9,9 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -25,17 +28,8 @@ jobs:
       packages: write
 
     steps:
+      # Ni pnpm ni Node sur le runner : le Dockerfile installe lui-même les dépendances.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "24"
-          cache: "pnpm"
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
 
       - name: Log in to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -55,10 +49,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build & push image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: true
@@ -74,14 +68,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Secrets passés par `env:` : interpolés dans `run:`, ils seraient injectés dans le script
+      # avant son exécution par le shell.
       - name: Trigger Dokploy compose redeploy
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
         run: |
           for i in 1 2 3; do
             curl -fsSL --max-time 30 -X POST \
-              "${{ secrets.DOKPLOY_URL }}/api/compose.redeploy" \
-              -H "x-api-key: ${{ secrets.DOKPLOY_TOKEN }}" \
+              "$DOKPLOY_URL/api/compose.redeploy" \
+              -H "x-api-key: $DOKPLOY_TOKEN" \
               -H "Content-Type: application/json" \
-              -d '{"composeId":"${{ secrets.DOKPLOY_COMPOSE_ID }}"}' && exit 0
+              -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}" && exit 0
             echo "Attempt $i failed, retrying in $((i*5))s..."
             sleep $((i*5))
           done

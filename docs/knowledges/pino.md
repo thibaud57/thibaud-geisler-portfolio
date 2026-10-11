@@ -1,6 +1,6 @@
 ---
 title: "Pino — Logger JSON structuré"
-version: "10.3.1"
+version: "10.4.0"
 description: "Référence technique pour Pino : logger JSON, child loggers, transports et intégration Next.js."
 date: "2026-04-13"
 keywords: ["pino", "logger", "json", "observability", "nextjs"]
@@ -10,7 +10,7 @@ technologies: ["Node.js", "Next.js", "TypeScript"]
 
 # Description
 
-`Pino` est le logger Node.js de référence pour l'output JSON structuré. Il est rapide, faible overhead, et bundlé avec ses types TypeScript nativement. Dans le portfolio, Pino écrit en stdout pour être capturé par Dokploy et consultable dans l'onglet Logs. Niveaux utilisés : `info`, `warn`, `error`. Configuration obligatoire : ajouter `pino`, `pino-pretty` et `thread-stream` dans `serverExternalPackages` de `next.config.ts` pour éviter les erreurs de bundling des worker threads par Next.js.
+`Pino` est le logger Node.js de référence pour l'output JSON structuré. Il est rapide, faible overhead, et bundlé avec ses types TypeScript nativement. Dans le portfolio, Pino écrit en stdout pour être capturé par Dokploy et consultable dans l'onglet Logs. Niveaux utilisés : `info`, `warn`, `error`. Les worker threads ne se bundlent pas : `pino`, `pino-pretty` et `thread-stream` restent des modules externes par `serverExternalPackages`, liste que Next fournit déjà et que `next.config.ts` redéclare.
 
 ---
 
@@ -26,13 +26,16 @@ Pattern recommandé : créer une instance unique exportée depuis `src/lib/logge
 
 ```ts
 // src/lib/logger.ts
+import 'server-only'
 import pino from 'pino'
+
+import { env } from '@/env'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
-  base: { service: 'portfolio' },
+  level: env.LOG_LEVEL ?? (isDev ? 'debug' : 'info'),
+  base: { service: 'thibaud-geisler-portfolio' },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: (label) => ({ level: label }),
@@ -48,7 +51,8 @@ export const logger = pino({
 
 ### Points Importants
 
-- Un logger partagé, importé partout côté serveur
+- Un logger partagé, importé partout côté serveur, protégé par `server-only`
+- `LOG_LEVEL` se lit par `env` (`@/env`, t3-env), comme toute variable d'environnement du projet
 - En dev : transport `pino-pretty` pour la lisibilité
 - En prod : output JSON brut vers stdout, capturé par Dokploy
 - `formatters.level` envoie le label texte (`info`) au lieu du numéro (`30`)
@@ -124,7 +128,7 @@ logger.error({ err, formData }, 'Form validation failed')
 
 ### Description
 
-Pino utilise des worker threads via `thread-stream`. Sans configuration explicite, Next.js tente de bundler ces modules, ce qui casse le runtime. Ajouter `pino`, `pino-pretty` et `thread-stream` dans `serverExternalPackages` force Next.js à les traiter comme des modules Node.js externes.
+Pino utilise des worker threads via `thread-stream`, qui ne se bundlent pas. `pino`, `pino-pretty` et `thread-stream` figurent dans la liste `serverExternalPackages` par défaut de Next (`node_modules/next/dist/lib/server-external-packages.jsonc`), qui les traite donc déjà comme des modules Node.js externes. Le projet les redéclare dans `next.config.ts` pour documenter la dépendance et ne pas dépendre de cette liste.
 
 ### Exemple
 
@@ -141,7 +145,7 @@ export default nextConfig
 
 ### Points Importants
 
-- Obligatoire pour Pino + Next.js, sinon erreur au démarrage ou à l'exécution
+- Sans cette exclusion (la liste de Next ou celle du projet), erreur au démarrage ou à l'exécution
 - `thread-stream` peut nécessiter une installation explicite (`pnpm add thread-stream`)
 - Avec Turbopack : vérifier la version Next.js (bug corrigé en 16.1.0-canary.16+)
 - Ne pas importer Pino côté client : module serveur uniquement
@@ -160,14 +164,8 @@ L'option `redact` masque automatiquement certaines propriétés dans les logs av
 const logger = pino({
   level: 'info',
   redact: {
-    paths: [
-      'user.password',
-      'user.email',
-      '*.authorization',
-      'req.headers.cookie',
-      'smtp.pass',
-    ],
-    remove: true,
+    paths: ['*.password', '*.pass', '*.secret', '*.token', '*.key', 'req.headers.authorization', 'req.headers.cookie'],
+    censor: '[REDACTED]',
   },
 })
 ```
@@ -175,7 +173,7 @@ const logger = pino({
 ### Points Importants
 
 - Supporte les wildcards pour matcher plusieurs propriétés
-- `remove: true` supprime le champ (par défaut : remplace par `[Redacted]`)
+- Le projet remplace la valeur par `censor: '[REDACTED]'` plutôt que de supprimer le champ (`remove: true`) : un champ masqué reste visible dans le log, ce qui montre qu'il existait
 - Compléter par une revue manuelle des logs avant la mise en prod
 - Ne pas s'y fier à 100% : éviter par défaut de mettre des secrets dans les objets loggés
 

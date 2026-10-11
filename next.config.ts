@@ -1,10 +1,8 @@
-import bundleAnalyzer from "@next/bundle-analyzer"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 import { withSentryConfig } from "@sentry/nextjs/config"
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
-const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env["ANALYZE"] === "true" })
 
 const isDev = process.env.NODE_ENV !== "production"
 
@@ -48,10 +46,11 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Reprend la liste par défaut de Next (l'option la remplace, elle ne l'étend pas) et y ajoute les
   // crawlers HTML-only que le prerender des slugs protégeait : sans rendu bloquant, ils liraient
-  // les métadonnées streamées après </head>. Jamais /.*/ : bugs connus avec Cache Components
-  // (.claude/rules/nextjs/metadata-seo.md).
+  // les métadonnées streamées après </head>. Googlebot aussi : Google n'accepte le canonical que
+  // dans le <head> (Search Console : « canonique déclarée : aucune » sur les pages projet).
+  // Jamais /.*/ : bugs connus avec Cache Components (.claude/rules/nextjs/metadata-seo.md).
   htmlLimitedBots:
-    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Bluesky|Mastodon/i,
+    /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Bluesky|Mastodon/i,
   experimental: {
     // Requis car le root layout vit dans le segment [locale] (structure next-intl) :
     // global-not-found.tsx porte le 404 des URLs qui ne matchent aucune route.
@@ -91,12 +90,10 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), {
+export default withSentryConfig(withNextIntl(nextConfig), {
   org: "tg-ws",
   project: "thibaud-geisler-portfolio",
   authToken: process.env["SENTRY_AUTH_TOKEN"],
   silent: !process.env["CI"],
   widenClientFileUpload: true,
-  // @ts-expect-error useRunAfterProductionCompileHook is undocumented in types but required for Turbopack
-  _experimental: { useRunAfterProductionCompileHook: true },
 })

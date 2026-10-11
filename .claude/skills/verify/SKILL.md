@@ -57,6 +57,28 @@ curl -s -X POST http://localhost:3000/fr/contact \
 
 Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.
 
+Sur l'image de production (Next 16.3.6, React 19.3.0), ce POST multipart répond **500 « Connection closed. »** alors que la même action soumise par un navigateur réussit (constaté le 2026-10-03). Y piloter le formulaire par le MCP Playwright, ou encoder le corps par `encodeReply` comme pour l'admin.
+
+## Vérifier l'image de production sans `.env`
+
+Une montée de Next, de Prisma ou du SDK Sentry se prouve sur l'image que le déploiement construit, pas seulement en dev. L'image se build et tourne sans aucun secret, contre un Postgres jetable :
+
+```bash
+docker build -t portfolio-verif \
+  --build-arg NEXT_PUBLIC_SENTRY_DSN="$(gh variable get NEXT_PUBLIC_SENTRY_DSN)" .   # idem pour les 3 autres NEXT_PUBLIC_* (variables du dépôt, publiques par construction)
+docker network create verif-net
+docker run -d --name verif-pg --network verif-net -e POSTGRES_USER=verif -e POSTGRES_PASSWORD=verif -e POSTGRES_DB=portfolio postgres:18-alpine
+docker run -d --name verif-app --network verif-net -p 3100:3000 \
+  -e DATABASE_URL="postgresql://verif:verif@verif-pg:5432/portfolio" \
+  -e SKIP_ENV_VALIDATION=true -e SENTRY_ENVIRONMENT=verification portfolio-verif
+docker rm -f verif-app verif-pg && docker network rm verif-net && docker rmi portfolio-verif   # en fin de run
+```
+
+- La CMD applique les migrations avant de servir : `docker logs verif-app` doit les lister, puis les routes publiques répondent 200 sur une base vide
+- Attendus sans secrets, sans rapport avec le changement : `/api/auth/*` en 500 (`BETTER_AUTH_SECRET` absent), images `/_next/image` en 400 (bucket R2 non configuré), action contact en `smtp_error`
+- `SENTRY_ENVIRONMENT=verification` isole les événements du run dans Sentry. Ils créent pourtant de vraies issues dans le projet : les résoudre en fin de run par `sentry issue resolve <SHORT-ID>` (sans préfixe d'org : `tg-ws/<SHORT-ID>` affiche l'issue sans la résoudre), après avoir vérifié leur `firstSeen`
+- Les spans d'un run se listent par `sentry api "organizations/tg-ws/events/?dataset=spans&field=span.op&field=span.description&field=timestamp&query=environment:verification&statsPeriod=1h&project=-1&sort=-timestamp"`, ceux d'une trace précise avec `query=trace:<trace_id>`
+
 ## Piloter une Server Action de l'espace admin
 
 Un formulaire rendu dans une modale fermée n'est pas dans le HTML : ni champs `$ACTION_*`, ni id d'action à y récupérer. L'id se lit dans le manifeste du build de dev, une fois la page servie au moins une fois :
@@ -223,3 +245,4 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - Écran Entretiens : `a[href='/admin/entretiens']` matche l'entrée du menu et la sous-entrée Journal, cibler les sous-entrées par `[data-slot=sidebar-menu-sub-button]`, présentes dans le DOM seulement quand le groupe est ouvert (depuis une autre page, l'entrée parente mène au Journal). Après une navigation client vers une liste, `networkidle` revient avant les lignes : attendre `table:visible tbody tr`. `RelatedLinksList` rend « : » entre libellé et méta dans le texte brut. Les boutons de ligne s'appellent `Modifier <titre> · <opportunité>` et `Supprimer <titre> · <opportunité>` (constaté le 2026-10-11).
 - Un `timezoneId: "UTC"` passé à `browser.newContext` met le navigateur hors du fuseau du serveur de dev (Paris) : il révèle un écart d'hydratation lié au fuseau sans relancer `TZ=UTC pnpm dev` (constaté le 2026-10-11).
 - Revues hebdo : semer `freelance."WeeklyReview"` (`id`, `"closingFriday"` en date seule, `"updatedAt"` obligatoires, compteurs à 0 par défaut), une seule ligne par vendredi. Les compteurs attendus de « Calculer depuis le CRM » se recalculent en SQL avec les bornes samedi 0 h → samedi 0 h de Paris (`timestamptz '2026-10-10 00:00+02'`), puis se comparent aux sept `input[name=…]` du formulaire. Le champ Date vendredi s'ouvre par `button[id$="-closingFriday"]`, valeur dans `input[name=closingFriday]`. Les puces du calendrier vivent dans une couche `event-calendar-month-bar-overlay`, hors des cellules : leur jour se prouve par la géométrie (abscisse sous l'en-tête « ven. »), à refaire dans un contexte `America/Los_Angeles` pour le décalage d'un jour (constaté le 2026-10-11).
+- Le hook `block_sensitive_files.py` refuse toute commande où `.env`, `.key`, `.token`, `.pem` (et autres extensions de secrets) apparaît en mot entier, même dans du code : un `node -e` qui lit `t.key` sur les tags d'un événement Sentry est bloqué. Écrire `t["key"]` (constaté le 2026-10-03).

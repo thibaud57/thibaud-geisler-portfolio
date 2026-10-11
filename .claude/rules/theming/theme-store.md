@@ -1,7 +1,6 @@
 ---
 paths:
-  - "src/lib/theme.ts"
-  - "src/lib/theme-script.ts"
+  - "src/lib/theme*.ts"
   - "src/components/theme-script.tsx"
   - "src/app/**/layout.tsx"
   - "src/app/global-not-found.tsx"

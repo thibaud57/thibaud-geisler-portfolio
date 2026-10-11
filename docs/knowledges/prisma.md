@@ -136,7 +136,7 @@ import { env } from '@/env'
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL })
+  const adapter = new PrismaPg({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 5_000 })
   return new PrismaClient({ adapter, log: ['warn', 'error'] })
 }
 
@@ -152,6 +152,7 @@ if (process.env.NODE_ENV !== 'production') {
 - Pattern singleton via `globalThis` pour éviter les multiples instances en dev (hot reload Next.js)
 - Importer depuis le chemin `output` du generator (`@/generated/prisma/client`)
 - `@prisma/adapter-pg` et `pg` sont des dépendances runtime obligatoires
+- Le driver adapter reprend les défauts de `pg`, qui diffèrent de Prisma 6 : aucun timeout de connexion (`0`, contre 5 s en v6) et un idle timeout de 10 s. Sans `connectionTimeoutMillis`, une base injoignable fait attendre la requête indéfiniment (posé à 5 s dans `src/lib/prisma.ts` le 9 octobre 2026)
 - Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (validation Zod runtime via `@t3-oss/env-nextjs`), Next.js charge `.env*` automatiquement au boot, pas besoin de `dotenv/config` dans le module
 - `import 'server-only'` empêche tout import accidentel depuis un Client Component
 - En prod (Next.js build), une seule instance est créée par worker
