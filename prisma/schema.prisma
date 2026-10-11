@@ -258,6 +258,21 @@ enum ReviewMotivation {
   @@schema("freelance")
 }
 
+enum SignalType {
+  OFFRE_POSTE
+  LEVEE
+  EXPANSION
+  NOUVEAU_PRODUIT
+  PIVOT
+  ACQUISITION
+  POST
+  COMMENTAIRE
+  CONFERENCE
+  INTERACTION
+
+  @@schema("freelance")
+}
+
 enum ActionChannel {
   CANDIDATURE
   CONNEXION_LINKEDIN
@@ -409,6 +424,8 @@ model Company {
   opportunitiesAsIntermediary Opportunity[] @relation("OpportunityIntermediary")
   opportunitiesAsClient       Opportunity[] @relation("OpportunityClient")
 
+  signals Signal[]
+
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
@@ -441,6 +458,7 @@ model Person {
   prospectingActions    ProspectingAction[]
   referredOpportunities Opportunity[]       @relation("OpportunityReferrer")
   interviews            Interview[]         @relation("InterviewCorrespondents")
+  signals               Signal[]
 
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
@@ -560,6 +578,29 @@ model WeeklyReview {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
+  @@schema("freelance")
+}
+
+model Signal {
+  id         String     @id @default(uuid(7))
+  type       SignalType
+  // Le jour quand la source le donne, le 1er du mois sinon : pas de précision à part, un seul calendrier.
+  occurredOn DateTime   @db.Date
+  content    String
+  sourceUrl  String?
+
+  // Un seul rattachement, posé à la création, et un type propre à ce rattachement : la migration
+  // ajoute en SQL les deux CHECK que Prisma ne sait pas écrire.
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personId  String?
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([companyId])
+  @@index([personId])
   @@schema("freelance")
 }
 

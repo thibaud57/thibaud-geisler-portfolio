@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 import type { ReviewMotivation, ReviewStatus } from "@/generated/prisma/client"
-import { DAY_MS, dateOnlyToLocal } from "@/lib/date-time"
+import { DAY_MS, dateOnlyToLocal, formatDateOnly } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
@@ -64,14 +64,6 @@ export const REVIEW_FIELD_LABELS = {
   notes: "Notes",
 } as const
 
-// Colonne date : le vendredi arrive à minuit UTC, il se lit et se formate en UTC.
-const WEEK_DATE = new Intl.DateTimeFormat("fr-FR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  timeZone: "UTC",
-})
-
 export function isoDayToDate(isoDay: string): Date {
   const [year = 0, month = 1, day = 1] = isoDay.split("-").map(Number)
   return new Date(Date.UTC(year, month - 1, day))
@@ -90,11 +82,7 @@ export function defaultClosingFriday(now: Date): Date {
 export function weekLabel(closingFriday: Date): string {
   const week = String(getISOWeek(dateOnlyToLocal(closingFriday))).padStart(2, "0")
   const monday = new Date(closingFriday.getTime() - 4 * DAY_MS)
-  return `S${week} · Semaine du ${WEEK_DATE.format(monday)}`
-}
-
-export function formatWeekDate(date: Date): string {
-  return WEEK_DATE.format(date)
+  return `S${week} · Semaine du ${formatDateOnly(monday)}`
 }
 
 export const REVIEW_COUNTER_KEYS = [

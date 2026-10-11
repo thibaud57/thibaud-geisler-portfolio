@@ -21,6 +21,7 @@ import {
   REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS,
   type ReviewColumnKey,
 } from "@/lib/admin-table-widths"
+import { formatDateOnly } from "@/lib/date-time"
 import {
   isReviewPeriod,
   REVIEW_PERIOD_LABELS,
@@ -33,7 +34,6 @@ import {
 import { REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
 import {
   formatRate,
-  formatWeekDate,
   REVIEW_FIELD_LABELS as LABELS,
   REVIEW_MOTIVATION_ICONS,
   REVIEW_MOTIVATION_LABELS,
@@ -99,7 +99,7 @@ function buildDataColumns(view: ReviewView): readonly Column<AdminWeeklyReview>[
       className: "tabular-nums text-muted-foreground",
       ...hideableColumn(visibleByDefault, "friday"),
       sortValue: (review) => review.closingFriday.getTime(),
-      cell: (review) => formatWeekDate(review.closingFriday),
+      cell: (review) => formatDateOnly(review.closingFriday),
     },
     counterColumn(visibleByDefault, "connectionsSent"),
     counterColumn(visibleByDefault, "connectionsAccepted"),
@@ -143,7 +143,7 @@ function textSection(title: string, text: string | null): DetailSection {
 
 function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): DetailContent {
   const rates = reviewRates(review)
-  const closing = `clôture le ${formatWeekDate(review.closingFriday)}`
+  const closing = `clôture le ${formatDateOnly(review.closingFriday)}`
 
   return {
     title: weekLabel(review.closingFriday),

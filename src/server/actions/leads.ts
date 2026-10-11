@@ -173,6 +173,7 @@ export async function deleteLead(personId: string): Promise<LeadFormState> {
       prisma.$transaction(async (tx) => {
         await assertNotOptedOut(tx, personId)
         await tx.lead.delete({ where: { personId } })
+        await tx.signal.deleteMany({ where: { personId } })
         await deletePersonIfRoleless(tx, personId)
       }),
     invalidateCaches: revalidatePersonLists,

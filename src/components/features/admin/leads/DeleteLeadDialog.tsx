@@ -23,7 +23,7 @@ export function DeleteLeadDialog({ lead }: Props) {
         </RowActionButton>
       }
       name={name}
-      description="Un lead perdu se garde plutôt avec le statut « Perdu ». Si cette personne n'est pas aussi un contact, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
+      description="Un lead perdu se garde plutôt avec le statut « Perdu ». Ses signaux sont supprimés. Si cette personne n'est pas aussi un contact, sa fiche et ses actions sont supprimées avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
       successMessage="Lead supprimé"
       onDelete={async () => {
         const result = await deleteLead(lead.id)

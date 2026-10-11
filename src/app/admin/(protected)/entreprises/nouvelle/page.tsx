@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
+import { PendingSignalsCard } from "@/components/features/admin/signals/PendingSignalsCard"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
@@ -35,6 +36,7 @@ async function NewCompanySection() {
               links={[]}
               emptyText="Après l'enregistrement de l'entreprise."
             />
+            <PendingSignalsCard emptyText="Après l'enregistrement de l'entreprise." />
           </>
         }
       />

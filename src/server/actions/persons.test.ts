@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", () => {
       findUnique: vi.fn(),
     },
     prospectingAction: { deleteMany: vi.fn() },
+    signal: { deleteMany: vi.fn() },
     contact: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   }
@@ -80,6 +81,19 @@ describe("optOutPerson", () => {
     await optOutPerson("p1")
 
     expect(prisma.contact.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
+  })
+
+  it("deletes the person's signals when they object to prospecting", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      email: "jeanne.dupont@example.com",
+      linkedinUrl: null,
+      optedOutAt: null,
+      lead: { personId: "p1" },
+    } as never)
+
+    await optOutPerson("p1")
+
+    expect(prisma.signal.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
   })
 
   it("refuses to oppose a person without the lead role", async () => {

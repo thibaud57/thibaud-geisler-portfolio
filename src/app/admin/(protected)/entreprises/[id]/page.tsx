@@ -5,6 +5,7 @@ import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
 import type { RelatedLink } from "@/components/features/admin/RelatedLinksList"
+import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
@@ -55,6 +56,11 @@ async function EditCompanySection({ id }: { id: string }) {
                 }),
               )}
               emptyText="Aucune opportunité pour cette entreprise."
+            />
+            <SignalsCard
+              signals={company.signals}
+              owner={{ kind: "company", id: company.id, name: company.name }}
+              canAdd
             />
           </>
         }

@@ -19,6 +19,7 @@ vi.mock("@/lib/prisma", () => {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    signal: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   }
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
@@ -313,6 +314,12 @@ describe("deleteLead", () => {
     expect(prisma.person.deleteMany).toHaveBeenCalledWith({
       where: { id: "p1", lead: { is: null }, contact: { is: null } },
     })
+  })
+
+  it("deletes the person's signals with the lead role", async () => {
+    await deleteLead("p1")
+
+    expect(prisma.signal.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
   })
 
   it("refuses a lead already deleted elsewhere, without touching the person", async () => {

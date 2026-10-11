@@ -7,6 +7,7 @@ import { isActiveLead } from "@/lib/lead-views"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 import { opportunitySummarySelect } from "@/server/queries/opportunities"
+import { signalsInclude } from "@/server/queries/signals"
 
 const legalEntityInclude = { legalEntity: { include: { address: true, publisher: true } } } as const
 
@@ -14,6 +15,7 @@ const adminCompanyInclude = {
   ...legalEntityInclude,
   opportunitiesAsIntermediary: { select: opportunitySummarySelect, orderBy: { updatedAt: "desc" } },
   opportunitiesAsClient: { select: opportunitySummarySelect, orderBy: { updatedAt: "desc" } },
+  signals: signalsInclude,
 } as const
 
 const companyCounts = {

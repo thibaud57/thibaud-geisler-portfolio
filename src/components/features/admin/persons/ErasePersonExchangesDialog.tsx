@@ -58,8 +58,8 @@ export function ErasePersonExchangesDialog({ person }: Props) {
           </AlertDialogMedia>
           <AlertDialogTitle>Effacer les échanges de « {name} » ?</AlertDialogTitle>
           <AlertDialogDescription>
-            Les actions et les signaux de cette personne sont supprimés définitivement, ainsi que sa
-            présence dans ses entretiens. Action irréversible.
+            Les actions de cette personne sont supprimées définitivement, ainsi que sa présence dans
+            ses entretiens. Action irréversible.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

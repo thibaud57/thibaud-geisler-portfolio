@@ -26,6 +26,8 @@ import {
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteLeadDialog } from "@/components/features/admin/leads/DeleteLeadDialog"
 import { ErasePersonExchangesDialog } from "@/components/features/admin/persons/ErasePersonExchangesDialog"
+import { signalsSection } from "@/components/features/admin/signals/SignalList"
+import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
 import { rankActions } from "@/lib/action-rank"
@@ -72,6 +74,7 @@ import { isRetentionOver, retentionEndOf } from "@/lib/person-retention"
 import { formatShortDate } from "@/lib/projects"
 import { toActionLink } from "@/lib/prospecting-actions"
 import { LEAD_INTERESTS, LEAD_ORIGINS } from "@/lib/schemas/lead"
+import { signalFacet, type SignalItem } from "@/lib/signals"
 import { STANDALONE_LINK_CLASS } from "@/lib/typography"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminLead } from "@/server/queries/leads"
@@ -357,12 +360,13 @@ function buildLeadDetail(
   history: readonly ActionTimelineRow[],
   ranks: Map<string, number>,
   onEdit: () => void,
-  now: number,
+  now: Date,
+  onOpenSignal: (signal: SignalItem) => void,
 ): DetailContent {
   if (lead.optedOutAt) {
     return {
       title: personDisplayName(lead),
-      status: statusBadge(lead, now, { variant: "outline", meta: true }),
+      status: statusBadge(lead, now.getTime(), { variant: "outline", meta: true }),
       sections: [
         {
           title: PERSON_SECTION_TITLES.optOut,
@@ -386,7 +390,7 @@ function buildLeadDetail(
   return {
     title: personDisplayName(lead),
     ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-    status: statusBadge(lead, now, { variant: "outline", meta: true }),
+    status: statusBadge(lead, now.getTime(), { variant: "outline", meta: true }),
     // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
     sections: [
       {
@@ -477,6 +481,7 @@ function buildLeadDetail(
       historySection(history, ranks),
       opportunitiesSection(lead),
       interviewsSection(lead),
+      ...signalsSection(lead.signals, now, onOpenSignal),
     ],
     onEdit,
   }
@@ -546,13 +551,14 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   const [selectedLead, setSelectedLead] = useState<AdminLead | null>(
     () => leads.find((lead) => lead.id === initialDetailId) ?? null,
   )
-  // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
+  // Instant figé au montage : les filtres d'échéance et de signal et la fraîcheur restent stables pendant la consultation.
   const [now] = useState(() => new Date())
   const nowMs = now.getTime()
+  const { openSignal, detailFor, reset, formDialog } = useSignalDetail(now)
 
   const viewLeads = useMemo(() => leadsForView(leads, view, nowMs), [leads, view, nowMs])
   const facets = useMemo(
-    () => [statusFacet(nowMs), ...baseFacets, retentionFacet(now)],
+    () => [statusFacet(nowMs), ...baseFacets, retentionFacet(now), signalFacet<AdminLead>(now)],
     [nowMs, now],
   )
   const ranks = useMemo(() => rankActions(actions), [actions])
@@ -571,21 +577,22 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
     [view, nowMs],
   )
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedLead
-        ? buildLeadDetail(
-            selectedLead,
-            historyByPerson.get(selectedLead.id) ?? [],
-            ranks,
-            () => {
-              router.push(`${ADMIN_LEADS_PATH}/${selectedLead.id}`)
-            },
-            nowMs,
-          )
-        : null,
-    [selectedLead, historyByPerson, ranks, router, nowMs],
-  )
+  const detail = useMemo<DetailContent | null>(() => {
+    if (!selectedLead) return null
+    return (
+      detailFor({ kind: "lead", id: selectedLead.id, name: personDisplayName(selectedLead) }) ??
+      buildLeadDetail(
+        selectedLead,
+        historyByPerson.get(selectedLead.id) ?? [],
+        ranks,
+        () => {
+          router.push(`${ADMIN_LEADS_PATH}/${selectedLead.id}`)
+        },
+        now,
+        openSignal,
+      )
+    )
+  }, [selectedLead, detailFor, historyByPerson, ranks, router, now, openSignal])
 
   return (
     <>
@@ -595,7 +602,10 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
         getRowId={(lead) => lead.id}
         searchPlaceholder="Rechercher un nom ou une entreprise"
         noun="lead"
-        onRowClick={setSelectedLead}
+        onRowClick={(lead) => {
+          reset()
+          setSelectedLead(lead)
+        }}
         rowLabel={personDisplayName}
         facets={facets}
         empty={{
@@ -607,9 +617,13 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
       <DetailDialog
         detail={detail}
         onOpenChange={(open) => {
-          if (!open) setSelectedLead(null)
+          if (!open) {
+            setSelectedLead(null)
+            reset()
+          }
         }}
       />
+      {formDialog}
     </>
   )
 }

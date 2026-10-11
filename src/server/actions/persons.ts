@@ -41,6 +41,8 @@ export async function optOutPerson(id: string): Promise<PersonActionState> {
           where: { id },
           data: { ...OPTED_OUT_CLEARED, optedOutAt: new Date() },
         })
+        // Les signaux ne servaient qu'à cibler la prospection : l'opposition leur ôte toute finalité, à la différence de l'historique des échanges, gardé comme preuve.
+        await tx.signal.deleteMany({ where: { personId: id } })
         // Une personne opposée quitte la liste du réseau : la trace de l'opposition reste sur le rôle Lead.
         await tx.contact.deleteMany({ where: { personId: id } })
         return "opted_out"
@@ -73,7 +75,6 @@ export async function erasePersonExchanges(id: string): Promise<PersonActionStat
         if (!person.optedOutAt) return "not_opted_out"
         if (person.exchangesErasedAt) return "already_erased"
 
-        // TODO: supprimer ici, dans cette même transaction, les signaux de la personne quand ce modèle existera.
         await tx.prospectingAction.deleteMany({ where: { personId: id } })
         // L'entretien reste un fait de l'opportunité : seule l'identification de la personne en part.
         await tx.person.update({

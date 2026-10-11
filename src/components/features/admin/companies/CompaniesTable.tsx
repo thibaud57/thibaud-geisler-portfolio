@@ -26,6 +26,8 @@ import { BadgeList } from "@/components/features/admin/BadgeList"
 import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
+import { signalsSection } from "@/components/features/admin/signals/SignalList"
+import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -63,6 +65,7 @@ import { personDisplayName } from "@/lib/persons"
 import { formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/detail-links"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
+import { signalFacet, type SignalItem } from "@/lib/signals"
 import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminCompany } from "@/server/queries/companies"
 
@@ -363,7 +366,12 @@ function opportunitiesSection(company: AdminCompany): DetailSection[] {
   ]
 }
 
-function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailContent {
+function buildCompanyDetail(
+  company: AdminCompany,
+  onEdit: () => void,
+  now: Date,
+  onOpenSignal: (signal: SignalItem) => void,
+): DetailContent {
   const projectCount = company._count.clientMetas
 
   return {
@@ -460,6 +468,7 @@ function buildCompanyDetail(company: AdminCompany, onEdit: () => void): DetailCo
       ...legalEntitySections(company),
       ...leadsSection(company),
       ...opportunitiesSection(company),
+      ...signalsSection(company.signals, now, onOpenSignal),
     ],
     onEdit,
   }
@@ -501,18 +510,28 @@ export function CompaniesTable({ companies, view, initialDetailId }: Props) {
     () => companies.find((company) => company.id === initialDetailId) ?? null,
   )
 
+  const [now] = useState(() => new Date())
+  const { openSignal, detailFor, reset, formDialog } = useSignalDetail(now)
+
+  const allFacets = useMemo(() => [...facets, signalFacet<AdminCompany>(now)], [now])
+
   const viewCompanies = useMemo(() => companies.filter(VIEW_FILTER[view]), [companies, view])
   const columns = useMemo<readonly Column<AdminCompany>[]>(() => buildColumns(view), [view])
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedCompany
-        ? buildCompanyDetail(selectedCompany, () => {
-            router.push(`/admin/entreprises/${selectedCompany.id}`)
-          })
-        : null,
-    [selectedCompany, router],
-  )
+  const detail = useMemo<DetailContent | null>(() => {
+    if (!selectedCompany) return null
+    return (
+      detailFor({ kind: "company", id: selectedCompany.id, name: selectedCompany.name }) ??
+      buildCompanyDetail(
+        selectedCompany,
+        () => {
+          router.push(`/admin/entreprises/${selectedCompany.id}`)
+        },
+        now,
+        openSignal,
+      )
+    )
+  }, [selectedCompany, detailFor, now, router, openSignal])
 
   return (
     <>
@@ -522,21 +541,28 @@ export function CompaniesTable({ companies, view, initialDetailId }: Props) {
         getRowId={(company) => company.id}
         searchPlaceholder="Rechercher un nom ou un slug"
         noun="entreprise"
-        onRowClick={setSelectedCompany}
+        onRowClick={(company) => {
+          reset()
+          setSelectedCompany(company)
+        }}
         rowLabel={(company) => company.name}
         empty={{
           icon: Building2,
           title: "Aucune entreprise",
           description: "Aucune entreprise pour le moment. Créez-en une via le bouton ci-dessus.",
         }}
-        facets={facets}
+        facets={allFacets}
       />
       <DetailDialog
         detail={detail}
         onOpenChange={(open) => {
-          if (!open) setSelectedCompany(null)
+          if (!open) {
+            setSelectedCompany(null)
+            reset()
+          }
         }}
       />
+      {formDialog}
     </>
   )
 }

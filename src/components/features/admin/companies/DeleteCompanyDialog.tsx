@@ -25,6 +25,7 @@ export function DeleteCompanyDialog({ company }: Props) {
         </RowActionButton>
       }
       name={company.name}
+      description="Ses signaux sont supprimés avec elle."
       denied={
         links ? `Cette entreprise est rattachée à ${links} et ne peut pas être supprimée.` : null
       }

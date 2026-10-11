@@ -86,7 +86,7 @@ export function OptOutPersonDialog({ person, hasContactRole, onDone }: Props) {
           <AlertDialogDescription>
             {deletesRecord
               ? "Sans email ni lien LinkedIn, rien ne permettrait de reconnaître cette personne : sa fiche est supprimée."
-              : "La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses actions et ses signaux restent dans son historique, sans être réutilisés, sauf si elle en demande l'effacement."}
+              : "La fiche est vidée : seuls l'email, le lien LinkedIn et la date sont gardés, pour ne jamais recontacter cette personne. Ses signaux sont supprimés. Ses actions restent dans son historique, sans être réutilisées, sauf si elle en demande l'effacement."}
             {hasContactRole ? " La personne sort aussi de vos contacts." : ""} Action irréversible.
           </AlertDialogDescription>
         </AlertDialogHeader>

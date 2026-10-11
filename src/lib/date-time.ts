@@ -60,6 +60,18 @@ export function dateOnlyToLocal(dateOnly: Date): Date {
   return new Date(dateOnly.getUTCFullYear(), dateOnly.getUTCMonth(), dateOnly.getUTCDate())
 }
 
+// Colonne date : minuit UTC, relue en UTC pour ne pas reculer d'un jour à l'ouest de Greenwich.
+const DATE_ONLY = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "UTC",
+})
+
+export function formatDateOnly(dateOnly: Date): string {
+  return DATE_ONLY.format(dateOnly)
+}
+
 // Minuit de Paris, changement d'heure compris : additionner des multiples de DAY_MS décalerait d'une heure.
 export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
   return new Date(

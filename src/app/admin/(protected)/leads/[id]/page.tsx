@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { LeadActionsCard } from "@/components/features/admin/leads/LeadActionsCard"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
 import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
+import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
 import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import {
@@ -30,6 +31,7 @@ async function EditLeadSection({ id }: { id: string }) {
   if (!lead) notFound()
   // Une fiche en opposition ne se modifie plus : sa trace se lit dans Tous.
   if (lead.optedOutAt) redirect(ADMIN_LEADS_PATH)
+  const canAddSignal = lead.origin === "OUTBOUND"
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,6 +62,14 @@ async function EditLeadSection({ id }: { id: string }) {
               )}
               emptyText="Aucun entretien pour ce lead."
             />
+            {/* Seul un lead outbound reçoit un signal ; un lead passé inbound garde les siens. */}
+            {canAddSignal || lead.signals.length > 0 ? (
+              <SignalsCard
+                signals={lead.signals}
+                owner={{ kind: "lead", id: lead.id, name: personDisplayName(lead) }}
+                canAdd={canAddSignal}
+              />
+            ) : null}
           </>
         }
       />
