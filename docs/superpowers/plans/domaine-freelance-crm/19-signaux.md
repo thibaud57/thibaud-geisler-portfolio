@@ -4,7 +4,7 @@
 
 **Goal:** Le modèle `Signal` rattaché à une entreprise ou à un lead outbound, sa fraîcheur selon la matrice de fraîcheur des signaux, ses Server Actions, son effacement avec les échanges d'un lead, et son interface : card Signaux des pages entreprise et lead, bloc Signaux en lecture des vues détail, filtre « Signal récent ».
 
-**Architecture:** Un module pur testé (`src/lib/signals.ts`) porte les types par rattachement, la date affichée et la fraîcheur. Les actions fixent le rattachement à la création et vérifient qu'il accepte le type ; `erasePersonExchanges` supprime les signaux avec les actions de prospection de la personne. Les signaux se créent, se modifient et se suppriment dans une `SignalsCard` des pages entreprise et lead (fenêtre `SignalFormDialog`) ; les vues détail des tables Entreprises et Leads les montrent en lecture.
+**Architecture:** Un module pur testé (`src/lib/signals.ts`) porte les types par rattachement, la date affichée et la fraîcheur. Les actions fixent le rattachement à la création et vérifient qu'il accepte le type ; `optOutPerson` supprime les signaux de la personne dès son opposition. Les signaux se créent, se modifient et se suppriment dans une `SignalsCard` des pages entreprise et lead (fenêtre `SignalFormDialog`) ; les vues détail des tables Entreprises et Leads les montrent en lecture.
 
 **Tech Stack:** Prisma 7, PostgreSQL 18, Zod 4, Next.js 16 (Server Actions), React 19, shadcn/ui `radix-nova`, Vitest 4.
 
@@ -18,15 +18,15 @@
 - **Types par rattachement** (listes des gabarits Notion actuels) : entreprise `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION` ; lead outbound `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`. Jamais de signal sur un lead inbound ou opposé. Une contrainte SQL (`Signal_type_check`) impose ce lien en base ; un nouveau type demande de la mettre à jour.
 - **Fraîcheur** (matrice de fraîcheur des signaux) : Offre de poste récent moins de 3 mois, à confirmer jusqu'à 6, périmé au-delà ; Levée 6 et 18 ; Expansion d'équipe et Nouveau produit 6 et 12. Les autres types n'ont ni badge ni place dans « Signal récent ».
 - **Date** : au jour (`DateTime @db.Date`) ; quand la source ne donne que le mois, le 1er à minuit UTC est saisi ; toujours affichée « 12/03/2026 », lue en UTC.
-- **RGPD** : signaux d'une personne gardés à l'opposition simple (`optOutPerson`), supprimés par `erasePersonExchanges(id)` ; supprimés avec leur personne ou leur entreprise.
-- **Textes** : « Nouveau signal », « Modifier le signal <type> · <date> », « Ajouter un signal à <nom>. », « Modifier les informations de ce signal. », « Signal créé », « Signal mis à jour », « Signal supprimé », « Choisissez un type », « Choisissez une date », « Décrivez le signal », « L'adresse du lien n'est pas valide », « Ce type ne concerne pas cette fiche », « Ce lead ne peut pas recevoir de signal » ; suppression « Ses signaux sont supprimés avec elle. » ; card avant le premier enregistrement « Après l'enregistrement de l'entreprise. », « Après l'enregistrement du lead. ».
+- **RGPD** : signaux d'une personne supprimés dès son opposition (`optOutPerson`, décision du 2026-10-11) ; supprimés avec leur personne ou leur entreprise.
+- **Textes** : « Nouveau signal », « Modifier <type> · <date> » (arbitrage « Titre d'une modale de modification », décision du 2026-10-11), « Ajouter un signal à <nom>. », « Modifier les informations de ce signal. », « Signal créé », « Signal mis à jour », « Signal supprimé », « Choisissez un type », « Choisissez une date », « Décrivez le signal », « L'adresse du lien n'est pas valide », « Ce type ne concerne pas cette fiche », « Ce lead ne peut pas recevoir de signal » ; suppression « Ses signaux sont supprimés avec elle. » ; card avant le premier enregistrement « Après l'enregistrement de l'entreprise. », « Après l'enregistrement du lead. ».
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 
 **Rules :** `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`.
 
 ## Review Focus
 
-- **Opposition simple** : les signaux de la personne restent. Couvert par les tests existants d'`optOutPerson` (`07`), qui ne touchent pas `prisma.signal` ; « deletes the person's signals along with the exchanges » couvre `erasePersonExchanges` (Task 3).
+- **Opposition** : les signaux de la personne sont supprimés dans la transaction d'`optOutPerson`. Couvert par « deletes the person's signals when they object to prospecting » (Task 3, remplacée).
 - **Signal d'un lead opposé modifié par un appel direct** : refusé, la suppression seule reste possible. Couvert par « refuses to edit a signal of an opted-out lead » (Task 2).
 - **1er du mois lu dans un fuseau à l'ouest de Greenwich** : reste affiché au bon jour. Couvert par « counts a month-dated signal from the first day of its month », dont le format est lu en UTC (Task 1).
 - **Card Signaux après un ajout, une modification ou une suppression** : elle se met à jour sans recharger la page (revalidation en variante `layout`). Vérifié à la Task 8, Step 2.
@@ -723,6 +723,8 @@ Expected: aucune erreur.
 ---
 
 ### Task 3 : Signaux supprimés avec les échanges
+
+> Remplacée le 2026-10-11 par décision du propriétaire : les signaux partent dès `optOutPerson`, et non plus avec `erasePersonExchanges` (spec, décision « signaux d'un lead opposé »). Le test du spec est « deletes the person's signals when they object to prospecting », dans `describe("optOutPerson")`.
 
 **Files:**
 - Modify: `src/server/actions/persons.ts` (`erasePersonExchanges`)
