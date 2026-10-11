@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "ecran-entretiens"
 goal: "Lister, créer, modifier et supprimer les entretiens depuis l'espace admin, et les montrer sur les fiches opportunité et lead."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["04-liste-entreprises-enrichie-design.md", "07-leads-donnees-design.md", "08-ecran-leads-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "15-ecran-opportunites-design.md", "16-entretiens-donnees-design.md"]
