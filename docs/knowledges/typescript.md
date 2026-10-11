@@ -2,7 +2,7 @@
 title: "TypeScript — Langage typé"
 version: "6.0.3"
 description: "Référence technique pour TypeScript 6 : tsconfig, inférence, patterns et intégration Next.js."
-date: "2026-04-13"
+date: "2026-10-11"
 keywords: ["typescript", "types", "tsconfig", "inference"]
 scope: ["docs"]
 technologies: ["Node.js", "Next.js", "React"]
@@ -65,6 +65,8 @@ Configuration adaptée à Next.js 16 + React 19 + Prisma. Mode strict obligatoir
 - `moduleResolution: bundler` pour Turbopack et Next.js 16
 - `types: []` ou liste explicite : plus de auto-crawl (gain de build)
 - `paths: { "@/*": ["./src/*"] }` pour les imports courts
+- TypeScript 7.0.2 (`latest` npm au 2026-10-11) reste écarté : `typescript-eslint@8.71.1`, la dernière stable, déclare `typescript >=4.8.4 <6.1.0` en peer, `tsc --noEmit` passe mais `eslint` casse au chargement de la config (`docs/VERSIONS.md` § Montées Bloquées)
+- TypeScript 7 refuse `baseUrl` : le projet n'en pose pas, les alias passent par `paths` seuls (`docs/VERSIONS.md`)
 
 ---
 

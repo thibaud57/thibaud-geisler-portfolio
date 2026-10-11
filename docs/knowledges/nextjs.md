@@ -2,7 +2,7 @@
 title: "Next.js — Framework full-stack"
 version: "16.4.0"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
-date: "2026-10-09"
+date: "2026-10-11"
 keywords: ["nextjs", "app-router", "server-components", "server-actions", "turbopack"]
 scope: ["docs"]
 technologies: ["React", "TypeScript", "Prisma", "Tailwind CSS"]
@@ -219,6 +219,8 @@ export async function findManyPublished() {
 - `cacheLife('hours' | 'days' | 'max')` définit la durée de vie
 - `cacheTag('projects')` permet l'invalidation granulaire
 - `revalidateTag('projects', 'max')` invalide dans une Server Action
+- 16.4 : Cache Components est recommandé pour toute app et activé par défaut dans `create-next-app`, il devient le défaut en Next 17 ([blog 16.4](https://nextjs.org/blog/next-16-4), 2026-10-06). `partialPrefetching: true` fait partie du modèle, à poser à côté de `cacheComponents`
+- 16.4 : `export const ensureStatic = 'navigation' | 'prefetch' | 'shell'` (page ou layout) fait échouer le build si du contenu dynamique entre dans la route. `await navigation()` et `await prefetch()` (`next/cache`) excluent un contenu en cache du prefetch ou du shell. Non employés par le portfolio
 
 ---
 
@@ -288,6 +290,7 @@ pnpm exec next info                   # infos système pour bug reports
 - `next build` utilise Turbopack par défaut (sortie dans `.next/`)
 - `--webpack` pour forcer Webpack (nécessaire si config custom)
 - `next typegen` en CI pour typer `params`/`searchParams` automatiquement
+- 16.4 : `experimental.agentUpgrade` (défaut `'security'`) affiche pendant `next dev` et `next build` un rappel quand une mise à jour corrige une faille de la version installée ; `'latest'` rappelle aussi les mises à jour majeures et mineures, `false` coupe les rappels. `next upgrade --agent` prépare la migration pour un agent ([blog 16.4](https://nextjs.org/blog/next-16-4), 2026-10-06)
 
 ---
 
@@ -324,3 +327,4 @@ pnpm exec next info                   # infos système pour bug reports
 
 - [Next.js 16 blog](https://nextjs.org/blog/next-16)
 - [Next.js 16.2](https://nextjs.org/blog/next-16-2)
+- [Next.js 16.4](https://nextjs.org/blog/next-16-4)
