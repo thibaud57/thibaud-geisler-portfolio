@@ -209,6 +209,26 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
+## Réglages Actions du dépôt
+
+Le dépôt est public : n'importe qui peut ouvrir une PR depuis un fork, et ce que la CI exécute alors dépend autant des réglages de Settings → Actions que des workflows. Ces réglages ne vivent dans aucun fichier versionné, d'où leur relevé ici.
+
+| Réglage | Cible | Relevé le 2026-10-12 | Pourquoi |
+|---------|-------|----------------------|----------|
+| Permissions par défaut du `GITHUB_TOKEN` | `read` (restricted) | ✅ `read` (corrigé le 2026-10-09, avant : écriture) | Chaque workflow déclare en plus ses `permissions:`, un oubli retombe sur la lecture seule |
+| Autoriser Actions à créer et approuver des PR | Désactivé | ✅ désactivé (corrigé le 2026-10-09) | release-please passe par le token d'App ([Gestion des Secrets](#gestion-des-secrets)), le `GITHUB_TOKEN` n'a aucune PR à ouvrir ni à valider |
+| Épinglage SHA obligatoire | Activé, à tester sur un run | ❌ désactivé | Activé, il refuse une action composite qui appelle d'autres actions par tag flottant : ne l'activer qu'après un run vert de chaque workflow |
+| Approbation des workflows de fork | Tous les contributeurs externes | ✅ tous les contributeurs externes (corrigé le 2026-10-12, avant : `first_time_contributors`) | Sinon, une seule PR acceptée (une typo suffit) dispense d'approbation toutes les suivantes |
+| Actor rules (rulesets) | Aucune, ou `dependabot[bot]` inclus | ✅ aucune | Une actor rule qui oublie `dependabot[bot]` bloque ses PR sans erreur visible |
+
+```bash
+# Relire l'état réel
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/workflow
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/fork-pr-contributor-approval
+gh api repos/thibaud57/thibaud-geisler-portfolio/rulesets
+```
+
 ## Étapes de Déploiement (Automatiques)
 
 **Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
@@ -362,8 +382,6 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
 
 > **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod est ce qui garantit le typage et une erreur explicite dès le démarrage quand une variable manque. Deux exceptions : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`, et `src/instrumentation-client.ts`, chargé par le navigateur sur toutes les pages publiques, où `@/env` embarquerait Zod. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
-
-> ℹ️ **Permissions par défaut des workflows GitHub Actions** : en lecture seule, sans approbation de PR par les workflows, depuis le 9 octobre 2026 (Settings → Actions → General → Workflow permissions ; avant : écriture et approbation autorisée). Chaque workflow déclare en plus ses `permissions:`, et release-please passe par le token d'App. Vérifier par `gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/workflow` (`read`, `false`).
 
 > ℹ️ **Secrets dans un `run:`** : toujours par `env:` du step (`$DOKPLOY_TOKEN`), jamais par `${{ secrets.X }}` interpolé dans le script, qui l'écrirait dans le script avant que le shell ne le lise.
 
