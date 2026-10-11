@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "revues-hebdo"
 goal: "Tenir dans l'espace admin le bilan hebdomadaire de prospection : sept compteurs figés pré-remplis depuis le CRM, trois taux calculés, le ressenti et le qualitatif de la semaine, avec les vues Revue, Calendrier et Journal."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 depends_on: ["07-leads-donnees-design.md", "08-ecran-leads-design.md", "09-actions-prospection-donnees-design.md", "12-calendrier-actions-design.md", "16-entretiens-donnees-design.md"]
