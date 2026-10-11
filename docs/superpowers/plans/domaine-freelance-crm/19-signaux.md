@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Le modèle `Signal` rattaché à une entreprise ou à un lead outbound, sa fraîcheur selon la matrice du toolkit, ses Server Actions, son effacement avec les échanges d'un lead, et son interface : card Signaux des pages entreprise et lead, bloc Signaux en lecture des vues détail, filtre « Signal récent ».
+**Goal:** Le modèle `Signal` rattaché à une entreprise ou à un lead outbound, sa fraîcheur selon la matrice de fraîcheur des signaux, ses Server Actions, son effacement avec les échanges d'un lead, et son interface : card Signaux des pages entreprise et lead, bloc Signaux en lecture des vues détail, filtre « Signal récent ».
 
 **Architecture:** Un module pur testé (`src/lib/signals.ts`) porte les types par rattachement, la date affichée et la fraîcheur. Les actions fixent le rattachement à la création et vérifient qu'il accepte le type ; `erasePersonExchanges` supprime les signaux avec les actions de prospection de la personne. Les signaux se créent, se modifient et se suppriment dans une `SignalsCard` des pages entreprise et lead (fenêtre `SignalFormDialog`) ; les vues détail des tables Entreprises et Leads les montrent en lecture.
 
@@ -15,8 +15,8 @@
 - **Prérequis** : plans `01` (Traitement 7, puce prospection), `03` (`CompanyForm`, prop `relatedCards`), `04` (`CompaniesTable`), `15` (`CompaniesTable`, `DeleteCompanyDialog`, card Opportunités de la page entreprise), `07` (`persons.ts`, `optOutPerson(id)`, `erasePersonExchanges(id)`), `08` (`OptOutPersonDialog`, `SelectField`, `OptionalDateField`, `RelatedLinksList`, `RelatedLinksCard`, `relatedCards` du formulaire des leads), `10`, `13`, `16` et `17` (`LeadsTable`, page du lead et ses cards, `DeleteLeadDialog`) implémentés.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : un signal se saisit en fenêtre, ouverte depuis la card Signaux de la page de son entreprise ou de son lead ; aucun bouton de ligne ; la vue détail le montre en lecture.
 - **Enums, valeurs exactes** : `SignalType` `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION`, `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`.
-- **Types par rattachement** (listes du toolkit) : entreprise `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION` ; lead outbound `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`. Jamais de signal sur un lead inbound ou opposé. Une contrainte SQL (`Signal_type_check`) impose ce lien en base ; un nouveau type demande de la mettre à jour.
-- **Fraîcheur** (matrice du toolkit, `strategie-canaux.md`) : Offre de poste récent moins de 3 mois, à confirmer jusqu'à 6, périmé au-delà ; Levée 6 et 18 ; Expansion d'équipe et Nouveau produit 6 et 12. Les autres types n'ont ni badge ni place dans « Signal récent ».
+- **Types par rattachement** (listes des gabarits Notion actuels) : entreprise `OFFRE_POSTE`, `LEVEE`, `EXPANSION`, `NOUVEAU_PRODUIT`, `PIVOT`, `ACQUISITION` ; lead outbound `POST`, `COMMENTAIRE`, `CONFERENCE`, `INTERACTION`. Jamais de signal sur un lead inbound ou opposé. Une contrainte SQL (`Signal_type_check`) impose ce lien en base ; un nouveau type demande de la mettre à jour.
+- **Fraîcheur** (matrice de fraîcheur des signaux) : Offre de poste récent moins de 3 mois, à confirmer jusqu'à 6, périmé au-delà ; Levée 6 et 18 ; Expansion d'équipe et Nouveau produit 6 et 12. Les autres types n'ont ni badge ni place dans « Signal récent ».
 - **Date** : au jour (`DateTime @db.Date`) ; quand la source ne donne que le mois, le 1er à minuit UTC est saisi ; toujours affichée « 12/03/2026 », lue en UTC.
 - **RGPD** : signaux d'une personne gardés à l'opposition simple (`optOutPerson`), supprimés par `erasePersonExchanges(id)` ; supprimés avec leur personne ou leur entreprise.
 - **Textes** : « Nouveau signal », « Modifier le signal <type> · <date> », « Ajouter un signal à <nom>. », « Modifier les informations de ce signal. », « Signal créé », « Signal mis à jour », « Signal supprimé », « Choisissez un type », « Choisissez une date », « Décrivez le signal », « L'adresse du lien n'est pas valide », « Ce type ne concerne pas cette fiche », « Ce lead ne peut pas recevoir de signal » ; suppression « Ses signaux sont supprimés avec elle. » ; card avant le premier enregistrement « Après l'enregistrement de l'entreprise. », « Après l'enregistrement du lead. ».
@@ -141,7 +141,7 @@ describe("signalFreshness", () => {
     expect([recent, toConfirm, stale]).toEqual(["RECENT", "A_CONFIRMER", "PERIME"])
   })
 
-  it("applies the funding and team expansion thresholds of the toolkit", () => {
+  it("applies the funding and team expansion thresholds", () => {
     const funding = signalFreshness(signal("LEVEE", "2025-09-01"), NOW)
     const expansion = signalFreshness(signal("EXPANSION", "2025-09-01"), NOW)
 
@@ -158,7 +158,7 @@ describe("signalFreshness", () => {
     expect(formatSignalDate(juneOffer)).toBe("01/06/2026")
   })
 
-  it("gives no freshness to a type the toolkit does not rate", () => {
+  it("gives no freshness to an unrated type", () => {
     const pivot = signalFreshness(signal("PIVOT", "2026-09-01"), NOW)
     const post = signalFreshness(signal("POST", "2026-09-01"), NOW)
 
@@ -204,7 +204,7 @@ import {
 import type { SignalType } from "@/generated/prisma/client"
 import type { IconComponent } from "@/lib/icons"
 
-// Listes du toolkit : `📡 Signaux` d'une entreprise, `🔍 Signal` d'un lead outbound.
+// Listes des gabarits Notion actuels : `📡 Signaux` d'une entreprise, `🔍 Signal` d'un lead outbound.
 export const COMPANY_SIGNAL_TYPES = [
   "OFFRE_POSTE",
   "LEVEE",
@@ -294,7 +294,7 @@ export const SIGNAL_FRESHNESS_LABELS: Record<SignalFreshness, string> = {
   PERIME: "Périmé",
 }
 
-// Décote temporelle du toolkit (strategie-canaux.md), en mois : fin de « récent », fin de « à confirmer » ;
+// Décote temporelle des signaux, en mois : fin de « récent », fin de « à confirmer » ;
 // absente pour les types non notés.
 const FRESHNESS_MONTHS: Partial<Record<SignalType, readonly [number, number]>> = {
   OFFRE_POSTE: [3, 6],
@@ -564,7 +564,7 @@ function invalidateSignalPaths(): void {
   for (const path of SIGNAL_PATHS) revalidatePath(path, "layout")
 }
 
-// Le toolkit ne donne de signal qu'à un lead outbound, jamais à une personne opposée ; owner.id est l'id de
+// Seul un lead outbound reçoit un signal, jamais une personne opposée ; owner.id est l'id de
 // la personne (Lead.personId).
 async function assertOwnerAccepts(owner: Owner, type: SignalType): Promise<void> {
   if (!signalTypesFor(owner.kind).includes(type)) throw new SignalRefusedError("type_mismatch")
@@ -1074,7 +1074,7 @@ interface SignalRowOptions {
   onOpen?: (signal: SignalItem) => void
 }
 
-// Méta « décote · contenu » ; sans décote pour un type que le toolkit ne note pas (Pivot, Acquisition, Post…).
+// Méta « décote · contenu » ; sans décote pour un type non noté (Pivot, Acquisition, Post…).
 export function signalRelatedRows(
   signals: readonly SignalItem[],
   now: number,
@@ -1555,7 +1555,7 @@ Dans `src/app/admin/(protected)/leads/[id]/page.tsx`, importer `SignalsCard` dep
             emptyText="Aucun entretien pour ce lead."
           />
           {
-            // Le toolkit ne donne de signal qu'à un lead outbound ; un lead passé inbound garde les siens.
+            // Seul un lead outbound reçoit un signal ; un lead passé inbound garde les siens.
             lead.origin === "OUTBOUND" || lead.signals.length > 0 ? (
               <SignalsCard
                 signals={lead.signals}

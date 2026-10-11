@@ -210,7 +210,7 @@ Justification positionnement MVP : le formulaire de contact (Feature 4) collecte
 
 Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur).
 
-Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Document interne, non publié, tenu dans [registre-traitements.md](registre-traitements.md).
+Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Document interne, tenu dans [registre-traitements.md](registre-traitements.md).
 
 ---
 
@@ -244,7 +244,7 @@ Reprise du CRM tenu dans Notion : entreprises, leads, actions de prospection, co
 
 Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet ([ADR-020](adrs/020-portfolio-bff.md)).
 
-Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans les agents internes (Feature 3) ; ce qui est déterministe (grille de qualification, indicateurs, échéances de conservation) reste du code TypeScript ici. La reprise des données Notion passe une fois les leads par une session Claude, comme le toolkit freelance aujourd'hui : le volet RGPD de ce passage par Anthropic se traite avec la Feature 3.
+Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans les agents internes (Feature 3) ; ce qui est déterministe (grille de qualification, indicateurs, échéances de conservation) reste du code TypeScript ici. La reprise des données Notion passe une fois les leads par une session Claude, comme les skills freelance aujourd'hui : le volet RGPD de ce passage par Anthropic se traite avec la Feature 3.
 
 La maquette de l'espace admin dessine déjà ces écrans, et le CRUD des entreprises livré avant eux s'arrête au sous-ensemble que le schéma porte. Côté entreprises, cette feature reprend donc, écrans de la maquette à l'appui :
 
@@ -263,10 +263,10 @@ Prérequis : l'espace admin (Feature 1).
 
 ### Feature 3 : Agents internes
 
-Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, toolkit freelance). L'admin affiche l'état des runs ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Trois briques, de la plus simple à la plus ouverte :
+Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, skills freelance). L'admin affiche l'état des runs ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Trois briques, de la plus simple à la plus ouverte :
 
 * **Jobs déclenchés depuis l'admin** : l'IA propose, l'admin valide. L'espace admin dépose un job sur l'API interne d'`agent-os` ([ADR-015](adrs/015-decoupage-services.md), [ADR-019](adrs/019-communication-inter-services.md)), qui exécute Claude Code et rend un résultat ; l'app l'affiche et l'enregistre après validation, seule à écrire dans ses schemas. Premiers usages : les reports de la Feature 2 (pré-remplissage de l'entité légale, qualification ICP), l'enrichissement des fiches, la rédaction des messages de prospection et un sourcing qui dépose des candidats à trier
-* **Outils de l'app pour les agents** : les actions de chaque domaine exposées aux agents (créer un lead, lister les leads sans signal récent, ajouter un signal…), découpées par domaine, pour qu'un agent lise et agisse sur l'app sans toucher la base, avec les mêmes règles de validation que l'admin. Les skills du toolkit freelance s'y rebranchent. Leur forme (serveur MCP ou CLI) et leur authentification se tranchent dans [ADR-025](adrs/025-acces-agents-app.md)
+* **Outils de l'app pour les agents** : les actions de chaque domaine exposées aux agents (créer un lead, lister les leads sans signal récent, ajouter un signal…), découpées par domaine, pour qu'un agent lise et agisse sur l'app sans toucher la base, avec les mêmes règles de validation que l'admin. Les skills freelance s'y rebranchent. Leur forme (serveur MCP ou CLI) et leur authentification se tranchent dans [ADR-025](adrs/025-acces-agents-app.md)
 * **Assistant interne** : un chat ouvert par un bouton de l'espace admin, en fenêtre flottante que l'admin déplace et redimensionne pour ne jamais masquer la page, qui connaît la page en cours ; une page Assistant garde l'historique des conversations. Il tourne sur l'abonnement via `agent-os`, garde sa session d'un message à l'autre, pilote l'app par ces outils et fait confirmer chaque écriture, par exemple pour discuter chaque candidat du sourcing avant de le garder. Le bot Telegram d'`agent-os` en est une seconde interface, pour les ordres rapides depuis le téléphone (créer un ticket) : un seul assistant, dont une conversation commencée d'un côté se reprend de l'autre. Telegram vient d'abord ; la fenêtre de l'admin suit quand le travail de fond la justifie, pour la page en cours et l'affichage riche
 
 Données personnelles : dès qu'un agent traite des leads, Anthropic devient destinataire de ces données, et Telegram aussi quand une alerte en porte. Le spec de cette feature met à jour le registre des traitements, la politique de confidentialité et l'évaluation d'impact, et fixe la durée de conservation des conversations et des sessions.

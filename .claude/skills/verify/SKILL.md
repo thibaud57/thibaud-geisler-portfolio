@@ -52,7 +52,7 @@ curl -s -X POST http://localhost:3000/fr/contact \
   -F '$ACTION_REF_1=' -F '$ACTION_1:0={"id":"<id>","bound":"$@1"}' \
   -F '$ACTION_1:1=[{"ok":null,"errors":{},"message":null}]' \
   -F '$ACTION_KEY=<clé récupérée>' \
-  -F 'name=Test' -F 'email=test@exemple.fr' -F 'subject=Test' -F 'message=Test' -F 'website='
+  -F 'name=Test' -F 'email=test@example.com' -F 'subject=Test' -F 'message=Test' -F 'website='
 ```
 
 Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.

@@ -114,7 +114,7 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                   id={`${formId}-name`}
                   name="name"
                   defaultValue={company?.name ?? ""}
-                  placeholder="Globex"
+                  placeholder="Acme SAS"
                   aria-invalid={!!state.errors.name?.length}
                   aria-describedby={`${formId}-name-error`}
                 />
@@ -131,7 +131,7 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                   onChange={(event) => {
                     setSlug(event.target.value)
                   }}
-                  placeholder="globex"
+                  placeholder="acme"
                   aria-invalid={!!state.errors.slug?.length}
                   aria-describedby={`${formId}-slug-error`}
                 />
@@ -308,7 +308,7 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                 name="notes"
                 aria-labelledby={`${formId}-notes-title`}
                 defaultValue={company?.notes ?? ""}
-                placeholder="Leader assurance Luxembourg | Scala/Angular"
+                placeholder="Éditeur de logiciels | TypeScript/React"
                 aria-invalid={!!state.errors.notes?.length}
                 aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
               />

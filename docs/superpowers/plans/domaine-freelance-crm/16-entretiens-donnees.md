@@ -971,7 +971,7 @@ describe("createInterview", () => {
       initialInterviewFormState,
       buildFormData({
         newCorrespondents: JSON.stringify([
-          { name: "Nadia Kader", jobRole: "RECRUTEUR", contactType: "COMMERCIAL", email: "nadia@example.com" },
+          { name: "Sami Bernard", jobRole: "RECRUTEUR", contactType: "COMMERCIAL", email: "sami@example.com" },
         ]),
       }),
     )
@@ -979,7 +979,7 @@ describe("createInterview", () => {
     expect(prisma.person.create).toHaveBeenCalledWith(
       objectMatch({
         data: objectMatch({
-          name: "Nadia Kader",
+          name: "Sami Bernard",
           contact: { create: { types: ["COMMERCIAL"], status: "ACTIF" } },
         }),
       }),
@@ -993,7 +993,7 @@ describe("createInterview", () => {
     const state = await createInterview(
       initialInterviewFormState,
       buildFormData({
-        newCorrespondents: JSON.stringify([{ name: "Nadia Kader", email: "nadia@example.com" }]),
+        newCorrespondents: JSON.stringify([{ name: "Sami Bernard", email: "sami@example.com" }]),
       }),
     )
 
@@ -1008,7 +1008,7 @@ describe("createInterview", () => {
       initialInterviewFormState,
       buildFormData({
         newCorrespondents: JSON.stringify([
-          { name: "Nadia Kader", contactType: "COMMERCIAL", email: "nadia@example.com" },
+          { name: "Sami Bernard", contactType: "COMMERCIAL", email: "sami@example.com" },
         ]),
       }),
     )

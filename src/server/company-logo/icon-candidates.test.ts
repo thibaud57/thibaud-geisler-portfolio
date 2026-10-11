@@ -63,7 +63,7 @@ describe("findIconCandidates", () => {
 
   it("keeps a single candidate per address, as a wayback capture declares", () => {
     const icon =
-      "https://web.archive.org/web/20230608045345im_/https://umbrella.example/wp-content/uploads/2020/07/Umbrella-Favicon.png"
+      "https://web.archive.org/web/20230608045345im_/https://acme.example/wp-content/uploads/2020/07/Acme-Favicon.png"
     const html = `<head>
       <link rel="icon" href="${icon}" sizes="32x32"/>
       <link rel="icon" href="${icon}" sizes="192x192"/>
@@ -72,7 +72,7 @@ describe("findIconCandidates", () => {
 
     const candidates = findIconCandidates(
       html,
-      new URL("https://web.archive.org/web/20230608045345/https://umbrella.example/"),
+      new URL("https://web.archive.org/web/20230608045345/https://acme.example/"),
     )
 
     expect(candidates).toHaveLength(1)

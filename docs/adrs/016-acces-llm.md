@@ -12,7 +12,7 @@ technologies: ["OpenRouter", "Anthropic", "PydanticAI"]
 
 Quatre points d'appel LLM sont prévus : chatbot RAG public, génération de contenu depuis l'espace admin, RAG sur documents personnels, et automatisation du développement par agents Claude Code.
 
-Contraintes : un VPS unique hébergeant déjà Next.js, PostgreSQL, n8n et WireGuard ; un budget serré ; un abonnement Claude Max déjà payé ; des documents personnels sensibles dans le périmètre.
+Contraintes : un VPS unique hébergeant déjà Next.js, PostgreSQL, n8n et WireGuard ; un budget maîtrisé ; un abonnement Claude Max déjà payé ; des documents personnels sensibles dans le périmètre.
 
 ---
 
@@ -54,7 +54,6 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 **Inconvénients :**
 - Un contrat de sous-traitance signé et opposable est réservé aux clients enterprise
 - Accord de rachat par Stripe annoncé le 19 août 2026, sans annonce tarifaire à ce jour
-- Support client critiqué de façon récurrente sur les problèmes de facturation (retours d'utilisateurs, non sourcé)
 
 **Coût estimé :** Environ 9 $/mois pour le seul usage qui en dépend
 

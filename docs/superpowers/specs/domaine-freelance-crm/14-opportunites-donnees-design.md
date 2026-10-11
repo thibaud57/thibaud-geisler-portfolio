@@ -40,14 +40,14 @@ Crée le modèle `Opportunity` (de la proposition à l'acceptation), ses liens v
 
 | Donnée | Vit sur | Ne se ressaisit plus sur |
 |---|---|---|
-| TJM | Opportunity | lead, entretien (champ Salaire/TJM), bandeau du hub client ; les phases du suivi en partiront puis évolueront par avenant |
+| TJM | Opportunity | lead, entretien (champ Salaire/TJM), bandeau de la fiche client ; les phases du suivi en partiront puis évolueront par avenant |
 | Contrat | Opportunity | entretien (champ Contrat) |
 | « Via ESN » ou client direct | Opportunity, lien vers l'ESN (vide = direct) | valeur « ESN » du champ Contrat de l'entretien, bandeau « via … » |
 | Client final | Opportunity | corps du lead, entretien |
 | Secteur et taille du client | Entreprise cliente (`02`) | section « Le Client » de l'entretien |
 | Lieu, mode de travail | Opportunity (zone, mode) | entretien, dont la Localisation Notion mêle zones et Remote/Hybrid |
 | Problématique, profil recherché, contenu technique | Détails de l'opportunité | corps du lead, section « Informations Mission » de l'entretien |
-| Rôle, rythme | Opportunity | bandeau du hub client |
+| Rôle, rythme | Opportunity | bandeau de la fiche client |
 | Démarrage, durée (estimés) | Opportunity | corps du lead ; les dates exactes viendront des phases du suivi |
 
   Restent distincts parce qu'ils disent autre chose : la localité du lead (où est la personne) et celle de l'opportunité (où elle a lieu), le poste du lead (le sien) et le rôle de l'opportunité (celui du propriétaire)
@@ -56,7 +56,7 @@ Crée le modèle `Opportunity` (de la proposition à l'acceptation), ses liens v
 | Champ | Type | Règle |
 |---|---|---|
 | `title` | `String` | intitulé (« Refonte d'application »), requis, 120 caractères au plus |
-| `role` | `String?` | rôle du propriétaire (« Dev Fullstack IA »), 80 caractères au plus |
+| `role` | `String?` | rôle du propriétaire (« Développeur full-stack »), 80 caractères au plus |
 | `status` | `OpportunityStatus` : `PROPOSEE`, `EN_PROCESS`, `OFFRE_RECUE`, `EN_PAUSE`, `ACCEPTEE`, `REFUSEE`, `DECLINEE`, `ABANDONNEE` | défaut `PROPOSEE` |
 | `referrerId` | `String?` vers `Person` | apporteur, relation `"OpportunityReferrer"` ; `onDelete: SetNull` : l'opportunité survit à la suppression de la personne, et au seul retrait du rôle Lead, le lien ne passant plus par `Lead` |
 | `intermediaryId` | `String?` vers `Company` | ESN qui propose l'opportunité, vide pour un client direct ; `onDelete: Restrict` |

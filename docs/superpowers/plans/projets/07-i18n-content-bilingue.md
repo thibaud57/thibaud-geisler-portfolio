@@ -680,14 +680,14 @@ export const projects: ProjectInput[] = [
     titleFr: 'Webapp Gestion Sinistres',
     titleEn: 'Claims Management Web App',
     descriptionFr:
-      'Webapp Scala/Angular de gestion des sinistres chez Acme (assurance Luxembourg), architecture microservices CQRS/Event Sourcing. Réduction de 50% du temps de traitement, utilisée par 100+ courtiers.',
+      'Webapp Scala/Angular de gestion des sinistres chez Acme (assurance), architecture microservices CQRS/Event Sourcing.',
     descriptionEn:
-      'Scala/Angular web app for claims management at Acme (Luxembourg insurance), microservices CQRS/Event Sourcing architecture. 50% reduction in processing time, used by 100+ brokers.',
+      'Scala/Angular web app for claims management at Acme (insurance), microservices CQRS/Event Sourcing architecture.',
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP', 'API'],
-    startedAt: new Date('2022-04-01'),
-    endedAt: new Date('2025-10-16'),
+    startedAt: new Date('2021-03-01'),
+    endedAt: new Date('2023-09-30'),
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/acme/cover.webp',
@@ -723,7 +723,7 @@ export const projects: ProjectInput[] = [
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['IA'],
-    startedAt: new Date('2026-01-15'),
+    startedAt: new Date('2024-01-15'),
     endedAt: null,
     githubUrl: null,
     demoUrl: null,
@@ -757,8 +757,8 @@ export const projects: ProjectInput[] = [
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP'],
-    startedAt: new Date('2021-10-01'),
-    endedAt: new Date('2022-04-30'),
+    startedAt: new Date('2019-10-01'),
+    endedAt: new Date('2020-04-30'),
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/umbrella/cover.webp',
@@ -782,8 +782,8 @@ export const projects: ProjectInput[] = [
     type: 'CLIENT',
     status: 'PUBLISHED',
     formats: ['WEB_APP', 'MOBILE_APP'],
-    startedAt: new Date('2020-10-01'),
-    endedAt: new Date('2021-09-30'),
+    startedAt: new Date('2018-10-01'),
+    endedAt: new Date('2019-09-30'),
     githubUrl: null,
     demoUrl: null,
     coverFilename: 'projets/client/soylent/cover.webp',
@@ -1481,8 +1481,8 @@ describe('findManyPublished', () => {
   it('inclut les relations tags via ProjectTag (triés displayOrder asc, mélange kinds dont EXPERTISE) et clientMeta.company nested', async () => {
     await prisma.company.create({
       data: {
-        slug: 'airbus',
-        name: 'Airbus',
+        slug: 'acme',
+        name: 'Acme',
         sectors: ['LOGICIELS_ENTREPRISE'],
         size: 'GROUPE',
         locations: ['FRANCE'],
@@ -1519,7 +1519,7 @@ describe('findManyPublished', () => {
             teamSize: 15,
             contractStatus: 'FREELANCE',
             workMode: 'REMOTE',
-            company: { connect: { slug: 'airbus' } },
+            company: { connect: { slug: 'acme' } },
           },
         },
       },
@@ -1534,7 +1534,7 @@ describe('findManyPublished', () => {
     expect(result[0]?.tags.map((pt) => pt.tag.kind)).toEqual(['EXPERTISE', 'FRAMEWORK', 'INFRA'])
     expect(result[0]?.formats).toEqual(['WEB_APP', 'API'])
     expect(result[0]?.clientMeta?.workMode).toBe('REMOTE')
-    expect(result[0]?.clientMeta?.company?.name).toBe('Airbus')
+    expect(result[0]?.clientMeta?.company?.name).toBe('Acme')
     expect(result[0]?.clientMeta?.company?.size).toBe('GROUPE')
   })
 
@@ -1611,7 +1611,7 @@ describe('findPublishedBySlug', () => {
 
   it('retourne le projet PUBLISHED avec ses relations nested localisées', async () => {
     await prisma.company.create({
-      data: { slug: 'airbus', name: 'Airbus', sectors: ['LOGICIELS_ENTREPRISE'], size: 'GROUPE' },
+      data: { slug: 'acme', name: 'Acme', sectors: ['LOGICIELS_ENTREPRISE'], size: 'GROUPE' },
     })
     await prisma.tag.create({
       data: { slug: 'react', nameFr: 'React', nameEn: 'React', kind: 'FRAMEWORK' },
@@ -1631,7 +1631,7 @@ describe('findPublishedBySlug', () => {
         clientMeta: {
           create: {
             workMode: 'REMOTE',
-            company: { connect: { slug: 'airbus' } },
+            company: { connect: { slug: 'acme' } },
           },
         },
       },
@@ -1646,7 +1646,7 @@ describe('findPublishedBySlug', () => {
     expect(result?.tags[0]?.tag.slug).toBe('react')
     expect(result?.tags[0]?.displayOrder).toBe(0)
     expect(result?.clientMeta?.workMode).toBe('REMOTE')
-    expect(result?.clientMeta?.company?.name).toBe('Airbus')
+    expect(result?.clientMeta?.company?.name).toBe('Acme')
   })
 
   it.each([

@@ -8,9 +8,9 @@ const schema = z.object(legalEntityFields).superRefine(refineLegalEntity)
 function parse(overrides: Record<string, string> = {}) {
   return schema.safeParse({
     legalEntityName: "Acme SAS",
-    legalEntityStreet: "11 rue Gouvy",
-    legalEntityPostalCode: "57000",
-    legalEntityCity: "Metz",
+    legalEntityStreet: "1 rue de l'Exemple",
+    legalEntityPostalCode: "75000",
+    legalEntityCity: "Paris",
     legalEntityCountry: "FR",
     legalEntityVatNumber: "",
     legalEntityVatLiableSince: "",

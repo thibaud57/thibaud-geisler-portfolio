@@ -257,7 +257,7 @@ function UploadForm({
                 onChange={(event) => {
                   setSlug(event.target.value)
                 }}
-                placeholder="plateforme-ia-acme"
+                placeholder="projet-exemple"
                 aria-invalid={!!state.errors.slug?.length}
                 aria-describedby={`${formId}-slug-help ${formId}-slug-error`}
               />

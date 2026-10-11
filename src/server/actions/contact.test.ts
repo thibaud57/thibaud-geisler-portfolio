@@ -30,7 +30,7 @@ import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, initialContactFormState } from ".
 const FORM_DEFAULTS = {
   name: "Alice",
   company: "Acme",
-  email: "alice@acme.fr",
+  email: "alice@acme.example",
   subject: "Projet IA",
   message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
 } as const
@@ -98,9 +98,9 @@ describe("submitContact", () => {
     expect(transporter.sendMail).toHaveBeenCalledWith({
       from: "from@test.local",
       to: "to@test.local",
-      replyTo: "alice@acme.fr",
+      replyTo: "alice@acme.example",
       subject: "Contact: Alice — Projet IA",
-      text: stringContaining("De : Alice <alice@acme.fr>"),
+      text: stringContaining("De : Alice <alice@acme.example>"),
     })
     const callArg = vi.mocked(transporter.sendMail).mock.calls[0]?.[0]
     expect(callArg?.text).toContain("Société : Acme")
@@ -122,7 +122,7 @@ describe("submitContact", () => {
   it("détecte le honeypot et retourne ok:true factice sans envoyer (sendMail jamais appelé)", async () => {
     const result = await submitContact(
       initialContactFormState,
-      buildFormData({ website: "https://spam.com" }),
+      buildFormData({ website: "https://spam.example" }),
     )
 
     expect(transporter.sendMail).not.toHaveBeenCalled()

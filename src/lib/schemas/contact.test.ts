@@ -6,7 +6,7 @@ describe("contactSchema", () => {
   it("accepte un payload valide minimal sans company", () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -14,7 +14,7 @@ describe("contactSchema", () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.name).toBe("Alice")
-      expect(result.data.email).toBe("alice@acme.fr")
+      expect(result.data.email).toBe("alice@acme.example")
       expect(result.data.subject).toBe("Projet IA")
       expect(result.data.message).toBe("Bonjour, j’aimerais discuter d’un projet IA dans ma boite.")
       expect(result.data.company).toBeUndefined()
@@ -24,7 +24,7 @@ describe("contactSchema", () => {
   it("trim les champs string requis (name, email, subject, message)", () => {
     const result = contactSchema.safeParse({
       name: "  Alice  ",
-      email: "  alice@acme.fr  ",
+      email: "  alice@acme.example  ",
       subject: "  Projet IA  ",
       message: "  Bonjour, j’aimerais discuter d’un projet IA dans ma boite.  ",
     })
@@ -32,7 +32,7 @@ describe("contactSchema", () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.name).toBe("Alice")
-      expect(result.data.email).toBe("alice@acme.fr")
+      expect(result.data.email).toBe("alice@acme.example")
       expect(result.data.subject).toBe("Projet IA")
       expect(result.data.message).toBe("Bonjour, j’aimerais discuter d’un projet IA dans ma boite.")
     }
@@ -41,7 +41,7 @@ describe("contactSchema", () => {
   it('retourne le code "name_required" quand name est vide après trim', () => {
     const result = contactSchema.safeParse({
       name: "   ",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -55,7 +55,7 @@ describe("contactSchema", () => {
   it('retourne le code "subject_required" quand subject est vide', () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -69,7 +69,7 @@ describe("contactSchema", () => {
   it('retourne le code "name_too_long" quand name dépasse 120 caractères', () => {
     const result = contactSchema.safeParse({
       name: "a".repeat(121),
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -84,7 +84,7 @@ describe("contactSchema", () => {
     const longLocalPart = "a".repeat(200)
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: `${longLocalPart}@acme.fr`,
+      email: `${longLocalPart}@acme.example`,
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -98,7 +98,7 @@ describe("contactSchema", () => {
   it('retourne le code "subject_too_long" quand subject dépasse 200 caractères', () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "a".repeat(201),
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -113,7 +113,7 @@ describe("contactSchema", () => {
     const result = contactSchema.safeParse({
       name: "Alice",
       company: "a".repeat(201),
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -127,7 +127,7 @@ describe("contactSchema", () => {
   it('retourne le code "message_too_long" quand message dépasse 5000 caractères', () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "a".repeat(5001),
     })
@@ -155,7 +155,7 @@ describe("contactSchema", () => {
   it('retourne le code "message_too_short" quand message a moins de 20 caractères', () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Trop court",
     })
@@ -169,7 +169,7 @@ describe("contactSchema", () => {
   it("accepte company absente (data.company === undefined)", () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
     })
@@ -183,7 +183,7 @@ describe("contactSchema", () => {
   it("ignore silencieusement un champ inconnu (ex: honeypot website)", () => {
     const result = contactSchema.safeParse({
       name: "Alice",
-      email: "alice@acme.fr",
+      email: "alice@acme.example",
       subject: "Projet IA",
       message: "Bonjour, j’aimerais discuter d’un projet IA dans ma boite.",
       website: "spam-bot-filled",

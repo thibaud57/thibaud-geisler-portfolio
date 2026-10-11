@@ -8,7 +8,7 @@ scope: ["docs", "legal"]
 
 # Registre des traitements
 
-> Document interne, non publié. Tenu au titre du RGPD art. 30, présenté à la CNIL sur demande lors d'un contrôle.
+> Document interne. Tenu au titre du RGPD art. 30, présenté à la CNIL sur demande lors d'un contrôle.
 
 ## Responsable de traitement
 
@@ -122,7 +122,7 @@ scope: ["docs", "legal"]
 | Stockage | Base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne |
 | Sécurité | Espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS |
 | Analyse d'intérêt légitime | Tenue en interne (mise en balance des intérêts), revue à chaque nouvelle source, nouveau canal ou changement d'outil |
-| AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si les agents internes se mettent à noter les personnes |
+| AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si un traitement automatisé vient à évaluer les personnes |
 
 ## Notes
 

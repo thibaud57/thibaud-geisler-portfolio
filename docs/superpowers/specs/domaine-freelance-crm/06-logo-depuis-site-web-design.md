@@ -17,7 +17,7 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 
 ### État livré
 
-À la fin de ce sub-project, on peut : ouvrir la fiche d'une entreprise dont le site déclare un `apple-touch-icon`, cliquer « Récupérer depuis le site », voir l'icône en aperçu avec « 180 × 180 px · apple-touch-icon », enregistrer, et retrouver ce logo dans la liste des entreprises ; puis mettre dans le site web de Umbrella une capture Wayback antérieure à sa mise en vente et récupérer son logo de l'époque.
+À la fin de ce sub-project, on peut : ouvrir la fiche d'une entreprise dont le site déclare un `apple-touch-icon`, cliquer « Récupérer depuis le site », voir l'icône en aperçu avec « 180 × 180 px · apple-touch-icon », enregistrer, et retrouver ce logo dans la liste des entreprises ; puis mettre dans le site web d'une fiche une capture Wayback d'une version antérieure du site et récupérer son logo de l'époque.
 
 ## Dependencies
 
@@ -48,7 +48,7 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 
 - **Parcours** : le bouton appelle une Server Action avec la valeur courante des champs site web et slug (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md` : `getCurrentUser()` en tête, hors du `try`). L'action revalide l'adresse avec la règle du champ site web et le slug avec `SLUG_PATTERN`, récupère l'icône, la range dans le bucket admin sous `freelance/crm/entreprises/<slug>/logo-<empreinte>.png` (`COMPANY_LOGO_FOLDER`, clé passée par `validateAssetPath` comme au dépôt manuel), invalide `/admin/assets` et renvoie la clé, la taille d'origine et la source. La card place la clé dans son état `logoFilename`, que le champ caché existant envoie à l'enregistrement : l'action entreprise ne change pas
 - **Nom tiré du contenu** : l'empreinte est le début du SHA-256 du PNG produit. Le logo en place n'est jamais écrasé avant l'enregistrement de la fiche, une même icône récupérée deux fois retombe sur le même fichier, et un nouveau logo change d'adresse, ce qui évite l'image périmée du cache de `next/image` sur les pages publiques
-- **Adresse lue telle quelle** : le bouton lit la page à l'adresse du champ, site vivant ou capture Wayback, sans traitement propre à Wayback ni détection de site mort. Une page de capture pointe déjà ses icônes vers l'archive : vérifié le 2026-09-26 sur une capture de `umbrella.example`, où `<link rel="icon">` et `apple-touch-icon` sont réécrits en `web.archive.org/web/<horodatage>im_/…`
+- **Adresse lue telle quelle** : le bouton lit la page à l'adresse du champ, site vivant ou capture Wayback, sans traitement propre à Wayback ni détection de site mort. Une page de capture pointe déjà ses icônes vers l'archive : vérifié le 2026-09-26 sur une capture réelle, où `<link rel="icon">` et `apple-touch-icon` sont réécrits en `web.archive.org/web/<horodatage>im_/…`
 - **Ordre d'essai** (ADR-023) : `apple-touch-icon` (et `apple-touch-icon-precomposed`), puis `<link rel="icon">` et `shortcut icon` de la plus grande taille déclarée, un SVG comptant comme la plus grande. Les icônes `.ico` sont ignorées. Jamais `og:image` ni une image de la page. Les adresses relatives se résolvent contre `<base href>` s'il existe, sinon contre l'adresse finale de la page. Le premier candidat qui se télécharge, se lit et atteint la taille minimale l'emporte
 - **Lecture de la page** : seules les balises vides `<link>` et `<base>` servent, lues par une fonction du projet sur le début du document (jusqu'à `</head>`), sans bibliothèque d'analyse HTML ; `metascraper-logo-favicon` est écarté parce qu'il appelle lui-même `/favicon.ico` et le service de Google, hors de la garde
 - **Conversion** (`sharp`, dépendance directe, déjà installé avec Next et pris en charge par le `Dockerfile`) : PNG, JPEG, WebP, GIF et SVG en entrée. Sortie PNG, 256 px au plus sur le grand côté, jamais agrandie, transparence gardée ; un SVG est rendu directement à 256 px. Refus sous 32 px sur le grand côté, la taille d'origine étant affichée sous l'aperçu
@@ -72,9 +72,9 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 **AND** après enregistrement, la liste des entreprises montre ce logo
 
 ### Scénario 2 : capture Wayback mise par l'admin
-**GIVEN** la fiche de Umbrella dont l'admin a remplacé le site web par une capture Wayback de `umbrella.example` antérieure à sa mise en vente
+**GIVEN** une fiche dont l'admin a remplacé le site web par une capture Wayback de `acme.example` d'une version antérieure du site
 **WHEN** on clique « Récupérer depuis le site »
-**THEN** l'icône archivée de l'époque s'affiche en aperçu, jamais celle de la page de vente
+**THEN** l'icône archivée de l'époque s'affiche en aperçu, jamais celle de la version actuelle
 
 ### Scénario 3 : bouton inactif
 **GIVEN** une fiche sans site web, ou une nouvelle fiche sans slug

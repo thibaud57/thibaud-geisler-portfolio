@@ -57,18 +57,18 @@ describe("matchAssetUsage", () => {
   it("resolves a key cited in a project's case study markdown to that project's slug", async () => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([
       {
-        slug: "acme",
-        coverFilename: "projets/client/acme/cover.webp",
-        caseStudyMarkdownFr: "![screenshot](projets/client/acme/screenshot-1.webp)",
+        slug: "projet-exemple",
+        coverFilename: "projets/client/projet-exemple/cover.webp",
+        caseStudyMarkdownFr: "![screenshot](projets/client/projet-exemple/screenshot-1.webp)",
         caseStudyMarkdownEn: null,
       },
     ] as never)
 
     const usage = matchAssetUsage(await loadAssetReferences(), [
-      "projets/client/acme/screenshot-1.webp",
+      "projets/client/projet-exemple/screenshot-1.webp",
     ])
 
-    expect(usage.get("projets/client/acme/screenshot-1.webp")).toEqual(["acme"])
+    expect(usage.get("projets/client/projet-exemple/screenshot-1.webp")).toEqual(["projet-exemple"])
   })
 
   it("resolves a key referenced nowhere to an empty list", async () => {

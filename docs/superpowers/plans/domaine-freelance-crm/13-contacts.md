@@ -268,7 +268,7 @@ import { initialContactFormState } from "./contacts.types"
 
 const BASE_FIELDS = {
   personId: "",
-  name: "Jeanne Dupont",
+  name: "Marie Durand",
   jobRole: NONE_VALUE,
   zone: NONE_VALUE,
   companyId: NONE_VALUE,
@@ -327,16 +327,16 @@ describe("createContact", () => {
     await createContact(
       initialContactFormState,
       buildFormData({
-        email: " Jeanne.Dupont@Example.COM ",
-        linkedinUrl: "fr.linkedin.com/in/Jeanne-Dupont-4b2a1c/",
+        email: " Marie.Durand@Example.COM ",
+        linkedinUrl: "fr.linkedin.com/in/Marie-Durand-7e91d3/",
       }),
     )
 
     expect(prisma.person.create).toHaveBeenCalledWith(
       objectMatch({
         data: objectMatch({
-          email: "jeanne.dupont@example.com",
-          linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
+          email: "marie.durand@example.com",
+          linkedinUrl: "https://www.linkedin.com/in/marie-durand-7e91d3",
         }),
       }),
     )
@@ -347,15 +347,15 @@ describe("createContact", () => {
 
   it("refuses a second contact with the same email or LinkedIn profile, naming it", async () => {
     vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Jeanne Dupont",
-      email: "jeanne@example.com",
+      name: "Marie Durand",
+      email: "marie@example.com",
       optedOutAt: null,
     } as never)
 
-    const state = await createContact(initialContactFormState, buildFormData({ email: "JEANNE@example.com" }))
+    const state = await createContact(initialContactFormState, buildFormData({ email: "MARIE@example.com" }))
 
     expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual(["Ce contact existe déjà : Jeanne Dupont"])
+    expect(state.errors.email).toEqual(["Ce contact existe déjà : Marie Durand"])
     expect(prisma.person.create).not.toHaveBeenCalled()
   })
 
@@ -368,7 +368,7 @@ describe("createContact", () => {
 
     const state = await createContact(
       initialContactFormState,
-      buildFormData({ linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c" }),
+      buildFormData({ linkedinUrl: "https://www.linkedin.com/in/marie-durand-7e91d3" }),
     )
 
     expect(state.message).toBe("contact_opted_out")
@@ -379,7 +379,7 @@ describe("createContact", () => {
 
   it("creates the role on an existing person without writing its fields", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Anaïs Petit",
+      name: "Louis Garnier",
       optedOutAt: null,
       contact: null,
     } as never)
@@ -395,7 +395,7 @@ describe("createContact", () => {
 
   it("refuses to attach the contact role to a person who already has it", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Anaïs Petit",
+      name: "Louis Garnier",
       optedOutAt: null,
       contact: { personId: "p9" },
     } as never)
@@ -403,7 +403,7 @@ describe("createContact", () => {
     const state = await createContact(initialContactFormState, buildFormData({ personId: "p9" }))
 
     expect(state.message).toBe("contact_exists")
-    expect(state.errors.personId).toEqual(["Ce contact existe déjà : Anaïs Petit"])
+    expect(state.errors.personId).toEqual(["Ce contact existe déjà : Louis Garnier"])
     expect(prisma.contact.create).not.toHaveBeenCalled()
   })
 
@@ -430,7 +430,7 @@ describe("updateContact", () => {
   it("ignores the contact being edited when checking duplicates", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
 
-    await updateContact("p1", initialContactFormState, buildFormData({ email: "jeanne@example.com" }))
+    await updateContact("p1", initialContactFormState, buildFormData({ email: "marie@example.com" }))
 
     expect(prisma.person.findFirst).toHaveBeenCalledWith(
       objectMatch({ where: objectMatch({ NOT: { id: "p1" } }) }),
@@ -1383,7 +1383,7 @@ export function ContactForm({ contact, companyOptions, leadOptions }: Props) {
                     id={`${formId}-name`}
                     name="name"
                     defaultValue={source?.name ?? ""}
-                    placeholder="Jeanne Dupont"
+                    placeholder="Marie Durand"
                     aria-invalid={!!state.errors.name?.length}
                     aria-describedby={`${formId}-name-error`}
                   />
@@ -1702,7 +1702,7 @@ export function ContactForm({ contact, companyOptions, leadOptions }: Props) {
                     aria-labelledby={`${formId}-notes-title`}
                     maxLength={200}
                     defaultValue={source?.notes ?? ""}
-                    placeholder="Ancien collègue | Scala"
+                    placeholder="Ancien collègue | Python/React"
                     aria-invalid={!!state.errors.notes?.length}
                     aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
                   />

@@ -103,7 +103,7 @@ Modifier `src/lib/seo/json-ld.ts` (livré par sub-project SEO 05 existant) pour 
 
 Setup : étendre la factory existante `buildProfileInput(overrides?)` avec un `legal?` optionnel dans le type `Partial<ProfilePagePersonInput>` (déjà géré par TypeScript via Partial). Pas de fixture nouvelle dédiée, on utilise les valeurs canoniques Thibaud (SIRET, adresse 11 rue Gouvy Metz). Pas de mock nécessaire (helpers purs, pas de dépendance externe). Aucun mock de `next-intl`, `next/cache`, Prisma, `next/navigation`.
 
-Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
+Tests délibérément exclus (no-lib-test) :
 - Test du composant `<JsonLd>` (sub 5 a déjà ses propres tests dans `src/components/seo/json-ld.test.tsx`, et c'est juste un wrapper React de 5 lignes).
 - Test du Server Component `/a-propos/page.tsx` (impossible à tester en jsdom : RSC async + Prisma + cache, couvert par les acceptance scenarios end-to-end via View Source).
 - Test de l'intégration `getPublisher() → buildProfilePagePerson()` end-to-end (couvert par les acceptance scenarios + tests integration du sub 1 sur la query elle-même).
@@ -136,7 +136,7 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 **Rationale :**
 - L'option A est anti-DRY anticipé : le mapping naming Schema.org (`street → streetAddress`, `city → addressLocality`) est non-trivial et répétitif. Si demain un sub-project post-MVP ajoute un schéma `Organization` JSON-LD pour les sous-traitants RGPD (IONOS, Calendly) ou les sociétés clientes (Acme, Soylent via `Company.legalEntity` introduit au sub 1), on dupliquera ces 8 lignes avec risque d'erreurs de naming Schema.org. Coût d'extraction ZÉRO maintenant (8 lignes déplacées dans un helper pur) vs coût de duplication FUTUR plus élevé.
 - L'option C (fichier dédié) est sur-engineerie pour un helper de 8 lignes. `json-ld.ts` contient déjà d'autres helpers privés similaires (`mapExpertise`, `normalizeBase`). Cohérent de garder `buildPostalAddress` dans le même fichier, exporté pour réutilisation par d'éventuels futurs builders Organization/LocalBusiness/etc.
-- L'option B est l'optimum : helper pur exporté, testable isolément (1 cas unit dédié), prêt à servir le moment où Organization JSON-LD sera ajouté post-MVP. Le user a explicitement validé ce choix lors du brainstorming, en lien direct avec la décision sub 1 d'ajouter `Company.legalEntity?` (pour permettre l'enrichissement futur des sociétés clientes en Organization).
+- L'option B est l'optimum : helper pur exporté, testable isolément (1 cas unit dédié), prêt à servir le moment où Organization JSON-LD sera ajouté post-MVP. Choix validé par le propriétaire lors du brainstorming, en lien direct avec la décision sub 1 d'ajouter `Company.legalEntity?` (pour permettre l'enrichissement futur des sociétés clientes en Organization).
 
 ### Décision : Type `AddressInput` partagé vs aplatissement chez le caller
 

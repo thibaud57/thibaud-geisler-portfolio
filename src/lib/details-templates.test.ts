@@ -46,7 +46,7 @@ describe("detailsAfterOriginChange", () => {
   })
 
   it("keeps written details when the origin changes", () => {
-    const written = "# 🎯 Contexte\n\nRencontré au salon IA de Luxembourg."
+    const written = "# 🎯 Contexte\n\nRencontré lors d'un salon."
 
     const details = detailsAfterOriginChange(written, "INBOUND", "OUTBOUND")
 

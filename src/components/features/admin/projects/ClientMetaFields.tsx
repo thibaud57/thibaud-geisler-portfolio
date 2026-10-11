@@ -16,9 +16,11 @@ import {
 } from "@/components/ui/select"
 
 import {
+  CONTRACT_STATUS_ICONS,
   CONTRACT_STATUS_LABELS,
   CONTRACT_STATUSES,
   PROJECT_FIELD_LABELS,
+  WORK_MODE_ICONS,
   WORK_MODE_LABELS,
   WORK_MODES,
 } from "@/lib/projects"
@@ -96,7 +98,11 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <EnumSelectItems values={WORK_MODES} labels={WORK_MODE_LABELS} />
+              <EnumSelectItems
+                values={WORK_MODES}
+                labels={WORK_MODE_LABELS}
+                icons={WORK_MODE_ICONS}
+              />
             </SelectContent>
           </Select>
         </FormField>
@@ -117,7 +123,11 @@ export function ClientMetaFields({ companies, defaultValues, errors }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>Non renseigné</SelectItem>
-              <EnumSelectItems values={CONTRACT_STATUSES} labels={CONTRACT_STATUS_LABELS} />
+              <EnumSelectItems
+                values={CONTRACT_STATUSES}
+                labels={CONTRACT_STATUS_LABELS}
+                icons={CONTRACT_STATUS_ICONS}
+              />
             </SelectContent>
           </Select>
         </FormField>

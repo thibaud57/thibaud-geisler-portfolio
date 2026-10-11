@@ -231,7 +231,7 @@
       "placeholders": {
         "name": "Jeanne Dupont",
         "company": "Acme SAS",
-        "email": "jeanne@exemple.com",
+        "email": "jeanne.dupont@example.com",
         "subject": "Sujet de votre message",
         "message": "Décrivez votre besoin, votre contexte et vos questions…"
       },

@@ -80,16 +80,16 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 ## Acceptance criteria
 
 ### Scénario 1 : payload valide, rate limit OK, SMTP succès
-**GIVEN** un `FormData` avec `name="Alice"`, `company="Acme"`, `email="alice@acme.fr"`, `subject="Projet IA"`, `message="<≥20 chars>"`, sans `website`
+**GIVEN** un `FormData` avec `name="Alice"`, `company="Acme"`, `email="alice@example.com"`, `subject="Projet IA"`, `message="<≥20 chars>"`, sans `website`
 **AND** la 1ère requête depuis l'IP `1.2.3.4`
 **WHEN** `submitContact(initialState, formData)` est appelée
-**THEN** `transporter.sendMail` est invoqué avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo="alice@acme.fr"`, `subject="Contact: Alice, Projet IA"`, `text` contenant les 4 champs et le footer
+**THEN** `transporter.sendMail` est invoqué avec `from=MAIL_FROM`, `to=MAIL_TO`, `replyTo="alice@example.com"`, `subject="Contact: Alice, Projet IA"`, `text` contenant les 4 champs et le footer
 **AND** un log `info` est émis avec `event: 'email:sent'`, `has_company: true`, `message_length: <int>`, `ip_hash: <8 chars hex>`
 **AND** le log NE contient PAS `email`, `name`, `subject` ni `message` en clair
 **AND** la fonction retourne `{ ok: true, errors: {}, message: null }`
 
 ### Scénario 2 : honeypot rempli (bot détecté)
-**GIVEN** un `FormData` avec les 5 champs métier valides PLUS `website="spam.com"`
+**GIVEN** un `FormData` avec les 5 champs métier valides PLUS `website="spam.example"`
 **WHEN** `submitContact(initialState, formData)` est appelée
 **THEN** `transporter.sendMail` n'est PAS invoqué
 **AND** `checkRateLimit` n'est PAS invoqué
@@ -131,7 +131,7 @@ Création de la Server Action `submitContact(prevState, formData)` dans `src/ser
 ### Scénario 8 : aucun PII dans les logs (RGPD)
 **GIVEN** un payload valide envoyé avec succès
 **WHEN** la suite de logs est inspectée (spy sur `logger.info`)
-**THEN** aucun log ne contient les chaînes `'alice@acme.fr'`, `'Alice'`, `'Projet IA'` ni le contenu du message
+**THEN** aucun log ne contient les chaînes `'alice@example.com'`, `'Alice'`, `'Projet IA'` ni le contenu du message
 **AND** seuls `event`, `has_company`, `message_length`, `ip_hash`, `requestId`, `action`, `service`, `level`, `time` sont présents
 
 ### Scénario 9 : `company` absente

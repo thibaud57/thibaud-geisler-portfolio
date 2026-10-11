@@ -9,7 +9,7 @@ import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
 import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
 import { RowActionButton } from "@/components/features/admin/RowActionButton"
-import { actionsColumn, hideableColumn } from "@/components/features/admin/table-cells"
+import { actionsColumn, enumBadge, hideableColumn } from "@/components/features/admin/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
 import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
@@ -24,14 +24,17 @@ import {
   type ProjectView,
 } from "@/lib/admin-table-widths"
 import {
+  CONTRACT_STATUS_ICONS,
   CONTRACT_STATUS_LABELS,
   formatProjectDuration,
   formatShortDate,
+  PROJECT_FORMAT_ICONS,
   PROJECT_FORMAT_LABELS,
   PROJECT_FIELD_LABELS,
   PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
   PROJECT_TYPE_LABELS,
+  WORK_MODE_ICONS,
   WORK_MODE_LABELS,
 } from "@/lib/projects"
 import { safeExternalUrl } from "@/lib/url"
@@ -49,6 +52,14 @@ const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
 
 const PROJECT_STATUS_VALUES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
 const PROJECT_FORMAT_VALUES = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
+
+// Glyphe par libellé plutôt que par valeur : BadgeList ne connaît que les libellés déjà résolus.
+const FORMAT_ICONS_BY_LABEL = Object.fromEntries(
+  PROJECT_FORMAT_VALUES.map((format) => [
+    PROJECT_FORMAT_LABELS[format],
+    PROJECT_FORMAT_ICONS[format],
+  ]),
+)
 
 const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
   DRAFT: "bg-warning",
@@ -123,6 +134,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
         <BadgeList
           labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
           noun="types de projet"
+          icons={FORMAT_ICONS_BY_LABEL}
         />
       ),
     },
@@ -149,11 +161,11 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       className: "whitespace-nowrap",
       ...hideableColumn(visibleByDefault, "contrat"),
       cell: (project) =>
-        project.clientMeta?.contractStatus ? (
-          <Badge variant="secondary">
-            {CONTRACT_STATUS_LABELS[project.clientMeta.contractStatus]}
-          </Badge>
-        ) : null,
+        enumBadge(
+          project.clientMeta?.contractStatus ?? null,
+          CONTRACT_STATUS_LABELS,
+          CONTRACT_STATUS_ICONS,
+        ),
     },
     {
       key: "debut",
@@ -270,6 +282,7 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
               <BadgeList
                 labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
                 noun="types de projet"
+                icons={FORMAT_ICONS_BY_LABEL}
                 max={Infinity}
               />
             ),
@@ -374,15 +387,15 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
                 },
                 {
                   label: PROJECT_FIELD_LABELS.workMode,
-                  value: <Badge variant="secondary">{WORK_MODE_LABELS[clientMeta.workMode]}</Badge>,
+                  value: enumBadge(clientMeta.workMode, WORK_MODE_LABELS, WORK_MODE_ICONS),
                 },
                 {
                   label: PROJECT_FIELD_LABELS.contractStatus,
-                  value: clientMeta.contractStatus ? (
-                    <Badge variant="secondary">
-                      {CONTRACT_STATUS_LABELS[clientMeta.contractStatus]}
-                    </Badge>
-                  ) : null,
+                  value: enumBadge(
+                    clientMeta.contractStatus,
+                    CONTRACT_STATUS_LABELS,
+                    CONTRACT_STATUS_ICONS,
+                  ),
                 },
                 {
                   label: PROJECT_FIELD_LABELS.teamSize,

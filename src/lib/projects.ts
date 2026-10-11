@@ -1,10 +1,16 @@
 import {
+  AppWindow,
+  Bot,
   Briefcase,
   Building,
   FilePenLine,
   GraduationCap,
+  Monitor,
   Repeat,
   Shuffle,
+  Smartphone,
+  SquareTerminal,
+  Webhook,
   Wifi,
 } from "lucide-react"
 
@@ -103,6 +109,15 @@ export const WORK_MODE_ICONS: Record<WorkMode, IconComponent | null> = {
   REMOTE: Wifi,
   HYBRIDE: Shuffle,
   PRESENTIEL: Building,
+}
+
+export const PROJECT_FORMAT_ICONS: Record<ProjectFormat, IconComponent | null> = {
+  API: Webhook,
+  WEB_APP: AppWindow,
+  MOBILE_APP: Smartphone,
+  DESKTOP_APP: Monitor,
+  CLI: SquareTerminal,
+  IA: Bot,
 }
 
 export interface ProjectDuration {

@@ -166,7 +166,7 @@ describe("countClientsSupported", () => {
     await prisma.company.createMany({
       data: [
         { slug: "acme", name: "Acme", sectors: ["ASSURANCE"], size: "ETI" },
-        { slug: "umbrella", name: "Umbrella", sectors: ["SAAS"], size: "TPE" },
+        { slug: "globex", name: "Globex", sectors: ["SAAS"], size: "TPE" },
       ],
     })
     await prisma.project.create({
@@ -190,7 +190,7 @@ describe("countClientsSupported", () => {
         descriptionEn: "d",
         type: "CLIENT",
         status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "umbrella" } } } },
+        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "globex" } } } },
       },
     })
 

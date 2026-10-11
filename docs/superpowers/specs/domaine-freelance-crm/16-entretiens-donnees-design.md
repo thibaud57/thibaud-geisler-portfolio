@@ -164,7 +164,7 @@ Crée le modèle `Interview` rattaché à une opportunité, avec ses corresponda
 **Choix : B**
 
 **Rationale :**
-- Décision du propriétaire du 2026-09-27 : le titre Notion (« Entretien 1 - Refonte d'application (Globex) ») répète le numéro et l'opportunité, et l'entretien lié est toujours le précédent de la même opportunité
+- Décision du propriétaire du 2026-09-27 : le titre Notion (« Entretien 1 - Refonte d'application (Acme) ») répète le numéro et l'opportunité, et l'entretien lié est toujours le précédent de la même opportunité
 - Un entretien déplacé dans le temps se renumérote seul
 
 ### Décision : gabarits

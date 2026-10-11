@@ -32,7 +32,7 @@
 - ✅ `elasticsearch` à insérer entre `datadog` (5) et `sentry` (7), donc `elasticsearch: 6`
 - ✅ Linker `elasticsearch` à `webapp-gestion-sinistres.tagSlugs`
 - ✅ NE PAS ajouter `mcp` à `referent-ia-automatisation.tagSlugs` (laisser intact)
-- ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0` (conseil, rien en prod)
+- ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0`
 
 ---
 
@@ -289,7 +289,7 @@ Valeurs par défaut :
 | Project slug | `deliverablesCount` | Justification |
 |--------------|---------------------|---------------|
 | `webapp-gestion-sinistres` | **3** | Mission Acme = 3 applications distinctes |
-| `referent-ia-automatisation` | **0** | Mission de conseil chez Initech, rien en prod à ce jour |
+| `referent-ia-automatisation` | **0** | |
 | `saas-gestion-paie` | **1** | Mission Umbrella = 1 livrable |
 | `erp-odoo-android` | **2** | Mission Soylent = ERP Odoo + App Android |
 | `portfolio` | **1** | 1 livrable |

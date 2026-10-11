@@ -4,11 +4,11 @@ import { formatSiret } from "./format-siret"
 
 describe("formatSiret", () => {
   it("formate un SIRET valide 14 chiffres avec espaces aux bons emplacements", () => {
-    expect(formatSiret("88041912200036")).toBe("880 419 122 00036")
+    expect(formatSiret("11122233300044")).toBe("111 222 333 00044")
   })
 
   it("retourne un SIREN 9 chiffres tel quel (pas de match du regex 14 chiffres)", () => {
-    expect(formatSiret("880419122")).toBe("880419122")
+    expect(formatSiret("111222333")).toBe("111222333")
   })
 
   it("retourne une chaîne vide telle quelle", () => {
@@ -20,6 +20,6 @@ describe("formatSiret", () => {
   })
 
   it("retourne un SIRET déjà formatté tel quel (idempotence regex stricte sur 14 chiffres consécutifs)", () => {
-    expect(formatSiret("880 419 122 00036")).toBe("880 419 122 00036")
+    expect(formatSiret("111 222 333 00044")).toBe("111 222 333 00044")
   })
 })

@@ -150,11 +150,11 @@ describe("buildProfilePagePerson", () => {
   })
 
   const LEGAL_FIXTURE = {
-    siret: "88041912200036",
+    siret: "11122233300044",
     address: {
-      street: "11 rue Gouvy",
-      postalCode: "57000",
-      city: "Metz",
+      street: "1 rue de l'Exemple",
+      postalCode: "75000",
+      city: "Paris",
       country: "France",
     },
   } as const
@@ -163,16 +163,16 @@ describe("buildProfilePagePerson", () => {
     const result = buildProfilePagePerson(buildProfileInput({ legal: LEGAL_FIXTURE }))
     expect(result.mainEntity.address).toEqual({
       "@type": "PostalAddress",
-      streetAddress: "11 rue Gouvy",
-      postalCode: "57000",
-      addressLocality: "Metz",
+      streetAddress: "1 rue de l'Exemple",
+      postalCode: "75000",
+      addressLocality: "Paris",
       addressCountry: "France",
     })
-    expect(result.mainEntity.taxID).toBe("88041912200036")
+    expect(result.mainEntity.taxID).toBe("11122233300044")
     expect(result.mainEntity.identifier).toEqual({
       "@type": "PropertyValue",
       propertyID: "SIRET",
-      value: "88041912200036",
+      value: "11122233300044",
     })
   })
 

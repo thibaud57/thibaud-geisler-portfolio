@@ -42,7 +42,7 @@ describe("optOutPerson", () => {
 
   it("clears everything but email and LinkedIn when a person opts out", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@example.com",
+      email: "marie@example.com",
       linkedinUrl: null,
       optedOutAt: null,
       lead: { personId: "p1" },
@@ -71,7 +71,7 @@ describe("optOutPerson", () => {
 
   it("removes the contact role when a person opts out", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "jeanne.exemple@example.com",
+      email: "jeanne.dupont@example.com",
       linkedinUrl: null,
       optedOutAt: null,
       lead: { personId: "p1" },
@@ -84,7 +84,7 @@ describe("optOutPerson", () => {
 
   it("refuses to oppose a person without the lead role", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "jeanne.exemple@example.com",
+      email: "jeanne.dupont@example.com",
       linkedinUrl: null,
       optedOutAt: null,
       lead: null,
@@ -114,7 +114,7 @@ describe("optOutPerson", () => {
 
   it("does not touch the person's prospecting actions on a simple stop", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@example.com",
+      email: "marie@example.com",
       linkedinUrl: null,
       optedOutAt: null,
       lead: { personId: "p1" },
@@ -127,7 +127,7 @@ describe("optOutPerson", () => {
 
   it("keeps the first opt-out date when a person opts out twice", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@example.com",
+      email: "marie@example.com",
       linkedinUrl: null,
       optedOutAt: new Date("2026-03-12T09:00:00Z"),
     } as never)

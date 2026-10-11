@@ -58,9 +58,9 @@ function buildFormData(
 function withLegalEntity(overrides: Record<string, string> = {}): Record<string, string> {
   return {
     legalEntityName: "Acme SAS",
-    legalEntityStreet: "11 rue Gouvy",
-    legalEntityPostalCode: "57000",
-    legalEntityCity: "Metz",
+    legalEntityStreet: "1 rue de l'Exemple",
+    legalEntityPostalCode: "75000",
+    legalEntityCity: "Paris",
     legalEntityCountry: "FR",
     ...overrides,
   }
@@ -266,9 +266,9 @@ describe("createCompany", () => {
               legalForm: "SAS",
               address: {
                 create: {
-                  street: "11 rue Gouvy",
-                  postalCode: "57000",
-                  city: "Metz",
+                  street: "1 rue de l'Exemple",
+                  postalCode: "75000",
+                  city: "Paris",
                   country: "FR",
                 },
               },
@@ -356,9 +356,9 @@ describe("createCompany", () => {
       buildFormData(
         withLegalEntity({
           legalEntityRcsNumber: "B123456",
-          legalEntityStreet: "11 rue Gouvy",
-          legalEntityPostalCode: "57000",
-          legalEntityCity: "Metz",
+          legalEntityStreet: "1 rue de l'Exemple",
+          legalEntityPostalCode: "75000",
+          legalEntityCity: "Paris",
           legalEntityCountry: "FR",
         }),
         ["SAAS"],
@@ -444,7 +444,7 @@ describe("createCompany", () => {
         {
           relationStatus: "DORMANTE",
           notes: "  Rencontrée au salon  ",
-          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+          details: "# 🏢 À propos\n\nÉditeur de logiciels.",
         },
         ["SAAS"],
         { types: ["CLIENT_FINAL", "PARTENAIRE"], zones: ["LUXEMBOURG", "PARIS"] },
@@ -458,7 +458,7 @@ describe("createCompany", () => {
           zones: ["PARIS", "LUXEMBOURG"],
           relationStatus: "DORMANTE",
           notes: "Rencontrée au salon",
-          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+          details: "# 🏢 À propos\n\nÉditeur de logiciels.",
         }),
       }),
     )

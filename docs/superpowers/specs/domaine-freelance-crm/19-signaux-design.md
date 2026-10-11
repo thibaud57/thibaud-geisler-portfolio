@@ -13,7 +13,7 @@ date: "2026-09-27"
 
 ## Scope
 
-Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, qui remplace les sections Notion `📡 Signaux` (entreprise) et `🔍 Signal` (lead outbound) du toolkit, sa validation, ses Server Actions, sa fraîcheur calculée et son sort à l'effacement d'un lead. Ajoute une card Signaux aux pages des entreprises et des leads outbound (ajout, modification, suppression), un bloc Signaux en lecture à leurs vues détail et le filtre « Signal récent » à leurs listes. Exclut tout écran Signaux, le calcul du score ICP (agents internes) et la veille automatisée de l'agent `signal-scout`.
+Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, qui remplace les sections Notion `📡 Signaux` (entreprise) et `🔍 Signal` (lead outbound) des gabarits Notion actuels, sa validation, ses Server Actions, sa fraîcheur calculée et son sort à l'effacement d'un lead. Ajoute une card Signaux aux pages des entreprises et des leads outbound (ajout, modification, suppression), un bloc Signaux en lecture à leurs vues détail et le filtre « Signal récent » à leurs listes. Exclut tout écran Signaux, le calcul du score ICP (agents internes) et la veille automatisée.
 
 ### État livré
 
@@ -57,29 +57,29 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 
 ## Architecture approach
 
-- **Remodélisation de Notion** (principe du propriétaire, 2026-09-27) : chaque ligne des sections `📡 Signaux` et `🔍 Signal` devient une ligne du modèle, avec les champs du gabarit du toolkit (`TEMPLATE_ENTREPRISE.md`, `TEMPLATE_LEAD_OUTBOUND.md`) ; aucun gabarit de Détails n'a de section Signal (`03`, `08`)
+- **Remodélisation de Notion** (principe du propriétaire, 2026-09-27) : chaque ligne des sections `📡 Signaux` et `🔍 Signal` devient une ligne du modèle, avec les champs des gabarits Notion actuels ; aucun gabarit de Détails n'a de section Signal (`03`, `08`)
 - **Modèle** (`.claude/rules/prisma/schema-migrations.md`, schema `freelance`) :
 
 | Champ | Type | Règle |
 |---|---|---|
 | `type` | `SignalType` | requis ; valeurs par rattachement ci-dessous |
-| `occurredOn` | `DateTime @db.Date` | requis ; au jour quand la source le donne, au 1er du mois sinon, un seul calendrier (gabarit du toolkit « JJ/MM/AAAA, ou MM/AAAA si le jour n'est pas public ; ne jamais inventer un jour ») |
-| `content` | `String` | requis ; la « description courte » du toolkit, ce qui fait de l'événement un signal |
-| `sourceUrl` | `String?` | lien vers la source, facultatif comme dans le toolkit, même règle que le site web d'une entreprise (`02`) |
+| `occurredOn` | `DateTime @db.Date` | requis ; au jour quand la source le donne, au 1er du mois sinon, un seul calendrier (gabarit Notion actuel « JJ/MM/AAAA, ou MM/AAAA si le jour n'est pas public ; ne jamais inventer un jour ») |
+| `content` | `String` | requis ; la « description courte » du gabarit Notion actuel, ce qui fait de l'événement un signal |
+| `sourceUrl` | `String?` | lien vers la source, facultatif comme dans le gabarit Notion actuel, même règle que le site web d'une entreprise (`02`) |
 | `companyId` | `String?`, `onDelete: Cascade` | entreprise du signal |
 | `personId` | `String?`, `onDelete: Cascade` | personne (lead outbound) du signal ; contraintes SQL `CHECK` en migration : un seul des deux rattachements posé, et son type parmi ceux qu'il autorise |
 | `createdAt`, `updatedAt` | `DateTime @db.Timestamptz` | |
 
-- **Rattachement et types** (listes du toolkit, `crm-doc/SKILL.md` et `TEMPLATE_LEAD_OUTBOUND.md`) : un signal a exactement un rattachement, fixé à la création par la fiche d'où il part et jamais modifié ; le formulaire ne propose que les types de ce rattachement, l'action refuse les autres. Pour une personne, l'identifiant du rattachement est celui de la personne (`Person.id`), le même que `Lead.personId` et que `AdminLead.id` : la card Signaux de la page du lead lit `AdminLead` sans conversion
+- **Rattachement et types** (listes des gabarits Notion actuels) : un signal a exactement un rattachement, fixé à la création par la fiche d'où il part et jamais modifié ; le formulaire ne propose que les types de ce rattachement, l'action refuse les autres. Pour une personne, l'identifiant du rattachement est celui de la personne (`Person.id`), le même que `Lead.personId` et que `AdminLead.id` : la card Signaux de la page du lead lit `AdminLead` sans conversion
 
 | Rattachement | `SignalType` |
 |---|---|
 | Entreprise | `OFFRE_POSTE` (Offre de poste), `LEVEE` (Levée), `EXPANSION` (Expansion d'équipe), `NOUVEAU_PRODUIT` (Nouveau produit), `PIVOT` (Pivot), `ACQUISITION` (Acquisition) |
 | Lead outbound | `POST` (Post engageant), `COMMENTAIRE` (Commentaire), `CONFERENCE` (Présence en conférence), `INTERACTION` (Interaction directe) |
 
-  Un lead inbound ne reçoit jamais de signal (règle du toolkit : « un Lead Inbound n'a JAMAIS de section `🔍 Signal` »), un lead opposé non plus. Une contrainte SQL (`Signal_type_check`) impose en base ce lien entre le rattachement et le type ; un nouveau `SignalType` ajouté plus tard demande de la mettre à jour
+  Un lead inbound ne reçoit jamais de signal (règle des gabarits Notion actuels : un lead inbound n'a jamais de section `🔍 Signal`), un lead opposé non plus. Une contrainte SQL (`Signal_type_check`) impose en base ce lien entre le rattachement et le type ; un nouveau `SignalType` ajouté plus tard demande de la mettre à jour
 - **Date affichée** (`src/lib/signals.ts`) : toujours au jour « 12/03/2026 », y compris pour un 1er du mois saisi faute de jour connu, relue en UTC comme toute colonne date
-- **Fraîcheur** (`src/lib/signals.ts`, fonction pure) : matrice « Décote temporelle des signaux » du toolkit (`strategie-canaux.md`), l'âge comptant depuis `occurredOn`, y compris pour un signal daté au 1er du mois faute de jour connu
+- **Fraîcheur** (`src/lib/signals.ts`, fonction pure) : matrice de fraîcheur des signaux, l'âge comptant depuis `occurredOn`, y compris pour un signal daté au 1er du mois faute de jour connu
 
 | Type | Récent | À confirmer | Périmé |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 | Levée | moins de 6 mois | 6 à 18 mois | plus de 18 mois |
 | Expansion d'équipe, Nouveau produit | moins de 6 mois | 6 à 12 mois | plus de 12 mois |
 
-  Les autres types n'ont pas de règle dans le toolkit : ni badge, ni place dans le filtre « Signal récent »
+  Les autres types n'ont pas de règle dans la matrice de fraîcheur : ni badge, ni place dans le filtre « Signal récent »
 - **Glyphes** : `src/lib/signals.ts` exporte aussi `SIGNAL_TYPE_ICONS: Record<SignalType, IconComponent | null>` (Offre de poste `Megaphone`, Levée `TrendingUp`, Expansion d'équipe `Users`, Nouveau produit `Package`, Pivot `RotateCcw`, Acquisition `Merge`, Post engageant `PenLine`, Commentaire `MessageSquareText`, Présence en conférence `Mic`, Interaction directe `Hand`), imports nommés depuis `lucide-react`, type `IconComponent` de `@/lib/icons`
 - **Validation** (`src/lib/schemas/signal.ts`, `.claude/rules/zod/schemas.md`) : date requise (date ISO) ; contenu requis ; lien vide → `null`
 - **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, motif `saveEntity` / `deleteEntity`) : `createCompanySignal(companyId)`, `createPersonSignal(personId)`, `updateSignal(id)`, `deleteSignal(id)`, `getCurrentUser()` en tête de chacune. La création sur une personne vérifie qu'elle porte le rôle Lead avec `origin OUTBOUND` et n'est pas opposée ; la modification relit le rattachement du signal pour valider le type et refuse un signal d'une personne opposée ; la suppression reste toujours possible. Revalidation en variante `layout` de `/admin/entreprises` et `/admin/leads`
@@ -146,9 +146,9 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 ### Unit
 - `src/lib/signals.test.ts` :
   - rates a job offer recent, to confirm then stale at three and six months
-  - applies the funding and team expansion thresholds of the toolkit
+  - applies the funding and team expansion thresholds
   - counts a month-dated signal from the first day of its month
-  - gives no freshness to a type the toolkit does not rate
+  - gives no freshness to an unrated type
   - flags a record with at least one recent signal
 - `src/server/actions/signals.test.ts` :
   - attaches a new signal to its company
@@ -171,24 +171,24 @@ Crée le modèle `Signal`, rattaché à une entreprise ou à un lead outbound, q
 ### Décision : rattachement
 
 **Options envisagées :**
-- **A. Un seul rattachement, fixé par la fiche d'origine** : entreprise pour les signaux d'entreprise, lead outbound pour les signaux de personne, comme les deux sections du toolkit
+- **A. Un seul rattachement, fixé par la fiche d'origine** : entreprise pour les signaux d'entreprise, lead outbound pour les signaux de personne, comme les deux sections des gabarits Notion actuels
 - **B. Entreprise et/ou lead** : un même signal sur deux fiches, fraîcheur et effacement ambigus
 
 **Choix : A**
 
 **Rationale :**
-- Décision du propriétaire du 2026-09-27 : le toolkit sépare déjà les signaux d'entreprise (`📡 Signaux`) des signaux de personne (`🔍 Signal`)
+- Décision du propriétaire du 2026-09-27 : les gabarits Notion actuels séparent déjà les signaux d'entreprise (`📡 Signaux`) des signaux de personne (`🔍 Signal`)
 
 ### Décision : fraîcheur
 
 **Options envisagées :**
-- **A. Matrice du toolkit seule**, sur les quatre types qu'elle note
+- **A. Matrice de fraîcheur actuelle seule**, sur les quatre types qu'elle note
 - **B. Matrice étendue** à tous les types par des durées choisies ici
 
 **Choix : A**
 
 **Rationale :**
-- Décision du propriétaire du 2026-09-27 : on reprend la logique du toolkit transposée en app, sans règle métier nouvelle
+- Décision du propriétaire du 2026-09-27 : on reprend la logique des gabarits et de la matrice actuels transposée en app, sans règle métier nouvelle
 
 ### Décision : saisie
 

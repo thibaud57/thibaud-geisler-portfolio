@@ -116,7 +116,7 @@ Setup commun :
 - `beforeEach(() => vi.clearAllMocks())` reset entre les tests
 - Factory `renderCalendlyWidget(overrides?: Partial<Props>)` qui rend le composant avec les props par défaut
 
-Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
+Tests délibérément exclus (no-lib-test) :
 - Test du rendu effectif de `<InlineWidget>` (testerait la lib `react-calendly`)
 - Test des callbacks `useCalendlyEventListener` (testerait la lib)
 - Test du resize matchMedia (testerait `window.matchMedia` en jsdom, code de plumbing existant non touché par ce sub)
@@ -168,7 +168,7 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 **Rationale :**
 - L'option B duplique la logique de `useConsentManager().setActiveUI('dialog')` + le bouton shadcn. Anti-DRY. À maintenir en 2 endroits si la logique d'ouverture change.
 - L'option C est OK syntaxiquement mais perd la sémantique réutilisable. Si demain un 4e endroit du site veut ouvrir la modale (ex: section Cookies de `/confidentialite` au sub 4 + footer au sub 7 + nouvelle surface), on duplique encore. Le sub 4 a déjà créé `<OpenCookiePreferencesButton>` précisément pour ce besoin.
-- L'option A consomme le composant existant sans le modifier : la prop `label` est déjà optionnelle au sub 4 et fallback sur `t('Cookies.openManagerLabel')` par défaut. Diff `0 ligne` côté sub 4. Cohérent avec le principe de réutilisation du projet (cf. mémoire `feedback_reuse_components.md` du user).
+- L'option A consomme le composant existant sans le modifier : la prop `label` est déjà optionnelle au sub 4 et fallback sur `t('Cookies.openManagerLabel')` par défaut. Diff `0 ligne` côté sub 4. Cohérent avec le principe de réutilisation du projet.
 
 ### Décision : Position de la branche gated (avant ou après la branche `!url`)
 

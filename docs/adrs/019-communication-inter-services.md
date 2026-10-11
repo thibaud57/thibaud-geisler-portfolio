@@ -12,7 +12,7 @@ technologies: ["Docker", "Traefik", "Dokploy", "FastAPI", "Next.js"]
 
 Le découpage acté en [ADR-015](015-decoupage-services.md) fait cohabiter une application Next.js et trois services Python sur le même VPS Dokploy. Le portfolio porte tous les fronts et doit appeler ces services.
 
-Quatre projets Dokploy existent déjà : Portfolio, Scrappers, VPN et Automation. Deux domaines sont en service : `thibaud-geisler.com` pour la vitrine, `example.org` pour les outils d'infrastructure.
+Plusieurs projets Dokploy existent déjà. Deux domaines sont en service : `thibaud-geisler.com` pour la vitrine, un second domaine d'infrastructure pour les outils.
 
 ---
 
@@ -79,9 +79,9 @@ Internet
    ▼
 Traefik
    ├── thibaud-geisler.com    portfolio (public + /admin)   seul point sous l'auth du portfolio
-   ├── n8n.example.org     n8n            authentification propre
-   ├── vpn.example.org     wg-easy        authentification propre
-   └── collecte.example.org            clé d'API en en-tête
+   ├── n8n.example.org          n8n            authentification propre
+   ├── vpn.example.org          wg-easy        authentification propre
+   └── collecte.example.org     service interne de collecte de pages publiques, clé d'API en en-tête
 
 Réseau Docker interne, ni Traefik, ni domaine, ni internet
    ├── portfolio-chatbot:8000
@@ -95,7 +95,7 @@ Réseau Docker interne, ni Traefik, ni domaine, ni internet
 
 **Authentification de service.** Un jeton partagé, injecté par variable d'environnement, suffit tant que le réseau n'est pas exposé. Il protège d'un conteneur tiers compromis sur le même réseau, pas d'internet, qui n'y a pas accès.
 
-**Domaines et session.** Le cookie de session Better Auth est posé sur `thibaud-geisler.com` et ne traverse pas vers `example.org`, faute de racine commune. **Tout ce qui est protégé par l'authentification de l'espace admin reste sur le domaine du portfolio.** Une future interface authentifiée séparée serait un sous-domaine de `thibaud-geisler.com`, jamais sur l'autre domaine.
+**Domaines et session.** Le cookie de session Better Auth est posé sur `thibaud-geisler.com` et ne traverse pas vers le domaine d'infrastructure, faute de racine commune. **Tout ce qui est protégé par l'authentification de l'espace admin reste sur le domaine du portfolio.** Une future interface authentifiée séparée serait un sous-domaine de `thibaud-geisler.com`, jamais sur l'autre domaine.
 
 ---
 

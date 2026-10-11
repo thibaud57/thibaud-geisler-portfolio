@@ -99,9 +99,9 @@ Crée le modèle `Person` (l'identité, les coordonnées, l'entreprise et l'oppo
 **THEN** l'action refuse sur le champ Nom avec « Le nom est requis », rien n'est écrit
 
 ### Scénario 3 : doublon refusé
-**GIVEN** une personne existante « Claire Morel » dont le LinkedIn est `https://www.linkedin.com/in/jeanne-dupont-4b2a1c`
-**WHEN** on crée un lead avec `fr.linkedin.com/in/jeanne-dupont-4b2a1c/`
-**THEN** l'action refuse avec « Ce lead existe déjà : Claire Morel » sur le champ LinkedIn, rien n'est écrit
+**GIVEN** une personne existante « Jeanne Dupont » dont le LinkedIn est `https://www.linkedin.com/in/jeanne-dupont-4b2a1c`
+**WHEN** on crée un lead avec `fr.linkedin.com/in/Jeanne-Dupont-4b2a1c/`
+**THEN** l'action refuse avec « Ce lead existe déjà : Jeanne Dupont » sur le champ LinkedIn, rien n'est écrit
 
 ### Scénario 4 : opposition
 **GIVEN** une personne au rôle Lead avec nom, email, LinkedIn, entreprise, notes et détails

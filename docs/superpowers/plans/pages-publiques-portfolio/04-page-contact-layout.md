@@ -701,7 +701,7 @@ Remplacer le bloc `ContactPage` par :
       "placeholders": {
         "name": "Jeanne Dupont",
         "company": "Acme SAS",
-        "email": "jeanne@exemple.com",
+        "email": "jeanne@example.com",
         "subject": "Sujet de votre message",
         "message": "Décrivez votre besoin, votre contexte et vos questions…"
       },

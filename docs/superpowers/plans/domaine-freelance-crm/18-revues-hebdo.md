@@ -14,7 +14,7 @@
 
 - **Prérequis** : plans `07` (`NONE_VALUE`, `optionalTextField`, `src/lib/schemas/person.ts`), `08` (`SelectField`), `09` (actions, canaux, statuts, `respondedAt`), `12` (EventCalendar, `src/lib/action-calendar.ts`, `@date-fns/tz`) et `16` (`Interview`, `leadDisplayStatus(lead, now)`, `AdminLead.interviews`) implémentés.
 - **Enums, valeurs exactes** : `ReviewStatus` `BONNE`, `MOYENNE`, `MAUVAISE` ; `ReviewMotivation` `HAUTE`, `POSITIVE`, `NEUTRE`, `BASSE`.
-- **Semaine** : les sept jours qui finissent le vendredi de clôture, du samedi 0 h au samedi suivant 0 h, fuseau `Europe/Paris` (règle de `/crm-weekly-review`) ; la revue stocke son vendredi (`@db.Date`), une seule par vendredi ; le formulaire n'accepte qu'un vendredi, par défaut aujourd'hui si c'est un vendredi, sinon le dernier passé. Aucun refus d'une semaine manquante : une semaine oubliée se rattrape. Libellé « S36 · Semaine du 31/08/2026 » : numéro de semaine ISO sur deux chiffres, puis date du lundi (vendredi − 4), écart à la maquette décidé par le propriétaire ; le vendredi a sa propre colonne « Vendredi ».
+- **Semaine** : les sept jours qui finissent le vendredi de clôture, du samedi 0 h au samedi suivant 0 h, fuseau `Europe/Paris` (règle de la revue hebdo actuelle) ; la revue stocke son vendredi (`@db.Date`), une seule par vendredi ; le formulaire n'accepte qu'un vendredi, par défaut aujourd'hui si c'est un vendredi, sinon le dernier passé. Aucun refus d'une semaine manquante : une semaine oubliée se rattrape. Libellé « S36 · Semaine du 31/08/2026 » : numéro de semaine ISO sur deux chiffres, puis date du lundi (vendredi − 4), écart à la maquette décidé par le propriétaire ; le vendredi a sa propre colonne « Vendredi ».
 - **Comptage** : Connexions envoyées (Connexion LinkedIn hors À faire, date d'envoi), Connexions acceptées (Connexion LinkedIn Répondu ou Converti, date de réponse), Messages envoyés (DM LinkedIn, Email, SMS/WhatsApp hors À faire, date d'envoi), Conversations engagées (ces canaux, Répondu ou Converti, date de réponse), RDV décrochés (ces canaux, Converti, date de réponse), Entretiens (entretiens au statut Fait, date dans la semaine), Leads actifs (personnes au rôle Lead, non opposées, au statut affiché Suspect, Discussion ou RDV planifié).
 - **Taux** : acceptation = acceptées / envoyées, réponse = conversations / messages, conversion RDV = RDV / conversations ; entier arrondi, « 50 % » (espace insécable), valeur absente (`null`, rendue par `EmptyValue`) si le dénominateur est nul.
 - **Textes** : « Une revue existe déjà pour cette semaine » (`review_week_exists`) ; « Choisissez un vendredi » ; « Un entier de 0 à 999 » ; titres, sous-titres, périodes, colonnes, formulaire et texte de suppression de la maquette (`revViewTitle`, `revViewHint`, `revPeriodItems`, `REV_COLUMNS`, `dlgReviewForm` : « Clôturer la semaine » à la création, « Modifier S36 · Semaine du 31/08/2026 » (`weekLabel`) en modification, `dlgDeleteReview`). Le titre de suppression reste celui de `ConfirmDeleteDialog` (« Supprimer « Semaine du … » ? »), commun aux écrans admin.
@@ -473,7 +473,7 @@ import type { ReviewCounts } from "@/lib/weekly-reviews"
 const TIME_ZONE = "Europe/Paris"
 
 // Sept jours du samedi 0 h au samedi suivant 0 h à Paris (le week-end compte dans la semaine suivante,
-// /crm-weekly-review du toolkit) ; un changement d'heure ne décale pas les bornes.
+// règle de la revue hebdo actuelle) ; un changement d'heure ne décale pas les bornes.
 export function weekBounds(closingFriday: Date): { start: Date; end: Date } {
   const year = closingFriday.getUTCFullYear()
   const month = closingFriday.getUTCMonth()
@@ -499,7 +499,7 @@ const MESSAGE_CHANNELS: ReadonlySet<ActionChannel> = new Set(["DM_LINKEDIN", "EM
 const REPLIED: ReadonlySet<ActionStatus> = new Set(["REPONDU", "CONVERTI"])
 const ACTIVE = new Set(["SUSPECT", "DISCUSSION", "RDV_PLANIFIE"])
 
-// Règles de kpis-hebdo.md (toolkit), corrigées : la réponse compte à respondedAt, l'entretien tenu au statut
+// Règles de la revue hebdo actuelle, corrigées : la réponse compte à respondedAt, l'entretien tenu au statut
 // FAIT, l'issue ne jouant aucun rôle.
 export function countWeek(
   sources: CounterSources,

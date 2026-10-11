@@ -12,7 +12,7 @@ technologies: ["Next.js", "Model Context Protocol", "Claude Code", "Better Auth"
 
 La Feature 3 « Agents internes » de `BRAINSTORM.md` fait agir des agents sur l'app, dans trois situations :
 
-- **Claude Code ou Claude Desktop sur le poste du propriétaire**, par internet, avec les skills du toolkit freelance, qui écrivent aujourd'hui dans Notion et s'y rebranchent
+- **Claude Code ou Claude Desktop sur le poste du propriétaire**, par internet, avec les skills freelance, qui écrivent aujourd'hui dans Notion et s'y rebranchent
 - **Les jobs d'`agent-os`**, qui exécutent Claude Code sur l'abonnement par l'Agent SDK ([ADR-016](016-acces-llm.md), [ADR-026](026-execution-claude-code-abonnement.md)), depuis le réseau Docker interne ([ADR-019](019-communication-inter-services.md))
 - **L'assistant interne de l'espace admin**, qui tourne à travers `agent-os`
 
@@ -125,7 +125,7 @@ Si la condition 1 échoue, l'Option B reprend l'avantage pour `agent-os`.
 
 ## Positives
 - Une seule brique à construire au lieu de deux (orientation A)
-- Les skills du toolkit passent du MCP Notion à celui de l'app, domaine par domaine
+- Les skills freelance passent du MCP Notion à celui de l'app, domaine par domaine
 - Le même accès sert les trois usages : poste, `agent-os`, assistant interne
 - Le découpage par domaine limite ce qu'un agent peut faire à ce dont il a besoin
 

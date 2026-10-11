@@ -17,7 +17,7 @@
 
 **ADRs liés :** ADR-001 (monolithe Next.js, route handler dans la même app), ADR-006 (hub de démos, llms.txt oriente les AI engines vers les pages portfolio).
 
-**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (cf. `~/.claude/CLAUDE.md` § Discipline commit).
+**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (discipline commit du projet).
 
 ---
 

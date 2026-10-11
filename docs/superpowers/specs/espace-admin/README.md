@@ -111,7 +111,7 @@ L'abonnement ne couvre **pas** les appels au SDK client de l'API (`anthropic`), 
 
 ## Migration Notion
 
-Le `freelance-toolkit` ne contient **aucun code** : 87 fichiers markdown de skills et commandes Claude Code, 14 JSON qui sont des schémas descriptifs de bases Notion, et des assets de carrousel. La donnée vit à 100 % dans Notion.
+Les skills freelance ne contiennent **aucun code** : des fichiers markdown de skills et commandes Claude Code, des schémas JSON descriptifs de bases Notion, et des assets de carrousel. La donnée vit à 100 % dans Notion.
 
 Ces 14 schémas sont une spec Prisma quasi directe : types, enums complets, relations et cardinalités déjà tranchés.
 
@@ -122,8 +122,6 @@ Ces 14 schémas sont une spec Prisma quasi directe : types, enums complets, rela
 3. **CRM.** Le plus relationnel, le plus utilisé en déplacement, et celui dont le contenu ne se réduit pas à des colonnes : les fiches Lead portent des sections markdown (`Signal`, `Hypothèse`, `Timeline`) qui demandent une vraie modélisation, champ texte ou tables filles.
 
 Chaque domaine migré est utilisable immédiatement, Notion reste en place pour les autres pendant la transition.
-
-⚠️ `acme.md` contient des informations internes. À ne pas migrer vers une base applicative exposée.
 
 ## Écarts doc / code à traiter avant de commencer
 
@@ -149,7 +147,7 @@ Dette reportée par les sub-projects au fil de l'implémentation, et préparatif
 | Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ✅ 2026-09-25 : base de dev auditée, dump `just db-dump` (schéma `auth` exclu), transfert répété sur une base locale à l'état de la prod |
 | Poser les variables d'environnement dans Dokploy | `04`, `09`, `10` | ✅ 2026-09-25 : `R2_*` (buckets de prod, tokens de prod), `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL`. Le DSN Sentry n'y va pas, il est inliné au build depuis la variable GitHub |
 | Déclarer le redirect URI de production sur le client OAuth | `04` | ✅ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
-| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev (21 et 5 objets), chaque objet relu et comparé à l'original |
+| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev, chaque objet relu et comparé à l'original |
 | Appliquer la migration du schéma `auth` en CI | `04` | ✅ Run CI de `feature/espace-admin` du 2026-09-25 |
 | Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ✅ 2026-09-25 : sauvegarde manuelle depuis Database `portfolio-db` → Backups |
 | Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ✅ 2026-09-25 |
@@ -161,7 +159,7 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 | Point | Origine | État |
 |---|---|---|
 | Migrations appliquées au démarrage du container | `03`, `04`, `09` | ✅ 2026-09-25 : container `healthy` après le déploiement de `v2.0.0` |
-| Charger le dump dans `portfolio-db` | `14` | ✅ 2026-09-25 : 11 projets, 6 entreprises, 47 tags, 12 migrations, puis Redeploy |
+| Charger le dump dans `portfolio-db` | `14` | ✅ 2026-09-25 : projets, entreprises, tags et migrations présents après le chargement, puis Redeploy |
 | Assets servis depuis R2 | `09` | ✅ 2026-09-25 |
 | Connexion à l'espace admin | `04`, `05` | ✅ 2026-09-25, après correction de `BETTER_AUTH_URL`, restée à la valeur de dev `http://localhost:3000` |
 | Upload depuis l'espace admin | `10` | ✅ 2026-09-25 |
@@ -173,11 +171,11 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 
 ## Infrastructure
 
-Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
+Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif). Un seul serveur.
 
 - Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
-- Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers `example.org`. **Tout ce qui est authentifié reste sur le domaine du portfolio.** `example.org` garde les outils d'infrastructure avec leur propre authentification.
+- Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers le domaine d'infrastructure. **Tout ce qui est authentifié reste sur le domaine du portfolio.** Ce second domaine garde les outils d'infrastructure avec leur propre authentification.
 - Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
 - Limites mémoire explicites par conteneur, saisies en octets bruts dans Dokploy.
 

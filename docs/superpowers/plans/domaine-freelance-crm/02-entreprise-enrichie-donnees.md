@@ -499,8 +499,8 @@ Ajouter dans `describe("createCompany")` :
       buildFormData(
         {
           relationStatus: "DORMANTE",
-          notes: "  Rencontrée au salon  ",
-          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+          notes: "  Rencontrée lors d'un salon  ",
+          details: "# 🏢 À propos\n\nRésumé de l'entreprise.",
         },
         ["SAAS"],
         { types: ["CLIENT_FINAL", "PARTENAIRE"], zones: ["LUXEMBOURG", "PARIS"] },
@@ -513,8 +513,8 @@ Ajouter dans `describe("createCompany")` :
           types: ["CLIENT_FINAL", "PARTENAIRE"],
           zones: ["PARIS", "LUXEMBOURG"],
           relationStatus: "DORMANTE",
-          notes: "Rencontrée au salon",
-          details: "# 🏢 À propos\n\nLeader assurance Luxembourg.",
+          notes: "Rencontrée lors d'un salon",
+          details: "# 🏢 À propos\n\nRésumé de l'entreprise.",
         }),
       }),
     )

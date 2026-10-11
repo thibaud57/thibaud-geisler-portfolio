@@ -129,7 +129,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
                   id={`${formId}-name`}
                   name="name"
                   defaultValue={lead?.name ?? ""}
-                  placeholder="Claire Morel"
+                  placeholder="Jeanne Dupont"
                   aria-invalid={!!state.errors.name?.length}
                   aria-describedby={`${formId}-name-error`}
                 />
@@ -182,7 +182,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
                   name="email"
                   type="email"
                   defaultValue={lead?.email ?? ""}
-                  placeholder="prenom@example.com"
+                  placeholder="jeanne@acme.example"
                   aria-invalid={!!state.errors.email?.length}
                   aria-describedby={`${formId}-email-error`}
                 />
@@ -350,7 +350,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
                   aria-labelledby={`${formId}-notes-title`}
                   maxLength={200}
                   defaultValue={lead?.notes ?? ""}
-                  placeholder="Décideur technique | Scala/Angular"
+                  placeholder="Décideur technique | TypeScript/React"
                   aria-invalid={!!state.errors.notes?.length}
                   aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
                 />

@@ -6,17 +6,17 @@ describe("joinedEndClientNames", () => {
   it("names each accepted opportunity's end client once, sorted", () => {
     const company = {
       opportunitiesAsIntermediary: [
-        { status: "ACCEPTEE" as const, client: { id: "c-boreal", name: "Boréal Énergie" } },
         { status: "ACCEPTEE" as const, client: { id: "c-globex", name: "Globex" } },
-        { status: "ACCEPTEE" as const, client: { id: "c-globex", name: "Globex" } },
-        { status: "PROPOSEE" as const, client: { id: "c-helios", name: "Helios Retail" } },
+        { status: "ACCEPTEE" as const, client: { id: "c-acme", name: "Acme SAS" } },
+        { status: "ACCEPTEE" as const, client: { id: "c-acme", name: "Acme SAS" } },
+        { status: "PROPOSEE" as const, client: { id: "c-initech", name: "Initech" } },
         { status: "ACCEPTEE" as const, client: null },
       ],
     }
 
     const names = joinedEndClientNames(company)
 
-    expect(names).toEqual(["Globex", "Boréal Énergie"])
+    expect(names).toEqual(["Acme SAS", "Globex"])
   })
 })
 

@@ -36,7 +36,7 @@ Aucun autre fichier touché. Pas de tests Vitest.
 
 - [ ] **Step 1.1: Créer le sous-composant**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/components/features/contact/SubmitButton.tsx`
+Chemin : `src/components/features/contact/SubmitButton.tsx`
 
 ```typescript
 'use client'
@@ -101,7 +101,7 @@ Identifier les éléments à **remplacer** :
 
 - [ ] **Step 2.2: Réécrire `ContactForm.tsx` avec le pattern useActionState**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/components/features/contact/ContactForm.tsx`
+Chemin : `src/components/features/contact/ContactForm.tsx`
 
 Cible, adapter selon le code existant en préservant la structure visuelle (Card, classes Tailwind, ordre des champs) et les clés i18n existantes (`fields.*`, `placeholders.*`, `submit`) :
 
@@ -491,7 +491,7 @@ Expected: l'input `website` est skippé par la navigation Tab.
 
 - [ ] **Step 8.1: Vérifier le `git status` du worktree**
 
-Run (depuis `D:/Desktop/thibaud-geisler-portfolio-specs-contact/`) : `git status`
+Run (depuis la racine du dépôt) : `git status`
 
 Expected: 4 fichiers modifiés/créés
 - `new file: src/components/features/contact/SubmitButton.tsx`

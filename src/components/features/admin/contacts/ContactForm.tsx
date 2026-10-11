@@ -332,7 +332,7 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
                     name="email"
                     type="email"
                     defaultValue={contact?.email ?? ""}
-                    placeholder="prenom@example.com"
+                    placeholder="jeanne@acme.example"
                     aria-invalid={!!state.errors.email?.length}
                     aria-describedby={`${formId}-email-error`}
                   />
@@ -504,7 +504,7 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
                     aria-labelledby={`${formId}-notes-title`}
                     maxLength={200}
                     defaultValue={contact?.notes ?? ""}
-                    placeholder="Ancien collègue | Scala"
+                    placeholder="Ancien collègue | TypeScript"
                     aria-invalid={!!state.errors.notes?.length}
                     aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
                   />

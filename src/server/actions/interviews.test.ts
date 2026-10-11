@@ -157,10 +157,10 @@ describe("createInterview", () => {
       buildFormData({
         newCorrespondents: JSON.stringify([
           {
-            name: "Nadia Kader",
+            name: "Sami Bernard",
             jobRole: "RECRUTEUR",
             contactType: "COMMERCIAL",
-            email: "nadia@example.com",
+            email: "sami@example.com",
           },
         ]),
       }),
@@ -169,7 +169,7 @@ describe("createInterview", () => {
     expect(prisma.person.create).toHaveBeenCalledWith(
       objectMatch({
         data: objectMatch({
-          name: "Nadia Kader",
+          name: "Sami Bernard",
           contact: { create: { types: ["COMMERCIAL"], status: "ACTIF" } },
         }),
       }),
@@ -183,7 +183,7 @@ describe("createInterview", () => {
     const state = await createInterview(
       initialInterviewFormState,
       buildFormData({
-        newCorrespondents: JSON.stringify([{ name: "Nadia Kader", email: "nadia@example.com" }]),
+        newCorrespondents: JSON.stringify([{ name: "Sami Bernard", email: "sami@example.com" }]),
       }),
     )
 
@@ -193,8 +193,8 @@ describe("createInterview", () => {
 
   it("refuses a new correspondent whose email is already known", async () => {
     vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Nadia Kader",
-      email: "nadia@example.com",
+      name: "Sami Bernard",
+      email: "sami@example.com",
       optedOutAt: null,
       lead: null,
       contact: { personId: "existing" },
@@ -204,14 +204,14 @@ describe("createInterview", () => {
       initialInterviewFormState,
       buildFormData({
         newCorrespondents: JSON.stringify([
-          { name: "Nadia Kader", contactType: "COMMERCIAL", email: "nadia@example.com" },
+          { name: "Sami Bernard", contactType: "COMMERCIAL", email: "sami@example.com" },
         ]),
       }),
     )
 
     expect(state.message).toBe("correspondent_exists")
     expect(prisma.person.findFirst).toHaveBeenCalledWith(
-      objectMatch({ where: objectMatch({ OR: [{ email: "nadia@example.com" }] }) }),
+      objectMatch({ where: objectMatch({ OR: [{ email: "sami@example.com" }] }) }),
     )
     expect(prisma.person.create).not.toHaveBeenCalled()
     expect(prisma.interview.create).not.toHaveBeenCalled()

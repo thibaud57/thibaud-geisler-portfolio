@@ -160,18 +160,22 @@ describe("uploadAsset", () => {
   it("builds the key from the folder, the slug and the filename", async () => {
     await uploadAsset(
       initialAssetFormState,
-      buildUpload({ slug: "acme", filename: "cover-2.webp" }),
+      buildUpload({ slug: "projet-exemple", filename: "cover-2.webp" }),
     )
 
     expect(r2.send).toHaveBeenCalledWith(
-      objectMatch({ input: objectMatch({ Key: "projets/client/acme/cover-2.webp" }) }),
+      objectMatch({ input: objectMatch({ Key: "projets/client/projet-exemple/cover-2.webp" }) }),
     )
   })
 
   it("writes a company logo to portfolio-admin, not portfolio-assets", async () => {
     await uploadAsset(
       initialAssetFormState,
-      buildUpload({ folder: "freelance/crm/entreprises", slug: "acme", filename: "logo.png" }),
+      buildUpload({
+        folder: "freelance/crm/entreprises",
+        slug: "acme",
+        filename: "logo.png",
+      }),
     )
 
     expect(adminR2.send).toHaveBeenCalledWith(
@@ -224,30 +228,34 @@ describe("deleteAsset", () => {
   })
 
   it("rejects the deletion and names the project using the cover", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "acme" }] as never)
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "projet-exemple" }] as never)
 
-    const state = await deleteAsset("projets/client/acme/cover.webp")
+    const state = await deleteAsset("projets/client/projet-exemple/cover.webp")
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("acme")
+    expect(state.usedBy).toContain("projet-exemple")
     expect(r2.send).not.toHaveBeenCalled()
   })
 
   it("rejects the deletion and names the project citing the asset in its case study markdown", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "acme" }] as never)
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "projet-exemple" }] as never)
 
-    const state = await deleteAsset("projets/client/acme/screenshot-1.webp")
+    const state = await deleteAsset("projets/client/projet-exemple/screenshot-1.webp")
 
     expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("acme")
+    expect(state.usedBy).toContain("projet-exemple")
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       objectMatch({
         where: objectMatch({
           OR: [
-            { coverFilename: "projets/client/acme/screenshot-1.webp" },
-            { caseStudyMarkdownFr: { contains: "projets/client/acme/screenshot-1.webp" } },
-            { caseStudyMarkdownEn: { contains: "projets/client/acme/screenshot-1.webp" } },
+            { coverFilename: "projets/client/projet-exemple/screenshot-1.webp" },
+            {
+              caseStudyMarkdownFr: { contains: "projets/client/projet-exemple/screenshot-1.webp" },
+            },
+            {
+              caseStudyMarkdownEn: { contains: "projets/client/projet-exemple/screenshot-1.webp" },
+            },
           ],
         }),
       }),

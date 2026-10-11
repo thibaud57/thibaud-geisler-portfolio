@@ -149,7 +149,7 @@ export function OpportunityForm({
                   id={`${formId}-role`}
                   name="role"
                   defaultValue={opportunity?.role ?? ""}
-                  placeholder="Dev Fullstack IA"
+                  placeholder="Développeur full-stack"
                   aria-invalid={!!state.errors.role?.length}
                   aria-describedby={`${formId}-role-error`}
                 />

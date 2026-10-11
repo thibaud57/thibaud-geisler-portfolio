@@ -14,7 +14,7 @@ Le logo d'une entreprise s'affiche depuis `Company.logoFilename`, une clé du bu
 
 Le CRM tenu dans Notion affiche ses logos par une formule qui appelle Logo.dev à chaque affichage (`img.logo.dev/<domaine>?token=pk_…`). La Feature 2 « Domaine freelance » de `BRAINSTORM.md` prévoyait de reprendre ce service, appelé une fois puis stocké sous un nom prévisible.
 
-Ordre de grandeur donné par le propriétaire le 2026-09-26 : un millier d'entreprises au CRM, une centaine consultées par jour. Certaines entreprises avec lesquelles il a travaillé ont disparu : `umbrella.example`, client d'un projet publié, est en vente sur Sedo, et Logo.dev renvoie pour ce domaine un logo qui n'est plus le sien.
+Le CRM compte de nombreuses entreprises, dont une petite fraction est consultée chaque jour. Un site peut disparaître ou changer de domaine, et Logo.dev renvoie alors pour ce domaine un logo qui n'est plus le leur.
 
 ---
 
@@ -75,11 +75,11 @@ D'où tirer le logo qui alimente `logoFilename`, sans abonnement, avec le droit 
 
 ## Option D : le site de l'entreprise, sa capture Wayback en repli, stocké dans R2
 
-**Description :** Un bouton « Récupérer le logo » lit la page à l'adresse `websiteUrl`, retient l'icône que le site déclare (`apple-touch-icon`, `<link rel="icon">` de la plus grande taille), la télécharge et la stocke dans R2. Quand le site n'est plus d'actualité (`umbrella.example` renvoie vers une page de vente Sedo, constaté le 2026-09-26), l'admin remplace l'adresse du champ par celle d'une capture Wayback (`web.archive.org/web/<horodatage>/<url>`), que le bouton lit brute grâce au suffixe `id_` (`web.archive.org/web/<horodatage>id_/<url>`). À défaut, le dépôt manuel reste.
+**Description :** Un bouton « Récupérer le logo » lit la page à l'adresse `websiteUrl`, retient l'icône que le site déclare (`apple-touch-icon`, `<link rel="icon">` de la plus grande taille), la télécharge et la stocke dans R2. Quand le site n'est plus d'actualité (domaine repris par un tiers, par exemple), l'admin remplace l'adresse du champ par celle d'une capture Wayback (`web.archive.org/web/<horodatage>/<url>`), que le bouton lit brute grâce au suffixe `id_` (`web.archive.org/web/<horodatage>id_/<url>`). À défaut, le dépôt manuel reste.
 
 **Avantages :**
 - Ni clé, ni quota, ni abonnement : l'actif vient de l'entreprise elle-même
-- Le logo est figé : il reste juste après la fermeture de l'entreprise. Vérifié sur Umbrella le 2026-09-26 : capture du 2023-06-08, icône de 192 px déclarée et archivée, retrouvée à partir du seul domaine
+- Le logo est figé : il reste juste après la fermeture de l'entreprise. L'icône déclarée par le site est archivée et retrouvée à partir du seul domaine
 - Un seul mode d'affichage (`logoFilename`), admin et public, pages publiques inchangées
 
 **Inconvénients :**
@@ -113,7 +113,7 @@ Usage de la marque : afficher le logo d'une entreprise pour l'identifier relève
 - Aucune dépendance à un service tiers pour afficher un logo, aucun quota à surveiller, aucune attribution à publier
 - Le logo d'un ancien client reste celui de l'époque, même quand son domaine change de main
 - Aucune donnée de visiteur ne part vers un tiers pour afficher un logo
-- Le lien « Site web » d'une entreprise disparue mène à son archive plutôt qu'à une page de vente de domaine, pages publiques comprises
+- Le lien « Site web » d'une entreprise dont le site a disparu mène à son archive plutôt qu'à une page de vente de domaine, pages publiques comprises
 
 ## Négatives
 

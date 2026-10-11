@@ -37,7 +37,7 @@ afterEach(async () => {
 
 describe("deleteContact against real Postgres", () => {
   it("keeps a person who still holds the lead role", async () => {
-    const person = await createPerson("Jeanne Exemple", { lead: true, contact: true })
+    const person = await createPerson("Jeanne Dupont", { lead: true, contact: true })
 
     await deleteContact(person.id)
 
@@ -50,7 +50,7 @@ describe("deleteContact against real Postgres", () => {
   })
 
   it("deletes a person who holds no other role", async () => {
-    const person = await createPerson("Marie Exemple", { lead: false, contact: true })
+    const person = await createPerson("Marie Durand", { lead: false, contact: true })
 
     await deleteContact(person.id)
 
@@ -68,7 +68,7 @@ function buildAttachFormData(personId: string): FormData {
 
 describe("createContact attach against real Postgres", () => {
   it("adds the contact role to a lead", async () => {
-    const person = await createPerson("Nadia Exemple", { lead: true, contact: false })
+    const person = await createPerson("Sami Bernard", { lead: true, contact: false })
 
     const state = await createContact(initialContactFormState, buildAttachFormData(person.id))
 
@@ -79,7 +79,7 @@ describe("createContact attach against real Postgres", () => {
 
   it("refuses an opposed lead and leaves no contact role", async () => {
     const person = await createPerson(
-      "Hugo Exemple",
+      "Hugo Martin",
       { lead: true, contact: false },
       new Date("2026-03-11T23:30:00Z"),
     )
@@ -92,7 +92,7 @@ describe("createContact attach against real Postgres", () => {
   })
 
   it("refuses a person who is not a lead", async () => {
-    const person = await createPerson("Sami Exemple", { lead: false, contact: false })
+    const person = await createPerson("Sami Bernard", { lead: false, contact: false })
 
     const state = await createContact(initialContactFormState, buildAttachFormData(person.id))
 
@@ -104,7 +104,7 @@ describe("createContact attach against real Postgres", () => {
 
 describe("deleteLead against real Postgres", () => {
   it("keeps a person who still holds the contact role", async () => {
-    const person = await createPerson("Louis Exemple", { lead: true, contact: true })
+    const person = await createPerson("Louis Garnier", { lead: true, contact: true })
 
     await deleteLead(person.id)
 
@@ -119,7 +119,7 @@ describe("deleteLead against real Postgres", () => {
 
 describe("optOutPerson against real Postgres", () => {
   it("removes the contact role and keeps the lead role with its opposition date", async () => {
-    const person = await createPerson("Claire Exemple", { lead: true, contact: true })
+    const person = await createPerson("Claire Mercier", { lead: true, contact: true })
 
     const state = await optOutPerson(person.id)
 

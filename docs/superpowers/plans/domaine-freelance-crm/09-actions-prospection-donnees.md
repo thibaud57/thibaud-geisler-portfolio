@@ -764,7 +764,7 @@ puis, dans `describe("optOutPerson")` :
 ```ts
   it("does not touch the person's prospecting actions on a simple stop", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "jeanne@example.com",
       linkedinUrl: null,
       optedOutAt: null,
     } as never)

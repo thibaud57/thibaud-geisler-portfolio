@@ -88,7 +88,7 @@ Aucune : ce sub-project est autoporté.
 **WHEN** la migration s'applique
 **THEN** chaque entreprise liée à un projet `CLIENT` a `types = {CLIENT_FINAL}`
 **AND** `thibaud-geisler` a `types = {MA_SOCIETE}`
-**AND** l'entreprise qui portait `EMARKETING` porte `MARKETING_COMMUNICATION`
+**AND** toute entreprise qui portait `EMARKETING` porte `MARKETING_COMMUNICATION`
 
 ### Scénario 2 : création avec les nouveaux champs
 **GIVEN** un `FormData` avec types `ESN_RECRUTEMENT`, deux zones et des notes

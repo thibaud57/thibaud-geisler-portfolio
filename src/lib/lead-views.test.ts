@@ -40,7 +40,7 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
     interest: null,
     optedOutAt: null,
     metAt: null,
-    name: "Claire Morel",
+    name: "Marie Durand",
     email: null,
     linkedinUrl: null,
     opportunities: [],
@@ -159,15 +159,19 @@ describe("leadsForView", () => {
 
   it("sorts all leads by name, opted-out leads last", () => {
     const leads = [
-      lead({ id: "alice", name: "Alice Dupont", optedOutAt: null }),
-      lead({ id: "bob-out", name: "Bob Martin", optedOutAt: new Date("2026-03-12T09:00:00Z") }),
-      lead({ id: "zoe", name: "Zoé Martin", optedOutAt: null }),
-      lead({ id: "aaron-out", name: "Aaron Durand", optedOutAt: new Date("2026-02-12T09:00:00Z") }),
+      lead({ id: "hugo", name: "Hugo Martin", optedOutAt: null }),
+      lead({ id: "sami-out", name: "Sami Bernard", optedOutAt: new Date("2026-03-12T09:00:00Z") }),
+      lead({ id: "louis", name: "Louis Garnier", optedOutAt: null }),
+      lead({
+        id: "jeanne-out",
+        name: "Jeanne Dupont",
+        optedOutAt: new Date("2026-02-12T09:00:00Z"),
+      }),
     ]
 
     const rows = leadsForView(leads, "tous", NOW)
 
-    expect(idsOf(rows)).toEqual(["alice", "zoe", "aaron-out", "bob-out"])
+    expect(idsOf(rows)).toEqual(["hugo", "louis", "jeanne-out", "sami-out"])
   })
 
   it("sorts opted-out leads without a name by their email or LinkedIn", () => {
@@ -179,13 +183,13 @@ describe("leadsForView", () => {
         linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
         optedOutAt,
       }),
-      lead({ id: "out-email-zoe", name: null, email: "zoe@example.com", optedOutAt }),
-      lead({ id: "active", name: "Alice Dupont" }),
-      lead({ id: "out-email-bob", name: null, email: "bob@example.com", optedOutAt }),
+      lead({ id: "out-email-last", name: null, email: "zack@example.com", optedOutAt }),
+      lead({ id: "active", name: "Hugo Martin" }),
+      lead({ id: "out-email-first", name: null, email: "adam@example.com", optedOutAt }),
     ]
 
     const rows = leadsForView(leads, "tous", NOW)
 
-    expect(idsOf(rows)).toEqual(["active", "out-email-bob", "out-linkedin", "out-email-zoe"])
+    expect(idsOf(rows)).toEqual(["active", "out-email-first", "out-linkedin", "out-email-last"])
   })
 })

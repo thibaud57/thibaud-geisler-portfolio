@@ -175,7 +175,7 @@ ALTER COLUMN "addressId" DROP NOT NULL;
 
 ALTER TABLE "public"."LegalEntity" ADD CONSTRAINT "LegalEntity_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."Address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- Deux clients luxembourgeois de l'ancien seed, rangés dans des formes françaises.
+-- Conversion des formes juridiques non françaises déjà présentes en base.
 UPDATE "public"."LegalEntity" SET "legalForm" = 'SARL_LU' WHERE "slug" = 'soylent-sarl';
 UPDATE "public"."LegalEntity" SET "legalForm" = 'SA_LU' WHERE "slug" = 'acme-sa';
 
@@ -717,9 +717,9 @@ const schema = z.object(legalEntityFields).superRefine(refineLegalEntity)
 function parse(overrides: Record<string, string> = {}) {
   return schema.safeParse({
     legalEntityName: "Acme SAS",
-    legalEntityStreet: "11 rue Gouvy",
-    legalEntityPostalCode: "57000",
-    legalEntityCity: "Metz",
+    legalEntityStreet: "1 rue de l'Exemple",
+    legalEntityPostalCode: "75000",
+    legalEntityCity: "Paris",
     legalEntityCountry: "FR",
     legalEntityVatNumber: "",
     legalEntityVatLiableSince: "",
@@ -839,9 +839,9 @@ Ajouter, après `buildFormData` :
 function withLegalEntity(overrides: Record<string, string> = {}): Record<string, string> {
   return {
     legalEntityName: "Acme SAS",
-    legalEntityStreet: "11 rue Gouvy",
-    legalEntityPostalCode: "57000",
-    legalEntityCity: "Metz",
+    legalEntityStreet: "1 rue de l'Exemple",
+    legalEntityPostalCode: "75000",
+    legalEntityCity: "Paris",
     legalEntityCountry: "FR",
     ...overrides,
   }
@@ -882,7 +882,7 @@ Ajouter dans `describe("createCompany")` :
               name: "Acme SAS",
               legalForm: "SAS",
               address: {
-                create: { street: "11 rue Gouvy", postalCode: "57000", city: "Metz", country: "FR" },
+                create: { street: "1 rue de l'Exemple", postalCode: "75000", city: "Paris", country: "FR" },
               },
             }),
           },
@@ -962,9 +962,9 @@ Ajouter dans `describe("createCompany")` :
       buildFormData(
         withLegalEntity({
           legalEntityRcsNumber: "B123456",
-          legalEntityStreet: "11 rue Gouvy",
-          legalEntityPostalCode: "57000",
-          legalEntityCity: "Metz",
+          legalEntityStreet: "1 rue de l'Exemple",
+          legalEntityPostalCode: "75000",
+          legalEntityCity: "Paris",
           legalEntityCountry: "FR",
         }),
         ["SAAS"],

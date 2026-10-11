@@ -12,9 +12,10 @@ describe("AssetPathSchema + validateAssetPath", () => {
   })
 
   it("accepte un chemin imbriqué jusqu à 5 segments", () => {
-    expect(validateAssetPath(["projets", "client", "acme", "logo.png"]).ok).toBe(true)
+    expect(validateAssetPath(["projets", "client", "projet-exemple", "logo.png"]).ok).toBe(true)
     expect(
-      validateAssetPath(["projets", "client", "acme", "webapp-gestion-sinistres-1.webp"]).ok,
+      validateAssetPath(["projets", "client", "projet-exemple", "webapp-gestion-sinistres-1.webp"])
+        .ok,
     ).toBe(true)
     expect(validateAssetPath(["a", "b", "c", "d", "e.svg"]).ok).toBe(true)
   })

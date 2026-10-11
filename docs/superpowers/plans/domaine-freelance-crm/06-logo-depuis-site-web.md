@@ -547,14 +547,14 @@ describe("findIconCandidates", () => {
 
   it("keeps a single candidate per address, as a wayback capture declares", () => {
     const icon =
-      "https://web.archive.org/web/20230608045345im_/https://umbrella.example/wp-content/uploads/2020/07/Umbrella-Favicon.png"
+      "https://web.archive.org/web/20230608045345im_/https://acme.example/wp-content/uploads/2020/07/Acme-Favicon.png"
     const html = `<head>
       <link rel="icon" href="${icon}" sizes="32x32"/>
       <link rel="icon" href="${icon}" sizes="192x192"/>
       <link rel="apple-touch-icon" href="${icon}"/>
     </head>`
 
-    const candidates = findIconCandidates(html, new URL("https://web.archive.org/web/20230608045345/https://umbrella.example/"))
+    const candidates = findIconCandidates(html, new URL("https://web.archive.org/web/20230608045345/https://acme.example/"))
 
     expect(candidates).toHaveLength(1)
     expect(candidates[0]?.source).toBe("apple-touch-icon")
@@ -978,7 +978,7 @@ const PAGE_MAX_BYTES = 1024 * 1024
 const ICON_MAX_BYTES = 1024 * 1024
 const HASH_LENGTH = 12
 
-// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (icône interne, mauvaise foi présumée).
+// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (cible interne : accès réseau refusé).
 const SKIPPABLE_ERRORS = [FetchFailedError, ResponseTooLargeError, UnreadableIconError]
 
 export class NoIconFoundError extends Error {}
@@ -1446,10 +1446,10 @@ Expected: « Récupérer depuis le site » désactivé ; toujours désactivé av
 Sur une fiche dont le site déclare un `apple-touch-icon` (le vérifier dans le code source de la page), cliquer « Récupérer depuis le site ».
 Expected: l'icône s'affiche entière dans l'aperçu, « <largeur> × <hauteur> px · apple-touch-icon » dessous ; après « Enregistrer », la liste des entreprises montre ce logo.
 
-- [ ] **Step 3 : Capture Wayback de Umbrella**
+- [ ] **Step 3 : Capture Wayback d'un site archivé**
 
-Sur la fiche de Umbrella, remplacer le site web par `https://web.archive.org/web/20230608000000/https://umbrella.example/` et cliquer le bouton.
-Expected: le logo Umbrella de l'époque s'affiche, source `apple-touch-icon` ; jamais la page de vente Sedo.
+Sur une fiche de test, remplacer le site web par une URL `web.archive.org` (exemple de forme : `https://web.archive.org/web/20230608000000/https://acme.example/`) et cliquer le bouton.
+Expected: une URL web.archive.org renvoie l'icône de la capture, source `apple-touch-icon`, pas celle du site courant.
 
 - [ ] **Step 4 : Refus et absences**
 

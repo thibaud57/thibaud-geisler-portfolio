@@ -114,7 +114,7 @@ Rules applicables : `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nex
 **AND** elle apparaît dans la liste
 
 ### Scénario 2 : Slug déjà pris
-**GIVEN** une entreprise portant le slug `acme`
+**GIVEN** une entreprise portant le slug `globex`
 **WHEN** on tente d'en créer une seconde avec ce slug
 **THEN** aucune ligne n'est créée
 **AND** le message d'erreur apparaît sous le champ slug

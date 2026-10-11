@@ -13,7 +13,7 @@ date: "2026-09-27"
 
 ## Scope
 
-Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, statut, motivation, Victoires, Blocages, Plan S+1, Notes), sa validation, ses Server Actions, le calcul des compteurs d'une semaine depuis le CRM et les trois taux calculés à l'affichage. Crée l'écran Revues hebdo (vues Revue avec sa période, Calendrier et Journal, formulaire en fenêtre avec « Calculer depuis le CRM », vue détail, suppression) et active son entrée de menu. Exclut tout recalcul automatique d'une revue enregistrée et les cibles de performance du toolkit.
+Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, statut, motivation, Victoires, Blocages, Plan S+1, Notes), sa validation, ses Server Actions, le calcul des compteurs d'une semaine depuis le CRM et les trois taux calculés à l'affichage. Crée l'écran Revues hebdo (vues Revue avec sa période, Calendrier et Journal, formulaire en fenêtre avec « Calculer depuis le CRM », vue détail, suppression) et active son entrée de menu. Exclut tout recalcul automatique d'une revue enregistrée et les cibles de performance de la méthode de prospection.
 
 ### État livré
 
@@ -67,8 +67,8 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 - **Remodélisation de Notion**, décidée par le propriétaire le 2026-09-27 : le titre « Semaine » et la « Date vendredi » deviennent le seul vendredi de clôture, le titre s'en déduit ; les quatre sections du corps de page Notion deviennent quatre champs texte, comme la maquette ; les trois taux, formules Notion, se calculent à l'affichage et ne se stockent pas
 - **Libellé de la semaine** : le numéro de semaine ISO précède la date du lundi (« S36 · Semaine du 31/08/2026 »), là où la maquette n'écrit que la date ; écart décidé par le propriétaire le 2026-09-27. Le numéro se déduit du jeudi de la semaine, qui fixe aussi son année. Le vendredi s'affiche dans sa propre colonne, comme la « Date vendredi » des vues Notion
 - **Compteurs figés** (décidé au `09`, confirmé le 2026-09-27) : les sept compteurs s'enregistrent avec la revue et ne se recalculent jamais, un lead supprimé emportant ses actions (`09`) ; « Calculer depuis le CRM » les remplit dans le formulaire pour la semaine choisie, chacun restant modifiable avant l'enregistrement (refus sec à retirer des conversations, par exemple)
-- **Semaine** (`src/lib/review-counters.ts`, fonctions pures) : les sept jours qui finissent le vendredi de clôture, du samedi 0 h au samedi suivant 0 h, heure de Paris (`@date-fns/tz`, fuseau `Europe/Paris`), règle de `/crm-weekly-review` (toolkit) : une action du week-end compte dans la revue suivante. Le formulaire envoie un vendredi ; par défaut, aujourd'hui si c'est un vendredi, sinon le dernier vendredi passé, pour une revue faite en retard
-- **Règles de comptage**, celles du toolkit (`kpis-hebdo.md`) corrigées là où nos modèles le permettent (décidé le 2026-09-27) :
+- **Semaine** (`src/lib/review-counters.ts`, fonctions pures) : les sept jours qui finissent le vendredi de clôture, du samedi 0 h au samedi suivant 0 h, heure de Paris (`@date-fns/tz`, fuseau `Europe/Paris`), règle de la revue hebdo actuelle : une action du week-end compte dans la revue suivante. Le formulaire envoie un vendredi ; par défaut, aujourd'hui si c'est un vendredi, sinon le dernier vendredi passé, pour une revue faite en retard
+- **Règles de comptage**, celles des règles de la revue hebdo actuelle corrigées là où nos modèles le permettent (décidé le 2026-09-27) :
 
 | Compteur | Compte |
 |---|---|
@@ -80,11 +80,11 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 | Entretiens | **entretiens** (`16`) dont la date tombe dans la semaine et le statut est Fait |
 | Leads actifs | personnes au rôle Lead, non opposées (`person.optedOutAt` nul), dont le statut affiché (`16`, `AdminLead`) est Suspect, Discussion ou RDV planifié, au moment du calcul |
 
-  Le toolkit rangeait acceptations, réponses et conversions sur la semaine d'envoi (approximation qu'il signale) et comptait les entretiens par les actions Call ; la date de réponse du `09` et le modèle Entretien du `16` lèvent ces deux approximations
+  Les règles actuelles rangeaient acceptations, réponses et conversions sur la semaine d'envoi (approximation qu'elles signalent) et comptait les entretiens par les actions Call ; la date de réponse du `09` et le modèle Entretien du `16` lèvent ces deux approximations
 - **Taux** (`src/lib/weekly-reviews.ts`, fonctions pures) : acceptation = acceptées / envoyées, réponse = conversations / messages, conversion RDV = RDV / conversations ; arrondis à l'entier, affichés « 50 % », valeur absente (`EmptyValue`, arbitrage « Valeur absente ») quand le dénominateur est nul
 - **Glyphes** : `src/lib/weekly-reviews.ts` exporte aussi `REVIEW_STATUS_ICONS: Record<ReviewStatus, IconComponent | null>` (Bonne `ThumbsUp`, Moyenne `Minus`, Mauvaise `ThumbsDown`) et `REVIEW_MOTIVATION_ICONS: Record<ReviewMotivation, IconComponent | null>` (Haute `FaceGrinning`, Positive `FaceSlightlySmiling`, Neutre `FaceNeutral`, Basse `FaceSlightlyFrowning`), imports nommés depuis `lucide-react`, type `IconComponent` de `@/lib/icons`
 - **Validation** (`src/lib/schemas/weekly-review.ts`, `.claude/rules/zod/schemas.md`) : vendredi requis (date ISO, « Choisissez un vendredi » pour un autre jour), compteurs entiers de 0 à 999, statut et motivation facultatifs (sentinelle `NONE_VALUE`), textes vide → `null`
-- **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`) : `createWeeklyReview`, `updateWeeklyReview`, `deleteWeeklyReview` (motif `saveEntity` / `deleteEntity`), `computeWeekCounters(friday)` qui lit actions, entretiens et leads de la semaine et rend les sept compteurs sans rien écrire ; `getCurrentUser()` en tête de chacune. Une seconde revue pour le même vendredi est refusée (`review_week_exists`, « Une revue existe déjà pour cette semaine »), l'unicité en base en dernier recours. Une semaine sans revue se rattrape à tout moment, sans le refus d'une semaine manquante du toolkit (décidé le 2026-09-27) Revalidation en variante `layout` de `/admin/revues-hebdo`
+- **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`) : `createWeeklyReview`, `updateWeeklyReview`, `deleteWeeklyReview` (motif `saveEntity` / `deleteEntity`), `computeWeekCounters(friday)` qui lit actions, entretiens et leads de la semaine et rend les sept compteurs sans rien écrire ; `getCurrentUser()` en tête de chacune. Une seconde revue pour le même vendredi est refusée (`review_week_exists`, « Une revue existe déjà pour cette semaine »), l'unicité en base en dernier recours. Une semaine sans revue se rattrape à tout moment, sans le refus d'une semaine manquante des règles actuelles (décidé le 2026-09-27) Revalidation en variante `layout` de `/admin/revues-hebdo`
 - **Vues** (`src/lib/review-views.ts`) :
 
 | Vue | Route | Lignes | Tri |
@@ -166,7 +166,7 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 - **Action faite le vendredi après le calcul** : hors des compteurs déjà calculés ; un nouveau calcul avant d'enregistrer, ou une correction à la main, la reprend
 - **Semaine oubliée** : sa revue se crée plus tard sur son vendredi, sans chevauchement avec ses voisines
 - **Calcul relancé après une correction** : il écrase les sept compteurs du formulaire, pas les textes ; rien n'est écrit avant « Enregistrer »
-- **Leads actifs d'une semaine passée** : le calcul donne la situation au moment du clic, faute d'historique des statuts (limite déjà assumée par le toolkit)
+- **Leads actifs d'une semaine passée** : le calcul donne la situation au moment du clic, faute d'historique des statuts (limite déjà assumée par les règles de la revue hebdo actuelle)
 
 ## Architectural decisions
 
@@ -186,25 +186,25 @@ Crée le modèle `WeeklyReview` (une revue par semaine, sept compteurs figés, s
 ### Décision : règles de comptage
 
 **Options envisagées :**
-- **A. Règles du toolkit telles quelles** : acceptations et réponses rangées sur la semaine d'envoi, entretiens comptés par les actions Call
-- **B. Règles du toolkit corrigées** : date de réponse (`09`) pour acceptations, réponses et RDV, modèle Entretien (`16`) pour les entretiens
+- **A. Règles de la revue hebdo actuelle telles quelles** : acceptations et réponses rangées sur la semaine d'envoi, entretiens comptés par les actions Call
+- **B. Règles de la revue hebdo actuelle corrigées** : date de réponse (`09`) pour acceptations, réponses et RDV, modèle Entretien (`16`) pour les entretiens
 
 **Choix : B**
 
 **Rationale :**
-- Décision du propriétaire du 2026-09-27 : les deux approximations signalées par le toolkit disparaissent avec nos modèles
+- Décision du propriétaire du 2026-09-27 : les deux approximations signalées par les règles de la revue hebdo actuelle disparaissent avec nos modèles
 
 ### Décision : bornes de la semaine
 
 **Options envisagées :**
 - **A. Du lundi au dimanche** : le week-end n'est pas encore passé quand la revue se calcule le vendredi, ses actions n'entrent dans aucune revue
 - **B. Du samedi au vendredi, période fixe** : les sept jours qui finissent le vendredi de clôture
-- **C. Depuis la dernière revue**, comme `/crm-weekly-review` : même période quand la cadence est tenue, au prix d'un refus de toute revue dont la semaine précédente manque
+- **C. Depuis la dernière revue**, comme la revue hebdo actuelle : même période quand la cadence est tenue, au prix d'un refus de toute revue dont la semaine précédente manque
 
 **Choix : B**
 
 **Rationale :**
-- Décision du propriétaire du 2026-09-27 : la revue se fait le vendredi à 17 h, le week-end compte dans la revue suivante comme dans le toolkit
+- Décision du propriétaire du 2026-09-27 : la revue se fait le vendredi à 17 h, le week-end compte dans la revue suivante comme dans les règles de la revue hebdo actuelle
 - La période fixe ne compte aucune action deux fois et n'en oublie aucune sans exiger la revue de la semaine précédente, ce qui permet de rattraper une semaine oubliée
 
 ### Décision : qualitatif de la semaine

@@ -21,7 +21,7 @@ const HASH_LENGTH = 12
 // Une page peut déclarer des milliers d'icônes, chacune pouvant coûter jusqu'à 10 s de timeout.
 const MAX_CANDIDATES = 8
 
-// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (icône interne, mauvaise foi présumée).
+// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (cible interne : accès réseau refusé).
 const SKIPPABLE_ERRORS = [FetchFailedError, ResponseTooLargeError, UnreadableIconError]
 
 export class NoIconFoundError extends Error {}

@@ -280,25 +280,25 @@ Attendu : `auth.user`, `auth.session`, `auth.account`, `auth.verification` en mi
 ```typescript
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/env', () => ({ env: { ADMIN_EMAIL: 'admin@exemple.fr' } }))
+vi.mock('@/env', () => ({ env: { ADMIN_EMAIL: 'admin@example.com' } }))
 
 const { isAdminEmail } = await import('./admin-whitelist')
 
 describe('isAdminEmail', () => {
   it("autorise l'email exactement égal à ADMIN_EMAIL", () => {
-    expect(isAdminEmail('admin@exemple.fr')).toBe(true)
+    expect(isAdminEmail('admin@example.com')).toBe(true)
   })
 
   it('refuse un email différent', () => {
-    expect(isAdminEmail('intrus@exemple.fr')).toBe(false)
+    expect(isAdminEmail('intrus@example.com')).toBe(false)
   })
 
   it('ignore la casse', () => {
-    expect(isAdminEmail('Admin@Exemple.FR')).toBe(true)
+    expect(isAdminEmail('Admin@Example.COM')).toBe(true)
   })
 
   it('ignore les espaces en début et fin', () => {
-    expect(isAdminEmail('  admin@exemple.fr  ')).toBe(true)
+    expect(isAdminEmail('  admin@example.com  ')).toBe(true)
   })
 
   it('refuse une valeur vide, nulle ou absente', () => {

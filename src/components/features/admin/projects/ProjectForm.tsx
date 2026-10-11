@@ -25,6 +25,7 @@ import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/pris
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import {
   parseIsoDate,
+  PROJECT_FORMAT_ICONS,
   PROJECT_FORMAT_LABELS,
   PROJECT_FIELD_LABELS,
   PROJECT_SECTION_TITLES,
@@ -225,21 +226,25 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <span className="text-sm font-medium">{PROJECT_FIELD_LABELS.formats}</span>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
-                  {PROJECT_FORMATS.map((format) => (
-                    <label
-                      key={format}
-                      className="-mx-2 flex min-h-8 items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Checkbox
-                        name="formats"
-                        value={format}
-                        defaultChecked={defaultFormats.includes(format)}
-                        aria-invalid={!!state.errors.formats?.length}
-                        aria-describedby={`${formId}-formats-error`}
-                      />
-                      {PROJECT_FORMAT_LABELS[format]}
-                    </label>
-                  ))}
+                  {PROJECT_FORMATS.map((format) => {
+                    const Icon = PROJECT_FORMAT_ICONS[format]
+                    return (
+                      <label
+                        key={format}
+                        className="-mx-2 flex min-h-8 items-center gap-2 rounded-sm px-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Checkbox
+                          name="formats"
+                          value={format}
+                          defaultChecked={defaultFormats.includes(format)}
+                          aria-invalid={!!state.errors.formats?.length}
+                          aria-describedby={`${formId}-formats-error`}
+                        />
+                        {Icon ? <Icon aria-hidden className="size-4 shrink-0" /> : null}
+                        {PROJECT_FORMAT_LABELS[format]}
+                      </label>
+                    )
+                  })}
                 </div>
                 <div id={`${formId}-formats-error`} aria-live="polite">
                   {state.errors.formats?.[0] ? (

@@ -655,7 +655,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ### Procédure : Remplir la base depuis un dump de dev
 
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25, après répétition sur une base locale à l'état de la prod.
 
 1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
 2. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte

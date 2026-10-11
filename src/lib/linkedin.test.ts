@@ -5,17 +5,20 @@ import { normalizeLinkedinProfileUrl } from "./linkedin"
 describe("normalizeLinkedinProfileUrl", () => {
   it.each([
     [
-      "https://fr.linkedin.com/in/jeanne-dupont-4b2a1c/?originalSubdomain=fr#about",
-      "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
-    ],
-    ["http://linkedin.com/in/jeanne-dupont-4b2a1c", "https://www.linkedin.com/in/jeanne-dupont-4b2a1c"],
-    [
-      "https://www.linkedin.com/in/jerome-lambert-8b1d4f",
-      "https://www.linkedin.com/in/jerome-lambert-8b1d4f",
+      "https://fr.linkedin.com/in/Marie-Durand-7e91d3/?originalSubdomain=fr#about",
+      "https://www.linkedin.com/in/marie-durand-7e91d3",
     ],
     [
-      "https://www.linkedin.com/in/jerome-lambert-8b1d4f/",
-      "https://www.linkedin.com/in/jerome-lambert-8b1d4f",
+      "http://linkedin.com/in/marie-durand-7e91d3",
+      "https://www.linkedin.com/in/marie-durand-7e91d3",
+    ],
+    [
+      "https://www.linkedin.com/in/Jérôme-Lambert-8b1d4f",
+      "https://www.linkedin.com/in/j%C3%A9r%C3%B4me-lambert-8b1d4f",
+    ],
+    [
+      "https://www.linkedin.com/in/j%C3%A9r%C3%B4me-lambert-8b1d4f/",
+      "https://www.linkedin.com/in/j%C3%A9r%C3%B4me-lambert-8b1d4f",
     ],
   ])(
     "normalizes the host, the case, a trailing slash and query parameters (%s)",
@@ -26,19 +29,19 @@ describe("normalizeLinkedinProfileUrl", () => {
     },
   )
 
-  it.each(["linkedin.com/in/jeanne-dupont-4b2a1c", " www.linkedin.com/in/jeanne-dupont-4b2a1c/ "])(
+  it.each(["linkedin.com/in/marie-durand-7e91d3", " www.linkedin.com/in/marie-durand-7e91d3/ "])(
     "accepts a profile URL typed without a scheme (%s)",
     (value) => {
       const normalized = normalizeLinkedinProfileUrl(value)
 
-      expect(normalized).toBe("https://www.linkedin.com/in/jeanne-dupont-4b2a1c")
+      expect(normalized).toBe("https://www.linkedin.com/in/marie-durand-7e91d3")
     },
   )
 
   it.each([
     "https://www.linkedin.com/company/acme",
-    "https://evil-linkedin.com/in/jeanne-dupont-4b2a1c",
-    "https://example.com/in/jeanne-dupont-4b2a1c",
+    "https://evil-linkedin.com/in/marie-durand-7e91d3",
+    "https://example.com/in/marie-durand-7e91d3",
     "pas une adresse",
   ])("rejects a company page and another site (%s)", (value) => {
     const normalized = normalizeLinkedinProfileUrl(value)

@@ -37,7 +37,7 @@ Aucun autre fichier touché. Logger Pino, mailer (sub 01) et schéma Zod (sub 02
 
 - [ ] **Step 1.1: Créer le fichier de tests avec le 1er test**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/lib/rate-limiter.test.ts`
+Chemin : `src/lib/rate-limiter.test.ts`
 
 ```typescript
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -71,7 +71,7 @@ Expected: FAIL avec `Cannot find module './rate-limiter'`.
 
 - [ ] **Step 1.3: Implémenter le rate-limiter complet**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/lib/rate-limiter.ts`
+Chemin : `src/lib/rate-limiter.ts`
 
 ```typescript
 export type RateLimitOptions = {
@@ -253,7 +253,7 @@ Expected: aucune erreur sur `src/lib/rate-limiter.ts` et `src/lib/rate-limiter.t
 
 - [ ] **Step 4.1: Créer le fichier de tests avec setup mocks + 1er test**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/server/actions/contact.test.ts`
+Chemin : `src/server/actions/contact.test.ts`
 
 ```typescript
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -300,7 +300,7 @@ const buildFormData = (overrides: Record<string, string> = {}): FormData => {
   const defaults: Record<string, string> = {
     name: 'Alice',
     company: 'Acme',
-    email: 'alice@acme.fr',
+    email: 'alice@example.com',
     subject: 'Projet IA',
     message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
   }
@@ -340,7 +340,7 @@ Expected: FAIL avec `Cannot find module './contact'`.
 
 - [ ] **Step 4.3: Créer le squelette de la Server Action**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/server/actions/contact.ts`
+Chemin : `src/server/actions/contact.ts`
 
 ```typescript
 'use server'
@@ -489,9 +489,9 @@ Ajouter dans le `describe('submitContact', ...)` après le test précédent :
     expect(transporter.sendMail).toHaveBeenCalledWith({
       from: 'from@test.local',
       to: 'to@test.local',
-      replyTo: 'alice@acme.fr',
+      replyTo: 'alice@example.com',
       subject: 'Contact: Alice — Projet IA',
-      text: expect.stringContaining('De : Alice <alice@acme.fr>'),
+      text: expect.stringContaining('De : Alice <alice@example.com>'),
     })
     const callArg = vi.mocked(transporter.sendMail).mock.calls[0]?.[0]
     expect(callArg?.text).toContain('Société : Acme')
@@ -529,7 +529,7 @@ Expected: PASS, implémentation déjà en place via Task 4.3.
   it('détecte le honeypot et retourne ok:true factice sans envoyer (sendMail jamais appelé)', async () => {
     const result = await submitContact(
       initialContactFormState,
-      buildFormData({ website: 'https://spam.com' }),
+      buildFormData({ website: 'https://spam.example' }),
     )
 
     expect(transporter.sendMail).not.toHaveBeenCalled()
@@ -572,7 +572,7 @@ Expected: PASS.
   it('retourne plusieurs erreurs Zod en cascade (name vide + message court)', async () => {
     const fd = new FormData()
     fd.append('name', '')
-    fd.append('email', 'alice@acme.fr')
+    fd.append('email', 'alice@example.com')
     fd.append('subject', 'Projet IA')
     fd.append('message', 'Trop court')
 
@@ -716,7 +716,7 @@ Expected: 2 tests PASS.
   it('omet la ligne Société et log has_company:false quand company est absente', async () => {
     const fd = new FormData()
     fd.append('name', 'Alice')
-    fd.append('email', 'alice@acme.fr')
+    fd.append('email', 'alice@example.com')
     fd.append('subject', 'Projet IA')
     fd.append('message', 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.')
 
@@ -746,7 +746,7 @@ Expected: 2 tests PASS.
 
     for (const payload of allLogPayloads) {
       const json = JSON.stringify(payload ?? {})
-      expect(json).not.toContain('alice@acme.fr')
+      expect(json).not.toContain('alice@example.com')
       expect(json).not.toContain('Alice')
       expect(json).not.toContain('Projet IA')
       expect(json).not.toContain('Bonjour, j’aimerais discuter')
@@ -816,7 +816,7 @@ import { initialContactFormState, submitContact } from '../src/server/actions/co
 async function main() {
   const fd = new FormData()
   fd.append('name', 'Test Manuel')
-  fd.append('email', 'tibo57350@gmail.com')
+  fd.append('email', 'destinataire@example.com')
   fd.append('subject', 'Test sub 03 sub-project')
   fd.append('message', 'Ceci est un test manuel du sub-project 03 server-action-submit-contact.')
 
@@ -829,7 +829,7 @@ main().catch(console.error)
 
 - [ ] **Step 13.3: Exécuter et vérifier l'envoi**
 
-Run: `pnpm tsx scripts/check-contact.ts` (depuis `D:/Desktop/thibaud-geisler-portfolio-specs-contact/`)
+Run: `pnpm tsx scripts/check-contact.ts` (depuis la racine du dépôt)
 
 Expected:
 - Sortie console : `Result: { ok: true, errors: {}, message: null }`
@@ -853,7 +853,7 @@ Vérifier `git status` : aucun fichier `scripts/check-contact.ts` ne doit traîn
 
 - [ ] **Step 14.1: Vérifier le `git status` du worktree**
 
-Run (depuis `D:/Desktop/thibaud-geisler-portfolio-specs-contact/`) : `git status`
+Run (depuis la racine du dépôt) : `git status`
 
 Expected: 4 nouveaux fichiers
 - `new file: src/lib/rate-limiter.ts`

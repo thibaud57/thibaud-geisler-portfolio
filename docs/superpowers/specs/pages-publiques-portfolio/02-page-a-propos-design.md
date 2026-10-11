@@ -167,5 +167,4 @@ Aucune, ce sub-project est autoporté. Les éléments réutilisés sont déjà l
 **Rationale :**
 - Zero maintenance annuelle (pas de PR le 1er janvier pour bumper `6 → 7`).
 - Helper pur 1 ligne, testable trivialement mais non prioritaire (plumbing `Intl`/`Date` = no-lib-test).
-- `START_YEAR = 2020` intègre l'alternance Soylent comme XP (convention tacite en tech : alternance livrable = XP comptée).
 - Réversible : si un jour le calcul doit devenir plus fin (mois de début, demi-années), c'est une évolution du helper sans impact sur le contenu ni la DB.

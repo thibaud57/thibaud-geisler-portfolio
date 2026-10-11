@@ -115,8 +115,8 @@ Ajoute le modèle `Contact` comme rôle d'une personne (clé `personId`, types, 
 **AND** elle n'est plus proposée par `findLeadsWithoutContactRole()`
 
 ### Scénario 3 : doublon
-**GIVEN** une personne d'email lea@exemple.fr
-**WHEN** on crée un contact « Nouveau contact » avec LEA@exemple.fr
+**GIVEN** une personne d'email jeanne@example.com
+**WHEN** on crée un contact « Nouveau contact » avec JEANNE@example.com
 **THEN** l'enregistrement est refusé : « Ce contact existe déjà : <nom> » sous Email
 
 ### Scénario 4 : rôle déjà posé entre l'affichage et l'envoi
@@ -244,4 +244,4 @@ Ajoute le modèle `Contact` comme rôle d'une personne (clé `personId`, types, 
 - L'opposition (art. 21) vise la prospection ; pour une relation de réseau, la réponse RGPD à une demande est l'effacement, déjà offert par « Supprimer », et le registre prévoit « Réseau : suppression à la demande de la personne »
 - L'opposition vide nom, entreprise, notes et détails de la personne : la garder dans le réseau laisserait une ligne inexploitable
 - La trace de l'opposition (email, LinkedIn, date) reste sur le rôle Lead, qu'un lead opposé ne peut pas perdre (`07`)
-- Coût assumé : un contact sans rôle Lead à qui l'on aurait écrit puis qui dit « stop » se supprime, sans trace qui empêche de le recréer
+- Limite connue : un contact sans rôle Lead ne garde pas de trace d'opposition ; une liste d'exclusion la compense

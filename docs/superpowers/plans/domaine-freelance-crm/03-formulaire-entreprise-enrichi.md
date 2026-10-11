@@ -524,7 +524,7 @@ et après la card Logo, avant la card Entité légale déplacée :
                 name="notes"
                 aria-labelledby={`${formId}-notes-title`}
                 defaultValue={company?.notes ?? ""}
-                placeholder="Leader assurance Luxembourg | Scala/Angular"
+                placeholder="Éditeur de logiciels | Python/React"
                 aria-invalid={!!state.errors.notes?.length}
                 aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
               />

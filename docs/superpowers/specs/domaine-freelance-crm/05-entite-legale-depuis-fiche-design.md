@@ -34,7 +34,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 ## Files touched
 
 - **À modifier** : `prisma/schema.prisma` (`LegalEntity.legalStatusKey` remplacé par `legalForm LegalForm?`, `addressId` facultatif, `rcsNumber` ajouté, enum `LegalForm` créé ; enum `VatRegime` redéfini à `REEL_SIMPLIFIE`/`REEL_NORMAL`, `Publisher.vatRegime` rendu facultatif, `Publisher.vatLiableSince` ajouté)
-- **À créer** : `prisma/migrations/<horodatage>_legal_entity_optional_fields/migration.sql` (colonnes, formes juridiques corrigées de deux clients, `VatRegime` redéfini et valeurs existantes remises à null)
+- **À créer** : `prisma/migrations/<horodatage>_legal_entity_optional_fields/migration.sql` (colonnes, formes juridiques corrigées de deux entités, `VatRegime` redéfini et valeurs existantes remises à null)
 - **À créer** : `src/lib/legal-entities.ts` (`LEGAL_FORMS`, `LEGAL_FORM_GROUPS`, `LEGAL_FORM_LABELS`, pays du siège, devises, libellés des champs de l'entité, SIREN tiré du SIRET, `VAT_REGIMES`, `VAT_REGIME_LABELS`)
 - **À créer** : `src/lib/schemas/legal-entity.ts` (validation des champs de l'entité, préfixés `legalEntity`, dont `legalEntityVatLiableSince` et `legalEntityVatRegime`)
 - **À créer** : `src/lib/schemas/legal-entity.test.ts` (règles d'assujettissement à la TVA)
@@ -57,7 +57,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 ## Architecture approach
 
 - **Modèle** (`.claude/rules/prisma/schema-migrations.md`) : `LegalEntity.legalStatusKey` devient `legalForm LegalForm?`, nouvel enum `public` à 13 valeurs ; `addressId` passe à `String? @unique` avec `address Address?`, et `rcsNumber String?` s'ajoute. La relation vers le siège passe de `onDelete: Cascade` à `SetNull` : supprimer un siège vidé depuis la fiche supprimerait sinon l'entité, et avec elle l'éditeur ou les traitements qui en dépendent. L'éditeur et les sous-traitants gardent leurs valeurs ; les mentions légales étendent leur garde existante (page introuvable si l'éditeur ou l'hébergeur n'a plus de forme juridique ou de siège), la politique de confidentialité laisse vide le pays d'un sous-traitant sans siège, le JSON-LD de la page À propos omet les données légales d'un éditeur sans siège. Le rendu actuel ne change pas
-- **Migration** : colonnes rendues facultatives, colonne ajoutée, enum créé ; `legalStatusKey` converti vers `legalForm` à partir des clés réellement en base (`entrepreneurIndividuel`, `sarl`, `incorporated`) ; `incorporated` devient `INCORPORATED_US`, un sous-traitant américain des pages légales la portant déjà ; correction au passage des deux entités de l'ancien seed rangées dans des formes françaises alors qu'elles sont luxembourgeoises : `soylent-sarl` (`sarl`) devient `SARL_LU`, `acme-sa` (`sa`) devient `SA_LU`
+- **Migration** : colonnes rendues facultatives, colonne ajoutée, enum créé ; `legalStatusKey` converti vers `legalForm` à partir des clés réellement en base (`entrepreneurIndividuel`, `sarl`, `incorporated`) ; `incorporated` devient `INCORPORATED_US`, un sous-traitant américain des pages légales la portant déjà ; conversion des formes juridiques non françaises déjà en base : la forme `sarl` devient `SARL_LU`, la forme `sa` devient `SA_LU`
 - **Forme juridique en enum** (`LegalForm`, décision du propriétaire du 2026-09-30) : 13 valeurs, France puis Luxembourg puis la forme américaine déjà portée par un sous-traitant des pages légales, aucun autre pays :
 
 | Pays | Valeurs (libellé) |
@@ -158,7 +158,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 
 ## Edge cases
 
-- **Entreprise dont l'entité légale existe déjà** (les cinq de l'ancien seed) : la card s'ouvre directement sur ses champs, son `slug` n'est jamais modifié
+- **Entreprise dont l'entité légale existe déjà** (entités déjà en base) : la card s'ouvre directement sur ses champs, son `slug` n'est jamais modifié
 - **Siège hors de la liste des pays** : son code reste proposé et affiché par son nom
 - **Siège vidé seul** : impossible tant que la raison sociale ou un autre champ de l'entité garde une valeur, l'erreur « Requis pour un siège complet » bloque l'enregistrement ; seule une entité entièrement vidée (raison sociale comprise) laisse l'ancienne entité inchangée en base, le formulaire ne la supprime jamais
 - **Forme juridique sans libellé public** : impossible, l'enum PostgreSQL garantit une valeur parmi les treize ou absente ; chaque valeur a son message dans `messages/{fr,en}.json`
@@ -200,7 +200,7 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 **Choix : B**
 
 **Rationale :**
-- Choix du propriétaire ; la valeur garde le pays, ce qui corrige au passage deux clients luxembourgeois rangés en formes françaises par l'ancien seed
+- Choix du propriétaire ; la valeur garde le pays, ce qui permet de convertir les formes juridiques non françaises déjà en base
 
 ### Décision : enum plutôt que clé libre
 

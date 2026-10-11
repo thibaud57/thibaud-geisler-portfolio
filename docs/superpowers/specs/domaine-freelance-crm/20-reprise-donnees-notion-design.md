@@ -13,7 +13,7 @@ date: "2026-09-27"
 
 ## Scope
 
-Reprend une fois dans la base de dev les six bases du CRM Notion (Entreprises, Leads & Opportunités, Actions Prospection, Contacts & Relations, Reviews Hebdo, Suivi Entretiens) et les bandeaux de mission des hubs clients, remodélisées : chaque propriété vers son champ, chaque section de corps de page vers Détails, un signal ou une opportunité, un lead et un contact qui partagent l'identité vers une seule personne à deux rôles, chaque client final saisi sur une ESN vers une opportunité acceptée. Une session Claude prépare un fichier de reprise par le MCP Notion, un script jetable le valide et l'écrit ; la base est ensuite transférée en production par dump. Exclut les Chantiers, comptes-rendus d'activité et pages Équipe des hubs clients (suivi de mission, hors de ce découpage), `acme.md`, toute synchronisation continue avec Notion et tout écran.
+Reprend une fois dans la base de dev les bases du CRM Notion (entreprises, leads et opportunités, actions de prospection, contacts, revues hebdo, entretiens) et les pages de synthèse de mission, remodélisées : chaque propriété vers son champ, chaque section de corps de page vers Détails, un signal ou une opportunité, un lead et un contact qui partagent l'identité vers une seule personne à deux rôles, chaque client final saisi sur une ESN vers une opportunité acceptée. Une session Claude prépare un fichier de reprise par le MCP Notion, un script jetable le valide et l'écrit ; la base est ensuite transférée en production par dump. Exclut les autres pages de suivi de mission (hors de ce découpage), toute synchronisation continue avec Notion et tout écran.
 
 ### État livré
 
@@ -50,13 +50,13 @@ Reprend une fois dans la base de dev les six bases du CRM Notion (Entreprises, L
 
 ## Architecture approach
 
-- **Préalables** : la release qui porte `01` à `19` est déployée en production, migrations appliquées. Aucune donnée personnelle n'est écrite avant que `01` soit en ligne. À partir de l'export, le CRM Notion n'est plus modifié : les skills `crm-doc` et `entretiens-doc` du toolkit n'y écrivent plus, la saisie passe par l'admin
-- **Lecture de Notion par une session Claude**, comme le toolkit : `notion_query_data_source_by_values` pour les propriétés, `notion-fetch` pour les corps de page, identifiants des bases dans les références du toolkit (`crm-doc/references/*.json`, `entretiens-doc/references/entretien.json`), qui font foi sur les propriétés et leurs options. Aucun appel à Notion dans le code du dépôt (BRAINSTORM § Notes, décision Notion API)
+- **Préalables** : la release qui porte `01` à `19` est déployée en production, migrations appliquées. Aucune donnée personnelle n'est écrite avant que `01` soit en ligne. À partir de l'export, le CRM Notion n'est plus modifié : les automatisations existantes n'y écrivent plus, la saisie passe par l'admin
+- **Lecture de Notion par une session Claude** : `notion_query_data_source_by_values` pour les propriétés, `notion-fetch` pour les corps de page, identifiants des bases relevés dans les gabarits Notion actuels, qui font foi sur les propriétés et leurs options. Aucun appel à Notion dans le code du dépôt (BRAINSTORM § Notes, décision Notion API)
 - **Fichier de reprise** (JSON, hors du dépôt, jamais sous le dépôt même ignoré : il porte des données personnelles) : une liste par modèle ; chaque fiche porte sa clé (l'identifiant de page Notion), ses références par clé, sa date de création Notion et ses valeurs au format des formulaires de l'admin. `persons` porte l'identité (nom, coordonnées, entreprise par référence) ; `leads` et `contacts` ne portent que les champs de leur rôle et une référence vers une personne, jamais l'identité. La session l'accompagne d'un relevé des points à trancher (markdown) ; le propriétaire y répond, la session reporte ses réponses dans le fichier
 - **Fusion des personnes** : construite par la session avant écriture du fichier, pas par le script. Un lead et un contact Notion qui partagent un email ou un LinkedIn (forme normalisée par `normalizeLinkedinProfileUrl`, `07`) deviennent une seule entrée `persons`, référencée par une entrée `leads` et une entrée `contacts` ; un conflit de champ se tranche par la fiche la plus récente, chaque divergence retenue va au relevé. Un interlocuteur d'entretien qui n'est ni lead ni contact devient une entrée `persons` avec une entrée `contacts`, dont le type se tranche au relevé des points à trancher
 - **Script** lancé comme `scripts/dev-login.ts` (`pnpm exec tsx --conditions=react-server`, la condition résolvant `server-only`). Par défaut, une simulation : chaque fiche passe par le schéma de son formulaire (`companySchema`, `opportunitySchema`, `interviewSchema`, `weeklyReviewSchema`, `signalSchema`, `.claude/rules/zod/schemas.md`), une personne par un schéma bâti sur `personFields` (`07`), un rôle par la tranche de `leadSchema` ou `contactSchema` qui ne porte que ses champs propres (`.pick`, pas d'identité) ; chaque référence doit résoudre une clé, les unicités de la base (email et LinkedIn des personnes, une clé par rôle, vendredi de clôture) et les invariants tenus par les Server Actions (un seul propriétaire par signal, côté d'un entretien porté par son opportunité) sont vérifiés, puis le rapport donne les comptes par modèle et les erreurs par clé. `--write` refuse s'il reste une erreur ou si une table CRM contient déjà une ligne, écrit tout dans une transaction Prisma interactive avec `createdAt` à la date de création Notion (`.claude/rules/prisma/client.md`), puis, hors transaction, appelle `retrieveCompanyLogo` (`06`) pour chaque entreprise qui a un site web et pas de logo, en listant les échecs
 - **Point de restauration** : `just db-dump` avant `--write`. Rejouer la reprise = `just db-reset`, `just db-restore <point>`, puis relancer, le script n'effaçant jamais rien
-- **Entreprises déjà en base** : les six du portfolio, retrouvées par nom ou site web, gardent leurs champs publics (slug, nom, secteurs, taille, site web, logo), Notion n'en remplissant que les vides ; leurs champs CRM directement écrits (types, zones, statut de relation, notes, Détails), restés aux valeurs par défaut de la migration du `02`, viennent de Notion. Travaillée, premier contact et clients finaux ne sont plus des champs : ils se recalculent après coup sur les projets, actions et opportunités repris
+- **Entreprises déjà en base** : celles du portfolio, retrouvées par nom ou site web, gardent leurs champs publics (slug, nom, secteurs, taille, site web, logo), Notion n'en remplissant que les vides ; leurs champs CRM directement écrits (types, zones, statut de relation, notes, Détails), restés aux valeurs par défaut de la migration du `02`, viennent de Notion. Travaillée, premier contact et clients finaux ne sont plus des champs : ils se recalculent après coup sur les projets, actions et opportunités repris
 - **Opportunités depuis les clients finaux** : chaque « client final » saisi sur une ESN dans Notion devient une opportunité `ACCEPTEE`, titre « Opportunité chez `<client>` via `<ESN>` », sans lead ni dates ni TJM, sauf si une opportunité reconstituée (§ Correspondances) couvre déjà ce couple ESN et client. Le type Prospect de Notion est abandonné sans reprise
 - **Dates** : `Person.createdAt` = la plus ancienne date de création Notion des fiches fusionnées en elle ; `Lead.createdAt` et `Contact.createdAt` = la date de création de la fiche Notion d'origine de chaque rôle, point de départ des 3 ans de conservation de ce rôle (`01`), jamais la date de la reprise. Une date Notion sans heure versée dans un instant (`occurredAt`) vaut 00:00 heure de Paris ; une date avec heure garde son décalage Europe/Paris
 - **Minimisation** : seuls les champs modélisés sont repris ; formule Logo.dev, taux calculés des revues, Priorité des entretiens et sections de préparation des entretiens ne le sont pas
@@ -148,13 +148,13 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 | Entretien : Contrat, Salaire/TJM | opportunité : `FREELANCE` et `dailyRate` quand le montant est un TJM ; `CDI` quand c'est un salaire, porté dans les Détails de l'opportunité ; l'ESN se lit sur le lien, Startup sur le type de l'entreprise (`14`) |
 | Entretien : Localisation | opportunité : `zone` (le plus précis si Notion en donne plusieurs, les autres au relevé) ; Hybrid → `HYBRIDE`, Remote → `REMOTE` |
 | Entretien : corps, sections d'échange (contexte du contact, flags, évaluation, suite, notes) | `details`, sous les titres du gabarit de son type (`16`) ; `decision` seulement si 🎬 dit clairement Oui très intéressé, Oui sous conditions ou Non |
-| Entretien : corps, Informations Mission, Package, Budget & Facturation | champs et Détails de l'opportunité |
-| Entretien : corps, Politique ESN, Informations Startup, Culture & Vision | Détails de l'entreprise concernée |
-| Opportunité tirée d'une chaîne d'entretiens | ESN et client final lus sur les entretiens et Informations Mission ; statut : issue du dernier entretien, sinon `EN_PROCESS` |
+| Entretien : corps, sections sur la mission et ses conditions | champs et Détails de l'opportunité |
+| Entretien : corps, sections sur l'entreprise ou l'ESN (politique, informations, culture) | Détails de l'entreprise concernée |
+| Opportunité tirée d'une chaîne d'entretiens | ESN et client final lus sur les entretiens et leurs sections sur la mission ; statut : issue du dernier entretien, sinon `EN_PROCESS` |
+| Opportunité de la page de synthèse d'une mission | opportunité `ACCEPTEE` : nature, ESN, démarrage, TJM, rythme, lieu, durée |
 | Opportunité tirée du 📋 Mission d'un lead inbound | apportée par ce lead ; statut selon le lead : Nouveau, Suspect → `PROPOSEE` ; Discussion, RDV planifié → `EN_PROCESS` ; ✅ Deal → `ACCEPTEE` ; Stand-by → `EN_PAUSE` ; Perdu → `REFUSEE` ; Hors ICP → `DECLINEE` ; l'issue d'un entretien de l'opportunité l'emporte |
 | Lead 📅 RDV planifié | entretien `PLANIFIE` de son opportunité, à la date de l'entretien Notion correspondant (`16`) |
-| Opportunité du bandeau d'un hub client | opportunité `ACCEPTEE` : nature, ESN, démarrage, TJM, rythme, lieu, durée |
-| Client final saisi sur une entreprise ESN, hors chaîne d'entretiens et hors bandeau | opportunité `ACCEPTEE`, titre « Opportunité chez `<client>` via `<ESN>` », sans lead ni dates ni TJM, sauf si une des opportunités ci-dessus couvre déjà ce couple ESN et client |
+| Client final saisi sur une entreprise ESN, hors chaîne d'entretiens et hors page de synthèse | opportunité `ACCEPTEE`, titre « Opportunité chez `<client>` via `<ESN>` », sans lead ni dates ni TJM, sauf si une des opportunités ci-dessus couvre déjà ce couple ESN et client |
 | Même opportunité décrite par plusieurs sources | une seule opportunité, fusion proposée par la session et tranchée au relevé |
 
 ### Correspondances : Signaux
@@ -197,9 +197,9 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 **AND** ses champs divergents entre les deux fiches valent ceux de la plus récente, l'autre valeur listée au relevé
 
 ### Scénario 6 : un client final devient une opportunité acceptée
-**GIVEN** une ESN Notion dont la fiche porte le client final « Exemple SA », sans opportunité reconstituée pour ce couple
+**GIVEN** une ESN Notion dont la fiche porte le client final « Acme », sans opportunité reconstituée pour ce couple
 **WHEN** elle est reprise
-**THEN** une opportunité Acceptée « Opportunité chez Exemple SA via <ESN> » est écrite, sans lead ni dates ni TJM
+**THEN** une opportunité Acceptée « Opportunité chez Acme via <ESN> » est écrite, sans lead ni dates ni TJM
 
 ### Scénario 7 : une entreprise travaillée sans opportunité ni projet client est un écart
 **GIVEN** une entreprise Notion marquée Travaillé, sans projet de type CLIENT ni opportunité Acceptée après reprise
@@ -207,7 +207,7 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 **THEN** l'entreprise apparaît dans les écarts du relevé
 
 ### Scénario 8 : un signal daté au mois
-**GIVEN** une entreprise dont la section 📡 Signaux porte `**Levée** (03/2026) : série A — [source](https://exemple.fr/levee)`
+**GIVEN** une entreprise dont la section 📡 Signaux porte `**Levée** (03/2026) : série A — [source](https://example.com/levee)`
 **WHEN** elle est reprise
 **THEN** elle a un signal Levée daté du 1er mars 2026, avec ce lien
 **AND** la ligne ne figure pas dans ses Détails
@@ -250,7 +250,7 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 
 **Options envisagées :**
 - **A. Saisie à la main dans l'admin** : aucun code, mais long, et l'admin ne sait pas saisir une date de création passée : les 3 ans de conservation partiraient du jour de la reprise
-- **B. Session Claude qui prépare un fichier au format de l'app, script qui le valide et l'écrit** : même logique que le toolkit, qui applique ses références par Claude ; le texte libre (📋 Mission, sections d'entretien) se lit bien ; le propriétaire relit les points à trancher avant toute écriture ; un script jetable
+- **B. Session Claude qui prépare un fichier au format de l'app, script qui le valide et l'écrit** : même logique que les automatisations existantes, qui appliquent leurs références par Claude ; le texte libre (📋 Mission, sections d'entretien) se lit bien ; le propriétaire relit les points à trancher avant toute écriture ; un script jetable
 - **C. Script qui fait toute la conversion, session qui n'exporte que le brut** : déterministe, mais beaucoup de code jetable et un texte libre mal découpé par du code
 
 **Choix : B** (propriétaire, 2026-09-27)
@@ -276,7 +276,7 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 ### Décision : entreprises déjà en base
 
 **Options envisagées :**
-- **A. Notion écrase** les valeurs des six entreprises du portfolio
+- **A. Notion écrase** les valeurs des entreprises du portfolio
 - **B. Le portfolio garde ses champs publics**, Notion n'en remplit que les vides et apporte les champs CRM
 
 **Choix : B** (propriétaire, 2026-09-27)
@@ -287,4 +287,4 @@ Une entrée `persons`, fusionnée quand un lead et un contact Notion partagent l
 
 ## Open questions
 
-- [ ] Personne opposée qui n'est qu'un contact dans Notion (journal RGPD, aucun lead) : la reprendre avec un rôle Lead pour garder la trace de son opposition, ou ne pas la reprendre du tout ? Sans rôle, elle n'apparaîtrait dans aucune liste de l'espace admin (`13` retire le rôle Contact d'une personne opposée)
+- [ ] Personne opposée qui n'est qu'un contact dans Notion (journal RGPD, aucun lead) : la trace de son opposition doit être conservée (respect RGPD), sous quelle forme la reprendre ? Sans rôle, elle n'apparaîtrait dans aucune liste de l'espace admin (`13` retire le rôle Contact d'une personne opposée)

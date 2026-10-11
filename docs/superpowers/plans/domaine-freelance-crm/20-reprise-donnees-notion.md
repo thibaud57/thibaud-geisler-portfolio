@@ -13,12 +13,12 @@
 ## Global Constraints
 
 - **Prérequis** : plans `01`, `02`, `04` à `10` et `13` à `19` implémentés (schémas `src/lib/schemas/*.ts`, `applyStatusRules`, `signalTypesFor`, `retrieveCompanyLogo`) ; à partir de la Task 4, la release qui les porte est déployée en production.
-- **Données personnelles hors du dépôt** : fichier de reprise et relevé dans `~/reprise-notion/`, dossier hors de tout dépôt git (ni ce dépôt, ni `freelance-toolkit`), supprimés à la Task 7 ; le dump de transfert reste dans `dumps/`, ignoré par git, et en sort à la Task 6. `acme.md` n'est jamais lu.
+- **Données personnelles hors du dépôt** : fichier de reprise et relevé dans `~/reprise-notion/`, dossier hors de tout dépôt git (ni ce dépôt, ni aucun autre), supprimés à la Task 7 ; le dump de transfert reste dans `dumps/`, ignoré par git, et en sort à la Task 6. Seules les bases du CRM sont lues.
 - **Base locale seulement** : le script refuse toute `DATABASE_URL` dont l'hôte n'est pas `localhost` ou `127.0.0.1` ; la production ne se remplit que par dump.
 - **Dates** : `createdAt` = date de création Notion (`created_time`), jamais la date de la reprise. Tout instant porte son décalage Europe/Paris (`+01:00` en heure d'hiver, `+02:00` en heure d'été) ; une date Notion sans heure versée dans un instant vaut `T00:00:00` avec le décalage de ce jour-là. Une date qu'on ne connaît pas ne s'invente jamais.
 - **Correspondances** : celles de la spec (§ Correspondances), sans règle nouvelle ; tout cas qu'elles ne tranchent pas va au relevé.
 - **Entreprises du portfolio** : champs publics (slug, nom, secteurs, taille, site web, logo) gardés, Notion n'en remplit que les vides ; champs CRM repris de Notion, à condition qu'ils soient encore aux valeurs par défaut de la migration du `02`.
-- **Opposition** : liste tirée du journal privé des demandes RGPD, jamais d'un statut Notion ; fiche réduite comme `optOutPerson`, portée par la personne et partagée par ses rôles.
+- **Opposition** : liste tirée des demandes d'opposition reçues, jamais d'un statut Notion ; fiche réduite comme `optOutPerson`, portée par la personne et partagée par ses rôles.
 - **Commentaires** : le pourquoi seulement, en français ; aucun JSDoc.
 - **Aucun commit** : `/implement-subproject` porte le commit unique, que le propriétaire valide.
 - **tdd_scope none** : aucun test unitaire, le script est jetable ; il se vérifie sur un fichier d'essai (Tasks 1 et 2), puis sur les vraies données par la simulation et le contrôle des comptes.
@@ -555,13 +555,13 @@ Créer `~/reprise-notion/essai.json`, données fictives :
       "values": {
         "slug": "reprise-essai-client",
         "name": "Reprise Essai Client",
-        "sectors": ["ASSURANCE"],
+        "sectors": ["SAAS"],
         "size": "",
         "websiteUrl": "https://example.com",
         "logoFilename": "",
         "types": ["CLIENT_FINAL"],
         "relationStatus": "DORMANTE",
-        "zones": ["LUXEMBOURG"],
+        "zones": ["FRANCE"],
         "notes": "",
         "details": ""
       }
@@ -668,13 +668,13 @@ Créer `~/reprise-notion/essai.json`, données fictives :
         "title": "Opportunité d'essai",
         "role": "",
         "status": "ACCEPTEE",
-        "dailyRate": "600",
+        "dailyRate": "650",
         "contract": "FREELANCE",
         "workMode": "HYBRIDE",
         "daysPerWeek": "5",
         "onSiteDays": "2",
         "zone": "LUXEMBOURG",
-        "startMonth": "2024-05",
+        "startMonth": "2025-01",
         "durationMonths": "6",
         "notes": "",
         "details": ""
@@ -1017,7 +1017,7 @@ Contrôler dans l'admin (`just dev`, connexion) :
 - `/admin/entreprises` : « Reprise Essai ESN » avec son client final « Reprise Essai Client » (dérivé de l'opportunité Acceptée), statut Dormante pour ce dernier ;
 - `/admin/leads` : « Léa Essai » s'affiche « Deal » (opportunité acceptée), porte aussi le rôle Contact (Partenaire), « À conserver jusqu'au » 15/03/2027 ; « Marc Essai » porte son LinkedIn ;
 - page de « Reprise Essai Client » : card Signaux, « Levée », mars 2026, lien ;
-- `/admin/opportunites` : « Opportunité d'essai », Acceptée, TJM 600 ; sa page montre l'entretien « Premier contact » du 20/03/2024, Fait, sans issue ;
+- `/admin/opportunites` : « Opportunité d'essai », Acceptée, TJM 650 ; sa page montre l'entretien « Premier contact » du 20/03/2024, Fait, sans issue ;
 - `/admin/revues-hebdo` : la revue « S12 · Semaine du 18/03/2024 » (vendredi de clôture 22/03/2024).
 
 - [ ] **Step 5 : Relance refusée, puis restauration**
@@ -1026,7 +1026,7 @@ Run: `just reprise-notion ~/reprise-notion/essai.json --write`
 Expected : `[base] tables CRM : déjà des lignes…` et `[companies] c-esn : slug reprise-essai-esn déjà pris en base…`, rien n'est écrit.
 
 Run: `just db-reset` puis `just db-restore dumps/<point noté au Step 4>`
-Expected : les deux entreprises d'essai et les fiches CRM ont disparu, les six entreprises du portfolio sont là. Supprimer `~/reprise-notion/essai*.json` et, s'il existe, l'objet `freelance/crm/entreprises/reprise-essai-*` du bucket `portfolio-admin-dev` (aucun ici, l'icône ayant échoué).
+Expected : les deux entreprises d'essai et les fiches CRM ont disparu, les entreprises du portfolio sont là. Supprimer `~/reprise-notion/essai*.json` et, s'il existe, l'objet `freelance/crm/entreprises/reprise-essai-*` du bucket `portfolio-admin-dev` (aucun ici, l'icône ayant échoué).
 
 ---
 
@@ -1107,7 +1107,7 @@ Tâche menée par une session Claude avec le MCP Notion et le propriétaire ; au
 - Create (hors dépôt): `~/reprise-notion/releve.md`
 
 **Interfaces:**
-- Consumes: format `importFileSchema` (Task 1) ; correspondances de la spec (§ Correspondances) ; références du toolkit `C:\Users\thiba\Desktop\work\freelance-toolkit\.claude\skills\crm-doc\references\*.json` et `entretiens-doc\references\entretien.json` (identifiants des bases, propriétés, options)
+- Consumes: format `importFileSchema` (Task 1) ; correspondances de la spec (§ Correspondances) ; gabarits Notion actuels, hors dépôt (identifiants des bases, propriétés, options)
 - Produces: un fichier de reprise que la simulation accepte sans erreur
 
 - [ ] **Step 1 : Préalables**
@@ -1115,13 +1115,13 @@ Tâche menée par une session Claude avec le MCP Notion et le propriétaire ; au
 Vérifier, avant toute lecture de Notion :
 - la release qui porte `01` à `19` est en production (`/fr/confidentialite` affiche la puce « Prospection et relations professionnelles », `/admin/leads` répond) ;
 - aucune fiche CRM n'a été saisie en production depuis ce déploiement (sinon la reporter en dev, la Task 6 l'exigeant) ;
-- le propriétaire fournit, depuis son journal privé des demandes RGPD, la liste des personnes opposées : identité, date de la demande, effacement des échanges demandé ou non. Elle ne s'écrit que dans `~/reprise-notion/releve.md`.
+- le propriétaire fournit, depuis les demandes d'opposition reçues, la liste des personnes opposées : identité, date de la demande, effacement des échanges demandé ou non. Elle ne s'écrit que dans `~/reprise-notion/releve.md`.
 
-À partir de ce moment, le propriétaire n'écrit plus dans le CRM Notion (skills `crm-doc` et `entretiens-doc` du toolkit comprises) : toute saisie passe par l'admin, après la reprise.
+À partir de ce moment, le propriétaire n'écrit plus dans le CRM Notion (automatisations existantes comprises) : toute saisie passe par l'admin, après la reprise.
 
 - [ ] **Step 2 : Comptes Notion**
 
-Pour chaque base (Entreprises, Leads & Opportunités, Actions Prospection, Contacts & Relations, Reviews Hebdo, Suivi Entretiens), compter les pages par `mcp__notion-query__notion_query_data_source_by_values` sur son `dataSourceId`. Noter les comptes dans `releve.md`, section « Comptes », en tableau `Base | Notion | Fichier | Écart expliqué`.
+Pour chaque base (entreprises, leads et opportunités, actions de prospection, contacts, revues hebdo, entretiens), compter les pages par `mcp__notion-query__notion_query_data_source_by_values` sur son `dataSourceId`. Noter les comptes dans `releve.md`, section « Comptes », en tableau `Base | Notion | Fichier | Écart expliqué`.
 
 - [ ] **Step 3 : Construire le fichier de reprise**
 
@@ -1129,7 +1129,7 @@ Lire chaque page (propriétés par la requête, corps par `mcp__plugin_Notion_no
 
 | Liste | `values` (format des formulaires) | Hors `values` |
 |---|---|---|
-| `companies` | `slug` (kebab-case du nom, 60 caractères au plus), `name`, `sectors`, `size` (`""` si inconnue), `websiteUrl`, `logoFilename` (`""`), `types` (Prospect abandonné), `relationStatus`, `zones`, `notes`, `details` ; champs `legalEntity*` omis, l'entité légale reste vide faute de raison sociale dans Notion | `existingSlug` (slug d'une des six entreprises du portfolio, retrouvée par nom ou site web, sinon `null`) |
+| `companies` | `slug` (kebab-case du nom, 60 caractères au plus), `name`, `sectors`, `size` (`""` si inconnue), `websiteUrl`, `logoFilename` (`""`), `types` (Prospect abandonné), `relationStatus`, `zones`, `notes`, `details` ; champs `legalEntity*` omis, l'entité légale reste vide faute de raison sociale dans Notion | `existingSlug` (slug d'une des entreprises du portfolio, retrouvée par nom ou site web, sinon `null`) |
 | `persons` | `name`, `jobRole` (`"aucun"` si vide), `zone` (`"aucun"` si vide, inconnue ou après arbitrage de la plus précise), `email`, `phone`, `linkedinUrl`, `metAt`, `notes`, `details` | `companyKey`, `optedOutAt`, `exchangesErasedAt` |
 | `leads` | `origin`, `status`, `interest` (`"aucun"` si Unknown ou vide), `channel` (`"aucun"` si vide), `score` (`"0"` à `"10"` ou `""`) | `personKey` |
 | `contacts` | `types`, `status` | `personKey` |
@@ -1140,14 +1140,14 @@ Lire chaque page (propriétés par la requête, corps par `mcp__plugin_Notion_no
 | `weeklyReviews` | `closingFriday` (`AAAA-MM-JJ`), sept compteurs (chaînes de chiffres), `status`, `motivation`, `wins`, `blockers`, `nextWeekPlan`, `notes` | aucun |
 
 Règles communes :
-- `key` = identifiant de la page Notion ; `createdAt` d'une fiche `leads` ou `contacts` = son `created_time` de rôle ; `createdAt` d'une entrée `persons` = le plus ancien `created_time` des fiches fusionnées en elle ; pour une opportunité reconstituée, la date de création de la page qui la décrit en premier (lead, premier entretien ou hub) ;
+- `key` = identifiant de la page Notion ; `createdAt` d'une fiche `leads` ou `contacts` = son `created_time` de rôle ; `createdAt` d'une entrée `persons` = le plus ancien `created_time` des fiches fusionnées en elle ; pour une opportunité reconstituée, la date de création de la page qui la décrit en premier (lead, premier entretien ou page de synthèse de mission) ;
 - instants (`occurredAt`, `respondedAt`, `scheduledAt`) avec le décalage Europe/Paris du jour ; date sans heure → `T00:00:00` et ce décalage ;
-- corps de page découpé section par section selon la spec : une section reprise en Détails garde son titre `# <emoji> <titre>`, sous `persons.values.details` qu'elle vienne du lead ou du contact fusionnés ; une ligne 📡 ou 🔍 datée devient une fiche `signals` et sort des Détails ; 📋 Mission, Informations Mission, Package et Budget & Facturation vont à l'opportunité ; Politique ESN, Informations Startup et Culture & Vision vont aux Détails de l'entreprise concernée ; sections de préparation des entretiens et formule Logo.dev ignorées ;
+- corps de page découpé section par section selon la spec : une section reprise en Détails garde son titre `# <emoji> <titre>`, sous `persons.values.details` qu'elle vienne du lead ou du contact fusionnés ; une ligne 📡 ou 🔍 datée devient une fiche `signals` et sort des Détails ; 📋 Mission et les sections sur la mission et ses conditions vont à l'opportunité ; les sections sur l'entreprise vont aux Détails de l'entreprise concernée ; sections de préparation des entretiens et formule Logo.dev ignorées ;
 - **fusion** : un lead et un contact Notion qui partagent l'email ou le LinkedIn (forme normalisée par `normalizeLinkedinProfileUrl`, `07`) donnent une entrée `persons`, une entrée `leads` et une entrée `contacts` référençant la même `personKey` ; un champ divergent entre les deux sources prend la valeur de la fiche la plus récente, l'autre valeur va au relevé ; un interlocuteur d'entretien qui n'est ni lead ni contact devient une entrée `persons` et une entrée `contacts`, dont le type va au relevé des points à trancher ;
 - **clients finaux d'une ESN** : chaque client final saisi devient une entrée `opportunities` `ACCEPTEE`, titre « Opportunité chez `<client>` via `<ESN>` », `referrerKey` nul, aucune date ni TJM, sauf si une opportunité reconstituée couvre déjà ce couple ;
 - **dates d'entreprise reportées en action** : une « Date de premier contact » plus ancienne que toute action déjà construite vers une personne de l'entreprise devient une entrée `prospectingActions` « Premier contact » (`channel "AUTRE"`, `status "FAIT"`, `occurredAt` = cette date à 00:00 Paris) vers la personne la plus anciennement créée de l'entreprise ; une « Dernière interaction » de contact plus tardive que toute action déjà construite vers cette personne devient de même une entrée « Dernier échange » sur elle ;
 - personne opposée : fiche complète dans `persons`, `optedOutAt` à la date de sa demande ; effacement demandé → `exchangesErasedAt` posé et ni ses actions, ni ses signaux, ni sa présence parmi les `correspondentKeys` ne sont écrits ;
-- `acme.md`, pages Équipe, Chantiers et comptes-rendus des hubs clients ne sont pas lus.
+- Seules les bases du CRM sont lues.
 
 - [ ] **Step 4 : Relevé des points à trancher**
 
@@ -1156,7 +1156,7 @@ Règles communes :
 - **Tailles** : entreprises en 1-50, Startup ou Grand compte, avec la valeur proposée ;
 - **Fusions** : chaque couple lead/contact fusionné, les champs divergents et la valeur retenue ;
 - **Types des interlocuteurs sans rôle** : chaque interlocuteur d'entretien qui n'est ni lead ni contact, avec le type de contact proposé ;
-- **Opportunités** : chaque opportunité reconstituée avec ses sources (chaîne d'entretiens, 📋 Mission d'un lead, bandeau de hub, client final d'une ESN) et les fusions proposées ;
+- **Opportunités** : chaque opportunité reconstituée avec ses sources (chaîne d'entretiens, 📋 Mission d'un lead, page de synthèse de mission, client final d'une ESN) et les fusions proposées ;
 - **Clients finaux absents des entreprises Notion** : créer l'entreprise ou garder le nom dans les Détails de l'opportunité ;
 - **Entreprises travaillées sans couverture** : chaque entreprise marquée Travaillé dans Notion sans projet `CLIENT` ni opportunité `ACCEPTEE` après reprise ;
 - **Leads RDV planifié sans entretien daté**, **personnes liées à plusieurs entreprises**, **actions sans personne**, **doublons d'email ou de LinkedIn** ;
@@ -1241,7 +1241,7 @@ Refaire en production le contrôle des comptes (Task 5, Step 3) et deux fiches d
 Dans `docs/PRODUCTION.md`, remplacer le blockquote d'en-tête de la procédure par :
 
 ```markdown
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), puis le <date du chargement> pour la reprise du CRM Notion (<n> entreprises, <n> personnes dont <n> fusions, <n> leads, <n> contacts, <n> actions, <n> opportunités dont <n> depuis un client final, <n> entretiens, <n> signaux, <n> revues), chaque fois après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25 (<n> projets, <n> entreprises, <n> tags), puis le <date du chargement> pour la reprise du CRM Notion (<n> entreprises, <n> personnes dont <n> fusions, <n> leads, <n> contacts, <n> actions, <n> opportunités dont <n> depuis un client final, <n> entretiens, <n> signaux, <n> revues), chaque fois après répétition sur une base locale à l'état de la prod.
 ```
 
 en y portant la date et les comptes relevés au Step 3. Puis supprimer le dump de transfert et le point de restauration de `dumps/`.

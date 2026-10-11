@@ -167,9 +167,9 @@
       "portraitAlt": "Portrait of Thibaud Geisler"
     },
     "bio": {
-      "intro": "As a Full-stack developer specializing in AI and automation. I work as a freelancer with a diverse group of companies from small businesses to large enterprises. My expertise is in delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
-      "positioning": "My positioning: AI in service of precise business use cases. I combine LLMs, automations and full-stack development to deliver simple and scalable solutions that actually solves the problem.",
-      "approach": "My approach: Scope your requirements with you, deliver quick prototype, iterate on tangible deliverables, and document for maintenance. I work in Agile mode to ship regularly and continously adapt to your feedback."
+      "intro": "I'm a full-stack developer specializing in AI and automation. As a freelancer, I work with a diverse range of companies, from small businesses to large enterprises. My expertise lies in delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or on a hybrid basis.",
+      "positioning": "My positioning: AI in service of precise business use cases. I combine LLMs, automations and full-stack development to deliver simple, scalable solutions that actually solve the problem.",
+      "approach": "My approach: scope your requirements with you, deliver a quick prototype, iterate on tangible deliverables and document for maintenance. I work in an Agile way to ship regularly and continuously adapt to your feedback."
     },
     "stats": {
       "years": {
@@ -231,7 +231,7 @@
       "placeholders": {
         "name": "Jane Doe",
         "company": "Acme Inc.",
-        "email": "jane@example.com",
+        "email": "jane.doe@example.com",
         "subject": "What's your message about?",
         "message": "Describe your need, your context and your questions…"
       },

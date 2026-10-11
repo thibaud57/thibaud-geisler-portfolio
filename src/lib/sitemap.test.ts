@@ -64,7 +64,7 @@ describe("buildSitemapEntries", () => {
       staticPaths: [],
       projects: [
         buildProject({ slug: "webapp-gestion-sinistres" }),
-        buildProject({ slug: "acme" }),
+        buildProject({ slug: "projet-exemple" }),
       ],
       siteUrl: SITE_URL_FIXTURE,
     })
@@ -72,8 +72,8 @@ describe("buildSitemapEntries", () => {
     expect(entries.map((e) => e.url)).toEqual([
       "https://thibaud-geisler.com/fr/projets/webapp-gestion-sinistres",
       "https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres",
-      "https://thibaud-geisler.com/fr/projets/acme",
-      "https://thibaud-geisler.com/en/projets/acme",
+      "https://thibaud-geisler.com/fr/projets/projet-exemple",
+      "https://thibaud-geisler.com/en/projets/projet-exemple",
     ])
   })
 

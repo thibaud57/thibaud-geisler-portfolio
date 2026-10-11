@@ -69,7 +69,7 @@ Insérer, entre la fin du tableau du « Traitement 6 » et la ligne `## Notes`, 
 | Stockage | Base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne |
 | Sécurité | Espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS |
 | Analyse d'intérêt légitime | Tenue en interne (mise en balance des intérêts), revue à chaque nouvelle source, nouveau canal ou changement d'outil |
-| AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si les agents internes se mettent à noter les personnes |
+| AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si un traitement automatisé vient à évaluer les personnes |
 ```
 
 - [ ] **Step 3 : Renvoyer au Traitement 7 depuis l'architecture**

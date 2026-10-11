@@ -99,7 +99,7 @@ describe("ProjectsList filter", () => {
           deliverablesCount: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
-          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme" }),
+          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme SAS" }),
         },
       }),
       createProject({ id: "2", slug: "p2", title: "Personal Project 1", type: "PERSONAL" }),

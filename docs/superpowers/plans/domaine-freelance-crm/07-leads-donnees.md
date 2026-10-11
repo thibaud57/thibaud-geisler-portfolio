@@ -30,7 +30,7 @@
 
 - **Modifier un lead sans changer son email** ne doit pas le déclarer doublon de lui-même. Couvert par « ignores the lead being edited when checking duplicates » (Task 5).
 - **Opposition répétée et date du stop autour de minuit** : un second « stop » garde la date du premier, point de départ des 3 ans ; un stop à 23 h 30 UTC le 11 mars tombe le 12 mars à Paris, date que le message doit donner. Couvert par « keeps the first opt-out date when a person opts out twice » (Task 4) et la date `2026-03-11T23:30:00Z` du test « refuses a person who opted out, giving the date » (Task 5).
-- **Lien LinkedIn accentué** (`/in/jerome-lambert-8b1d4f`, `/in/jerome-lambert-8b1d4f`) : même forme unique. Couvert par « normalizes the host, the case, a trailing slash and query parameters » (Task 1).
+- **Lien LinkedIn accentué** (`/in/Hélène-Blanc-3f7b9d`, `/in/h%C3%A9l%C3%A8ne-blanc-3f7b9d`) : même forme unique. Couvert par « normalizes the host, the case, a trailing slash and query parameters » (Task 1).
 - **Suppression sans autre rôle** : `deleteLead` retire le rôle puis supprime la personne par deux écritures explicites, jamais via la seule cascade `Lead → Person` qui empêcherait de garder la personne le jour où un second rôle existera. Couvert par « removes the person along with the lead role » (Task 5).
 
 ---
@@ -54,10 +54,10 @@ import { normalizeLinkedinProfileUrl } from "./linkedin"
 
 describe("normalizeLinkedinProfileUrl", () => {
   it.each([
-    ["https://fr.linkedin.com/in/jeanne-dupont-4b2a1c/?originalSubdomain=fr#about", "https://www.linkedin.com/in/jeanne-dupont-4b2a1c"],
+    ["https://fr.linkedin.com/in/Jeanne-Dupont-4b2a1c/?originalSubdomain=fr#about", "https://www.linkedin.com/in/jeanne-dupont-4b2a1c"],
     ["http://linkedin.com/in/jeanne-dupont-4b2a1c", "https://www.linkedin.com/in/jeanne-dupont-4b2a1c"],
-    ["https://www.linkedin.com/in/jerome-lambert-8b1d4f", "https://www.linkedin.com/in/jerome-lambert-8b1d4f"],
-    ["https://www.linkedin.com/in/jerome-lambert-8b1d4f/", "https://www.linkedin.com/in/jerome-lambert-8b1d4f"],
+    ["https://www.linkedin.com/in/Hélène-Blanc-3f7b9d", "https://www.linkedin.com/in/h%C3%A9l%C3%A8ne-blanc-3f7b9d"],
+    ["https://www.linkedin.com/in/h%C3%A9l%C3%A8ne-blanc-3f7b9d/", "https://www.linkedin.com/in/h%C3%A9l%C3%A8ne-blanc-3f7b9d"],
   ])("normalizes the host, the case, a trailing slash and query parameters (%s)", (value, expected) => {
     const normalized = normalizeLinkedinProfileUrl(value)
 
@@ -653,7 +653,7 @@ describe("optOutPerson", () => {
 
   it("clears everything but email and LinkedIn when a person opts out", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "jeanne@example.com",
       linkedinUrl: null,
       optedOutAt: null,
     } as never)
@@ -694,7 +694,7 @@ describe("optOutPerson", () => {
 
   it("keeps the first opt-out date when a person opts out twice", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      email: "claire@acme.example",
+      email: "jeanne@example.com",
       linkedinUrl: null,
       optedOutAt: new Date("2026-03-12T09:00:00Z"),
     } as never)
@@ -920,7 +920,7 @@ import { createLead, deleteLead, updateLead } from "./leads"
 import { initialLeadFormState } from "./leads.types"
 
 const BASE_FIELDS = {
-  name: "Claire Morel",
+  name: "Jeanne Dupont",
   jobRole: NONE_VALUE,
   zone: NONE_VALUE,
   companyId: NONE_VALUE,
@@ -1002,8 +1002,8 @@ describe("createLead", () => {
     await createLead(
       initialLeadFormState,
       buildFormData({
-        email: " jeanne.dupont@example.com ",
-        linkedinUrl: "fr.linkedin.com/in/jeanne-dupont-4b2a1c/",
+        email: " Jeanne.Dupont@Example.COM ",
+        linkedinUrl: "fr.linkedin.com/in/Jeanne-Dupont-4b2a1c/",
       }),
     )
 
@@ -1030,15 +1030,15 @@ describe("createLead", () => {
 
   it("refuses an email or LinkedIn already used by another person, naming it", async () => {
     vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Claire Morel",
-      email: "claire@acme.example",
+      name: "Jeanne Dupont",
+      email: "jeanne@example.com",
       optedOutAt: null,
     } as never)
 
-    const state = await createLead(initialLeadFormState, buildFormData({ email: "claire@acme.example" }))
+    const state = await createLead(initialLeadFormState, buildFormData({ email: "jeanne@example.com" }))
 
     expect(state.message).toBe("lead_exists")
-    expect(state.errors.email).toEqual(["Ce lead existe déjà : Claire Morel"])
+    expect(state.errors.email).toEqual(["Ce lead existe déjà : Jeanne Dupont"])
     expect(prisma.person.create).not.toHaveBeenCalled()
   })
 
@@ -1098,7 +1098,7 @@ describe("updateLead", () => {
   it("ignores the lead being edited when checking duplicates", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
 
-    await updateLead("p1", initialLeadFormState, buildFormData({ email: "claire@acme.example" }))
+    await updateLead("p1", initialLeadFormState, buildFormData({ email: "jeanne@example.com" }))
 
     expect(prisma.person.findFirst).toHaveBeenCalledWith(
       objectMatch({ where: objectMatch({ NOT: { id: "p1" } }) }),

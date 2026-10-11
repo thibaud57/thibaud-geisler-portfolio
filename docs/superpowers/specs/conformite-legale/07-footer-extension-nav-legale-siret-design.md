@@ -128,7 +128,7 @@ Modifier `src/components/layout/Footer.tsx` (Server Component async existant qui
 **Choix : A**
 
 **Rationale :**
-- Cohérence architecturale : la décision projet (sub 1, mémoire `feedback_domain_data_postgres.md`) tranche que les données légales métier vivent en BDD via `LegalEntity`, pas en constantes ni en env vars. Le footer doit suivre la même règle que les pages mentions légales (sub 4) et le JSON-LD enrichi (sub 6) qui lisent toutes via `getPublisher()`.
+- Cohérence architecturale : la décision projet (sub 1) tranche que les données légales métier vivent en BDD via `LegalEntity`, pas en constantes ni en env vars. Le footer doit suivre la même règle que les pages mentions légales (sub 4) et le JSON-LD enrichi (sub 6) qui lisent toutes via `getPublisher()`.
 - Source unique de vérité : si Thibaud édite son SIRET via Prisma Studio (cas exceptionnel), tous les consommateurs (Footer + page mentions + JSON-LD) sont mis à jour en synchronisation au prochain `cacheLife('days')` revalidation ou via `revalidateTag('legal-entity', 'max')`. Avec une constante hardcodée, on aurait 3 endroits à mettre à jour + redéploiement.
 - Coût : `getPublisher()` est cachée `'use cache'` côté query, l'appel n'a aucun coût répété entre pages. La parallélisation `Promise.all` avec `getTranslations` évite tout waterfall.
 - L'option B/C romprait la cohérence et créerait 2 sources de vérité du SIRET, anti-pattern.
@@ -146,7 +146,7 @@ Modifier `src/components/layout/Footer.tsx` (Server Component async existant qui
 - L'option B casse l'architecture en transformant le Footer en Client Component, ce qui briserait la lecture serveur de `getPublisher()` + `getTranslations` (`useTranslations` Client side existe mais avec un Provider, ce qui complique).
 - L'option C duplique la logique du `<OpenCookiePreferencesButton>` du sub 4 (qui fait déjà exactement ce qu'on veut). Anti-DRY.
 - L'option A applique le pattern leaf client component canonical : Server Component Footer importe et rend un Client Component leaf. La prop `label?` ajoutée au sub 5 (pour customisation contextuelle) sert exactement ce cas. 1 ligne de JSX, cohérent avec le sub 4 page `/confidentialite` qui consomme aussi le même bouton.
-- Cohérent avec la mémoire user `feedback_reuse_components.md` : "Réutiliser les composants existants plutôt que créer des variations".
+- Cohérent avec la décision du propriétaire : réutiliser les composants existants plutôt que créer des variations.
 
 ### Décision : `tdd_scope = none` (pas de tests automatisés)
 

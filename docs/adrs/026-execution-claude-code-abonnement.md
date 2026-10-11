@@ -15,9 +15,9 @@ L'espace admin fait exécuter Claude Code par `agent-os` ([ADR-015](015-decoupag
 Contraintes :
 
 - **Abonnement uniquement, jamais l'API** ([ADR-016](016-acces-llm.md)) : le plan Max est déjà payé
-- **L'environnement complet du propriétaire** : sa configuration globale, versionnée dans le dépôt `.claude` (CLAUDE.md, commandes dont `implement-subproject`, skills, agents, hooks, plugins dont superpowers), et la configuration du dépôt `freelance-toolkit` pour le domaine freelance. Un run qui ne verrait que la configuration du dépôt de code ne sait pas dérouler le workflow
+- **L'environnement complet du propriétaire** : sa configuration globale, versionnée dans le dépôt `.claude` (CLAUDE.md, commandes dont `implement-subproject`, skills, agents, hooks, plugins dont superpowers), et les skills freelance pour le domaine freelance. Un run qui ne verrait que la configuration du dépôt de code ne sait pas dérouler le workflow
 - **Lancé sans surveillance** : le propriétaire lance plusieurs runs, depuis l'espace admin ou son téléphone, puis passe à autre chose. Il est prévenu quand un run attend un accord ou une réponse, ou se termine, et répond depuis son téléphone
-- **Un VPS de production partagé** avec le site public, n8n et le scraper
+- **Un VPS de production partagé** avec le site public, n8n et un service interne de collecte de pages publiques
 
 ---
 
@@ -117,9 +117,9 @@ Où et comment exécuter Claude Code pour que chaque run lancé par le propriét
 
 Acté :
 
-- **Déclenchement uniquement par une action du propriétaire** : depuis l'espace admin (bouton d'un job, carte du kanban, message à l'assistant), ou par un message au bot Telegram. Aucun cron, aucun lancement sur événement. Chaque run part d'une action du propriétaire, ce qui le garde dans l'usage ordinaire et individuel que supposent les limites des plans Pro et Max
+- **Déclenchement uniquement par une action du propriétaire** : depuis l'espace admin (bouton d'un job, carte du kanban, message à l'assistant), ou par un message au bot Telegram. Aucun cron, aucun lancement sur événement. Chaque run part d'une action du propriétaire
 - **Jamais l'API** : aucune clé API dans l'environnement qui exécute Claude Code, authentification par jeton d'abonnement, dépassement payant désactivé sur le compte. Un quota épuisé suspend les runs au lieu de les facturer
-- **Environnement complet, sans duplication** : la configuration globale vient du dépôt `.claude`, celle d'un domaine vient du dépôt où la session travaille (`freelance-toolkit` pour le freelance, le dépôt de code pour le cycle de développement). Les connecteurs claude.ai du compte ne sont pas chargés
+- **Environnement complet, sans duplication** : la configuration globale vient du dépôt `.claude`, celle d'un domaine vient du dépôt où la session travaille (les skills freelance pour le freelance, le dépôt de code pour le cycle de développement). Les connecteurs claude.ai du compte ne sont pas chargés
 - **Le téléphone remplace le terminal, l'admin sert de cockpit** : quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram. Un accord se donne par boutons, une question par un bouton par option ou une réponse libre, la fin porte le lien de la PR. L'admin lance les runs et affiche leur état sur les cartes et les jobs, sans fil de conversation ; seul l'assistant interne y reste une conversation. Les règles de la configuration globale, comme la validation avant commit, s'appliquent telles quelles
 - **Un seul bot Telegram, tenu par `agent-os`** : alertes, réponses, et messages libres qui ouvrent une session de l'assistant avec le MCP de l'app, par exemple pour créer un ticket. Réception par long polling, le service n'ayant ni domaine ni port public ([ADR-019](019-communication-inter-services.md)). Telegram n'acceptant qu'un lecteur par bot, celui-ci ne sert qu'à `agent-os`
 - **Des PR, jamais de merge** : le propriétaire merge
@@ -135,7 +135,7 @@ Les autres options : B paie un démarrage à chaque message et ne sait pas relay
 
 ## Positives
 - Un seul coût, l'abonnement déjà payé
-- Le workflow complet (commandes, skills, superpowers, toolkit freelance) sans rien recopier dans les dépôts
+- Le workflow complet (commandes, skills, superpowers, skills freelance) sans rien recopier dans les dépôts
 - Des runs lancés sans rien surveiller : le téléphone prévient et débloque, l'admin donne la vue d'ensemble
 - Le moteur ne dépend d'aucune fonctionnalité en research preview
 
@@ -179,4 +179,4 @@ Les autres options : B paie un démarrage à chaque message et ne sait pas relay
 - [Claude Code, Routines](https://code.claude.com/docs/en/routines) : « Routines draw down subscription usage the same way interactive sessions do »
 - [Claude Code, Remote Control](https://code.claude.com/docs/en/remote-control) : « available on Pro, Max, Team, and Enterprise plans. API keys are not supported »
 - [Claude Code, Self-hosted environments](https://code.claude.com/docs/en/self-hosted-environments), pour la citation ci-dessus
-- [TechCrunch, 28 juillet 2025](https://techcrunch.com/2025/07/28/anthropic-unveils-new-rate-limits-to-curb-claude-code-power-users/) : les limites hebdomadaires visent les abonnés qui font tourner Claude Code « continuously in the background, 24/7 », raison de l'absence de cron
+- [TechCrunch, 28 juillet 2025](https://techcrunch.com/2025/07/28/anthropic-unveils-new-rate-limits-to-curb-claude-code-power-users/) : annonce des limites hebdomadaires d'usage de Claude Code
