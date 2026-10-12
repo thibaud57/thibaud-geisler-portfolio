@@ -17,6 +17,40 @@ async function sizeOf(png: Buffer): Promise<{ width?: number; height?: number }>
   return { width, height }
 }
 
+// ICO minimal : en-tête, entrées, images (PNG tel quel ou DIB 32 bits sans masque).
+function icoOf(images: { width: number; data: Buffer }[]): Buffer {
+  const header = Buffer.alloc(6)
+  header.writeUInt16LE(0, 0)
+  header.writeUInt16LE(1, 2)
+  header.writeUInt16LE(images.length, 4)
+  const entries: Buffer[] = []
+  let offset = 6 + 16 * images.length
+  for (const { width, data } of images) {
+    const entry = Buffer.alloc(16)
+    entry.writeUInt8(width === 256 ? 0 : width, 0)
+    entry.writeUInt8(width === 256 ? 0 : width, 1)
+    entry.writeUInt16LE(1, 4)
+    entry.writeUInt16LE(32, 6)
+    entry.writeUInt32LE(data.length, 8)
+    entry.writeUInt32LE(offset, 12)
+    entries.push(entry)
+    offset += data.length
+  }
+  return Buffer.concat([header, ...entries, ...images.map(({ data }) => data)])
+}
+
+function bmpEntryOf(width: number): Buffer {
+  const info = Buffer.alloc(40)
+  info.writeUInt32LE(40, 0)
+  info.writeInt32LE(width, 4)
+  info.writeInt32LE(width * 2, 8)
+  info.writeUInt16LE(1, 12)
+  info.writeUInt16LE(32, 14)
+  const pixels = Buffer.alloc(width * width * 4, 0)
+  for (let i = 0; i < width * width; i++) pixels.set([86, 52, 18, 255], i * 4)
+  return Buffer.concat([info, pixels])
+}
+
 describe("normalizeIcon", () => {
   it("rejects an icon smaller than 32 px", async () => {
     const icon = await pngOf(16)
@@ -52,6 +86,31 @@ describe("normalizeIcon", () => {
     const normalized = await normalizeIcon(svg)
 
     expect(await sizeOf(normalized.png)).toEqual({ width: 256, height: 256 })
+  })
+
+  it("reads the largest image of an ico, png entries included", async () => {
+    const ico = icoOf([
+      { width: 16, data: await pngOf(16) },
+      { width: 128, data: await pngOf(128) },
+    ])
+
+    const normalized = await normalizeIcon(ico)
+
+    expect(await sizeOf(normalized.png)).toEqual({ width: 128, height: 128 })
+  })
+
+  it("reads a classic bitmap ico entry", async () => {
+    const ico = icoOf([{ width: 48, data: bmpEntryOf(48) }])
+
+    const normalized = await normalizeIcon(ico)
+
+    expect(await sizeOf(normalized.png)).toEqual({ width: 48, height: 48 })
+  })
+
+  it("rejects an ico whose largest image is too small", async () => {
+    const ico = icoOf([{ width: 16, data: await pngOf(16) }])
+
+    await expect(normalizeIcon(ico)).rejects.toMatchObject({ size: 16 })
   })
 
   it("rejects a file that is not an image", async () => {

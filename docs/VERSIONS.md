@@ -4,10 +4,10 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-10-11"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes sharp (**6 octobre 2026**) et dnd-kit (**8 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes sharp (**6 octobre 2026**), dnd-kit (**8 octobre 2026**) et decode-ico (**12 octobre 2026**).
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -62,6 +62,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | @aws-sdk/client-s3 | `3.1147.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.7` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
 | sharp | `0.35.5` | ✅ | Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Même version que la dépendance optionnelle de Next 16.4.0 (`^0.35.4`, résolue en 0.35.5 le 11 octobre 2026), épinglée sans `^` pour garder une seule copie dans le lockfile |
+| decode-ico | `0.4.1` | ✅ | Plus grande image d'un conteneur ICO, que sharp ne lit pas (spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026). JavaScript pur, trois dépendances du même auteur, dernière version publiée en novembre 2022 |
 
 ## Tests
 
@@ -523,7 +524,7 @@ Wrapper React de Simple Icons. Les icônes sont importées nommément depuis le 
 **Version actuelle** : `1.6.20`
 **Stabilité** : ✅
 
-Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-icons/react/3x2/FR`. Le projet n'utilise que FR et GB, dans `src/components/layout/LanguageSwitcher.tsx`.
+Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-icons/react/3x2/FR`. Le projet n'utilise que FR et GB, dans `src/components/layout/public/LanguageSwitcher.tsx`.
 
 **Gotcha TypeScript 6** : le package n'expose pas de type public pour ses composants. Le mapping locale vers drapeau se type en dérivant le type d'un import concret plutôt qu'en le déclarant :
 
@@ -697,7 +698,7 @@ Un seul rôle : faire échouer la compilation si un module serveur est importé 
 **Version actuelle** : `4.4.0`
 **Stabilité** : ✅
 
-Wrapper React du widget Calendly. Le projet utilise `InlineWidget` et le hook typé `useCalendlyEventListener`, dans `src/components/features/contact/CalendlyWidget.tsx`.
+Wrapper React du widget Calendly. Le projet utilise `InlineWidget` et le hook typé `useCalendlyEventListener`, dans `src/components/features/public/contact/CalendlyWidget.tsx`.
 
 **Compatibilité Écosystème** :
 - React 19 : ✅ (peers `react >= 16.8.0`, `react-dom >= 16.8.0`)
@@ -802,6 +803,22 @@ Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-02
 **Point de vigilance** : garder la version alignée sur celle de Next à chaque montée de Next. Un écart installerait une seconde copie de `sharp` (binaires natifs en double).
 
 **Recommandation** : ✅ sharp 0.35.4 en place, épinglée sans `^`.
+
+### 13. decode-ico
+
+**Version actuelle** : `0.4.1`
+**Stabilité** : ✅
+
+Extraction des images d'un conteneur ICO, format que `sharp` ne lit pas : le récupérateur de logo garde la plus grande (PNG tel quel, ou pixels RGBA d'un DIB rendus par `sharp`). Spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026. Version lue dans `pnpm-lock.yaml` au 12 octobre 2026.
+
+**Compatibilité Écosystème** :
+- Node.js 24 : ✅ JavaScript pur, aucune compilation native, aucun ajout à `allowBuilds`
+- sharp 0.35.5 : ✅ les pixels d'un DIB entrent par l'option `raw` de `sharp`
+- Docker alpine : ✅ rien à installer
+
+**Point de vigilance** : dernière publication en novembre 2022 et dépendances du même auteur (`decode-bmp`, `@canvas/image-data`, `to-data-view`). Le format ICO ne bouge plus, mais une alerte de sécurité sur l'une d'elles n'aurait pas de correctif rapide : remplacer alors par un parseur maison des seules entrées PNG et DIB 32 bits, les cas rencontrés.
+
+**Recommandation** : ✅ decode-ico 0.4.1 en place, épinglée sans `^`.
 
 ## Tests
 
@@ -1486,6 +1503,7 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [Pino : getpino.io](https://getpino.io)
 - [pino-nextjs-example](https://github.com/pinojs/pino-nextjs-example)
 - [sharp : Documentation](https://sharp.pixelplumbing.com/)
+- [decode-ico : README](https://github.com/LinusU/decode-ico)
 - [Sentry : Migration v10 → v11 (Next.js)](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)
 - [Sentry : options, dont `dataCollection`](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/)
 - [Better Auth : Changelog](https://better-auth.com/changelog)

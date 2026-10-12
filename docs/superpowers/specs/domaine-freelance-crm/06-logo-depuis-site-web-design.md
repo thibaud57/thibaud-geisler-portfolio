@@ -49,8 +49,8 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 - **Parcours** : le bouton appelle une Server Action avec la valeur courante des champs site web et slug (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md` : `getCurrentUser()` en tête, hors du `try`). L'action revalide l'adresse avec la règle du champ site web et le slug avec `SLUG_PATTERN`, récupère l'icône, la range dans le bucket admin sous `freelance/crm/entreprises/<slug>/logo-<empreinte>.png` (`COMPANY_LOGO_FOLDER`, clé passée par `validateAssetPath` comme au dépôt manuel), invalide `/admin/assets` et renvoie la clé, la taille d'origine et la source. La card place la clé dans son état `logoFilename`, que le champ caché existant envoie à l'enregistrement : l'action entreprise ne change pas
 - **Nom tiré du contenu** : l'empreinte est le début du SHA-256 du PNG produit. Le logo en place n'est jamais écrasé avant l'enregistrement de la fiche, une même icône récupérée deux fois retombe sur le même fichier, et un nouveau logo change d'adresse, ce qui évite l'image périmée du cache de `next/image` sur les pages publiques
 - **Adresse lue telle quelle** : le bouton lit la page à l'adresse du champ, site vivant ou capture Wayback, sans traitement propre à Wayback ni détection de site mort. Une page de capture pointe déjà ses icônes vers l'archive : vérifié le 2026-09-26 sur une capture réelle, où `<link rel="icon">` et `apple-touch-icon` sont réécrits en `web.archive.org/web/<horodatage>im_/…`
-- **Ordre d'essai** (ADR-023) : `apple-touch-icon` (et `apple-touch-icon-precomposed`), puis `<link rel="icon">` et `shortcut icon` de la plus grande taille déclarée, un SVG comptant comme la plus grande. Les icônes `.ico` sont ignorées. Jamais `og:image` ni une image de la page. Les adresses relatives se résolvent contre `<base href>` s'il existe, sinon contre l'adresse finale de la page. Le premier candidat qui se télécharge, se lit et atteint la taille minimale l'emporte
-- **Lecture de la page** : seules les balises vides `<link>` et `<base>` servent, lues par une fonction du projet sur le début du document (jusqu'à `</head>`), sans bibliothèque d'analyse HTML ; `metascraper-logo-favicon` est écarté parce qu'il appelle lui-même `/favicon.ico` et le service de Google, hors de la garde
+- **Ordre d'essai** (ADR-023) : `apple-touch-icon` (et `apple-touch-icon-precomposed`), puis `<link rel="icon">` et `shortcut icon` de la plus grande taille déclarée, un SVG comptant comme la plus grande, les `.ico` en dernier (plus grande image du conteneur extraite par `decode-ico`), puis `/favicon.ico` si la page ne déclare rien. Jamais `og:image` ni une image de la page. Amendé le 2026-10-12 : les ICO étaient ignorés, or une part notable des sites n'expose que ça, souvent de 48 à 256 px. Les adresses relatives se résolvent contre `<base href>` s'il existe, sinon contre l'adresse finale de la page. Le premier candidat qui se télécharge, se lit et atteint la taille minimale l'emporte
+- **Lecture de la page** : seules les balises vides `<link>` et `<base>` servent, lues par une fonction du projet sur tout le document (borné à 1 Mo par la garde ; amendé le 2026-10-12, la lecture s'arrêtait à 128 Ko puis au `</head>`, or Next.js déclare ses icônes en fin de body et WordPress après 150 à 400 Ko de styles), sans bibliothèque d'analyse HTML ; `metascraper-logo-favicon` est écarté parce qu'il appelle lui-même `/favicon.ico` et le service de Google, hors de la garde
 - **Conversion** (`sharp`, dépendance directe, déjà installé avec Next et pris en charge par le `Dockerfile`) : PNG, JPEG, WebP, GIF et SVG en entrée. Sortie PNG, 256 px au plus sur le grand côté, jamais agrandie, transparence gardée ; un SVG est rendu directement à 256 px. Refus sous 32 px sur le grand côté, la taille d'origine étant affichée sous l'aperçu
 - **Garde réseau** (ADR-023, le `fetch` natif n'offrant ni protection SSRF ni plafond de taille) : requête `node:http`/`node:https` dont l'option `lookup` résout le nom, refuse toute réponse contenant une adresse interne et connecte sur l'adresse vérifiée, sans seconde résolution ; une adresse IP écrite en toutes lettres est vérifiée avant la requête
   - schémas `http` et `https`, ports 80 et 443 seulement
@@ -119,16 +119,23 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
   - ranks apple-touch-icon before any other icon
   - orders icons by largest declared size, an svg first
   - resolves relative hrefs against the base element, then the page URL
-  - skips ico icons, og:image and non-icon links
+  - keeps ico icons after the others, skips og:image and non-icon links
+  - decodes numeric entities in an href, as WordPress writes them
   - keeps a single candidate per address, as a wayback capture declares
+  - finds an icon declared after 300 KB of inline styles in the head
+  - finds an icon declared in the body, as Next.js streams it
 - `src/server/company-logo/normalize-icon.test.ts` :
   - rejects an icon smaller than 32 px
   - never enlarges a 48 px icon
   - scales a large icon down to 256 px
   - renders an svg icon at 256 px
+  - reads the largest image of an ico, png entries included
+  - reads a classic bitmap ico entry
+  - rejects an ico whose largest image is too small
   - rejects a file that is not an image
 - `src/server/company-logo/fetch-company-logo.test.ts` :
   - falls back to the next candidate when one fails
+  - tries /favicon.ico when the page declares no icon
   - reports the largest too small size when no candidate is large enough
   - stops at a blocked address
   - stores the icon under the company folder with a content-derived name
@@ -142,7 +149,7 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 ## Edge cases
 
 - **Site derrière une protection anti-robot** (réponse 403) : `site_unreachable` avec le code, le dépôt manuel reste
-- **Site qui ne déclare qu'un `favicon.ico`** : `no_icon_found`, le dépôt manuel reste
+- **Site qui ne déclare qu'un `favicon.ico`** : sa plus grande image est lue ; sous 32 px, `icon_too_small` et le dépôt manuel reste (amendé le 2026-10-12, c'était `no_icon_found`)
 - **Site qui redirige vers un autre domaine** (rachat, fusion) : la redirection est suivie et revérifiée, l'icône est celle du domaine d'arrivée ; l'aperçu permet de juger avant d'enregistrer
 - **SVG pensé pour le thème sombre** (blanc sur fond transparent) : quasi invisible sur fond clair ; l'aperçu le montre, le dépôt manuel le remplace
 - **Slug modifié après la récupération** : le fichier reste dans le dossier de l'ancien slug et la fiche pointe vers lui, comme pour un logo choisi à la main
@@ -186,6 +193,8 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 - Choix du propriétaire : on prend ce que le site déclare, sans rien inventer
 - Un `favicon.ico` fait le plus souvent 16 ou 32 px, sous le seuil ; un site qui publie un manifest déclare presque toujours un `apple-touch-icon`
 - Une capture Wayback lue telle quelle pointe déjà ses icônes vers l'archive
+
+Amendement du 2026-10-12, après mesure sur un lot réel de sites : l'hypothèse sur les `favicon.ico` ne tient pas (ICO de 48 à 256 px fréquents, PNG nommés `.ico`, pages sans `<link>` mais avec `/favicon.ico`). L'option B s'élargit à l'ICO (décodé par `decode-ico`) et au `/favicon.ico` de dernier recours ; manifest et `og:image` restent hors jeu (aucun gain mesuré, images rectangulaires).
 
 ### Décision : requête sortante gardée
 

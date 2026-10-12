@@ -48,17 +48,26 @@ describe("findIconCandidates", () => {
     expect(withoutBase[0]?.url.href).toBe("https://www.acme.example/fr/icon.png")
   })
 
-  it("skips ico icons, og:image and non-icon links", () => {
+  it("keeps ico icons after the others, skips og:image and non-icon links", () => {
     const paths = pathsOf(`
       <link rel="icon" href="/favicon.ico">
       <link rel="icon" type="image/x-icon" href="/favicon">
       <meta property="og:image" content="/share.png">
       <link rel="stylesheet" href="/app.css">
       <link rel="mask-icon" href="/pinned.svg">
-      <link rel="icon" href="/ok.png">
+      <link rel="icon" href="/ok.png" sizes="48x48">
     `)
 
-    expect(paths).toEqual(["/ok.png"])
+    expect(paths).toEqual(["/ok.png", "/favicon.ico", "/favicon"])
+  })
+
+  it("decodes numeric entities in an href, as WordPress writes them", () => {
+    const [candidate] = findIconCandidates(
+      `<head><link rel="icon" href="/icon.png?w=32&#038;h=32&#x26;q=80"></head>`,
+      PAGE,
+    )
+
+    expect(candidate?.url.search).toBe("?w=32&h=32&q=80")
   })
 
   it("keeps a single candidate per address, as a wayback capture declares", () => {
@@ -80,15 +89,23 @@ describe("findIconCandidates", () => {
     expect(candidates[0]?.url.href).toBe(icon)
   })
 
-  it("ignores a link declared past the scanned head limit", () => {
-    const filler = " ".repeat(128 * 1024)
+  it("finds an icon declared after 300 KB of inline styles in the head", () => {
+    const inlineStyles = `<style>${".acme-block{display:flex;gap:1rem}".repeat(10_000)}</style>`
     const link = `<link rel="icon" href="/late.png">`
 
-    const late = findIconCandidates(`<head>${filler}${link}</head>`, PAGE)
-    const early = findIconCandidates(`<head>${link}${filler}</head>`, PAGE)
+    const paths = pathsOf(`${inlineStyles}${link}`)
 
-    expect(late).toEqual([])
-    expect(early.map((candidate) => candidate.url.pathname)).toEqual(["/late.png"])
+    expect(inlineStyles.length).toBeGreaterThan(300 * 1024)
+    expect(paths).toEqual(["/late.png"])
+  })
+
+  it("finds an icon declared in the body, as Next.js streams it", () => {
+    const paths = findIconCandidates(
+      `<html><head><title>Acme</title></head><body><p>Hello</p><link rel="icon" href="/body.png"></body></html>`,
+      PAGE,
+    ).map((candidate) => candidate.url.pathname)
+
+    expect(paths).toEqual(["/body.png"])
   })
 
   it("skips a tag longer than the tag limit", () => {

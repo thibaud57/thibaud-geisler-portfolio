@@ -1,4 +1,5 @@
 import "server-only"
+import decodeIco from "decode-ico"
 import sharp, { type Sharp } from "sharp"
 
 const MIN_ICON_SIZE = 32
@@ -36,7 +37,22 @@ function toPng(image: Sharp) {
     .toBuffer({ resolveWithObject: true })
 }
 
-export async function normalizeIcon(input: Buffer): Promise<NormalizedIcon> {
+const isIco = (buffer: Buffer) => buffer.length > 6 && buffer.readUInt32LE(0) === 0x00010000
+
+// sharp ne lit pas l'ICO : sa plus grande image, PNG ou DIB, passe en PNG.
+async function largestIcoImage(ico: Buffer): Promise<Buffer> {
+  const images = decodeIco(ico).sort((a, b) => b.width * b.height - a.width * a.height)
+  const largest = images[0]
+  if (!largest) throw new UnreadableIconError()
+  if (largest.type === "png") return Buffer.from(largest.data)
+  const raw = { width: largest.width, height: largest.height, channels: 4 as const }
+  return sharp(Buffer.from(largest.data), { ...INPUT_OPTIONS, raw })
+    .png()
+    .toBuffer()
+}
+
+export async function normalizeIcon(icon: Buffer): Promise<NormalizedIcon> {
+  const input = isIco(icon) ? await largestIcoImage(icon).catch(() => icon) : icon
   const metadata = await sharp(input, INPUT_OPTIONS)
     .metadata()
     .catch(() => null)

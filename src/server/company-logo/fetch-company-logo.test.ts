@@ -90,6 +90,22 @@ describe("fetchCompanyIcon", () => {
     expect(safeFetch).toHaveBeenCalledTimes(9)
   })
 
+  it("tries /favicon.ico when the page declares no icon", async () => {
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce(page("<title>Acme</title>"))
+      .mockResolvedValueOnce(image("/favicon.ico"))
+    vi.mocked(normalizeIcon).mockResolvedValueOnce({
+      png: Buffer.from("png"),
+      width: 48,
+      height: 48,
+    })
+
+    const result = await fetchCompanyIcon(SITE)
+
+    expect(result.source).toBe("icon")
+    expect(safeFetch).toHaveBeenLastCalledWith(new URL("/favicon.ico", SITE), expect.anything())
+  })
+
   it("reports no icon when every candidate fails", async () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))

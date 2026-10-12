@@ -6,7 +6,7 @@ import { buildAssetKey, COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
 import { adminR2, R2_ADMIN_BUCKET } from "@/lib/r2"
 import { validateAssetPath } from "@/server/config/assets"
 
-import { findIconCandidates, type IconSource } from "./icon-candidates"
+import { findIconCandidates, type IconCandidate, type IconSource } from "./icon-candidates"
 import {
   IconTooSmallError,
   normalizeIcon,
@@ -37,7 +37,12 @@ export async function fetchCompanyIcon(
   websiteUrl: string,
 ): Promise<{ icon: NormalizedIcon; source: IconSource }> {
   const page = await safeFetch(websiteUrl, { maxBytes: PAGE_MAX_BYTES, truncate: true })
-  const candidates = findIconCandidates(page.body.toString("utf8"), page.url)
+  const declared = findIconCandidates(page.body.toString("utf8"), page.url)
+  // Dernier recours (ADR-023)
+  const candidates: IconCandidate[] =
+    declared.length > 0
+      ? declared
+      : [{ url: new URL("/favicon.ico", page.url), source: "icon", declaredSize: 0 }]
 
   let largestTooSmall = 0
   for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {

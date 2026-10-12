@@ -6,18 +6,24 @@ export interface IconCandidate {
   declaredSize: number
 }
 
-// La page vient d'un site tiers : un scan `[^>]*` ou d'attributs sans borne est quadratique sur une entrée hostile, d'où la portion lue et la longueur de balise bornées.
-const HEAD_MAX_CHARS = 128 * 1024
-const HEAD_END = /<\/head\s*>/i
-// Seules des balises vides servent (<link>, <base>) : pas besoin d'un analyseur HTML complet.
+// Document entier (borné à 1 Mo par safeFetch) : des icônes suivent des centaines de Ko de styles ou arrivent en fin de body.
+// Longueur de balise bornée : un scan `[^>]*` est quadratique sur une entrée hostile.
 const LINK_TAG = /<link\b[^>]{0,4096}>/gi
 const BASE_TAG = /<base\b[^>]{0,4096}>/i
 const ATTRIBUTE = /([^\s"'<>/=]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g
+const ENTITY = /&amp;|&#(\d+);|&#x([0-9a-f]+);/gi
 
 const APPLE_TOUCH_RELS = new Set(["apple-touch-icon", "apple-touch-icon-precomposed"])
 // Taille que Safari attend d'un apple-touch-icon déclaré sans `sizes`.
 const APPLE_TOUCH_DEFAULT_SIZE = 180
-const ICO_TYPES = new Set(["image/x-icon", "image/vnd.microsoft.icon"])
+
+function decodeEntities(value: string): string {
+  return value.replace(ENTITY, (entity, decimal: string | undefined, hex: string | undefined) =>
+    decimal || hex
+      ? String.fromCodePoint(Number.parseInt(decimal ?? hex ?? "", decimal ? 10 : 16))
+      : "&",
+  )
+}
 
 function readAttributes(tag: string): Map<string, string> {
   const attributes = new Map<string, string>()
@@ -25,7 +31,7 @@ function readAttributes(tag: string): Map<string, string> {
     const name = match[1]?.toLowerCase()
     if (!name || attributes.has(name)) continue
     const value = match[2] ?? match[3] ?? match[4] ?? ""
-    attributes.set(name, value.replaceAll("&amp;", "&").trim())
+    attributes.set(name, decodeEntities(value).trim())
   }
   return attributes
 }
@@ -57,16 +63,13 @@ function byDeclaredSizeDesc(a: IconCandidate, b: IconCandidate): number {
 }
 
 export function findIconCandidates(html: string, pageUrl: URL): IconCandidate[] {
-  const bounded = html.slice(0, HEAD_MAX_CHARS)
-  const headEnd = bounded.search(HEAD_END)
-  const head = headEnd === -1 ? bounded : bounded.slice(0, headEnd)
-  const baseTag = BASE_TAG.exec(head)?.[0]
+  const baseTag = BASE_TAG.exec(html)?.[0]
   const baseHref = baseTag ? readAttributes(baseTag).get("href") : undefined
   const base = resolveHref(baseHref, pageUrl) ?? pageUrl
 
   const appleTouch: IconCandidate[] = []
   const icons: IconCandidate[] = []
-  for (const [tag] of head.matchAll(LINK_TAG)) {
+  for (const [tag] of html.matchAll(LINK_TAG)) {
     const attributes = readAttributes(tag)
     const rels = (attributes.get("rel") ?? "").toLowerCase().split(/\s+/)
     const isAppleTouch = rels.some((rel) => APPLE_TOUCH_RELS.has(rel))
@@ -75,10 +78,7 @@ export function findIconCandidates(html: string, pageUrl: URL): IconCandidate[] 
     const url = resolveHref(attributes.get("href"), base)
     if (!url) continue
     const type = attributes.get("type")?.toLowerCase()
-    const path = url.pathname.toLowerCase()
-    if ((type && ICO_TYPES.has(type)) || path.endsWith(".ico")) continue
-
-    const isSvg = type === "image/svg+xml" || path.endsWith(".svg")
+    const isSvg = type === "image/svg+xml" || url.pathname.toLowerCase().endsWith(".svg")
     const source: IconSource = isAppleTouch ? "apple-touch-icon" : "icon"
     const fallbackSize = isAppleTouch ? APPLE_TOUCH_DEFAULT_SIZE : 0
     const candidate = {
