@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useCallback, useEffect } from "react"
+import { useActionState, useCallback, useEffect, useId } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
@@ -43,6 +43,7 @@ export function ContactForm({ labels, defaultSubject = "", privacyNotice }: Prop
     [tErrors],
   )
   const [state, formAction] = useActionState(submitContact, initialContactFormState)
+  const formId = useId()
 
   useEffect(() => {
     if (state.ok === true) {
@@ -66,93 +67,93 @@ export function ContactForm({ labels, defaultSubject = "", privacyNotice }: Prop
           />
 
           <Field
-            id="name"
+            id={`${formId}-name`}
             label={labels.name}
             required
             errors={state.errors.name}
             tError={translateError}
           >
             <Input
-              id="name"
+              id={`${formId}-name`}
               name="name"
               type="text"
               required
               aria-invalid={!!state.errors.name?.length}
-              aria-describedby="name-error"
+              aria-describedby={`${formId}-name-error`}
               defaultValue={state.values?.name ?? ""}
               placeholder={labels.namePlaceholder}
             />
           </Field>
 
           <Field
-            id="company"
+            id={`${formId}-company`}
             label={labels.company}
             errors={state.errors.company}
             tError={translateError}
           >
             <Input
-              id="company"
+              id={`${formId}-company`}
               name="company"
               type="text"
               aria-invalid={!!state.errors.company?.length}
-              aria-describedby="company-error"
+              aria-describedby={`${formId}-company-error`}
               defaultValue={state.values?.company ?? ""}
               placeholder={labels.companyPlaceholder}
             />
           </Field>
 
           <Field
-            id="email"
+            id={`${formId}-email`}
             label={labels.email}
             required
             errors={state.errors.email}
             tError={translateError}
           >
             <Input
-              id="email"
+              id={`${formId}-email`}
               name="email"
               type="email"
               required
               aria-invalid={!!state.errors.email?.length}
-              aria-describedby="email-error"
+              aria-describedby={`${formId}-email-error`}
               defaultValue={state.values?.email ?? ""}
               placeholder={labels.emailPlaceholder}
             />
           </Field>
 
           <Field
-            id="subject"
+            id={`${formId}-subject`}
             label={labels.subject}
             required
             errors={state.errors.subject}
             tError={translateError}
           >
             <Input
-              id="subject"
+              id={`${formId}-subject`}
               name="subject"
               type="text"
               required
               aria-invalid={!!state.errors.subject?.length}
-              aria-describedby="subject-error"
+              aria-describedby={`${formId}-subject-error`}
               defaultValue={state.values?.subject ?? defaultSubject}
               placeholder={labels.subjectPlaceholder}
             />
           </Field>
 
           <Field
-            id="message"
+            id={`${formId}-message`}
             label={labels.message}
             required
             errors={state.errors.message}
             tError={translateError}
           >
             <Textarea
-              id="message"
+              id={`${formId}-message`}
               name="message"
               required
               rows={6}
               aria-invalid={!!state.errors.message?.length}
-              aria-describedby="message-error"
+              aria-describedby={`${formId}-message-error`}
               defaultValue={state.values?.message ?? ""}
               placeholder={labels.messagePlaceholder}
             />

@@ -35,8 +35,10 @@ const ABOVE_THE_FOLD_COUNT = 3
 
 export default async function ServicesPage({ params }: PageProps<"/[locale]/services">) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations("ServicesPage")
-  const tMeta = await getTranslations("Metadata")
+  const [t, tMeta] = await Promise.all([
+    getTranslations("ServicesPage"),
+    getTranslations("Metadata"),
+  ])
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,

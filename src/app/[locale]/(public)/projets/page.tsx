@@ -35,8 +35,7 @@ export async function generateMetadata(
 
 export default async function ProjetsPage({ params }: PageProps<"/[locale]/projets">) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations("Projects")
-  const tMeta = await getTranslations("Metadata")
+  const [t, tMeta] = await Promise.all([getTranslations("Projects"), getTranslations("Metadata")])
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,

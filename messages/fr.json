@@ -301,7 +301,8 @@
     "ariaLabel": "Changer de thème"
   },
   "MobileMenu": {
-    "ariaLabel": "Ouvrir le menu de navigation"
+    "ariaLabel": "Ouvrir le menu de navigation",
+    "closeLabel": "Fermer le menu de navigation"
   },
   "Nav": {
     "home": "Accueil",

@@ -12,9 +12,11 @@ import { NavLinks } from "@/components/layout/public/NavLinks"
 import { ThemeToggle } from "@/components/layout/ThemeToggle"
 
 export async function Navbar() {
-  const t = await getTranslations("Nav")
-  const tTheme = await getTranslations("ThemeToggle")
-  const locale = await getLocale()
+  const [t, tTheme, locale] = await Promise.all([
+    getTranslations("Nav"),
+    getTranslations("ThemeToggle"),
+    getLocale(),
+  ])
 
   const mobileFooter = (
     <>
