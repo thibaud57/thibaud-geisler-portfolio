@@ -1,4 +1,4 @@
-import { getISOWeek } from "date-fns"
+import { getISOWeek, getISOWeekYear } from "date-fns"
 import {
   FaceGrinning,
   FaceNeutral,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 import type { ReviewMotivation, ReviewStatus } from "@/generated/prisma/client"
-import { DAY_MS, dateOnlyToLocal, formatDateOnly } from "@/lib/date-time"
+import { dateOnlyToLocal } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
@@ -82,10 +82,10 @@ export function fridayOfWeek(day: Date): Date {
   return new Date(day.getFullYear(), day.getMonth(), day.getDate() + 4 - daysSinceMonday)
 }
 
+// Année ISO de la semaine, pas celle du vendredi : le vendredi 1er janvier 2027 clôt la S53 de 2026.
 export function weekLabel(closingFriday: Date): string {
-  const week = String(getISOWeek(dateOnlyToLocal(closingFriday))).padStart(2, "0")
-  const monday = new Date(closingFriday.getTime() - 4 * DAY_MS)
-  return `S${week} · Semaine du ${formatDateOnly(monday)}`
+  const friday = dateOnlyToLocal(closingFriday)
+  return `S${String(getISOWeek(friday)).padStart(2, "0")} · ${getISOWeekYear(friday)}`
 }
 
 export const REVIEW_COUNTER_KEYS = [

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { ActionStatus } from "@/generated/prisma/client"
 
-import { ACTION_CALENDAR_I18N, actionEvents } from "./action-calendar"
+import { actionEvents } from "./action-calendar"
 
 const LATE_EVENING = new Date("2026-10-15T21:45:00Z")
 
@@ -44,22 +44,11 @@ describe("actionEvents", () => {
     ])
   })
 
-  it("places an action as an instant, so a late one stays on its day", () => {
+  it("spans the whole Paris day of the action, even late in the evening", () => {
     const [event] = actionEvents([action("A_FAIRE")])
 
-    expect(event?.start).toEqual(LATE_EVENING)
-    expect(event?.end).toEqual(LATE_EVENING)
-  })
-})
-
-describe("ACTION_CALENDAR_I18N", () => {
-  it("shows the start time in Paris, without an end", () => {
-    const label = ACTION_CALENDAR_I18N.functions?.formatEventTime?.(
-      LATE_EVENING,
-      LATE_EVENING,
-      false,
-    )
-
-    expect(label).toBe("23:45")
+    expect(event?.allDay).toBe(true)
+    expect(event?.start).toEqual(new Date("2026-10-14T22:00:00Z"))
+    expect(event?.end).toEqual(new Date("2026-10-15T22:00:00Z"))
   })
 })

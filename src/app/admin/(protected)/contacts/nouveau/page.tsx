@@ -1,5 +1,4 @@
 import { ContactForm } from "@/components/features/admin/contacts/ContactForm"
-import { PersonActionsCard } from "@/components/features/admin/persons/PersonActionsCard"
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
 import { CONTACT_PAGE_SKELETON } from "@/lib/admin/table-widths"
@@ -17,12 +16,7 @@ async function NewContactSection() {
     <AdminFormContent
       breadcrumb={[{ label: "Contacts", href: ADMIN_CONTACTS_PATH }, { label: "Nouveau contact" }]}
     >
-      <ContactForm
-        contact={null}
-        companyOptions={companyOptions}
-        leadOptions={leadOptions}
-        relatedCards={<PersonActionsCard person={null} role="contact" actions={[]} />}
-      />
+      <ContactForm contact={null} companyOptions={companyOptions} leadOptions={leadOptions} />
     </AdminFormContent>
   )
 }

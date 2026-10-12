@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { isRetentionOver, retentionEndOf } from "./person-retention"
+import { contactReviewEndOf, isRetentionOver, retentionEndOf } from "./person-retention"
 
 describe("retentionEndOf", () => {
   it("keeps an active person three years after its creation when it never replied", () => {
@@ -44,5 +44,19 @@ describe("retentionEndOf", () => {
 
     expect(end).toEqual(new Date(2026, 8, 15))
     expect(isRetentionOver(person, new Date(2026, 8, 27))).toBe(true)
+  })
+})
+
+describe("contactReviewEndOf", () => {
+  it("reviews a contact three years after the day it was met", () => {
+    const end = contactReviewEndOf(new Date(2023, 1, 3), new Date(2025, 4, 10))
+
+    expect(end).toEqual(new Date(2026, 1, 3))
+  })
+
+  it("reviews a contact three years after its creation when the meeting date is unknown", () => {
+    const end = contactReviewEndOf(null, new Date(2025, 4, 10))
+
+    expect(end).toEqual(new Date(2028, 4, 10))
   })
 })

@@ -3,10 +3,10 @@ import { Plus } from "lucide-react"
 
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospecting-actions/ProspectingActionFormDialog"
 import { Button } from "@/components/ui/button"
-import { findPersonOptions } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 
 async function NewActionButton() {
-  const personOptions = await findPersonOptions()
+  const personOptions = await findPersonOptionsWithLeadRole()
   return <ProspectingActionFormDialog action={null} personOptions={personOptions} />
 }
 

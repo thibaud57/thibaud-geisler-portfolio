@@ -22,7 +22,7 @@ async function NewLeadSection() {
         companyOptions={companyOptions}
         relatedCards={
           <>
-            <PersonActionsCard person={null} role="lead" actions={[]} />
+            <PersonActionsCard person={null} actions={[]} />
             <LeadOpportunitiesCard lead={null} />
             <RelatedLinksCard
               title={LEAD_SECTION_TITLES.interviews}

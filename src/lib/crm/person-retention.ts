@@ -16,16 +16,20 @@ function addYears(date: Date, years: number): Date {
   return result
 }
 
-export function activityEndOf(createdAt: Date, lastActivityAt: Date | null, years: number): Date {
+// La rencontre prime même antérieure à la fiche : une personne rencontrée de longue date n'attend pas trois ans de plus parce qu'on vient de la saisir.
+export function contactReviewEndOf(metAt: Date | null, createdAt: Date): Date {
+  return addYears(metAt ?? createdAt, CONTACT_REVIEW_YEARS)
+}
+
+function activityEndOf(createdAt: Date, lastActivityAt: Date | null, years: number): Date {
   // Une activité antérieure à la création vient d'une reprise : seule la plus tardive compte.
   const start = lastActivityAt && lastActivityAt > createdAt ? lastActivityAt : createdAt
   return addYears(start, years)
 }
 
-// `years` ne s'applique qu'à une personne active : une fois opposée, le délai légal de 3 ans s'impose quel que soit `years`.
-export function retentionEndOf(person: RetentionPerson, years = RETENTION_YEARS): Date {
+export function retentionEndOf(person: RetentionPerson): Date {
   if (person.optedOutAt) return addYears(person.optedOutAt, RETENTION_YEARS)
-  return activityEndOf(person.createdAt, person.lastReplyAt, years)
+  return activityEndOf(person.createdAt, person.lastReplyAt, RETENTION_YEARS)
 }
 
 export function isRetentionOver(person: RetentionPerson, now: Date): boolean {

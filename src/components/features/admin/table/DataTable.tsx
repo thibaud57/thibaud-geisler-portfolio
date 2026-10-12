@@ -72,6 +72,8 @@ export interface Column<T> {
   // Colonne purement visuelle (ex. logo en tuile) : le header existe pour l'accessibilité sans
   // occuper de place, contrairement à un header vide qui casserait la lecture du tableau au lecteur d'écran.
   headerSrOnly?: boolean
+  // En-tête sur plusieurs lignes : un libellé long au-dessus d'une valeur courte (compteur) laisserait sinon la colonne large pour rien.
+  wrapHeader?: boolean
 }
 
 export interface GroupBy<T, K extends string = string> {
@@ -394,6 +396,7 @@ export function DataTable<T, K extends string = string>({
           // Sans colonne # (hasOrderColumn faux), la première colonne visible porte elle-même le 16px de bord de Card.
           isFirst && !hasOrderColumn && "pl-4",
           isLast && "pr-4",
+          column.wrapHeader && "whitespace-normal",
         )}
       >
         {column.sortValue ? (
@@ -401,7 +404,11 @@ export function DataTable<T, K extends string = string>({
             type="button"
             variant="ghost"
             size="sm"
-            className={alignRight ? "-mr-2.5" : "-ml-2.5"}
+            className={cn(
+              alignRight ? "-mr-2.5" : "-ml-2.5",
+              column.wrapHeader && "h-auto py-1 whitespace-normal",
+              column.wrapHeader && (alignRight ? "text-right" : "text-left"),
+            )}
             onClick={() => {
               handleSort(column.key)
             }}

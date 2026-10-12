@@ -3,7 +3,7 @@ import { ProspectingActionsTable } from "@/components/features/admin/prospecting
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ACTION_VIEW_PAGES, type ActionView } from "@/lib/crm/action-views"
 import { actionSkeletonWidths } from "@/lib/admin/table-widths"
-import { findPersonOptions } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 
 interface SectionProps {
@@ -14,7 +14,7 @@ interface SectionProps {
 async function ActionsSection({ view, initialDetailId }: SectionProps) {
   const [actions, personOptions] = await Promise.all([
     findAllProspectingActionsForAdmin(),
-    findPersonOptions(),
+    findPersonOptionsWithLeadRole(),
   ])
   return (
     <ProspectingActionsTable

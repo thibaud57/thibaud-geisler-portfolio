@@ -2,7 +2,6 @@ import type { DetailContent, DetailSection } from "@/components/features/admin/d
 import { linksSection } from "@/components/features/admin/detail/detail-sections"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { signalRelatedRows } from "@/components/features/admin/signals/signal-rows"
-import { Badge } from "@/components/ui/badge"
 import { ADMIN_COMPANIES_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { detailHref } from "@/lib/admin/detail-links"
 import {
@@ -47,15 +46,7 @@ export function buildSignalDetail(
   return {
     title: SIGNAL_TYPE_LABELS[signal.type],
     subtitle: formatSignalDate(signal),
-    ...(freshness
-      ? {
-          status: (
-            <Badge variant="outline" meta>
-              {SIGNAL_FRESHNESS_LABELS[freshness]}
-            </Badge>
-          ),
-        }
-      : {}),
+    badges: [freshness ? { label: SIGNAL_FRESHNESS_LABELS[freshness] } : null],
     sections: [
       {
         title: SIGNAL_SECTION_TITLES.signal,
@@ -63,7 +54,6 @@ export function buildSignalDetail(
           {
             label: SIGNAL_FIELD_LABELS.sourceUrl,
             value: signal.sourceUrl ? <ExternalUrl url={signal.sourceUrl} /> : null,
-            fullWidth: true,
           },
           {
             label: SIGNAL_FIELD_LABELS.content,

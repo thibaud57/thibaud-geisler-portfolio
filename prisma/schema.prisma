@@ -215,6 +215,15 @@ enum InterviewType {
   @@schema("freelance")
 }
 
+// Comment l'entretien se tient, à côté de son type : ce qu'il faut prévoir (trajet, lien, numéro).
+enum InterviewFormat {
+  PRESENTIEL
+  VISIO
+  TELEPHONE
+
+  @@schema("freelance")
+}
+
 // Où en est l'entretien.
 enum InterviewStatus {
   PLANIFIE
@@ -537,6 +546,7 @@ model Interview {
   // L'entreprise se lit sur l'opportunité : ESN ou client final, jamais ressaisie.
   side        InterviewSide
   type        InterviewType
+  format      InterviewFormat?
   status      InterviewStatus    @default(PLANIFIE)
   outcome     InterviewOutcome?
   scheduledAt DateTime           @db.Timestamptz

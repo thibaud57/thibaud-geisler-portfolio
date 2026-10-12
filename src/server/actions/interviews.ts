@@ -52,6 +52,7 @@ function collectValues(formData: FormData): InterviewFormState["values"] {
     correspondentIds: stringValues(formData, "correspondentIds"),
     newCorrespondents: stringField(formData, "newCorrespondents"),
     type: stringField(formData, "type"),
+    format: stringField(formData, "format"),
     status: stringField(formData, "status"),
     outcome: stringField(formData, "outcome"),
     scheduledAt: stringField(formData, "scheduledAt"),

@@ -20,7 +20,7 @@ import { useProspectingActionDetail } from "@/components/features/admin/prospect
 import { BOARD_PERIOD_LABELS, type BoardPeriod } from "@/lib/crm/action-board"
 import { ACTION_VIEW_LOCKED_FACETS, actionsForView, type ActionView } from "@/lib/crm/action-views"
 import { ACTION_COLUMN_WIDTHS, ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
-import { formatShortDateTime, isWithinCalendarDays } from "@/lib/date-time"
+import { formatShortInstantDate, isWithinCalendarDays } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/crm/persons"
 import {
   ACTION_CHANNEL_LABELS,
@@ -66,7 +66,7 @@ function buildDataColumns(view: ActionView): readonly Column<AdminProspectingAct
       className: "tabular-nums text-muted-foreground",
       ...hideableColumn(visibleByDefault, "occurredAt"),
       sortValue: (action) => action.occurredAt.getTime(),
-      cell: (action) => formatShortDateTime(action.occurredAt),
+      cell: (action) => formatShortInstantDate(action.occurredAt),
     },
     {
       key: "person",

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react"
 import { CalendarClock } from "lucide-react"
 
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import { textSection } from "@/components/features/admin/detail/detail-sections"
 import { PeriodSelect } from "@/components/features/admin/PeriodSelect"
 import { DeleteReviewDialog } from "@/components/features/admin/weekly-reviews/DeleteReviewDialog"
@@ -15,7 +15,6 @@ import {
   actionsColumn,
   enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
 } from "@/components/features/admin/table/table-cells"
 import {
@@ -58,6 +57,7 @@ function counterColumn(
     key,
     header: LABELS[key],
     width: REVIEW_COLUMN_WIDTHS[key],
+    wrapHeader: true,
     align: "right",
     className: "tabular-nums",
     ...hideableColumn(visibleByDefault, key),
@@ -75,6 +75,7 @@ function rateColumn(
     key,
     header: LABELS[key],
     width: REVIEW_COLUMN_WIDTHS[key],
+    wrapHeader: true,
     align: "right",
     className: "tabular-nums text-muted-foreground",
     ...hideableColumn(visibleByDefault, key),
@@ -135,16 +136,14 @@ function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): Detai
   return {
     title: weekLabel(review.closingFriday),
     subtitle: `${LABELS.friday} : ${formatDateOnly(review.closingFriday)}`,
-    status: enumBadge(review.status, REVIEW_STATUS_LABELS, REVIEW_STATUS_ICONS, HEADER_BADGE_PROPS),
+    badges: [
+      headerBadge(review.status, REVIEW_STATUS_LABELS, REVIEW_STATUS_ICONS),
+      headerBadge(review.motivation, REVIEW_MOTIVATION_LABELS, REVIEW_MOTIVATION_ICONS),
+    ],
     // Le formulaire n'a pas de section : le premier bloc reprend ses champs sans titre, dans l'ordre des compteurs.
     sections: [
       {
         rows: [
-          {
-            label: LABELS.motivation,
-            value: enumBadge(review.motivation, REVIEW_MOTIVATION_LABELS, REVIEW_MOTIVATION_ICONS),
-            fullWidth: true,
-          },
           ...REVIEW_COUNTER_KEYS.map((key) => ({ label: LABELS[key], value: review[key] })),
           { label: LABELS.computedRates, value: <ReviewRates rates={reviewRates(review)} /> },
         ],

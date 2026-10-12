@@ -31,7 +31,7 @@ import {
   statusMoveFrom,
   type BoardPeriod,
 } from "@/lib/crm/action-board"
-import { formatShortInstantDate, formatShortInstantTime } from "@/lib/date-time"
+import { formatShortInstantDate } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/crm/persons"
 import { ACTION_STATUS_ICONS, ACTION_STATUS_LABELS } from "@/lib/crm/prospecting-actions"
 import { LABEL_CLASS } from "@/lib/typography"
@@ -98,8 +98,7 @@ function BoardCard({
                 {personDisplayName(action.person)}
               </TruncateTooltip>
               <time dateTime={action.occurredAt.toISOString()} className="shrink-0 tabular-nums">
-                {formatShortInstantDate(action.occurredAt)} ·{" "}
-                {formatShortInstantTime(action.occurredAt)}
+                {formatShortInstantDate(action.occurredAt)}
               </time>
             </span>
             {channelBadge(action, "self-start")}

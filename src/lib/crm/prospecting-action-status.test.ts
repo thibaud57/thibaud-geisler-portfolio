@@ -17,6 +17,18 @@ describe("applyStatusRules", () => {
     expect(result.occurredAt).toEqual(NOW)
   })
 
+  it("stamps the sending time when the planned day comes back without its time", () => {
+    const mondayMidnightInParis = new Date("2026-03-08T23:00:00Z")
+
+    const result = applyStatusRules(
+      timing(),
+      timing({ status: "FAIT", occurredAt: mondayMidnightInParis }),
+      NOW,
+    )
+
+    expect(result.occurredAt).toEqual(NOW)
+  })
+
   it("keeps a date changed in the same edit that marks it done", () => {
     const result = applyStatusRules(
       timing(),

@@ -119,7 +119,7 @@ export function personDetailSections(
       rows: [
         { label: PERSON_FIELD_LABELS.email, value: person.email },
         { label: PERSON_FIELD_LABELS.phone, value: person.phone },
-        { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(person), fullWidth: true },
+        { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(person) },
       ],
     },
   ]

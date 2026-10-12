@@ -43,10 +43,9 @@ interface Props {
   contact: ContactRecord | null
   companyOptions: readonly CompanyOption[]
   leadOptions?: readonly PersonOption[]
-  relatedCards?: React.ReactNode
 }
 
-export function ContactForm({ contact, companyOptions, leadOptions = [], relatedCards }: Props) {
+export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props) {
   const router = useRouter()
   const formId = useId()
   const action = contact ? updateContact.bind(null, contact.id) : createContact
@@ -178,8 +177,6 @@ export function ContactForm({ contact, companyOptions, leadOptions = [], related
             errors={state.errors.details}
             mirror={fromLead ? { value: lead?.details ?? "", loading: leadLoading } : undefined}
           />
-
-          {relatedCards}
         </>
       }
       aside={

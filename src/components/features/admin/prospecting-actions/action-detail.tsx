@@ -1,13 +1,13 @@
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
-import type { DetailContent, DetailSection } from "@/components/features/admin/detail/DetailDialog"
-import { textSection } from "@/components/features/admin/detail/detail-sections"
 import {
-  enumBadge,
-  HEADER_BADGE_PROPS,
-  PersonLink,
-} from "@/components/features/admin/table/table-cells"
+  headerBadge,
+  type DetailContent,
+  type DetailSection,
+} from "@/components/features/admin/detail/DetailDialog"
+import { textSection } from "@/components/features/admin/detail/detail-sections"
+import { enumBadge, PersonLink } from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
-import { formatShortDateTime } from "@/lib/date-time"
+import { formatShortInstantDate } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/crm/persons"
 import {
   ACTION_CHANNEL_ICONS,
@@ -45,11 +45,10 @@ export function buildActionDetail(
         {
           label: LABELS.personId,
           value: <PersonLink person={action.person}>{personCell(action)}</PersonLink>,
-          fullWidth: true,
         },
-        { label: LABELS.channel, value: channelBadge(action), fullWidth: true },
-        { label: LABELS.occurredAt, value: formatShortDateTime(action.occurredAt) },
-        { label: LABELS.respondedAt, value: formatShortDateTime(action.respondedAt) },
+        { label: LABELS.channel, value: channelBadge(action) },
+        { label: LABELS.occurredAt, value: formatShortInstantDate(action.occurredAt) },
+        { label: LABELS.respondedAt, value: formatShortInstantDate(action.respondedAt) },
       ],
     },
     textSection(LABELS.message, action.message, { preserveLines: true }),
@@ -57,7 +56,7 @@ export function buildActionDetail(
 
   return {
     title: action.title,
-    status: enumBadge(action.status, ACTION_STATUS_LABELS, ACTION_STATUS_ICONS, HEADER_BADGE_PROPS),
+    badges: [headerBadge(action.status, ACTION_STATUS_LABELS, ACTION_STATUS_ICONS)],
     sections,
     onEdit,
   }

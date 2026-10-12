@@ -17,32 +17,29 @@ interface ActionsOwner {
 
 interface Props {
   person: ActionsOwner | null
-  role: "lead" | "contact"
   actions: readonly AdminProspectingAction[]
 }
 
-export function PersonActionsCard({ person, role, actions }: Props) {
+export function PersonActionsCard({ person, actions }: Props) {
   // Pas encore de personId tant que la fiche n'est pas enregistrée : la card reste vide, bouton désactivé.
   if (!person) {
     return (
       <PendingRelatedCard
         title={PERSON_SECTION_TITLES.actions}
-        emptyText={`Après l'enregistrement du ${role}.`}
+        emptyText="Après l'enregistrement du lead."
         addLabel="Nouvelle action"
       />
     )
   }
 
-  return <SavedPersonActionsCard person={person} role={role} actions={actions} />
+  return <SavedPersonActionsCard person={person} actions={actions} />
 }
 
 function SavedPersonActionsCard({
   person,
-  role,
   actions,
 }: {
   person: ActionsOwner
-  role: "lead" | "contact"
   actions: readonly AdminProspectingAction[]
 }) {
   // Depuis la fiche, une action ne peut viser que cette personne (id = personId).
@@ -66,7 +63,7 @@ function SavedPersonActionsCard({
           },
           actions: <ActionRowActions action={action} personOptions={personOptions} />,
         }))}
-        emptyText={`Aucune action pour ce ${role}.`}
+        emptyText="Aucune action pour ce lead."
         action={
           <ProspectingActionFormDialog
             action={null}

@@ -46,7 +46,6 @@ export const CONTACT_STATUS_ICONS: Record<ContactStatus, IconComponent | null> =
 export const CONTACT_FIELD_LABELS = {
   types: "Types",
   status: "Statut",
-  lastInteractionAt: "Dernière interaction",
   reviewAt: "À conserver jusqu'au",
 } as const
 

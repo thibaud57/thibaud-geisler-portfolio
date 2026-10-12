@@ -34,6 +34,7 @@ const BASE_FIELDS = {
   opportunityId: "o1",
   side: "ESN",
   type: "RECRUTEUR_RH",
+  format: NONE_VALUE,
   status: "PLANIFIE",
   outcome: NONE_VALUE,
   scheduledAt: MEETING.toISOString(),
@@ -134,6 +135,32 @@ describe("createInterview", () => {
     expect(prisma.interview.create).toHaveBeenCalledWith(
       objectMatch({ data: objectMatch({ score: 10 }) }),
     )
+  })
+
+  it("saves the format chosen for the interview", async () => {
+    await createInterview(initialInterviewFormState, buildFormData({ format: "VISIO" }))
+
+    expect(prisma.interview.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ format: "VISIO" }) }),
+    )
+  })
+
+  it("saves no format when none is chosen", async () => {
+    await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(prisma.interview.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ format: null }) }),
+    )
+  })
+
+  it("rejects an unknown format", async () => {
+    const state = await createInterview(
+      initialInterviewFormState,
+      buildFormData({ format: "AVION" }),
+    )
+
+    expect(state.errors.format).toBeDefined()
+    expect(prisma.interview.create).not.toHaveBeenCalled()
   })
 
   it("connects the correspondents on create", async () => {

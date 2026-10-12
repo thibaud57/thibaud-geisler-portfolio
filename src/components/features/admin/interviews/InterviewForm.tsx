@@ -45,6 +45,8 @@ import {
   INTERVIEW_DECISION_ICONS,
   INTERVIEW_DECISION_LABELS,
   INTERVIEW_FIELD_LABELS as LABELS,
+  INTERVIEW_FORMAT_ICONS,
+  INTERVIEW_FORMAT_LABELS,
   INTERVIEW_OUTCOME_ICONS,
   INTERVIEW_OUTCOME_LABELS,
   INTERVIEW_SECTION_TITLES,
@@ -59,6 +61,7 @@ import { OPPORTUNITY_SECTION_TITLES } from "@/lib/crm/opportunities"
 import { personDisplayName } from "@/lib/crm/persons"
 import {
   INTERVIEW_DECISIONS,
+  INTERVIEW_FORMATS,
   INTERVIEW_OUTCOMES,
   INTERVIEW_STATUSES,
   INTERVIEW_TYPES,
@@ -353,7 +356,7 @@ export function InterviewForm({
       onSubmit={handleSubmit}
       main={
         <>
-          <FormCard title={OPPORTUNITY_SECTION_TITLES.opportunity}>
+          <FormCard title={OPPORTUNITY_SECTION_TITLES.opportunity} columns={2}>
             <SingleSelectCombobox
               id={`${formId}-opportunityId`}
               name="opportunityId"
@@ -374,7 +377,8 @@ export function InterviewForm({
                 onValueChange={(value) => {
                   setSide(value as InterviewSide)
                 }}
-                className="flex flex-wrap gap-4"
+                // Hauteur d'un champ (h-8) : à côté d'une liste déroulante, les radios s'alignent sur son centre.
+                className="flex min-h-8 flex-wrap items-center gap-4"
                 aria-invalid={!!state.errors.side?.length}
                 aria-describedby={`${formId}-side-error`}
               >
@@ -384,18 +388,12 @@ export function InterviewForm({
                     value="ESN"
                     disabled={!hasIntermediary}
                   />
-                  <Label htmlFor={`${formId}-side-esn`}>
-                    {INTERVIEW_SIDE_LABELS.ESN}
-                    {selectedOpportunity?.intermediary
-                      ? ` · ${selectedOpportunity.intermediary.name}`
-                      : " (aucune)"}
-                  </Label>
+                  <Label htmlFor={`${formId}-side-esn`}>{INTERVIEW_SIDE_LABELS.ESN}</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <RadioGroupItem id={`${formId}-side-client`} value="CLIENT_FINAL" />
                   <Label htmlFor={`${formId}-side-client`}>
                     {INTERVIEW_SIDE_LABELS.CLIENT_FINAL}
-                    {selectedOpportunity?.client ? ` · ${selectedOpportunity.client.name}` : ""}
                   </Label>
                 </div>
               </RadioGroup>
@@ -416,6 +414,17 @@ export function InterviewForm({
               errors={state.errors.type}
             />
 
+            <SelectField
+              id={`${formId}-format`}
+              name="format"
+              label={LABELS.format}
+              options={INTERVIEW_FORMATS}
+              labels={INTERVIEW_FORMAT_LABELS}
+              icons={INTERVIEW_FORMAT_ICONS}
+              defaultValue={interview?.format ?? NONE_VALUE}
+              errors={state.errors.format}
+            />
+
             <DateTimeField
               id={`${formId}-scheduledAt`}
               name="scheduledAt"
@@ -430,34 +439,17 @@ export function InterviewForm({
               required
             />
 
-            <div className={status === "FAIT" ? undefined : "sm:col-span-2"}>
-              <SelectField
-                id={`${formId}-status`}
-                name="status"
-                label={LABELS.status}
-                options={INTERVIEW_STATUSES}
-                labels={INTERVIEW_STATUS_LABELS}
-                icons={INTERVIEW_STATUS_ICONS}
-                value={status}
-                onValueChange={handleStatusChange}
-                errors={state.errors.status}
-              />
-            </div>
-
-            {status === "FAIT" ? (
-              <SelectField
-                id={`${formId}-outcome`}
-                name="outcome"
-                label={LABELS.outcome}
-                options={INTERVIEW_OUTCOMES}
-                labels={INTERVIEW_OUTCOME_LABELS}
-                icons={INTERVIEW_OUTCOME_ICONS}
-                value={outcome}
-                onValueChange={setOutcome}
-                errors={state.errors.outcome}
-                noneLabel={NONE_LABEL_FEMININE}
-              />
-            ) : null}
+            <SelectField
+              id={`${formId}-status`}
+              name="status"
+              label={LABELS.status}
+              options={INTERVIEW_STATUSES}
+              labels={INTERVIEW_STATUS_LABELS}
+              icons={INTERVIEW_STATUS_ICONS}
+              value={status}
+              onValueChange={handleStatusChange}
+              errors={state.errors.status}
+            />
 
             <div className="flex min-w-0 flex-col gap-3 sm:col-span-2">
               <FormField
@@ -537,6 +529,23 @@ export function InterviewForm({
       aside={
         <>
           <FormCard title={INTERVIEW_SECTION_TITLES.evaluation} columns={2}>
+            {status === "FAIT" ? (
+              <div className="sm:col-span-2">
+                <SelectField
+                  id={`${formId}-outcome`}
+                  name="outcome"
+                  label={LABELS.outcome}
+                  options={INTERVIEW_OUTCOMES}
+                  labels={INTERVIEW_OUTCOME_LABELS}
+                  icons={INTERVIEW_OUTCOME_ICONS}
+                  value={outcome}
+                  onValueChange={setOutcome}
+                  errors={state.errors.outcome}
+                  noneLabel={NONE_LABEL_FEMININE}
+                />
+              </div>
+            ) : null}
+
             <NumberField
               id={`${formId}-score`}
               name="score"

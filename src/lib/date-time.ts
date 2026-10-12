@@ -55,8 +55,15 @@ export function toIsoDate(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
+export function formatShortInstantDate(date: Date): string
+export function formatShortInstantDate(date: Date | null): string | null
 export function formatShortInstantDate(date: Date | null): string | null {
   return date ? SHORT_DATE.format(date) : null
+}
+
+// Jour lu à Paris et non dans le fuseau du runtime : le serveur tourne en UTC, où minuit à Paris tombe la veille.
+export function isSameZonedDay(a: Date, b: Date): boolean {
+  return SHORT_DATE.format(a) === SHORT_DATE.format(b)
 }
 
 export function formatShortInstantTime(date: Date): string {
@@ -95,6 +102,21 @@ export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
       dateOnly.getUTCFullYear(),
       dateOnly.getUTCMonth(),
       dateOnly.getUTCDate() + offsetDays,
+      0,
+      0,
+      TIME_ZONE,
+    ).getTime(),
+  )
+}
+
+// Même minuit, mais du jour qu'un instant occupe à Paris : 23 h 45 à Paris est déjà le lendemain en UTC.
+export function zonedDayStartOf(instant: Date, offsetDays = 0): Date {
+  const day = new TZDate(instant, TIME_ZONE)
+  return new Date(
+    new TZDate(
+      day.getFullYear(),
+      day.getMonth(),
+      day.getDate() + offsetDays,
       0,
       0,
       TIME_ZONE,

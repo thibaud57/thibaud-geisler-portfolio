@@ -9,7 +9,11 @@ import {
   type Facet,
   type GroupBy,
 } from "@/components/features/admin/table/DataTable"
-import type { DetailContent, DetailRow } from "@/components/features/admin/detail/DetailDialog"
+import {
+  headerBadge,
+  type DetailContent,
+  type DetailRow,
+} from "@/components/features/admin/detail/DetailDialog"
 import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
 import { actionsColumn, HEADER_BADGE_PROPS } from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
@@ -102,7 +106,8 @@ function renderTagIcon(icon: string | null) {
 
 function tagDetailRows(tag: AdminTag): readonly DetailRow[] {
   return [
-    { label: TAG_FIELD_LABELS.nameEn, fullWidth: true, value: tag.nameEn },
+    { label: TAG_FIELD_LABELS.nameEn, value: tag.nameEn },
+    { label: TAG_FIELD_LABELS.displayOrder, value: String(tag.displayOrder) },
     { label: TAG_FIELD_LABELS.icon, value: renderTagIcon(tag.icon) },
     {
       label: TAG_FIELD_LABELS.projects,
@@ -147,13 +152,8 @@ export function TagsTable({ tags }: Props) {
   const buildDetail = useCallback(
     (tag: AdminTag): DetailContent => ({
       title: tag.nameFr,
-      slug: tag.slug,
-      subtitle: (
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="font-mono">#{tag.displayOrder}</span>
-          {kindBadge(tag)}
-        </span>
-      ),
+      subtitle: tag.slug,
+      badges: [headerBadge(tag.kind, TAG_KIND_LABELS)],
       sections: [{ rows: tagDetailRows(tag) }],
       onEdit: () => {
         setEditingTag(tag)

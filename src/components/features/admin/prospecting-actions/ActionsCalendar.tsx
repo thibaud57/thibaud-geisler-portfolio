@@ -11,6 +11,7 @@ import type {
   EventCalendarSlotInfo,
 } from "@/components/reui/event-calendar/event-calendar-types"
 import { ACTION_CALENDAR_I18N, actionEvents } from "@/lib/crm/action-calendar"
+import { toIsoDate } from "@/lib/date-time"
 import { rescheduleProspectingAction } from "@/server/actions/prospecting-actions"
 import type { PersonOption } from "@/server/queries/persons"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
@@ -48,8 +49,8 @@ export function ActionsCalendar({ actions, personOptions }: Props) {
   function handleEventUpdate(update: EventCalendarProposedUpdate<AdminProspectingAction>) {
     const action = update.event.data
     if (action?.status !== "A_FAIRE") return false
-    // Le composant déplace le jour dans son fuseau (timeZone) : l'heure de Paris se garde, changement d'heure légale compris.
-    const occurredAt = update.start.toISOString()
+    // Seul le jour part au serveur, lu comme celui des champs date des formulaires.
+    const occurredAt = toIsoDate(update.start)
     startTransition(async () => {
       // Un rejet (réseau coupé, redéploiement) laisserait l'action sur un jour que la base ignore : il suit le chemin d'échec.
       const result = await rescheduleProspectingAction(action.id, occurredAt).catch(() => null)

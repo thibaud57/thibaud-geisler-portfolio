@@ -9,7 +9,7 @@ import type {
   Zone,
 } from "@/generated/prisma/client"
 import { type LeadDisplayStatus, leadDisplayStatus } from "@/lib/crm/lead-display-status"
-import { activityEndOf, CONTACT_REVIEW_YEARS } from "@/lib/crm/person-retention"
+import { contactReviewEndOf } from "@/lib/crm/person-retention"
 import { prisma } from "@/lib/prisma"
 
 const companySelect = { select: { id: true, name: true, logoFilename: true } } as const
@@ -51,23 +51,7 @@ export interface ContactRecord {
 
 export interface AdminContact extends ContactRecord {
   leadRole: { status: LeadDisplayStatus; interest: LeadInterest | null } | null
-  lastInteractionAt: Date | null
   reviewAt: Date
-}
-
-interface InteractionDates {
-  occurredAt: Date | null
-  respondedAt: Date | null
-}
-
-// Hors À faire seulement : une action encore à faire n'a pas eu lieu. Réponse et envoi comptent à égalité, la plus tardive des deux datant le dernier échange connu.
-const PERFORMED_ACTIONS = { status: { not: "A_FAIRE" } } as const
-
-function latestInteractionOf(max: InteractionDates | undefined): Date | null {
-  const dates = [max?.occurredAt, max?.respondedAt].filter(
-    (date): date is Date => date !== null && date !== undefined,
-  )
-  return dates.length > 0 ? new Date(Math.max(...dates.map((date) => date.getTime()))) : null
 }
 
 function toContactRecord(row: ContactRow): ContactRecord {
@@ -89,12 +73,7 @@ function toContactRecord(row: ContactRow): ContactRecord {
   }
 }
 
-function toAdminContact(
-  row: AdminContactRow,
-  interaction: InteractionDates | undefined,
-  now: number,
-): AdminContact {
-  const lastInteractionAt = latestInteractionOf(interaction)
+function toAdminContact(row: AdminContactRow, now: number): AdminContact {
   const { lead, referredOpportunities, interviews } = row.person
   return {
     ...toContactRecord(row),
@@ -107,29 +86,19 @@ function toAdminContact(
           interest: lead.interest,
         }
       : null,
-    lastInteractionAt,
     // Une personne opposée n'a jamais de rôle Contact : seule la revue métier se lit ici, jamais le délai légal.
-    // `lastInteractionAt` tient lieu de « dernière réponse » faute de réponse propre au réseau.
-    reviewAt: activityEndOf(row.createdAt, lastInteractionAt, CONTACT_REVIEW_YEARS),
+    reviewAt: contactReviewEndOf(row.person.metAt, row.createdAt),
   }
 }
 
 // Sans `use cache`, comme les autres lectures admin : elle relit la base juste après ses propres mutations.
 export async function findAllContactsForAdmin(): Promise<AdminContact[]> {
-  const [rows, interactions] = await Promise.all([
-    prisma.contact.findMany({
-      include: adminContactInclude,
-      orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
-    }),
-    prisma.prospectingAction.groupBy({
-      by: ["personId"],
-      where: { ...PERFORMED_ACTIONS, person: { contact: { isNot: null } } },
-      _max: { occurredAt: true, respondedAt: true },
-    }),
-  ])
-  const maxByPerson = new Map(interactions.map((group) => [group.personId, group._max]))
+  const rows = await prisma.contact.findMany({
+    include: adminContactInclude,
+    orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
+  })
   const now = Date.now()
-  return rows.map((row) => toAdminContact(row, maxByPerson.get(row.personId), now))
+  return rows.map((row) => toAdminContact(row, now))
 }
 
 export async function findContactByIdForAdmin(personId: string): Promise<ContactRecord | null> {

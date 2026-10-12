@@ -37,14 +37,14 @@ describe("reviewRates", () => {
 })
 
 describe("weekLabel", () => {
-  it("labels the week with its ISO number across the year boundary", () => {
+  it("labels the week with its ISO number and ISO year across the year boundary", () => {
     const summer = weekLabel(new Date(Date.UTC(2026, 8, 4)))
     const newYear = weekLabel(new Date(Date.UTC(2026, 0, 2)))
     const lastWeek = weekLabel(new Date(Date.UTC(2027, 0, 1)))
 
-    expect(summer).toBe("S36 · Semaine du 31/08/2026")
-    expect(newYear).toBe("S01 · Semaine du 29/12/2025")
-    expect(lastWeek).toBe("S53 · Semaine du 28/12/2026")
+    expect(summer).toBe("S36 · 2026")
+    expect(newYear).toBe("S01 · 2026")
+    expect(lastWeek).toBe("S53 · 2026")
   })
 })
 

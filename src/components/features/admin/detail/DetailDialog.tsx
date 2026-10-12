@@ -14,9 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { AssetTileLink } from "@/components/features/admin/AssetTileLink"
 import { EmptyValue } from "@/components/features/admin/EmptyValue"
+import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { TitledBlock } from "@/components/features/admin/TitledBlock"
 import { Separator } from "@/components/ui/separator"
+import type { IconComponent } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 
 export interface DetailRow {
@@ -24,6 +27,7 @@ export interface DetailRow {
   label?: string
   // null ou undefined : la valeur absente, rendue en tiret muted ici et pas par chaque écran.
   value: ReactNode
+  // Texte long ou liste de fiches liées seulement : tout autre champ tient dans une colonne.
   fullWidth?: boolean
 }
 
@@ -32,16 +36,31 @@ export interface DetailSection {
   rows: readonly DetailRow[]
 }
 
+export interface DetailBadge {
+  label: string
+  icon?: IconComponent | null
+}
+
+// L'en-tête ne reçoit que des données : chaque vue détail le rend à l'identique, sans JSX propre à un écran.
 export interface DetailContent {
-  // Ce qui identifie la fiche à gauche de son nom dans la liste (logo d'entreprise), repris à gauche du titre.
-  leading?: ReactNode
+  // Image d'identité (logo d'entreprise, couverture de projet) : une tuile neutre quand le fichier manque.
+  image?: { assetKey: string | null }
   title: string
-  slug?: string
-  subtitle?: ReactNode
-  status?: ReactNode
+  // Le slug pour une fiche qui en a un (entreprise, projet, tag), sinon une précision courte (poste, rôle, date).
+  subtitle?: string
+  // Statut d'abord, puis nature ou catégorie. null est ignoré, pour un statut facultatif.
+  badges?: readonly (DetailBadge | null)[]
   sections: readonly DetailSection[]
   // Appelé après la fermeture : le composant ignore s'il s'agit d'une navigation ou de l'ouverture d'une autre modale.
   onEdit?: () => void
+}
+
+export function headerBadge<V extends string>(
+  value: V | null,
+  labels: Record<V, string>,
+  icons?: Record<V, IconComponent | null>,
+): DetailBadge | null {
+  return value ? { label: labels[value], icon: icons?.[value] ?? null } : null
 }
 
 interface Props {
@@ -80,17 +99,29 @@ export function DetailDialog({ detail, onOpenChange }: Props) {
           if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus()
         }}
       >
-        <DialogHeader className="shrink-0 flex-row items-start gap-3 pr-8">
-          {shown.leading ? <div className="shrink-0">{shown.leading}</div> : null}
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <DialogTitle>{shown.title}</DialogTitle>
-              {shown.status ? <span className="text-sm">{shown.status}</span> : null}
+        <DialogHeader className="shrink-0 flex-row items-center gap-3 pr-8">
+          {shown.image ? (
+            <div className="shrink-0">
+              <AssetTileLink assetKey={shown.image.assetKey} name={shown.title} />
             </div>
-            {shown.slug ? (
-              <p className="-mt-1 font-mono text-xs text-muted-foreground">{shown.slug}</p>
-            ) : null}
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <DialogTitle>{shown.title}</DialogTitle>
             {shown.subtitle ? <DialogDescription>{shown.subtitle}</DialogDescription> : null}
+          </div>
+          {/* En haut à droite, contre la croix de fermeture que réserve le pr-8. */}
+          <div className="flex shrink-0 flex-wrap justify-end gap-2 self-start">
+            {shown.badges?.map((badge) =>
+              badge ? (
+                <EnumBadge
+                  key={badge.label}
+                  label={badge.label}
+                  icon={badge.icon ?? null}
+                  variant="outline"
+                  meta
+                />
+              ) : null,
+            )}
           </div>
         </DialogHeader>
         {/* overflow-x-hidden : une ligne cliquable étend son fond de survol en marge négative, ce

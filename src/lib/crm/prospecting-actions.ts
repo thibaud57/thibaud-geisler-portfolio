@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 
 import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
-import { formatShortDateTime } from "@/lib/date-time"
+import { formatShortInstantDate } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const ACTION_CHANNEL_LABELS: Record<ActionChannel, string> = {
@@ -63,7 +63,7 @@ export function toActionLink(action: {
     id: action.id,
     label: action.title,
     meta: `${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
-    trailing: formatShortDateTime(action.occurredAt),
+    trailing: formatShortInstantDate(action.occurredAt),
   }
 }
 
@@ -77,7 +77,7 @@ export const PROSPECTING_ACTION_FIELD_LABELS = {
   personId: "Personne",
   channel: "Type",
   status: "Statut",
-  occurredAt: "Date et heure",
+  occurredAt: "Date",
   message: "Message",
   respondedAt: "Réponse reçue le",
   period: "Période",

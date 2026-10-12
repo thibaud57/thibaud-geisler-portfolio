@@ -4,10 +4,13 @@ import { useCallback, useMemo, useState } from "react"
 import { Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-import { CompanyLogoLink } from "@/components/features/admin/CompanyLogoLink"
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import type { DetailContent, DetailSection } from "@/components/features/admin/detail/DetailDialog"
+import {
+  headerBadge,
+  type DetailContent,
+  type DetailSection,
+} from "@/components/features/admin/detail/DetailDialog"
 import {
   linksSection,
   markdownSection,
@@ -18,7 +21,6 @@ import {
   actionsColumn,
   enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
   iconsByLabel,
   labelBadge,
@@ -164,6 +166,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
     },
     {
       key: "relationStatus",
+      wrapHeader: true,
       header: COMPANY_FIELD_LABELS.relationStatus,
       width: COMPANY_COLUMN_WIDTHS.relationStatus,
       ...hideableColumn(visibleByDefault, "relationStatus"),
@@ -180,6 +183,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
     },
     {
       key: "firstContactAt",
+      wrapHeader: true,
       header: COMPANY_FIELD_LABELS.firstContactAt,
       width: COMPANY_COLUMN_WIDTHS.firstContactAt,
       className: "tabular-nums text-muted-foreground",
@@ -307,19 +311,11 @@ function buildCompanyDetail(
   now: Date,
   onOpenSignal: (signal: SignalItem) => void,
 ): DetailContent {
-  const projectCount = company.clientProjectCount
-
   return {
-    leading: <CompanyLogoLink logoFilename={company.logoFilename} companyName={company.name} />,
+    image: { assetKey: company.logoFilename },
     title: company.name,
-    slug: company.slug,
-    subtitle: `${projectCount} projet${projectCount > 1 ? "s" : ""}`,
-    status: enumBadge(
-      company.relationStatus,
-      RELATION_STATUS_LABELS,
-      COMPANY_STATUS_ICONS,
-      HEADER_BADGE_PROPS,
-    ),
+    subtitle: company.slug,
+    badges: [headerBadge(company.relationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS)],
     sections: [
       {
         title: COMPANY_SECTION_TITLES.identity,
@@ -329,12 +325,10 @@ function buildCompanyDetail(
             value: company.websiteUrl ? (
               <ExternalUrl url={company.websiteUrl} className="wrap-anywhere" />
             ) : null,
-            fullWidth: true,
           },
           {
             label: COMPANY_FIELD_LABELS.zones,
             value: <BadgeList labels={zoneLabels(company)} noun="localités" max={Infinity} />,
-            fullWidth: true,
           },
         ],
       },
@@ -351,16 +345,13 @@ function buildCompanyDetail(
                 icons={TYPE_ICONS_BY_LABEL}
               />
             ),
-            fullWidth: true,
           },
           {
             label: COMPANY_FIELD_LABELS.sectors,
             value: <BadgeList labels={sectorLabels(company)} noun="secteurs" max={Infinity} />,
-            fullWidth: true,
           },
         ],
       },
-      markdownSection(COMPANY_SECTION_TITLES.details, company.details),
       {
         title: COMPANY_SECTION_TITLES.relation,
         rows: [
@@ -369,7 +360,6 @@ function buildCompanyDetail(
           {
             label: COMPANY_FIELD_LABELS.firstContactAt,
             value: formatShortInstantDate(company.firstContactAt),
-            fullWidth: true,
           },
           {
             label: COMPANY_FIELD_LABELS.endClients,
@@ -377,12 +367,12 @@ function buildCompanyDetail(
               company.endClients.length > 0 ? (
                 <BadgeList labels={company.endClients} noun="clients" max={Infinity} />
               ) : null,
-            fullWidth: true,
           },
         ],
       },
       legalEntitySection(company),
       textSection(COMPANY_SECTION_TITLES.notes, company.notes),
+      markdownSection(COMPANY_SECTION_TITLES.details, company.details),
       linksSection(
         COMPANY_SECTION_TITLES.leads,
         company.leads.map((lead) =>

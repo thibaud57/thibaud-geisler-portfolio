@@ -14,7 +14,7 @@ interface Props {
 async function LeadsSection({ view, initialDetailId }: Props) {
   const [leads, actions] = await Promise.all([
     findAllLeadsForAdmin(),
-    findActionTimelinesForAdmin({ role: "lead" }),
+    findActionTimelinesForAdmin(),
   ])
   return (
     <LeadsTable leads={leads} view={view} actions={actions} initialDetailId={initialDetailId} />

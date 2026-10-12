@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 const SIZES = {
   sm: { box: "size-4 rounded-sm", imgSizes: "16px" },
   md: { box: "size-7 rounded-md", imgSizes: "28px" },
+  // Hauteur du titre et du sous-titre réunis dans l'en-tête d'une vue détail.
+  lg: { box: "size-12 rounded-lg", imgSizes: "48px" },
 } as const
 
 interface Props {

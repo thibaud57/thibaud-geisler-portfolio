@@ -16,6 +16,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
+    lead: { count: vi.fn() },
   },
 }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
@@ -36,13 +37,14 @@ import { initialProspectingActionFormState } from "./prospecting-actions.types"
 
 const NOW = new Date("2026-03-11T13:30:00Z")
 const MONDAY = new Date("2026-03-09T08:00:00Z")
+const MONDAY_MIDNIGHT_IN_PARIS = new Date("2026-03-08T23:00:00Z")
 
 const BASE_FIELDS = {
   title: "Relance proposition",
   personId: "p1",
   channel: "DM_LINKEDIN",
   status: "A_FAIRE",
-  occurredAt: MONDAY.toISOString(),
+  occurredAt: "2026-03-09",
   respondedAt: "",
   message: "",
 }
@@ -67,6 +69,7 @@ beforeEach(() => {
   vi.setSystemTime(NOW)
   vi.mocked(prisma.prospectingAction.create).mockResolvedValue({ id: "a1" } as never)
   vi.mocked(prisma.prospectingAction.update).mockResolvedValue({ id: "a1" } as never)
+  vi.mocked(prisma.lead.count).mockResolvedValue(1)
 })
 
 afterEach(() => {
@@ -86,7 +89,7 @@ describe("createProspectingAction", () => {
     expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
   })
 
-  it("rejects a date without its time zone offset", async () => {
+  it("rejects a date that is not a calendar day", async () => {
     const state = await createProspectingAction(
       initialProspectingActionFormState,
       buildFormData({ occurredAt: "2026-03-12T14:30" }),
@@ -103,7 +106,11 @@ describe("createProspectingAction", () => {
 
     expect(prisma.prospectingAction.create).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({ status: "REPONDU", occurredAt: MONDAY, respondedAt: NOW }),
+        data: objectMatch({
+          status: "REPONDU",
+          occurredAt: MONDAY_MIDNIGHT_IN_PARIS,
+          respondedAt: NOW,
+        }),
       }),
     )
   })
@@ -115,6 +122,17 @@ describe("createProspectingAction", () => {
 
     expect(state.message).toBe("person_not_found")
     expect(state.errors.personId).toBeDefined()
+  })
+
+  it("refuses a person without a lead record", async () => {
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
+
+    const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
+    expect(prisma.lead.count).toHaveBeenCalledWith({ where: { personId: "p1" } })
+    expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
   })
 
   it("rejects a call without a session, before touching the database", async () => {
@@ -144,6 +162,19 @@ describe("updateProspectingAction", () => {
     expect(prisma.prospectingAction.update).toHaveBeenCalledWith(
       objectMatch({ data: objectMatch({ status: "FAIT", occurredAt: NOW, respondedAt: null }) }),
     )
+  })
+
+  it("refuses to move an action to a person without a lead record", async () => {
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
+
+    const state = await updateProspectingAction(
+      "a1",
+      initialProspectingActionFormState,
+      buildFormData(),
+    )
+
+    expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
+    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
   })
 
   it("answers prospecting_action_not_found when the action was deleted meanwhile", async () => {
@@ -212,17 +243,18 @@ describe("changeProspectingActionStatus", () => {
 })
 
 describe("rescheduleProspectingAction", () => {
-  const THURSDAY = new Date("2026-03-12T08:00:00Z")
+  const THURSDAY = "2026-03-12"
+  const THURSDAY_MIDNIGHT_IN_PARIS = new Date("2026-03-11T23:00:00Z")
 
-  it("moves a to-do action to its new time", async () => {
+  it("moves a to-do action to its new day", async () => {
     vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 1 })
 
-    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+    const state = await rescheduleProspectingAction("a1", THURSDAY)
 
     expect(state.ok).toBe(true)
     expect(prisma.prospectingAction.updateMany).toHaveBeenCalledWith({
       where: { id: "a1", status: "A_FAIRE" },
-      data: { occurredAt: THURSDAY },
+      data: { occurredAt: THURSDAY_MIDNIGHT_IN_PARIS },
     })
   })
 
@@ -230,7 +262,7 @@ describe("rescheduleProspectingAction", () => {
     vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
     vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue({ id: "a1" } as never)
 
-    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+    const state = await rescheduleProspectingAction("a1", THURSDAY)
 
     expect(state.ok).toBe(false)
     expect(state.errors.occurredAt).toEqual(["Seule une action à faire se replanifie"])
@@ -240,7 +272,7 @@ describe("rescheduleProspectingAction", () => {
     vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
     vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue(null)
 
-    const state = await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+    const state = await rescheduleProspectingAction("a1", THURSDAY)
 
     expect(state.ok).toBe(false)
     expect(state.errors.occurredAt).toEqual(["Cette action a été supprimée"])
@@ -250,12 +282,12 @@ describe("rescheduleProspectingAction", () => {
     vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
     vi.mocked(prisma.prospectingAction.findUnique).mockResolvedValue({ id: "a1" } as never)
 
-    await rescheduleProspectingAction("a1", THURSDAY.toISOString())
+    await rescheduleProspectingAction("a1", THURSDAY)
 
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("rejects a date without its time zone offset", async () => {
+  it("rejects a value that is not a calendar day", async () => {
     const state = await rescheduleProspectingAction("a1", "2026-03-12T09:00")
 
     expect(state.errors.occurredAt).toBeDefined()
@@ -265,7 +297,7 @@ describe("rescheduleProspectingAction", () => {
   it("rejects a reschedule without a session, before touching the database", async () => {
     vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
 
-    const result = rescheduleProspectingAction("a1", THURSDAY.toISOString())
+    const result = rescheduleProspectingAction("a1", THURSDAY)
 
     await expect(result).rejects.toThrow()
     expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()

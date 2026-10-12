@@ -7,17 +7,21 @@ import {
   CircleX,
   Code,
   Coffee,
+  MapPin,
+  Phone,
   Rocket,
   Scale,
   ThumbsDown,
   ThumbsUp,
   UserSearch,
   Users,
+  Video,
 } from "lucide-react"
 
 import type {
   Interview,
   InterviewDecision,
+  InterviewFormat,
   InterviewOutcome,
   InterviewSide,
   InterviewStatus,
@@ -40,6 +44,18 @@ export const INTERVIEW_TYPE_ICONS: Record<InterviewType, IconComponent | null> =
   TECHNIQUE: Code,
   MANAGER_EQUIPE: Users,
   NEGOCIATION: BadgeEuro,
+}
+
+export const INTERVIEW_FORMAT_LABELS: Record<InterviewFormat, string> = {
+  PRESENTIEL: "Présentiel",
+  VISIO: "Visio",
+  TELEPHONE: "Téléphone",
+}
+
+export const INTERVIEW_FORMAT_ICONS: Record<InterviewFormat, IconComponent | null> = {
+  PRESENTIEL: MapPin,
+  VISIO: Video,
+  TELEPHONE: Phone,
 }
 
 export const INTERVIEW_STATUS_LABELS: Record<InterviewStatus, string> = {
@@ -88,6 +104,7 @@ export const INTERVIEW_FIELD_LABELS = {
   side: "Mené par",
   correspondentIds: "Correspondants",
   type: "Type",
+  format: "Format",
   status: "Statut",
   outcome: "Issue",
   scheduledAt: "Date et heure",

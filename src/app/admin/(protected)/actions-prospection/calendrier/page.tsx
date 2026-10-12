@@ -5,13 +5,13 @@ import { NewActionHeaderButton } from "@/components/features/admin/prospecting-a
 import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findPersonOptions } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 
 async function CalendarSection() {
   const [actions, personOptions] = await Promise.all([
     findAllProspectingActionsForAdmin(),
-    findPersonOptions(),
+    findPersonOptionsWithLeadRole(),
   ])
   return <ActionsCalendar actions={actions} personOptions={personOptions} />
 }

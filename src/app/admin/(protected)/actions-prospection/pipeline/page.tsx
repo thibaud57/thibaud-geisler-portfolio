@@ -6,7 +6,7 @@ import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BOARD_STATUSES } from "@/lib/crm/action-board"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findPersonOptions } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 
 function BoardSkeleton() {
@@ -25,7 +25,7 @@ function BoardSkeleton() {
 async function BoardSection() {
   const [actions, personOptions] = await Promise.all([
     findAllProspectingActionsForAdmin(),
-    findPersonOptions(),
+    findPersonOptionsWithLeadRole(),
   ])
   return <ActionsBoard actions={actions} personOptions={personOptions} />
 }

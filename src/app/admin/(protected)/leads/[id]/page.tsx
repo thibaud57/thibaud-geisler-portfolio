@@ -37,7 +37,6 @@ async function EditLeadSection({ id }: { id: string }) {
           <>
             <PersonActionsCard
               person={{ id: lead.id, name: personDisplayName(lead), company: lead.company }}
-              role="lead"
               actions={actions}
             />
             <LeadOpportunitiesCard lead={lead} />

@@ -6,14 +6,13 @@ import { useRouter } from "next/navigation"
 
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import {
   linksSection,
   markdownSection,
   textSection,
 } from "@/components/features/admin/detail/detail-sections"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
-import { RelatedLinksList } from "@/components/features/admin/detail/RelatedLinksList"
 import { DeleteInterviewDialog } from "@/components/features/admin/interviews/DeleteInterviewDialog"
 import {
   actionsColumn,
@@ -21,7 +20,6 @@ import {
   contractBadge,
   enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
   PersonLink,
   truncatedCell,
@@ -46,6 +44,8 @@ import {
   INTERVIEW_DECISION_ICONS,
   INTERVIEW_DECISION_LABELS,
   INTERVIEW_FIELD_LABELS as LABELS,
+  INTERVIEW_FORMAT_ICONS,
+  INTERVIEW_FORMAT_LABELS,
   INTERVIEW_OUTCOME_ICONS,
   INTERVIEW_OUTCOME_LABELS,
   INTERVIEW_SECTION_TITLES,
@@ -65,7 +65,12 @@ import {
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/crm/opportunities"
 import { personDisplayName } from "@/lib/crm/persons"
-import { INTERVIEW_OUTCOMES, INTERVIEW_STATUSES, INTERVIEW_TYPES } from "@/lib/schemas/interview"
+import {
+  INTERVIEW_FORMATS,
+  INTERVIEW_OUTCOMES,
+  INTERVIEW_STATUSES,
+  INTERVIEW_TYPES,
+} from "@/lib/schemas/interview"
 import type { AdminInterview } from "@/server/queries/interviews"
 
 function leadingCompany(interview: AdminInterview) {
@@ -80,6 +85,10 @@ function correspondentNames(interview: AdminInterview): string[] {
 
 function typeBadge(interview: AdminInterview) {
   return enumBadge(interview.type, INTERVIEW_TYPE_LABELS, INTERVIEW_TYPE_ICONS)
+}
+
+function formatBadge(interview: AdminInterview) {
+  return enumBadge(interview.format, INTERVIEW_FORMAT_LABELS, INTERVIEW_FORMAT_ICONS)
 }
 
 function outcomeBadge(interview: AdminInterview) {
@@ -147,6 +156,13 @@ function buildDataColumns(
       cell: typeBadge,
     },
     {
+      key: "format",
+      header: LABELS.format,
+      width: INTERVIEW_COLUMN_WIDTHS.format,
+      ...hideableColumn(visibleByDefault, "format"),
+      cell: formatBadge,
+    },
+    {
       key: "status",
       header: LABELS.status,
       width: INTERVIEW_COLUMN_WIDTHS.status,
@@ -170,6 +186,7 @@ function buildDataColumns(
     },
     {
       key: "workMode",
+      wrapHeader: true,
       header: OPPORTUNITY_FIELD_LABELS.workMode,
       width: INTERVIEW_COLUMN_WIDTHS.workMode,
       ...hideableColumn(visibleByDefault, "workMode"),
@@ -197,6 +214,7 @@ function buildDataColumns(
     },
     {
       key: "decision",
+      wrapHeader: true,
       header: LABELS.decision,
       width: INTERVIEW_COLUMN_WIDTHS.decision,
       ...hideableColumn(visibleByDefault, "decision"),
@@ -238,23 +256,17 @@ function correspondentsValue(interview: AdminInterview) {
   )
 }
 
-function opportunityValue(interview: AdminInterview) {
+function opportunityLink(interview: AdminInterview) {
   const { opportunity } = interview
   const company = leadingCompany(interview)
-  return (
-    <RelatedLinksList
-      links={[
-        {
-          id: opportunity.id,
-          href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
-          label: opportunity.title,
-          meta: [OPPORTUNITY_STATUS_LABELS[opportunity.status], company?.name]
-            .filter(Boolean)
-            .join(" · "),
-        },
-      ]}
-    />
-  )
+  return {
+    id: opportunity.id,
+    href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
+    label: opportunity.title,
+    meta: [OPPORTUNITY_STATUS_LABELS[opportunity.status], company?.name]
+      .filter(Boolean)
+      .join(" · "),
+  }
 }
 
 function buildInterviewDetail(
@@ -269,22 +281,22 @@ function buildInterviewDetail(
 
   return {
     title: titles.get(interview.id) ?? "",
-    status: enumBadge(
-      interview.status,
-      INTERVIEW_STATUS_LABELS,
-      INTERVIEW_STATUS_ICONS,
-      HEADER_BADGE_PROPS,
-    ),
+    badges: [headerBadge(interview.status, INTERVIEW_STATUS_LABELS, INTERVIEW_STATUS_ICONS)],
     sections: [
       {
-        title: OPPORTUNITY_SECTION_TITLES.opportunity,
+        title: INTERVIEW_SECTION_TITLES.exchange,
         rows: [
-          { value: opportunityValue(interview), fullWidth: true },
-          {
-            label: LABELS.side,
-            value: companyCell({ company: leadingCompany(interview) }),
-            fullWidth: true,
-          },
+          { label: LABELS.type, value: typeBadge(interview) },
+          { label: LABELS.format, value: formatBadge(interview) },
+          { label: LABELS.scheduledAt, value: formatShortDateTime(interview.scheduledAt) },
+          { label: LABELS.side, value: companyCell({ company: leadingCompany(interview) }) },
+          { label: LABELS.correspondentIds, value: correspondentsValue(interview) },
+        ],
+      },
+      // Conditions de l'opportunité, sans champ dans le formulaire de l'entretien : lues pour préparer l'échange.
+      {
+        title: OPPORTUNITY_SECTION_TITLES.conditions,
+        rows: [
           {
             label: OPPORTUNITY_FIELD_LABELS.dailyRate,
             value: formatDailyRate(opportunity.dailyRate),
@@ -295,22 +307,9 @@ function buildInterviewDetail(
         ],
       },
       {
-        title: INTERVIEW_SECTION_TITLES.exchange,
-        rows: [
-          { label: LABELS.type, value: typeBadge(interview) },
-          { label: LABELS.scheduledAt, value: formatShortDateTime(interview.scheduledAt) },
-          { label: LABELS.outcome, value: outcomeBadge(interview), fullWidth: true },
-          {
-            label: LABELS.correspondentIds,
-            value: correspondentsValue(interview),
-            fullWidth: true,
-          },
-        ],
-      },
-      markdownSection(LABELS.details, interview.details),
-      {
         title: INTERVIEW_SECTION_TITLES.evaluation,
         rows: [
+          { label: LABELS.outcome, value: outcomeBadge(interview) },
           {
             label: LABELS.score,
             value: interview.score === null ? null : `${interview.score} / 10`,
@@ -319,6 +318,8 @@ function buildInterviewDetail(
         ],
       },
       textSection(LABELS.notes, interview.notes),
+      markdownSection(LABELS.details, interview.details),
+      linksSection(OPPORTUNITY_SECTION_TITLES.opportunity, [opportunityLink(interview)]),
       linksSection(
         INTERVIEW_SECTION_TITLES.previous,
         previous
@@ -346,6 +347,13 @@ const facets: readonly Facet<AdminInterview>[] = [
     INTERVIEW_TYPES,
     INTERVIEW_TYPE_LABELS,
     (interview) => interview.type,
+  ),
+  enumFacet(
+    "format",
+    LABELS.format,
+    INTERVIEW_FORMATS,
+    INTERVIEW_FORMAT_LABELS,
+    (interview) => interview.format,
   ),
   enumFacet(
     "status",

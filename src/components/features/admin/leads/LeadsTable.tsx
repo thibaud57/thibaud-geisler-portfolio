@@ -1,11 +1,11 @@
 "use client"
 
-import { useCallback, useMemo, useState, type ComponentProps } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
-import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import {
   linksSection,
   markdownSection,
@@ -16,7 +16,6 @@ import {
   actionsColumn,
   enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
   labelBadge,
   linkedinLink,
@@ -43,12 +42,7 @@ import {
 } from "@/lib/admin/routes"
 import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
 import { CONTACT_STATUS_LABELS, CONTACT_TYPE_LABELS } from "@/lib/crm/contacts"
-import {
-  formatDateOnly,
-  formatShortDate,
-  formatShortDateTime,
-  formatShortInstantDate,
-} from "@/lib/date-time"
+import { formatDateOnly, formatShortDate, formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/admin/detail-links"
 import { toLeadInterviewLinks } from "@/lib/crm/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/crm/job-roles"
@@ -94,23 +88,21 @@ function channelBadge(lead: AdminLead) {
   return enumBadge(lead.channel, LEAD_CHANNEL_LABELS, LEAD_CHANNEL_ICONS)
 }
 
-function statusBadge(
-  lead: AdminLead,
-  now: number,
-  badgeProps?: Omit<ComponentProps<typeof Badge>, "children">,
-) {
-  if (lead.optedOutAt) {
-    return (
-      <Badge variant="outline" {...badgeProps}>
-        {OPTED_OUT_LABEL}
-      </Badge>
-    )
-  }
+function statusBadge(lead: AdminLead, now: number) {
+  if (lead.optedOutAt) return <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
   return enumBadge(
     leadDisplayStatus(lead, now),
     LEAD_DISPLAY_STATUS_LABELS,
     LEAD_DISPLAY_STATUS_ICONS,
-    badgeProps,
+  )
+}
+
+function headerStatusBadge(lead: AdminLead, now: number) {
+  if (lead.optedOutAt) return { label: OPTED_OUT_LABEL }
+  return headerBadge(
+    leadDisplayStatus(lead, now),
+    LEAD_DISPLAY_STATUS_LABELS,
+    LEAD_DISPLAY_STATUS_ICONS,
   )
 }
 
@@ -174,6 +166,7 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
     },
     {
       key: "metAt",
+      wrapHeader: true,
       header: PERSON_FIELD_LABELS.metAt,
       width: LEAD_COLUMN_WIDTHS.metAt,
       className: "tabular-nums text-muted-foreground",
@@ -215,6 +208,7 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
     },
     {
       key: "retentionEnd",
+      wrapHeader: true,
       header: LEAD_FIELD_LABELS.retentionEnd,
       width: LEAD_COLUMN_WIDTHS.retentionEnd,
       className: "tabular-nums text-muted-foreground",
@@ -255,13 +249,13 @@ function buildLeadDetail(
   if (lead.optedOutAt) {
     return {
       title: personDisplayName(lead),
-      status: statusBadge(lead, now.getTime(), HEADER_BADGE_PROPS),
+      badges: [headerStatusBadge(lead, now.getTime())],
       sections: [
         {
           title: PERSON_SECTION_TITLES.optOut,
           rows: [
-            { label: PERSON_FIELD_LABELS.email, value: lead.email, fullWidth: true },
-            { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(lead), fullWidth: true },
+            { label: PERSON_FIELD_LABELS.email, value: lead.email },
+            { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(lead) },
             { label: PERSON_FIELD_LABELS.optedOutAt, value: formatShortDate(lead.optedOutAt) },
             {
               label: PERSON_FIELD_LABELS.exchangesErasedAt,
@@ -280,16 +274,18 @@ function buildLeadDetail(
   return {
     title: personDisplayName(lead),
     ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-    status: statusBadge(lead, now.getTime(), HEADER_BADGE_PROPS),
+    badges: [headerStatusBadge(lead, now.getTime())],
     // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
     sections: [
       ...personDetailSections(lead),
-      markdownSection(PERSON_SECTION_TITLES.details, lead.details),
       {
         title: LEAD_SECTION_TITLES.pipeline,
         rows: [
-          // Statut est déjà dans l'en-tête : Intérêt passe en pleine largeur plutôt qu'à côté d'une case vide.
-          { label: LEAD_FIELD_LABELS.interest, value: interestBadge(lead), fullWidth: true },
+          { label: LEAD_FIELD_LABELS.interest, value: interestBadge(lead) },
+          {
+            label: LEAD_FIELD_LABELS.score,
+            value: lead.score === null ? null : `${lead.score} / 10`,
+          },
           { label: LEAD_FIELD_LABELS.origin, value: originBadge(lead) },
           { label: LEAD_FIELD_LABELS.channel, value: channelBadge(lead) },
           {
@@ -297,18 +293,13 @@ function buildLeadDetail(
             value: lead.metAt ? formatDateOnly(lead.metAt) : null,
           },
           {
-            label: LEAD_FIELD_LABELS.score,
-            value: lead.score === null ? null : `${lead.score} / 10`,
-          },
-          // Pleine largeur : metAt et Score restent la paire du formulaire, et la ligne ne reste pas à moitié vide.
-          {
             label: LEAD_FIELD_LABELS.lastReplyAt,
-            value: formatShortDateTime(lead.lastReplyAt),
-            fullWidth: true,
+            value: formatShortInstantDate(lead.lastReplyAt),
           },
         ],
       },
       textSection(PERSON_SECTION_TITLES.notes, lead.notes),
+      markdownSection(PERSON_SECTION_TITLES.details, lead.details),
       linksSection(
         LEAD_SECTION_TITLES.network,
         lead.contactRole

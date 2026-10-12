@@ -5,14 +5,10 @@ import { firstParam } from "@/lib/admin/search-params"
 import { contactSkeletonWidths } from "@/lib/admin/table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllContactsForAdmin } from "@/server/queries/contacts"
-import { findActionTimelinesForAdmin } from "@/server/queries/prospecting-actions"
 
 async function ContactsSection({ initialDetailId }: { initialDetailId?: string }) {
-  const [contacts, actions] = await Promise.all([
-    findAllContactsForAdmin(),
-    findActionTimelinesForAdmin({ role: "contact" }),
-  ])
-  return <ContactsTable contacts={contacts} actions={actions} initialDetailId={initialDetailId} />
+  const contacts = await findAllContactsForAdmin()
+  return <ContactsTable contacts={contacts} initialDetailId={initialDetailId} />
 }
 
 export default async function AdminContactsPage({ searchParams }: PageProps<"/admin/contacts">) {

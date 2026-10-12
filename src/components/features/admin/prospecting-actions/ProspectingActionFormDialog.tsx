@@ -3,9 +3,10 @@
 import { useActionState, useId, useState } from "react"
 import { Plus } from "lucide-react"
 
-import { DateTimeField } from "@/components/features/admin/form/DateTimeField"
+import { DateField } from "@/components/features/admin/form/DateField"
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { FormDialog, FormDialogForm } from "@/components/features/admin/form/FormDialog"
+import { OptionalDateField } from "@/components/features/admin/form/OptionalDateField"
 import { PersonCombobox } from "@/components/features/admin/form/PersonCombobox"
 import { EditRowButton } from "@/components/features/admin/table/EditRowButton"
 import { SelectField } from "@/components/features/admin/form/SelectField"
@@ -13,7 +14,6 @@ import { TextareaField } from "@/components/features/admin/form/TextareaField"
 import { Button } from "@/components/ui/button"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
-import { timeOf } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/crm/persons"
 import { isRepliedStatus } from "@/lib/crm/prospecting-action-status"
 import {
@@ -112,12 +112,8 @@ function ProspectingActionForm({
   const [personId, setPersonId] = useState(action?.person.id ?? defaultPersonId ?? "")
   const [status, setStatus] = useState<string>(action?.status ?? "A_FAIRE")
   const [date, setDate] = useState<Date | undefined>(action?.occurredAt ?? defaultDate ?? now)
-  const [time, setTime] = useState(timeOf(action?.occurredAt ?? now))
   const [respondedDate, setRespondedDate] = useState<Date | undefined>(
     action?.respondedAt ?? undefined,
-  )
-  const [respondedTime, setRespondedTime] = useState(
-    action?.respondedAt ? timeOf(action.respondedAt) : "",
   )
 
   useSaveFeedback(state, {
@@ -185,31 +181,27 @@ function ProspectingActionForm({
         errors={state.errors.status}
       />
 
-      {/* Aucun champ seul sur une demi-ligne : sans la réponse reçue, la date et l'heure prennent la ligne. */}
+      {/* Aucun champ seul sur une demi-ligne : sans la réponse reçue, la date prend la ligne. */}
       <div className={replied ? undefined : "sm:col-span-2"}>
-        <DateTimeField
+        <DateField
           id={`${formId}-occurredAt`}
-          label={LABELS.occurredAt}
-          errors={state.errors.occurredAt}
-          date={date}
-          onDateChange={setDate}
-          time={time}
-          onTimeChange={setTime}
-          required
           name="occurredAt"
+          label={LABELS.occurredAt}
+          value={date}
+          onChange={setDate}
+          errors={state.errors.occurredAt}
+          required
         />
       </div>
 
       {replied ? (
-        <DateTimeField
+        <OptionalDateField
           id={`${formId}-respondedAt`}
           name="respondedAt"
           label={LABELS.respondedAt}
+          value={respondedDate}
+          onChange={setRespondedDate}
           errors={state.errors.respondedAt}
-          date={respondedDate}
-          onDateChange={setRespondedDate}
-          time={respondedTime}
-          onTimeChange={setRespondedTime}
         />
       ) : null}
 

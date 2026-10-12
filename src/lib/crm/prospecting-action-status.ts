@@ -1,4 +1,5 @@
 import type { ActionStatus } from "@/generated/prisma/client"
+import { isSameZonedDay } from "@/lib/date-time"
 
 export interface ActionTiming {
   status: ActionStatus
@@ -18,12 +19,13 @@ export function applyStatusRules(
   next: ActionTiming,
   now: Date,
 ): ActionTiming {
-  // La date devient celle de l'envoi réel, sauf si la même saisie la corrige (rattrapage).
+  // La date devient celle de l'envoi réel, sauf si la même saisie change de jour (rattrapage). Le jour
+  // seul compte : le formulaire ne saisit plus l'heure.
   const leavesToDo =
     current !== null &&
     current.status === "A_FAIRE" &&
     next.status !== "A_FAIRE" &&
-    next.occurredAt.getTime() === current.occurredAt.getTime()
+    isSameZonedDay(next.occurredAt, current.occurredAt)
 
   const respondedAt = isRepliedStatus(next.status)
     ? (next.respondedAt ?? current?.respondedAt ?? now)

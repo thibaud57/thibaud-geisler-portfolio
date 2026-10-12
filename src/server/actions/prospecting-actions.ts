@@ -19,7 +19,7 @@ import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
 const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true } as const
 
-// Variante "layout" : les vues actions, leads, contacts et entreprises se rafraîchissent toutes (le premier contact, la dernière interaction et la date de revue en dérivent).
+// Variante "layout" : les vues actions, leads, contacts et entreprises se rafraîchissent toutes (le premier contact et la date de revue des leads en dérivent).
 function invalidateActionCaches(): void {
   revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
   revalidatePersonLists()
@@ -38,10 +38,26 @@ function collectValues(formData: FormData): ProspectingActionFormState["values"]
   }
 }
 
+class PersonWithoutLeadError extends Error {}
+
+// Une action de prospection ne vise qu'un lead : une personne seulement contact n'a pas de pipeline à nourrir.
+async function requireLead(personId: string): Promise<void> {
+  const leads = await prisma.lead.count({ where: { personId } })
+  if (leads === 0) throw new PersonWithoutLeadError()
+}
+
 function mapActionError(
   err: unknown,
   values: ProspectingActionFormState["values"],
 ): ProspectingActionFormState | null {
+  if (err instanceof PersonWithoutLeadError) {
+    return {
+      ok: false,
+      errors: { personId: ["Cette personne n'a pas de fiche lead"] },
+      message: null,
+      values,
+    }
+  }
   if (!isPrismaError(err, "P2003")) return null
   return {
     ok: false,
@@ -68,7 +84,10 @@ function saveProspectingAction(
     events,
     schema: prospectingActionSchema,
     input: values,
-    persist,
+    persist: async (data) => {
+      await requireLead(data.personId)
+      return persist(data)
+    },
     successLogFields: (_data, action) => ({ id: action.id }),
     invalidateCaches: invalidateActionCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),

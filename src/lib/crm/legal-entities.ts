@@ -102,7 +102,7 @@ export const LEGAL_ENTITY_FIELD_LABELS = {
   name: "Raison sociale",
   legalForm: "Forme juridique",
   siret: "SIRET",
-  vatNumber: "N° TVA intracommunautaire",
+  vatNumber: "N° TVA",
   rcsCity: "Ville du RCS",
   rcsNumber: "Numéro RCS",
   phone: "Téléphone",

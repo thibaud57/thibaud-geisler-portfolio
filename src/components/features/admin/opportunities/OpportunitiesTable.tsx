@@ -5,7 +5,7 @@ import { Handshake } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import {
   linksSection,
   markdownSection,
@@ -19,7 +19,6 @@ import {
   contractBadge,
   enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
   PersonLink,
   truncatedCell,
@@ -147,6 +146,7 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
     },
     {
       key: "workMode",
+      wrapHeader: true,
       header: LABELS.workMode,
       width: OPPORTUNITY_COLUMN_WIDTHS.workMode,
       ...hideableColumn(visibleByDefault, "workMode"),
@@ -178,6 +178,7 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
     },
     {
       key: "duration",
+      wrapHeader: true,
       header: LABELS.durationMonths,
       width: OPPORTUNITY_COLUMN_WIDTHS.duration,
       className: "tabular-nums text-muted-foreground",
@@ -200,12 +201,7 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
   return {
     title: opportunity.title,
     ...(opportunity.role ? { subtitle: opportunity.role } : {}),
-    status: enumBadge(
-      opportunity.status,
-      OPPORTUNITY_STATUS_LABELS,
-      OPPORTUNITY_STATUS_ICONS,
-      HEADER_BADGE_PROPS,
-    ),
+    badges: [headerBadge(opportunity.status, OPPORTUNITY_STATUS_LABELS, OPPORTUNITY_STATUS_ICONS)],
     // Intitulé, Rôle et Statut sont dans l'en-tête : le bloc Opportunité du formulaire n'a pas de pendant ici.
     sections: [
       {
@@ -214,7 +210,6 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
           {
             label: LABELS.referrerId,
             value: opportunity.referrer ? <PersonLink person={opportunity.referrer} /> : null,
-            fullWidth: true,
           },
           {
             label: LABELS.intermediaryId,
@@ -228,7 +223,6 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
           },
         ],
       },
-      markdownSection(OPPORTUNITY_SECTION_TITLES.details, opportunity.details),
       {
         title: OPPORTUNITY_SECTION_TITLES.conditions,
         rows: [
@@ -248,6 +242,7 @@ function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => voi
         ],
       },
       textSection(OPPORTUNITY_SECTION_TITLES.notes, opportunity.notes),
+      markdownSection(OPPORTUNITY_SECTION_TITLES.details, opportunity.details),
       linksSection(
         OPPORTUNITY_SECTION_TITLES.interviews,
         toOpportunityInterviewLinks(opportunity.interviews, (id) =>

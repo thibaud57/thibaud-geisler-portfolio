@@ -9,10 +9,10 @@ import type { OpportunityView } from "@/lib/crm/opportunity-views"
 import type { ReviewView } from "@/lib/crm/review-views"
 import type { ProjectView } from "@/lib/project-views"
 
-export const ORDER_COLUMN_WIDTH = 52
+export const ORDER_COLUMN_WIDTH = 40
 
-// Une seule largeur pour toutes les listes : une ligne porte au plus trois actions.
-export const ACTIONS_COLUMN_WIDTH = 88
+// Une seule largeur pour toutes les listes : l'en-tête « Actions » (74 px) dépasse ses deux boutons (64 px).
+export const ACTIONS_COLUMN_WIDTH = 80
 
 function skeletonWidths<K extends string>(
   widths: Record<K | "actions", number>,
@@ -23,11 +23,11 @@ function skeletonWidths<K extends string>(
 }
 
 export const TAG_COLUMN_WIDTHS = {
-  name: 280,
-  nameEn: 210,
-  kind: 110,
-  icon: 170,
-  usage: 84,
+  name: 136,
+  nameEn: 112,
+  kind: 120,
+  icon: 232,
+  usage: 88,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -37,20 +37,20 @@ export const TAG_SKELETON_WIDTHS: readonly number[] = [
 ]
 
 export const COMPANY_COLUMN_WIDTHS = {
-  logo: 44,
-  name: 211,
-  types: 179,
-  sectors: 179,
-  zones: 160,
-  size: 140,
-  relationStatus: 150,
-  worked: 104,
-  firstContactAt: 150,
-  endClients: 220,
-  legalEntity: 160,
-  websiteUrl: 150,
-  notes: 220,
-  projects: 96,
+  logo: 56,
+  name: 152,
+  types: 160,
+  sectors: 192,
+  zones: 104,
+  size: 136,
+  relationStatus: 112,
+  worked: 80,
+  firstContactAt: 112,
+  endClients: 120,
+  legalEntity: 104,
+  websiteUrl: 152,
+  notes: 224,
+  projects: 88,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -104,16 +104,16 @@ export function companySkeletonWidths(view: CompanyView): readonly number[] {
 
 export const PROJECT_COLUMN_WIDTHS = {
   titre: 240,
-  nature: 104,
-  formats: 150,
-  entreprise: 180,
-  contrat: 130,
-  debut: 150,
-  fin: 150,
-  duree: 130,
-  equipe: 110,
-  liens: 130,
-  statut: 112,
+  nature: 80,
+  formats: 120,
+  entreprise: 144,
+  contrat: 112,
+  debut: 104,
+  fin: 104,
+  duree: 104,
+  equipe: 72,
+  liens: 120,
+  statut: 72,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -159,24 +159,23 @@ export const PROJECT_PAGE_SKELETON: string[] = [
 ]
 
 export const LEAD_COLUMN_WIDTHS = {
-  // Une colonne triable tient son en-tête sur une ligne : libellé, icône de tri et marges du bouton dictent sa largeur.
-  name: 200,
-  status: 130,
-  interest: 104,
-  score: 90,
-  origin: 110,
-  channel: 130,
-  metAt: 160,
-  jobRole: 140,
-  company: 180,
-  zone: 140,
-  linkedinUrl: 170,
+  name: 168,
+  status: 112,
+  interest: 88,
+  score: 80,
+  origin: 112,
+  channel: 120,
+  metAt: 112,
+  jobRole: 120,
+  company: 168,
+  zone: 104,
+  linkedinUrl: 168,
   email: 200,
-  phone: 140,
-  actionsCount: 110,
-  interviewsCount: 110,
-  retentionEnd: 180,
-  notes: 220,
+  phone: 152,
+  actionsCount: 88,
+  interviewsCount: 104,
+  retentionEnd: 112,
+  notes: 224,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -255,17 +254,16 @@ export function leadSkeletonWidths(view: LeadView): readonly number[] {
 }
 
 export const CONTACT_COLUMN_WIDTHS = {
-  name: 200,
-  types: 190,
-  company: 180,
-  status: 130,
-  lastInteractionAt: 170,
-  zone: 140,
+  name: 160,
+  types: 128,
+  company: 144,
+  status: 88,
+  zone: 104,
   email: 200,
-  phone: 140,
-  linkedinUrl: 170,
-  reviewAt: 180,
-  notes: 220,
+  phone: 152,
+  linkedinUrl: 168,
+  reviewAt: 112,
+  notes: 224,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -275,7 +273,6 @@ export const CONTACT_DEFAULT_VISIBLE_COLUMNS: readonly ContactColumnKey[] = [
   "types",
   "company",
   "status",
-  "lastInteractionAt",
   "zone",
   "email",
   "linkedinUrl",
@@ -289,9 +286,9 @@ export function contactSkeletonWidths(): readonly number[] {
 export const ACTION_COLUMN_WIDTHS = {
   title: 240,
   channel: 160,
-  status: 120,
-  occurredAt: 150,
-  person: 210,
+  status: 104,
+  occurredAt: 112,
+  person: 184,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -310,19 +307,19 @@ export function actionSkeletonWidths(view: ActionView): readonly number[] {
 }
 
 export const OPPORTUNITY_COLUMN_WIDTHS = {
-  title: 220,
-  status: 130,
-  referrer: 180,
-  intermediary: 180,
-  client: 180,
-  dailyRate: 90,
-  contract: 120,
-  workMode: 120,
-  rhythm: 170,
-  zone: 160,
-  startMonth: 130,
-  duration: 100,
-  notes: 220,
+  title: 224,
+  status: 112,
+  referrer: 136,
+  intermediary: 176,
+  client: 144,
+  dailyRate: 72,
+  contract: 112,
+  workMode: 96,
+  rhythm: 128,
+  zone: 104,
+  startMonth: 112,
+  duration: 80,
+  notes: 224,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -374,19 +371,20 @@ export const OPPORTUNITY_PAGE_SKELETON: string[] = [
 ]
 
 export const INTERVIEW_COLUMN_WIDTHS = {
-  title: 210,
+  title: 216,
   opportunity: 200,
-  side: 180,
-  scheduledAt: 150,
-  type: 140,
-  status: 110,
-  outcome: 110,
-  zone: 150,
-  workMode: 120,
-  dailyRate: 90,
-  score: 90,
-  decision: 210,
-  correspondents: 200,
+  side: 144,
+  scheduledAt: 160,
+  type: 144,
+  format: 64,
+  status: 72,
+  outcome: 56,
+  zone: 104,
+  workMode: 96,
+  dailyRate: 72,
+  score: 80,
+  decision: 152,
+  correspondents: 152,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
@@ -403,6 +401,7 @@ export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
     "side",
     "scheduledAt",
     "type",
+    "format",
     "zone",
     "workMode",
     "dailyRate",
@@ -413,6 +412,7 @@ export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
     "side",
     "scheduledAt",
     "type",
+    "format",
     "status",
     "outcome",
     "zone",
@@ -435,21 +435,21 @@ export function interviewSkeletonWidths(view: InterviewView): readonly number[] 
 export const INTERVIEW_PAGE_SKELETON: string[] = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]
 
 export const REVIEW_COLUMN_WIDTHS = {
-  // Libellé le plus long : « S53 · Semaine du 28/12/2026 ».
-  week: 240,
-  friday: 110,
-  connectionsSent: 180,
-  connectionsAccepted: 190,
-  acceptanceRate: 150,
-  messagesSent: 160,
-  conversationsEngaged: 210,
-  responseRate: 130,
-  meetingsBooked: 140,
-  meetingConversion: 150,
-  interviewsHeld: 110,
-  activeLeads: 120,
-  status: 110,
-  motivation: 110,
+  // Libellé le plus long : « S53 · 2026 », sous l'en-tête Semaine et son icône de tri.
+  week: 104,
+  friday: 112,
+  connectionsSent: 112,
+  connectionsAccepted: 112,
+  acceptanceRate: 120,
+  messagesSent: 104,
+  conversationsEngaged: 128,
+  responseRate: 96,
+  meetingsBooked: 112,
+  meetingConversion: 112,
+  interviewsHeld: 104,
+  activeLeads: 80,
+  status: 104,
+  motivation: 96,
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 

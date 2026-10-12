@@ -3,6 +3,7 @@ import { z } from "zod"
 import {
   ContactType,
   InterviewDecision,
+  InterviewFormat,
   InterviewOutcome,
   InterviewSide,
   InterviewStatus,
@@ -15,6 +16,7 @@ import { instant } from "@/lib/schemas/prospecting-action"
 
 export const INTERVIEW_SIDES = Object.values(InterviewSide)
 export const INTERVIEW_TYPES = Object.values(InterviewType)
+export const INTERVIEW_FORMATS = Object.values(InterviewFormat)
 export const INTERVIEW_STATUSES = Object.values(InterviewStatus)
 export const INTERVIEW_OUTCOMES = Object.values(InterviewOutcome)
 export const INTERVIEW_DECISIONS = Object.values(InterviewDecision)
@@ -54,6 +56,7 @@ export const interviewSchema = z
       })
       .pipe(z.array(newCorrespondentSchema)),
     type: z.enum(InterviewType, { error: "Type inconnu" }),
+    format: nullableEnumField(INTERVIEW_FORMATS, "Format inconnu"),
     status: z.enum(InterviewStatus, { error: "Statut inconnu" }),
     outcome: nullableEnumField(INTERVIEW_OUTCOMES, "Issue inconnue"),
     scheduledAt: instant.transform((value) => new Date(value)),

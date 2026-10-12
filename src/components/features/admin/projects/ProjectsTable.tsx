@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
@@ -19,7 +19,6 @@ import {
 } from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
-import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
 import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
@@ -159,6 +158,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "contrat",
+      wrapHeader: true,
       header: PROJECT_FIELD_LABELS.contractStatus,
       width: PROJECT_COLUMN_WIDTHS.contrat,
       className: "whitespace-nowrap",
@@ -198,6 +198,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "equipe",
+      wrapHeader: true,
       header: PROJECT_FIELD_LABELS.teamSize,
       width: PROJECT_COLUMN_WIDTHS.equipe,
       align: "right",
@@ -261,23 +262,20 @@ const facets: readonly Facet<AdminProjectListItem>[] = [
 function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): DetailContent {
   const clientMeta = project.clientMeta
   return {
+    image: { assetKey: project.coverFilename },
     title: project.titleFr,
-    slug: project.slug,
-    subtitle: (
-      <span className="flex flex-wrap items-center gap-2">
-        <span className="font-mono">#{project.displayOrder}</span>
-        {typeBadge(project)}
-      </span>
-    ),
-    status: renderProjectStatus(project.status),
+    subtitle: project.slug,
+    badges: [
+      headerBadge(project.status, PROJECT_STATUS_LABELS),
+      headerBadge(project.type, PROJECT_TYPE_LABELS),
+    ],
     sections: [
       {
         title: PROJECT_SECTION_TITLES.identity,
         rows: [
-          { label: PROJECT_FIELD_LABELS.titleEn, fullWidth: true, value: project.titleEn },
+          { label: PROJECT_FIELD_LABELS.displayOrder, value: String(project.displayOrder) },
           {
             label: PROJECT_FIELD_LABELS.formats,
-            fullWidth: true,
             value: (
               <BadgeList
                 labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
@@ -286,21 +284,6 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
                 max={Infinity}
               />
             ),
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.description,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.descriptionFr,
-            fullWidth: true,
-            value: project.descriptionFr,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.descriptionEn,
-            fullWidth: true,
-            value: project.descriptionEn,
           },
         ],
       },
@@ -319,34 +302,12 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
         ],
       },
       {
-        title: PROJECT_SECTION_TITLES.caseStudy,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.caseStudyMarkdownFr,
-            fullWidth: true,
-            value: describeMarkdown(project.caseStudyMarkdownFr),
-          },
-          {
-            label: PROJECT_FIELD_LABELS.caseStudyMarkdownEn,
-            fullWidth: true,
-            value: describeMarkdown(project.caseStudyMarkdownEn),
-          },
-        ],
-      },
-      {
         title: PROJECT_SECTION_TITLES.publication,
         rows: [
-          {
-            label: PROJECT_FIELD_LABELS.startedAt,
-            value: formatShortDate(project.startedAt),
-          },
-          {
-            label: PROJECT_FIELD_LABELS.endedAt,
-            value: formatShortDate(project.endedAt),
-          },
+          { label: PROJECT_FIELD_LABELS.startedAt, value: formatShortDate(project.startedAt) },
+          { label: PROJECT_FIELD_LABELS.endedAt, value: formatShortDate(project.endedAt) },
           {
             label: PROJECT_FIELD_LABELS.duration,
-            fullWidth: true,
             value: formatProjectDuration(project.startedAt, project.endedAt),
           },
         ],
@@ -369,23 +330,9 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
         ],
       },
       {
-        title: PROJECT_SECTION_TITLES.cover,
-        rows: [
-          {
-            value: project.coverFilename ? (
-              <AssetPreviewLink assetKey={project.coverFilename} />
-            ) : null,
-          },
-        ],
-      },
-      {
         title: PROJECT_SECTION_TITLES.clientMeta,
         rows: [
-          {
-            label: PROJECT_FIELD_LABELS.companyId,
-            fullWidth: true,
-            value: clientMeta?.company.name,
-          },
+          { label: PROJECT_FIELD_LABELS.companyId, value: clientMeta?.company.name },
           {
             label: PROJECT_FIELD_LABELS.workMode,
             value: clientMeta ? workModeBadge(clientMeta) : null,
@@ -403,6 +350,34 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
           {
             label: PROJECT_FIELD_LABELS.deliverablesCount,
             value: clientMeta ? String(clientMeta.deliverablesCount) : null,
+          },
+        ],
+      },
+      {
+        title: PROJECT_SECTION_TITLES.description,
+        rows: [
+          {
+            label: PROJECT_FIELD_LABELS.descriptionFr,
+            value: project.descriptionFr,
+            fullWidth: true,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.descriptionEn,
+            value: project.descriptionEn,
+            fullWidth: true,
+          },
+        ],
+      },
+      {
+        title: PROJECT_SECTION_TITLES.caseStudy,
+        rows: [
+          {
+            label: PROJECT_FIELD_LABELS.caseStudyMarkdownFr,
+            value: describeMarkdown(project.caseStudyMarkdownFr),
+          },
+          {
+            label: PROJECT_FIELD_LABELS.caseStudyMarkdownEn,
+            value: describeMarkdown(project.caseStudyMarkdownEn),
           },
         ],
       },
