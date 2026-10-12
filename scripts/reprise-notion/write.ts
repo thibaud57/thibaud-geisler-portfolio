@@ -1,4 +1,4 @@
-import type { Company } from "@/generated/prisma/client"
+import type { Company, ProjectType } from "@/generated/prisma/client"
 import { OPTED_OUT_CLEARED } from "@/lib/persons"
 import { prisma } from "@/lib/prisma"
 import type { CompanyInput } from "@/lib/schemas/company"
@@ -6,12 +6,23 @@ import { retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 
 import type { Issue, Prepared } from "./import-file"
 
-type CompanyCrmFields = Pick<Company, "types" | "zones" | "relationStatus" | "notes" | "details">
+type CompanyCrmFields = Pick<
+  Company,
+  "types" | "zones" | "relationStatus" | "notes" | "details"
+> & {
+  clientMetas: { project: { type: ProjectType } }[]
+}
 
-// Valeurs par défaut du modèle : tant qu'elles y sont, rien n'a été saisi et Notion les remplace
+// Valeurs laissées par la migration du 02 (colonnes par défaut, plus son rattrapage qui type Client final toute
+// entreprise citée par un projet client et Ma société celle du propriétaire) : tant qu'elles y sont, rien n'a été saisi
 function hasDefaultCrmFields(company: CompanyCrmFields): boolean {
+  const citedByClientProject = company.clientMetas.some((meta) => meta.project.type === "CLIENT")
+  const backfilledTypes =
+    company.types.length === 1 &&
+    (company.types[0] === "MA_SOCIETE" ||
+      (company.types[0] === "CLIENT_FINAL" && citedByClientProject))
   return (
-    company.types.length === 0 &&
+    (company.types.length === 0 || backfilledTypes) &&
     company.zones.length === 0 &&
     company.relationStatus === "ACTIVE" &&
     company.notes === null &&
@@ -47,7 +58,14 @@ export async function checkDatabase(p: Prepared): Promise<Issue[]> {
   for (const { record, data } of p.companies) {
     const existing = await prisma.company.findUnique({
       where: { slug: record.existingSlug ?? data.slug },
-      select: { types: true, zones: true, relationStatus: true, notes: true, details: true },
+      select: {
+        types: true,
+        zones: true,
+        relationStatus: true,
+        notes: true,
+        details: true,
+        clientMetas: { select: { project: { select: { type: true } } } },
+      },
     })
     if (record.existingSlug === null) {
       if (existing) {
