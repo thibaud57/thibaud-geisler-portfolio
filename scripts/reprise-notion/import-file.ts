@@ -1,21 +1,22 @@
 import { z } from "zod"
 
-import { isEsn } from "@/lib/companies"
-import { optOutDeletesPerson } from "@/lib/persons"
-import { isRepliedStatus } from "@/lib/prospecting-action-status"
+import { isEsn } from "@/lib/crm/companies"
+import { optOutDeletesPerson } from "@/lib/crm/persons"
+import { isRepliedStatus } from "@/lib/crm/prospecting-action-status"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
 import { newContactSchema } from "@/lib/schemas/network-contact"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { leadSchema } from "@/lib/schemas/lead"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
-import { NONE_VALUE, personFields } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
+import { personFields } from "@/lib/schemas/person"
 import {
   prospectingActionSchema,
   type ProspectingActionInput,
 } from "@/lib/schemas/prospecting-action"
 import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { weeklyReviewSchema, type WeeklyReviewInput } from "@/lib/schemas/weekly-review"
-import { signalTypesFor } from "@/lib/signals"
+import { signalTypesFor } from "@/lib/crm/signals"
 
 const key = z.string().min(1)
 const optionalKey = key.nullable()

@@ -1,4 +1,4 @@
-import { ReviewsViewPage } from "@/components/features/admin/revues/ReviewsViewPage"
+import { ReviewsViewPage } from "@/components/features/admin/weekly-reviews/ReviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
 export default async function AdminReviewsCalendarPage() {

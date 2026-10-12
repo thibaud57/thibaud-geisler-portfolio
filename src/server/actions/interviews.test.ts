@@ -7,7 +7,7 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => {
   const client = {
-    interview: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    interview: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     opportunity: { findUnique: vi.fn() },
     person: { count: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   }
@@ -23,9 +23,9 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { NONE_VALUE } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
 
-import { createInterview, updateInterview } from "./interviews"
+import { createInterview, deleteInterview, updateInterview } from "./interviews"
 import { initialInterviewFormState } from "./interviews.types"
 
 const MEETING = new Date("2026-09-28T08:00:00.000Z")
@@ -284,5 +284,57 @@ describe("updateInterview", () => {
       }),
     )
     expect(prisma.interview.update).toHaveBeenCalled()
+  })
+})
+
+describe("interview deleted since the screen loaded", () => {
+  it("answers an update with interview_not_found and keeps the typed values", async () => {
+    vi.mocked(prisma.interview.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.interview.count).mockResolvedValueOnce(0)
+
+    const state = await updateInterview(
+      "i1",
+      initialInterviewFormState,
+      buildFormData({ notes: "À rappeler" }),
+    )
+
+    expect(state.ok).toBe(false)
+    expect(state.message).toBe("interview_not_found")
+    expect(state.values?.notes).toBe("À rappeler")
+  })
+
+  it("answers an update with unknown_error when the interview still exists", async () => {
+    vi.mocked(prisma.interview.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.interview.count).mockResolvedValueOnce(1)
+
+    const state = await updateInterview("i1", initialInterviewFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
+  it("answers a creation with unknown_error when a correspondent to attach vanished", async () => {
+    vi.mocked(prisma.interview.create).mockRejectedValueOnce({ code: "P2025" })
+
+    const state = await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
+  it("answers a delete with success", async () => {
+    vi.mocked(prisma.interview.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.interview.count).mockResolvedValueOnce(0)
+
+    const state = await deleteInterview("i1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers a delete with unknown_error when the interview still exists", async () => {
+    vi.mocked(prisma.interview.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.interview.count).mockResolvedValueOnce(1)
+
+    const state = await deleteInterview("i1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })

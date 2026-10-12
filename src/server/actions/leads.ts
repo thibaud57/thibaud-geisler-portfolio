@@ -10,6 +10,7 @@ import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-uti
 import {
   assertNewIdentity,
   assertNotOptedOut,
+  collectPersonValues,
   conflictErrors,
   deletePersonIfRoleless,
   PersonConflictError,
@@ -35,16 +36,7 @@ const LEAD_WORDING: DuplicateWording = {
 
 function collectValues(formData: FormData): LeadFormState["values"] {
   return {
-    name: stringField(formData, "name"),
-    jobRole: stringField(formData, "jobRole"),
-    zone: stringField(formData, "zone"),
-    companyId: stringField(formData, "companyId"),
-    email: stringField(formData, "email"),
-    phone: stringField(formData, "phone"),
-    linkedinUrl: stringField(formData, "linkedinUrl"),
-    metAt: stringField(formData, "metAt"),
-    notes: stringField(formData, "notes"),
-    details: stringField(formData, "details"),
+    ...collectPersonValues(formData),
     origin: stringField(formData, "origin"),
     status: stringField(formData, "status"),
     interest: stringField(formData, "interest"),
@@ -65,11 +57,6 @@ function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormSt
   if (err instanceof PersonLockedError) {
     return { ok: false, errors: {}, message: "lead_opted_out_locked", values }
   }
-  if (isPrismaError(err, "P2025")) {
-    // L'écran montrait une fiche déjà supprimée (autre onglet) : la revalidation le réaligne sur la base.
-    revalidatePersonLists()
-    return { ok: false, errors: {}, message: "lead_not_found", values }
-  }
   if (isPrismaError(err, "P2002")) {
     const constraint = violatedConstraint(err)
     const field: IdentityField = constraint.includes("email") ? "email" : "linkedinUrl"
@@ -88,11 +75,15 @@ function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormSt
   return null
 }
 
+const leadExists = (personId: string) =>
+  prisma.lead.count({ where: { personId } }).then((count) => count > 0)
+
 function saveLead(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   persist: (data: LeadInput) => Promise<{ personId: string }>,
+  updatedPersonId?: string,
 ): Promise<LeadFormState> {
   const values = collectValues(formData)
 
@@ -106,6 +97,13 @@ function saveLead(
     invalidateCaches: revalidatePersonLists,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedPersonId === undefined
+        ? undefined
+        : {
+            exists: () => leadExists(updatedPersonId),
+            state: () => ({ ok: false, errors: {}, message: "lead_not_found", values }),
+          },
     mapError: (err) => mapLeadError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -159,6 +157,7 @@ export async function updateLead(
         return tx.lead.update({ where: { personId }, data: lead })
       })
     },
+    personId,
   )
 }
 
@@ -169,6 +168,7 @@ export async function deleteLead(personId: string): Promise<LeadFormState> {
     actionName: "deleteLead",
     events: { success: "lead:deleted", failure: "lead:delete_failed" },
     successLogFields: { personId },
+    exists: () => leadExists(personId),
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await assertNotOptedOut(tx, personId)
@@ -181,11 +181,6 @@ export async function deleteLead(personId: string): Promise<LeadFormState> {
     mapError: (err) => {
       if (err instanceof PersonLockedError) {
         return { ok: false, errors: {}, message: "lead_opted_out_locked" }
-      }
-      if (isPrismaError(err, "P2025")) {
-        // L'écran montrait une ligne déjà supprimée (double clic, autre onglet) : la revalidation le réaligne sur la base.
-        revalidatePersonLists()
-        return { ok: false, errors: {}, message: "lead_not_found" }
       }
       return null
     },

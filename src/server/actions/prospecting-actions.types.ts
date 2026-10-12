@@ -1,7 +1,8 @@
 import type { FormActionState } from "@/lib/form-state"
 import type { ProspectingActionInput } from "@/lib/schemas/prospecting-action"
 
-export type ProspectingActionFormMessage = "person_not_found" | "unknown_error" | null
+export type ProspectingActionFormMessage =
+  "person_not_found" | "prospecting_action_not_found" | "unknown_error" | null
 
 export type ProspectingActionFormState = FormActionState<
   ProspectingActionInput,

@@ -6,12 +6,19 @@ import type { Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { attachContactSchema, newContactSchema } from "@/lib/schemas/network-contact"
-import { isPrismaError, stringField, stringValues, violatedConstraint } from "@/lib/server-utils"
+import {
+  createActionLogger,
+  isPrismaError,
+  stringField,
+  stringValues,
+  violatedConstraint,
+} from "@/lib/server-utils"
 import { findAttachableLead, type AttachableLead } from "@/server/queries/persons"
 
 import {
   assertNewIdentity,
   assertNotOptedOut,
+  collectPersonValues,
   conflictErrors,
   deletePersonIfRoleless,
   optOutMessage,
@@ -45,16 +52,7 @@ const CONTACT_CREATE_WORDING: DuplicateWording = {
 function collectValues(formData: FormData): ContactFormState["values"] {
   return {
     personId: stringField(formData, "personId"),
-    name: stringField(formData, "name"),
-    jobRole: stringField(formData, "jobRole"),
-    zone: stringField(formData, "zone"),
-    companyId: stringField(formData, "companyId"),
-    email: stringField(formData, "email"),
-    phone: stringField(formData, "phone"),
-    linkedinUrl: stringField(formData, "linkedinUrl"),
-    metAt: stringField(formData, "metAt"),
-    notes: stringField(formData, "notes"),
-    details: stringField(formData, "details"),
+    ...collectPersonValues(formData),
     types: stringValues(formData, "types"),
     status: stringField(formData, "status"),
   }
@@ -108,11 +106,6 @@ function mapContactError(
   }
   if (err instanceof PersonLockedError) {
     return { ok: false, errors: {}, message: "contact_opted_out_locked", values }
-  }
-  if (isPrismaError(err, "P2025")) {
-    // L'écran montrait une fiche déjà supprimée (autre onglet) : la revalidation le réaligne sur la base.
-    revalidatePersonLists()
-    return { ok: false, errors: {}, message: "contact_not_found", values }
   }
   if (isPrismaError(err, "P2002")) {
     const constraint = violatedConstraint(err)
@@ -170,6 +163,9 @@ function sharedHandlers(values: ContactFormState["values"]) {
   }
 }
 
+const contactExists = (personId: string) =>
+  prisma.contact.count({ where: { personId } }).then((count) => count > 0)
+
 export async function createContact(
   _prevState: ContactFormState,
   formData: FormData,
@@ -213,7 +209,7 @@ export async function createContact(
 export async function findLeadForContactAttach(personId: string): Promise<AttachableLead | null> {
   await getCurrentUser()
 
-  return findAttachableLead(personId)
+  return createActionLogger("findLeadForContactAttach", () => findAttachableLead(personId))
 }
 
 export async function updateContact(
@@ -238,6 +234,10 @@ export async function updateContact(
         await tx.person.update({ where: { id: personId }, data: person })
         return tx.contact.update({ where: { personId }, data: { types, status } })
       }),
+    notFound: {
+      exists: () => contactExists(personId),
+      state: () => ({ ok: false, errors: {}, message: "contact_not_found", values }),
+    },
     ...sharedHandlers(values),
   })
 }
@@ -249,6 +249,7 @@ export async function deleteContact(personId: string): Promise<ContactFormState>
     actionName: "deleteContact",
     events: { success: "contact:deleted", failure: "contact:delete_failed" },
     successLogFields: { personId },
+    exists: () => contactExists(personId),
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await tx.contact.delete({ where: { personId } })
@@ -256,12 +257,6 @@ export async function deleteContact(personId: string): Promise<ContactFormState>
       }),
     invalidateCaches: revalidatePersonLists,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: (err) => {
-      if (!isPrismaError(err, "P2025")) return null
-      // L'écran montrait une ligne déjà supprimée (double clic, autre onglet) : la revalidation le réaligne sur la base.
-      revalidatePersonLists()
-      return { ok: false, errors: {}, message: "contact_not_found" }
-    },
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

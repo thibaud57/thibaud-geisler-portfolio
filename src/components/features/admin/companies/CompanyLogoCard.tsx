@@ -4,9 +4,9 @@ import { useState, useTransition } from "react"
 import { Globe } from "lucide-react"
 
 import { AssetField } from "@/components/features/admin/assets/AssetField"
+import { FormCard } from "@/components/features/admin/form/FormCard"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { COMPANY_SECTION_TITLES } from "@/lib/companies"
+import { COMPANY_SECTION_TITLES } from "@/lib/crm/companies"
 import { fetchCompanyLogo } from "@/server/actions/company-logo"
 import type { CompanyLogoFailure } from "@/server/actions/company-logo.types"
 import type { CompanyLogo } from "@/server/company-logo/fetch-company-logo"
@@ -80,41 +80,36 @@ export function CompanyLogoCard({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{COMPANY_SECTION_TITLES.logo}</CardTitle>
-        <CardDescription>
-          Choisi parmi les logos déposés dans l&apos;espace Assets, ou récupéré depuis le site web.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <AssetField
-          name="logoFilename"
-          value={logoFilename}
-          onChange={handlePick}
-          assets={logoAssets}
-          picker={{
-            title: "Choisir un logo",
-            description: "Une image du dossier entreprises. Le dépôt se fait depuis Assets.",
-            triggerLabel: "Choisir un logo",
-          }}
-          sizes="(min-width: 1024px) 35vw, 100vw"
-          caption={caption}
-          actions={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!canFetch}
-              onClick={handleFetch}
-            >
-              <Globe aria-hidden data-icon="inline-start" />
-              {fetching ? "Récupération…" : "Récupérer depuis le site"}
-            </Button>
-          }
-          error={fetchError ?? error}
-        />
-      </CardContent>
-    </Card>
+    <FormCard
+      title={COMPANY_SECTION_TITLES.logo}
+      description="Choisi parmi les logos déposés dans l'espace Assets, ou récupéré depuis le site web."
+    >
+      <AssetField
+        name="logoFilename"
+        value={logoFilename}
+        onChange={handlePick}
+        assets={logoAssets}
+        picker={{
+          title: "Choisir un logo",
+          description: "Une image du dossier entreprises. Le dépôt se fait depuis Assets.",
+          triggerLabel: "Choisir un logo",
+        }}
+        sizes="(min-width: 1024px) 35vw, 100vw"
+        caption={caption}
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canFetch}
+            onClick={handleFetch}
+          >
+            <Globe aria-hidden data-icon="inline-start" />
+            {fetching ? "Récupération…" : "Récupérer depuis le site"}
+          </Button>
+        }
+        error={fetchError ?? error}
+      />
+    </FormCard>
   )
 }

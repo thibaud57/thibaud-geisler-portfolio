@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
-import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
+import { DetailDialog } from "@/components/features/admin/detail/DetailDialog"
+import { DisabledAddButton } from "@/components/features/admin/detail/PendingRelatedCard"
+import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { SignalFormDialog } from "@/components/features/admin/signals/SignalFormDialog"
-import { signalRelatedRows } from "@/components/features/admin/signals/SignalList"
-import type { SignalItem, SignalOwner } from "@/lib/signals"
+import { signalRelatedRows } from "@/components/features/admin/signals/signal-rows"
+import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
+import { SIGNAL_SECTION_TITLES, type SignalItem, type SignalOwner } from "@/lib/crm/signals"
 
 interface Props {
   signals: readonly SignalItem[]
@@ -15,28 +18,35 @@ interface Props {
 
 export function SignalsCard({ signals, owner, canAdd }: Props) {
   const [now] = useState(() => new Date())
-  // Un instantané survit à la disparition de la ligne : le toast « Ce signal n'existe plus » s'affiche depuis la modale, qui ne doit pas être démontée avec elle.
-  const [editing, setEditing] = useState<SignalItem | null>(null)
+  const { openSignal, editSignal, detailFor, reset, formDialog } = useSignalDetail(now)
+  const detail = useMemo(() => detailFor(owner), [detailFor, owner])
 
   return (
     <>
       <RelatedLinksCard
-        title="Signaux"
-        links={signalRelatedRows(signals, now, { onEdit: setEditing })}
+        title={SIGNAL_SECTION_TITLES.signals}
+        links={signalRelatedRows(signals, now, {
+          onOpen: openSignal,
+          onEdit: (signal) => {
+            editSignal(owner, signal)
+          },
+        })}
         emptyText="Aucun signal."
-        action={canAdd ? <SignalFormDialog owner={owner} signal={null} /> : null}
+        action={
+          canAdd ? (
+            <SignalFormDialog owner={owner} signal={null} />
+          ) : (
+            <DisabledAddButton label="Nouveau signal" />
+          )
+        }
       />
-      {editing ? (
-        <SignalFormDialog
-          key={editing.id}
-          owner={owner}
-          signal={editing}
-          open
-          onOpenChange={(open) => {
-            if (!open) setEditing(null)
-          }}
-        />
-      ) : null}
+      <DetailDialog
+        detail={detail}
+        onOpenChange={(open) => {
+          if (!open) reset()
+        }}
+      />
+      {formDialog}
     </>
   )
 }

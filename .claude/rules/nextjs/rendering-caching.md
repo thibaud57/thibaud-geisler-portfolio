@@ -2,6 +2,8 @@
 paths:
   - "src/app/**/{page,layout}.tsx"
   - "src/server/**/*.ts"
+  - "src/lib/legal/load-legal-content.ts"
+  - "next.config.ts"
 ---
 
 # Next.js — Rendering & Caching

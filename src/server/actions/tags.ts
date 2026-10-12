@@ -104,11 +104,14 @@ interface SaveTagEvents {
   failure: string
 }
 
+const tagExists = (id: string) => prisma.tag.count({ where: { id } }).then((count) => count > 0)
+
 function saveTag(
   actionName: string,
   events: SaveTagEvents,
   formData: FormData,
   persist: (data: TagInput) => Promise<unknown>,
+  updatedId?: string,
 ): Promise<TagFormState> {
   return saveEntity<TagInput, TagFormState, unknown>({
     actionName,
@@ -120,6 +123,13 @@ function saveTag(
     invalidateCaches: invalidateTagCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => tagExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "tag_not_found" }),
+          },
     mapError: (err) =>
       isPrismaError(err, "P2002")
         ? { ok: false, errors: { slug: ["Ce slug est déjà utilisé."] }, message: "slug_taken" }
@@ -156,6 +166,7 @@ export async function updateTag(
     { success: "tag:updated", failure: "tag:update_failed" },
     formData,
     (data) => updateTagWithReorder(id, data),
+    id,
   )
 }
 
@@ -166,6 +177,7 @@ export async function deleteTag(id: string): Promise<TagDeleteState> {
     actionName: "deleteTag",
     events: { success: "tag:deleted", failure: "tag:delete_failed" },
     successLogFields: { id },
+    exists: () => tagExists(id),
     destroy: () => deleteTagWithReorder(id),
     invalidateCaches: invalidateTagCaches,
     onSuccess: () => ({ ok: true, message: null }),

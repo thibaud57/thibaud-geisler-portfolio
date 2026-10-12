@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { CAPITAL_CURRENCIES, LEGAL_FORMS, VAT_REGIMES } from "@/lib/legal-entities"
+import { CAPITAL_CURRENCIES, LEGAL_FORMS, VAT_REGIMES } from "@/lib/crm/legal-entities"
 import {
   emptyToNull,
   NONE_VALUE,

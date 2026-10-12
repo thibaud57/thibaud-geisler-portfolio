@@ -7,8 +7,9 @@ import {
   ADMIN_INTERVIEWS_PATH,
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
-} from "@/lib/admin-routes"
+} from "@/lib/admin/routes"
 import { formatShortInstantDate } from "@/lib/date-time"
+import { stringField } from "@/lib/server-utils"
 
 import { PersonLockedError } from "./persons.types"
 
@@ -17,6 +18,21 @@ export type IdentityField = "email" | "linkedinUrl"
 export type ConflictField = IdentityField | "personId"
 
 export type PersonRole = "lead" | "contact"
+
+export function collectPersonValues(formData: FormData) {
+  return {
+    name: stringField(formData, "name"),
+    jobRole: stringField(formData, "jobRole"),
+    zone: stringField(formData, "zone"),
+    companyId: stringField(formData, "companyId"),
+    email: stringField(formData, "email"),
+    phone: stringField(formData, "phone"),
+    linkedinUrl: stringField(formData, "linkedinUrl"),
+    metAt: stringField(formData, "metAt"),
+    notes: stringField(formData, "notes"),
+    details: stringField(formData, "details"),
+  }
+}
 
 interface IdentityConflict {
   field: IdentityField

@@ -4,6 +4,7 @@ import "server-only"
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
+import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { computeIdsAtPosition, renumberEntities, sameIdSet } from "@/lib/reorder"
@@ -50,7 +51,7 @@ function collectValues(formData: FormData): ProjectFormState["values"] {
 
 function invalidateProjectCaches(): void {
   updateCacheTag("projects")
-  revalidatePath("/admin/projets")
+  revalidatePath(ADMIN_PROJECTS_PATH)
 }
 
 // Champs du projet lui-même, séparés de ceux qui alimentent ClientMeta : Prisma refuserait
@@ -194,11 +195,15 @@ interface SaveProjectEvents {
   failure: string
 }
 
+const projectExists = (id: string) =>
+  prisma.project.count({ where: { id } }).then((count) => count > 0)
+
 function saveProject(
   actionName: string,
   events: SaveProjectEvents,
   formData: FormData,
   persist: (input: ProjectInput) => Promise<string>,
+  updatedId?: string,
 ): Promise<ProjectFormState> {
   const values = collectValues(formData)
 
@@ -212,6 +217,13 @@ function saveProject(
     invalidateCaches: invalidateProjectCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => projectExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "project_not_found", values }),
+          },
     mapError: (err) => mapConstraintViolation(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -245,6 +257,7 @@ export async function updateProject(
     { success: "project:updated", failure: "project:update_failed" },
     formData,
     (input) => updateProjectWithRelations(id, input),
+    id,
   )
 }
 
@@ -255,6 +268,7 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
     actionName: "deleteProject",
     events: { success: "project:deleted", failure: "project:delete_failed" },
     successLogFields: { id },
+    exists: () => projectExists(id),
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await tx.project.delete({ where: { id } })
@@ -271,7 +285,6 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
       }),
     invalidateCaches: invalidateProjectCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

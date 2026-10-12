@@ -4,12 +4,12 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 
 import type { Prisma, SignalType } from "@/generated/prisma/client"
-import { ADMIN_COMPANIES_PATH, ADMIN_LEADS_PATH } from "@/lib/admin-routes"
+import { ADMIN_COMPANIES_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
-import { signalTypesFor, type SignalOwnerKind } from "@/lib/signals"
+import { signalTypesFor, type SignalOwnerKind } from "@/lib/crm/signals"
 
 import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
 import type { SignalFormState } from "./signals.types"
@@ -58,10 +58,12 @@ function mapSignalError(err: unknown, values: SignalFormState["values"]): Signal
     if (err.reason === "type_mismatch") {
       return { ok: false, errors: { type: [TYPE_MISMATCH] }, message: null, values }
     }
-    if (err.reason === "signal_not_found") return signalGone(values)
+    if (err.reason === "signal_not_found") {
+      invalidateSignalCaches()
+      return signalGone(values)
+    }
     return { ok: false, errors: {}, message: "lead_not_eligible", values }
   }
-  if (isPrismaError(err, "P2025")) return signalGone(values)
   if (isPrismaError(err, "P2003") && violatedConstraint(err).includes("companyId")) {
     invalidateSignalCaches()
     return { ok: false, errors: {}, message: "company_not_found", values }
@@ -69,17 +71,19 @@ function mapSignalError(err: unknown, values: SignalFormState["values"]): Signal
   return null
 }
 
-// L'écran montrait un signal déjà supprimé (double clic, autre onglet) : la revalidation le réaligne sur la base.
 function signalGone(values?: SignalFormState["values"]): SignalFormState {
-  invalidateSignalCaches()
   return { ok: false, errors: {}, message: "signal_not_found", ...(values ? { values } : {}) }
 }
+
+const signalExists = (id: string) =>
+  prisma.signal.count({ where: { id } }).then((count) => count > 0)
 
 function saveSignal(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   persist: (data: SignalInput) => Promise<{ id: string }>,
+  updatedId?: string,
 ): Promise<SignalFormState> {
   const values = collectValues(formData)
 
@@ -93,6 +97,10 @@ function saveSignal(
     invalidateCaches: invalidateSignalCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : { exists: () => signalExists(updatedId), state: () => signalGone(values) },
     mapError: (err) => mapSignalError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -159,6 +167,7 @@ export async function updateSignal(
       assertTypeFits(current.companyId ? "company" : "lead", data.type)
       return prisma.signal.update({ where: { id }, data })
     },
+    id,
   )
 }
 
@@ -169,10 +178,10 @@ export async function deleteSignal(id: string): Promise<SignalFormState> {
     actionName: "deleteSignal",
     events: { success: "signal:deleted", failure: "signal:delete_failed" },
     successLogFields: { id },
+    exists: () => signalExists(id),
     destroy: () => prisma.signal.delete({ where: { id } }),
     invalidateCaches: invalidateSignalCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: (err) => (isPrismaError(err, "P2025") ? signalGone() : null),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

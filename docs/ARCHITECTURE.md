@@ -212,50 +212,46 @@ Routing file-based via Next.js App Router, pas de librairie de navigation extern
 ```
 src/
 ├── app/                          # App Router
-│   ├── [locale]/                 # Segment dynamique next-intl (FR/EN), obligatoire pour routing localisé
-│   │   ├── (public)/             # Route group pages publiques
-│   │   │   ├── page.tsx          # Accueil
-│   │   │   ├── services/
-│   │   │   ├── projets/
-│   │   │   │   └── [slug]/       # Case study
-│   │   │   ├── a-propos/
-│   │   │   ├── contact/
-│   │   │   ├── mentions-legales/
-│   │   │   ├── confidentialite/
-│   │   │   └── opengraph-image.tsx   # Image OG par page (idem sur projets/[slug]/)
-│   │   ├── layout.tsx            # Root layout (<html>/<body>) : next-intl impose sa place sous [locale]
-│   │   ├── error.tsx
-│   │   ├── loading.tsx
-│   │   └── not-found.tsx
-│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), avec son propre
-│   │                             # root layout (second <html> du dépôt) ; login/ hors garde, (protected)/ gardé
-│   ├── api/                      # API routes (hors [locale]) : assets, auth, health
-│   ├── sitemap.ts                # SEO : sitemap, robots, llms.txt
-│   ├── robots.ts
-│   ├── llms.txt/
-│   ├── global-error.tsx          # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
-│   ├── global-not-found.tsx
+│   ├── [locale]/                 # Site public FR/EN. Root layout (<html>/<body>) ici : next-intl impose sa place
+│   │   │                         # sous [locale] ; error, loading, not-found
+│   │   └── (public)/             # Accueil, services, projets/[slug] (case study), a-propos, contact,
+│   │                             # mentions-legales, confidentialite ; un opengraph-image.tsx par page
+│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), second root layout
+│   │                             # du dépôt ; login/ hors garde, (protected)/ gardé, une route par entité
+│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health
+│   ├── sitemap.ts, robots.ts, llms.txt/          # SEO
+│   ├── global-error.tsx, global-not-found.tsx    # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
 │   └── providers.tsx             # Providers client (c15t Consent Manager, Toaster sonner)
 ├── components/
-│   ├── ui/                       # Composants UI primitifs (shadcn)
-│   ├── magicui/                  # Effets visuels Magic UI
-│   ├── aceternity/               # Effets visuels Aceternity UI
-│   ├── cookies/                  # Composants liés au consentement c15t
-│   ├── markdown/                 # Rendu des contenus légaux en markdown
-│   ├── seo/                      # JSON-LD
-│   ├── layout/                   # Navbar, footer, switchers
-│   └── features/                 # Composants métier par domaine
-├── config/                       # Données de config statiques (nav-items, social-links, expertise)
-├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
-├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email), admin-routes.ts (chemins admin), get-current-user.ts (garde de session)
-├── server/                       # Server Actions + queries Prisma + config serveur
-│   ├── actions/
-│   ├── config/
-│   └── queries/
+│   ├── ui/                       # Primitives shadcn
+│   ├── magicui/, aceternity/     # Effets visuels
+│   ├── reui/                     # Kanban et agenda mensuel (ReUI)
+│   ├── layout/                   # public/ (navbar, footer), admin/ (barre latérale, en-tête, coque de page),
+│   │                             # partagés à la racine (logo, thème)
+│   ├── features/                 # Composants métier
+│   │   ├── public/               # Un dossier par page du site
+│   │   └── admin/                # Un dossier par entité, nommé comme son module de lib/ et server/ ;
+│   │                             # composants communs rangés par rôle : form/, table/, detail/
+│   └── cookies/, markdown/, seo/ # Consentement c15t, rendu des contenus légaux, JSON-LD
+├── config/                       # Données statiques : navigations publique et admin, réseaux, expertise
+├── hooks/                        # Hooks client partagés (formulaires admin, recherche à facettes, mobile, locale)
+├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content)
+├── lib/
+│   ├── crm/                      # Métier CRM : libellés, vues, rangs, calendriers, statuts déduits, par entité
+│   ├── admin/                    # Outillage d'écran admin : routes, largeurs de colonnes, facettes, recherche, pagination
+│   ├── schemas/                  # Schémas Zod partagés client et serveur
+│   ├── seo/, legal/, cookies/    # OG et metadata, chargement du markdown légal, liens légaux c15t
+│   └── *.ts                      # Infra (Better Auth, garde de session, whitelist email, Prisma, R2, Pino, mailer),
+│                                 # utilitaires, portfolio (projets, tags, assets)
+├── server/
+│   ├── actions/, queries/        # Server Actions et lectures Prisma, un fichier par entité
+│   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   └── config/                   # Config serveur des assets
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Types TypeScript partagés
+├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)
+├── instrumentation-client.ts     # Init Sentry côté navigateur
 └── proxy.ts                      # Routing i18n, sauf /admin : redirection vers /admin/login sans cookie de session.
                                   # Les security headers sont dans next.config.ts
 ```

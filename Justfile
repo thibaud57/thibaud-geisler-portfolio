@@ -40,7 +40,7 @@ dev-login FILE:
 # Reprise unique du CRM Notion dans la DB de dev : simulation par défaut, --write pour écrire
 [group('db')]
 reprise-notion FILE *FLAGS:
-    # Pas de condition react-server (dev-login) : @/lib/weekly-reviews importe lucide-react, qui y lève. Le tsconfig du script résout server-only vers le mock vide du projet
+    # Pas de condition react-server (dev-login) : @/lib/crm/weekly-reviews importe lucide-react, qui y lève. Le tsconfig du script résout server-only vers le mock vide du projet
     pnpm exec tsx --tsconfig scripts/reprise-notion/tsconfig.tsx.json scripts/reprise-notion/index.ts "{{ FILE }}" {{ FLAGS }}
 
 # ── Quality ───────────────────────────────────────────────────────────────────

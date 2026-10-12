@@ -3,6 +3,7 @@ paths:
   - "src/lib/fonts.ts"
   - "src/app/**/layout.tsx"
   - "src/app/**/opengraph-image.*"
+  - "src/lib/seo/og-*.{ts,tsx}"
   - "src/app/globals.css"
 ---
 

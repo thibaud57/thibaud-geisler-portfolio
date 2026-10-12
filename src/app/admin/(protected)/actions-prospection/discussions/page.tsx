@@ -1,4 +1,4 @@
-import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
+import { ActionsViewPage } from "@/components/features/admin/prospecting-actions/ActionsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
 export default async function AdminActionsDiscussionsPage() {

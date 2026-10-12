@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 
-import type { FacetFilterGroup } from "@/components/features/admin/FacetFilter"
-import { paginate, type PaginationResult } from "@/lib/pagination"
+import type { FacetFilterGroup } from "@/components/features/admin/table/FacetFilter"
+import { paginate, type PaginationResult } from "@/lib/admin/pagination"
 
 export interface FacetOption {
   value: string

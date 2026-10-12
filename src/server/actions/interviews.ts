@@ -4,7 +4,7 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { ADMIN_COMPANIES_PATH } from "@/lib/admin-routes"
+import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
@@ -143,11 +143,15 @@ function mapInterviewError(
   return { ok: false, errors, message: err.code, values }
 }
 
+const interviewExists = (id: string) =>
+  prisma.interview.count({ where: { id } }).then((count) => count > 0)
+
 function saveInterview(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   persist: (data: InterviewInput) => Promise<{ id: string }>,
+  updatedId?: string,
 ): Promise<InterviewFormState> {
   const values = collectValues(formData)
 
@@ -161,6 +165,13 @@ function saveInterview(
     invalidateCaches: invalidateInterviewCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => interviewExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "interview_not_found", values }),
+          },
     mapError: (err) => mapInterviewError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -212,6 +223,7 @@ export async function updateInterview(
         })
       })
     },
+    id,
   )
 }
 
@@ -222,10 +234,10 @@ export async function deleteInterview(id: string): Promise<InterviewFormState> {
     actionName: "deleteInterview",
     events: { success: "interview:deleted", failure: "interview:delete_failed" },
     successLogFields: { id },
+    exists: () => interviewExists(id),
     destroy: () => prisma.interview.delete({ where: { id } }),
     invalidateCaches: invalidateInterviewCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

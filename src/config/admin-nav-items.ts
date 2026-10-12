@@ -30,7 +30,7 @@ import {
   ADMIN_INTERVIEWS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
   ADMIN_WEEKLY_REVIEWS_PATH,
-} from "@/lib/admin-routes"
+} from "@/lib/admin/routes"
 import { LinkedinIcon } from "@/lib/icons"
 
 // LinkedinIcon (src/lib/icons.tsx) n'est pas un LucideIcon (Simple Icons a retiré ce logo) : type
@@ -64,9 +64,9 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
         icon: FolderKanban,
         href: "/admin/projets",
         subItems: [
-          { label: "Tous", href: "/admin/projets" },
           { label: "Clients", href: "/admin/projets/client" },
           { label: "Perso", href: "/admin/projets/perso" },
+          { label: "Tous", href: "/admin/projets" },
         ],
       },
       { label: "Tags", icon: Tags, href: "/admin/tags" },
@@ -88,10 +88,10 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
         icon: Building2,
         href: "/admin/entreprises",
         subItems: [
-          { label: "Toutes", href: "/admin/entreprises" },
           { label: "Travaillées", href: "/admin/entreprises/travaillees" },
           { label: "Recrutement", href: "/admin/entreprises/recrutement" },
           { label: "Prospects", href: "/admin/entreprises/prospects" },
+          { label: "Toutes", href: "/admin/entreprises" },
         ],
       },
       {
@@ -186,6 +186,14 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
     ],
   },
 ]
+
+// La première sous-entrée est la vue d'arrivée : la racine reste la vue complète, seule cible des liens ?detail=.
+export function entryHref({
+  href,
+  subItems,
+}: Pick<AdminNavItem, "subItems"> & { href: Route }): Route {
+  return subItems?.[0]?.href ?? href
+}
 
 export function isAdminNavItemActive(pathname: string, href: string) {
   // "/admin" (Accueil) est un préfixe de toute route admin : un match préfixe l'allumerait partout.

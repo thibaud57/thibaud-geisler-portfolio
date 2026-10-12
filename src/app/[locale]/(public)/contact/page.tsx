@@ -13,12 +13,12 @@ import { buildContactPage } from "@/lib/seo/json-ld"
 import { LINK_CLASS } from "@/lib/typography"
 import { JsonLd } from "@/components/seo/json-ld"
 
-import { CalendlyWidget } from "@/components/features/contact/CalendlyWidget"
-import { ContactForm } from "@/components/features/contact/ContactForm"
-import { ContactTabs } from "@/components/features/contact/ContactTabs"
-import { LocationLine } from "@/components/features/contact/LocationLine"
-import { SocialLinks } from "@/components/features/contact/SocialLinks"
-import { PageShell } from "@/components/layout/PageShell"
+import { CalendlyWidget } from "@/components/features/public/contact/CalendlyWidget"
+import { ContactForm } from "@/components/features/public/contact/ContactForm"
+import { ContactTabs } from "@/components/features/public/contact/ContactTabs"
+import { LocationLine } from "@/components/features/public/contact/LocationLine"
+import { SocialLinks } from "@/components/features/public/contact/SocialLinks"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 
 const PREFILL_SLUGS = ["ia", "fullstack", "formation"] as const

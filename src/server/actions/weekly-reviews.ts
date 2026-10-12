@@ -3,10 +3,10 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import { ADMIN_WEEKLY_REVIEWS_PATH } from "@/lib/admin-routes"
+import { ADMIN_WEEKLY_REVIEWS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { countWeek, weekBounds } from "@/lib/review-counters"
+import { countWeek, weekBounds } from "@/lib/crm/review-counters"
 import { weeklyReviewSchema, type WeeklyReviewInput } from "@/lib/schemas/weekly-review"
 import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
 import {
@@ -14,7 +14,7 @@ import {
   isoDayToDate,
   REVIEW_COUNTER_KEYS,
   type ReviewCounts,
-} from "@/lib/weekly-reviews"
+} from "@/lib/crm/weekly-reviews"
 import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
 import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
@@ -64,11 +64,15 @@ function mapReviewError(
   return null
 }
 
+const reviewExists = (id: string) =>
+  prisma.weeklyReview.count({ where: { id } }).then((count) => count > 0)
+
 function saveReview(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   persist: (data: WeeklyReviewInput) => Promise<{ id: string }>,
+  updatedId?: string,
 ): Promise<WeeklyReviewFormState> {
   const values = collectValues(formData)
 
@@ -84,6 +88,13 @@ function saveReview(
     },
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => reviewExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "weekly_review_not_found", values }),
+          },
     mapError: (err) => mapReviewError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -122,6 +133,7 @@ export async function updateWeeklyReview(
       await assertFreeWeek(data.closingFriday, id)
       return prisma.weeklyReview.update({ where: { id }, data })
     },
+    id,
   )
 }
 
@@ -132,12 +144,12 @@ export async function deleteWeeklyReview(id: string): Promise<WeeklyReviewFormSt
     actionName: "deleteWeeklyReview",
     events: { success: "weekly_review:deleted", failure: "weekly_review:delete_failed" },
     successLogFields: { id },
+    exists: () => reviewExists(id),
     destroy: () => prisma.weeklyReview.delete({ where: { id } }),
     invalidateCaches: () => {
       revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
     },
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

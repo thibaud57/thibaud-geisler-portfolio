@@ -1,38 +1,36 @@
-import { Suspense } from "react"
-
-import { InterviewForm } from "@/components/features/admin/entretiens/InterviewForm"
-import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
-import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
-import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin-routes"
-import { INTERVIEW_PAGE_SKELETON } from "@/lib/admin-table-widths"
+import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
+import { InterviewForm } from "@/components/features/admin/interviews/InterviewForm"
+import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
+import { firstParam } from "@/lib/admin/search-params"
+import { INTERVIEW_PAGE_SKELETON } from "@/lib/admin/table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findOpportunityOptions } from "@/server/queries/opportunities"
 import { findPersonOptions } from "@/server/queries/persons"
 
-interface SectionProps {
-  searchParams: Promise<{ opportunity?: string }>
-}
+type SearchParams = PageProps<"/admin/entretiens/nouveau">["searchParams"]
 
-async function NewInterviewSection({ searchParams }: SectionProps) {
+async function NewInterviewSection({ searchParams }: { searchParams: SearchParams }) {
   const [{ opportunity }, opportunityOptions, personOptions, companyOptions] = await Promise.all([
     searchParams,
     findOpportunityOptions(),
     findPersonOptions(),
     findCompanyOptions(),
   ])
-  const defaultOpportunityId = opportunityOptions.some((option) => option.id === opportunity)
-    ? opportunity
+  const requestedOpportunityId = firstParam(opportunity)
+  const defaultOpportunityId = opportunityOptions.some(
+    (option) => option.id === requestedOpportunityId,
+  )
+    ? requestedOpportunityId
     : undefined
 
   return (
-    <div className="flex flex-col gap-6">
-      <AdminBreadcrumb
-        items={[
-          { label: "Entretiens", href: ADMIN_INTERVIEWS_PATH },
-          { label: "Nouvel entretien" },
-        ]}
-      />
+    <AdminFormContent
+      breadcrumb={[
+        { label: "Entretiens", href: ADMIN_INTERVIEWS_PATH },
+        { label: "Nouvel entretien" },
+      ]}
+    >
       <InterviewForm
         interview={null}
         defaultOpportunityId={defaultOpportunityId}
@@ -40,18 +38,18 @@ async function NewInterviewSection({ searchParams }: SectionProps) {
         personOptions={personOptions}
         companyOptions={companyOptions}
       />
-    </div>
+    </AdminFormContent>
   )
 }
 
-export default async function NewInterviewPage({ searchParams }: SectionProps) {
+export default async function NewInterviewPage({
+  searchParams,
+}: PageProps<"/admin/entretiens/nouveau">) {
   await getCurrentUser()
 
   return (
-    <div className="w-full px-4 py-6 md:px-6 lg:py-8">
-      <Suspense fallback={<StackedSkeleton heights={INTERVIEW_PAGE_SKELETON} />}>
-        <NewInterviewSection searchParams={searchParams} />
-      </Suspense>
-    </div>
+    <AdminFormPage skeleton={INTERVIEW_PAGE_SKELETON}>
+      <NewInterviewSection searchParams={searchParams} />
+    </AdminFormPage>
   )
 }

@@ -7,7 +7,13 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    opportunity: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    opportunity: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+      count: vi.fn(),
+    },
     company: { findUnique: vi.fn() },
   },
 }))
@@ -15,9 +21,9 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { NONE_VALUE } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
 
-import { createOpportunity, updateOpportunity } from "./opportunities"
+import { createOpportunity, deleteOpportunity, updateOpportunity } from "./opportunities"
 import { initialOpportunityFormState } from "./opportunities.types"
 
 const BASE_FIELDS = {
@@ -244,5 +250,45 @@ describe("updateOpportunity", () => {
 
     expect(state.ok).toBe(true)
     expect(prisma.opportunity.update).toHaveBeenCalled()
+  })
+})
+
+describe("opportunity deleted since the screen loaded", () => {
+  it("answers an update with opportunity_not_found and keeps the typed values", async () => {
+    vi.mocked(prisma.opportunity.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(0)
+
+    const state = await updateOpportunity("o1", initialOpportunityFormState, buildFormData())
+
+    expect(state.ok).toBe(false)
+    expect(state.message).toBe("opportunity_not_found")
+    expect(state.values?.title).toBe("Refonte d'application")
+  })
+
+  it("answers an update with unknown_error when the opportunity still exists", async () => {
+    vi.mocked(prisma.opportunity.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(1)
+
+    const state = await updateOpportunity("o1", initialOpportunityFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
+  it("answers a delete with success", async () => {
+    vi.mocked(prisma.opportunity.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(0)
+
+    const state = await deleteOpportunity("o1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers a delete with unknown_error when the opportunity still exists", async () => {
+    vi.mocked(prisma.opportunity.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(1)
+
+    const state = await deleteOpportunity("o1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })

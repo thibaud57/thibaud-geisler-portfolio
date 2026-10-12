@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Tags } from "lucide-react"
 
 import {
@@ -8,20 +8,17 @@ import {
   type Column,
   type Facet,
   type GroupBy,
-} from "@/components/features/admin/DataTable"
-import {
-  type DetailContent,
-  DetailDialog,
-  type DetailRow,
-} from "@/components/features/admin/DetailDialog"
-import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
-import { actionsColumn } from "@/components/features/admin/table-cells"
+} from "@/components/features/admin/table/DataTable"
+import type { DetailContent, DetailRow } from "@/components/features/admin/detail/DetailDialog"
+import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
+import { actionsColumn, HEADER_BADGE_PROPS } from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteTagDialog } from "@/components/features/admin/tags/DeleteTagDialog"
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
 import { Badge } from "@/components/ui/badge"
 import type { TagKind } from "@/generated/prisma/client"
-import { TAG_COLUMN_WIDTHS } from "@/lib/admin-table-widths"
+import { TAG_COLUMN_WIDTHS } from "@/lib/admin/table-widths"
+import { useRowDetail } from "@/hooks/use-row-detail"
 import { TagIcon } from "@/lib/icons"
 import {
   emptyTagCountByKind,
@@ -34,11 +31,7 @@ import {
 import { reorderTags } from "@/server/actions/tags"
 import type { AdminTag } from "@/server/queries/tags"
 
-// Sans la colonne "actions", composée par l'appelant : elle a besoin d'une ref vers son bouton
-// d'édition pour que la vue détail rouvre le bon TagFormDialog, et une ref ne se passe pas en
-// argument de fonction, seule sa fermeture lexicale garantit qu'elle n'est lue qu'en dehors du
-// rendu (réaction de `react-hooks/refs`, ESLint 6+).
-function buildColumns(): readonly Column<AdminTag>[] {
+function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
   return [
     {
       key: "name",
@@ -64,11 +57,7 @@ function buildColumns(): readonly Column<AdminTag>[] {
       key: "kind",
       header: TAG_FIELD_LABELS.kind,
       width: TAG_COLUMN_WIDTHS.kind,
-      cell: (tag) => (
-        <Badge variant="outline" meta>
-          {TAG_KIND_LABELS[tag.kind]}
-        </Badge>
-      ),
+      cell: kindBadge,
       hideable: true,
     },
     {
@@ -80,7 +69,7 @@ function buildColumns(): readonly Column<AdminTag>[] {
     },
     {
       key: "usage",
-      header: "Projets",
+      header: TAG_FIELD_LABELS.projects,
       width: TAG_COLUMN_WIDTHS.usage,
       align: "right",
       className: "tabular-nums text-muted-foreground",
@@ -88,7 +77,17 @@ function buildColumns(): readonly Column<AdminTag>[] {
       cell: (tag) => tag._count.projects,
       hideable: true,
     },
+    actionsColumn<AdminTag>((tag) => (
+      <>
+        <TagFormDialog tag={tag} counts={counts} />
+        <DeleteTagDialog tag={tag} />
+      </>
+    )),
   ]
+}
+
+function kindBadge(tag: AdminTag) {
+  return <Badge {...HEADER_BADGE_PROPS}>{TAG_KIND_LABELS[tag.kind]}</Badge>
 }
 
 function renderTagIcon(icon: string | null) {
@@ -101,14 +100,12 @@ function renderTagIcon(icon: string | null) {
   )
 }
 
-// Les champs du formulaire, dans son ordre, moins ceux que l'en-tête porte déjà (slug, rang, catégorie).
 function tagDetailRows(tag: AdminTag): readonly DetailRow[] {
   return [
-    { label: TAG_FIELD_LABELS.nameFr, value: tag.nameFr },
-    { label: TAG_FIELD_LABELS.nameEn, value: tag.nameEn },
+    { label: TAG_FIELD_LABELS.nameEn, fullWidth: true, value: tag.nameEn },
     { label: TAG_FIELD_LABELS.icon, value: renderTagIcon(tag.icon) },
     {
-      label: "Projets",
+      label: TAG_FIELD_LABELS.projects,
       value: `${tag._count.projects} projet${tag._count.projects > 1 ? "s" : ""}`,
     },
   ]
@@ -143,52 +140,29 @@ interface Props {
 
 export function TagsTable({ tags }: Props) {
   const counts = useMemo(() => countByKind(tags), [tags])
-  const editTriggerRefs = useRef(new Map<string, HTMLButtonElement>())
-  const [selectedTag, setSelectedTag] = useState<AdminTag | null>(null)
+  const [editingTag, setEditingTag] = useState<AdminTag | null>(null)
 
-  // editTriggerRefs doit rester une fermeture lexicale ici, pas un argument (cf. buildColumns).
-  const columns = useMemo<readonly Column<AdminTag>[]>(
-    () => [
-      ...buildColumns(),
-      actionsColumn<AdminTag>((tag) => (
-        <>
-          <TagFormDialog
-            tag={tag}
-            counts={counts}
-            triggerRef={(element) => {
-              if (element) editTriggerRefs.current.set(tag.id, element)
-              else editTriggerRefs.current.delete(tag.id)
-            }}
-          />
-          <DeleteTagDialog tag={tag} />
-        </>
-      )),
-    ],
-    [counts],
+  const columns = useMemo(() => buildColumns(counts), [counts])
+
+  const buildDetail = useCallback(
+    (tag: AdminTag): DetailContent => ({
+      title: tag.nameFr,
+      slug: tag.slug,
+      subtitle: (
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-mono">#{tag.displayOrder}</span>
+          {kindBadge(tag)}
+        </span>
+      ),
+      sections: [{ rows: tagDetailRows(tag) }],
+      onEdit: () => {
+        setEditingTag(tag)
+      },
+    }),
+    [],
   )
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedTag
-        ? {
-            title: selectedTag.nameFr,
-            slug: selectedTag.slug,
-            subtitle: (
-              <span className="flex flex-wrap items-center gap-2">
-                <span className="font-mono">#{selectedTag.displayOrder}</span>
-                <Badge variant="outline" meta>
-                  {TAG_KIND_LABELS[selectedTag.kind]}
-                </Badge>
-              </span>
-            ),
-            sections: [{ rows: tagDetailRows(selectedTag) }],
-            onEdit: () => {
-              editTriggerRefs.current.get(selectedTag.id)?.click()
-            },
-          }
-        : null,
-    [selectedTag],
-  )
+  const { open: openDetail, dialog } = useRowDetail({ rows: tags, build: buildDetail })
 
   return (
     <>
@@ -202,7 +176,7 @@ export function TagsTable({ tags }: Props) {
         groupBy={groupBy}
         facets={facets}
         onReorder={reorderTags}
-        onRowClick={setSelectedTag}
+        onRowClick={openDetail}
         rowLabel={(tag) => tag.nameFr}
         empty={{
           icon: Tags,
@@ -210,12 +184,18 @@ export function TagsTable({ tags }: Props) {
           description: "Aucun tag pour le moment. Créez-en un via le bouton ci-dessus.",
         }}
       />
-      <DetailDialog
-        detail={detail}
-        onOpenChange={(open) => {
-          if (!open) setSelectedTag(null)
-        }}
-      />
+      {dialog}
+      {editingTag ? (
+        <TagFormDialog
+          key={editingTag.id}
+          tag={editingTag}
+          counts={counts}
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingTag(null)
+          }}
+        />
+      ) : null}
     </>
   )
 }

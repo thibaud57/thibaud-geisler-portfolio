@@ -1,34 +1,34 @@
 "use client"
 
-import { useActionState, useEffect, useId, useState } from "react"
-import Link from "next/link"
+import { useActionState, useId, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Save } from "lucide-react"
-import { toast } from "sonner"
 
+import { CheckboxGroupField } from "@/components/features/admin/form/CheckboxGroupField"
 import { CompanyLogoCard } from "@/components/features/admin/companies/CompanyLogoCard"
-import { LegalEntityCard } from "@/components/features/admin/companies/LegalEntityCard"
 import { CompanyRelationCard } from "@/components/features/admin/companies/CompanyRelationCard"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Editor } from "@/components/ui/editor"
+import { LegalEntityCard } from "@/components/features/admin/companies/LegalEntityCard"
+import { DetailsCard } from "@/components/features/admin/form/DetailsCard"
+import { FieldInput } from "@/components/features/admin/form/FieldInput"
+import { FormCard } from "@/components/features/admin/form/FormCard"
+import { FormPage } from "@/components/features/admin/form/FormPage"
+import { MultiSelectCombobox } from "@/components/features/admin/form/MultiSelectCombobox"
+import { NotesCard } from "@/components/features/admin/form/NotesCard"
 import { FormField } from "@/components/ui/form-field"
-import { Input } from "@/components/ui/input"
-import { MultiSelectCombobox } from "@/components/features/admin/MultiSelectCombobox"
 
 import type { Zone } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
-import { COMPANY_DETAILS_TEMPLATE, DETAILS_EDITOR_HELP } from "@/lib/details-templates"
+import { useSaveFeedback } from "@/hooks/use-save-feedback"
+import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
 import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
   COMPANY_SECTOR_LABELS,
   COMPANY_TYPE_ICONS,
   COMPANY_TYPE_LABELS,
-} from "@/lib/companies"
+} from "@/lib/crm/companies"
+import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
 import { COMPANY_SECTORS, COMPANY_TYPES } from "@/lib/schemas/company"
-import { sortZones, ZONE_LABELS, ZONES } from "@/lib/zones"
+import { sortZones, ZONE_OPTIONS } from "@/lib/crm/zones"
 import { createCompany, updateCompany } from "@/server/actions/companies"
 import { initialCompanyFormState } from "@/server/actions/companies.types"
 import type { AssetEntry } from "@/server/queries/assets"
@@ -38,7 +38,6 @@ const SECTOR_OPTIONS = COMPANY_SECTORS.map((value) => ({
   value,
   label: COMPANY_SECTOR_LABELS[value],
 }))
-const ZONE_OPTIONS = ZONES.map((value) => ({ value, label: ZONE_LABELS[value] }))
 
 interface Props {
   company: AdminCompanyDetail | null
@@ -51,8 +50,8 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
   const formId = useId()
   const action = company ? updateCompany.bind(null, company.id) : createCompany
   const [state, formAction, pending] = useActionState(action, initialCompanyFormState)
+  const handleSubmit = useFormActionSubmit(formAction)
   const [sectors, setSectors] = useState<string[]>(company?.sectors ?? [])
-  const [types, setTypes] = useState<string[]>(company?.types ?? [])
   const [zones, setZones] = useState<string[]>(company?.zones ?? [])
   // Le gabarit ne s'applique qu'à la création : une fiche existante garde son contenu enregistré, vide ou non.
   const [details, setDetails] = useState(
@@ -62,224 +61,132 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
   const [slug, setSlug] = useState(company?.slug ?? "")
   const [websiteUrl, setWebsiteUrl] = useState(company?.websiteUrl ?? "")
 
-  function toggleType(type: string, checked: boolean) {
-    setTypes((current) =>
-      checked ? [...current, type] : current.filter((value) => value !== type),
-    )
-  }
-
-  useEffect(() => {
-    if (state.ok === true) {
-      toast.success(company ? "Entreprise mise à jour" : "Entreprise créée")
-      router.push("/admin/entreprises")
-    } else if (state.ok === false && state.message === "unknown_error") {
-      toast.error("Une erreur est survenue, réessayez")
-    }
-  }, [state, company, router])
-
-  const handleSubmit = useFormActionSubmit(formAction)
-
-  const sectorsError = state.errors.sectors?.[0]
+  useSaveFeedback(state, {
+    saved: company ? "Entreprise mise à jour" : "Entreprise créée",
+    onSaved: () => {
+      router.push(ADMIN_COMPANIES_PATH)
+    },
+    gone: { code: "company_not_found", toast: "Cette entreprise a été supprimée" },
+  })
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-sans text-2xl font-semibold tracking-tight">
-          {company ? company.name : "Nouvelle entreprise"}
-        </h1>
-        <div className="flex gap-2">
-          <Button type="button" variant="ghost" asChild>
-            <Link href="/admin/entreprises">Annuler</Link>
-          </Button>
-          <Button type="submit" disabled={pending}>
-            <Save aria-hidden data-icon="inline-start" />
-            {pending ? "Enregistrement..." : "Enregistrer"}
-          </Button>
-        </div>
-      </div>
+    <FormPage
+      title={company ? company.name : "Nouvelle entreprise"}
+      cancelHref={ADMIN_COMPANIES_PATH}
+      pending={pending}
+      onSubmit={handleSubmit}
+      main={
+        <>
+          <FormCard title={COMPANY_SECTION_TITLES.identity} columns={2}>
+            <FieldInput
+              id={`${formId}-name`}
+              name="name"
+              label={COMPANY_FIELD_LABELS.name}
+              defaultValue={company?.name ?? ""}
+              placeholder="Acme SAS"
+              errors={state.errors.name}
+            />
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.7fr_1fr]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.identity}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                id={`${formId}-name`}
-                label={COMPANY_FIELD_LABELS.name}
-                errors={state.errors.name}
-              >
-                <Input
-                  id={`${formId}-name`}
-                  name="name"
-                  defaultValue={company?.name ?? ""}
-                  placeholder="Acme SAS"
-                  aria-invalid={!!state.errors.name?.length}
-                  aria-describedby={`${formId}-name-error`}
-                />
-              </FormField>
-              <FormField
-                id={`${formId}-slug`}
-                label={COMPANY_FIELD_LABELS.slug}
-                errors={state.errors.slug}
-              >
-                <Input
-                  id={`${formId}-slug`}
-                  name="slug"
-                  value={slug}
-                  onChange={(event) => {
-                    setSlug(event.target.value)
-                  }}
-                  placeholder="acme"
-                  aria-invalid={!!state.errors.slug?.length}
-                  aria-describedby={`${formId}-slug-error`}
-                />
-              </FormField>
-              <div className="sm:col-span-2">
-                <FormField
-                  id={`${formId}-websiteUrl`}
-                  label={COMPANY_FIELD_LABELS.websiteUrl}
-                  errors={state.errors.websiteUrl}
-                >
-                  <Input
-                    id={`${formId}-websiteUrl`}
-                    name="websiteUrl"
-                    type="url"
-                    value={websiteUrl}
-                    onChange={(event) => {
-                      setWebsiteUrl(event.target.value)
-                    }}
-                    placeholder="https://"
-                    aria-invalid={!!state.errors.websiteUrl?.length}
-                    aria-describedby={`${formId}-websiteUrl-error`}
-                  />
-                </FormField>
-              </div>
-              <div className="sm:col-span-2">
-                <FormField
-                  id={`${formId}-zones`}
-                  label={COMPANY_FIELD_LABELS.zones}
-                  errors={state.errors.zones}
-                >
-                  <MultiSelectCombobox
-                    id={`${formId}-zones`}
-                    name="zones"
-                    options={ZONE_OPTIONS}
-                    selected={zones}
-                    onChange={(values) => {
-                      setZones(sortZones(values as Zone[]))
-                    }}
-                    placeholder="Ajouter une zone"
-                    searchPlaceholder="Chercher une zone"
-                    emptyMessage="Aucune zone ne correspond."
-                    ariaInvalid={!!state.errors.zones?.length}
-                    ariaDescribedby={`${formId}-zones-error`}
-                  />
-                  <input type="hidden" name="zones" value="" />
-                </FormField>
-              </div>
-            </CardContent>
-          </Card>
+            <FieldInput
+              id={`${formId}-slug`}
+              name="slug"
+              label={COMPANY_FIELD_LABELS.slug}
+              value={slug}
+              onChange={(event) => {
+                setSlug(event.target.value)
+              }}
+              placeholder="acme"
+              errors={state.errors.slug}
+            />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{COMPANY_SECTION_TITLES.classification}</CardTitle>
-              <CardDescription>
-                Cochez les types, cherchez puis ajoutez les secteurs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <span id={`${formId}-types-label`} className="text-sm font-medium">
-                  {COMPANY_FIELD_LABELS.types}
-                </span>
-                <div
-                  role="group"
-                  aria-labelledby={`${formId}-types-label`}
-                  aria-describedby={`${formId}-types-error ${formId}-types-help`}
-                  className="grid grid-cols-2 gap-x-4 gap-y-2"
-                >
-                  {COMPANY_TYPES.map((type) => {
-                    const Icon = COMPANY_TYPE_ICONS[type]
-                    return (
-                      <label key={type} className="flex min-w-0 items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={types.includes(type)}
-                          onCheckedChange={(checked) => {
-                            toggleType(type, checked === true)
-                          }}
-                          aria-invalid={!!state.errors.types?.length}
-                        />
-                        {Icon ? <Icon aria-hidden className="size-4 shrink-0" /> : null}
-                        {COMPANY_TYPE_LABELS[type]}
-                      </label>
-                    )
-                  })}
-                </div>
-                {types.map((type) => (
-                  <input key={type} type="hidden" name="types" value={type} />
-                ))}
-                <input type="hidden" name="types" value="" />
-                <div id={`${formId}-types-error`} aria-live="polite">
-                  {state.errors.types?.[0] ? (
-                    <p className="text-sm text-destructive">{state.errors.types[0]}</p>
-                  ) : null}
-                </div>
-                <p id={`${formId}-types-help`} className="text-xs text-muted-foreground">
-                  Au moins un type est requis.
-                </p>
-              </div>
+            <div className="sm:col-span-2">
+              <FieldInput
+                id={`${formId}-websiteUrl`}
+                name="websiteUrl"
+                label={COMPANY_FIELD_LABELS.websiteUrl}
+                type="url"
+                value={websiteUrl}
+                onChange={(event) => {
+                  setWebsiteUrl(event.target.value)
+                }}
+                placeholder="https://"
+                errors={state.errors.websiteUrl}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
               <FormField
-                id={`${formId}-sectors`}
-                label={COMPANY_FIELD_LABELS.sectors}
-                errors={state.errors.sectors}
+                id={`${formId}-zones`}
+                label={COMPANY_FIELD_LABELS.zones}
+                errors={state.errors.zones}
               >
                 <MultiSelectCombobox
-                  id={`${formId}-sectors`}
-                  name="sectors"
-                  options={SECTOR_OPTIONS}
-                  selected={sectors}
-                  onChange={setSectors}
-                  placeholder="Ajouter un secteur"
-                  searchPlaceholder="Chercher un secteur"
-                  emptyMessage="Aucun secteur ne correspond."
-                  ariaInvalid={!!sectorsError}
-                  ariaDescribedby={`${formId}-sectors-error`}
+                  id={`${formId}-zones`}
+                  name="zones"
+                  options={ZONE_OPTIONS}
+                  selected={zones}
+                  onChange={(values) => {
+                    setZones(sortZones(values as Zone[]))
+                  }}
+                  placeholder="Ajouter une localité"
+                  searchPlaceholder="Chercher une localité"
+                  emptyMessage="Aucune localité ne correspond."
+                  ariaInvalid={!!state.errors.zones?.length}
+                  ariaDescribedby={`${formId}-zones-error`}
                 />
               </FormField>
-            </CardContent>
-          </Card>
+            </div>
+          </FormCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle id={`${formId}-details-title`}>{COMPANY_SECTION_TITLES.details}</CardTitle>
-              <CardDescription>{DETAILS_EDITOR_HELP}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Editor
-                id={`${formId}-details`}
-                aria-labelledby={`${formId}-details-title`}
-                format="markdown"
-                enableImages={false}
-                value={details}
-                onChange={setDetails}
-                aria-invalid={!!state.errors.details?.length}
-                aria-describedby={`${formId}-details-error`}
+          <FormCard
+            title={COMPANY_SECTION_TITLES.classification}
+            description="Cochez les types, cherchez puis ajoutez les secteurs."
+          >
+            <CheckboxGroupField
+              id={`${formId}-types`}
+              name="types"
+              label={COMPANY_FIELD_LABELS.types}
+              options={COMPANY_TYPES}
+              labels={COMPANY_TYPE_LABELS}
+              icons={COMPANY_TYPE_ICONS}
+              defaultValue={company?.types ?? []}
+              errors={state.errors.types}
+              help="Au moins un type est requis."
+            />
+
+            <FormField
+              id={`${formId}-sectors`}
+              label={COMPANY_FIELD_LABELS.sectors}
+              errors={state.errors.sectors}
+            >
+              <MultiSelectCombobox
+                id={`${formId}-sectors`}
+                name="sectors"
+                options={SECTOR_OPTIONS}
+                selected={sectors}
+                onChange={setSectors}
+                placeholder="Ajouter un secteur"
+                searchPlaceholder="Chercher un secteur"
+                emptyMessage="Aucun secteur ne correspond."
+                ariaInvalid={!!state.errors.sectors?.length}
+                ariaDescribedby={`${formId}-sectors-error`}
               />
-              <div id={`${formId}-details-error`} aria-live="polite">
-                {state.errors.details?.[0] ? (
-                  <p className="text-sm text-destructive">{state.errors.details[0]}</p>
-                ) : null}
-              </div>
-              <input type="hidden" name="details" value={details} />
-            </CardContent>
-          </Card>
+            </FormField>
+          </FormCard>
+
+          <DetailsCard
+            formId={formId}
+            title={COMPANY_SECTION_TITLES.details}
+            value={details}
+            onChange={setDetails}
+            errors={state.errors.details}
+          />
 
           {relatedCards}
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-18">
+        </>
+      }
+      aside={
+        <>
           <CompanyRelationCard
             formId={formId}
             errors={state.errors}
@@ -298,38 +205,21 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
             error={state.errors.logoFilename?.[0]}
           />
 
-          <Card>
-            <CardHeader>
-              <CardTitle id={`${formId}-notes-title`}>{COMPANY_SECTION_TITLES.notes}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <Input
-                id={`${formId}-notes`}
-                name="notes"
-                aria-labelledby={`${formId}-notes-title`}
-                defaultValue={company?.notes ?? ""}
-                placeholder="Éditeur de logiciels | TypeScript/React"
-                aria-invalid={!!state.errors.notes?.length}
-                aria-describedby={`${formId}-notes-error ${formId}-notes-help`}
-              />
-              <div id={`${formId}-notes-error`} aria-live="polite">
-                {state.errors.notes?.[0] ? (
-                  <p className="text-sm text-destructive">{state.errors.notes[0]}</p>
-                ) : null}
-              </div>
-              <p id={`${formId}-notes-help`} className="text-xs text-muted-foreground">
-                Une ligne de marqueurs, séparés par |
-              </p>
-            </CardContent>
-          </Card>
-
           <LegalEntityCard
             formId={formId}
             errors={state.errors}
             legalEntity={company?.legalEntity ?? null}
           />
-        </div>
-      </div>
-    </form>
+
+          <NotesCard
+            formId={formId}
+            title={COMPANY_SECTION_TITLES.notes}
+            errors={state.errors.notes}
+            defaultValue={company?.notes}
+            placeholder="Éditeur de logiciels | TypeScript/React"
+          />
+        </>
+      }
+    />
   )
 }

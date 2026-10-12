@@ -8,8 +8,8 @@ import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl 
 import { buildBreadcrumbList } from "@/lib/seo/json-ld"
 import type { Locale } from "next-intl"
 import { findManyPublished } from "@/server/queries/projects"
-import { ProjectsList } from "@/components/features/projects/ProjectsList"
-import { PageShell } from "@/components/layout/PageShell"
+import { ProjectsList } from "@/components/features/public/projects/ProjectsList"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { JsonLd } from "@/components/seo/json-ld"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 

@@ -4,7 +4,7 @@ import { useState, useTransition, type MouseEvent } from "react"
 import { Eraser, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,8 +18,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-import { personDisplayName, type PersonRef } from "@/lib/persons"
+import { personDisplayName, type PersonRef } from "@/lib/crm/persons"
 import { erasePersonExchanges } from "@/server/actions/persons"
+import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
 interface Props {
   person: PersonRef
@@ -39,7 +40,7 @@ export function ErasePersonExchangesDialog({ person }: Props) {
       if (result.ok) {
         toast.success("Échanges effacés")
       } else {
-        toast.error("Une erreur est survenue, réessayez")
+        toast.error(GENERIC_ERROR_TOAST)
       }
     })
   }

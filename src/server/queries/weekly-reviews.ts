@@ -1,7 +1,7 @@
 import "server-only"
 
 import { prisma } from "@/lib/prisma"
-import type { CounterSources } from "@/lib/review-counters"
+import type { CounterSources } from "@/lib/crm/review-counters"
 
 // Sans 'use cache', comme les autres lectures admin : l'administration relit la base juste après ses mutations.
 export async function findAllWeeklyReviewsForAdmin() {

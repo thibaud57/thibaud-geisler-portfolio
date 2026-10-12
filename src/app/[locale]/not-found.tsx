@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { SearchX } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
-import { PageShell } from "@/components/layout/PageShell"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
 

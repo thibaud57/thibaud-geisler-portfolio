@@ -11,9 +11,7 @@ import { isCompanyLogoKey } from "@/lib/asset-keys"
 import { legalEntityFields, refineLegalEntity } from "@/lib/schemas/legal-entity"
 import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-value"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
-import { sortZones } from "@/lib/zones"
-
-export { NONE_VALUE }
+import { sortZones } from "@/lib/crm/zones"
 
 export const COMPANY_SECTORS = Object.values(CompanySector)
 export const COMPANY_SIZES = Object.values(CompanySize)
@@ -70,7 +68,7 @@ export const companySchema = z
       .optional(),
     relationStatus: z.enum(RelationStatus, { error: "Statut de relation inconnu" }).optional(),
     zones: z
-      .array(z.enum(Zone, { error: "Zone inconnue" }))
+      .array(z.enum(Zone, { error: "Localité inconnue" }))
       .transform((value) => sortZones(value))
       .optional(),
     notes: z

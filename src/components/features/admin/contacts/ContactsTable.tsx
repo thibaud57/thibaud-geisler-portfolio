@@ -1,31 +1,38 @@
 "use client"
 
-import { useMemo, useState, type ComponentProps } from "react"
-import { Pencil, User } from "lucide-react"
-import Link from "next/link"
+import { useCallback, useMemo, useState } from "react"
+import { User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { BadgeList } from "@/components/features/admin/BadgeList"
-import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
-import { EnumBadge } from "@/components/features/admin/EnumBadge"
-import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
-import { RelatedLinksList } from "@/components/features/admin/RelatedLinksList"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import {
+  linksSection,
+  markdownSection,
+  textSection,
+} from "@/components/features/admin/detail/detail-sections"
+import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
-  companyCell,
+  enumBadge,
+  enumFacet,
+  HEADER_BADGE_PROPS,
   hideableColumn,
-  labelBadge,
-  linkedinLink,
-  truncatedCell,
-} from "@/components/features/admin/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+  iconsByLabel,
+} from "@/components/features/admin/table/table-cells"
 import { DeleteContactDialog } from "@/components/features/admin/contacts/DeleteContactDialog"
-import { MarkdownContent } from "@/components/markdown/MarkdownContent"
-import { Badge } from "@/components/ui/badge"
-import { ADMIN_COMPANIES_PATH, ADMIN_CONTACTS_PATH, ADMIN_LEADS_PATH } from "@/lib/admin-routes"
-import { CONTACT_COLUMN_WIDTHS, CONTACT_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin-table-widths"
+import { personActionsSection } from "@/components/features/admin/persons/person-actions-section"
+import {
+  personColumns,
+  personDetailSections,
+  personFacets,
+} from "@/components/features/admin/persons/person-table"
+import type { Facet } from "@/hooks/use-faceted-search"
+import { useRowDetail } from "@/hooks/use-row-detail"
+import { groupByPersonRecentFirst } from "@/lib/crm/action-views"
+import { ADMIN_CONTACTS_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
+import { CONTACT_COLUMN_WIDTHS, CONTACT_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
 import {
   CONTACT_FIELD_LABELS,
   CONTACT_SECTION_TITLES,
@@ -33,66 +40,42 @@ import {
   CONTACT_STATUS_LABELS,
   CONTACT_TYPE_ICONS,
   CONTACT_TYPE_LABELS,
-} from "@/lib/contacts"
-import { formatShortInstantDate } from "@/lib/date-time"
-import { detailHref } from "@/lib/detail-links"
-import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/lead-display-status"
-import { LEAD_INTEREST_LABELS } from "@/lib/leads"
-import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/persons"
+} from "@/lib/crm/contacts"
+import { formatDateOnly, formatShortInstantDate } from "@/lib/date-time"
+import { detailHref } from "@/lib/admin/detail-links"
+import { JOB_ROLE_LABELS } from "@/lib/crm/job-roles"
+import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/crm/lead-display-status"
+import { LEAD_INTEREST_LABELS } from "@/lib/crm/leads"
+import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { CONTACT_STATUSES, CONTACT_TYPES } from "@/lib/schemas/network-contact"
-import { STANDALONE_LINK_CLASS } from "@/lib/typography"
-import { ZONE_LABELS, ZONES } from "@/lib/zones"
 import type { AdminContact } from "@/server/queries/contacts"
+import type { ActionTimelineRow } from "@/server/queries/prospecting-actions"
 
 function typeLabels(contact: AdminContact): string[] {
   return contact.types.map((type) => CONTACT_TYPE_LABELS[type])
 }
 
-// Glyphe par libellé plutôt que par valeur : BadgeList ne connaît que les libellés déjà résolus.
-const TYPE_ICONS_BY_LABEL = Object.fromEntries(
-  CONTACT_TYPES.map((type) => [CONTACT_TYPE_LABELS[type], CONTACT_TYPE_ICONS[type]]),
-)
-
-function statusBadge(
-  contact: AdminContact,
-  badgeProps?: Omit<ComponentProps<typeof Badge>, "children">,
-) {
-  return (
-    <EnumBadge
-      label={CONTACT_STATUS_LABELS[contact.status]}
-      icon={CONTACT_STATUS_ICONS[contact.status]}
-      {...badgeProps}
-    />
-  )
-}
+const TYPE_ICONS_BY_LABEL = iconsByLabel(CONTACT_TYPES, CONTACT_TYPE_LABELS, CONTACT_TYPE_ICONS)
 
 function rowActions(contact: AdminContact) {
   return (
     <>
-      <RowActionButton aria-label={`Modifier ${personDisplayName(contact)}`} asChild>
-        <Link href={`${ADMIN_CONTACTS_PATH}/${contact.id}`}>
-          <Pencil className="size-4" />
-        </Link>
-      </RowActionButton>
+      <EditRowLink
+        href={`${ADMIN_CONTACTS_PATH}/${contact.id}`}
+        label={`Modifier ${personDisplayName(contact)}`}
+      />
       <DeleteContactDialog contact={contact} />
     </>
   )
 }
 
-const DATA_COLUMNS: readonly Column<AdminContact>[] = [
-  {
-    key: "name",
-    header: PERSON_FIELD_LABELS.name,
-    width: CONTACT_COLUMN_WIDTHS.name,
-    sortValue: (contact) => personDisplayName(contact),
-    searchValue: (contact) => `${personDisplayName(contact)} ${contact.company?.name ?? ""}`,
-    cell: (contact) => (
-      <TruncateTooltip className="block w-full font-medium">
-        {personDisplayName(contact)}
-      </TruncateTooltip>
-    ),
-  },
+const personCols = personColumns<AdminContact>(
+  CONTACT_COLUMN_WIDTHS,
+  CONTACT_DEFAULT_VISIBLE_COLUMNS,
+)
+
+const COLUMNS: readonly Column<AdminContact>[] = [
+  personCols.name,
   {
     key: "types",
     header: CONTACT_FIELD_LABELS.types,
@@ -102,20 +85,13 @@ const DATA_COLUMNS: readonly Column<AdminContact>[] = [
       <BadgeList labels={typeLabels(contact)} noun="types" icons={TYPE_ICONS_BY_LABEL} />
     ),
   },
-  {
-    key: "company",
-    header: PERSON_FIELD_LABELS.companyId,
-    width: CONTACT_COLUMN_WIDTHS.company,
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "company"),
-    sortValue: (contact) => contact.company?.name ?? "",
-    cell: companyCell,
-  },
+  personCols.company,
   {
     key: "status",
     header: CONTACT_FIELD_LABELS.status,
     width: CONTACT_COLUMN_WIDTHS.status,
     ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "status"),
-    cell: statusBadge,
+    cell: (contact) => enumBadge(contact.status, CONTACT_STATUS_LABELS, CONTACT_STATUS_ICONS),
   },
   {
     key: "lastInteractionAt",
@@ -126,40 +102,10 @@ const DATA_COLUMNS: readonly Column<AdminContact>[] = [
     sortValue: (contact) => contact.lastInteractionAt?.getTime() ?? 0,
     cell: (contact) => formatShortInstantDate(contact.lastInteractionAt),
   },
-  {
-    key: "zone",
-    header: PERSON_FIELD_LABELS.zone,
-    width: CONTACT_COLUMN_WIDTHS.zone,
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "zone"),
-    cell: (contact) => labelBadge(contact.zone ? ZONE_LABELS[contact.zone] : null),
-  },
-  {
-    key: "email",
-    header: PERSON_FIELD_LABELS.email,
-    width: CONTACT_COLUMN_WIDTHS.email,
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "email"),
-    cell: (contact) => truncatedCell(contact.email),
-  },
-  {
-    key: "phone",
-    header: PERSON_FIELD_LABELS.phone,
-    width: CONTACT_COLUMN_WIDTHS.phone,
-    className: "tabular-nums",
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "phone"),
-    cell: (contact) => truncatedCell(contact.phone),
-  },
-  {
-    key: "linkedinUrl",
-    header: PERSON_FIELD_LABELS.linkedinUrl,
-    width: CONTACT_COLUMN_WIDTHS.linkedinUrl,
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "linkedinUrl"),
-    cell: (contact) =>
-      contact.linkedinUrl ? (
-        <TruncateTooltip className="block w-full">
-          <ExternalUrl url={contact.linkedinUrl} />
-        </TruncateTooltip>
-      ) : null,
-  },
+  personCols.zone,
+  personCols.email,
+  personCols.phone,
+  personCols.linkedinUrl,
   {
     key: "reviewAt",
     header: CONTACT_FIELD_LABELS.reviewAt,
@@ -169,17 +115,9 @@ const DATA_COLUMNS: readonly Column<AdminContact>[] = [
     sortValue: (contact) => contact.reviewAt.getTime(),
     cell: (contact) => formatShortInstantDate(contact.reviewAt),
   },
-  {
-    key: "notes",
-    header: PERSON_FIELD_LABELS.notes,
-    width: CONTACT_COLUMN_WIDTHS.notes,
-    className: "text-muted-foreground",
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "notes"),
-    cell: (contact) => truncatedCell(contact.notes),
-  },
+  personCols.notes,
+  actionsColumn(rowActions),
 ]
-
-const COLUMNS: readonly Column<AdminContact>[] = [...DATA_COLUMNS, actionsColumn(rowActions)]
 
 function pipelineMeta(leadRole: NonNullable<AdminContact["leadRole"]>): string {
   return [
@@ -190,51 +128,23 @@ function pipelineMeta(leadRole: NonNullable<AdminContact["leadRole"]>): string {
     .join(" · ")
 }
 
-function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailContent {
+function buildContactDetail(
+  contact: AdminContact,
+  history: readonly ActionTimelineRow[],
+  onEdit: () => void,
+): DetailContent {
   return {
     title: personDisplayName(contact),
     ...(contact.jobRole ? { subtitle: JOB_ROLE_LABELS[contact.jobRole] } : {}),
-    status: statusBadge(contact, { variant: "outline", meta: true }),
+    status: enumBadge(
+      contact.status,
+      CONTACT_STATUS_LABELS,
+      CONTACT_STATUS_ICONS,
+      HEADER_BADGE_PROPS,
+    ),
     sections: [
-      {
-        title: PERSON_SECTION_TITLES.person,
-        rows: [
-          {
-            label: PERSON_FIELD_LABELS.companyId,
-            value: contact.company ? (
-              <Link
-                href={detailHref(ADMIN_COMPANIES_PATH, contact.company.id)}
-                className={STANDALONE_LINK_CLASS}
-              >
-                {contact.company.name}
-              </Link>
-            ) : null,
-          },
-          {
-            label: PERSON_FIELD_LABELS.zone,
-            value: labelBadge(contact.zone ? ZONE_LABELS[contact.zone] : null),
-          },
-        ],
-      },
-      {
-        title: PERSON_SECTION_TITLES.contact,
-        rows: [
-          { label: PERSON_FIELD_LABELS.email, value: contact.email },
-          { label: PERSON_FIELD_LABELS.phone, value: contact.phone },
-          { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(contact), fullWidth: true },
-        ],
-      },
-      {
-        title: PERSON_SECTION_TITLES.details,
-        rows: [
-          {
-            value: contact.details ? (
-              <MarkdownContent markdown={contact.details} variant="admin" />
-            ) : null,
-            fullWidth: true,
-          },
-        ],
-      },
+      ...personDetailSections(contact),
+      markdownSection(PERSON_SECTION_TITLES.details, contact.details),
       {
         title: CONTACT_SECTION_TITLES.relation,
         rows: [
@@ -251,6 +161,11 @@ function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailCo
             fullWidth: true,
           },
           {
+            label: PERSON_FIELD_LABELS.metAt,
+            value: contact.metAt ? formatDateOnly(contact.metAt) : null,
+            fullWidth: true,
+          },
+          {
             label: CONTACT_FIELD_LABELS.lastInteractionAt,
             value: formatShortInstantDate(contact.lastInteractionAt),
           },
@@ -260,89 +175,70 @@ function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailCo
           },
         ],
       },
-      { title: PERSON_SECTION_TITLES.notes, rows: [{ value: contact.notes, fullWidth: true }] },
-      {
-        title: CONTACT_SECTION_TITLES.pipeline,
-        rows: [
-          {
-            fullWidth: true,
-            value: contact.leadRole ? (
-              <RelatedLinksList
-                links={[
-                  {
-                    id: contact.id,
-                    href: detailHref(ADMIN_LEADS_PATH, contact.id),
-                    label: "Fiche lead",
-                    meta: pipelineMeta(contact.leadRole),
-                  },
-                ]}
-              />
-            ) : null,
-          },
-        ],
-      },
+      textSection(PERSON_SECTION_TITLES.notes, contact.notes),
+      personActionsSection(history),
+      linksSection(
+        CONTACT_SECTION_TITLES.pipeline,
+        contact.leadRole
+          ? [
+              {
+                id: contact.id,
+                href: detailHref(ADMIN_LEADS_PATH, contact.id),
+                label: "Fiche lead",
+                meta: pipelineMeta(contact.leadRole),
+              },
+            ]
+          : [],
+      ),
     ],
     onEdit,
   }
 }
 
 const baseFacets: readonly Facet<AdminContact>[] = [
-  {
-    key: "types",
-    label: CONTACT_FIELD_LABELS.types,
-    options: CONTACT_TYPES.map((type) => ({ value: type, label: CONTACT_TYPE_LABELS[type] })),
-    value: (contact) => contact.types,
-  },
-  {
-    key: "status",
-    label: CONTACT_FIELD_LABELS.status,
-    options: CONTACT_STATUSES.map((status) => ({
-      value: status,
-      label: CONTACT_STATUS_LABELS[status],
-    })),
-    value: (contact) => contact.status,
-  },
-  {
-    key: "zone",
-    label: PERSON_FIELD_LABELS.zone,
-    options: ZONES.map((zone) => ({ value: zone, label: ZONE_LABELS[zone] })),
-    value: (contact) => (contact.zone ? [contact.zone] : []),
-  },
+  enumFacet(
+    "types",
+    CONTACT_FIELD_LABELS.types,
+    CONTACT_TYPES,
+    CONTACT_TYPE_LABELS,
+    (contact) => contact.types,
+  ),
+  enumFacet(
+    "status",
+    CONTACT_FIELD_LABELS.status,
+    CONTACT_STATUSES,
+    CONTACT_STATUS_LABELS,
+    (contact) => contact.status,
+  ),
 ]
-
-function reviewFacet(now: Date): Facet<AdminContact> {
-  return {
-    key: "review",
-    label: "Échéance",
-    options: [{ value: "overdue", label: "Dépassée" }],
-    value: (contact) => (contact.reviewAt < now ? ["overdue"] : []),
-  }
-}
 
 interface Props {
   contacts: readonly AdminContact[]
+  actions: readonly ActionTimelineRow[]
   initialDetailId?: string
 }
 
-export function ContactsTable({ contacts, initialDetailId }: Props) {
+export function ContactsTable({ contacts, actions, initialDetailId }: Props) {
   const router = useRouter()
-  const [selectedContact, setSelectedContact] = useState<AdminContact | null>(
-    () => contacts.find((contact) => contact.id === initialDetailId) ?? null,
-  )
   // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
   const [now] = useState(() => new Date())
 
-  const facets = useMemo(() => [...baseFacets, reviewFacet(now)], [now])
+  const facets = useMemo(() => {
+    const { zone, overdue } = personFacets<AdminContact>((contact) => contact.reviewAt < now)
+    return [...baseFacets, zone, overdue]
+  }, [now])
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedContact
-        ? buildContactDetail(selectedContact, () => {
-            router.push(`${ADMIN_CONTACTS_PATH}/${selectedContact.id}`)
-          })
-        : null,
-    [selectedContact, router],
+  const historyByPerson = useMemo(() => groupByPersonRecentFirst(actions), [actions])
+
+  const buildDetail = useCallback(
+    (contact: AdminContact) =>
+      buildContactDetail(contact, historyByPerson.get(contact.id) ?? [], () => {
+        router.push(`${ADMIN_CONTACTS_PATH}/${contact.id}`)
+      }),
+    [historyByPerson, router],
   )
+
+  const { open, dialog } = useRowDetail({ rows: contacts, initialDetailId, build: buildDetail })
 
   return (
     <>
@@ -352,7 +248,7 @@ export function ContactsTable({ contacts, initialDetailId }: Props) {
         getRowId={(contact) => contact.id}
         searchPlaceholder="Rechercher un nom ou une entreprise"
         noun="contact"
-        onRowClick={setSelectedContact}
+        onRowClick={open}
         rowLabel={personDisplayName}
         facets={facets}
         empty={{
@@ -361,12 +257,7 @@ export function ContactsTable({ contacts, initialDetailId }: Props) {
           description: "Aucun contact pour le moment. Créez-en un via le bouton ci-dessus.",
         }}
       />
-      <DetailDialog
-        detail={detail}
-        onOpenChange={(open) => {
-          if (!open) setSelectedContact(null)
-        }}
-      />
+      {dialog}
     </>
   )
 }

@@ -1,7 +1,7 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { personDisplayName } from "@/lib/persons"
+import { personDisplayName } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 
 export interface PersonOption {
@@ -61,6 +61,7 @@ const attachableLeadSelect = {
   email: true,
   phone: true,
   linkedinUrl: true,
+  metAt: true,
   notes: true,
   details: true,
   company: { select: { name: true } },

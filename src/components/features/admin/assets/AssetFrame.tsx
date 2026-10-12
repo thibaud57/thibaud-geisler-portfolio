@@ -3,7 +3,7 @@
 import { FileText, Image as ImageIcon } from "lucide-react"
 
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
-import { useImageFallback } from "@/components/features/projects/useImageFallback"
+import { useImageFallback } from "@/components/features/public/projects/useImageFallback"
 import { isPdfAssetKey } from "@/lib/assets"
 import { cn } from "@/lib/utils"
 

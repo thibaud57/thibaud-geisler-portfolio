@@ -1,4 +1,4 @@
-import { PageShell } from "@/components/layout/PageShell"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 
 export default function CaseStudyLoading() {

@@ -2,7 +2,7 @@ import { getSessionCookie } from "better-auth/cookies"
 import createMiddleware from "next-intl/middleware"
 import { NextResponse, type NextRequest } from "next/server"
 
-import { ADMIN_LOGIN_PATH, isAdminPath, requiresSession } from "@/lib/admin-routes"
+import { ADMIN_LOGIN_PATH, isAdminPath, requiresSession } from "@/lib/admin/routes"
 import { prisma } from "@/lib/prisma"
 import { routing } from "@/i18n/routing"
 

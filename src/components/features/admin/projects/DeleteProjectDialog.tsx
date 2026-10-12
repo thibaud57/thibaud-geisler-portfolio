@@ -1,9 +1,6 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
-
 import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { deleteProject } from "@/server/actions/projects"
 
 interface Props {
@@ -13,11 +10,6 @@ interface Props {
 export function DeleteProjectDialog({ project }: Props) {
   return (
     <ConfirmDeleteDialog
-      trigger={
-        <RowActionButton aria-label={`Supprimer ${project.titleFr}`}>
-          <Trash2 className="size-4" />
-        </RowActionButton>
-      }
       name={project.titleFr}
       description={
         <>

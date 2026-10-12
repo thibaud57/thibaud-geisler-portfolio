@@ -121,12 +121,13 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
       const usedBy = [...projects.map((p) => p.slug), ...companies.map((c) => c.slug)]
       return usedBy.length > 0 ? { ok: false, errors: {}, message: "asset_in_use", usedBy } : null
     },
+    // La suppression R2 est idempotente et ne lève jamais de P2025 : l'état est toujours « absent ».
+    exists: () => Promise.resolve(false),
     destroy: () => client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })),
     invalidateCaches: () => {
       revalidatePath("/admin/assets")
     },
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

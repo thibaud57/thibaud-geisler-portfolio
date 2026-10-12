@@ -24,8 +24,9 @@ import {
   optOutDeletesPerson,
   personDisplayName,
   type PersonRef,
-} from "@/lib/persons"
+} from "@/lib/crm/persons"
 import { erasePersonExchanges, optOutPerson } from "@/server/actions/persons"
+import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
 interface Props {
   person: PersonRef
@@ -52,7 +53,7 @@ export function OptOutPersonDialog({ person, hasContactRole, onDone }: Props) {
       const erasure = result.ok && eraseToo ? await erasePersonExchanges(person.id) : null
       handleOpenChange(false)
       if (!result.ok) {
-        toast.error("Une erreur est survenue, réessayez")
+        toast.error(GENERIC_ERROR_TOAST)
         return
       }
       if (deletesRecord) {

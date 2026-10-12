@@ -1,16 +1,14 @@
 import { z } from "zod"
 
-import { JOB_ROLES } from "@/lib/job-roles"
-import { LINKEDIN_PROFILE_ERROR, normalizeLinkedinProfileUrl } from "@/lib/linkedin"
+import { JOB_ROLES } from "@/lib/crm/job-roles"
+import { LINKEDIN_PROFILE_ERROR, normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import {
   emptyToNull,
   NONE_VALUE,
   nullableEnumField,
   nullifyNoneValue,
 } from "@/lib/schemas/none-value"
-import { ZONES } from "@/lib/zones"
-
-export { NONE_VALUE }
+import { ZONES } from "@/lib/crm/zones"
 
 export const optionalTextField = z.string().trim().transform(emptyToNull)
 

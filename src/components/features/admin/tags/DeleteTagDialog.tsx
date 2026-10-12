@@ -1,9 +1,6 @@
 "use client"
 
-import { Trash2 } from "lucide-react"
-
 import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
 import { deleteTag } from "@/server/actions/tags"
 import type { AdminTag } from "@/server/queries/tags"
 
@@ -16,11 +13,6 @@ export function DeleteTagDialog({ tag }: Props) {
 
   return (
     <ConfirmDeleteDialog
-      trigger={
-        <RowActionButton aria-label={`Supprimer ${tag.nameFr}`}>
-          <Trash2 className="size-4" />
-        </RowActionButton>
-      }
       name={tag.nameFr}
       denied={
         inUseCount > 0

@@ -5,13 +5,12 @@ import { revalidatePath, updateTag } from "next/cache"
 
 import type { LegalForm, Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { DEFAULT_CURRENCY, isFrenchCountry } from "@/lib/legal-entities"
+import { DEFAULT_CURRENCY, isFrenchCountry } from "@/lib/crm/legal-entities"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
 import {
   isPrismaError,
   optionalStringField,
-  optionalStringValues,
   stringField,
   stringValues,
   violatedConstraint,
@@ -30,9 +29,9 @@ function collectValues(formData: FormData): CompanyFormState["values"] {
     size: stringField(formData, "size"),
     websiteUrl: stringField(formData, "websiteUrl"),
     logoFilename: stringField(formData, "logoFilename"),
-    types: optionalStringValues(formData, "types"),
+    types: stringValues(formData, "types"),
     relationStatus: optionalStringField(formData, "relationStatus"),
-    zones: optionalStringValues(formData, "zones"),
+    zones: stringValues(formData, "zones"),
     notes: optionalStringField(formData, "notes"),
     details: optionalStringField(formData, "details"),
     legalEntityName: optionalStringField(formData, "legalEntityName"),
@@ -228,6 +227,9 @@ function invalidateCompanyCaches(): void {
   revalidatePersonLists()
 }
 
+const companyExists = (id: string) =>
+  prisma.company.count({ where: { id } }).then((count) => count > 0)
+
 interface SaveCompanyEvents {
   success: string
   failure: string
@@ -238,6 +240,7 @@ function saveCompany(
   events: SaveCompanyEvents,
   formData: FormData,
   persist: (data: CompanyInput) => Promise<unknown>,
+  updatedId?: string,
 ): Promise<CompanyFormState> {
   const values = collectValues(formData)
 
@@ -251,6 +254,13 @@ function saveCompany(
     invalidateCaches: invalidateCompanyCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => companyExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "company_not_found", values }),
+          },
     mapError: (err) => mapUniqueViolation(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -298,6 +308,7 @@ export async function updateCompany(
           data: toUpdateData(data, current?.legalEntity ?? null),
         })
       }),
+    id,
   )
 }
 
@@ -308,6 +319,7 @@ export async function deleteCompany(id: string): Promise<CompanyFormState> {
     actionName: "deleteCompany",
     events: { success: "company:deleted", failure: "company:delete_failed" },
     successLogFields: { id },
+    exists: () => companyExists(id),
     // L'entité part avec l'entreprise, sauf si elle sert aux pages légales (éditeur, sous-traitant) : sa suppression les emporterait par cascade.
     destroy: () =>
       prisma.$transaction(async (tx) => {

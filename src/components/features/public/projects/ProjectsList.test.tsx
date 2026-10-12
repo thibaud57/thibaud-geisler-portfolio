@@ -1,0 +1,139 @@
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { NextIntlClientProvider } from "next-intl"
+import type { ReactElement } from "react"
+import { describe, expect, it, vi } from "vitest"
+
+import frMessages from "../../../../../messages/fr.json"
+import type { LocalizedProjectWithRelations } from "@/types/project"
+import { ProjectsList } from "./ProjectsList"
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: { children: React.ReactNode }) => <a {...props}>{children}</a>,
+}))
+
+vi.mock("@/components/magicui/bento-grid", () => ({
+  BentoGrid: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="bento-grid">{children}</div>
+  ),
+  BentoCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}))
+
+function renderWithIntl(ui: ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="fr" messages={frMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  )
+}
+
+type Company = NonNullable<NonNullable<LocalizedProjectWithRelations["clientMeta"]>["company"]>
+
+function createCompany(overrides?: Partial<Company>): Company {
+  return {
+    id: "company-id",
+    slug: "personnel",
+    name: "Personnel",
+    websiteUrl: null,
+    sectors: [],
+    size: null,
+    logoFilename: null,
+    ...overrides,
+  }
+}
+
+function createProject(
+  overrides?: Partial<LocalizedProjectWithRelations>,
+): LocalizedProjectWithRelations {
+  const now = new Date()
+  const company = overrides?.clientMeta?.company ?? createCompany()
+  return {
+    id: "project-id",
+    slug: "project-slug",
+    title: "Project",
+    description: "Desc",
+    type: "PERSONAL",
+    status: "PUBLISHED",
+    formats: [],
+    startedAt: null,
+    endedAt: null,
+    githubUrl: null,
+    demoUrl: null,
+    coverFilename: null,
+    caseStudyMarkdown: null,
+    displayOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+    tags: [],
+    clientMeta: {
+      id: "clientmeta-id",
+      projectId: "project-id",
+      companyId: company.id,
+      teamSize: null,
+      contractStatus: null,
+      workMode: "REMOTE",
+      deliverablesCount: 1,
+      createdAt: now,
+      updatedAt: now,
+      company,
+    },
+    ...overrides,
+  }
+}
+
+describe("ProjectsList filter", () => {
+  it("affiche tous les projets par défaut, filtre correctement CLIENT/PERSONAL", async () => {
+    const fixtures: LocalizedProjectWithRelations[] = [
+      createProject({
+        id: "1",
+        slug: "p1",
+        title: "Client Project 1",
+        type: "CLIENT",
+        clientMeta: {
+          id: "cm-1",
+          projectId: "1",
+          companyId: "c-acme",
+          teamSize: 6,
+          contractStatus: "CDI",
+          workMode: "HYBRIDE",
+          deliverablesCount: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme SAS" }),
+        },
+      }),
+      createProject({ id: "2", slug: "p2", title: "Personal Project 1", type: "PERSONAL" }),
+      createProject({
+        id: "3",
+        slug: "p3",
+        title: "Client Project 2",
+        type: "CLIENT",
+        clientMeta: {
+          id: "cm-3",
+          projectId: "3",
+          companyId: "c-acme",
+          teamSize: null,
+          contractStatus: null,
+          workMode: "REMOTE",
+          deliverablesCount: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme" }),
+        },
+      }),
+    ]
+    const user = userEvent.setup()
+    renderWithIntl(<ProjectsList projects={fixtures} />)
+
+    expect(screen.getAllByRole("article")).toHaveLength(3)
+
+    await user.click(screen.getByRole("tab", { name: /client/i }))
+    expect(screen.getAllByRole("article")).toHaveLength(2)
+
+    await user.click(screen.getByRole("tab", { name: /personnel/i }))
+    expect(screen.getAllByRole("article")).toHaveLength(1)
+
+    await user.click(screen.getByRole("tab", { name: /tous/i }))
+    expect(screen.getAllByRole("article")).toHaveLength(3)
+  })
+})

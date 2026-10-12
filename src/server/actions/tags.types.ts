@@ -1,7 +1,7 @@
 import type { FormActionState } from "@/lib/form-state"
 import type { TagInput } from "@/lib/schemas/tag"
 
-export type TagFormMessage = "slug_taken" | "unknown_error" | null
+export type TagFormMessage = "slug_taken" | "tag_not_found" | "unknown_error" | null
 
 export type TagFormState = FormActionState<TagInput, TagFormMessage>
 

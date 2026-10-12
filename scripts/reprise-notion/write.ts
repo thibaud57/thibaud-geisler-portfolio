@@ -1,5 +1,5 @@
 import type { Company, ProjectType } from "@/generated/prisma/client"
-import { OPTED_OUT_CLEARED } from "@/lib/persons"
+import { OPTED_OUT_CLEARED } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import type { CompanyInput } from "@/lib/schemas/company"
 import { retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"

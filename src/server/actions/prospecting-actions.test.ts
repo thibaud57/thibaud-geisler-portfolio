@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       updateMany: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
       findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
@@ -27,6 +28,7 @@ import { prisma } from "@/lib/prisma"
 import {
   changeProspectingActionStatus,
   createProspectingAction,
+  deleteProspectingAction,
   rescheduleProspectingAction,
   updateProspectingAction,
 } from "./prospecting-actions"
@@ -142,6 +144,52 @@ describe("updateProspectingAction", () => {
     expect(prisma.prospectingAction.update).toHaveBeenCalledWith(
       objectMatch({ data: objectMatch({ status: "FAIT", occurredAt: NOW, respondedAt: null }) }),
     )
+  })
+
+  it("answers prospecting_action_not_found when the action was deleted meanwhile", async () => {
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
+
+    const state = await updateProspectingAction(
+      "a1",
+      initialProspectingActionFormState,
+      buildFormData(),
+    )
+
+    expect(state.message).toBe("prospecting_action_not_found")
+  })
+
+  it("answers unknown_error on a P2025 while the action still exists", async () => {
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
+
+    const state = await updateProspectingAction(
+      "a1",
+      initialProspectingActionFormState,
+      buildFormData(),
+    )
+
+    expect(state.message).toBe("unknown_error")
+  })
+})
+
+describe("deleteProspectingAction", () => {
+  it("treats an action already deleted elsewhere as deleted", async () => {
+    vi.mocked(prisma.prospectingAction.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
+
+    const state = await deleteProspectingAction("a1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers unknown_error on a P2025 while the action still exists", async () => {
+    vi.mocked(prisma.prospectingAction.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
+
+    const state = await deleteProspectingAction("a1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })
 

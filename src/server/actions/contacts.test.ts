@@ -18,6 +18,7 @@ vi.mock("@/lib/prisma", () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { NONE_VALUE } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
 
 import { createContact, deleteContact, findLeadForContactAttach, updateContact } from "./contacts"
 import { initialContactFormState } from "./contacts.types"
@@ -487,11 +488,22 @@ describe("updateContact", () => {
   it("reports a contact deleted since the page loaded", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
     vi.mocked(prisma.contact.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.count).mockResolvedValueOnce(0)
 
     const state = await updateContact("p1", initialContactFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("contact_not_found")
+  })
+
+  it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
+    vi.mocked(prisma.contact.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.count).mockResolvedValueOnce(1)
+
+    const state = await updateContact("p1", initialContactFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("refuses to edit an opted-out contact", async () => {
@@ -515,12 +527,22 @@ describe("deleteContact", () => {
     })
   })
 
-  it("refuses a contact already deleted elsewhere, without touching the person", async () => {
+  it("treats a contact already deleted elsewhere as deleted, without touching the person", async () => {
     vi.mocked(prisma.contact.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.count).mockResolvedValueOnce(0)
 
     const state = await deleteContact("p1")
 
-    expect(state.message).toBe("contact_not_found")
+    expect(state.ok).toBe(true)
     expect(prisma.person.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
+    vi.mocked(prisma.contact.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.count).mockResolvedValueOnce(1)
+
+    const state = await deleteContact("p1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })

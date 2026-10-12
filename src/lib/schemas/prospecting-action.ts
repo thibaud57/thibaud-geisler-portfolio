@@ -16,7 +16,7 @@ export const prospectingActionSchema = z.object({
     .min(1, "L'action est requise")
     .max(120, "L'action ne peut pas dépasser 120 caractères"),
   personId: z.string().trim().min(1, "Choisissez une personne"),
-  channel: z.enum(ActionChannel, { error: "Canal inconnu" }),
+  channel: z.enum(ActionChannel, { error: "Type inconnu" }),
   status: z.enum(ActionStatus, { error: "Statut inconnu" }),
   occurredAt: instant.transform((value) => new Date(value)),
   respondedAt: z

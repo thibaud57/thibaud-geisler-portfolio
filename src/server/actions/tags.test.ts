@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    count: vi.fn(),
     findMany: vi.fn(),
     findUniqueOrThrow: vi.fn(),
   }
@@ -230,6 +231,24 @@ describe("updateTag", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
   })
 
+  it("answers tag_not_found when the tag was deleted meanwhile", async () => {
+    vi.mocked(prisma.tag.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(0)
+
+    const state = await updateTag("tag-1", initialTagFormState, buildFormData())
+
+    expect(state.message).toBe("tag_not_found")
+  })
+
+  it("answers unknown_error on a P2025 while the tag still exists", async () => {
+    vi.mocked(prisma.tag.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(1)
+
+    const state = await updateTag("tag-1", initialTagFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
   it("translates a uniqueness violation into a field error", async () => {
     vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }] as never)
@@ -365,6 +384,24 @@ describe("deleteTag", () => {
     expect(state.message).toBe("tag_in_use")
     expect(prisma.tag.findMany).not.toHaveBeenCalled()
     expect(prisma.tag.update).not.toHaveBeenCalled()
+  })
+
+  it("treats a tag already deleted elsewhere as deleted", async () => {
+    vi.mocked(prisma.tag.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(0)
+
+    const state = await deleteTag("tag-1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers unknown_error on a P2025 while the tag still exists", async () => {
+    vi.mocked(prisma.tag.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(1)
+
+    const state = await deleteTag("tag-1")
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("rejects a call without a session, before any validation", async () => {

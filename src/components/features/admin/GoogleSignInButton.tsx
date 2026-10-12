@@ -3,7 +3,7 @@
 import { SiGoogle } from "@icons-pack/react-simple-icons"
 
 import { Button } from "@/components/ui/button"
-import { ADMIN_ROOT } from "@/lib/admin-routes"
+import { ADMIN_ROOT } from "@/lib/admin/routes"
 import { authClient } from "@/lib/auth-client"
 
 export function GoogleSignInButton() {

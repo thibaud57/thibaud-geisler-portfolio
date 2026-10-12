@@ -1,4 +1,4 @@
-import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
+import { InterviewsViewPage } from "@/components/features/admin/interviews/InterviewsViewPage"
 import { getCurrentUser } from "@/lib/get-current-user"
 
 export default async function AdminInterviewsUpcomingPage() {

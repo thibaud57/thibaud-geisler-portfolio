@@ -2,7 +2,8 @@
 paths:
   - "src/i18n/**/*.ts"
   - "src/proxy.ts"
-  - "src/app/**/{page,layout}.tsx"
+  - "src/app/?locale?/**/{page,layout}.tsx"
+  - "src/app/global-not-found.tsx"
   - "next.config.ts"
 ---
 

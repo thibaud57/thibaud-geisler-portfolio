@@ -5,7 +5,7 @@ import { APIError } from "better-auth/api"
 import { nextCookies } from "better-auth/next-js"
 
 import { env } from "@/env"
-import { ADMIN_LOGIN_PATH } from "@/lib/admin-routes"
+import { ADMIN_LOGIN_PATH } from "@/lib/admin/routes"
 import { isAdminEmail } from "@/lib/admin-whitelist"
 import { prisma } from "@/lib/prisma"
 

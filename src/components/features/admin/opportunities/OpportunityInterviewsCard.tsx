@@ -1,11 +1,9 @@
-import { Plus } from "lucide-react"
-import Link from "next/link"
-
-import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
-import { Button } from "@/components/ui/button"
-import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin-routes"
-import { toOpportunityInterviewLinks } from "@/lib/interviews"
-import { OPPORTUNITY_SECTION_TITLES } from "@/lib/opportunities"
+import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
+import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
+import { CreateLinkButton } from "@/components/features/admin/CreateLinkButton"
+import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
+import { toOpportunityInterviewLinks } from "@/lib/crm/interviews"
+import { OPPORTUNITY_SECTION_TITLES } from "@/lib/crm/opportunities"
 import type { AdminOpportunity } from "@/server/queries/opportunities"
 
 interface Props {
@@ -15,16 +13,10 @@ interface Props {
 export function OpportunityInterviewsCard({ opportunity }: Props) {
   if (!opportunity) {
     return (
-      <RelatedLinksCard
+      <PendingRelatedCard
         title={OPPORTUNITY_SECTION_TITLES.interviews}
-        links={[]}
         emptyText="Après l'enregistrement de l'opportunité."
-        action={
-          <Button variant="outline" size="sm" disabled>
-            <Plus aria-hidden data-icon="inline-start" />
-            Nouvel entretien
-          </Button>
-        }
+        addLabel="Nouvel entretien"
       />
     )
   }
@@ -38,12 +30,12 @@ export function OpportunityInterviewsCard({ opportunity }: Props) {
       )}
       emptyText="Aucun entretien pour cette opportunité."
       action={
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`${ADMIN_INTERVIEWS_PATH}/nouveau?opportunity=${opportunity.id}`}>
-            <Plus aria-hidden data-icon="inline-start" />
-            Nouvel entretien
-          </Link>
-        </Button>
+        <CreateLinkButton
+          href={`${ADMIN_INTERVIEWS_PATH}/nouveau?opportunity=${opportunity.id}`}
+          label="Nouvel entretien"
+          variant="outline"
+          size="sm"
+        />
       }
     />
   )

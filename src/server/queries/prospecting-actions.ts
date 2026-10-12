@@ -45,17 +45,23 @@ export type ActionTimelineRow = Prisma.ProspectingActionGetPayload<{
 }>
 
 // Sans le message ni la personne : la liste des leads n'en montre que le rang, le canal, le statut et la date, et ne doit pas embarquer le texte de chaque échange.
-export async function findActionTimelinesForAdmin(): Promise<ActionTimelineRow[]> {
-  return prisma.prospectingAction.findMany({ select: actionTimelineSelect })
+export async function findActionTimelinesForAdmin({
+  role,
+}: {
+  role: "lead" | "contact"
+}): Promise<ActionTimelineRow[]> {
+  return prisma.prospectingAction.findMany({
+    where: { person: { [role]: { isNot: null } } },
+    select: actionTimelineSelect,
+  })
 }
 
-// Du plus ancien au plus récent : l'ordre de la card Actions de la page du lead.
 export async function findProspectingActionsOfPerson(
   personId: string,
 ): Promise<AdminProspectingAction[]> {
   return prisma.prospectingAction.findMany({
     where: { personId },
     include: adminProspectingActionInclude,
-    orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
   })
 }

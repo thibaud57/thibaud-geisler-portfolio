@@ -39,6 +39,22 @@ const SHORT_TIME = new Intl.DateTimeFormat("fr-FR", {
   timeZone: TIME_ZONE,
 })
 
+export function formatShortDate(date: Date | null): string | null {
+  if (!date) return null
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  return `${day}/${month}/${date.getFullYear()}`
+}
+
+// Accesseurs locaux, pas toISOString() : le Calendar rend une Date à minuit local, la convertir en
+// UTC avant de trancher décale le jour dès que le fuseau est en avance sur UTC (France l'été).
+export function toIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 export function formatShortInstantDate(date: Date | null): string | null {
   return date ? SHORT_DATE.format(date) : null
 }
@@ -91,4 +107,8 @@ export function calendarDaysBetween(a: Date, b: Date): number {
   const dayA = new Date(a.getFullYear(), a.getMonth(), a.getDate())
   const dayB = new Date(b.getFullYear(), b.getMonth(), b.getDate())
   return Math.round(Math.abs(dayA.getTime() - dayB.getTime()) / DAY_MS)
+}
+
+export function isWithinCalendarDays(a: Date, b: Date, days: number): boolean {
+  return calendarDaysBetween(a, b) <= days
 }

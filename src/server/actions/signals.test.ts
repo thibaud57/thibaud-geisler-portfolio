@@ -7,7 +7,13 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => {
   const prisma = {
-    signal: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn() },
+    signal: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+      count: vi.fn(),
+    },
     lead: { findUnique: vi.fn() },
     $transaction: vi.fn(),
   }
@@ -183,6 +189,7 @@ describe("updateSignal", () => {
       personId: null,
     } as never)
     vi.mocked(prisma.signal.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.signal.count).mockResolvedValueOnce(0)
 
     const vanished = await updateSignal("s1", initialSignalFormState, buildFormData())
     const deletedMeanwhile = await updateSignal("s1", initialSignalFormState, buildFormData())
@@ -190,6 +197,19 @@ describe("updateSignal", () => {
     expect(vanished.message).toBe("signal_not_found")
     expect(deletedMeanwhile.message).toBe("signal_not_found")
     expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("reports an unknown error when a P2025 comes while the signal still exists", async () => {
+    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce({
+      companyId: "c1",
+      personId: null,
+    } as never)
+    vi.mocked(prisma.signal.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.signal.count).mockResolvedValueOnce(1)
+
+    const state = await updateSignal("s1", initialSignalFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("refuses to change a company signal to a person-level type", async () => {
@@ -206,12 +226,22 @@ describe("updateSignal", () => {
 })
 
 describe("deleteSignal", () => {
-  it("reports a signal already deleted elsewhere", async () => {
+  it("treats a signal already deleted elsewhere as deleted", async () => {
     vi.mocked(prisma.signal.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.signal.count).mockResolvedValueOnce(0)
 
     const state = await deleteSignal("s1")
 
-    expect(state.message).toBe("signal_not_found")
+    expect(state.ok).toBe(true)
     expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("reports an unknown error when a P2025 comes while the signal still exists", async () => {
+    vi.mocked(prisma.signal.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.signal.count).mockResolvedValueOnce(1)
+
+    const state = await deleteSignal("s1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })

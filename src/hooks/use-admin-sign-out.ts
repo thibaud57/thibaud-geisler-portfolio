@@ -1,7 +1,7 @@
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { ADMIN_LOGIN_PATH } from "@/lib/admin-routes"
+import { ADMIN_LOGIN_PATH } from "@/lib/admin/routes"
 import { authClient } from "@/lib/auth-client"
 
 export function useAdminSignOut() {

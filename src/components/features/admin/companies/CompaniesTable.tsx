@@ -1,41 +1,42 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Building2, Pencil } from "lucide-react"
-import Link from "next/link"
+import { useCallback, useMemo, useState } from "react"
+import { Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { CompanyLogoLink } from "@/components/features/admin/CompanyLogoLink"
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
-import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
+import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
+import type { DetailContent, DetailSection } from "@/components/features/admin/detail/DetailDialog"
 import {
-  type DetailContent,
-  DetailDialog,
-  type DetailSection,
-} from "@/components/features/admin/DetailDialog"
-import { RelatedLinksList, type RelatedLink } from "@/components/features/admin/RelatedLinksList"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
+  linksSection,
+  markdownSection,
+  textSection,
+} from "@/components/features/admin/detail/detail-sections"
+import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
+  enumBadge,
+  enumFacet,
+  HEADER_BADGE_PROPS,
   hideableColumn,
+  iconsByLabel,
+  labelBadge,
   truncatedCell,
-} from "@/components/features/admin/table-cells"
+} from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
 import { BadgeList } from "@/components/features/admin/BadgeList"
-import { EnumBadge } from "@/components/features/admin/EnumBadge"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
-import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
-import { signalsSection } from "@/components/features/admin/signals/SignalList"
+import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
+import { signalsSection } from "@/components/features/admin/signals/signal-detail"
 import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
-import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   COMPANY_COLUMN_WIDTHS,
   COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS,
-  type CompanyView,
-} from "@/lib/admin-table-widths"
+} from "@/lib/admin/table-widths"
 import {
   COMPANY_FIELD_LABELS,
   COMPANY_SECTION_TITLES,
@@ -48,31 +49,34 @@ import {
   companyOpportunities,
   isEsn,
   RELATION_STATUS_LABELS,
-} from "@/lib/companies"
+} from "@/lib/crm/companies"
+import type { CompanyView } from "@/lib/crm/company-views"
 import {
   countryName,
-  isFrenchCountry,
   LEGAL_ENTITY_FIELD_LABELS,
   LEGAL_FORM_LABELS,
-  sirenFromSiret,
-} from "@/lib/legal-entities"
-import { ADMIN_LEADS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
-import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/lead-display-status"
+  registrationLabel,
+  VAT_REGIME_LABELS,
+} from "@/lib/crm/legal-entities"
+import {
+  ADMIN_COMPANIES_PATH,
+  ADMIN_LEADS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin/routes"
+import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/crm/lead-display-status"
+import { toLeadLink } from "@/lib/crm/leads"
 import { formatSiret } from "@/lib/legal/format-siret"
-import { toOpportunityLink } from "@/lib/opportunities"
-import { personDisplayName } from "@/lib/persons"
-import { formatShortInstantDate } from "@/lib/date-time"
-import { detailHref } from "@/lib/detail-links"
+import { toOpportunityLink } from "@/lib/crm/opportunities"
+import { formatDateOnly, formatShortInstantDate } from "@/lib/date-time"
+import { detailHref } from "@/lib/admin/detail-links"
 import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
-import { signalFacet, type SignalItem } from "@/lib/signals"
-import { ZONE_LABELS, ZONES } from "@/lib/zones"
+import { signalFacet, type SignalItem } from "@/lib/crm/signals"
+import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
+import { useRowDetail } from "@/hooks/use-row-detail"
 import type { AdminCompany } from "@/server/queries/companies"
 
-export type { CompanyView }
-
 const VIEW_FILTER: Record<CompanyView, (company: AdminCompany) => boolean> = {
-  toutes: () => true,
+  all: () => true,
   travaillees: (company) => company.worked,
   recrutement: isEsn,
   prospects: (company) => company.isProspect,
@@ -90,10 +94,7 @@ function zoneLabels(company: AdminCompany): string[] {
   return company.zones.map((zone) => ZONE_LABELS[zone])
 }
 
-// Glyphe par libellé plutôt que par valeur : BadgeList ne connaît que les libellés déjà résolus.
-const TYPE_ICONS_BY_LABEL = Object.fromEntries(
-  COMPANY_TYPES.map((type) => [COMPANY_TYPE_LABELS[type], COMPANY_TYPE_ICONS[type]]),
-)
+const TYPE_ICONS_BY_LABEL = iconsByLabel(COMPANY_TYPES, COMPANY_TYPE_LABELS, COMPANY_TYPE_ICONS)
 
 function workedLabel(company: AdminCompany): string {
   return company.worked ? "Oui" : "Non"
@@ -152,7 +153,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.zones,
       width: COMPANY_COLUMN_WIDTHS.zones,
       ...hideableColumn(visibleByDefault, "zones"),
-      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="zones" />,
+      cell: (company) => <BadgeList labels={zoneLabels(company)} noun="localités" />,
     },
     {
       key: "size",
@@ -166,12 +167,8 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       header: COMPANY_FIELD_LABELS.relationStatus,
       width: COMPANY_COLUMN_WIDTHS.relationStatus,
       ...hideableColumn(visibleByDefault, "relationStatus"),
-      cell: (company) => (
-        <EnumBadge
-          label={RELATION_STATUS_LABELS[company.relationStatus]}
-          icon={COMPANY_STATUS_ICONS[company.relationStatus]}
-        />
-      ),
+      cell: (company) =>
+        enumBadge(company.relationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS),
     },
     {
       key: "worked",
@@ -227,21 +224,20 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
     },
     {
       key: "projects",
-      header: "Projets",
+      header: COMPANY_FIELD_LABELS.projects,
       width: COMPANY_COLUMN_WIDTHS.projects,
       align: "right",
       className: "tabular-nums text-muted-foreground",
       ...hideableColumn(visibleByDefault, "projects"),
-      sortValue: (company) => company._count.clientMetas,
-      cell: (company) => company._count.clientMetas,
+      sortValue: (company) => company.clientProjectCount,
+      cell: (company) => company.clientProjectCount,
     },
     actionsColumn<AdminCompany>((company) => (
       <>
-        <RowActionButton aria-label={`Modifier ${company.name}`} asChild>
-          <Link href={`/admin/entreprises/${company.id}`}>
-            <Pencil className="size-4" />
-          </Link>
-        </RowActionButton>
+        <EditRowLink
+          href={`${ADMIN_COMPANIES_PATH}/${company.id}`}
+          label={`Modifier ${company.name}`}
+        />
         <DeleteCompanyDialog company={company} />
       </>
     )),
@@ -250,120 +246,59 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
 
 const CAPITAL_FORMATTER = new Intl.NumberFormat("fr")
 
-function registrationLabel(entity: NonNullable<AdminCompany["legalEntity"]>): string | null {
-  if (isFrenchCountry(entity.address?.country)) {
-    const siren = sirenFromSiret(entity.siret)
-    return entity.rcsCity && siren ? `RCS ${entity.rcsCity} ${siren}` : null
-  }
-  return [entity.rcsCity, entity.rcsNumber].filter(Boolean).join(" ") || null
-}
-
-function legalEntitySections(company: AdminCompany): DetailSection[] {
+function legalEntitySection(company: AdminCompany): DetailSection {
   const entity = company.legalEntity
+  const publisher = entity?.publisher
 
-  return [
-    {
-      title: COMPANY_SECTION_TITLES.legalEntity,
-      rows: [
-        { label: LEGAL_ENTITY_FIELD_LABELS.name, value: entity?.name },
-        {
-          label: LEGAL_ENTITY_FIELD_LABELS.legalForm,
-          value: entity?.legalForm ? (
-            <Badge variant="secondary">{LEGAL_FORM_LABELS[entity.legalForm]}</Badge>
-          ) : null,
-        },
-        {
-          label: LEGAL_ENTITY_FIELD_LABELS.siret,
-          value: entity?.siret ? formatSiret(entity.siret) : null,
-        },
-        { label: LEGAL_ENTITY_FIELD_LABELS.vatNumber, value: entity?.vatNumber },
-        {
-          label: LEGAL_ENTITY_FIELD_LABELS.registeredOffice,
-          fullWidth: true,
-          value: entity?.address ? (
-            <span className="whitespace-pre-line">
-              {[
-                entity.address.street,
-                `${entity.address.postalCode} ${entity.address.city}`,
-                countryName(entity.address.country),
-              ].join("\n")}
-            </span>
-          ) : null,
-        },
-        {
-          label: LEGAL_ENTITY_FIELD_LABELS.registration,
-          value: entity ? registrationLabel(entity) : null,
-        },
-        { label: LEGAL_ENTITY_FIELD_LABELS.phone, value: entity?.phone },
-        {
-          // Seul sans paire après le siège : pleine largeur plutôt qu'une case vide à côté.
-          label: LEGAL_ENTITY_FIELD_LABELS.capitalAmount,
-          fullWidth: true,
-          value:
-            entity && entity.capitalAmount !== null
-              ? `${CAPITAL_FORMATTER.format(entity.capitalAmount)} ${entity.capitalCurrency ?? ""}`.trim()
-              : null,
-        },
-      ],
-    },
-  ]
-}
-
-function leadsSection(company: AdminCompany): DetailSection[] {
-  return [
-    {
-      title: COMPANY_SECTION_TITLES.leads,
-      rows: [
-        {
-          fullWidth: true,
-          value:
-            company.leads.length === 0 ? null : (
-              <RelatedLinksList
-                links={company.leads.map((lead): RelatedLink => ({
-                  id: lead.id,
-                  href: detailHref(ADMIN_LEADS_PATH, lead.id),
-                  label: personDisplayName(lead),
-                  // Poste puis statut : la ligne dit où en est le lead sans l'ouvrir.
-                  meta: [
-                    lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null,
-                    LEAD_DISPLAY_STATUS_LABELS[lead.status],
-                  ]
-                    .filter(Boolean)
-                    .join(" · "),
-                }))}
-              />
-            ),
-        },
-      ],
-    },
-  ]
-}
-
-function opportunitiesSection(company: AdminCompany): DetailSection[] {
-  const opportunities = companyOpportunities(company)
-
-  return [
-    {
-      title: COMPANY_SECTION_TITLES.opportunities,
-      rows: [
-        {
-          fullWidth: true,
-          value:
-            opportunities.length === 0 ? null : (
-              <RelatedLinksList
-                links={opportunities.map(({ opportunity, role }) =>
-                  toOpportunityLink(opportunity, {
-                    href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
-                    metaSuffix: role,
-                    idPrefix: role,
-                  }),
-                )}
-              />
-            ),
-        },
-      ],
-    },
-  ]
+  return {
+    title: COMPANY_SECTION_TITLES.legalEntity,
+    rows: [
+      { label: LEGAL_ENTITY_FIELD_LABELS.name, value: entity?.name },
+      {
+        label: LEGAL_ENTITY_FIELD_LABELS.legalForm,
+        value: labelBadge(entity?.legalForm ? LEGAL_FORM_LABELS[entity.legalForm] : null),
+      },
+      {
+        label: LEGAL_ENTITY_FIELD_LABELS.siret,
+        value: entity?.siret ? formatSiret(entity.siret) : null,
+      },
+      { label: LEGAL_ENTITY_FIELD_LABELS.vatNumber, value: entity?.vatNumber },
+      { label: LEGAL_ENTITY_FIELD_LABELS.street, value: entity?.address?.street },
+      { label: LEGAL_ENTITY_FIELD_LABELS.postalCode, value: entity?.address?.postalCode },
+      { label: LEGAL_ENTITY_FIELD_LABELS.city, value: entity?.address?.city },
+      {
+        label: LEGAL_ENTITY_FIELD_LABELS.country,
+        value: entity?.address ? countryName(entity.address.country) : null,
+      },
+      {
+        label: LEGAL_ENTITY_FIELD_LABELS.registration,
+        value: entity ? registrationLabel(entity) : null,
+      },
+      { label: LEGAL_ENTITY_FIELD_LABELS.phone, value: entity?.phone },
+      {
+        label: LEGAL_ENTITY_FIELD_LABELS.capitalAmount,
+        value:
+          entity && entity.capitalAmount !== null
+            ? CAPITAL_FORMATTER.format(entity.capitalAmount)
+            : null,
+      },
+      { label: LEGAL_ENTITY_FIELD_LABELS.capitalCurrency, value: entity?.capitalCurrency },
+      ...(publisher
+        ? [
+            {
+              label: LEGAL_ENTITY_FIELD_LABELS.vatLiableSince,
+              value: publisher.vatLiableSince ? formatDateOnly(publisher.vatLiableSince) : null,
+            },
+            {
+              label: LEGAL_ENTITY_FIELD_LABELS.vatRegime,
+              value: labelBadge(
+                publisher.vatRegime ? VAT_REGIME_LABELS[publisher.vatRegime] : null,
+              ),
+            },
+          ]
+        : []),
+    ],
+  }
 }
 
 function buildCompanyDetail(
@@ -372,20 +307,18 @@ function buildCompanyDetail(
   now: Date,
   onOpenSignal: (signal: SignalItem) => void,
 ): DetailContent {
-  const projectCount = company._count.clientMetas
+  const projectCount = company.clientProjectCount
 
   return {
     leading: <CompanyLogoLink logoFilename={company.logoFilename} companyName={company.name} />,
     title: company.name,
     slug: company.slug,
     subtitle: `${projectCount} projet${projectCount > 1 ? "s" : ""}`,
-    status: (
-      <EnumBadge
-        variant="outline"
-        meta
-        label={RELATION_STATUS_LABELS[company.relationStatus]}
-        icon={COMPANY_STATUS_ICONS[company.relationStatus]}
-      />
+    status: enumBadge(
+      company.relationStatus,
+      RELATION_STATUS_LABELS,
+      COMPANY_STATUS_ICONS,
+      HEADER_BADGE_PROPS,
     ),
     sections: [
       {
@@ -400,7 +333,7 @@ function buildCompanyDetail(
           },
           {
             label: COMPANY_FIELD_LABELS.zones,
-            value: <BadgeList labels={zoneLabels(company)} noun="zones" max={Infinity} />,
+            value: <BadgeList labels={zoneLabels(company)} noun="localités" max={Infinity} />,
             fullWidth: true,
           },
         ],
@@ -427,17 +360,7 @@ function buildCompanyDetail(
           },
         ],
       },
-      {
-        title: COMPANY_SECTION_TITLES.details,
-        rows: [
-          {
-            value: company.details ? (
-              <MarkdownContent markdown={company.details} variant="admin" />
-            ) : null,
-            fullWidth: true,
-          },
-        ],
-      },
+      markdownSection(COMPANY_SECTION_TITLES.details, company.details),
       {
         title: COMPANY_SECTION_TITLES.relation,
         rows: [
@@ -458,16 +381,27 @@ function buildCompanyDetail(
           },
         ],
       },
-      {
-        title: COMPANY_SECTION_TITLES.notes,
-        rows: [
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- une chaîne vide doit aussi devenir EmptyValue, pas un bloc vide.
-          { value: company.notes || null, fullWidth: true },
-        ],
-      },
-      ...legalEntitySections(company),
-      ...leadsSection(company),
-      ...opportunitiesSection(company),
+      legalEntitySection(company),
+      textSection(COMPANY_SECTION_TITLES.notes, company.notes),
+      linksSection(
+        COMPANY_SECTION_TITLES.leads,
+        company.leads.map((lead) =>
+          toLeadLink(lead, {
+            href: detailHref(ADMIN_LEADS_PATH, lead.id),
+            statusLabel: LEAD_DISPLAY_STATUS_LABELS[lead.status],
+          }),
+        ),
+      ),
+      linksSection(
+        COMPANY_SECTION_TITLES.opportunities,
+        companyOpportunities(company).map(({ opportunity, role }) =>
+          toOpportunityLink(opportunity, {
+            href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
+            metaSuffix: role,
+            idPrefix: role,
+          }),
+        ),
+      ),
       ...signalsSection(company.signals, now, onOpenSignal),
     ],
     onEdit,
@@ -475,27 +409,27 @@ function buildCompanyDetail(
 }
 
 const facets: readonly Facet<AdminCompany>[] = [
-  {
-    key: "relationStatus",
-    label: COMPANY_FIELD_LABELS.relationStatus,
-    options: RELATION_STATUSES.map((status) => ({
-      value: status,
-      label: RELATION_STATUS_LABELS[status],
-    })),
-    value: (company) => company.relationStatus,
-  },
-  {
-    key: "types",
-    label: COMPANY_FIELD_LABELS.types,
-    options: COMPANY_TYPES.map((type) => ({ value: type, label: COMPANY_TYPE_LABELS[type] })),
-    value: (company) => company.types,
-  },
-  {
-    key: "zones",
-    label: COMPANY_FIELD_LABELS.zones,
-    options: ZONES.map((zone) => ({ value: zone, label: ZONE_LABELS[zone] })),
-    value: (company) => company.zones,
-  },
+  enumFacet(
+    "relationStatus",
+    COMPANY_FIELD_LABELS.relationStatus,
+    RELATION_STATUSES,
+    RELATION_STATUS_LABELS,
+    (company: AdminCompany) => company.relationStatus,
+  ),
+  enumFacet(
+    "types",
+    COMPANY_FIELD_LABELS.types,
+    COMPANY_TYPES,
+    COMPANY_TYPE_LABELS,
+    (company: AdminCompany) => company.types,
+  ),
+  enumFacet(
+    "zones",
+    COMPANY_FIELD_LABELS.zones,
+    ZONES,
+    ZONE_LABELS,
+    (company: AdminCompany) => company.zones,
+  ),
 ]
 
 interface Props {
@@ -506,32 +440,34 @@ interface Props {
 
 export function CompaniesTable({ companies, view, initialDetailId }: Props) {
   const router = useRouter()
-  const [selectedCompany, setSelectedCompany] = useState<AdminCompany | null>(
-    () => companies.find((company) => company.id === initialDetailId) ?? null,
-  )
-
   const [now] = useState(() => new Date())
   const { openSignal, detailFor, reset, formDialog } = useSignalDetail(now)
 
-  const allFacets = useMemo(() => [...facets, signalFacet<AdminCompany>(now)], [now])
+  const viewFacets = useMemo(() => [...facets, signalFacet<AdminCompany>(now)], [now])
 
   const viewCompanies = useMemo(() => companies.filter(VIEW_FILTER[view]), [companies, view])
   const columns = useMemo<readonly Column<AdminCompany>[]>(() => buildColumns(view), [view])
 
-  const detail = useMemo<DetailContent | null>(() => {
-    if (!selectedCompany) return null
-    return (
-      detailFor({ kind: "company", id: selectedCompany.id, name: selectedCompany.name }) ??
+  const buildDetail = useCallback(
+    (company: AdminCompany): DetailContent =>
+      detailFor({ kind: "company", id: company.id, name: company.name }) ??
       buildCompanyDetail(
-        selectedCompany,
+        company,
         () => {
-          router.push(`/admin/entreprises/${selectedCompany.id}`)
+          router.push(`${ADMIN_COMPANIES_PATH}/${company.id}`)
         },
         now,
         openSignal,
-      )
-    )
-  }, [selectedCompany, detailFor, now, router, openSignal])
+      ),
+    [detailFor, now, router, openSignal],
+  )
+
+  const { open, dialog } = useRowDetail({
+    rows: companies,
+    initialDetailId,
+    build: buildDetail,
+    onClose: reset,
+  })
 
   return (
     <>
@@ -543,25 +479,17 @@ export function CompaniesTable({ companies, view, initialDetailId }: Props) {
         noun="entreprise"
         onRowClick={(company) => {
           reset()
-          setSelectedCompany(company)
+          open(company)
         }}
         rowLabel={(company) => company.name}
         empty={{
           icon: Building2,
           title: "Aucune entreprise",
-          description: "Aucune entreprise pour le moment. Créez-en une via le bouton ci-dessus.",
+          description: "Aucune entreprise dans cette vue. Créez-en une via le bouton ci-dessus.",
         }}
-        facets={allFacets}
+        facets={viewFacets}
       />
-      <DetailDialog
-        detail={detail}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedCompany(null)
-            reset()
-          }
-        }}
-      />
+      {dialog}
       {formDialog}
     </>
   )

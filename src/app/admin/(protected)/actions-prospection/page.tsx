@@ -1,13 +1,12 @@
-import { ActionsViewPage } from "@/components/features/admin/prospection/ActionsViewPage"
+import { ActionsViewPage } from "@/components/features/admin/prospecting-actions/ActionsViewPage"
+import { firstParam } from "@/lib/admin/search-params"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-interface Props {
-  searchParams: Promise<{ detail?: string }>
-}
-
-export default async function AdminActionsPage({ searchParams }: Props) {
+export default async function AdminActionsPage({
+  searchParams,
+}: PageProps<"/admin/actions-prospection">) {
   await getCurrentUser()
   const { detail } = await searchParams
 
-  return <ActionsViewPage view="journal" initialDetailId={detail} />
+  return <ActionsViewPage view="journal" initialDetailId={firstParam(detail)} />
 }

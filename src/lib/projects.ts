@@ -37,22 +37,6 @@ export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null)
   }
 }
 
-export function formatShortDate(date: Date | null): string | null {
-  if (!date) return null
-  const day = String(date.getDate()).padStart(2, "0")
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  return `${day}/${month}/${date.getFullYear()}`
-}
-
-// Accesseurs locaux, pas toISOString() : le Calendar rend une Date à minuit local, la convertir en
-// UTC avant de trancher décale le jour dès que le fuseau est en avance sur UTC (France l'été).
-export function toIsoDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
-
 // new Date("YYYY-MM-DD") parse la chaîne en UTC (spec ECMA-262) : décalage symétrique à toIsoDate.
 // slice plutôt que split+destructuring : évite le string | undefined de noUncheckedIndexedAccess.
 export function parseIsoDate(value: string): Date {
@@ -81,6 +65,10 @@ export const PROJECT_FORMAT_LABELS: Record<ProjectFormat, string> = {
   CLI: "CLI",
   IA: "IA",
 }
+
+export const PROJECT_TYPES = Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]
+export const PROJECT_STATUSES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
+export const PROJECT_FORMATS = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
 
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   FREELANCE: "Freelance",
@@ -157,9 +145,6 @@ export function formatProjectDuration(startedAt: Date | null, endedAt: Date | nu
   return [yearsLabel, monthsLabel].filter(Boolean).join(" ")
 }
 
-// Partagés par les cards du formulaire projet et les blocs de sa vue détail, titres comme libellés
-// de champ : consulter puis modifier doit retrouver les mêmes intitulés (docs/DESIGN.md
-// § Arbitrages). Les clés des libellés sont les noms des champs du formulaire.
 export const PROJECT_SECTION_TITLES = {
   identity: "Identité",
   description: "Description",
@@ -185,6 +170,7 @@ export const PROJECT_FIELD_LABELS = {
   type: "Nature",
   startedAt: "Début",
   endedAt: "Fin",
+  duration: "Durée",
   githubUrl: "Lien GitHub",
   demoUrl: "Lien démo",
   companyId: "Entreprise",

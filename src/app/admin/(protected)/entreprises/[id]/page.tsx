@@ -1,19 +1,20 @@
 import { notFound } from "next/navigation"
-import { Suspense } from "react"
 
-import { AdminBreadcrumb } from "@/components/layout/AdminBreadcrumb"
+import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
-import { RelatedLinksCard } from "@/components/features/admin/RelatedLinksCard"
-import type { RelatedLink } from "@/components/features/admin/RelatedLinksList"
+import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
-import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
+import {
+  ADMIN_COMPANIES_PATH,
+  ADMIN_LEADS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin/routes"
+import { COMPANY_PAGE_SKELETON } from "@/lib/admin/table-widths"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
-import { COMPANY_SECTION_TITLES, companyOpportunities } from "@/lib/companies"
-import { JOB_ROLE_LABELS } from "@/lib/job-roles"
-import { toOpportunityLink } from "@/lib/opportunities"
-import { personDisplayName } from "@/lib/persons"
+import { COMPANY_SECTION_TITLES, companyOpportunities } from "@/lib/crm/companies"
+import { toLeadLink } from "@/lib/crm/leads"
+import { toOpportunityLink } from "@/lib/crm/opportunities"
 import { findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 import { findLeadsOfCompany } from "@/server/queries/leads"
@@ -27,10 +28,9 @@ async function EditCompanySection({ id }: { id: string }) {
   if (!company) notFound()
 
   return (
-    <div className="flex flex-col gap-6">
-      <AdminBreadcrumb
-        items={[{ label: "Entreprises", href: "/admin/entreprises" }, { label: company.name }]}
-      />
+    <AdminFormContent
+      breadcrumb={[{ label: "Entreprises", href: ADMIN_COMPANIES_PATH }, { label: company.name }]}
+    >
       <CompanyForm
         company={company}
         logoAssets={logoAssets}
@@ -38,12 +38,12 @@ async function EditCompanySection({ id }: { id: string }) {
           <>
             <RelatedLinksCard
               title={COMPANY_SECTION_TITLES.leads}
-              links={leads.map((lead): RelatedLink => ({
-                id: lead.personId,
-                href: `/admin/leads/${lead.personId}`,
-                label: personDisplayName(lead.person),
-                ...(lead.person.jobRole ? { meta: JOB_ROLE_LABELS[lead.person.jobRole] } : {}),
-              }))}
+              links={leads.map((lead) =>
+                toLeadLink(
+                  { id: lead.personId, ...lead.person },
+                  { href: `${ADMIN_LEADS_PATH}/${lead.personId}` },
+                ),
+              )}
               emptyText="Aucun lead dans cette entreprise."
             />
             <RelatedLinksCard
@@ -65,7 +65,7 @@ async function EditCompanySection({ id }: { id: string }) {
           </>
         }
       />
-    </div>
+    </AdminFormContent>
   )
 }
 
@@ -74,16 +74,8 @@ export default async function EditCompanyPage({ params }: PageProps<"/admin/entr
   const { id } = await params
 
   return (
-    <div className="w-full px-4 py-6 md:px-6 lg:py-8">
-      <Suspense
-        fallback={
-          <StackedSkeleton
-            heights={["h-[24px]", "h-[260px]", "h-[160px]", "h-[140px]", "h-[220px]"]}
-          />
-        }
-      >
-        <EditCompanySection id={id} />
-      </Suspense>
-    </div>
+    <AdminFormPage skeleton={COMPANY_PAGE_SKELETON}>
+      <EditCompanySection id={id} />
+    </AdminFormPage>
   )
 }

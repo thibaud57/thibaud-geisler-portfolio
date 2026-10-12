@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition, type MouseEvent, type ReactNode } from "react"
-import { TriangleAlert } from "lucide-react"
+import { Trash2, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -16,13 +16,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
+import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
 // `denied` porte le refus métier que le serveur vient d'opposer (élément encore rattaché) ; null
 // quand l'échec est technique, auquel cas la modale se ferme sur un toast générique.
 export type DeleteOutcome = { ok: true } | { ok: false; denied: string | null }
 
 interface Props {
-  trigger: ReactNode
+  trigger?: ReactNode
   // Nom de l'élément, pour « Supprimer « X » ? » : le titre nomme l'élément, jamais son type.
   name: string
   description?: ReactNode
@@ -34,8 +36,12 @@ interface Props {
 }
 
 export function ConfirmDeleteDialog({
-  trigger,
   name,
+  trigger = (
+    <RowActionButton aria-label={`Supprimer ${name}`}>
+      <Trash2 className="size-4" />
+    </RowActionButton>
+  ),
   description = "La suppression est définitive.",
   denied = null,
   successMessage,
@@ -61,7 +67,7 @@ export function ConfirmDeleteDialog({
         toast.success(successMessage)
         setOpen(false)
       } else if (result.denied === null) {
-        toast.error("Une erreur est survenue, réessayez")
+        toast.error(GENERIC_ERROR_TOAST)
         setOpen(false)
       } else {
         setServerDenied(result.denied)

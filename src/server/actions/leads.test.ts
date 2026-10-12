@@ -18,6 +18,7 @@ vi.mock("@/lib/prisma", () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
     signal: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { NONE_VALUE } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
 
 import { createLead, deleteLead, updateLead } from "./leads"
 import { initialLeadFormState } from "./leads.types"
@@ -286,11 +287,22 @@ describe("updateLead", () => {
   it("reports a lead deleted since the page loaded", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
     vi.mocked(prisma.lead.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
 
     const state = await updateLead("p1", initialLeadFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("lead_not_found")
+  })
+
+  it("reports an unknown error when a P2025 comes while the lead still exists", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
+    vi.mocked(prisma.lead.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(1)
+
+    const state = await updateLead("p1", initialLeadFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("refuses to update an opted-out lead", async () => {
@@ -322,13 +334,23 @@ describe("deleteLead", () => {
     expect(prisma.signal.deleteMany).toHaveBeenCalledWith({ where: { personId: "p1" } })
   })
 
-  it("refuses a lead already deleted elsewhere, without touching the person", async () => {
+  it("treats a lead already deleted elsewhere as deleted, without touching the person", async () => {
     vi.mocked(prisma.lead.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
 
     const state = await deleteLead("p1")
 
-    expect(state.message).toBe("lead_not_found")
+    expect(state.ok).toBe(true)
     expect(prisma.person.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("reports an unknown error when a P2025 comes while the lead still exists", async () => {
+    vi.mocked(prisma.lead.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.count).mockResolvedValueOnce(1)
+
+    const state = await deleteLead("p1")
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("refuses to delete an opted-out lead, keeping its opposition", async () => {

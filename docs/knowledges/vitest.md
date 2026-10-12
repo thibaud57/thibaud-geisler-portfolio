@@ -154,7 +154,7 @@ Tests de composants avec `@testing-library/react` et `@testing-library/user-even
 ### Exemple
 
 ```tsx
-// src/components/features/contact/ContactForm.test.tsx (à écrire : test colocalisé, jamais de dossier __tests__)
+// src/components/features/public/contact/ContactForm.test.tsx (à écrire : test colocalisé, jamais de dossier __tests__)
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

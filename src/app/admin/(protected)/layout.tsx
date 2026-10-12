@@ -1,8 +1,8 @@
 import { cookies } from "next/headers"
 import { Suspense, type CSSProperties, type ReactNode } from "react"
 
-import { AdminHeader } from "@/components/layout/AdminHeader"
-import { AdminSidebar } from "@/components/layout/AdminSidebar"
+import { AdminHeader } from "@/components/layout/admin/AdminHeader"
+import { AdminSidebar } from "@/components/layout/admin/AdminSidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TooltipProvider } from "@/components/ui/tooltip"

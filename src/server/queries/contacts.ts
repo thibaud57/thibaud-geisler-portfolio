@@ -8,8 +8,8 @@ import type {
   Prisma,
   Zone,
 } from "@/generated/prisma/client"
-import { type LeadDisplayStatus, leadDisplayStatus } from "@/lib/lead-display-status"
-import { activityEndOf, CONTACT_REVIEW_YEARS } from "@/lib/person-retention"
+import { type LeadDisplayStatus, leadDisplayStatus } from "@/lib/crm/lead-display-status"
+import { activityEndOf, CONTACT_REVIEW_YEARS } from "@/lib/crm/person-retention"
 import { prisma } from "@/lib/prisma"
 
 const companySelect = { select: { id: true, name: true, logoFilename: true } } as const

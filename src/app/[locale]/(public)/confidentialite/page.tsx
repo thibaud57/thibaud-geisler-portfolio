@@ -5,8 +5,8 @@ import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
-import { OpenCookiePreferencesButton } from "@/components/features/legal/OpenCookiePreferencesButton"
-import { PageShell } from "@/components/layout/PageShell"
+import { OpenCookiePreferencesButton } from "@/components/features/public/legal/OpenCookiePreferencesButton"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import {
   Table,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
-import { countryName } from "@/lib/legal-entities"
+import { countryName } from "@/lib/crm/legal-entities"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
 import { LINK_CLASS } from "@/lib/typography"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"

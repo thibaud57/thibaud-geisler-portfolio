@@ -1,9 +1,14 @@
 import { z } from "zod"
 
 import { ContractStatus, OpportunityStatus, WorkMode } from "@/generated/prisma/browser"
-import { emptyToNull, nullableEnumField, nullifyNoneValue } from "@/lib/schemas/none-value"
-import { NONE_VALUE, notesField, optionalTextField } from "@/lib/schemas/person"
-import { ZONES } from "@/lib/zones"
+import {
+  emptyToNull,
+  NONE_VALUE,
+  nullableEnumField,
+  nullifyNoneValue,
+} from "@/lib/schemas/none-value"
+import { notesField, optionalTextField } from "@/lib/schemas/person"
+import { ZONES } from "@/lib/crm/zones"
 
 export const OPPORTUNITY_STATUSES = Object.values(OpportunityStatus)
 

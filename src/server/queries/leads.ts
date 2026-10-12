@@ -12,7 +12,7 @@ import type {
   Zone,
 } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
-import type { SignalItem } from "@/lib/signals"
+import type { SignalItem } from "@/lib/crm/signals"
 import { orderedInterviewSelect } from "@/server/queries/interviews"
 import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
 import { signalsInclude } from "@/server/queries/signals"

@@ -8,13 +8,9 @@ import {
   WorkMode,
 } from "@/generated/prisma/browser"
 import { isProjectAssetKey } from "@/lib/asset-keys"
-import { nullifyNoneValue } from "@/lib/schemas/none-value"
+import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-value"
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
-
-const emptyToNull = (value: unknown) => (value === "" ? null : value)
-
-export const NONE_VALUE = "aucun"
 
 export const projectSchema = z
   .object({

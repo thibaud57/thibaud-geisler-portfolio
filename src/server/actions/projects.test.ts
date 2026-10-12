@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
@@ -6,7 +6,13 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 vi.mock("@/lib/prisma", () => {
-  const project = { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findMany: vi.fn() }
+  const project = {
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    findMany: vi.fn(),
+    count: vi.fn(),
+  }
   const clientMeta = { create: vi.fn(), upsert: vi.fn() }
   const projectTag = { deleteMany: vi.fn(), createMany: vi.fn() }
   const prisma = { project, clientMeta, projectTag, $transaction: vi.fn() }
@@ -73,10 +79,6 @@ function mockCreationInEmptyList(): void {
 }
 
 describe("createProject", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("rejects an empty slug without opening a transaction", async () => {
     const state = await createProject(initialProjectFormState, buildFormData({ slug: "" }))
 
@@ -446,10 +448,6 @@ describe("createProject", () => {
 })
 
 describe("updateProject", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it.each(["CLIENT", "PERSONAL"])(
     "creates or updates the meta when the submitted type is %s",
     async (type) => {
@@ -519,10 +517,6 @@ describe("updateProject", () => {
 })
 
 describe("deleteProject", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("renumbers the remaining sequence inside the same transaction", async () => {
     vi.mocked(prisma.project.delete).mockResolvedValue({} as never)
     vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p-a" }, { id: "p-c" }] as never)
@@ -560,11 +554,50 @@ describe("deleteProject", () => {
   })
 })
 
-describe("reorderProjects", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
+describe("project deleted since the screen loaded", () => {
+  it("answers an update with project_not_found and keeps the typed values", async () => {
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p1" }] as never)
+    vi.mocked(prisma.project.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.project.count).mockResolvedValueOnce(0)
+
+    const state = await updateProject("p1", initialProjectFormState, buildFormData())
+
+    expect(state.ok).toBe(false)
+    expect(state.message).toBe("project_not_found")
+    expect(state.values?.titleFr).toBe("Mon projet")
   })
 
+  it("answers an update with unknown_error when a neighbour vanished during the renumbering", async () => {
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p1" }, { id: "p2" }] as never)
+    vi.mocked(prisma.project.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.project.count).mockResolvedValueOnce(1)
+
+    const state = await updateProject("p1", initialProjectFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
+  it("answers a delete with success", async () => {
+    vi.mocked(prisma.project.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.project.count).mockResolvedValueOnce(0)
+
+    const state = await deleteProject("p1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers a delete with unknown_error when the renumbering failed and the project remains", async () => {
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p2" }] as never)
+    vi.mocked(prisma.project.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.project.count).mockResolvedValueOnce(1)
+
+    const state = await deleteProject("p1")
+
+    expect(state.message).toBe("unknown_error")
+  })
+})
+
+describe("reorderProjects", () => {
   it("rejects a call without a session, before any database query", async () => {
     vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
 

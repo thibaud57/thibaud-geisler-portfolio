@@ -19,13 +19,9 @@ export function stringValues(formData: FormData, key: string): string[] {
   return formData.getAll(key).filter((value): value is string => typeof value === "string")
 }
 
-// Absent, la valeur reste `undefined` (Prisma l'ignore) ; une liste vidée envoie une valeur vide, écartée ici, pour se distinguer d'une liste absente.
+// Absent, la valeur reste `undefined` (Prisma l'ignore).
 export function optionalStringField(formData: FormData, key: string): string | undefined {
   return formData.has(key) ? stringField(formData, key) : undefined
-}
-
-export function optionalStringValues(formData: FormData, key: string): string[] | undefined {
-  return formData.has(key) ? stringValues(formData, key).filter((value) => value !== "") : undefined
 }
 
 export function isPrismaError(err: unknown, code: string): boolean {

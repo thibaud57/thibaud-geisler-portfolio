@@ -1,5 +1,7 @@
+"use client"
+
 import { AssetImage } from "@/components/features/admin/assets/AssetImage"
-import { useImageFallback } from "@/components/features/projects/useImageFallback"
+import { useImageFallback } from "@/components/features/public/projects/useImageFallback"
 import { cn } from "@/lib/utils"
 
 const SIZES = {

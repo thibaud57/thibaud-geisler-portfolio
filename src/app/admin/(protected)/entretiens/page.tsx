@@ -1,13 +1,12 @@
-import { InterviewsViewPage } from "@/components/features/admin/entretiens/InterviewsViewPage"
+import { InterviewsViewPage } from "@/components/features/admin/interviews/InterviewsViewPage"
+import { firstParam } from "@/lib/admin/search-params"
 import { getCurrentUser } from "@/lib/get-current-user"
 
-interface Props {
-  searchParams: Promise<{ detail?: string }>
-}
-
-export default async function AdminInterviewsPage({ searchParams }: Props) {
+export default async function AdminInterviewsPage({
+  searchParams,
+}: PageProps<"/admin/entretiens">) {
   await getCurrentUser()
   const { detail } = await searchParams
 
-  return <InterviewsViewPage view="journal" initialDetailId={detail} />
+  return <InterviewsViewPage view="journal" initialDetailId={firstParam(detail)} />
 }

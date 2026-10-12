@@ -1,6 +1,6 @@
 "use client"
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { useRef, useState, type ReactNode } from "react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -10,39 +10,29 @@ interface Props {
   className?: string
 }
 
-// Le Tooltip enveloppe ce span dès le premier rendu, jamais seulement une fois isTruncated connu :
-// changer sa structure après coup swap le nœud DOM mesuré et fausse la mesure suivante. Seul le
-// rendu de TooltipContent (un frère, pas un ancêtre du span) varie avec isTruncated.
+// Mesuré à l'ouverture, donc à jour même si le texte change sans changer la largeur. Le tooltip
+// montre le texte brut : y rendre children dupliquerait un lien cliquable.
 export function TruncateTooltip({ children, className }: Props) {
-  const containerRef = useRef<HTMLSpanElement>(null)
-  const [isTruncated, setIsTruncated] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+  const [open, setOpen] = useState(false)
+  // Gardé à la fermeture : l'animation de sortie afficherait sinon une bulle vide.
+  const [text, setText] = useState<string | null>(null)
 
-  useLayoutEffect(() => {
-    const node = containerRef.current
-    if (!node) return
-
-    function measure(target: HTMLSpanElement) {
-      setIsTruncated(target.scrollWidth > target.clientWidth)
-    }
-
-    measure(node)
-    const observer = new ResizeObserver(() => {
-      measure(node)
-    })
-    observer.observe(node)
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  function handleOpenChange(next: boolean) {
+    const node = ref.current
+    const truncated = next && node !== null && node.scrollWidth > node.clientWidth
+    if (truncated) setText(node.textContent)
+    setOpen(truncated)
+  }
 
   return (
-    <Tooltip>
+    <Tooltip open={open} onOpenChange={handleOpenChange}>
       <TooltipTrigger asChild>
-        <span ref={containerRef} className={cn("truncate", className)}>
+        <span ref={ref} className={cn("truncate", className)}>
           {children}
         </span>
       </TooltipTrigger>
-      {isTruncated ? <TooltipContent>{children}</TooltipContent> : null}
+      <TooltipContent>{text}</TooltipContent>
     </Tooltip>
   )
 }

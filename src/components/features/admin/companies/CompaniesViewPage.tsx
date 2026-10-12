@@ -1,48 +1,31 @@
-import { Suspense } from "react"
-import { Plus } from "lucide-react"
-import Link from "next/link"
-
 import { CompaniesTable } from "@/components/features/admin/companies/CompaniesTable"
-import { DataTableSkeleton } from "@/components/features/admin/DataTableSkeleton"
-import { AdminPageShell } from "@/components/layout/AdminPageShell"
-import { Button } from "@/components/ui/button"
-import { companySkeletonWidths, type CompanyView } from "@/lib/admin-table-widths"
+import { AdminListPage } from "@/components/layout/admin/AdminListPage"
+import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
+import { companySkeletonWidths } from "@/lib/admin/table-widths"
+import { COMPANY_VIEW_PAGES, type CompanyView } from "@/lib/crm/company-views"
 import { findAllCompaniesForAdmin } from "@/server/queries/companies"
 
-interface SectionProps {
+interface Props {
   view: CompanyView
   initialDetailId?: string
 }
 
-async function CompaniesSection({ view, initialDetailId }: SectionProps) {
+async function CompaniesSection({ view, initialDetailId }: Props) {
   const companies = await findAllCompaniesForAdmin()
   return <CompaniesTable companies={companies} view={view} initialDetailId={initialDetailId} />
 }
 
-interface Props {
-  view: CompanyView
-  title: string
-  subtitle: string
-  initialDetailId?: string
-}
+export function CompaniesViewPage({ view, initialDetailId }: Props) {
+  const { title, subtitle } = COMPANY_VIEW_PAGES[view]
 
-export function CompaniesViewPage({ view, title, subtitle, initialDetailId }: Props) {
   return (
-    <AdminPageShell
+    <AdminListPage
       title={title}
       subtitle={subtitle}
-      actions={
-        <Button asChild>
-          <Link href="/admin/entreprises/nouvelle">
-            <Plus aria-hidden data-icon="inline-start" />
-            Nouvelle entreprise
-          </Link>
-        </Button>
-      }
+      create={{ href: `${ADMIN_COMPANIES_PATH}/nouvelle`, label: "Nouvelle entreprise" }}
+      skeletonWidths={companySkeletonWidths(view)}
     >
-      <Suspense fallback={<DataTableSkeleton columnWidths={companySkeletonWidths(view)} />}>
-        <CompaniesSection view={view} initialDetailId={initialDetailId} />
-      </Suspense>
-    </AdminPageShell>
+      <CompaniesSection view={view} initialDetailId={initialDetailId} />
+    </AdminListPage>
   )
 }

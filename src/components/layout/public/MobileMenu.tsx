@@ -1,0 +1,61 @@
+"use client"
+
+import { Menu, X } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { useState, type ReactNode } from "react"
+
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+
+import { BrandLogo } from "@/components/layout/BrandLogo"
+import { NavLinks } from "@/components/layout/public/NavLinks"
+
+interface Props {
+  footerSlot: ReactNode
+}
+
+export function MobileMenu({ footerSlot }: Props) {
+  const t = useTranslations("MobileMenu")
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={t("ariaLabel")} className="md:hidden">
+          <Menu className="size-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="flex flex-col gap-3 p-6 pt-4 pb-4"
+      >
+        <SheetHeader className="flex-row items-center justify-between border-b border-border p-0 pb-4">
+          <SheetTitle className="sr-only">{t("ariaLabel")}</SheetTitle>
+          <BrandLogo className="w-[180px]" />
+          <SheetClose asChild>
+            <Button variant="ghost" size="icon" aria-label="Close">
+              <X className="size-5" />
+            </Button>
+          </SheetClose>
+        </SheetHeader>
+        <NavLinks
+          orientation="vertical"
+          onLinkClick={() => {
+            setOpen(false)
+          }}
+        />
+        <div className="mt-auto flex flex-wrap items-center justify-center gap-3 border-t border-border pt-4">
+          {footerSlot}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}

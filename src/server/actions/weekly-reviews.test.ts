@@ -7,16 +7,22 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    weeklyReview: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findFirst: vi.fn() },
+    weeklyReview: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findFirst: vi.fn(),
+      count: vi.fn(),
+    },
   },
 }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { NONE_VALUE } from "@/lib/schemas/person"
+import { NONE_VALUE } from "@/lib/schemas/none-value"
 
-import { createWeeklyReview, updateWeeklyReview } from "./weekly-reviews"
+import { createWeeklyReview, deleteWeeklyReview, updateWeeklyReview } from "./weekly-reviews"
 import { initialWeeklyReviewFormState } from "./weekly-reviews.types"
 
 const BASE_FIELDS = {
@@ -109,5 +115,43 @@ describe("updateWeeklyReview", () => {
     expect(prisma.weeklyReview.findFirst).toHaveBeenCalledWith(
       objectMatch({ where: objectMatch({ NOT: { id: "r1" } }) }),
     )
+  })
+
+  it("answers weekly_review_not_found when the review was deleted meanwhile", async () => {
+    vi.mocked(prisma.weeklyReview.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.weeklyReview.count).mockResolvedValueOnce(0)
+
+    const state = await updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData())
+
+    expect(state.message).toBe("weekly_review_not_found")
+  })
+
+  it("answers unknown_error on a P2025 while the review still exists", async () => {
+    vi.mocked(prisma.weeklyReview.update).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.weeklyReview.count).mockResolvedValueOnce(1)
+
+    const state = await updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+})
+
+describe("deleteWeeklyReview", () => {
+  it("treats a review already deleted elsewhere as deleted", async () => {
+    vi.mocked(prisma.weeklyReview.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.weeklyReview.count).mockResolvedValueOnce(0)
+
+    const state = await deleteWeeklyReview("r1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers unknown_error on a P2025 while the review still exists", async () => {
+    vi.mocked(prisma.weeklyReview.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.weeklyReview.count).mockResolvedValueOnce(1)
+
+    const state = await deleteWeeklyReview("r1")
+
+    expect(state.message).toBe("unknown_error")
   })
 })

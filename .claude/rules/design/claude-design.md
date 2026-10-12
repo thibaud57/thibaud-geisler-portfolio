@@ -2,7 +2,7 @@
 paths:
   - "src/app/admin/**/*.tsx"
   - "src/components/features/admin/**/*.tsx"
-  - "src/components/layout/Admin*.tsx"
+  - "src/components/layout/admin/*.tsx"
 ---
 
 # Claude Design — la maquette de l'espace admin

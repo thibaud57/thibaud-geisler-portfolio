@@ -1,64 +1,67 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
-import { Folder, Pencil } from "lucide-react"
-import Link from "next/link"
+import { useCallback, useMemo, type ReactNode } from "react"
+import { Folder } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
-import { DataTable, type Column, type Facet } from "@/components/features/admin/DataTable"
-import { type DetailContent, DetailDialog } from "@/components/features/admin/DetailDialog"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
-import { actionsColumn, enumBadge, hideableColumn } from "@/components/features/admin/table-cells"
+import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
+import type { DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
+import {
+  actionsColumn,
+  enumBadge,
+  enumFacet,
+  HEADER_BADGE_PROPS,
+  hideableColumn,
+  iconsByLabel,
+  workModeBadge,
+} from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
 import { AssetPreviewLink } from "@/components/features/admin/assets/AssetPreviewLink"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
-import { NameSlugCell } from "@/components/features/admin/NameSlugCell"
+import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
 import { Badge } from "@/components/ui/badge"
-import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
+import type { ProjectStatus, ProjectType } from "@/generated/prisma/client"
+import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
 import {
   PROJECT_COLUMN_WIDTHS,
   PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS,
-  type ProjectView,
-} from "@/lib/admin-table-widths"
+} from "@/lib/admin/table-widths"
+import { formatShortDate } from "@/lib/date-time"
+import { useRowDetail } from "@/hooks/use-row-detail"
+import { PROJECT_VIEW_LOCKED_FACETS, type ProjectView } from "@/lib/project-views"
 import {
   CONTRACT_STATUS_ICONS,
   CONTRACT_STATUS_LABELS,
   formatProjectDuration,
-  formatShortDate,
   PROJECT_FORMAT_ICONS,
   PROJECT_FORMAT_LABELS,
+  PROJECT_FORMATS,
   PROJECT_FIELD_LABELS,
   PROJECT_SECTION_TITLES,
   PROJECT_STATUS_LABELS,
+  PROJECT_STATUSES,
   PROJECT_TYPE_LABELS,
-  WORK_MODE_ICONS,
-  WORK_MODE_LABELS,
+  PROJECT_TYPES,
 } from "@/lib/projects"
 import { safeExternalUrl } from "@/lib/url"
 import { cn } from "@/lib/utils"
 import { reorderProjects } from "@/server/actions/projects"
 import type { AdminProjectListItem } from "@/server/queries/projects"
 
-export type { ProjectView }
-
 const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
-  tous: null,
+  all: null,
   client: "CLIENT",
   perso: "PERSONAL",
 }
 
-const PROJECT_STATUS_VALUES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
-const PROJECT_FORMAT_VALUES = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
-
-// Glyphe par libellé plutôt que par valeur : BadgeList ne connaît que les libellés déjà résolus.
-const FORMAT_ICONS_BY_LABEL = Object.fromEntries(
-  PROJECT_FORMAT_VALUES.map((format) => [
-    PROJECT_FORMAT_LABELS[format],
-    PROJECT_FORMAT_ICONS[format],
-  ]),
+const FORMAT_ICONS_BY_LABEL = iconsByLabel(
+  PROJECT_FORMATS,
+  PROJECT_FORMAT_LABELS,
+  PROJECT_FORMAT_ICONS,
 )
 
 const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
@@ -72,6 +75,10 @@ const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
 function describeMarkdown(markdown: string | null): ReactNode {
   if (!markdown) return null
   return `Rédigé (${markdown.length} caractères)`
+}
+
+function typeBadge(project: AdminProjectListItem) {
+  return <Badge {...HEADER_BADGE_PROPS}>{PROJECT_TYPE_LABELS[project.type]}</Badge>
 }
 
 function renderProjectStatus(status: ProjectStatus): ReactNode {
@@ -119,11 +126,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: PROJECT_FIELD_LABELS.type,
       width: PROJECT_COLUMN_WIDTHS.nature,
       ...hideableColumn(visibleByDefault, "nature"),
-      cell: (project) => (
-        <Badge variant="outline" meta>
-          {PROJECT_TYPE_LABELS[project.type]}
-        </Badge>
-      ),
+      cell: typeBadge,
     },
     {
       key: "formats",
@@ -187,7 +190,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     {
       key: "duree",
-      header: "Durée",
+      header: PROJECT_FIELD_LABELS.duration,
       width: PROJECT_COLUMN_WIDTHS.duree,
       className: "whitespace-nowrap text-muted-foreground",
       ...hideableColumn(visibleByDefault, "duree"),
@@ -221,36 +224,38 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
     },
     actionsColumn<AdminProjectListItem>((project) => (
       <>
-        <RowActionButton aria-label={`Modifier ${project.titleFr}`} asChild>
-          <Link href={`/admin/projets/${project.id}`}>
-            <Pencil className="size-4" />
-          </Link>
-        </RowActionButton>
+        <EditRowLink
+          href={`${ADMIN_PROJECTS_PATH}/${project.id}`}
+          label={`Modifier ${project.titleFr}`}
+        />
         <DeleteProjectDialog project={project} />
       </>
     )),
   ]
 }
 
-const facets: readonly Facet<AdminProjectListItem, ProjectStatus | ProjectFormat>[] = [
-  {
-    key: "statut",
-    label: "Statut",
-    options: PROJECT_STATUS_VALUES.map((status) => ({
-      value: status,
-      label: PROJECT_STATUS_LABELS[status],
-    })),
-    value: (project) => [project.status],
-  },
-  {
-    key: "formats",
-    label: "Type de projet",
-    options: PROJECT_FORMAT_VALUES.map((format) => ({
-      value: format,
-      label: PROJECT_FORMAT_LABELS[format],
-    })),
-    value: (project) => project.formats,
-  },
+const facets: readonly Facet<AdminProjectListItem>[] = [
+  enumFacet(
+    "nature",
+    PROJECT_FIELD_LABELS.type,
+    PROJECT_TYPES,
+    PROJECT_TYPE_LABELS,
+    (project: AdminProjectListItem) => project.type,
+  ),
+  enumFacet(
+    "statut",
+    PROJECT_FIELD_LABELS.status,
+    PROJECT_STATUSES,
+    PROJECT_STATUS_LABELS,
+    (project) => project.status,
+  ),
+  enumFacet(
+    "formats",
+    PROJECT_FIELD_LABELS.formats,
+    PROJECT_FORMATS,
+    PROJECT_FORMAT_LABELS,
+    (project) => project.formats,
+  ),
 ]
 
 function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): DetailContent {
@@ -261,20 +266,15 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
     subtitle: (
       <span className="flex flex-wrap items-center gap-2">
         <span className="font-mono">#{project.displayOrder}</span>
-        <Badge variant="outline" meta>
-          {PROJECT_TYPE_LABELS[project.type]}
-        </Badge>
+        {typeBadge(project)}
       </span>
     ),
     status: renderProjectStatus(project.status),
     sections: [
-      // Chaque bloc reprend les champs de la card du formulaire, dans son ordre et à sa place,
-      // moins ceux que l'en-tête porte déjà (slug, ordre d'affichage, statut, nature).
       {
         title: PROJECT_SECTION_TITLES.identity,
         rows: [
-          { label: PROJECT_FIELD_LABELS.titleFr, value: project.titleFr },
-          { label: PROJECT_FIELD_LABELS.titleEn, value: project.titleEn },
+          { label: PROJECT_FIELD_LABELS.titleEn, fullWidth: true, value: project.titleEn },
           {
             label: PROJECT_FIELD_LABELS.formats,
             fullWidth: true,
@@ -345,7 +345,8 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
             value: formatShortDate(project.endedAt),
           },
           {
-            label: "Durée",
+            label: PROJECT_FIELD_LABELS.duration,
+            fullWidth: true,
             value: formatProjectDuration(project.startedAt, project.endedAt),
           },
         ],
@@ -355,11 +356,15 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
         rows: [
           {
             label: PROJECT_FIELD_LABELS.githubUrl,
-            value: <ExternalUrl url={project.githubUrl} className="wrap-anywhere" />,
+            value: project.githubUrl ? (
+              <ExternalUrl url={project.githubUrl} className="wrap-anywhere" />
+            ) : null,
           },
           {
             label: PROJECT_FIELD_LABELS.demoUrl,
-            value: <ExternalUrl url={project.demoUrl} className="wrap-anywhere" />,
+            value: project.demoUrl ? (
+              <ExternalUrl url={project.demoUrl} className="wrap-anywhere" />
+            ) : null,
           },
         ],
       },
@@ -373,42 +378,34 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
           },
         ],
       },
-      // Un projet perso n'a pas de méta client : le bloc entier disparaît plutôt que d'aligner
-      // trois tirets sous leur propre titre.
-      ...(clientMeta
-        ? [
-            {
-              title: PROJECT_SECTION_TITLES.clientMeta,
-              rows: [
-                {
-                  label: PROJECT_FIELD_LABELS.companyId,
-                  fullWidth: true,
-                  value: clientMeta.company.name,
-                },
-                {
-                  label: PROJECT_FIELD_LABELS.workMode,
-                  value: enumBadge(clientMeta.workMode, WORK_MODE_LABELS, WORK_MODE_ICONS),
-                },
-                {
-                  label: PROJECT_FIELD_LABELS.contractStatus,
-                  value: enumBadge(
-                    clientMeta.contractStatus,
-                    CONTRACT_STATUS_LABELS,
-                    CONTRACT_STATUS_ICONS,
-                  ),
-                },
-                {
-                  label: PROJECT_FIELD_LABELS.teamSize,
-                  value: clientMeta.teamSize != null ? String(clientMeta.teamSize) : null,
-                },
-                {
-                  label: PROJECT_FIELD_LABELS.deliverablesCount,
-                  value: String(clientMeta.deliverablesCount),
-                },
-              ],
-            },
-          ]
-        : []),
+      {
+        title: PROJECT_SECTION_TITLES.clientMeta,
+        rows: [
+          {
+            label: PROJECT_FIELD_LABELS.companyId,
+            fullWidth: true,
+            value: clientMeta?.company.name,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.workMode,
+            value: clientMeta ? workModeBadge(clientMeta) : null,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.contractStatus,
+            value: clientMeta
+              ? enumBadge(clientMeta.contractStatus, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_ICONS)
+              : null,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.teamSize,
+            value: clientMeta?.teamSize != null ? String(clientMeta.teamSize) : null,
+          },
+          {
+            label: PROJECT_FIELD_LABELS.deliverablesCount,
+            value: clientMeta ? String(clientMeta.deliverablesCount) : null,
+          },
+        ],
+      },
     ],
     onEdit,
   }
@@ -421,7 +418,6 @@ interface Props {
 
 export function ProjectsTable({ projects, view }: Props) {
   const router = useRouter()
-  const [selectedProject, setSelectedProject] = useState<AdminProjectListItem | null>(null)
 
   const viewProjects = useMemo(() => {
     const type = VIEW_TYPE[view]
@@ -430,15 +426,15 @@ export function ProjectsTable({ projects, view }: Props) {
 
   const columns = useMemo<readonly Column<AdminProjectListItem>[]>(() => buildColumns(view), [view])
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedProject
-        ? buildProjectDetail(selectedProject, () => {
-            router.push(`/admin/projets/${selectedProject.id}`)
-          })
-        : null,
-    [selectedProject, router],
+  const buildDetail = useCallback(
+    (project: AdminProjectListItem) =>
+      buildProjectDetail(project, () => {
+        router.push(`${ADMIN_PROJECTS_PATH}/${project.id}`)
+      }),
+    [router],
   )
+
+  const { open, dialog } = useRowDetail({ rows: projects, build: buildDetail })
 
   return (
     <>
@@ -448,25 +444,21 @@ export function ProjectsTable({ projects, view }: Props) {
         getRowId={(project) => project.id}
         orderValue={(project) => project.displayOrder}
         facets={facets}
+        lockedFacets={PROJECT_VIEW_LOCKED_FACETS[view]}
         onReorder={
-          view === "tous" ? (_groupKey, orderedRowIds) => reorderProjects(orderedRowIds) : undefined
+          view === "all" ? (_groupKey, orderedRowIds) => reorderProjects(orderedRowIds) : undefined
         }
-        onRowClick={setSelectedProject}
+        onRowClick={open}
         rowLabel={(project) => project.titleFr}
         searchPlaceholder="Rechercher un titre ou un slug"
         noun="projet"
         empty={{
           icon: Folder,
           title: "Aucun projet",
-          description: "Aucun projet pour le moment. Créez-en un via le bouton ci-dessus.",
+          description: "Aucun projet dans cette vue. Créez-en un via le bouton ci-dessus.",
         }}
       />
-      <DetailDialog
-        detail={detail}
-        onOpenChange={(open) => {
-          if (!open) setSelectedProject(null)
-        }}
-      />
+      {dialog}
     </>
   )
 }

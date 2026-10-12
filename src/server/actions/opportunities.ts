@@ -3,8 +3,8 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import { ADMIN_COMPANIES_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin-routes"
-import { isEsn } from "@/lib/companies"
+import { ADMIN_COMPANIES_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
+import { isEsn } from "@/lib/crm/companies"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
@@ -82,12 +82,23 @@ function mapOpportunityError(
   return null
 }
 
+const opportunityExists = (id: string) =>
+  prisma.opportunity.count({ where: { id } }).then((count) => count > 0)
+
+async function storedIntermediaryId(id: string): Promise<string | null> {
+  const stored = await prisma.opportunity.findUnique({
+    where: { id },
+    select: { intermediaryId: true },
+  })
+  return stored?.intermediaryId ?? null
+}
+
 function saveOpportunity(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   write: (data: OpportunityInput) => Promise<{ id: string }>,
-  storedIntermediaryId?: () => Promise<string | null>,
+  updatedId?: string,
 ): Promise<OpportunityFormState> {
   const values = collectValues(formData)
 
@@ -99,7 +110,7 @@ function saveOpportunity(
     persist: async (data) => {
       // Une ESN déjà reliée qui a perdu son type reste acceptée, sinon plus aucune modification ne passerait : seul un nouveau choix est revérifié.
       const unchanged =
-        storedIntermediaryId !== undefined && data.intermediaryId === (await storedIntermediaryId())
+        updatedId !== undefined && data.intermediaryId === (await storedIntermediaryId(updatedId))
       if (!unchanged) await assertIntermediaryIsEsn(data.intermediaryId)
       return write(data)
     },
@@ -107,6 +118,13 @@ function saveOpportunity(
     invalidateCaches: invalidateOpportunityCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => opportunityExists(updatedId),
+            state: () => ({ ok: false, errors: {}, message: "opportunity_not_found", values }),
+          },
     mapError: (err) => mapOpportunityError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -139,9 +157,7 @@ export async function updateOpportunity(
     { success: "opportunity:updated", failure: "opportunity:update_failed" },
     formData,
     (data) => prisma.opportunity.update({ where: { id }, data }),
-    async () =>
-      (await prisma.opportunity.findUnique({ where: { id }, select: { intermediaryId: true } }))
-        ?.intermediaryId ?? null,
+    id,
   )
 }
 
@@ -152,10 +168,10 @@ export async function deleteOpportunity(id: string): Promise<OpportunityFormStat
     actionName: "deleteOpportunity",
     events: { success: "opportunity:deleted", failure: "opportunity:delete_failed" },
     successLogFields: { id },
+    exists: () => opportunityExists(id),
     destroy: () => prisma.opportunity.delete({ where: { id } }),
     invalidateCaches: invalidateOpportunityCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

@@ -1,9 +1,9 @@
 import "server-only"
 
-import { hasAcceptedOpportunity, joinedEndClientNames } from "@/lib/companies"
-import { firstContactAtOf } from "@/lib/company-first-contact"
-import { leadDisplayStatus, type LeadDisplayStatus } from "@/lib/lead-display-status"
-import { isActiveLead } from "@/lib/lead-views"
+import { hasAcceptedOpportunity, joinedEndClientNames } from "@/lib/crm/companies"
+import { firstContactAtOf } from "@/lib/crm/company-first-contact"
+import { leadDisplayStatus, type LeadDisplayStatus } from "@/lib/crm/lead-display-status"
+import { isActiveLead } from "@/lib/crm/lead-views"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 import { opportunitySummarySelect } from "@/server/queries/opportunities"
@@ -63,6 +63,7 @@ type AdminCompanyLead = Omit<
 
 export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
   worked: boolean
+  clientProjectCount: number
   isProspect: boolean
   leads: AdminCompanyLead[]
   firstContactAt: Date | null
@@ -74,9 +75,9 @@ function toAdminCompany(
   { clientMetas, persons, ...company }: AdminCompanyRaw,
   now: number,
 ): AdminCompany {
-  // Un projet personnel crée aussi un ClientMeta (src/server/actions/projects.ts) : seul un projet CLIENT compte comme travaillée.
-  const worked =
-    clientMetas.some((meta) => meta.project.type === "CLIENT") || hasAcceptedOpportunity(company)
+  // Un projet personnel crée aussi un ClientMeta (src/server/actions/projects.ts) : seul un projet CLIENT compte, pour travaillée comme pour le nombre de projets.
+  const clientProjectCount = clientMetas.filter((meta) => meta.project.type === "CLIENT").length
+  const worked = clientProjectCount > 0 || hasAcceptedOpportunity(company)
   const isProspect =
     !worked &&
     persons.some(
@@ -113,6 +114,7 @@ function toAdminCompany(
   return {
     ...company,
     worked,
+    clientProjectCount,
     isProspect,
     leads,
     firstContactAt: firstContactAtOf(persons),

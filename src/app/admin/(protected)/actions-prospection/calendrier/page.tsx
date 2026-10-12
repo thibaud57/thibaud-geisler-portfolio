@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 
-import { ActionsCalendar } from "@/components/features/admin/prospection/ActionsCalendar"
-import { NewActionHeaderButton } from "@/components/features/admin/prospection/NewActionHeaderButton"
-import { AdminPageShell } from "@/components/layout/AdminPageShell"
+import { ActionsCalendar } from "@/components/features/admin/prospecting-actions/ActionsCalendar"
+import { NewActionHeaderButton } from "@/components/features/admin/prospecting-actions/NewActionHeaderButton"
+import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findPersonOptions } from "@/server/queries/persons"

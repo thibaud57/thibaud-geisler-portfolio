@@ -1,7 +1,7 @@
 import "server-only"
 import { z } from "zod"
 
-import { createActionLogger } from "@/lib/server-utils"
+import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
 export interface ActionEvents {
   success: string
@@ -18,7 +18,9 @@ interface SaveEntityConfig<TInput extends object, TState, TPersistResult> {
   invalidateCaches: () => void
   onValidationError: (fieldErrors: Partial<Record<keyof TInput, string[]>>) => TState
   onSuccess: (result: TPersistResult, data: TInput) => TState
-  mapError: (err: unknown) => TState | null
+  // Mise à jour seulement. Un P2025 vient aussi d'une fiche voisine ou d'un rattachement disparu : seule l'absence réelle de la cible vaut « supprimée ».
+  notFound?: { exists: () => Promise<boolean>; state: () => TState }
+  mapError?: (err: unknown) => TState | null
   onUnknownError: (err: unknown) => TState
 }
 
@@ -38,7 +40,12 @@ export function saveEntity<TInput extends object, TState, TPersistResult>(
       log.info({ event: config.events.success, ...config.successLogFields(result.data, persisted) })
       return config.onSuccess(persisted, result.data)
     } catch (err) {
-      const mapped = config.mapError(err)
+      if (config.notFound && isPrismaError(err, "P2025") && !(await config.notFound.exists())) {
+        // La revalidation réaligne l'écran périmé (autre onglet, double clic) sur la base.
+        config.invalidateCaches()
+        return config.notFound.state()
+      }
+      const mapped = config.mapError?.(err)
       if (mapped) return mapped
 
       log.error({ err, event: config.events.failure })
@@ -55,10 +62,11 @@ interface DeleteEntityConfig<TState> {
   // Champ optionnel, pensé pour un contrôle "ressource encore utilisée" : exécuté sous
   // instrumentation, avant `destroy`, il peut court-circuiter avec un état dédié sans passer par le mapping d'erreur.
   precondition?: () => Promise<TState | null>
+  exists: () => Promise<boolean>
   destroy: () => Promise<unknown>
   invalidateCaches: () => void
   onSuccess: () => TState
-  mapError: (err: unknown) => TState | null
+  mapError?: (err: unknown) => TState | null
   onUnknownError: (err: unknown) => TState
 }
 
@@ -75,7 +83,12 @@ export function deleteEntity<TState>(config: DeleteEntityConfig<TState>): Promis
       log.info({ event: config.events.success, ...config.successLogFields })
       return config.onSuccess()
     } catch (err) {
-      const mapped = config.mapError(err)
+      // Déjà supprimée (autre onglet, double clic) : idempotent. Un P2025 d'une instruction secondaire annule la transaction, la ligne existe alors encore.
+      if (isPrismaError(err, "P2025") && !(await config.exists())) {
+        config.invalidateCaches()
+        return config.onSuccess()
+      }
+      const mapped = config.mapError?.(err)
       if (mapped) return mapped
 
       log.error({ err, event: config.events.failure, ...config.errorLogFields })

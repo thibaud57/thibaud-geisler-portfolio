@@ -3,9 +3,9 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import { ADMIN_LEADS_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
+import { ADMIN_LEADS_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/persons"
+import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import { createActionLogger } from "@/lib/server-utils"
 

@@ -3,10 +3,10 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
-import { ADMIN_COMPANIES_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin-routes"
+import { ADMIN_COMPANIES_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { applyStatusRules } from "@/lib/prospecting-action-status"
+import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
 import {
   prospectingActionSchema,
   type ProspectingActionInput,
@@ -51,11 +51,15 @@ function mapActionError(
   }
 }
 
+const prospectingActionExists = (id: string) =>
+  prisma.prospectingAction.count({ where: { id } }).then((count) => count > 0)
+
 function saveProspectingAction(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
   persist: (data: ProspectingActionInput) => Promise<{ id: string }>,
+  updatedId?: string,
 ): Promise<ProspectingActionFormState> {
   const values = collectValues(formData)
 
@@ -69,6 +73,18 @@ function saveProspectingAction(
     invalidateCaches: invalidateActionCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
+    notFound:
+      updatedId === undefined
+        ? undefined
+        : {
+            exists: () => prospectingActionExists(updatedId),
+            state: () => ({
+              ok: false,
+              errors: {},
+              message: "prospecting_action_not_found",
+              values,
+            }),
+          },
     mapError: (err) => mapActionError(err, values),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
   })
@@ -113,6 +129,7 @@ export async function updateProspectingAction(
         data: { ...data, ...applyStatusRules(current, data, new Date()) },
       })
     },
+    id,
   )
 }
 
@@ -205,10 +222,10 @@ export async function deleteProspectingAction(id: string): Promise<ProspectingAc
     actionName: "deleteProspectingAction",
     events: { success: "prospecting_action:deleted", failure: "prospecting_action:delete_failed" },
     successLogFields: { id },
+    exists: () => prospectingActionExists(id),
     destroy: () => prisma.prospectingAction.delete({ where: { id } }),
     invalidateCaches: invalidateActionCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }
