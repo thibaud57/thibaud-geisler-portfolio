@@ -5,9 +5,10 @@ import { applyStatusRules, type ActionTiming } from "./prospecting-action-status
 const NOW = new Date("2026-03-11T13:30:00Z")
 const MONDAY = new Date("2026-03-09T08:00:00Z")
 const TUESDAY_EVENING = new Date("2026-03-10T17:00:00Z")
+const REPLY = "Merci, on peut en parler jeudi."
 
 function timing(overrides: Partial<ActionTiming> = {}): ActionTiming {
-  return { status: "A_FAIRE", occurredAt: MONDAY, respondedAt: null, ...overrides }
+  return { status: "A_FAIRE", occurredAt: MONDAY, respondedAt: null, reply: null, ...overrides }
 }
 
 describe("applyStatusRules", () => {
@@ -80,4 +81,40 @@ describe("applyStatusRules", () => {
       expect(result.respondedAt).toBeNull()
     },
   )
+
+  it.each(["REPONDU", "CONVERTI"] as const)(
+    "keeps the submitted reply when an action is replied or converted (%s)",
+    (status) => {
+      const result = applyStatusRules(
+        timing({ status: "FAIT" }),
+        timing({ status, reply: REPLY }),
+        NOW,
+      )
+
+      expect(result.reply).toBe(REPLY)
+    },
+  )
+
+  it.each(["A_FAIRE", "FAIT", "IGNORE"] as const)(
+    "clears the reply when an action goes back to to do, done or ignored (%s)",
+    (status) => {
+      const result = applyStatusRules(
+        timing({ status: "REPONDU", reply: REPLY }),
+        timing({ status, reply: REPLY }),
+        NOW,
+      )
+
+      expect(result.reply).toBeNull()
+    },
+  )
+
+  it("does not restore a stored reply that the form cleared", () => {
+    const result = applyStatusRules(
+      timing({ status: "REPONDU", reply: REPLY }),
+      timing({ status: "REPONDU", reply: null }),
+      NOW,
+    )
+
+    expect(result.reply).toBeNull()
+  })
 })

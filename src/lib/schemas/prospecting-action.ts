@@ -29,6 +29,7 @@ export const prospectingActionSchema = z.object({
     error: "Date de réponse invalide",
   }),
   message: optionalTextField,
+  reply: optionalTextField,
 })
 
 export type ProspectingActionInput = z.infer<typeof prospectingActionSchema>

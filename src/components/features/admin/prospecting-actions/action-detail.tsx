@@ -16,6 +16,7 @@ import {
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
   PROSPECTING_ACTION_SECTION_TITLES,
+  respondedAtLabel,
 } from "@/lib/crm/prospecting-actions"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
 
@@ -48,10 +49,14 @@ export function buildActionDetail(
         },
         { label: LABELS.channel, value: channelBadge(action) },
         { label: LABELS.occurredAt, value: formatShortInstantDate(action.occurredAt) },
-        { label: LABELS.respondedAt, value: formatShortInstantDate(action.respondedAt) },
+        {
+          label: respondedAtLabel(action.channel),
+          value: formatShortInstantDate(action.respondedAt),
+        },
       ],
     },
     textSection(LABELS.message, action.message, { preserveLines: true }),
+    ...(action.reply ? [textSection(LABELS.reply, action.reply, { preserveLines: true })] : []),
   ]
 
   return {

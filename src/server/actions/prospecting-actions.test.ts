@@ -38,6 +38,7 @@ import { initialProspectingActionFormState } from "./prospecting-actions.types"
 const NOW = new Date("2026-03-11T13:30:00Z")
 const MONDAY = new Date("2026-03-09T08:00:00Z")
 const MONDAY_MIDNIGHT_IN_PARIS = new Date("2026-03-08T23:00:00Z")
+const REPLY = "Merci, on peut en parler jeudi."
 
 const BASE_FIELDS = {
   title: "Relance proposition",
@@ -47,6 +48,7 @@ const BASE_FIELDS = {
   occurredAt: "2026-03-09",
   respondedAt: "",
   message: "",
+  reply: "",
 }
 
 function buildFormData(overrides: Record<string, string> = {}): FormData {
@@ -112,6 +114,17 @@ describe("createProspectingAction", () => {
           respondedAt: NOW,
         }),
       }),
+    )
+  })
+
+  it("stores the reply with a replied action", async () => {
+    await createProspectingAction(
+      initialProspectingActionFormState,
+      buildFormData({ status: "REPONDU", reply: REPLY }),
+    )
+
+    expect(prisma.prospectingAction.create).toHaveBeenCalledWith(
+      objectMatch({ data: objectMatch({ status: "REPONDU", reply: REPLY }) }),
     )
   })
 
@@ -230,6 +243,7 @@ describe("changeProspectingActionStatus", () => {
       status: "FAIT",
       occurredAt: MONDAY,
       respondedAt: null,
+      reply: null,
     } as never)
 
     const state = await changeProspectingActionStatus("a1", "REPONDU")
@@ -237,7 +251,39 @@ describe("changeProspectingActionStatus", () => {
     expect(state.ok).toBe(true)
     expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
       where: { id: "a1" },
-      data: { status: "REPONDU", occurredAt: MONDAY, respondedAt: NOW },
+      data: { status: "REPONDU", occurredAt: MONDAY, respondedAt: NOW, reply: null },
+    })
+  })
+
+  it("keeps the reply when the status alone moves a replied action to converted", async () => {
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+      status: "REPONDU",
+      occurredAt: MONDAY,
+      respondedAt: NOW,
+      reply: REPLY,
+    } as never)
+
+    await changeProspectingActionStatus("a1", "CONVERTI")
+
+    expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
+      where: { id: "a1" },
+      data: { status: "CONVERTI", occurredAt: MONDAY, respondedAt: NOW, reply: REPLY },
+    })
+  })
+
+  it("clears the reply when the status alone moves a replied action back to done", async () => {
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+      status: "REPONDU",
+      occurredAt: MONDAY,
+      respondedAt: NOW,
+      reply: REPLY,
+    } as never)
+
+    await changeProspectingActionStatus("a1", "FAIT")
+
+    expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
+      where: { id: "a1" },
+      data: { status: "FAIT", occurredAt: MONDAY, respondedAt: null, reply: null },
     })
   })
 })

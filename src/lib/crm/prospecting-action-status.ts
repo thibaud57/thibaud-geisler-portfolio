@@ -5,6 +5,7 @@ export interface ActionTiming {
   status: ActionStatus
   occurredAt: Date
   respondedAt: Date | null
+  reply: string | null
 }
 
 const REPLIED: ReadonlySet<string> = new Set<ActionStatus>(["REPONDU", "CONVERTI"])
@@ -13,7 +14,8 @@ export function isRepliedStatus(status: string): boolean {
   return REPLIED.has(status)
 }
 
-// `current` vaut null à la création (l'action garde sa date) ; `next.respondedAt` nul signifie « non saisie ».
+// `current` vaut null à la création (l'action garde sa date) ; `next.respondedAt` nul signifie « non saisie »,
+// `next.reply`, lui, n'a pas de repli sur `current` : vidé dans le formulaire, il s'efface.
 export function applyStatusRules(
   current: ActionTiming | null,
   next: ActionTiming,
@@ -27,13 +29,13 @@ export function applyStatusRules(
     next.status !== "A_FAIRE" &&
     isSameZonedDay(next.occurredAt, current.occurredAt)
 
-  const respondedAt = isRepliedStatus(next.status)
-    ? (next.respondedAt ?? current?.respondedAt ?? now)
-    : null
+  const replied = isRepliedStatus(next.status)
+  const respondedAt = replied ? (next.respondedAt ?? current?.respondedAt ?? now) : null
 
   return {
     status: next.status,
     occurredAt: leavesToDo ? now : next.occurredAt,
     respondedAt,
+    reply: replied ? next.reply : null,
   }
 }

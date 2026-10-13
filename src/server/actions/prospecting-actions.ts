@@ -17,7 +17,7 @@ import { revalidatePersonLists } from "./person-guards"
 import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
 import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
-const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true } as const
+const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true, reply: true } as const
 
 // Variante "layout" : les vues actions, leads, contacts et entreprises se rafraîchissent toutes (le premier contact et la date de revue des leads en dérivent).
 function invalidateActionCaches(): void {
@@ -35,6 +35,7 @@ function collectValues(formData: FormData): ProspectingActionFormState["values"]
     occurredAt: stringField(formData, "occurredAt"),
     respondedAt: stringField(formData, "respondedAt"),
     message: stringField(formData, "message"),
+    reply: stringField(formData, "reply"),
   }
 }
 
@@ -172,7 +173,7 @@ export async function changeProspectingActionStatus(
 
       const timing = applyStatusRules(
         current,
-        { status: parsed.data, occurredAt: current.occurredAt, respondedAt: null },
+        { ...current, status: parsed.data, respondedAt: null },
         new Date(),
       )
       await prisma.prospectingAction.update({ where: { id }, data: timing })

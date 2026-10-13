@@ -22,6 +22,7 @@ import {
   ACTION_STATUS_ICONS,
   ACTION_STATUS_LABELS,
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
+  respondedAtLabel,
 } from "@/lib/crm/prospecting-actions"
 import { ACTION_CHANNELS, ACTION_STATUSES } from "@/lib/schemas/prospecting-action"
 import {
@@ -110,11 +111,14 @@ function ProspectingActionForm({
 
   const [now] = useState(() => new Date())
   const [personId, setPersonId] = useState(action?.person.id ?? defaultPersonId ?? "")
+  const [channel, setChannel] = useState<string>(action?.channel ?? "DM_LINKEDIN")
   const [status, setStatus] = useState<string>(action?.status ?? "A_FAIRE")
   const [date, setDate] = useState<Date | undefined>(action?.occurredAt ?? defaultDate ?? now)
   const [respondedDate, setRespondedDate] = useState<Date | undefined>(
     action?.respondedAt ?? undefined,
   )
+  // Contrôlée comme la date de réponse : masqué au changement de statut, le champ perdrait sa saisie.
+  const [reply, setReply] = useState(action?.reply ?? "")
 
   useSaveFeedback(state, {
     saved: action ? "Action mise à jour" : "Action créée",
@@ -165,7 +169,8 @@ function ProspectingActionForm({
         options={ACTION_CHANNELS}
         labels={ACTION_CHANNEL_LABELS}
         icons={ACTION_CHANNEL_ICONS}
-        defaultValue={action?.channel ?? "DM_LINKEDIN"}
+        value={channel}
+        onValueChange={setChannel}
         errors={state.errors.channel}
       />
 
@@ -198,7 +203,7 @@ function ProspectingActionForm({
         <OptionalDateField
           id={`${formId}-respondedAt`}
           name="respondedAt"
-          label={LABELS.respondedAt}
+          label={respondedAtLabel(channel)}
           value={respondedDate}
           onChange={setRespondedDate}
           errors={state.errors.respondedAt}
@@ -217,6 +222,23 @@ function ProspectingActionForm({
           errors={state.errors.message}
         />
       </div>
+
+      {replied ? (
+        <div className="sm:col-span-2">
+          <TextareaField
+            id={`${formId}-reply`}
+            name="reply"
+            label={LABELS.reply}
+            help="Le texte exact reçu."
+            className="min-h-30"
+            value={reply}
+            onChange={(event) => {
+              setReply(event.target.value)
+            }}
+            errors={state.errors.reply}
+          />
+        </div>
+      ) : null}
     </FormDialogForm>
   )
 }

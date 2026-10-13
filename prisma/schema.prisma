@@ -622,6 +622,8 @@ model ProspectingAction {
   // Planifiée tant que l'action est À faire, date d'envoi réelle ensuite.
   occurredAt  DateTime      @db.Timestamptz
   message     String?
+  // Suit la date de réponse : effacée quand l'action quitte Répondu ou Converti.
+  reply       String?
   // Dernier contact émanant de la personne, point de départ des 3 ans de conservation (registre, Traitement 7).
   respondedAt DateTime?     @db.Timestamptz
 
