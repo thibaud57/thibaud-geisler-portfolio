@@ -13,7 +13,7 @@ date: "2026-10-13"
 
 ## Scope
 
-Ajoute à `ProspectingAction` le texte de la réponse de la personne (`reply`), saisi dans le formulaire sous le message et lu dans la vue détail sous le bloc Message, visible seulement quand le statut est Répondu ou Converti, et effacé quand l'action quitte ces statuts, comme la date de réponse. Pour une connexion LinkedIn, la date de réponse s'intitule « Acceptée le ». Exclut toute action entrante (la réponse reste une donnée de l'action sortante, pas une action), tout fil de discussion à plusieurs messages (un nouvel envoi reste une nouvelle action, `09`), tout changement des listes des vues (`10`, `11`, `12`) et la reprise Notion (`20`, aucune source).
+Ajoute à `ProspectingAction` le texte de la réponse de la personne (`reply`), saisi dans le formulaire sous le message, visible seulement quand le statut est Répondu ou Converti, lu dans la vue détail sous le bloc Message, puis effacé quand l'action quitte ces statuts, comme la date de réponse. Pour une connexion LinkedIn, la date de réponse s'intitule « Acceptée le ». Exclut toute action entrante (la réponse reste une donnée de l'action sortante, pas une action), tout fil de discussion à plusieurs messages (un nouvel envoi reste une nouvelle action, `09`), tout changement des listes des vues (`10`, `11`, `12`) et la reprise Notion (`20`, aucune source).
 
 ### État livré
 
@@ -50,7 +50,7 @@ Ajoute à `ProspectingAction` le texte de la réponse de la personne (`reply`), 
 - **Server Actions** (`.claude/rules/nextjs/server-actions.md`) : `createProspectingAction` et `updateProspectingAction` lisent `reply` par `stringField` ; un champ absent du formulaire (masqué) vaut `""`, donc `null`
 - **Lectures** : `AdminProspectingAction` (`include`, `09`) porte le champ sans changement ; `actionTimelineSelect` (historique des leads) l'exclut, comme `message`, pour les mêmes raisons
 - **Formulaire** (`ProspectingActionFormDialog`) : `TextareaField` « Réponse » pleine largeur sous Message, même hauteur, aide « Le texte exact reçu. », rendu seulement quand `isRepliedStatus(status)`, comme « Réponse reçue le » ; valeur initiale `action.reply`, contrôlée par un état local pour survivre au masquage. Le Type devient contrôlé pour que le libellé de la date de réponse suive le canal choisi. Le message envoyé ne bouge pas
-- **Vue détail** (`buildActionDetail`, arbitrage « Disposition d'une vue détail », `.claude/rules/shadcn-ui/components.md`) : `textSection` « Réponse » avec retours à la ligne conservés, ajoutée après le bloc Message seulement quand `reply` est renseigné. Une connexion acceptée (Répondu sans texte) ne montre rien de plus ; le bloc Message garde son affichage `EmptyValue` (`10`)
+- **Vue détail** (`buildActionDetail`, disposition de `DetailDialog` en DESIGN.md § Overlays, `.claude/rules/shadcn-ui/components.md`) : `textSection` « Réponse » avec retours à la ligne conservés, toujours affiché après le bloc Message, avec une ligne `EmptyValue` sans réponse, comme le bloc Message (arbitrage « Bloc vide d'une vue détail », réaligné le 2026-10-13)
 
 ## Acceptance criteria
 
@@ -75,7 +75,7 @@ Ajoute à `ProspectingAction` le texte de la réponse de la personne (`reply`), 
 **GIVEN** une connexion LinkedIn passée à Répondu sans texte
 **WHEN** on ouvre sa vue détail
 **THEN** la date de réponse s'intitule « Acceptée le »
-**AND** aucun bloc Réponse n'apparaît
+**AND** le bloc Réponse affiche une valeur absente
 
 ## Tests à écrire
 

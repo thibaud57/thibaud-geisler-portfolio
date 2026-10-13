@@ -98,7 +98,7 @@ export async function CaseStudyHeader({ project }: Props) {
                 href={companyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xl font-semibold hover:text-primary"
+                className="text-xl font-semibold transition-colors hover:text-primary"
               >
                 {company?.name}
               </a>

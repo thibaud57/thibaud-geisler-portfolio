@@ -293,7 +293,7 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
         rows={viewInterviews}
         columns={columns}
         getRowId={(interview) => interview.id}
-        searchPlaceholder="Rechercher une opportunité, une entreprise ou un correspondant"
+        searchPlaceholder="Rechercher une opportunité ou un nom"
         noun="entretien"
         onRowClick={open}
         rowLabel={(interview) => titles.get(interview.id) ?? ""}

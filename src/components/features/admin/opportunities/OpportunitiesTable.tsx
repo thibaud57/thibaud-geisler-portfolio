@@ -245,7 +245,7 @@ export function OpportunitiesTable({ opportunities, view, initialDetailId }: Pro
         rows={viewOpportunities}
         columns={columns}
         getRowId={(opportunity) => opportunity.id}
-        searchPlaceholder="Rechercher une opportunité, une ESN ou un client"
+        searchPlaceholder="Rechercher un titre ou une entreprise"
         noun="opportunité"
         onRowClick={open}
         rowLabel={(opportunity) => opportunity.title}

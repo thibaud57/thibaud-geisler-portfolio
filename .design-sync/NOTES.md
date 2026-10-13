@@ -27,7 +27,7 @@ système, puis refait entièrement.
 - **Lire les fiches du design system depuis son export** : même procédure sur le projet du design
   system, dézippé dans `.design-sync/design-system/` (ignoré par git, comme par ESLint, Prettier et
   TypeScript : il porte des `.jsx` et des `.d.ts`). Chaque composant y a sa fiche
-  `components/<groupe>/<Nom>.prompt.md`. Cet export est la copie que `/design-sync` modifie puis
+  `components/<groupe>/<Nom>.prompt.md` (`components/post-mvp/<famille>/<Nom>.prompt.md` sous `post-mvp/`). Cet export est la copie que `/design-sync` modifie puis
   envoie : il reste aligné sur le projet en ligne sans nouveau ZIP. Seuls `_ds_bundle.js`,
   `_ds_manifest.json` et `_adherence.oxlintrc.json`, que l'app régénère à la recompilation, y gardent
   la date du dernier ZIP. Pour contrôler l'alignement : `list_files` (mêmes chemins des deux côtés),
@@ -41,8 +41,12 @@ système, puis refait entièrement.
 
 ## Comment ce dépôt se synchronise
 
-- **Le convertisseur de `/design-sync` ne s'applique pas** : app Next.js privée, sans point d'entrée
-  de librairie, sans `dist`, sans Storybook. Il n'a rien à empaqueter.
+- **Le convertisseur de `/design-sync` ne s'applique pas ; le lancer détruirait le projet distant** :
+  app Next.js privée, sans point d'entrée de librairie, sans `dist`, sans Storybook, il n'a rien à
+  empaqueter. Sa clôture supprime du distant tout ce que le build local ne contient pas : avec un build
+  vide, elle effacerait le design system, la maquette vivant dans un projet à part. La clé
+  `mode: manual` de `config.json`, hors schéma du skill, fait échouer un run du convertisseur avant
+  toute écriture : ne pas la retirer. Un sync se fait donc toujours à la main, fichier par fichier.
 - **Le design system s'écrit donc fichier par fichier** : `components/<groupe>/<Nom>.{jsx,d.ts,prompt.md}`,
   une carte `@dsCard` par dossier, via `finalize_plan` puis `write_files`.
 - **Tenir `github.md` à jour** : c'est le registre de sync du projet Claude Design, il porte la branche
@@ -62,7 +66,8 @@ système, puis refait entièrement.
   HTTP (les icônes se chargent par `fetch`, refusé en `file://`),
   puis capturer chaque carte avec le Chromium de Playwright en headless à son viewport `@dsCard`.
   Comparer au rendu de la copie intacte distingue une régression d'un défaut ancien.
-- **Un composant installé quitte `post-mvp/`** : fichiers vers `components/core/`, règles de
+- **Un composant installé quitte `post-mvp/`** : fichiers vers `components/core/` pour une primitive
+  du registry, vers `components/patterns/` pour un composé maison, règles de
   `post-mvp.css` vers `components.css`. Les deux feuilles restent à leur place : la maquette les
   charge directement.
 - **La maquette charge `_ds_src/`, pas `_ds/`** : `_ds/` est l'instantané lié que l'app gère,
@@ -82,8 +87,9 @@ système, puis refait entièrement.
 - **Ne jamais modifier la maquette sans demande explicite** : c'est le fichier de design du
   propriétaire, pas un artefact généré.
 - **`esbuild` n'est plus une dépendance directe** : retiré au sub-project 14 avec le seed, il reste
-  installé en transitif, donc `node_modules/.bin/esbuild` répond toujours. Le chercher dans
-  `package.json` ne donne rien, ce qui ne veut pas dire qu'il manque. Compiler tous les `.jsx` en
+  installé en transitif, sous `node_modules/.pnpm/esbuild@<version>/node_modules/esbuild/bin/esbuild`
+  (pas de lien dans `node_modules/.bin/`). Le chercher dans `package.json` ne donne rien, ce qui ne
+  veut pas dire qu'il manque. Compiler tous les `.jsx` en
   un bundle jetable est la façon la moins chère de vérifier qu'aucun import ne casse avant un sync.
 - **Sans navigateur piloté, monter les miroirs en SSR** plutôt que de ne rien vérifier : bundler en
   `--format=esm` vers un dossier du dépôt (hors de lui, `react` ne résout pas), poser
@@ -117,9 +123,24 @@ propriétaire le demande ; chaque ligne part une fois faite.
   trier, pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ;
   Accueil (`isHome`), à revoir avec la feature Missions (Feature 4).
 - **Avant de dessiner l'assistant et le chatbot public** : faire les recherches sur ces deux sujets.
+- **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
+  garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs
+  tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
 
 ## Journal
 
+- **Système et maquette réalignés sur le code et les arbitrages (exports locaux du 2026-10-13)** :
+  le système sort du `post-mvp/` ce que le CRM a installé (`EventCalendar`, `Kanban`, `Editor` et
+  `ScrollArea` vers `core/`, champs date et fiches rattachées vers `patterns/`), retire
+  `Collapsible`, gagne neuf miroirs (`TitleCell` à la place de `NameSlugCell`, `RecordLink`,
+  `AssetTileLink`, `DateField`, `ReadOnlyField`, `FormCard`, `AssetField`, `PeriodSelect`,
+  `CreateLinkButton`), réécrit `DetailDialog` et `RelatedLinksList` sur l'API du code, donne à
+  `Combobox` une précision atténuée et à l'éditeur son menu complet, puis suit les chemins du dépôt
+  après le rangement de l'admin ; readme (arbitrages recopiés tels quels) et `github.md` à jour.
+  Contrôle : 97 miroirs compilés, 57 cartes rendues sans erreur hors les anomalies voulues. La
+  maquette applique les vingt-neuf arbitrages du 2026-10-06 au 2026-10-13 (le trentième, le menu de l'éditeur, relève du système) et les décisions des specs
+  13, 17 et 18 ; `_ds_src/` recompilé ; 33 écrans capturés avant et après, sans erreur hors les
+  aperçus manquants voulus. Détail dans les `github.md` des deux projets.
 - **Revue de la maquette par le propriétaire (synchronisée le 2026-10-02)** : formulaires, modales et
   vues détail passés au crible, deux colonnes sans champ orphelin, ordre logique, vue détail dans
   l'ordre de son formulaire hors champs placés en tête ; la personne partagée ne se voit plus (lead
@@ -179,7 +200,7 @@ propriétaire le demande ; chaque ligne part une fois faite.
   absent rendu par `EmptyValue`, type de signal en badge, champs RCS sur leur propre rangée,
   `OptionalDateField` créé au plan 05 (date d'assujettissement à la TVA) puis réutilisé par 08 et 19.
   L'état posé à droite du titre d'une vue détail garde le `Badge` `outline` `meta`, comme dans l'app :
-  l'arbitrage « Valeur d'énumération » le nomme parmi ses exceptions.
+  l'arbitrage « En-tête d'une vue détail » le porte.
 - **Maquette réalignée sur le CRM (synchronisée le 2026-10-01)** : écrans CRM refaits sur
   les specs `domaine-freelance-crm` (entreprises, leads, contacts, missions, entretiens, actions de
   prospection, revues hebdo, signaux), arbitrages transverses de `docs/DESIGN.md` appliqués aussi aux

@@ -43,7 +43,7 @@ export function buildActionDetail(
       ],
     },
     textSection(LABELS.message, action.message, { preserveLines: true }),
-    ...(action.reply ? [textSection(LABELS.reply, action.reply, { preserveLines: true })] : []),
+    textSection(LABELS.reply, action.reply, { preserveLines: true }),
   ]
 
   return {
