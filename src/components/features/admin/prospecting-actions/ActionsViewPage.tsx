@@ -2,7 +2,7 @@ import { NewActionHeaderButton } from "@/components/features/admin/prospecting-a
 import { ProspectingActionsTable } from "@/components/features/admin/prospecting-actions/ProspectingActionsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ACTION_VIEW_PAGES, type ActionView } from "@/lib/crm/action-views"
-import { actionSkeletonWidths } from "@/lib/admin/table-widths"
+import { actionSkeletonWidths } from "@/components/features/admin/prospecting-actions/action-table-widths"
 import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 

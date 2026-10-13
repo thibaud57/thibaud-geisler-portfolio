@@ -2,28 +2,19 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { Tags } from "lucide-react"
-
-import {
-  DataTable,
-  type Column,
-  type Facet,
-  type GroupBy,
-} from "@/components/features/admin/table/DataTable"
-import {
-  headerBadge,
-  type DetailContent,
-  type DetailRow,
-} from "@/components/features/admin/detail/DetailDialog"
+import { DataTable, type Column, type GroupBy } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
+import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
-import { actionsColumn, HEADER_BADGE_PROPS } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { actionsColumn } from "@/components/features/admin/table/table-cells"
+import { HEADER_BADGE_PROPS } from "@/components/features/admin/display/badges"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import { DeleteTagDialog } from "@/components/features/admin/tags/DeleteTagDialog"
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
 import { Badge } from "@/components/ui/badge"
 import type { TagKind } from "@/generated/prisma/client"
-import { TAG_COLUMN_WIDTHS } from "@/lib/admin/table-widths"
-import { useRowDetail } from "@/hooks/use-row-detail"
-import { TagIcon } from "@/lib/icons"
+import { TAG_COLUMN_WIDTHS } from "@/components/features/admin/tags/tag-table-widths"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import {
   emptyTagCountByKind,
   KIND_ORDER,
@@ -34,6 +25,7 @@ import {
 } from "@/lib/tags"
 import { reorderTags } from "@/server/actions/tags"
 import type { AdminTag } from "@/server/queries/tags"
+import { renderTagIcon, tagDetailRows } from "@/components/features/admin/tags/tag-detail"
 
 function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
   return [
@@ -93,28 +85,6 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
 
 function kindBadge(tag: AdminTag) {
   return <Badge {...HEADER_BADGE_PROPS}>{TAG_KIND_LABELS[tag.kind]}</Badge>
-}
-
-function renderTagIcon(icon: string | null) {
-  if (!icon) return null
-  return (
-    <span className="inline-flex min-w-0 items-center gap-2 text-muted-foreground">
-      <TagIcon icon={icon} className="size-4" />
-      <TruncateTooltip className="font-mono text-xs">{icon}</TruncateTooltip>
-    </span>
-  )
-}
-
-function tagDetailRows(tag: AdminTag): readonly DetailRow[] {
-  return [
-    { label: TAG_FIELD_LABELS.nameEn, value: tag.nameEn },
-    { label: TAG_FIELD_LABELS.displayOrder, value: String(tag.displayOrder) },
-    { label: TAG_FIELD_LABELS.icon, value: renderTagIcon(tag.icon) },
-    {
-      label: TAG_FIELD_LABELS.projects,
-      value: `${tag._count.projects} projet${tag._count.projects > 1 ? "s" : ""}`,
-    },
-  ]
 }
 
 const groupBy: GroupBy<AdminTag, TagKind> = {

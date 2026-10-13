@@ -2,7 +2,7 @@
 
 import { Trash2 } from "lucide-react"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
 import { nameOfAssetKey } from "@/lib/assets"
 import { isHardcodedAssetKey } from "@/lib/asset-keys"

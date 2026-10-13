@@ -1,7 +1,7 @@
 import { ReviewFormDialog } from "@/components/features/admin/weekly-reviews/ReviewFormDialog"
 import { ReviewsTable } from "@/components/features/admin/weekly-reviews/ReviewsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
-import { reviewSkeletonWidths } from "@/lib/admin/table-widths"
+import { reviewSkeletonWidths } from "@/components/features/admin/weekly-reviews/review-table-widths"
 import { REVIEW_VIEW_PAGES, type ReviewView } from "@/lib/crm/review-views"
 import { findAllWeeklyReviewsForAdmin } from "@/server/queries/weekly-reviews"
 

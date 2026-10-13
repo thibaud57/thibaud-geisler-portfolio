@@ -1,4 +1,4 @@
-import { CreateLinkButton } from "@/components/features/admin/CreateLinkButton"
+import { CreateLinkButton } from "@/components/features/admin/form/CreateLinkButton"
 import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
 import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"

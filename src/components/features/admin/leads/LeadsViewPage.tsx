@@ -1,7 +1,7 @@
 import { LeadsTable } from "@/components/features/admin/leads/LeadsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
-import { leadSkeletonWidths } from "@/lib/admin/table-widths"
+import { leadSkeletonWidths } from "@/components/features/admin/leads/lead-table-widths"
 import { LEAD_VIEW_PAGES, type LeadView } from "@/lib/crm/lead-views"
 import { findAllLeadsForAdmin } from "@/server/queries/leads"
 import { findActionTimelinesForAdmin } from "@/server/queries/prospecting-actions"

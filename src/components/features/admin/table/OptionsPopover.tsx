@@ -3,7 +3,7 @@
 import { Fragment } from "react"
 import type { LucideIcon } from "lucide-react"
 
-import { TitledBlock } from "@/components/features/admin/TitledBlock"
+import { TitledBlock } from "@/components/features/admin/display/TitledBlock"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

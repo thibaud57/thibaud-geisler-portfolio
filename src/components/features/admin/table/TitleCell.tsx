@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import { cn } from "@/lib/utils"
 
 interface Props {

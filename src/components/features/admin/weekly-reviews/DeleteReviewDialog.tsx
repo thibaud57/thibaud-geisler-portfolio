@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { weekLabel } from "@/lib/crm/weekly-reviews"
 import { deleteWeeklyReview } from "@/server/actions/weekly-reviews"
 import type { AdminWeeklyReview } from "@/server/queries/weekly-reviews"

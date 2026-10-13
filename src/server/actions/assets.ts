@@ -16,10 +16,10 @@ import {
 } from "@/lib/asset-keys"
 import { assetUploadSchema } from "@/lib/schemas/asset"
 import { createActionLogger } from "@/lib/server-utils"
-import { getContentType, validateAssetPath } from "@/server/config/assets"
+import { getContentType, validateAssetPath } from "@/server/assets/serve-asset"
 import { COMPANY_LOGO_FIELD, PROJECT_ASSET_REFERENCES } from "@/server/queries/assets"
 
-import { deleteEntity } from "./shared"
+import { deleteEntity } from "./_support/shared"
 import { type AssetFormState } from "./assets.types"
 
 function resolveBucket(key: string): { client: typeof r2; bucket: string } {

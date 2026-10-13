@@ -1,7 +1,5 @@
-import {
-  RelatedLinksList,
-  type RelatedLink,
-} from "@/components/features/admin/detail/RelatedLinksList"
+import { RelatedLinksList } from "@/components/features/admin/detail/RelatedLinksList"
+import type { RelatedLink } from "@/lib/admin/related-links"
 import type { DetailSection } from "@/components/features/admin/detail/DetailDialog"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 

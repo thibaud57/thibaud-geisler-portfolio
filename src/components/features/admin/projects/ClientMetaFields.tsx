@@ -5,15 +5,15 @@ import { useId, useState } from "react"
 import { CompanyCombobox } from "@/components/features/admin/form/CompanyCombobox"
 import { NumberField } from "@/components/features/admin/form/NumberField"
 import { SelectField } from "@/components/features/admin/form/SelectField"
+import { PROJECT_FIELD_LABELS as LABELS } from "@/lib/projects"
 import {
   CONTRACT_STATUS_ICONS,
   CONTRACT_STATUS_LABELS,
   CONTRACT_STATUSES,
-  PROJECT_FIELD_LABELS as LABELS,
   WORK_MODE_ICONS,
   WORK_MODE_LABELS,
   WORK_MODES,
-} from "@/lib/projects"
+} from "@/lib/contract-terms"
 import { NONE_LABEL, NONE_VALUE } from "@/lib/schemas/none-value"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminProjectDetail } from "@/server/queries/projects"

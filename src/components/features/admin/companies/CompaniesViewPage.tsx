@@ -1,7 +1,7 @@
 import { CompaniesTable } from "@/components/features/admin/companies/CompaniesTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
-import { companySkeletonWidths } from "@/lib/admin/table-widths"
+import { companySkeletonWidths } from "@/components/features/admin/companies/company-table-widths"
 import { COMPANY_VIEW_PAGES, type CompanyView } from "@/lib/crm/company-views"
 import { findAllCompaniesForAdmin } from "@/server/queries/companies"
 

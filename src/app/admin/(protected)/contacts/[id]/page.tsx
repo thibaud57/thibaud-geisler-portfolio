@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { ContactForm } from "@/components/features/admin/contacts/ContactForm"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
-import { CONTACT_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/crm/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
@@ -33,7 +33,7 @@ export default async function EditContactPage({ params }: PageProps<"/admin/cont
   const { id } = await params
 
   return (
-    <AdminFormPage skeleton={CONTACT_PAGE_SKELETON}>
+    <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
       <EditContactSection id={id} />
     </AdminFormPage>
   )

@@ -10,7 +10,7 @@ import { computeIdsAtPosition, removeId, renumberEntities, sameIdSet } from "@/l
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./shared"
+import { deleteEntity, saveEntity } from "./_support/shared"
 import { type TagDeleteState, type TagFormState, type TagReorderState } from "./tags.types"
 
 function invalidateTagCaches(): void {

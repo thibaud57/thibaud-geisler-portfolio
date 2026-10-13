@@ -10,14 +10,14 @@ import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { stringField, stringValues } from "@/lib/server-utils"
 
-import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
+import { type ActionEvents, deleteEntity, saveEntity } from "./_support/shared"
 import type { InterviewFormMessage, InterviewFormState } from "./interviews.types"
 import {
   assertNewIdentity,
   type DuplicateWording,
   PersonConflictError,
   revalidatePersonLists,
-} from "./person-guards"
+} from "./_support/person-guards"
 
 // L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre aussi la liste des entretiens.
 function invalidateInterviewCaches(): void {

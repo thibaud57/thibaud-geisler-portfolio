@@ -19,8 +19,8 @@ import {
   conflictErrors,
   PersonConflictError,
   revalidatePersonLists,
-} from "./person-guards"
-import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
+} from "./_support/person-guards"
+import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
 import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
 const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true, reply: true } as const

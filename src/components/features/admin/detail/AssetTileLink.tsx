@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
+import { CompanyLogoTile } from "@/components/features/admin/display/CompanyLogoTile"
 
 interface Props {
   assetKey: string | null

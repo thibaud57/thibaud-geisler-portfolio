@@ -3,7 +3,7 @@ import { OpportunityForm } from "@/components/features/admin/opportunities/Oppor
 import { OpportunityInterviewsCard } from "@/components/features/admin/opportunities/OpportunityInterviewsCard"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
 import { firstParam } from "@/lib/admin/search-params"
-import { OPPORTUNITY_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { OPPORTUNITY_PAGE_SKELETON } from "@/components/features/admin/opportunities/opportunity-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"

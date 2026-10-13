@@ -1,9 +1,7 @@
 import type { ReactNode } from "react"
 
-import {
-  RelatedLinksList,
-  type RelatedLink,
-} from "@/components/features/admin/detail/RelatedLinksList"
+import { RelatedLinksList } from "@/components/features/admin/detail/RelatedLinksList"
+import type { RelatedLink } from "@/lib/admin/related-links"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {

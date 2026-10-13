@@ -15,7 +15,7 @@ import { toast } from "sonner"
 
 import { ORDER_COLUMN_WIDTH } from "@/lib/admin/table-widths"
 import { EmptyState, type EmptyStateContent } from "@/components/features/admin/table/EmptyState"
-import { EmptyValue } from "@/components/features/admin/EmptyValue"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
 import { FacetFilter } from "@/components/features/admin/table/FacetFilter"
 import { OptionsPopover } from "@/components/features/admin/table/OptionsPopover"
 import { PaginationFooter } from "@/components/features/admin/table/PaginationFooter"
@@ -30,14 +30,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useFacetedSearch, type Facet, type FacetOption } from "@/hooks/use-faceted-search"
+import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
+import type { Facet } from "@/lib/admin/facets"
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/lib/admin/pagination"
 import { normalizeForSearch } from "@/lib/admin/search"
 import { computeReorderedIds, sameIdSet } from "@/lib/reorder"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
-
-export type { Facet, FacetOption }
 
 const UNGROUPED_KEY = "__all__"
 

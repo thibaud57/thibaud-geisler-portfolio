@@ -1,7 +1,7 @@
 import { CircleAlert, ShieldBan } from "lucide-react"
 import { Suspense } from "react"
 
-import { GoogleSignInButton } from "@/components/features/admin/GoogleSignInButton"
+import { GoogleSignInButton } from "@/components/layout/admin/GoogleSignInButton"
 import { BrandLogo } from "@/components/layout/BrandLogo"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"

@@ -16,8 +16,8 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
-import { revalidatePersonLists } from "./person-guards"
-import { deleteEntity, saveEntity } from "./shared"
+import { revalidatePersonLists } from "./_support/person-guards"
+import { deleteEntity, saveEntity } from "./_support/shared"
 import { type CompanyFormState } from "./companies.types"
 
 // Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.

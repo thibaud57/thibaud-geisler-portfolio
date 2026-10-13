@@ -1,3 +1,5 @@
+import "server-only"
+
 import type { Prisma } from "@/generated/prisma/client"
 
 export const signalsInclude = {

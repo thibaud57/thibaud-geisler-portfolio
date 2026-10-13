@@ -1,6 +1,6 @@
 "use client"
 
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import { AssetFrame } from "@/components/features/admin/assets/AssetFrame"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { folderLabelOfAssetKey, nameOfAssetKey } from "@/lib/assets"

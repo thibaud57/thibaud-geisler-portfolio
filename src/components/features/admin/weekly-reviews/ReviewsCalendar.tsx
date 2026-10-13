@@ -2,7 +2,7 @@
 
 import { useMemo } from "react"
 
-import { AdminMonthCalendar } from "@/components/features/admin/AdminMonthCalendar"
+import { AdminMonthCalendar } from "@/components/features/admin/display/AdminMonthCalendar"
 import type { EventCalendarSlotInfo } from "@/components/reui/event-calendar/event-calendar-types"
 import { dateOnlyToLocal, toIsoDate } from "@/lib/date-time"
 import { REVIEW_CALENDAR_I18N, reviewEvents } from "@/lib/crm/review-calendar"

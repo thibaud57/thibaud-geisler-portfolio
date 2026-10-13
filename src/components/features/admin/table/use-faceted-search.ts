@@ -1,21 +1,7 @@
 import { useMemo, useState } from "react"
 
-import type { FacetFilterGroup } from "@/components/features/admin/table/FacetFilter"
+import type { Facet, FacetFilterGroup } from "@/lib/admin/facets"
 import { paginate, type PaginationResult } from "@/lib/admin/pagination"
-
-export interface FacetOption {
-  value: string
-  label: string
-}
-
-export interface Facet<T, K extends string = string> {
-  key: string
-  label: string
-  options: readonly FacetOption[]
-  // Scalaire ou tableau : la plupart des facettes portent une valeur unique par ligne, certaines
-  // (ex. formats d'un projet) en portent plusieurs ; la ligne matche si l'une d'elles est sélectionnée.
-  value: (row: T) => K | readonly K[]
-}
 
 // Array.isArray ne narrowe pas value: K | readonly K[] pour un K générique (TS ne peut pas prouver
 // que K exclut les tableaux) : les deux branches restent castées explicitement, sûres au runtime.

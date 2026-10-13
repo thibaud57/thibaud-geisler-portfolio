@@ -2,27 +2,24 @@
 
 import { useCallback, useMemo, useState } from "react"
 import { CalendarClock } from "lucide-react"
-
-import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
-import { textSection } from "@/components/features/admin/detail/detail-sections"
-import { PeriodSelect } from "@/components/features/admin/PeriodSelect"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
+import { PeriodSelect } from "@/components/features/admin/table/PeriodSelect"
 import { DeleteReviewDialog } from "@/components/features/admin/weekly-reviews/DeleteReviewDialog"
 import { ReviewFormDialog } from "@/components/features/admin/weekly-reviews/ReviewFormDialog"
-import { ReviewRates } from "@/components/features/admin/weekly-reviews/ReviewRates"
 import { ReviewsCalendar } from "@/components/features/admin/weekly-reviews/ReviewsCalendar"
 import {
   actionsColumn,
-  enumBadge,
   enumFacet,
   hideableColumn,
 } from "@/components/features/admin/table/table-cells"
+import { enumBadge } from "@/components/features/admin/display/badges"
 import {
   REVIEW_COLUMN_WIDTHS,
   REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS,
-  type ReviewColumnKey,
-} from "@/lib/admin/table-widths"
-import { useRowDetail } from "@/hooks/use-row-detail"
+  ReviewColumnKey,
+} from "@/components/features/admin/weekly-reviews/review-table-widths"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import { formatDateOnly } from "@/lib/date-time"
 import {
   REVIEW_PERIOD_LABELS,
@@ -35,7 +32,6 @@ import {
 import { REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
 import {
   formatRate,
-  REVIEW_COUNTER_KEYS,
   REVIEW_FIELD_LABELS as LABELS,
   REVIEW_MOTIVATION_ICONS,
   REVIEW_MOTIVATION_LABELS,
@@ -46,6 +42,7 @@ import {
   type ReviewCounts,
 } from "@/lib/crm/weekly-reviews"
 import type { AdminWeeklyReview } from "@/server/queries/weekly-reviews"
+import { buildReviewDetail } from "@/components/features/admin/weekly-reviews/review-detail"
 
 type Rates = ReturnType<typeof reviewRates>
 
@@ -130,31 +127,6 @@ function buildDataColumns(view: ReviewView): readonly Column<AdminWeeklyReview>[
         enumBadge(review.motivation, REVIEW_MOTIVATION_LABELS, REVIEW_MOTIVATION_ICONS),
     },
   ]
-}
-
-function buildReviewDetail(review: AdminWeeklyReview, onEdit: () => void): DetailContent {
-  return {
-    title: weekLabel(review.closingFriday),
-    subtitle: `${LABELS.friday} : ${formatDateOnly(review.closingFriday)}`,
-    badges: [
-      headerBadge(review.status, REVIEW_STATUS_LABELS, REVIEW_STATUS_ICONS),
-      headerBadge(review.motivation, REVIEW_MOTIVATION_LABELS, REVIEW_MOTIVATION_ICONS),
-    ],
-    // Le formulaire n'a pas de section : le premier bloc reprend ses champs sans titre, dans l'ordre des compteurs.
-    sections: [
-      {
-        rows: [
-          ...REVIEW_COUNTER_KEYS.map((key) => ({ label: LABELS[key], value: review[key] })),
-          { label: LABELS.computedRates, value: <ReviewRates rates={reviewRates(review)} /> },
-        ],
-      },
-      textSection(LABELS.wins, review.wins, { preserveLines: true }),
-      textSection(LABELS.blockers, review.blockers, { preserveLines: true }),
-      textSection(LABELS.nextWeekPlan, review.nextWeekPlan, { preserveLines: true }),
-      textSection(LABELS.notes, review.notes, { preserveLines: true }),
-    ],
-    onEdit,
-  }
 }
 
 const facets: readonly Facet<AdminWeeklyReview>[] = [

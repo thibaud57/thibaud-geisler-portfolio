@@ -1,4 +1,4 @@
-import type { LinkMarker } from "@/components/features/admin/detail/RelatedLinksList"
+import type { LinkMarker } from "@/lib/admin/related-links"
 import type { IconComponent } from "@/lib/icons"
 
 // L'icône est rendue ici en élément React : un composant ne traverse pas la frontière serveur/client, un élément oui.

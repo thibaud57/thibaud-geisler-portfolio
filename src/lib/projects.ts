@@ -1,26 +1,6 @@
-import {
-  AppWindow,
-  Bot,
-  Briefcase,
-  Building,
-  FilePenLine,
-  GraduationCap,
-  Monitor,
-  Repeat,
-  Shuffle,
-  Smartphone,
-  SquareTerminal,
-  Webhook,
-  Wifi,
-} from "lucide-react"
+import { AppWindow, Bot, Monitor, Smartphone, SquareTerminal, Webhook } from "lucide-react"
 
-import type {
-  ContractStatus,
-  ProjectFormat,
-  ProjectStatus,
-  ProjectType,
-  WorkMode,
-} from "@/generated/prisma/client"
+import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
 import type { IconComponent } from "@/lib/icons"
 
 export interface ProjectTimeline {
@@ -69,35 +49,6 @@ export const PROJECT_FORMAT_LABELS: Record<ProjectFormat, string> = {
 export const PROJECT_TYPES = Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]
 export const PROJECT_STATUSES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
 export const PROJECT_FORMATS = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
-
-export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
-  FREELANCE: "Freelance",
-  CDI: "CDI",
-  STAGE: "Stage",
-  ALTERNANCE: "Alternance",
-}
-
-export const WORK_MODE_LABELS: Record<WorkMode, string> = {
-  REMOTE: "Remote",
-  HYBRIDE: "Hybride",
-  PRESENTIEL: "Sur site",
-}
-
-export const CONTRACT_STATUSES = Object.keys(CONTRACT_STATUS_LABELS) as ContractStatus[]
-export const WORK_MODES = Object.keys(WORK_MODE_LABELS) as WorkMode[]
-
-export const CONTRACT_STATUS_ICONS: Record<ContractStatus, IconComponent | null> = {
-  FREELANCE: Briefcase,
-  CDI: FilePenLine,
-  STAGE: GraduationCap,
-  ALTERNANCE: Repeat,
-}
-
-export const WORK_MODE_ICONS: Record<WorkMode, IconComponent | null> = {
-  REMOTE: Wifi,
-  HYBRIDE: Shuffle,
-  PRESENTIEL: Building,
-}
 
 export const PROJECT_FORMAT_ICONS: Record<ProjectFormat, IconComponent | null> = {
   API: Webhook,

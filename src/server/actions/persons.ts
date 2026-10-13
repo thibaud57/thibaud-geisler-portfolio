@@ -9,7 +9,7 @@ import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import { createActionLogger } from "@/lib/server-utils"
 
-import { revalidatePersonLists } from "./person-guards"
+import { revalidatePersonLists } from "./_support/person-guards"
 import type { PersonActionState } from "./persons.types"
 
 export async function optOutPerson(id: string): Promise<PersonActionState> {

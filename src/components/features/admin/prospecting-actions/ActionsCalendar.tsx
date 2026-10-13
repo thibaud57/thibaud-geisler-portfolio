@@ -3,8 +3,8 @@
 import { startTransition, useState } from "react"
 import { toast } from "sonner"
 
-import { AdminMonthCalendar } from "@/components/features/admin/AdminMonthCalendar"
-import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/useProspectingActionDetail"
+import { AdminMonthCalendar } from "@/components/features/admin/display/AdminMonthCalendar"
+import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/use-prospecting-action-detail"
 import type {
   CalendarEvent,
   EventCalendarProposedUpdate,

@@ -7,7 +7,7 @@ import { LeadOpportunitiesCard } from "@/components/features/admin/leads/LeadOpp
 import { PersonActionsCard } from "@/components/features/admin/persons/PersonActionsCard"
 import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
-import { LEAD_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/crm/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
@@ -57,7 +57,7 @@ export default async function EditLeadPage({ params }: PageProps<"/admin/leads/[
   const { id } = await params
 
   return (
-    <AdminFormPage skeleton={LEAD_PAGE_SKELETON}>
+    <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
       <EditLeadSection id={id} />
     </AdminFormPage>
   )

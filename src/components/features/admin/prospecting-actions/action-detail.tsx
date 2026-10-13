@@ -4,7 +4,8 @@ import {
   type DetailSection,
 } from "@/components/features/admin/detail/DetailDialog"
 import { textSection } from "@/components/features/admin/detail/detail-sections"
-import { enumBadge, PersonLink } from "@/components/features/admin/table/table-cells"
+import { enumBadge } from "@/components/features/admin/display/badges"
+import { PersonLink } from "@/components/features/admin/display/record-links"
 import { formatShortInstantDate } from "@/lib/date-time"
 import {
   ACTION_CHANNEL_ICONS,

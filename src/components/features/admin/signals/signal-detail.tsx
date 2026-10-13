@@ -1,6 +1,6 @@
 import type { DetailContent, DetailSection } from "@/components/features/admin/detail/DetailDialog"
 import { linksSection } from "@/components/features/admin/detail/detail-sections"
-import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { ExternalUrl } from "@/components/features/admin/display/ExternalUrl"
 import { signalRelatedRows } from "@/components/features/admin/signals/signal-rows"
 import { ADMIN_COMPANIES_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { detailHref } from "@/lib/admin/detail-links"

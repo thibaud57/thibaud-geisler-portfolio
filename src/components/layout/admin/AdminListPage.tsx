@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from "react"
 import type { Route } from "next"
 
-import { CreateLinkButton } from "@/components/features/admin/CreateLinkButton"
+import { CreateLinkButton } from "@/components/features/admin/form/CreateLinkButton"
 import { DataTableSkeleton } from "@/components/features/admin/table/DataTableSkeleton"
 import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 

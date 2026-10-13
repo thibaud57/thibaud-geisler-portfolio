@@ -1,25 +1,24 @@
 import type { ComponentProps } from "react"
 
-import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
-import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { CompanyLogoTile } from "@/components/features/admin/display/CompanyLogoTile"
+import { ExternalUrl } from "@/components/features/admin/display/ExternalUrl"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import type { DetailSection } from "@/components/features/admin/detail/DetailDialog"
 import type { Column } from "@/components/features/admin/table/DataTable"
+import { enumFacet, hideableColumn } from "@/components/features/admin/table/table-cells"
+import { zoneBadge } from "@/components/features/admin/display/badges"
 import {
   companyCell,
-  enumFacet,
-  hideableColumn,
   linkedinLink,
   PersonRecordLink,
   RecordLink,
-  truncatedCell,
-  zoneBadge,
-} from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+} from "@/components/features/admin/display/record-links"
+import { truncatedCell } from "@/components/features/admin/table/table-cells"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import type { Zone } from "@/generated/prisma/client"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
-import type { Facet } from "@/hooks/use-faceted-search"
+import type { Facet } from "@/lib/admin/facets"
 
 interface PersonRow {
   name: string | null

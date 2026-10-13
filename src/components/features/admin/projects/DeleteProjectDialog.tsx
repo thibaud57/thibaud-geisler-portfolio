@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { deleteProject } from "@/server/actions/projects"
 
 interface Props {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
-import { EmptyValue } from "@/components/features/admin/EmptyValue"
-import { EnumBadge } from "@/components/features/admin/EnumBadge"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
+import { EnumBadge } from "@/components/features/admin/display/EnumBadge"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { IconComponent } from "@/lib/icons"

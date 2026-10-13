@@ -1,7 +1,7 @@
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { ProjectForm } from "@/components/features/admin/projects/ProjectForm"
 import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
-import { PROJECT_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { PROJECT_PAGE_SKELETON } from "@/components/features/admin/projects/project-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { listAssets } from "@/server/queries/assets"
 import { findCompanyOptions } from "@/server/queries/companies"

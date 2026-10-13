@@ -5,7 +5,7 @@ import { LeadOpportunitiesCard } from "@/components/features/admin/leads/LeadOpp
 import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
 import { PersonActionsCard } from "@/components/features/admin/persons/PersonActionsCard"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
-import { LEAD_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 
@@ -40,7 +40,7 @@ export default async function NewLeadPage() {
   await getCurrentUser()
 
   return (
-    <AdminFormPage skeleton={LEAD_PAGE_SKELETON}>
+    <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
       <NewLeadSection />
     </AdminFormPage>
   )

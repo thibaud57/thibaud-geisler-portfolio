@@ -3,67 +3,43 @@
 import { useCallback, useMemo } from "react"
 import { MessageCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-
-import { BadgeList } from "@/components/features/admin/BadgeList"
-import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
-import {
-  linksSection,
-  markdownSection,
-  textSection,
-} from "@/components/features/admin/detail/detail-sections"
+import { BadgeList } from "@/components/features/admin/display/BadgeList"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import { DeleteInterviewDialog } from "@/components/features/admin/interviews/DeleteInterviewDialog"
 import {
   actionsColumn,
-  companyCell,
-  contractBadge,
-  enumBadge,
   enumFacet,
   hideableColumn,
-  PersonLink,
-  truncatedCell,
-  workModeBadge,
-  zoneBadge,
 } from "@/components/features/admin/table/table-cells"
+import { enumBadge, workModeBadge, zoneBadge } from "@/components/features/admin/display/badges"
+import { companyCell } from "@/components/features/admin/display/record-links"
+import { truncatedCell } from "@/components/features/admin/table/table-cells"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
-import { useRowDetail } from "@/hooks/use-row-detail"
-import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
+import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
 import {
   INTERVIEW_COLUMN_WIDTHS,
   INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS,
-} from "@/lib/admin/table-widths"
+} from "@/components/features/admin/interviews/interview-table-widths"
 import { formatShortDateTime } from "@/lib/date-time"
-import { detailHref } from "@/lib/admin/detail-links"
 import {
   INTERVIEW_VIEW_LOCKED_FACETS,
   interviewsForView,
   type InterviewView,
 } from "@/lib/crm/interview-views"
 import {
-  INTERVIEW_DECISION_ICONS,
-  INTERVIEW_DECISION_LABELS,
   INTERVIEW_FIELD_LABELS as LABELS,
-  INTERVIEW_FORMAT_ICONS,
   INTERVIEW_FORMAT_LABELS,
-  INTERVIEW_OUTCOME_ICONS,
   INTERVIEW_OUTCOME_LABELS,
-  INTERVIEW_SECTION_TITLES,
   INTERVIEW_STATUS_ICONS,
   INTERVIEW_STATUS_LABELS,
-  INTERVIEW_TYPE_ICONS,
   INTERVIEW_TYPE_LABELS,
-  type InterviewPlace,
   interviewPlaces,
   interviewTitleOf,
-  toInterviewLink,
 } from "@/lib/crm/interviews"
-import {
-  formatDailyRate,
-  OPPORTUNITY_FIELD_LABELS,
-  OPPORTUNITY_SECTION_TITLES,
-  OPPORTUNITY_STATUS_LABELS,
-} from "@/lib/crm/opportunities"
+import { formatDailyRate, OPPORTUNITY_FIELD_LABELS } from "@/lib/crm/opportunities"
 import { personDisplayName } from "@/lib/crm/persons"
 import {
   INTERVIEW_FORMATS,
@@ -72,31 +48,17 @@ import {
   INTERVIEW_TYPES,
 } from "@/lib/schemas/interview"
 import type { AdminInterview } from "@/server/queries/interviews"
-
-function leadingCompany(interview: AdminInterview) {
-  return interview.side === "ESN"
-    ? interview.opportunity.intermediary
-    : interview.opportunity.client
-}
+import {
+  buildInterviewDetail,
+  decisionBadge,
+  formatBadge,
+  leadingCompany,
+  outcomeBadge,
+  typeBadge,
+} from "@/components/features/admin/interviews/interview-detail"
 
 function correspondentNames(interview: AdminInterview): string[] {
   return interview.correspondents.map((person) => personDisplayName(person))
-}
-
-function typeBadge(interview: AdminInterview) {
-  return enumBadge(interview.type, INTERVIEW_TYPE_LABELS, INTERVIEW_TYPE_ICONS)
-}
-
-function formatBadge(interview: AdminInterview) {
-  return enumBadge(interview.format, INTERVIEW_FORMAT_LABELS, INTERVIEW_FORMAT_ICONS)
-}
-
-function outcomeBadge(interview: AdminInterview) {
-  return enumBadge(interview.outcome, INTERVIEW_OUTCOME_LABELS, INTERVIEW_OUTCOME_ICONS)
-}
-
-function decisionBadge(interview: AdminInterview) {
-  return enumBadge(interview.decision, INTERVIEW_DECISION_LABELS, INTERVIEW_DECISION_ICONS)
 }
 
 function buildDataColumns(
@@ -239,101 +201,6 @@ function rowActions(interview: AdminInterview, fullTitle: string) {
       <DeleteInterviewDialog interviewId={interview.id} name={fullTitle} />
     </>
   )
-}
-
-function correspondentsValue(interview: AdminInterview) {
-  if (interview.correspondents.length === 0) return null
-  return (
-    <span className="flex flex-wrap gap-2">
-      {interview.correspondents.map((person) => (
-        <PersonLink key={person.id} person={person} />
-      ))}
-    </span>
-  )
-}
-
-function opportunityLink(interview: AdminInterview) {
-  const { opportunity } = interview
-  const company = leadingCompany(interview)
-  return {
-    id: opportunity.id,
-    href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
-    label: opportunity.title,
-    meta: [OPPORTUNITY_STATUS_LABELS[opportunity.status], company?.name]
-      .filter(Boolean)
-      .join(" · "),
-  }
-}
-
-function buildInterviewDetail(
-  interview: AdminInterview,
-  titles: ReadonlyMap<string, string>,
-  places: ReadonlyMap<string, InterviewPlace>,
-  previous: AdminInterview | null,
-  onEdit: () => void,
-  onOpenPrevious: (() => void) | undefined,
-): DetailContent {
-  const { opportunity } = interview
-
-  return {
-    title: titles.get(interview.id) ?? "",
-    subtitle: formatShortDateTime(interview.scheduledAt),
-    badges: [headerBadge(interview.status, INTERVIEW_STATUS_LABELS, INTERVIEW_STATUS_ICONS)],
-    sections: [
-      {
-        title: INTERVIEW_SECTION_TITLES.exchange,
-        rows: [
-          { label: LABELS.type, value: typeBadge(interview) },
-          { label: LABELS.format, value: formatBadge(interview) },
-          { label: LABELS.side, value: companyCell({ company: leadingCompany(interview) }) },
-          { label: LABELS.correspondentIds, value: correspondentsValue(interview) },
-        ],
-      },
-      // Conditions de l'opportunité, sans champ dans le formulaire de l'entretien : lues pour préparer l'échange.
-      {
-        title: OPPORTUNITY_SECTION_TITLES.conditions,
-        rows: [
-          {
-            label: OPPORTUNITY_FIELD_LABELS.dailyRate,
-            value: formatDailyRate(opportunity.dailyRate),
-          },
-          { label: OPPORTUNITY_FIELD_LABELS.contract, value: contractBadge(opportunity) },
-          { label: OPPORTUNITY_FIELD_LABELS.workMode, value: workModeBadge(opportunity) },
-          { label: OPPORTUNITY_FIELD_LABELS.zone, value: zoneBadge(opportunity) },
-        ],
-      },
-      {
-        title: INTERVIEW_SECTION_TITLES.evaluation,
-        rows: [
-          { label: LABELS.outcome, value: outcomeBadge(interview) },
-          {
-            label: LABELS.score,
-            value: interview.score === null ? null : `${interview.score} / 10`,
-          },
-          { label: LABELS.decision, value: decisionBadge(interview) },
-        ],
-      },
-      textSection(LABELS.notes, interview.notes),
-      markdownSection(LABELS.details, interview.details),
-      linksSection(OPPORTUNITY_SECTION_TITLES.opportunity, [opportunityLink(interview)]),
-      linksSection(
-        INTERVIEW_SECTION_TITLES.previous,
-        previous
-          ? [
-              {
-                ...toInterviewLink(
-                  previous,
-                  places,
-                  detailHref(ADMIN_INTERVIEWS_PATH, previous.id),
-                ),
-                onClick: onOpenPrevious,
-              },
-            ]
-          : [],
-      ),
-    ],
-    onEdit,
-  }
 }
 
 const facets: readonly Facet<AdminInterview>[] = [

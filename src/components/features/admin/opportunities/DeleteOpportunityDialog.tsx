@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { deleteOpportunity } from "@/server/actions/opportunities"
 import type { AdminOpportunity } from "@/server/queries/opportunities"
 

@@ -27,9 +27,9 @@ import {
   revalidatePersonLists,
   type ConflictField,
   type DuplicateWording,
-} from "./person-guards"
+} from "./_support/person-guards"
 import { PersonLockedError } from "./persons.types"
-import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
+import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
 import type { ContactFormMessage, ContactFormState } from "./contacts.types"
 
 const CONFLICT_MESSAGES = {

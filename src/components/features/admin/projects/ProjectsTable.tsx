@@ -3,23 +3,19 @@
 import { useCallback, useMemo, type ReactNode } from "react"
 import { Folder } from "lucide-react"
 import { useRouter } from "next/navigation"
-
-import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
-  companyCell,
-  enumBadge,
   enumFacet,
-  HEADER_BADGE_PROPS,
   hideableColumn,
-  iconsByLabel,
-  workModeBadge,
 } from "@/components/features/admin/table/table-cells"
+import { enumBadge, HEADER_BADGE_PROPS } from "@/components/features/admin/display/badges"
+import { companyCell } from "@/components/features/admin/display/record-links"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
-import { BadgeList } from "@/components/features/admin/BadgeList"
-import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { BadgeList } from "@/components/features/admin/display/BadgeList"
+import { ExternalUrl } from "@/components/features/admin/display/ExternalUrl"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { Badge } from "@/components/ui/badge"
 import type { ProjectStatus, ProjectType } from "@/generated/prisma/client"
@@ -27,15 +23,12 @@ import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
 import {
   PROJECT_COLUMN_WIDTHS,
   PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS,
-} from "@/lib/admin/table-widths"
+} from "@/components/features/admin/projects/project-table-widths"
 import { formatShortDate } from "@/lib/date-time"
-import { useRowDetail } from "@/hooks/use-row-detail"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import { PROJECT_VIEW_LOCKED_FACETS, type ProjectView } from "@/lib/project-views"
 import {
-  CONTRACT_STATUS_ICONS,
-  CONTRACT_STATUS_LABELS,
   formatProjectDuration,
-  PROJECT_FORMAT_ICONS,
   PROJECT_FORMAT_LABELS,
   PROJECT_FORMATS,
   PROJECT_FIELD_LABELS,
@@ -45,10 +38,15 @@ import {
   PROJECT_TYPE_LABELS,
   PROJECT_TYPES,
 } from "@/lib/projects"
+import { CONTRACT_STATUS_ICONS, CONTRACT_STATUS_LABELS } from "@/lib/contract-terms"
 import { safeExternalUrl } from "@/lib/url"
 import { cn } from "@/lib/utils"
 import { reorderProjects } from "@/server/actions/projects"
 import type { AdminProjectListItem } from "@/server/queries/projects"
+import {
+  FORMAT_ICONS_BY_LABEL,
+  buildProjectDetail,
+} from "@/components/features/admin/projects/project-detail"
 
 const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
   all: null,
@@ -56,23 +54,10 @@ const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
   perso: "PERSONAL",
 }
 
-const FORMAT_ICONS_BY_LABEL = iconsByLabel(
-  PROJECT_FORMATS,
-  PROJECT_FORMAT_LABELS,
-  PROJECT_FORMAT_ICONS,
-)
-
 const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
   DRAFT: "bg-warning",
   PUBLISHED: "bg-success",
   ARCHIVED: "bg-muted-foreground",
-}
-
-// Un case study fait plusieurs milliers de caractères : la vue détail dit qu'il existe et ce qu'il
-// pèse, la lecture du texte appartient à l'écran d'édition.
-function describeMarkdown(markdown: string | null): ReactNode {
-  if (!markdown) return null
-  return `Rédigé (${markdown.length} caractères)`
 }
 
 function typeBadge(project: AdminProjectListItem) {
@@ -248,136 +233,6 @@ const facets: readonly Facet<AdminProjectListItem>[] = [
     (project) => project.formats,
   ),
 ]
-
-function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): DetailContent {
-  const clientMeta = project.clientMeta
-  return {
-    image: { assetKey: project.coverFilename },
-    title: project.titleFr,
-    subtitle: project.slug,
-    badges: [
-      headerBadge(project.status, PROJECT_STATUS_LABELS),
-      headerBadge(project.type, PROJECT_TYPE_LABELS),
-    ],
-    sections: [
-      {
-        title: PROJECT_SECTION_TITLES.identity,
-        rows: [
-          { label: PROJECT_FIELD_LABELS.displayOrder, value: String(project.displayOrder) },
-          {
-            label: PROJECT_FIELD_LABELS.formats,
-            value: (
-              <BadgeList
-                labels={project.formats.map((format) => PROJECT_FORMAT_LABELS[format])}
-                noun="types de projet"
-                icons={FORMAT_ICONS_BY_LABEL}
-                max={Infinity}
-              />
-            ),
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.tags,
-        rows: [
-          {
-            value: (
-              <BadgeList
-                labels={project.tags.map((projectTag) => projectTag.tag.nameFr)}
-                noun="tags"
-                max={Infinity}
-              />
-            ),
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.publication,
-        rows: [
-          { label: PROJECT_FIELD_LABELS.startedAt, value: formatShortDate(project.startedAt) },
-          { label: PROJECT_FIELD_LABELS.endedAt, value: formatShortDate(project.endedAt) },
-          {
-            label: PROJECT_FIELD_LABELS.duration,
-            value: formatProjectDuration(project.startedAt, project.endedAt),
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.links,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.githubUrl,
-            value: project.githubUrl ? (
-              <ExternalUrl url={project.githubUrl} className="wrap-anywhere" />
-            ) : null,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.demoUrl,
-            value: project.demoUrl ? (
-              <ExternalUrl url={project.demoUrl} className="wrap-anywhere" />
-            ) : null,
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.clientMeta,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.companyId,
-            value: companyCell({ company: clientMeta?.company ?? null }),
-          },
-          {
-            label: PROJECT_FIELD_LABELS.workMode,
-            value: clientMeta ? workModeBadge(clientMeta) : null,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.contractStatus,
-            value: clientMeta
-              ? enumBadge(clientMeta.contractStatus, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_ICONS)
-              : null,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.teamSize,
-            value: clientMeta?.teamSize != null ? String(clientMeta.teamSize) : null,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.deliverablesCount,
-            value: clientMeta ? String(clientMeta.deliverablesCount) : null,
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.description,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.descriptionFr,
-            value: project.descriptionFr,
-            fullWidth: true,
-          },
-          {
-            label: PROJECT_FIELD_LABELS.descriptionEn,
-            value: project.descriptionEn,
-            fullWidth: true,
-          },
-        ],
-      },
-      {
-        title: PROJECT_SECTION_TITLES.caseStudy,
-        rows: [
-          {
-            label: PROJECT_FIELD_LABELS.caseStudyMarkdownFr,
-            value: describeMarkdown(project.caseStudyMarkdownFr),
-          },
-          {
-            label: PROJECT_FIELD_LABELS.caseStudyMarkdownEn,
-            value: describeMarkdown(project.caseStudyMarkdownEn),
-          },
-        ],
-      },
-    ],
-    onEdit,
-  }
-}
 
 interface Props {
   projects: readonly AdminProjectListItem[]

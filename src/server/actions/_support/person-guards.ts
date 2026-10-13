@@ -12,7 +12,7 @@ import { isOptOutOver } from "@/lib/crm/person-retention"
 import { formatShortInstantDate } from "@/lib/date-time"
 import { stringField } from "@/lib/server-utils"
 
-import { PersonLockedError } from "./persons.types"
+import { PersonLockedError } from "../persons.types"
 
 export type IdentityField = "email" | "linkedinUrl"
 

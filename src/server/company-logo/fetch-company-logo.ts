@@ -4,7 +4,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3"
 
 import { buildAssetKey, COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
 import { adminR2, R2_ADMIN_BUCKET } from "@/lib/r2"
-import { validateAssetPath } from "@/server/config/assets"
+import { validateAssetPath } from "@/server/assets/serve-asset"
 
 import { findIconCandidates, type IconCandidate, type IconSource } from "./icon-candidates"
 import {

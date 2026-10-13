@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { useFacetedSearch } from "@/hooks/use-faceted-search"
+import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
 import { matchesAssetSearch } from "@/lib/assets"
 import { DEFAULT_PAGE_SIZE } from "@/lib/admin/pagination"
 import type { AssetEntry } from "@/server/queries/assets"

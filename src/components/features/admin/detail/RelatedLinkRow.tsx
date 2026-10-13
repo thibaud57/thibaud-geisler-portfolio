@@ -3,8 +3,8 @@
 import type { Route } from "next"
 import Link from "next/link"
 
-import type { LinkMarker, RelatedLink } from "@/components/features/admin/detail/RelatedLinksList"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import type { LinkMarker, RelatedLink } from "@/lib/admin/related-links"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import { cn } from "@/lib/utils"
 
 interface Props {

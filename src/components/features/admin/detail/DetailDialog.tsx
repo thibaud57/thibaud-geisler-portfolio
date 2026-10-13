@@ -14,10 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { AssetTileLink } from "@/components/features/admin/AssetTileLink"
-import { EmptyValue } from "@/components/features/admin/EmptyValue"
-import { EnumBadge } from "@/components/features/admin/EnumBadge"
-import { TitledBlock } from "@/components/features/admin/TitledBlock"
+import { AssetTileLink } from "@/components/features/admin/detail/AssetTileLink"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
+import { EnumBadge } from "@/components/features/admin/display/EnumBadge"
+import { TitledBlock } from "@/components/features/admin/display/TitledBlock"
 import { Separator } from "@/components/ui/separator"
 import type { IconComponent } from "@/lib/icons"
 import { cn } from "@/lib/utils"

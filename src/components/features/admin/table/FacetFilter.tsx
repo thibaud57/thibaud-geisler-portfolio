@@ -3,18 +3,7 @@
 import { Funnel } from "lucide-react"
 
 import { OptionsPopover } from "@/components/features/admin/table/OptionsPopover"
-
-export interface FacetFilterOption {
-  value: string
-  label: string
-  count: number
-}
-
-export interface FacetFilterGroup {
-  key: string
-  label: string
-  options: readonly FacetFilterOption[]
-}
+import type { FacetFilterGroup } from "@/lib/admin/facets"
 
 interface Props {
   groups: readonly FacetFilterGroup[]

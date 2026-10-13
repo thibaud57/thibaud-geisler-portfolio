@@ -1,7 +1,7 @@
 import { OpportunitiesTable } from "@/components/features/admin/opportunities/OpportunitiesTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
-import { opportunitySkeletonWidths } from "@/lib/admin/table-widths"
+import { opportunitySkeletonWidths } from "@/components/features/admin/opportunities/opportunity-table-widths"
 import { OPPORTUNITY_VIEW_PAGES, type OpportunityView } from "@/lib/crm/opportunity-views"
 import { findAllOpportunitiesForAdmin } from "@/server/queries/opportunities"
 

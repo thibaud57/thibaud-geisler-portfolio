@@ -2,7 +2,7 @@ import { ContactsTable } from "@/components/features/admin/contacts/ContactsTabl
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
 import { firstParam } from "@/lib/admin/search-params"
-import { contactSkeletonWidths } from "@/lib/admin/table-widths"
+import { contactSkeletonWidths } from "@/components/features/admin/contacts/contact-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findAllContactsForAdmin } from "@/server/queries/contacts"
 

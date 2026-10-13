@@ -10,9 +10,9 @@ import { prisma } from "@/lib/prisma"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
 
-import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
+import { type ActionEvents, deleteEntity, saveEntity } from "./_support/shared"
 import type { OpportunityFormState } from "./opportunities.types"
-import { revalidatePersonLists } from "./person-guards"
+import { revalidatePersonLists } from "./_support/person-guards"
 
 // Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent), les entretiens leur titre, tarif, zone et contrat, et supprimer une opportunité supprime ses entretiens : leurs vues se rafraîchissent aussi (les entretiens via `revalidatePersonLists`).
 function invalidateOpportunityCaches(): void {

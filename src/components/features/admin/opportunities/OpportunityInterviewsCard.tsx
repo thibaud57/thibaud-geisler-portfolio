@@ -1,6 +1,6 @@
 import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
 import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
-import { CreateLinkButton } from "@/components/features/admin/CreateLinkButton"
+import { CreateLinkButton } from "@/components/features/admin/form/CreateLinkButton"
 import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
 import { toOpportunityInterviewLinks } from "@/lib/crm/interviews"
 import { OPPORTUNITY_SECTION_TITLES } from "@/lib/crm/opportunities"

@@ -1,7 +1,7 @@
 import { InterviewsTable } from "@/components/features/admin/interviews/InterviewsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
-import { interviewSkeletonWidths } from "@/lib/admin/table-widths"
+import { interviewSkeletonWidths } from "@/components/features/admin/interviews/interview-table-widths"
 import { INTERVIEW_VIEW_PAGES, type InterviewView } from "@/lib/crm/interview-views"
 import { findAllInterviewsForAdmin } from "@/server/queries/interviews"
 

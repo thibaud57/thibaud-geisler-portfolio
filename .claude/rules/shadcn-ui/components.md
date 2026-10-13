@@ -3,6 +3,7 @@ paths:
   - "src/components/**/*.tsx"
   - "src/hooks/use-form-action-submit.ts"
   - "src/lib/admin/table-widths.ts"
+  - "src/components/features/admin/**/*-table-widths.ts"
 ---
 
 # shadcn/ui — Composants, CVA & Server/Client
@@ -16,7 +17,7 @@ paths:
 - **Isoler les îlots clients le plus bas possible** : un formulaire interactif = `'use client'`, mais sa page parente reste Server Component
 - **Options d'une énumération dans un `Select`** : `EnumSelectItems` (`src/components/features/admin/form/`), avec `values`, `labels` et la table `*_ICONS` quand l'énumération en a une (DESIGN.md § Icônes). Jamais une boucle de `SelectItem` écrite à la main : seule la sentinelle « Non renseigné » reste un `SelectItem` posé directement
 - **Disposition d'une vue détail (`DetailDialog`)** : `fullWidth: true` seulement sur un texte long ou une liste de fiches rattachées, jamais sur des badges, un lien ou une date ; la grille passe seule à deux colonnes (`TitledBlock`) et un dernier champ impair reste seul à gauche. Blocs dans l'ordre champs courts, Notes, Détails, fiches rattachées. En-tête par données seules (`image` pour un logo ou une couverture, `title`, `subtitle`, `badges` construits par `headerBadge`), jamais de JSX d'écran (DESIGN.md § Arbitrages)
-- **Largeur d'une colonne de liste (`DataTable`, `table-widths.ts`)** : un multiple de 8, au plus juste entre l'en-tête (icône de tri comprise) et le contenu des lignes à 95 %, mesurés sur les vraies données de la vue complète. Une colonne de badges prend son badge le plus large, qui ne se tronque ni ne passe à la ligne ; un texte long garde un plafond et se tronque. Un en-tête de plusieurs mots plus long que son contenu passe sur deux lignes (`wrapHeader`) plutôt que d'élargir la colonne
+- **Largeur d'une colonne de liste (`DataTable`, `<entité>-table-widths.ts` à côté de sa table, constantes communes dans `src/lib/admin/table-widths.ts`)** : un multiple de 8, au plus juste entre l'en-tête (icône de tri comprise) et le contenu des lignes à 95 %, mesurés sur les vraies données de la vue complète. Une colonne de badges prend son badge le plus large, qui ne se tronque ni ne passe à la ligne ; un texte long garde un plafond et se tronque. Un en-tête de plusieurs mots plus long que son contenu passe sur deux lignes (`wrapHeader`) plutôt que d'élargir la colonne
 - **États hover/focus/disabled intégrés** (DESIGN.md) : ne jamais les redéfinir par `hover:`/`focus:`/`disabled:` sur un composant shadcn, ils sont déjà accessibles et stylés
 - **Bordures plutôt qu'ombres** (DESIGN.md) : `Card`, `Dialog`, `Popover` utilisent `--border`, pas `shadow-*`. Hiérarchie par le fond (`--card` vs `--background`) et les bordures
 - **Icônes** (DESIGN.md) : **Lucide React** pour toutes les icônes d'interface, **Simple Icons** via `@icons-pack/react-simple-icons` pour les logos marques et technologies. Style stroke, tailles 16px inline, 20px UI standard, 24px standalone

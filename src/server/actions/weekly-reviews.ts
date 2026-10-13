@@ -17,7 +17,7 @@ import {
 } from "@/lib/crm/weekly-reviews"
 import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
-import { type ActionEvents, deleteEntity, saveEntity } from "./shared"
+import { type ActionEvents, deleteEntity, saveEntity } from "./_support/shared"
 import type { WeeklyReviewFormState } from "./weekly-reviews.types"
 
 const WEEK_TAKEN = "Une revue existe déjà pour cette semaine"

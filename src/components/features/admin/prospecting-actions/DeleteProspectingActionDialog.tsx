@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { deleteProspectingAction } from "@/server/actions/prospecting-actions"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"
 

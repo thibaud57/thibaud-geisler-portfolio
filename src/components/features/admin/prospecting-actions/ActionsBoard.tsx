@@ -5,10 +5,10 @@ import { Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { EmptyState } from "@/components/features/admin/table/EmptyState"
-import { PeriodSelect } from "@/components/features/admin/PeriodSelect"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { PeriodSelect } from "@/components/features/admin/table/PeriodSelect"
+import { TruncateTooltip } from "@/components/features/admin/display/TruncateTooltip"
 import { channelBadge } from "@/components/features/admin/prospecting-actions/action-detail"
-import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/useProspectingActionDetail"
+import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/use-prospecting-action-detail"
 import {
   Kanban,
   KanbanBoard,

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest"
-import { getContentType, validateAssetPath } from "./assets"
+import { getContentType, validateAssetPath } from "./serve-asset"
 
 describe("AssetPathSchema + validateAssetPath", () => {
   it("accepte un chemin simple à 1 segment avec extension whitelist", () => {

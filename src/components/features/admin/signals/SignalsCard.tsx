@@ -7,7 +7,7 @@ import { DisabledAddButton } from "@/components/features/admin/detail/PendingRel
 import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { SignalFormDialog } from "@/components/features/admin/signals/SignalFormDialog"
 import { signalRelatedRows } from "@/components/features/admin/signals/signal-rows"
-import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
+import { useSignalDetail } from "@/components/features/admin/signals/use-signal-detail"
 import { SIGNAL_SECTION_TITLES, type SignalItem, type SignalOwner } from "@/lib/crm/signals"
 
 interface Props {

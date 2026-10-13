@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 
 import type { Signal, SignalType } from "@/generated/prisma/client"
-import type { Facet } from "@/hooks/use-faceted-search"
+import type { Facet } from "@/lib/admin/facets"
 import { formatDateOnly } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 

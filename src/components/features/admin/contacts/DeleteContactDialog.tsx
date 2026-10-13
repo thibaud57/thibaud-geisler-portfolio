@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { personDisplayName } from "@/lib/crm/persons"
 import { deleteContact } from "@/server/actions/contacts"
 import type { AdminContact } from "@/server/queries/contacts"

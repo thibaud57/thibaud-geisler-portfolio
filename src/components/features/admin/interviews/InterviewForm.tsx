@@ -4,7 +4,7 @@ import { useActionState, useId, useMemo, useState } from "react"
 import { Trash2, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-import { DateTimeField } from "@/components/features/admin/form/DateTimeField"
+import { DateTimeField } from "@/components/features/admin/interviews/DateTimeField"
 import { DetailsCard } from "@/components/features/admin/form/DetailsCard"
 import { EnumSelectItems } from "@/components/features/admin/form/EnumSelectItems"
 import { FormCard } from "@/components/features/admin/form/FormCard"
@@ -34,7 +34,7 @@ import type {
   JobRole,
 } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
-import { useHydrated } from "@/hooks/use-hydrated"
+import { useHydrated } from "@/components/features/admin/interviews/use-hydrated"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { withCurrentOption } from "@/lib/admin/options"
 import {

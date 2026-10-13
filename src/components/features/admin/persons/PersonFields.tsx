@@ -2,14 +2,14 @@
 
 import { useState, type ComponentProps, type ReactNode } from "react"
 
-import { EmptyValue } from "@/components/features/admin/EmptyValue"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
 import { CompanyCombobox } from "@/components/features/admin/form/CompanyCombobox"
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { FormCard } from "@/components/features/admin/form/FormCard"
-import { JobRoleSelect } from "@/components/features/admin/form/JobRoleSelect"
+import { JobRoleSelect } from "@/components/features/admin/persons/JobRoleSelect"
 import { MirroredField } from "@/components/features/admin/form/MirroredField"
 import { ZoneSelect } from "@/components/features/admin/form/ZoneSelect"
-import { PersonRecordLink } from "@/components/features/admin/table/table-cells"
+import { PersonRecordLink } from "@/components/features/admin/display/record-links"
 import type { JobRole, Zone } from "@/generated/prisma/client"
 import { JOB_ROLE_LABELS } from "@/lib/crm/job-roles"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES } from "@/lib/crm/persons"

@@ -218,7 +218,8 @@ src/
 │   │                             # mentions-legales, confidentialite ; un opengraph-image.tsx par page
 │   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), second root layout
 │   │                             # du dépôt ; login/ hors garde, (protected)/ gardé, une route par entité
-│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health
+│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health ; ceux de l'admin vivent
+│   │                             # sous admin/(protected)/api/ (assets gardés, test Sentry)
 │   ├── sitemap.ts, robots.ts, llms.txt/          # SEO
 │   ├── global-error.tsx, global-not-found.tsx    # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
 │   └── providers.tsx             # Providers client (c15t Consent Manager, Toaster sonner)
@@ -230,25 +231,32 @@ src/
 │   │                             # partagés à la racine (logo, thème)
 │   ├── features/                 # Composants métier
 │   │   ├── public/               # Un dossier par page du site
-│   │   └── admin/                # Un dossier par entité, nommé comme son module de lib/ et server/ ;
-│   │                             # composants communs rangés par rôle : form/, table/, detail/
+│   │   └── admin/                # Un dossier par entité, nommé comme son module de lib/ et server/ : sa table,
+│   │                             # sa vue détail (<entité>-detail.tsx), ses largeurs de colonnes
+│   │                             # (<entité>-table-widths.ts), ses formulaires et ses composants à usage unique.
+│   │                             # Communs rangés par rôle, aucun à la racine : display/, form/, table/, detail/
 │   └── cookies/, markdown/, seo/ # Consentement c15t, rendu des contenus légaux, JSON-LD
 ├── config/                       # Données statiques : navigations publique et admin, réseaux, expertise
-├── hooks/                        # Hooks client partagés (formulaires admin, recherche à facettes, mobile, locale)
+├── hooks/                        # Hooks client génériques (formulaires admin, mobile, locale, erreurs) ; un hook
+│                                 # propre à une feature vit dans son dossier
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content)
 ├── lib/
 │   ├── crm/                      # Métier CRM : libellés, vues, rangs, calendriers, statuts déduits, par entité
-│   ├── admin/                    # Outillage d'écran admin : routes, largeurs de colonnes, facettes, recherche, pagination
+│   ├── admin/                    # Outillage d'écran admin : routes, liens de vue détail, types des facettes et des
+│   │                             # fiches liées, largeurs communes, recherche, pagination
 │   ├── schemas/                  # Schémas Zod partagés client et serveur
 │   ├── seo/, legal/, cookies/    # OG et metadata, chargement du markdown légal, liens légaux c15t
 │   └── *.ts                      # Infra (Better Auth, garde de session, whitelist email, Prisma, R2, Pino, mailer),
-│                                 # utilitaires, portfolio (projets, tags, assets)
+│                                 # utilitaires, portfolio (projets, tags, assets), conditions de mission
+│                                 # (contrat, mode de travail) communes aux projets et aux opportunités
 ├── server/
-│   ├── actions/, queries/        # Server Actions et lectures Prisma, un fichier par entité
-│   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
-│   └── config/                   # Config serveur des assets
+│   ├── actions/, queries/        # Server Actions et lectures Prisma, un module par domaine (entité ou service) ;
+│   │                             # état initial et types du client dans <module>.types.ts, helpers partagés
+│   │                             # non exposés dans actions/_support/
+│   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
+│   └── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
-├── types/                        # Types TypeScript partagés
+├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)
 ├── instrumentation-client.ts     # Init Sentry côté navigateur
@@ -273,7 +281,9 @@ Next.js (App Router, Server Actions + API Routes). Caching opt-in granulaire (co
 
 ### Structure du Code
 
-Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier est simple (CRUD sur `Project` et entités liées, plus métadonnées légales statiques), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation `actions/` + `queries/` + `config/` + `types/` fournit le découplage utile sans overhead.
+Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier reste surtout du CRUD (portfolio : projets et entités liées ; CRM freelance : entreprises, personnes aux rôles lead et contact, actions de prospection, opportunités, entretiens, signaux, revues hebdo), avec quelques règles portées par `lib/crm/` (statuts déduits, RGPD), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation par rôle, `actions/` (mutations) et `queries/` (lectures), plus deux services (`assets/`, `company-logo/`), fournit le découplage utile sans overhead, et c'est elle que ciblent les rules.
+
+Conventions de rangement : un composant en PascalCase, un module d'aide et un hook en kebab-case (`use-<nom>.ts`) ; un fichier qui n'a qu'un importeur vit dans le dossier de celui-ci ; tests colocalisés à plat (`*.test.ts`, `*.integration.test.ts`). Les specs de `docs/superpowers/` citent les chemins en vigueur à leur date.
 
 Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`, hors `src/`, embarqués au build via `outputFileTracingIncludes`), les entités légales (éditeur, sous-traitants) restent en BDD.
 

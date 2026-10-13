@@ -1,7 +1,7 @@
 import { ContactForm } from "@/components/features/admin/contacts/ContactForm"
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
-import { CONTACT_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadsWithoutContactRole } from "@/server/queries/persons"
@@ -25,7 +25,7 @@ export default async function NewContactPage() {
   await getCurrentUser()
 
   return (
-    <AdminFormPage skeleton={CONTACT_PAGE_SKELETON}>
+    <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
       <NewContactSection />
     </AdminFormPage>
   )

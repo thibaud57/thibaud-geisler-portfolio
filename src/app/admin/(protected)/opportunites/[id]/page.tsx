@@ -4,7 +4,7 @@ import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/Admin
 import { OpportunityForm } from "@/components/features/admin/opportunities/OpportunityForm"
 import { OpportunityInterviewsCard } from "@/components/features/admin/opportunities/OpportunityInterviewsCard"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
-import { OPPORTUNITY_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { OPPORTUNITY_PAGE_SKELETON } from "@/components/features/admin/opportunities/opportunity-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findOpportunityByIdForAdmin } from "@/server/queries/opportunities"

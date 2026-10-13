@@ -6,14 +6,15 @@ import { toast } from "sonner"
 
 import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
 import { DeleteAssetDialog } from "@/components/features/admin/assets/DeleteAssetDialog"
-import { BadgeList } from "@/components/features/admin/BadgeList"
+import { BadgeList } from "@/components/features/admin/display/BadgeList"
 import { EmptyState } from "@/components/features/admin/table/EmptyState"
 import { FacetFilter } from "@/components/features/admin/table/FacetFilter"
 import { PaginationFooter } from "@/components/features/admin/table/PaginationFooter"
 import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
 import { SearchInput } from "@/components/features/admin/table/SearchInput"
 import { Card, CardContent } from "@/components/ui/card"
-import { useFacetedSearch, type Facet } from "@/hooks/use-faceted-search"
+import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
+import type { Facet } from "@/lib/admin/facets"
 import {
   buildAssetUrl,
   isPdfAssetKey,

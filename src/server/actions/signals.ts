@@ -11,7 +11,7 @@ import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
 import { signalTypesFor, type SignalOwnerKind } from "@/lib/crm/signals"
 
-import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
+import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
 import type { SignalFormState } from "./signals.types"
 
 const TYPE_MISMATCH = "Ce type ne concerne pas cette fiche"

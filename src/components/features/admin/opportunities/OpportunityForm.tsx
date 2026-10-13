@@ -8,7 +8,7 @@ import { DetailsCard } from "@/components/features/admin/form/DetailsCard"
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { FormCard } from "@/components/features/admin/form/FormCard"
 import { FormPage } from "@/components/features/admin/form/FormPage"
-import { MonthField } from "@/components/features/admin/form/MonthField"
+import { MonthField } from "@/components/features/admin/opportunities/MonthField"
 import { NotesCard } from "@/components/features/admin/form/NotesCard"
 import { NumberField } from "@/components/features/admin/form/NumberField"
 import { PersonCombobox } from "@/components/features/admin/form/PersonCombobox"
@@ -35,7 +35,7 @@ import {
   WORK_MODE_ICONS,
   WORK_MODE_LABELS,
   WORK_MODES,
-} from "@/lib/projects"
+} from "@/lib/contract-terms"
 import { NONE_LABEL, NONE_VALUE } from "@/lib/schemas/none-value"
 import { DAYS_PER_WEEK, ON_SITE_DAYS, OPPORTUNITY_STATUSES } from "@/lib/schemas/opportunity"
 import { createOpportunity, updateOpportunity } from "@/server/actions/opportunities"

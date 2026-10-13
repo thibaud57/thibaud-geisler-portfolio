@@ -1,7 +1,7 @@
 import { TagFormDialog } from "@/components/features/admin/tags/TagFormDialog"
 import { TagsTable } from "@/components/features/admin/tags/TagsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
-import { TAG_SKELETON_WIDTHS } from "@/lib/admin/table-widths"
+import { TAG_SKELETON_WIDTHS } from "@/components/features/admin/tags/tag-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { countTagsByKind, findAllTagsForAdmin } from "@/server/queries/tags"
 

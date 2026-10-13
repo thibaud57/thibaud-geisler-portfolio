@@ -4,7 +4,7 @@ import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRe
 import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { ActionRowActions } from "@/components/features/admin/prospecting-actions/ActionRowActions"
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospecting-actions/ProspectingActionFormDialog"
-import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/useProspectingActionDetail"
+import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/use-prospecting-action-detail"
 import { PERSON_SECTION_TITLES } from "@/lib/crm/persons"
 import { toActionLink } from "@/lib/crm/prospecting-actions"
 import type { AdminProspectingAction } from "@/server/queries/prospecting-actions"

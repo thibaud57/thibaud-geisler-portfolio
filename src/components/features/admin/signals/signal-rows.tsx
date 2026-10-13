@@ -1,4 +1,4 @@
-import type { RelatedLink } from "@/components/features/admin/detail/RelatedLinksList"
+import type { RelatedLink } from "@/lib/admin/related-links"
 import { EditRowButton } from "@/components/features/admin/table/EditRowButton"
 import { DeleteSignalDialog } from "@/components/features/admin/signals/DeleteSignalDialog"
 import { toLinkMarker } from "@/lib/crm/link-marker"

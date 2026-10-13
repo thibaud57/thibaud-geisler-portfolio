@@ -3,21 +3,25 @@
 import { useMemo, useState } from "react"
 import { Send } from "lucide-react"
 
-import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
 import {
   actionsColumn,
-  enumBadge,
   enumFacet,
   hideableColumn,
-  PersonLink,
 } from "@/components/features/admin/table/table-cells"
+import { enumBadge } from "@/components/features/admin/display/badges"
+import { PersonLink } from "@/components/features/admin/display/record-links"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { ActionRowActions } from "@/components/features/admin/prospecting-actions/ActionRowActions"
 import { channelBadge } from "@/components/features/admin/prospecting-actions/action-detail"
-import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/useProspectingActionDetail"
+import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/use-prospecting-action-detail"
 import { BOARD_PERIOD_LABELS, type BoardPeriod } from "@/lib/crm/action-board"
 import { ACTION_VIEW_LOCKED_FACETS, actionsForView, type ActionView } from "@/lib/crm/action-views"
-import { ACTION_COLUMN_WIDTHS, ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
+import {
+  ACTION_COLUMN_WIDTHS,
+  ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS,
+} from "@/components/features/admin/prospecting-actions/action-table-widths"
 import { formatShortInstantDate, isWithinCalendarDays } from "@/lib/date-time"
 import { personDisplayName } from "@/lib/crm/persons"
 import {

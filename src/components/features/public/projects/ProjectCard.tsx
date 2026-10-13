@@ -12,7 +12,7 @@ import { BentoCard } from "@/components/magicui/bento-grid"
 import { BorderBeam } from "@/components/magicui/border-beam"
 import { FormatBadges } from "./FormatBadges"
 import { TagBadge } from "./TagBadge"
-import { useImageFallback } from "./useImageFallback"
+import { useImageFallback } from "./use-image-fallback"
 
 interface Props {
   project: LocalizedProjectWithRelations

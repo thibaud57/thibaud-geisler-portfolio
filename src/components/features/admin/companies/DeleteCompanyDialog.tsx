@@ -1,6 +1,6 @@
 "use client"
 
-import { ConfirmDeleteDialog } from "@/components/features/admin/ConfirmDeleteDialog"
+import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { companyLinksLabel } from "@/lib/crm/companies"
 import { deleteCompany } from "@/server/actions/companies"
 import type { CompanyFormMessage } from "@/server/actions/companies.types"

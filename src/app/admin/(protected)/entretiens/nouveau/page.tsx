@@ -2,7 +2,7 @@ import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/Admin
 import { InterviewForm } from "@/components/features/admin/interviews/InterviewForm"
 import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
 import { firstParam } from "@/lib/admin/search-params"
-import { INTERVIEW_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { INTERVIEW_PAGE_SKELETON } from "@/components/features/admin/interviews/interview-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findOpportunityOptions } from "@/server/queries/opportunities"

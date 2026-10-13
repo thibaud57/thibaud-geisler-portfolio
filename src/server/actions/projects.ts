@@ -17,7 +17,7 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./shared"
+import { deleteEntity, saveEntity } from "./_support/shared"
 import { type ProjectFormState, type ProjectReorderState } from "./projects.types"
 
 // Seule lecture du FormData : le même objet est validé puis réaffiché en cas d'échec, les deux ne

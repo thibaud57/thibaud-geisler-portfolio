@@ -10,7 +10,7 @@ import {
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
 } from "@/lib/admin/routes"
-import { COMPANY_PAGE_SKELETON } from "@/lib/admin/table-widths"
+import { COMPANY_PAGE_SKELETON } from "@/components/features/admin/companies/company-table-widths"
 import { COMPANY_LOGO_FOLDER } from "@/lib/asset-keys"
 import { COMPANY_SECTION_TITLES, companyOpportunities } from "@/lib/crm/companies"
 import { toLeadLink } from "@/lib/crm/leads"

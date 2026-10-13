@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { useId, useRef, useState, type ReactNode } from "react"
+import { useId, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 
 import { RelatedLinkRow } from "@/components/features/admin/detail/RelatedLinkRow"
@@ -9,24 +9,7 @@ import { Button } from "@/components/ui/button"
 import { formatMonthYear } from "@/lib/date-time"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
-
-export interface LinkMarker {
-  icon: ReactNode
-  emphasized?: boolean
-}
-
-export interface RelatedLink {
-  id: string
-  href?: string
-  // Une fonction ne traverse pas la frontière serveur/client : seul un appelant client peut en définir une.
-  onClick?: () => void
-  label: string
-  meta?: string
-  trailing?: string
-  actions?: ReactNode
-  at?: Date
-  marker?: LinkMarker
-}
+import type { RelatedLink } from "@/lib/admin/related-links"
 
 interface Props {
   links: readonly RelatedLink[]

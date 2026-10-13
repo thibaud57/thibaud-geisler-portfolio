@@ -18,9 +18,9 @@ import {
   revalidatePersonLists,
   type DuplicateWording,
   type IdentityField,
-} from "./person-guards"
+} from "./_support/person-guards"
 import { PersonLockedError } from "./persons.types"
-import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
+import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
 import type { LeadFormMessage, LeadFormState } from "./leads.types"
 
 const CONFLICT_MESSAGES = {

@@ -1,7 +1,7 @@
 import { ProjectsTable } from "@/components/features/admin/projects/ProjectsTable"
 import { AdminListPage } from "@/components/layout/admin/AdminListPage"
 import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
-import { projectSkeletonWidths } from "@/lib/admin/table-widths"
+import { projectSkeletonWidths } from "@/components/features/admin/projects/project-table-widths"
 import { PROJECT_VIEW_PAGES, type ProjectView } from "@/lib/project-views"
 import { findAllProjectsForAdmin } from "@/server/queries/projects"
 

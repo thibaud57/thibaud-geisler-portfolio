@@ -3,45 +3,35 @@
 import { useCallback, useMemo } from "react"
 import { Handshake } from "lucide-react"
 import { useRouter } from "next/navigation"
-
-import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
-import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
-import {
-  linksSection,
-  markdownSection,
-  textSection,
-} from "@/components/features/admin/detail/detail-sections"
+import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
+import type { Facet } from "@/lib/admin/facets"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
-  companyCell,
-  CompanyLink,
-  contractBadge,
-  enumBadge,
   enumFacet,
   hideableColumn,
-  PersonLink,
-  truncatedCell,
+} from "@/components/features/admin/table/table-cells"
+import {
+  contractBadge,
+  enumBadge,
   workModeBadge,
   zoneBadge,
-} from "@/components/features/admin/table/table-cells"
+} from "@/components/features/admin/display/badges"
+import { companyCell } from "@/components/features/admin/display/record-links"
+import { truncatedCell } from "@/components/features/admin/table/table-cells"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { DeleteOpportunityDialog } from "@/components/features/admin/opportunities/DeleteOpportunityDialog"
-import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
+import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
 import {
   OPPORTUNITY_COLUMN_WIDTHS,
   OPPORTUNITY_VIEW_DEFAULT_VISIBLE_COLUMNS,
-} from "@/lib/admin/table-widths"
-import { detailHref } from "@/lib/admin/detail-links"
-import { toOpportunityInterviewLinks } from "@/lib/crm/interviews"
+} from "@/components/features/admin/opportunities/opportunity-table-widths"
 import {
   formatDailyRate,
-  formatDays,
   formatDuration,
   formatRhythm,
   formatStartMonth,
   OPPORTUNITY_FIELD_LABELS as LABELS,
-  OPPORTUNITY_SECTION_TITLES,
   OPPORTUNITY_STATUS_ICONS,
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/crm/opportunities"
@@ -56,11 +46,12 @@ import {
   CONTRACT_STATUSES,
   WORK_MODE_LABELS,
   WORK_MODES,
-} from "@/lib/projects"
+} from "@/lib/contract-terms"
 import { OPPORTUNITY_STATUSES } from "@/lib/schemas/opportunity"
 import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
-import { useRowDetail } from "@/hooks/use-row-detail"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import type { AdminOpportunity } from "@/server/queries/opportunities"
+import { buildOpportunityDetail } from "@/components/features/admin/opportunities/opportunity-detail"
 
 function rowActions(opportunity: AdminOpportunity) {
   return (
@@ -193,63 +184,6 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
       cell: (opportunity) => truncatedCell(opportunity.notes),
     },
   ]
-}
-
-function buildOpportunityDetail(opportunity: AdminOpportunity, onEdit: () => void): DetailContent {
-  return {
-    title: opportunity.title,
-    ...(opportunity.role ? { subtitle: opportunity.role } : {}),
-    badges: [headerBadge(opportunity.status, OPPORTUNITY_STATUS_LABELS, OPPORTUNITY_STATUS_ICONS)],
-    // Intitulé, Rôle et Statut sont dans l'en-tête : le bloc Opportunité du formulaire n'a pas de pendant ici.
-    sections: [
-      {
-        title: OPPORTUNITY_SECTION_TITLES.relations,
-        rows: [
-          {
-            label: LABELS.referrerId,
-            value: opportunity.referrer ? <PersonLink person={opportunity.referrer} /> : null,
-          },
-          {
-            label: LABELS.intermediaryId,
-            value: opportunity.intermediary ? (
-              <CompanyLink company={opportunity.intermediary} />
-            ) : null,
-          },
-          {
-            label: LABELS.clientId,
-            value: opportunity.client ? <CompanyLink company={opportunity.client} /> : null,
-          },
-        ],
-      },
-      {
-        title: OPPORTUNITY_SECTION_TITLES.conditions,
-        rows: [
-          { label: LABELS.dailyRate, value: formatDailyRate(opportunity.dailyRate) },
-          { label: LABELS.contract, value: contractBadge(opportunity) },
-          { label: LABELS.workMode, value: workModeBadge(opportunity) },
-          { label: LABELS.zone, value: zoneBadge(opportunity) },
-          { label: LABELS.daysPerWeek, value: formatDays(opportunity.daysPerWeek) },
-          { label: LABELS.onSiteDays, value: formatDays(opportunity.onSiteDays) },
-        ],
-      },
-      {
-        title: OPPORTUNITY_SECTION_TITLES.calendar,
-        rows: [
-          { label: LABELS.startMonth, value: formatStartMonth(opportunity.startMonth) },
-          { label: LABELS.durationMonths, value: formatDuration(opportunity.durationMonths) },
-        ],
-      },
-      textSection(OPPORTUNITY_SECTION_TITLES.notes, opportunity.notes),
-      markdownSection(OPPORTUNITY_SECTION_TITLES.details, opportunity.details),
-      linksSection(
-        OPPORTUNITY_SECTION_TITLES.interviews,
-        toOpportunityInterviewLinks(opportunity.interviews, (id) =>
-          detailHref(ADMIN_INTERVIEWS_PATH, id),
-        ),
-      ),
-    ],
-    onEdit,
-  }
 }
 
 const facets: readonly Facet<AdminOpportunity>[] = [

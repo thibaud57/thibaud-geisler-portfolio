@@ -1,6 +1,6 @@
 import { Fragment } from "react"
 
-import { EmptyValue } from "@/components/features/admin/EmptyValue"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
 import { formatRate, type reviewRates } from "@/lib/crm/weekly-reviews"
 
 interface Props {

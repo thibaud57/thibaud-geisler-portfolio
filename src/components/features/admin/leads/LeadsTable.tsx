@@ -3,47 +3,28 @@
 import { useCallback, useMemo, useState } from "react"
 import { UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
-
 import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
-import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
-import {
-  linksSection,
-  markdownSection,
-  textSection,
-} from "@/components/features/admin/detail/detail-sections"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
-  enumBadge,
   enumFacet,
   hideableColumn,
-  labelBadge,
-  linkedinLink,
 } from "@/components/features/admin/table/table-cells"
+import { enumBadge, labelBadge } from "@/components/features/admin/display/badges"
 import { DeleteLeadDialog } from "@/components/features/admin/leads/DeleteLeadDialog"
 import { ErasePersonExchangesDialog } from "@/components/features/admin/persons/ErasePersonExchangesDialog"
-import { personActionsSection } from "@/components/features/admin/persons/person-actions-section"
-import {
-  personColumns,
-  personDetailSections,
-  personFacets,
-} from "@/components/features/admin/persons/person-table"
-import { signalsSection } from "@/components/features/admin/signals/signal-detail"
-import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
+import { personColumns, personFacets } from "@/components/features/admin/persons/person-table"
+import { useSignalDetail } from "@/components/features/admin/signals/use-signal-detail"
 import { Badge } from "@/components/ui/badge"
-import type { Facet } from "@/hooks/use-faceted-search"
-import { useRowDetail } from "@/hooks/use-row-detail"
+import type { Facet } from "@/lib/admin/facets"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import { groupByPersonRecentFirst } from "@/lib/crm/action-views"
+import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import {
-  ADMIN_INTERVIEWS_PATH,
-  ADMIN_LEADS_PATH,
-  ADMIN_OPPORTUNITIES_PATH,
-} from "@/lib/admin/routes"
-import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
-import { formatDateOnly, formatShortDate, formatShortInstantDate } from "@/lib/date-time"
-import { detailHref } from "@/lib/admin/detail-links"
-import { contactDetailHrefOf } from "@/lib/crm/person-links"
-import { toLeadInterviewLinks } from "@/lib/crm/interviews"
+  LEAD_COLUMN_WIDTHS,
+  LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS,
+} from "@/components/features/admin/leads/lead-table-widths"
+import { formatDateOnly, formatShortInstantDate } from "@/lib/date-time"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/crm/job-roles"
 import {
   LEAD_DISPLAY_STATUS_ICONS,
@@ -53,52 +34,27 @@ import {
 } from "@/lib/crm/lead-display-status"
 import { LEAD_VIEW_LOCKED_FACETS, leadsForView, type LeadView } from "@/lib/crm/lead-views"
 import {
-  LEAD_CHANNEL_ICONS,
-  LEAD_CHANNEL_LABELS,
   LEAD_FIELD_LABELS,
-  LEAD_INTEREST_ICONS,
   LEAD_INTEREST_LABELS,
-  LEAD_ORIGIN_ICONS,
   LEAD_ORIGIN_LABELS,
   LEAD_SECTION_TITLES,
 } from "@/lib/crm/leads"
-import {
-  OPTED_OUT_LABEL,
-  PERSON_FIELD_LABELS,
-  PERSON_SECTION_TITLES,
-  personDisplayName,
-} from "@/lib/crm/persons"
-import { toOpportunityLink } from "@/lib/crm/opportunities"
+import { OPTED_OUT_LABEL, PERSON_FIELD_LABELS, personDisplayName } from "@/lib/crm/persons"
 import { isOptOutOver, isRetentionOver, retentionEndOf } from "@/lib/crm/person-retention"
 import { LEAD_INTERESTS, LEAD_ORIGINS } from "@/lib/schemas/lead"
-import { signalFacet, type SignalItem } from "@/lib/crm/signals"
+import { signalFacet } from "@/lib/crm/signals"
 import type { AdminLead } from "@/server/queries/leads"
 import type { ActionTimelineRow } from "@/server/queries/prospecting-actions"
-
-function interestBadge(lead: AdminLead) {
-  return enumBadge(lead.interest, LEAD_INTEREST_LABELS, LEAD_INTEREST_ICONS)
-}
-
-function originBadge(lead: AdminLead) {
-  return enumBadge(lead.origin, LEAD_ORIGIN_LABELS, LEAD_ORIGIN_ICONS)
-}
-
-function channelBadge(lead: AdminLead) {
-  return enumBadge(lead.channel, LEAD_CHANNEL_LABELS, LEAD_CHANNEL_ICONS)
-}
+import {
+  buildLeadDetail,
+  channelBadge,
+  interestBadge,
+  originBadge,
+} from "@/components/features/admin/leads/lead-detail"
 
 function statusBadge(lead: AdminLead, now: number) {
   if (lead.optedOutAt) return <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
   return enumBadge(
-    leadDisplayStatus(lead, now),
-    LEAD_DISPLAY_STATUS_LABELS,
-    LEAD_DISPLAY_STATUS_ICONS,
-  )
-}
-
-function headerStatusBadge(lead: AdminLead, now: number) {
-  if (lead.optedOutAt) return { label: OPTED_OUT_LABEL }
-  return headerBadge(
     leadDisplayStatus(lead, now),
     LEAD_DISPLAY_STATUS_LABELS,
     LEAD_DISPLAY_STATUS_ICONS,
@@ -217,98 +173,6 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
     },
     person.notes,
   ]
-}
-
-function opportunitiesSection(lead: AdminLead) {
-  return linksSection(
-    LEAD_SECTION_TITLES.opportunities,
-    lead.opportunities.map((opportunity) =>
-      toOpportunityLink(opportunity, {
-        href: detailHref(ADMIN_OPPORTUNITIES_PATH, opportunity.id),
-        metaSuffix: opportunity.client?.name,
-      }),
-    ),
-  )
-}
-
-function interviewsSection(lead: AdminLead) {
-  return linksSection(
-    LEAD_SECTION_TITLES.interviews,
-    toLeadInterviewLinks(lead.interviews, (id) => detailHref(ADMIN_INTERVIEWS_PATH, id)),
-  )
-}
-
-function buildLeadDetail(
-  lead: AdminLead,
-  history: readonly ActionTimelineRow[],
-  onEdit: () => void,
-  now: Date,
-  onOpenSignal: (signal: SignalItem) => void,
-): DetailContent {
-  if (lead.optedOutAt) {
-    return {
-      title: personDisplayName(lead),
-      badges: [headerStatusBadge(lead, now.getTime())],
-      sections: [
-        {
-          title: PERSON_SECTION_TITLES.optOut,
-          rows: [
-            { label: PERSON_FIELD_LABELS.email, value: lead.email },
-            { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(lead) },
-            { label: PERSON_FIELD_LABELS.optedOutAt, value: formatShortDate(lead.optedOutAt) },
-            {
-              label: PERSON_FIELD_LABELS.exchangesErasedAt,
-              value: formatShortDate(lead.exchangesErasedAt),
-            },
-          ],
-        },
-        // L'historique se lit aussi pour un lead opposé : ses actions restent, sauf effacement demandé.
-        personActionsSection(history),
-        opportunitiesSection(lead),
-        interviewsSection(lead),
-      ],
-    }
-  }
-
-  return {
-    title: personDisplayName(lead),
-    ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-    badges: [headerStatusBadge(lead, now.getTime())],
-    // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
-    sections: [
-      ...personDetailSections(lead, {
-        label: LEAD_FIELD_LABELS.contactRole,
-        href: contactDetailHrefOf(lead),
-      }),
-      {
-        title: LEAD_SECTION_TITLES.pipeline,
-        rows: [
-          { label: LEAD_FIELD_LABELS.interest, value: interestBadge(lead) },
-          {
-            label: LEAD_FIELD_LABELS.score,
-            value: lead.score === null ? null : `${lead.score} / 10`,
-          },
-          { label: LEAD_FIELD_LABELS.origin, value: originBadge(lead) },
-          { label: LEAD_FIELD_LABELS.channel, value: channelBadge(lead) },
-          {
-            label: PERSON_FIELD_LABELS.metAt,
-            value: lead.metAt ? formatDateOnly(lead.metAt) : null,
-          },
-          {
-            label: LEAD_FIELD_LABELS.lastReplyAt,
-            value: formatShortInstantDate(lead.lastReplyAt),
-          },
-        ],
-      },
-      textSection(PERSON_SECTION_TITLES.notes, lead.notes),
-      markdownSection(PERSON_SECTION_TITLES.details, lead.details),
-      personActionsSection(history),
-      opportunitiesSection(lead),
-      interviewsSection(lead),
-      ...signalsSection(lead.signals, now, onOpenSignal),
-    ],
-    onEdit,
-  }
 }
 
 function statusFacet(now: number): Facet<AdminLead> {
