@@ -129,7 +129,7 @@ propriétaire le demande ; chaque ligne part une fois faite.
 
 ## Journal
 
-- **Système et maquette réalignés sur le code et les arbitrages (exports locaux du 2026-10-13)** :
+- **Système et maquette réalignés sur le code et les arbitrages (synchronisés le 2026-10-13)** :
   le système sort du `post-mvp/` ce que le CRM a installé (`EventCalendar`, `Kanban`, `Editor` et
   `ScrollArea` vers `core/`, champs date et fiches rattachées vers `patterns/`), retire
   `Collapsible`, gagne neuf miroirs (`TitleCell` à la place de `NameSlugCell`, `RecordLink`,
