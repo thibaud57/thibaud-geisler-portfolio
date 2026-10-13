@@ -2,7 +2,8 @@
 
 import "server-only"
 
-import type { Prisma } from "@/generated/prisma/client"
+import type { LeadOrigin, Prisma } from "@/generated/prisma/client"
+import { detailsAfterContactPromotion } from "@/lib/crm/details-templates"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { attachContactSchema, newContactSchema } from "@/lib/schemas/network-contact"
@@ -59,14 +60,18 @@ function collectValues(formData: FormData): ContactFormState["values"] {
 }
 
 // Le verrou de ligne sérialise avec `optOutPerson`, dont l'UPDATE prend le même verrou : soit l'attache voit l'opposition, soit l'opposition passe après et son `contact.deleteMany` retire le rôle posé ici.
-async function assertAttachable(tx: Prisma.TransactionClient, personId: string): Promise<void> {
+async function assertAttachable(
+  tx: Prisma.TransactionClient,
+  personId: string,
+): Promise<{ details: string | null; origin: LeadOrigin }> {
   await tx.$queryRaw`SELECT 1 FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
   const person = await tx.person.findUnique({
     where: { id: personId },
     select: {
       name: true,
+      details: true,
       optedOutAt: true,
-      lead: { select: { personId: true } },
+      lead: { select: { origin: true } },
       contact: { select: { personId: true } },
     },
   })
@@ -90,6 +95,7 @@ async function assertAttachable(tx: Prisma.TransactionClient, personId: string):
       `${CONTACT_WORDING.own} : ${person.name ?? ""}`,
     )
   }
+  return { details: person.details, origin: person.lead.origin }
 }
 
 function mapContactError(
@@ -184,7 +190,11 @@ export async function createContact(
       input: values,
       persist: ({ personId, types, status }) =>
         prisma.$transaction(async (tx) => {
-          await assertAttachable(tx, personId)
+          const { details, origin } = await assertAttachable(tx, personId)
+          const promoted = detailsAfterContactPromotion(details, origin)
+          if (promoted !== (details ?? "")) {
+            await tx.person.update({ where: { id: personId }, data: { details: promoted } })
+          }
           return tx.contact.create({ data: { personId, types, status } })
         }),
       ...sharedHandlers(values),

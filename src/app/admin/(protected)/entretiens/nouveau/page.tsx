@@ -6,22 +6,28 @@ import { INTERVIEW_PAGE_SKELETON } from "@/lib/admin/table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findOpportunityOptions } from "@/server/queries/opportunities"
-import { findPersonOptions } from "@/server/queries/persons"
+import { findPersonOptions, findPersonOptionsWithLeadRole } from "@/server/queries/persons"
 
 type SearchParams = PageProps<"/admin/entretiens/nouveau">["searchParams"]
 
 async function NewInterviewSection({ searchParams }: { searchParams: SearchParams }) {
-  const [{ opportunity }, opportunityOptions, personOptions, companyOptions] = await Promise.all([
-    searchParams,
-    findOpportunityOptions(),
-    findPersonOptions(),
-    findCompanyOptions(),
-  ])
+  const [{ opportunity, lead }, opportunityOptions, personOptions, leadOptions, companyOptions] =
+    await Promise.all([
+      searchParams,
+      findOpportunityOptions(),
+      findPersonOptions(),
+      findPersonOptionsWithLeadRole(),
+      findCompanyOptions(),
+    ])
   const requestedOpportunityId = firstParam(opportunity)
   const defaultOpportunityId = opportunityOptions.some(
     (option) => option.id === requestedOpportunityId,
   )
     ? requestedOpportunityId
+    : undefined
+  const requestedLeadId = firstParam(lead)
+  const defaultLeadId = leadOptions.some((option) => option.id === requestedLeadId)
+    ? requestedLeadId
     : undefined
 
   return (
@@ -34,6 +40,7 @@ async function NewInterviewSection({ searchParams }: { searchParams: SearchParam
       <InterviewForm
         interview={null}
         defaultOpportunityId={defaultOpportunityId}
+        defaultLeadId={defaultLeadId}
         opportunityOptions={opportunityOptions}
         personOptions={personOptions}
         companyOptions={companyOptions}

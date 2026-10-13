@@ -1,36 +1,17 @@
 import "server-only"
 
-import type {
-  ContactStatus,
-  ContactType,
-  JobRole,
-  LeadInterest,
-  Prisma,
-  Zone,
-} from "@/generated/prisma/client"
-import { type LeadDisplayStatus, leadDisplayStatus } from "@/lib/crm/lead-display-status"
-import { contactReviewEndOf } from "@/lib/crm/person-retention"
+import type { ContactStatus, ContactType, JobRole, Prisma, Zone } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 
 const companySelect = { select: { id: true, name: true, logoFilename: true } } as const
 
-const contactRecordInclude = { person: { include: { company: companySelect } } } as const
-
-const adminContactInclude = {
-  person: {
-    include: {
-      company: companySelect,
-      lead: { select: { status: true, interest: true } },
-      referredOpportunities: { select: { status: true } },
-      interviews: { select: { status: true, scheduledAt: true } },
-    },
-  },
+const contactRecordInclude = {
+  person: { include: { company: companySelect, lead: { select: { personId: true } } } },
 } as const
 
 type ContactRow = Prisma.ContactGetPayload<{ include: typeof contactRecordInclude }>
-type AdminContactRow = Prisma.ContactGetPayload<{ include: typeof adminContactInclude }>
 
-// La personne aplatie sur son rôle Contact, sans le calcul propre à la liste : la page d'édition ne lit que ceci.
+// La personne aplatie sur son rôle Contact : liste et formulaire lisent une seule forme.
 export interface ContactRecord {
   id: string
   name: string | null
@@ -42,17 +23,13 @@ export interface ContactRecord {
   metAt: Date | null
   notes: string | null
   details: string | null
-  // Création du rôle, pas de la personne : promouvoir un lead ancien en contact ne doit pas faire expirer aussitôt sa revue.
-  createdAt: Date
   company: { id: string; name: string; logoFilename: string | null } | null
   types: ContactType[]
   status: ContactStatus
+  hasLeadRole: boolean
 }
 
-export interface AdminContact extends ContactRecord {
-  leadRole: { status: LeadDisplayStatus; interest: LeadInterest | null } | null
-  reviewAt: Date
-}
+export type AdminContact = ContactRecord
 
 function toContactRecord(row: ContactRow): ContactRecord {
   return {
@@ -66,39 +43,20 @@ function toContactRecord(row: ContactRow): ContactRecord {
     metAt: row.person.metAt,
     notes: row.person.notes,
     details: row.person.details,
-    createdAt: row.createdAt,
     company: row.person.company,
     types: row.types,
     status: row.status,
-  }
-}
-
-function toAdminContact(row: AdminContactRow, now: number): AdminContact {
-  const { lead, referredOpportunities, interviews } = row.person
-  return {
-    ...toContactRecord(row),
-    leadRole: lead
-      ? {
-          status: leadDisplayStatus(
-            { status: lead.status, opportunities: referredOpportunities, interviews },
-            now,
-          ),
-          interest: lead.interest,
-        }
-      : null,
-    // Une personne opposée n'a jamais de rôle Contact : seule la revue métier se lit ici, jamais le délai légal.
-    reviewAt: contactReviewEndOf(row.person.metAt, row.createdAt),
+    hasLeadRole: row.person.lead !== null,
   }
 }
 
 // Sans `use cache`, comme les autres lectures admin : elle relit la base juste après ses propres mutations.
 export async function findAllContactsForAdmin(): Promise<AdminContact[]> {
   const rows = await prisma.contact.findMany({
-    include: adminContactInclude,
+    include: contactRecordInclude,
     orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
   })
-  const now = Date.now()
-  return rows.map((row) => toAdminContact(row, now))
+  return rows.map(toContactRecord)
 }
 
 export async function findContactByIdForAdmin(personId: string): Promise<ContactRecord | null> {

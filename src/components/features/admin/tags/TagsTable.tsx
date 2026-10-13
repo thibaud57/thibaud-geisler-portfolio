@@ -14,7 +14,7 @@ import {
   type DetailContent,
   type DetailRow,
 } from "@/components/features/admin/detail/DetailDialog"
-import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { actionsColumn, HEADER_BADGE_PROPS } from "@/components/features/admin/table/table-cells"
 import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteTagDialog } from "@/components/features/admin/tags/DeleteTagDialog"
@@ -40,10 +40,11 @@ function buildColumns(counts: TagCountByKind): readonly Column<AdminTag>[] {
     {
       key: "name",
       header: TAG_FIELD_LABELS.nameFr,
+      wrapHeader: true,
       width: TAG_COLUMN_WIDTHS.name,
       sortValue: (tag) => tag.nameFr,
       searchValue: (tag) => `${tag.nameFr} ${tag.slug}`,
-      cell: (tag) => <NameSlugCell name={tag.nameFr} slug={tag.slug} />,
+      cell: (tag) => <TitleCell title={tag.nameFr} subtitle={tag.slug} mono />,
     },
     {
       key: "nameEn",

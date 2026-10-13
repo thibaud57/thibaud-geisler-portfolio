@@ -27,7 +27,7 @@ export function CompanyLogoTile({ logoFilename, size = "md", className }: Props)
     // logo manquant.
     <span
       className={cn(
-        "relative block overflow-hidden border border-border",
+        "relative block shrink-0 overflow-hidden border border-border",
         hasImage ? "bg-muted" : "bg-linear-to-br from-primary/20 to-accent/20",
         box,
         className,

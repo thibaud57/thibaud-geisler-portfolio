@@ -69,9 +69,6 @@ export interface Column<T> {
   searchValue?: (row: T) => string
   hideable?: boolean
   defaultVisible?: boolean
-  // Colonne purement visuelle (ex. logo en tuile) : le header existe pour l'accessibilité sans
-  // occuper de place, contrairement à un header vide qui casserait la lecture du tableau au lecteur d'écran.
-  headerSrOnly?: boolean
   // En-tête sur plusieurs lignes : un libellé long au-dessus d'une valeur courte (compteur) laisserait sinon la colonne large pour rien.
   wrapHeader?: boolean
 }
@@ -428,8 +425,6 @@ export function DataTable<T, K extends string = string>({
               />
             )}
           </Button>
-        ) : column.headerSrOnly ? (
-          <span className="sr-only">{column.header}</span>
         ) : (
           column.header
         )}

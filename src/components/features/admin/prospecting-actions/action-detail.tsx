@@ -1,4 +1,3 @@
-import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import {
   headerBadge,
   type DetailContent,
@@ -6,9 +5,7 @@ import {
 } from "@/components/features/admin/detail/DetailDialog"
 import { textSection } from "@/components/features/admin/detail/detail-sections"
 import { enumBadge, PersonLink } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { formatShortInstantDate } from "@/lib/date-time"
-import { personDisplayName } from "@/lib/crm/persons"
 import {
   ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
@@ -24,17 +21,6 @@ export function channelBadge(action: AdminProspectingAction, className?: string)
   return enumBadge(action.channel, ACTION_CHANNEL_LABELS, ACTION_CHANNEL_ICONS, { className })
 }
 
-export function personCell(action: AdminProspectingAction) {
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      {action.person.company ? (
-        <CompanyLogoTile logoFilename={action.person.company.logoFilename} size="sm" />
-      ) : null}
-      <TruncateTooltip className="min-w-0">{personDisplayName(action.person)}</TruncateTooltip>
-    </span>
-  )
-}
-
 export function buildActionDetail(
   action: AdminProspectingAction,
   onEdit: () => void,
@@ -45,7 +31,7 @@ export function buildActionDetail(
       rows: [
         {
           label: LABELS.personId,
-          value: <PersonLink person={action.person}>{personCell(action)}</PersonLink>,
+          value: <PersonLink person={action.person} />,
         },
         { label: LABELS.channel, value: channelBadge(action) },
         { label: LABELS.occurredAt, value: formatShortInstantDate(action.occurredAt) },

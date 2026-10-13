@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { contactReviewEndOf, isRetentionOver, retentionEndOf } from "./person-retention"
+import { isOptOutOver, isRetentionOver, retentionEndOf } from "./person-retention"
 
 describe("retentionEndOf", () => {
   it("keeps an active person three years after its creation when it never replied", () => {
@@ -47,16 +47,24 @@ describe("retentionEndOf", () => {
   })
 })
 
-describe("contactReviewEndOf", () => {
-  it("reviews a contact three years after the day it was met", () => {
-    const end = contactReviewEndOf(new Date(2023, 1, 3), new Date(2025, 4, 10))
+describe("isOptOutOver", () => {
+  const optedOutAt = new Date(2023, 8, 15)
 
-    expect(end).toEqual(new Date(2026, 1, 3))
+  it("holds an opposition until its third anniversary", () => {
+    const over = isOptOutOver(optedOutAt, new Date(2026, 8, 14))
+
+    expect(over).toBe(false)
   })
 
-  it("reviews a contact three years after its creation when the meeting date is unknown", () => {
-    const end = contactReviewEndOf(null, new Date(2025, 4, 10))
+  it("holds an opposition on the day of its third anniversary", () => {
+    const over = isOptOutOver(optedOutAt, new Date(2026, 8, 15))
 
-    expect(end).toEqual(new Date(2028, 4, 10))
+    expect(over).toBe(false)
+  })
+
+  it("releases an opposition once its third anniversary is past", () => {
+    const over = isOptOutOver(optedOutAt, new Date(2026, 8, 15, 0, 0, 1))
+
+    expect(over).toBe(true)
   })
 })

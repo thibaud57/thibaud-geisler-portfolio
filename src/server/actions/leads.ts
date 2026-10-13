@@ -10,6 +10,7 @@ import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-uti
 import {
   assertNewIdentity,
   assertNotOptedOut,
+  assertOptOutOver,
   collectPersonValues,
   conflictErrors,
   deletePersonIfRoleless,
@@ -171,7 +172,7 @@ export async function deleteLead(personId: string): Promise<LeadFormState> {
     exists: () => leadExists(personId),
     destroy: () =>
       prisma.$transaction(async (tx) => {
-        await assertNotOptedOut(tx, personId)
+        await assertOptOutOver(tx, personId)
         await tx.lead.delete({ where: { personId } })
         await tx.signal.deleteMany({ where: { personId } })
         await deletePersonIfRoleless(tx, personId)

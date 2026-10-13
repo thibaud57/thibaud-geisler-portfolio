@@ -9,13 +9,11 @@ import {
   enumBadge,
   enumFacet,
   hideableColumn,
+  PersonLink,
 } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { ActionRowActions } from "@/components/features/admin/prospecting-actions/ActionRowActions"
-import {
-  channelBadge,
-  personCell,
-} from "@/components/features/admin/prospecting-actions/action-detail"
+import { channelBadge } from "@/components/features/admin/prospecting-actions/action-detail"
 import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/useProspectingActionDetail"
 import { BOARD_PERIOD_LABELS, type BoardPeriod } from "@/lib/crm/action-board"
 import { ACTION_VIEW_LOCKED_FACETS, actionsForView, type ActionView } from "@/lib/crm/action-views"
@@ -41,9 +39,7 @@ function buildDataColumns(view: ActionView): readonly Column<AdminProspectingAct
       width: ACTION_COLUMN_WIDTHS.title,
       sortValue: (action) => action.title,
       searchValue: (action) => `${action.title} ${personDisplayName(action.person)}`,
-      cell: (action) => (
-        <TruncateTooltip className="block w-full font-medium">{action.title}</TruncateTooltip>
-      ),
+      cell: (action) => <TitleCell title={action.title} />,
     },
     {
       key: "channel",
@@ -74,7 +70,7 @@ function buildDataColumns(view: ActionView): readonly Column<AdminProspectingAct
       width: ACTION_COLUMN_WIDTHS.person,
       ...hideableColumn(visibleByDefault, "person"),
       sortValue: (action) => personDisplayName(action.person),
-      cell: personCell,
+      cell: (action) => <PersonLink person={action.person} />,
     },
   ]
 }

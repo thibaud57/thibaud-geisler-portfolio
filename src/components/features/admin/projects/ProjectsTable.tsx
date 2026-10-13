@@ -4,12 +4,12 @@ import { useCallback, useMemo, type ReactNode } from "react"
 import { Folder } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { DataTable, type Column, type Facet } from "@/components/features/admin/table/DataTable"
 import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
+  companyCell,
   enumBadge,
   enumFacet,
   HEADER_BADGE_PROPS,
@@ -17,11 +17,10 @@ import {
   iconsByLabel,
   workModeBadge,
 } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteProjectDialog } from "@/components/features/admin/projects/DeleteProjectDialog"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
-import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { Badge } from "@/components/ui/badge"
 import type { ProjectStatus, ProjectType } from "@/generated/prisma/client"
 import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
@@ -118,7 +117,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.titre,
       sortValue: (project) => project.titleFr,
       searchValue: (project) => `${project.titleFr} ${project.slug}`,
-      cell: (project) => <NameSlugCell name={project.titleFr} slug={project.slug} />,
+      cell: (project) => <TitleCell title={project.titleFr} subtitle={project.slug} mono />,
     },
     {
       key: "nature",
@@ -145,16 +144,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       header: PROJECT_FIELD_LABELS.companyId,
       width: PROJECT_COLUMN_WIDTHS.entreprise,
       ...hideableColumn(visibleByDefault, "entreprise"),
-      cell: (project) => {
-        const company = project.clientMeta?.company
-        if (!company) return null
-        return (
-          <span className="flex min-w-0 items-center gap-2">
-            <CompanyLogoTile logoFilename={company.logoFilename} size="sm" className="shrink-0" />
-            <TruncateTooltip className="text-muted-foreground">{company.name}</TruncateTooltip>
-          </span>
-        )
-      },
+      cell: (project) => companyCell({ company: project.clientMeta?.company ?? null }),
     },
     {
       key: "contrat",
@@ -332,7 +322,10 @@ function buildProjectDetail(project: AdminProjectListItem, onEdit: () => void): 
       {
         title: PROJECT_SECTION_TITLES.clientMeta,
         rows: [
-          { label: PROJECT_FIELD_LABELS.companyId, value: clientMeta?.company.name },
+          {
+            label: PROJECT_FIELD_LABELS.companyId,
+            value: companyCell({ company: clientMeta?.company ?? null }),
+          },
           {
             label: PROJECT_FIELD_LABELS.workMode,
             value: clientMeta ? workModeBadge(clientMeta) : null,

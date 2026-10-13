@@ -258,6 +258,7 @@ Reportés, écrans de la maquette à l'appui :
 * **Pré-remplissage de l'entité légale**, avec les agents internes (Feature 3) : bouton « Pré-remplir » de la card Entité légale, écran `isCompanyForm`
 * **Qualification ICP**, avec les agents internes (Feature 3), qui en collectent les critères : le score du formulaire lead (`dlgLeadForm`, « le score se calcule ») reste saisi à la main d'ici là
 * **Outils de saisie des temps** imposés par un client pour le CRA, avec le suivi de mission (Feature 4) : champ de la card Relation de `isCompanyForm`. Une liste fixe ne couvre pas les logiciels internes des entreprises, la forme se décide quand le CRA en aura besoin
+* **Purge automatique des fiches échues** : leads arrivés au terme de leurs 3 ans (après la relance que demande le registre) et fiches d'opposition au terme des leurs. Elles se suppriment à la main depuis Leads > Tous, filtre « Échéance : Dépassée », ce qui respecte déjà la durée annoncée ; l'automatisme ne se justifie qu'avec un volume réel, la première échéance possible tombant en novembre 2028 (relevé du 2026-10-13)
 
 Prérequis : l'espace admin (Feature 1).
 

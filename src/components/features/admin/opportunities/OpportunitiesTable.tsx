@@ -25,7 +25,7 @@ import {
   workModeBadge,
   zoneBadge,
 } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { DeleteOpportunityDialog } from "@/components/features/admin/opportunities/DeleteOpportunityDialog"
 import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
 import {
@@ -89,9 +89,7 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
           opportunity.intermediary?.name ?? "",
           opportunity.client?.name ?? "",
         ].join(" "),
-      cell: (opportunity) => (
-        <TruncateTooltip className="block w-full font-medium">{opportunity.title}</TruncateTooltip>
-      ),
+      cell: (opportunity) => <TitleCell title={opportunity.title} />,
     },
     {
       key: "status",

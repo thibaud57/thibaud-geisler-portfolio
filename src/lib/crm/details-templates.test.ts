@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   COMPANY_DETAILS_TEMPLATE,
   CONTACT_DETAILS_TEMPLATE,
+  detailsAfterContactPromotion,
   detailsAfterOriginChange,
   interviewDetailsTemplate,
   leadDetailsTemplate,
@@ -57,7 +58,29 @@ describe("detailsAfterOriginChange", () => {
 
 describe("CONTACT_DETAILS_TEMPLATE", () => {
   it("gives the contact template only the sections without a dedicated field", () => {
-    expect(CONTACT_DETAILS_TEMPLATE).toBe("# 💼 Profil\n\n# 🤝 Relation\n\n# 🔗 Liens\n")
+    expect(CONTACT_DETAILS_TEMPLATE).toBe("# 💼 Profil\n\n# 🤝 Relation\n")
+  })
+})
+
+describe("detailsAfterContactPromotion", () => {
+  it("replaces an untouched lead template by the contact template", () => {
+    const details = detailsAfterContactPromotion(leadDetailsTemplate("OUTBOUND"), "OUTBOUND")
+
+    expect(details).toBe(CONTACT_DETAILS_TEMPLATE)
+  })
+
+  it("fills the contact template when the lead details are empty", () => {
+    const details = detailsAfterContactPromotion(null, "INBOUND")
+
+    expect(details).toBe(CONTACT_DETAILS_TEMPLATE)
+  })
+
+  it("keeps written lead details", () => {
+    const written = "# 🎯 Contexte\n\nRencontré lors d'un salon."
+
+    const details = detailsAfterContactPromotion(written, "INBOUND")
+
+    expect(details).toBe(written)
   })
 })
 

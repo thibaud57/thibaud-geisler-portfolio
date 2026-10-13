@@ -37,7 +37,11 @@ import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { withCurrentOption } from "@/lib/admin/options"
-import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
+import {
+  ADMIN_INTERVIEWS_PATH,
+  ADMIN_LEADS_PATH,
+  ADMIN_OPPORTUNITIES_PATH,
+} from "@/lib/admin/routes"
 import { CONTACT_TYPE_ICONS, CONTACT_TYPE_LABELS } from "@/lib/crm/contacts"
 import { timeOf } from "@/lib/date-time"
 import { detailsAfterTemplateChange, interviewDetailsTemplate } from "@/lib/crm/details-templates"
@@ -228,10 +232,18 @@ function NewCorrespondentRow({
   )
 }
 
+function originPath(opportunityId: string | undefined, leadId: string | undefined) {
+  if (opportunityId) return `${ADMIN_OPPORTUNITIES_PATH}/${opportunityId}` as const
+  if (leadId) return `${ADMIN_LEADS_PATH}/${leadId}` as const
+  return ADMIN_INTERVIEWS_PATH
+}
+
 interface Props {
   interview: AdminInterview | null
   title?: string
   defaultOpportunityId?: string
+  // Ouvert depuis la page d'un lead : il devient le premier correspondant et la page de retour.
+  defaultLeadId?: string
   opportunityOptions: readonly OpportunityOption[]
   personOptions: readonly PersonOption[]
   companyOptions: readonly CompanyOption[]
@@ -241,6 +253,7 @@ export function InterviewForm({
   interview,
   title,
   defaultOpportunityId,
+  defaultLeadId,
   opportunityOptions,
   personOptions,
   companyOptions,
@@ -250,9 +263,7 @@ export function InterviewForm({
   const action = interview ? updateInterview.bind(null, interview.id) : createInterview
   const [state, formAction, pending] = useActionState(action, initialInterviewFormState)
   const handleSubmit = useFormActionSubmit(formAction)
-  const cancelPath = defaultOpportunityId
-    ? (`${ADMIN_OPPORTUNITIES_PATH}/${defaultOpportunityId}` as const)
-    : ADMIN_INTERVIEWS_PATH
+  const cancelPath = originPath(defaultOpportunityId, defaultLeadId)
 
   // L'opportunité d'un entretien existant peut être close, donc sortie des choix : elle reste affichée.
   const opportunities = withCurrentOption(opportunityOptions, interview?.opportunity)
@@ -271,7 +282,7 @@ export function InterviewForm({
     interview?.side ?? (hasIntermediary ? "ESN" : "CLIENT_FINAL"),
   )
   const [correspondentIds, setCorrespondentIds] = useState<string[]>(
-    interview?.correspondents.map((person) => person.id) ?? [],
+    interview?.correspondents.map((person) => person.id) ?? (defaultLeadId ? [defaultLeadId] : []),
   )
   const [newCorrespondents, setNewCorrespondents] = useState<NewCorrespondentDraft[]>([])
   const [type, setType] = useState<InterviewType>(interview?.type ?? "PREMIER_CONTACT")

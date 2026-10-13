@@ -63,13 +63,20 @@ export function detailsAfterOriginChange(
   )
 }
 
-// Poste, entreprise, types, rencontre, échanges et notes ont leurs champs.
+// Poste, entreprise, types, rencontre, LinkedIn, email, échanges et notes ont leurs champs.
 export const CONTACT_DETAILS_TEMPLATE = `# 💼 Profil
 
 # 🤝 Relation
-
-# 🔗 Liens
 `
+
+// Le rôle contact prime : un lead promu garde son texte, un gabarit intact cède la place.
+export function detailsAfterContactPromotion(details: string | null, origin: LeadOrigin): string {
+  return detailsAfterTemplateChange(
+    details ?? "",
+    leadDetailsTemplate(origin),
+    CONTACT_DETAILS_TEMPLATE,
+  )
+}
 
 // Secteur et taille vivent sur l'entreprise, TJM/lieu/rythme sur l'opportunité : il ne reste ici que le texte.
 export const OPPORTUNITY_DETAILS_TEMPLATE = `# 🎯 Contexte

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { ReviewMotivation, ReviewStatus } from "@/generated/prisma/browser"
 import { nullableEnumField } from "@/lib/schemas/none-value"
-import { optionalTextField } from "@/lib/schemas/person"
+import { notesField, optionalTextField } from "@/lib/schemas/person"
 import { isFridayIso, isoDayToDate } from "@/lib/crm/weekly-reviews"
 
 export const REVIEW_STATUSES = Object.values(ReviewStatus)
@@ -33,7 +33,7 @@ export const weeklyReviewSchema = z.object({
   wins: optionalTextField,
   blockers: optionalTextField,
   nextWeekPlan: optionalTextField,
-  notes: optionalTextField,
+  notes: notesField,
 })
 
 export type WeeklyReviewInput = z.infer<typeof weeklyReviewSchema>

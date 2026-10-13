@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
+import { leadDetailHrefOf } from "@/lib/crm/person-links"
 import {
   CONTACT_FIELD_LABELS,
   CONTACT_SECTION_TITLES,
@@ -132,6 +133,11 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
             defaults={contact}
             errors={state.errors}
             mirror={fromLead ? { lead, loading: leadLoading } : undefined}
+            otherRole={
+              contact
+                ? { label: CONTACT_FIELD_LABELS.leadRole, href: leadDetailHrefOf(contact) }
+                : undefined
+            }
             identityHeader={
               contact ? null : (
                 <>

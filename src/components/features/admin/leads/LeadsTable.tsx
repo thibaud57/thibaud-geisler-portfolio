@@ -35,15 +35,14 @@ import type { Facet } from "@/hooks/use-faceted-search"
 import { useRowDetail } from "@/hooks/use-row-detail"
 import { groupByPersonRecentFirst } from "@/lib/crm/action-views"
 import {
-  ADMIN_CONTACTS_PATH,
   ADMIN_INTERVIEWS_PATH,
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
 } from "@/lib/admin/routes"
 import { LEAD_COLUMN_WIDTHS, LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
-import { CONTACT_STATUS_LABELS, CONTACT_TYPE_LABELS } from "@/lib/crm/contacts"
 import { formatDateOnly, formatShortDate, formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/admin/detail-links"
+import { contactDetailHrefOf } from "@/lib/crm/person-links"
 import { toLeadInterviewLinks } from "@/lib/crm/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/crm/job-roles"
 import {
@@ -70,7 +69,7 @@ import {
   personDisplayName,
 } from "@/lib/crm/persons"
 import { toOpportunityLink } from "@/lib/crm/opportunities"
-import { isRetentionOver, retentionEndOf } from "@/lib/crm/person-retention"
+import { isOptOutOver, isRetentionOver, retentionEndOf } from "@/lib/crm/person-retention"
 import { LEAD_INTERESTS, LEAD_ORIGINS } from "@/lib/schemas/lead"
 import { signalFacet, type SignalItem } from "@/lib/crm/signals"
 import type { AdminLead } from "@/server/queries/leads"
@@ -106,8 +105,9 @@ function headerStatusBadge(lead: AdminLead, now: number) {
   )
 }
 
-// Une fiche en opposition ne se modifie ni ne se supprime : seul l'effacement des échanges lui reste.
-function rowActions(lead: AdminLead) {
+// Une fiche en opposition ne se modifie pas : l'effacement des échanges lui reste, puis la suppression au terme de ses 3 ans.
+function rowActions(lead: AdminLead, now: Date) {
+  if (lead.optedOutAt && isOptOutOver(lead.optedOutAt, now)) return <DeleteLeadDialog lead={lead} />
   if (lead.optedOutAt && lead.exchangesErasedAt) return null
   if (lead.optedOutAt) return <ErasePersonExchangesDialog person={lead} />
   return (
@@ -181,7 +181,6 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
       ...hideableColumn(visibleByDefault, "jobRole"),
       cell: (lead) => labelBadge(lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null),
     },
-    person.company,
     person.zone,
     person.linkedinUrl,
     person.email,
@@ -277,7 +276,10 @@ function buildLeadDetail(
     badges: [headerStatusBadge(lead, now.getTime())],
     // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
     sections: [
-      ...personDetailSections(lead),
+      ...personDetailSections(lead, {
+        label: LEAD_FIELD_LABELS.contactRole,
+        href: contactDetailHrefOf(lead),
+      }),
       {
         title: LEAD_SECTION_TITLES.pipeline,
         rows: [
@@ -300,24 +302,6 @@ function buildLeadDetail(
       },
       textSection(PERSON_SECTION_TITLES.notes, lead.notes),
       markdownSection(PERSON_SECTION_TITLES.details, lead.details),
-      linksSection(
-        LEAD_SECTION_TITLES.network,
-        lead.contactRole
-          ? [
-              {
-                id: lead.id,
-                href: detailHref(ADMIN_CONTACTS_PATH, lead.id),
-                label: "Fiche contact",
-                meta: [
-                  lead.contactRole.types.length > 0
-                    ? lead.contactRole.types.map((type) => CONTACT_TYPE_LABELS[type]).join(", ")
-                    : "Sans type",
-                  CONTACT_STATUS_LABELS[lead.contactRole.status],
-                ].join(" · "),
-              },
-            ]
-          : [],
-      ),
       personActionsSection(history),
       opportunitiesSection(lead),
       interviewsSection(lead),
@@ -384,8 +368,11 @@ export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   const historyByPerson = useMemo(() => groupByPersonRecentFirst(actions), [actions])
 
   const columns = useMemo<readonly Column<AdminLead>[]>(
-    () => [...buildDataColumns(view, nowMs), actionsColumn(rowActions)],
-    [view, nowMs],
+    () => [
+      ...buildDataColumns(view, nowMs),
+      actionsColumn((lead: AdminLead) => rowActions(lead, now)),
+    ],
+    [view, now, nowMs],
   )
 
   const buildDetail = useCallback(

@@ -1,17 +1,13 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback } from "react"
 import { User } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
 import { headerBadge, type DetailContent } from "@/components/features/admin/detail/DetailDialog"
-import {
-  linksSection,
-  markdownSection,
-  textSection,
-} from "@/components/features/admin/detail/detail-sections"
+import { markdownSection, textSection } from "@/components/features/admin/detail/detail-sections"
 import { EditRowLink } from "@/components/features/admin/table/EditRowLink"
 import {
   actionsColumn,
@@ -24,11 +20,11 @@ import { DeleteContactDialog } from "@/components/features/admin/contacts/Delete
 import {
   personColumns,
   personDetailSections,
-  personFacets,
+  zoneFacet,
 } from "@/components/features/admin/persons/person-table"
 import type { Facet } from "@/hooks/use-faceted-search"
 import { useRowDetail } from "@/hooks/use-row-detail"
-import { ADMIN_CONTACTS_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
+import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
 import { CONTACT_COLUMN_WIDTHS, CONTACT_DEFAULT_VISIBLE_COLUMNS } from "@/lib/admin/table-widths"
 import {
   CONTACT_FIELD_LABELS,
@@ -38,11 +34,9 @@ import {
   CONTACT_TYPE_ICONS,
   CONTACT_TYPE_LABELS,
 } from "@/lib/crm/contacts"
-import { formatDateOnly, formatShortInstantDate } from "@/lib/date-time"
-import { detailHref } from "@/lib/admin/detail-links"
+import { formatDateOnly } from "@/lib/date-time"
 import { JOB_ROLE_LABELS } from "@/lib/crm/job-roles"
-import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/crm/lead-display-status"
-import { LEAD_INTEREST_LABELS } from "@/lib/crm/leads"
+import { leadDetailHrefOf } from "@/lib/crm/person-links"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { CONTACT_STATUSES, CONTACT_TYPES } from "@/lib/schemas/network-contact"
 import type { AdminContact } from "@/server/queries/contacts"
@@ -81,7 +75,6 @@ const COLUMNS: readonly Column<AdminContact>[] = [
       <BadgeList labels={typeLabels(contact)} noun="types" icons={TYPE_ICONS_BY_LABEL} />
     ),
   },
-  personCols.company,
   {
     key: "status",
     header: CONTACT_FIELD_LABELS.status,
@@ -93,28 +86,9 @@ const COLUMNS: readonly Column<AdminContact>[] = [
   personCols.email,
   personCols.phone,
   personCols.linkedinUrl,
-  {
-    key: "reviewAt",
-    wrapHeader: true,
-    header: CONTACT_FIELD_LABELS.reviewAt,
-    width: CONTACT_COLUMN_WIDTHS.reviewAt,
-    className: "tabular-nums text-muted-foreground",
-    ...hideableColumn(CONTACT_DEFAULT_VISIBLE_COLUMNS, "reviewAt"),
-    sortValue: (contact) => contact.reviewAt.getTime(),
-    cell: (contact) => formatShortInstantDate(contact.reviewAt),
-  },
   personCols.notes,
   actionsColumn(rowActions),
 ]
-
-function pipelineMeta(leadRole: NonNullable<AdminContact["leadRole"]>): string {
-  return [
-    LEAD_DISPLAY_STATUS_LABELS[leadRole.status],
-    leadRole.interest ? LEAD_INTEREST_LABELS[leadRole.interest] : null,
-  ]
-    .filter((part): part is string => part !== null)
-    .join(" · ")
-}
 
 function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailContent {
   return {
@@ -122,7 +96,10 @@ function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailCo
     ...(contact.jobRole ? { subtitle: JOB_ROLE_LABELS[contact.jobRole] } : {}),
     badges: [headerBadge(contact.status, CONTACT_STATUS_LABELS, CONTACT_STATUS_ICONS)],
     sections: [
-      ...personDetailSections(contact),
+      ...personDetailSections(contact, {
+        label: CONTACT_FIELD_LABELS.leadRole,
+        href: leadDetailHrefOf(contact),
+      }),
       {
         title: CONTACT_SECTION_TITLES.relation,
         rows: [
@@ -141,33 +118,16 @@ function buildContactDetail(contact: AdminContact, onEdit: () => void): DetailCo
             label: PERSON_FIELD_LABELS.metAt,
             value: contact.metAt ? formatDateOnly(contact.metAt) : null,
           },
-          {
-            label: CONTACT_FIELD_LABELS.reviewAt,
-            value: formatShortInstantDate(contact.reviewAt),
-          },
         ],
       },
       textSection(PERSON_SECTION_TITLES.notes, contact.notes),
       markdownSection(PERSON_SECTION_TITLES.details, contact.details),
-      linksSection(
-        CONTACT_SECTION_TITLES.pipeline,
-        contact.leadRole
-          ? [
-              {
-                id: contact.id,
-                href: detailHref(ADMIN_LEADS_PATH, contact.id),
-                label: "Fiche lead",
-                meta: pipelineMeta(contact.leadRole),
-              },
-            ]
-          : [],
-      ),
     ],
     onEdit,
   }
 }
 
-const baseFacets: readonly Facet<AdminContact>[] = [
+const facets: readonly Facet<AdminContact>[] = [
   enumFacet(
     "types",
     CONTACT_FIELD_LABELS.types,
@@ -182,6 +142,7 @@ const baseFacets: readonly Facet<AdminContact>[] = [
     CONTACT_STATUS_LABELS,
     (contact) => contact.status,
   ),
+  zoneFacet<AdminContact>(),
 ]
 
 interface Props {
@@ -191,13 +152,6 @@ interface Props {
 
 export function ContactsTable({ contacts, initialDetailId }: Props) {
   const router = useRouter()
-  // Instant figé au montage : le filtre d'échéance reste stable pendant la consultation.
-  const [now] = useState(() => new Date())
-
-  const facets = useMemo(() => {
-    const { zone, overdue } = personFacets<AdminContact>((contact) => contact.reviewAt < now)
-    return [...baseFacets, zone, overdue]
-  }, [now])
 
   const buildDetail = useCallback(
     (contact: AdminContact) =>

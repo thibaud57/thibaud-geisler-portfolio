@@ -26,7 +26,7 @@ import {
   workModeBadge,
   zoneBadge,
 } from "@/components/features/admin/table/table-cells"
-import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { useRowDetail } from "@/hooks/use-row-detail"
 import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
 import {
@@ -117,11 +117,7 @@ function buildDataColumns(
           leadingCompany(interview)?.name ?? "",
           ...correspondentNames(interview),
         ].join(" "),
-      cell: (interview) => (
-        <TruncateTooltip className="block w-full font-medium">
-          {titles.get(interview.id) ?? ""}
-        </TruncateTooltip>
-      ),
+      cell: (interview) => <TitleCell title={titles.get(interview.id) ?? ""} />,
     },
     {
       key: "opportunity",
@@ -281,6 +277,7 @@ function buildInterviewDetail(
 
   return {
     title: titles.get(interview.id) ?? "",
+    subtitle: formatShortDateTime(interview.scheduledAt),
     badges: [headerBadge(interview.status, INTERVIEW_STATUS_LABELS, INTERVIEW_STATUS_ICONS)],
     sections: [
       {
@@ -288,7 +285,6 @@ function buildInterviewDetail(
         rows: [
           { label: LABELS.type, value: typeBadge(interview) },
           { label: LABELS.format, value: formatBadge(interview) },
-          { label: LABELS.scheduledAt, value: formatShortDateTime(interview.scheduledAt) },
           { label: LABELS.side, value: companyCell({ company: leadingCompany(interview) }) },
           { label: LABELS.correspondentIds, value: correspondentsValue(interview) },
         ],

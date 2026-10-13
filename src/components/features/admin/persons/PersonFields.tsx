@@ -1,13 +1,15 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, type ComponentProps, type ReactNode } from "react"
 
+import { EmptyValue } from "@/components/features/admin/EmptyValue"
 import { CompanyCombobox } from "@/components/features/admin/form/CompanyCombobox"
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { FormCard } from "@/components/features/admin/form/FormCard"
 import { JobRoleSelect } from "@/components/features/admin/form/JobRoleSelect"
 import { MirroredField } from "@/components/features/admin/form/MirroredField"
 import { ZoneSelect } from "@/components/features/admin/form/ZoneSelect"
+import { PersonRecordLink } from "@/components/features/admin/table/table-cells"
 import type { JobRole, Zone } from "@/generated/prisma/client"
 import { JOB_ROLE_LABELS } from "@/lib/crm/job-roles"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES } from "@/lib/crm/persons"
@@ -23,7 +25,7 @@ interface PersonDefaults {
   email: string | null
   phone: string | null
   linkedinUrl: string | null
-  company: { id: string } | null
+  company: { id: string; logoFilename: string | null } | null
 }
 
 type PersonFieldName = "name" | "jobRole" | "zone" | "companyId" | "email" | "phone" | "linkedinUrl"
@@ -35,6 +37,8 @@ interface Props {
   errors: Partial<Record<PersonFieldName, string[]>>
   mirror?: { lead: AttachableLead | null; loading: boolean }
   identityHeader?: ReactNode
+  // L'autre rôle de la personne, en lecture : la page de modification montre ce que montre la vue détail.
+  otherRole?: { label: string; href: ComponentProps<typeof PersonRecordLink>["href"] }
 }
 
 export function PersonFields({
@@ -44,6 +48,7 @@ export function PersonFields({
   errors,
   mirror,
   identityHeader,
+  otherRole,
 }: Props) {
   const [companyId, setCompanyId] = useState(defaults?.company?.id ?? NONE_VALUE)
   const mirrored = mirror !== undefined
@@ -110,6 +115,18 @@ export function PersonFields({
         >
           <ZoneSelect id={`${formId}-zone`} defaultValue={defaults?.zone} errors={errors.zone} />
         </MirroredField>
+        {otherRole ? (
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <span className="text-sm leading-none font-medium">{otherRole.label}</span>
+            <span className="flex min-h-9 items-center text-sm">
+              {defaults && otherRole.href ? (
+                <PersonRecordLink person={defaults} href={otherRole.href} />
+              ) : (
+                <EmptyValue />
+              )}
+            </span>
+          </div>
+        ) : null}
       </FormCard>
 
       <FormCard title={PERSON_SECTION_TITLES.contact} columns={2}>

@@ -39,7 +39,7 @@ Aucune : ce sub-project est autoporté.
   - **Finalité** : prospection commerciale des services du freelance et suivi de son réseau professionnel
   - **Base légale** : intérêt légitime (art. 6.1.f), la sollicitation restant en rapport avec la profession de la personne, condition que pose la CNIL pour la prospection entre professionnels
   - **Personnes concernées** : prospects et auteurs de demandes entrantes (leads) ; réseau professionnel, anciens collègues, clients, partenaires (contacts) ; le nom et l'adresse d'une entreprise individuelle chez un prospect ou un client (entité légale, `05`), ceux d'une personne physique, avec les mêmes droits qu'un lead
-  - **Données** : identité, poste, entreprise, coordonnées professionnelles, profil LinkedIn, notes d'échange, historique des actions de prospection et des entretiens
+  - **Données** : identité, poste, entreprise, coordonnées professionnelles, profil LinkedIn, notes d'échange, historique des actions de prospection (message envoyé et réponse reçue) et des entretiens
   - **Sources** : profils professionnels publics (LinkedIn, site de l'entreprise), candidatures et plateformes de mission, recommandations, événements professionnels, échanges directs
   - **Destinataire** : Thibaud Geisler
   - **Sous-traitants** : IONOS (hébergeur du VPS et de la base), Cloudflare (bucket `portfolio-backups` des sauvegardes de la base, juridiction `eu`)

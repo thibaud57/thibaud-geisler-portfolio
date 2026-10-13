@@ -35,6 +35,7 @@ const adminInterviewInclude = {
       optedOutAt: true,
       lead: { select: { personId: true } },
       contact: { select: { personId: true } },
+      company: { select: { logoFilename: true } },
     },
     orderBy: { name: "asc" },
   },

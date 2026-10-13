@@ -3,6 +3,7 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
+import type { Prisma } from "@/generated/prisma/client"
 import { ADMIN_COMPANIES_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
@@ -13,7 +14,12 @@ import {
 } from "@/lib/schemas/prospecting-action"
 import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
 
-import { revalidatePersonLists } from "./person-guards"
+import {
+  assertProspectionAllowed,
+  conflictErrors,
+  PersonConflictError,
+  revalidatePersonLists,
+} from "./person-guards"
 import { deleteEntity, saveEntity, type ActionEvents } from "./shared"
 import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
@@ -39,25 +45,25 @@ function collectValues(formData: FormData): ProspectingActionFormState["values"]
   }
 }
 
-class PersonWithoutLeadError extends Error {}
-
 // Une action de prospection ne vise qu'un lead : une personne seulement contact n'a pas de pipeline à nourrir.
-async function requireLead(personId: string): Promise<void> {
-  const leads = await prisma.lead.count({ where: { personId } })
-  if (leads === 0) throw new PersonWithoutLeadError()
+async function requireProspectableLead(
+  tx: Prisma.TransactionClient,
+  personId: string,
+  actionId?: string,
+): Promise<void> {
+  const lead = await tx.lead.findUnique({ where: { personId }, select: { personId: true } })
+  if (!lead) {
+    throw new PersonConflictError("personId", "not_found", "Cette personne n'a pas de fiche lead")
+  }
+  await assertProspectionAllowed(tx, { personId, actionId })
 }
 
 function mapActionError(
   err: unknown,
   values: ProspectingActionFormState["values"],
 ): ProspectingActionFormState | null {
-  if (err instanceof PersonWithoutLeadError) {
-    return {
-      ok: false,
-      errors: { personId: ["Cette personne n'a pas de fiche lead"] },
-      message: null,
-      values,
-    }
+  if (err instanceof PersonConflictError) {
+    return { ok: false, errors: conflictErrors(err), message: null, values }
   }
   if (!isPrismaError(err, "P2003")) return null
   return {
@@ -75,7 +81,7 @@ function saveProspectingAction(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: ProspectingActionInput) => Promise<{ id: string }>,
+  persist: (tx: Prisma.TransactionClient, data: ProspectingActionInput) => Promise<{ id: string }>,
   updatedId?: string,
 ): Promise<ProspectingActionFormState> {
   const values = collectValues(formData)
@@ -85,10 +91,11 @@ function saveProspectingAction(
     events,
     schema: prospectingActionSchema,
     input: values,
-    persist: async (data) => {
-      await requireLead(data.personId)
-      return persist(data)
-    },
+    persist: (data) =>
+      prisma.$transaction(async (tx) => {
+        await requireProspectableLead(tx, data.personId, updatedId)
+        return persist(tx, data)
+      }),
     successLogFields: (_data, action) => ({ id: action.id }),
     invalidateCaches: invalidateActionCaches,
     onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
@@ -121,8 +128,8 @@ export async function createProspectingAction(
     "createProspectingAction",
     { success: "prospecting_action:created", failure: "prospecting_action:create_failed" },
     formData,
-    (data) =>
-      prisma.prospectingAction.create({
+    (tx, data) =>
+      tx.prospectingAction.create({
         data: { ...data, ...applyStatusRules(null, data, new Date()) },
       }),
   )
@@ -139,12 +146,12 @@ export async function updateProspectingAction(
     "updateProspectingAction",
     { success: "prospecting_action:updated", failure: "prospecting_action:update_failed" },
     formData,
-    async (data) => {
-      const current = await prisma.prospectingAction.findUniqueOrThrow({
+    async (tx, data) => {
+      const current = await tx.prospectingAction.findUniqueOrThrow({
         where: { id },
         select: TIMING_SELECT,
       })
-      return prisma.prospectingAction.update({
+      return tx.prospectingAction.update({
         where: { id },
         data: { ...data, ...applyStatusRules(current, data, new Date()) },
       })
@@ -166,21 +173,27 @@ export async function changeProspectingActionStatus(
     }
 
     try {
-      const current = await prisma.prospectingAction.findUniqueOrThrow({
-        where: { id },
-        select: TIMING_SELECT,
+      await prisma.$transaction(async (tx) => {
+        await assertProspectionAllowed(tx, { actionId: id })
+        const current = await tx.prospectingAction.findUniqueOrThrow({
+          where: { id },
+          select: TIMING_SELECT,
+        })
+        const timing = applyStatusRules(
+          current,
+          { ...current, status: parsed.data, respondedAt: null },
+          new Date(),
+        )
+        await tx.prospectingAction.update({ where: { id }, data: timing })
       })
-
-      const timing = applyStatusRules(
-        current,
-        { ...current, status: parsed.data, respondedAt: null },
-        new Date(),
-      )
-      await prisma.prospectingAction.update({ where: { id }, data: timing })
       invalidateActionCaches()
       log.info({ event: "prospecting_action:status_changed", id, status: parsed.data })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
+      if (err instanceof PersonConflictError) {
+        log.warn({ event: "prospecting_action:status_change_refused", id, reason: "opted_out" })
+        return { ok: false, errors: { status: [err.message] }, message: null }
+      }
       log.error({ err, event: "prospecting_action:status_change_failed", id })
       return { ok: false, errors: {}, message: "unknown_error" }
     }
@@ -201,15 +214,15 @@ export async function rescheduleProspectingAction(
     }
 
     try {
-      const { count } = await prisma.prospectingAction.updateMany({
-        where: { id, status: "A_FAIRE" },
-        data: { occurredAt: parsed.data },
+      const { count } = await prisma.$transaction(async (tx) => {
+        await assertProspectionAllowed(tx, { actionId: id })
+        return tx.prospectingAction.updateMany({
+          where: { id, status: "A_FAIRE" },
+          data: { occurredAt: parsed.data },
+        })
       })
       if (count === 0) {
-        const stillExists = await prisma.prospectingAction.findUnique({
-          where: { id },
-          select: { id: true },
-        })
+        const stillExists = await prospectingActionExists(id)
         // L'écran montrait une action périmée (passée à Fait ou supprimée ailleurs) : la revalidation le réaligne sur la base, sans quoi chaque nouvel essai échouerait.
         invalidateActionCaches()
         log.warn({ event: "prospecting_action:reschedule_refused", id })
@@ -229,6 +242,11 @@ export async function rescheduleProspectingAction(
       log.info({ event: "prospecting_action:rescheduled", id })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
+      if (err instanceof PersonConflictError) {
+        invalidateActionCaches()
+        log.warn({ event: "prospecting_action:reschedule_refused", id })
+        return { ok: false, errors: { occurredAt: [err.message] }, message: null }
+      }
       log.error({ err, event: "prospecting_action:reschedule_failed", id })
       return { ok: false, errors: {}, message: "unknown_error" }
     }

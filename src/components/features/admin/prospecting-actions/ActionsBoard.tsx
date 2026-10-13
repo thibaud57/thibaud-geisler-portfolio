@@ -200,7 +200,7 @@ export function ActionsBoard({ actions, personOptions }: Props) {
       if (!result?.ok) {
         // Réaligné sur la dernière lecture du serveur, pas sur l'instantané du geste : un autre déplacement enregistré entre-temps et la période choisie restent.
         setSyncedActions(null)
-        toast.error(GENERIC_ERROR_TOAST)
+        toast.error(result?.errors.status?.[0] ?? GENERIC_ERROR_TOAST)
       }
     })
   }

@@ -14,6 +14,7 @@ const adminOpportunityInclude = {
       optedOutAt: true,
       lead: { select: { personId: true } },
       contact: { select: { personId: true } },
+      company: { select: { logoFilename: true } },
     },
   },
   intermediary: { select: { id: true, name: true, logoFilename: true } },

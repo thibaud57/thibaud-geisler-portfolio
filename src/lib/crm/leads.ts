@@ -102,11 +102,11 @@ export const LEAD_FIELD_LABELS = {
   score: "Score",
   lastReplyAt: "Dernier contact de sa part",
   retentionEnd: "À conserver jusqu'au",
+  contactRole: "Fiche contact",
 } as const
 
 export const LEAD_SECTION_TITLES = {
   pipeline: "Pipeline",
-  network: "Réseau",
   actions: PERSON_SECTION_TITLES.actions,
   opportunities: "Opportunités apportées",
   interviews: "Entretiens",

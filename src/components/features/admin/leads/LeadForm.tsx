@@ -16,8 +16,8 @@ import type { LeadOrigin } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
+import { contactDetailHrefOf } from "@/lib/crm/person-links"
 import { detailsAfterOriginChange } from "@/lib/crm/details-templates"
-import { LEAD_DISPLAY_STATUS_LABELS } from "@/lib/crm/lead-display-status"
 import {
   LEAD_CHANNEL_ICONS,
   LEAD_CHANNEL_LABELS,
@@ -37,8 +37,6 @@ import { createLead, updateLead } from "@/server/actions/leads"
 import { initialLeadFormState } from "@/server/actions/leads.types"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminLead } from "@/server/queries/leads"
-
-const STATUS_HELP = `Affiché ${LEAD_DISPLAY_STATUS_LABELS.DEAL} ou ${LEAD_DISPLAY_STATUS_LABELS.RDV_PLANIFIE} d'après ses opportunités et entretiens.`
 
 interface Props {
   lead: AdminLead | null
@@ -92,7 +90,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
         lead ? (
           <OptOutPersonDialog
             person={lead}
-            hasContactRole={lead.contactRole !== null}
+            hasContactRole={lead.hasContactRole}
             onDone={() => {
               // La fiche vidée ne vit plus que dans Tous.
               router.push(ADMIN_LEADS_PATH)
@@ -107,6 +105,11 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
             companyOptions={companyOptions}
             defaults={lead}
             errors={state.errors}
+            otherRole={
+              lead
+                ? { label: LEAD_FIELD_LABELS.contactRole, href: contactDetailHrefOf(lead) }
+                : undefined
+            }
           />
 
           <DetailsCard
@@ -133,7 +136,6 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
               icons={LEAD_STATUS_ICONS}
               defaultValue={lead?.status ?? "NOUVEAU"}
               errors={state.errors.status}
-              help={STATUS_HELP}
             />
 
             <SelectField

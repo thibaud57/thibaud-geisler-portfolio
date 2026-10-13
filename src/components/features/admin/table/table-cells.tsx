@@ -21,7 +21,7 @@ import {
   WORK_MODE_LABELS,
 } from "@/lib/projects"
 import { ZONE_LABELS } from "@/lib/crm/zones"
-import { STANDALONE_LINK_CLASS } from "@/lib/typography"
+import { cn } from "@/lib/utils"
 
 // Fonction et non composant : DataTable ne pose EmptyValue que sur un null reçu, pas sur un élément qui rend null.
 export function truncatedCell(value: string | null | undefined) {
@@ -106,52 +106,103 @@ export function linkedinLink(person: { linkedinUrl: string | null }) {
   ) : null
 }
 
-export function companyCell(person: {
-  company: { name: string; logoFilename: string | null } | null
+interface CompanyRef {
+  id: string
+  name: string
+  logoFilename: string | null
+}
+
+// Fonction et non composant, comme `truncatedCell` : DataTable ne pose EmptyValue que sur un null reçu.
+export function companyCell(row: { company: CompanyRef | null }) {
+  return row.company ? <CompanyLink company={row.company} /> : null
+}
+
+// Référence à une autre fiche de l'admin, la même en colonne et en vue détail : un visuel puis le
+// libellé, un seul lien, en couleur du texte. Le vert reste aux liens qui sortent de l'admin. Sans
+// fiche à ouvrir, la même référence reste en texte simple.
+export function RecordLink({
+  href,
+  leading,
+  children,
+}: {
+  href: ComponentProps<typeof Link>["href"] | null
+  leading?: ReactNode
+  children: string
 }) {
-  if (!person.company) return null
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <CompanyLogoTile logoFilename={person.company.logoFilename} size="sm" />
-      <TruncateTooltip className="min-w-0">{person.company.name}</TruncateTooltip>
-    </span>
+  const content = (
+    <>
+      {leading}
+      <TruncateTooltip
+        className={cn("min-w-0", href && "underline-offset-4 group-hover:underline")}
+      >
+        {children}
+      </TruncateTooltip>
+    </>
+  )
+  const className = "group inline-flex max-w-full min-w-0 items-center gap-2"
+  return href ? (
+    <Link href={href} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <span className={className}>{content}</span>
   )
 }
 
-interface PersonLinkProps {
-  person: {
+export function CompanyLink({ company }: { company: CompanyRef }) {
+  return (
+    <RecordLink
+      href={detailHref(ADMIN_COMPANIES_PATH, company.id)}
+      leading={<CompanyLogoTile logoFilename={company.logoFilename} size="sm" />}
+    >
+      {company.name}
+    </RecordLink>
+  )
+}
+
+interface PersonRef {
+  name: string | null
+  email: string | null
+  linkedinUrl: string | null
+  company?: { logoFilename: string | null } | null
+}
+
+export function PersonRecordLink({
+  person,
+  href,
+}: {
+  person: PersonRef
+  href: ComponentProps<typeof RecordLink>["href"]
+}) {
+  return (
+    <RecordLink
+      href={href}
+      leading={
+        person.company ? (
+          <CompanyLogoTile logoFilename={person.company.logoFilename} size="sm" />
+        ) : null
+      }
+    >
+      {personDisplayName(person)}
+    </RecordLink>
+  )
+}
+
+// Une personne peut avoir perdu ses rôles Lead et Contact : sans fiche à ouvrir, son nom reste en texte simple.
+export function PersonLink({
+  person,
+}: {
+  person: PersonRef & {
     id: string
-    name: string | null
-    email: string | null
-    linkedinUrl: string | null
     lead: object | null
     contact: object | null
     optedOutAt?: Date | null
   }
-  children?: ReactNode
-}
-
-// Une personne peut avoir perdu ses rôles Lead et Contact : sans fiche à ouvrir, son nom reste en texte simple.
-export function PersonLink({ person, children = personDisplayName(person) }: PersonLinkProps) {
-  const href = personDetailHref(person)
+}) {
   return (
-    <span className="inline-flex items-center gap-1">
-      {href ? (
-        <Link href={href} className={STANDALONE_LINK_CLASS}>
-          {children}
-        </Link>
-      ) : (
-        <span>{children}</span>
-      )}
+    <span className="inline-flex max-w-full min-w-0 items-center gap-2">
+      <PersonRecordLink person={person} href={personDetailHref(person)} />
       {person.optedOutAt ? <Badge variant="outline">{OPTED_OUT_LABEL}</Badge> : null}
     </span>
-  )
-}
-
-export function CompanyLink({ company }: { company: { id: string; name: string } }) {
-  return (
-    <Link href={detailHref(ADMIN_COMPANIES_PATH, company.id)} className={STANDALONE_LINK_CLASS}>
-      {company.name}
-    </Link>
   )
 }

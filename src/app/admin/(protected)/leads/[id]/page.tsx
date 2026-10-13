@@ -2,15 +2,13 @@ import { notFound, redirect } from "next/navigation"
 
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
+import { LeadInterviewsCard } from "@/components/features/admin/leads/LeadInterviewsCard"
 import { LeadOpportunitiesCard } from "@/components/features/admin/leads/LeadOpportunitiesCard"
 import { PersonActionsCard } from "@/components/features/admin/persons/PersonActionsCard"
-import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
-import { ADMIN_INTERVIEWS_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
+import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { LEAD_PAGE_SKELETON } from "@/lib/admin/table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { toLeadInterviewLinks } from "@/lib/crm/interviews"
-import { LEAD_SECTION_TITLES } from "@/lib/crm/leads"
 import { personDisplayName } from "@/lib/crm/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadByIdForAdmin } from "@/server/queries/leads"
@@ -40,14 +38,7 @@ async function EditLeadSection({ id }: { id: string }) {
               actions={actions}
             />
             <LeadOpportunitiesCard lead={lead} />
-            <RelatedLinksCard
-              title={LEAD_SECTION_TITLES.interviews}
-              links={toLeadInterviewLinks(
-                lead.interviews,
-                (id) => `${ADMIN_INTERVIEWS_PATH}/${id}`,
-              )}
-              emptyText="Aucun entretien pour ce lead."
-            />
+            <LeadInterviewsCard lead={lead} />
             {/* Seul un lead outbound reçoit un signal ; un lead passé inbound garde les siens. */}
             <SignalsCard
               signals={lead.signals}

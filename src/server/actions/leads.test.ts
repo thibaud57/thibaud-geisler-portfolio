@@ -353,7 +353,7 @@ describe("deleteLead", () => {
     expect(state.message).toBe("unknown_error")
   })
 
-  it("refuses to delete an opted-out lead, keeping its opposition", async () => {
+  it("refuses to delete an opted-out lead before the end of its three years", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: new Date() } as never)
 
     const state = await deleteLead("p1")
@@ -361,5 +361,17 @@ describe("deleteLead", () => {
     expect(state.message).toBe("lead_opted_out_locked")
     expect(prisma.lead.delete).not.toHaveBeenCalled()
     expect(prisma.person.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("deletes an opted-out lead once its three years are over", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({
+      optedOutAt: new Date(2020, 0, 15),
+    } as never)
+
+    const state = await deleteLead("p1")
+
+    expect(state.ok).toBe(true)
+    expect(prisma.lead.delete).toHaveBeenCalledWith({ where: { personId: "p1" } })
+    expect(prisma.person.deleteMany).toHaveBeenCalled()
   })
 })

@@ -1,12 +1,17 @@
+import type { ComponentProps } from "react"
+
+import { CompanyLogoTile } from "@/components/features/admin/CompanyLogoTile"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import type { DetailSection } from "@/components/features/admin/detail/DetailDialog"
 import type { Column } from "@/components/features/admin/table/DataTable"
 import {
-  CompanyLink,
   companyCell,
   enumFacet,
   hideableColumn,
   linkedinLink,
+  PersonRecordLink,
+  RecordLink,
   truncatedCell,
   zoneBadge,
 } from "@/components/features/admin/table/table-cells"
@@ -23,10 +28,10 @@ interface PersonRow {
   phone: string | null
   notes: string | null
   zone: Zone | null
-  company: { name: string; logoFilename: string | null } | null
+  company: { id: string; name: string; logoFilename: string | null } | null
 }
 
-type PersonColumnKey = "name" | "company" | "zone" | "linkedinUrl" | "email" | "phone" | "notes"
+type PersonColumnKey = "name" | "zone" | "linkedinUrl" | "email" | "phone" | "notes"
 
 export function personColumns<T extends PersonRow>(
   widths: Record<PersonColumnKey, number>,
@@ -40,18 +45,12 @@ export function personColumns<T extends PersonRow>(
       sortValue: (person) => personDisplayName(person),
       searchValue: (person) => `${personDisplayName(person)} ${person.company?.name ?? ""}`,
       cell: (person) => (
-        <TruncateTooltip className="block w-full font-medium">
-          {personDisplayName(person)}
-        </TruncateTooltip>
+        <TitleCell
+          title={personDisplayName(person)}
+          subtitle={person.company?.name}
+          leading={<CompanyLogoTile logoFilename={person.company?.logoFilename ?? null} />}
+        />
       ),
-    },
-    company: {
-      key: "company",
-      header: PERSON_FIELD_LABELS.companyId,
-      width: widths.company,
-      ...hideableColumn(visible, "company"),
-      sortValue: (person) => person.company?.name ?? "",
-      cell: companyCell,
     },
     zone: {
       key: "zone",
@@ -99,9 +98,8 @@ export function personColumns<T extends PersonRow>(
 }
 
 export function personDetailSections(
-  person: Pick<PersonRow, "zone" | "email" | "phone" | "linkedinUrl"> & {
-    company: { id: string; name: string } | null
-  },
+  person: Pick<PersonRow, "name" | "zone" | "email" | "phone" | "linkedinUrl" | "company">,
+  otherRole: { label: string; href: ComponentProps<typeof RecordLink>["href"] },
 ): [DetailSection, DetailSection] {
   return [
     {
@@ -109,9 +107,13 @@ export function personDetailSections(
       rows: [
         {
           label: PERSON_FIELD_LABELS.companyId,
-          value: person.company ? <CompanyLink company={person.company} /> : null,
+          value: companyCell(person),
         },
         { label: PERSON_FIELD_LABELS.zone, value: zoneBadge(person) },
+        {
+          label: otherRole.label,
+          value: otherRole.href ? <PersonRecordLink person={person} href={otherRole.href} /> : null,
+        },
       ],
     },
     {
@@ -125,14 +127,19 @@ export function personDetailSections(
   ]
 }
 
-export function personFacets<T extends { zone: Zone | null }>(isOverdue: (row: T) => boolean) {
-  const zone = enumFacet<T, Zone>(
+export function zoneFacet<T extends { zone: Zone | null }>(): Facet<T> {
+  return enumFacet<T, Zone>(
     "zone",
     PERSON_FIELD_LABELS.zone,
     ZONES,
     ZONE_LABELS,
     (person) => person.zone,
   )
+}
+
+// Les contacts n'ont pas d'échéance : le réseau n'a aucune durée légale, seuls les leads lisent `overdue`.
+export function personFacets<T extends { zone: Zone | null }>(isOverdue: (row: T) => boolean) {
+  const zone = zoneFacet<T>()
   const overdue: Facet<T> = {
     key: "overdue",
     label: "Échéance",

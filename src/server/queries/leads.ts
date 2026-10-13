@@ -1,8 +1,6 @@
 import "server-only"
 
 import type {
-  ContactStatus,
-  ContactType,
   JobRole,
   LeadChannel,
   LeadInterest,
@@ -25,7 +23,7 @@ const adminLeadInclude = {
         select: opportunitySummarySelect,
         orderBy: { updatedAt: "desc" },
       },
-      contact: { select: { types: true, status: true } },
+      contact: { select: { personId: true } },
       prospectingActions: {
         where: { respondedAt: { not: null } },
         orderBy: { respondedAt: "desc" },
@@ -82,7 +80,7 @@ export interface AdminLead {
   createdAt: Date
   actionsCount: number
   interviews: LeadWithPerson["person"]["interviews"]
-  contactRole: { types: ContactType[]; status: ContactStatus } | null
+  hasContactRole: boolean
   opportunities: OpportunitySummary[]
   signals: SignalItem[]
 }
@@ -112,7 +110,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     createdAt: row.createdAt,
     actionsCount: row.person._count.prospectingActions,
     interviews: row.person.interviews,
-    contactRole: row.person.contact,
+    hasContactRole: row.person.contact !== null,
     opportunities: row.person.referredOpportunities,
     signals: row.person.signals,
   }

@@ -46,10 +46,9 @@ export const CONTACT_STATUS_ICONS: Record<ContactStatus, IconComponent | null> =
 export const CONTACT_FIELD_LABELS = {
   types: "Types",
   status: "Statut",
-  reviewAt: "À conserver jusqu'au",
+  leadRole: "Fiche lead",
 } as const
 
 export const CONTACT_SECTION_TITLES = {
   relation: "Relation",
-  pipeline: "Pipeline",
 } as const

@@ -8,6 +8,7 @@ import {
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
 } from "@/lib/admin/routes"
+import { isOptOutOver } from "@/lib/crm/person-retention"
 import { formatShortInstantDate } from "@/lib/date-time"
 import { stringField } from "@/lib/server-utils"
 
@@ -139,16 +140,51 @@ export async function assertNewIdentity(
   )
 }
 
-// Une personne opposée ne se modifie ni ne se supprime : sa fiche vidée est la seule trace qui empêche de la reprospecter.
-export async function assertNotOptedOut(
+async function findOptedOutAt(
   tx: Prisma.TransactionClient,
   personId: string,
-): Promise<void> {
+): Promise<Date | null> {
   const person = await tx.person.findUnique({
     where: { id: personId },
     select: { optedOutAt: true },
   })
-  if (person?.optedOutAt) throw new PersonLockedError()
+  return person?.optedOutAt ?? null
+}
+
+// Une personne opposée ne se modifie pas : sa fiche vidée est la seule trace qui empêche de la reprospecter.
+export async function assertNotOptedOut(
+  tx: Prisma.TransactionClient,
+  personId: string,
+): Promise<void> {
+  if (await findOptedOutAt(tx, personId)) throw new PersonLockedError()
+}
+
+// La même trace ne se supprime qu'au terme de ses 3 ans : la perdre plus tôt rouvrirait la personne à la prospection.
+export async function assertOptOutOver(
+  tx: Prisma.TransactionClient,
+  personId: string,
+): Promise<void> {
+  const optedOutAt = await findOptedOutAt(tx, personId)
+  if (optedOutAt && !isOptOutOver(optedOutAt, new Date())) throw new PersonLockedError()
+}
+
+// Une action ne se crée, ne se réécrit ni ne se replanifie pour une personne opposée, qu'elle la vise ou qu'elle y soit déjà rattachée : sans ce second cas, un déplacement vers un autre lead contournerait la règle.
+// FOR SHARE attend le commit d'une opposition en cours (son UPDATE verrouille la ligne) : sans lui, une action s'écrirait entre la lecture et l'écriture.
+export async function assertProspectionAllowed(
+  tx: Prisma.TransactionClient,
+  target: { personId?: string; actionId?: string },
+): Promise<void> {
+  // Verrouille d'abord l'action : sans cela, un déplacement concurrent vers une autre personne passerait entre ce contrôle et l'écriture.
+  if (target.actionId) {
+    await tx.$queryRaw`SELECT id FROM "freelance"."ProspectingAction" WHERE id = ${target.actionId} FOR UPDATE`
+  }
+  const persons = await tx.$queryRaw<{ optedOutAt: Date | null }[]>`
+    SELECT "optedOutAt" FROM "freelance"."Person"
+    WHERE id = ${target.personId ?? null}
+       OR id = (SELECT "personId" FROM "freelance"."ProspectingAction" WHERE id = ${target.actionId ?? null})
+    FOR SHARE`
+  const optedOutAt = persons.find((person) => person.optedOutAt)?.optedOutAt
+  if (optedOutAt) throw new PersonConflictError("personId", "opted_out", optOutMessage(optedOutAt))
 }
 
 // Une seule instruction conditionnelle : lire l'autre rôle puis supprimer laisserait une fenêtre où un rôle posé entre-temps ferait disparaître la personne avec lui.

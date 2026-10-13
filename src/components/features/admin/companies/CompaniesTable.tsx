@@ -30,7 +30,7 @@ import { TruncateTooltip } from "@/components/features/admin/TruncateTooltip"
 import { DeleteCompanyDialog } from "@/components/features/admin/companies/DeleteCompanyDialog"
 import { BadgeList } from "@/components/features/admin/BadgeList"
 import { ExternalUrl } from "@/components/features/admin/ExternalUrl"
-import { NameSlugCell } from "@/components/features/admin/table/NameSlugCell"
+import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { signalsSection } from "@/components/features/admin/signals/signal-detail"
 import { useSignalDetail } from "@/components/features/admin/signals/useSignalDetail"
 import { Badge } from "@/components/ui/badge"
@@ -120,19 +120,19 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
   const visibleByDefault = COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   return [
     {
-      key: "logo",
-      header: "Logo",
-      headerSrOnly: true,
-      width: COMPANY_COLUMN_WIDTHS.logo,
-      cell: (company) => <CompanyLogoTile logoFilename={company.logoFilename} />,
-    },
-    {
       key: "name",
       header: COMPANY_FIELD_LABELS.name,
       width: COMPANY_COLUMN_WIDTHS.name,
       sortValue: (company) => company.name,
       searchValue: (company) => `${company.name} ${company.slug}`,
-      cell: (company) => <NameSlugCell name={company.name} slug={company.slug} />,
+      cell: (company) => (
+        <TitleCell
+          title={company.name}
+          subtitle={company.slug}
+          mono
+          leading={<CompanyLogoTile logoFilename={company.logoFilename} />}
+        />
+      ),
     },
     {
       key: "types",

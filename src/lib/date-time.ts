@@ -22,16 +22,6 @@ const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", {
   timeZone: TIME_ZONE,
 })
 
-const SHORT_DATE_TIME = new Intl.DateTimeFormat("fr-FR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-  timeZone: TIME_ZONE,
-})
-
 const SHORT_TIME = new Intl.DateTimeFormat("fr-FR", {
   hour: "2-digit",
   minute: "2-digit",
@@ -73,7 +63,7 @@ export function formatShortInstantTime(date: Date): string {
 export function formatShortDateTime(date: Date): string
 export function formatShortDateTime(date: Date | null): string | null
 export function formatShortDateTime(date: Date | null): string | null {
-  return date ? SHORT_DATE_TIME.format(date).replace(",", "") : null
+  return date ? `${SHORT_DATE.format(date)} · ${SHORT_TIME.format(date)}` : null
 }
 
 export const DAY_MS = 86_400_000

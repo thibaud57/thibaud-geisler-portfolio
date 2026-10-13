@@ -1,13 +1,12 @@
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { LeadForm } from "@/components/features/admin/leads/LeadForm"
+import { LeadInterviewsCard } from "@/components/features/admin/leads/LeadInterviewsCard"
 import { LeadOpportunitiesCard } from "@/components/features/admin/leads/LeadOpportunitiesCard"
 import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
 import { PersonActionsCard } from "@/components/features/admin/persons/PersonActionsCard"
-import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { LEAD_PAGE_SKELETON } from "@/lib/admin/table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { LEAD_SECTION_TITLES } from "@/lib/crm/leads"
 import { findCompanyOptions } from "@/server/queries/companies"
 
 async function NewLeadSection() {
@@ -24,11 +23,7 @@ async function NewLeadSection() {
           <>
             <PersonActionsCard person={null} actions={[]} />
             <LeadOpportunitiesCard lead={null} />
-            <RelatedLinksCard
-              title={LEAD_SECTION_TITLES.interviews}
-              links={[]}
-              emptyText="Après l'enregistrement du lead."
-            />
+            <LeadInterviewsCard lead={null} />
             <PendingRelatedCard
               title="Signaux"
               emptyText="Après l'enregistrement du lead."
