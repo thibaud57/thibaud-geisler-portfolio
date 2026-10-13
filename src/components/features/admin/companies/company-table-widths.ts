@@ -37,7 +37,6 @@ const ALL_COMPANY_COLUMNS: readonly CompanyColumnKey[] = [
   "projects",
 ]
 
-// Source unique des colonnes visibles par défaut par vue, lue par la table comme par son squelette.
 export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   CompanyView,
   readonly CompanyColumnKey[]

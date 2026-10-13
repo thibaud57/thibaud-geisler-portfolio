@@ -41,7 +41,6 @@ export const interviewSchema = z
   .object({
     opportunityId: z.string().trim().min(1, "Choisissez une opportunité"),
     side: z.enum(InterviewSide, { error: "Choisissez qui mène l'entretien" }),
-    // Un correspondant envoyé deux fois n'en fait qu'un.
     correspondentIds: z.array(z.string().trim().min(1)).transform((ids) => [...new Set(ids)]),
     // Encodés en JSON par le formulaire : un tableau d'objets ne se porte pas nativement en FormData.
     newCorrespondents: z

@@ -44,7 +44,7 @@ export type ActionTimelineRow = Prisma.ProspectingActionGetPayload<{
   select: typeof actionTimelineSelect
 }>
 
-// Sans le message ni la personne : la liste des leads n'en montre que le type, le statut et la date, et ne doit pas embarquer le texte de chaque échange.
+// Sans le message ni la personne : la liste des leads n'en montre que le type, le statut et la date, sans embarquer le texte de chaque échange.
 export async function findActionTimelinesForAdmin(): Promise<ActionTimelineRow[]> {
   return prisma.prospectingAction.findMany({
     where: { person: { lead: { isNot: null } } },

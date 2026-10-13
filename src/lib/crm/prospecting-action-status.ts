@@ -22,7 +22,7 @@ export function applyStatusRules(
   now: Date,
 ): ActionTiming {
   // La date devient celle de l'envoi réel, sauf si la même saisie change de jour (rattrapage). Le jour
-  // seul compte : le formulaire ne saisit plus l'heure.
+  // seul compte : le formulaire ne saisit pas l'heure.
   const leavesToDo =
     current !== null &&
     current.status === "A_FAIRE" &&

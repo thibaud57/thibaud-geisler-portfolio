@@ -21,7 +21,7 @@ interface Props {
 }
 
 export function PersonActionsCard({ person, actions }: Props) {
-  // Pas encore de personId tant que la fiche n'est pas enregistrée : la card reste vide, bouton désactivé.
+  // Pas encore de personId tant que la fiche n'est pas enregistrée.
   if (!person) {
     return (
       <PendingRelatedCard

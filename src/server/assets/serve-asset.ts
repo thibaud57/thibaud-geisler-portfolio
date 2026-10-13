@@ -59,7 +59,6 @@ interface ServeAssetOptions {
   routeLabel: string
 }
 
-// Corps partagé par /api/assets et /admin/api/assets (validation, lecture R2, flux, 404 NoSuchKey).
 // La garde d'auth et le choix du bucket restent dans chaque route : voir nextjs/assets.md.
 export async function serveAsset(rawPath: string[], options: ServeAssetOptions): Promise<Response> {
   const log = logger.child({ route: options.routeLabel })

@@ -3,7 +3,7 @@ import "server-only"
 import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 
-// Les champs dont `interviewPlaces` déduit le numéro et l'entretien précédent d'une opportunité.
+// Champs minimaux pour déduire le numéro et l'entretien précédent d'une opportunité.
 export const orderedInterviewSelect = {
   id: true,
   opportunityId: true,

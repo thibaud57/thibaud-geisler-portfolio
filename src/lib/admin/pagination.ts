@@ -25,8 +25,7 @@ export function paginate<T>(
   return { currentPage, pageCount, pageItems }
 }
 
-// Fenêtre de pages du seul bloc de pagination du projet (PaginationFooter, table comme grille de
-// tuiles). Toujours cinq emplacements au-delà de cinq pages, pour que le bloc ne change jamais de
+// Toujours cinq emplacements au-delà de cinq pages, pour que le bloc ne change jamais de
 // largeur quand on navigue : c'est ce qui coûte les voisines de la page courante en position
 // médiane, où seules les flèches permettent d'avancer d'une page.
 export function getVisiblePages(current: number, total: number): PaginationEntry[] {

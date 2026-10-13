@@ -24,7 +24,7 @@ export const INTERVIEW_COLUMN_WIDTHS = {
 export type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
 
 // À venir masque Statut, toujours Planifié dans cette vue, et Issue, Score et Décision, qui n'existent
-// qu'une fois l'entretien fait. Journal, la vue complète, montre toutes ses colonnes (arbitrage « Colonnes par vue »).
+// qu'une fois l'entretien fait. Journal, la vue complète, montre toutes ses colonnes.
 export const INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   InterviewView,
   readonly InterviewColumnKey[]

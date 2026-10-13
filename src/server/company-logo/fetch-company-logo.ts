@@ -59,7 +59,7 @@ export async function fetchCompanyIcon(
   throw new NoIconFoundError()
 }
 
-// Nom tiré du contenu : le logo en place n'est jamais écrasé avant l'enregistrement, et une nouvelle adresse contourne le cache de next/image.
+// Nom tiré du contenu : le logo en place n'est jamais écrasé avant l'enregistrement ; une nouvelle adresse contourne le cache de next/image.
 export async function storeCompanyLogo(slug: string, png: Buffer): Promise<string> {
   const hash = createHash("sha256").update(png).digest("hex").slice(0, HASH_LENGTH)
   const key = buildAssetKey({ folder: COMPANY_LOGO_FOLDER, slug, filename: `logo-${hash}.png` })

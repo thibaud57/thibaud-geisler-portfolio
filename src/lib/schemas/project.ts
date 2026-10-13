@@ -82,9 +82,8 @@ export const projectSchema = z
       })
       .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
     teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
-    // 0 est légitime : une mission peut être terminée sans livrable remis (cadrage,
-    // architecture). La stat publique « projets clients livrés » somme cette colonne,
-    // un 0 doit pouvoir s'y compter pour ce qu'il vaut plutôt que d'être interdit.
+    // 0 est légitime (mission terminée sans livrable, ex. cadrage) : la stat publique
+    // « projets clients livrés » somme cette colonne et doit compter ce 0.
     deliverablesCount: positiveIntegerString({
       requiredMessage: "Le nombre de livrables est requis",
       numberMessage: "Le nombre de livrables doit être un nombre",

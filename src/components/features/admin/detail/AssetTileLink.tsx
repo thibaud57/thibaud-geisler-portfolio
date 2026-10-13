@@ -7,7 +7,6 @@ interface Props {
   name: string
 }
 
-// Image d'identité dans l'en-tête d'une vue détail (logo, couverture) : la tuile en grand, cliquable vers l'écran Assets quand le fichier existe.
 export function AssetTileLink({ assetKey, name }: Props) {
   if (!assetKey) return <CompanyLogoTile logoFilename={null} size="lg" />
   return (

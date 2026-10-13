@@ -13,7 +13,7 @@ type CompanyCrmFields = Pick<
   clientMetas: { project: { type: ProjectType } }[]
 }
 
-// Valeurs laissées par la migration du 02 (colonnes par défaut, plus son rattrapage qui type Client final toute
+// Valeurs laissées par la migration `company_crm_fields` (colonnes par défaut, plus son rattrapage qui type Client final toute
 // entreprise citée par un projet client et Ma société celle du propriétaire) : tant qu'elles y sont, rien n'a été saisi
 function hasDefaultCrmFields(company: CompanyCrmFields): boolean {
   const citedByClientProject = company.clientMetas.some((meta) => meta.project.type === "CLIENT")

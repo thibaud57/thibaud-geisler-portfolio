@@ -60,7 +60,7 @@ function collectValues(formData: FormData): InterviewFormState["values"] {
   }
 }
 
-// Mener côté ESN suppose que l'opportunité en a une ; les correspondants existants doivent exister, et un correspondant opposé reste un fait de l'entretien : seul un nouveau ne doit pas l'être.
+// Mener côté ESN suppose que l'opportunité en a une ; les correspondants existants doivent exister. Un correspondant opposé reste un fait de l'entretien : seul un nouveau ne doit pas l'être.
 async function assertInterviewTargets(
   data: InterviewInput,
   interviewId: string | null,

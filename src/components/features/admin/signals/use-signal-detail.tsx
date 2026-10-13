@@ -12,7 +12,7 @@ interface EditingSignal {
 
 export function useSignalDetail(now: Date) {
   const [selectedSignal, setSelectedSignal] = useState<SignalItem | null>(null)
-  // Survit à la désélection : « Modifier » ferme la vue détail avant d'ouvrir le formulaire. Cet instantané survit aussi à la disparition de la ligne : le toast « Ce signal n'existe plus » s'affiche depuis la modale, qui ne doit pas être démontée avec elle.
+  // Survit à la désélection : « Modifier » ferme la vue détail avant d'ouvrir le formulaire. Survit aussi à la disparition de la ligne : le toast « Ce signal n'existe plus » s'affiche depuis la modale.
   const [editing, setEditing] = useState<EditingSignal | null>(null)
 
   const detailFor = useCallback(

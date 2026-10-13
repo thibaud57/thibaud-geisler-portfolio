@@ -13,7 +13,6 @@ export function nullifyNoneValue<T extends string, S extends string>(
 
 export const emptyToNull = <T>(value: T): T | null => (value === "" ? null : value)
 
-// Sentinelle « Non renseigné » des Select nullables (un SelectItem Radix refuse value="").
 export const NONE_VALUE = "aucune"
 
 // Libellé de la sentinelle, accordé au nom du champ : « Non renseigné » (contrat, mode de travail, rythme), « Non renseignée » (localité, taille).

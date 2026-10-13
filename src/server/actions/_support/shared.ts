@@ -59,8 +59,7 @@ interface DeleteEntityConfig<TState> {
   events: ActionEvents
   successLogFields: Record<string, unknown>
   errorLogFields?: Record<string, unknown>
-  // Champ optionnel, pensé pour un contrôle "ressource encore utilisée" : exécuté sous
-  // instrumentation, avant `destroy`, il peut court-circuiter avec un état dédié sans passer par le mapping d'erreur.
+  // Exécuté sous instrumentation avant `destroy` : peut court-circuiter avec un état dédié sans passer par `mapError`.
   precondition?: () => Promise<TState | null>
   exists: () => Promise<boolean>
   destroy: () => Promise<unknown>

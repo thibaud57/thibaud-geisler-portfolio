@@ -224,7 +224,6 @@ enum InterviewFormat {
   @@schema("freelance")
 }
 
-// Où en est l'entretien.
 enum InterviewStatus {
   PLANIFIE
   FAIT
@@ -599,8 +598,8 @@ model Signal {
   content    String
   sourceUrl  String?
 
-  // Un seul rattachement, posé à la création, et un type propre à ce rattachement : la migration
-  // ajoute en SQL les deux CHECK que Prisma ne sait pas écrire.
+  // Un seul rattachement posé à la création et un type propre à ce rattachement : la migration
+  // ajoute en SQL les CHECK que Prisma ne sait pas écrire.
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   personId  String?
@@ -729,7 +728,7 @@ model LegalEntity {
 }
 
 // L'éditeur du site. Assujetti = date et régime renseignés ensemble, avec le numéro de TVA de
-// l'entité légale ; vides = franchise en base, et les pages légales affichent la mention 293 B.
+// l'entité légale ; vides = franchise en base : les pages légales affichent la mention 293 B.
 model Publisher {
   id            String      @id @default(uuid(7))
   legalEntityId String      @unique
@@ -770,7 +769,7 @@ model DataProcessing {
 }
 
 // Better Auth fournit id/createdAt/updatedAt à l'insertion : pas de @default(uuid(7))
-// ni @default(now())/@updatedAt sur ces 4 modèles, sinon double source de vérité.
+// ni @default(now())/@updatedAt sur ces modèles, sinon double source de vérité.
 model User {
   id            String    @id
   name          String

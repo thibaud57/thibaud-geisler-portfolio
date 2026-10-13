@@ -64,21 +64,18 @@ export interface ProjectDuration {
   months: number
 }
 
-// Arithmétique manuelle plutôt que date-fns, présente au projet mais pour la seule locale du
-// Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les
-// parts servent la vitrine (formatées par next-intl dans sa locale) et l'admin (français en dur).
-// Pas de lecture de l'horloge ici, l'appelant fournit la fin : new Date() côté admin (pages
-// dynamiques), getLiveProjectDuration côté vitrine (la page prérendue ne peut pas la lire).
+// Arithmétique manuelle plutôt que date-fns, présente au projet pour la seule locale du Calendar
+// shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les parts
+// servent la vitrine (next-intl) et l'admin (français en dur). Pas d'horloge ici : l'appelant
+// fournit la fin (la page prérendue de la vitrine ne peut pas la lire, d'où getLiveProjectDuration).
 export function getProjectDuration(
   startedAt: Date | null,
   endedAt: Date | null,
 ): ProjectDuration | null {
   if (!startedAt || !endedAt) return null
   const end = endedAt
-  // Zod refuse endedAt < startedAt depuis le formulaire d'édition, mais pas la base (edit SQL
-  // direct, donnée legacy) : une plage inversée n'a pas de durée plausible à afficher. Comparer les
-  // dates elles-mêmes, pas seulement le delta en mois : une inversion à l'intérieur du même mois
-  // calendaire (ex. 20 mai → 1er mai) a un delta de 0, que la seule comparaison de mois ne détecte pas.
+  // Zod refuse endedAt < startedAt, pas la base (edit SQL direct, donnée legacy) : une plage inversée
+  // n'a pas de durée à afficher. Comparer les dates, pas le delta en mois : 20 mai → 1er mai a un delta de 0.
   if (end < startedAt) return null
   const totalMonths = Math.max(
     1,

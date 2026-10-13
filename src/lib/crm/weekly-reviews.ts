@@ -124,7 +124,6 @@ export function reviewRates(review: ReviewCounts): {
   }
 }
 
-// Sans dénominateur, null : l'appelant rend la valeur absente.
 export function formatRate(value: number | null): string | null {
   return value === null ? null : `${value} %`
 }

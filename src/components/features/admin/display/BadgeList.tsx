@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { IconComponent } from "@/lib/icons"
 
-// Trois badges au plus puis un « +N », partout en affichage (docs/DESIGN.md § Arbitrages). Une vue
+// Au-delà de MAX_VISIBLE, un « +N », partout en affichage (docs/DESIGN.md § Arbitrages). Une vue
 // détail, faite pour tout montrer, passe `max={Infinity}`.
 const MAX_VISIBLE = 3
 

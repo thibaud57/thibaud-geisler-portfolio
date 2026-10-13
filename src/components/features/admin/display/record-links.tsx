@@ -27,9 +27,8 @@ export function companyCell(row: { company: CompanyRef | null }) {
   return row.company ? <CompanyLink company={row.company} /> : null
 }
 
-// Référence à une autre fiche de l'admin, la même en colonne et en vue détail : un visuel puis le
-// libellé, un seul lien, en couleur du texte. Le vert reste aux liens qui sortent de l'admin. Sans
-// fiche à ouvrir, la même référence reste en texte simple.
+// Un seul lien, en couleur du texte : le vert reste aux liens qui sortent de l'admin. Sans fiche à
+// ouvrir, la référence reste en texte simple.
 export function RecordLink({
   href,
   leading,

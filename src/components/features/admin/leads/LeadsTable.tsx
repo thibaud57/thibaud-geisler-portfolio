@@ -61,7 +61,7 @@ function statusBadge(lead: AdminLead, now: number) {
   )
 }
 
-// Une fiche en opposition ne se modifie pas : l'effacement des échanges lui reste, puis la suppression au terme de ses 3 ans.
+// Une fiche en opposition ne se modifie pas : l'effacement des échanges lui reste, puis la suppression une fois l'opposition échue.
 function rowActions(lead: AdminLead, now: Date) {
   if (lead.optedOutAt && isOptOutOver(lead.optedOutAt, now)) return <DeleteLeadDialog lead={lead} />
   if (lead.optedOutAt && lead.exchangesErasedAt) return null

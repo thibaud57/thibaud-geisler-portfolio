@@ -139,7 +139,7 @@ function replaceProjectTags(
 }
 
 // L'ordre courant se lit dans la transaction, ce qui ferme la fenêtre entre sa lecture et son
-// écriture. READ COMMITTED ne sérialise pas pour autant deux transactions concurrentes, et rien en
+// écriture. READ COMMITTED ne sérialise pas pour autant deux transactions concurrentes. Rien en
 // base n'interdit deux projets au même rang : la mutation suivante renumérote l'ensemble.
 async function createProjectWithRelations(input: ProjectInput) {
   return prisma.$transaction(async (tx) => {
