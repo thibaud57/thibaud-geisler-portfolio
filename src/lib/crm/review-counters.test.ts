@@ -4,8 +4,11 @@ import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
 
 import { countWeek, weekBounds, type CounterSources } from "./review-counters"
 
-// Semaine close le vendredi 25 septembre 2026 : du 18 septembre 22 h UTC au 25 septembre 22 h UTC (heure d'été).
-const BOUNDS = weekBounds(new Date(Date.UTC(2026, 8, 25)))
+// Semaine close le vendredi 25 septembre 2026 (heure d'été de Paris).
+const BOUNDS = {
+  start: new Date("2026-09-18T22:00:00.000Z"),
+  end: new Date("2026-09-25T22:00:00.000Z"),
+}
 const IN_WEEK = new Date("2026-09-23T10:00:00.000Z")
 const BEFORE = new Date("2026-09-18T10:00:00.000Z")
 const NOW = new Date("2026-09-25T12:00:00.000Z").getTime()
@@ -111,13 +114,23 @@ describe("countWeek", () => {
 })
 
 describe("weekBounds", () => {
-  it("keeps the week from Saturday to Friday in Paris time", () => {
-    const summer = weekBounds(new Date(Date.UTC(2026, 8, 25)))
-    const clockChange = weekBounds(new Date(Date.UTC(2026, 9, 30)))
+  it.each([
+    {
+      label: "in summer time",
+      date: Date.UTC(2026, 8, 25),
+      start: "2026-09-18T22:00:00.000Z",
+      end: "2026-09-25T22:00:00.000Z",
+    },
+    {
+      label: "across the clock change",
+      date: Date.UTC(2026, 9, 30),
+      start: "2026-10-23T22:00:00.000Z",
+      end: "2026-10-30T23:00:00.000Z",
+    },
+  ])("keeps the week from Saturday to Friday in Paris time $label", ({ date, start, end }) => {
+    const bounds = weekBounds(new Date(date))
 
-    expect(summer.start.toISOString()).toBe("2026-09-18T22:00:00.000Z")
-    expect(summer.end.toISOString()).toBe("2026-09-25T22:00:00.000Z")
-    expect(clockChange.start.toISOString()).toBe("2026-10-23T22:00:00.000Z")
-    expect(clockChange.end.toISOString()).toBe("2026-10-30T23:00:00.000Z")
+    expect(bounds.start.toISOString()).toBe(start)
+    expect(bounds.end.toISOString()).toBe(end)
   })
 })

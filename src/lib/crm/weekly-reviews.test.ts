@@ -24,7 +24,6 @@ describe("reviewRates", () => {
     const rates = reviewRates(COUNTS)
 
     expect(rates).toEqual({ acceptance: 50, response: 36, meetingConversion: 40 })
-    expect(formatRate(rates.acceptance)).toBe("50 %")
   })
 
   it("leaves the rate empty when the denominator is zero", () => {
@@ -32,49 +31,66 @@ describe("reviewRates", () => {
 
     expect(rates.response).toBeNull()
     expect(rates.meetingConversion).toBeNull()
-    expect(formatRate(rates.response)).toBeNull()
+  })
+})
+
+describe("formatRate", () => {
+  it.each([
+    { label: "a rate as a percentage", rate: 50, expected: "50 %" },
+    { label: "an empty rate as null", rate: null, expected: null },
+  ])("formats $label", ({ rate, expected }) => {
+    const formatted = formatRate(rate)
+
+    expect(formatted).toBe(expected)
   })
 })
 
 describe("weekLabel", () => {
-  it("labels the week with its ISO number and ISO year across the year boundary", () => {
-    const summer = weekLabel(new Date(Date.UTC(2026, 8, 4)))
-    const newYear = weekLabel(new Date(Date.UTC(2026, 0, 2)))
-    const lastWeek = weekLabel(new Date(Date.UTC(2027, 0, 1)))
+  it.each([
+    { label: "a September week", date: new Date(Date.UTC(2026, 8, 4)), expected: "S36 · 2026" },
+    {
+      label: "the first days of January",
+      date: new Date(Date.UTC(2026, 0, 2)),
+      expected: "S01 · 2026",
+    },
+    {
+      label: "the 1st of January 2027",
+      date: new Date(Date.UTC(2027, 0, 1)),
+      expected: "S53 · 2026",
+    },
+  ])("labels $label with its ISO number and year", ({ date, expected }) => {
+    const label = weekLabel(date)
 
-    expect(summer).toBe("S36 · 2026")
-    expect(newYear).toBe("S01 · 2026")
-    expect(lastWeek).toBe("S53 · 2026")
+    expect(label).toBe(expected)
   })
 })
 
 describe("defaultClosingFriday", () => {
-  it("defaults to today on a Friday, otherwise to the last Friday", () => {
-    const friday = defaultClosingFriday(new Date(2026, 8, 25, 18, 0))
-    const saturday = defaultClosingFriday(new Date(2026, 8, 26, 10, 0))
-    const thursday = defaultClosingFriday(new Date(2026, 9, 1, 9, 0))
+  it.each([
+    { label: "a Friday", now: new Date(2026, 8, 25, 18, 0), expected: new Date(2026, 8, 25) },
+    { label: "a Saturday", now: new Date(2026, 8, 26, 10, 0), expected: new Date(2026, 8, 25) },
+    { label: "a Thursday", now: new Date(2026, 9, 1, 9, 0), expected: new Date(2026, 8, 25) },
+  ])("closes on the last Friday from $label", ({ now, expected }) => {
+    const friday = defaultClosingFriday(now)
 
-    expect(friday).toEqual(new Date(2026, 8, 25))
-    expect(saturday).toEqual(new Date(2026, 8, 25))
-    expect(thursday).toEqual(new Date(2026, 8, 25))
+    expect(friday).toEqual(expected)
   })
 })
 
 describe("fridayOfWeek", () => {
-  it("resolves any day of a Monday to Sunday week to its Friday", () => {
-    const monday = fridayOfWeek(new Date(2026, 8, 21))
-    const friday = fridayOfWeek(new Date(2026, 8, 25))
-    const sunday = fridayOfWeek(new Date(2026, 8, 27))
+  it.each([
+    { label: "Monday", day: new Date(2026, 8, 21), expected: new Date(2026, 8, 25) },
+    { label: "Friday", day: new Date(2026, 8, 25), expected: new Date(2026, 8, 25) },
+    { label: "Sunday", day: new Date(2026, 8, 27), expected: new Date(2026, 8, 25) },
+    {
+      label: "30 September, across the month boundary",
+      day: new Date(2026, 8, 30),
+      expected: new Date(2026, 9, 2),
+    },
+  ])("resolves $label to the Friday of its week", ({ day, expected }) => {
+    const friday = fridayOfWeek(day)
 
-    expect(monday).toEqual(new Date(2026, 8, 25))
-    expect(friday).toEqual(new Date(2026, 8, 25))
-    expect(sunday).toEqual(new Date(2026, 8, 25))
-  })
-
-  it("crosses the month boundary", () => {
-    const friday = fridayOfWeek(new Date(2026, 8, 30))
-
-    expect(friday).toEqual(new Date(2026, 9, 2))
+    expect(friday).toEqual(expected)
   })
 })
 

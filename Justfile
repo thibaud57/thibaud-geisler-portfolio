@@ -78,10 +78,10 @@ audit:
 [group('quality')]
 test: test-unit test-integration
 
-# Tests unitaires (Vitest)
+# Tests unitaires (Vitest) : composants et lib en jsdom, code serveur en Node
 [group('quality')]
 test-unit:
-    pnpm vitest run --project unit
+    pnpm vitest run --project unit --project server
 
 # Tests d'intégration (DB de test via .env.test s'il existe)
 [group('quality')]

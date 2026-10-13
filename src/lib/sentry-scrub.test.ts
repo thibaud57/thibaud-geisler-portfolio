@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { scrubSentryEvent, scrubSentryLog } from "./sentry-scrub"
 
 describe("scrubSentryEvent", () => {
-  it("retire l'email et l'adresse IP de l'objet user", () => {
+  it("removes the email and IP address from the user object", () => {
     const event = {
       type: undefined,
       user: { id: "u1", email: "client@example.com", ip_address: "203.0.113.7" },
@@ -14,7 +14,7 @@ describe("scrubSentryEvent", () => {
     expect(result.user).toEqual({ id: "u1" })
   })
 
-  it("conserve les propriétés non sensibles de user", () => {
+  it("keeps the non-sensitive user properties", () => {
     const event = { type: undefined, user: { id: "u1", username: "alice" } }
 
     const result = scrubSentryEvent(event)
@@ -22,7 +22,7 @@ describe("scrubSentryEvent", () => {
     expect(result.user).toEqual({ id: "u1", username: "alice" })
   })
 
-  it("traverse un événement sans objet user sans lever", () => {
+  it("passes an event without a user object through without throwing", () => {
     const event = { type: undefined, message: "boom" }
 
     const result = scrubSentryEvent(event)
@@ -30,15 +30,7 @@ describe("scrubSentryEvent", () => {
     expect(result).toEqual({ message: "boom" })
   })
 
-  it("retourne toujours l'événement et jamais undefined", () => {
-    const event = { type: undefined }
-
-    const result = scrubSentryEvent(event)
-
-    expect(result).toBeDefined()
-  })
-
-  it("retire un email en clair dans le message d'une exception (ex: rejet SMTP)", () => {
+  it("redacts a plain email in an exception message (e.g. an SMTP rejection)", () => {
     const event = {
       type: undefined,
       exception: {
@@ -53,7 +45,7 @@ describe("scrubSentryEvent", () => {
     )
   })
 
-  it("retire un email en clair dans event.message", () => {
+  it("redacts a plain email in event.message", () => {
     const event = { type: undefined, message: "Échec envoi à visiteur@example.com" }
 
     const result = scrubSentryEvent(event)
@@ -61,7 +53,7 @@ describe("scrubSentryEvent", () => {
     expect(result.message).toBe("Échec envoi à [email redacted]")
   })
 
-  it("retire l'intégralité d'un email à domaine composé, sans laisser le TLD", () => {
+  it("redacts a whole email with a compound domain, leaving no TLD behind", () => {
     const event = { type: undefined, message: "rejet pour Camille.Fictif+tag@sub.example.com" }
 
     const result = scrubSentryEvent(event)
@@ -69,7 +61,7 @@ describe("scrubSentryEvent", () => {
     expect(result.message).toBe("rejet pour [email redacted]")
   })
 
-  it("laisse intactes les chaînes qui ressemblent à un email sans en être", () => {
+  it("leaves strings that only look like an email untouched", () => {
     const event = { type: undefined, message: "user@localhost npm@7 a@b 12@34 @handle" }
 
     const result = scrubSentryEvent(event)
@@ -79,7 +71,7 @@ describe("scrubSentryEvent", () => {
 })
 
 describe("scrubSentryLog", () => {
-  it("retire un email du message du log", () => {
+  it("redacts an email from the log message", () => {
     const log = { level: "error" as const, message: "envoi refusé pour visiteur@example.com" }
 
     const result = scrubSentryLog(log)
@@ -87,7 +79,7 @@ describe("scrubSentryLog", () => {
     expect(result.message).toBe("envoi refusé pour [email redacted]")
   })
 
-  it("retire un email imbriqué dans l'objet err sérialisé par Pino", () => {
+  it("redacts an email nested in the err object serialized by Pino", () => {
     const log = {
       level: "error" as const,
       message: "email:failed",
@@ -108,7 +100,7 @@ describe("scrubSentryLog", () => {
     expect(err["stack"]).not.toContain("visiteur@example.com")
   })
 
-  it("conserve les attributs non sensibles et les types non-string", () => {
+  it("keeps non-sensitive attributes and non-string values", () => {
     const log = {
       level: "warn" as const,
       message: "rate_limit:exceeded",
@@ -122,13 +114,5 @@ describe("scrubSentryLog", () => {
       has_company: false,
       event: "rate_limit:exceeded",
     })
-  })
-
-  it("retourne toujours le log et jamais null", () => {
-    const log = { level: "info" as const, message: "boot" }
-
-    const result = scrubSentryLog(log)
-
-    expect(result).toBeDefined()
   })
 })

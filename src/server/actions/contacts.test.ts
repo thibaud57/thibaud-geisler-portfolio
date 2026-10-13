@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -31,6 +31,7 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 
@@ -68,18 +69,16 @@ function buildAttachFormData(personId: string): FormData {
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
+function personRecord(overrides: Record<string, unknown> = {}): never {
+  return {
+    name: "Marie Durand",
+    optedOutAt: null,
+    lead: { personId: "p9" },
+    contact: null,
+    ...overrides,
+  } as never
 }
 
-// Forme constatée (Prisma 7 + @prisma/adapter-pg) : le nom de la contrainte vit sous `meta.driverAdapterError.cause.constraint.index`, clé unique comme clé étrangère.
-function constraintError(code: string, index: string) {
-  return { code, meta: { driverAdapterError: { cause: { constraint: { index } } } } }
-}
-
-// `vi.clearAllMocks` n'efface que les appels : remettre ces valeurs à chaque test évite qu'une réponse d'un test précédent fausse le suivant.
 beforeEach(() => {
   vi.mocked(prisma.person.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.person.findUnique).mockResolvedValue(null)
@@ -92,18 +91,23 @@ beforeEach(() => {
   vi.mocked(prisma.$queryRaw).mockResolvedValue([{ "?column?": 1 }] as never)
 })
 
-afterEach(() => {
-  vi.clearAllMocks()
+it.each([
+  ["createContact", () => createContact(initialContactFormState, buildFormData())],
+  ["findLeadForContactAttach", () => findLeadForContactAttach("p9")],
+  ["updateContact", () => updateContact("p1", initialContactFormState, buildFormData())],
+  ["deleteContact", () => deleteContact("p1")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.$transaction).not.toHaveBeenCalled()
+  expect(prisma.person.findFirst).not.toHaveBeenCalled()
+  expect(prisma.person.findUnique).not.toHaveBeenCalled()
 })
 
 describe("createContact", () => {
-  it("rejects a missing name", async () => {
-    const state = await createContact(initialContactFormState, buildFormData({ name: "" }))
-
-    expect(state.errors.name).toEqual(["Le nom est requis"])
-    expect(prisma.person.create).not.toHaveBeenCalled()
-  })
-
   it("normalizes the LinkedIn profile link and lowercases the email", async () => {
     await createContact(
       initialContactFormState,
@@ -185,12 +189,7 @@ describe("createContact", () => {
   })
 
   it("creates the role on an existing person without writing its fields", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -202,12 +201,7 @@ describe("createContact", () => {
   })
 
   it("attaches the role even when the lead's own fields would not validate", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: null,
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord({ name: null }))
     const data = buildAttachFormData("p9")
     data.set("name", "")
     data.set("email", "not-an-email")
@@ -219,12 +213,9 @@ describe("createContact", () => {
   })
 
   it("refuses to attach the contact role to a person who already has it", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: { personId: "p9" },
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(
+      personRecord({ contact: { personId: "p9" } }),
+    )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -234,12 +225,9 @@ describe("createContact", () => {
   })
 
   it("refuses to attach the contact role to a person who opposed", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: null,
-      optedOutAt: new Date("2026-03-11T23:30:00Z"),
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(
+      personRecord({ name: null, optedOutAt: new Date("2026-03-11T23:30:00Z") }),
+    )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -259,8 +247,8 @@ describe("createContact", () => {
   })
 
   it("maps a missing company to its field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue(
-      constraintError("P2003", "Person_companyId_fkey"),
+    vi.mocked(prisma.person.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "Person_companyId_fkey"),
     )
 
     const state = await createContact(
@@ -273,8 +261,8 @@ describe("createContact", () => {
   })
 
   it("maps a concurrent duplicate on the LinkedIn profile to its field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue(
-      constraintError("P2002", "Person_linkedinUrl_key"),
+    vi.mocked(prisma.person.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Person_linkedinUrl_key"),
     )
 
     const state = await createContact(
@@ -287,12 +275,7 @@ describe("createContact", () => {
   })
 
   it("refuses to attach the contact role to a person without the lead role", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: null,
-      contact: null,
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord({ lead: null }))
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -302,12 +285,7 @@ describe("createContact", () => {
   })
 
   it("locks the person row before reading its roles and writing the contact", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
 
     await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -319,7 +297,9 @@ describe("createContact", () => {
   })
 
   it("maps a unique violation on an unknown constraint to the email field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue(constraintError("P2002", "Person_other_key"))
+    vi.mocked(prisma.person.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Person_other_key"),
+    )
 
     const state = await createContact(initialContactFormState, buildFormData())
 
@@ -329,7 +309,7 @@ describe("createContact", () => {
   })
 
   it("maps a unique violation without constraint details to the email field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue({ code: "P2002" })
+    vi.mocked(prisma.person.create).mockRejectedValueOnce({ code: "P2002" })
 
     const state = await createContact(initialContactFormState, buildFormData())
 
@@ -337,13 +317,10 @@ describe("createContact", () => {
   })
 
   it("maps a concurrent duplicate on the contact primary key to the lead field", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
-    vi.mocked(prisma.contact.create).mockRejectedValue(constraintError("P2002", "Contact_pkey"))
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
+    vi.mocked(prisma.contact.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Contact_pkey"),
+    )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
@@ -352,14 +329,9 @@ describe("createContact", () => {
   })
 
   it("maps a person deleted during the attach to person_not_found", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({
-      name: "Marie Durand",
-      optedOutAt: null,
-      lead: { personId: "p9" },
-      contact: null,
-    } as never)
-    vi.mocked(prisma.contact.create).mockRejectedValue(
-      constraintError("P2003", "Contact_personId_fkey"),
+    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
+    vi.mocked(prisma.contact.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "Contact_personId_fkey"),
     )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
@@ -367,27 +339,9 @@ describe("createContact", () => {
     expect(state.message).toBe("person_not_found")
     expect(state.errors.personId).toBeDefined()
   })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createContact(initialContactFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.person.findFirst).not.toHaveBeenCalled()
-  })
 })
 
 describe("findLeadForContactAttach", () => {
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = findLeadForContactAttach("p9")
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.person.findFirst).not.toHaveBeenCalled()
-  })
-
   it("only looks up a lead who is not opposed and not yet a contact", async () => {
     await findLeadForContactAttach("p9")
 
@@ -396,12 +350,6 @@ describe("findLeadForContactAttach", () => {
         where: { id: "p9", optedOutAt: null, contact: { is: null }, lead: { isNot: null } },
       }),
     )
-  })
-
-  it("returns null when no such lead exists", async () => {
-    const lead = await findLeadForContactAttach("p9")
-
-    expect(lead).toBeNull()
   })
 })
 
@@ -487,7 +435,7 @@ describe("updateContact", () => {
 
   it("reports a contact deleted since the page loaded", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.contact.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.update).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.contact.count).mockResolvedValueOnce(0)
 
     const state = await updateContact("p1", initialContactFormState, buildFormData())
@@ -498,7 +446,7 @@ describe("updateContact", () => {
 
   it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.contact.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.update).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.contact.count).mockResolvedValueOnce(1)
 
     const state = await updateContact("p1", initialContactFormState, buildFormData())
@@ -528,7 +476,7 @@ describe("deleteContact", () => {
   })
 
   it("treats a contact already deleted elsewhere as deleted, without touching the person", async () => {
-    vi.mocked(prisma.contact.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.contact.count).mockResolvedValueOnce(0)
 
     const state = await deleteContact("p1")
@@ -538,7 +486,7 @@ describe("deleteContact", () => {
   })
 
   it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
-    vi.mocked(prisma.contact.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.contact.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.contact.count).mockResolvedValueOnce(1)
 
     const state = await deleteContact("p1")

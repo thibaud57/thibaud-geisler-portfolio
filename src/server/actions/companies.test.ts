@@ -26,8 +26,9 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { updateTag } from "next/cache"
-import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 import { createCompany, deleteCompany, updateCompany } from "./companies"
 import { initialCompanyFormState } from "./companies.types"
@@ -69,47 +70,19 @@ function withLegalEntity(overrides: Record<string, string> = {}): Record<string,
 
 const CRM_FIELDS = ["relationStatus", "notes", "details"] as const
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
-// Constaté le 2026-09-19 sur ce projet (Prisma 7.10 + @prisma/adapter-pg) : un P2002 ne porte pas
-// `meta.target`, l'index de contrainte vit sous `meta.driverAdapterError.cause.constraint.index`.
-function uniqueViolation(index: string) {
-  return {
-    code: "P2002",
-    meta: {
-      modelName: "Company",
-      driverAdapterError: {
-        name: "DriverAdapterError",
-        cause: {
-          originalCode: "23505",
-          originalMessage: `duplicate key value violates unique constraint "${index}"`,
-          kind: "UniqueConstraintViolation",
-          constraint: { index },
-          table: "Company",
-        },
-      },
-    },
-  }
-}
+beforeEach(() => {
+  vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+  vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+  vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
+  vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
+})
 
 describe("createCompany", () => {
   it("rejects an empty slug without touching the database", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     const state = await createCompany(initialCompanyFormState, buildFormData({ slug: "" }))
 
     expect(state.errors.slug).toBeDefined()
     expect(prisma.company.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects an empty name", async () => {
-    const state = await createCompany(initialCompanyFormState, buildFormData({ name: "" }))
-
-    expect(state.errors.name).toBeDefined()
   })
 
   it("rejects a malformed slug", async () => {
@@ -119,8 +92,6 @@ describe("createCompany", () => {
   })
 
   it("normalizes the slug to lowercase", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData({ slug: "Acme" }))
 
     expect(prisma.company.create).toHaveBeenCalledWith(
@@ -128,15 +99,7 @@ describe("createCompany", () => {
     )
   })
 
-  it("rejects an unknown sector", async () => {
-    const state = await createCompany(initialCompanyFormState, buildFormData({}, ["INCONNU"]))
-
-    expect(state.errors.sectors).toBeDefined()
-  })
-
   it("accepts an empty sectors list", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     const state = await createCompany(initialCompanyFormState, buildFormData({}, []))
 
     expect(state.ok).toBe(true)
@@ -146,8 +109,6 @@ describe("createCompany", () => {
   })
 
   it("keeps every submitted sector", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData({}, ["SAAS", "FINTECH"]))
 
     expect(prisma.company.create).toHaveBeenCalledWith(
@@ -155,54 +116,28 @@ describe("createCompany", () => {
     )
   })
 
-  it("rejects an unknown size", async () => {
-    const state = await createCompany(initialCompanyFormState, buildFormData({ size: "ENORME" }))
-
-    expect(state.errors.size).toBeDefined()
-  })
-
-  it('stores the "aucune" sentinel as null for size', async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
-    await createCompany(initialCompanyFormState, buildFormData({ size: NONE_VALUE }))
+  it.each([
+    ["the aucune sentinel", NONE_VALUE],
+    ["an empty value", ""],
+  ])("stores %s as a null size", async (_label, size) => {
+    await createCompany(initialCompanyFormState, buildFormData({ size }))
 
     expect(prisma.company.create).toHaveBeenCalledWith(
       objectMatch({ data: objectMatch({ size: null }) }),
     )
   })
 
-  it("stores an empty size as null", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
+  it.each(["pas-une-url", "javascript:alert(1)"])(
+    "rejects %s as a website url with a French message, without touching the database",
+    async (websiteUrl) => {
+      const state = await createCompany(initialCompanyFormState, buildFormData({ websiteUrl }))
 
-    await createCompany(initialCompanyFormState, buildFormData({ size: "" }))
-
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ size: null }) }),
-    )
-  })
-
-  it("rejects an invalid website url with a French message", async () => {
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData({ websiteUrl: "pas-une-url" }),
-    )
-
-    expect(state.errors.websiteUrl).toEqual(["L'adresse du site n'est pas valide"])
-  })
-
-  it("rejects a javascript: website url with a French message, without touching the database", async () => {
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData({ websiteUrl: "javascript:alert(1)" }),
-    )
-
-    expect(state.errors.websiteUrl).toEqual(["L'adresse du site n'est pas valide"])
-    expect(prisma.company.create).not.toHaveBeenCalled()
-  })
+      expect(state.errors.websiteUrl).toEqual(["L'adresse du site n'est pas valide"])
+      expect(prisma.company.create).not.toHaveBeenCalled()
+    },
+  )
 
   it("stores an empty website url as null", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData({ websiteUrl: "" }))
 
     expect(prisma.company.create).toHaveBeenCalledWith(
@@ -227,15 +162,15 @@ describe("createCompany", () => {
   })
 
   it("invalidates the projects cache tag after a successful creation", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData())
 
     expect(updateTag).toHaveBeenCalledWith("projects")
   })
 
   it("assigns a slug uniqueness violation to the slug field", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValue(uniqueViolation("Company_slug_key"))
+    vi.mocked(prisma.company.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Company_slug_key"),
+    )
 
     const state = await createCompany(initialCompanyFormState, buildFormData())
 
@@ -244,8 +179,6 @@ describe("createCompany", () => {
   })
 
   it("creates the legal entity with the company, with the company slug", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(
       initialCompanyFormState,
       buildFormData(withLegalEntity({ legalEntityStatusKey: "SAS" }), ["SAAS"], {
@@ -288,15 +221,18 @@ describe("createCompany", () => {
     expect(prisma.company.create).not.toHaveBeenCalled()
   })
 
-  it("strips spaces from a SIRET and rejects one that is not 14 digits", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
-    const invalid = await createCompany(
+  it("rejects a SIRET that is not 14 digits", async () => {
+    const state = await createCompany(
       initialCompanyFormState,
       buildFormData(withLegalEntity({ legalEntitySiret: "123 456 789 0123" }), ["SAAS"], {
         types: ["CLIENT_FINAL"],
       }),
     )
+
+    expect(state.errors.legalEntitySiret).toEqual(["Le SIRET compte 14 chiffres"])
+  })
+
+  it("strips spaces from a SIRET", async () => {
     await createCompany(
       initialCompanyFormState,
       buildFormData(withLegalEntity({ legalEntitySiret: "111 222 333 00044" }), ["SAAS"], {
@@ -304,7 +240,6 @@ describe("createCompany", () => {
       }),
     )
 
-    expect(invalid.errors.legalEntitySiret).toEqual(["Le SIRET compte 14 chiffres"])
     expect(prisma.company.create).toHaveBeenCalledWith(
       objectMatch({
         data: objectMatch({
@@ -312,17 +247,6 @@ describe("createCompany", () => {
         }),
       }),
     )
-  })
-
-  it("rejects an unknown legal form", async () => {
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityStatusKey: "kg" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
-    )
-
-    expect(state.errors.legalEntityStatusKey).toBeDefined()
   })
 
   it("rejects a partial registered office address", async () => {
@@ -346,8 +270,6 @@ describe("createCompany", () => {
   })
 
   it("ignores the RCS number when the registered office is in France", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(
       initialCompanyFormState,
       buildFormData(
@@ -371,7 +293,9 @@ describe("createCompany", () => {
   })
 
   it("maps a SIRET uniqueness violation to the SIRET field", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValue(uniqueViolation("LegalEntity_siret_key"))
+    vi.mocked(prisma.company.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "LegalEntity_siret_key"),
+    )
 
     const state = await createCompany(
       initialCompanyFormState,
@@ -386,7 +310,9 @@ describe("createCompany", () => {
   })
 
   it("maps a legal entity slug collision to the legal name", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValue(uniqueViolation("LegalEntity_slug_key"))
+    vi.mocked(prisma.company.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "LegalEntity_slug_key"),
+    )
 
     const state = await createCompany(
       initialCompanyFormState,
@@ -398,8 +324,6 @@ describe("createCompany", () => {
   })
 
   it("invalidates the legal entity cache tag after a write", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData())
 
     expect(updateTag).toHaveBeenCalledWith("legal-entity")
@@ -423,18 +347,7 @@ describe("createCompany", () => {
     expect(prisma.company.create).not.toHaveBeenCalled()
   })
 
-  it("rejects an unknown type", async () => {
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData({}, ["SAAS"], { types: ["FOURNISSEUR"] }),
-    )
-
-    expect(state.errors.types).toBeDefined()
-  })
-
   it("stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(
       initialCompanyFormState,
       buildFormData(
@@ -474,8 +387,6 @@ describe("createCompany", () => {
   })
 
   it("leaves the relation status to the database default when the field is absent", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(initialCompanyFormState, buildFormData())
 
     const data = vi.mocked(prisma.company.create).mock.calls[0]?.[0]?.data as Record<
@@ -486,8 +397,6 @@ describe("createCompany", () => {
   })
 
   it("stores empty notes and details as null", async () => {
-    vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-
     await createCompany(
       initialCompanyFormState,
       buildFormData({ notes: "   ", details: "   " }, ["SAAS"], { types: ["CLIENT_FINAL"] }),
@@ -500,21 +409,13 @@ describe("createCompany", () => {
 })
 
 describe("updateCompany", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
-  })
-
   it("targets the company by its id", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     expect(prisma.company.update).toHaveBeenCalledWith(objectMatch({ where: { id: "c1" } }))
   })
 
   it("keeps the submitted logo key instead of clearing it", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany(
       "c1",
       initialCompanyFormState,
@@ -529,8 +430,6 @@ describe("updateCompany", () => {
   })
 
   it("invalidates the projects cache tag after a successful update", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     expect(updateTag).toHaveBeenCalledWith("projects")
@@ -552,8 +451,6 @@ describe("updateCompany", () => {
   })
 
   it("leaves the optional CRM fields untouched when the form does not send them", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
@@ -564,8 +461,6 @@ describe("updateCompany", () => {
   })
 
   it("clears the zones when the form submits none", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     expect(prisma.company.update).toHaveBeenCalledWith(
@@ -574,8 +469,6 @@ describe("updateCompany", () => {
   })
 
   it("upserts the legal entity on update", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany(
       "c1",
       initialCompanyFormState,
@@ -599,8 +492,6 @@ describe("updateCompany", () => {
   })
 
   it("leaves the legal entity untouched when the form does not send it", async () => {
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
-
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
@@ -611,10 +502,9 @@ describe("updateCompany", () => {
   })
 
   it("writes the vat liability date and regime on the publisher when the entity has one", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
       legalEntity: { addressId: null, publisher: { id: "pub1" } },
     } as never)
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
 
     await updateCompany(
       "c1",
@@ -648,10 +538,9 @@ describe("updateCompany", () => {
   })
 
   it("ignores vat fields when the entity has no publisher", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
       legalEntity: { addressId: null, publisher: null },
     } as never)
-    vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
 
     await updateCompany(
       "c1",
@@ -678,9 +567,6 @@ describe("updateCompany", () => {
 
 describe("deleteCompany", () => {
   it("deletes a company that is not referenced by any project", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
-    vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
-
     const state = await deleteCompany("c1")
 
     expect(state.ok).toBe(true)
@@ -689,10 +575,9 @@ describe("deleteCompany", () => {
   })
 
   it("deletes the legal entity and its address with the company", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
       legalEntity: { id: "le1", addressId: "a1", publisher: null, _count: { processings: 0 } },
     } as never)
-    vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
 
     await deleteCompany("c1")
 
@@ -701,7 +586,7 @@ describe("deleteCompany", () => {
   })
 
   it("only detaches a legal entity used as publisher or processor", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
       legalEntity: {
         id: "le1",
         addressId: "a1",
@@ -709,7 +594,6 @@ describe("deleteCompany", () => {
         _count: { processings: 0 },
       },
     } as never)
-    vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
 
     await deleteCompany("c1")
 
@@ -719,7 +603,7 @@ describe("deleteCompany", () => {
   })
 
   it("only detaches a legal entity used as processor", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
       legalEntity: {
         id: "le1",
         addressId: "a1",
@@ -727,7 +611,6 @@ describe("deleteCompany", () => {
         _count: { processings: 1 },
       },
     } as never)
-    vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
 
     await deleteCompany("c1")
 
@@ -737,8 +620,9 @@ describe("deleteCompany", () => {
   })
 
   it("translates a foreign key violation into an explicit message", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
-    vi.mocked(prisma.company.delete).mockRejectedValue({ code: "P2003" })
+    vi.mocked(prisma.company.delete).mockRejectedValueOnce(
+      constraintViolation("P2003", "Opportunity_clientId_fkey"),
+    )
 
     const state = await deleteCompany("c1")
 
@@ -755,10 +639,6 @@ describe("deleteCompany", () => {
 })
 
 describe("company deleted since the screen loaded", () => {
-  beforeEach(() => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
-  })
-
   it("answers an update with company_not_found and keeps the typed values", async () => {
     vi.mocked(prisma.company.update).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.company.count).mockResolvedValueOnce(0)

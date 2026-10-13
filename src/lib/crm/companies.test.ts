@@ -21,18 +21,29 @@ describe("joinedEndClientNames", () => {
 })
 
 describe("hasAcceptedOpportunity", () => {
-  it("marks a company worked once one of its opportunities is accepted, as intermediary or as client", () => {
-    const asClient = {
+  it.each([
+    {
+      label: "as client",
       opportunitiesAsIntermediary: [],
       opportunitiesAsClient: [{ status: "ACCEPTEE" as const }],
-    }
-    const none = {
-      opportunitiesAsIntermediary: [{ status: "PROPOSEE" as const }],
+      expected: true,
+    },
+    {
+      label: "as intermediary",
+      opportunitiesAsIntermediary: [{ status: "ACCEPTEE" as const }],
       opportunitiesAsClient: [],
-    }
+      expected: true,
+    },
+    {
+      label: "by none of its opportunities",
+      opportunitiesAsIntermediary: [{ status: "PROPOSEE" as const }],
+      opportunitiesAsClient: [{ status: "REFUSEE" as const }],
+      expected: false,
+    },
+  ])("marks a company worked $label: $expected", ({ expected, ...company }) => {
+    const worked = hasAcceptedOpportunity(company)
 
-    expect(hasAcceptedOpportunity(asClient)).toBe(true)
-    expect(hasAcceptedOpportunity(none)).toBe(false)
+    expect(worked).toBe(expected)
   })
 })
 

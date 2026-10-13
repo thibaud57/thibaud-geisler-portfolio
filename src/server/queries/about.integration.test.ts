@@ -6,7 +6,7 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }))
 
-import { prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { createProject, prisma, resetDatabase } from "@/lib/prisma-test-setup"
 import { countClientsSupported, countMissionsDelivered, findAllTags } from "@/server/queries/about"
 
 async function ensureCompany(slug: string) {
@@ -27,22 +27,18 @@ async function createProjectWithMeta(input: {
 }) {
   const companySlug = input.companySlug ?? "co-" + input.slug
   await ensureCompany(companySlug)
-  await prisma.project.create({
-    data: {
-      slug: input.slug,
-      titleFr: input.slug,
-      titleEn: input.slug,
-      descriptionFr: "d",
-      descriptionEn: "d",
-      type: input.type,
-      status: input.status,
-      endedAt: input.endedAt,
-      clientMeta: {
-        create: {
-          workMode: "REMOTE",
-          deliverablesCount: input.deliverablesCount,
-          company: { connect: { slug: companySlug } },
-        },
+  await createProject({
+    slug: input.slug,
+    titleFr: input.slug,
+    titleEn: input.slug,
+    type: input.type,
+    status: input.status,
+    endedAt: input.endedAt,
+    clientMeta: {
+      create: {
+        workMode: "REMOTE",
+        deliverablesCount: input.deliverablesCount,
+        company: { connect: { slug: companySlug } },
       },
     },
   })
@@ -53,13 +49,13 @@ describe("countMissionsDelivered", () => {
     await resetDatabase()
   })
 
-  it("retourne 0 quand aucun projet ne match", async () => {
+  it("returns 0 when no project matches", async () => {
     const result = await countMissionsDelivered()
 
     expect(result).toBe(0)
   })
 
-  it("somme deliverablesCount des projets PUBLISHED + CLIENT + endedAt:not null", async () => {
+  it("sums deliverablesCount of PUBLISHED CLIENT projects that have ended", async () => {
     await createProjectWithMeta({
       slug: "a",
       type: "CLIENT",
@@ -80,7 +76,7 @@ describe("countMissionsDelivered", () => {
     expect(result).toBe(5)
   })
 
-  it("exclut les projets DRAFT et ARCHIVED", async () => {
+  it("excludes DRAFT and ARCHIVED projects", async () => {
     await createProjectWithMeta({
       slug: "pub",
       type: "CLIENT",
@@ -108,7 +104,7 @@ describe("countMissionsDelivered", () => {
     expect(result).toBe(5)
   })
 
-  it("exclut les projets PERSONAL", async () => {
+  it("excludes PERSONAL projects", async () => {
     await createProjectWithMeta({
       slug: "cli",
       type: "CLIENT",
@@ -129,7 +125,7 @@ describe("countMissionsDelivered", () => {
     expect(result).toBe(3)
   })
 
-  it("exclut les projets en cours (endedAt: null)", async () => {
+  it("excludes ongoing projects (endedAt null)", async () => {
     await createProjectWithMeta({
       slug: "done",
       type: "CLIENT",
@@ -156,42 +152,28 @@ describe("countClientsSupported", () => {
     await resetDatabase()
   })
 
-  it("retourne 0 quand aucune Company ne match", async () => {
+  it("returns 0 when no company matches", async () => {
     const result = await countClientsSupported()
 
     expect(result).toBe(0)
   })
 
-  it("compte les Company distinctes liées à un projet PUBLISHED + CLIENT", async () => {
+  it("counts the distinct companies linked to a PUBLISHED CLIENT project", async () => {
     await prisma.company.createMany({
       data: [
         { slug: "acme", name: "Acme", sectors: ["ASSURANCE"], size: "ETI" },
         { slug: "globex", name: "Globex", sectors: ["SAAS"], size: "TPE" },
       ],
     })
-    await prisma.project.create({
-      data: {
-        slug: "p1",
-        titleFr: "P1",
-        titleEn: "P1",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
-      },
+    await createProject({
+      slug: "p1",
+      type: "CLIENT",
+      clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
     })
-    await prisma.project.create({
-      data: {
-        slug: "p2",
-        titleFr: "P2",
-        titleEn: "P2",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "globex" } } } },
-      },
+    await createProject({
+      slug: "p2",
+      type: "CLIENT",
+      clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "globex" } } } },
     })
 
     const result = await countClientsSupported()
@@ -199,33 +181,19 @@ describe("countClientsSupported", () => {
     expect(result).toBe(2)
   })
 
-  it("compte une seule fois une Company avec plusieurs projets clients", async () => {
+  it("counts a company once when it has several client projects", async () => {
     await prisma.company.create({
       data: { slug: "acme", name: "Acme", sectors: ["ASSURANCE"], size: "ETI" },
     })
-    await prisma.project.create({
-      data: {
-        slug: "p1",
-        titleFr: "P1",
-        titleEn: "P1",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
-      },
+    await createProject({
+      slug: "p1",
+      type: "CLIENT",
+      clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
     })
-    await prisma.project.create({
-      data: {
-        slug: "p2",
-        titleFr: "P2",
-        titleEn: "P2",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
-      },
+    await createProject({
+      slug: "p2",
+      type: "CLIENT",
+      clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } } },
     })
 
     const result = await countClientsSupported()
@@ -233,21 +201,14 @@ describe("countClientsSupported", () => {
     expect(result).toBe(1)
   })
 
-  it("exclut les Company qui n'ont que des projets PERSONAL", async () => {
+  it("excludes companies that only have PERSONAL projects", async () => {
     await prisma.company.create({
       data: { slug: "personnel", name: "Personnel", sectors: [], size: null },
     })
-    await prisma.project.create({
-      data: {
-        slug: "perso",
-        titleFr: "Perso",
-        titleEn: "Perso",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "PERSONAL",
-        status: "PUBLISHED",
-        clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "personnel" } } } },
-      },
+    await createProject({
+      slug: "perso",
+      type: "PERSONAL",
+      clientMeta: { create: { workMode: "REMOTE", company: { connect: { slug: "personnel" } } } },
     })
 
     const result = await countClientsSupported()
@@ -255,7 +216,7 @@ describe("countClientsSupported", () => {
     expect(result).toBe(0)
   })
 
-  it("exclut les Company sans clientMetas", async () => {
+  it("excludes companies without clientMetas", async () => {
     await prisma.company.create({
       data: { slug: "orphan", name: "Orphan", sectors: [], size: null },
     })
@@ -271,7 +232,7 @@ describe("findAllTags", () => {
     await resetDatabase()
   })
 
-  it("retourne les tags triés par displayOrder asc puis slug asc", async () => {
+  it("sorts tags by ascending displayOrder then slug", async () => {
     await prisma.tag.createMany({
       data: [
         { slug: "a", nameFr: "A", nameEn: "A", kind: "FRAMEWORK", displayOrder: 5 },
@@ -285,7 +246,7 @@ describe("findAllTags", () => {
     expect(result.map((t) => t.slug)).toEqual(["b", "c", "a"])
   })
 
-  it("retourne les tags même s'ils ne sont liés à aucun projet (orphelin)", async () => {
+  it("returns tags even when no project uses them", async () => {
     await prisma.tag.create({
       data: { slug: "rag", nameFr: "RAG", nameEn: "RAG", kind: "AI" },
     })
@@ -296,17 +257,18 @@ describe("findAllTags", () => {
     expect(result[0]?.slug).toBe("rag")
   })
 
-  it("localise nameFr/nameEn vers name selon la locale", async () => {
+  it.each([
+    { locale: "fr", name: "NomFR" },
+    { locale: "en", name: "NameEN" },
+  ] as const)("localizes nameFr and nameEn into name for $locale", async ({ locale, name }) => {
     await prisma.tag.create({
       data: { slug: "k", nameFr: "NomFR", nameEn: "NameEN", kind: "INFRA" },
     })
 
-    const fr = await findAllTags("fr")
-    const en = await findAllTags("en")
+    const result = await findAllTags(locale)
 
-    expect(fr[0]?.name).toBe("NomFR")
-    expect(en[0]?.name).toBe("NameEN")
-    expect(fr[0]).not.toHaveProperty("nameFr")
-    expect(fr[0]).not.toHaveProperty("nameEn")
+    expect(result[0]?.name).toBe(name)
+    expect(result[0]).not.toHaveProperty("nameFr")
+    expect(result[0]).not.toHaveProperty("nameEn")
   })
 })

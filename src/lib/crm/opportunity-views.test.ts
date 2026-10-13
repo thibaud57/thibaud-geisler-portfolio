@@ -21,10 +21,6 @@ function opportunity(overrides: Partial<TestOpportunity> = {}): TestOpportunity 
   }
 }
 
-function idsOf(opportunities: readonly TestOpportunity[]): string[] {
-  return opportunities.map((row) => row.id)
-}
-
 describe("opportunitiesForView", () => {
   it("keeps proposed, in-process and offered opportunities in the ongoing view, soonest start first", () => {
     const opportunities = [
@@ -45,7 +41,7 @@ describe("opportunitiesForView", () => {
 
     const rows = opportunitiesForView(opportunities, "en-cours")
 
-    expect(idsOf(rows)).toEqual(["in-process", "proposed", "offered"])
+    expect(rows.map(({ id }) => id)).toEqual(["in-process", "proposed", "offered"])
   })
 
   it("keeps accepted opportunities in the accepted view", () => {
@@ -65,6 +61,6 @@ describe("opportunitiesForView", () => {
 
     const rows = opportunitiesForView(opportunities, "acceptees")
 
-    expect(idsOf(rows)).toEqual(["newer", "older"])
+    expect(rows.map(({ id }) => id)).toEqual(["newer", "older"])
   })
 })

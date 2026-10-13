@@ -1,56 +1,49 @@
-// @vitest-environment node
 import { describe, expect, it } from "vitest"
 import { getContentType, validateAssetPath } from "./serve-asset"
 
 describe("AssetPathSchema + validateAssetPath", () => {
-  it("accepte un chemin simple à 1 segment avec extension whitelist", () => {
-    expect(validateAssetPath(["test.png"])).toEqual({
+  it("returns the segments and the joined key of a simple path", () => {
+    const result = validateAssetPath(["test.png"])
+
+    expect(result).toEqual({
       ok: true,
       segments: ["test.png"],
       joined: "test.png",
     })
   })
 
-  it("accepte un chemin imbriqué jusqu à 5 segments", () => {
-    expect(validateAssetPath(["projets", "client", "projet-exemple", "logo.png"]).ok).toBe(true)
-    expect(
-      validateAssetPath(["projets", "client", "projet-exemple", "webapp-gestion-sinistres-1.webp"])
-        .ok,
-    ).toBe(true)
-    expect(validateAssetPath(["a", "b", "c", "d", "e.svg"]).ok).toBe(true)
+  it.each([
+    ["a nested path", ["projets", "client", "projet-exemple", "logo.png"]],
+    ["a hyphenated file name", ["projets", "client", "projet-exemple", "webapp-gestion-1.webp"]],
+    ["five segments", ["a", "b", "c", "d", "e.svg"]],
+    ["uppercase letters", ["Projets", "Client", "Photo.JPEG"]],
+    ["a PDF under documents/cv", ["documents", "cv", "cv-thibaud-geisler-fr.pdf"]],
+    ["an uppercase PDF extension", ["documents", "cv", "CV-TEST.PDF"]],
+  ])("accepts %s", (_label, segments) => {
+    const result = validateAssetPath(segments)
+
+    expect(result.ok).toBe(true)
   })
 
-  it("accepte les majuscules (flag i)", () => {
-    expect(validateAssetPath(["Test.PNG"]).ok).toBe(true)
-    expect(validateAssetPath(["Projets", "Client", "Photo.JPEG"]).ok).toBe(true)
-  })
+  it.each([
+    ["a parent directory segment", ["..", "etc", "passwd.png"]],
+    ["a current directory segment", [".", "image.png"]],
+    ["a parent directory segment in the middle", ["projets", "..", "secret.png"]],
+    ["a slash inside a segment", ["sub/folder", "image.png"]],
+    ["a backslash inside a segment", ["..\\file.png"]],
+    ["a space", ["foo .png"]],
+    ["an emoji", ["📷.png"]],
+    ["an empty segment", [""]],
+    ["no segment at all", []],
+    ["an extension outside the allow-list", ["malware.exe"]],
+    ["another extension outside the allow-list", ["doc.docx"]],
+    ["a segment starting with a dot", [".htaccess"]],
+    ["more than 5 segments", ["a", "b", "c", "d", "e", "f.png"]],
+    ["an extension on a folder instead of the last segment", ["projets.png", "client", "logo"]],
+  ])("rejects %s", (_label, segments) => {
+    const result = validateAssetPath(segments)
 
-  it("rejette path traversal (.. et .)", () => {
-    expect(validateAssetPath(["..", "etc", "passwd.png"]).ok).toBe(false)
-    expect(validateAssetPath([".", "image.png"]).ok).toBe(false)
-    expect(validateAssetPath(["projets", "..", "secret.png"]).ok).toBe(false)
-  })
-
-  it("rejette les segments avec slash ou backslash interne", () => {
-    expect(validateAssetPath(["sub/folder", "image.png"]).ok).toBe(false)
-    expect(validateAssetPath(["..\\file.png"]).ok).toBe(false)
-  })
-
-  it("rejette null byte, caractères interdits, unicode, segments vides", () => {
-    expect(validateAssetPath(["foo .png"]).ok).toBe(false)
-    expect(validateAssetPath(["📷.png"]).ok).toBe(false)
-    expect(validateAssetPath([""]).ok).toBe(false)
-    expect(validateAssetPath([]).ok).toBe(false)
-  })
-
-  it("rejette les extensions hors whitelist et segments commençant par un point", () => {
-    expect(validateAssetPath(["malware.exe"]).ok).toBe(false)
-    expect(validateAssetPath(["doc.docx"]).ok).toBe(false)
-    expect(validateAssetPath([".htaccess"]).ok).toBe(false)
-  })
-
-  it("rejette les profondeurs supérieures à 5 segments", () => {
-    expect(validateAssetPath(["a", "b", "c", "d", "e", "f.png"]).ok).toBe(false)
+    expect(result.ok).toBe(false)
   })
 
   it("rejects a key longer than the 1024 characters R2 accepts", () => {
@@ -58,35 +51,23 @@ describe("AssetPathSchema + validateAssetPath", () => {
 
     expect(result).toEqual({ ok: false, error: "Chemin trop long" })
   })
-
-  it("exige une extension valide sur le dernier segment uniquement", () => {
-    expect(validateAssetPath(["projets", "client", "logo.png"]).ok).toBe(true)
-    expect(validateAssetPath(["projets.png", "client", "logo"]).ok).toBe(false)
-  })
-
-  it("accepte un PDF sous documents/cv/", () => {
-    expect(validateAssetPath(["documents", "cv", "cv-thibaud-geisler-fr.pdf"]).ok).toBe(true)
-  })
-
-  it("accepte un PDF avec extension majuscule (flag i)", () => {
-    expect(validateAssetPath(["documents", "cv", "CV-TEST.PDF"]).ok).toBe(true)
-  })
 })
 
 describe("getContentType", () => {
-  it("mape les 6 extensions whitelist vers le bon MIME (case-insensitive)", () => {
-    expect(getContentType("a.png")).toBe("image/png")
-    expect(getContentType("a.jpg")).toBe("image/jpeg")
-    expect(getContentType("a.jpeg")).toBe("image/jpeg")
-    expect(getContentType("a.webp")).toBe("image/webp")
-    expect(getContentType("a.svg")).toBe("image/svg+xml")
-    expect(getContentType("a.pdf")).toBe("application/pdf")
-    expect(getContentType("Test.PNG")).toBe("image/png")
-    expect(getContentType("CV.PDF")).toBe("application/pdf")
-  })
+  it.each([
+    ["a.png", "image/png"],
+    ["a.jpg", "image/jpeg"],
+    ["a.jpeg", "image/jpeg"],
+    ["a.webp", "image/webp"],
+    ["a.svg", "image/svg+xml"],
+    ["a.pdf", "application/pdf"],
+    ["Test.PNG", "image/png"],
+    ["CV.PDF", "application/pdf"],
+    ["a.xyz", "application/octet-stream"],
+    ["noext", "application/octet-stream"],
+  ])("maps %s to %s", (filename, expected) => {
+    const result = getContentType(filename)
 
-  it("retourne application/octet-stream sur extension inconnue", () => {
-    expect(getContentType("a.xyz")).toBe("application/octet-stream")
-    expect(getContentType("noext")).toBe("application/octet-stream")
+    expect(result).toBe(expected)
   })
 })

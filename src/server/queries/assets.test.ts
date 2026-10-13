@@ -1,5 +1,5 @@
 import { ListObjectsV2Command } from "@aws-sdk/client-s3"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/r2", () => ({
   r2: { send: vi.fn() },
@@ -19,10 +19,6 @@ import { r2 } from "@/lib/r2"
 import { listAssets, loadAssetReferences, matchAssetUsage } from "./assets"
 
 describe("listAssets", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("follows the continuation token until the listing is exhausted", async () => {
     vi.mocked(r2.send)
       .mockResolvedValueOnce({
@@ -45,10 +41,6 @@ describe("listAssets", () => {
 })
 
 describe("matchAssetUsage", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   beforeEach(() => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([] as never)
     vi.mocked(prisma.company.findMany).mockResolvedValue([] as never)

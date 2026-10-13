@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { sortZones } from "@/lib/crm/zones"
+import { sortZones } from "./zones"
 
 describe("sortZones", () => {
   it("sorts zones into the canonical order regardless of submission order", () => {

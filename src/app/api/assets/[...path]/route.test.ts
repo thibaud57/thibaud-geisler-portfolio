@@ -1,6 +1,10 @@
-// @vitest-environment node
 import { GetObjectCommand, NoSuchKey } from "@aws-sdk/client-s3"
 import { afterEach, describe, expect, it, vi } from "vitest"
+
+import { GET } from "@/app/api/assets/[...path]/route"
+import { objectMatch } from "@/lib/matchers-test-setup"
+import { prisma } from "@/lib/prisma"
+import { adminR2, r2 } from "@/lib/r2"
 
 vi.mock("@/lib/r2", () => ({
   r2: { send: vi.fn() },
@@ -29,38 +33,31 @@ function toReadableStream(data: Uint8Array): ReadableStream<Uint8Array> {
   })
 }
 
-async function mockR2Object(data: Uint8Array) {
-  const { r2 } = await import("@/lib/r2")
-  vi.mocked(r2.send).mockResolvedValueOnce({
+function mockObject(client: typeof r2, data: Uint8Array) {
+  vi.mocked(client.send).mockResolvedValueOnce({
     Body: { transformToWebStream: () => toReadableStream(data) },
   } as never)
-  return r2
 }
 
 async function callRoute(segments: string[]): Promise<Response> {
-  const { GET } = await import("@/app/api/assets/[...path]/route")
   const url = `http://localhost:3000/api/assets/${segments.join("/")}`
   const request = new Request(url)
   return GET(request, { params: Promise.resolve({ path: segments }) })
 }
 
 afterEach(() => {
-  vi.clearAllMocks()
   vi.unstubAllEnvs()
 })
 
 describe("GET /api/assets/[...path]", () => {
-  it("retourne 400 sur chemin invalide sans appeler r2.send", async () => {
-    const { r2 } = await import("@/lib/r2")
-
+  it("returns 400 on an invalid path without calling r2.send", async () => {
     const response = await callRoute(["malware.exe"])
 
     expect(response.status).toBe(400)
     expect(r2.send).not.toHaveBeenCalled()
   })
 
-  it("retourne 404 quand R2 renvoie une erreur NoSuchKey", async () => {
-    const { r2 } = await import("@/lib/r2")
+  it("returns 404 when R2 raises NoSuchKey", async () => {
     vi.mocked(r2.send).mockRejectedValueOnce(
       new NoSuchKey({ message: "The specified key does not exist.", $metadata: {} }),
     )
@@ -70,8 +67,8 @@ describe("GET /api/assets/[...path]", () => {
     expect(response.status).toBe(404)
   })
 
-  it("retourne 200 avec le Content-Type dérivé de l extension et le body streamé depuis R2", async () => {
-    const r2 = await mockR2Object(PNG_1X1)
+  it("returns 200 with the Content-Type derived from the extension and the body streamed from R2", async () => {
+    mockObject(r2, PNG_1X1)
 
     const response = await callRoute(["test.png"])
 
@@ -84,8 +81,8 @@ describe("GET /api/assets/[...path]", () => {
     expect(command.input).toEqual({ Bucket: "test-bucket", Key: "test.png" })
   })
 
-  it("retourne Cache-Control no-cache en dev pour un PNG au root", async () => {
-    await mockR2Object(PNG_1X1)
+  it("sends Cache-Control no-cache in development for a root PNG", async () => {
+    mockObject(r2, PNG_1X1)
     vi.stubEnv("NODE_ENV", "development")
 
     const response = await callRoute(["test.png"])
@@ -93,8 +90,8 @@ describe("GET /api/assets/[...path]", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-cache, no-store, must-revalidate")
   })
 
-  it("retourne Cache-Control immutable en production", async () => {
-    await mockR2Object(PNG_1X1)
+  it("sends Cache-Control immutable in production", async () => {
+    mockObject(r2, PNG_1X1)
     vi.stubEnv("NODE_ENV", "production")
 
     const response = await callRoute(["test.png"])
@@ -102,13 +99,9 @@ describe("GET /api/assets/[...path]", () => {
     expect(response.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
   })
 
-  it("sert le logo d'une entreprise dont un projet est publié, depuis le bucket admin, sans cache", async () => {
-    const { adminR2, r2 } = await import("@/lib/r2")
-    const { prisma } = await import("@/lib/prisma")
+  it("serves the logo of a company with a published project from the admin bucket, uncached", async () => {
     vi.mocked(prisma.company.findFirst).mockResolvedValueOnce({ id: "acme" } as never)
-    vi.mocked(adminR2.send).mockResolvedValueOnce({
-      Body: { transformToWebStream: () => toReadableStream(PNG_1X1) },
-    } as never)
+    mockObject(adminR2, PNG_1X1)
     vi.stubEnv("NODE_ENV", "production")
 
     const response = await callRoute(["freelance", "crm", "entreprises", "acme", "logo.png"])
@@ -116,7 +109,7 @@ describe("GET /api/assets/[...path]", () => {
     expect(response.status).toBe(200)
     expect(response.headers.get("Cache-Control")).toBe("no-cache, no-store, must-revalidate")
     expect(prisma.company.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
+      objectMatch({
         where: {
           logoFilename: "freelance/crm/entreprises/acme/logo.png",
           clientMetas: { some: { project: { status: "PUBLISHED" } } },
@@ -131,9 +124,7 @@ describe("GET /api/assets/[...path]", () => {
     expect(r2.send).not.toHaveBeenCalled()
   })
 
-  it("répond 404 sans lire R2 pour le logo d'une entreprise sans projet publié", async () => {
-    const { adminR2, r2 } = await import("@/lib/r2")
-
+  it("returns 404 without reading R2 for the logo of a company without a published project", async () => {
     const response = await callRoute(["freelance", "crm", "entreprises", "prospect", "logo.png"])
 
     expect(response.status).toBe(404)
@@ -141,8 +132,7 @@ describe("GET /api/assets/[...path]", () => {
     expect(r2.send).not.toHaveBeenCalled()
   })
 
-  it("ne sert aucune autre clé freelance/ depuis le bucket admin", async () => {
-    const { adminR2, r2 } = await import("@/lib/r2")
+  it("serves no other freelance/ key from the admin bucket", async () => {
     vi.mocked(r2.send).mockRejectedValueOnce(
       new NoSuchKey({ message: "The specified key does not exist.", $metadata: {} }),
     )

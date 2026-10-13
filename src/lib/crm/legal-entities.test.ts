@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { isFrenchLayout, registrationLabel } from "@/lib/crm/legal-entities"
+import { isFrenchLayout, registrationLabel } from "./legal-entities"
 
 const SIRET = "12345678901234"
 
@@ -16,36 +16,48 @@ function entity(overrides: Partial<Parameters<typeof registrationLabel>[0]> = {}
 
 describe("isFrenchLayout", () => {
   it.each([[undefined], [null], ["FR"]])("treats %j as France", (country) => {
-    expect(isFrenchLayout(country)).toBe(true)
+    const result = isFrenchLayout(country)
+
+    expect(result).toBe(true)
   })
 
   it.each([["LU"], [""]])("keeps %j apart", (country) => {
-    expect(isFrenchLayout(country)).toBe(false)
+    const result = isFrenchLayout(country)
+
+    expect(result).toBe(false)
   })
 })
 
 describe("registrationLabel", () => {
-  it("joins the RCS city and the SIREN in France", () => {
-    expect(registrationLabel(entity())).toBe("RCS Paris 123456789")
-  })
+  it.each([
+    {
+      label: "joins the RCS city and the SIREN in France",
+      overrides: {},
+      expected: "RCS Paris 123456789",
+    },
+    {
+      label: "falls back to the RCS city when the SIREN is missing in France",
+      overrides: { siret: null },
+      expected: "RCS Paris",
+    },
+    {
+      label: "stays empty in France without a RCS city",
+      overrides: { rcsCity: null },
+      expected: null,
+    },
+    {
+      label: "treats a missing address as France",
+      overrides: { address: null },
+      expected: "RCS Paris 123456789",
+    },
+    {
+      label: "joins the RCS city and number outside France",
+      overrides: { address: { country: "LU" }, rcsNumber: "B123456", rcsCity: "Luxembourg" },
+      expected: "Luxembourg B123456",
+    },
+  ])("$label", ({ overrides, expected }) => {
+    const label = registrationLabel(entity(overrides))
 
-  it("falls back to the RCS city when the SIREN is missing in France", () => {
-    expect(registrationLabel(entity({ siret: null }))).toBe("RCS Paris")
-  })
-
-  it("stays empty in France without a RCS city", () => {
-    expect(registrationLabel(entity({ rcsCity: null }))).toBeNull()
-  })
-
-  it("treats a missing address as France", () => {
-    expect(registrationLabel(entity({ address: null }))).toBe("RCS Paris 123456789")
-  })
-
-  it("joins the RCS city and number outside France", () => {
-    expect(
-      registrationLabel(
-        entity({ address: { country: "LU" }, rcsNumber: "B123456", rcsCity: "Luxembourg" }),
-      ),
-    ).toBe("Luxembourg B123456")
+    expect(label).toBe(expected)
   })
 })

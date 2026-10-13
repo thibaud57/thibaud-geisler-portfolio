@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it } from "vitest"
 
 import { isBlockedAddress } from "./address-guard"

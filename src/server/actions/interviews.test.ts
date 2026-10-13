@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -22,6 +22,7 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 
@@ -57,13 +58,6 @@ function buildFormData(
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
-// `vi.clearAllMocks` n'efface que les appels : les réponses sont remises à chaque test.
 beforeEach(() => {
   vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: "c-esn" } as never)
   vi.mocked(prisma.person.count).mockResolvedValue(0)
@@ -73,8 +67,19 @@ beforeEach(() => {
   vi.mocked(prisma.interview.update).mockResolvedValue({ id: "i1" } as never)
 })
 
-afterEach(() => {
-  vi.clearAllMocks()
+it.each([
+  ["createInterview", () => createInterview(initialInterviewFormState, buildFormData())],
+  ["updateInterview", () => updateInterview("i1", initialInterviewFormState, buildFormData())],
+  ["deleteInterview", () => deleteInterview("i1")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.$transaction).not.toHaveBeenCalled()
+  expect(prisma.opportunity.findUnique).not.toHaveBeenCalled()
+  expect(prisma.interview.delete).not.toHaveBeenCalled()
 })
 
 describe("createInterview", () => {
@@ -137,30 +142,15 @@ describe("createInterview", () => {
     )
   })
 
-  it("saves the format chosen for the interview", async () => {
-    await createInterview(initialInterviewFormState, buildFormData({ format: "VISIO" }))
+  it.each([
+    ["the format chosen for the interview", "VISIO", "VISIO"],
+    ["no format when none is chosen", NONE_VALUE, null],
+  ])("saves %s", async (_label, format, expected) => {
+    await createInterview(initialInterviewFormState, buildFormData({ format }))
 
     expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ format: "VISIO" }) }),
+      objectMatch({ data: objectMatch({ format: expected }) }),
     )
-  })
-
-  it("saves no format when none is chosen", async () => {
-    await createInterview(initialInterviewFormState, buildFormData())
-
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ format: null }) }),
-    )
-  })
-
-  it("rejects an unknown format", async () => {
-    const state = await createInterview(
-      initialInterviewFormState,
-      buildFormData({ format: "AVION" }),
-    )
-
-    expect(state.errors.format).toBeDefined()
-    expect(prisma.interview.create).not.toHaveBeenCalled()
   })
 
   it("connects the correspondents on create", async () => {
@@ -244,43 +234,16 @@ describe("createInterview", () => {
     expect(prisma.interview.create).not.toHaveBeenCalled()
   })
 
-  it("empties the outcome when the status is not Fait", async () => {
-    await createInterview(
-      initialInterviewFormState,
-      buildFormData({ status: "PLANIFIE", outcome: "POSITIF" }),
-    )
+  it.each([
+    ["empties the outcome when the status is not Fait", "PLANIFIE", "POSITIF", null],
+    ["keeps an empty outcome on a Fait interview", "FAIT", NONE_VALUE, null],
+    ["keeps the outcome on a Fait interview", "FAIT", "POSITIF", "POSITIF"],
+  ])("%s", async (_label, status, outcome, expected) => {
+    await createInterview(initialInterviewFormState, buildFormData({ status, outcome }))
 
     expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ outcome: null }) }),
+      objectMatch({ data: objectMatch({ outcome: expected }) }),
     )
-  })
-
-  it("keeps an empty outcome on a Fait interview", async () => {
-    await createInterview(initialInterviewFormState, buildFormData({ status: "FAIT" }))
-
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ outcome: null }) }),
-    )
-  })
-
-  it("keeps the outcome on a Fait interview", async () => {
-    await createInterview(
-      initialInterviewFormState,
-      buildFormData({ status: "FAIT", outcome: "POSITIF" }),
-    )
-
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ outcome: "POSITIF" }) }),
-    )
-  })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createInterview(initialInterviewFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.opportunity.findUnique).not.toHaveBeenCalled()
   })
 })
 

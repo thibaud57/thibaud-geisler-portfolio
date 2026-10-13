@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -19,6 +19,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 
@@ -50,21 +51,28 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
-// `vi.clearAllMocks` n'efface que les appels : les réponses sont remises à chaque test.
 beforeEach(() => {
   vi.mocked(prisma.weeklyReview.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.weeklyReview.create).mockResolvedValue({ id: "r1" } as never)
   vi.mocked(prisma.weeklyReview.update).mockResolvedValue({ id: "r1" } as never)
 })
 
-afterEach(() => {
-  vi.clearAllMocks()
+it.each([
+  ["createWeeklyReview", () => createWeeklyReview(initialWeeklyReviewFormState, buildFormData())],
+  [
+    "updateWeeklyReview",
+    () => updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData()),
+  ],
+  ["deleteWeeklyReview", () => deleteWeeklyReview("r1")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.weeklyReview.create).not.toHaveBeenCalled()
+  expect(prisma.weeklyReview.update).not.toHaveBeenCalled()
+  expect(prisma.weeklyReview.delete).not.toHaveBeenCalled()
 })
 
 describe("createWeeklyReview", () => {
@@ -96,15 +104,6 @@ describe("createWeeklyReview", () => {
 
     expect(state.errors.messagesSent).toEqual(["Un entier de 0 à 999"])
     expect(prisma.weeklyReview.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createWeeklyReview(initialWeeklyReviewFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.weeklyReview.findFirst).not.toHaveBeenCalled()
   })
 })
 

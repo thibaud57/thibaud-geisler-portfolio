@@ -12,13 +12,6 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: { children: React.ReactNode }) => <a {...props}>{children}</a>,
 }))
 
-vi.mock("@/components/magicui/bento-grid", () => ({
-  BentoGrid: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="bento-grid">{children}</div>
-  ),
-  BentoCard: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}))
-
 function renderWithIntl(ui: ReactElement) {
   return render(
     <NextIntlClientProvider locale="fr" messages={frMessages}>
@@ -82,58 +75,37 @@ function createProject(
 }
 
 describe("ProjectsList filter", () => {
-  it("affiche tous les projets par défaut, filtre correctement CLIENT/PERSONAL", async () => {
-    const fixtures: LocalizedProjectWithRelations[] = [
-      createProject({
-        id: "1",
-        slug: "p1",
-        title: "Client Project 1",
-        type: "CLIENT",
-        clientMeta: {
-          id: "cm-1",
-          projectId: "1",
-          companyId: "c-acme",
-          teamSize: 6,
-          contractStatus: "CDI",
-          workMode: "HYBRIDE",
-          deliverablesCount: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme SAS" }),
-        },
-      }),
-      createProject({ id: "2", slug: "p2", title: "Personal Project 1", type: "PERSONAL" }),
-      createProject({
-        id: "3",
-        slug: "p3",
-        title: "Client Project 2",
-        type: "CLIENT",
-        clientMeta: {
-          id: "cm-3",
-          projectId: "3",
-          companyId: "c-acme",
-          teamSize: null,
-          contractStatus: null,
-          workMode: "REMOTE",
-          deliverablesCount: 1,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          company: createCompany({ id: "c-acme", slug: "acme", name: "Acme" }),
-        },
-      }),
-    ]
-    const user = userEvent.setup()
-    renderWithIntl(<ProjectsList projects={fixtures} />)
+  const projects = [
+    createProject({ id: "1", slug: "p1", title: "Client Project 1", type: "CLIENT" }),
+    createProject({ id: "2", slug: "p2", title: "Personal Project 1", type: "PERSONAL" }),
+    createProject({ id: "3", slug: "p3", title: "Client Project 2", type: "CLIENT" }),
+  ]
+
+  it("shows every project by default", () => {
+    renderWithIntl(<ProjectsList projects={projects} />)
 
     expect(screen.getAllByRole("article")).toHaveLength(3)
+  })
 
+  it.each([
+    [/client/i, 2],
+    [/personnel/i, 1],
+  ])("filters the projects when the %s tab is selected", async (tab, expectedCount) => {
+    const user = userEvent.setup()
+    renderWithIntl(<ProjectsList projects={projects} />)
+
+    await user.click(screen.getByRole("tab", { name: tab }))
+
+    expect(screen.getAllByRole("article")).toHaveLength(expectedCount)
+  })
+
+  it("shows every project again when the all tab is selected", async () => {
+    const user = userEvent.setup()
+    renderWithIntl(<ProjectsList projects={projects} />)
     await user.click(screen.getByRole("tab", { name: /client/i }))
-    expect(screen.getAllByRole("article")).toHaveLength(2)
-
-    await user.click(screen.getByRole("tab", { name: /personnel/i }))
-    expect(screen.getAllByRole("article")).toHaveLength(1)
 
     await user.click(screen.getByRole("tab", { name: /tous/i }))
+
     expect(screen.getAllByRole("article")).toHaveLength(3)
   })
 })

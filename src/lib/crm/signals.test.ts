@@ -11,20 +11,18 @@ function signal(type: SignalType, isoDay: string) {
 }
 
 describe("signalFreshness", () => {
-  it("rates a job offer recent, to confirm then stale at three and six months", () => {
-    const recent = signalFreshness(signal("OFFRE_POSTE", "2026-07-01"), NOW)
-    const toConfirm = signalFreshness(signal("OFFRE_POSTE", "2026-06-27"), NOW)
-    const stale = signalFreshness(signal("OFFRE_POSTE", "2026-03-27"), NOW)
+  it.each([
+    { type: "OFFRE_POSTE", day: "2026-07-01", expected: "RECENT" },
+    { type: "OFFRE_POSTE", day: "2026-06-27", expected: "A_CONFIRMER" },
+    { type: "OFFRE_POSTE", day: "2026-03-27", expected: "PERIME" },
+    { type: "LEVEE", day: "2025-09-01", expected: "A_CONFIRMER" },
+    { type: "EXPANSION", day: "2025-09-01", expected: "PERIME" },
+    { type: "PIVOT", day: "2026-09-01", expected: null },
+    { type: "POST", day: "2026-09-01", expected: null },
+  ] as const)("rates a $type signal of $day as $expected", ({ type, day, expected }) => {
+    const freshness = signalFreshness(signal(type, day), NOW)
 
-    expect([recent, toConfirm, stale]).toEqual(["RECENT", "A_CONFIRMER", "PERIME"])
-  })
-
-  it("applies the funding and team expansion thresholds", () => {
-    const funding = signalFreshness(signal("LEVEE", "2025-09-01"), NOW)
-    const expansion = signalFreshness(signal("EXPANSION", "2025-09-01"), NOW)
-
-    expect(funding).toBe("A_CONFIRMER")
-    expect(expansion).toBe("PERIME")
+    expect(freshness).toBe(expected)
   })
 
   it("counts a month-dated signal from the first day of its month", () => {
@@ -33,35 +31,45 @@ describe("signalFreshness", () => {
     const freshness = signalFreshness(juneOffer, NOW)
 
     expect(freshness).toBe("A_CONFIRMER")
-    expect(formatSignalDate(juneOffer)).toBe("01/06/2026")
   })
 
-  it("clamps a month-end signal to the last day of the target month", () => {
-    const funding = signal("LEVEE", "2026-08-31")
+  it.each([
+    { label: "on the last day", now: "2027-02-27T12:00:00.000Z", expected: "RECENT" },
+    { label: "the day after", now: "2027-02-28T12:00:00.000Z", expected: "A_CONFIRMER" },
+  ])(
+    "clamps a month-end signal to the last day of the target month ($label)",
+    ({ now, expected }) => {
+      const funding = signal("LEVEE", "2026-08-31")
 
-    const lastDay = signalFreshness(funding, new Date("2027-02-27T12:00:00.000Z"))
-    const nextDay = signalFreshness(funding, new Date("2027-02-28T12:00:00.000Z"))
+      const freshness = signalFreshness(funding, new Date(now))
 
-    expect([lastDay, nextDay]).toEqual(["RECENT", "A_CONFIRMER"])
-  })
+      expect(freshness).toBe(expected)
+    },
+  )
+})
 
-  it("gives no freshness to an unrated type", () => {
-    const pivot = signalFreshness(signal("PIVOT", "2026-09-01"), NOW)
-    const post = signalFreshness(signal("POST", "2026-09-01"), NOW)
+describe("formatSignalDate", () => {
+  it("formats a month-dated signal as day/month/year", () => {
+    const juneOffer = { type: "OFFRE_POSTE" as const, occurredOn: new Date(Date.UTC(2026, 5, 1)) }
 
-    expect(pivot).toBeNull()
-    expect(post).toBeNull()
+    const formatted = formatSignalDate(juneOffer)
+
+    expect(formatted).toBe("01/06/2026")
   })
 })
 
 describe("hasRecentSignal", () => {
+  const unrated = [signal("PIVOT", "2026-09-01"), signal("LEVEE", "2024-01-01")]
+
+  it("ignores a record without a recent signal", () => {
+    const result = hasRecentSignal(unrated, NOW)
+
+    expect(result).toBe(false)
+  })
+
   it("flags a record with at least one recent signal", () => {
-    const unrated = [signal("PIVOT", "2026-09-01"), signal("LEVEE", "2024-01-01")]
+    const result = hasRecentSignal([...unrated, signal("NOUVEAU_PRODUIT", "2026-08-15")], NOW)
 
-    const without = hasRecentSignal(unrated, NOW)
-    const withRecent = hasRecentSignal([...unrated, signal("NOUVEAU_PRODUIT", "2026-08-15")], NOW)
-
-    expect(without).toBe(false)
-    expect(withRecent).toBe(true)
+    expect(result).toBe(true)
   })
 })

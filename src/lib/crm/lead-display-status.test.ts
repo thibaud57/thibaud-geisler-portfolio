@@ -29,23 +29,14 @@ describe("leadDisplayStatus", () => {
     expect(status).toBe("DISCUSSION")
   })
 
-  it("shows a scheduled meeting when the lead is a correspondent of an upcoming planned interview", () => {
+  it.each([
+    { label: "upcoming", scheduledAt: new Date(2026, 8, 28, 10, 0) },
+    { label: "at the current instant", scheduledAt: new Date(NOW) },
+  ])("shows a scheduled meeting for a planned interview $label", ({ scheduledAt }) => {
     const lead = {
       status: "DISCUSSION" as const,
       opportunities: [],
-      interviews: [{ status: "PLANIFIE" as const, scheduledAt: new Date(2026, 8, 28, 10, 0) }],
-    }
-
-    const status = leadDisplayStatus(lead, NOW)
-
-    expect(status).toBe("RDV_PLANIFIE")
-  })
-
-  it("shows a scheduled meeting for an interview at the current instant", () => {
-    const lead = {
-      status: "DISCUSSION" as const,
-      opportunities: [],
-      interviews: [{ status: "PLANIFIE" as const, scheduledAt: new Date(NOW) }],
+      interviews: [{ status: "PLANIFIE" as const, scheduledAt }],
     }
 
     const status = leadDisplayStatus(lead, NOW)

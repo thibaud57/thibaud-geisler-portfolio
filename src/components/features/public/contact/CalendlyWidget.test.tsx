@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { NextIntlClientProvider } from "next-intl"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 
 vi.mock("@c15t/nextjs/headless", () => ({
@@ -53,69 +53,45 @@ function buildManagerMock(marketingAccepted: boolean) {
   } as unknown as ReturnType<typeof useConsentManager>
 }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-})
+function Widget() {
+  return (
+    <Wrapper>
+      <CalendlyWidget url="https://calendly.com/test" placeholderLabel="Loading..." />
+    </Wrapper>
+  )
+}
 
-afterEach(() => {
-  vi.restoreAllMocks()
-})
+const GATED_LABEL = /L'affichage du widget Calendly nécessite votre accord/
 
-describe("CalendlyWidget gating marketing", () => {
-  it("rend le placeholder gated quand marketing=false", () => {
+describe("CalendlyWidget marketing gating", () => {
+  it("renders the gated placeholder when marketing is refused", () => {
     useConsentManagerMock.mockReturnValue(buildManagerMock(false))
 
-    render(
-      <Wrapper>
-        <CalendlyWidget url="https://calendly.com/test" placeholderLabel="Loading..." />
-      </Wrapper>,
-    )
+    render(<Widget />)
 
-    expect(
-      screen.getByText(/L'affichage du widget Calendly nécessite votre accord/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(GATED_LABEL)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Activer Calendly" })).toBeInTheDocument()
     expect(screen.queryByTestId("inline-widget-stub")).toBeNull()
   })
 
-  it("rend le widget Calendly quand marketing=true et url valide", () => {
+  it("renders the Calendly widget when marketing is accepted", () => {
     useConsentManagerMock.mockReturnValue(buildManagerMock(true))
 
-    render(
-      <Wrapper>
-        <CalendlyWidget url="https://calendly.com/test" placeholderLabel="Loading..." />
-      </Wrapper>,
-    )
+    render(<Widget />)
 
     const stub = screen.getByTestId("inline-widget-stub")
-    expect(stub).toBeInTheDocument()
     expect(stub.getAttribute("data-url")).toBe("https://calendly.com/test")
-    expect(screen.queryByText(/L'affichage du widget Calendly nécessite votre accord/)).toBeNull()
+    expect(screen.queryByText(GATED_LABEL)).toBeNull()
   })
 
-  it("bascule du placeholder gated vers le widget quand marketing passe de false à true", () => {
+  it("swaps the gated placeholder for the widget once marketing is accepted", () => {
     useConsentManagerMock.mockReturnValue(buildManagerMock(false))
-
-    const { rerender } = render(
-      <Wrapper>
-        <CalendlyWidget url="https://calendly.com/test" placeholderLabel="Loading..." />
-      </Wrapper>,
-    )
-
-    expect(
-      screen.getByText(/L'affichage du widget Calendly nécessite votre accord/),
-    ).toBeInTheDocument()
-    expect(screen.queryByTestId("inline-widget-stub")).toBeNull()
-
+    const { rerender } = render(<Widget />)
     useConsentManagerMock.mockReturnValue(buildManagerMock(true))
 
-    rerender(
-      <Wrapper>
-        <CalendlyWidget url="https://calendly.com/test" placeholderLabel="Loading..." />
-      </Wrapper>,
-    )
+    rerender(<Widget />)
 
     expect(screen.getByTestId("inline-widget-stub")).toBeInTheDocument()
-    expect(screen.queryByText(/L'affichage du widget Calendly nécessite votre accord/)).toBeNull()
+    expect(screen.queryByText(GATED_LABEL)).toBeNull()
   })
 })

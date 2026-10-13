@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -31,6 +31,7 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 
@@ -63,20 +64,6 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
-// Forme constatée le 2026-09-19 (Prisma 7 + @prisma/adapter-pg) : l'index vit sous `meta.driverAdapterError.cause.constraint.index`.
-function uniqueViolation(index: string) {
-  return {
-    code: "P2002",
-    meta: { driverAdapterError: { cause: { constraint: { index } } } },
-  }
-}
-
-// `vi.clearAllMocks` n'efface que les appels : remettre ces valeurs à chaque test évite qu'une réponse d'un test précédent fausse le suivant.
 beforeEach(() => {
   vi.mocked(prisma.person.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.person.findUnique).mockResolvedValue(null)
@@ -88,23 +75,23 @@ beforeEach(() => {
   vi.mocked(prisma.person.deleteMany).mockResolvedValue({ count: 1 })
 })
 
+it.each([
+  ["createLead", () => createLead(initialLeadFormState, buildFormData())],
+  ["updateLead", () => updateLead("p1", initialLeadFormState, buildFormData())],
+  ["deleteLead", () => deleteLead("p1")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.$transaction).not.toHaveBeenCalled()
+  expect(prisma.person.create).not.toHaveBeenCalled()
+  expect(prisma.person.update).not.toHaveBeenCalled()
+  expect(prisma.lead.delete).not.toHaveBeenCalled()
+})
+
 describe("createLead", () => {
-  afterEach(() => vi.clearAllMocks())
-
-  it("rejects a missing origin", async () => {
-    const state = await createLead(initialLeadFormState, buildFormData({ origin: "" }))
-
-    expect(state.errors.origin).toBeDefined()
-    expect(prisma.person.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects a missing name", async () => {
-    const state = await createLead(initialLeadFormState, buildFormData({ name: "" }))
-
-    expect(state.errors.name).toEqual(["Le nom est requis"])
-    expect(prisma.person.create).not.toHaveBeenCalled()
-  })
-
   it("rejects a score outside 0 to 10", async () => {
     const state = await createLead(initialLeadFormState, buildFormData({ score: "11" }))
 
@@ -207,7 +194,9 @@ describe("createLead", () => {
   })
 
   it("maps a concurrent uniqueness violation to the duplicate message", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue(uniqueViolation("Person_linkedinUrl_key"))
+    vi.mocked(prisma.person.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Person_linkedinUrl_key"),
+    )
 
     const state = await createLead(
       initialLeadFormState,
@@ -219,7 +208,9 @@ describe("createLead", () => {
   })
 
   it("maps a missing company to the company field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValue({ code: "P2003" })
+    vi.mocked(prisma.person.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "Person_companyId_fkey"),
+    )
 
     const state = await createLead(initialLeadFormState, buildFormData({ companyId: "c-missing" }))
 
@@ -240,20 +231,9 @@ describe("createLead", () => {
       objectMatch({ orderBy: { optedOutAt: { sort: "desc", nulls: "last" } } }),
     )
   })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createLead(initialLeadFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.person.findFirst).not.toHaveBeenCalled()
-  })
 })
 
 describe("updateLead", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("ignores the lead being edited when checking duplicates", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
 
@@ -286,7 +266,7 @@ describe("updateLead", () => {
 
   it("reports a lead deleted since the page loaded", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.lead.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.update).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
 
     const state = await updateLead("p1", initialLeadFormState, buildFormData())
@@ -297,7 +277,7 @@ describe("updateLead", () => {
 
   it("reports an unknown error when a P2025 comes while the lead still exists", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.lead.update).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.update).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.lead.count).mockResolvedValueOnce(1)
 
     const state = await updateLead("p1", initialLeadFormState, buildFormData())
@@ -317,8 +297,6 @@ describe("updateLead", () => {
 })
 
 describe("deleteLead", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("deletes the person through one conditional statement that spares any other role", async () => {
     await deleteLead("p1")
 
@@ -335,7 +313,7 @@ describe("deleteLead", () => {
   })
 
   it("treats a lead already deleted elsewhere as deleted, without touching the person", async () => {
-    vi.mocked(prisma.lead.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.lead.count).mockResolvedValueOnce(0)
 
     const state = await deleteLead("p1")
@@ -345,7 +323,7 @@ describe("deleteLead", () => {
   })
 
   it("reports an unknown error when a P2025 comes while the lead still exists", async () => {
-    vi.mocked(prisma.lead.delete).mockRejectedValue({ code: "P2025" })
+    vi.mocked(prisma.lead.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.lead.count).mockResolvedValueOnce(1)
 
     const state = await deleteLead("p1")

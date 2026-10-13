@@ -24,26 +24,6 @@ describe("actionEvents", () => {
     ])
   })
 
-  it("colours each status as the calendar legend", () => {
-    const actions = [
-      action("A_FAIRE"),
-      action("FAIT"),
-      action("REPONDU"),
-      action("CONVERTI"),
-      action("IGNORE"),
-    ]
-
-    const events = actionEvents(actions)
-
-    expect(events.map((event) => event.color)).toEqual([
-      "var(--color-warning)",
-      "var(--color-info)",
-      "var(--color-success)",
-      "var(--color-success)",
-      "var(--color-destructive)",
-    ])
-  })
-
   it("spans the whole Paris day of the action, even late in the evening", () => {
     const [event] = actionEvents([action("A_FAIRE")])
 

@@ -6,7 +6,7 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }))
 
-import { prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { createProject, prisma, resetDatabase } from "@/lib/prisma-test-setup"
 import { findManyPublished, findPublishedBySlug } from "@/server/queries/projects"
 
 describe("findManyPublished", () => {
@@ -14,38 +14,10 @@ describe("findManyPublished", () => {
     await resetDatabase()
   })
 
-  it("retourne uniquement les projets status=PUBLISHED (exclut DRAFT et ARCHIVED)", async () => {
-    await prisma.project.createMany({
-      data: [
-        {
-          slug: "pub",
-          titleFr: "Pub",
-          titleEn: "Pub",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "PUBLISHED",
-        },
-        {
-          slug: "draft",
-          titleFr: "Draft",
-          titleEn: "Draft",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "DRAFT",
-        },
-        {
-          slug: "arch",
-          titleFr: "Arch",
-          titleEn: "Arch",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "ARCHIVED",
-        },
-      ],
-    })
+  it("returns only PUBLISHED projects, excluding DRAFT and ARCHIVED", async () => {
+    await createProject({ slug: "pub", status: "PUBLISHED" })
+    await createProject({ slug: "draft", status: "DRAFT" })
+    await createProject({ slug: "arch", status: "ARCHIVED" })
 
     const result = await findManyPublished({ locale: "fr" })
 
@@ -56,29 +28,9 @@ describe("findManyPublished", () => {
   it.each([
     ["CLIENT", "cli"],
     ["PERSONAL", "perso"],
-  ] as const)("filtre par type=%s quand précisé", async (type, expectedSlug) => {
-    await prisma.project.createMany({
-      data: [
-        {
-          slug: "cli",
-          titleFr: "Cli",
-          titleEn: "Cli",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "CLIENT",
-          status: "PUBLISHED",
-        },
-        {
-          slug: "perso",
-          titleFr: "Perso",
-          titleEn: "Perso",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "PUBLISHED",
-        },
-      ],
-    })
+  ] as const)("filters on type=%s when given", async (type, expectedSlug) => {
+    await createProject({ slug: "cli", type: "CLIENT" })
+    await createProject({ slug: "perso", type: "PERSONAL" })
 
     const result = await findManyPublished({ type, locale: "fr" })
 
@@ -86,48 +38,17 @@ describe("findManyPublished", () => {
     expect(result[0]?.slug).toBe(expectedSlug)
   })
 
-  it("retourne les projets triés par displayOrder asc (0 en premier)", async () => {
-    await prisma.project.createMany({
-      data: [
-        {
-          slug: "a",
-          titleFr: "A",
-          titleEn: "A",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "PUBLISHED",
-          displayOrder: 10,
-        },
-        {
-          slug: "b",
-          titleFr: "B",
-          titleEn: "B",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "PUBLISHED",
-          displayOrder: 0,
-        },
-        {
-          slug: "c",
-          titleFr: "C",
-          titleEn: "C",
-          descriptionFr: "d",
-          descriptionEn: "d",
-          type: "PERSONAL",
-          status: "PUBLISHED",
-          displayOrder: 5,
-        },
-      ],
-    })
+  it("sorts projects by ascending displayOrder, 0 first", async () => {
+    await createProject({ slug: "a", displayOrder: 10 })
+    await createProject({ slug: "b", displayOrder: 0 })
+    await createProject({ slug: "c", displayOrder: 5 })
 
     const result = await findManyPublished({ locale: "fr" })
 
     expect(result.map((p) => p.slug)).toEqual(["b", "c", "a"])
   })
 
-  it("inclut les relations tags via ProjectTag (triés displayOrder asc, mélange kinds dont EXPERTISE) et clientMeta.company nested", async () => {
+  it("includes tags through ProjectTag, sorted by displayOrder across kinds, and the nested clientMeta.company", async () => {
     await prisma.company.create({
       data: {
         slug: "acme",
@@ -136,7 +57,6 @@ describe("findManyPublished", () => {
         size: "GROUPE",
       },
     })
-
     await prisma.tag.createMany({
       data: [
         {
@@ -162,31 +82,23 @@ describe("findManyPublished", () => {
         },
       ],
     })
-
-    await prisma.project.create({
-      data: {
-        slug: "full",
-        titleFr: "Full",
-        titleEn: "Full",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        formats: ["WEB_APP", "API"],
-        tags: {
-          create: [
-            { displayOrder: 0, tag: { connect: { slug: "anti-bot-scraping" } } },
-            { displayOrder: 1, tag: { connect: { slug: "react" } } },
-            { displayOrder: 2, tag: { connect: { slug: "docker" } } },
-          ],
-        },
-        clientMeta: {
-          create: {
-            teamSize: 15,
-            contractStatus: "FREELANCE",
-            workMode: "REMOTE",
-            company: { connect: { slug: "acme" } },
-          },
+    await createProject({
+      slug: "full",
+      type: "CLIENT",
+      formats: ["WEB_APP", "API"],
+      tags: {
+        create: [
+          { displayOrder: 0, tag: { connect: { slug: "anti-bot-scraping" } } },
+          { displayOrder: 1, tag: { connect: { slug: "react" } } },
+          { displayOrder: 2, tag: { connect: { slug: "docker" } } },
+        ],
+      },
+      clientMeta: {
+        create: {
+          teamSize: 15,
+          contractStatus: "FREELANCE",
+          workMode: "REMOTE",
+          company: { connect: { slug: "acme" } },
         },
       },
     })
@@ -208,47 +120,30 @@ describe("findManyPublished", () => {
     expect(result[0]?.clientMeta?.company.size).toBe("GROUPE")
   })
 
-  it("résout title/description en FR quand locale = fr", async () => {
-    await prisma.project.create({
-      data: {
-        slug: "bi",
-        titleFr: "Webapp Gestion Sinistres",
-        titleEn: "Claims Management Web App",
-        descriptionFr: "Desc FR",
-        descriptionEn: "Desc EN",
-        type: "CLIENT",
-        status: "PUBLISHED",
-      },
+  it.each([
+    ["fr", "Webapp Gestion Sinistres", "Desc FR"],
+    ["en", "Claims Management Web App", "Desc EN"],
+  ] as const)("resolves title and description in %s", async (locale, title, description) => {
+    await createProject({
+      slug: "bi",
+      titleFr: "Webapp Gestion Sinistres",
+      titleEn: "Claims Management Web App",
+      descriptionFr: "Desc FR",
+      descriptionEn: "Desc EN",
     })
 
-    const result = await findManyPublished({ locale: "fr" })
+    const result = await findManyPublished({ locale })
 
-    expect(result[0]?.title).toBe("Webapp Gestion Sinistres")
-    expect(result[0]?.description).toBe("Desc FR")
+    expect(result[0]?.title).toBe(title)
+    expect(result[0]?.description).toBe(description)
     expect(result[0]).not.toHaveProperty("titleFr")
     expect(result[0]).not.toHaveProperty("titleEn")
   })
 
-  it("résout title/description en EN quand locale = en", async () => {
-    await prisma.project.create({
-      data: {
-        slug: "bi",
-        titleFr: "Webapp Gestion Sinistres",
-        titleEn: "Claims Management Web App",
-        descriptionFr: "Desc FR",
-        descriptionEn: "Desc EN",
-        type: "CLIENT",
-        status: "PUBLISHED",
-      },
-    })
-
-    const result = await findManyPublished({ locale: "en" })
-
-    expect(result[0]?.title).toBe("Claims Management Web App")
-    expect(result[0]?.description).toBe("Desc EN")
-  })
-
-  it("applique la locale sur les tags nested (name résolu selon locale)", async () => {
+  it.each([
+    { locale: "fr", name: "Automatisation" },
+    { locale: "en", name: "Automation" },
+  ] as const)("applies the $locale locale to nested tags", async ({ locale, name }) => {
     await prisma.tag.create({
       data: {
         slug: "automatisation",
@@ -257,25 +152,15 @@ describe("findManyPublished", () => {
         kind: "EXPERTISE",
       },
     })
-    await prisma.project.create({
-      data: {
-        slug: "bi",
-        titleFr: "T",
-        titleEn: "T",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "PERSONAL",
-        status: "PUBLISHED",
-        tags: { create: [{ displayOrder: 0, tag: { connect: { slug: "automatisation" } } }] },
-      },
+    await createProject({
+      slug: "bi",
+      tags: { create: [{ displayOrder: 0, tag: { connect: { slug: "automatisation" } } }] },
     })
 
-    const resultFr = await findManyPublished({ locale: "fr" })
-    const resultEn = await findManyPublished({ locale: "en" })
+    const result = await findManyPublished({ locale })
 
-    expect(resultFr[0]?.tags[0]?.tag.name).toBe("Automatisation")
-    expect(resultEn[0]?.tags[0]?.tag.name).toBe("Automation")
-    expect(resultFr[0]?.tags[0]?.tag).not.toHaveProperty("nameFr")
+    expect(result[0]?.tags[0]?.tag.name).toBe(name)
+    expect(result[0]?.tags[0]?.tag).not.toHaveProperty("nameFr")
   })
 })
 
@@ -284,31 +169,21 @@ describe("findPublishedBySlug", () => {
     await resetDatabase()
   })
 
-  it("retourne le projet PUBLISHED avec ses relations nested localisées", async () => {
+  it("returns the PUBLISHED project with its localized nested relations", async () => {
     await prisma.company.create({
       data: { slug: "acme", name: "Acme", sectors: ["LOGICIELS_ENTREPRISE"], size: "GROUPE" },
     })
     await prisma.tag.create({
       data: { slug: "react", nameFr: "React", nameEn: "React", kind: "FRAMEWORK" },
     })
-    await prisma.project.create({
-      data: {
-        slug: "mon-projet",
-        titleFr: "Mon Projet",
-        titleEn: "My Project",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        tags: {
-          create: [{ displayOrder: 0, tag: { connect: { slug: "react" } } }],
-        },
-        clientMeta: {
-          create: {
-            workMode: "REMOTE",
-            company: { connect: { slug: "acme" } },
-          },
-        },
+    await createProject({
+      slug: "mon-projet",
+      titleFr: "Mon Projet",
+      titleEn: "My Project",
+      type: "CLIENT",
+      tags: { create: [{ displayOrder: 0, tag: { connect: { slug: "react" } } }] },
+      clientMeta: {
+        create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } },
       },
     })
 
@@ -325,20 +200,10 @@ describe("findPublishedBySlug", () => {
   })
 
   it.each([
-    ["slug-inexistant", "slug absent de la BDD"],
-    ["mon-brouillon", "slug existant mais status=DRAFT"],
-  ])("retourne null pour %s (%s)", async (slug) => {
-    await prisma.project.create({
-      data: {
-        slug: "mon-brouillon",
-        titleFr: "Brouillon",
-        titleEn: "Draft",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "PERSONAL",
-        status: "DRAFT",
-      },
-    })
+    ["missing-slug", "a slug absent from the database"],
+    ["my-draft", "an existing slug with status DRAFT"],
+  ])("returns null for %s (%s)", async (slug) => {
+    await createProject({ slug: "my-draft", status: "DRAFT" })
 
     const result = await findPublishedBySlug(slug, "fr")
 
@@ -364,18 +229,11 @@ describe("findPublishedBySlug company payload", () => {
         details: "# 🏢 À propos\n\nDétails internes.",
       },
     })
-    await prisma.project.create({
-      data: {
-        slug: "mission",
-        titleFr: "Mission",
-        titleEn: "Mission",
-        descriptionFr: "d",
-        descriptionEn: "d",
-        type: "CLIENT",
-        status: "PUBLISHED",
-        clientMeta: {
-          create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } },
-        },
+    await createProject({
+      slug: "mission",
+      type: "CLIENT",
+      clientMeta: {
+        create: { workMode: "REMOTE", company: { connect: { slug: "acme" } } },
       },
     })
 

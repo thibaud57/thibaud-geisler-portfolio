@@ -1,7 +1,6 @@
-// @vitest-environment node
 import { EventEmitter } from "node:events"
 import { Readable } from "node:stream"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 vi.mock("node:dns", () => ({ lookup: vi.fn() }))
 vi.mock("node:http", () => ({ default: { get: vi.fn() } }))
@@ -51,8 +50,6 @@ function dnsAnswers(addresses: LookupAddress[]) {
 }
 
 describe("guardedLookup", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("refuses a host name that resolves to a private address", () => {
     dnsAnswers([{ address: "10.0.0.5", family: 4 }])
     const callback = vi.fn()
@@ -117,8 +114,6 @@ describe("guardedLookup", () => {
 })
 
 describe("safeFetch", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it.each([
     "http://127.0.0.1/",
     "http://127.0.0.1:3000/",
@@ -162,6 +157,33 @@ describe("safeFetch", () => {
     await expect(result).rejects.toBeInstanceOf(FetchFailedError)
     expect(https.get).toHaveBeenCalledTimes(1)
     expect(http.get).not.toHaveBeenCalled()
+  })
+
+  it("follows five redirects", async () => {
+    httpsRepliesWith(
+      ...Array.from({ length: 5 }, (_, i) =>
+        fakeResponse(302, { location: `https://acme.example/${i + 1}` }),
+      ),
+      fakeResponse(200, {}, Buffer.from("ok")),
+    )
+
+    const page = await safeFetch("https://acme.example/", { maxBytes: 1024 })
+
+    expect(page.body.toString()).toBe("ok")
+    expect(https.get).toHaveBeenCalledTimes(6)
+  })
+
+  it("gives up on a sixth redirect", async () => {
+    httpsRepliesWith(
+      ...Array.from({ length: 6 }, (_, i) =>
+        fakeResponse(302, { location: `https://acme.example/${i + 1}` }),
+      ),
+    )
+
+    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+
+    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+    expect(https.get).toHaveBeenCalledTimes(6)
   })
 
   it("connects through the guarded lookup", async () => {

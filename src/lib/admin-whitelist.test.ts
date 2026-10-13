@@ -5,17 +5,13 @@ import { isAdminEmail } from "./admin-whitelist"
 const ADMIN_EMAIL = "admin@example.com"
 
 describe("isAdminEmail", () => {
-  it.each(["admin@example.com", "Admin@Example.COM", "  admin@example.com  "])(
-    "autorise %j, égal à adminEmail à la casse et aux espaces près",
-    (email) => {
-      const allowed = isAdminEmail(email, ADMIN_EMAIL)
-
-      expect(allowed).toBe(true)
-    },
-  )
-
-  it("normalise aussi adminEmail", () => {
-    const allowed = isAdminEmail("admin@example.com", "  Admin@Example.COM ")
+  it.each([
+    ["admin@example.com", ADMIN_EMAIL],
+    ["Admin@Example.COM", ADMIN_EMAIL],
+    ["  admin@example.com  ", ADMIN_EMAIL],
+    ["admin@example.com", "  Admin@Example.COM "],
+  ])("allows %j when adminEmail is %j, ignoring case and spaces", (email, adminEmail) => {
+    const allowed = isAdminEmail(email, adminEmail)
 
     expect(allowed).toBe(true)
   })
@@ -29,7 +25,7 @@ describe("isAdminEmail", () => {
     [ADMIN_EMAIL, null],
     [ADMIN_EMAIL, undefined],
     ["", ""],
-  ])("refuse %j quand adminEmail vaut %j", (email, adminEmail) => {
+  ])("refuses %j when adminEmail is %j", (email, adminEmail) => {
     const allowed = isAdminEmail(email, adminEmail)
 
     expect(allowed).toBe(false)

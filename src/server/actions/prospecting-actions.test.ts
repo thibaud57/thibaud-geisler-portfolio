@@ -29,6 +29,7 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 
 import {
@@ -68,12 +69,6 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
 beforeEach(() => {
   // Seule l'horloge est figée : les promesses et les timers du logger restent réels.
   vi.useFakeTimers({ toFake: ["Date"] })
@@ -86,7 +81,31 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
-  vi.clearAllMocks()
+})
+
+it.each([
+  [
+    "createProspectingAction",
+    () => createProspectingAction(initialProspectingActionFormState, buildFormData()),
+  ],
+  [
+    "updateProspectingAction",
+    () => updateProspectingAction("a1", initialProspectingActionFormState, buildFormData()),
+  ],
+  ["deleteProspectingAction", () => deleteProspectingAction("a1")],
+  ["changeProspectingActionStatus", () => changeProspectingActionStatus("a1", "FAIT")],
+  ["rescheduleProspectingAction", () => rescheduleProspectingAction("a1", "2026-03-12")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.$transaction).not.toHaveBeenCalled()
+  expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
+  expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
+  expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
+  expect(prisma.prospectingAction.delete).not.toHaveBeenCalled()
 })
 
 describe("createProspectingAction", () => {
@@ -139,7 +158,9 @@ describe("createProspectingAction", () => {
   })
 
   it("maps a missing person to the person field", async () => {
-    vi.mocked(prisma.prospectingAction.create).mockRejectedValue({ code: "P2003" })
+    vi.mocked(prisma.prospectingAction.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "ProspectingAction_personId_fkey"),
+    )
 
     const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
 
@@ -166,20 +187,11 @@ describe("createProspectingAction", () => {
     expect(state.errors.personId).toEqual([OPTED_OUT_MESSAGE])
     expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
   })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createProspectingAction(initialProspectingActionFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
-    expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
-  })
 })
 
 describe("updateProspectingAction", () => {
   it("applies the status rules on update, from the stored status and date", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
       status: "A_FAIRE",
       occurredAt: MONDAY,
       respondedAt: null,
@@ -271,7 +283,7 @@ describe("deleteProspectingAction", () => {
 
 describe("changeProspectingActionStatus", () => {
   it("changes the status alone and applies the same rules", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
       status: "FAIT",
       occurredAt: MONDAY,
       respondedAt: null,
@@ -288,7 +300,7 @@ describe("changeProspectingActionStatus", () => {
   })
 
   it("keeps the reply when the status alone moves a replied action to converted", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
       status: "REPONDU",
       occurredAt: MONDAY,
       respondedAt: NOW,
@@ -304,7 +316,7 @@ describe("changeProspectingActionStatus", () => {
   })
 
   it("clears the reply when the status alone moves a replied action back to done", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValue({
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
       status: "REPONDU",
       occurredAt: MONDAY,
       respondedAt: NOW,
@@ -335,7 +347,7 @@ describe("rescheduleProspectingAction", () => {
   const THURSDAY_MIDNIGHT_IN_PARIS = new Date("2026-03-11T23:00:00Z")
 
   it("moves a to-do action to its new day", async () => {
-    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 1 })
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 1 })
 
     const state = await rescheduleProspectingAction("a1", THURSDAY)
 
@@ -347,7 +359,7 @@ describe("rescheduleProspectingAction", () => {
   })
 
   it("refuses to move an action already sent", async () => {
-    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 0 })
     vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
 
     const state = await rescheduleProspectingAction("a1", THURSDAY)
@@ -367,7 +379,7 @@ describe("rescheduleProspectingAction", () => {
   })
 
   it("tells a deleted action apart from one already sent", async () => {
-    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 0 })
     vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
 
     const state = await rescheduleProspectingAction("a1", THURSDAY)
@@ -377,7 +389,7 @@ describe("rescheduleProspectingAction", () => {
   })
 
   it("refreshes the screens after a refusal, which showed a stale action", async () => {
-    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValue({ count: 0 })
+    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 0 })
     vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
 
     await rescheduleProspectingAction("a1", THURSDAY)
@@ -389,15 +401,6 @@ describe("rescheduleProspectingAction", () => {
     const state = await rescheduleProspectingAction("a1", "2026-03-12T09:00")
 
     expect(state.errors.occurredAt).toBeDefined()
-    expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
-  })
-
-  it("rejects a reschedule without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = rescheduleProspectingAction("a1", THURSDAY)
-
-    await expect(result).rejects.toThrow()
     expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
   })
 })

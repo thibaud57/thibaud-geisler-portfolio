@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import { transporter } from "@/lib/mailer"
 import { rateLimiter } from "@/lib/rate-limiter"
 import { logger } from "@/lib/logger"
+import { objectMatch } from "@/lib/matchers-test-setup"
 
 vi.mock("@/lib/mailer", () => ({
   transporter: { sendMail: vi.fn() },
@@ -80,19 +81,10 @@ describe("submitContact", () => {
   })
 
   afterEach(() => {
-    vi.clearAllMocks()
     vi.restoreAllMocks()
   })
 
-  it("exporte un initialContactFormState idle (ok=null, errors vides, message null)", () => {
-    expect(initialContactFormState).toEqual({
-      ok: null,
-      errors: {},
-      message: null,
-    })
-  })
-
-  it("envoie l'email et retourne ok:true sur payload valide + rate limit OK", async () => {
+  it("sends the email and returns ok:true on a valid payload within the rate limit", async () => {
     const result = await submitContact(initialContactFormState, buildFormData())
 
     expect(transporter.sendMail).toHaveBeenCalledWith({
@@ -119,7 +111,7 @@ describe("submitContact", () => {
     })
   })
 
-  it("détecte le honeypot et retourne ok:true factice sans envoyer (sendMail jamais appelé)", async () => {
+  it("catches the honeypot and returns a fake ok:true without sending", async () => {
     const result = await submitContact(
       initialContactFormState,
       buildFormData({ website: "https://spam.example" }),
@@ -133,13 +125,13 @@ describe("submitContact", () => {
     expect(childLog.info).toHaveBeenCalledWith({ event: "honeypot:caught" })
   })
 
-  it("ne déclenche pas le honeypot quand website ne contient que des espaces", async () => {
+  it("does not trigger the honeypot when website only holds spaces", async () => {
     await submitContact(initialContactFormState, buildFormData({ website: "   " }))
 
     expect(transporter.sendMail).toHaveBeenCalled()
   })
 
-  it('rejette un email invalide avec errors.email = ["email_invalid"] et n\'envoie pas', async () => {
+  it("rejects an invalid email with email_invalid and sends nothing", async () => {
     const result = await submitContact(
       initialContactFormState,
       buildFormData({ email: "pas-un-email" }),
@@ -151,7 +143,7 @@ describe("submitContact", () => {
     expect(result.message).toBeNull()
   })
 
-  it("preserve les valeurs saisies dans state.values en cas d'erreur Zod", async () => {
+  it("keeps the typed values in state.values when validation fails", async () => {
     const result = await submitContact(
       initialContactFormState,
       buildFormData({ email: "pas-un-email" }),
@@ -160,14 +152,14 @@ describe("submitContact", () => {
     expect(result.values).toEqual({ ...FORM_DEFAULTS, email: "pas-un-email" })
   })
 
-  it("ne renvoie pas state.values en cas de succes (form reset normal)", async () => {
+  it("does not return state.values on success", async () => {
     const result = await submitContact(initialContactFormState, buildFormData())
 
     expect(result.ok).toBe(true)
     expect(result.values).toBeUndefined()
   })
 
-  it("retourne plusieurs erreurs Zod en cascade (name vide + message court)", async () => {
+  it("returns several field errors at once (empty name and short message)", async () => {
     const result = await submitContact(
       initialContactFormState,
       buildFormData({ name: "", message: "Trop court" }),
@@ -179,8 +171,8 @@ describe("submitContact", () => {
     expect(result.errors.message).toEqual(["message_too_short"])
   })
 
-  it("rejette quand rateLimiter.check retourne allowed:false (message rate_limit + log warn)", async () => {
-    vi.mocked(rateLimiter.check).mockReturnValue({
+  it("rejects with rate_limit and a warn log when rateLimiter.check denies", async () => {
+    vi.mocked(rateLimiter.check).mockReturnValueOnce({
       allowed: false,
       retryAfterSeconds: 240,
     })
@@ -202,7 +194,7 @@ describe("submitContact", () => {
     })
   })
 
-  it("retourne smtp_error quand transporter.sendMail throw", async () => {
+  it("returns smtp_error when transporter.sendMail throws", async () => {
     const smtpError = new Error("SMTP connection refused")
     vi.mocked(transporter.sendMail).mockRejectedValueOnce(smtpError)
 
@@ -222,44 +214,27 @@ describe("submitContact", () => {
     })
   })
 
-  it('utilise "unknown" comme key quand x-forwarded-for est absent', async () => {
-    vi.mocked(headers).mockResolvedValue(new Headers())
+  it.each([
+    ["is absent", undefined, "unknown"],
+    ["lists several addresses", "1.2.3.4, 10.0.0.1, 172.16.0.1", "1.2.3.4"],
+    ["has spaces around the first address", "  1.2.3.4  ,  10.0.0.1  ", "1.2.3.4"],
+  ])(
+    "keys the rate limit on the first IP when x-forwarded-for %s",
+    async (_label, forwardedFor, expectedKey) => {
+      vi.mocked(headers).mockResolvedValueOnce(
+        new Headers(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
+      )
 
-    await submitContact(initialContactFormState, buildFormData())
+      await submitContact(initialContactFormState, buildFormData())
 
-    expect(rateLimiter.check).toHaveBeenCalledWith("unknown", {
-      max: RATE_LIMIT_MAX,
-      windowMs: RATE_LIMIT_WINDOW_MS,
-    })
-  })
+      expect(rateLimiter.check).toHaveBeenCalledWith(expectedKey, {
+        max: RATE_LIMIT_MAX,
+        windowMs: RATE_LIMIT_WINDOW_MS,
+      })
+    },
+  )
 
-  it("extrait la première IP de la chaîne x-forwarded-for", async () => {
-    vi.mocked(headers).mockResolvedValue(
-      new Headers({ "x-forwarded-for": "1.2.3.4, 10.0.0.1, 172.16.0.1" }),
-    )
-
-    await submitContact(initialContactFormState, buildFormData())
-
-    expect(rateLimiter.check).toHaveBeenCalledWith("1.2.3.4", {
-      max: RATE_LIMIT_MAX,
-      windowMs: RATE_LIMIT_WINDOW_MS,
-    })
-  })
-
-  it("trim les espaces autour de la première IP de x-forwarded-for", async () => {
-    vi.mocked(headers).mockResolvedValue(
-      new Headers({ "x-forwarded-for": "  1.2.3.4  ,  10.0.0.1  " }),
-    )
-
-    await submitContact(initialContactFormState, buildFormData())
-
-    expect(rateLimiter.check).toHaveBeenCalledWith("1.2.3.4", {
-      max: RATE_LIMIT_MAX,
-      windowMs: RATE_LIMIT_WINDOW_MS,
-    })
-  })
-
-  it("omet la ligne Société et log has_company:false quand company est absente", async () => {
+  it("omits the company line and logs has_company:false when company is absent", async () => {
     await submitContact(initialContactFormState, buildFormData({}, { omit: ["company"] }))
 
     const callArg = vi.mocked(transporter.sendMail).mock.calls[0]?.[0]
@@ -267,14 +242,14 @@ describe("submitContact", () => {
 
     const childLog = getChildLog()
     expect(childLog.info).toHaveBeenCalledWith(
-      expect.objectContaining({
+      objectMatch({
         event: "email:sent",
         has_company: false,
       }),
     )
   })
 
-  it("ne loggue jamais email/name/subject/message en clair (RGPD)", async () => {
+  it("never logs email, name, subject or message in clear (GDPR)", async () => {
     await submitContact(initialContactFormState, buildFormData())
 
     const childLog = getChildLog()

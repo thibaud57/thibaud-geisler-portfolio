@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -20,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 
@@ -53,18 +54,6 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
-// Prisma 7 + @prisma/adapter-pg : le nom de la clé violée vit sous `meta.driverAdapterError.cause.constraint.index`.
-function foreignKeyViolation(index: string) {
-  return { code: "P2003", meta: { driverAdapterError: { cause: { constraint: { index } } } } }
-}
-
-// `vi.clearAllMocks` n'efface que les appels : les réponses sont remises à chaque test.
 beforeEach(() => {
   vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["ESN_RECRUTEMENT"] } as never)
   vi.mocked(prisma.opportunity.create).mockResolvedValue({ id: "o1" } as never)
@@ -72,8 +61,22 @@ beforeEach(() => {
   vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: null } as never)
 })
 
-afterEach(() => {
-  vi.clearAllMocks()
+it.each([
+  ["createOpportunity", () => createOpportunity(initialOpportunityFormState, buildFormData())],
+  [
+    "updateOpportunity",
+    () => updateOpportunity("o1", initialOpportunityFormState, buildFormData()),
+  ],
+  ["deleteOpportunity", () => deleteOpportunity("o1")],
+])("%s rejects a call without a session, before touching the database", async (_name, call) => {
+  vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+  const result = call()
+
+  await expect(result).rejects.toThrow()
+  expect(prisma.opportunity.create).not.toHaveBeenCalled()
+  expect(prisma.opportunity.update).not.toHaveBeenCalled()
+  expect(prisma.opportunity.delete).not.toHaveBeenCalled()
 })
 
 describe("createOpportunity", () => {
@@ -159,7 +162,9 @@ describe("createOpportunity", () => {
   ] as const)(
     "maps a missing referrer or company to its field (%s)",
     async (index, message, field) => {
-      vi.mocked(prisma.opportunity.create).mockRejectedValue(foreignKeyViolation(index))
+      vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
+        constraintViolation("P2003", index),
+      )
 
       const state = await createOpportunity(
         initialOpportunityFormState,
@@ -176,8 +181,8 @@ describe("createOpportunity", () => {
   )
 
   it("falls back to an unknown error on a foreign key it does not recognise", async () => {
-    vi.mocked(prisma.opportunity.create).mockRejectedValue(
-      foreignKeyViolation("Opportunity_other_fkey"),
+    vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "Opportunity_other_fkey"),
     )
 
     const state = await createOpportunity(initialOpportunityFormState, buildFormData())
@@ -188,8 +193,8 @@ describe("createOpportunity", () => {
 
   it("leaves a vanished intermediary to its foreign key, mapped to its field", async () => {
     vi.mocked(prisma.company.findUnique).mockResolvedValue(null)
-    vi.mocked(prisma.opportunity.create).mockRejectedValue(
-      foreignKeyViolation("Opportunity_intermediaryId_fkey"),
+    vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
+      constraintViolation("P2003", "Opportunity_intermediaryId_fkey"),
     )
 
     const state = await createOpportunity(
@@ -208,15 +213,6 @@ describe("createOpportunity", () => {
     )
 
     expect(state.errors.dailyRate).toEqual(["Le TJM est un entier positif"])
-    expect(prisma.opportunity.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects a call without a session, before touching the database", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    const result = createOpportunity(initialOpportunityFormState, buildFormData())
-
-    await expect(result).rejects.toThrow()
     expect(prisma.opportunity.create).not.toHaveBeenCalled()
   })
 })

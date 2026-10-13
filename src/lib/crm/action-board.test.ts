@@ -12,10 +12,6 @@ function action(overrides: Partial<BoardRow> = {}): BoardRow {
   }
 }
 
-function idsOf(actions: readonly BoardRow[]): string[] {
-  return actions.map((row) => row.id)
-}
-
 describe("boardColumns", () => {
   it("puts every status in its own column, in the pipeline order", () => {
     const actions = [
@@ -27,10 +23,10 @@ describe("boardColumns", () => {
     const columns = boardColumns(actions)
 
     expect(Object.keys(columns)).toEqual(["A_FAIRE", "FAIT", "REPONDU", "CONVERTI", "IGNORE"])
-    expect(idsOf(columns.A_FAIRE)).toEqual(["todo"])
-    expect(idsOf(columns.FAIT)).toEqual(["done"])
+    expect(columns.A_FAIRE.map(({ id }) => id)).toEqual(["todo"])
+    expect(columns.FAIT.map(({ id }) => id)).toEqual(["done"])
     expect(columns.REPONDU).toEqual([])
-    expect(idsOf(columns.IGNORE)).toEqual(["ignored"])
+    expect(columns.IGNORE.map(({ id }) => id)).toEqual(["ignored"])
   })
 
   it("sorts each column from the most recent action", () => {
@@ -42,7 +38,7 @@ describe("boardColumns", () => {
 
     const columns = boardColumns(actions)
 
-    expect(idsOf(columns.FAIT)).toEqual(["recent", "middle", "old"])
+    expect(columns.FAIT.map(({ id }) => id)).toEqual(["recent", "middle", "old"])
   })
 })
 
@@ -57,7 +53,7 @@ describe("actionsInPeriod", () => {
 
     const rows = actionsInPeriod(actions, "30", now)
 
-    expect(idsOf(rows)).toEqual(["yesterday", "planned"])
+    expect(rows.map(({ id }) => id)).toEqual(["yesterday", "planned"])
   })
 
   it("keeps an action from seven calendar days ago in the 7 days period whatever the time of day", () => {
@@ -69,7 +65,7 @@ describe("actionsInPeriod", () => {
 
     const rows = actionsInPeriod(actions, "7", now)
 
-    expect(idsOf(rows)).toEqual(["seven-days-ago"])
+    expect(rows.map(({ id }) => id)).toEqual(["seven-days-ago"])
   })
 })
 
@@ -79,39 +75,34 @@ describe("statusMoveFrom", () => {
     action({ id: "second", occurredAt: new Date(2026, 8, 20, 9, 0) }),
   ])
 
-  it("reads a move to another column as a status change", () => {
-    const move = statusMoveFrom({
+  it.each([
+    {
+      label: "reads a move to another column as a status change",
       kind: "item",
-      activeContainer: "A_FAIRE",
-      activeIndex: 1,
       overContainer: "FAIT",
-      previousValue,
-    })
-
-    expect(move).toEqual({ id: "second", status: "FAIT" })
-  })
-
-  it("ignores a move within the same column", () => {
-    const move = statusMoveFrom({
+      expected: { id: "second", status: "FAIT" },
+    },
+    {
+      label: "ignores a move within the same column",
       kind: "item",
-      activeContainer: "A_FAIRE",
-      activeIndex: 1,
       overContainer: "A_FAIRE",
-      previousValue,
-    })
-
-    expect(move).toBeNull()
-  })
-
-  it("never saves a column move", () => {
-    const move = statusMoveFrom({
+      expected: null,
+    },
+    {
+      label: "never saves a column move",
       kind: "column",
-      activeContainer: "A_FAIRE",
-      activeIndex: 0,
       overContainer: "FAIT",
+      expected: null,
+    },
+  ] as const)("$label", ({ kind, overContainer, expected }) => {
+    const move = statusMoveFrom({
+      kind,
+      activeContainer: "A_FAIRE",
+      activeIndex: 1,
+      overContainer,
       previousValue,
     })
 
-    expect(move).toBeNull()
+    expect(move).toEqual(expected)
   })
 })

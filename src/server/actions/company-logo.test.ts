@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -29,8 +28,6 @@ const LOGO = {
 }
 
 describe("fetchCompanyLogo", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("rejects a call without a session before any network access", async () => {
     vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
 

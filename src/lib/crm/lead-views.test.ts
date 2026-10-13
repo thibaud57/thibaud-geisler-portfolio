@@ -49,10 +49,6 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
   }
 }
 
-function idsOf(leads: readonly TestLead[]): string[] {
-  return leads.map((row) => row.id)
-}
-
 describe("isActiveLead", () => {
   it("treats a lead with an accepted opportunity as not active", () => {
     const deal = lead({ status: "DISCUSSION", opportunities: [{ status: "ACCEPTEE" }] })
@@ -78,7 +74,7 @@ describe("leadsForView", () => {
 
     const rows = leadsForView(leads, "en-cours", NOW)
 
-    expect(idsOf(rows).sort()).toEqual(["DISCUSSION", "NOUVEAU", "SUSPECT", "meeting"])
+    expect(rows.map(({ id }) => id).sort()).toEqual(["DISCUSSION", "NOUVEAU", "SUSPECT", "meeting"])
   })
 
   it("keeps only hot leads of the active pipeline in the hot view", () => {
@@ -97,23 +93,24 @@ describe("leadsForView", () => {
 
     const rows = leadsForView(leads, "chauds", NOW)
 
-    expect(idsOf(rows)).toEqual(["hot-DISCUSSION"])
+    expect(rows.map(({ id }) => id)).toEqual(["hot-DISCUSSION"])
   })
 
-  it("keeps a lead with an accepted opportunity out of the ongoing and hot views", () => {
-    const deal = lead({
-      id: "deal",
-      status: "DISCUSSION",
-      interest: "HOT",
-      opportunities: [{ status: "ACCEPTEE" }],
-    })
+  it.each(["en-cours", "chauds"] as const)(
+    "keeps a lead with an accepted opportunity out of the %s view",
+    (view) => {
+      const deal = lead({
+        id: "deal",
+        status: "DISCUSSION",
+        interest: "HOT",
+        opportunities: [{ status: "ACCEPTEE" }],
+      })
 
-    const ongoing = leadsForView([deal], "en-cours", NOW)
-    const hot = leadsForView([deal], "chauds", NOW)
+      const rows = leadsForView([deal], view, NOW)
 
-    expect(ongoing).toEqual([])
-    expect(hot).toEqual([])
-  })
+      expect(rows).toEqual([])
+    },
+  )
 
   it("keeps stand-by leads in the stand-by view only", () => {
     const leads = [
@@ -123,7 +120,7 @@ describe("leadsForView", () => {
 
     const rows = leadsForView(leads, "stand-by", NOW)
 
-    expect(idsOf(rows)).toEqual(["parked"])
+    expect(rows.map(({ id }) => id)).toEqual(["parked"])
   })
 
   it("keeps opted-out leads out of every view but all", () => {
@@ -134,7 +131,11 @@ describe("leadsForView", () => {
       optedOutAt: new Date("2026-03-12T09:00:00Z"),
       name: null,
     })
-    const standBy = lead({ id: "opted-out-stand-by", status: "STAND_BY", optedOutAt: new Date() })
+    const standBy = lead({
+      id: "opted-out-stand-by",
+      status: "STAND_BY",
+      optedOutAt: new Date("2026-09-20T09:00:00Z"),
+    })
 
     const visibleIn = LEAD_VIEWS.filter(
       (view) => leadsForView([optedOut, standBy], view, NOW).length > 0,
@@ -143,18 +144,19 @@ describe("leadsForView", () => {
     expect(visibleIn).toEqual(["all"])
   })
 
-  it("sorts leads without a meeting date last, whatever the direction", () => {
+  it.each([
+    { view: "en-cours", expected: ["march", "january", "none"] },
+    { view: "a-qualifier", expected: ["january", "march", "none"] },
+  ] as const)("sorts leads without a meeting date last in the $view view", ({ view, expected }) => {
     const leads = [
       lead({ id: "january", metAt: new Date(2026, 0, 10) }),
       lead({ id: "none", metAt: null }),
       lead({ id: "march", metAt: new Date(2026, 2, 10) }),
     ]
 
-    const newestFirst = leadsForView(leads, "en-cours", NOW)
-    const oldestFirst = leadsForView(leads, "a-qualifier", NOW)
+    const rows = leadsForView(leads, view, NOW)
 
-    expect(idsOf(newestFirst)).toEqual(["march", "january", "none"])
-    expect(idsOf(oldestFirst)).toEqual(["january", "march", "none"])
+    expect(rows.map(({ id }) => id)).toEqual(expected)
   })
 
   it("sorts all leads by name, opted-out leads last", () => {
@@ -171,7 +173,7 @@ describe("leadsForView", () => {
 
     const rows = leadsForView(leads, "all", NOW)
 
-    expect(idsOf(rows)).toEqual(["hugo", "louis", "jeanne-out", "sami-out"])
+    expect(rows.map(({ id }) => id)).toEqual(["hugo", "louis", "jeanne-out", "sami-out"])
   })
 
   it("sorts opted-out leads without a name by their email or LinkedIn", () => {
@@ -190,6 +192,11 @@ describe("leadsForView", () => {
 
     const rows = leadsForView(leads, "all", NOW)
 
-    expect(idsOf(rows)).toEqual(["active", "out-email-first", "out-linkedin", "out-email-last"])
+    expect(rows.map(({ id }) => id)).toEqual([
+      "active",
+      "out-email-first",
+      "out-linkedin",
+      "out-email-last",
+    ])
   })
 })

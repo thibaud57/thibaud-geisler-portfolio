@@ -53,23 +53,19 @@ function opportunityInterviews(): TestInterview[] {
 }
 
 describe("interviewPlaces", () => {
-  it("numbers interviews after the first contact within their opportunity, by date", () => {
-    const places = interviewPlaces(opportunityInterviews())
+  it.each([
+    { id: "first", number: null, previousId: null },
+    { id: "hr", number: 1, previousId: "first" },
+    { id: "tech", number: 2, previousId: "hr" },
+    { id: "other", number: 1, previousId: null },
+  ])(
+    "places interview $id at number $number after $previousId within its opportunity",
+    ({ id, number, previousId }) => {
+      const places = interviewPlaces(opportunityInterviews())
 
-    expect(places.get("first")?.number).toBeNull()
-    expect(places.get("hr")?.number).toBe(1)
-    expect(places.get("tech")?.number).toBe(2)
-    expect(places.get("other")?.number).toBe(1)
-  })
-
-  it("names the previous interview of the same opportunity", () => {
-    const places = interviewPlaces(opportunityInterviews())
-
-    expect(places.get("tech")?.previousId).toBe("hr")
-    expect(places.get("hr")?.previousId).toBe("first")
-    expect(places.get("first")?.previousId).toBeNull()
-    expect(places.get("other")?.previousId).toBeNull()
-  })
+      expect(places.get(id)).toEqual({ number, previousId })
+    },
+  )
 
   it("keeps a stable number for two interviews at the same time", () => {
     const sameTime = new Date(2026, 8, 8, 10, 0)
@@ -86,12 +82,13 @@ describe("interviewPlaces", () => {
 })
 
 describe("interviewTitle", () => {
-  it("titles a first contact by its type and a later interview by its number", () => {
-    const first = interviewTitle("PREMIER_CONTACT", null)
-    const technical = interviewTitle("TECHNIQUE", 2)
+  it.each([
+    ["PREMIER_CONTACT", null, "Premier contact"],
+    ["TECHNIQUE", 2, "Entretien 2 · Technique"],
+  ] as const)("titles a %s interview numbered %s as %s", (type, number, expected) => {
+    const title = interviewTitle(type, number)
 
-    expect(first).toBe("Premier contact")
-    expect(technical).toBe("Entretien 2 · Technique")
+    expect(title).toBe(expected)
   })
 })
 

@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 vi.mock("@/lib/r2", () => ({ adminR2: { send: vi.fn() }, R2_ADMIN_BUCKET: "test-admin-bucket" }))
 vi.mock("./safe-fetch", async (importOriginal) => ({
@@ -11,6 +10,7 @@ vi.mock("./normalize-icon", async (importOriginal) => ({
   normalizeIcon: vi.fn(),
 }))
 
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { adminR2 } from "@/lib/r2"
 
 import {
@@ -32,15 +32,7 @@ function image(path: string) {
   return { url: new URL(path, SITE), body: Buffer.from(path) }
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
 describe("fetchCompanyIcon", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("falls back to the next candidate when one fails", async () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(
@@ -130,8 +122,6 @@ describe("fetchCompanyIcon", () => {
 })
 
 describe("retrieveCompanyLogo", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("retrieves, stores and reports the logo", async () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/icon.png">'))
@@ -151,20 +141,25 @@ describe("retrieveCompanyLogo", () => {
 })
 
 describe("storeCompanyLogo", () => {
-  afterEach(() => vi.clearAllMocks())
-
   it("stores the icon under the company folder with a content-derived name", async () => {
     const png = Buffer.from("same-png")
 
-    const first = await storeCompanyLogo("acme", png)
-    const second = await storeCompanyLogo("acme", png)
+    const key = await storeCompanyLogo("acme", png)
 
-    expect(first).toMatch(/^freelance\/crm\/entreprises\/acme\/logo-[0-9a-f]{12}\.png$/)
-    expect(second).toBe(first)
+    expect(key).toMatch(/^freelance\/crm\/entreprises\/acme\/logo-[0-9a-f]{12}\.png$/)
     expect(adminR2.send).toHaveBeenCalledWith(
       objectMatch({
-        input: objectMatch({ Bucket: "test-admin-bucket", Key: first, ContentType: "image/png" }),
+        input: objectMatch({ Bucket: "test-admin-bucket", Key: key, ContentType: "image/png" }),
       }),
     )
+  })
+
+  it("derives the same name from the same icon", async () => {
+    const png = Buffer.from("same-png")
+    const first = await storeCompanyLogo("acme", png)
+
+    const second = await storeCompanyLogo("acme", png)
+
+    expect(second).toBe(first)
   })
 })

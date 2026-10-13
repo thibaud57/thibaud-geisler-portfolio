@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react"
 import { toast } from "sonner"
 import { describe, expect, it, vi } from "vitest"
 
+import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 import { useSaveFeedback } from "./use-save-feedback"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -51,7 +52,7 @@ describe("useSaveFeedback", () => {
   it("falls back to the generic message on an unknown error", () => {
     renderFeedback({ ok: false, message: "unknown_error" })
 
-    expect(toast.error).toHaveBeenCalledWith("Une erreur est survenue, réessayez")
+    expect(toast.error).toHaveBeenCalledWith(GENERIC_ERROR_TOAST)
   })
 
   it("stays silent before any submission", () => {

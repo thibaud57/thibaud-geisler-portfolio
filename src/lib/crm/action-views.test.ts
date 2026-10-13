@@ -23,10 +23,6 @@ function action(overrides: Partial<TestAction> = {}): TestAction {
   }
 }
 
-function idsOf(actions: readonly TestAction[]): string[] {
-  return actions.map((row) => row.id)
-}
-
 describe("actionsForView", () => {
   it("keeps only to-do actions in the to-do view, soonest first", () => {
     const actions = [
@@ -37,7 +33,7 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "a-faire")
 
-    expect(idsOf(rows)).toEqual(["sooner", "later"])
+    expect(rows.map(({ id }) => id)).toEqual(["sooner", "later"])
   })
 
   it("keeps only sent LinkedIn connections in the connections view", () => {
@@ -50,7 +46,7 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "connexions")
 
-    expect(idsOf(rows)).toEqual(["sent"])
+    expect(rows.map(({ id }) => id)).toEqual(["sent"])
   })
 
   it("keeps sent LinkedIn messages, emails and texts in the discussions view", () => {
@@ -60,7 +56,7 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "discussions")
 
-    expect(idsOf(rows).sort()).toEqual(["DM_LINKEDIN", "EMAIL", "SMS_WHATSAPP"])
+    expect(rows.map(({ id }) => id).sort()).toEqual(["DM_LINKEDIN", "EMAIL", "SMS_WHATSAPP"])
   })
 
   it("lists sent actions most recent first outside the to-do view", () => {
@@ -81,7 +77,7 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "connexions")
 
-    expect(idsOf(rows)).toEqual(["newer", "older"])
+    expect(rows.map(({ id }) => id)).toEqual(["newer", "older"])
   })
 
   it("puts to-do actions first in the journal, then the most recent", () => {
@@ -93,7 +89,7 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "journal")
 
-    expect(idsOf(rows)).toEqual(["todo", "recent-done", "old-done"])
+    expect(rows.map(({ id }) => id)).toEqual(["todo", "recent-done", "old-done"])
   })
 
   it("breaks journal ties by creation date, newest first", () => {
@@ -105,6 +101,6 @@ describe("actionsForView", () => {
 
     const rows = actionsForView(actions, "journal")
 
-    expect(idsOf(rows)).toEqual(["created-last", "created-first"])
+    expect(rows.map(({ id }) => id)).toEqual(["created-last", "created-first"])
   })
 })

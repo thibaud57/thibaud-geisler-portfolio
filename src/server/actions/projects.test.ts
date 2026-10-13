@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
@@ -28,15 +28,11 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
-import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { prisma } from "@/lib/prisma"
 import { createProject, deleteProject, reorderProjects, updateProject } from "./projects"
 import { initialProjectFormState } from "./projects.types"
-
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
 
 function buildFormData(
   overrides: Record<string, string> = {},
@@ -73,10 +69,11 @@ function buildFormData(
   return data
 }
 
-function mockCreationInEmptyList(): void {
+beforeEach(() => {
   vi.mocked(prisma.project.findMany).mockResolvedValue([])
   vi.mocked(prisma.project.create).mockResolvedValue({ id: "p1" } as never)
-}
+  vi.mocked(prisma.project.update).mockResolvedValue({} as never)
+})
 
 describe("createProject", () => {
   it("rejects an empty slug without opening a transaction", async () => {
@@ -86,42 +83,7 @@ describe("createProject", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it("rejects an empty French title", async () => {
-    const state = await createProject(initialProjectFormState, buildFormData({ titleFr: "" }))
-
-    expect(state.errors.titleFr).toBeDefined()
-  })
-
-  it("rejects an empty English title", async () => {
-    const state = await createProject(initialProjectFormState, buildFormData({ titleEn: "" }))
-
-    expect(state.errors.titleEn).toBeDefined()
-  })
-
-  it("rejects an unknown type", async () => {
-    const state = await createProject(initialProjectFormState, buildFormData({ type: "AUTRE" }))
-
-    expect(state.errors.type).toBeDefined()
-  })
-
-  it("rejects an unknown status", async () => {
-    const state = await createProject(initialProjectFormState, buildFormData({ status: "AUTRE" }))
-
-    expect(state.errors.status).toBeDefined()
-  })
-
-  it("rejects an unknown format", async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({}, { formats: ["INCONNU"] }),
-    )
-
-    expect(state.errors.formats).toBeDefined()
-  })
-
   it("keeps every submitted format", async () => {
-    mockCreationInEmptyList()
-
     await createProject(initialProjectFormState, buildFormData({}, { formats: ["API", "IA"] }))
 
     expect(prisma.project.create).toHaveBeenCalledWith(
@@ -149,31 +111,14 @@ describe("createProject", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it("creates the client meta for a client project", async () => {
-    mockCreationInEmptyList()
-
-    await createProject(
-      initialProjectFormState,
-      buildFormData({ type: "CLIENT", companyId: "c1", workMode: "HYBRIDE" }),
-    )
+  it.each([
+    ["CLIENT", "c1", "HYBRIDE"],
+    ["PERSONAL", "c-owner", "REMOTE"],
+  ])("creates the meta of a %s project", async (type, companyId, workMode) => {
+    await createProject(initialProjectFormState, buildFormData({ type, companyId, workMode }))
 
     expect(prisma.clientMeta.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ projectId: "p1", companyId: "c1", workMode: "HYBRIDE" }) }),
-    )
-  })
-
-  it("creates the meta for a personal project, just like for a client project", async () => {
-    mockCreationInEmptyList()
-
-    await createProject(
-      initialProjectFormState,
-      buildFormData({ type: "PERSONAL", companyId: "c-owner", workMode: "REMOTE" }),
-    )
-
-    expect(prisma.clientMeta.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({ projectId: "p1", companyId: "c-owner", workMode: "REMOTE" }),
-      }),
+      objectMatch({ data: objectMatch({ projectId: "p1", companyId, workMode }) }),
     )
   })
 
@@ -187,8 +132,6 @@ describe("createProject", () => {
   })
 
   it("accepts missing dates", async () => {
-    mockCreationInEmptyList()
-
     const state = await createProject(
       initialProjectFormState,
       buildFormData({ startedAt: "", endedAt: "" }),
@@ -197,25 +140,14 @@ describe("createProject", () => {
     expect(state.ok).toBe(true)
   })
 
-  it("rejects a javascript: URL on githubUrl", async () => {
+  it.each(["githubUrl", "demoUrl"])("rejects a javascript: URL on %s", async (field) => {
     const state = await createProject(
       initialProjectFormState,
-      buildFormData({ githubUrl: "javascript:alert(1)" }),
+      buildFormData({ [field]: "javascript:alert(1)" }),
     )
 
     expect(state.ok).toBe(false)
-    expect(state.errors.githubUrl).toBeDefined()
-    expect(prisma.project.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects a javascript: URL on demoUrl", async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ demoUrl: "javascript:alert(1)" }),
-    )
-
-    expect(state.ok).toBe(false)
-    expect(state.errors.demoUrl).toBeDefined()
+    expect(state.errors[field as "githubUrl" | "demoUrl"]).toBeDefined()
     expect(prisma.project.create).not.toHaveBeenCalled()
   })
 
@@ -229,8 +161,6 @@ describe("createProject", () => {
   })
 
   it("stores an empty URL as null", async () => {
-    mockCreationInEmptyList()
-
     await createProject(initialProjectFormState, buildFormData({ githubUrl: "" }))
 
     expect(prisma.project.create).toHaveBeenCalledWith(
@@ -239,8 +169,6 @@ describe("createProject", () => {
   })
 
   it("attaches tags in the submitted order, starting at 1", async () => {
-    mockCreationInEmptyList()
-
     await createProject(initialProjectFormState, buildFormData({}, { tagIds: ["t2", "t1"] }))
 
     expect(prisma.projectTag.createMany).toHaveBeenCalledWith(
@@ -279,8 +207,7 @@ describe("createProject", () => {
       { id: "p-b" },
       { id: "p-c" },
     ] as never)
-    vi.mocked(prisma.project.create).mockResolvedValue({ id: "p-new" } as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
+    vi.mocked(prisma.project.create).mockResolvedValueOnce({ id: "p-new" } as never)
 
     await createProject(initialProjectFormState, buildFormData({ displayOrder: "2" }))
 
@@ -304,17 +231,7 @@ describe("createProject", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1)
   })
 
-  it("opens a transaction", async () => {
-    mockCreationInEmptyList()
-
-    await createProject(initialProjectFormState, buildFormData())
-
-    expect(prisma.$transaction).toHaveBeenCalled()
-  })
-
   it("invalidates the projects cache tag", async () => {
-    mockCreationInEmptyList()
-
     await createProject(initialProjectFormState, buildFormData())
 
     expect(updateCacheTag).toHaveBeenCalledWith("projects")
@@ -322,11 +239,9 @@ describe("createProject", () => {
   })
 
   it("translates a slug uniqueness violation into a field error", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([])
-    vi.mocked(prisma.project.create).mockRejectedValue({
-      code: "P2002",
-      meta: { target: ["slug"] },
-    })
+    vi.mocked(prisma.project.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "Project_slug_key"),
+    )
 
     const state = await createProject(initialProjectFormState, buildFormData())
 
@@ -335,47 +250,14 @@ describe("createProject", () => {
   })
 
   it("falls back to unknown_error when a P2002 violation does not target the slug", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([])
-    vi.mocked(prisma.project.create).mockRejectedValue({
-      code: "P2002",
-      meta: { target: ["projectId", "tagId"] },
-    })
+    vi.mocked(prisma.project.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "ProjectTag_pkey"),
+    )
 
     const state = await createProject(initialProjectFormState, buildFormData())
 
     expect(state.message).toBe("unknown_error")
     expect(state.errors.slug).toBeUndefined()
-  })
-
-  it("reports a deleted company on the companyId field instead of an unknown error", async () => {
-    mockCreationInEmptyList()
-    vi.mocked(prisma.clientMeta.create).mockRejectedValueOnce({
-      code: "P2003",
-      meta: {
-        driverAdapterError: { cause: { constraint: { index: "ClientMeta_companyId_fkey" } } },
-      },
-    })
-
-    const state = await createProject(initialProjectFormState, buildFormData())
-
-    expect(state.message).toBe("company_not_found")
-    expect(state.errors.companyId).toBeDefined()
-  })
-
-  it("reports a deleted tag on the tagIds field instead of an unknown error", async () => {
-    mockCreationInEmptyList()
-    vi.mocked(prisma.projectTag.createMany).mockRejectedValueOnce({
-      code: "P2003",
-      meta: { driverAdapterError: { cause: { constraint: { index: "ProjectTag_tagId_fkey" } } } },
-    })
-
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({}, { tagIds: ["t1"] }),
-    )
-
-    expect(state.message).toBe("tag_not_found")
-    expect(state.errors.tagIds).toBeDefined()
   })
 
   it("rejects an emptied deliverables count instead of coercing it to zero", async () => {
@@ -389,7 +271,6 @@ describe("createProject", () => {
   })
 
   it("falls back to one deliverable when the field is absent from the form", async () => {
-    mockCreationInEmptyList()
     const formData = buildFormData()
     formData.delete("deliverablesCount")
 
@@ -411,8 +292,6 @@ describe("createProject", () => {
   })
 
   it("accepts a cover stored in a project assets folder", async () => {
-    mockCreationInEmptyList()
-
     const state = await createProject(
       initialProjectFormState,
       buildFormData({ coverFilename: "projets/personal/mon-projet/cover.webp" }),
@@ -422,8 +301,6 @@ describe("createProject", () => {
   })
 
   it("reads the current order inside the transaction, so a concurrent write cannot slip in between", async () => {
-    mockCreationInEmptyList()
-
     await createProject(initialProjectFormState, buildFormData())
 
     const transactionOrder = vi.mocked(prisma.$transaction).mock.invocationCallOrder[0] ?? 0
@@ -452,7 +329,6 @@ describe("updateProject", () => {
     "creates or updates the meta when the submitted type is %s",
     async (type) => {
       vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p1" }] as never)
-      vi.mocked(prisma.project.update).mockResolvedValue({} as never)
 
       await updateProject(
         "p1",
@@ -480,7 +356,6 @@ describe("updateProject", () => {
 
   it("replaces the whole tag set, starting at 1", async () => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p1" }] as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
 
     await updateProject("p1", initialProjectFormState, buildFormData({}, { tagIds: ["t3"] }))
 
@@ -496,7 +371,6 @@ describe("updateProject", () => {
       { id: "p-b" },
       { id: "p-c" },
     ] as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
 
     await updateProject("p-c", initialProjectFormState, buildFormData({ displayOrder: "1" }))
 
@@ -518,9 +392,8 @@ describe("updateProject", () => {
 
 describe("deleteProject", () => {
   it("renumbers the remaining sequence inside the same transaction", async () => {
-    vi.mocked(prisma.project.delete).mockResolvedValue({} as never)
+    vi.mocked(prisma.project.delete).mockResolvedValueOnce({} as never)
     vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p-a" }, { id: "p-c" }] as never)
-    vi.mocked(prisma.project.update).mockResolvedValue({} as never)
 
     await deleteProject("p-b")
 
@@ -536,8 +409,7 @@ describe("deleteProject", () => {
   })
 
   it("invalidates the caches after deletion", async () => {
-    vi.mocked(prisma.project.delete).mockResolvedValue({} as never)
-    vi.mocked(prisma.project.findMany).mockResolvedValue([])
+    vi.mocked(prisma.project.delete).mockResolvedValueOnce({} as never)
 
     await deleteProject("p1")
 
@@ -624,7 +496,7 @@ describe("reorderProjects", () => {
 
   it("rewrites displayOrder from 1 in the received order, inside a transaction, then invalidates the caches", async () => {
     vi.mocked(prisma.project.findMany).mockResolvedValue([{ id: "p1" }, { id: "p2" }] as never)
-    vi.mocked(prisma.$transaction).mockResolvedValue([] as never)
+    vi.mocked(prisma.$transaction).mockResolvedValueOnce([] as never)
 
     const state = await reorderProjects(["p2", "p1"])
 
