@@ -4,7 +4,7 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { ADMIN_COMPANIES_PATH, ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
+import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
@@ -29,7 +29,6 @@ const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true, reply
 function invalidateActionCaches(): void {
   revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
   revalidatePersonLists()
-  revalidatePath(ADMIN_COMPANIES_PATH, "layout")
 }
 
 function collectValues(formData: FormData): ProspectingActionFormState["values"] {

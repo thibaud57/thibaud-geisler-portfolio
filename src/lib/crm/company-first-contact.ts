@@ -1,18 +1,30 @@
-import type { ActionStatus } from "@/generated/prisma/client"
-
-interface ContactAction {
-  status: ActionStatus
-  occurredAt: Date
-}
+import type { ActionStatus, InterviewStatus } from "@/generated/prisma/client"
 
 interface ContactPerson {
-  prospectingActions: readonly ContactAction[]
+  metAt: Date | null
+  prospectingActions: readonly { status: ActionStatus; occurredAt: Date }[]
 }
 
-export function firstContactAtOf(persons: readonly ContactPerson[]): Date | null {
-  const sentTimes = persons
-    .flatMap((person) => person.prospectingActions)
-    .filter((action) => action.status !== "A_FAIRE")
-    .map((action) => action.occurredAt.getTime())
-  return sentTimes.length === 0 ? null : new Date(Math.min(...sentTimes))
+interface CompanyInterview {
+  status: InterviewStatus
+  scheduledAt: Date
+}
+
+// Une action envoyée, une rencontre ou un entretien tenu sur une de ses opportunités : ce qui reste à faire ou à venir n'est pas un contact.
+export function firstContactAtOf(
+  persons: readonly ContactPerson[],
+  interviews: readonly CompanyInterview[],
+): Date | null {
+  const times = [
+    ...persons.flatMap((person) =>
+      person.prospectingActions
+        .filter((action) => action.status !== "A_FAIRE")
+        .map((action) => action.occurredAt.getTime()),
+    ),
+    ...persons.flatMap((person) => (person.metAt ? [person.metAt.getTime()] : [])),
+    ...interviews
+      .filter((interview) => interview.status === "FAIT")
+      .map((interview) => interview.scheduledAt.getTime()),
+  ]
+  return times.length === 0 ? null : new Date(Math.min(...times))
 }

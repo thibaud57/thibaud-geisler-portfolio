@@ -1,10 +1,8 @@
 "use server"
 
 import "server-only"
-import { revalidatePath } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
@@ -19,9 +17,8 @@ import {
   revalidatePersonLists,
 } from "./_support/person-guards"
 
-// L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre aussi la liste des entretiens.
+// L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre les listes des entretiens et des entreprises.
 function invalidateInterviewCaches(): void {
-  revalidatePath(ADMIN_COMPANIES_PATH, "layout")
   revalidatePersonLists()
 }
 

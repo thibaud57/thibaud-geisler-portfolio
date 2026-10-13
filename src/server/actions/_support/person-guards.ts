@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
 import {
+  ADMIN_COMPANIES_PATH,
   ADMIN_CONTACTS_PATH,
   ADMIN_INTERVIEWS_PATH,
   ADMIN_LEADS_PATH,
@@ -77,12 +78,13 @@ export function optOutMessage(optedOutAt: Date): string {
   return `Cette personne s'est opposée à la prospection le ${formatShortInstantDate(optedOutAt)}`
 }
 
-// Leads et contacts affichent le résumé du rôle de l'autre, les opportunités leur apporteur, les entretiens leurs correspondants : toute écriture sur une personne rafraîchit les quatre.
+// Leads et contacts affichent le résumé du rôle de l'autre, les opportunités leur apporteur, les entretiens leurs correspondants, les entreprises leurs personnes et leur premier contact : toute écriture sur une personne rafraîchit ces listes.
 export function revalidatePersonLists(): void {
   revalidatePath(ADMIN_LEADS_PATH, "layout")
   revalidatePath(ADMIN_CONTACTS_PATH, "layout")
   revalidatePath(ADMIN_OPPORTUNITIES_PATH, "layout")
   revalidatePath(ADMIN_INTERVIEWS_PATH, "layout")
+  revalidatePath(ADMIN_COMPANIES_PATH, "layout")
 }
 
 // L'unicité en base arrête déjà le doublon : lire avant d'écrire sert seulement à nommer la personne et à détecter une opposition à la prospection.

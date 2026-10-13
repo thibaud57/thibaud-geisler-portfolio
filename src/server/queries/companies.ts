@@ -47,13 +47,32 @@ const companyPersonSelect = {
   },
 } as const
 
-type AdminCompanyRaw = Prisma.CompanyGetPayload<{
-  include: typeof adminCompanyInclude &
-    typeof companyCounts & {
-      clientMetas: { select: { project: { select: { type: true } } } }
-      persons: { select: typeof companyPersonSelect }
-    }
-}>
+// Le plus ancien entretien tenu de chaque opportunité suffit au premier contact.
+const companyOpportunitySelect = {
+  ...opportunitySummarySelect,
+  interviews: {
+    where: { status: "FAIT" },
+    orderBy: { scheduledAt: "asc" },
+    take: 1,
+    select: { status: true, scheduledAt: true },
+  },
+} as const
+
+const companyListInclude = {
+  ...adminCompanyInclude,
+  ...companyCounts,
+  opportunitiesAsIntermediary: { select: companyOpportunitySelect, orderBy: { updatedAt: "desc" } },
+  opportunitiesAsClient: { select: companyOpportunitySelect, orderBy: { updatedAt: "desc" } },
+  // Chargé seulement pour calculer `worked` dans `toAdminCompany`, jamais renvoyé.
+  clientMetas: { select: { project: { select: { type: true } } } },
+  // Toutes les personnes : le premier contact compte aussi celles sans lead. isProspect et `leads` filtrent sur lead dans toAdminCompany.
+  persons: {
+    select: companyPersonSelect,
+    orderBy: { name: { sort: "asc", nulls: "last" } },
+  },
+} as const
+
+type AdminCompanyRaw = Prisma.CompanyGetPayload<{ include: typeof companyListInclude }>
 
 type AdminCompanyLead = Omit<
   AdminCompanyRaw["persons"][number],
@@ -95,6 +114,10 @@ function toAdminCompany(
           now,
         ),
     )
+  const heldInterviews = [
+    ...company.opportunitiesAsClient,
+    ...company.opportunitiesAsIntermediary,
+  ].flatMap((opportunity) => opportunity.interviews)
   const leads = persons.flatMap(
     ({ id, name, jobRole, email, linkedinUrl, metAt, lead, referredOpportunities, interviews }) =>
       lead
@@ -121,7 +144,7 @@ function toAdminCompany(
     clientProjectCount,
     isProspect,
     leads,
-    firstContactAt: firstContactAtOf(persons),
+    firstContactAt: firstContactAtOf(persons, heldInterviews),
     endClients: joinedEndClientNames(company),
   }
 }
@@ -130,17 +153,7 @@ function toAdminCompany(
 // mutations, là où la requête publique servirait un instantané antérieur.
 export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
   const companies = await prisma.company.findMany({
-    include: {
-      ...adminCompanyInclude,
-      ...companyCounts,
-      // Chargé seulement pour calculer `worked` dans `toAdminCompany`, jamais renvoyé.
-      clientMetas: { select: { project: { select: { type: true } } } },
-      // Toutes les personnes : le premier contact compte aussi celles sans lead. isProspect et `leads` filtrent sur lead dans toAdminCompany.
-      persons: {
-        select: companyPersonSelect,
-        orderBy: { name: { sort: "asc", nulls: "last" } },
-      },
-    },
+    include: companyListInclude,
     orderBy: { name: "asc" },
   })
 

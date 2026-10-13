@@ -1,7 +1,7 @@
 "use server"
 
 import "server-only"
-import { revalidatePath, updateTag } from "next/cache"
+import { updateTag } from "next/cache"
 
 import type { LegalForm, Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
@@ -222,8 +222,7 @@ function mapUniqueViolation(
 function invalidateCompanyCaches(): void {
   updateTag("projects")
   updateTag("legal-entity")
-  revalidatePath("/admin/entreprises")
-  // Les listes de leads, de contacts et d'opportunités affichent le nom et le logo de l'entreprise.
+  // Outre la liste des entreprises, les leads, contacts et opportunités affichent son nom et son logo.
   revalidatePersonLists()
 }
 
