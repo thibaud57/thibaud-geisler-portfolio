@@ -33,6 +33,8 @@ export const opportunitySummarySelect = {
   title: true,
   status: true,
   dailyRate: true,
+  startMonth: true,
+  createdAt: true,
   client: { select: { id: true, name: true } },
 } as const
 

@@ -40,7 +40,7 @@ async function EditCompanySection({ id }: { id: string }) {
               title={COMPANY_SECTION_TITLES.leads}
               links={leads.map((lead) =>
                 toLeadLink(
-                  { id: lead.personId, ...lead.person },
+                  { ...lead.person, id: lead.personId, createdAt: lead.createdAt },
                   { href: `${ADMIN_LEADS_PATH}/${lead.personId}` },
                 ),
               )}

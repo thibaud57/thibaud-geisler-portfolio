@@ -138,7 +138,10 @@ export async function findLeadsOfCompany(companyId: string) {
     where: { person: { companyId } },
     select: {
       personId: true,
-      person: { select: { name: true, email: true, linkedinUrl: true, jobRole: true } },
+      createdAt: true,
+      person: {
+        select: { name: true, email: true, linkedinUrl: true, jobRole: true, metAt: true },
+      },
     },
     orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
   })

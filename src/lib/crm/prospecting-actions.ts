@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
+import { toLinkMarker } from "@/lib/crm/link-marker"
 import { formatShortInstantDate } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
@@ -64,6 +65,11 @@ export function toActionLink(action: {
     label: action.title,
     meta: `${ACTION_CHANNEL_LABELS[action.channel]} · ${ACTION_STATUS_LABELS[action.status]}`,
     trailing: formatShortInstantDate(action.occurredAt),
+    at: action.occurredAt,
+    marker: toLinkMarker(
+      ACTION_CHANNEL_ICONS[action.channel] ?? ACTION_STATUS_ICONS[action.status],
+      action.status === "REPONDU" || action.status === "A_FAIRE",
+    ),
   }
 }
 

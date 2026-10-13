@@ -30,8 +30,9 @@ const companyLeadPersonSelect = {
   jobRole: true,
   email: true,
   linkedinUrl: true,
+  metAt: true,
   optedOutAt: true,
-  lead: { select: { status: true } },
+  lead: { select: { status: true, createdAt: true } },
   referredOpportunities: { select: { status: true } },
   interviews: { select: { status: true, scheduledAt: true } },
 } as const
@@ -59,6 +60,7 @@ type AdminCompanyLead = Omit<
   "lead" | "optedOutAt" | "prospectingActions" | "referredOpportunities" | "interviews"
 > & {
   status: LeadDisplayStatus
+  createdAt: Date
 }
 
 export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
@@ -94,7 +96,7 @@ function toAdminCompany(
         ),
     )
   const leads = persons.flatMap(
-    ({ id, name, jobRole, email, linkedinUrl, lead, referredOpportunities, interviews }) =>
+    ({ id, name, jobRole, email, linkedinUrl, metAt, lead, referredOpportunities, interviews }) =>
       lead
         ? [
             {
@@ -103,10 +105,12 @@ function toAdminCompany(
               jobRole,
               email,
               linkedinUrl,
+              metAt,
               status: leadDisplayStatus(
                 { status: lead.status, opportunities: referredOpportunities, interviews },
                 now,
               ),
+              createdAt: lead.createdAt,
             },
           ]
         : [],

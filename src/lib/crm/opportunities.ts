@@ -1,6 +1,7 @@
 import { Archive, CircleCheck, CirclePause, CircleX, Clock, Hand, Inbox, Send } from "lucide-react"
 
 import type { OpportunityStatus } from "@/generated/prisma/client"
+import { toLinkMarker } from "@/lib/crm/link-marker"
 import type { IconComponent } from "@/lib/icons"
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
@@ -91,7 +92,14 @@ export function formatRhythm(daysPerWeek: number | null, onSiteDays: number | nu
 }
 
 export function toOpportunityLink(
-  opportunity: { id: string; title: string; status: OpportunityStatus; dailyRate: number | null },
+  opportunity: {
+    id: string
+    title: string
+    status: OpportunityStatus
+    dailyRate: number | null
+    startMonth: Date | null
+    createdAt: Date
+  },
   { href, metaSuffix, idPrefix }: { href: string; metaSuffix?: string | null; idPrefix?: string },
 ) {
   const status = OPPORTUNITY_STATUS_LABELS[opportunity.status]
@@ -101,5 +109,7 @@ export function toOpportunityLink(
     label: opportunity.title,
     meta: metaSuffix ? `${status} · ${metaSuffix}` : status,
     trailing: formatDailyRate(opportunity.dailyRate) ?? undefined,
+    at: opportunity.startMonth ?? opportunity.createdAt,
+    marker: toLinkMarker(OPPORTUNITY_STATUS_ICONS[opportunity.status]),
   }
 }

@@ -95,6 +95,17 @@ export function formatDateOnly(dateOnly: Date): string {
   return DATE_ONLY.format(dateOnly)
 }
 
+// Relu à Paris : une colonne date (minuit UTC) y tombe le même jour, donc dans le même mois.
+const MONTH_YEAR = new Intl.DateTimeFormat("fr-FR", {
+  month: "long",
+  year: "numeric",
+  timeZone: TIME_ZONE,
+})
+
+export function formatMonthYear(date: Date): string {
+  return MONTH_YEAR.format(date)
+}
+
 // Minuit de Paris, changement d'heure compris : additionner des multiples de DAY_MS décalerait d'une heure.
 export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
   return new Date(

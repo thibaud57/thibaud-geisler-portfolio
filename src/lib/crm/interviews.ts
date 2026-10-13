@@ -27,6 +27,7 @@ import type {
   InterviewStatus,
   InterviewType,
 } from "@/generated/prisma/client"
+import { toLinkMarker } from "@/lib/crm/link-marker"
 import { formatShortDateTime } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
@@ -189,6 +190,8 @@ export function toInterviewLink(
     label: interviewTitle(interview.type, places.get(interview.id)?.number ?? null),
     meta: metaPrefix ? `${metaPrefix} · ${status}` : status,
     trailing: formatShortDateTime(interview.scheduledAt),
+    at: interview.scheduledAt,
+    marker: toLinkMarker(INTERVIEW_TYPE_ICONS[interview.type]),
   }
 }
 

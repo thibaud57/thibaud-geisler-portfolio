@@ -120,6 +120,8 @@ export function toLeadLink(
     email: string | null
     linkedinUrl: string | null
     jobRole: JobRole | null
+    metAt: Date | null
+    createdAt: Date
   },
   { href, statusLabel }: { href: string; statusLabel?: string },
 ) {
@@ -131,5 +133,6 @@ export function toLeadLink(
     href,
     label: personDisplayName(lead),
     ...(meta ? { meta } : {}),
+    at: lead.metAt ?? lead.createdAt,
   }
 }
