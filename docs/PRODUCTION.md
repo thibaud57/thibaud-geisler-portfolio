@@ -681,7 +681,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ### Procédure : Remplir la base depuis un dump de dev
 
-> Exécutée en production le 2026-09-25, après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), puis le 2026-10-14 pour la reprise du CRM Notion (entreprises, personnes, leads, contacts, actions, opportunités, entretiens, signaux, revues), chaque fois après répétition sur une base locale à l'état de la prod.
 
 1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
 2. **Vérifier que la production n'a pas bougé depuis le dernier chargement**, le `TRUNCATE` effaçant toute saisie faite depuis. Même requête sur la production et sur la base de dev avant les ajouts à transférer :
