@@ -151,13 +151,15 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
 
           <dt className="font-semibold">{t("identity.directorLabel")}</dt>
           <dd>{publisher.name}</dd>
+
+          {isVatLiable(pub) && (
+            <>
+              <dt className="font-semibold">{t("identity.vatNumberLabel")}</dt>
+              <dd>{publisher.vatNumber}</dd>
+            </>
+          )}
         </dl>
-        {isVatLiable(pub) ? (
-          <p>
-            <span className="font-semibold">{t("identity.vatNumberLabel")} :</span>{" "}
-            {publisher.vatNumber}
-          </p>
-        ) : (
+        {!isVatLiable(pub) && (
           <p className="text-sm text-muted-foreground">{t("identity.vatNotApplicable")}</p>
         )}
       </section>
