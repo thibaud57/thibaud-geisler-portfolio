@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.4...v2.1.0) (2026-10-14)
+
+
+### Features
+
+* espace admin CRM freelance (entreprises, leads, actions, opportunités, entretiens, revues, signaux) ([#174](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/174)) ([55e7f35](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/55e7f35a49fa017e82947d1f6f9cf08672a4ab83))
+
 ## [2.0.4](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.3...v2.0.4) (2026-10-07)
 
 
