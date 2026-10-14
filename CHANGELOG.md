@@ -12,21 +12,21 @@
 
 ### Bug Fixes
 
-* **seo:** sert les métadonnées des pages projet dans le &lt;head&gt; à Googlebot ([#166](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/166)) ([8e25716](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/8e257161d62c8c506c95bb8c4c6f662a0f98ce0e))
+* **seo:** sert les métadonnées des pages projet dans le &lt;head&gt; à Googlebot ([#166](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/166)) ([4f9d301](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/4f9d3015c0dc0a52f274e82b31a742726bf48540))
 
 ## [2.0.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.2...v2.0.3) (2026-10-07)
 
 
 ### Bug Fixes
 
-* **seo:** renouvelle l'URL de l'image OG d'accueil restée en échec dans le cache LinkedIn ([#164](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/164)) ([68f1b48](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/68f1b48a09c6977ef316c1f0a84b064dafd7cb95))
+* **seo:** renouvelle l'URL de l'image OG d'accueil restée en échec dans le cache LinkedIn ([#164](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/164)) ([b2c64e7](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/b2c64e7db41b679bcaf5be360e53085dbcf94237))
 
 ## [2.0.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.1...v2.0.2) (2026-10-07)
 
 
 ### Bug Fixes
 
-* **seo:** images OG en 502, troncature des descriptions et bruit Sentry des View Transitions ([#161](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/161)) ([82b2506](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/82b2506e03a3f751948546a2f66c5f9683762a38))
+* **seo:** images OG en 502, troncature des descriptions et bruit Sentry des View Transitions ([#161](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/161)) ([004d9ad](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/004d9ada59f88f5345ff3dea1c965e7f9604d4b7))
 
 ## [2.0.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.0...v2.0.1) (2026-09-25)
 

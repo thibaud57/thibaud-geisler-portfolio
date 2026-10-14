@@ -2,7 +2,7 @@
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "reprise-donnees-notion"
 goal: "Reprendre une fois dans la base de l'espace admin les données du CRM tenu dans Notion, remodélisées selon les modèles de l'app, puis les transférer en production."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "none"
 depends_on: ["01-rgpd-prospection-design.md", "02-entreprise-enrichie-donnees-design.md", "04-liste-entreprises-enrichie-design.md", "05-entite-legale-depuis-fiche-design.md", "06-logo-depuis-site-web-design.md", "07-leads-donnees-design.md", "08-ecran-leads-design.md", "09-actions-prospection-donnees-design.md", "10-ecran-actions-prospection-design.md", "13-contacts-design.md", "14-opportunites-donnees-design.md", "15-ecran-opportunites-design.md", "16-entretiens-donnees-design.md", "17-ecran-entretiens-design.md", "18-revues-hebdo-design.md", "19-signaux-design.md"]
@@ -44,7 +44,7 @@ Reprend une fois dans la base de dev les bases du CRM Notion (entreprises, leads
 - **À créer** : `scripts/reprise-notion/write.ts` (écriture de toutes les fiches en une transaction)
 - **À créer** : `scripts/reprise-notion/index.ts` (entrée : simulation, écriture, logos en lot, rapport des comptes)
 - **À modifier** : `Justfile` (recette `reprise-notion`, qui charge l'environnement comme `dev-login`)
-- **À supprimer** : `scripts/reprise-notion/` et la recette `reprise-notion` (en fin de sub-project, la reprise validée)
+- **À supprimer** : `scripts/reprise-notion/` et la recette `reprise-notion` (en fin de sub-project, la reprise validée) (fait le 2026-10-14, reprise chargée en production le même jour, cf. PRODUCTION.md § Remplir la base depuis un dump de dev)
 - **À modifier** : `docs/PRODUCTION.md` (§ Procédure : Remplir la base depuis un dump de dev : tables CRM ajoutées au `TRUNCATE`, contrôle d'absence de modification en production depuis le dernier chargement, copie du dossier des logos)
 - **Hors dépôt** : fichier de reprise JSON et relevé des points à trancher, supprimés en fin de sub-project
 
