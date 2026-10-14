@@ -126,6 +126,24 @@ propriétaire le demande ; chaque ligne part une fois faite.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
   garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs
   tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
+- **Date d'une action de prospection (arbitrage du 2026-10-14)** : le jour seul, sans heure, affiché
+  en journée entière dans le calendrier. La maquette saisit et affiche encore une heure (champ
+  « Date et heure » du formulaire d'action).
+- **« Marquer fait » (arbitrage du 2026-10-14)** : le bouton de ligne est retiré du code, le statut
+  d'une action changeant par le formulaire ou le Kanban. La maquette le pose encore sur la ligne
+  d'une action à faire.
+- **Titres des vues entreprises (arbitrage du 2026-10-14)** : « Entreprises de recrutement » et
+  « Entreprises prospects ». La maquette dit encore « Recrutement » et « Prospects ».
+- **Sous-titre de la vue À venir des entretiens (arbitrage du 2026-10-14)** : « les retards d'abord
+  puis le prochain », la vue gardant les entretiens planifiés en retard. La maquette dit encore
+  « le prochain en premier ».
+- **Carte d'action d'une personne opposée (arbitrage du 2026-10-14)** : visible et glissable dans le
+  Kanban comme dans le calendrier, le serveur refusant le déplacement ; la carte revient à sa place
+  et un toast dit l'opposition. La maquette ne montre pas ce refus.
+- **Colonnes et facettes par vue (arbitrage du 2026-10-14)** : la vue « tout » montre toutes ses
+  colonnes et toutes ses facettes, une vue filtrée ne masque que les colonnes que son filtre rend
+  constantes ou toujours vides et verrouille la facette correspondante (Projets inchangé). La
+  maquette masque encore des colonnes sur chaque vue.
 
 ## Journal
 

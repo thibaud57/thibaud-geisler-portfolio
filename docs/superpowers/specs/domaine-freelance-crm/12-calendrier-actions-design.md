@@ -13,11 +13,11 @@ date: "2026-09-29"
 
 ## Scope
 
-Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée la vue Calendrier des actions : grille du mois, une pastille par action à sa date et son heure, colorée selon son statut, clic vers la vue détail, clic sur un jour vers une nouvelle action datée de ce jour, glisser d'une action À faire vers un autre jour pour la replanifier. Exclut les vues semaine, jour et agenda, le glisser d'une action déjà envoyée et le redimensionnement.
+Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée la vue Calendrier des actions : grille du mois, une pastille de journée entière par action, à son jour (heure de Paris) et sans heure (amendé le 2026-10-14, c'était « à sa date et son heure »), colorée selon son statut, clic vers la vue détail, clic sur un jour vers une nouvelle action datée de ce jour, glisser d'une action À faire vers un autre jour pour la replanifier. Exclut les vues semaine, jour et agenda, le glisser d'une action déjà envoyée et le redimensionnement.
 
 ### État livré
 
-À la fin de ce sub-project, on peut : ouvrir Actions prospection > Calendrier, voir les actions du mois à leur date, glisser une action À faire du lundi au jeudi et la retrouver jeudi à la même heure dans la vue À faire, et cliquer un jour vide pour créer une action datée de ce jour.
+À la fin de ce sub-project, on peut : ouvrir Actions prospection > Calendrier, voir les actions du mois à leur date, glisser une action À faire du lundi au jeudi et la retrouver jeudi dans la vue À faire (amendé le 2026-10-14, c'était « jeudi à la même heure »), et cliquer un jour vide pour créer une action datée de ce jour.
 
 ## Dependencies
 
@@ -50,10 +50,10 @@ Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée 
 ## Architecture approach
 
 - **Installation** (`.claude/rules/shadcn-ui/setup.md`) : `pnpm dlx shadcn@latest add @reui/event-calendar`, qui copie les 13 fichiers de `src/components/reui/event-calendar/`, `icon-stack` et `scroll-area`, et ajoute `@date-fns/tz` (`date-fns` et `radix-ui` y sont déjà). La CLI ne doit écraser aucun composant `ui` existant (`button`, `calendar`, `dropdown-menu`, `popover`, `tooltip`, dont `calendar` porte des corrections du projet). Corrections après `add` : celles de la rule (import `cn`, paquet `cn` retiré), plus le typage strict du projet (29 erreurs mesurées le 2026-09-27, toutes dues à `noUncheckedIndexedAccess` et `noPropertyAccessFromIndexSignature`) et le lint `strictTypeChecked` (environ 110 remarques mesurées hors dépendances manquantes, 48 corrigées d'office par `eslint --fix`), levées sans changer le comportement
-- **Événements** (`src/lib/action-calendar.ts`, fonction pure) : une action devient un événement sans durée, sa fin égale à son début (`occurredAt`), que le composant pose sur un seul jour même tard le soir, titré par son titre, porteur de l'action en `data`. Couleur par statut, celle de la maquette : À faire `warning`, Fait `info`, Répondu et Converti `success`, Ignoré `destructive`. Seule une action À faire est déplaçable ; aucune ne se redimensionne
-- **Calendrier** (`ActionsCalendar`, composant client) : vue mois seule, sans sélecteur de vue ni bouton d'ajout dans sa barre (arbitrages du 2026-10-09), en français (locale `fr` de date-fns, semaine commençant le lundi, textes du composant surchargés en français, heure de début seule), mois courant à l'ouverture, fuseau fixé sur Europe/Paris (`timeZone`) pour que le rendu serveur en UTC et le navigateur placent les pastilles sur les mêmes jours. Clic sur une pastille : vue détail partagée (`action-detail.tsx`), dont « Modifier » ouvre le formulaire en mode contrôlé (`11`). Clic sur un jour : formulaire « Nouvelle action » ouvert sur ce jour, à l'heure courante
-- **Replanifier** : le lâcher d'une action À faire sur un autre jour appelle `rescheduleProspectingAction(id, instant)` avec l'instant que propose le composant, qui garde l'heure de Paris d'un jour à l'autre, changement d'heure légale compris. Les événements sont tenus en état local, réalignés sur chaque lecture du serveur en ajustant l'état pendant le rendu, comme le tableau du `11` ; en cas d'échec, ils reviennent à la dernière lecture et un toast le signale ; un refus du serveur revalide l'écran, l'action y reprenant son vrai statut ou disparaissant, et le toast en donne la raison
-- **Server Action** `rescheduleProspectingAction(id, occurredAt)` (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`) : `getCurrentUser()` en tête, instant ISO complet avec décalage (`z.iso.datetime({ offset: true })`, comme le `09`), mise à jour conditionnée au statut À faire dans la même requête (`updateMany` sur `id` et `status`), aucune ligne touchée valant refus, qui distingue une action supprimée d'une action déjà envoyée et revalide les routes pour réaligner l'écran périmé. Une action déjà envoyée garde sa date réelle, corrigée au besoin par le formulaire. Revalidation des routes des actions et des leads, comme les autres écritures du `09`
+- **Événements** (`src/lib/action-calendar.ts`, fonction pure) : une action devient un événement `allDay` de minuit à minuit à Paris, du jour de son `occurredAt` au lendemain (`zonedDayStartOf`, `src/lib/date-time.ts`, à 0 puis +1 jour), donc posé sur son seul jour même tard le soir, titré par son titre, porteur de l'action en `data` (amendé le 2026-10-14, c'était un événement sans durée, sa fin égale à son début). Couleur par statut, celle de la maquette : À faire `warning`, Fait `info`, Répondu et Converti `success`, Ignoré `destructive`. Seule une action À faire est déplaçable ; aucune ne se redimensionne
+- **Calendrier** (`ActionsCalendar`, composant client) : vue mois seule, sans sélecteur de vue ni bouton d'ajout dans sa barre (arbitrages du 2026-10-09), en français (locale `fr` de date-fns, semaine commençant le lundi, textes du composant surchargés en français, aucune heure affichée depuis l'amendement du 2026-10-14), mois courant à l'ouverture, fuseau fixé sur Europe/Paris (`timeZone`) pour que le rendu serveur en UTC et le navigateur placent les pastilles sur les mêmes jours. Clic sur une pastille : vue détail partagée (`action-detail.tsx`), dont « Modifier » ouvre le formulaire en mode contrôlé (`11`). Clic sur un jour : formulaire « Nouvelle action » ouvert sur ce jour (amendé le 2026-10-14, c'était « à l'heure courante »)
+- **Replanifier** : le lâcher d'une action À faire sur un autre jour appelle `rescheduleProspectingAction(id, jour)` avec le jour d'arrivée au format AAAA-MM-JJ (`toIsoDate`), que le schéma pose à minuit de Paris, changement d'heure légale compris (amendé le 2026-10-14, c'était l'instant proposé par le composant, qui gardait l'heure d'un jour à l'autre). Les événements sont tenus en état local, réalignés sur chaque lecture du serveur en ajustant l'état pendant le rendu, comme le tableau du `11` ; en cas d'échec, ils reviennent à la dernière lecture et un toast le signale ; un refus du serveur revalide l'écran, l'action y reprenant son vrai statut ou disparaissant, et le toast en donne la raison
+- **Server Action** `rescheduleProspectingAction(id, occurredAt)` (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`) : `getCurrentUser()` en tête, jour seul validé par `z.iso.date` (le champ `occurredAt` de `prospectingActionSchema`, comme le `09`) au lieu de l'instant `z.iso.datetime({ offset: true })` (amendé le 2026-10-14), refus aussi quand la personne de l'action s'est opposée à la prospection (`assertProspectionAllowed`, `src/server/actions/_support/person-guards.ts`), le toast portant le message d'opposition (`result.errors.occurredAt[0]`), mise à jour conditionnée au statut À faire dans la même requête (`updateMany` sur `id` et `status`), aucune ligne touchée valant refus, qui distingue une action supprimée d'une action déjà envoyée et revalide les routes pour réaligner l'écran périmé. Une action déjà envoyée garde sa date réelle, corrigée au besoin par le formulaire. Revalidation des routes des actions et des leads, comme les autres écritures du `09`
 - **Formulaire** : `ProspectingActionFormDialog` reçoit une date proposée, lue par une nouvelle action seulement ; une action existante garde la sienne
 - **Page** : `/admin/actions-prospection/calendrier`, titre « Calendrier des actions », sous-titre de la maquette, bouton « Nouvelle action » de l'en-tête (`11`) ; lit les actions et les options de personne (`findPersonOptions`, `07`) comme le Pipeline ; aucune action enregistrée : la grille reste affichée, le clic sur un jour restant la création (décision du propriétaire du 2026-10-09)
 - **Menu** : sous-entrée « Calendrier » entre Pipeline et Journal, ordre de la maquette
@@ -64,13 +64,13 @@ Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée 
 ### Scénario 1 : mois
 **GIVEN** des actions ce mois-ci à plusieurs statuts
 **WHEN** on ouvre Actions prospection > Calendrier
-**THEN** chaque action apparaît à sa date avec son heure, colorée selon son statut
+**THEN** chaque action apparaît à son jour en journée entière, sans heure, colorée selon son statut (amendé le 2026-10-14, c'était « à sa date avec son heure »)
 **AND** la semaine commence le lundi et les libellés sont en français
 
 ### Scénario 2 : replanifier
-**GIVEN** une action À faire lundi à 9 h
+**GIVEN** une action À faire lundi
 **WHEN** on la glisse sur jeudi
-**THEN** elle est enregistrée jeudi à 9 h et la vue À faire l'affiche à cette date
+**THEN** elle est enregistrée jeudi et la vue À faire l'affiche à cette date (amendé le 2026-10-14, c'était « lundi à 9 h » et « jeudi à 9 h »)
 
 ### Scénario 3 : action envoyée
 **GIVEN** une action Fait
@@ -90,24 +90,25 @@ Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée 
 ## Tests à écrire
 
 ### Unit
+Noms relevés dans les fichiers le 2026-10-14 (amendé le 2026-10-14, la liste d'origine portait sur l'instant, le décalage horaire et la couleur par statut).
 - `src/server/actions/prospecting-actions.test.ts` :
-  - moves a to-do action to its new time
-  - refuses to move an action already sent
-  - rejects a date without its time zone offset
-  - rejects a reschedule without a session, before touching the database
-  - tells a deleted action apart from one already sent
-  - refreshes the screens after a refusal, which showed a stale action
-- `src/lib/action-calendar.test.ts` :
+  - `%s rejects a call without a session, before touching the database` (`it.each` sur les cinq actions du module, dont `rescheduleProspectingAction`)
+  - `rescheduleProspectingAction` :
+    - moves a to-do action to its new day
+    - refuses to move an action already sent
+    - refuses to move an action of a person who opposed prospecting
+    - tells a deleted action apart from one already sent
+    - refreshes the screens after a refusal, which showed a stale action
+    - rejects a value that is not a calendar day
+- `src/lib/crm/action-calendar.test.ts` :
   - lets only a to-do action be dragged
-  - colours each status as the calendar legend
-  - places an action as an instant, so a late one stays on its day
-  - shows the start time in Paris, without an end
+  - spans the whole Paris day of the action, even late in the evening
 
 ## Edge cases
 
 - **Échec du serveur au lâcher** (action supprimée ou passée à Fait ailleurs entre-temps) : l'écran se réaligne sur la base, l'action reprenant son statut ou disparaissant, toast qui en donne la raison
 - **Jour chargé** : au-delà du nombre de pastilles qu'une case tient, « +N autres » ouvre la liste du jour (comportement du composant)
-- **Action d'une personne opposée** : visible, son historique étant gardé (`01`, `09`)
+- **Action d'une personne opposée** : visible, son historique étant gardé (`01`, `09`) ; le glisser est refusé par le serveur et un toast donne le message d'opposition (amendé le 2026-10-14, c'était « visible » seul)
 
 ## Architectural decisions
 
@@ -127,7 +128,7 @@ Installe l'EventCalendar ReUI (registre `@reui` déclaré par le `11`) et crée 
 
 **Options envisagées :**
 - **A. Rien** : le calendrier est en lecture seule, la date se change au formulaire
-- **B. Les actions À faire seulement**, qui gardent leur heure
+- **B. Les actions À faire seulement**, qui changent de jour (elles gardaient leur heure avant l'amendement du 2026-10-14, les actions n'ayant plus d'heure)
 - **C. Toutes les actions** : on déplacerait par mégarde la date réelle d'un envoi
 
 **Choix : B**

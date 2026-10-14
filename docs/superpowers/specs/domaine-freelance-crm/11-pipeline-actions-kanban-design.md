@@ -101,7 +101,8 @@ Installe le Kanban ReUI (registre `@reui`, dépendance `dnd-kit`) et crée la vu
 
 - **Colonne vide** : elle reste affichée, avec sa zone de dépôt
 - **Glisser pendant une mise à jour précédente** : chaque lâcher part avec son propre appel, le tableau se réaligne sur la dernière lecture du serveur
-- **Carte d'une personne opposée** : visible et déplaçable, son historique étant gardé (`01`, `09`)
+- **Carte d'une personne opposée** : visible, son historique étant gardé (`01`, `09`) ; son déplacement est refusé par le serveur (`assertProspectionAllowed`, `src/server/actions/_support/person-guards.ts`), la carte est remise en place et un toast donne le message d'opposition (`result.errors.status[0]`, `ActionsBoard.tsx`) (amendé le 2026-10-14, c'était « visible et déplaçable » ; da0a5f7)
+- **Action supprimée entre-temps** : `changeProspectingActionStatus` répond « Cette action a été supprimée » et rafraîchit les écrans, la carte disparaît à la relecture (correctif du 2026-10-14, test `tells the board the action was deleted and refreshes the screens`)
 
 ## Architectural decisions
 

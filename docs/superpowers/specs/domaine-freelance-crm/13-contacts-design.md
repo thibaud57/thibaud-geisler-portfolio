@@ -94,7 +94,7 @@ Ajoute le modèle `Contact` comme rôle d'une personne (clé `personId`, types, 
 - **Fiche contact du lead** (`LeadsTable.tsx`, `LeadForm.tsx`) : champ « Fiche contact » du bloc Identité de la vue détail du lead, logo de l'entreprise et nom de la personne, cliquable vers la vue détail du contact (`/admin/contacts?detail=<id>`), vide sans rôle Contact ; le même en lecture seule dans la card Identité de la page du lead. Remplace le bloc Réseau livré d'abord (réaligné le 2026-10-13)
 - **`personDetailHref`** (`src/lib/person-links.ts`, fonction pure testée) : pour une personne dont le rôle n'est pas fixé par le contexte (l'apporteur d'une opportunité `15`, un correspondant d'entretien `17`, la personne d'une action), résout vers la vue détail du lead si elle porte ce rôle, sinon vers celle du contact, sinon `null` (pas de lien). Bascule aussi `buildActionDetail` (`10`, extrait en `action-detail.tsx` par le `11`), qui liait jusqu'ici la personne d'une action à sa seule fiche lead en attendant ce plan
 - **Suppression** (`DeleteContactDialog`, motif `DeleteLeadDialog` du `08`) : « Supprimer « <nom> » ? » et « La fiche relation est retirée. Si cette personne n'est pas aussi un lead, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur. »
-- **Liste** (`ContactsTable`, motif `LeadsTable`) : recherche sur le nom et l'entreprise ; colonnes Nom (entreprise en sous-titre, logo à gauche, arbitrage « Première colonne d'une liste »), Types (glyphes), Statut (`EnumBadge`), Localité, Email, LinkedIn, Notes affichées, Téléphone masquable ; filtres Type, Statut et Localité ; actions de ligne Modifier et Supprimer
+- **Liste** (`ContactsTable`, motif `LeadsTable`) : recherche sur le nom et l'entreprise ; colonnes Nom (entreprise en sous-titre, logo à gauche, arbitrage « Première colonne d'une liste »), Types (glyphes), Statut (`EnumBadge`), Localité, Email, LinkedIn, Notes et Téléphone, affichés par défaut (amendé le 2026-10-14, c'était « Notes affichées, Téléphone masquable » : la vue unique est une vue « tout », décision du propriétaire du 2026-10-14) ; filtres Type, Statut et Localité ; actions de ligne Modifier et Supprimer
 - **Lien profond vers une vue détail** : `/admin/contacts` lit `searchParams.detail` et le passe à `ContactsTable` (prop `initialDetailId`, qui amorce la vue détail ouverte comme `LeadsTable`), pour les lignes de `RelatedLinksList` qui visent `?detail=<id>` sur cette page
 - **Page et menu** : `/admin/contacts`, titre « Contacts & relations » (maquette), bouton « Nouveau contact » menant à `/admin/contacts/nouveau` ; entrée Contacts activée, sans sous-entrée ; `[id]` est l'id de la personne
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/react/hooks.md`, `.claude/rules/design/claude-design.md`, `.claude/rules/vitest/setup.md`
@@ -189,7 +189,10 @@ Ajoute le modèle `Contact` comme rôle d'une personne (clé `personId`, types, 
   - removes the contact role when a person opts out
   - refuses to oppose a person without the lead role
 - `src/lib/details-templates.test.ts` (ajout) :
-  - gives the contact template its five sections
+  - `detailsAfterContactPromotion` (amendé le 2026-10-14, c'était « gives the contact template its five sections » : le gabarit contact compte deux sections, Profil et Relation, et un test de gabarit relève du plumbing, commit 5ff470a) :
+    - replaces an untouched lead template by the contact template
+    - fills the contact template when the lead details are empty
+    - keeps written lead details
 - `src/lib/person-links.test.ts` :
   - resolves to the lead detail route when the person has the lead role
   - resolves to the contact detail route when the person has only the contact role

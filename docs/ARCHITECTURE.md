@@ -1,10 +1,10 @@
 ---
 title: "ARCHITECTURE — Thibaud Geisler Portfolio"
 description: "Documentation de l'architecture du portfolio personnel thibaud-geisler.com : vitrine professionnelle, hub de démos et outils internes freelance."
-date: "2026-09-04"
+date: "2026-10-14"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
+technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "sharp", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
@@ -181,6 +181,8 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
 | **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin (tags par catégorie, projets, tags d'un projet) garde une suite continue qui commence à 1 : une position occupée décale les suivants, une suppression renumérote, un glisser-déposer donne au déplacé la place de la cible. Calcul pur dans `src/lib/reorder.ts`, réécriture de la suite entière dans une transaction à chaque mutation |
+| **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison). `formStateHandlers` fournit les états de retour du formulaire. Un `P2025` (ligne introuvable) ne vaut « déjà supprimée » que si `rowExists` confirme l'absence de la ligne : il vient aussi d'une fiche voisine ou d'un rattachement disparu |
+| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) appelle `revalidatePath(..., "layout")` sur les racines des listes qui l'affichent : actions de prospection, leads, contacts, opportunités, entretiens, entreprises |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -195,7 +197,7 @@ Next.js (App Router), TypeScript strict
 
 ### Styling & UI
 
-- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md))
+- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md)). Le registry ReUI complète l'espace admin avec le kanban et l'agenda mensuel, copiés sous `src/components/reui/`
 - **Dark/Light mode** : CSS variables + store maison `src/lib/theme.ts` (singleton `useSyncExternalStore`, sans provider : survit à React 19 Activity, cf. rule `theming/theme-store.md`)
 - **i18n** : FR/EN, cf. [ADR-010](adrs/010-i18n.md)
 
@@ -301,6 +303,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### Services Externes
 
 - **nodemailer** : envoi SMTP via IONOS (formulaire contact)
+- **Fetch sortant vers une URL saisie par l'admin** : le logo d'une entreprise se lit à l'adresse du champ site web, soit son site, soit la capture Wayback Machine que l'admin y a collée quand le site a disparu, puis aux icônes que cette page déclare ([ADR-023](adrs/023-source-logos-entreprise.md)). Le fetch passe par `src/server/company-logo/safe-fetch.ts` et `address-guard.ts` : adresses privées, loopback et métadonnées du VPS refusées, redirections et taille de réponse bornées, délai plafonné
 - **API LLM** (post-MVP) : mode d'accès tranché par [ADR-016](adrs/016-acces-llm.md), choix du modèle par [ADR-012](adrs/012-api-llm-chatbot-rag.md). Aucun appel direct depuis ce dépôt : les services IA voisins portent ces appels
 - **Indy API** (post-MVP, à réévaluer) : la comptabilité étant tenue en interne, cette intégration ne garde de sens que pour les déclarations et l'export comptable
 - **LinkedIn API** (post-MVP, à étudier) : publication assistée et prospection, sous réserve des limites de l'API officielle
@@ -311,14 +314,14 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM, `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
 Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 
 - **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
-- **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
+- **Domaine CRM** (schema `freelance`) : `Company` (lue par la vitrine via `ClientMeta`), `Person` dont `Lead` et `Contact` sont deux rôles (une personne porte l'un, l'autre ou les deux), `Opportunity`, `Interview` (correspondants rattachés à des `Person` par la table implicite `_InterviewCorrespondents`), `Signal`, `WeeklyReview`, `ProspectingAction`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
 - **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
 
@@ -347,7 +350,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
 
 ### Files / Assets Storage
 
@@ -366,7 +369,9 @@ Post-MVP, un bucket `documents-prives`, pendant de la base du même nom, sera d�
 
 ### File Processing
 
-Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le MVP.
+Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour les images du site.
+
+Le logo d'une entreprise est traité côté serveur avant son stockage dans R2 (`src/server/company-logo/normalize-icon.ts`) : `sharp`, avec `decode-ico` pour extraire la plus grande image d'un ICO que `sharp` ne lit pas. Formats acceptés : PNG, JPEG, WebP, GIF et SVG. Sortie en PNG, ramenée à 256 px de côté au plus sans agrandissement. Une icône raster dont le plus grand côté est sous 32 px est rejetée, un SVG est rendu à 256 px avant ce contrôle.
 
 ### Message Queue / Event Streaming
 
@@ -526,7 +531,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
-- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité.
+- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` (`assertNotOptedOut`, `assertOptOutOver`, `assertProspectionAllowed`, sous verrous `FOR UPDATE` / `FOR SHARE`, et `deletePersonIfRoleless`) et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. La procédure de traitement des demandes est dans [PRODUCTION.md](PRODUCTION.md) § Demandes RGPD.
 
 ### Conformité Cookies / RGPD
 
@@ -640,7 +645,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 - **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
-- **Domaines freelance et finances** : CRM, suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
+- **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
@@ -657,6 +662,8 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - **Intégrations** : LinkedIn (contenu, prospection) et Indy (déclarations), à étudier selon le besoin réel
 
 > **Blog retiré du périmètre** (août 2026) : l'effort de rédaction régulière ne se justifie pas, le SEO repose sur les case studies. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
+
+> **CRM livré** (2026-10-14) : le domaine CRM de l'epic `domaine-freelance-crm` (modèles du schema `freelance`, écrans admin, garde RGPD) est en place, cf. § Base de Données Principale.
 
 ---
 

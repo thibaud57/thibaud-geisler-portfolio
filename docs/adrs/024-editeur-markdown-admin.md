@@ -10,7 +10,7 @@ technologies: ["Tiptap", "Pages CMS Editor", "shadcn/ui", "react-markdown"]
 
 # 🎯 Contexte
 
-L'espace admin saisit du markdown dans une simple zone de texte : l'étude de cas d'un projet (`caseStudyMarkdownFr` / `caseStudyMarkdownEn`), rendue sur le site public par `MarkdownContent` (`react-markdown`, `remark-gfm`, classes `prose`). La Feature 2 « Domaine freelance » en ajoute d'autres : le champ Détails des entreprises, des leads et des contacts, qui reprend le corps de page structuré des fiches Notion (gabarits À propos, Signaux, Mission, Signal, Hypothèse / Angle, Contexte…).
+L'espace admin saisit du markdown dans une simple zone de texte : l'étude de cas d'un projet (`caseStudyMarkdownFr` / `caseStudyMarkdownEn`), rendue sur le site public par `MarkdownContent` (`react-markdown`, `remark-gfm`, classes `prose`). La Feature 2 « Domaine freelance » en ajoute d'autres : le champ Détails des entreprises, des leads et des contacts (amendement du 2026-10-14 : aussi des opportunités et des entretiens, colonnes `details` et `DetailsCard` dans `OpportunityForm.tsx` et `InterviewForm.tsx`), qui reprend le corps de page structuré des fiches Notion (gabarits À propos, Signaux, Mission, Signal, Hypothèse / Angle, Contexte…).
 
 Dans une zone de texte brute, la syntaxe se tape à l'aveugle et le rendu ne se voit qu'après l'enregistrement. Le propriétaire rédige ces fiches dans Notion depuis des années, avec ses raccourcis (`#` pour un titre, `-` pour une liste) et son menu `/`.
 
@@ -95,7 +95,7 @@ Comment saisir confortablement les champs markdown de l'admin, au plus près de 
 
 **Option C actée : Pages CMS Editor, choisi par le propriétaire le 2026-09-27.**
 
-L'éditeur s'installe par la CLI shadcn (`npx shadcn@latest add https://editor.pagescms.org/r/editor.json`) et s'emploie avec `format="markdown"` et les images coupées. Il sert à tous les champs markdown de l'admin : Détails des entreprises, des leads et des contacts, et étude de cas des projets. Le formulaire envoie sa valeur par un champ caché, comme les autres champs contrôlés. Le markdown reste le seul format stocké ; `MarkdownContent` en reste le seul rendu, dans les vues détail de l'admin comme sur le site public.
+L'éditeur s'installe par la CLI shadcn (`npx shadcn@latest add https://editor.pagescms.org/r/editor.json`) et s'emploie avec `format="markdown"` et les images coupées. Il sert à tous les champs markdown de l'admin : Détails des entreprises, des leads, des contacts, des opportunités et des entretiens (amendement du 2026-10-14), et étude de cas des projets. Le formulaire envoie sa valeur par un champ caché, comme les autres champs contrôlés. Le markdown reste le seul format stocké ; `MarkdownContent` en reste le seul rendu, dans les vues détail de l'admin comme sur le site public.
 
 Le premier sub-project qui livre un champ Détails (`domaine-freelance-crm/03`) l'installe et y fait passer l'étude de cas des projets.
 

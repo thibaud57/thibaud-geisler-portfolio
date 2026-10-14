@@ -10,11 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/domaine-freelance-crm/17-ecran-entretiens-design.md`
 
+> **Amendé le 2026-10-14 (d74f085)** : la vue À venir garde les entretiens Planifiés en retard (plus de filtre sur la date), les retards d'abord puis le prochain, et son sous-titre n'est plus celui de la maquette (DESIGN.md § Arbitrages). `interviewsForView` perd son paramètre `now` et `InterviewsTable` son état `Date.now()`. Le reste du plan est celui du jour de l'exécution ; seuls les passages touchés sont corrigés (Global Constraints, Task 1, Task 7).
+
 ## Global Constraints
 
 - **Prérequis** : plans `04` (`EnumBadge`), `07` (`findPersonOptions()`, `PersonOption`, `personFields`, `JOB_ROLES`, `JOB_ROLE_LABELS`), `08` (`LeadForm`, page du lead, `RelatedLinksList`, `RelatedLinksCard`, `findCompanyOptions()`, `CompanyOption`, `SelectField`), `10` (`DateTimeField` local à `ProspectingActionFormDialog`, `timeOf`, `toInstant`, `formatShortDateTime`, `LeadActionsCard`), `13` (`CONTACT_TYPES`, `CONTACT_TYPE_LABELS`, `CONTACT_TYPE_ICONS`, `personDetailHref`, `src/lib/person-links.ts`), `15` (`OpportunitiesTable`, `DeleteOpportunityDialog`, `AdminOpportunity`, page de l'opportunité, `findOpportunityByIdForAdmin`, card Opportunités apportées de la page du lead) et `16` (`AdminInterview`, `findAllInterviewsForAdmin`, `createInterview`, `updateInterview`, `deleteInterview`, `interviewPlaces`, `interviewTitle`, libellés et glyphes `INTERVIEW_*`, `interviewDetailsTemplate`, `detailsAfterTemplateChange`, `AdminLead.interviews`, `AdminLead.interviewsCount`) implémentés.
-- **Routes et titres** : À venir `/admin/entretiens/a-venir` « Entretiens à venir », sous-titre « Ceux qui restent à tenir, le prochain en premier. » ; Journal `/admin/entretiens` « Journal des entretiens » (route racine, page d'arrivée du menu), sous-titre « Toutes les fiches, passées et à venir, la plus récente en premier. »
-- **Vues** : À venir = statut `PLANIFIE` et date non passée, le prochain d'abord ; Journal = tous, le plus récent d'abord.
+- **Routes et titres** : À venir `/admin/entretiens/a-venir` « Entretiens à venir », sous-titre « Ceux qui restent à tenir, les retards d'abord puis le prochain. » (amendé le 2026-10-14, c'était « le prochain en premier ») ; Journal `/admin/entretiens` « Journal des entretiens » (route racine, page d'arrivée du menu), sous-titre « Toutes les fiches, passées et à venir, la plus récente en premier. »
+- **Vues** : À venir = statut `PLANIFIE`, sans condition de date, les retards d'abord puis le prochain (amendé le 2026-10-14, c'était « date non passée, le prochain d'abord ») ; Journal = tous, le plus récent d'abord.
 - **Opportunités proposées** : non closes (ni `REFUSEE`, ni `DECLINEE`, ni `ABANDONNEE`), l'opportunité déjà reliée restant affichée.
 - **Page ou modale** (arbitrages « Page ou modale d'édition » et « Élément rattaché à une fiche » de DESIGN.md) : l'entretien se crée sur `/admin/entretiens/nouveau` (opportunité de départ par `?opportunity=<id>`) et se modifie sur `/admin/entretiens/<id>`, en cards Opportunité, Échange, Détails, Évaluation, Notes ; la ligne ne porte que Modifier (lien) et Supprimer ; aucun bouton de ligne sur les opportunités, « Nouvel entretien » vit dans la card Entretiens de la page d'une opportunité.
 - **Issue** : champ masqué tant que le statut n'est pas Fait, facultative dès qu'il le devient (`16`) ; Statut occupe alors seul la pleine largeur de sa ligne.
@@ -44,7 +46,7 @@
 
 **Interfaces:**
 - Consumes: `InterviewStatus`
-- Produces: `type InterviewView = "a-venir" | "journal"` ; `INTERVIEW_VIEWS` ; `interviewsForView<T extends InterviewViewRow>(interviews: readonly T[], view: InterviewView, now: number): T[]` ; `INTERVIEW_VIEW_PAGES: Record<InterviewView, { title: string; subtitle: string }>`
+- Produces: `type InterviewView = "a-venir" | "journal"` ; `INTERVIEW_VIEWS` ; `interviewsForView<T extends InterviewViewRow>(interviews: readonly T[], view: InterviewView): T[]` (amendé le 2026-10-14, c'était avec `now: number`) ; `INTERVIEW_VIEW_PAGES: Record<InterviewView, { title: string; subtitle: string }>`
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
 
@@ -56,8 +58,6 @@ import { describe, expect, it } from "vitest"
 import type { InterviewStatus } from "@/generated/prisma/client"
 
 import { interviewsForView } from "./interview-views"
-
-const NOW = new Date(2026, 8, 27, 12, 0).getTime()
 
 interface TestInterview {
   id: string
@@ -82,14 +82,14 @@ const INTERVIEWS = [
 ]
 
 describe("interviewsForView", () => {
-  it("keeps planned interviews still to come in the upcoming view, soonest first", () => {
-    const rows = interviewsForView(INTERVIEWS, "a-venir", NOW)
+  it("keeps every planned interview in the upcoming view, overdue first then the next one", () => {
+    const rows = interviewsForView(INTERVIEWS, "a-venir")
 
-    expect(idsOf(rows)).toEqual(["tomorrow", "next-week"])
+    expect(idsOf(rows)).toEqual(["this-morning", "tomorrow", "next-week"])
   })
 
   it("keeps every interview in the journal, most recent first", () => {
-    const rows = interviewsForView(INTERVIEWS, "journal", NOW)
+    const rows = interviewsForView(INTERVIEWS, "journal")
 
     expect(idsOf(rows)).toEqual(["next-week", "cancelled", "tomorrow", "this-morning", "done"])
   })
@@ -119,20 +119,19 @@ export interface InterviewViewRow {
 export function interviewsForView<T extends InterviewViewRow>(
   interviews: readonly T[],
   view: InterviewView,
-  now: number,
 ): T[] {
   if (view === "journal") {
     return [...interviews].sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
   }
   return interviews
-    .filter((interview) => interview.status === "PLANIFIE" && interview.scheduledAt.getTime() >= now)
+    .filter((interview) => interview.status === "PLANIFIE")
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
 }
 
 export const INTERVIEW_VIEW_PAGES: Record<InterviewView, { title: string; subtitle: string }> = {
   "a-venir": {
     title: "Entretiens à venir",
-    subtitle: "Ceux qui restent à tenir, le prochain en premier.",
+    subtitle: "Ceux qui restent à tenir, les retards d'abord puis le prochain.",
   },
   journal: {
     title: "Journal des entretiens",
@@ -1622,8 +1621,6 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
   const [selectedInterview, setSelectedInterview] = useState<AdminInterview | null>(
     () => interviews.find((interview) => interview.id === initialDetailId) ?? null,
   )
-  // Instant figé au montage : la vue À venir reste stable pendant la consultation.
-  const [now] = useState(() => Date.now())
 
   // Titres calculés sur tous les entretiens, jamais sur la seule vue : « Entretien 2 » le reste même si l'entretien 1 n'est pas affiché.
   const places = useMemo(() => interviewPlaces(interviews), [interviews])
@@ -1637,10 +1634,7 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
       ),
     [interviews, places],
   )
-  const viewInterviews = useMemo(
-    () => interviewsForView(interviews, view, now),
-    [interviews, view, now],
-  )
+  const viewInterviews = useMemo(() => interviewsForView(interviews, view), [interviews, view])
 
   const columns = useMemo<readonly Column<AdminInterview>[]>(
     () => [

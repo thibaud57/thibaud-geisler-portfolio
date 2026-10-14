@@ -121,15 +121,27 @@ Crée le modèle `Interview` rattaché à une opportunité, avec ses corresponda
 ## Tests à écrire
 
 ### Unit
-- `src/lib/interviews.test.ts` :
-  - numbers interviews after the first contact within their opportunity, by date
-  - names the previous interview of the same opportunity
+- `src/lib/interviews.test.ts` (amendé le 2026-10-14, noms relevés dans le fichier, désormais `src/lib/crm/interviews.test.ts` ; c'étaient « numbers interviews after the first contact within their opportunity, by date » et « names the previous interview of the same opportunity ») :
+  - `interviewPlaces` :
+    - places interview $id at number $number after $previousId within its opportunity (`it.each` sur quatre entretiens : numéro et entretien précédent dans leur opportunité)
+    - keeps a stable number for two interviews at the same time
+  - `interviewTitle` :
+    - titles a %s interview numbered %s as %s (`it.each` : premier contact et entretien numéroté)
+  - `interviewTitleOf` :
+    - titles an interview by its place in the opportunity
+    - appends the opportunity when asked
+    - appends the opportunity to a first contact too
+  - `toLeadInterviewLinks` :
+    - numbers each interview over every interview of its opportunity and names the opportunity
+  - `toOpportunityInterviewLinks` :
+    - numbers each interview over the whole opportunity and builds its href
+  - `toInterviewLink` :
+    - labels the interview by its place in the opportunity and shows its status
 - `src/lib/lead-display-status.test.ts` :
   - shows a scheduled meeting when the lead is a correspondent of an upcoming planned interview
   - keeps Deal ahead of a scheduled meeting
   - ignores a past interview and one no longer planned
-- `src/lib/details-templates.test.ts` :
-  - gives each interview type its template
+- `src/lib/details-templates.test.ts` : test `gives each interview type its template` retiré du projet (amendé le 2026-10-14 : un test de gabarit relève du plumbing, commit 5ff470a)
 - `src/server/actions/interviews.test.ts` :
   - rejects a missing opportunity or date
   - rejects a date without its time zone offset
@@ -143,7 +155,7 @@ Crée le modèle `Interview` rattaché à une opportunité, avec ses corresponda
   - keeps an empty outcome on a Fait interview
   - rejects a call without a session, before touching the database
 - `src/server/actions/persons.test.ts` :
-  - removes the person from its interviews when exchanges are erased
+  - removes the person from its interviews (amendé le 2026-10-14, c'était « removes the person from its interviews when exchanges are erased » ; test de `erasePersonExchanges`)
 
 ## Edge cases
 

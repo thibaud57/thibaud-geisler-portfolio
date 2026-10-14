@@ -1,7 +1,7 @@
 ---
 feature: "Feature 2 — Domaine freelance CRM"
 subproject: "ecran-actions-prospection"
-goal: "Suivre les actions de prospection dans l'espace admin (vues À faire, Connexions, Discussions, Candidatures, Journal, rang des relances, formulaire, « Marquer fait »), montrer leur historique et leurs échéances de conservation côté leads, et le premier contact d'une entreprise."
+goal: "Suivre les actions de prospection dans l'espace admin (vues À faire, Connexions, Discussions, Candidatures, Journal, formulaire), montrer leur historique et leurs échéances de conservation côté leads, et le premier contact d'une entreprise."
 status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
@@ -13,11 +13,13 @@ date: "2026-09-29"
 
 ## Scope
 
-Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premier contact / Relance N », recherche, colonnes masquables et filtres (statut, canal, période), bouton « Marquer fait », formulaire en modale avec date et heure, vue détail et suppression. Côté leads : colonne du nombre d'actions, bloc Actions et « Dernier contact de sa part » dans la vue détail, card Actions sur la page du lead (choix de la personne par `findPersonOptions`, `07`), colonne « À conserver jusqu'au » et filtre « échéance dépassée ». Côté entreprises : dérivé `firstContactAt` dans `toAdminCompany` (`04`) et colonne « Premier contact ». Exclut le pipeline (`11`), le calendrier (`12`), toute purge automatique, tout lien d'une action vers une opportunité (`14`) et la case d'effacement de la confirmation « Ne plus contacter », déjà portée par `OptOutPersonDialog` (`08`).
+> Amendé le 2026-10-14 : le rang « Premier contact / Relance N » et le bouton « Marquer fait » sont retirés (d74f085 du 2026-10-12 et 220bc2e du 2026-10-13, retraits confirmés par le propriétaire le 2026-10-14), et une action se date au jour, sans heure. Les passages ci-dessous qui les décrivent sont marqués.
+
+Crée l'écran Actions prospection : cinq vues au menu, liste avec recherche, colonnes masquables et filtres (statut, canal, période), formulaire en modale avec date au jour, vue détail et suppression. Côté leads : colonne du nombre d'actions, bloc Actions et « Dernier contact de sa part » dans la vue détail, card Actions sur la page du lead (choix de la personne par `findPersonOptions`, `07`), colonne « À conserver jusqu'au » et filtre « échéance dépassée ». Côté entreprises : dérivé `firstContactAt` dans `toAdminCompany` (`04`) et colonne « Premier contact ». Exclut le pipeline (`11`), le calendrier (`12`), toute purge automatique, tout lien d'une action vers une opportunité (`14`) et la case d'effacement de la confirmation « Ne plus contacter », déjà portée par `OptOutPersonDialog` (`08`).
 
 ### État livré
 
-À la fin de ce sub-project, on peut : ouvrir Actions prospection sur le Journal, passer à « Actions à faire », marquer faite une connexion LinkedIn et la retrouver dans Connexions, créer l'action suivante depuis la card Actions de la page du lead et la voir « Relance 1 », lire les deux dans l'historique du lead ; dans Leads > Tous, faire ressortir un lead à l'échéance dépassée ; ouvrir la fiche de l'entreprise de ce lead et y lire sa date de premier contact.
+À la fin de ce sub-project, on peut : ouvrir Actions prospection sur le Journal, passer à « Actions à faire », passer une connexion LinkedIn à Fait par le formulaire et la retrouver dans Connexions, créer l'action suivante depuis la card Actions de la page du lead, lire les deux dans l'historique du lead ; dans Leads > Tous, faire ressortir un lead à l'échéance dépassée ; ouvrir la fiche de l'entreprise de ce lead et y lire sa date de premier contact.
 
 ## Dependencies
 
@@ -35,10 +37,10 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 ## Files touched
 
 - **À créer** : `src/lib/action-views.ts` et `src/lib/action-views.test.ts` (appartenance, tri et titres des vues)
-- **À créer** : `src/lib/action-rank.ts` et `src/lib/action-rank.test.ts` (rang « Premier contact / Relance N », par personne)
+- **À créer** : `src/lib/action-rank.ts` et `src/lib/action-rank.test.ts` (rang « Premier contact / Relance N », par personne) (retirés le 2026-10-14, d74f085)
 - **À créer** : `src/lib/person-retention.ts` et `src/lib/person-retention.test.ts` (`RETENTION_YEARS`, `retentionEndOf`, `isRetentionOver`, date « À conserver jusqu'au »)
 - **À créer** : `src/app/admin/(protected)/actions-prospection/page.tsx` et `loading.tsx` (Journal, lit aussi `searchParams.detail`), puis `a-faire/`, `connexions/`, `discussions/`, `candidatures/`, chacun `page.tsx` et `loading.tsx`
-- **À créer** : `src/components/features/admin/prospection/ActionsViewPage.tsx`, `ProspectingActionsTable.tsx`, `ProspectingActionFormDialog.tsx`, `DeleteProspectingActionDialog.tsx`, `MarkActionDoneButton.tsx`
+- **À créer** : `src/components/features/admin/prospection/ActionsViewPage.tsx`, `ProspectingActionsTable.tsx`, `ProspectingActionFormDialog.tsx`, `DeleteProspectingActionDialog.tsx`, `MarkActionDoneButton.tsx` (`MarkActionDoneButton.tsx` retiré le 2026-10-14, 220bc2e)
 - **À modifier** : `src/lib/admin-table-widths.ts` (largeurs des colonnes des actions, colonnes visibles par vue, colonnes ajoutées aux leads et aux entreprises)
 - **À modifier** : `src/server/queries/leads.ts` (nombre d'actions de la personne, `createdAt` du rôle)
 - **À modifier** : `src/server/queries/prospecting-actions.ts` (actions d'une personne, pour la page de son lead)
@@ -58,25 +60,25 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 | Vue | Route | Titre (maquette) | Actions | Tri par défaut |
 |---|---|---|---|---|
 | À faire | `/admin/actions-prospection/a-faire` | Actions à faire | statut À faire | date croissante |
-| Connexions | `/admin/actions-prospection/connexions` | Connexions | Connexion LinkedIn, statut Fait | date croissante |
-| Discussions | `/admin/actions-prospection/discussions` | Discussions | DM LinkedIn, Email ou SMS/WhatsApp, statut Fait | date croissante |
-| Candidatures | `/admin/actions-prospection/candidatures` | Candidatures | Candidature, statut Fait | date croissante |
+| Connexions | `/admin/actions-prospection/connexions` | Connexions | Connexion LinkedIn, statut Fait | date croissante, les plus anciennes d'abord (vue de relance, décision du propriétaire du 2026-10-14) |
+| Discussions | `/admin/actions-prospection/discussions` | Discussions | DM LinkedIn, Email ou SMS/WhatsApp, statut Fait | date croissante, les plus anciens d'abord (vue de relance, décision du propriétaire du 2026-10-14) |
+| Candidatures | `/admin/actions-prospection/candidatures` | Candidatures | Candidature, statut Fait | date décroissante (amendé le 2026-10-14, c'était croissante) |
 | Journal | `/admin/actions-prospection` | Journal des actions | toutes | À faire d'abord, puis date décroissante |
 
   Sous-titres : ceux de la maquette (`actViewHint`). Journal, la vue complète, est la route racine et la page d'arrivée du menu (`.claude/rules/nextjs/routing.md`). Les entrées Pipeline (`11`) et Calendrier (`12`) s'ajouteront au même menu
-- **Rang** (`src/lib/action-rank.ts`, fonction pure) : pour chaque personne, une action est « Premier contact » si aucune action déjà envoyée (tout statut sauf À faire) de la même personne ne la précède, sinon « Relance N », N étant le nombre de ces actions antérieures ; règle Notion (« une relance se reconnaît par chronologie »), absente de la maquette, ajoutée par décision du propriétaire. Calculé sur toutes les actions, quelle que soit la vue
-- **Liste** (`DataTable`) : recherche sur le titre et le nom de la personne. Colonnes : Action (toujours affichée), Rang, Canal (`EnumBadge`, `04`), Statut (`EnumBadge`), Date et heure (triable), Personne (tuile `CompanyLogoTile` de son entreprise et nom, `personDisplayName`, `07`), Actions de ligne. Colonnes visibles par défaut : celles de la maquette (`ACT_VIEW_COLS`) plus Rang ; Journal les montre toutes
+- **Rang** (abandonné le 2026-10-14, décision du propriétaire : `src/lib/action-rank.ts` n'existe plus et aucun écran n'affiche de rang) : c'était, pour chaque personne, une action est « Premier contact » si aucune action déjà envoyée (tout statut sauf À faire) de la même personne ne la précède, sinon « Relance N », N étant le nombre de ces actions antérieures ; règle Notion (« une relance se reconnaît par chronologie »), absente de la maquette, ajoutée par décision du propriétaire. Calculé sur toutes les actions, quelle que soit la vue
+- **Liste** (`DataTable`) : recherche sur le titre et le nom de la personne. Colonnes : Action (toujours affichée), Canal (`EnumBadge`, `04`), Statut (`EnumBadge`), Date (triable), Personne (tuile `CompanyLogoTile` de son entreprise et nom, `personDisplayName`, `07`), Actions de ligne (Modifier, Supprimer) (amendé le 2026-10-14 : Rang et Marquer fait retirés, « Date et heure » devenue « Date », la colonne Canal s'intitulant « Type » à l'écran). Colonnes visibles par défaut : celles de la maquette (`ACT_VIEW_COLS`) ; Journal les montre toutes
 - **Filtres** : Statut, Canal et Période (« 7 jours », « 30 jours » autour d'aujourd'hui, passés ou à venir, comme la maquette)
-- **« Marquer fait »** (`MarkActionDoneButton`) : bouton de ligne sur une action À faire, appelle `changeProspectingActionStatus(id, "FAIT")` (`09`), dont les règles posent l'heure réelle d'envoi ; toast de confirmation
-- **Formulaire** (`ProspectingActionFormDialog`, `Dialog` à 640 px, saisie courte en modale selon l'arbitrage « Page ou modale d'édition » de DESIGN.md) : ouvert depuis l'écran des actions ou depuis la card Actions de la page d'un lead, sa personne alors déjà choisie. Grille à deux colonnes : Action pleine largeur ; Personne (combobox des personnes non opposées, `findPersonOptions`, `07`, avec leur entreprise) et Canal (`Select` avec glyphe devant chaque option) ; Date (`Calendar` en français) et heure (`Input` `type="time"`) comme un seul champ apparié à Statut (`Select` avec glyphe) ; « Réponse reçue le » (date et heure) pleine largeur, affiché quand le statut est Répondu ou Converti ; Message (`Textarea`, texte simple : le texte exact envoyé, pas une fiche mise en forme). Une nouvelle action s'ouvre à la date et l'heure courantes. Les champs cachés envoient des instants ISO complets, calculés dans le fuseau du navigateur (`09`)
-- **Vue détail** (`DetailDialog`) : titre de l'action, rang seul en sous-titre, statut en badge ; bloc Action commençant par une ligne cliquable vers la vue détail de la personne (`/admin/leads?detail=<id>`, seul rôle qui existe à ce stade ; le `13` bascule ce lien sur `personDetailHref`, qui résout vers le lead ou le contact selon ses rôles), puis Canal (`EnumBadge`), Date et heure, Réponse reçue le ; bloc Message (retours à la ligne conservés), affiché avec une ligne `EmptyValue` sans message (arbitrage « Bloc vide d'une vue détail ») ; « Modifier » ouvre la modale
+- **« Marquer fait »** (`MarkActionDoneButton`, abandonné le 2026-10-14, décision du propriétaire : le statut change par le formulaire ou le Kanban du `11`, DESIGN.md) : bouton de ligne sur une action À faire, appelle `changeProspectingActionStatus(id, "FAIT")` (`09`), dont les règles posent l'heure réelle d'envoi ; toast de confirmation
+- **Formulaire** (`ProspectingActionFormDialog`, `Dialog` à 640 px, saisie courte en modale selon l'arbitrage « Page ou modale d'édition » de DESIGN.md) : ouvert depuis l'écran des actions ou depuis la card Actions de la page d'un lead, sa personne alors déjà choisie. Grille à deux colonnes : Action pleine largeur ; Personne (combobox des personnes non opposées, `findPersonOptions`, `07`, avec leur entreprise) et Canal (`Select` avec glyphe devant chaque option) ; Date (`DateField`, jour seul, `Calendar` en français) apparié à Statut (`Select` avec glyphe) ; « Réponse reçue le » (jour seul) affiché quand le statut est Répondu ou Converti ; Message (`Textarea`, texte simple : le texte exact envoyé, pas une fiche mise en forme). Une nouvelle action s'ouvre à la date du jour. Le champ caché envoie le jour AAAA-MM-JJ, que le serveur range à minuit de Paris (`09`) (amendé le 2026-10-14, décision du propriétaire : c'étaient une date et une heure, des instants ISO complets calculés dans le fuseau du navigateur)
+- **Vue détail** (`DetailDialog`) : titre de l'action, statut en badge, sans sous-titre (amendé le 2026-10-14 : le rang qui l'occupait est retiré) ; bloc Action commençant par une ligne cliquable vers la vue détail de la personne (`/admin/leads?detail=<id>`, seul rôle qui existe à ce stade ; le `13` bascule ce lien sur `personDetailHref`, qui résout vers le lead ou le contact selon ses rôles), puis Canal (`EnumBadge`), Date, Réponse reçue le ; bloc Message (retours à la ligne conservés), affiché avec une ligne `EmptyValue` sans message (arbitrage « Bloc vide d'une vue détail ») ; « Modifier » ouvre la modale
 - **Suppression** (`DeleteProspectingActionDialog`) : « Supprimer « <titre> » ? » et « Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré ». »
 - **Côté leads** (écran du `08`) :
-  - colonne « Actions » : le nombre d'actions de la personne (`AdminLead.actionsCount`, en-tête « Relances » dans la maquette : le nombre comprend le premier contact, d'où le libellé), triable
-  - colonne « À conserver jusqu'au » (`src/lib/person-retention.ts`, `retentionEndOf`) : personne active, 3 ans après la plus tardive entre la date de création de son rôle Lead (`AdminLead.createdAt`) et sa dernière réponse (`lastReplyAt`) ; personne opposée, 3 ans après `optedOutAt` (liste d'opposition, `01`). Visible par défaut dans Tous seulement, filtre « Échéance » (option « Dépassée ») dans toutes les vues. Purge à la main, aucun automatisme
-  - vue détail : ligne « Dernier contact de sa part » (`lastReplyAt`) dans le bloc Pipeline, et bloc « Actions » (ex « Historique ») en `RelatedLinksList`, pour une personne active comme pour une personne opposée, juste après le bloc Réseau (`13`, en dernière position chez le `08`) : ses actions par date croissante, chaque ligne (rang, canal, statut, date en `trailing`) menant en `?detail=` à sa vue détail dans le Journal, sa vue complète ; les blocs Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`) suivront Actions dans cet ordre
-  - page du lead (`08`) : card Actions passée à la prop `relatedCards` de `LeadForm` (arbitrage « Élément rattaché à une fiche »), ses actions par date croissante avec leur rang, chacune avec Modifier et Supprimer, et un bouton « Nouvelle action » (sa personne déjà choisie) ; sans action, « Aucune action pour ce lead. » ; présente aussi à la création, vide avec « Après l'enregistrement du lead. » et bouton désactivé
-- **Premier contact des entreprises** (`src/lib/company-first-contact.ts`, fonction pure testée, appelée par `toAdminCompany`, `04`, `src/server/queries/companies.ts`) : `firstContactAt` est la plus ancienne date parmi les actions hors À faire des personnes de l'entreprise, leurs dates de rencontre (`metAt`) et les entretiens faits des opportunités où elle est cliente ou intermédiaire, une seule par opportunité (élargi le 2026-10-13 : un client joint par une ESN ou rencontré en salon peut n'avoir aucune action directe) ; colonne « Premier contact » dans `CompaniesTable` (largeur dans `COMPANY_COLUMN_WIDTHS`), visible par défaut dans Toutes (arbitrage « Colonnes par vue »), Recrutement et Prospects, masquée par défaut dans Travaillées ; ligne « Premier contact » dans le bloc Relation de la vue détail, à côté de Travaillée
+  - colonne « Actions » : le nombre d'actions de la personne (`AdminLead.actionsCount`, en-tête « Relances » dans la maquette : le nombre comprend le premier contact, d'où le libellé) (amendé le 2026-10-14 : l'en-tête est « Actions », arbitrage de DESIGN.md du 2026-10-12, le rang étant retiré), triable
+  - colonne « À conserver jusqu'au » (`src/lib/person-retention.ts`, `retentionEndOf`) : personne active, 3 ans après la plus tardive entre la date de création de son rôle Lead (`AdminLead.createdAt`) et sa dernière réponse (`lastReplyAt`) ; personne opposée, 3 ans après `optedOutAt` (liste d'opposition, `01`). Visible par défaut dans Tous seulement, filtre « Échéance » (option « Dépassée ») dans toutes les vues (amendé le 2026-10-14, c'était dans toutes les vues : la facette est verrouillée hors de Tous, comme la colonne ; décision du propriétaire du 2026-10-14). Purge à la main, aucun automatisme
+  - vue détail : ligne « Dernier contact de sa part » (`lastReplyAt`) dans le bloc Pipeline, et bloc « Actions » (ex « Historique ») en `RelatedLinksList`, pour une personne active comme pour une personne opposée, juste après le bloc Réseau (`13`, en dernière position chez le `08`) : ses actions du plus récent au plus ancien (amendé le 2026-10-14, c'était par date croissante), chaque ligne (libellé, canal et statut en méta, date en `trailing`, sans rang) menant en `?detail=` à sa vue détail dans le Journal, sa vue complète ; les blocs Opportunités apportées (`15`), Entretiens (`17`) et Signaux (`19`) suivront Actions dans cet ordre
+  - page du lead (`08`) : card Actions passée à la prop `relatedCards` de `LeadForm` (arbitrage « Élément rattaché à une fiche »), ses actions du plus récent au plus ancien (amendé le 2026-10-14 : sans rang, c'était par date croissante avec leur rang), chacune avec Modifier et Supprimer, et un bouton « Nouvelle action » (sa personne déjà choisie) ; sans action, « Aucune action pour ce lead. » ; présente aussi à la création, vide avec « Après l'enregistrement du lead. » et bouton désactivé
+- **Premier contact des entreprises** (`src/lib/company-first-contact.ts`, fonction pure testée, appelée par `toAdminCompany`, `04`, `src/server/queries/companies.ts`) : `firstContactAt` est la plus ancienne date parmi les actions hors À faire des personnes de l'entreprise, leurs dates de rencontre (`metAt`) et les entretiens faits des opportunités où elle est cliente ou intermédiaire, une seule par opportunité (élargi le 2026-10-13 : un client joint par une ESN ou rencontré en salon peut n'avoir aucune action directe) ; colonne « Premier contact » dans `CompaniesTable` (largeur dans `COMPANY_COLUMN_WIDTHS`), visible par défaut dans Toutes (arbitrage « Colonnes par vue »), Recrutement et Prospects, masquée par défaut dans Travaillées (amendé le 2026-10-14, c'était masquée dans Travaillées : cette vue ne masque que Travaillée, décision du propriétaire du 2026-10-14) ; ligne « Premier contact » dans le bloc Relation de la vue détail, à côté de Travaillée
 - **Lectures** : la page lit une fois toutes les actions et les regroupe par personne pour l'historique ; `findAllLeadsForAdmin` gagne le nombre d'actions de la personne ; `findPersonOptions()` (`07`, personnes non opposées) sert le formulaire. Sans `'use cache'`, comme les autres lectures admin
 - **Lien profond vers une vue détail** : seule la page Journal (`/admin/actions-prospection`), la vue complète et la route racine de la liste, lit `searchParams.detail` et le passe en `initialDetailId` à `ProspectingActionsTable`, qui le transmet à `DataTable` (prop du `08`) ; cible des blocs `RelatedLinksList` qui mènent à une action depuis la vue détail d'un lead
 - **Menu** : l'entrée Actions prospection reçoit son `href` (la route racine, le Journal) et ses cinq sous-entrées, dans l'ordre des vues
@@ -84,12 +86,13 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 
 ## Acceptance criteria
 
-### Scénario 1 : À faire et « Marquer fait »
+### Scénario 1 : passage à Fait
 **GIVEN** une connexion LinkedIn À faire planifiée hier
-**WHEN** on ouvre Actions prospection, passe à la vue À faire et clique « Marquer fait » sur sa ligne
-**THEN** elle quitte À faire, apparaît dans Connexions avec l'heure du clic, et le toast le confirme
+**WHEN** on ouvre Actions prospection, passe à la vue À faire, ouvre la modification de sa ligne et passe son statut à Fait (ou on la glisse dans la colonne Fait du Kanban du `11`)
+**THEN** elle quitte À faire, apparaît dans Connexions avec l'instant d'envoi, et le toast le confirme
+(amendé le 2026-10-14 : c'était « Marquer fait » sur la ligne, avec l'heure du clic)
 
-### Scénario 2 : rang des relances
+### Scénario 2 : rang des relances (abandonné le 2026-10-14, rang retiré)
 **GIVEN** un lead dont la connexion est Fait
 **WHEN** on crée une action DM LinkedIn sur ce lead
 **THEN** la nouvelle action s'affiche « Relance 1 », la connexion « Premier contact »
@@ -102,7 +105,7 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 ### Scénario 4 : historique du lead
 **GIVEN** un lead avec trois actions dont une répondue
 **WHEN** on ouvre sa vue détail
-**THEN** le bloc Actions liste les trois actions par date avec leur rang, et « Dernier contact de sa part » donne la date de la réponse
+**THEN** le bloc Actions liste les trois actions par date, la plus récente d'abord, et « Dernier contact de sa part » donne la date de la réponse
 
 ### Scénario 5 : échéance de conservation
 **GIVEN** un lead créé il y a plus de 3 ans, sans réponse depuis, et un lead opposé il y a plus de 3 ans
@@ -119,10 +122,11 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 ### Unit
 - `src/lib/action-views.test.ts` :
   - keeps only to-do actions in the to-do view, soonest first
+  - lists sent actions oldest first in the connexions and discussions views, lists sent applications most recent first (ajoutés le 2026-10-14)
   - keeps only sent LinkedIn connections in the connections view
   - keeps sent LinkedIn messages, emails and texts in the discussions view
   - puts to-do actions first in the journal, then the most recent
-- `src/lib/action-rank.test.ts` :
+- `src/lib/action-rank.test.ts` (retiré le 2026-10-14 avec le rang, d74f085) :
   - ranks a person's first sent action as the first contact
   - counts only earlier sent actions of the same person
   - ranks a planned action after the actions already sent before its date
@@ -139,15 +143,15 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 
 ## Edge cases
 
-- **Deux actions à la même heure** sur une personne : l'ordre de création les départage, le rang reste stable
+- **Deux actions le même jour** sur une personne : l'ordre de création les départage (amendé le 2026-10-14 : le rang, qui restait stable, est retiré, et les actions se datent au jour)
 - **Action d'une personne opposée** : visible dans le Journal et l'historique du lead, la personne ne figurant plus parmi les choix du formulaire (`findPersonOptions`, `07`)
 - **Personne opposée dont les actions sont gardées** (opposition simple, sans effacement demandé) : son historique reste lisible dans la vue détail de son lead
-- **Heure changée d'heure d'été** : l'instant envoyé porte son décalage, l'heure affichée reste celle saisie
+- **Changement d'heure d'été** : le jour saisi est rangé à minuit de Paris par le serveur (`zonedDayStart`, `09`), la date affichée reste le jour saisi (amendé le 2026-10-14, c'était l'instant envoyé portant son décalage)
 - **Entreprise sans action envoyée, rencontre ni entretien fait** : « Premier contact » vide (`EmptyValue`), colonne et ligne de détail comprises
 
 ## Architectural decisions
 
-### Décision : rang des relances
+### Décision : rang des relances (abandonnée le 2026-10-14, décision du propriétaire : retrait d74f085 du 2026-10-12, confirmé le 2026-10-14)
 
 **Options envisagées :**
 - **A. Champ stocké** (« Relance 2 » saisi) : lisible sans calcul, mais faux dès qu'une action est ajoutée, supprimée ou redatée
@@ -158,7 +162,7 @@ Crée l'écran Actions prospection : cinq vues au menu, liste avec rang « Premi
 **Rationale :**
 - Règle Notion (« pas de champ dédié, une relance se reconnaît par chronologie ») et toujours juste
 
-### Décision : « Marquer fait » en un clic
+### Décision : « Marquer fait » en un clic (abandonnée le 2026-10-14, décision du propriétaire : le statut change par le formulaire ou le Kanban du `11`, retrait 220bc2e du 2026-10-13)
 
 **Options envisagées :**
 - **A. Passer par le formulaire** : un seul chemin d'écriture, mais une modale à chaque envoi

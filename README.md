@@ -1,7 +1,7 @@
 # Thibaud Geisler Portfolio
 
 Plateforme personnelle (vitrine professionnelle) servant de hub central vers les démos externes en IA, développement full-stack et formation.
-Monolithe Next.js single-user, évolutif vers un espace admin interne freelance post-MVP.
+Monolithe Next.js single-user, avec un espace admin interne, CRM freelance compris.
 Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 
 ## Stack
@@ -9,14 +9,14 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 | Couche | Technologies |
 |--------|--------------|
 | Backend | Node.js 24, TypeScript 6 (strict), Next.js 16 (App Router, Server Actions) |
-| Frontend | React 19, Tailwind 4, shadcn/ui (+ Magic UI, Aceternity UI), next-intl 4 (FR/EN) |
+| Frontend | React 19, Tailwind 4, shadcn/ui (+ Magic UI, Aceternity UI, ReUI, Pages CMS Editor / Tiptap), next-intl 4 (FR/EN) |
 | Base de données | PostgreSQL 18, Prisma 7 |
 | Observabilité | Pino 10 (logs structurés serveur) |
 
 ## Prérequis
 
 - Node.js >= 24
-- pnpm >= 10 (version pinnée via `packageManager` dans `package.json`)
+- pnpm >= 12 (version pinnée via `packageManager` dans `package.json`)
 - Docker (Compose, pour Postgres en dev)
 - [`just`](https://github.com/casey/just) (workflow standard du projet) avec bash (Git Bash sous Windows, le `Justfile` pose `set shell := ["bash", "-cu"]`)
 - [`actionlint`](https://github.com/rhysd/actionlint) (`winget install rhysd.actionlint`, requis par `just lint`)
@@ -48,7 +48,7 @@ Stockés dans deux buckets Cloudflare R2 privés, jamais sur le filesystem de l'
 - `portfolio-assets/projets/{client,personal}/<slug-projet>/<filename>` (couvertures, captures, médias projet, sous le slug du projet)
 - `portfolio-assets/documents/cv/<filename>` (CV)
 - `portfolio-assets/branding/<filename>` (logo, portrait)
-- `portfolio-admin/freelance/crm/entreprises/<slug>/logo.png` (logos d'entreprise, servis sans session tant que l'entreprise a un projet publié, 404 sinon)
+- `portfolio-admin/freelance/crm/entreprises/<slug>/logo-<hash>.png` (logos d'entreprise, hash = 12 premiers caractères du SHA-256 du contenu, servis sans session tant que l'entreprise a un projet publié, 404 sinon)
 
 Servis dynamiquement via la route catch-all `GET /api/assets/[...path]` (lecture R2 par le SDK S3).
 

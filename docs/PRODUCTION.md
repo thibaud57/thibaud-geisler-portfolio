@@ -87,6 +87,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
+- [ ] Si la release embarque la migration `20261006100000_legal_entity_optional_fields` (elle remet `Publisher.vatRegime` à NULL, redéfinit l'enum en `REEL_SIMPLIFIE` / `REEL_NORMAL` et ajoute `vatLiableSince`) : ressaisir la date d'assujettissement et le régime TVA de l'éditeur (Entreprises → fiche de l'éditeur → card Entité légale), puis vérifier `/fr/mentions-legales` (numéro de TVA affiché à la place de la mention 293 B quand l'éditeur est assujetti) et le `vatID` du JSON-LD de `/fr/a-propos`. Si la release charge aussi un dump de la dev (§ Procédure : Remplir la base depuis un dump de dev), `Publisher` est tronquée puis rechargée depuis la dev : ressaisir en dev avant `just db-dump`, ou en production après le chargement. La page légale déduit la franchise de l'absence de `vatLiableSince` (`src/lib/legal/vat-status.ts`), un oubli affiche donc la mention de franchise à un éditeur assujetti
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
@@ -728,7 +729,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
      echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
    ```
 6. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
-7. Smoke test : accueil, `/projets`, une page projet, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
+7. Smoke test : accueil, `/projets`, une page projet, `/fr/mentions-legales`, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
 
 > ⚠️ Un échec annule toute la transaction, les tables restent intactes. `--disable-triggers` exige un superuser, ce qu'est l'utilisateur de `portfolio-db` (relevé du 2026-09-25).
 

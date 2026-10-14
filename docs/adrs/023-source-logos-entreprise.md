@@ -5,7 +5,7 @@ description: "Décision actée : le logo d'une entreprise est lu sur son propre 
 date: "2026-09-26"
 keywords: ["architecture", "adr", "logo", "crm", "assets", "r2", "logo.dev", "wayback", "ssrf"]
 scope: ["docs", "architecture"]
-technologies: ["Cloudflare R2", "Next.js", "Logo.dev", "Wayback Machine"]
+technologies: ["Cloudflare R2", "Next.js", "Logo.dev", "Wayback Machine", "sharp", "decode-ico"]
 ---
 
 # 🎯 Contexte
@@ -85,7 +85,7 @@ D'où tirer le logo qui alimente `logoFilename`, sans abonnement, avec le droit 
 **Inconvénients :**
 - Qualité variable : `apple-touch-icon` passe l'audit Lighthouse sur 42 % des sites (Web Almanac 2022), d'autres ne publient qu'un favicon de 32 px, suffisant pour la tuile de 28 px de l'admin, juste pour l'en-tête de 56 px d'une étude de cas
 - Le serveur appelle une URL saisie par l'admin : surface SSRF. Le `fetch` natif de Node n'a ni protection SSRF ni plafond de taille de réponse (issues undici #2019 et #1692), à construire soi-même
-- SVG à assainir ou refuser, ICO illisible par `sharp`
+- SVG à assainir ou refuser, ICO illisible par `sharp` (amendement du 2026-10-14 : `decode-ico` extrait la plus grande image de l'ICO avant `sharp`, qui produit le PNG stocké ; un SVG est rasterisé en PNG de la même façon, `src/server/company-logo/normalize-icon.ts`)
 - Les conditions d'Internet Archive réservent l'accès à « scholarship and research purposes only », d'après l'analyse de Marks & Clerk : un appel ponctuel, déclenché à la main pour une seule entreprise, reste loin de la collecte en masse
 
 **Coût estimé :** Moyen, un sub-project de taille M
@@ -98,9 +98,11 @@ D'où tirer le logo qui alimente `logoFilename`, sans abonnement, avec le droit 
 
 `logoFilename` reste la seule source affichée, dans l'admin comme sur le site public. Logo.dev n'est appelé nulle part dans ce dépôt, sa clé publiable reste cantonnée à Notion. Le bucket, le dossier et les routes d'ADR-011 ne changent pas.
 
-Seules les icônes déclarées par le site comptent (`apple-touch-icon`, `<link rel="icon">`, icônes du manifest, `/favicon.ico` en dernier recours), jamais l'image de partage `og:image` ni le logo d'en-tête : rectangulaires, souvent blancs, ils tiennent mal dans une tuile carrée.
+Seules les icônes déclarées par le site comptent (`apple-touch-icon`, `<link rel="icon">`, `/favicon.ico` en dernier recours), jamais l'image de partage `og:image` ni le logo d'en-tête : rectangulaires, souvent blancs, ils tiennent mal dans une tuile carrée.
 
 Le bouton s'active dès que le site web est renseigné et lit l'adresse du champ telle quelle. Aucune détection automatique d'un site mort : c'est l'admin qui juge qu'un site n'est plus d'actualité et le remplace par sa capture Wayback. La même fonction sert à la reprise en lot des entreprises venues de Notion. L'ordre des sources, la taille minimale, les formats acceptés et la protection SSRF se fixent dans le spec `domaine-freelance-crm/06`.
+
+Amendement du 2026-10-14 : les icônes du manifest, citées par la rédaction initiale, sont exclues depuis l'amendement du 2026-10-12 du spec `domaine-freelance-crm/06` (aucun gain mesuré). Le code ne lit que `<link rel="icon">`, `<link rel="apple-touch-icon">`, puis `/favicon.ico` quand la page n'en déclare aucune (`src/server/company-logo/icon-candidates.ts`).
 
 Usage de la marque : afficher le logo d'une entreprise pour l'identifier relève de l'usage pour « désigner ou mentionner » ses produits ou services (article L713-6, 3° du Code de la propriété intellectuelle, article 14.1.c de la directive 2015/2436), à condition de rester loyal et de ne suggérer aucun lien commercial fictif. Le risque est le même quelle que soit la source de l'image.
 

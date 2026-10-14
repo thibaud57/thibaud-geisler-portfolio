@@ -36,7 +36,7 @@ date: "2026-09-26"
 - **À modifier** : `src/components/features/admin/BadgeList.tsx` (prop `icons` optionnelle, chaque badge rendu par `EnumBadge`)
 - **À modifier** : `src/components/features/admin/companies/CompaniesTable.tsx` (prop `view`, colonnes, filtres, vue détail réordonnée, glyphes)
 - **À modifier** : `src/components/features/admin/DetailDialog.tsx` (focus initial sur la modale, prop `leading` de l'en-tête)
-- **À créer** : `src/components/features/admin/CompanyLogoLink.tsx` (`CompanyLogoTile` cliquable vers son fichier dans Assets)
+- **À créer** : `src/components/features/admin/CompanyLogoLink.tsx` (`CompanyLogoTile` cliquable vers son fichier dans Assets) (amendé le 2026-10-14 : composant retiré, la tuile cliquable est l'`AssetTileLink` (`src/components/features/admin/detail/AssetTileLink.tsx`) que `DetailDialog` rend pour la prop `image`, partagé par toute vue détail ; le comportement reste)
 - **À modifier** : `src/components/markdown/MarkdownContent.tsx` (prop `variant`, `"admin"` pour les Détails des fiches)
 - **À modifier** : `src/lib/admin-table-widths.ts` (largeurs des colonnes, `CompanyView`, colonnes par défaut par vue, largeurs du squelette par vue)
 - **À modifier** : `src/server/queries/companies.ts` (`AdminCompany` gagne le dérivé `worked`, calculé dans `toAdminCompany` depuis les `ClientMeta` liés à un projet `CLIENT`)
@@ -50,15 +50,16 @@ date: "2026-09-26"
 
 ## Architecture approach
 
-- **Vues** : même motif que la liste des projets. Un type `CompanyView` (`toutes`, `travaillees`, `recrutement`) ; chaque page passe sa vue à `CompaniesTable`, qui filtre les lignes en mémoire (Travaillées : `worked` ; Recrutement : `types` contient `ESN_RECRUTEMENT`) et reconstruit ses colonnes pour la vue. La prop `workedOnly` et sa présélection de filtre disparaissent. Chaque page garde son `getCurrentUser()` et son `loading.tsx` d'une ligne (`.claude/rules/nextjs/auth.md`)
+- **Vues** : même motif que la liste des projets. Un type `CompanyView` (`all`, `travaillees`, `recrutement`, `prospects`) (amendé le 2026-10-14 : `toutes` devenu `all`, `prospects` ajoutée par le `08`) ; chaque page passe sa vue à `CompaniesTable`, qui filtre les lignes en mémoire (Travaillées : `worked` ; Recrutement : `types` contient `ESN_RECRUTEMENT`) et reconstruit ses colonnes pour la vue. La prop `workedOnly` et sa présélection de filtre disparaissent. Chaque page garde son `getCurrentUser()` et son `loading.tsx` d'une ligne (`.claude/rules/nextjs/auth.md`)
 - **Dérivé travaillée** : `AdminCompany.worked` se calcule dans `toAdminCompany`, la fonction de mapping vers `AdminCompany` (`src/server/queries/companies.ts`), vrai dès que l'entreprise a au moins un `ClientMeta` vers un projet de type `CLIENT`. Un projet `PERSONAL` crée aussi un `ClientMeta` (`src/server/actions/projects.ts`, sans condition de type) et ne doit pas compter ; `_count.clientMetas` reste la source de la colonne Projets, inchangée. Le `15` étendra cette même ligne avec `|| hasAcceptedOpportunity(company)`
 - **Pages** :
 
 | Vue | Route | Titre | Sous-titre |
 |---|---|---|---|
-| Toutes | `/admin/entreprises` | Toutes les entreprises | Clients, intermédiaires et prospects. |
-| Travaillées | `/admin/entreprises/travaillees` | Entreprises travaillées | Celles où une mission a été réalisée, en direct ou via une ESN. |
-| Recrutement | `/admin/entreprises/recrutement` | Recrutement | ESN et cabinets, avec leur historique de propositions. |
+| Toutes | `/admin/entreprises` | Toutes les entreprises | Toutes les entreprises, sans filtre. (amendé le 2026-10-14, c'était « Clients, intermédiaires et prospects. », décision du propriétaire du 2026-10-14) |
+| Travaillées | `/admin/entreprises/travaillees` | Entreprises travaillées | Celles où une mission a été réalisée, en direct ou via une ESN. (amendé le 2026-10-14, élargi par le `15` aux opportunités acceptées : « Un projet client réalisé ou une opportunité acceptée, en direct ou via une ESN. ») |
+| Recrutement | `/admin/entreprises/recrutement` | Recrutement (amendé le 2026-10-14 : « Entreprises de recrutement ») | ESN et cabinets, avec leur historique de propositions. |
+| Prospects (ajoutée le 2026-10-14 par le `08`) | `/admin/entreprises/prospects` | Entreprises prospects | Non travaillées, avec un lead actif. |
 
 - **Colonnes**, dans l'ordre : Nom (logo à gauche, slug en sous-titre, arbitrage « Première colonne d'une liste »), Types, Secteurs, Localités, Taille, Statut, Travaillée, Entité légale, Site web, Notes, Projets, Actions. Nom et Actions restent toujours visibles
   - Types, Zones : `BadgeList` (trois badges puis « +N »), Types avec le glyphe `COMPANY_TYPE_ICONS` sur chaque badge
@@ -72,12 +73,15 @@ date: "2026-09-26"
 | Vue | Colonnes masquables visibles par défaut |
 |---|---|
 | Toutes | toutes |
-| Travaillées | Types, Secteurs, Zones, Taille, Statut, Projets |
-| Recrutement | Types, Zones, Statut, Travaillée |
+| Travaillées | toutes sauf Travaillée, constante dans cette vue (amendé le 2026-10-14, c'était Types, Secteurs, Zones, Taille, Statut, Projets ; décision du propriétaire du 2026-10-14) |
+| Recrutement | toutes, rien n'y étant constant : Types peut cumuler ESN et autres types (amendé le 2026-10-14, c'était Types, Zones, Statut, Travaillée ; décision du propriétaire du 2026-10-14) |
+| Prospects (ajoutée le 2026-10-14 par le `08`) | Types, Secteurs, Zones, Taille, Statut, Premier contact, Entité légale, Site web, Notes |
+
+(élargi le 2026-10-14 : Clients finaux (`15`) est visible par défaut dans Travaillées et Recrutement, Premier contact (`10`) dans Recrutement et Prospects ; Prospects masque Travaillée, Clients finaux et Projets, constants ou vides pour une entreprise jamais travaillée, `src/components/features/admin/companies/company-table-widths.ts`)
 
 - **Filtres** : Statut (une valeur), Types et Zones (plusieurs valeurs par ligne, déjà gérées par `Facet.value`, `ZONES` dans l'ordre canonique du `02`). L'ancien filtre « Travaillée » disparaît, la vue Travaillées le remplace
 - **Vue détail** (arbitrage « Blocs d'une vue détail ») : en-tête avec le logo à gauche du nom (tuile de 48px cliquable vers son fichier dans Assets quand il existe, par la prop `image` de `DetailContent` ; arbitrage « Image d'identité d'une vue détail »), le nom, le slug en sous-titre et le statut de la relation en badge, avec son glyphe `COMPANY_STATUS_ICONS` ; blocs dans l'ordre de l'arbitrage « Blocs d'une vue détail » (champs courts, Notes, Détails, fiches rattachées), moins le nom déjà porté par l'en-tête : Identité (site web, localités), Classification (types, secteurs), Relation (taille, travaillée ; le statut est déjà en tête, arbitrage « En-tête d'une vue détail »), Entité légale, Notes (la ligne), Détails en pleine largeur, rendu par le composant existant `MarkdownContent` en variante `admin`, à l'échelle de l'éditeur (`ADMIN_MARKDOWN_CLASS` du `03`, prop `variant` ajoutée ici) (`src/components/markdown/MarkdownContent.tsx`); la card Logo du formulaire n'a pas de bloc, le logo étant en tête. Tous les blocs restent affichés, une valeur absente rendue par `EmptyValue` (arbitrage « Bloc vide d'une vue détail ») ; le focus initial se pose sur la modale, pas sur le premier déclencheur d'infobulle (badge Taille) ; les listes y montrent tous leurs badges, avec leur glyphe
-- **Menu** : la sous-entrée Recrutement du groupe CRM > Entreprises reçoit son `href`, ce qui suffit à l'activer ; Prospects reste sans `href`, le `08` l'activera
+- **Menu** : la sous-entrée Recrutement du groupe CRM > Entreprises reçoit son `href`, ce qui suffit à l'activer ; Prospects reste sans `href`, le `08` l'activera (activée par le `08`)
 - **Squelette de chargement** : largeurs dérivées des colonnes visibles de la vue, comme pour les projets
 - **Rules** : `.claude/rules/nextjs/routing.md`, `.claude/rules/nextjs/data-fetching.md`, `.claude/rules/nextjs/server-client-components.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/shadcn-ui/components.md`, `.claude/rules/tailwind/conventions.md`, `.claude/rules/design/claude-design.md`
 
@@ -86,7 +90,7 @@ date: "2026-09-26"
 ### Scénario 1 : vue Recrutement
 **GIVEN** des entreprises dont certaines ont le type ESN / Recrutement
 **WHEN** on ouvre `/admin/entreprises/recrutement` depuis le menu
-**THEN** seules ces entreprises s'affichent, avec les colonnes Types, Zones, Statut et Travaillée
+**THEN** seules ces entreprises s'affichent, avec les colonnes Types, Zones, Statut et Travaillée (amendé le 2026-10-14 : avec toutes ses colonnes par défaut)
 **AND** l'entrée Recrutement du menu est active
 
 ### Scénario 2 : vue Travaillées

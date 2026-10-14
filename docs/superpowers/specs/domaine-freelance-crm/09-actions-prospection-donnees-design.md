@@ -13,7 +13,7 @@ date: "2026-09-29"
 
 ## Scope
 
-Crée le modèle `ProspectingAction` (une action envers une personne : connexion, message, email, appel, candidature), ses listes de valeurs, sa validation, ses règles de statut (date d'envoi réelle au passage à Fait, date de réponse posée d'office), ses lectures pour l'admin et ses Server Actions de création, modification, changement de statut seul et suppression. Étend la lecture des leads avec la date de la dernière réponse de leur personne et l'effacement des échanges (`erasePersonExchanges`, `07`) avec la suppression des actions de la personne opposée. Exclut les écrans (`10`, `11`, `12`), le rang « Premier contact / Relance N » (calculé par le `10`) et tout lien vers une opportunité (`14`).
+Crée le modèle `ProspectingAction` (une action envers une personne : connexion, message, email, appel, candidature), ses listes de valeurs, sa validation, ses règles de statut (date d'envoi réelle au passage à Fait, date de réponse posée d'office), ses lectures pour l'admin et ses Server Actions de création, modification, changement de statut seul et suppression. Étend la lecture des leads avec la date de la dernière réponse de leur personne et l'effacement des échanges (`erasePersonExchanges`, `07`) avec la suppression des actions de la personne opposée. Exclut les écrans (`10`, `11`, `12`), le rang « Premier contact / Relance N » (calculé par le `10`, amendé le 2026-10-14 : rang retiré du `10`) et tout lien vers une opportunité (`14`).
 
 ### État livré
 
@@ -45,22 +45,23 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
 | `personId` | `String` vers `Person` | obligatoire ; `onDelete: Cascade` : le message est une donnée personnelle, supprimer la personne supprime ses actions |
 | `channel` | `ActionChannel` : `CANDIDATURE`, `CONNEXION_LINKEDIN`, `DM_LINKEDIN`, `EMAIL`, `SMS_WHATSAPP`, `CALL`, `AUTRE` | requis |
 | `status` | `ActionStatus` : `A_FAIRE`, `FAIT`, `REPONDU`, `CONVERTI`, `IGNORE` | défaut `A_FAIRE` |
-| `occurredAt` | `DateTime @db.Timestamptz` | date et heure, toujours (maquette : « c'est la donnée de timing ») ; planifiée tant que l'action est À faire, réelle ensuite |
+| `occurredAt` | `DateTime @db.Timestamptz` | date et heure, toujours (maquette : « c'est la donnée de timing ») ; planifiée tant que l'action est À faire, réelle ensuite (amendé le 2026-10-14, décision du propriétaire : le formulaire ne saisit que le jour, rangé à minuit de Paris ; en quittant À faire sans changer de jour, l'action prend l'instant réel d'envoi (`applyStatusRules`, `src/lib/prospecting-action-status.ts`) ; ré-enregistrer une action envoyée garde son heure tant que le jour ne change pas, correctif du 2026-10-14) |
 | `message` | `String?` | texte envoyé ou brouillon (corps `💬 Message` de Notion, absent de la maquette, ajouté par décision du propriétaire) |
 | `respondedAt` | `DateTime? @db.Timestamptz` | date de la réponse de la personne ; nouvelle, Notion ne gardant que la date d'envoi |
+| `reply` | `String?` | texte de la réponse de la personne (ajouté par le `21`, effacé quand l'action quitte Répondu ou Converti) |
 | `createdAt`, `updatedAt` | `DateTime @db.Timestamptz` | |
 
-  Index sur `(personId, occurredAt)` : l'historique d'une personne et le rang des relances se lisent dans cet ordre. Vers la personne, pas le rôle : un échange avec une relation réseau se journalisera au même endroit (`13`)
+  Index sur `(personId, occurredAt)` : l'historique d'une personne se lit dans cet ordre (amendé le 2026-10-14 : le rang des relances est retiré du `10`). Vers la personne, pas le rôle : un échange avec une relation réseau se journalisera au même endroit (`13`)
 - **Libellés** (`src/lib/prospecting-actions.ts`) : ceux de la maquette (« Connexion LinkedIn », « DM LinkedIn », « SMS/WhatsApp », « À faire », « Répondu », « Ignoré »…)
 - **Glyphes** : `ACTION_CHANNEL_ICONS`, `ACTION_STATUS_ICONS` dans `src/lib/prospecting-actions.ts`, chacune `Record<Enum, IconComponent | null>` (type `IconComponent` de `@/lib/icons`), glyphes Lucide en imports nommés : canal Connexion LinkedIn `UserPlus`, DM LinkedIn `MessageSquare`, Email `Mail`, SMS/WhatsApp `MessageCircle`, Call `Phone`, Candidature et Autre sans glyphe (`null`) ; statut À faire `ClipboardList`, Fait `CircleCheck`, Répondu `Reply`, Converti `Target`, Ignoré `VolumeX`
 - **Règles de statut** (`src/lib/prospecting-action-status.ts`, fonction pure appelée par toutes les écritures) :
-  - quitter À faire pour un autre statut remplace la date par l'heure courante, sauf si la même saisie change aussi la date (rattrapage d'un envoi passé) : la date devient celle de l'envoi réel (règle Notion)
+  - quitter À faire pour un autre statut remplace la date par l'heure courante, sauf si la même saisie change aussi la date (rattrapage d'un envoi passé) : la date devient celle de l'envoi réel (règle Notion) (amendé le 2026-10-14 : « même saisie » s'entend au jour près, voir `occurredAt` ; un jour changé garde la saisie, minuit de Paris)
   - passer à Répondu ou Converti sans date de réponse la pose à l'heure courante ; une date de réponse saisie est gardée ; passer de Répondu à Converti garde la date existante
   - revenir à À faire, Fait ou Ignoré efface la date de réponse
   - aucune action n'est verrouillée : une relance reste une nouvelle action, par usage et non par blocage
-- **Validation** (`src/lib/schemas/prospecting-action.ts`, `.claude/rules/zod/schemas.md`) : titre requis (120 caractères au plus), personne requise, canal et statut dans leurs listes ; `occurredAt` et `respondedAt` en instant ISO complet avec décalage (`z.iso.datetime({ offset: true })`), le formulaire calculant l'instant dans le fuseau du navigateur, ce qu'une date sans décalage ferait lire en UTC sur le serveur ; message facultatif, vide → `null`
-- **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, motif `saveEntity` / `deleteEntity`, `getCurrentUser()` en tête) : `createProspectingAction`, `updateProspectingAction` (lit le statut et la date enregistrés pour appliquer les règles), `changeProspectingActionStatus(id, status)` (statut seul, pour le glisser du pipeline `11` et un « Marquer fait » du `10`), `deleteProspectingAction`. Une personne inexistante (clé étrangère) renvoie `person_not_found` sur le champ personne, choisie via `findPersonOptions()` (`07`). Après écriture, `revalidatePath` en variante `layout` sur `/admin/actions-prospection` (route du `10`) et `/admin/leads`
-- **Effacement des échanges d'une personne** (`erasePersonExchanges`, `07`, étendue ici) : sur une personne déjà opposée, supprime désormais aussi ses actions de prospection (`deleteMany`) dans la même transaction que la pose d'`exchangesErasedAt`, leurs messages étant des données personnelles. L'opposition simple (`optOutPerson`, `07`, art. 21.2/21.3, inchangée) garde les actions comme historique de prospection, jamais réutilisé, jusqu'au terme de leur durée de conservation ou à une demande d'effacement ultérieure (art. 17.1.c). La suppression d'une personne (`deleteLead`, `07`) les emporte toujours par la cascade `Person → Cascade`
+- **Validation** (`src/lib/schemas/prospecting-action.ts`, `.claude/rules/zod/schemas.md`) : titre requis (120 caractères au plus), personne requise, canal et statut dans leurs listes ; `occurredAt` et `respondedAt` en instant ISO complet avec décalage (`z.iso.datetime({ offset: true })`), le formulaire calculant l'instant dans le fuseau du navigateur, ce qu'une date sans décalage ferait lire en UTC sur le serveur (amendé le 2026-10-14, décision du propriétaire : `z.iso.date` puis `zonedDayStart`, jour rangé à minuit de Paris, `src/lib/schemas/prospecting-action.ts`) ; `reply` facultatif, vide → `null` (ajouté par le `21`) ; message facultatif, vide → `null`
+- **Actions** (`.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, motif `saveEntity` / `deleteEntity`, `getCurrentUser()` en tête) : `createProspectingAction`, `updateProspectingAction` (lit le statut et la date enregistrés pour appliquer les règles), `changeProspectingActionStatus(id, status)` (statut seul, pour le glisser du pipeline `11`, amendé le 2026-10-14 : le « Marquer fait » du `10` est retiré), `rescheduleProspectingAction(id, occurredAt)` (ajoutée le 2026-10-14 : replanifie au jour une action À faire seulement, pour le calendrier `12`), `deleteProspectingAction`. Une personne inexistante (clé étrangère) renvoie `person_not_found` sur le champ personne, choisie via `findPersonOptions()` (`07`). Après écriture, `revalidatePath` en variante `layout` sur `/admin/actions-prospection` (route du `10`) et `/admin/leads` (amendé le 2026-10-14 : `revalidatePersonLists`, qui couvre aussi contacts, opportunités, entretiens et entreprises)
+- **Effacement des échanges d'une personne** (`erasePersonExchanges`, `07`, étendue ici) : sur une personne déjà opposée, supprime désormais aussi ses actions de prospection (`deleteMany`) dans la même transaction que la pose d'`exchangesErasedAt`, leurs messages étant des données personnelles. L'opposition simple (`optOutPerson`, `07`, art. 21.2/21.3, inchangée) garde les actions comme historique de prospection, jamais réutilisé, jusqu'au terme de leur durée de conservation ou à une demande d'effacement ultérieure (art. 17.1.c). La suppression d'une personne (`deleteLead`, `07`) les emporte toujours par la cascade `Person → Cascade` (amendé le 2026-10-14, décision du propriétaire : pour une personne opposée, seulement après ses 3 ans de conservation) ; tant qu'elle est opposée, ses actions restent lisibles mais figées : `assertProspectionAllowed` (`src/server/actions/_support/person-guards.ts`) refuse toute création, réécriture, replanification et tout changement de statut avec le refus serveur `opted_out`
 - **Lectures** : `findAllProspectingActionsForAdmin` (personne avec son nom, son statut d'opposition et son entreprise), type `AdminProspectingAction`, sans `'use cache'` ; `findAllLeadsForAdmin` et `findLeadByIdForAdmin` (`07`) gagnent la dernière date de réponse de leur personne (`lastReplyAt`), « dernier contact émanant d'elle », point de départ des 3 ans de conservation avec la date de création (`01`)
 - **Rules** : `.claude/rules/prisma/schema-migrations.md`, `.claude/rules/zod/schemas.md`, `.claude/rules/zod/validation.md`, `.claude/rules/nextjs/server-actions.md`, `.claude/rules/nextjs/auth.md`, `.claude/rules/vitest/setup.md`
 
@@ -74,7 +75,7 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
 ### Scénario 2 : rattrapage
 **GIVEN** une action À faire
 **WHEN** on la passe à Fait en saisissant la veille à 18 h
-**THEN** sa date est la veille à 18 h
+**THEN** sa date est la veille à 18 h (amendé le 2026-10-14 : le formulaire ne saisit que le jour, la date est la veille rangée à minuit de Paris)
 
 ### Scénario 3 : réponse
 **GIVEN** une action Fait
@@ -106,9 +107,10 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
   - keeps a submitted reply time
   - keeps the reply time when a replied action becomes converted
   - clears the reply time when an action goes back to to do, done or ignored
+  - ajoutés le 2026-10-14 : stamps the sending time when the planned day comes back without its time, keeps the stored sending time when a sent action is saved again on the same day, drops the sending time when a sent action goes back to to-do, moves a sent action to the new day when its day changes
 - `src/server/actions/prospecting-actions.test.ts` :
   - rejects a missing title or person
-  - rejects a date without its time zone offset
+  - rejects a date that is not a calendar day (amendé le 2026-10-14, c'était « rejects a date without its time zone offset »)
   - creates a replied action with its reply time
   - applies the status rules on update, from the stored status and date
   - changes the status alone and applies the same rules
@@ -122,7 +124,7 @@ Crée le modèle `ProspectingAction` (une action envers une personne : connexion
 
 - **Action créée directement à Fait** (rattrapage d'un envoi passé) : aucune règle de passage, la date saisie est gardée
 - **Action Ignorée qui reçoit finalement une réponse** : passer à Répondu pose la date de réponse
-- **Personne opposée** : aucune action ne peut plus lui être rattachée, `findPersonOptions()` (`07`) ne la proposant plus une fois `optedOutAt` posé ; une création forcée reste techniquement possible, à la charge de l'écran
+- **Personne opposée** : aucune action ne peut plus lui être rattachée, `findPersonOptions()` (`07`) ne la proposant plus une fois `optedOutAt` posé ; une création forcée reste techniquement possible, à la charge de l'écran (amendé le 2026-10-14, décision du propriétaire : ses actions restent lisibles mais figées, le serveur refuse création, réécriture, replanification et changement de statut par `assertProspectionAllowed`, refus `opted_out`, y compris un déplacement vers elle ; `deleteLead` les emporte seulement après les 3 ans)
 
 ## Architectural decisions
 
