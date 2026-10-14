@@ -37,6 +37,12 @@ dev-login FILE:
     # react-server : auth.ts importe server-only, qui lève hors d'un Server Component et se résout en module vide sous cette condition
     pnpm exec tsx --conditions=react-server scripts/dev-login.ts {{ FILE }}
 
+# Reprise unique du CRM Notion dans la DB de dev : simulation par défaut, --write pour écrire
+[group('db')]
+reprise-notion FILE *FLAGS:
+    # Pas de condition react-server (dev-login) : @/lib/crm/weekly-reviews importe lucide-react, qui y lève. Le tsconfig du script résout server-only vers le mock vide du projet
+    pnpm exec tsx --tsconfig scripts/reprise-notion/tsconfig.tsx.json scripts/reprise-notion/index.ts "{{ FILE }}" {{ FLAGS }}
+
 # ── Quality ───────────────────────────────────────────────────────────────────
 
 # Build de production Next.js
@@ -72,10 +78,10 @@ audit:
 [group('quality')]
 test: test-unit test-integration
 
-# Tests unitaires (Vitest)
+# Tests unitaires (Vitest) : composants et lib en jsdom, code serveur en Node
 [group('quality')]
 test-unit:
-    pnpm vitest run --project unit
+    pnpm vitest run --project unit --project server
 
 # Tests d'intégration (DB de test via .env.test s'il existe)
 [group('quality')]

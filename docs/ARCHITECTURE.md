@@ -1,10 +1,10 @@
 ---
 title: "ARCHITECTURE — Thibaud Geisler Portfolio"
 description: "Documentation de l'architecture du portfolio personnel thibaud-geisler.com : vitrine professionnelle, hub de démos et outils internes freelance."
-date: "2026-09-04"
+date: "2026-10-14"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
-technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Better Auth", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
+technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "sharp", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
 ---
 
 # 🧭 Contexte Projet
@@ -61,7 +61,7 @@ pnpm
 |-----|--------|------|---------|
 | Portfolio App | `/` | Ce dépôt : site public, espace admin, tous les fronts, auth, CRUD | TypeScript |
 
-**Dépôts voisins** (post-MVP, hors de celui-ci, cf. [ADR-015](adrs/015-decoupage-services.md)) : `ai-kit` (socle IA partagé), `agent-os` (exécution de `claude -p` : cycle de dev et jobs de l'espace admin), `portfolio-chatbot` (RAG public), `rag-documents` (documents personnels, base isolée). `ai-kit` est un **package Python** installé par les trois autres, pas un service. Les trois services sont joints en HTTP sur le réseau Docker interne, jamais exposés ([ADR-019](adrs/019-communication-inter-services.md)).
+**Dépôts voisins** (post-MVP, hors de celui-ci, cf. [ADR-015](adrs/015-decoupage-services.md)) : `ai-kit` (socle IA partagé), `agent-os` (exécution de Claude Code sur l'abonnement, lancée par le propriétaire : jobs, assistant interne, cycle de dev, cf. [ADR-026](adrs/026-execution-claude-code-abonnement.md)), `portfolio-chatbot` (RAG public), `rag-documents` (documents personnels, base isolée). `ai-kit` est un **package Python** installé par les trois autres, pas un service. Les trois services sont joints en HTTP sur le réseau Docker interne, jamais exposés ([ADR-019](adrs/019-communication-inter-services.md)).
 
 ## Composants Principaux (Haut Niveau)
 
@@ -181,6 +181,8 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
 | **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin (tags par catégorie, projets, tags d'un projet) garde une suite continue qui commence à 1 : une position occupée décale les suivants, une suppression renumérote, un glisser-déposer donne au déplacé la place de la cible. Calcul pur dans `src/lib/reorder.ts`, réécriture de la suite entière dans une transaction à chaque mutation |
+| **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison). `formStateHandlers` fournit les états de retour du formulaire. Un `P2025` (ligne introuvable) ne vaut « déjà supprimée » que si `rowExists` confirme l'absence de la ligne : il vient aussi d'une fiche voisine ou d'un rattachement disparu |
+| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) appelle `revalidatePath(..., "layout")` sur les racines des listes qui l'affichent : actions de prospection, leads, contacts, opportunités, entretiens, entreprises |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -195,7 +197,7 @@ Next.js (App Router), TypeScript strict
 
 ### Styling & UI
 
-- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md))
+- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md)). Le registry ReUI complète l'espace admin avec le kanban et l'agenda mensuel, copiés sous `src/components/reui/`
 - **Dark/Light mode** : CSS variables + store maison `src/lib/theme.ts` (singleton `useSyncExternalStore`, sans provider : survit à React 19 Activity, cf. rule `theming/theme-store.md`)
 - **i18n** : FR/EN, cf. [ADR-010](adrs/010-i18n.md)
 
@@ -212,50 +214,54 @@ Routing file-based via Next.js App Router, pas de librairie de navigation extern
 ```
 src/
 ├── app/                          # App Router
-│   ├── [locale]/                 # Segment dynamique next-intl (FR/EN), obligatoire pour routing localisé
-│   │   ├── (public)/             # Route group pages publiques
-│   │   │   ├── page.tsx          # Accueil
-│   │   │   ├── services/
-│   │   │   ├── projets/
-│   │   │   │   └── [slug]/       # Case study
-│   │   │   ├── a-propos/
-│   │   │   ├── contact/
-│   │   │   ├── mentions-legales/
-│   │   │   ├── confidentialite/
-│   │   │   └── opengraph-image.tsx   # Image OG par page (idem sur projets/[slug]/)
-│   │   ├── layout.tsx            # Root layout (<html>/<body>) : next-intl impose sa place sous [locale]
-│   │   ├── error.tsx
-│   │   ├── loading.tsx
-│   │   └── not-found.tsx
-│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), avec son propre
-│   │                             # root layout (second <html> du dépôt) ; login/ hors garde, (protected)/ gardé
-│   ├── api/                      # API routes (hors [locale]) : assets, auth, health
-│   ├── sitemap.ts                # SEO : sitemap, robots, llms.txt
-│   ├── robots.ts
-│   ├── llms.txt/
-│   ├── global-error.tsx          # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
-│   ├── global-not-found.tsx
+│   ├── [locale]/                 # Site public FR/EN. Root layout (<html>/<body>) ici : next-intl impose sa place
+│   │   │                         # sous [locale] ; error, loading, not-found
+│   │   └── (public)/             # Accueil, services, projets/[slug] (case study), a-propos, contact,
+│   │                             # mentions-legales, confidentialite ; un opengraph-image.tsx par page
+│   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), second root layout
+│   │                             # du dépôt ; login/ hors garde, (protected)/ gardé, une route par entité
+│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health ; ceux de l'admin vivent
+│   │                             # sous admin/(protected)/api/ (assets gardés, test Sentry)
+│   ├── sitemap.ts, robots.ts, llms.txt/          # SEO
+│   ├── global-error.tsx, global-not-found.tsx    # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
 │   └── providers.tsx             # Providers client (c15t Consent Manager, Toaster sonner)
 ├── components/
-│   ├── ui/                       # Composants UI primitifs (shadcn)
-│   ├── magicui/                  # Effets visuels Magic UI
-│   ├── aceternity/               # Effets visuels Aceternity UI
-│   ├── cookies/                  # Composants liés au consentement c15t
-│   ├── markdown/                 # Rendu des contenus légaux en markdown
-│   ├── seo/                      # JSON-LD
-│   ├── layout/                   # Navbar, footer, switchers
-│   └── features/                 # Composants métier par domaine
-├── config/                       # Données de config statiques (nav-items, social-links, expertise)
-├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
-├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content, types)
-├── lib/                          # Utilitaires, schemas Zod, logger (Pino), client R2, legal/ (chargement markdown), seo/ (OG, metadata), auth.ts + auth-client.ts (Better Auth serveur/client), admin-whitelist.ts (whitelist email), admin-routes.ts (chemins admin), get-current-user.ts (garde de session)
-├── server/                       # Server Actions + queries Prisma + config serveur
-│   ├── actions/
-│   ├── config/
-│   └── queries/
+│   ├── ui/                       # Primitives shadcn
+│   ├── magicui/, aceternity/     # Effets visuels
+│   ├── reui/                     # Kanban et agenda mensuel (ReUI)
+│   ├── layout/                   # public/ (navbar, footer), admin/ (barre latérale, en-tête, coque de page),
+│   │                             # partagés à la racine (logo, thème)
+│   ├── features/                 # Composants métier
+│   │   ├── public/               # Un dossier par page du site
+│   │   └── admin/                # Un dossier par entité, nommé comme son module de lib/ et server/ : sa table,
+│   │                             # sa vue détail (<entité>-detail.tsx), ses largeurs de colonnes
+│   │                             # (<entité>-table-widths.ts), ses formulaires et ses composants à usage unique.
+│   │                             # Communs rangés par rôle, aucun à la racine : display/, form/, table/, detail/
+│   └── cookies/, markdown/, seo/ # Consentement c15t, rendu des contenus légaux, JSON-LD
+├── config/                       # Données statiques : navigations publique et admin, réseaux, expertise
+├── hooks/                        # Hooks client génériques (formulaires admin, mobile, locale, erreurs) ; un hook
+│                                 # propre à une feature vit dans son dossier
+├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content)
+├── lib/
+│   ├── crm/                      # Métier CRM : libellés, vues, rangs, calendriers, statuts déduits, par entité
+│   ├── admin/                    # Outillage d'écran admin : routes, liens de vue détail, types des facettes et des
+│   │                             # fiches liées, largeurs communes, recherche, pagination
+│   ├── schemas/                  # Schémas Zod partagés client et serveur
+│   ├── seo/, legal/, cookies/    # OG et metadata, chargement du markdown légal, liens légaux c15t
+│   └── *.ts                      # Infra (Better Auth, garde de session, whitelist email, Prisma, R2, Pino, mailer),
+│                                 # utilitaires, portfolio (projets, tags, assets), conditions de mission
+│                                 # (contrat, mode de travail) communes aux projets et aux opportunités
+├── server/
+│   ├── actions/, queries/        # Server Actions et lectures Prisma, un module par domaine (entité ou service) ;
+│   │                             # état initial et types du client dans <module>.types.ts, helpers partagés
+│   │                             # non exposés dans actions/_support/
+│   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
+│   └── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
-├── types/                        # Types TypeScript partagés
+├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
+├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)
+├── instrumentation-client.ts     # Init Sentry côté navigateur
 └── proxy.ts                      # Routing i18n, sauf /admin : redirection vers /admin/login sans cookie de session.
                                   # Les security headers sont dans next.config.ts
 ```
@@ -277,7 +283,9 @@ Next.js (App Router, Server Actions + API Routes). Caching opt-in granulaire (co
 
 ### Structure du Code
 
-Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier est simple (CRUD sur `Project` et entités liées, plus métadonnées légales statiques), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation `actions/` + `queries/` + `config/` + `types/` fournit le découplage utile sans overhead.
+Monolithe modulaire : logique serveur dans `src/server/` (actions et queries séparés). Pas de DDD ni Clean Architecture : le domaine métier reste surtout du CRUD (portfolio : projets et entités liées ; CRM freelance : entreprises, personnes aux rôles lead et contact, actions de prospection, opportunités, entretiens, signaux, revues hebdo), avec quelques règles portées par `lib/crm/` (statuts déduits, RGPD), l'équipe est solo et les règles métier ne changent pas indépendamment de l'infrastructure. La séparation par rôle, `actions/` (mutations) et `queries/` (lectures), plus deux services (`assets/`, `company-logo/`), fournit le découplage utile sans overhead, et c'est elle que ciblent les rules.
+
+Conventions de rangement : un composant en PascalCase, un module d'aide et un hook en kebab-case (`use-<nom>.ts`) ; un fichier qui n'a qu'un importeur vit dans le dossier de celui-ci ; tests colocalisés à plat (`*.test.ts`, `*.integration.test.ts`). Les specs de `docs/superpowers/` citent les chemins en vigueur à leur date.
 
 Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`, hors `src/`, embarqués au build via `outputFileTracingIncludes`), les entités légales (éditeur, sous-traitants) restent en BDD.
 
@@ -295,6 +303,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### Services Externes
 
 - **nodemailer** : envoi SMTP via IONOS (formulaire contact)
+- **Fetch sortant vers une URL saisie par l'admin** : le logo d'une entreprise se lit à l'adresse du champ site web, soit son site, soit la capture Wayback Machine que l'admin y a collée quand le site a disparu, puis aux icônes que cette page déclare ([ADR-023](adrs/023-source-logos-entreprise.md)). Le fetch passe par `src/server/company-logo/safe-fetch.ts` et `address-guard.ts` : adresses privées, loopback et métadonnées du VPS refusées, redirections et taille de réponse bornées, délai plafonné
 - **API LLM** (post-MVP) : mode d'accès tranché par [ADR-016](adrs/016-acces-llm.md), choix du modèle par [ADR-012](adrs/012-api-llm-chatbot-rag.md). Aucun appel direct depuis ce dépôt : les services IA voisins portent ces appels
 - **Indy API** (post-MVP, à réévaluer) : la comptabilité étant tenue en interne, cette intégration ne garde de sens que pour les déclarations et l'export comptable
 - **LinkedIn API** (post-MVP, à étudier) : publication assistée et prospection, sous réserve des limites de l'API officielle
@@ -305,14 +314,14 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte `Company`, premier modèle du domaine CRM, `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
 Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 
 - **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
-- **Domaine CRM** (schema `freelance`) : `Company`, lue par la vitrine via `ClientMeta`
+- **Domaine CRM** (schema `freelance`) : `Company` (lue par la vitrine via `ClientMeta`), `Person` dont `Lead` et `Contact` sont deux rôles (une personne porte l'un, l'autre ou les deux), `Opportunity`, `Interview` (correspondants rattachés à des `Person` par la table implicite `_InterviewCorrespondents`), `Signal`, `WeeklyReview`, `ProspectingAction`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
 - **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
 
@@ -341,7 +350,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
 
 ### Files / Assets Storage
 
@@ -352,15 +361,21 @@ Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)). Assets servis par de
 | `portfolio-assets` (vitrine, servi sans authentification) | `projets/{client,personal}/<slug-projet>/` | Covers, captures, vidéos du projet, sous son propre slug |
 | `portfolio-assets` | `documents/cv/` | CV PDF par locale |
 | `portfolio-assets` | `branding/` | Logo, portrait |
-| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
+| `portfolio-admin` (back-office, servi authentifié) | `freelance/crm/entreprises/<slug>/` | Logo d'entreprise, lu sur le site de l'entreprise ([ADR-023](adrs/023-source-logos-entreprise.md)), seule clé du bucket que `/api/assets` sert aussi sans session, pour la page publique des projets |
+
+Les deux buckets se partagent sur l'accès en lecture, pas sur l'auteur, l'espace admin écrivant dans les deux : `portfolio-assets` porte ce qu'une route publique sert, `portfolio-admin` ce qui n'est lu qu'authentifié. Le partage reprend celui des schémas de la base ([ADR-018](adrs/018-cloisonnement-donnees.md)) : `public` ↔ `portfolio-assets`, `freelance` ↔ `portfolio-admin/freelance/`, un sous-dossier par domaine ajouté quand le besoin arrive : une clé d'objet dit ainsi à elle seule quel schéma la référence, quel bucket la porte, quelle route la sert et quel token y accède. Le logo d'entreprise fait exception, servi sans session seulement si l'entreprise a un projet publié : celui d'un prospect du CRM reste invisible. Chaque bucket, en juridiction `eu`, a son double `-dev` et son propre token. Un cinquième, `portfolio-backups`, porte les sauvegardes de la base.
+
+Post-MVP, un bucket `documents-prives`, pendant de la base du même nom, sera détenu par le seul service `rag-documents`. Le RAG lit les documents en place (token en lecture seule, préfixes autorisés, clé, ETag et date d'indexation en base), sans dossier dédié ni copie : une copie diverge de son original, et ce qui est indexé est une décision, pas un emplacement.
 
 ### File Processing
 
-Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour le MVP.
+Optimisation images via `next/image` (built-in). Pas de pipeline dédié pour les images du site.
+
+Le logo d'une entreprise est traité côté serveur avant son stockage dans R2 (`src/server/company-logo/normalize-icon.ts`) : `sharp`, avec `decode-ico` pour extraire la plus grande image d'un ICO que `sharp` ne lit pas. Formats acceptés : PNG, JPEG, WebP, GIF et SVG. Sortie en PNG, ramenée à 256 px de côté au plus sans agrandissement. Une icône raster dont le plus grand côté est sous 32 px est rejetée, un SVG est rendu à 256 px avant ce contrôle.
 
 ### Message Queue / Event Streaming
 
-Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne.
+Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne. Seule exception, le flux des sessions Claude Code d'`agent-os` (état des runs, texte de l'assistant interne) remonte en Server-Sent Events sur le même réseau interne, et ce dépôt le relaie au navigateur ([ADR-026](adrs/026-execution-claude-code-abonnement.md)).
 
 ---
 
@@ -516,7 +531,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
-- **Données personnelles de tiers** (post-MVP) : le domaine freelance introduira des contacts, prospects et entreprises nominatifs dans le schema `freelance`. Leur reprise impose au préalable une entrée dédiée au [registre des traitements](registre-traitements.md) et une mise à jour de la politique de confidentialité.
+- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` (`assertNotOptedOut`, `assertOptOutOver`, `assertProspectionAllowed`, sous verrous `FOR UPDATE` / `FOR SHARE`, et `deletePersonIfRoleless`) et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. La procédure de traitement des demandes est dans [PRODUCTION.md](PRODUCTION.md) § Demandes RGPD.
 
 ### Conformité Cookies / RGPD
 
@@ -604,13 +619,17 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-020 : Le portfolio comme Backend For Frontend](adrs/020-portfolio-bff.md)
 - [ADR-021 : Routing de l'espace admin, hors du segment de locale](adrs/021-routing-espace-admin.md)
 - [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
+- [ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise](adrs/023-source-logos-entreprise.md)
+- [ADR-024 : Éditeur markdown des champs texte longs de l'espace admin](adrs/024-editeur-markdown-admin.md)
+- [ADR-026 : Exécution de Claude Code sur l'abonnement](adrs/026-execution-claude-code-abonnement.md)
 
-> Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
+> Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. L'ADR-026 engage aussi `agent-os` et `ai-kit`. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
 ### À décider
 
 - [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
+- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), orientation provisoire vers un serveur MCP par domaine, authentifié par clé d'API
 
 ### Dépréciées
 
@@ -626,14 +645,15 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 - **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
 - **CRUD contenu** : projets, tags, entreprises, assets
-- **Domaine freelance** : prospects, contacts, facturation, publications. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Interfaces de pilotage** : commande de la rédaction assistée, suivi du cycle de développement, recherche documentaire. L'écran est ici, l'exécution ailleurs
+- **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
+- **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
+- **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 
 **Dans les dépôts voisins**
 
 - **Chatbot RAG public** : front ici, RAG et appel au modèle dans `portfolio-chatbot`. Principal poste facturé au token ([ADR-016](adrs/016-acces-llm.md))
-- **Rédaction assistée et cycle de développement** : exécutés par `agent-os` via Claude Code, donc sur l'abonnement
+- **Agents internes, rédaction assistée et cycle de développement** : exécutés par `agent-os`, qui pilote Claude Code par l'Agent SDK sur l'abonnement, uniquement sur action du propriétaire ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Documents personnels** : `rag-documents`, base isolée, jamais exposée ([ADR-018](adrs/018-cloisonnement-donnees.md))
 
 **Hors application**
@@ -642,6 +662,8 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - **Intégrations** : LinkedIn (contenu, prospection) et Indy (déclarations), à étudier selon le besoin réel
 
 > **Blog retiré du périmètre** (août 2026) : l'effort de rédaction régulière ne se justifie pas, le SEO repose sur les case studies. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
+
+> **CRM livré** (2026-10-14) : le domaine CRM de l'epic `domaine-freelance-crm` (modèles du schema `freelance`, écrans admin, garde RGPD) est en place, cf. § Base de Données Principale.
 
 ---
 

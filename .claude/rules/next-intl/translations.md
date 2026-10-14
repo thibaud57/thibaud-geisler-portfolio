@@ -1,14 +1,13 @@
 ---
 paths:
-  - "src/app/[locale]/**/*.tsx"
-  - "src/components/**/*.tsx"
+  - "src/{app,components}/**/*.tsx"
   - "messages/**/*.json"
 ---
 
 # next-intl — Traductions, ICU & formatage
 
 ## À faire
-- Utiliser **`useTranslations(namespace)`** dans les composants sync (Server ou Client), **`getTranslations({ locale, namespace })`** en async côté serveur (Server Components async, Server Actions, Route Handlers, `generateMetadata`)
+- Utiliser **`useTranslations(namespace)`** dans les composants sync (Server ou Client), **`getTranslations(namespace)`** en async côté serveur : la locale vient des root params. Passer **`{ locale, namespace }`** seulement là où les root params manquent (Server Actions, Route Handlers, `global-not-found.tsx`) ou pour forcer une autre locale
 - Stocker les messages dans `messages/fr.json` et `messages/en.json` avec **namespaces imbriqués** (HomePage, Nav, ContactForm) : le caractère `.` accède au nesting (`t('form.placeholder')`)
 - **Un seul `useTranslations` / `getTranslations` par composant si tous les keys vivent sous le même parent**. Accéder aux sous-namespaces via dot notation (`t(\`contractStatus.${value}\`)`, `t('stats.years.label')`) plutôt que d'instancier N hooks (`useTranslations('Foo.bar')` + `useTranslations('Foo.baz')` est verbeux et redondant). N hooks autorisés uniquement si les namespaces top-level diffèrent (ex: `'ErrorPage'` + `'Common'`)
 - Pour les messages ICU avec pluriels : utiliser les tags `zero`, `one`, `two`, `few`, `many`, `other` (seul `other` obligatoire), `#` insère la valeur numérique
@@ -23,19 +22,21 @@ paths:
 - Multiplier `useTranslations`/`getTranslations` pour des sous-namespaces du même parent (`'Foo.bar'` + `'Foo.baz'` + `'Foo.qux'`) : 1 hook sur `'Foo'` + dot notation suffit, plus DRY et moins de subscriptions React
 
 ## Gotchas
-- **L'espace admin est monolingue français** (ADR-021) : ses libellés d'interface (`src/app/admin/**`, `src/components/features/admin/**`, `src/components/layout/Admin*`) restent en dur, hors next-intl. Seul le contenu bilingue qu'il édite (`nameFr`/`nameEn`…) relève des colonnes jumelées
+- **L'espace admin est monolingue français** (ADR-021) : ses libellés d'interface (`src/app/admin/**`, `src/components/features/admin/**`, `src/components/layout/admin/**`) restent en dur, hors next-intl. Seul le contenu bilingue qu'il édite (`nameFr`/`nameEn`…) relève des colonnes jumelées
 - Depuis next-intl 4.0, **`NextIntlClientProvider` obligatoire** pour tous les Client Components qui utilisent `useTranslations`, sinon erreur de contexte (avant 4.0 : optionnel)
 - `onError` et `getMessageFallback` ne sont **pas hérités** par `NextIntlClientProvider` : les définir explicitement dans un wrapper Client si nécessaire
 - Pour la config initiale (`defineRouting`, `setRequestLocale`, `createNavigation`, layout `[locale]`, types `AppConfig`) : voir `next-intl/setup.md`
 
 ## Exemples
 ```typescript
-// ✅ Server Component async → getTranslations (depuis 'next-intl/server')
-export default async function Page({ params }) {
-  const { locale } = await params
-  const t = await getTranslations({ locale, namespace: 'Namespace' })
+// ✅ Server Component async → getTranslations (depuis 'next-intl/server'), locale des root params
+export default async function Page() {
+  const t = await getTranslations('Namespace')
   return <h1>{t('title')}</h1>
 }
+
+// ✅ Server Action : pas de root params, locale passée explicitement
+const t = await getTranslations({ locale, namespace: 'Namespace' })
 
 // ❌ useTranslations dans un Server Component async (utiliser getTranslations)
 const t = useTranslations('Namespace')

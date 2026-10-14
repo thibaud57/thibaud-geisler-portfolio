@@ -2,6 +2,8 @@
 paths:
   - "src/components/**/*.tsx"
   - "src/hooks/use-form-action-submit.ts"
+  - "src/lib/admin/table-widths.ts"
+  - "src/components/features/admin/**/*-table-widths.ts"
 ---
 
 # shadcn/ui — Composants, CVA & Server/Client
@@ -9,69 +11,38 @@ paths:
 ## À faire
 - **Skill shadcn auto-chargé** (`.claude/skills/shadcn/`) : couvre CLI (`search`, `view`, `add`), critical rules de composition, patterns officiels. Toujours l'utiliser pour discovery/audit/install avant d'écrire un composant custom
 - **Mapping composants** : voir [docs/DESIGN.md § Mapping Composants](../../../docs/DESIGN.md) pour le détail par surface et les variants configurés
-- Utiliser **`cn()`** (fourni par shadcn dans `src/lib/utils.ts`, wrapper `clsx` + `tailwind-merge`) pour composer/override les classes Tailwind dans les composants
-- **CVA pour variants typés** : utiliser `class-variance-authority` pour définir les variants (`size`, `variant`) avec types extraits via `VariantProps<typeof xxxVariants>` et `defaultVariants` pour les valeurs par défaut
-- La prop `className` peut **toujours surcharger** les classes du variant via `cn()` (résout les conflits Tailwind via `tailwind-merge`)
-- **Composants primitifs Server-friendly** : `Button`, `Card`, `Input`, `Label`, `Badge` fonctionnent en Server Components (pas de hook interne)
-- **Composants interactifs Client-only** : `Dialog`, `Sheet`, `Popover`, `Select`, `DropdownMenu`, `Tooltip` utilisent des hooks Radix → marqués `'use client'` automatiquement par shadcn
+- **CVA pour variants typés** : définir les variants (`size`, `variant`) avec `class-variance-authority`, types extraits via `VariantProps<typeof xxxVariants>`, `defaultVariants` pour les valeurs par défaut. La prop `className` surcharge toujours le variant via `cn()`
+- **Composants primitifs Server-friendly** : `Button`, `Card`, `Input`, `Badge` n'ont aucun hook et se rendent en Server Component
+- **Composants Client-only** : `Label` (il enveloppe une primitive Radix), `Dialog`, `Sheet`, `Popover`, `Select`, `DropdownMenu`, `Tooltip` sont marqués `'use client'` par shadcn
 - **Isoler les îlots clients le plus bas possible** : un formulaire interactif = `'use client'`, mais sa page parente reste Server Component
-- **États hover/focus/disabled intégrés** (DESIGN.md) : ne pas redéfinir manuellement sur les composants shadcn, déjà accessibles et stylés
-- **Bordures plutôt qu'ombres** (DESIGN.md) : `Card`, `Dialog`, `Popover` utilisent `--border` par défaut, pas `shadow-*`. Privilégier la hiérarchie via fond (`--card` vs `--background`) et bordures
-- **Icônes** (DESIGN.md) : utiliser **Lucide React** (inclus avec shadcn) pour toutes les icônes d'interface (flèches, menu, settings, mail) ; **Simple Icons** via `@icons-pack/react-simple-icons` pour les logos marques et technologies (Python, React, Docker, LinkedIn). Style stroke uniquement, tailles cohérentes : 16px inline, 20px UI standard, 24px standalone
-- **Imports d'icônes : named uniquement, jamais `import *`** : `import { SiGithub } from '@icons-pack/react-simple-icons'` et `import { Mail } from 'lucide-react'`. `import *` charge les 5700+ icônes entières dans le bundle (5,7 Mo gzip) même si une seule est utilisée. Aucun bundler ne tree-shake un wildcard. Pour un resolver dynamique (`resolveTagIcon`), maintenir un registre statique explicite dans `src/lib/icons.tsx` avec les named imports des icônes réellement utilisées
+- **Options d'une énumération dans un `Select`** : `EnumSelectItems` (`src/components/features/admin/form/`), avec `values`, `labels` et la table `*_ICONS` quand l'énumération en a une (DESIGN.md § Icônes). Jamais une boucle de `SelectItem` écrite à la main : seule la sentinelle « Non renseigné » reste un `SelectItem` posé directement
+- **Disposition d'une vue détail (`DetailDialog`)** : `fullWidth: true` seulement sur un texte long ou une liste de fiches rattachées, jamais sur des badges, un lien ou une date ; la grille passe seule à deux colonnes (`TitledBlock`) et un dernier champ impair reste seul à gauche. Blocs dans l'ordre champs courts, Notes, Détails, fiches rattachées. En-tête par données seules (`image` pour un logo ou une couverture, `title`, `subtitle`, `badges` construits par `headerBadge`), jamais de JSX d'écran (DESIGN.md § Arbitrages)
+- **Largeur d'une colonne de liste (`DataTable`, `<entité>-table-widths.ts` à côté de sa table, constantes communes dans `src/lib/admin/table-widths.ts`)** : un multiple de 8, au plus juste entre l'en-tête (icône de tri comprise) et le contenu des lignes à 95 %, mesurés sur les vraies données de la vue complète. Une colonne de badges prend son badge le plus large, qui ne se tronque ni ne passe à la ligne ; un texte long garde un plafond et se tronque. Un en-tête de plusieurs mots plus long que son contenu passe sur deux lignes (`wrapHeader`) plutôt que d'élargir la colonne
+- **États hover/focus/disabled intégrés** (DESIGN.md) : ne jamais les redéfinir par `hover:`/`focus:`/`disabled:` sur un composant shadcn, ils sont déjà accessibles et stylés
+- **Bordures plutôt qu'ombres** (DESIGN.md) : poser `--border` sur `Card` et `Dialog`, jamais `shadow-*` ; hiérarchiser par le fond (`--card` contre `--background`) et les bordures. Garder l'ombre du registry sur les seules surfaces flottantes (`Popover`, menus, liste d'un `Select`, `Sheet`)
+- **Icônes** (DESIGN.md) : **Lucide React** pour toutes les icônes d'interface, **Simple Icons** via `@icons-pack/react-simple-icons` pour les logos marques et technologies. Style stroke, tailles 16px inline, 20px UI standard, 24px standalone
+- **Imports d'icônes nommés uniquement, jamais `import *`** : `import *` charge les 5700+ icônes (5,7 Mo gzip) même pour une seule, aucun bundler ne tree-shake un wildcard. Un resolver dynamique (`resolveTagIcon`) passe par le registre statique de `src/lib/icons.tsx`
+- Composer les classes et les couleurs selon `tailwind/conventions.md` (`cn()`, tokens sémantiques, pas de `@apply` réutilisable)
 
 ## À éviter
-- Inliner des couleurs Tailwind brutes (`bg-green-600`) ou hex en dur (`text-[#5E7A5D]`) : utiliser les tokens sémantiques (`bg-primary`, `text-foreground`)
-- Utiliser **`@apply`** pour refactorer un ensemble de classes : extraire en composants React
 - **Recréer un composant** équivalent à un shadcn existant (Button, Input, Card) au lieu d'utiliser celui de la lib
-- **Redéfinir les états** `hover:`/`focus:`/`disabled:` sur les composants shadcn : ils sont déjà intégrés et accessibles
 
 ## Gotchas
-- **`Select` dans un `<form action>` perd son choix à chaque envoi** : React réinitialise le formulaire après l'action, et Radix Select répond à l'événement `reset` en rappelant `onValueChange` avec sa valeur du premier rendu (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Le contournement (`onSubmit` + `startTransition(() => formAction(formData))`, sans reset) vit dans le hook `useFormActionSubmit` : l'appeler plutôt que le réécrire, tout formulaire admin portant un `Select` passe par lui
+- **Un contrôle de formulaire Radix dans un `<form action>` perd son choix à chaque envoi** (`Select`, `RadioGroup`, `Switch`, `Slider`) : React réinitialise le formulaire après l'action, et ces contrôles écoutent l'événement `reset` pour revenir à leur valeur du premier rendu par leur callback de changement (`onValueChange`, `onCheckedChange` pour `Switch`). Comportement voulu par Radix depuis `radix-ui` 1.6.2, pas un bug à attendre de corriger (constaté sur `@radix-ui/react-select` 2.3, le 2026-09-17). Le contournement (`onSubmit` + `startTransition(() => formAction(formData))`, sans reset) vit dans le hook `useFormActionSubmit` : l'appeler plutôt que le réécrire, tout formulaire admin portant un `Select` passe par lui
 - Pour la **convention de structure des sous-dossiers UI** (séparation `ui/`, `magicui/`, `aceternity/`) : voir `DESIGN.md` § Stack UI > Convention de structure
 
 ## Exemples
 ```typescript
 // ✅ CVA variants typés + cn() pour override par className
-const buttonVariants = cva('inline-flex items-center justify-center', {
-  variants: {
-    variant: {
-      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-      outline: 'border border-input bg-background',
-    },
-    size: { default: 'h-10 px-4', sm: 'h-9 px-3', lg: 'h-11 px-8' },
-  },
-  defaultVariants: { variant: 'default', size: 'default' },
+const badgeVariants = cva('inline-flex items-center rounded-md', {
+  variants: { variant: { default: 'bg-primary text-primary-foreground', outline: 'border' } },
+  defaultVariants: { variant: 'default' },
 })
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>
-
-export function Button({ className, variant, size, ...props }: ButtonProps) {
-  return <button className={cn(buttonVariants({ variant, size, className }))} {...props} />
-}
-```
-
-```typescript
-// ✅ Page Server Component qui consomme des composants shadcn primitifs
-export default function ContactPage() {
-  return (
-    <main>
-      <h1>Contact</h1>
-      <ContactForm /> {/* îlot client en bas de l'arbre */}
-    </main>
-  )
+function Badge({ className, variant, ...props }: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants>) {
+  return <span className={cn(badgeVariants({ variant, className }))} {...props} />
 }
 
-// ✅ Composant Client uniquement pour le formulaire interactif
-'use client'
-export function ContactForm() {
-  return (
-    <form>
-      <Input name="email" type="email" />
-      <Textarea name="message" />
-      <Button type="submit">Envoyer</Button>
-    </form>
-  )
-}
+// ❌ État redéfini sur un composant shadcn déjà stylé
+<Button className="hover:bg-green-700 focus:ring-2">Envoyer</Button>
 ```

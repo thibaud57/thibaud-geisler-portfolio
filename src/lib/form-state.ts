@@ -4,3 +4,5 @@ export interface FormActionState<TInput, TMessage> {
   message: TMessage
   values?: Partial<Record<keyof TInput, string | string[]>>
 }
+
+export const INITIAL_FORM_STATE = { ok: null, errors: {}, message: null } as const

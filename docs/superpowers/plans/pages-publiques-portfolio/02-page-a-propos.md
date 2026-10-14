@@ -167,7 +167,6 @@ export function getYearsOfExperience(startYear: number = START_YEAR): number {
 ```
 
 Notes :
-- `START_YEAR = 2020` acte la décision du brainstorming (alternance Soylent comptée comme XP).
 - Helper `getYearsOfExperience` pur, testable trivialement mais hors scope no-lib-test.
 
 - [ ] **Step 3.2 : Typecheck**
@@ -236,7 +235,7 @@ export async function AboutHero({ locale, className }: Props) {
 ```
 
 Notes :
-- `preload` (renommé depuis `priority` en Next 16) = image LCP above-the-fold, voir `.claude/rules/nextjs/images-fonts.md`.
+- `preload` (renommé depuis `priority` en Next 16) = image LCP above-the-fold, voir `.claude/rules/nextjs/images.md`.
 - `buildAssetUrl('branding/portrait.webp')` génère `/api/assets/branding/portrait.webp`.
 - Sur mobile (`order-1`/`order-2`) : portrait d'abord, headline dessous. Sur desktop : headline à gauche, portrait à droite (plus naturel en lecture FR).
 
@@ -736,7 +735,7 @@ Attendu : build Next.js OK, route `/[locale]/a-propos` listée (`○ Static` ou 
 3. Vérifier :
    - Hero : portrait visible, H1 en `font-display`, tagline en `text-muted-foreground`, bouton CV pleine largeur.
    - Bio : 3 paragraphes affichés.
-   - Stats : 3 compteurs animés (`NumberTicker`). Valeurs cohérentes : années XP = 6 (en 2026), missions ≥ 3 (4 projets clients CLIENT+endedAt≠null dans le seed : Webapp Gestion Sinistres, SaaS Paie, ERP Odoo, + éventuels autres), clients ≥ 3 (Acme, Umbrella, Soylent). Le chiffre exact dépend du seed actuel.
+   - Stats : 3 compteurs animés (`NumberTicker`). Valeurs cohérentes : années XP = 6 (en 2026), missions ≥ 3 (projets CLIENT avec endedAt≠null dans le seed), clients ≥ 3 (Acme, Umbrella, Soylent). Le chiffre exact dépend du seed actuel.
    - Stack : sections dans l'ordre `AI → EXPERTISE → LANGUAGE → FRAMEWORK → DATABASE → INFRA`, badges avec icônes Simple Icons/Lucide lorsque `tag.icon` est défini.
 4. Vérifier le `<head>` DevTools : `<title>` = `À propos | ...`, `<meta name="description">` = `Metadata.aboutDescription`, `<meta property="og:locale" content="fr_FR">`, `<link rel="alternate" hreflang="fr|en|x-default" ...>`.
 5. Redimensionner : mobile (portrait au-dessus, bio single col, stats single col), desktop `lg:` (portrait à droite, stats 3 cols).

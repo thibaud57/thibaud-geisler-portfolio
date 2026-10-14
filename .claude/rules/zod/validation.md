@@ -25,7 +25,7 @@ paths:
 ## Gotchas
 - **`result.error.flatten()` est déprécié** au profit de la fonction libre `z.flattenError(error)` : la méthode porte `@deprecated` (constaté sur Zod 4.5.4 le 2026-09-17, `node_modules/zod/v4/classic/errors.d.ts`) et `@typescript-eslint/no-deprecated` fait échouer le lint du projet
 - `Object.fromEntries(formData)` **perd les champs multi-valeurs** (checkbox multi, input `name="tags[]"`) : utiliser `formData.getAll('key')` explicitement et un schéma avec `z.array()`
-- **`safeParseAsync`** obligatoire si le schéma contient un refinement ou un transform asynchrone : sinon erreur runtime "Async refinement encountered in sync mode"
+- **`safeParseAsync`** obligatoire si le schéma contient un refinement ou un transform asynchrone : sinon erreur runtime « Encountered Promise during synchronous parse. Use .parseAsync() instead. »
 - Pour **Next.js spécifiquement** : utiliser **`@t3-oss/env-nextjs`** + `createEnv` (sépare `server` / `client`, tree-shake les secrets serveur du bundle client) plutôt que `z.parse(process.env)` direct (voir `nextjs/configuration.md`)
 
 ## Exemples

@@ -76,7 +76,7 @@ Expected: les `#` des deux lignes commentées de la section SMTP (`SMTP_PORT` et
 
 - [ ] **Step 2.1: Créer le fichier avec le contenu suivant**
 
-Chemin exact : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/lib/mailer.ts`
+Chemin exact : `src/lib/mailer.ts`
 
 ```typescript
 import nodemailer, { type Transporter } from 'nodemailer'
@@ -166,7 +166,7 @@ SMTP_PORT=587
 SMTP_USER=contact@thibaud-geisler.com
 SMTP_PASS=<mot_de_passe_smtp>
 SMTP_FROM=contact@thibaud-geisler.com
-MAIL_TO=tibo57350@gmail.com
+MAIL_TO=destinataire@example.com
 ```
 
 - [ ] **Step 4.2: Vérifier l'import sans erreur Zod**
@@ -189,7 +189,7 @@ Expected:
 ```
 Transporter prêt : smtp.ionos.fr
 From : contact@thibaud-geisler.com
-To : tibo57350@gmail.com
+To : destinataire@example.com
 ```
 
 Si la sortie est correcte → le module fonctionne. **Supprimer** `scripts/check-mailer.ts` immédiatement après (ne PAS commit).
@@ -212,7 +212,7 @@ Restaurer `MAIL_TO` dans `.env.local`. Supprimer `scripts/check-mailer.ts` si en
 
 - [ ] **Step 5.1: Vérifier le `git status` du worktree**
 
-Run (depuis le worktree `D:/Desktop/thibaud-geisler-portfolio-specs-contact/`) : `git status`
+Run (depuis la racine du dépôt) : `git status`
 
 Expected: 2 fichiers modifiés/créés
 - `modified: .env.example`

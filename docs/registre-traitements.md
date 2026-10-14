@@ -1,14 +1,14 @@
 ---
 title: "Registre des traitements"
 description: "Registre des activités de traitement de données personnelles (RGPD art. 30)."
-date: "2026-05-19"
+date: "2026-10-11"
 keywords: ["rgpd", "registre des traitements", "données personnelles", "cnil", "conformité"]
 scope: ["docs", "legal"]
 ---
 
 # Registre des traitements
 
-> Document interne, non publié. Tenu au titre du RGPD art. 30, présenté à la CNIL sur demande lors d'un contrôle.
+> Document interne. Tenu au titre du RGPD art. 30, présenté à la CNIL sur demande lors d'un contrôle.
 
 ## Responsable de traitement
 
@@ -33,7 +33,7 @@ scope: ["docs", "legal"]
 | Transferts hors UE | Aucun |
 | Conservation | Boîte du destinataire, sans purge automatisée. Aucune copie côté site |
 | Stockage | Aucune persistance en base, données acheminées par email |
-| Sécurité | HTTPS/TLS, validation Zod, rate limiting (5 / 10 min par IP), SMTP chiffré |
+| Sécurité | HTTPS/TLS, validation des champs du formulaire côté serveur, limitation à 5 envois par adresse IP sur 10 minutes, SMTP chiffré |
 
 ## Traitement 2 : logs serveur
 
@@ -60,7 +60,7 @@ scope: ["docs", "legal"]
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | Calendly LLC |
 | Transferts hors UE | États-Unis (EU-US Data Privacy Framework) |
-| Conservation | Gérée par Calendly |
+| Conservation | Fixée par Calendly, sans durée chiffrée : tant que nécessaire au service et aux obligations légales, suppression à la demande du compte ou à sa fermeture ([Privacy Notice](https://calendly.com/legal/privacy-notice), [DPA](https://calendly.com/legal/data-processing-addendum)). Un rendez-vous et ses données se suppriment depuis le compte ([procédure](https://help.calendly.com/hc/en-us/articles/4412601189911-Deleting-personal-data-in-Calendly)) |
 | Sécurité | Widget chargé après consentement (CMP c15t), HTTPS |
 
 ## Traitement 4 : erreurs applicatives (Sentry)
@@ -70,18 +70,18 @@ scope: ["docs", "legal"]
 | Finalité | Diagnostic et correction des erreurs applicatives |
 | Base légale | Intérêt légitime (art. 6.1.f) |
 | Personnes concernées | Visiteurs du site déclenchant une erreur applicative |
-| Données | Stack trace et contexte technique de l'erreur (requête, composant). `email` et `ip_address` de `event.user` retirés avant envoi, et toute adresse email détectée dans un message d'exception (ex: rejet SMTP) est masquée. Le filtrage couvre les **deux** canaux alimentés par l'intégration Pino : les issues (`beforeSend`) et les logs (`beforeSendLog`), ce dernier masquant aussi les emails imbriqués dans l'objet `err` sérialisé (`src/lib/sentry-scrub.ts`) |
+| Données | Trace technique de l'erreur : message, pile d'appels, URL et méthode de la requête. Identité, adresse IP, cookies, en-têtes et contenu des requêtes sont exclus, et une adresse email citée dans un message d'erreur est masquée avant envoi. Sentry déduit de l'adresse IP de connexion une localisation approximative (pays, ville) sans conserver l'adresse : pour une erreur survenue dans le navigateur, c'est celle du visiteur |
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | Sentry (Functional Software, Inc.) |
 | Transferts hors UE | Aucun : organisation `tg-ws` en région européenne, ingestion `de.sentry.io` (Francfort) |
 | Conservation | 30 jours (plan Developer), géré par Sentry |
-| Sécurité | Filtrage `email` et `ip_address` avant envoi sur les deux canaux (`beforeSend` pour les issues, `beforeSendLog` pour les logs), HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
+| Sécurité | Collecte restreinte à la source par la configuration du SDK, masquage des emails avant envoi (erreurs et logs), stockage des adresses IP désactivé côté Sentry, HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
 
 ## Traitement 5 : hébergement des assets du site (Cloudflare R2)
 
 | Champ | Détail |
 |---|---|
-| Finalité | Stockage et diffusion des assets publics du site (CV, portrait, visuels de projets) via la route `/api/assets/[...path]` |
+| Finalité | Stockage et diffusion des assets publics du site (CV, portrait, visuels de projets) |
 | Base légale | Intérêt légitime (art. 6.1.f) |
 | Personnes concernées | Thibaud Geisler (CV, portrait) |
 | Données | CV PDF, photo de portrait, visuels de projets et de marque |
@@ -89,7 +89,7 @@ scope: ["docs", "legal"]
 | Sous-traitant | Cloudflare, Inc. (bucket `portfolio-assets`) |
 | Transferts hors UE | Aucun : bucket en juridiction `eu` |
 | Conservation | Durée de vie du site, fichier remplacé à chaque mise à jour |
-| Sécurité | Bucket privé, aucun domaine public configuré, accès exclusif via la route API avec token scopé, HTTPS/TLS |
+| Sécurité | Bucket privé sans adresse publique, servi par le seul site avec une clé d'accès limitée à ce bucket, HTTPS/TLS |
 
 ## Traitement 6 : authentification de l'administrateur (Better Auth)
 
@@ -98,12 +98,31 @@ scope: ["docs", "legal"]
 | Finalité | Contrôle d'accès à l'espace d'administration |
 | Base légale | Intérêt légitime (art. 6.1.f), le responsable de traitement étant aussi l'unique personne concernée |
 | Personnes concernées | Thibaud Geisler, seul compte Google autorisé par la whitelist |
-| Données | Email, nom et URL de la photo de profil renvoyés par Google (`auth.user`), plus les lignes techniques de session (dont le user-agent du navigateur) et de compte OAuth (`auth.session`, `auth.account`) |
+| Données | Email, nom et photo de profil renvoyés par Google, données techniques de session (dont le navigateur utilisé) et liaison avec le compte Google |
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | IONOS (hébergeur du VPS). Google agit en responsable de traitement indépendant pour les données du compte Google ([Controller-Controller Data Protection Terms](https://business.safety.google/controllerterms/)) |
 | Transferts hors UE | Aucun : données conservées sur le VPS IONOS |
 | Conservation | Durée de vie du compte, les sessions expirent d'elles-mêmes |
-| Sécurité | Google comme unique provider, aucun mot de passe stocké. Whitelist par email via le hook `databaseHooks.user.create.before`, tout autre compte rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour le rate limiting de Better Auth, retirée de la session avant écriture (`databaseHooks.session.create.before`), aligné sur la politique déjà appliquée au formulaire de contact (Traitement 1) |
+| Sécurité | Connexion par Google uniquement, aucun mot de passe stocké. Seul l'email autorisé peut créer un compte, tout autre est rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour limiter les tentatives, retirée avant l'écriture de la session, comme pour le formulaire de contact (Traitement 1). Détail technique : [knowledges/better-auth.md](knowledges/better-auth.md) |
+
+## Traitement 7 : relations professionnelles (prospection et réseau)
+
+| Champ | Détail |
+|---|---|
+| Finalité | Prospection commerciale des services du freelance et suivi de son réseau professionnel, depuis l'espace admin |
+| Base légale | Intérêt légitime (art. 6.1.f) : développer l'activité en proposant ses services à des professionnels, la sollicitation restant en rapport avec leur profession ([CNIL, prospection par courrier électronique](https://www.cnil.fr/fr/la-prospection-commerciale-par-courrier-electronique-sms-mms-et-automate-dappel)) |
+| Personnes concernées | Leads : prospects et auteurs de demandes entrantes. Contacts : réseau professionnel (anciens collègues, clients, partenaires). Entité légale d'un prospect ou d'un client individuel : nom et adresse de l'entreprise ; la personne physique derrière cette entité a les mêmes droits qu'un lead |
+| Données | Identité, poste, entreprise, coordonnées professionnelles (email, téléphone), profil LinkedIn, signaux d'activité professionnelle (publications, commentaires, présence en conférence, interactions directes), notes d'échange, historique des actions de prospection (message envoyé et réponse reçue) et des entretiens |
+| Sources | Profils professionnels publics (LinkedIn, site de l'entreprise), candidatures et plateformes de mission, recommandations, événements professionnels, échanges directs |
+| Destinataire | Thibaud Geisler |
+| Sous-traitants | IONOS (hébergeur du VPS et de la base), Cloudflare (bucket `portfolio-backups` des sauvegardes de la base, juridiction `eu`) |
+| Transferts hors UE | Aucun |
+| Conservation | Prospect : 3 ans à compter de la collecte ou du dernier contact émanant de lui, puis relance pour savoir s'il souhaite rester, suppression sans réponse positive ([délibération CNIL n° 2021-131 du 23 septembre 2021](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000045538574)). Personne qui s'est opposée : son identité se réduit à l'email et au profil LinkedIn, son rôle de prospect (statut, intérêt, canal, score) et sa place d'apporteur d'une opportunité restant, conservés 3 ans, durée minimale recommandée par la CNIL, pour la seule gestion de l'opposition ([CNIL, liste repoussoir](https://www.cnil.fr/fr/comment-utiliser-une-liste-repoussoir-pour-respecter-lopposition-la-prospection-commerciale), consultée le 2026-09-26). Ses signaux d'activité sont supprimés dès l'opposition, leur seule finalité étant la prospection. L'historique de ses échanges (actions de prospection) est conservé sans être réutilisé jusqu'au terme de sa durée de conservation, et supprimé dès qu'elle en demande l'effacement : l'opposition (art. 21) n'emporte pas l'effacement (art. 17), qui reste une demande distincte. Réseau : durée de la relation, suppression à la demande de la personne ; aucune durée CNIL n'existe hors prospection, choix du responsable |
+| Information des personnes | Au plus tard au premier message (art. 14.3.b), en couches : le message, signé et motivé, nomme ou rend évidente la source (profil ou publication consultés) et se termine par une invitation claire à dire non, présentée séparément du reste (art. 21.4), en langage courant ; le lien vers la [politique de confidentialité](https://thibaud-geisler.com/fr/confidentialite) figure dans la section Infos du profil LinkedIn et dans la signature email, la politique portant le détail (source, durées, droits). Personne jamais contactée : exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la politique |
+| Stockage | Base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne |
+| Sécurité | Espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS |
+| Analyse d'intérêt légitime | Tenue en interne (mise en balance des intérêts), revue à chaque nouvelle source, nouveau canal ou changement d'outil |
+| AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée à effet juridique. À réévaluer si un traitement automatisé vient à évaluer les personnes |
 
 ## Notes
 

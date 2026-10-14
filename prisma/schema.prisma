@@ -80,16 +80,249 @@ enum CompanySector {
   LOGICIELS_ENTREPRISE
   ECOMMERCE
   IA_AUTOMATISATION
-  EMARKETING
+  MARKETING_COMMUNICATION
   BANQUE
+  INDUSTRIE
+  HEALTHTECH
+  SECTEUR_PUBLIC
   AUTRE
 
   @@schema("freelance")
 }
 
+// Ce qu'est l'entreprise sur le marché, pas son état de relation : CLIENT_FINAL achète en direct, par opposition à l'ESN qui place.
+enum CompanyType {
+  CLIENT_FINAL
+  ESN_RECRUTEMENT
+  PARTENAIRE
+  MA_SOCIETE
+
+  @@schema("freelance")
+}
+
+enum RelationStatus {
+  ACTIVE
+  DORMANTE
+  ARCHIVEE
+
+  @@schema("freelance")
+}
+
+// Segmentation commerciale (marché travaillé), pas le siège légal qui reste dans Address.country.
+// Plat volontairement : un filtre cherche la valeur exacte, jamais « contenu dans », FRANCE couvre le reste du territoire.
+enum Zone {
+  GRAND_EST
+  PARIS
+  FRANCE
+  LUXEMBOURG
+  BELGIQUE
+  SUISSE
+  ALLEMAGNE
+  EUROPE
+  MONDE
+
+  @@schema("freelance")
+}
+
+enum LeadOrigin {
+  INBOUND
+  OUTBOUND
+
+  @@schema("freelance")
+}
+
+// Statuts saisis seulement : Deal et RDV planifié se déduisent (opportunité acceptée, entretien planifié à venir).
+enum LeadStatus {
+  NOUVEAU
+  SUSPECT
+  DISCUSSION
+  HORS_ICP
+  PERDU
+  STAND_BY
+
+  @@schema("freelance")
+}
+
+// Vide quand on ne sait pas, comme partout ailleurs : pas de valeur « inconnu ».
+enum LeadInterest {
+  HOT
+  WARM
+  COLD
+
+  @@schema("freelance")
+}
+
+enum LeadChannel {
+  LINKEDIN
+  SITE_WEB
+  CANDIDATURE
+  PLATEFORME
+  REFERENCE
+  EVENEMENT
+  COLD_EMAIL
+  COLD_CALL
+  AUTRE
+
+  @@schema("freelance")
+}
+
+enum ContactType {
+  COLLEGUE
+  CLIENT
+  PARTENAIRE
+  MENTOR
+  CONTACT_TECH
+  COMMERCIAL
+
+  @@schema("freelance")
+}
+
+enum ContactStatus {
+  ACTIF
+  INACTIF
+  A_RECONTACTER
+
+  @@schema("freelance")
+}
+
+enum OpportunityStatus {
+  PROPOSEE
+  EN_PROCESS
+  OFFRE_RECUE
+  EN_PAUSE
+  ACCEPTEE
+  REFUSEE
+  DECLINEE
+  ABANDONNEE
+
+  @@schema("freelance")
+}
+
+enum InterviewSide {
+  ESN
+  CLIENT_FINAL
+
+  @@schema("freelance")
+}
+
+enum InterviewType {
+  PREMIER_CONTACT
+  RECRUTEUR_RH
+  TECHNIQUE
+  MANAGER_EQUIPE
+  NEGOCIATION
+
+  @@schema("freelance")
+}
+
+// Comment l'entretien se tient, à côté de son type : ce qu'il faut prévoir (trajet, lien, numéro).
+enum InterviewFormat {
+  PRESENTIEL
+  VISIO
+  TELEPHONE
+
+  @@schema("freelance")
+}
+
+enum InterviewStatus {
+  PLANIFIE
+  FAIT
+  ANNULE
+
+  @@schema("freelance")
+}
+
+// Ce qu'il a donné, une fois fait.
+enum InterviewOutcome {
+  POSITIF
+  NEGATIF
+  SANS_SUITE
+
+  @@schema("freelance")
+}
+
+enum InterviewDecision {
+  OUI_TRES_INTERESSE
+  OUI_SOUS_CONDITIONS
+  NON
+
+  @@schema("freelance")
+}
+
+enum ReviewStatus {
+  BONNE
+  MOYENNE
+  MAUVAISE
+
+  @@schema("freelance")
+}
+
+enum ReviewMotivation {
+  HAUTE
+  POSITIVE
+  NEUTRE
+  BASSE
+
+  @@schema("freelance")
+}
+
+enum SignalType {
+  OFFRE_POSTE
+  LEVEE
+  EXPANSION
+  NOUVEAU_PRODUIT
+  PIVOT
+  ACQUISITION
+  POST
+  COMMENTAIRE
+  CONFERENCE
+  INTERACTION
+
+  @@schema("freelance")
+}
+
+enum ActionChannel {
+  CANDIDATURE
+  CONNEXION_LINKEDIN
+  DM_LINKEDIN
+  EMAIL
+  SMS_WHATSAPP
+  CALL
+  AUTRE
+
+  @@schema("freelance")
+}
+
+enum ActionStatus {
+  A_FAIRE
+  FAIT
+  REPONDU
+  CONVERTI
+  IGNORE
+
+  @@schema("freelance")
+}
+
+// Partagé avec les contacts : un même poste se filtre de la même façon dans les deux listes.
+enum JobRole {
+  CTO
+  TECH_LEAD
+  RECRUTEUR
+  DEVELOPPEUR
+  CEO
+  PRODUCT_OWNER
+  C_LEVEL
+  MANAGER
+  AUTRE
+
+  @@schema("freelance")
+}
+
+// Régime d'imposition une fois assujetti : il fixe les déclarations (CA12 annuelle avec acomptes
+// pour le réel simplifié, CA3 pour le réel normal). En franchise, pas de régime : le champ reste vide.
 enum VatRegime {
-  FRANCHISE
-  ASSUJETTI
+  REEL_SIMPLIFIE
+  REEL_NORMAL
 
   @@schema("public")
 }
@@ -177,21 +410,231 @@ model ClientMeta {
 }
 
 model Company {
-  id           String          @id @default(uuid(7))
-  slug         String          @unique
-  name         String
-  logoFilename String?
-  websiteUrl   String?
-  sectors      CompanySector[]
-  size         CompanySize?
+  id             String          @id @default(uuid(7))
+  slug           String          @unique
+  name           String
+  logoFilename   String?
+  websiteUrl     String?
+  sectors        CompanySector[]
+  size           CompanySize?
+  types          CompanyType[]   @default([])
+  relationStatus RelationStatus  @default(ACTIVE)
+  zones          Zone[]          @default([])
+  notes          String?
+  details        String?
 
   legalEntityId String?      @unique
   legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
 
   clientMetas ClientMeta[]
-  createdAt   DateTime     @default(now()) @db.Timestamptz
-  updatedAt   DateTime     @updatedAt @db.Timestamptz
+  persons     Person[]
 
+  opportunitiesAsIntermediary Opportunity[] @relation("OpportunityIntermediary")
+  opportunitiesAsClient       Opportunity[] @relation("OpportunityClient")
+
+  signals Signal[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+// Une personne, quels que soient ses rôles : prospect, relation durable, interlocuteur d'un entretien.
+// C'est elle qui porte l'opposition et la durée de conservation.
+model Person {
+  id                String    @id @default(uuid(7))
+  // Nul seulement pour une personne en opposition, vidée de tout sauf ce qui la reconnaît.
+  name              String?
+  jobRole           JobRole?
+  zone              Zone?
+  email             String?   @unique
+  phone             String?
+  linkedinUrl       String?   @unique
+  metAt             DateTime? @db.Date
+  notes             String?
+  details           String?
+  // Art. 21 : la date du stop, posée une seule fois. Art. 17.1.c : la date de l'effacement des échanges.
+  optedOutAt        DateTime? @db.Timestamptz
+  exchangesErasedAt DateTime? @db.Timestamptz
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  lead                  Lead?
+  contact               Contact?
+  prospectingActions    ProspectingAction[]
+  referredOpportunities Opportunity[]       @relation("OpportunityReferrer")
+  interviews            Interview[]         @relation("InterviewCorrespondents")
+  signals               Signal[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([companyId])
+  @@schema("freelance")
+}
+
+// Le rôle « prospect » d'une personne : ce qui décrit le pipeline, rien de ce qui la décrit elle.
+model Lead {
+  personId String        @id
+  person   Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
+  origin   LeadOrigin
+  status   LeadStatus    @default(NOUVEAU)
+  interest LeadInterest?
+  channel  LeadChannel?
+  score    Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+// Le rôle « réseau durable ». Promouvoir un lead = ajouter ce rôle à sa personne, sans rien copier.
+model Contact {
+  personId String        @id
+  person   Person        @relation(fields: [personId], references: [id], onDelete: Cascade)
+  types    ContactType[] @default([])
+  status   ContactStatus @default(ACTIF)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+model Opportunity {
+  id             String            @id @default(uuid(7))
+  title          String
+  role           String?
+  status         OpportunityStatus @default(PROPOSEE)
+  dailyRate      Int?
+  contract       ContractStatus?
+  workMode       WorkMode?
+  daysPerWeek    Int?
+  onSiteDays     Int?
+  zone           Zone?
+  // Toujours le premier du mois : un démarrage se connaît au mois, un jour saisi serait inventé.
+  startMonth     DateTime?         @db.Date
+  durationMonths Int?
+  notes          String?
+  details        String?
+
+  // Qui a apporté l'opportunité : un fait de l'opportunité, qui survit au retrait d'un rôle.
+  referrerId     String?
+  referrer       Person?     @relation("OpportunityReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  // Vide pour un client direct.
+  intermediaryId String?
+  intermediary   Company?    @relation("OpportunityIntermediary", fields: [intermediaryId], references: [id], onDelete: Restrict)
+  clientId       String?
+  client         Company?    @relation("OpportunityClient", fields: [clientId], references: [id], onDelete: Restrict)
+  interviews     Interview[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([referrerId])
+  @@index([intermediaryId])
+  @@index([clientId])
+  @@schema("freelance")
+}
+
+model Interview {
+  id          String             @id @default(uuid(7))
+  // L'entreprise se lit sur l'opportunité : ESN ou client final, jamais ressaisie.
+  side        InterviewSide
+  type        InterviewType
+  format      InterviewFormat?
+  status      InterviewStatus    @default(PLANIFIE)
+  outcome     InterviewOutcome?
+  scheduledAt DateTime           @db.Timestamptz
+  score       Int?
+  decision    InterviewDecision?
+  notes       String?
+  details     String?
+
+  opportunityId  String
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  correspondents Person[]    @relation("InterviewCorrespondents")
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([opportunityId, scheduledAt])
+  @@schema("freelance")
+}
+
+model WeeklyReview {
+  id                   String            @id @default(uuid(7))
+  // Vendredi de clôture : la période comptée et le libellé s'en déduisent. Une revue par vendredi.
+  closingFriday        DateTime          @unique @db.Date
+  // Figés à l'enregistrement : un recalcul réécrirait l'historique.
+  connectionsSent      Int               @default(0)
+  connectionsAccepted  Int               @default(0)
+  messagesSent         Int               @default(0)
+  conversationsEngaged Int               @default(0)
+  meetingsBooked       Int               @default(0)
+  interviewsHeld       Int               @default(0)
+  activeLeads          Int               @default(0)
+  status               ReviewStatus?
+  motivation           ReviewMotivation?
+  wins                 String?
+  blockers             String?
+  nextWeekPlan         String?
+  notes                String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@schema("freelance")
+}
+
+model Signal {
+  id         String     @id @default(uuid(7))
+  type       SignalType
+  // Le jour quand la source le donne, le 1er du mois sinon : pas de précision à part, un seul calendrier.
+  occurredOn DateTime   @db.Date
+  content    String
+  sourceUrl  String?
+
+  // Un seul rattachement posé à la création et un type propre à ce rattachement : la migration
+  // ajoute en SQL les CHECK que Prisma ne sait pas écrire.
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  personId  String?
+  person    Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([companyId])
+  @@index([personId])
+  @@schema("freelance")
+}
+
+model ProspectingAction {
+  id          String        @id @default(uuid(7))
+  title       String
+  channel     ActionChannel
+  status      ActionStatus  @default(A_FAIRE)
+  // Planifiée tant que l'action est À faire, date d'envoi réelle ensuite.
+  occurredAt  DateTime      @db.Timestamptz
+  message     String?
+  // Suit la date de réponse : effacée quand l'action quitte Répondu ou Converti.
+  reply       String?
+  // Dernier contact émanant de la personne, point de départ des 3 ans de conservation (registre, Traitement 7).
+  respondedAt DateTime?     @db.Timestamptz
+
+  // Cascade : le message est une donnée personnelle. Vers la personne, pas le rôle :
+  // un échange avec une relation réseau se journalise au même endroit.
+  personId String
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([personId, occurredAt])
   @@schema("freelance")
 }
 
@@ -236,20 +679,43 @@ model Address {
   @@schema("public")
 }
 
+// Formes juridiques des deux marchés visés, France puis Luxembourg, plus l'Incorporated américaine
+// que portent déjà des sous-traitants des pages légales. Un nouveau pays = une migration, accepté :
+// la liste est fermée et courte, l'enum garantit la valeur en base et dans le code.
+enum LegalForm {
+  ENTREPRENEUR_INDIVIDUEL
+  EURL
+  SARL
+  SAS
+  SASU
+  SA
+  SNC
+  SCI
+  ASSOCIATION
+  SARL_LU
+  SARL_S_LU
+  SA_LU
+  INCORPORATED_US
+
+  @@schema("public")
+}
+
 model LegalEntity {
-  id              String  @id @default(uuid(7))
-  slug            String  @unique
+  id              String     @id @default(uuid(7))
+  slug            String     @unique
   name            String
-  legalStatusKey  String
-  siret           String? @unique
+  legalForm       LegalForm?
+  siret           String?    @unique
   vatNumber       String?
   rcsCity         String?
+  rcsNumber       String?
   phone           String?
   capitalAmount   Int?
   capitalCurrency String?
 
-  addressId String  @unique
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  // SetNull : vider le siège depuis la fiche supprime l'adresse, l'entité doit rester.
+  addressId String?  @unique
+  address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
 
   publisher   Publisher?
   processings DataProcessing[] @relation("DataProcessingProcessor")
@@ -261,6 +727,8 @@ model LegalEntity {
   @@schema("public")
 }
 
+// L'éditeur du site. Assujetti = date et régime renseignés ensemble, avec le numéro de TVA de
+// l'entité légale ; vides = franchise en base : les pages légales affichent la mention 293 B.
 model Publisher {
   id            String      @id @default(uuid(7))
   legalEntityId String      @unique
@@ -268,7 +736,9 @@ model Publisher {
 
   apeCode          String
   registrationType String
-  vatRegime        VatRegime
+  // La franchise cesse au fait générateur : les factures d'avant restent sans TVA.
+  vatLiableSince   DateTime?  @db.Date
+  vatRegime        VatRegime?
   publicEmail      String
 
   createdAt DateTime @default(now()) @db.Timestamptz
@@ -299,7 +769,7 @@ model DataProcessing {
 }
 
 // Better Auth fournit id/createdAt/updatedAt à l'insertion : pas de @default(uuid(7))
-// ni @default(now())/@updatedAt sur ces 4 modèles, sinon double source de vérité.
+// ni @default(now())/@updatedAt sur ces modèles, sinon double source de vérité.
 model User {
   id            String    @id
   name          String

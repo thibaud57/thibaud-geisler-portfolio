@@ -20,12 +20,12 @@ function buildProfileInput(overrides?: Partial<ProfilePagePersonInput>): Profile
   return {
     locale: "fr",
     siteUrl: SITE_URL_FIXTURE,
-    name: "Thibaud Geisler",
+    name: "Jane Doe",
     jobTitle: "IA & développement full-stack",
     description: "Description courte test",
-    email: "contact@thibaud-geisler.com",
+    email: "contact@example.com",
     image: "https://thibaud-geisler.com/api/assets/branding/portrait.jpg",
-    sameAs: ["https://www.linkedin.com/in/thibaud-geisler/", "https://github.com/thibaud57"],
+    sameAs: ["https://social.example/jane-doe", "https://code.example/jane-doe"],
     expertise: [
       {
         name: "Artificial Intelligence",
@@ -39,153 +39,118 @@ function buildProfileInput(overrides?: Partial<ProfilePagePersonInput>): Profile
 }
 
 describe("buildProfilePagePerson", () => {
-  it("produit @context schema.org et @type ProfilePage à la racine", () => {
-    const result = buildProfilePagePerson(buildProfileInput())
-    expect(result["@context"]).toBe("https://schema.org")
-    expect(result["@type"]).toBe("ProfilePage")
-  })
-
-  it("imbrique mainEntity de @type Person avec toutes les propriétés requises", () => {
+  it("builds a schema.org ProfilePage whose mainEntity is a Person with its core properties", () => {
     const result = buildProfilePagePerson(
       buildProfileInput({
-        name: "Thibaud Geisler",
+        name: "Jane Doe",
         jobTitle: "IA & développement full-stack",
         description: "desc",
         email: "a@b.c",
       }),
     )
+
+    expect(result["@context"]).toBe("https://schema.org")
+    expect(result["@type"]).toBe("ProfilePage")
     expect(result.mainEntity["@type"]).toBe("Person")
     expect(result.mainEntity["@id"]).toBeDefined()
-    expect(result.mainEntity.name).toBe("Thibaud Geisler")
+    expect(result.mainEntity.name).toBe("Jane Doe")
     expect(result.mainEntity.jobTitle).toBe("IA & développement full-stack")
     expect(result.mainEntity.description).toBe("desc")
     expect(result.mainEntity.email).toBe("a@b.c")
-  })
-
-  it("Person.@id locale-agnostic = siteUrl + /#person (même valeur en FR et EN)", () => {
-    const fr = buildProfilePagePerson(buildProfileInput({ locale: "fr" }))
-    const en = buildProfilePagePerson(buildProfileInput({ locale: "en" }))
-    expect(fr.mainEntity["@id"]).toBe("https://thibaud-geisler.com/#person")
-    expect(en.mainEntity["@id"]).toBe("https://thibaud-geisler.com/#person")
-    expect(fr.mainEntity["@id"]).toBe(en.mainEntity["@id"])
-  })
-
-  it("Person.url = siteUrl + /<locale>/a-propos", () => {
-    expect(buildProfilePagePerson(buildProfileInput({ locale: "fr" })).mainEntity.url).toBe(
-      "https://thibaud-geisler.com/fr/a-propos",
+    expect(result.mainEntity.image).toBe(
+      "https://thibaud-geisler.com/api/assets/branding/portrait.jpg",
     )
-    expect(buildProfilePagePerson(buildProfileInput({ locale: "en" })).mainEntity.url).toBe(
-      "https://thibaud-geisler.com/en/a-propos",
-    )
-  })
-
-  it("Person.image est une URL absolue", () => {
-    const result = buildProfilePagePerson(
-      buildProfileInput({
-        image: "https://thibaud-geisler.com/api/assets/branding/portrait.jpg",
-      }),
-    )
-    expect(result.mainEntity.image).toMatch(/^https?:\/\//)
-  })
-
-  it("Person.sameAs contient les URLs externes passées en argument", () => {
-    const sameAs = ["https://www.linkedin.com/in/thibaud-geisler/", "https://github.com/thibaud57"]
-    const result = buildProfilePagePerson(buildProfileInput({ sameAs }))
-    expect(result.mainEntity.sameAs).toEqual(sameAs)
-  })
-
-  it("mappe expertise avec wikidataId vers Thing complet (@type, name, @id Wikidata, sameAs Wikipedia)", () => {
-    const result = buildProfilePagePerson(
-      buildProfileInput({
-        expertise: [
-          {
-            name: "Artificial Intelligence",
-            wikidataId: "Q11660",
-            wikipediaUrl: "https://en.wikipedia.org/wiki/Artificial_intelligence",
-          },
-        ],
-      }),
-    )
-    expect(result.mainEntity.knowsAbout).toEqual([
-      {
-        "@type": "Thing",
-        name: "Artificial Intelligence",
-        "@id": "https://www.wikidata.org/wiki/Q11660",
-        sameAs: "https://en.wikipedia.org/wiki/Artificial_intelligence",
-      },
+    expect(result.mainEntity.sameAs).toEqual([
+      "https://social.example/jane-doe",
+      "https://code.example/jane-doe",
     ])
   })
 
-  it("mappe expertise sans wikidataId vers string simple", () => {
-    const result = buildProfilePagePerson(
-      buildProfileInput({ expertise: [{ name: "AI Training" }] }),
-    )
-    expect(result.mainEntity.knowsAbout).toEqual(["AI Training"])
+  it("keeps the Person @id identical across locales (siteUrl + /#person)", () => {
+    const fr = buildProfilePagePerson(buildProfileInput({ locale: "fr" }))
+    const en = buildProfilePagePerson(buildProfileInput({ locale: "en" }))
+
+    expect(fr.mainEntity["@id"]).toBe("https://thibaud-geisler.com/#person")
+    expect(en.mainEntity["@id"]).toBe(fr.mainEntity["@id"])
   })
 
-  it("respecte l'ordre des entrées EXPERTISE (Thing puis string)", () => {
-    const result = buildProfilePagePerson(
-      buildProfileInput({
-        expertise: [
-          {
-            name: "Artificial Intelligence",
-            wikidataId: "Q11660",
-            wikipediaUrl: "https://en.wikipedia.org/wiki/Artificial_intelligence",
-          },
-          { name: "AI Training" },
-        ],
-      }),
-    )
-    expect(result.mainEntity.knowsAbout).toHaveLength(2)
-    expect((result.mainEntity.knowsAbout[0] as { name: string }).name).toBe(
-      "Artificial Intelligence",
-    )
+  it.each(["fr", "en"] as const)("points Person.url to /%s/a-propos", (locale) => {
+    const result = buildProfilePagePerson(buildProfileInput({ locale }))
+
+    expect(result.mainEntity.url).toBe(`https://thibaud-geisler.com/${locale}/a-propos`)
+  })
+
+  it("maps expertise with a wikidataId to a full Thing (@type, name, Wikidata @id, Wikipedia sameAs)", () => {
+    const result = buildProfilePagePerson(buildProfileInput())
+
+    expect(result.mainEntity.knowsAbout[0]).toEqual({
+      "@type": "Thing",
+      name: "Artificial Intelligence",
+      "@id": "https://www.wikidata.org/wiki/Q11660",
+      sameAs: "https://en.wikipedia.org/wiki/Artificial_intelligence",
+    })
+  })
+
+  it("maps expertise without a wikidataId to a plain string, in input order", () => {
+    const result = buildProfilePagePerson(buildProfileInput())
+
     expect(result.mainEntity.knowsAbout[1]).toBe("AI Training")
   })
 
-  it("expose dateModified au format ISO 8601 sur ProfilePage", () => {
+  it("exposes dateModified as an ISO 8601 string on the ProfilePage", () => {
     const result = buildProfilePagePerson(buildProfileInput())
-    expect(result.dateModified).toBeDefined()
+
     expect(new Date(result.dateModified).toISOString()).toBe(result.dateModified)
   })
 
   const LEGAL_FIXTURE = {
-    siret: "88041912200036",
+    siret: "11122233300044",
     address: {
-      street: "11 rue Gouvy",
-      postalCode: "57000",
-      city: "Metz",
+      street: "1 rue de l'Exemple",
+      postalCode: "75000",
+      city: "Paris",
       country: "France",
     },
   } as const
 
-  it("quand legal est fourni, mainEntity contient address PostalAddress, taxID, identifier PropertyValue", () => {
+  it("adds the PostalAddress, taxID and SIRET identifier to mainEntity when legal is provided", () => {
     const result = buildProfilePagePerson(buildProfileInput({ legal: LEGAL_FIXTURE }))
+
     expect(result.mainEntity.address).toEqual({
       "@type": "PostalAddress",
-      streetAddress: "11 rue Gouvy",
-      postalCode: "57000",
-      addressLocality: "Metz",
+      streetAddress: "1 rue de l'Exemple",
+      postalCode: "75000",
+      addressLocality: "Paris",
       addressCountry: "France",
     })
-    expect(result.mainEntity.taxID).toBe("88041912200036")
+    expect(result.mainEntity.taxID).toBe("11122233300044")
     expect(result.mainEntity.identifier).toEqual({
       "@type": "PropertyValue",
       propertyID: "SIRET",
-      value: "88041912200036",
+      value: "11122233300044",
     })
   })
 
-  it("quand legal est absent, mainEntity n'a pas address, taxID, identifier (rétro-compat sub SEO 05)", () => {
+  it("adds vatID when the publisher is VAT liable", () => {
+    const result = buildProfilePagePerson(
+      buildProfileInput({ legal: { ...LEGAL_FIXTURE, vatId: "FR00000000000" } }),
+    )
+
+    expect(result.mainEntity.vatID).toBe("FR00000000000")
+  })
+
+  it("leaves vatID out without a VAT number", () => {
+    const result = buildProfilePagePerson(buildProfileInput({ legal: LEGAL_FIXTURE }))
+
+    expect(result.mainEntity.vatID).toBeUndefined()
+  })
+
+  it("leaves address, taxID and identifier out when legal is absent", () => {
     const result = buildProfilePagePerson(buildProfileInput())
+
     expect(result.mainEntity.address).toBeUndefined()
     expect(result.mainEntity.taxID).toBeUndefined()
     expect(result.mainEntity.identifier).toBeUndefined()
-  })
-
-  it("garde-fou cohérence : taxID est strictement égal à identifier.value (même SIRET)", () => {
-    const result = buildProfilePagePerson(buildProfileInput({ legal: LEGAL_FIXTURE }))
-    expect(result.mainEntity.taxID).toBe(result.mainEntity.identifier?.value)
   })
 })
 
@@ -202,13 +167,41 @@ function buildBreadcrumbInput(overrides?: Partial<BreadcrumbListInput>): Breadcr
 }
 
 describe("buildBreadcrumbList", () => {
-  it("produit @context schema.org et @type BreadcrumbList", () => {
+  it("produces a schema.org BreadcrumbList", () => {
     const result = buildBreadcrumbList(buildBreadcrumbInput())
+
     expect(result["@context"]).toBe("https://schema.org")
     expect(result["@type"]).toBe("BreadcrumbList")
   })
 
-  it("itemListElement contient un ListItem par segment passé", () => {
+  it.each(["fr", "en"] as const)("builds 1-based ListItems with absolute %s urls", (locale) => {
+    const result = buildBreadcrumbList(
+      buildBreadcrumbInput({
+        locale,
+        items: [
+          { name: "Home", path: "" },
+          { name: "Services", path: "/services" },
+        ],
+      }),
+    )
+
+    expect(result.itemListElement).toEqual([
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: `https://thibaud-geisler.com/${locale}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Services",
+        item: `https://thibaud-geisler.com/${locale}/services`,
+      },
+    ])
+  })
+
+  it("keeps the items order from parent to child", () => {
     const result = buildBreadcrumbList(
       buildBreadcrumbInput({
         items: [
@@ -218,56 +211,7 @@ describe("buildBreadcrumbList", () => {
         ],
       }),
     )
-    expect(result.itemListElement).toHaveLength(3)
-  })
 
-  it("chaque ListItem a position 1-based, name et item URL absolue", () => {
-    const result = buildBreadcrumbList(
-      buildBreadcrumbInput({
-        items: [
-          { name: "Home", path: "" },
-          { name: "Services", path: "/services" },
-        ],
-      }),
-    )
-    expect(result.itemListElement[0]).toEqual({
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: "https://thibaud-geisler.com/fr",
-    })
-    expect(result.itemListElement[1]).toEqual({
-      "@type": "ListItem",
-      position: 2,
-      name: "Services",
-      item: "https://thibaud-geisler.com/fr/services",
-    })
-  })
-
-  it("item URL = siteUrl + /<locale> + path en EN", () => {
-    const result = buildBreadcrumbList(
-      buildBreadcrumbInput({
-        locale: "en",
-        items: [
-          { name: "Home", path: "" },
-          { name: "Services", path: "/services" },
-        ],
-      }),
-    )
-    expect(result.itemListElement[0]?.item).toBe("https://thibaud-geisler.com/en")
-    expect(result.itemListElement[1]?.item).toBe("https://thibaud-geisler.com/en/services")
-  })
-
-  it("respecte l'ordre des items (parent → enfant)", () => {
-    const result = buildBreadcrumbList(
-      buildBreadcrumbInput({
-        items: [
-          { name: "Home", path: "" },
-          { name: "Projects", path: "/projets" },
-          { name: "Webapp Gestion Sinistres", path: "/projets/webapp-gestion-sinistres" },
-        ],
-      }),
-    )
     expect(result.itemListElement.map((e) => e.position)).toEqual([1, 2, 3])
     expect(result.itemListElement.map((e) => e.name)).toEqual([
       "Home",
@@ -278,28 +222,29 @@ describe("buildBreadcrumbList", () => {
 })
 
 describe("buildPostalAddress", () => {
-  it("mappe les 4 champs Prisma (street, postalCode, city, country) vers le format Schema.org PostalAddress (streetAddress, postalCode, addressLocality, addressCountry)", () => {
+  it("maps the address fields to the Schema.org PostalAddress format", () => {
     const result = buildPostalAddress({
-      street: "7 place de la Gare",
-      postalCode: "57200",
-      city: "Sarreguemines",
+      street: "1 rue de l'Exemple",
+      postalCode: "75000",
+      city: "Paris",
       country: "France",
     })
+
     expect(result).toEqual({
       "@type": "PostalAddress",
-      streetAddress: "7 place de la Gare",
-      postalCode: "57200",
-      addressLocality: "Sarreguemines",
+      streetAddress: "1 rue de l'Exemple",
+      postalCode: "75000",
+      addressLocality: "Paris",
       addressCountry: "France",
     })
   })
 })
 
 describe("buildPersonId", () => {
-  it("@id Person = siteUrl + /#person, slash final absorbé", () => {
-    expect(buildPersonId("https://thibaud-geisler.com/")).toBe(
-      "https://thibaud-geisler.com/#person",
-    )
+  it("builds the Person @id as siteUrl + /#person, absorbing a trailing slash", () => {
+    const personId = buildPersonId("https://thibaud-geisler.com/")
+
+    expect(personId).toBe("https://thibaud-geisler.com/#person")
   })
 })
 
@@ -310,14 +255,14 @@ describe("buildWebSiteGraph", () => {
     siteName: "Thibaud Geisler : IA & Développement",
     siteDescription: "Portfolio de Thibaud Geisler.",
     person: {
-      name: "Thibaud Geisler",
+      name: "Jane Doe",
       jobTitle: "IA & développement full-stack",
       image: "https://thibaud-geisler.com/api/assets/branding/portrait.jpg",
-      sameAs: ["https://www.linkedin.com/in/thibaud-geisler/"],
+      sameAs: ["https://social.example/jane-doe"],
     },
   }
 
-  it("WebSite.publisher référence le même @id que le nœud Person du graphe", () => {
+  it("points WebSite.publisher at the @id of the Person node in the graph", () => {
     const graph = buildWebSiteGraph(input)
 
     const [webSite, person] = graph["@graph"]
@@ -325,7 +270,7 @@ describe("buildWebSiteGraph", () => {
     expect(person["@id"]).toBe(buildPersonId(SITE_URL_FIXTURE))
   })
 
-  it("Person.url pointe vers /a-propos de la locale courante, inLanguage suit la locale", () => {
+  it("points Person.url at /a-propos in the current locale and follows it in inLanguage", () => {
     const graph = buildWebSiteGraph({ ...input, locale: "en" })
 
     const [webSite, person] = graph["@graph"]
@@ -346,7 +291,7 @@ describe("buildOfferCatalog", () => {
     areaServed: ["France", "Luxembourg"],
   }
 
-  it("un Offer par service, chaque Service ancré sur /services#<slug> avec provider = Person", () => {
+  it("builds one Offer per service, anchored on /services#<slug> with the Person as provider", () => {
     const catalog = buildOfferCatalog(input)
 
     expect(catalog.itemListElement).toHaveLength(2)
@@ -356,7 +301,7 @@ describe("buildOfferCatalog", () => {
     expect(catalog.provider["@id"]).toBe(buildPersonId(SITE_URL_FIXTURE))
   })
 
-  it("serviceUrl reprend le prefill ?service=<slug> de la page contact, dans la locale courante", () => {
+  it("builds serviceUrl from the contact page ?service=<slug> prefill, in the current locale", () => {
     const catalog = buildOfferCatalog({ ...input, locale: "en" })
 
     expect(catalog.itemListElement[0]?.itemOffered.availableChannel.serviceUrl).toBe(
@@ -366,19 +311,19 @@ describe("buildOfferCatalog", () => {
 })
 
 describe("buildContactPage", () => {
-  it("mainEntity est la Person canonique avec un ContactPoint email", () => {
+  it("makes the canonical Person the mainEntity, with an email ContactPoint", () => {
     const page = buildContactPage({
       locale: "fr",
       siteUrl: SITE_URL_FIXTURE,
       name: "Contact",
       description: "Desc contact",
-      personName: "Thibaud Geisler",
-      email: "contact@thibaud-geisler.com",
+      personName: "Jane Doe",
+      email: "contact@example.com",
     })
 
     expect(page.url).toBe("https://thibaud-geisler.com/fr/contact")
     expect(page.mainEntity["@id"]).toBe(buildPersonId(SITE_URL_FIXTURE))
-    expect(page.mainEntity.contactPoint.email).toBe("contact@thibaud-geisler.com")
+    expect(page.mainEntity.contactPoint.email).toBe("contact@example.com")
   })
 })
 
@@ -399,7 +344,7 @@ describe("buildProjectCreativeWork", () => {
     }
   }
 
-  it("projet client sans dépôt : CreativeWork, auteur = Person canonique, période startedAt/endedAt, dateModified = updatedAt comme le sitemap", () => {
+  it("builds a client project without a repository as a CreativeWork authored by the canonical Person, with dateModified = updatedAt like the sitemap", () => {
     const work = buildProjectCreativeWork(buildInput())
 
     expect(work["@type"]).toBe("CreativeWork")
@@ -411,22 +356,22 @@ describe("buildProjectCreativeWork", () => {
     expect(work.codeRepository).toBeUndefined()
   })
 
-  it("mission en cours : intervalle ouvert en temporalCoverage", () => {
+  it("leaves the temporalCoverage interval open for an ongoing mission", () => {
     const work = buildProjectCreativeWork(buildInput({ endedAt: null }))
 
     expect(work.temporalCoverage).toBe("2022-05-01/..")
   })
 
-  it("projet avec dépôt public : SoftwareSourceCode + codeRepository", () => {
+  it("builds a project with a public repository as SoftwareSourceCode with its codeRepository", () => {
     const work = buildProjectCreativeWork(
-      buildInput({ githubUrl: "https://github.com/thibaud57/portfolio" }),
+      buildInput({ githubUrl: "https://code.example/jane-doe/portfolio" }),
     )
 
     expect(work["@type"]).toBe("SoftwareSourceCode")
-    expect(work.codeRepository).toBe("https://github.com/thibaud57/portfolio")
+    expect(work.codeRepository).toBe("https://code.example/jane-doe/portfolio")
   })
 
-  it("sans startedAt : ni dateCreated ni temporalCoverage", () => {
+  it("leaves dateCreated and temporalCoverage out without startedAt", () => {
     const work = buildProjectCreativeWork(buildInput({ startedAt: null, endedAt: null }))
 
     expect(work.dateCreated).toBeUndefined()

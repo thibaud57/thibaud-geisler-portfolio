@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 
 interface Props {
   id: string
-  label: ReactNode
+  label?: ReactNode
   error?: ReactNode
   errors?: string[]
   help?: ReactNode
@@ -14,7 +14,7 @@ interface Props {
 export function FormField({ id, label, error, errors, help, children }: Props) {
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      {label ? <Label htmlFor={id}>{label}</Label> : null}
       {children}
       <div id={`${id}-error`} aria-live="polite">
         {errors?.[0] ? <p className="text-sm text-destructive">{errors[0]}</p> : error}

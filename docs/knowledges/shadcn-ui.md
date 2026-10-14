@@ -1,6 +1,6 @@
 ---
 title: "shadcn/ui — Composants UI copy-paste"
-version: "4.21.0"
+version: "4.21.4"
 description: "Référence technique pour shadcn/ui : philosophie copy-paste, CLI et patterns pour le portfolio."
 date: "2026-04-13"
 keywords: ["shadcn", "ui", "radix", "tailwind", "components"]
@@ -25,8 +25,8 @@ Les composants ne sont pas installés comme dépendances npm : ils sont copiés 
 ### Exemple
 
 ```bash
-# Initialiser shadcn/ui dans le projet
-pnpm dlx shadcn@latest init -t next
+# Initialiser shadcn/ui dans le projet (base Radix : Base UI est le défaut depuis juillet 2026)
+pnpm dlx shadcn@latest init -t next -b radix
 
 # Ajouter des composants
 pnpm dlx shadcn@latest add button card dialog form
@@ -81,34 +81,36 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 ### Exemple
 
 ```css
-/* src/app/globals.css */
+/* src/app/globals.css (extrait) */
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
-  --primary: hsl(222.2 47.4% 11.2%);
-  --primary-foreground: hsl(210 40% 98%);
-  --radius: 0.5rem;
-}
-
-.dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.53 0.04 140);
+  --primary-foreground: oklch(1 0 0);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --primary: oklch(0.68 0.03 140);
+  --primary-foreground: oklch(0.145 0 0);
 }
 ```
 
@@ -118,6 +120,8 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 - `@theme inline` permet d'exposer les variables aux utilitaires Tailwind
 - Le dark mode surcharge les tokens via la classe `.dark`
 - Changer les valeurs CSS repaint automatiquement tous les composants shadcn/ui
+- Les tokens du projet sont en `oklch()` : la palette complète, light et dark, est tenue dans `docs/DESIGN.md` § Identité Visuelle
+- `@import "shadcn/tailwind.css"`, posé par `shadcn init`, fournit les variantes `data-open:`/`data-closed:` et les animations partagées des composants : ce n'est pas du code mort
 
 ---
 
@@ -130,37 +134,28 @@ Le theming repose sur des CSS variables définies dans `globals.css` (couleurs, 
 ### Exemple
 
 ```tsx
-// src/components/ui/button.tsx (extrait)
+// src/components/ui/button.tsx (extrait, classes abrégées)
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Slot } from 'radix-ui'
 import { cn } from '@/lib/utils'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground',
-        outline: 'border border-input bg-background',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-      },
-      size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 px-3',
-        lg: 'h-11 px-8',
-        icon: 'h-10 w-10',
-      },
-    },
-    defaultVariants: { variant: 'default', size: 'default' },
+const buttonVariants = cva('group/button inline-flex items-center rounded-lg text-sm font-medium …', {
+  variants: {
+    variant: { default: '…', outline: '…', secondary: '…', ghost: '…', destructive: '…', link: '…' },
+    size: { default: 'h-8 …', xs: 'h-6 …', sm: 'h-7 …', lg: 'h-9 …', icon: 'size-8', 'icon-xs': 'size-6 …', 'icon-sm': 'size-7 …', 'icon-lg': 'size-9' },
   },
-)
+  defaultVariants: { variant: 'default', size: 'default' },
+})
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>
-
-export function Button({ className, variant, size, ...props }: ButtonProps) {
+function Button({
+  className, variant = 'default', size = 'default', asChild = false, ...props
+}: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : 'button'
   return (
-    <button
+    <Comp
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
@@ -170,7 +165,10 @@ export function Button({ className, variant, size, ...props }: ButtonProps) {
 
 ### Points Importants
 
-- `cn()` (clsx + tailwind-merge) résout les conflits de classes Tailwind
+- Les variantes et tailles réelles (hauteurs 32/28/24 px, variantes `icon-*`) sont décrites dans `docs/DESIGN.md`, la fiche ne les recopie pas
+- `asChild` rend l'enfant (un `Link`, par exemple) avec les styles du bouton, via `Slot.Root` de `radix-ui`
+- `data-slot`, `data-variant` et `data-size` permettent de styler un bouton selon son contexte (`in-data-[slot=button-group]:…`)
+- `cn()` résout les conflits de classes Tailwind. Il vient du paquet `cn`, que le registry importe depuis septembre 2026 et que `src/lib/utils.ts` réexporte depuis la migration `shadcn migrate cn` du 9 octobre 2026 (même sortie annoncée que `clsx` + `tailwind-merge` v3)
 - `VariantProps` extrait automatiquement les types des variants
 - `defaultVariants` fournit des valeurs par défaut
 - La prop `className` peut toujours surcharger les classes du variant
@@ -186,7 +184,7 @@ Les composants primitifs shadcn/ui (Button, Card, Input) fonctionnent en Server 
 ### Exemple
 
 ```tsx
-// src/components/features/contact/ContactForm.tsx
+// src/components/features/public/contact/ContactForm.tsx
 'use client'
 
 import { useActionState } from 'react'
@@ -226,19 +224,23 @@ export function ContactForm() {
 
 ### Description
 
-Commande à lancer une seule fois au démarrage du projet pour créer `components.json`, configurer les aliases et installer les dépendances de base (tailwind-merge, clsx, class-variance-authority).
+Commande à lancer une seule fois au démarrage du projet pour créer `components.json`, configurer les aliases et installer les dépendances de base (`cn`, class-variance-authority).
 
 ### Syntaxe
 
 ```bash
-pnpm dlx shadcn@latest init -t next
-pnpm dlx shadcn@latest init --defaults
-pnpm dlx shadcn@latest init -y -t next --no-monorepo
+pnpm dlx shadcn@latest init -t next -b radix
+pnpm dlx shadcn@latest init -y -t next -b radix --no-monorepo
+
+# Projet antérieur à septembre 2026 : remplacer clsx + tailwind-merge par le paquet cn
+pnpm dlx shadcn@latest migrate cn
 ```
 
 ### Points Importants
 
 - `-t next` cible Next.js (valeurs possibles : `next | vite | astro | laravel`)
+- `-b` choisit la base (`base | radix | aria`) : depuis juillet 2026, le défaut est Base UI, `-b radix` garde Radix, qui n'est pas déprécié
+- `migrate cn` ne réécrit que les fichiers qui importent `clsx`, `tailwind-merge` ou `cnfast` (ici, seul `src/lib/utils.ts`, devenu `export { cn } from "cn"`) puis retire ces paquets. Les composants qui importent `cn` depuis `@/lib/utils` restent intacts
 - `--defaults` applique les défauts du CLI (couleur `zinc`, CSS variables activées). Le projet utilise `radix-nova` et `neutral`, donc ne pas initialiser avec `--defaults`
 - Génère `components.json` à la racine, référence de config pour les commandes `add`
 - À relancer avec `-f` uniquement pour forcer une reconfig
@@ -304,4 +306,5 @@ pnpm dlx shadcn@latest add @aceternity/aurora-background
 
 - [Radix UI : Primitives](https://www.radix-ui.com/primitives)
 - [class-variance-authority](https://cva.style/docs)
-- [tailwind-merge](https://github.com/dcastil/tailwind-merge)
+- [cn](https://github.com/shadcn-ui/cn) (remplaçant de `clsx` + `tailwind-merge`)
+- [Changelog shadcn : `cn`](https://ui.shadcn.com/docs/changelog/2026-09-cn) et [Base UI par défaut](https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default)

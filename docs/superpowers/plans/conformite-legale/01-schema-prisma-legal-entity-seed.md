@@ -166,7 +166,7 @@ model Company {
 }
 ```
 
-Note : la back-relation `company Company?` est déjà ajoutée au modèle `LegalEntity` au Step 1.2 (sous `processings DataProcessing[]`). `onDelete: SetNull` est explicitement déclaré : si une LegalEntity de société cliente est supprimée (cas hypothétique post-MVP), `Company.legalEntityId` se reset à null automatiquement, la Company elle-même est préservée (l'historique de mission via ClientMeta reste intact). Bannit `Cascade` (suppression accidentelle de Acme) et `Restrict` (trop strict, empêche de "déconnecter" une LegalEntity sans supprimer Company).
+Note : la back-relation `company Company?` est déjà ajoutée au modèle `LegalEntity` au Step 1.2 (sous `processings DataProcessing[]`). `onDelete: SetNull` est explicitement déclaré : si une LegalEntity de société cliente est supprimée (cas hypothétique post-MVP), `Company.legalEntityId` se reset à null automatiquement, la Company elle-même est préservée (l'historique de mission via ClientMeta reste intact). Bannit `Cascade` (suppression accidentelle d'une société cliente) et `Restrict` (trop strict, empêche de "déconnecter" une LegalEntity sans supprimer Company).
 
 - [ ] **Step 1.4: Formater le schema**
 

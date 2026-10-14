@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { buildPageMetadata, type BuildPageMetadataInput } from "./seo"
+
+const SITE_URL = "https://thibaud-geisler.com"
 
 function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetadataInput {
   return {
@@ -18,71 +20,75 @@ function ogType(meta: Metadata): string | undefined {
   return (meta.openGraph as { type?: string } | undefined)?.type
 }
 
+beforeEach(() => {
+  vi.stubEnv("NODE_ENV", "production")
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 describe("buildPageMetadata", () => {
-  it("passe title et description tels quels (le template est appliqué par Next.js via le root layout)", () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it("passes title and description through unchanged (Next.js applies the template from the root layout)", () => {
     const meta = buildPageMetadata(buildInput({ title: "X", description: "Y" }))
+
     expect(meta.title).toBe("X")
     expect(meta.description).toBe("Y")
   })
 
-  it('utilise ogType="website" par défaut quand non fourni', () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it('defaults the Open Graph type to "website"', () => {
     const meta = buildPageMetadata(buildInput())
+
     expect(ogType(meta)).toBe("website")
   })
 
-  it('utilise ogType="article" quand explicitement passé', () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it('uses the Open Graph type "article" when given', () => {
     const meta = buildPageMetadata(buildInput({ ogType: "article" }))
+
     expect(ogType(meta)).toBe("article")
   })
 
-  it("mappe locale fr → fr_FR et en → en_US dans openGraph.locale", () => {
-    vi.stubEnv("NODE_ENV", "production")
-    expect(buildPageMetadata(buildInput({ locale: "fr" })).openGraph?.locale).toBe("fr_FR")
-    expect(buildPageMetadata(buildInput({ locale: "en" })).openGraph?.locale).toBe("en_US")
+  it.each([
+    ["fr", "fr_FR"],
+    ["en", "en_US"],
+  ] as const)("maps locale %s to the Open Graph locale %s", (locale, ogLocale) => {
+    const meta = buildPageMetadata(buildInput({ locale }))
+
+    expect(meta.openGraph?.locale).toBe(ogLocale)
   })
 
-  it("openGraph.alternateLocale liste les autres locales au format og (fr → [en_US])", () => {
+  it("lists the other locales as Open Graph alternates", () => {
     const meta = buildPageMetadata(buildInput({ locale: "fr" }))
 
     expect(meta.openGraph?.alternateLocale).toEqual(["en_US"])
   })
 
-  it("compose openGraph.url absolue depuis siteUrl + locale + path", () => {
-    vi.stubEnv("NODE_ENV", "production")
-    const meta = buildPageMetadata(buildInput({ locale: "fr", path: "/services" }))
-    expect(meta.openGraph?.url).toBe("https://thibaud-geisler.com/fr/services")
+  it.each([
+    ["a static page", "fr", "/services", `${SITE_URL}/fr/services`],
+    ["the home page without a trailing slash", "fr", "", `${SITE_URL}/fr`],
+    [
+      "a nested case study",
+      "en",
+      "/projets/webapp-gestion-sinistres",
+      `${SITE_URL}/en/projets/webapp-gestion-sinistres`,
+    ],
+  ] as const)("builds an absolute Open Graph url for %s", (_label, locale, path, expected) => {
+    const meta = buildPageMetadata(buildInput({ locale, path }))
+
+    expect(meta.openGraph?.url).toBe(expected)
   })
 
-  it("home (path vide) : openGraph.url = siteUrl + /<locale> sans slash trailing", () => {
-    vi.stubEnv("NODE_ENV", "production")
-    const meta = buildPageMetadata(buildInput({ locale: "fr", path: "" }))
-    expect(meta.openGraph?.url).toBe("https://thibaud-geisler.com/fr")
-  })
-
-  it("case study (path nested) : openGraph.url couvre /<locale>/projets/<slug>", () => {
-    vi.stubEnv("NODE_ENV", "production")
-    const meta = buildPageMetadata(
-      buildInput({ locale: "en", path: "/projets/webapp-gestion-sinistres" }),
-    )
-    expect(meta.openGraph?.url).toBe(
-      "https://thibaud-geisler.com/en/projets/webapp-gestion-sinistres",
-    )
-  })
-
-  it("expose siteName, title et description dans openGraph", () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it("exposes siteName, title and description in Open Graph", () => {
     const meta = buildPageMetadata(buildInput({ siteName: "Site", title: "T", description: "D" }))
+
     expect(meta.openGraph?.siteName).toBe("Site")
     expect(meta.openGraph?.title).toBe("T")
     expect(meta.openGraph?.description).toBe("D")
   })
 
-  it('compose twitter avec card="summary_large_image", title et description', () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it("builds a large-image Twitter card with title and description", () => {
     const meta = buildPageMetadata(buildInput({ title: "T", description: "D" }))
+
     expect(meta.twitter).toStrictEqual({
       card: "summary_large_image",
       title: "T",
@@ -90,40 +96,32 @@ describe("buildPageMetadata", () => {
     })
   })
 
-  it("canonical absolu = openGraph.url (cohérence interne)", () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it("sets the canonical to the Open Graph url", () => {
     const meta = buildPageMetadata(buildInput({ locale: "fr", path: "/services" }))
-    expect(meta.alternates?.canonical).toBe("https://thibaud-geisler.com/fr/services")
+
+    expect(meta.alternates?.canonical).toBe(`${SITE_URL}/fr/services`)
     expect(meta.alternates?.canonical).toBe(meta.openGraph?.url)
   })
 
-  it("languages alternates expose fr, en et x-default via buildLanguageAlternates(path)", () => {
-    vi.stubEnv("NODE_ENV", "production")
+  it("exposes fr, en and x-default language alternates", () => {
     const meta = buildPageMetadata(buildInput({ path: "/services" }))
-    const langs = meta.alternates?.languages
-    expect(langs).toBeDefined()
-    expect(langs).toMatchObject({
+
+    expect(meta.alternates?.languages).toMatchObject({
       fr: "/fr/services",
       en: "/en/services",
       "x-default": "/fr/services",
     })
   })
 
-  it('omet la clé robots quand NODE_ENV === "production"', () => {
-    vi.stubEnv("NODE_ENV", "production")
-    const meta = buildPageMetadata(buildInput())
-    expect(meta.robots).toBeUndefined()
-  })
+  it.each([
+    ["production", undefined],
+    ["development", { index: false, follow: false }],
+    ["test", { index: false, follow: false }],
+  ])("sets robots for NODE_ENV %s", (nodeEnv, expected) => {
+    vi.stubEnv("NODE_ENV", nodeEnv)
 
-  it('retourne robots: { index: false, follow: false } quand NODE_ENV === "development"', () => {
-    vi.stubEnv("NODE_ENV", "development")
     const meta = buildPageMetadata(buildInput())
-    expect(meta.robots).toEqual({ index: false, follow: false })
-  })
 
-  it('retourne robots: noindex quand NODE_ENV === "test"', () => {
-    vi.stubEnv("NODE_ENV", "test")
-    const meta = buildPageMetadata(buildInput())
-    expect(meta.robots).toEqual({ index: false, follow: false })
+    expect(meta.robots).toEqual(expected)
   })
 })

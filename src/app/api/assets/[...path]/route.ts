@@ -3,15 +3,14 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from "@/lib/r2"
 import { isCompanyLogoKey } from "@/lib/asset-keys"
-import { serveAsset } from "@/server/config/assets"
-
-interface RouteContext {
-  params: Promise<{ path: string[] }>
-}
+import { serveAsset } from "@/server/assets/serve-asset"
 
 const ROUTE_LABEL = "/api/assets/[...path]"
 
-export async function GET(_request: Request, context: RouteContext): Promise<Response> {
+export async function GET(
+  _request: Request,
+  context: RouteContext<"/api/assets/[...path]">,
+): Promise<Response> {
   const { path: raw } = await context.params
   const key = raw.join("/")
 

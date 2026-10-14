@@ -1,0 +1,127 @@
+import "server-only"
+
+import type {
+  LeadChannel,
+  LeadInterest,
+  LeadOrigin,
+  LeadStatus,
+  Prisma,
+} from "@/generated/prisma/client"
+import { prisma } from "@/lib/prisma"
+import type { SignalItem } from "@/lib/crm/signals"
+import { companyRefSelect } from "@/server/queries/company-ref"
+import { orderedInterviewSelect } from "@/server/queries/interviews"
+import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
+import { flattenPerson, type FlatPerson, personNameOrder } from "@/server/queries/persons"
+import { signalsInclude } from "@/server/queries/signals"
+
+const adminLeadInclude = {
+  person: {
+    include: {
+      company: { select: companyRefSelect },
+      referredOpportunities: {
+        select: opportunitySummarySelect,
+        orderBy: { updatedAt: "desc" },
+      },
+      contact: { select: { personId: true } },
+      prospectingActions: {
+        where: { respondedAt: { not: null } },
+        orderBy: { respondedAt: "desc" },
+        take: 1,
+        select: { respondedAt: true },
+      },
+      interviews: {
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          outcome: true,
+          scheduledAt: true,
+          createdAt: true,
+          opportunity: {
+            select: {
+              id: true,
+              title: true,
+              interviews: { select: orderedInterviewSelect },
+            },
+          },
+        },
+        orderBy: { scheduledAt: "desc" },
+      },
+      signals: signalsInclude,
+      _count: { select: { prospectingActions: true } },
+    },
+  },
+} as const
+
+type LeadWithPerson = Prisma.LeadGetPayload<{ include: typeof adminLeadInclude }>
+
+export type AdminLead = FlatPerson & {
+  id: string
+  optedOutAt: Date | null
+  exchangesErasedAt: Date | null
+  // Traitement 7 (registre) : point de départ des 3 ans de conservation, avec la date de création du rôle.
+  lastReplyAt: Date | null
+  origin: LeadOrigin
+  status: LeadStatus
+  interest: LeadInterest | null
+  channel: LeadChannel | null
+  score: number | null
+  createdAt: Date
+  actionsCount: number
+  interviews: LeadWithPerson["person"]["interviews"]
+  hasContactRole: boolean
+  opportunities: OpportunitySummary[]
+  signals: SignalItem[]
+}
+
+// La personne aplatie sur son rôle Lead : liste et formulaire lisent une seule forme, jamais une relation imbriquée.
+function toAdminLead(row: LeadWithPerson): AdminLead {
+  return {
+    id: row.personId,
+    ...flattenPerson(row.person),
+    optedOutAt: row.person.optedOutAt,
+    exchangesErasedAt: row.person.exchangesErasedAt,
+    lastReplyAt: row.person.prospectingActions[0]?.respondedAt ?? null,
+    origin: row.origin,
+    status: row.status,
+    interest: row.interest,
+    channel: row.channel,
+    score: row.score,
+    createdAt: row.createdAt,
+    actionsCount: row.person._count.prospectingActions,
+    interviews: row.person.interviews,
+    hasContactRole: row.person.contact !== null,
+    opportunities: row.person.referredOpportunities,
+    signals: row.person.signals,
+  }
+}
+
+// Sans `use cache`, comme les autres lectures admin : elle relit la base juste après ses propres mutations.
+export async function findAllLeadsForAdmin(): Promise<AdminLead[]> {
+  const rows = await prisma.lead.findMany({
+    include: adminLeadInclude,
+    orderBy: { person: personNameOrder },
+  })
+  return rows.map(toAdminLead)
+}
+
+export async function findLeadByIdForAdmin(personId: string): Promise<AdminLead | null> {
+  const row = await prisma.lead.findUnique({ where: { personId }, include: adminLeadInclude })
+  return row ? toAdminLead(row) : null
+}
+
+// Leads d'une entreprise : une fiche en opposition a perdu son entreprise, elle n'y apparaît plus. Relation lue imbriquée exprès, cette liste ne sert qu'à construire des liens ; `AdminLead` reste la seule forme aplatie.
+export async function findLeadsOfCompany(companyId: string) {
+  return prisma.lead.findMany({
+    where: { person: { companyId } },
+    select: {
+      personId: true,
+      createdAt: true,
+      person: {
+        select: { name: true, email: true, linkedinUrl: true, jobRole: true, metAt: true },
+      },
+    },
+    orderBy: { person: personNameOrder },
+  })
+}

@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-09-03"
+date: "2026-10-03"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
@@ -87,6 +87,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
+- [ ] Si la release embarque la migration `20261006100000_legal_entity_optional_fields` (elle remet `Publisher.vatRegime` à NULL, redéfinit l'enum en `REEL_SIMPLIFIE` / `REEL_NORMAL` et ajoute `vatLiableSince`) : ressaisir la date d'assujettissement et le régime TVA de l'éditeur (Entreprises → fiche de l'éditeur → card Entité légale), puis vérifier `/fr/mentions-legales` (numéro de TVA affiché à la place de la mention 293 B quand l'éditeur est assujetti) et le `vatID` du JSON-LD de `/fr/a-propos`. Si la release charge aussi un dump de la dev (§ Procédure : Remplir la base depuis un dump de dev), `Publisher` est tronquée puis rechargée depuis la dev : ressaisir en dev avant `just db-dump`, ou en production après le chargement. La page légale déduit la franchise de l'absence de `vatLiableSince` (`src/lib/legal/vat-status.ts`), un oubli affiche donc la mention de franchise à un éditeur assujetti
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
@@ -209,17 +210,37 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
+## Réglages Actions du dépôt
+
+Le dépôt est public : n'importe qui peut ouvrir une PR depuis un fork, et ce que la CI exécute alors dépend autant des réglages de Settings → Actions que des workflows. Ces réglages ne vivent dans aucun fichier versionné, d'où leur relevé ici.
+
+| Réglage | Cible | Relevé le 2026-10-12 | Pourquoi |
+|---------|-------|----------------------|----------|
+| Permissions par défaut du `GITHUB_TOKEN` | `read` (restricted) | ✅ `read` (corrigé le 2026-10-09, avant : écriture) | Chaque workflow déclare en plus ses `permissions:`, un oubli retombe sur la lecture seule |
+| Autoriser Actions à créer et approuver des PR | Désactivé | ✅ désactivé (corrigé le 2026-10-09) | release-please passe par le token d'App ([Gestion des Secrets](#gestion-des-secrets)), le `GITHUB_TOKEN` n'a aucune PR à ouvrir ni à valider |
+| Épinglage SHA obligatoire | Activé, à tester sur un run | ❌ désactivé | Activé, il refuse une action composite qui appelle d'autres actions par tag flottant : ne l'activer qu'après un run vert de chaque workflow |
+| Approbation des workflows de fork | Tous les contributeurs externes | ✅ tous les contributeurs externes (corrigé le 2026-10-12, avant : `first_time_contributors`) | Sinon, une seule PR acceptée (une typo suffit) dispense d'approbation toutes les suivantes |
+| Actor rules (rulesets) | Aucune, ou `dependabot[bot]` inclus | ✅ aucune | Une actor rule qui oublie `dependabot[bot]` bloque ses PR sans erreur visible |
+
+```bash
+# Relire l'état réel
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/workflow
+gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/fork-pr-contributor-approval
+gh api repos/thibaud57/thibaud-geisler-portfolio/rulesets
+```
+
 ## Étapes de Déploiement (Automatiques)
 
 **Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
 
-**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && node server.js`.
+**Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && exec node server.js`. Le `exec` fait de Node le destinataire du `SIGTERM` de l'arrêt du container : il s'arrête en moins d'une seconde au lieu d'être tué au bout de 10 s.
 
 > ⚠️ **Le déploiement coupe brièvement le service, en `404`** : un Compose recrée le container, il n'y a pas de rolling update, et Traefik ne route que vers un container `healthy` ([knowledges/dokploy.md](knowledges/dokploy.md#traefik-et-lets-encrypt)). Le temps du `prisma migrate deploy` puis du démarrage Next, le domaine répond `404` : c'est une protection, pas une panne (moins de 10 s mesurées au redeploy du 2026-09-21, sans migration). Une migration lourde (`ALTER TABLE` sur table volumineuse) allonge d'autant la fenêtre : dans ce cas, l'appliquer manuellement avant le déploiement.
 
 > ℹ️ **Healthcheck** : `compose.yaml` interroge `/api/health` toutes les 30 s, et toutes les 5 s (défaut Docker) pendant le `start_period` de 60 s qui couvre les migrations. Il conditionne le routage Traefik et rend l'état du container observable : `docker ps` le montre `unhealthy`, et c'est ce que sonde le monitoring externe (§ Observabilité).
 
-> ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base. Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
+> ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base, exécutée à chaque requête par `await connection()` (sans lui, `cacheComponents` la prérendait au build et le healthcheck lisait un fichier figé). Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
 > ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que `deploy.yml` apporte : déploiement sur tag de release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
 
@@ -251,7 +272,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 - [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`.
 - [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
-- [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
+- [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && exec node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
 > Items techniques et assets de bootstrap, implémentés et validés empiriquement. Pas d'ADR : pas de décision architecturale structurelle, juste des optimisations, workarounds Docker/Next.js et assets de branding.
@@ -356,12 +377,14 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
-| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud-geisler-portfolio` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées au seul dépôt. Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job, et restreint par les inputs `permission-contents`, `permission-issues` et `permission-pull-requests` aux trois droits que demande release-please. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
 
 > **Lecture des secrets dans le code** : toujours via `env` (`src/env.ts`, `@t3-oss/env-nextjs`), jamais `process.env` : la validation Zod est ce qui garantit le typage et une erreur explicite dès le démarrage quand une variable manque. Deux exceptions : `prisma.config.ts`, exécuté par la CLI Prisma hors du runtime Next, qui lit `process.env.DATABASE_URL`, et `src/instrumentation-client.ts`, chargé par le navigateur sur toutes les pages publiques, où `@/env` embarquerait Zod. Détail de la convention : [.claude/rules/zod/validation.md](../.claude/rules/zod/validation.md).
+
+> ℹ️ **Secrets dans un `run:`** : toujours par `env:` du step (`$DOKPLOY_TOKEN`), jamais par `${{ secrets.X }}` interpolé dans le script, qui l'écrirait dans le script avant que le shell ne le lise.
 
 ### Rotation
 
@@ -375,6 +398,19 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
+
+## Demandes RGPD
+
+Procédure pour une demande reçue sur une personne du Traitement 7, prospection et réseau professionnel ([registre-traitements.md](registre-traitements.md)).
+
+| Droit | Procédure |
+|-------|-----------|
+| **Accès** (réponse sous 1 mois, exigence CNIL) | Aucun écran dédié : réunir à la main tout ce qui concerne la personne (sa fiche, ses actions de prospection, ses opportunités, ses entretiens, ses signaux) |
+| **Rectification** | Correction directe de la fiche depuis l'écran d'administration (`08`, `13`) |
+| **Opposition** (art. 21) | Bouton « Ne plus contacter » (`OptOutPersonDialog`) sur la page d'un lead en modification, actionnable à tout moment et sans justification : appelle `optOutPerson(id)`, qui réduit la fiche à ce qui identifie la personne (email, LinkedIn), pose `Person.optedOutAt` une seule fois, supprime ses signaux, conserve le rôle Lead et l'historique, figé (aucune action créée, modifiée, replanifiée ni changée de statut, seule la suppression reste permise), retire le rôle Contact : une personne opposée sort du réseau, la trace de l'opposition restant sur son rôle Lead. Sa case « La personne demande aussi l'effacement de nos échanges » enchaîne aussitôt `erasePersonExchanges(id)`. Une fiche opposée ne se modifie pas (`updateLead` la refuse) et ne se supprime qu'au terme de ses 3 ans (`deleteLead` la refuse avant) |
+| **Effacement** des échanges (art. 17.1.c) | À tout moment après l'opposition : second geste, bouton « Effacer les échanges » (`ErasePersonExchangesDialog`), action de ligne dans Leads > Tous sur une fiche opposée sans date d'effacement. Il appelle seul `erasePersonExchanges(id)`, qui retire les actions de prospection (message envoyé et réponse reçue) et la place de correspondant d'entretien de la personne, pose `Person.exchangesErasedAt` une seule fois. L'action disparaît de la ligne dès cette date posée |
+| **Fin de conservation** | Leads > Tous, filtre « Échéance : Dépassée ». Un lead actif échu (3 ans après sa création ou sa dernière réponse) se relance pour savoir s'il souhaite rester, puis se supprime depuis l'écran sans réponse positive. Une fiche opposée échue (3 ans après `optedOutAt`) retrouve sur sa ligne le bouton Supprimer, à la place de « Effacer les échanges » : suppression définitive de la fiche et de ses actions. Aucune purge automatique : ce filtre se consulte à la main. Un contact sans rôle Lead n'a pas d'échéance : il se supprime à sa demande (« Supprimer ») |
+| **Journal des demandes** | Date de la demande, nature, réponse, date de l'effacement le cas échéant. Tenu hors de ce dépôt, dans une note privée, parce qu'il contient des noms |
 
 ## Security Headers
 
@@ -435,10 +471,12 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Outil | Scope | Fréquence | Config |
 |-------|-------|-----------|--------|
 | Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle | [.github/dependabot.yml](../.github/dependabot.yml) : PRs vers `develop`, 5 ouvertes au plus, mineures et patchs groupés en une PR `minor-patch`, majeures isolées |
-| `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : il signale, il n'arrête pas le pipeline |
+| `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : un step suivant émet un `::warning::` visible dans le résumé du run quand il échoue, il n'arrête pas le pipeline |
 | Trivy | Image `latest` de GHCR, celle que tire Dokploy : sévérités `CRITICAL` et `HIGH` corrigeables | Hebdomadaire, et à la demande par `gh workflow run security.yml` | Workflow `security.yml`, rapport dans l'onglet Security du dépôt (Code scanning, catégorie `trivy-image`). Ne bloque aucune release |
 
 > ⚠️ **Les PRs Dependabot visent `develop`, jamais `main`** : elles n'atteignent la production qu'au prochain merge d'epic. Un correctif de sécurité urgent passe par un `hotfix/*`.
+
+> ⚠️ **pnpm 11 refuse en install figée toute version publiée depuis moins de 24 h** (`minimumReleaseAge`), en CI comme dans le Dockerfile. Le cooldown par défaut de Dependabot (3 jours) en protège ses PRs de version, pas ses PRs de sécurité : une CI rouge le jour de la publication se relance le lendemain. Une montée manuelle trop récente laisse des `minimumReleaseAgeExclude` dans `pnpm-workspace.yaml`, à retirer avant de pousser (détail : [knowledges/pnpm.md](knowledges/pnpm.md)).
 
 ---
 
@@ -637,25 +675,61 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 3. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
 4. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
 5. Smoke test : accueil, `/projets`, formulaire de contact
+6. **Rejouer les demandes RGPD survenues depuis l'horodatage de la sauvegarde restaurée** (§ Demandes RGPD) : les oppositions et effacements à partir de `Person.optedOutAt` et `Person.exchangesErasedAt`, les rectifications à partir du journal des demandes. Les sauvegardes gardent 30 jours, une restauration peut ramener des données déjà traitées
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
 ### Procédure : Remplir la base depuis un dump de dev
 
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25, après répétition sur une base locale à l'état de la prod.
 
 1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
-2. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
-3. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
+2. **Vérifier que la production n'a pas bougé depuis le dernier chargement**, le `TRUNCATE` effaçant toute saisie faite depuis. Même requête sur la production et sur la base de dev avant les ajouts à transférer :
+   ```bash
+   sudo docker exec -i $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+   SELECT 'Project' AS t, count(*), max("updatedAt") FROM public."Project"
+   UNION ALL SELECT 'ClientMeta', count(*), max("updatedAt") FROM public."ClientMeta"
+   UNION ALL SELECT 'Tag', count(*), max("updatedAt") FROM public."Tag"
+   UNION ALL SELECT 'ProjectTag', count(*), NULL FROM public."ProjectTag"
+   UNION ALL SELECT 'Company', count(*), max("updatedAt") FROM freelance."Company"
+   UNION ALL SELECT 'Publisher', count(*), max("updatedAt") FROM public."Publisher"
+   UNION ALL SELECT 'DataProcessing', count(*), max("updatedAt") FROM public."DataProcessing"
+   UNION ALL SELECT 'LegalEntity', count(*), max("updatedAt") FROM public."LegalEntity"
+   UNION ALL SELECT 'Address', count(*), max("updatedAt") FROM public."Address"
+   UNION ALL SELECT 'Person', count(*), max("updatedAt") FROM freelance."Person"
+   UNION ALL SELECT 'Lead', count(*), max("updatedAt") FROM freelance."Lead"
+   UNION ALL SELECT 'ProspectingAction', count(*), max("updatedAt") FROM freelance."ProspectingAction"
+   UNION ALL SELECT 'Contact', count(*), max("updatedAt") FROM freelance."Contact"
+   UNION ALL SELECT 'Opportunity', count(*), max("updatedAt") FROM freelance."Opportunity"
+   UNION ALL SELECT 'Interview', count(*), max("updatedAt") FROM freelance."Interview"
+   UNION ALL SELECT 'Signal', count(*), max("updatedAt") FROM freelance."Signal"
+   UNION ALL SELECT 'WeeklyReview', count(*), max("updatedAt") FROM freelance."WeeklyReview";
+   SQL
+   ```
+   Sur la base de dev : `docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev' <<'SQL'`, même requête, prise sur la base de dev **avant** les ajouts à transférer (relevé pris au début de la reprise, avant le `--write`). Les comptes doivent être égaux et aucun `max("updatedAt")` de production postérieur au dernier chargement (la date la plus récente du blockquote ci-dessus, qui s'enrichit à chaque chargement). Sinon, reporter en dev les saisies faites en production, puis refaire le dump. Une fois le CRM transféré, la production est la source de vérité du CRM et un remplissage par dump l'écrase : d'où ce contrôle
+3. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
+4. **Logos d'entreprise**, avant le chargement : un objet copié en trop est inoffensif, une clé référencée sans objet casse l'affichage. Copier de `portfolio-admin-dev` vers `portfolio-admin` chaque objet que la base de dev référence ; recopier un logo déjà présent en production le remplace par le même fichier. Liste des clés, sur la base de dev :
+   ```bash
+   docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -At' <<'SQL' > logos.txt
+   SELECT "logoFilename" FROM freelance."Company" WHERE "logoFilename" LIKE 'freelance/crm/entreprises/%';
+   SQL
+   while read -r key; do
+     rm -f logo.png
+     wrangler r2 object get "portfolio-admin-dev/$key" --remote --jurisdiction eu --file logo.png < /dev/null || { echo "échec get $key"; break; }
+     wrangler r2 object put "portfolio-admin/$key" --remote --jurisdiction eu --file logo.png --content-type image/png < /dev/null || { echo "échec put $key"; break; }
+   done < logos.txt
+   ```
+   Un `échec` imprimé arrête la boucle : reprendre à cette clé avant d'aller plus loin. Relire chaque objet copié (`wrangler r2 object get "portfolio-admin/$key" --remote --jurisdiction eu --file relu.png`) : pour une clé `logo-<hash>.png`, les 12 premiers caractères de `sha256sum relu.png` égalent ce hash ; pour une autre clé, `sha256sum` donne la même empreinte sur l'objet de dev et sur celui de production. Supprimer ensuite `logos.txt`, `logo.png` et `relu.png`
+5. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
    ```bash
    sudo docker exec $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c '
    pg_restore -l /tmp/content.dump | grep -v _prisma_migrations > /tmp/content.list
-   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
+   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Signal\", freelance.\"_InterviewCorrespondents\", freelance.\"Interview\", freelance.\"Opportunity\", freelance.\"ProspectingAction\", freelance.\"Contact\", freelance.\"Lead\", freelance.\"WeeklyReview\", freelance.\"Person\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
      pg_restore --data-only --disable-triggers -L /tmp/content.list -f - /tmp/content.dump
      echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
    ```
-4. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
-5. Smoke test : accueil, `/projets`, une page projet
+6. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
+7. Smoke test : accueil, `/projets`, une page projet, `/fr/mentions-legales`, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
 
 > ⚠️ Un échec annule toute la transaction, les tables restent intactes. `--disable-triggers` exige un superuser, ce qu'est l'utilisateur de `portfolio-db` (relevé du 2026-09-25).
 
@@ -679,12 +753,12 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 | Page/Feature | Target | Current |
 |--------------|--------|---------|
-| LCP `/fr` mobile | < 2,5 s | **4,4 à 4,9 s** sur 2 runs PSI (2026-09-25), contre 3,3 à 3,9 s le 5 septembre. Seul indicateur nettement hors cible |
-| LCP `/fr/projets` mobile | < 2,5 s | **4,7 s** (PSI, 2026-09-25), **2,3 s** sur `/en/projets` le même jour : écart de run, pas de langue |
-| LCP pages publiques desktop | < 2,5 s | **0,5 à 0,9 s** sur les 4 pages × 2 locales (PSI, 2026-09-25), scores 88 à 100 |
-| CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0,023 sur `/en`, 0 ailleurs** (PSI, 2026-09-25) |
-| TBT (proxy INP en lab) | < 200 ms | **110 à 360 ms** en mobile, 40 à 280 ms en desktop (PSI, 2026-09-25) |
-| Score performance mobile | — | `/fr` **72 et 75** sur 2 runs, 71 à 97 ailleurs (PSI, 2026-09-25). Contre une médiane de 86 sur `/fr` le 5 septembre |
+| LCP `/fr` mobile | < 2,5 s | **3,8 à 4,4 s** sur 3 runs PSI (2026-09-25, `v2.0.1`), contre 3,3 à 3,9 s le 5 septembre. Seul indicateur nettement hors cible |
+| LCP `/fr/projets` mobile | < 2,5 s | **4,1 s** (PSI, 2026-09-25, `v2.0.1`), 2,8 s sur une page projet |
+| LCP pages publiques desktop | < 2,5 s | **0,7 à 1,1 s** sur les 4 pages × 2 locales (PSI, 2026-09-25, `v2.0.1`), scores 91 à 99 |
+| CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0,046 sur `/en`, 0 ailleurs** (PSI, 2026-09-25, `v2.0.1`) |
+| TBT (proxy INP en lab) | < 200 ms | **40 à 290 ms** en mobile, 60 à 210 ms en desktop (PSI, 2026-09-25, `v2.0.1`) |
+| Score performance mobile | — | `/fr` **77, 81 et 87** sur 3 runs, 84 à 96 ailleurs (PSI, 2026-09-25, `v2.0.1`). Contre une médiane de 86 sur `/fr` le 5 septembre |
 | TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
@@ -698,18 +772,18 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 ## Optimisations
 
-- [x] Taille des bundles JS surveillée (`@next/bundle-analyzer`) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
+- [x] Taille des bundles JS surveillée (alors par `@next/bundle-analyzer`, remplacé le 9 octobre 2026 par `next analyze`, seul analyseur qui lise un build Turbopack) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
 - [x] Baseline LCP/CLS/TBT prise sur les pages clés × 2 locales. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
-- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md) : `priority` est déprécié depuis Next 16, renommé `preload`)
+- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images.md](../.claude/rules/nextjs/images.md) : `priority` est déprécié depuis Next 16, renommé `preload`). Le logo de la navbar, rendu en deux variantes light/dark, voit ses deux variantes préchargées : React 19 précharge aussi une image `loading="eager"`, le passage de l'un à l'autre n'y change rien (constaté le 9 octobre 2026)
 - [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf desktop 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
-- [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/images-fonts.md](../.claude/rules/nextjs/images-fonts.md)
-- [x] **`Sansation-Bold` en woff2 pour le navigateur** (`v1.6.3`) : 45 → 16 Ko, 8 Ko de moins sur le chemin critique du LCP. Les OG gardent des `.ttf` ([images-fonts.md](../.claude/rules/nextjs/images-fonts.md))
+- [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/fonts.md](../.claude/rules/nextjs/fonts.md)
+- [x] **`Sansation-Bold` en woff2 pour le navigateur** (`v1.6.3`) : 45 → 16 Ko, 8 Ko de moins sur le chemin critique du LCP. Les OG gardent des `.ttf` ([fonts.md](../.claude/rules/nextjs/fonts.md))
 - [x] Bandeau de consentement sorti du chemin critique : provider depuis `@c15t/nextjs/headless`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte aussi leur CSS. Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu : un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
 - [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` et `/fr/projets`, mobile et desktop. **L'élément LCP est le `H1`**, donc un texte : ni les images ni le JS ne sont en cause
 - [x] **Brotli servi** depuis le 2026-09-05 : middleware Traefik `compress-br` sur l'apex + `compress: false` côté Next. Vérifié en prod sur le HTML, le CSS et le JS, HTML 68,3 → 39,7 Ko (-41 %), page complète 656 → 560 Ko ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
 - [x] **`will-change` et `motion` inutiles retirés** (`v1.6.4`) : `will-change: transform` maintenait 216 couches de composition sur les cellules du hero, et `motion` était importé dans `HyperText` sans y animer quoi que ce soit. Aucun changement visuel
-- [ ] **Sortir Zod du bundle public** : `src/instrumentation-client.ts` lit le DSN Sentry via `src/env.ts`, et `src/lib/assets.ts` importe ses fonctions de clés d'un module qui construit un schéma Zod, ce qui charge Zod sur toutes les pages publiques. 60 Kio de JS inutilisé, et le test `new Function` de Zod, refusé par la CSP, fait tomber les bonnes pratiques à 96 ([baselines/cwv-2026-09-25.md](baselines/cwv-2026-09-25.md))
-- [ ] **LCP mobile de l'accueil**, 4,4 à 4,9 s sur 2 runs le 2026-09-25, après l'arrivée de Sentry et de Zod côté navigateur. Relevé du 2026-09-05 : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
+- [x] **Zod sorti du bundle public** (`v2.0.1`) : `src/instrumentation-client.ts` lit le DSN Sentry sans `src/env.ts`, et les fonctions de clés d'asset vivent dans `src/lib/asset-keys.ts`, sans Zod. Bonnes pratiques 96 → **100** partout, JS inutilisé de `/fr` 102 → **42 Kio** ([baselines/cwv-2026-09-25.md](baselines/cwv-2026-09-25.md))
+- [ ] **LCP mobile de l'accueil**, 3,8 à 4,4 s sur 3 runs le 2026-09-25 (`v2.0.1`). Relevé du 2026-09-05 : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
 
 > La revalidation type ISR est en place : `cacheComponents: true` + `'use cache'` + `cacheLife` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`). Les actions de l'espace admin invalident `projects` et `tags` par `updateTag`. Une écriture faite hors de l'app, chargement SQL compris, n'invalide rien : le cache vit en mémoire, un Redeploy le vide.
 

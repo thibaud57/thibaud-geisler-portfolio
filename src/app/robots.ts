@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 
-import { ADMIN_ROOT } from "@/lib/admin-routes"
+import { ADMIN_ROOT } from "@/lib/admin/routes"
 import { siteUrl } from "@/lib/seo"
 
 export default function robots(): MetadataRoute.Robots {

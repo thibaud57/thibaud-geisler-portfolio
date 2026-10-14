@@ -1,8 +1,8 @@
 ---
 title: "Zod — Validation & Inference"
-version: "4.5.4"
+version: "4.6.5"
 description: "Référence technique pour Zod v4 : schémas, safeParse, inference TS et intégration Server Actions."
-date: "2026-04-13"
+date: "2026-10-03"
 keywords: ["zod", "validation", "typescript", "server-action", "form"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React"]
@@ -11,6 +11,8 @@ technologies: ["TypeScript", "Next.js", "React"]
 # Description
 
 `Zod` est une librairie de validation de schémas TypeScript-first. Utilisée dans le portfolio comme source unique de vérité pour la validation des Server Actions (formulaire contact), la validation des variables d'environnement, et éventuellement celle des payloads API post-MVP. La v4 apporte un gain de performance massif (14x string, 7x array) et déplace les validateurs de format string en top-level (`z.email()`, `z.url()` au lieu de `z.string().email()`).
+
+La 4.6 (9 septembre 2026) ajoute `.validate()`, qui teste la validité sans construire de `ZodError`, `z.iban()`, et `z.withParser()` pour les environnements qui refusent `new Function`. Elle corrige aussi une rétention mémoire des schémas récursifs apparue en 4.5. La 4.6.3 retire le schéma autonome `z.properties()` introduit en 4.6.0, seule la forme `z.instanceof().properties()` reste.
 
 ---
 
@@ -50,13 +52,14 @@ export type ContactInput = z.infer<typeof contactSchema>
 
 ### Description
 
-`safeParse` retourne une union discriminée `{ success: true, data } | { success: false, error }` au lieu de lever une exception. À privilégier dans les Server Actions pour un contrôle fin du flot d'erreurs, avec `error.flatten().fieldErrors` pour obtenir un objet prêt à afficher côté formulaire.
+`safeParse` retourne une union discriminée `{ success: true, data } | { success: false, error }` au lieu de lever une exception. À privilégier dans les Server Actions pour un contrôle fin du flot d'erreurs, avec `z.flattenError(error).fieldErrors` pour obtenir un objet prêt à afficher côté formulaire.
 
 ### Exemple
 
 ```ts
 // src/server/actions/contact.ts
 'use server'
+import { z } from 'zod'
 import { contactSchema } from '@/lib/schemas/contact'
 import { transporter } from '@/lib/mailer'
 
@@ -64,7 +67,7 @@ export async function submitContact(_prev: unknown, formData: FormData) {
   const result = contactSchema.safeParse(Object.fromEntries(formData))
 
   if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors }
+    return { errors: z.flattenError(result.error).fieldErrors }
   }
 
   await transporter.sendMail({
@@ -82,7 +85,7 @@ export async function submitContact(_prev: unknown, formData: FormData) {
 ### Points Importants
 
 - Préférer `safeParse` à `parse` pour éviter try/catch dans les Server Actions
-- `error.flatten().fieldErrors` renvoie `{ champ: string[] }`, utilisable tel quel dans l'UI
+- `z.flattenError(error).fieldErrors` renvoie `{ champ: string[] }`, utilisable tel quel dans l'UI. La méthode `error.flatten()` est dépréciée, et `@typescript-eslint/no-deprecated` fait échouer le lint du projet
 - Le type de `result.data` est automatiquement typé après narrowing
 - `safeParseAsync` pour les schémas contenant des refinements asynchrones
 
@@ -201,7 +204,7 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 - Partager les schémas entre client et serveur dans `src/lib/schemas/`
 - Utiliser `safeParse` dans les Server Actions, `parse` au démarrage pour les env vars
 - Préférer les validators top-level v4 (`z.email()`, `z.url()`)
-- Utiliser `error.flatten().fieldErrors` pour alimenter l'UI de formulaire
+- Utiliser `z.flattenError(error).fieldErrors` pour alimenter l'UI de formulaire
 - `z.coerce.number()` pour convertir les valeurs `FormData` ou env vars
 
 ## ❌ Anti-Patterns
@@ -221,6 +224,7 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 - [Zod : Documentation](https://zod.dev/)
 - [Zod v4 : Changelog](https://zod.dev/v4)
 - [Basic usage](https://zod.dev/basics)
+- [Zod 4.6](https://zod.dev/blog/zod-4-6)
 
 ## Ressources Complémentaires
 

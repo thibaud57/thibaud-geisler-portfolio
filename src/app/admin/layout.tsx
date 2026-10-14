@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
-import { ThemeScript } from "@/components/theme-script"
+import { ThemeScript } from "@/components/layout/theme-script"
 import { Toaster } from "@/components/ui/sonner"
 import { fontVariables } from "@/lib/fonts"
 

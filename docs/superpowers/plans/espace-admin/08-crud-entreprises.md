@@ -1077,7 +1077,7 @@ export function CompanyForm({ company, legalEntities }: Props) {
               id={`${formId}-slug`}
               name="slug"
               defaultValue={company?.slug ?? ""}
-              placeholder="globex"
+              placeholder="acme"
               aria-invalid={!!state.errors.slug?.length}
               aria-describedby={`${formId}-slug-error`}
             />

@@ -16,6 +16,7 @@ Backend : Node.js 24 + TypeScript 6 strict (Next.js 16 App Router, Server Action
 | [DESIGN.md](../docs/DESIGN.md) | Design system, typographie, couleurs | Conventions UI et mapping composants |
 | [PRODUCTION.md](../docs/PRODUCTION.md) | Release, déploiement, monitoring | Déployer, déboguer, gérer incidents |
 | [registre-traitements.md](../docs/registre-traitements.md) | Registre RGPD des traitements de données (art. 30) | Conformité données personnelles, document interne |
+| [CHANGELOG.md](../CHANGELOG.md) | Historique des versions, tenu par release-please | Savoir ce que contient une version déployée |
 | [adrs/](../docs/adrs/) | Architecture Decision Records | Justification des décisions actées |
 | [knowledges/](../docs/knowledges/) | Fiches techniques par techno | Références détaillées par librairie |
 | [baselines/](../docs/baselines/) | Relevés Core Web Vitals datés | Comparer les perfs avant/après une optimisation |
@@ -68,6 +69,7 @@ Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop 
 | `/setup-ops` | Install, bootstrap env, diagnostics (`just install` / `setup` / `check`) |
 | `infra-ops` | Docker + Prisma DB (`just docker-*` / `db-*`). Invocation explicite uniquement (effets destructifs possibles) |
 | `git-ops` | Workflow git `feature/*` → `develop` → `main`, commits Conventional, PRs, tags. Invocation explicite uniquement |
+| `verify` | Recette de build-and-drive (lancer l'app, piloter chaque surface, capturer les preuves), lue et enrichie par `/verify`. Voir [.claude/skills/verify/](skills/verify/) |
 | `shadcn` | Auto-chargé sur composants. Discovery/audit/install via CLI pour les 3 registries (`@shadcn`, `@magicui`, `@aceternity`). Voir [.claude/skills/shadcn/](skills/shadcn/). |
 
 > Recettes complètes : `just --list` ou voir [Justfile](../Justfile).

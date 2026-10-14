@@ -22,7 +22,7 @@
 
 **ADRs liés :** ADR-001 (monolithe Next.js), ADR-010 (i18n next-intl).
 
-**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (cf. `~/.claude/CLAUDE.md` § Discipline commit). Les "checkpoints" entre tasks restent des points de validation visuelle/typecheck, pas des commits.
+**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (discipline commit du projet). Les "checkpoints" entre tasks restent des points de validation visuelle/typecheck, pas des commits.
 
 ---
 

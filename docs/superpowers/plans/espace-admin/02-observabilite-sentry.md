@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Organisation Sentry : `tg-ws`, région européenne (`https://de.sentry.io`), org id `4511826481774592`. Le CLI `sentry` est déjà installé et authentifié.
-- Projet à créer : `thibaud-geisler-portfolio`, plateforme `javascript-nextjs`. Ne pas toucher au projet existant `techno-scraper`.
+- Projet à créer : `thibaud-geisler-portfolio`, plateforme `javascript-nextjs`. Ne pas toucher aux projets existants.
 - Host d'ingestion : `o4511826481774592.ingest.de.sentry.io`. Le segment de région est **`de`**, pas `eu`.
 - `withSentryConfig` doit être le wrapper **le plus externe** : `withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), options)`.
 - `NEXT_PUBLIC_SENTRY_DSN` est **optionnelle** dans `src/env.ts`, qui est fail-fast, et doit figurer dans les `build-args` du workflow puisqu'elle est inlinée dans le bundle au build.
@@ -49,7 +49,7 @@ sentry project create tg-ws/thibaud-geisler-portfolio:javascript-nextjs
 sentry project list tg-ws
 ```
 
-Attendu : deux projets, `techno-scraper` et `thibaud-geisler-portfolio`.
+Attendu : `thibaud-geisler-portfolio` figure parmi les projets listés.
 
 - [ ] **Step 3: Relever le DSN**
 
@@ -92,7 +92,7 @@ import { scrubSentryEvent } from './sentry-scrub'
 
 describe('scrubSentryEvent', () => {
   it("retire l'email et l'adresse IP de l'objet user", () => {
-    const event = { user: { id: 'u1', email: 'client@exemple.fr', ip_address: '203.0.113.7' } }
+    const event = { user: { id: 'u1', email: 'client@example.com', ip_address: '203.0.113.7' } }
 
     const result = scrubSentryEvent(event)
 

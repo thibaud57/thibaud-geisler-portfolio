@@ -33,9 +33,6 @@ export const TAG_KIND_GROUP_LABELS: Record<TagKind, string> = {
   INFRA: "Infrastructure",
 }
 
-// Partagés par le formulaire tag, les colonnes de sa liste et les lignes de sa vue détail : un
-// libellé qui diverge entre les trois se lit comme deux champs différents (docs/DESIGN.md
-// § Arbitrages). Les clés sont les noms des champs du formulaire.
 export const TAG_FIELD_LABELS = {
   slug: "Slug",
   displayOrder: "Ordre d'affichage",
@@ -43,4 +40,5 @@ export const TAG_FIELD_LABELS = {
   nameEn: "Nom (anglais)",
   kind: "Catégorie",
   icon: "Icône",
+  projects: "Projets",
 } as const

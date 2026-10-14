@@ -18,7 +18,7 @@ Cinq dépôts, découpés **par nature d'exécution** et non par domaine métier
 |---|---|---|
 | **thibaud-geisler-portfolio** | site public, espace admin, tous les fronts, auth, CRUD | TypeScript |
 | `ai-kit` | socle IA partagé, backends interchangeables | Python |
-| `agent-os` | exécute `claude -p` : cycle de dev et jobs de l'espace admin | Python |
+| `agent-os` | exécute Claude Code sur l'abonnement, lancé par le propriétaire : jobs, assistant, cycle de dev (ADR-026) | Python |
 | `portfolio-chatbot` | RAG public, principal consommateur d'API au token | Python |
 | `rag-documents` | documents personnels, base isolée | Python |
 
@@ -30,12 +30,12 @@ Le portfolio porte **tous les fronts**, y compris ceux des services Python. C'es
 │  /admin     Better Auth, un seul shell, une seule nav        │
 │    ├─ contenu    Server Actions + Prisma    schema public    │
 │    ├─ freelance  CRM, compta, LinkedIn      schema freelance │
-│    ├─ dev        kanban, lit GitHub + runs  schema dev       │
+│    ├─ dev        kanban, sessions, état PR  schema dev       │
 │    └─ rag        UI seule, proxy HTTP  ──┐                   │
 └──────────────────────────────────────────┼───────────────────┘
        réseau Docker interne, pas de Traefik, pas d'Internet
    ┌───────────────────────────────────────┴──────────────────┐
-   │ agent-os          cron + file de jobs, forfait Claude    │
+   │ agent-os          sessions Claude Code, forfait Claude   │
    │ portfolio-chatbot RAG public, OpenRouter                 │
    │ rag-documents     base isolée, provider Anthropic direct │
    └──────────────────────────────────────────────────────────┘
@@ -85,18 +85,18 @@ La frontière n'est pas « application égale payant ». Elle est : *est-ce une 
 
 | Usage | Exécution | Coût |
 |---|---|---|
-| Audits, cycle de dev | `claude -p` | forfait |
-| Génération de publications | `claude -p` déclenché par l'espace admin | forfait |
-| RAG documents personnels, **interrogation** depuis Claude Code | CLI du service via `claude -p` | forfait |
+| Audits, cycle de dev | session Claude Code dans `agent-os`, lancée depuis le kanban | forfait |
+| Jobs des agents internes, génération de publications, assistant | session Claude Code dans `agent-os`, lancée depuis l'espace admin ou le bot Telegram | forfait |
+| RAG documents personnels, **interrogation** depuis Claude Code | CLI du service, appelé par Claude Code | forfait |
 | RAG documents personnels, **interrogation** depuis l'écran admin | API interne, PydanticAI + provider Anthropic | au token |
 | RAG documents personnels, **indexation** | fournisseur d'embeddings à trancher | au token |
 | Chatbot public | OpenRouter | estimation dans ADR-016 |
 
 `rag-documents` porte deux opérations distinctes. L'**interrogation** emprunte deux chemins : depuis Claude Code elle passe par le CLI du service, donc par le forfait ; depuis l'écran de recherche de l'espace admin elle passe par l'API interne, donc au token et sans routeur intermédiaire (ADR-016). L'**indexation** est programmatique et ne peut pas transiter par Claude Code. Elle exige un fournisseur d'embeddings, **qu'Anthropic ne propose pas** : ce choix reste ouvert et pèse sur l'argument de sous-traitance unique qui fonde le choix du fournisseur pour ce périmètre (voir ADR-016).
 
-L'espace admin déclenche Claude Code plutôt que d'appeler une API : le bouton envoie un job, `agent-os` lance `claude -p`, le résultat revient. C'est exactement l'usage actuel en terminal, avec une interface par-dessus. Asynchrone par nature, donc file de jobs et polling, pas de réponse synchrone.
+L'espace admin déclenche Claude Code plutôt que d'appeler une API : le bouton ouvre une session dans `agent-os`, qui pilote le binaire Claude Code par l'Agent SDK avec l'environnement complet du propriétaire. L'admin sert de cockpit : il lance les runs et affiche leur état. Quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram et la réponse se donne depuis le téléphone ; seul l'assistant interne garde sa conversation dans l'écran (ADR-026). Aucun cron : chaque session part d'une action du propriétaire.
 
-L'abonnement ne couvre **pas** les appels SDK depuis le code : il ne délivre pas de clé API, seulement des credentials OAuth destinés aux clients officiels. Le corollaire documenté par Anthropic est qu'une gateway portant un credential facture au tarif API et désactive l'abonnement pour la session (voir ADR-016 et ses sources).
+L'abonnement ne couvre **pas** les appels au SDK client de l'API (`anthropic`), qui exige une clé : il ne délivre que des credentials OAuth destinés au binaire Claude Code, lancé en ligne de commande ou piloté par l'Agent SDK. Le corollaire documenté par Anthropic est qu'une gateway portant un credential, ou une clé API présente dans l'environnement, facture au tarif API (voir ADR-016 et ses sources).
 
 ## Décisions transverses
 
@@ -111,7 +111,7 @@ L'abonnement ne couvre **pas** les appels SDK depuis le code : il ne délivre pa
 
 ## Migration Notion
 
-Le `freelance-toolkit` ne contient **aucun code** : 87 fichiers markdown de skills et commandes Claude Code, 14 JSON qui sont des schémas descriptifs de bases Notion, et des assets de carrousel. La donnée vit à 100 % dans Notion.
+Les skills freelance ne contiennent **aucun code** : des fichiers markdown de skills et commandes Claude Code, des schémas JSON descriptifs de bases Notion, et des assets de carrousel. La donnée vit à 100 % dans Notion.
 
 Ces 14 schémas sont une spec Prisma quasi directe : types, enums complets, relations et cardinalités déjà tranchés.
 
@@ -122,8 +122,6 @@ Ces 14 schémas sont une spec Prisma quasi directe : types, enums complets, rela
 3. **CRM.** Le plus relationnel, le plus utilisé en déplacement, et celui dont le contenu ne se réduit pas à des colonnes : les fiches Lead portent des sections markdown (`Signal`, `Hypothèse`, `Timeline`) qui demandent une vraie modélisation, champ texte ou tables filles.
 
 Chaque domaine migré est utilisable immédiatement, Notion reste en place pour les autres pendant la transition.
-
-⚠️ `acme.md` contient des informations internes. À ne pas migrer vers une base applicative exposée.
 
 ## Écarts doc / code à traiter avant de commencer
 
@@ -149,7 +147,7 @@ Dette reportée par les sub-projects au fil de l'implémentation, et préparatif
 | Saisir les données réelles depuis l'espace admin | `11`, `12`, `13`, `14` | ✅ 2026-09-25 : base de dev auditée, dump `just db-dump` (schéma `auth` exclu), transfert répété sur une base locale à l'état de la prod |
 | Poser les variables d'environnement dans Dokploy | `04`, `09`, `10` | ✅ 2026-09-25 : `R2_*` (buckets de prod, tokens de prod), `BETTER_AUTH_*`, `GOOGLE_*`, `ADMIN_EMAIL`. Le DSN Sentry n'y va pas, il est inliné au build depuis la variable GitHub |
 | Déclarer le redirect URI de production sur le client OAuth | `04` | ✅ `https://thibaud-geisler.com/api/auth/callback/google`, dans Google Cloud Console |
-| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev (21 et 5 objets), chaque objet relu et comparé à l'original |
+| Peupler les buckets de production | `09`, `10` | ✅ 2026-09-25 : buckets de dev sans objet de test, `portfolio-assets` et `portfolio-admin` copiés depuis leurs buckets de dev, chaque objet relu et comparé à l'original |
 | Appliquer la migration du schéma `auth` en CI | `04` | ✅ Run CI de `feature/espace-admin` du 2026-09-25 |
 | Sauvegarder `portfolio-db` le jour du merge vers `main` | `03` | ✅ 2026-09-25 : sauvegarde manuelle depuis Database `portfolio-db` → Backups |
 | Retirer le Schedule Dokploy `manual-seed` | `11`, `14` | ✅ 2026-09-25 |
@@ -161,37 +159,46 @@ Contrôles uniques du premier déploiement de l'epic, dans l'ordre où ils se fo
 | Point | Origine | État |
 |---|---|---|
 | Migrations appliquées au démarrage du container | `03`, `04`, `09` | ✅ 2026-09-25 : container `healthy` après le déploiement de `v2.0.0` |
-| Charger le dump dans `portfolio-db` | `14` | ✅ 2026-09-25 : 11 projets, 6 entreprises, 47 tags, 12 migrations, puis Redeploy |
+| Charger le dump dans `portfolio-db` | `14` | ✅ 2026-09-25 : projets, entreprises, tags et migrations présents après le chargement, puis Redeploy |
 | Assets servis depuis R2 | `09` | ✅ 2026-09-25 |
 | Connexion à l'espace admin | `04`, `05` | ✅ 2026-09-25, après correction de `BETTER_AUTH_URL`, restée à la valeur de dev `http://localhost:3000` |
 | Upload depuis l'espace admin | `10` | ✅ 2026-09-25 |
-| Sentry | `02` | ⬜ Source maps reçues et token absent de l'image (2026-09-25). Reste à voir une erreur serveur produire une issue dont la stack trace pointe sur le source, à la première erreur réelle |
+| Sentry | `02` | ✅ 2026-09-25 : source maps reçues, token absent de l'image, et l'erreur de `/admin/api/sentry-test` remonte avec une stack trace qui pointe sur la ligne du `throw` |
 | Rendu public sans donnée au build | `14` | ✅ 2026-09-25 |
 | Performance | `14` | ✅ 2026-09-25 : [baselines/cwv-2026-09-25.md](../../../baselines/cwv-2026-09-25.md) |
 | Supprimer le volume `portfolio_assets` du VPS | `09` | ✅ 2026-09-25, avec l'ancienne image |
-| Compléter la fiche de la société du propriétaire | `11` | ⬜ L'entreprise `thibaud-geisler` est créée avec son entité légale, son site et un logo provisoire (`branding/favicon-light.png`). Logo dédié et secteurs à confirmer depuis l'écran Entreprises |
+| Compléter la fiche de la société du propriétaire | `11` | ✅ 2026-09-25 : secteur, taille, site et entité légale renseignés, favicon gardé comme logo |
 
 ## Infrastructure
 
-Quatre projets Dokploy existants : Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif), Scrappers, VPN (wg-easy), Automation (n8n). Un seul serveur.
+Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une Database Dokploy, Postgres n'étant pas dans le compose applicatif). Un seul serveur.
 
 - Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
-- Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers `example.org`. **Tout ce qui est authentifié reste sur le domaine du portfolio.** `example.org` garde les outils d'infrastructure avec leur propre authentification.
+- Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers le domaine d'infrastructure. **Tout ce qui est authentifié reste sur le domaine du portfolio.** Ce second domaine garde les outils d'infrastructure avec leur propre authentification.
 - Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
 - Limites mémoire explicites par conteneur, saisies en octets bruts dans Dokploy.
 
 ## Priorités
 
-1. **Auth plus CRUD contenu portfolio.** Fondation obligatoire, ne dépend presque d'aucune décision restante.
-2. Migration comptabilité, puis LinkedIn, puis CRM.
-3. Kanban dev et `agent-os`.
-4. Chatbot public.
-5. RAG documents personnels.
+1. **Auth plus CRUD contenu portfolio.** Fondation obligatoire, ne dépend presque d'aucune décision restante. Livrée en `v2.0.0` le 2026-09-25.
+2. **Domaine freelance CRM** : entreprises, entités légales, leads et prospection, missions proposées, entretiens, revues, signaux ; l'outil du quotidien.
+3. **Agents internes** : `ai-kit` et `agent-os`, jobs déclenchés depuis l'admin, outils de l'app pour les agents ([ADR-025](../../../adrs/025-acces-agents-app.md)), assistant interne (par Telegram, puis dans l'admin). Les outils du CRM peuvent démarrer dès le CRM livré.
+4. **Domaine freelance Missions** : phases, chantiers, CRA, accueil.
+5. **Domaine freelance Comptabilité** : facturation, déclarations URSSAF et TVA.
+6. Finances : trésorerie, prévisionnel, budget, investissement.
+7. Publications LinkedIn, rédaction assistée comprise, en jobs `agent-os`.
+8. Kanban dev et audits, exécutés par `agent-os` sur action du propriétaire.
+9. Analytics, avant le chatbot pour disposer d'une mesure d'audience avant lui.
+10. Chatbot public.
+11. RAG documents personnels.
+12. Intégrations externes (API LinkedIn, Indy), selon le besoin réel.
+
+> Même ordre que les features post-MVP de `docs/BRAINSTORM.md`, qui porte les prérequis de chacune.
 
 ## Questions ouvertes
 
-- Source de vérité du kanban : GitHub Issues, avec l'espace admin en simple vue, ou base locale avec synchronisation ? La première évite un chantier de synchronisation bidirectionnelle.
+- Source de vérité du kanban : tranché, la base, chaque carte liée à une spec ou à un plan du dépôt ; l'état des PR remonte par le webhook `pull_request` du dépôt, disponible sur un compte personnel contrairement à ceux des Projects GitHub. Le schema qui porte les cartes et son propriétaire se fixent au spec du kanban dev.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
-- Faut-il un serveur MCP au-dessus des Server Actions du portfolio, pour piloter le CRM depuis Claude Code ? Techniquement peu coûteux, mais un CLI consomme nettement moins de contexte qu'un MCP à usage répétitif.
+- Forme des outils de l'app pour les agents, serveur MCP ou CLI, et leur authentification : [ADR-025](../../../adrs/025-acces-agents-app.md), au statut `proposed`, tranché à la décomposition des agents internes.
 - Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

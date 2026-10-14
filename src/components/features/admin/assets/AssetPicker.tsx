@@ -4,8 +4,8 @@ import { useState } from "react"
 import { Image as ImageIcon } from "lucide-react"
 
 import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
-import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
-import { SearchInput } from "@/components/features/admin/SearchInput"
+import { PaginationFooter } from "@/components/features/admin/table/PaginationFooter"
+import { SearchInput } from "@/components/features/admin/table/SearchInput"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -18,9 +18,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { useFacetedSearch } from "@/hooks/use-faceted-search"
+import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
 import { matchesAssetSearch } from "@/lib/assets"
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination"
+import { DEFAULT_PAGE_SIZE } from "@/lib/admin/pagination"
 import type { AssetEntry } from "@/server/queries/assets"
 
 interface Props {
@@ -67,94 +67,77 @@ export function AssetPicker({ value, onChange, assets, title, description, trigg
   const { currentPage, pageCount, pageItems: paginatedAssets } = paginate(filteredAssets)
 
   return (
-    <div className="flex items-center gap-2">
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          <Button type="button" variant="outline" size="sm">
-            <ImageIcon aria-hidden data-icon="inline-start" />
-            {triggerLabel}
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-160">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          <ImageIcon aria-hidden data-icon="inline-start" />
+          {triggerLabel}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="flex max-h-[85svh] flex-col sm:max-w-160">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
-          {/* Wrapper flex row : SearchInput porte flex-1, qui grandirait en hauteur plutôt qu'en
+        {/* Wrapper flex row : SearchInput porte flex-1, qui grandirait en hauteur plutôt qu'en
               largeur en enfant direct d'un flex-col. */}
-          <div className="flex shrink-0">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Rechercher un fichier ou un dossier"
+        <div className="flex shrink-0">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Rechercher un fichier ou un dossier"
+          />
+        </div>
+
+        {filteredAssets.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {searchQuery ? "Aucun résultat pour cette recherche." : "Aucun asset dans ce dossier."}
+          </p>
+        ) : (
+          // Colonnes posées sur la largeur de la modale, pas sur celle du viewport : des paliers
+          // sm:/md: y réagiraient à un écran large alors que la boîte reste à 640px. p-1 laisse
+          // sortir l'anneau de focus, que le défilement rognerait sinon.
+          <div className="grid min-h-0 grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 overflow-y-auto p-1">
+            {paginatedAssets.map((asset) => (
+              <AssetPickerTile
+                key={asset.key}
+                asset={asset}
+                selected={asset.key === pickedKey}
+                onPick={() => {
+                  setPickedKey(asset.key)
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {filteredAssets.length > 0 ? (
+          <div className="shrink-0">
+            <PaginationFooter
+              count={filteredAssets.length}
+              noun="fichier"
+              currentPage={currentPage}
+              pageCount={pageCount}
+              onPageChange={setPage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={setRowsPerPage}
             />
           </div>
+        ) : null}
 
-          {filteredAssets.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {searchQuery
-                ? "Aucun résultat pour cette recherche."
-                : "Aucun asset dans ce dossier."}
-            </p>
-          ) : (
-            // Colonnes posées sur la largeur de la modale, pas sur celle du viewport : des paliers
-            // sm:/md: y réagiraient à un écran large alors que la boîte reste à 640px. p-1 laisse
-            // sortir l'anneau de focus, que le défilement rognerait sinon.
-            <div className="grid min-h-0 grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 overflow-y-auto p-1">
-              {paginatedAssets.map((asset) => (
-                <AssetPickerTile
-                  key={asset.key}
-                  asset={asset}
-                  selected={asset.key === pickedKey}
-                  onPick={() => {
-                    setPickedKey(asset.key)
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {filteredAssets.length > 0 ? (
-            <div className="shrink-0">
-              <PaginationFooter
-                count={filteredAssets.length}
-                noun="fichier"
-                currentPage={currentPage}
-                pageCount={pageCount}
-                onPageChange={setPage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={setRowsPerPage}
-              />
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Annuler
-              </Button>
-            </DialogClose>
-            <Button type="button" onClick={handleConfirm}>
-              Choisir
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Annuler
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {value !== null ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            onChange(null)
-          }}
-        >
-          Retirer
-        </Button>
-      ) : null}
-    </div>
+          </DialogClose>
+          <Button type="button" onClick={handleConfirm}>
+            Choisir
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

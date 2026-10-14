@@ -24,6 +24,11 @@ jobs:
         with:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Sans ces inputs, le token reçoit toutes les permissions de l'installation de l'App.
+          # Les trois que demande release-please-action (README).
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
 
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:

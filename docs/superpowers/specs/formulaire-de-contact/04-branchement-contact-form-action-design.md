@@ -57,13 +57,13 @@ Modification du composant `ContactForm.tsx` créé par le sub-project `04-page-c
 - **Conventions i18n** : `.claude/rules/next-intl/translations.md`. Toutes les clés sont nestées sous `ContactPage.form` pour cohérence avec les clés existantes du sub 04 layout (`ContactPage.form.title`, `ContactPage.form.fields.*`, `ContactPage.form.placeholders.*`, `ContactPage.form.submit`, `ContactPage.form.subjectPrefill.*`, `ContactPage.form.stubToast`).
 - **Suppression de la clé obsolète** : `ContactPage.form.stubToast` (créée par sub 04 layout pour le toast factice du stub) devient inutilisée après le branchement. À retirer de `messages/fr.json` ET `messages/en.json` pour éviter le dead-code i18n.
 - **Gestion de `defaultSubject` côté Server Component parent** : inchangée. `page.tsx` continue de lire `searchParams.service`, mappe vers `ContactPage.form.subjectPrefill.{ia, fullstack, formation}`, passe en prop au ContactForm. Notre sub-project ne touche pas à `page.tsx`.
-- **Conventions tests** : `tdd_scope: none` (validation Playwright manuelle, voir Acceptance criteria). Aligné avec sub 04 du layout (sibling, même feature parent métier) qui est aussi `tdd_scope: none`. Conforme à la règle no-lib-test (`~/.claude/CLAUDE.md` § Code > Tests) : aucune règle métier projet ne vit dans ce branchement (toutes les règles sont dans sub 02 et sub 03 testés). Mémoire utilisateur : « UI testing systématique via Playwright + dev server persistant ».
+- **Conventions tests** : `tdd_scope: none` (validation Playwright manuelle, voir Acceptance criteria). Aligné avec sub 04 du layout (sibling, même feature parent métier) qui est aussi `tdd_scope: none`. Conforme à la règle no-lib-test : aucune règle métier projet ne vit dans ce branchement (toutes les règles sont dans sub 02 et sub 03 testés). Décision du propriétaire : tests UI systématiques via Playwright avec un dev server persistant.
 
 ## Acceptance criteria
 
 ### Scénario 1 : happy path FR
 **GIVEN** un visiteur sur `/contact` avec `NEXT_PUBLIC_CALENDLY_URL` définie et `MAIL_TO` configuré
-**WHEN** il remplit `name="Alice"`, `company="Acme"`, `email="alice@acme.fr"`, `subject="Projet IA"`, `message="<≥20 chars>"` et clique « Envoyer »
+**WHEN** il remplit `name="Alice"`, `company="Acme"`, `email="alice@example.com"`, `subject="Projet IA"`, `message="<≥20 chars>"` et clique « Envoyer »
 **THEN** le bouton submit affiche « Envoi… » pendant la transition (disabled)
 **AND** un toast `sonner` success vert apparaît avec le message localisé `ContactPage.form.success.toast`
 **AND** les 5 champs visibles sont vidés (le champ Sujet revient au `defaultSubject` si applicable)

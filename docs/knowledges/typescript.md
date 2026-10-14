@@ -2,7 +2,7 @@
 title: "TypeScript — Langage typé"
 version: "6.0.3"
 description: "Référence technique pour TypeScript 6 : tsconfig, inférence, patterns et intégration Next.js."
-date: "2026-04-13"
+date: "2026-10-11"
 keywords: ["typescript", "types", "tsconfig", "inference"]
 scope: ["docs"]
 technologies: ["Node.js", "Next.js", "React"]
@@ -33,30 +33,40 @@ Configuration adaptée à Next.js 16 + React 19 + Prisma. Mode strict obligatoir
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
+    "types": ["node", "vitest/globals", "react/canary", "react/experimental"],
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "types": ["node", "vitest/globals"]
+    }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"],
+  "exclude": ["node_modules", ".claude", ".design-sync"]
 }
 ```
 
 ### Points Importants
 
 - `strict: true` est désormais le défaut en v6
+- Cinq options strictes en plus de `strict` : `noUncheckedIndexedAccess` (un accès indexé peut valoir `undefined`), `noImplicitOverride`, `noPropertyAccessFromIndexSignature` (d'où `process.env["X"]` plutôt que `process.env.X`), `noImplicitReturns`, `noFallthroughCasesInSwitch`
+- `jsx: "react-jsx"` et non le `preserve` du template Next : le bundler transforme dans les deux cas, la valeur ne joue que sur ce que vérifie `tsc --noEmit`
+- `react/canary` et `react/experimental` dans `types` exposent les API React pas encore dans les types stables
 - `moduleResolution: bundler` pour Turbopack et Next.js 16
 - `types: []` ou liste explicite : plus de auto-crawl (gain de build)
 - `paths: { "@/*": ["./src/*"] }` pour les imports courts
+- TypeScript 7.0.2 (`latest` npm au 2026-10-11) reste écarté : `typescript-eslint@8.71.1`, la dernière stable, déclare `typescript >=4.8.4 <6.1.0` en peer, `tsc --noEmit` passe mais `eslint` casse au chargement de la config (`docs/VERSIONS.md` § Montées Bloquées)
+- TypeScript 7 refuse `baseUrl` : le projet n'en pose pas, les alias passent par `paths` seuls (`docs/VERSIONS.md`)
 
 ---
 

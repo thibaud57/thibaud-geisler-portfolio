@@ -4,7 +4,7 @@ import { useId, useRef, useState } from "react"
 import { X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { ComboboxPopover } from "@/components/features/admin/ComboboxPopover"
+import { ComboboxPopover } from "@/components/features/admin/form/ComboboxPopover"
 import { Label } from "@/components/ui/label"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 

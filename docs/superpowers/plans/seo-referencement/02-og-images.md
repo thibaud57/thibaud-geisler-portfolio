@@ -12,7 +12,7 @@
 
 **Rules à respecter (lecture dynamique) :**
 - `.claude/rules/nextjs/metadata-seo.md` (cœur : ImageResponse, flex only, 1200×630, JSON-LD)
-- `.claude/rules/nextjs/images-fonts.md` (chargement fonts via `readFile`, jamais `next/font` dans `ImageResponse`, format `.ttf`)
+- `.claude/rules/nextjs/fonts.md` (chargement fonts via `readFile`, jamais `next/font` dans `ImageResponse`, format `.ttf`)
 - `.claude/rules/nextjs/routing.md` (params async, `notFound()`, hard error Next 16)
 - `.claude/rules/nextjs/data-fetching.md` (`'use cache'` + `cacheTag` mutualisation per-request)
 - `.claude/rules/nextjs/server-client-components.md` (composant Server, `'server-only'`)
@@ -20,7 +20,7 @@
 
 **ADRs liés :** ADR-001 (monolithe Next.js, runtime Node disponible), ADR-006 (hub de démos, sobriété visuelle), ADR-011 (assets dynamiques volume Docker, **explicitement non utilisé** ici).
 
-**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (cf. `~/.claude/CLAUDE.md` § Discipline commit). Les "checkpoints" entre tâches restent des points de validation manuelle, pas des commits.
+**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (discipline commit du projet). Les "checkpoints" entre tâches restent des points de validation manuelle, pas des commits.
 
 ---
 
@@ -58,7 +58,7 @@ Demander à l'utilisateur :
 1. Ouvrir [https://fonts.google.com/specimen/Sansation](https://fonts.google.com/specimen/Sansation) dans un navigateur.
 2. Cliquer sur "Get font" puis "Download all" (ZIP de la famille).
 3. Extraire le ZIP, identifier le fichier `Sansation-Bold.ttf` (poids 700).
-4. Copier ce fichier exactement à : `d:\Desktop\thibaud-geisler-portfolio\src\lib\seo\fonts\Sansation-Bold.ttf`.
+4. Copier ce fichier exactement à : `src/lib/seo/fonts/Sansation-Bold.ttf`.
 
 Confirmer la présence du fichier.
 
@@ -71,7 +71,7 @@ Demander à l'utilisateur :
 1. Ouvrir [https://fonts.google.com/specimen/Geist](https://fonts.google.com/specimen/Geist) dans un navigateur.
 2. Cliquer sur "Get font" puis "Download all" (ZIP de la famille).
 3. Extraire le ZIP, identifier le fichier `Geist-Regular.ttf` (poids 400).
-4. Copier ce fichier exactement à : `d:\Desktop\thibaud-geisler-portfolio\src\lib\seo\fonts\Geist-Regular.ttf`.
+4. Copier ce fichier exactement à : `src/lib/seo/fonts/Geist-Regular.ttf`.
 
 Run : `ls -la src/lib/seo/fonts/Geist-Regular.ttf`
 Expected : fichier présent, taille entre 80 KB et 200 KB.

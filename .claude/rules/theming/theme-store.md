@@ -1,8 +1,10 @@
 ---
 paths:
-  - "src/lib/theme.ts"
-  - "src/lib/theme-script.ts"
-  - "src/components/theme-script.tsx"
+  - "src/lib/theme*.ts"
+  - "src/components/layout/theme-script.tsx"
+  - "src/components/layout/Theme*.tsx"
+  - "src/components/magicui/animated-theme-toggler.tsx"
+  - "src/components/ui/sonner.tsx"
   - "src/app/**/layout.tsx"
   - "src/app/global-not-found.tsx"
 ---

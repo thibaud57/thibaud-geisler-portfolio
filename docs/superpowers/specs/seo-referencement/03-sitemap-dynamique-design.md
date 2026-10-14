@@ -98,7 +98,7 @@ Aucune, ce sub-project est autoporté. Il réutilise des modules livrés antéri
 
 Setup : factory `buildProject(overrides?: { slug?: string; updatedAt?: Date })` initialisant `slug: 'sample'`, `updatedAt: new Date('2026-01-01T00:00:00Z')`. Constante `SITE_URL_FIXTURE = 'https://thibaud-geisler.com'` réutilisée dans tous les tests. Aucun mock de `next-intl`, `next/cache`, Prisma, `next/navigation` : le helper est 100% pur.
 
-Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
+Tests délibérément exclus (no-lib-test) :
 - `findAllPublishedSlugs()` : wrapper Prisma trivial, testable uniquement via mock Prisma (anti-pattern projet) ou via test d'intégration sur la BDD réelle (overkill pour une fonction `select` simple).
 - Le route handler `src/app/sitemap.ts` lui-même : couvert par le framework Next.js et la composition des deux unités déjà testées (helper pur + query). Validation manuelle suffisante.
 - La signature de `MetadataRoute.Sitemap` : type Next.js, validé au compile-time par TypeScript.

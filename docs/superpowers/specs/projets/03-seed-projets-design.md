@@ -79,7 +79,7 @@ prisma/seed-data/case-studies/
     └── <slug>.md        # un fichier par projet ProjectType.PERSONAL à publier
 ```
 
-Un fichier `<slug>.md` par projet publié ayant un case study riche, rangé dans le sous-dossier correspondant à son `type`. Naming des sous-dossiers **en anglais** (`client/` / `personal/`) pour miroir direct de l'enum Prisma `ProjectType.CLIENT` / `ProjectType.PERSONAL` (évite un mapping FR/EN). Contenu narratif markdown pur (pas de frontmatter YAML), rendu sur la page `/projets/[slug]` via `react-markdown` au sub-project 06. Images inline via `![alt](/api/assets/filename.png)`. Les sections privées (données RH, ressenti personnel, notes internes) sont **exclues** par le rédacteur lors de la curation pré-plan (responsabilité éditoriale user, pas vérifiée automatiquement au seed). Si un projet n'a pas de fichier `.md` correspondant dans son sous-dossier : `caseStudyMarkdown` en BDD reste `null` et la section markdown est omise sur la page case study.
+Un fichier `<slug>.md` par projet publié ayant un case study riche, rangé dans le sous-dossier correspondant à son `type`. Naming des sous-dossiers **en anglais** (`client/` / `personal/`) pour miroir direct de l'enum Prisma `ProjectType.CLIENT` / `ProjectType.PERSONAL` (évite un mapping FR/EN). Contenu narratif markdown pur (pas de frontmatter YAML), rendu sur la page `/projets/[slug]` via `react-markdown` au sub-project 06. Images inline via `![alt](/api/assets/filename.png)`. Les sections privées (notes internes) sont **exclues** par le rédacteur lors de la curation pré-plan (responsabilité éditoriale user, pas vérifiée automatiquement au seed). Si un projet n'a pas de fichier `.md` correspondant dans son sous-dossier : `caseStudyMarkdown` en BDD reste `null` et la section markdown est omise sur la page case study.
 
 **Helper de résolution** (dans `prisma/seed.ts`) :
 
@@ -114,7 +114,7 @@ Un même tag peut apparaître en 1ʳᵉ position sur un projet et en 3ᵉ sur un
 
 ### Case studies `.md`, résolution au seed
 
-Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est lu via `readFileSync` et placé tel quel dans `Project.caseStudyMarkdown` en BDD. Pas de transformation au seed. Si le fichier `<slug>.md` n'existe pas : `caseStudyMarkdown` reste `null` en BDD (section markdown omise à l'affichage). Les sections privées (données RH, ressenti personnel, notes libres) sont exclues **lors de la curation pré-plan** par le rédacteur, pas par le seed.
+Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est lu via `readFileSync` et placé tel quel dans `Project.caseStudyMarkdown` en BDD. Pas de transformation au seed. Si le fichier `<slug>.md` n'existe pas : `caseStudyMarkdown` reste `null` en BDD (section markdown omise à l'affichage). Les sections privées (notes libres) sont exclues **lors de la curation pré-plan** par le rédacteur, pas par le seed.
 
 ## Acceptance criteria
 
@@ -293,7 +293,7 @@ Chaque fichier `prisma/seed-data/case-studies/<client|personal>/<slug>.md` est l
 **Rationale :**
 - L'option A concentre toutes les prose case studies dans `projects.ts` → fichier TypeScript géant (potentiellement 500-2000 lignes), mélange metadata + contenu narratif, pas de coloration markdown dans l'IDE, diff git moche à chaque édition.
 - L'option B aligne le format au contenu : le markdown vit dans un `.md` (coloration syntaxique native VSCode, preview markdown, diff git lisible). `projects.ts` reste centré sur la metadata (slug, dates, tags, formats, company, …).
-- L'option C conserve tous les bénéfices de B et ajoute un **partitionnement éditorial** par-type : les case studies clients (potentiellement sous NDA, ton plus corporate) sont rangées à part des case studies perso (ton plus libre, souvent plus techniques). Ce sépartement reflète aussi le discriminant principal du modèle (`ProjectType`) et facilite la navigation dans l'arbre de fichiers.
+- L'option C conserve tous les bénéfices de B et ajoute un **partitionnement éditorial** par-type : les case studies clients (ton plus corporate) sont rangées à part des case studies perso (ton plus libre, souvent plus techniques). Ce sépartement reflète aussi le discriminant principal du modèle (`ProjectType`) et facilite la navigation dans l'arbre de fichiers.
 - Naming anglais `client/` + `personal/` : miroir direct de l'enum Prisma `ProjectType.CLIENT` / `ProjectType.PERSONAL`, évite un mapping FR/EN supplémentaire dans le helper.
 - Le helper `readCaseStudy(slug, type)` résout chaque fichier via `existsSync` + `readFileSync` au moment de l'upsert. Si le fichier n'existe pas → `null` → section markdown omise sur la page case study (sub-project 06).
 - Le champ en BDD reste `caseStudyMarkdown String?` sur `Project`, **aucun changement de schéma Prisma**, seul le chemin d'alimentation change (fichier `.md` rangé par `type` au lieu de string inline).

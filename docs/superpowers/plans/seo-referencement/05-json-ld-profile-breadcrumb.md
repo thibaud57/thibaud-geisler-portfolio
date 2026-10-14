@@ -22,7 +22,7 @@
 
 **ADRs liés :** ADR-001 (monolithe Next.js), ADR-006 (hub de démos, JSON-LD signe l'identité personnelle), ADR-010 (i18n FR/EN, valeurs traduites via next-intl messages).
 
-**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (cf. `~/.claude/CLAUDE.md` § Discipline commit).
+**Politique commits :** Pas de commit en cours de plan. La séquence complète est validée puis le user déclenche un commit unique en fin de workflow d'implémentation (discipline commit du projet).
 
 ---
 

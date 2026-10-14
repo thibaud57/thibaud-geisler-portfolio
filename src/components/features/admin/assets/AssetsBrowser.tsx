@@ -6,15 +6,15 @@ import { toast } from "sonner"
 
 import { AssetPreview } from "@/components/features/admin/assets/AssetPreview"
 import { DeleteAssetDialog } from "@/components/features/admin/assets/DeleteAssetDialog"
-import { BadgeList } from "@/components/features/admin/BadgeList"
-import { EmptyState } from "@/components/features/admin/EmptyState"
-import { FacetFilter } from "@/components/features/admin/FacetFilter"
-import { PaginationFooter } from "@/components/features/admin/PaginationFooter"
-import { RowActionButton } from "@/components/features/admin/RowActionButton"
-import { SearchInput } from "@/components/features/admin/SearchInput"
+import { BadgeList } from "@/components/features/admin/display/BadgeList"
+import { EmptyState } from "@/components/features/admin/table/EmptyState"
+import { FacetFilter } from "@/components/features/admin/table/FacetFilter"
+import { PaginationFooter } from "@/components/features/admin/table/PaginationFooter"
+import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
+import { SearchInput } from "@/components/features/admin/table/SearchInput"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useFacetedSearch, type Facet } from "@/hooks/use-faceted-search"
+import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
+import type { Facet } from "@/lib/admin/facets"
 import {
   buildAssetUrl,
   isPdfAssetKey,
@@ -22,7 +22,7 @@ import {
   nameOfAssetKey,
   pathOfAssetKey,
 } from "@/lib/assets"
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination"
+import { DEFAULT_PAGE_SIZE } from "@/lib/admin/pagination"
 import { ASSET_FOLDERS } from "@/lib/asset-keys"
 import type { AssetEntry } from "@/server/queries/assets"
 
@@ -105,7 +105,6 @@ export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
         icon={Images}
         title="Aucun asset"
         description="Aucun asset pour le moment. Déposez-en un via le bouton ci-dessus."
-        className="border border-solid"
       />
     )
   }
@@ -141,7 +140,6 @@ export function AssetsBrowser({ assets, usage, initialSearch = "" }: Props) {
           icon={Images}
           title="Aucun résultat ne correspond à ces filtres"
           description="Essayez une autre recherche ou modifiez les filtres actifs."
-          className="border border-solid"
           onReset={resetSearchAndFacets}
         />
       ) : (
@@ -194,22 +192,16 @@ function AssetTile({
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">{formatSize(asset.size)}</span>
           <span className="inline-flex gap-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RowActionButton aria-label={`Copier le chemin de ${name}`} onClick={onCopyPath}>
-                  <Copy className="size-4" />
-                </RowActionButton>
-              </TooltipTrigger>
-              <TooltipContent>Copier le chemin</TooltipContent>
-            </Tooltip>
+            <RowActionButton aria-label={`Copier le chemin de ${name}`} onClick={onCopyPath}>
+              <Copy className="size-4" />
+            </RowActionButton>
             <DeleteAssetDialog assetKey={asset.key} usedBy={usedBy} />
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2 text-muted-foreground">
           <LinkIcon aria-hidden className="size-3 shrink-0" />
-          {/* Rangée réservée sur toutes les tuiles (docs/DESIGN.md § Arbitrages) : vide, elle ne
-              montre rien, pas même un tiret. */}
+          {/* Rangée réservée sur toutes les tuiles : vide, elle ne montre rien, pas même un tiret. */}
           <BadgeList labels={usedBy} noun="rattachements" empty={null} />
         </div>
       </CardContent>

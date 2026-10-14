@@ -3,23 +3,20 @@ import { describe, expect, it } from "vitest"
 import { formatSiret } from "./format-siret"
 
 describe("formatSiret", () => {
-  it("formate un SIRET valide 14 chiffres avec espaces aux bons emplacements", () => {
-    expect(formatSiret("88041912200036")).toBe("880 419 122 00036")
+  it("groups a 14-digit SIRET as 3-3-3-5", () => {
+    const result = formatSiret("11122233300044")
+
+    expect(result).toBe("111 222 333 00044")
   })
 
-  it("retourne un SIREN 9 chiffres tel quel (pas de match du regex 14 chiffres)", () => {
-    expect(formatSiret("880419122")).toBe("880419122")
-  })
+  it.each([
+    ["a 9-digit SIREN", "111222333"],
+    ["an empty string", ""],
+    ["a non-numeric string", "abc"],
+    ["an already formatted SIRET", "111 222 333 00044"],
+  ])("returns %s unchanged", (_label, value) => {
+    const result = formatSiret(value)
 
-  it("retourne une chaîne vide telle quelle", () => {
-    expect(formatSiret("")).toBe("")
-  })
-
-  it("retourne une chaîne non numérique telle quelle (graceful fallback)", () => {
-    expect(formatSiret("abc")).toBe("abc")
-  })
-
-  it("retourne un SIRET déjà formatté tel quel (idempotence regex stricte sur 14 chiffres consécutifs)", () => {
-    expect(formatSiret("880 419 122 00036")).toBe("880 419 122 00036")
+    expect(result).toBe(value)
   })
 })

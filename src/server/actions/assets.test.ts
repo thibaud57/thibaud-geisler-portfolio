@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("@/lib/logger", () => ({
@@ -19,9 +19,10 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
+import { getCurrentUser } from "@/lib/get-current-user"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2 } from "@/lib/r2"
-import { getCurrentUser } from "@/lib/get-current-user"
 import { deleteAsset, uploadAsset } from "./assets"
 import { initialAssetFormState } from "./assets.types"
 
@@ -35,17 +36,7 @@ function buildUpload(overrides: Record<string, string> = {}, fileBytes = 1024): 
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
-
 describe("uploadAsset", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   beforeEach(() => {
     vi.mocked(r2.send).mockResolvedValue({} as never)
     vi.mocked(adminR2.send).mockResolvedValue({} as never)
@@ -160,18 +151,22 @@ describe("uploadAsset", () => {
   it("builds the key from the folder, the slug and the filename", async () => {
     await uploadAsset(
       initialAssetFormState,
-      buildUpload({ slug: "acme", filename: "cover-2.webp" }),
+      buildUpload({ slug: "projet-exemple", filename: "cover-2.webp" }),
     )
 
     expect(r2.send).toHaveBeenCalledWith(
-      objectMatch({ input: objectMatch({ Key: "projets/client/acme/cover-2.webp" }) }),
+      objectMatch({ input: objectMatch({ Key: "projets/client/projet-exemple/cover-2.webp" }) }),
     )
   })
 
   it("writes a company logo to portfolio-admin, not portfolio-assets", async () => {
     await uploadAsset(
       initialAssetFormState,
-      buildUpload({ folder: "freelance/crm/entreprises", slug: "acme", filename: "logo.png" }),
+      buildUpload({
+        folder: "freelance/crm/entreprises",
+        slug: "acme",
+        filename: "logo.png",
+      }),
     )
 
     expect(adminR2.send).toHaveBeenCalledWith(
@@ -195,10 +190,6 @@ describe("uploadAsset", () => {
 })
 
 describe("deleteAsset", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   beforeEach(() => {
     vi.mocked(r2.send).mockResolvedValue({} as never)
     vi.mocked(adminR2.send).mockResolvedValue({} as never)
@@ -224,30 +215,34 @@ describe("deleteAsset", () => {
   })
 
   it("rejects the deletion and names the project using the cover", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "acme" }] as never)
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "projet-exemple" }] as never)
 
-    const state = await deleteAsset("projets/client/acme/cover.webp")
+    const state = await deleteAsset("projets/client/projet-exemple/cover.webp")
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("acme")
+    expect(state.usedBy).toContain("projet-exemple")
     expect(r2.send).not.toHaveBeenCalled()
   })
 
   it("rejects the deletion and names the project citing the asset in its case study markdown", async () => {
-    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "acme" }] as never)
+    vi.mocked(prisma.project.findMany).mockResolvedValue([{ slug: "projet-exemple" }] as never)
 
-    const state = await deleteAsset("projets/client/acme/screenshot-1.webp")
+    const state = await deleteAsset("projets/client/projet-exemple/screenshot-1.webp")
 
     expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("acme")
+    expect(state.usedBy).toContain("projet-exemple")
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       objectMatch({
         where: objectMatch({
           OR: [
-            { coverFilename: "projets/client/acme/screenshot-1.webp" },
-            { caseStudyMarkdownFr: { contains: "projets/client/acme/screenshot-1.webp" } },
-            { caseStudyMarkdownEn: { contains: "projets/client/acme/screenshot-1.webp" } },
+            { coverFilename: "projets/client/projet-exemple/screenshot-1.webp" },
+            {
+              caseStudyMarkdownFr: { contains: "projets/client/projet-exemple/screenshot-1.webp" },
+            },
+            {
+              caseStudyMarkdownEn: { contains: "projets/client/projet-exemple/screenshot-1.webp" },
+            },
           ],
         }),
       }),
@@ -264,19 +259,25 @@ describe("deleteAsset", () => {
     expect(adminR2.send).not.toHaveBeenCalled()
   })
 
-  it("rejects the deletion of a branding key without calling R2 or Prisma", async () => {
-    const state = await deleteAsset("branding/logo-horizontal-light.png")
+  it.each([
+    ["a traversal segment", "projets/../secrets/cover.webp"],
+    ["an unknown extension", "projets/client/acme/cover.exe"],
+    ["an empty segment", "projets//acme/cover.webp"],
+  ])("rejects the deletion of a key with %s without calling R2 or Prisma", async (_case, key) => {
+    const state = await deleteAsset(key)
 
     expect(state.ok).toBe(false)
-    expect(state.message).toBe("asset_hardcoded")
+    expect(state.errors.filename).toHaveLength(1)
     expect(prisma.project.findMany).not.toHaveBeenCalled()
-    expect(prisma.company.findMany).not.toHaveBeenCalled()
     expect(r2.send).not.toHaveBeenCalled()
     expect(adminR2.send).not.toHaveBeenCalled()
   })
 
-  it("rejects the deletion of a documents/cv key without calling R2 or Prisma", async () => {
-    const state = await deleteAsset("documents/cv/cv-thibaud-geisler-fr.pdf")
+  it.each([
+    ["branding", "branding/logo-horizontal-light.png"],
+    ["documents/cv", "documents/cv/cv-thibaud-geisler-fr.pdf"],
+  ])("rejects the deletion of a %s key without calling R2 or Prisma", async (_folder, key) => {
+    const state = await deleteAsset(key)
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("asset_hardcoded")

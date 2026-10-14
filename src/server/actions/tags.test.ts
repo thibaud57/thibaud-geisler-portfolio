@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("next/cache", () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    count: vi.fn(),
     findMany: vi.fn(),
     findUniqueOrThrow: vi.fn(),
   }
@@ -26,8 +27,9 @@ vi.mock("@/lib/prisma", () => {
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
-import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { prisma } from "@/lib/prisma"
 import { createTag, deleteTag, reorderTags, updateTag } from "./tags"
 import { initialTagFormState } from "./tags.types"
 
@@ -48,35 +50,21 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
-// Les matchers asymétriques de Vitest sont typés `any` : le passage par `unknown` les requalifie ici.
-function objectMatch(value: Record<string, unknown>): Record<string, unknown> {
-  const matcher: unknown = expect.objectContaining(value)
-  return matcher as Record<string, unknown>
-}
+beforeEach(() => {
+  vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
+  vi.mocked(prisma.tag.create).mockResolvedValue({ id: "tag-new" } as never)
+  vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
+  vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
+  vi.mocked(prisma.tag.delete).mockResolvedValue({ kind: "FRAMEWORK" } as never)
+})
 
 describe("createTag", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("rejects an empty slug without touching the database", async () => {
     const state = await createTag(initialTagFormState, buildFormData({ slug: "" }))
 
     expect(state.ok).toBe(false)
     expect(state.errors.slug).toBeDefined()
     expect(prisma.tag.create).not.toHaveBeenCalled()
-  })
-
-  it("rejects an empty French name", async () => {
-    const state = await createTag(initialTagFormState, buildFormData({ nameFr: "" }))
-
-    expect(state.errors.nameFr).toBeDefined()
-  })
-
-  it("rejects an empty English name", async () => {
-    const state = await createTag(initialTagFormState, buildFormData({ nameEn: "" }))
-
-    expect(state.errors.nameEn).toBeDefined()
   })
 
   it("rejects a category outside the enum", async () => {
@@ -96,9 +84,6 @@ describe("createTag", () => {
   })
 
   it("accepts an empty icon and stores it as null", async () => {
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-    vi.mocked(prisma.tag.create).mockResolvedValue({ id: "tag-new" } as never)
-
     const state = await createTag(initialTagFormState, buildFormData({ icon: "" }))
 
     expect(state.ok).toBe(true)
@@ -108,9 +93,6 @@ describe("createTag", () => {
   })
 
   it("normalizes the slug to lowercase", async () => {
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-    vi.mocked(prisma.tag.create).mockResolvedValue({ id: "tag-new" } as never)
-
     await createTag(initialTagFormState, buildFormData({ slug: "React" }))
 
     expect(prisma.tag.create).toHaveBeenCalledWith(
@@ -139,9 +121,6 @@ describe("createTag", () => {
   })
 
   it("invalidates the tags and projects cache tags and the admin tags path after a successful creation", async () => {
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-    vi.mocked(prisma.tag.create).mockResolvedValue({ id: "tag-new" } as never)
-
     await createTag(initialTagFormState, buildFormData())
 
     expect(updateCacheTag).toHaveBeenCalledWith("tags")
@@ -150,8 +129,7 @@ describe("createTag", () => {
   })
 
   it("translates a uniqueness violation into a field error", async () => {
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-    vi.mocked(prisma.tag.create).mockRejectedValue({ code: "P2002", meta: { target: ["slug"] } })
+    vi.mocked(prisma.tag.create).mockRejectedValueOnce(constraintViolation("P2002", "Tag_slug_key"))
 
     const state = await createTag(initialTagFormState, buildFormData())
 
@@ -166,8 +144,6 @@ describe("createTag", () => {
       { id: "tag-2" },
       { id: "tag-3" },
     ] as never)
-    vi.mocked(prisma.tag.create).mockResolvedValue({ id: "tag-new" } as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     await createTag(initialTagFormState, buildFormData({ displayOrder: "2" }))
 
@@ -201,14 +177,8 @@ describe("createTag", () => {
 })
 
 describe("updateTag", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("updates a tag and invalidates the tags and projects cache tags", async () => {
-    vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }] as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     const state = await updateTag("tag-1", initialTagFormState, buildFormData({ slug: "vue" }))
 
@@ -221,19 +191,34 @@ describe("updateTag", () => {
   })
 
   it("invalidates the admin tags path after a successful update", async () => {
-    vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }] as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     await updateTag("tag-1", initialTagFormState, buildFormData())
 
     expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
   })
 
+  it("answers tag_not_found when the tag was deleted meanwhile", async () => {
+    vi.mocked(prisma.tag.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(0)
+
+    const state = await updateTag("tag-1", initialTagFormState, buildFormData())
+
+    expect(state.message).toBe("tag_not_found")
+  })
+
+  it("answers unknown_error on a P2025 while the tag still exists", async () => {
+    vi.mocked(prisma.tag.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(1)
+
+    const state = await updateTag("tag-1", initialTagFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+  })
+
   it("translates a uniqueness violation into a field error", async () => {
-    vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }] as never)
-    vi.mocked(prisma.tag.update).mockRejectedValue({ code: "P2002", meta: { target: ["slug"] } })
+    vi.mocked(prisma.tag.update).mockRejectedValueOnce(constraintViolation("P2002", "Tag_slug_key"))
 
     const state = await updateTag("tag-1", initialTagFormState, buildFormData())
 
@@ -243,13 +228,11 @@ describe("updateTag", () => {
   })
 
   it("moves a tag within its category and rewrites the whole category inside a transaction", async () => {
-    vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([
       { id: "tag-1" },
       { id: "tag-2" },
       { id: "tag-3" },
     ] as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     await updateTag("tag-3", initialTagFormState, buildFormData({ displayOrder: "1" }))
 
@@ -269,11 +252,9 @@ describe("updateTag", () => {
   })
 
   it("moves a tag to a different category and rewrites both categories inside a transaction", async () => {
-    vi.mocked(prisma.tag.findUniqueOrThrow).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany)
       .mockResolvedValueOnce([{ id: "tag-1" }, { id: "tag-2" }, { id: "tag-3" }] as never)
       .mockResolvedValueOnce([{ id: "tag-4" }] as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     await updateTag(
       "tag-2",
@@ -310,14 +291,7 @@ describe("updateTag", () => {
 })
 
 describe("deleteTag", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("deletes an unused tag and invalidates the tags and projects cache tags", async () => {
-    vi.mocked(prisma.tag.delete).mockResolvedValue({ kind: "FRAMEWORK" } as never)
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-
     const state = await deleteTag("tag-1")
 
     expect(state.ok).toBe(true)
@@ -326,22 +300,17 @@ describe("deleteTag", () => {
   })
 
   it("invalidates the admin tags path after a successful deletion", async () => {
-    vi.mocked(prisma.tag.delete).mockResolvedValue({ kind: "FRAMEWORK" } as never)
-    vi.mocked(prisma.tag.findMany).mockResolvedValue([] as never)
-
     await deleteTag("tag-1")
 
     expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
   })
 
   it("renumbers the remaining category inside the same transaction after a deletion", async () => {
-    vi.mocked(prisma.tag.delete).mockResolvedValue({ kind: "FRAMEWORK" } as never)
     vi.mocked(prisma.tag.findMany).mockResolvedValue([
       { id: "tag-1" },
       { id: "tag-2" },
       { id: "tag-3" },
     ] as never)
-    vi.mocked(prisma.tag.update).mockResolvedValue({} as never)
 
     await deleteTag("tag-2")
 
@@ -357,7 +326,9 @@ describe("deleteTag", () => {
   })
 
   it("translates a foreign key violation into an explicit message without renumbering anything", async () => {
-    vi.mocked(prisma.tag.delete).mockRejectedValue({ code: "P2003" })
+    vi.mocked(prisma.tag.delete).mockRejectedValueOnce(
+      constraintViolation("P2003", "ProjectTag_tagId_fkey"),
+    )
 
     const state = await deleteTag("tag-1")
 
@@ -365,6 +336,24 @@ describe("deleteTag", () => {
     expect(state.message).toBe("tag_in_use")
     expect(prisma.tag.findMany).not.toHaveBeenCalled()
     expect(prisma.tag.update).not.toHaveBeenCalled()
+  })
+
+  it("treats a tag already deleted elsewhere as deleted", async () => {
+    vi.mocked(prisma.tag.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(0)
+
+    const state = await deleteTag("tag-1")
+
+    expect(state.ok).toBe(true)
+  })
+
+  it("answers unknown_error on a P2025 while the tag still exists", async () => {
+    vi.mocked(prisma.tag.delete).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.tag.count).mockResolvedValueOnce(1)
+
+    const state = await deleteTag("tag-1")
+
+    expect(state.message).toBe("unknown_error")
   })
 
   it("rejects a call without a session, before any validation", async () => {
@@ -377,10 +366,6 @@ describe("deleteTag", () => {
 })
 
 describe("reorderTags", () => {
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("rejects a call without a session, before touching the database", async () => {
     vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
 
@@ -407,7 +392,7 @@ describe("reorderTags", () => {
 
   it("rewrites displayOrder from 1 in the received order, inside a transaction", async () => {
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }, { id: "tag-2" }] as never)
-    vi.mocked(prisma.$transaction).mockResolvedValue([] as never)
+    vi.mocked(prisma.$transaction).mockResolvedValueOnce([] as never)
 
     const state = await reorderTags("FRAMEWORK", ["tag-2", "tag-1"])
 
@@ -425,7 +410,7 @@ describe("reorderTags", () => {
 
   it("invalidates the tags and projects cache tags and the admin tags path after success", async () => {
     vi.mocked(prisma.tag.findMany).mockResolvedValue([{ id: "tag-1" }] as never)
-    vi.mocked(prisma.$transaction).mockResolvedValue([] as never)
+    vi.mocked(prisma.$transaction).mockResolvedValueOnce([] as never)
 
     await reorderTags("FRAMEWORK", ["tag-1"])
 

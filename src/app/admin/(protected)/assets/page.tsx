@@ -2,8 +2,9 @@ import { Suspense } from "react"
 
 import { AssetsBrowser } from "@/components/features/admin/assets/AssetsBrowser"
 import { AssetUploadDialog } from "@/components/features/admin/assets/AssetUploadDialog"
-import { AdminPageShell } from "@/components/layout/AdminPageShell"
+import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
+import { firstParam } from "@/lib/admin/search-params"
 import { getCurrentUser } from "@/lib/get-current-user"
 import {
   listAdminAssets,
@@ -36,11 +37,7 @@ async function AssetsSection({ initialSearch }: { initialSearch: string }) {
 }
 
 // `q` : une vue détail y envoie sur un fichier précis (couverture, logo), la recherche déjà posée.
-export default async function AdminAssetsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>
-}) {
+export default async function AdminAssetsPage({ searchParams }: PageProps<"/admin/assets">) {
   await getCurrentUser()
   const { q } = await searchParams
 
@@ -52,7 +49,7 @@ export default async function AdminAssetsPage({
         </div>
       }
     >
-      <AssetsSection initialSearch={q ?? ""} />
+      <AssetsSection initialSearch={firstParam(q) ?? ""} />
     </Suspense>
   )
 }

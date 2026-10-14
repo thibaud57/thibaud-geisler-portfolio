@@ -259,7 +259,7 @@ Ce seul test couvre la logique métier unique du sub-project (le filtrage côté
 **Choix : A**
 
 **Rationale :**
-- Flexibilité : un projet peut avoir un cover au nom arbitraire (ex: `airbus-cover-v2.webp`).
+- Flexibilité : un projet peut avoir un cover au nom arbitraire (ex: `acme-cover-v2.webp`).
 - Source de vérité explicite en BDD, visible dans Prisma Studio et le seed.
 - Fallback gradient activé si `coverFilename = null` (projet sans image).
 - Impact mineur sur le schéma (ajout d'un champ optionnel au sub-project 01, amendement propre).

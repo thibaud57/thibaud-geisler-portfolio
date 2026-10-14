@@ -46,7 +46,7 @@ Aucune, ce sub-project est autoporté. `zod` est déjà installé dans le projet
 ## Acceptance criteria
 
 ### Scénario 1 : payload valide
-**GIVEN** un objet `{ name: "Alice", company: "Acme", email: "alice@acme.fr", subject: "Projet IA", message: "Bonjour, j'aimerais discuter d'un projet IA dans ma boîte" }`
+**GIVEN** un objet `{ name: "Alice", company: "Acme", email: "alice@example.com", subject: "Projet IA", message: "Bonjour, j'aimerais discuter d'un projet IA dans ma boîte" }`
 **WHEN** `contactSchema.safeParse(input)` est appelé
 **THEN** le résultat est `{ success: true, data }` avec `data` typé `ContactInput`
 **AND** chaque champ string est trim'é (espaces leading/trailing supprimés)
@@ -120,7 +120,7 @@ Aucune, ce sub-project est autoporté. `zod` est déjà installé dans le projet
 - **`name` exactement 120 caractères** : passe (`max(120)` est inclusif).
 - **`message` exactement 20 caractères** : passe (`min(20)` est inclusif).
 - **Tous les champs sont des chaînes contenant uniquement des espaces** : après `.trim()`, deviennent `''` → tous les codes `_required` se déclenchent en cascade (`name_required`, `subject_required`, `message_too_short` puisque 0 < 20). Comportement attendu, sub 04 affiche les erreurs sous chaque champ.
-- **Email avec espaces autour** : `' alice@acme.fr '` est trim'é avant validation `.email()` → passe normalement (Zod applique les transformations dans l'ordre déclaré).
+- **Email avec espaces autour** : `' alice@example.com '` est trim'é avant validation `.email()` → passe normalement (Zod applique les transformations dans l'ordre déclaré).
 - **`company` vide après trim** : `optional()` permet `undefined` mais une chaîne vide passée explicitement passe le test `max(200)`, `data.company === ''`. Acceptable, sub 03 utilisera `data.company || undefined` si besoin.
 
 ## Architectural decisions

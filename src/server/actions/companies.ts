@@ -1,18 +1,33 @@
 "use server"
 
 import "server-only"
-import { revalidatePath, updateTag } from "next/cache"
+import { updateTag } from "next/cache"
 
+import type { LegalForm, Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { companyFields } from "@/lib/crm/companies"
+import { DEFAULT_CURRENCY, isFrenchCountry } from "@/lib/crm/legal-entities"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
-import { isPrismaError, stringField, stringValues, violatedConstraint } from "@/lib/server-utils"
+import {
+  isPrismaError,
+  optionalStringField,
+  stringField,
+  stringValues,
+  violatedConstraint,
+} from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./shared"
+import { revalidatePersonLists } from "./_support/person-guards"
+import {
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import { type CompanyFormState } from "./companies.types"
 
-// Seule source des champs lus depuis le FormData : un champ ajouté ici sans l'être côté validation
-// (ou l'inverse) désynchroniserait silencieusement ce qui est validé de ce qui est réaffiché en cas d'échec.
+// Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.
 function collectValues(formData: FormData): CompanyFormState["values"] {
   return {
     slug: stringField(formData, "slug"),
@@ -20,8 +35,144 @@ function collectValues(formData: FormData): CompanyFormState["values"] {
     sectors: stringValues(formData, "sectors"),
     size: stringField(formData, "size"),
     websiteUrl: stringField(formData, "websiteUrl"),
-    legalEntityId: stringField(formData, "legalEntityId"),
     logoFilename: stringField(formData, "logoFilename"),
+    types: stringValues(formData, "types"),
+    relationStatus: optionalStringField(formData, "relationStatus"),
+    zones: stringValues(formData, "zones"),
+    notes: optionalStringField(formData, "notes"),
+    details: optionalStringField(formData, "details"),
+    legalEntityName: optionalStringField(formData, "legalEntityName"),
+    legalEntityStatusKey: optionalStringField(formData, "legalEntityStatusKey"),
+    legalEntitySiret: optionalStringField(formData, "legalEntitySiret"),
+    legalEntityVatNumber: optionalStringField(formData, "legalEntityVatNumber"),
+    legalEntityRcsCity: optionalStringField(formData, "legalEntityRcsCity"),
+    legalEntityRcsNumber: optionalStringField(formData, "legalEntityRcsNumber"),
+    legalEntityPhone: optionalStringField(formData, "legalEntityPhone"),
+    legalEntityCapitalAmount: optionalStringField(formData, "legalEntityCapitalAmount"),
+    legalEntityCapitalCurrency: optionalStringField(formData, "legalEntityCapitalCurrency"),
+    legalEntityStreet: optionalStringField(formData, "legalEntityStreet"),
+    legalEntityPostalCode: optionalStringField(formData, "legalEntityPostalCode"),
+    legalEntityCity: optionalStringField(formData, "legalEntityCity"),
+    legalEntityCountry: optionalStringField(formData, "legalEntityCountry"),
+    legalEntityVatLiableSince: optionalStringField(formData, "legalEntityVatLiableSince"),
+    legalEntityVatRegime: optionalStringField(formData, "legalEntityVatRegime"),
+  }
+}
+
+// Un champ absent du FormData reste undefined : Prisma l'ignore à la mise à jour, donc inchangé.
+interface LegalEntityDraft {
+  fields: {
+    name: string
+    legalForm?: LegalForm | null
+    siret?: string | null
+    vatNumber?: string | null
+    rcsCity?: string | null
+    rcsNumber?: string | null
+    phone?: string | null
+    capitalAmount?: number | null
+    capitalCurrency?: string | null
+  }
+  address: { street: string; postalCode: string; city: string; country: string } | null
+}
+
+function toLegalEntityDraft(data: CompanyInput): LegalEntityDraft | undefined {
+  // Après validation (refineLegalEntity), un nom présent garantit aussi un siège complet : aucun champ rempli n'en tient lieu.
+  const name = data.legalEntityName
+  if (!name) return undefined
+
+  const address =
+    data.legalEntityStreet &&
+    data.legalEntityPostalCode &&
+    data.legalEntityCity &&
+    data.legalEntityCountry
+      ? {
+          street: data.legalEntityStreet,
+          postalCode: data.legalEntityPostalCode,
+          city: data.legalEntityCity,
+          country: data.legalEntityCountry,
+        }
+      : null
+  const capitalAmount = data.legalEntityCapitalAmount
+  const capitalCurrency =
+    capitalAmount === undefined
+      ? undefined
+      : capitalAmount === null
+        ? null
+        : (data.legalEntityCapitalCurrency ?? DEFAULT_CURRENCY)
+
+  return {
+    fields: {
+      name,
+      legalForm: data.legalEntityStatusKey,
+      siret: data.legalEntitySiret,
+      vatNumber: data.legalEntityVatNumber,
+      rcsCity: data.legalEntityRcsCity,
+      rcsNumber: isFrenchCountry(address?.country) ? null : data.legalEntityRcsNumber,
+      phone: data.legalEntityPhone,
+      capitalAmount,
+      capitalCurrency,
+    },
+    address,
+  }
+}
+
+function legalEntityCreate(slug: string, legal: LegalEntityDraft) {
+  return {
+    slug,
+    ...legal.fields,
+    ...(legal.address ? { address: { create: legal.address } } : {}),
+  }
+}
+
+function toCreateData(data: CompanyInput): Prisma.CompanyCreateInput {
+  const legal = toLegalEntityDraft(data)
+  return {
+    ...companyFields(data),
+    ...(legal ? { legalEntity: { create: legalEntityCreate(data.slug, legal) } } : {}),
+  }
+}
+
+interface CurrentLegalEntity {
+  addressId: string | null
+  publisher: { id: string } | null
+}
+
+function addressMutation(legal: LegalEntityDraft, current: CurrentLegalEntity | null) {
+  if (legal.address) return { upsert: { create: legal.address, update: legal.address } }
+  if (current?.addressId) return { delete: true as const }
+  return undefined
+}
+
+function toUpdateData(
+  data: CompanyInput,
+  current: CurrentLegalEntity | null,
+): Prisma.CompanyUpdateInput {
+  const legal = toLegalEntityDraft(data)
+  if (!legal) return companyFields(data)
+
+  const address = addressMutation(legal, current)
+  // Jamais de Publisher créé ici : seule l'entité de l'éditeur en porte un, posé hors de ce formulaire.
+  const publisher = current?.publisher
+    ? {
+        update: {
+          vatRegime: data.legalEntityVatRegime,
+          vatLiableSince: data.legalEntityVatLiableSince,
+        },
+      }
+    : undefined
+
+  return {
+    ...companyFields(data),
+    legalEntity: {
+      upsert: {
+        create: legalEntityCreate(data.slug, legal),
+        update: {
+          ...legal.fields,
+          ...(address ? { address } : {}),
+          ...(publisher ? { publisher } : {}),
+        },
+      },
+    },
   }
 }
 
@@ -31,11 +182,22 @@ function mapUniqueViolation(
 ): CompanyFormState | null {
   if (!isPrismaError(err, "P2002")) return null
 
-  if (violatedConstraint(err).includes("legalEntityId")) {
+  const constraint = violatedConstraint(err)
+  if (constraint.includes("siret")) {
     return {
       ok: false,
-      errors: { legalEntityId: ["Cette entité légale est déjà rattachée à une autre entreprise"] },
-      message: "legal_entity_taken",
+      errors: { legalEntitySiret: ["Ce SIRET est déjà porté par une autre entité légale"] },
+      message: "siret_taken",
+      values,
+    }
+  }
+  if (constraint.includes("LegalEntity_slug")) {
+    return {
+      ok: false,
+      errors: {
+        legalEntityName: ["Une entité légale porte déjà l'identifiant de cette entreprise"],
+      },
+      message: null,
       values,
     }
   }
@@ -47,21 +209,22 @@ function mapUniqueViolation(
   }
 }
 
+// L'entité légale de la société du propriétaire est celle de l'éditeur, lue par les pages légales.
 function invalidateCompanyCaches(): void {
   updateTag("projects")
-  revalidatePath("/admin/entreprises")
+  updateTag("legal-entity")
+  // Outre la liste des entreprises, les leads, contacts et opportunités affichent son nom et son logo.
+  revalidatePersonLists()
 }
 
-interface SaveCompanyEvents {
-  success: string
-  failure: string
-}
+const companyExists = (id: string) => rowExists(prisma.company, { id })
 
 function saveCompany(
   actionName: string,
-  events: SaveCompanyEvents,
+  events: ActionEvents,
   formData: FormData,
   persist: (data: CompanyInput) => Promise<unknown>,
+  updatedId?: string,
 ): Promise<CompanyFormState> {
   const values = collectValues(formData)
 
@@ -71,11 +234,14 @@ function saveCompany(
     schema: companySchema,
     input: values,
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateCompanyCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
     mapError: (err) => mapUniqueViolation(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "company_not_found",
+      updatedId,
+      exists: companyExists,
+    }),
   })
 }
 
@@ -91,7 +257,7 @@ export async function createCompany(
     "createCompany",
     { success: "company:created", failure: "company:create_failed" },
     formData,
-    (data) => prisma.company.create({ data }),
+    (data) => prisma.company.create({ data: toCreateData(data) }),
   )
 }
 
@@ -106,7 +272,22 @@ export async function updateCompany(
     "updateCompany",
     { success: "company:updated", failure: "company:update_failed" },
     formData,
-    (data) => prisma.company.update({ where: { id }, data }),
+    (data) =>
+      prisma.$transaction(async (tx) => {
+        const current = data.legalEntityName
+          ? await tx.company.findUnique({
+              where: { id },
+              select: {
+                legalEntity: { select: { addressId: true, publisher: { select: { id: true } } } },
+              },
+            })
+          : null
+        return tx.company.update({
+          where: { id },
+          data: toUpdateData(data, current?.legalEntity ?? null),
+        })
+      }),
+    id,
   )
 }
 
@@ -117,7 +298,31 @@ export async function deleteCompany(id: string): Promise<CompanyFormState> {
     actionName: "deleteCompany",
     events: { success: "company:deleted", failure: "company:delete_failed" },
     successLogFields: { id },
-    destroy: () => prisma.company.delete({ where: { id } }),
+    exists: () => companyExists(id),
+    // L'entité part avec l'entreprise, sauf si elle sert aux pages légales (éditeur, sous-traitant) : sa suppression les emporterait par cascade.
+    destroy: () =>
+      prisma.$transaction(async (tx) => {
+        const company = await tx.company.findUnique({
+          where: { id },
+          select: {
+            legalEntity: {
+              select: {
+                id: true,
+                addressId: true,
+                publisher: { select: { id: true } },
+                _count: { select: { processings: true } },
+              },
+            },
+          },
+        })
+        await tx.company.delete({ where: { id } })
+
+        const entity = company?.legalEntity
+        if (entity && !entity.publisher && entity._count.processings === 0) {
+          await tx.legalEntity.delete({ where: { id: entity.id } })
+          if (entity.addressId) await tx.address.delete({ where: { id: entity.addressId } })
+        }
+      }),
     invalidateCaches: invalidateCompanyCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     mapError: (err) =>

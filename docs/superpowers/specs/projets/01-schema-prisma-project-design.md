@@ -128,7 +128,7 @@ Aucune, ce sub-project est autoporté.
 - **Slug vide** : aucune contrainte applicative ici (le check passera par Zod dans le sub-project 02). Le schéma ne garantit que l'unicité, pas la validité du format slug.
 - **Suppression d'un `Tag` référencé** : bloquée par `onDelete: Restrict` sur `ProjectTag.tagId`. Pour supprimer un Tag : d'abord retirer les rows `ProjectTag` qui le référencent (suppression manuelle ou retrait du tag des `tagSlugs[]` de tous les projets + re-seed). Comportement voulu : évite les suppressions accidentelles qui videraient silencieusement les tags d'un projet.
 - **Deux projets donnent un `displayOrder` identique à leurs `ProjectTag`** : acceptable (c'est la valeur par-projet). Un tag peut être en position 0 sur le projet A et en position 3 sur le projet B, le modèle explicite le supporte nativement. La clé primaire composite `(projectId, tagId)` empêche uniquement le doublon exact d'une liaison projet-tag.
-- **Tag avec `icon = null`** : acceptable. Le rendu badge côté UI (sub-projects 05/06) utilisera alors un fallback texte seul (pas de glyphe). Cas typique : une techno sans logo Simple Icons connu (ex: un framework confidentiel), ou une expertise que l'on veut afficher textuellement.
+- **Tag avec `icon = null`** : acceptable. Le rendu badge côté UI (sub-projects 05/06) utilisera alors un fallback texte seul (pas de glyphe). Cas typique : une techno sans logo Simple Icons connu, ou une expertise que l'on veut afficher textuellement.
 - **Format `icon` invalide** : le schéma Prisma n'impose pas le format `<lib>:<slug>`. La validation est appliquée au seed (sub-project 03) via Zod (`z.string().regex(/^(simple-icons|lucide):[a-z0-9-]+$/).nullable()`). Si un icon invalide atteint la BDD (import direct SQL), le badge UI tombe en fallback texte.
 - **Projet avec `formats` vide** (`[]`) : acceptable (ex: donnée historique pas encore catégorisée). Le badge Format sur la card/case study est simplement absent. Le seed devrait toujours remplir au moins 1 format, un lint manuel peut attraper les oublis.
 - **Company sans `size` / `locations` / `sectors`** : tous les champs métier de Company sont optionnels sauf `slug` et `name`. Un projet très ancien peut avoir une entreprise minimale. L'UI case study affiche conditionnellement ces champs (si `null` / `[]` → masqué).
@@ -147,7 +147,7 @@ Aucune, ce sub-project est autoporté.
 
 **Rationale :**
 - Le contenu riche case study (contexte, défis, solution, screenshots) prend du temps à rédiger. Un état `DRAFT` permet de préparer un projet en BDD sans l'exposer publiquement.
-- Un projet client qui devient conflictuel (fin de mission, repositionnement) gagne à être `ARCHIVED` plutôt que supprimé, la data et les assets restent récupérables.
+- Un projet dont la mission est terminée gagne à être `ARCHIVED` plutôt que supprimé, la data et les assets restent récupérables.
 - Coût d'ajout maintenant = ~15 min (1 enum + 1 champ). Coût d'une migration `boolean` → `enum` plus tard = migration de données + refactor de toutes les queries.
 - `BRAINSTORM.md` sera mis à jour pour refléter la décision (modélisation vivante, pas figée).
 
@@ -161,7 +161,7 @@ Aucune, ce sub-project est autoporté.
 
 **Rationale :**
 - Les métadonnées CLIENT-only ne font sens que pour `type = CLIENT`. Les laisser sur `Project` pollue le modèle et ne garantit pas leur cohérence sémantique.
-- Extensibilité future : ajout trivial de `dailyRate`, `clientIndustry`, `role`, `testimonial`, `nda` sans modifier `Project`. Le user a explicitement anticipé que la liste pourrait grossir.
+- Extensibilité future : ajout trivial de `dailyRate`, `clientIndustry`, `role`, `testimonial`, `nda` sans modifier `Project`. La liste peut grossir.
 - Cost : +1 jointure à certaines queries (quand on veut afficher la carte "Freelance chez X, équipe de Y, statut Z"). Acceptable vu le volume.
 - Relation 1:1 optionnelle côté Prisma : `clientMeta ClientMeta?` sur `Project`, unique index `projectId` sur `ClientMeta`.
 
@@ -176,7 +176,7 @@ Aucune, ce sub-project est autoporté.
 
 **Rationale :**
 - Une entreprise peut avoir plusieurs missions (ex: 3 projets chez Acme). Option B permet de ne remplir `Company.name`, `Company.logoFilename`, `Company.websiteUrl` qu'une seule fois, réutilisés automatiquement.
-- Enrichissement portfolio : afficher "Freelance chez Acme (Assurance, ETI, Luxembourg)" ajoute du contexte fort pour prospects/recruteurs. Impossible avec option A (juste le nom).
+- Enrichissement portfolio : afficher "Freelance chez Acme (Assurance, ETI, France)" ajoute du contexte fort pour prospects/recruteurs. Impossible avec option A (juste le nom).
 - Extensibilité : ajouter `logo`, `testimonial`, `clientRelationship` plus tard est un ALTER TABLE simple sur Company, n'impacte pas les N missions.
 - Reverse relation `clientMetas` côté Company permet la query inverse ("liste des projets chez Acme") utile pour regrouper des réalisations par entreprise si besoin éditorial.
 - Coût : +1 table, +1 jointure sur la page case study CLIENT. Négligeable vu le volume.
