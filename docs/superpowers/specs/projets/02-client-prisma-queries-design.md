@@ -101,10 +101,10 @@ Conformément à la décision architecturale ci-dessous, un type unique `Project
 
 ### Scénario 5 : `findManyPublished` inclut les relations `tags` (via ProjectTag ordonné) et `clientMeta.company` nested
 
-**GIVEN** un projet CLIENT PUBLISHED lié à 3 tags via ProjectTag (un FRAMEWORK "React" avec `displayOrder=1`, une EXPERTISE "Scraping anti-bot" avec `displayOrder=0`, un INFRA "Docker" avec `displayOrder=2`), un ClientMeta avec `workMode: REMOTE`, et une Company `Airbus` (sectors: [LOGICIELS_ENTREPRISE], size: GROUPE, locations: [FRANCE])
+**GIVEN** un projet CLIENT PUBLISHED lié à 3 tags via ProjectTag (un FRAMEWORK "React" avec `displayOrder=1`, une EXPERTISE "Scraping anti-bot" avec `displayOrder=0`, un INFRA "Docker" avec `displayOrder=2`), un ClientMeta avec `workMode: REMOTE`, et une Company `Acme` (sectors: [LOGICIELS_ENTREPRISE], size: GROUPE, locations: [FRANCE])
 **WHEN** on appelle `findManyPublished()`
 **THEN** chaque élément du résultat a `tags: ProjectTag[]` (array non null, 3 rows ProjectTag triés par `displayOrder` ASC, scraping puis React puis Docker) où chaque `ProjectTag.tag` expose `slug`, `name`, `kind`, `icon` ; et `clientMeta: ClientMeta | null`
-**AND** si `clientMeta !== null`, il contient `clientMeta.company: Company` non-null avec le nom "Airbus", `clientMeta.workMode === 'REMOTE'`, `clientMeta.company.sectors === ['LOGICIELS_ENTREPRISE']`, `clientMeta.company.size === 'GROUPE'`
+**AND** si `clientMeta !== null`, il contient `clientMeta.company: Company` non-null avec le nom "Acme", `clientMeta.workMode === 'REMOTE'`, `clientMeta.company.sectors === ['LOGICIELS_ENTREPRISE']`, `clientMeta.company.size === 'GROUPE'`
 
 ### Scénario 6 : `findPublishedBySlug` retourne le projet avec relations (Company nested, tags ordonnés)
 
@@ -140,7 +140,7 @@ Conformément à la décision architecturale ci-dessous, un type unique `Project
 Chaque test suit le pattern `arrange → act → assert` avec :
 - **arrange** : insertion de fixtures via `prisma.company.create({ data: { ... } })` d'abord (une seule Company réutilisable), puis création des `Tag` référentiels, puis `prisma.project.create({ data: { ..., clientMeta: { create: { companyId, workMode, ... } }, tags: { create: [{ tag: { connect: { slug } }, displayOrder: 0 }, ...] } } })`. L'ordre est important : Company et Tag existent avant ClientMeta / ProjectTag (contraintes FK).
 - **act** : appel de la query testée
-- **assert** : vérification structurée via `expect(result).toMatchObject({ ... })` ou `expect(result.length).toBe(...)` + propriétés ciblées (y compris `result[0].clientMeta?.company?.name === 'Airbus'`)
+- **assert** : vérification structurée via `expect(result).toMatchObject({ ... })` ou `expect(result.length).toBe(...)` + propriétés ciblées (y compris `result[0].clientMeta?.company?.name === 'Acme'`)
 
 **Pas de test `none` au-delà de ces 7** (règle no-lib-test) :
 - Pas de test "le singleton s'instancie" → c'est du plumbing Prisma

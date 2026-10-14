@@ -457,12 +457,12 @@ describe('deleteAsset', () => {
   })
 
   it("refuse la suppression et nomme l'entreprise qui utilise le logo", async () => {
-    vi.mocked(prisma.company.findMany).mockResolvedValue([{ slug: 'acme' }] as never)
+    vi.mocked(prisma.company.findMany).mockResolvedValue([{ slug: 'globex' }] as never)
 
-    const state = await deleteAsset('freelance/crm/entreprises/acme/logo.png')
+    const state = await deleteAsset('freelance/crm/entreprises/globex/logo.png')
 
     expect(state.message).toBe('asset_in_use')
-    expect(state.usedBy).toContain('acme')
+    expect(state.usedBy).toContain('globex')
     expect(adminR2.send).not.toHaveBeenCalled()
   })
 })

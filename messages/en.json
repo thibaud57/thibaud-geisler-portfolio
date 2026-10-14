@@ -128,15 +128,18 @@
         "LOGICIELS_ENTREPRISE": "Enterprise Software",
         "ECOMMERCE": "E-commerce",
         "IA_AUTOMATISATION": "AI / Automation",
-        "EMARKETING": "E-marketing",
+        "MARKETING_COMMUNICATION": "Marketing / Communications",
         "BANQUE": "Banking",
+        "INDUSTRIE": "Industry",
+        "HEALTHTECH": "Healthtech",
+        "SECTEUR_PUBLIC": "Public sector",
         "AUTRE": "Other"
       },
       "companySize": {
-        "TPE": "Small (1-50)",
-        "PME": "Medium (50-250)",
-        "ETI": "Mid-large (250-5000)",
-        "GROUPE": "Enterprise (5000+)"
+        "TPE": "Micro-enterprise (fewer than 10 employees)",
+        "PME": "SME (10 to 249 employees)",
+        "ETI": "Mid-sized company (250 to 4,999 employees)",
+        "GROUPE": "Large enterprise (5,000+ employees)"
       },
       "kind": {
         "EXPERTISE": "Expertise",
@@ -164,9 +167,9 @@
       "portraitAlt": "Portrait of Thibaud Geisler"
     },
     "bio": {
-      "intro": "As a Full-stack developer specializing in AI and automation. I work as a freelancer with a diverse group of companies from small businesses to large enterprises. My expertise is in delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or hybrid.",
-      "positioning": "My positioning: AI in service of precise business use cases. I combine LLMs, automations and full-stack development to deliver simple and scalable solutions that actually solves the problem.",
-      "approach": "My approach: Scope your requirements with you, deliver quick prototype, iterate on tangible deliverables, and document for maintenance. I work in Agile mode to ship regularly and continously adapt to your feedback."
+      "intro": "I'm a full-stack developer specializing in AI and automation. As a freelancer, I work with a diverse range of companies, from small businesses to large enterprises. My expertise lies in delivering concrete, measurable and maintainable products. Based between France and Luxembourg, I work remotely or on a hybrid basis.",
+      "positioning": "My positioning: AI in service of precise business use cases. I combine LLMs, automations and full-stack development to deliver simple, scalable solutions that actually solve the problem.",
+      "approach": "My approach: scope your requirements with you, deliver a quick prototype, iterate on tangible deliverables and document for maintenance. I work in an Agile way to ship regularly and continuously adapt to your feedback."
     },
     "stats": {
       "years": {
@@ -228,7 +231,7 @@
       "placeholders": {
         "name": "Jane Doe",
         "company": "Acme Inc.",
-        "email": "jane@example.com",
+        "email": "jane.doe@example.com",
         "subject": "What's your message about?",
         "message": "Describe your need, your context and your questions…"
       },
@@ -298,7 +301,8 @@
     "ariaLabel": "Toggle theme"
   },
   "MobileMenu": {
-    "ariaLabel": "Open navigation menu"
+    "ariaLabel": "Open navigation menu",
+    "closeLabel": "Close navigation menu"
   },
   "Nav": {
     "home": "Home",
@@ -364,7 +368,7 @@
   },
   "PrivacyPolicy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: April 28, 2026",
+    "lastUpdated": "Last updated: October 3, 2026",
     "recipients": {
       "title": "3. Recipients and processors",
       "intro": "Personal data may be shared with the following processors for the described purposes:",
@@ -386,7 +390,7 @@
     },
     "rights": {
       "title": "5. Your rights",
-      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
+      "body": "Under GDPR, you have the following rights: access, rectification, erasure, objection, restriction, and data portability. You can object to prospecting at any time, without giving a reason. You can exercise these rights by writing to <mail>contact@thibaud-geisler.com</mail>. You also have the right to lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
     },
     "transfers": {
       "title": "6. Data transfers outside the European Union",
@@ -403,9 +407,19 @@
   },
   "Legal": {
     "legalStatus": {
-      "entrepreneurIndividuel": "Sole proprietorship",
-      "sarl": "LLC",
-      "incorporated": "Incorporated (US)"
+      "ENTREPRENEUR_INDIVIDUEL": "Sole proprietorship",
+      "EURL": "EURL",
+      "SARL": "LLC",
+      "SAS": "SAS",
+      "SASU": "SASU",
+      "SA": "SA",
+      "SNC": "SNC",
+      "SCI": "SCI",
+      "ASSOCIATION": "Association",
+      "SARL_LU": "S.à r.l. (Luxembourg)",
+      "SARL_S_LU": "S.à r.l.-S (Luxembourg)",
+      "SA_LU": "SA (Luxembourg)",
+      "INCORPORATED_US": "Incorporated (US)"
     },
     "ape": {
       "6201Z": "Computer programming"

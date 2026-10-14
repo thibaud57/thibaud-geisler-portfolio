@@ -2,6 +2,7 @@
 paths:
   - "src/app/**/api/assets/**"
   - "src/server/**/assets.ts"
+  - "src/server/assets/**"
   - "src/lib/**/asset*.ts"
   - "src/lib/r2.ts"
 ---
@@ -34,7 +35,7 @@ paths:
 - Le `params.path` d'un segment catch-all Next est toujours `string[]`, jamais `string` : pas besoin de split, passer le tableau directement à Zod
 - R2 rejette le calcul de checksum CRC32 que le SDK S3 récent active par défaut : sans `requestChecksumCalculation: "WHEN_REQUIRED"`, les opérations échouent avec un message qui n'oriente pas vers la cause (sources : `docs/knowledges/cloudflare-r2.md`)
 - Les objets de `portfolio-admin` se remplacent sur la même clé, un logo redéposé gardant son nom : la route gardée répond toujours `no-cache, no-store, must-revalidate`. Le `max-age=31536000, immutable` ne vaut que pour les assets publics, dont le nom change à chaque version
-- Le helper `src/server/config/assets.ts` doit importer `'server-only'` en tête pour empêcher tout import accidentel depuis un Client Component
+- Le helper `src/server/assets/serve-asset.ts` doit importer `'server-only'` en tête pour empêcher tout import accidentel depuis un Client Component
 - Dev et prod pointent des buckets R2 distincts (`portfolio-assets-dev` / `portfolio-assets`), chacun avec son propre token : un défaut propre à R2 se manifeste pendant le développement sans qu'une manipulation locale puisse atteindre les données de production
 
 ## Exemples

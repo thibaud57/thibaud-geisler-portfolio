@@ -1,7 +1,11 @@
 ---
 paths:
-  - "src/app/**/{page,layout}.tsx"
+  - "src/app/?locale?/**/{page,layout}.tsx"
   - "src/app/{robots,sitemap,manifest}.ts"
+  - "src/app/llms.txt/route.ts"
+  - "src/lib/seo.ts"
+  - "src/lib/seo/**/*.{ts,tsx}"
+  - "src/components/seo/*.tsx"
   - "src/app/favicon.ico"
   - "src/app/**/{icon,apple-icon,opengraph-image,twitter-image}.*"
 ---

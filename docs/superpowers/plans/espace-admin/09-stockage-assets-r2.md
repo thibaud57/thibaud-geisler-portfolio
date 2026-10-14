@@ -153,7 +153,7 @@ La correspondance ancien dossier vers nouveau **n'est pas déductible du nom de 
 | Dossier actuel | Slug du projet | Nouveau dossier |
 |---|---|---|
 | `projets/client/acme/` | `webapp-gestion-sinistres` | `projets/client/webapp-gestion-sinistres/` |
-| `projets/client/theodo-extend/` | `chatbot-agents-ia` | `projets/client/chatbot-agents-ia/` |
+| `projets/client/globex/` | `chatbot-agents-ia` | `projets/client/chatbot-agents-ia/` |
 | `projets/client/initech/` | `referent-ia-automatisation` | `projets/client/referent-ia-automatisation/` |
 | `projets/client/umbrella/` | `saas-gestion-paie` | `projets/client/saas-gestion-paie/` |
 | `projets/client/soylent/` | `erp-odoo-android` | `projets/client/erp-odoo-android/` |

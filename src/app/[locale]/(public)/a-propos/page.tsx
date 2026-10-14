@@ -4,10 +4,10 @@ import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
 
-import { AboutHero } from "@/components/features/about/AboutHero"
-import { NumberTickerStats } from "@/components/features/about/NumberTickerStats"
-import { TechStackBadges } from "@/components/features/about/TechStackBadges"
-import { PageShell } from "@/components/layout/PageShell"
+import { AboutHero } from "@/components/features/public/about/AboutHero"
+import { NumberTickerStats } from "@/components/features/public/about/NumberTickerStats"
+import { TechStackBadges } from "@/components/features/public/about/TechStackBadges"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { JsonLd } from "@/components/seo/json-ld"
 import { LabeledText } from "@/components/ui/labeled-text"
 import { MotionItem } from "@/components/ui/motion-item"
@@ -16,6 +16,7 @@ import { EXPERTISE } from "@/config/expertise"
 import { contactEmail, socialSameAs } from "@/config/social-links"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { buildAssetUrl } from "@/lib/assets"
+import { isVatLiable } from "@/lib/legal/vat-status"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildProfilePagePerson, type ProfilePagePersonInput } from "@/lib/seo/json-ld"
 import {
@@ -119,7 +120,16 @@ async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
     image: `${siteUrl}${buildAssetUrl("branding/portrait.jpg")}`,
     sameAs: socialSameAs,
     expertise: EXPERTISE,
-    legal: publisher?.siret ? { siret: publisher.siret, address: publisher.address } : undefined,
+    legal:
+      publisher?.siret && publisher.address
+        ? {
+            siret: publisher.siret,
+            address: publisher.address,
+            ...(isVatLiable(publisher.publisher) && publisher.vatNumber
+              ? { vatId: publisher.vatNumber }
+              : {}),
+          }
+        : undefined,
   })
 
   return <JsonLd data={profileJsonLd} />

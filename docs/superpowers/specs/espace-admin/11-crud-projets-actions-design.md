@@ -21,7 +21,7 @@ Aucun écran : la liste appartient au sub-project `12` et le formulaire au `13`.
 
 Tout projet porte une méta rattachée à une entreprise, quel que soit son type : un projet personnel est rattaché à la société du propriétaire, qui remplace dans le seed et en base l'entreprise factice `personnel`.
 
-Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement » en porte la suite prévue. Reste aussi hors périmètre l'affichage public : `ProjectCard` et `CaseStudyHeader` montrent la société du propriétaire comme n'importe quelle entreprise, le choix de masquer ou d'adapter ce bandeau appartient à un sub-project d'interface.
+Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette, `docs/BRAINSTORM.md` Feature 8 « Suivi du cycle de développement » en porte la suite prévue. Reste aussi hors périmètre l'affichage public : `ProjectCard` et `CaseStudyHeader` montrent la société du propriétaire comme n'importe quelle entreprise, le choix de masquer ou d'adapter ce bandeau appartient à un sub-project d'interface.
 
 ### État livré
 

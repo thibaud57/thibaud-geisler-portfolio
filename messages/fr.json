@@ -128,15 +128,18 @@
         "LOGICIELS_ENTREPRISE": "Logiciels d'entreprise",
         "ECOMMERCE": "E-commerce",
         "IA_AUTOMATISATION": "IA / Automatisation",
-        "EMARKETING": "E-marketing",
+        "MARKETING_COMMUNICATION": "Marketing / Communication",
         "BANQUE": "Banque",
+        "INDUSTRIE": "Industrie",
+        "HEALTHTECH": "Healthtech",
+        "SECTEUR_PUBLIC": "Secteur public",
         "AUTRE": "Autre"
       },
       "companySize": {
-        "TPE": "TPE (1-50)",
-        "PME": "PME (50-250)",
-        "ETI": "ETI (250-5000)",
-        "GROUPE": "Groupe (5000+)"
+        "TPE": "TPE (moins de 10 salariés)",
+        "PME": "PME (10 à 249 salariés)",
+        "ETI": "ETI (250 à 4 999 salariés)",
+        "GROUPE": "Grande entreprise (5 000 salariés et plus)"
       },
       "kind": {
         "EXPERTISE": "Expertises",
@@ -228,7 +231,7 @@
       "placeholders": {
         "name": "Jeanne Dupont",
         "company": "Acme SAS",
-        "email": "jeanne@exemple.com",
+        "email": "jeanne.dupont@example.com",
         "subject": "Sujet de votre message",
         "message": "Décrivez votre besoin, votre contexte et vos questions…"
       },
@@ -298,7 +301,8 @@
     "ariaLabel": "Changer de thème"
   },
   "MobileMenu": {
-    "ariaLabel": "Ouvrir le menu de navigation"
+    "ariaLabel": "Ouvrir le menu de navigation",
+    "closeLabel": "Fermer le menu de navigation"
   },
   "Nav": {
     "home": "Accueil",
@@ -364,7 +368,7 @@
   },
   "PrivacyPolicy": {
     "title": "Politique de confidentialité",
-    "lastUpdated": "Dernière mise à jour : 28 avril 2026",
+    "lastUpdated": "Dernière mise à jour : 3 octobre 2026",
     "recipients": {
       "title": "3. Destinataires et sous-traitants",
       "intro": "Les données personnelles peuvent être transmises aux sous-traitants suivants pour les finalités décrites :",
@@ -386,7 +390,7 @@
     },
     "rights": {
       "title": "5. Vos droits",
-      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
+      "body": "Conformément au RGPD, vous disposez des droits suivants : accès, rectification, effacement, opposition, limitation, portabilité de vos données. Vous pouvez vous opposer à tout moment, sans justification, à la prospection. Vous pouvez exercer ces droits en écrivant à <mail>contact@thibaud-geisler.com</mail>. Vous avez également le droit d'introduire une réclamation auprès de la <cnil>CNIL</cnil> (Commission nationale de l'informatique et des libertés)."
     },
     "transfers": {
       "title": "6. Transferts de données hors Union européenne",
@@ -403,9 +407,19 @@
   },
   "Legal": {
     "legalStatus": {
-      "entrepreneurIndividuel": "Entrepreneur Individuel",
-      "sarl": "SARL",
-      "incorporated": "Incorporated (US)"
+      "ENTREPRENEUR_INDIVIDUEL": "Entrepreneur Individuel",
+      "EURL": "EURL",
+      "SARL": "SARL",
+      "SAS": "SAS",
+      "SASU": "SASU",
+      "SA": "SA",
+      "SNC": "SNC",
+      "SCI": "SCI",
+      "ASSOCIATION": "Association",
+      "SARL_LU": "S.à r.l. (Luxembourg)",
+      "SARL_S_LU": "S.à r.l.-S (Luxembourg)",
+      "SA_LU": "SA (Luxembourg)",
+      "INCORPORATED_US": "Incorporated (US)"
     },
     "ape": {
       "6201Z": "Programmation informatique"

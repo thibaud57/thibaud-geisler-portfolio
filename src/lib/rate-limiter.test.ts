@@ -4,6 +4,12 @@ import { rateLimiter } from "./rate-limiter"
 describe("rateLimiter.check", () => {
   const opts = { max: 5, windowMs: 600_000 }
 
+  function exhaust(key: string, hits: number, options = opts) {
+    for (let i = 0; i < hits; i++) {
+      rateLimiter.check(key, options)
+    }
+  }
+
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-04-26T12:00:00Z"))
@@ -14,80 +20,64 @@ describe("rateLimiter.check", () => {
     vi.useRealTimers()
   })
 
-  it("autorise la première requête sur une nouvelle key", () => {
+  it("allows the first request on a new key", () => {
     const result = rateLimiter.check("1.2.3.4", opts)
 
     expect(result.allowed).toBe(true)
     expect(result.retryAfterSeconds).toBe(0)
   })
 
-  it("autorise la 5e requête consécutive (max=5)", () => {
-    for (let i = 0; i < 4; i++) {
-      rateLimiter.check("1.2.3.4", opts)
-    }
-    const fifth = rateLimiter.check("1.2.3.4", opts)
+  it.each([
+    ["allows the 5th request", 4, true],
+    ["rejects the 6th request", 5, false],
+  ])("%s (max=5)", (_label, previousHits, allowed) => {
+    exhaust("1.2.3.4", previousHits)
 
-    expect(fifth.allowed).toBe(true)
-    expect(fifth.retryAfterSeconds).toBe(0)
+    const result = rateLimiter.check("1.2.3.4", opts)
+
+    expect(result.allowed).toBe(allowed)
   })
 
-  it("rejette la 6e requête (rate limit) avec retryAfterSeconds > 0", () => {
-    for (let i = 0; i < 5; i++) {
-      rateLimiter.check("1.2.3.4", opts)
-    }
-    const sixth = rateLimiter.check("1.2.3.4", opts)
+  it("reports a retry delay within the window once limited", () => {
+    exhaust("1.2.3.4", 5)
 
-    expect(sixth.allowed).toBe(false)
-    expect(sixth.retryAfterSeconds).toBeGreaterThan(0)
-    expect(sixth.retryAfterSeconds).toBeLessThanOrEqual(600)
+    const result = rateLimiter.check("1.2.3.4", opts)
+
+    expect(result.retryAfterSeconds).toBeGreaterThan(0)
+    expect(result.retryAfterSeconds).toBeLessThanOrEqual(600)
   })
 
-  it("reset le compteur après que la fenêtre TTL expire", () => {
-    for (let i = 0; i < 5; i++) {
-      rateLimiter.check("1.2.3.4", opts)
-    }
-    expect(rateLimiter.check("1.2.3.4", opts).allowed).toBe(false)
-
+  it("allows requests again once the TTL window expires", () => {
+    exhaust("1.2.3.4", 5)
     vi.advanceTimersByTime(600_001)
 
-    const afterReset = rateLimiter.check("1.2.3.4", opts)
-    expect(afterReset.allowed).toBe(true)
-    expect(afterReset.retryAfterSeconds).toBe(0)
+    const result = rateLimiter.check("1.2.3.4", opts)
+
+    expect(result.allowed).toBe(true)
+    expect(result.retryAfterSeconds).toBe(0)
   })
 
-  it("isole les keys distinctes (req sur A ne décompte pas sur B)", () => {
-    for (let i = 0; i < 5; i++) {
-      rateLimiter.check("1.2.3.4", opts)
-    }
-    expect(rateLimiter.check("1.2.3.4", opts).allowed).toBe(false)
+  it("counts distinct keys separately", () => {
+    exhaust("1.2.3.4", 5)
 
-    const otherIp = rateLimiter.check("5.6.7.8", opts)
-    expect(otherIp.allowed).toBe(true)
-  })
+    const result = rateLimiter.check("5.6.7.8", opts)
 
-  it("respecte le cap LRU : évince la plus ancienne entrée au-delà du cap", () => {
-    const lruOpts = { max: 1, windowMs: 600_000, cap: 3 }
-
-    rateLimiter.check("key-1", lruOpts)
-    rateLimiter.check("key-2", lruOpts)
-    rateLimiter.check("key-3", lruOpts)
-    rateLimiter.check("key-4", lruOpts)
-    const result = rateLimiter.check("key-1", lruOpts)
     expect(result.allowed).toBe(true)
   })
 
-  it("vrai LRU : un hit récent protège la key de l'éviction (≠ FIFO)", () => {
-    const lruOpts = { max: 2, windowMs: 600_000, cap: 3 }
+  it("evicts the least recently used key, not the oldest inserted one", () => {
+    // max 1 : une clé gardée reste bloquée, seule une clé évincée repart à zéro.
+    const lruOpts = { max: 1, windowMs: 600_000, cap: 3 }
+    exhaust("key-1", 1, lruOpts)
+    exhaust("key-2", 1, lruOpts)
+    exhaust("key-3", 1, lruOpts)
+    exhaust("key-1", 1, lruOpts)
+    exhaust("key-4", 1, lruOpts)
 
-    rateLimiter.check("key-1", lruOpts)
-    rateLimiter.check("key-2", lruOpts)
-    rateLimiter.check("key-3", lruOpts)
+    const recentlyHit = rateLimiter.check("key-1", lruOpts)
+    const evicted = rateLimiter.check("key-2", lruOpts)
 
-    rateLimiter.check("key-1", lruOpts)
-
-    rateLimiter.check("key-4", lruOpts)
-
-    expect(rateLimiter.check("key-1", lruOpts).allowed).toBe(false)
-    expect(rateLimiter.check("key-2", lruOpts).allowed).toBe(true)
+    expect(recentlyHit.allowed).toBe(false)
+    expect(evicted.allowed).toBe(true)
   })
 })

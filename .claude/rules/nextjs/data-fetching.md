@@ -9,6 +9,7 @@ paths:
 ## À faire
 - Faire les queries directement dans les Server Components `async`, sans couche API intermédiaire
 - Lire la base du site public **sous `<Suspense>`, après `await io()`**, en appelant une query `'use cache'` + `cacheLife()` + `cacheTag()` de `src/server/queries/` : le composant sort du prerender, la query se met en cache à la requête ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md))
+- **Exception : les lectures de l'espace admin** (`*ForAdmin` et assimilées) restent sans `'use cache'`, sous le `<Suspense>` de leur page, gardée par `getCurrentUser()` : l'administration doit relire la base juste après ses propres mutations
 - Paralléliser les lectures indépendantes par `Promise.all()`, jamais deux `await` indépendants à la suite (waterfall)
 - `await cookies()`, `await headers()`, `await draftMode()`, `await searchParams`, `await params` : APIs async, hard error si sync en Next 16
 - Utiliser `after(callback)` de `next/server` pour le logging ou l'analytics non bloquants, en lisant `cookies()`/`headers()` **avant** : ils lèvent une erreur dans le callback

@@ -2,6 +2,7 @@
 paths:
   - "src/{app,components}/**/*.tsx"
   - "src/hooks/**/*.ts"
+  - "src/components/**/use*.ts"
   - "src/lib/theme.ts"
 ---
 

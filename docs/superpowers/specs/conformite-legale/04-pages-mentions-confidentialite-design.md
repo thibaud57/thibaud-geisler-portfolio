@@ -136,7 +136,7 @@ date: "2026-04-28"
 
 Setup minimal : Vitest project `unit` (env jsdom par défaut, mais ce helper est pure logic, env node compatible aussi). Pas de mock nécessaire. Pas de fixture partagée. Tests directs avec assertions `expect(...).toBe(...)`.
 
-Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
+Tests délibérément exclus (no-lib-test) :
 - Tests de rendu des Server Components (Vitest + jsdom ne supportent pas les RSC async, voir `.claude/rules/nextjs/tests.md`). Couvert par les acceptance scenarios end-to-end (View Source + DevTools).
 - Tests du contenu de `messages/{fr,en}.json` (testerait next-intl, pas la logique projet).
 - Tests de `<OpenCookiePreferencesButton>` (3 lignes, testerait le hook du sub 3 + Button shadcn = libs).
@@ -151,7 +151,7 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 - **DB vide (publisher absent)** : `getPublisher()` lève `NotFoundError` (Prisma `findUniqueOrThrow`). Le Server Component remonte l'erreur, qui est interceptée par le `error.tsx` le plus proche (à créer post-MVP, pas ce sub-project). Pour MVP : si la DB est seedée correctement, ce cas n'arrive jamais. Si non seedée, page `/fr/mentions-legales` 500. Acceptable car la DB EST seedée à la mise en prod.
 - **Section "Transferts hors UE" vide** : si aucun `outsideEuFramework` n'est non-null dans le seed (cas hypothétique sans Calendly), la section est entièrement omise (return null). Pas de message "Aucun transfert".
 - **Tableau sous-traitants vide** (DataProcessing array vide) : section "Destinataires / sous-traitants" affiche un message i18n générique du type "Le site n'utilise actuellement aucun sous-traitant". Cas peu probable MVP (Calendly + IONOS toujours là), mais le code est défensif.
-- **Mention TVA `vatRegime === 'ASSUJETTI'` post-bascule de Thibaud** : si Thibaud dépasse le seuil franchise (37 500 EUR HT/an prestations services 2026) et bascule en assujetti, le seed sera mis à jour avec `vatRegime: 'ASSUJETTI'` + `vatNumber: 'FRXX880419122'`. La page rend alors le numéro TVA intracommunautaire formatté à la place de la mention 293 B. Couvert par condition `if (publisher.publisher.vatRegime === 'FRANCHISE') ... else ...`.
+- **Mention TVA `vatRegime === 'ASSUJETTI'`** : si le régime de TVA change, le seed est mis à jour. La page rend alors le numéro TVA intracommunautaire formatté à la place de la mention 293 B. Couvert par condition `if (publisher.publisher.vatRegime === 'FRANCHISE') ... else ...`.
 - **`publisher.capitalAmount === null`** (cas EI Thibaud, pas de capital) : la section Identité ne rend pas de ligne capital. Pour les sous-traitants société (IONOS = SARL au capital de 100 000 EUR), le capital est rendu côté UI en concaténant `t('Legal.legalStatus.{legalStatusKey}')` + `capitalAmount` formaté + `capitalCurrency` (le schéma post-`schema_cleanup` ne stocke PAS de colonnes `legalStatusFr/En` BDD, le format final est composé au render).
 - **Format SIRET invalide en BDD** (corrupt ou typo) : `formatSiret` retourne tel quel. La page affiche la string brute (lisible mais non formattée). Acceptable MVP. Validation au seed déjà couverte par sub 1 (tests integration).
 - **`<OpenCookiePreferencesButton>` rendu hors `<ConsentManagerProvider>`** : impossible en pratique car le Provider wrap toute l'arbre via `Providers.tsx`. Si le développeur supprime accidentellement le Provider, le hook `useConsentManager()` (de `@c15t/nextjs`) lève une erreur explicite. Pas de gestion défensive supplémentaire.
@@ -214,6 +214,6 @@ Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > 
 **Choix : A**
 
 **Rationale :**
-- Si Thibaud dépasse le seuil franchise (37 500 EUR HT/an prestations services 2026) en cours d'année, il bascule automatiquement en `vatRegime: ASSUJETTI` avec un numéro TVA intracommunautaire à publier. L'option B forcerait à modifier le code à ce moment-là (~1 ligne de condition à ajouter quand même). L'option A est ready day-one.
+- Si le régime de TVA change, le seed est mis à jour et un numéro TVA intracommunautaire est à publier. L'option B forcerait à modifier le code à ce moment-là (~1 ligne de condition à ajouter quand même). L'option A est ready day-one.
 - Coût marginal de l'option A : 5 lignes de JSX conditionnel. Acceptable.
 - Trade-off : si on n'utilise jamais la branche `ASSUJETTI`, on a 5 lignes de code mort. Mais le test de condition est trivial (`if (vatRegime === 'FRANCHISE')`), pas de risque de bug.

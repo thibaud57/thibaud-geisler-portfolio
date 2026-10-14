@@ -99,6 +99,8 @@ L'Option C (hybride) est souvent le choix pragmatique en pratique : shadcn/ui po
 
 **Magic UI et Aceternity UI** : bibliothèques copy-paste d'effets visuels (animations, glows, spotlight, reveals, bento grids...) conçues pour se greffer sur shadcn/ui. Pas de conflit entre elles, on copie uniquement les effets nécessaires depuis l'une ou l'autre. Les effets retenus et leur mapping par composant sont dans [DESIGN.md](../DESIGN.md) § Composants Animés.
 
+Amendement du 2026-10-14 : le registry **ReUI** (`@reui`, déclaré dans `components.json`) complète shadcn/ui pour l'espace admin avec le kanban et l'agenda mensuel que le registry shadcn n'a pas. Même modèle copy-paste, composants copiés sous `src/components/reui/`. Il ne relève pas de la couche d'effets visuels du site public.
+
 **Espace admin (post-MVP)** : shadcn/ui seul couvre la majorité des besoins (tables, forms, modales, KPI cards). Magic UI et Aceternity UI ne s'appliquent pas à l'espace admin, leur usage est réservé aux surfaces marketing du site public.
 
 **Références :**

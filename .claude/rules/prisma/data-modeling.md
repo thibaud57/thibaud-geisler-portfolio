@@ -1,7 +1,6 @@
 ---
 paths:
   - "prisma/schema.prisma"
-  - "prisma/migrations/**"
 ---
 
 # Prisma 7 — Modélisation des données

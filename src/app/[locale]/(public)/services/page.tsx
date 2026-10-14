@@ -6,9 +6,9 @@ import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl 
 import { buildBreadcrumbList, buildOfferCatalog } from "@/lib/seo/json-ld"
 
 import { MotionItem } from "@/components/ui/motion-item"
-import { ServiceCard } from "@/components/features/services/ServiceCard"
-import { SERVICE_SLUGS } from "@/components/features/services/service-slugs"
-import { PageShell } from "@/components/layout/PageShell"
+import { ServiceCard } from "@/components/features/public/services/ServiceCard"
+import { SERVICE_SLUGS } from "@/components/features/public/services/service-slugs"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { JsonLd } from "@/components/seo/json-ld"
 
 export async function generateMetadata(
@@ -35,8 +35,10 @@ const ABOVE_THE_FOLD_COUNT = 3
 
 export default async function ServicesPage({ params }: PageProps<"/[locale]/services">) {
   const { locale } = await setupLocalePage(params)
-  const t = await getTranslations("ServicesPage")
-  const tMeta = await getTranslations("Metadata")
+  const [t, tMeta] = await Promise.all([
+    getTranslations("ServicesPage"),
+    getTranslations("Metadata"),
+  ])
   const breadcrumbJsonLd = buildBreadcrumbList({
     locale,
     siteUrl,

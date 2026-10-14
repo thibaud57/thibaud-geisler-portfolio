@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/get-current-user"
 import { adminR2, R2_ADMIN_BUCKET } from "@/lib/r2"
-import { serveAsset } from "@/server/config/assets"
+import { serveAsset } from "@/server/assets/serve-asset"
 
 export async function GET(
   _request: Request,

@@ -4,6 +4,7 @@ paths:
   - "src/env.ts"
   - "src/server/**/*.ts"
   - "src/app/api/**/*.ts"
+  - "scripts/**/*.ts"
 ---
 
 # Zod — Schémas & Typing

@@ -170,7 +170,7 @@ En pratique, le test 2 peut être réalisé via un smoke test `curl http://local
 
 ### Scénario 6 : Metadata SEO localisée
 
-**GIVEN** un projet PUBLISHED en BDD avec `title = 'Acme'` et `description = 'Dev Scala/Angular chez Acme Luxembourg'`
+**GIVEN** un projet PUBLISHED en BDD avec `title = 'Acme'` et `description = 'Dev Scala/Angular chez Acme'`
 **WHEN** on inspecte le `<head>` de `/fr/projets/acme`
 **THEN** `<title>` contient `Acme` (éventuellement suffixé par le template global du projet)
 **AND** `<meta name="description">` contient la description exacte

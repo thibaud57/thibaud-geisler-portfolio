@@ -119,7 +119,7 @@ Aucune, ce sub-project est autoporté. Il consomme en lecture seule des modules 
 
 Setup : factories `buildProfileInput(overrides?)` et `buildBreadcrumbInput(overrides?)` (convention vue dans `.claude/rules/nextjs/tests.md`). Constante `SITE_URL_FIXTURE = 'https://thibaud-geisler.com'` réutilisée. Aucun mock de `next-intl`, `next/cache`, Prisma, `next/navigation` : les helpers sont 100% purs.
 
-Tests délibérément exclus (no-lib-test, voir `~/.claude/CLAUDE.md` § Code > Tests) :
+Tests délibérément exclus (no-lib-test) :
 - `src/components/seo/json-ld.tsx` : 5 lignes triviales (`JSON.stringify` + `replace` + `dangerouslySetInnerHTML`). Test = framework React + regex documentée.
 - `src/config/expertise.ts` : constante typée, pas de logique.
 - L'intégration dans les 4 pages : couverte par les acceptance scénarios (Google Rich Results Test + View Source).

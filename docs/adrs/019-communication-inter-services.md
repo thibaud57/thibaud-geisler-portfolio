@@ -12,7 +12,7 @@ technologies: ["Docker", "Traefik", "Dokploy", "FastAPI", "Next.js"]
 
 Le découpage acté en [ADR-015](015-decoupage-services.md) fait cohabiter une application Next.js et trois services Python sur le même VPS Dokploy. Le portfolio porte tous les fronts et doit appeler ces services.
 
-Quatre projets Dokploy existent déjà : Portfolio, Scrappers, VPN et Automation. Deux domaines sont en service : `thibaud-geisler.com` pour la vitrine, `example.org` pour les outils d'infrastructure.
+Plusieurs projets Dokploy existent déjà. Deux domaines sont en service : `thibaud-geisler.com` pour la vitrine, un second domaine d'infrastructure pour les outils.
 
 ---
 
@@ -79,14 +79,14 @@ Internet
    ▼
 Traefik
    ├── thibaud-geisler.com    portfolio (public + /admin)   seul point sous l'auth du portfolio
-   ├── n8n.example.org     n8n            authentification propre
-   ├── vpn.example.org     wg-easy        authentification propre
-   └── collecte.example.org            clé d'API en en-tête
+   ├── n8n.example.org          n8n            authentification propre
+   ├── vpn.example.org          wg-easy        authentification propre
+   └── collecte.example.org     service interne de collecte de pages publiques, clé d'API en en-tête
 
 Réseau Docker interne, ni Traefik, ni domaine, ni internet
    ├── portfolio-chatbot:8000
    ├── rag-documents:8000
-   └── agent-os                 API interne de dépôt de jobs
+   └── agent-os                 API interne des jobs et des sessions
 ```
 
 **Un conteneur peut appartenir à plusieurs réseaux.** Les projets Dokploy sont un regroupement visuel, pas une frontière réseau : un réseau Docker externe partagé permet à des services de projets différents de se parler sans aucune exposition.
@@ -95,7 +95,7 @@ Réseau Docker interne, ni Traefik, ni domaine, ni internet
 
 **Authentification de service.** Un jeton partagé, injecté par variable d'environnement, suffit tant que le réseau n'est pas exposé. Il protège d'un conteneur tiers compromis sur le même réseau, pas d'internet, qui n'y a pas accès.
 
-**Domaines et session.** Le cookie de session Better Auth est posé sur `thibaud-geisler.com` et ne traverse pas vers `example.org`, faute de racine commune. **Tout ce qui est protégé par l'authentification de l'espace admin reste sur le domaine du portfolio.** Une future interface authentifiée séparée serait un sous-domaine de `thibaud-geisler.com`, jamais sur l'autre domaine.
+**Domaines et session.** Le cookie de session Better Auth est posé sur `thibaud-geisler.com` et ne traverse pas vers le domaine d'infrastructure, faute de racine commune. **Tout ce qui est protégé par l'authentification de l'espace admin reste sur le domaine du portfolio.** Une future interface authentifiée séparée serait un sous-domaine de `thibaud-geisler.com`, jamais sur l'autre domaine.
 
 ---
 
@@ -121,5 +121,7 @@ Réseau Docker interne, ni Traefik, ni domaine, ni internet
 **Un projet Dokploy n'est pas une frontière réseau.** Dokploy injecte `dokploy-network` dans les Applications créées depuis son UI, mais un compose déployé manuellement atterrit sur son propre réseau : il faut y déclarer `dokploy-network` en réseau externe et l'attacher explicitement. C'est l'anti-pattern relevé dans [knowledges/dokploy.md](../knowledges/dokploy.md) § Anti-Patterns ; la marche à suivre détaillée y reste à écrire au moment de déployer le premier service Python.
 
 **Limites de ressources par conteneur**, en particulier sur `agent-os` dont les pics pendant les builds peuvent dégrader le site public qui tourne sur la même machine.
+
+**Flux d'événements des sessions.** Les sessions Claude Code d'`agent-os` ([ADR-026](026-execution-claude-code-abonnement.md)) produisent un flux : l'état des runs et le texte de l'assistant interne au fil de l'eau. Il remonte au portfolio sur ce même réseau interne, en Server-Sent Events, et le portfolio le relaie au navigateur. Les messages du propriétaire redescendent par l'API interne. Les alertes et les réponses des runs passent par Telegram, que `agent-os` interroge en long polling : connexions sortantes uniquement, aucun port à ouvrir. Le schéma requête-réponse reste la règle, ce flux n'expose rien de plus.
 
 **Partage de code plutôt que de service.** Ce qui se partage entre applications sans état commun (configuration LLM, patterns d'agents, télémétrie) passe par le package `ai-kit`, pas par un service réseau. Un service partagé ne se justifie que lorsque de la donnée ou un état doivent l'être.

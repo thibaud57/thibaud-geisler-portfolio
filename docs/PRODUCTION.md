@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-09-03"
+date: "2026-10-03"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
@@ -87,6 +87,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
+- [ ] Si la release embarque la migration `20261006100000_legal_entity_optional_fields` (elle remet `Publisher.vatRegime` à NULL, redéfinit l'enum en `REEL_SIMPLIFIE` / `REEL_NORMAL` et ajoute `vatLiableSince`) : ressaisir la date d'assujettissement et le régime TVA de l'éditeur (Entreprises → fiche de l'éditeur → card Entité légale), puis vérifier `/fr/mentions-legales` (numéro de TVA affiché à la place de la mention 293 B quand l'éditeur est assujetti) et le `vatID` du JSON-LD de `/fr/a-propos`. Si la release charge aussi un dump de la dev (§ Procédure : Remplir la base depuis un dump de dev), `Publisher` est tronquée puis rechargée depuis la dev : ressaisir en dev avant `just db-dump`, ou en production après le chargement. La page légale déduit la franchise de l'absence de `vatLiableSince` (`src/lib/legal/vat-status.ts`), un oubli affiche donc la mention de franchise à un éditeur assujetti
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
@@ -398,6 +399,19 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
 
+## Demandes RGPD
+
+Procédure pour une demande reçue sur une personne du Traitement 7, prospection et réseau professionnel ([registre-traitements.md](registre-traitements.md)).
+
+| Droit | Procédure |
+|-------|-----------|
+| **Accès** (réponse sous 1 mois, exigence CNIL) | Aucun écran dédié : réunir à la main tout ce qui concerne la personne (sa fiche, ses actions de prospection, ses opportunités, ses entretiens, ses signaux) |
+| **Rectification** | Correction directe de la fiche depuis l'écran d'administration (`08`, `13`) |
+| **Opposition** (art. 21) | Bouton « Ne plus contacter » (`OptOutPersonDialog`) sur la page d'un lead en modification, actionnable à tout moment et sans justification : appelle `optOutPerson(id)`, qui réduit la fiche à ce qui identifie la personne (email, LinkedIn), pose `Person.optedOutAt` une seule fois, supprime ses signaux, conserve le rôle Lead et l'historique, figé (aucune action créée, modifiée, replanifiée ni changée de statut, seule la suppression reste permise), retire le rôle Contact : une personne opposée sort du réseau, la trace de l'opposition restant sur son rôle Lead. Sa case « La personne demande aussi l'effacement de nos échanges » enchaîne aussitôt `erasePersonExchanges(id)`. Une fiche opposée ne se modifie pas (`updateLead` la refuse) et ne se supprime qu'au terme de ses 3 ans (`deleteLead` la refuse avant) |
+| **Effacement** des échanges (art. 17.1.c) | À tout moment après l'opposition : second geste, bouton « Effacer les échanges » (`ErasePersonExchangesDialog`), action de ligne dans Leads > Tous sur une fiche opposée sans date d'effacement. Il appelle seul `erasePersonExchanges(id)`, qui retire les actions de prospection (message envoyé et réponse reçue) et la place de correspondant d'entretien de la personne, pose `Person.exchangesErasedAt` une seule fois. L'action disparaît de la ligne dès cette date posée |
+| **Fin de conservation** | Leads > Tous, filtre « Échéance : Dépassée ». Un lead actif échu (3 ans après sa création ou sa dernière réponse) se relance pour savoir s'il souhaite rester, puis se supprime depuis l'écran sans réponse positive. Une fiche opposée échue (3 ans après `optedOutAt`) retrouve sur sa ligne le bouton Supprimer, à la place de « Effacer les échanges » : suppression définitive de la fiche et de ses actions. Aucune purge automatique : ce filtre se consulte à la main. Un contact sans rôle Lead n'a pas d'échéance : il se supprime à sa demande (« Supprimer ») |
+| **Journal des demandes** | Date de la demande, nature, réponse, date de l'effacement le cas échéant. Tenu hors de ce dépôt, dans une note privée, parce qu'il contient des noms |
+
 ## Security Headers
 
 Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-Powered-By: Next.js`).
@@ -661,25 +675,61 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 3. Database `portfolio-db` → onglet Backups → choisir la sauvegarde, **vérifier son horodatage**, lancer la restauration (détail du mécanisme : [knowledges/dokploy.md](knowledges/dokploy.md))
 4. Relancer l'app : `docker unpause $(docker ps -qf name=nextjs)`
 5. Smoke test : accueil, `/projets`, formulaire de contact
+6. **Rejouer les demandes RGPD survenues depuis l'horodatage de la sauvegarde restaurée** (§ Demandes RGPD) : les oppositions et effacements à partir de `Person.optedOutAt` et `Person.exchangesErasedAt`, les rectifications à partir du journal des demandes. Les sauvegardes gardent 30 jours, une restauration peut ramener des données déjà traitées
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
 ### Procédure : Remplir la base depuis un dump de dev
 
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), après répétition sur une base locale à l'état de la prod.
+> Exécutée en production le 2026-09-25, après répétition sur une base locale à l'état de la prod.
 
 1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
-2. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
-3. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
+2. **Vérifier que la production n'a pas bougé depuis le dernier chargement**, le `TRUNCATE` effaçant toute saisie faite depuis. Même requête sur la production et sur la base de dev avant les ajouts à transférer :
+   ```bash
+   sudo docker exec -i $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+   SELECT 'Project' AS t, count(*), max("updatedAt") FROM public."Project"
+   UNION ALL SELECT 'ClientMeta', count(*), max("updatedAt") FROM public."ClientMeta"
+   UNION ALL SELECT 'Tag', count(*), max("updatedAt") FROM public."Tag"
+   UNION ALL SELECT 'ProjectTag', count(*), NULL FROM public."ProjectTag"
+   UNION ALL SELECT 'Company', count(*), max("updatedAt") FROM freelance."Company"
+   UNION ALL SELECT 'Publisher', count(*), max("updatedAt") FROM public."Publisher"
+   UNION ALL SELECT 'DataProcessing', count(*), max("updatedAt") FROM public."DataProcessing"
+   UNION ALL SELECT 'LegalEntity', count(*), max("updatedAt") FROM public."LegalEntity"
+   UNION ALL SELECT 'Address', count(*), max("updatedAt") FROM public."Address"
+   UNION ALL SELECT 'Person', count(*), max("updatedAt") FROM freelance."Person"
+   UNION ALL SELECT 'Lead', count(*), max("updatedAt") FROM freelance."Lead"
+   UNION ALL SELECT 'ProspectingAction', count(*), max("updatedAt") FROM freelance."ProspectingAction"
+   UNION ALL SELECT 'Contact', count(*), max("updatedAt") FROM freelance."Contact"
+   UNION ALL SELECT 'Opportunity', count(*), max("updatedAt") FROM freelance."Opportunity"
+   UNION ALL SELECT 'Interview', count(*), max("updatedAt") FROM freelance."Interview"
+   UNION ALL SELECT 'Signal', count(*), max("updatedAt") FROM freelance."Signal"
+   UNION ALL SELECT 'WeeklyReview', count(*), max("updatedAt") FROM freelance."WeeklyReview";
+   SQL
+   ```
+   Sur la base de dev : `docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev' <<'SQL'`, même requête, prise sur la base de dev **avant** les ajouts à transférer (relevé pris au début de la reprise, avant le `--write`). Les comptes doivent être égaux et aucun `max("updatedAt")` de production postérieur au dernier chargement (la date la plus récente du blockquote ci-dessus, qui s'enrichit à chaque chargement). Sinon, reporter en dev les saisies faites en production, puis refaire le dump. Une fois le CRM transféré, la production est la source de vérité du CRM et un remplissage par dump l'écrase : d'où ce contrôle
+3. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
+4. **Logos d'entreprise**, avant le chargement : un objet copié en trop est inoffensif, une clé référencée sans objet casse l'affichage. Copier de `portfolio-admin-dev` vers `portfolio-admin` chaque objet que la base de dev référence ; recopier un logo déjà présent en production le remplace par le même fichier. Liste des clés, sur la base de dev :
+   ```bash
+   docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -At' <<'SQL' > logos.txt
+   SELECT "logoFilename" FROM freelance."Company" WHERE "logoFilename" LIKE 'freelance/crm/entreprises/%';
+   SQL
+   while read -r key; do
+     rm -f logo.png
+     wrangler r2 object get "portfolio-admin-dev/$key" --remote --jurisdiction eu --file logo.png < /dev/null || { echo "échec get $key"; break; }
+     wrangler r2 object put "portfolio-admin/$key" --remote --jurisdiction eu --file logo.png --content-type image/png < /dev/null || { echo "échec put $key"; break; }
+   done < logos.txt
+   ```
+   Un `échec` imprimé arrête la boucle : reprendre à cette clé avant d'aller plus loin. Relire chaque objet copié (`wrangler r2 object get "portfolio-admin/$key" --remote --jurisdiction eu --file relu.png`) : pour une clé `logo-<hash>.png`, les 12 premiers caractères de `sha256sum relu.png` égalent ce hash ; pour une autre clé, `sha256sum` donne la même empreinte sur l'objet de dev et sur celui de production. Supprimer ensuite `logos.txt`, `logo.png` et `relu.png`
+5. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
    ```bash
    sudo docker exec $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c '
    pg_restore -l /tmp/content.dump | grep -v _prisma_migrations > /tmp/content.list
-   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
+   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Signal\", freelance.\"_InterviewCorrespondents\", freelance.\"Interview\", freelance.\"Opportunity\", freelance.\"ProspectingAction\", freelance.\"Contact\", freelance.\"Lead\", freelance.\"WeeklyReview\", freelance.\"Person\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
      pg_restore --data-only --disable-triggers -L /tmp/content.list -f - /tmp/content.dump
      echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
    ```
-4. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
-5. Smoke test : accueil, `/projets`, une page projet
+6. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
+7. Smoke test : accueil, `/projets`, une page projet, `/fr/mentions-legales`, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
 
 > ⚠️ Un échec annule toute la transaction, les tables restent intactes. `--disable-triggers` exige un superuser, ce qu'est l'utilisateur de `portfolio-db` (relevé du 2026-09-25).
 

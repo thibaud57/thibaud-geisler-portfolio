@@ -4,6 +4,7 @@ import "server-only"
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
+import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { computeIdsAtPosition, renumberEntities, sameIdSet } from "@/lib/reorder"
@@ -16,7 +17,16 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./shared"
+import {
+  type ActionEvents,
+  deleteEntity,
+  formStateHandlers,
+  MISSING_COMPANY,
+  MISSING_TAG,
+  missingRelationState,
+  rowExists,
+  saveEntity,
+} from "./_support/shared"
 import { type ProjectFormState, type ProjectReorderState } from "./projects.types"
 
 // Seule lecture du FormData : le même objet est validé puis réaffiché en cas d'échec, les deux ne
@@ -50,7 +60,7 @@ function collectValues(formData: FormData): ProjectFormState["values"] {
 
 function invalidateProjectCaches(): void {
   updateCacheTag("projects")
-  revalidatePath("/admin/projets")
+  revalidatePath(ADMIN_PROJECTS_PATH)
 }
 
 // Champs du projet lui-même, séparés de ceux qui alimentent ClientMeta : Prisma refuserait
@@ -85,21 +95,11 @@ function mapConstraintViolation(
 
   // Entreprise ou tag supprimé entre l'affichage du formulaire et son envoi.
   if (isPrismaError(err, "P2003") && constraint.includes("companyId")) {
-    return {
-      ok: false,
-      errors: { companyId: ["Cette entreprise n'existe plus, recharge la page"] },
-      message: "company_not_found",
-      values,
-    }
+    return missingRelationState("companyId", MISSING_COMPANY, values)
   }
 
   if (isPrismaError(err, "P2003") && constraint.includes("tagId")) {
-    return {
-      ok: false,
-      errors: { tagIds: ["Un des tags n'existe plus, recharge la page"] },
-      message: "tag_not_found",
-      values,
-    }
+    return missingRelationState("tagIds", MISSING_TAG, values)
   }
 
   return null
@@ -138,7 +138,7 @@ function replaceProjectTags(
 }
 
 // L'ordre courant se lit dans la transaction, ce qui ferme la fenêtre entre sa lecture et son
-// écriture. READ COMMITTED ne sérialise pas pour autant deux transactions concurrentes, et rien en
+// écriture. READ COMMITTED ne sérialise pas pour autant deux transactions concurrentes. Rien en
 // base n'interdit deux projets au même rang : la mutation suivante renumérote l'ensemble.
 async function createProjectWithRelations(input: ProjectInput) {
   return prisma.$transaction(async (tx) => {
@@ -189,16 +189,14 @@ async function updateProjectWithRelations(id: string, input: ProjectInput) {
   })
 }
 
-interface SaveProjectEvents {
-  success: string
-  failure: string
-}
+const projectExists = (id: string) => rowExists(prisma.project, { id })
 
 function saveProject(
   actionName: string,
-  events: SaveProjectEvents,
+  events: ActionEvents,
   formData: FormData,
   persist: (input: ProjectInput) => Promise<string>,
+  updatedId?: string,
 ): Promise<ProjectFormState> {
   const values = collectValues(formData)
 
@@ -208,11 +206,15 @@ function saveProject(
     schema: projectSchema,
     input: values,
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateProjectCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
     mapError: (err) => mapConstraintViolation(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "project_not_found",
+      updatedId,
+      exists: projectExists,
+    }),
+    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
   })
 }
 
@@ -244,6 +246,7 @@ export async function updateProject(
     { success: "project:updated", failure: "project:update_failed" },
     formData,
     (input) => updateProjectWithRelations(id, input),
+    id,
   )
 }
 
@@ -254,6 +257,7 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
     actionName: "deleteProject",
     events: { success: "project:deleted", failure: "project:delete_failed" },
     successLogFields: { id },
+    exists: () => projectExists(id),
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await tx.project.delete({ where: { id } })
@@ -270,7 +274,6 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
       }),
     invalidateCaches: invalidateProjectCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    mapError: () => null,
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
 }

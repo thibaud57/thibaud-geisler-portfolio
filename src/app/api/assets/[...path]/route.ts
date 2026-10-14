@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from "@/lib/r2"
 import { isCompanyLogoKey } from "@/lib/asset-keys"
-import { serveAsset } from "@/server/config/assets"
+import { serveAsset } from "@/server/assets/serve-asset"
 
 const ROUTE_LABEL = "/api/assets/[...path]"
 

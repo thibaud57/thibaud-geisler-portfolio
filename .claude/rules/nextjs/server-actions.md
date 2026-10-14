@@ -14,6 +14,8 @@ paths:
 - Invalider par `revalidatePath(path)` (layout ou page entière) ou `revalidateTag(tag, profile)` (par tag)
 - Privilégier `updateTag(tag)` (read-your-writes) quand l'auteur doit voir sa modification immédiatement
 - Passer des arguments supplémentaires par `bind()` (compatible progressive enhancement)
+- Exporter l'état initial et les types qu'importe le client depuis un module voisin `<module>.types.ts` : un module `'use server'` n'exporte que des fonctions async, toute autre valeur casse le build
+- Ranger les helpers partagés par les actions, sans `'use server'`, dans `src/server/actions/_support/` : chaque export d'un module `'use server'` devient un endpoint public
 
 ## À éviter
 - `revalidateTag(tag)` avec un seul argument : **déprécié** Next 16, signature `revalidateTag(tag, profile)` où profile est `'max'`, `'hours'`, `'days'` ou `{ expire: 0 }`

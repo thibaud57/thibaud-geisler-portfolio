@@ -143,7 +143,7 @@ export default async function HomePage({
 ```
 
 ```tsx
-// src/components/layout/Navbar.tsx — Client Component
+// src/components/layout/public/Navbar.tsx — Client Component
 'use client'
 import { useTranslations } from 'next-intl'
 

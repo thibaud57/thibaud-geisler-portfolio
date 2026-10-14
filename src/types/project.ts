@@ -1,13 +1,24 @@
 import type { Prisma } from "@/generated/prisma/client"
 import type { LocalizedProject, LocalizedTag } from "@/i18n/localize-content"
 
+// Champs publics uniquement : les données CRM de l'entreprise (notes, types, statut) ne doivent jamais partir dans une page publique.
+export const PUBLIC_COMPANY_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  logoFilename: true,
+  websiteUrl: true,
+  sectors: true,
+  size: true,
+} as const satisfies Prisma.CompanySelect
+
 export const PROJECT_INCLUDE = {
   tags: {
     include: { tag: true },
     orderBy: { displayOrder: "asc" },
   },
   clientMeta: {
-    include: { company: true },
+    include: { company: { select: PUBLIC_COMPANY_SELECT } },
   },
 } as const satisfies Prisma.ProjectInclude
 

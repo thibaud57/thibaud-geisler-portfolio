@@ -4,19 +4,26 @@ import "server-only"
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
 
 import type { Prisma, TagKind } from "@/generated/prisma/client"
+import { ADMIN_TAGS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { computeIdsAtPosition, removeId, renumberEntities, sameIdSet } from "@/lib/reorder"
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./shared"
+import {
+  type ActionEvents,
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+} from "./_support/shared"
 import { type TagDeleteState, type TagFormState, type TagReorderState } from "./tags.types"
 
 function invalidateTagCaches(): void {
   updateCacheTag("tags")
   updateCacheTag("projects")
-  revalidatePath("/admin/tags")
+  revalidatePath(ADMIN_TAGS_PATH)
 }
 
 async function findCategoryIds(kind: TagKind): Promise<string[]> {
@@ -99,16 +106,14 @@ async function deleteTagWithReorder(id: string) {
   })
 }
 
-interface SaveTagEvents {
-  success: string
-  failure: string
-}
+const tagExists = (id: string) => rowExists(prisma.tag, { id })
 
 function saveTag(
   actionName: string,
-  events: SaveTagEvents,
+  events: ActionEvents,
   formData: FormData,
   persist: (data: TagInput) => Promise<unknown>,
+  updatedId?: string,
 ): Promise<TagFormState> {
   return saveEntity<TagInput, TagFormState, unknown>({
     actionName,
@@ -116,14 +121,17 @@ function saveTag(
     schema: tagSchema,
     input: Object.fromEntries(formData),
     persist,
+    successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateTagCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
     mapError: (err) =>
       isPrismaError(err, "P2002")
         ? { ok: false, errors: { slug: ["Ce slug est déjà utilisé."] }, message: "slug_taken" }
         : null,
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
+    ...formStateHandlers<TagInput, "tag_not_found">(undefined, {
+      message: "tag_not_found",
+      updatedId,
+      exists: tagExists,
+    }),
   })
 }
 
@@ -155,6 +163,7 @@ export async function updateTag(
     { success: "tag:updated", failure: "tag:update_failed" },
     formData,
     (data) => updateTagWithReorder(id, data),
+    id,
   )
 }
 
@@ -165,6 +174,7 @@ export async function deleteTag(id: string): Promise<TagDeleteState> {
     actionName: "deleteTag",
     events: { success: "tag:deleted", failure: "tag:delete_failed" },
     successLogFields: { id },
+    exists: () => tagExists(id),
     destroy: () => deleteTagWithReorder(id),
     invalidateCaches: invalidateTagCaches,
     onSuccess: () => ({ ok: true, message: null }),

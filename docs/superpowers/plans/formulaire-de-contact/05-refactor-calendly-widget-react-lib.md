@@ -57,7 +57,7 @@ Expected: ligne `react-calendly 4.4.x`.
 
 - [ ] **Step 2.1: Créer le fichier avec les helpers extraits**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio/src/lib/server-utils.ts`
+Chemin : `src/lib/server-utils.ts`
 
 ```typescript
 import 'server-only'
@@ -190,7 +190,7 @@ Expected: pas d'erreur ni warning bloquant.
 
 - [ ] **Step 5.1: Créer le fichier avec la Server Action**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio/src/server/actions/calendly.ts`
+Chemin : `src/server/actions/calendly.ts`
 
 ```typescript
 'use server'
@@ -242,7 +242,7 @@ Expected: pas d'erreur ni warning bloquant.
 
 - [ ] **Step 6.1: Créer le fichier avec le hook complet**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio/src/hooks/use-calendly-inline.ts`
+Chemin : `src/hooks/use-calendly-inline.ts`
 
 ```typescript
 'use client'
@@ -390,7 +390,7 @@ Expected: pas d'erreur. Note : `react-hooks/exhaustive-deps` peut warner sur `in
 
 - [ ] **Step 7.1: Réécrire intégralement le fichier**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio/src/components/features/contact/CalendlyWidget.tsx`
+Chemin : `src/components/features/contact/CalendlyWidget.tsx`
 
 ```typescript
 'use client'

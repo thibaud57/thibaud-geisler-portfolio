@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import type { ProjectType } from "@/generated/prisma/client"
 import { localizeProject } from "@/i18n/localize-content"
 import { getProjectDuration, type ProjectDuration } from "@/lib/projects"
+import { companyRefSelect } from "@/server/queries/company-ref"
 import { PROJECT_INCLUDE, type LocalizedProjectWithRelations } from "@/types/project"
 
 export async function findManyPublished(params: {
@@ -59,7 +60,7 @@ export async function findAllProjectsForAdmin() {
   return prisma.project.findMany({
     include: {
       clientMeta: {
-        include: { company: { select: { id: true, name: true, logoFilename: true } } },
+        include: { company: { select: companyRefSelect } },
       },
       tags: { include: { tag: true }, orderBy: { displayOrder: "asc" } },
     },

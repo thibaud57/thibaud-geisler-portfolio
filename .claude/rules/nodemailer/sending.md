@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/server/actions/**/*.ts"
+  - "src/server/actions/contact*.ts"
 ---
 
 # nodemailer — Envoi depuis une Server Action

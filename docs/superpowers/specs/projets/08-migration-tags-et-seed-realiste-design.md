@@ -17,7 +17,7 @@ Quatre changements complémentaires, regroupés car ils touchent le couple `pris
 
 1. **Schema `Tag.displayOrder`** : ajouter `displayOrder Int @default(0)` sur model `Tag` via migration Prisma + adapter `findPublishedTags` pour `orderBy: [{ displayOrder: 'asc' }, { slug: 'asc' }]`. ProjectTag.displayOrder reste inchangé (ordre par-projet, complémentaire).
 2. **Schema `Project.deliverablesCount`** : ajouter `deliverablesCount Int @default(1)` sur model `Project`. Permet de déclarer manuellement le nombre de réalisations livrées au sein d'une mission (ex: 3 chez Acme pour 3 applications, 2 chez Soylent pour ERP Odoo + App Android, 1 par défaut). Adapter `countMissionsDelivered` pour faire `SUM(deliverablesCount)` au lieu de `COUNT(*)`.
-3. **Seed tags curation** : ajouter `elasticsearch` (utilisé chez Acme, à confirmer dans `webapp-gestion-sinistres.tagSlugs`). Supprimer `vercel` (jamais déployé dessus). Conserver `local`, `piagent`, `rag`, `spring`, `spring-boot` avec positions actées. Définir `displayOrder` selon ordre custom user par TagKind, en incréments de 1 (0, 1, 2, ...).
+3. **Seed tags curation** : ajouter `elasticsearch` (utilisé chez Acme, à confirmer dans `webapp-gestion-sinistres.tagSlugs`). Supprimer `vercel`. Conserver `local`, `piagent`, `rag`, `spring`, `spring-boot` avec positions actées. Définir `displayOrder` selon l'ordre acté par TagKind, en incréments de 1 (0, 1, 2, ...).
 4. **i18n labels stats `/a-propos`** : renommer `stats.clients.label` de `clients servis` → `clients accompagnés` (FR) / `clients supported` (EN). Le label `stats.missions.label` reste `projets clients livrés` mais le chiffre derrière = SUM(deliverablesCount).
 
 **Exclu** : refonte UI des pages /a-propos ou /projets (déjà livrées) ; ajout de nouveaux projets ou companies (le seed actuel couvre tout le parcours réel via `webapp-gestion-sinistres` mission Acme + `erp-odoo-android` Soylent + `saas-gestion-paie` Umbrella + `referent-ia-automatisation` Initech) ; modification des case studies markdown existants.
@@ -114,13 +114,12 @@ Aucune, ce sub-project est autoporté. Les éléments réutilisés sont déjà l
 **Options envisagées :**
 - **A. `deliverablesCount` sur Project** : 1 row Project = 1 mission, avec un compteur de livrables qui peut être > 1. Le case study markdown détaille les sous-réalisations.
 - **B. Split en multiples Project** : 1 row Project = 1 livrable. La mission Acme se traduit en 3 rows (3 applications distinctes).
-- **C. Garder l'état actuel (1 row = 1 mission, COUNT)** : compteur `countMissionsDelivered` reste un COUNT, le chiffre sous-estime la réalité (3 au lieu de 6).
+- **C. Garder l'état actuel (1 row = 1 mission, COUNT)** : compteur `countMissionsDelivered` reste un COUNT.
 
 **Choix : A**
 
 **Rationale :**
-- Préserve le narratif fort des case studies (la mission Acme est racontée d'un seul tenant : 3 ans, évolution junior → confirmé, hackathon, 3 apps livrées).
-- Évite la perception "spam de cards" sur /projets (3 cards Acme côte à côte donnerait l'impression de remplissage).
+- Préserve le narratif fort des case studies (la mission Acme est racontée d'un seul tenant).
 - Honnête : tu déclares manuellement le nombre de livrables, pas de magie cachée.
 - Compteur fidèle à la réalité (6 livrables au lieu de 3).
 - Coût trivial : 1 colonne additive, defaults rétrocompatibles, agg `_sum` Prisma natif.
@@ -153,11 +152,11 @@ Toutes résolues. Aucun blocker pour démarrer l'implémentation.
 - ✅ Position `elasticsearch` (INFRA) : entre `datadog` et `sentry` (`displayOrder: 6`).
 - ✅ Linker `elasticsearch` à `webapp-gestion-sinistres.tagSlugs` (utilisé chez Acme).
 - ✅ Ne PAS ajouter `mcp` à `referent-ia-automatisation.tagSlugs` (laisser le seed actuel intact).
-- ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0` (mission de conseil sans livrable mis en prod à ce jour).
+- ✅ `deliverablesCount` pour `referent-ia-automatisation` : `0`.
 - ✅ Label "clients servis" → "clients accompagnés" (FR) / "clients supported" (EN).
 - ✅ Label "projets clients livrés" : conservé, chiffre derrière = SUM(deliverablesCount).
 - ✅ Pas d'ajout de nouveaux projets (option a, 1 row = 1 mission).
 
 ## Suite envisagée (hors scope)
 
-**Mécanisme de masquage de tags pour /a-propos** : à terme, le user souhaite ne pas afficher certains tags publiés (`php`, `local`) sur la page d'agrégation `/a-propos` tout en les conservant dans la DB pour les case studies projets. Pistes : ajouter un flag `Tag.hiddenOnAbout: Boolean` ou un seuil `displayOrder >= N → masqué`. À scoper en sub-project séparé si besoin réel apparaît.
+**Mécanisme de masquage de tags pour /a-propos** : à terme, certains tags publiés (`php`, `local`) pourraient ne pas être affichés sur la page d'agrégation `/a-propos` tout en les conservant dans la DB pour les case studies projets. Pistes : ajouter un flag `Tag.hiddenOnAbout: Boolean` ou un seuil `displayOrder >= N → masqué`. À scoper en sub-project séparé si besoin réel apparaît.

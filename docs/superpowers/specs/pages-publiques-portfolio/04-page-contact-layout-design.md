@@ -52,7 +52,7 @@ Aucune, ce sub-project est autoporté. Éléments déjà livrés réutilisés sa
 - **Champs du form** :
   - `name` : `<Input type="text" name="name" required placeholder="Votre nom complet" />`
   - `company` : `<Input type="text" name="company" placeholder="Nom de votre entreprise (optionnel)" />`, pas de `required`
-  - `email` : `<Input type="email" name="email" required placeholder="vous@exemple.com" />`
+  - `email` : `<Input type="email" name="email" required placeholder="vous@example.com" />`
   - `subject` : `<Input type="text" name="subject" required defaultValue={defaultSubject} placeholder="Sujet de votre message" />`
   - `message` : `<Textarea name="message" required rows={6} placeholder="Décrivez votre besoin, votre contexte, vos questions..." />`
   - `submit` : `<Button type="submit">Envoyer</Button>` (variant default)

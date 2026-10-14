@@ -17,7 +17,7 @@ Remplacer la page d'attente `/admin/projets` par trois vues de la liste des proj
 
 Exclut l'édition, portée par le sub-project `13`.
 
-Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette (`docs/BRAINSTORM.md` Feature 6 « Suivi du cycle de développement »). Aucune colonne ni aucun filtre ne leur est consacré.
+Restent hors périmètre, faute de support en base : la phase du projet et la date de mise en production que montre la maquette (`docs/BRAINSTORM.md` Feature 8 « Suivi du cycle de développement »). Aucune colonne ni aucun filtre ne leur est consacré.
 
 ### État livré
 
@@ -81,8 +81,8 @@ Restent hors périmètre, faute de support en base : la phase du projet et la da
 | Date fin | `endedAt`, triable | oui |
 | Durée | calculée depuis `startedAt`/`endedAt` (ou aujourd'hui si en cours) | oui |
 | Équipe | `clientMeta.teamSize`, aligné à droite, mono | oui |
-| Liens | `githubUrl`/`demoUrl`, liens « GitHub · Démo » cliquables vers un nouvel onglet, ou tiret | oui |
-| Statut | `status`, pastille + libellé (Brouillon/Publié/Archivé) | oui |
+| Liens | `githubUrl`/`demoUrl`, liens « GitHub · Démo » cliquables vers un nouvel onglet, ou tiret ; écart avec la maquette, qui écrivait un texte joint, réalignée le 2026-10-01 | oui |
+| Statut | `status`, puce colorée et libellé (Brouillon/Publié/Archivé), badge dans l'en-tête de la vue détail ; écart avec la maquette, qui alternait badge et texte, réalignée le 2026-10-02, badge d'en-tête le 2026-10-12 | oui |
 | Actions | édition + suppression | non |
 
 Le tri par colonne, avec `aria-sort` et le cycle croissant/décroissant/ordre d'affichage déjà porté par le `DataTable`, ne s'applique qu'à Titre, Date début et Date fin, comme la maquette : les autres colonnes n'ont pas de `sortValue`.

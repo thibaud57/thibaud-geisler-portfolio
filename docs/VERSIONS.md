@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-11"
+date: "2026-10-14"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026** (pnpm et Prettier : **11 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), Tiptap et tippy.js (**14 octobre 2026**).
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -23,7 +23,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | pnpm | `12.11.2` | ⚠️ | Montée depuis 11.28.2 le 11 octobre 2026. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. **Dependabot ne publie pas encore le support de pnpm 12** (dernière release `v0.399.0` du 5 octobre 2026, PR de support fusionnées le 9 octobre 2026) : ses PR npm peuvent échouer d'ici là |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 | ESLint | `10.12.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.71.1` |
-| Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; aucun plugin de tri Tailwind installé |
+| Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
 
 ## Framework & UI
 
@@ -36,6 +36,9 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | cn | `0.4.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels) |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
+| ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. `Kanban` et `EventCalendar` installés |
+| dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) | `6.3.1`, `10.0.0`, `3.2.2` | ✅ | Glisser-déposer du `Kanban` ReUI, que ces paquets servent au 8 octobre 2026. Relevé dans `pnpm-lock.yaml` le 8 octobre 2026 |
+| @date-fns/tz | `1.5.0` | ✅ | Fuseaux horaires de l'`EventCalendar` ReUI, compagnon de `date-fns` (`4.4.0`). Relevé dans `pnpm-lock.yaml` le 9 octobre 2026 |
 | motion | `14.0.0` | ✅ | Animations des composants Magic UI (`motion/react`). Aucun breaking change de l'API React en v14 (guide de migration officiel) |
 | next-intl | `4.14.9` | ✅ | Nécessite Next.js >= 16.3 pour `use cache`. `alternateLinks: false` : les hreflang viennent des seules métadonnées |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
@@ -58,6 +61,10 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Sentry (`@sentry/nextjs`) | `11.6.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : spans des Server Actions absents (relevé en 11.1.0 le 3 octobre 2026, non revalidé en 11.6.0), capture d'erreur et tracing routes/queries opérationnels. Détail : § Sentry |
 | @aws-sdk/client-s3 | `3.1147.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.7` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
+| sharp | `0.35.5` | ✅ | Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Même version que la dépendance optionnelle de Next 16.4.0 (`^0.35.4`, résolue en 0.35.5 dans `pnpm-lock.yaml`), épinglée sans `^` pour garder une seule copie dans le lockfile (épingle passée de 0.35.4 à 0.35.5 le 12 octobre 2026) |
+| decode-ico | `0.4.1` | ✅ | Plus grande image d'un conteneur ICO, que sharp ne lit pas (spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026). JavaScript pur, trois dépendances du même auteur, dernière version publiée en novembre 2022 |
+| Tiptap (`@tiptap/core`, `@tiptap/pm`, `@tiptap/react`, `@tiptap/markdown`, `@tiptap/starter-kit`, 10 autres) | `3.31.3` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024), éditeur markdown de l'admin. 15 paquets `@tiptap/*` épinglés sans `^`, à monter ensemble. `@tiptap/markdown` est présenté comme « early release » par la documentation Tiptap et normalise espaces et marques de liste au réenregistrement. Détail : § Tiptap |
+| tippy.js | `6.3.7` | ✅ | Menu `/` de l'éditeur (`src/components/ui/editor/slash-command/suggestion.tsx`). Importé par le code copié, pas par Tiptap 3 qui passe par Floating UI. Détail : § Tiptap |
 
 ## Tests
 
@@ -435,7 +442,36 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `14.0.0` installée depuis le 9 octobre 2026 (« There are no breaking changes in Motion for React in version 14 », guide de migration officiel). Utiliser la syntaxe namespacée.
 
-### 7. next-intl
+### 7. ReUI
+
+**Version actuelle** : pas de versioning sémantique (copy-paste via registry shadcn)
+**Stabilité** : ✅
+
+Registre déclaré dans `components.json` (`@reui` → `https://reui.io/r/{style}/{name}.json`), `{style}` se résolvant en `radix-nova`. Au 9 octobre 2026, `Kanban` (`src/components/reui/kanban.tsx`) et `EventCalendar` (`src/components/reui/event-calendar/`) sont installés.
+
+**Compatibilité Écosystème** :
+- shadcn CLI : ✅ (`pnpm dlx shadcn@latest add @reui/kanban`)
+- React 19 / Tailwind CSS 4 : ✅
+
+**Issues connues** :
+- Le code livré demande les mêmes corrections que les autres registries (import `cn` depuis le paquet npm `cn` à réécrire vers `@/lib/utils`, puis `pnpm remove cn`), plus `Context.Provider` à passer en `<Context value>` et les lectures indexées à sécuriser pour `noUncheckedIndexedAccess`. Voir `.claude/rules/shadcn-ui/setup.md`
+
+**Recommandation** : ✅ Relire le fichier livré et lancer `just typecheck` et `just lint` après chaque ajout.
+
+### 8. dnd-kit
+
+**Versions actuelles** : `@dnd-kit/core` `6.3.1`, `@dnd-kit/sortable` `10.0.0`, `@dnd-kit/utilities` `3.2.2` (`@dnd-kit/accessibility` `3.1.1` en transitive)
+**Stabilité** : ✅
+
+Tirés par `Kanban` de ReUI lors de son installation. Au 8 octobre 2026, aucun autre code du projet ne les importe.
+
+**Compatibilité Écosystème** :
+- React 19 : ✅ (peer `react >=16.8.0` sur les quatre paquets, `react-dom >=16.8.0` sur `core`)
+- `@dnd-kit/sortable` 10.0.0 exige `@dnd-kit/core` `^6.3.0`
+
+**Recommandation** : ✅ Ne pas les mettre à jour isolément du composant `Kanban`, qui en épouse l'API.
+
+### 9. next-intl
 
 **Version actuelle** : `4.14.9`
 **Stabilité** : ✅
@@ -466,7 +502,7 @@ pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 
 **Recommandation** : ✅ next-intl 4.14.9 avec Next.js 16.3+.
 
-### 8. @icons-pack/react-simple-icons
+### 10. @icons-pack/react-simple-icons
 
 **Version actuelle** : `13.15.1`
 **Stabilité** : ✅
@@ -485,12 +521,12 @@ Wrapper React de Simple Icons. Les icônes sont importées nommément depuis le 
 
 **Recommandation** : ✅ 13.15.1.
 
-### 9. country-flag-icons
+### 11. country-flag-icons
 
 **Version actuelle** : `1.6.20`
 **Stabilité** : ✅
 
-Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-icons/react/3x2/FR`. Le projet n'utilise que FR et GB, dans `src/components/layout/LanguageSwitcher.tsx`.
+Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-icons/react/3x2/FR`. Le projet n'utilise que FR et GB, dans `src/components/layout/public/LanguageSwitcher.tsx`.
 
 **Gotcha TypeScript 6** : le package n'expose pas de type public pour ses composants. Le mapping locale vers drapeau se type en dérivant le type d'un import concret plutôt qu'en le déclarant :
 
@@ -664,7 +700,7 @@ Un seul rôle : faire échouer la compilation si un module serveur est importé 
 **Version actuelle** : `4.4.0`
 **Stabilité** : ✅
 
-Wrapper React du widget Calendly. Le projet utilise `InlineWidget` et le hook typé `useCalendlyEventListener`, dans `src/components/features/contact/CalendlyWidget.tsx`.
+Wrapper React du widget Calendly. Le projet utilise `InlineWidget` et le hook typé `useCalendlyEventListener`, dans `src/components/features/public/contact/CalendlyWidget.tsx`.
 
 **Compatibilité Écosystème** :
 - React 19 : ✅ (peers `react >= 16.8.0`, `react-dom >= 16.8.0`)
@@ -753,6 +789,60 @@ Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5
 **Modèles Prisma écrits à la main** : `@better-auth/cli generate` fusionne ses modèles dans le schéma existant puis réécrit tout `prisma/schema.prisma`, sans jamais émettre `@@schema(...)` sur les modèles qu'il ajoute (générateur Prisma de la 1.7.5, `packages/cli/src/generators/prisma.ts`). Son incompatibilité Prisma 7 (issue better-auth#6277) est corrigée depuis la 1.4.5 (PR #6459). Les quatre modèles (`User`, `Session`, `Account`, `Verification`) sont transcrits à la main depuis la documentation du schéma Better Auth, annotés `@@schema("auth")`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification`.
 
 **Recommandation** : ✅ Better Auth 1.7.7 en place. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
+
+### 12. sharp
+
+**Version actuelle** : `0.35.5`
+**Stabilité** : ✅
+
+Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Version lue dans `pnpm-lock.yaml` au 12 octobre 2026.
+
+**Compatibilité Écosystème** :
+- Next.js 16.4.0 : ✅ même version que sa dépendance optionnelle (`^0.35.4`), une seule copie de `sharp` installée
+- Docker alpine : ✅ binaires musl publiés, aucun `libc6-compat` dans le `Dockerfile`
+- pnpm : ✅ autorisé à compiler via `allowBuilds` dans `pnpm-workspace.yaml`
+
+**Point de vigilance** : garder la version alignée sur celle de Next à chaque montée de Next. Un écart installerait une seconde copie de `sharp` (binaires natifs en double).
+
+**Recommandation** : ✅ sharp 0.35.5 en place, épinglée sans `^`.
+
+### 13. decode-ico
+
+**Version actuelle** : `0.4.1`
+**Stabilité** : ✅
+
+Extraction des images d'un conteneur ICO, format que `sharp` ne lit pas : le récupérateur de logo garde la plus grande (PNG tel quel, ou pixels RGBA d'un DIB rendus par `sharp`). Spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026. Version lue dans `pnpm-lock.yaml` au 12 octobre 2026.
+
+**Compatibilité Écosystème** :
+- Node.js 24 : ✅ JavaScript pur, aucune compilation native, aucun ajout à `allowBuilds`
+- sharp 0.35.5 : ✅ les pixels d'un DIB entrent par l'option `raw` de `sharp`
+- Docker alpine : ✅ rien à installer
+
+**Point de vigilance** : dernière publication en novembre 2022 et dépendances du même auteur (`decode-bmp`, `@canvas/image-data`, `to-data-view`). Le format ICO ne bouge plus, mais une alerte de sécurité sur l'une d'elles n'aurait pas de correctif rapide : remplacer alors par un parseur maison des seules entrées PNG et DIB 32 bits, les cas rencontrés.
+
+**Recommandation** : ✅ decode-ico 0.4.1 en place, épinglée sans `^`.
+
+### 14. Tiptap
+
+**Versions actuelles** : `3.31.3` sur les 15 paquets `@tiptap/*` (`core`, `pm`, `react`, `markdown`, `starter-kit`, `suggestion`, `extension-image`, `extension-link`, `extension-list`, `extension-placeholder`, `extension-table`, `extension-table-cell`, `extension-table-header`, `extension-table-row`, `extension-underline`), `tippy.js` `6.3.7` (plage `^6.3.7`)
+**Stabilité** : ⚠️
+
+Éditeur markdown des champs texte longs de l'espace admin (ADR-024). C'est le « Pages CMS Editor », copié dans le projet par la CLI shadcn depuis le registre `https://editor.pagescms.org/r/editor.json` (URL directe, sans entrée `registries` dans `components.json`). Ses fichiers vivent sous `src/components/ui/editor/` (`index.tsx`, `labels.ts`, `slash-command/`, `typeset.css`). Seul `src/components/features/admin/form/MarkdownEditorField.tsx` l'importe : le site public n'embarque jamais l'éditeur. Pas de versioning sémantique côté registre, le code copié est maintenu par le projet. Versions lues dans `package.json` et `pnpm-lock.yaml` le 14 octobre 2026.
+
+`tippy.js` n'est pas une dépendance de Tiptap 3 : l'éditeur copié l'importe pour le popup du menu `/` (`slash-command/suggestion.tsx`). Tiptap 3 a remplacé tippy.js par Floating UI dans ses propres menus (`@floating-ui/dom` `1.8.0` résolu dans le lockfile).
+
+**Compatibilité Écosystème** :
+- React 19 : ✅ peers de `@tiptap/react` 3.31.3 sur `react` et `react-dom` en `^17.0.0 || ^18.0.0 || ^19.0.0` (registre npm, relevé par tech-researcher le 14 octobre 2026)
+- Next.js 16 : documentation Tiptap générique (App Router et Pages Router), aucune mention de Next.js 16 lue. Éditeur monté côté client avec `immediatelyRender: false` (`src/components/ui/editor/index.tsx`), le réglage que le guide Next.js de Tiptap impose contre les erreurs d'hydratation
+- Entrée et sortie markdown : `@tiptap/markdown` via `contentType: "markdown"`, le markdown restant le seul format stocké
+
+**Issues connues** :
+- `@tiptap/markdown` : la page `tiptap.dev/docs/editor/markdown` le décrit comme « early release » (résumé de page, pas lecture brute). Les commentaires ne sont pas supportés (perte possible au remplacement du document) et les cellules de tableau n'acceptent qu'un nœud enfant
+- Tiptap relit puis réécrit le markdown : la première modification d'un contenu existant peut en changer la forme sans changer le rendu (ADR-024)
+
+**Point de vigilance** : `@tiptap/react` exige `@tiptap/core` et `@tiptap/pm` (peers lus dans le lockfile) et tous les paquets sont épinglés à la même version. Monter les 15 ensemble, jamais l'un seul. `tippy.js` reste tant que `slash-command/suggestion.tsx` l'importe.
+
+**Recommandation** : ✅ Après chaque montée Tiptap, relire `src/components/ui/editor/` puis lancer `just typecheck`, `just lint` et l'enregistrement d'un champ markdown existant.
 
 ## Tests
 
@@ -1424,6 +1514,8 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [Magic UI : Docs](https://magicui.design/docs)
 - [Motion : guide de migration](https://motion.dev/docs/react-upgrade-guide)
 - [Aceternity UI : Install Next.js](https://ui.aceternity.com/docs/install-nextjs)
+- [ReUI : Docs](https://reui.io)
+- [dnd-kit : Docs](https://docs.dndkit.com)
 - [next-intl 4.0 Blog](https://next-intl.dev/blog/next-intl-4-0)
 
 ### Librairies applicatives
@@ -1434,6 +1526,12 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [nodemailer : CHANGELOG](https://github.com/nodemailer/nodemailer/blob/master/CHANGELOG.md)
 - [Pino : getpino.io](https://getpino.io)
 - [pino-nextjs-example](https://github.com/pinojs/pino-nextjs-example)
+- [sharp : Documentation](https://sharp.pixelplumbing.com/)
+- [decode-ico : README](https://github.com/LinusU/decode-ico)
+- [Tiptap : installation avec Next.js](https://tiptap.dev/docs/editor/getting-started/install/nextjs)
+- [Tiptap : extension Markdown](https://tiptap.dev/docs/editor/markdown)
+- [Tiptap : migration v2 vers v3](https://tiptap.dev/docs/guides/upgrade-tiptap-v2)
+- [Pages CMS Editor : dépôt](https://github.com/pagescms/editor)
 - [Sentry : Migration v10 → v11 (Next.js)](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)
 - [Sentry : options, dont `dataCollection`](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/)
 - [Better Auth : Changelog](https://better-auth.com/changelog)

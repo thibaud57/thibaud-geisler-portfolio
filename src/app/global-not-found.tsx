@@ -5,7 +5,7 @@ import { getTranslations } from "next-intl/server"
 import {
   GlobalNotFoundContent,
   type NotFoundMessages,
-} from "@/components/layout/GlobalNotFoundContent"
+} from "@/components/layout/public/GlobalNotFoundContent"
 import { fontVariables } from "@/lib/fonts"
 import { routing } from "@/i18n/routing"
 import { themeInitScript } from "@/lib/theme-script"

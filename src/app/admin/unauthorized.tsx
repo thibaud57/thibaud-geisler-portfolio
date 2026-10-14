@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-import { ADMIN_LOGIN_PATH } from "@/lib/admin-routes"
+import { ADMIN_LOGIN_PATH } from "@/lib/admin/routes"
 
 export default function Unauthorized() {
   return (

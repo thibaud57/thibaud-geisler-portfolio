@@ -3,7 +3,7 @@
 import { AlertCircle } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { PageShell } from "@/components/layout/PageShell"
+import { PageShell } from "@/components/layout/public/PageShell"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
 import { useReportError } from "@/hooks/use-report-error"

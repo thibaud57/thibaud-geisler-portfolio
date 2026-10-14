@@ -1,10 +1,7 @@
-import type {
-  ContractStatus,
-  ProjectFormat,
-  ProjectStatus,
-  ProjectType,
-  WorkMode,
-} from "@/generated/prisma/client"
+import { AppWindow, Bot, Monitor, Smartphone, SquareTerminal, Webhook } from "lucide-react"
+
+import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
+import type { IconComponent } from "@/lib/icons"
 
 export interface ProjectTimeline {
   startYear: number | null
@@ -18,31 +15,6 @@ export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null)
     endYear: endedAt?.getFullYear() ?? null,
     inProgress: startedAt !== null && endedAt === null,
   }
-}
-
-export function formatShortDate(date: Date | null): string | null {
-  if (!date) return null
-  const day = String(date.getDate()).padStart(2, "0")
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  return `${day}/${month}/${date.getFullYear()}`
-}
-
-// Accesseurs locaux, pas toISOString() : le Calendar rend une Date à minuit local, la convertir en
-// UTC avant de trancher décale le jour dès que le fuseau est en avance sur UTC (France l'été).
-export function toIsoDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
-}
-
-// new Date("YYYY-MM-DD") parse la chaîne en UTC (spec ECMA-262) : décalage symétrique à toIsoDate.
-// slice plutôt que split+destructuring : évite le string | undefined de noUncheckedIndexedAccess.
-export function parseIsoDate(value: string): Date {
-  const year = Number(value.slice(0, 4))
-  const month = Number(value.slice(5, 7))
-  const day = Number(value.slice(8, 10))
-  return new Date(year, month - 1, day)
 }
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
@@ -65,17 +37,17 @@ export const PROJECT_FORMAT_LABELS: Record<ProjectFormat, string> = {
   IA: "IA",
 }
 
-export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
-  FREELANCE: "Freelance",
-  CDI: "CDI",
-  STAGE: "Stage",
-  ALTERNANCE: "Alternance",
-}
+export const PROJECT_TYPES = Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]
+export const PROJECT_STATUSES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
+export const PROJECT_FORMATS = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
 
-export const WORK_MODE_LABELS: Record<WorkMode, string> = {
-  REMOTE: "Remote",
-  HYBRIDE: "Hybride",
-  PRESENTIEL: "Sur site",
+export const PROJECT_FORMAT_ICONS: Record<ProjectFormat, IconComponent | null> = {
+  API: Webhook,
+  WEB_APP: AppWindow,
+  MOBILE_APP: Smartphone,
+  DESKTOP_APP: Monitor,
+  CLI: SquareTerminal,
+  IA: Bot,
 }
 
 export interface ProjectDuration {
@@ -83,21 +55,18 @@ export interface ProjectDuration {
   months: number
 }
 
-// Arithmétique manuelle plutôt que date-fns, présente au projet mais pour la seule locale du
-// Calendar shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les
-// parts servent la vitrine (formatées par next-intl dans sa locale) et l'admin (français en dur).
-// Pas de lecture de l'horloge ici, l'appelant fournit la fin : new Date() côté admin (pages
-// dynamiques), getLiveProjectDuration côté vitrine (la page prérendue ne peut pas la lire).
+// Arithmétique manuelle plutôt que date-fns, présente au projet pour la seule locale du Calendar
+// shadcn : un affichage "X mois" / "X ans" ne justifie pas d'en étendre la surface. Les parts
+// servent la vitrine (next-intl) et l'admin (français en dur). Pas d'horloge ici : l'appelant
+// fournit la fin (la page prérendue de la vitrine ne peut pas la lire, d'où getLiveProjectDuration).
 export function getProjectDuration(
   startedAt: Date | null,
   endedAt: Date | null,
 ): ProjectDuration | null {
   if (!startedAt || !endedAt) return null
   const end = endedAt
-  // Zod refuse endedAt < startedAt depuis le formulaire d'édition, mais pas la base (edit SQL
-  // direct, donnée legacy) : une plage inversée n'a pas de durée plausible à afficher. Comparer les
-  // dates elles-mêmes, pas seulement le delta en mois : une inversion à l'intérieur du même mois
-  // calendaire (ex. 20 mai → 1er mai) a un delta de 0, que la seule comparaison de mois ne détecte pas.
+  // Zod refuse endedAt < startedAt, pas la base (edit SQL direct, donnée legacy) : une plage inversée
+  // n'a pas de durée à afficher. Comparer les dates, pas le delta en mois : 20 mai → 1er mai a un delta de 0.
   if (end < startedAt) return null
   const totalMonths = Math.max(
     1,
@@ -115,9 +84,6 @@ export function formatProjectDuration(startedAt: Date | null, endedAt: Date | nu
   return [yearsLabel, monthsLabel].filter(Boolean).join(" ")
 }
 
-// Partagés par les cards du formulaire projet et les blocs de sa vue détail, titres comme libellés
-// de champ : consulter puis modifier doit retrouver les mêmes intitulés (docs/DESIGN.md
-// § Arbitrages). Les clés des libellés sont les noms des champs du formulaire.
 export const PROJECT_SECTION_TITLES = {
   identity: "Identité",
   description: "Description",
@@ -143,6 +109,7 @@ export const PROJECT_FIELD_LABELS = {
   type: "Nature",
   startedAt: "Début",
   endedAt: "Fin",
+  duration: "Durée",
   githubUrl: "Lien GitHub",
   demoUrl: "Lien démo",
   companyId: "Entreprise",

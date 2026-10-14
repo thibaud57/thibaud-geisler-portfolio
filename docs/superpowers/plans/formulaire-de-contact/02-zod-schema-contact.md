@@ -33,7 +33,7 @@ Aucun autre fichier touché.
 
 - [ ] **Step 1.1: Créer le fichier de tests avec le 1er test (cas valide minimal)**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/lib/schemas/contact.test.ts`
+Chemin : `src/lib/schemas/contact.test.ts`
 
 ```typescript
 import { describe, expect, it } from 'vitest'
@@ -43,7 +43,7 @@ describe('contactSchema', () => {
   it('accepte un payload valide minimal sans company', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -51,7 +51,7 @@ describe('contactSchema', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.name).toBe('Alice')
-      expect(result.data.email).toBe('alice@acme.fr')
+      expect(result.data.email).toBe('alice@example.com')
       expect(result.data.subject).toBe('Projet IA')
       expect(result.data.message).toBe('Bonjour, j’aimerais discuter d’un projet IA dans ma boite.')
       expect(result.data.company).toBeUndefined()
@@ -68,7 +68,7 @@ Expected: FAIL avec une erreur d'import (`Cannot find module './contact'` ou sim
 
 - [ ] **Step 1.3: Créer le schéma minimal**
 
-Chemin : `D:/Desktop/thibaud-geisler-portfolio-specs-contact/src/lib/schemas/contact.ts`
+Chemin : `src/lib/schemas/contact.ts`
 
 ```typescript
 import { z } from 'zod'
@@ -107,7 +107,7 @@ Ajouter dans le `describe('contactSchema', ...)` après le test précédent :
   it('trim les champs string requis (name, email, subject, message)', () => {
     const result = contactSchema.safeParse({
       name: '  Alice  ',
-      email: '  alice@acme.fr  ',
+      email: '  alice@example.com  ',
       subject: '  Projet IA  ',
       message: '  Bonjour, j’aimerais discuter d’un projet IA dans ma boite.  ',
     })
@@ -115,7 +115,7 @@ Ajouter dans le `describe('contactSchema', ...)` après le test précédent :
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.name).toBe('Alice')
-      expect(result.data.email).toBe('alice@acme.fr')
+      expect(result.data.email).toBe('alice@example.com')
       expect(result.data.subject).toBe('Projet IA')
       expect(result.data.message).toBe('Bonjour, j’aimerais discuter d’un projet IA dans ma boite.')
     }
@@ -143,7 +143,7 @@ Ajouter après le test précédent :
   it('retourne le code "name_required" quand name est vide après trim', () => {
     const result = contactSchema.safeParse({
       name: '   ',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -157,7 +157,7 @@ Ajouter après le test précédent :
   it('retourne le code "subject_required" quand subject est vide', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: '',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -190,7 +190,7 @@ Ajouter après les tests précédents :
   it('retourne le code "name_too_long" quand name dépasse 120 caractères', () => {
     const result = contactSchema.safeParse({
       name: 'a'.repeat(121),
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -205,7 +205,7 @@ Ajouter après les tests précédents :
     const longLocalPart = 'a'.repeat(200)
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: `${longLocalPart}@acme.fr`,
+      email: `${longLocalPart}@example.com`,
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -219,7 +219,7 @@ Ajouter après les tests précédents :
   it('retourne le code "subject_too_long" quand subject dépasse 200 caractères', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'a'.repeat(201),
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -234,7 +234,7 @@ Ajouter après les tests précédents :
     const result = contactSchema.safeParse({
       name: 'Alice',
       company: 'a'.repeat(201),
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -248,7 +248,7 @@ Ajouter après les tests précédents :
   it('retourne le code "message_too_long" quand message dépasse 5000 caractères', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'a'.repeat(5001),
     })
@@ -297,7 +297,7 @@ Ajouter après les tests précédents :
   it('retourne le code "message_too_short" quand message a moins de 20 caractères', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Trop court',
     })
@@ -330,7 +330,7 @@ Ajouter après les tests précédents :
   it('accepte company absente (data.company === undefined)', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
     })
@@ -344,7 +344,7 @@ Ajouter après les tests précédents :
   it('ignore silencieusement un champ inconnu (ex: honeypot website)', () => {
     const result = contactSchema.safeParse({
       name: 'Alice',
-      email: 'alice@acme.fr',
+      email: 'alice@example.com',
       subject: 'Projet IA',
       message: 'Bonjour, j’aimerais discuter d’un projet IA dans ma boite.',
       website: 'spam-bot-filled',
@@ -403,7 +403,7 @@ Expected: pas d'erreur ni warning bloquant sur `src/lib/schemas/contact.ts` ni `
 
 - [ ] **Step 8.1: Vérifier le `git status` du worktree**
 
-Run (depuis `D:/Desktop/thibaud-geisler-portfolio-specs-contact/`) : `git status`
+Run (depuis la racine du dépôt) : `git status`
 
 Expected: 2 nouveaux fichiers
 - `new file: src/lib/schemas/contact.ts`

@@ -26,6 +26,7 @@ export interface ProfilePagePersonInput {
   legal?: {
     siret: string
     address: AddressInput
+    vatId?: string
   }
 }
 
@@ -46,6 +47,7 @@ export interface ProfilePagePerson {
     knowsAbout: KnowsAboutEntry[]
     address?: SchemaOrgPostalAddress
     taxID?: string
+    vatID?: string
     identifier?: {
       "@type": "PropertyValue"
       propertyID: "SIRET"
@@ -281,6 +283,7 @@ export function buildProfilePagePerson(input: ProfilePagePersonInput): ProfilePa
       ...(input.legal && {
         address: buildPostalAddress(input.legal.address),
         taxID: input.legal.siret,
+        ...(input.legal.vatId && { vatID: input.legal.vatId }),
         identifier: {
           "@type": "PropertyValue" as const,
           propertyID: "SIRET" as const,

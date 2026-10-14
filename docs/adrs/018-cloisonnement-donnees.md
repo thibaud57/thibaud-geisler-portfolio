@@ -10,7 +10,7 @@ technologies: ["PostgreSQL", "Prisma", "pgvector", "Dokploy"]
 
 # 🎯 Contexte
 
-Une base PostgreSQL `portfolio` existe déjà, provisionnée comme Dokploy Database, et porte les modèles du site public. L'espace admin y ajoute quatre domaines : authentification, freelance (CRM et comptabilité), suivi de développement, et un RAG sur documents personnels comprenant contrats d'assurance et documents immobiliers.
+Une base PostgreSQL `portfolio` existe déjà, provisionnée comme Dokploy Database, et porte les modèles du site public. L'espace admin y ajoute quatre domaines : authentification, freelance (CRM et comptabilité), suivi de développement, et un RAG sur documents personnels comprenant des documents administratifs et contractuels.
 
 Les profils de sensibilité sont radicalement différents. Le chatbot public est ouvert et non authentifié, donc exposé à l'injection de prompt. Les documents personnels sont la donnée la plus sensible de l'écosystème.
 
@@ -33,7 +33,7 @@ Une base unique, une base par domaine, ou un découpage intermédiaire ?
 - Jointures libres partout
 
 **Inconvénients :**
-- Aucun cloisonnement : une injection SQL sur le site public atteint les contrats d'assurance
+- Aucun cloisonnement : une injection SQL sur le site public atteint les documents personnels
 - Impossible de restreindre les credentials d'un service à son périmètre
 - Lisibilité dégradée à mesure que les tables s'accumulent
 
@@ -83,7 +83,7 @@ Base "portfolio"                  Dokploy Database existante, nom conservé
 └── schema rag_public   documents, chunks, embeddings  propriété de portfolio-chatbot
 
 Base "documents-prives"           nouvelle, credentials distincts
-└── pgvector : contrats d'assurance, immobilier, administratif
+└── pgvector : documents personnels (administratifs, contractuels)
 ```
 
 **`Company` relève du CRM, pas de la vitrine.** Le portfolio public ne la lit que par `ClientMeta`, pour afficher le nom du client d'un projet.

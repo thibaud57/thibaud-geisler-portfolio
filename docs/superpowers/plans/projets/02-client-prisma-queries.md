@@ -364,8 +364,8 @@ describe('findManyPublished', () => {
     // Company créée en amont (FK required depuis ClientMeta)
     await prisma.company.create({
       data: {
-        slug: 'airbus',
-        name: 'Airbus',
+        slug: 'acme',
+        name: 'Acme',
         sectors: ['LOGICIELS_ENTREPRISE'],
         size: 'GROUPE',
         locations: ['FRANCE'],
@@ -403,7 +403,7 @@ describe('findManyPublished', () => {
             teamSize: 15,
             contractStatus: 'FREELANCE',
             workMode: 'REMOTE',
-            company: { connect: { slug: 'airbus' } },
+            company: { connect: { slug: 'acme' } },
           },
         },
       },
@@ -419,7 +419,7 @@ describe('findManyPublished', () => {
     expect(result[0]?.tags.map((pt) => pt.tag.kind)).toEqual(['EXPERTISE', 'FRAMEWORK', 'INFRA'])
     expect(result[0]?.formats).toEqual(['WEB_APP', 'API'])
     expect(result[0]?.clientMeta?.workMode).toBe('REMOTE')
-    expect(result[0]?.clientMeta?.company?.name).toBe('Airbus')
+    expect(result[0]?.clientMeta?.company?.name).toBe('Acme')
     expect(result[0]?.clientMeta?.company?.size).toBe('GROUPE')
   })
 })
@@ -519,7 +519,7 @@ describe('findPublishedBySlug', () => {
 
   it('retourne le projet PUBLISHED avec ses relations nested (tags via ProjectTag, company)', async () => {
     await prisma.company.create({
-      data: { slug: 'airbus', name: 'Airbus', sectors: ['LOGICIELS_ENTREPRISE'], size: 'GROUPE' },
+      data: { slug: 'acme', name: 'Acme', sectors: ['LOGICIELS_ENTREPRISE'], size: 'GROUPE' },
     })
     await prisma.tag.create({
       data: { slug: 'react', name: 'React', kind: 'FRAMEWORK' },
@@ -537,7 +537,7 @@ describe('findPublishedBySlug', () => {
         clientMeta: {
           create: {
             workMode: 'REMOTE',
-            company: { connect: { slug: 'airbus' } },
+            company: { connect: { slug: 'acme' } },
           },
         },
       },
@@ -551,7 +551,7 @@ describe('findPublishedBySlug', () => {
     expect(result?.tags[0]?.tag.slug).toBe('react')
     expect(result?.tags[0]?.displayOrder).toBe(0)
     expect(result?.clientMeta?.workMode).toBe('REMOTE')
-    expect(result?.clientMeta?.company?.name).toBe('Airbus')
+    expect(result?.clientMeta?.company?.name).toBe('Acme')
   })
 
   it.each([
