@@ -125,7 +125,7 @@ function legalEntitySection(company: AdminCompany): DetailSection {
         ? [
             {
               label: LEGAL_ENTITY_FIELD_LABELS.vatLiableSince,
-              value: publisher.vatLiableSince ? formatDateOnly(publisher.vatLiableSince) : null,
+              value: formatDateOnly(publisher.vatLiableSince),
             },
             {
               label: LEGAL_ENTITY_FIELD_LABELS.vatRegime,
@@ -212,7 +212,7 @@ export function buildCompanyDetail(
         company.leads.map((lead) =>
           toLeadLink(lead, {
             href: detailHref(ADMIN_LEADS_PATH, lead.id),
-            statusLabel: LEAD_DISPLAY_STATUS_LABELS[lead.status],
+            statusLabel: lead.status ? LEAD_DISPLAY_STATUS_LABELS[lead.status] : undefined,
           }),
         ),
       ),

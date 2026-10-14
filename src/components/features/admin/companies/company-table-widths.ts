@@ -1,6 +1,6 @@
 // Sans "use client" : la page serveur en tire son squelette, la table ses largeurs (lib/admin/table-widths).
 
-import { ACTIONS_COLUMN_WIDTH, skeletonWidths } from "@/lib/admin/table-widths"
+import { ACTIONS_COLUMN_WIDTH, columnsWithout, skeletonWidths } from "@/lib/admin/table-widths"
 import type { CompanyView } from "@/lib/crm/company-views"
 
 export const COMPANY_COLUMN_WIDTHS = {
@@ -20,7 +20,7 @@ export const COMPANY_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type CompanyColumnKey = keyof typeof COMPANY_COLUMN_WIDTHS
+type CompanyColumnKey = keyof typeof COMPANY_COLUMN_WIDTHS
 
 const ALL_COMPANY_COLUMNS: readonly CompanyColumnKey[] = [
   "types",
@@ -42,13 +42,12 @@ export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   readonly CompanyColumnKey[]
 > = {
   all: ALL_COMPANY_COLUMNS,
-  travaillees: ["types", "sectors", "zones", "size", "relationStatus", "endClients", "projects"],
-  recrutement: ["types", "zones", "relationStatus", "worked", "firstContactAt", "endClients"],
+  // Travaillée y serait constante.
+  travaillees: columnsWithout(ALL_COMPANY_COLUMNS, "worked"),
+  recrutement: ALL_COMPANY_COLUMNS,
   // Une entreprise prospect n'est jamais travaillée : Travaillée y serait constante, Clients finaux
   // (lus sur les opportunités acceptées) et Projets (projets client seuls) toujours vides.
-  prospects: ALL_COMPANY_COLUMNS.filter(
-    (key) => key !== "worked" && key !== "endClients" && key !== "projects",
-  ),
+  prospects: columnsWithout(ALL_COMPANY_COLUMNS, "worked", "endClients", "projects"),
 }
 
 export const COMPANY_PAGE_SKELETON: string[] = [

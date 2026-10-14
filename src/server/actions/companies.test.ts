@@ -323,6 +323,23 @@ describe("createCompany", () => {
     expect(state.errors.slug).toBeUndefined()
   })
 
+  it("defaults the capital currency to EUR when a capital is submitted without currency", async () => {
+    await createCompany(
+      initialCompanyFormState,
+      buildFormData(withLegalEntity({ legalEntityCapitalAmount: "10000" })),
+    )
+
+    expect(prisma.company.create).toHaveBeenCalledWith(
+      objectMatch({
+        data: objectMatch({
+          legalEntity: {
+            create: objectMatch({ capitalAmount: 10000, capitalCurrency: "EUR" }),
+          },
+        }),
+      }),
+    )
+  })
+
   it("invalidates the legal entity cache tag after a write", async () => {
     await createCompany(initialCompanyFormState, buildFormData())
 
@@ -491,6 +508,28 @@ describe("updateCompany", () => {
     )
   })
 
+  it("clears the capital currency when the capital is emptied", async () => {
+    await updateCompany(
+      "c1",
+      initialCompanyFormState,
+      buildFormData(
+        withLegalEntity({ legalEntityCapitalAmount: "", legalEntityCapitalCurrency: "EUR" }),
+      ),
+    )
+
+    expect(prisma.company.update).toHaveBeenCalledWith(
+      objectMatch({
+        data: objectMatch({
+          legalEntity: {
+            upsert: objectMatch({
+              update: objectMatch({ capitalAmount: null, capitalCurrency: null }),
+            }),
+          },
+        }),
+      }),
+    )
+  })
+
   it("leaves the legal entity untouched when the form does not send it", async () => {
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
@@ -535,6 +574,29 @@ describe("updateCompany", () => {
         }),
       }),
     )
+  })
+
+  it("leaves the publisher VAT fields untouched when the form omits them", async () => {
+    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
+      legalEntity: { addressId: null, publisher: { id: "pub1" } },
+    } as never)
+
+    await updateCompany(
+      "c1",
+      initialCompanyFormState,
+      buildFormData(withLegalEntity(), ["SAAS"], { types: ["CLIENT_FINAL"] }),
+    )
+
+    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
+      string,
+      unknown
+    >
+    const legalEntity = data["legalEntity"] as {
+      upsert: { update: { publisher: { update: Record<string, unknown> } } }
+    }
+    const publisherUpdate = legalEntity.upsert.update.publisher.update
+    expect(publisherUpdate["vatRegime"]).toBeUndefined()
+    expect(publisherUpdate["vatLiableSince"]).toBeUndefined()
   })
 
   it("ignores vat fields when the entity has no publisher", async () => {

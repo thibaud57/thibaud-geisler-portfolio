@@ -1,11 +1,92 @@
 import "server-only"
 import { z } from "zod"
 
+import type { FormActionState } from "@/lib/form-state"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
 export interface ActionEvents {
   success: string
   failure: string
+}
+
+export async function rowExists<TWhere>(
+  delegate: { count: (args: { where: TWhere }) => Promise<number> },
+  where: TWhere,
+): Promise<boolean> {
+  return (await delegate.count({ where })) > 0
+}
+
+export const MISSING_COMPANY = {
+  text: "Cette entreprise n'existe plus, recharge la page",
+  code: "company_not_found",
+} as const
+
+export const MISSING_PERSON = {
+  text: "Cette personne n'existe plus, recharge la page",
+  code: "person_not_found",
+} as const
+
+export const MISSING_REFERRER = {
+  text: "Cet apporteur n'existe plus, recharge la page",
+  code: "referrer_not_found",
+} as const
+
+export const MISSING_TAG = {
+  text: "Un des tags n'existe plus, recharge la page",
+  code: "tag_not_found",
+} as const
+
+export function missingRelationState<TField extends string, TCode extends string, TValues>(
+  field: TField,
+  relation: { text: string; code: TCode },
+  values: TValues,
+): { ok: false; errors: Partial<Record<TField, string[]>>; message: TCode; values: TValues } {
+  return {
+    ok: false,
+    errors: { [field]: [relation.text] } as Partial<Record<TField, string[]>>,
+    message: relation.code,
+    values,
+  }
+}
+
+type FormValues<TInput> = FormActionState<TInput, null>["values"]
+
+// `values` absent (formulaire sans réaffichage de saisie) : la clé n'est pas posée plutôt que posée à undefined.
+export function formStateHandlers<TInput, const TNotFound extends string = never>(
+  values: FormValues<TInput>,
+  notFound?: {
+    message: TNotFound
+    updatedId: string | undefined
+    exists: (id: string) => Promise<boolean>
+  },
+) {
+  const echoed = values === undefined ? {} : { values }
+  const { updatedId } = notFound ?? {}
+
+  return {
+    onValidationError: (
+      errors: FormActionState<TInput, null>["errors"],
+    ): FormActionState<TInput, null> => ({ ok: false, errors, message: null, ...echoed }),
+    onSuccess: (): FormActionState<TInput, null> => ({ ok: true, errors: {}, message: null }),
+    onUnknownError: (): FormActionState<TInput, "unknown_error"> => ({
+      ok: false,
+      errors: {},
+      message: "unknown_error",
+      ...echoed,
+    }),
+    notFound:
+      notFound === undefined || updatedId === undefined
+        ? undefined
+        : {
+            exists: () => notFound.exists(updatedId),
+            state: (): FormActionState<TInput, TNotFound> => ({
+              ok: false,
+              errors: {},
+              message: notFound.message,
+              ...echoed,
+            }),
+          },
+  }
 }
 
 interface SaveEntityConfig<TInput extends object, TState, TPersistResult> {

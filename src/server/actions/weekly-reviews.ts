@@ -17,12 +17,16 @@ import {
 } from "@/lib/crm/weekly-reviews"
 import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
-import { type ActionEvents, deleteEntity, saveEntity } from "./_support/shared"
+import {
+  type ActionEvents,
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+} from "./_support/shared"
 import type { WeeklyReviewFormState } from "./weekly-reviews.types"
 
 const WEEK_TAKEN = "Une revue existe déjà pour cette semaine"
-
-class WeekTakenError extends Error {}
 
 function collectValues(formData: FormData): WeeklyReviewFormState["values"] {
   const values: Record<string, string> = {}
@@ -41,19 +45,15 @@ function collectValues(formData: FormData): WeeklyReviewFormState["values"] {
   return values
 }
 
-async function assertFreeWeek(closingFriday: Date, currentId: string | null): Promise<void> {
-  const taken = await prisma.weeklyReview.findFirst({
-    where: { closingFriday, ...(currentId ? { NOT: { id: currentId } } : {}) },
-    select: { id: true },
-  })
-  if (taken) throw new WeekTakenError()
+function invalidateReviewCaches(): void {
+  revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
 }
 
 function mapReviewError(
   err: unknown,
   values: WeeklyReviewFormState["values"],
 ): WeeklyReviewFormState | null {
-  if (err instanceof WeekTakenError || isPrismaError(err, "P2002")) {
+  if (isPrismaError(err, "P2002")) {
     return {
       ok: false,
       errors: { closingFriday: [WEEK_TAKEN] },
@@ -64,8 +64,7 @@ function mapReviewError(
   return null
 }
 
-const reviewExists = (id: string) =>
-  prisma.weeklyReview.count({ where: { id } }).then((count) => count > 0)
+const reviewExists = (id: string) => rowExists(prisma.weeklyReview, { id })
 
 function saveReview(
   actionName: string,
@@ -83,20 +82,13 @@ function saveReview(
     input: values,
     persist,
     successLogFields: (_data, review) => ({ id: review.id }),
-    invalidateCaches: () => {
-      revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
-    },
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : {
-            exists: () => reviewExists(updatedId),
-            state: () => ({ ok: false, errors: {}, message: "weekly_review_not_found", values }),
-          },
+    invalidateCaches: invalidateReviewCaches,
     mapError: (err) => mapReviewError(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "weekly_review_not_found",
+      updatedId,
+      exists: reviewExists,
+    }),
   })
 }
 
@@ -111,10 +103,7 @@ export async function createWeeklyReview(
     "createWeeklyReview",
     { success: "weekly_review:created", failure: "weekly_review:create_failed" },
     formData,
-    async (data) => {
-      await assertFreeWeek(data.closingFriday, null)
-      return prisma.weeklyReview.create({ data })
-    },
+    (data) => prisma.weeklyReview.create({ data }),
   )
 }
 
@@ -129,10 +118,7 @@ export async function updateWeeklyReview(
     "updateWeeklyReview",
     { success: "weekly_review:updated", failure: "weekly_review:update_failed" },
     formData,
-    async (data) => {
-      await assertFreeWeek(data.closingFriday, id)
-      return prisma.weeklyReview.update({ where: { id }, data })
-    },
+    (data) => prisma.weeklyReview.update({ where: { id }, data }),
     id,
   )
 }
@@ -146,9 +132,7 @@ export async function deleteWeeklyReview(id: string): Promise<WeeklyReviewFormSt
     successLogFields: { id },
     exists: () => reviewExists(id),
     destroy: () => prisma.weeklyReview.delete({ where: { id } }),
-    invalidateCaches: () => {
-      revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
-    },
+    invalidateCaches: invalidateReviewCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
@@ -165,7 +149,7 @@ export async function computeWeekCounters(
     const bounds = weekBounds(isoDayToDate(isoFriday))
     try {
       const sources = await findWeekCounterSources(bounds)
-      return { ok: true, counts: countWeek(sources, bounds, Date.now()) }
+      return { ok: true, counts: countWeek(sources, bounds, new Date()) }
     } catch (err) {
       log.error({ err, event: "weekly_review:count_failed" })
       return { ok: false }

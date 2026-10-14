@@ -7,7 +7,7 @@ import {
   nullableEnumField,
   nullifyNoneValue,
 } from "@/lib/schemas/none-value"
-import { notesField, optionalTextField } from "@/lib/schemas/person"
+import { notesField, optionalInt, optionalTextField } from "@/lib/schemas/fields"
 import { ZONES } from "@/lib/crm/zones"
 
 export const OPPORTUNITY_STATUSES = Object.values(OpportunityStatus)
@@ -18,18 +18,6 @@ const optionalId = z
   .string()
   .trim()
   .transform((value) => nullifyNoneValue(value, NONE_VALUE))
-
-export function optionalInt(min: number, max: number, message: string) {
-  return z
-    .string()
-    .trim()
-    .refine(
-      (value) =>
-        value === "" || (/^\d+$/.test(value) && Number(value) >= min && Number(value) <= max),
-      { error: message },
-    )
-    .transform((value) => (value === "" ? null : Number(value)))
-}
 
 export const DAYS_PER_WEEK = ["1", "2", "3", "4", "5"] as const
 export const ON_SITE_DAYS = ["0", "1", "2", "3", "4", "5"] as const

@@ -21,7 +21,7 @@ export const INTERVIEW_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
+type InterviewColumnKey = keyof typeof INTERVIEW_COLUMN_WIDTHS
 
 // À venir masque Statut, toujours Planifié dans cette vue, et Issue, Score et Décision, qui n'existent
 // qu'une fois l'entretien fait. Journal, la vue complète, montre toutes ses colonnes.

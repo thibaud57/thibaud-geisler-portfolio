@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { companyLinksLabel, hasAcceptedOpportunity, joinedEndClientNames } from "./companies"
+import {
+  companyLinksLabel,
+  countClientProjects,
+  hasAcceptedOpportunity,
+  isWorkedCompany,
+  joinedEndClientNames,
+} from "./companies"
 
 describe("joinedEndClientNames", () => {
   it("names each accepted opportunity's end client once, sorted", () => {
@@ -44,6 +50,32 @@ describe("hasAcceptedOpportunity", () => {
     const worked = hasAcceptedOpportunity(company)
 
     expect(worked).toBe(expected)
+  })
+})
+
+describe("isWorkedCompany", () => {
+  it("counts only client projects toward a company being worked", () => {
+    const clientMetas = [
+      { project: { type: "PERSONAL" as const } },
+      { project: { type: "CLIENT" as const } },
+      { project: { type: "CLIENT" as const } },
+    ]
+
+    const count = countClientProjects(clientMetas)
+
+    expect(count).toBe(2)
+  })
+
+  it("does not mark a company worked for a personal project alone", () => {
+    const clientProjectCount = countClientProjects([{ project: { type: "PERSONAL" as const } }])
+
+    const worked = isWorkedCompany({
+      clientProjectCount,
+      opportunitiesAsIntermediary: [],
+      opportunitiesAsClient: [],
+    })
+
+    expect(worked).toBe(false)
   })
 })
 

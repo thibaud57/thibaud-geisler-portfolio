@@ -56,10 +56,6 @@ export function isSameZonedDay(a: Date, b: Date): boolean {
   return SHORT_DATE.format(a) === SHORT_DATE.format(b)
 }
 
-export function formatShortInstantTime(date: Date): string {
-  return SHORT_TIME.format(date)
-}
-
 export function formatShortDateTime(date: Date): string
 export function formatShortDateTime(date: Date | null): string | null
 export function formatShortDateTime(date: Date | null): string | null {
@@ -81,8 +77,10 @@ const DATE_ONLY = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "UTC",
 })
 
-export function formatDateOnly(dateOnly: Date): string {
-  return DATE_ONLY.format(dateOnly)
+export function formatDateOnly(dateOnly: Date): string
+export function formatDateOnly(dateOnly: Date | null): string | null
+export function formatDateOnly(dateOnly: Date | null): string | null {
+  return dateOnly ? DATE_ONLY.format(dateOnly) : null
 }
 
 // Relu à Paris : une colonne date (minuit UTC) y tombe le même jour, donc dans le même mois.

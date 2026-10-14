@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { SignalInput } from "@/lib/schemas/signal"
 
 export type SignalFormMessage =
@@ -6,4 +6,4 @@ export type SignalFormMessage =
 
 export type SignalFormState = FormActionState<SignalInput, SignalFormMessage>
 
-export const initialSignalFormState: SignalFormState = { ok: null, errors: {}, message: null }
+export const initialSignalFormState: SignalFormState = INITIAL_FORM_STATE

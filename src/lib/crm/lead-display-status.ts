@@ -28,15 +28,18 @@ export const LEAD_DISPLAY_STATUS_ICONS: Record<LeadDisplayStatus, IconComponent 
 
 export interface LeadStatusSource {
   status: LeadStatus
+  optedOutAt: Date | null
   opportunities: readonly { status: OpportunityStatus }[]
   interviews: readonly { status: InterviewStatus; scheduledAt: Date }[]
 }
 
-// Deal et RDV planifié sont des faits déduits qui l'emportent sur le statut saisi, le deal d'abord.
-export function leadDisplayStatus(lead: LeadStatusSource, now: number): LeadDisplayStatus {
+// L'opposition prime sur tout : une personne opposée n'a pas de statut affiché, quel que soit le statut saisi.
+// Sinon, deal et RDV planifié sont des faits déduits qui l'emportent sur le statut saisi, le deal d'abord.
+export function leadDisplayStatus(lead: LeadStatusSource, now: Date): LeadDisplayStatus | null {
+  if (lead.optedOutAt) return null
   if (lead.opportunities.some((opportunity) => opportunity.status === "ACCEPTEE")) return "DEAL"
   const hasUpcomingMeeting = lead.interviews.some(
-    (interview) => interview.status === "PLANIFIE" && interview.scheduledAt.getTime() >= now,
+    (interview) => interview.status === "PLANIFIE" && interview.scheduledAt >= now,
   )
   return hasUpcomingMeeting ? "RDV_PLANIFIE" : lead.status
 }

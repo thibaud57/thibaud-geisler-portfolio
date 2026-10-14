@@ -8,7 +8,13 @@ import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { stringField, stringValues } from "@/lib/server-utils"
 
-import { type ActionEvents, deleteEntity, saveEntity } from "./_support/shared"
+import {
+  type ActionEvents,
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+} from "./_support/shared"
 import type { InterviewFormMessage, InterviewFormState } from "./interviews.types"
 import {
   assertNewIdentity,
@@ -65,10 +71,22 @@ async function assertInterviewTargets(
   data: InterviewInput,
   interviewId: string | null,
 ): Promise<void> {
-  const opportunity = await prisma.opportunity.findUnique({
-    where: { id: data.opportunityId },
-    select: { intermediaryId: true },
-  })
+  const [opportunity, foundCorrespondents] = await Promise.all([
+    prisma.opportunity.findUnique({
+      where: { id: data.opportunityId },
+      select: { intermediaryId: true },
+    }),
+    data.correspondentIds.length === 0
+      ? null
+      : prisma.person.count({
+          where: {
+            id: { in: data.correspondentIds },
+            ...(interviewId === null
+              ? { optedOutAt: null }
+              : { OR: [{ optedOutAt: null }, { interviews: { some: { id: interviewId } } }] }),
+          },
+        }),
+  ])
   if (!opportunity) {
     throw new InterviewRuleError(
       "opportunityId",
@@ -83,22 +101,12 @@ async function assertInterviewTargets(
       "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
     )
   }
-  if (data.correspondentIds.length > 0) {
-    const found = await prisma.person.count({
-      where: {
-        id: { in: data.correspondentIds },
-        ...(interviewId === null
-          ? { optedOutAt: null }
-          : { OR: [{ optedOutAt: null }, { interviews: { some: { id: interviewId } } }] }),
-      },
-    })
-    if (found !== data.correspondentIds.length) {
-      throw new InterviewRuleError(
-        "correspondentIds",
-        "correspondent_not_found",
-        "Un des correspondants n'existe plus, recharge la page",
-      )
-    }
+  if (foundCorrespondents !== null && foundCorrespondents !== data.correspondentIds.length) {
+    throw new InterviewRuleError(
+      "correspondentIds",
+      "correspondent_not_found",
+      "Un des correspondants n'existe plus, recharge la page",
+    )
   }
 }
 
@@ -141,8 +149,7 @@ function mapInterviewError(
   return { ok: false, errors, message: err.code, values }
 }
 
-const interviewExists = (id: string) =>
-  prisma.interview.count({ where: { id } }).then((count) => count > 0)
+const interviewExists = (id: string) => rowExists(prisma.interview, { id })
 
 function saveInterview(
   actionName: string,
@@ -161,17 +168,12 @@ function saveInterview(
     persist,
     successLogFields: (_data, interview) => ({ id: interview.id }),
     invalidateCaches: invalidateInterviewCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : {
-            exists: () => interviewExists(updatedId),
-            state: () => ({ ok: false, errors: {}, message: "interview_not_found", values }),
-          },
     mapError: (err) => mapInterviewError(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "interview_not_found",
+      updatedId,
+      exists: interviewExists,
+    }),
   })
 }
 

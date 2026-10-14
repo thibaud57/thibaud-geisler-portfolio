@@ -2,23 +2,14 @@ import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { companyRefSelect } from "@/server/queries/company-ref"
 import { orderedInterviewSelect } from "@/server/queries/interviews"
+import { personRefSelect } from "@/server/queries/persons"
 
 const adminOpportunityInclude = {
-  referrer: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      linkedinUrl: true,
-      optedOutAt: true,
-      lead: { select: { personId: true } },
-      contact: { select: { personId: true } },
-      company: { select: { logoFilename: true } },
-    },
-  },
-  intermediary: { select: { id: true, name: true, logoFilename: true } },
-  client: { select: { id: true, name: true, logoFilename: true } },
+  referrer: { select: { ...personRefSelect, company: { select: { logoFilename: true } } } },
+  intermediary: { select: companyRefSelect },
+  client: { select: companyRefSelect },
   interviews: {
     select: { ...orderedInterviewSelect, status: true },
     orderBy: { scheduledAt: "asc" },

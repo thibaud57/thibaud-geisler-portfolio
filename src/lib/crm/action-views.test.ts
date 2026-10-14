@@ -59,23 +59,37 @@ describe("actionsForView", () => {
     expect(rows.map(({ id }) => id).sort()).toEqual(["DM_LINKEDIN", "EMAIL", "SMS_WHATSAPP"])
   })
 
-  it("lists sent actions most recent first outside the to-do view", () => {
+  it.each([
+    { view: "connexions", channel: "CONNEXION_LINKEDIN" },
+    { view: "discussions", channel: "EMAIL" },
+  ] as const)("lists sent actions oldest first in the $view view", ({ view, channel }) => {
+    const actions = [
+      action({ id: "newer", channel, status: "FAIT", occurredAt: new Date(2026, 2, 5) }),
+      action({ id: "older", channel, status: "FAIT", occurredAt: new Date(2026, 2, 1) }),
+    ]
+
+    const rows = actionsForView(actions, view)
+
+    expect(rows.map(({ id }) => id)).toEqual(["older", "newer"])
+  })
+
+  it("lists sent applications most recent first", () => {
     const actions = [
       action({
         id: "older",
-        channel: "CONNEXION_LINKEDIN",
+        channel: "CANDIDATURE",
         status: "FAIT",
         occurredAt: new Date(2026, 2, 1),
       }),
       action({
         id: "newer",
-        channel: "CONNEXION_LINKEDIN",
+        channel: "CANDIDATURE",
         status: "FAIT",
         occurredAt: new Date(2026, 2, 5),
       }),
     ]
 
-    const rows = actionsForView(actions, "connexions")
+    const rows = actionsForView(actions, "candidatures")
 
     expect(rows.map(({ id }) => id)).toEqual(["newer", "older"])
   })

@@ -76,10 +76,10 @@ export function defaultClosingFriday(now: Date): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceFriday)
 }
 
-// Le jour cliqué dans le calendrier désigne sa semaine du lundi au dimanche : dimanche se rattache au vendredi qui le précède.
+// La semaine de revue va du samedi au vendredi (comme `weekBounds`) : un week-end se rattache au vendredi qui le clôt, pas à celui qui le précède.
 export function fridayOfWeek(day: Date): Date {
-  const daysSinceMonday = (day.getDay() + 6) % 7
-  return new Date(day.getFullYear(), day.getMonth(), day.getDate() + 4 - daysSinceMonday)
+  const daysUntilFriday = (5 - day.getDay() + 7) % 7
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate() + daysUntilFriday)
 }
 
 // Année ISO de la semaine, pas celle du vendredi : le vendredi 1er janvier 2027 clôt la S53 de 2026.

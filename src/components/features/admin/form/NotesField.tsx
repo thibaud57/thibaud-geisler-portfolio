@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { ReadOnlyField } from "@/components/features/admin/form/ReadOnlyField"
+import { NOTES_MAX_LENGTH } from "@/lib/schemas/fields"
 
 const NOTES_HELP = "Une ligne de marqueurs, séparés par |"
 
@@ -42,7 +43,7 @@ export function NotesField(props: EditableProps | ReadOnlyProps) {
       name="notes"
       label={props.label}
       aria-labelledby={props.labelledBy}
-      maxLength={200}
+      maxLength={NOTES_MAX_LENGTH}
       defaultValue={props.defaultValue ?? ""}
       placeholder={props.placeholder}
       errors={props.errors}

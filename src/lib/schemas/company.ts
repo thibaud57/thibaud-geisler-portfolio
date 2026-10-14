@@ -8,6 +8,7 @@ import {
   Zone,
 } from "@/generated/prisma/browser"
 import { isCompanyLogoKey } from "@/lib/asset-keys"
+import { notesField, optionalTextField } from "@/lib/schemas/fields"
 import { legalEntityFields, refineLegalEntity } from "@/lib/schemas/legal-entity"
 import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-value"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
@@ -71,13 +72,8 @@ export const companySchema = z
       .array(z.enum(Zone, { error: "Localité inconnue" }))
       .transform((value) => sortZones(value))
       .optional(),
-    notes: z
-      .string()
-      .trim()
-      .max(200, "Les notes tiennent sur une ligne (200 caractères au plus)")
-      .transform(emptyToNull)
-      .optional(),
-    details: z.string().trim().transform(emptyToNull).optional(),
+    notes: notesField.optional(),
+    details: optionalTextField.optional(),
     ...legalEntityFields,
   })
   .superRefine(refineLegalEntity)

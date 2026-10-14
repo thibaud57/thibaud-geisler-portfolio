@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { SignalType } from "@/generated/prisma/client"
 
-import { formatSignalDate, hasRecentSignal, signalFreshness } from "./signals"
+import { canReceiveSignal, formatSignalDate, hasRecentSignal, signalFreshness } from "./signals"
 
 const NOW = new Date("2026-09-27T12:00:00.000Z")
 
@@ -71,5 +71,17 @@ describe("hasRecentSignal", () => {
     const result = hasRecentSignal([...unrated, signal("NOUVEAU_PRODUIT", "2026-08-15")], NOW)
 
     expect(result).toBe(true)
+  })
+})
+
+describe("canReceiveSignal", () => {
+  it.each([
+    { label: "an active outbound lead", origin: "OUTBOUND", optedOutAt: null, expected: true },
+    { label: "an inbound lead", origin: "INBOUND", optedOutAt: null, expected: false },
+    { label: "an opted-out outbound lead", origin: "OUTBOUND", optedOutAt: NOW, expected: false },
+  ] as const)("returns $expected for $label", ({ origin, optedOutAt, expected }) => {
+    const result = canReceiveSignal({ origin, optedOutAt })
+
+    expect(result).toBe(expected)
   })
 })

@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react"
 
-import type { Signal, SignalType } from "@/generated/prisma/client"
+import type { LeadOrigin, Signal, SignalType } from "@/generated/prisma/client"
 import type { Facet } from "@/lib/admin/facets"
 import { formatDateOnly } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
@@ -41,6 +41,10 @@ export interface SignalOwner {
 }
 
 export type SignalItem = Pick<Signal, "id" | "type" | "occurredOn" | "content" | "sourceUrl">
+
+export function canReceiveSignal(lead: { origin: LeadOrigin; optedOutAt: Date | null }): boolean {
+  return lead.origin === "OUTBOUND" && lead.optedOutAt === null
+}
 
 export function signalTypesFor(kind: SignalOwnerKind): readonly SignalType[] {
   return kind === "company" ? COMPANY_SIGNAL_TYPES : LEAD_SIGNAL_TYPES

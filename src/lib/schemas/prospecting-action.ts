@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { ActionChannel, ActionStatus } from "@/generated/prisma/browser"
 import { zonedDayStart } from "@/lib/date-time"
-import { optionalTextField } from "@/lib/schemas/person"
+import { optionalTextField } from "@/lib/schemas/fields"
 
 export const ACTION_CHANNELS = Object.values(ActionChannel)
 export const ACTION_STATUSES = Object.values(ActionStatus)

@@ -9,7 +9,7 @@ import type {
 
 import { isActiveLead, LEAD_VIEWS, leadsForView } from "./lead-views"
 
-const NOW = new Date(2026, 8, 27, 12, 0).getTime()
+const NOW = new Date(2026, 8, 27, 12, 0)
 
 const STATUSES: readonly LeadStatus[] = [
   "NOUVEAU",
@@ -26,6 +26,7 @@ interface TestLead {
   interest: LeadInterest | null
   optedOutAt: Date | null
   metAt: Date | null
+  score: number | null
   name: string | null
   email: string | null
   linkedinUrl: string | null
@@ -40,6 +41,7 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
     interest: null,
     optedOutAt: null,
     metAt: null,
+    score: null,
     name: "Marie Durand",
     email: null,
     linkedinUrl: null,
@@ -157,6 +159,29 @@ describe("leadsForView", () => {
     const rows = leadsForView(leads, view, NOW)
 
     expect(rows.map(({ id }) => id)).toEqual(expected)
+  })
+
+  it("sorts hot leads by score, highest first, unscored last", () => {
+    const leads = [
+      lead({ id: "unscored", interest: "HOT", metAt: new Date(2026, 2, 10) }),
+      lead({ id: "low", interest: "HOT", score: 40 }),
+      lead({ id: "high", interest: "HOT", score: 90 }),
+    ]
+
+    const rows = leadsForView(leads, "chauds", NOW)
+
+    expect(rows.map(({ id }) => id)).toEqual(["high", "low", "unscored"])
+  })
+
+  it("breaks hot lead score ties by meeting date, most recent first", () => {
+    const leads = [
+      lead({ id: "january", interest: "HOT", score: 70, metAt: new Date(2026, 0, 10) }),
+      lead({ id: "march", interest: "HOT", score: 70, metAt: new Date(2026, 2, 10) }),
+    ]
+
+    const rows = leadsForView(leads, "chauds", NOW)
+
+    expect(rows.map(({ id }) => id)).toEqual(["march", "january"])
   })
 
   it("sorts all leads by name, opted-out leads last", () => {

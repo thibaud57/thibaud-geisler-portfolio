@@ -12,7 +12,7 @@ import {
   RELATION_STATUS_LABELS,
 } from "@/lib/crm/companies"
 import { COMPANY_SIZES, RELATION_STATUSES } from "@/lib/schemas/company"
-import { NONE_LABEL_FEMININE, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 import type { CompanyFormState } from "@/server/actions/companies.types"
 
 interface Props {
@@ -44,7 +44,7 @@ export function CompanyRelationCard({ formId, errors, defaults }: Props) {
         label={COMPANY_FIELD_LABELS.size}
         options={COMPANY_SIZES}
         labels={COMPANY_SIZE_LABELS}
-        defaultValue={defaults.size ?? NONE_VALUE}
+        defaultValue={defaults.size}
         errors={errors.size}
         noneLabel={NONE_LABEL_FEMININE}
       />

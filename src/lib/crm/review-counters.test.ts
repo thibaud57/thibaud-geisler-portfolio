@@ -11,7 +11,7 @@ const BOUNDS = {
 }
 const IN_WEEK = new Date("2026-09-23T10:00:00.000Z")
 const BEFORE = new Date("2026-09-18T10:00:00.000Z")
-const NOW = new Date("2026-09-25T12:00:00.000Z").getTime()
+const NOW = new Date("2026-09-25T12:00:00.000Z")
 
 function action(
   channel: ActionChannel,

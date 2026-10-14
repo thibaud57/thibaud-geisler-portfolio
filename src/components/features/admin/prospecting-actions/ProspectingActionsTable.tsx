@@ -17,7 +17,12 @@ import { ActionRowActions } from "@/components/features/admin/prospecting-action
 import { channelBadge } from "@/components/features/admin/prospecting-actions/action-detail"
 import { useProspectingActionDetail } from "@/components/features/admin/prospecting-actions/use-prospecting-action-detail"
 import { BOARD_PERIOD_LABELS, type BoardPeriod } from "@/lib/crm/action-board"
-import { ACTION_VIEW_LOCKED_FACETS, actionsForView, type ActionView } from "@/lib/crm/action-views"
+import {
+  ACTION_VIEW_LOCKED_FACETS,
+  actionsForView,
+  MESSAGE_CHANNELS,
+  type ActionView,
+} from "@/lib/crm/action-views"
 import {
   ACTION_COLUMN_WIDTHS,
   ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS,
@@ -111,7 +116,9 @@ export function ProspectingActionsTable({ actions, view, personOptions, initialD
       enumFacet(
         "channel",
         LABELS.channel,
-        ACTION_CHANNELS,
+        view === "discussions"
+          ? ACTION_CHANNELS.filter((channel) => MESSAGE_CHANNELS.has(channel))
+          : ACTION_CHANNELS,
         ACTION_CHANNEL_LABELS,
         (action) => action.channel,
       ),
@@ -122,7 +129,7 @@ export function ProspectingActionsTable({ actions, view, personOptions, initialD
         ),
       ),
     ],
-    [now],
+    [view, now],
   )
 
   const columns = useMemo<readonly Column<AdminProspectingAction>[]>(

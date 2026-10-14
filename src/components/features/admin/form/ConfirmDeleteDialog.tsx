@@ -19,9 +19,12 @@ import {
 import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
 import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
-// `denied` porte le refus métier que le serveur vient d'opposer (élément encore rattaché) ; null
-// quand l'échec est technique, auquel cas la modale se ferme sur un toast générique.
-export type DeleteOutcome = { ok: true } | { ok: false; denied: string | null }
+// `denied` porte le refus métier que le serveur vient d'opposer (élément encore rattaché) ; absent
+// ou null quand l'échec est technique, auquel cas la modale se ferme sur un toast générique.
+interface DeleteOutcome {
+  ok: boolean | null
+  denied?: string | null
+}
 
 interface Props {
   trigger?: ReactNode
@@ -66,7 +69,7 @@ export function ConfirmDeleteDialog({
       if (result.ok) {
         toast.success(successMessage)
         setOpen(false)
-      } else if (result.denied === null) {
+      } else if (!result.denied) {
         toast.error(GENERIC_ERROR_TOAST)
         setOpen(false)
       } else {

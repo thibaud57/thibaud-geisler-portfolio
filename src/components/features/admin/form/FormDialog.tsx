@@ -90,13 +90,7 @@ export function FormDialogForm({
   )
 }
 
-export function FormDialogFooter({
-  pending,
-  submit,
-}: {
-  pending: boolean
-  submit?: SubmitOptions
-}) {
+function FormDialogFooter({ pending, submit }: { pending: boolean; submit?: SubmitOptions }) {
   const {
     label = "Enregistrer",
     pendingLabel = "Enregistrement...",

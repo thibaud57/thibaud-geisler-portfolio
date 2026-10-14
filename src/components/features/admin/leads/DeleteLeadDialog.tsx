@@ -21,10 +21,7 @@ export function DeleteLeadDialog({ lead }: Props) {
       name={personDisplayName(lead)}
       description={lead.optedOutAt ? OPTED_OUT_DESCRIPTION : DESCRIPTION}
       successMessage="Lead supprimé"
-      onDelete={async () => {
-        const result = await deleteLead(lead.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteLead(lead.id)}
     />
   )
 }

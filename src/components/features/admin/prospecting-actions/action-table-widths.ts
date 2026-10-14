@@ -12,7 +12,7 @@ export const ACTION_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type ActionColumnKey = keyof typeof ACTION_COLUMN_WIDTHS
+type ActionColumnKey = keyof typeof ACTION_COLUMN_WIDTHS
 
 export const ACTION_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<ActionView, readonly ActionColumnKey[]> = {
   "a-faire": ["channel", "occurredAt", "person"],

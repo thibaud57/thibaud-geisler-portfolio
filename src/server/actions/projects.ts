@@ -17,7 +17,16 @@ import {
   violatedConstraint,
 } from "@/lib/server-utils"
 
-import { deleteEntity, saveEntity } from "./_support/shared"
+import {
+  type ActionEvents,
+  deleteEntity,
+  formStateHandlers,
+  MISSING_COMPANY,
+  MISSING_TAG,
+  missingRelationState,
+  rowExists,
+  saveEntity,
+} from "./_support/shared"
 import { type ProjectFormState, type ProjectReorderState } from "./projects.types"
 
 // Seule lecture du FormData : le même objet est validé puis réaffiché en cas d'échec, les deux ne
@@ -86,21 +95,11 @@ function mapConstraintViolation(
 
   // Entreprise ou tag supprimé entre l'affichage du formulaire et son envoi.
   if (isPrismaError(err, "P2003") && constraint.includes("companyId")) {
-    return {
-      ok: false,
-      errors: { companyId: ["Cette entreprise n'existe plus, recharge la page"] },
-      message: "company_not_found",
-      values,
-    }
+    return missingRelationState("companyId", MISSING_COMPANY, values)
   }
 
   if (isPrismaError(err, "P2003") && constraint.includes("tagId")) {
-    return {
-      ok: false,
-      errors: { tagIds: ["Un des tags n'existe plus, recharge la page"] },
-      message: "tag_not_found",
-      values,
-    }
+    return missingRelationState("tagIds", MISSING_TAG, values)
   }
 
   return null
@@ -190,17 +189,11 @@ async function updateProjectWithRelations(id: string, input: ProjectInput) {
   })
 }
 
-interface SaveProjectEvents {
-  success: string
-  failure: string
-}
-
-const projectExists = (id: string) =>
-  prisma.project.count({ where: { id } }).then((count) => count > 0)
+const projectExists = (id: string) => rowExists(prisma.project, { id })
 
 function saveProject(
   actionName: string,
-  events: SaveProjectEvents,
+  events: ActionEvents,
   formData: FormData,
   persist: (input: ProjectInput) => Promise<string>,
   updatedId?: string,
@@ -215,17 +208,13 @@ function saveProject(
     persist,
     successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateProjectCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : {
-            exists: () => projectExists(updatedId),
-            state: () => ({ ok: false, errors: {}, message: "project_not_found", values }),
-          },
     mapError: (err) => mapConstraintViolation(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "project_not_found",
+      updatedId,
+      exists: projectExists,
+    }),
+    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
   })
 }
 

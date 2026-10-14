@@ -40,6 +40,42 @@ describe("applyStatusRules", () => {
     expect(result.occurredAt).toEqual(TUESDAY_EVENING)
   })
 
+  it("keeps the stored sending time when a sent action is saved again on the same day", () => {
+    const tuesdayMidnightInParis = new Date("2026-03-09T23:00:00Z")
+
+    const result = applyStatusRules(
+      timing({ status: "FAIT", occurredAt: TUESDAY_EVENING }),
+      timing({ status: "FAIT", occurredAt: tuesdayMidnightInParis }),
+      NOW,
+    )
+
+    expect(result.occurredAt).toEqual(TUESDAY_EVENING)
+  })
+
+  it("drops the sending time when a sent action goes back to to-do", () => {
+    const tuesdayMidnightInParis = new Date("2026-03-09T23:00:00Z")
+
+    const result = applyStatusRules(
+      timing({ status: "FAIT", occurredAt: TUESDAY_EVENING }),
+      timing({ status: "A_FAIRE", occurredAt: tuesdayMidnightInParis }),
+      NOW,
+    )
+
+    expect(result.occurredAt).toEqual(tuesdayMidnightInParis)
+  })
+
+  it("moves a sent action to the new day when its day changes", () => {
+    const wednesdayMidnightInParis = new Date("2026-03-10T23:00:00Z")
+
+    const result = applyStatusRules(
+      timing({ status: "FAIT", occurredAt: TUESDAY_EVENING }),
+      timing({ status: "FAIT", occurredAt: wednesdayMidnightInParis }),
+      NOW,
+    )
+
+    expect(result.occurredAt).toEqual(wednesdayMidnightInParis)
+  })
+
   it.each(["REPONDU", "CONVERTI"] as const)(
     "stamps the reply time when an action becomes replied or converted (%s)",
     (status) => {

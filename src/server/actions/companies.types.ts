@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { CompanyInput } from "@/lib/schemas/company"
 
 export type CompanyFormMessage =
@@ -6,8 +6,4 @@ export type CompanyFormMessage =
 
 export type CompanyFormState = FormActionState<CompanyInput, CompanyFormMessage>
 
-export const initialCompanyFormState: CompanyFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialCompanyFormState: CompanyFormState = INITIAL_FORM_STATE

@@ -575,7 +575,7 @@ export function InterviewForm({
               options={INTERVIEW_DECISIONS}
               labels={INTERVIEW_DECISION_LABELS}
               icons={INTERVIEW_DECISION_ICONS}
-              defaultValue={interview?.decision ?? NONE_VALUE}
+              defaultValue={interview?.decision}
               errors={state.errors.decision}
               noneLabel={NONE_LABEL_FEMININE}
             />

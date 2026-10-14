@@ -65,7 +65,7 @@ export async function serveAsset(rawPath: string[], options: ServeAssetOptions):
 
   const validation = validateAssetPath(rawPath)
   if (!validation.ok) {
-    log.warn({ raw: rawPath, error: validation.error }, "assets: invalid path")
+    log.warn({ event: "asset:invalid_path", raw: rawPath, error: validation.error })
     return NextResponse.json({ error: validation.error }, { status: 400 })
   }
 
@@ -75,7 +75,7 @@ export async function serveAsset(rawPath: string[], options: ServeAssetOptions):
     )
 
     if (!object.Body) {
-      log.debug({ path: validation.joined }, "assets: empty body")
+      log.debug({ event: "asset:empty_body", path: validation.joined })
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -91,10 +91,10 @@ export async function serveAsset(rawPath: string[], options: ServeAssetOptions):
     })
   } catch (err) {
     if (err instanceof NoSuchKey) {
-      log.debug({ path: validation.joined }, "assets: not found")
+      log.debug({ event: "asset:not_found", path: validation.joined })
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
-    log.error({ err, path: validation.joined }, "assets: unexpected error")
+    log.error({ err, event: "asset:serve_failed", path: validation.joined })
     throw err
   }
 }

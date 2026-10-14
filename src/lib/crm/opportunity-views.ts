@@ -1,4 +1,5 @@
 import type { OpportunityStatus } from "@/generated/prisma/client"
+import { nullsLastBy } from "@/lib/crm/sort"
 
 export const OPPORTUNITY_VIEWS = ["en-cours", "acceptees", "all"] as const
 
@@ -10,7 +11,11 @@ interface OpportunityViewRow {
   updatedAt: Date
 }
 
-const ONGOING: ReadonlySet<OpportunityStatus> = new Set(["PROPOSEE", "EN_PROCESS", "OFFRE_RECUE"])
+export const ONGOING: ReadonlySet<OpportunityStatus> = new Set([
+  "PROPOSEE",
+  "EN_PROCESS",
+  "OFFRE_RECUE",
+])
 
 const VIEW_FILTERS: Record<OpportunityView, (opportunity: OpportunityViewRow) => boolean> = {
   "en-cours": (opportunity) => ONGOING.has(opportunity.status),
@@ -18,13 +23,8 @@ const VIEW_FILTERS: Record<OpportunityView, (opportunity: OpportunityViewRow) =>
   all: () => true,
 }
 
-// Sans démarrage en dernier dans les deux sens : ni la plus proche, ni la plus récente.
-function byStartMonth(direction: 1 | -1) {
-  return (a: OpportunityViewRow, b: OpportunityViewRow): number => {
-    if (!a.startMonth || !b.startMonth) return a.startMonth ? -1 : b.startMonth ? 1 : 0
-    return direction * (a.startMonth.getTime() - b.startMonth.getTime())
-  }
-}
+const byStartMonth = (direction: 1 | -1) =>
+  nullsLastBy<OpportunityViewRow>((opportunity) => opportunity.startMonth, direction)
 
 function byLatestUpdate(a: OpportunityViewRow, b: OpportunityViewRow): number {
   return b.updatedAt.getTime() - a.updatedAt.getTime()

@@ -286,7 +286,7 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
               label={LABELS.vatRegime}
               options={VAT_REGIMES}
               labels={VAT_REGIME_LABELS}
-              defaultValue={legalEntity.publisher.vatRegime ?? NONE_VALUE}
+              defaultValue={legalEntity.publisher.vatRegime}
               errors={errors.legalEntityVatRegime}
               noneLabel={NONE_LABEL}
             />

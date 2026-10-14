@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { JOB_ROLES } from "@/lib/crm/job-roles"
 import { LINKEDIN_PROFILE_ERROR, normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
+import { notesField, optionalDateField, optionalTextField } from "@/lib/schemas/fields"
 import {
   emptyToNull,
   NONE_VALUE,
@@ -10,28 +11,14 @@ import {
 } from "@/lib/schemas/none-value"
 import { ZONES } from "@/lib/crm/zones"
 
-export const optionalTextField = z.string().trim().transform(emptyToNull)
-
-// Ligne courte de marqueurs, même règle et même message que Company.notes.
-export const notesField = z
-  .string()
-  .trim()
-  .max(200, "Les notes tiennent sur une ligne (200 caractères au plus)")
-  .transform(emptyToNull)
-
-export const optionalDateField = z.preprocess(
-  (value) => (value === "" ? null : value),
-  z.coerce.date({ error: "Date invalide" }).nullable(),
-)
-
 // Obligatoire à la saisie : il n'est nul que sur une personne opposée, après `optOutPerson`.
-export const personNameField = z
+const personNameField = z
   .string()
   .trim()
   .min(1, "Le nom est requis")
   .max(120, "Le nom ne peut pas dépasser 120 caractères")
 
-export const emailField = z
+const emailField = z
   .string()
   .trim()
   .toLowerCase()
@@ -40,7 +27,7 @@ export const emailField = z
   })
   .transform(emptyToNull)
 
-export const linkedinUrlField = z
+const linkedinUrlField = z
   .string()
   .trim()
   .transform((value, ctx) => {

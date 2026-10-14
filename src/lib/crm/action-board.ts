@@ -2,14 +2,9 @@ import type { ActionStatus } from "@/generated/prisma/client"
 
 import { byOccurredAtAsc } from "./action-views"
 import { isWithinCalendarDays } from "@/lib/date-time"
+import { ACTION_STATUSES } from "@/lib/schemas/prospecting-action"
 
-export const BOARD_STATUSES = [
-  "A_FAIRE",
-  "FAIT",
-  "REPONDU",
-  "CONVERTI",
-  "IGNORE",
-] as const satisfies readonly ActionStatus[]
+export const BOARD_STATUSES = ACTION_STATUSES
 
 export const BOARD_PERIOD_VALUES = ["7", "30", "all"] as const
 

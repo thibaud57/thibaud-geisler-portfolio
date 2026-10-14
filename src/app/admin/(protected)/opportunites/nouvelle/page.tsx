@@ -2,7 +2,7 @@ import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/Admin
 import { OpportunityForm } from "@/components/features/admin/opportunities/OpportunityForm"
 import { OpportunityInterviewsCard } from "@/components/features/admin/opportunities/OpportunityInterviewsCard"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
-import { firstParam } from "@/lib/admin/search-params"
+import { firstParam, knownId } from "@/lib/admin/search-params"
 import { OPPORTUNITY_PAGE_SKELETON } from "@/components/features/admin/opportunities/opportunity-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
@@ -16,10 +16,7 @@ async function NewOpportunitySection({ searchParams }: { searchParams: SearchPar
     findPersonOptionsWithLeadRole(),
     findCompanyOptions(),
   ])
-  const requestedReferrerId = firstParam(referrer)
-  const defaultReferrerId = referrerOptions.some((option) => option.id === requestedReferrerId)
-    ? requestedReferrerId
-    : undefined
+  const defaultReferrerId = knownId(firstParam(referrer), referrerOptions)
 
   return (
     <AdminFormContent

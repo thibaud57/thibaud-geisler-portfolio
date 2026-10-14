@@ -32,7 +32,12 @@ import {
   LEAD_DISPLAY_STATUSES,
   leadDisplayStatus,
 } from "@/lib/crm/lead-display-status"
-import { LEAD_VIEW_LOCKED_FACETS, leadsForView, type LeadView } from "@/lib/crm/lead-views"
+import {
+  IN_PROGRESS,
+  LEAD_VIEW_LOCKED_FACETS,
+  leadsForView,
+  type LeadView,
+} from "@/lib/crm/lead-views"
 import {
   LEAD_FIELD_LABELS,
   LEAD_INTEREST_LABELS,
@@ -42,7 +47,6 @@ import {
 import { OPTED_OUT_LABEL, PERSON_FIELD_LABELS, personDisplayName } from "@/lib/crm/persons"
 import { isOptOutOver, isRetentionOver, retentionEndOf } from "@/lib/crm/person-retention"
 import { LEAD_INTERESTS, LEAD_ORIGINS } from "@/lib/schemas/lead"
-import { signalFacet } from "@/lib/crm/signals"
 import type { AdminLead } from "@/server/queries/leads"
 import type { ActionTimelineRow } from "@/server/queries/prospecting-actions"
 import {
@@ -52,13 +56,10 @@ import {
   originBadge,
 } from "@/components/features/admin/leads/lead-detail"
 
-function statusBadge(lead: AdminLead, now: number) {
-  if (lead.optedOutAt) return <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
-  return enumBadge(
-    leadDisplayStatus(lead, now),
-    LEAD_DISPLAY_STATUS_LABELS,
-    LEAD_DISPLAY_STATUS_ICONS,
-  )
+function statusBadge(lead: AdminLead, now: Date) {
+  const status = leadDisplayStatus(lead, now)
+  if (status === null) return <Badge variant="outline">{OPTED_OUT_LABEL}</Badge>
+  return enumBadge(status, LEAD_DISPLAY_STATUS_LABELS, LEAD_DISPLAY_STATUS_ICONS)
 }
 
 // Une fiche en opposition ne se modifie pas : l'effacement des échanges lui reste, puis la suppression une fois l'opposition échue.
@@ -77,7 +78,7 @@ function rowActions(lead: AdminLead, now: Date) {
   )
 }
 
-function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLead>[] {
+function buildDataColumns(view: LeadView, now: Date): readonly Column<AdminLead>[] {
   const visibleByDefault = LEAD_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   const person = personColumns<AdminLead>(LEAD_COLUMN_WIDTHS, visibleByDefault)
   return [
@@ -128,7 +129,7 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
       className: "tabular-nums text-muted-foreground",
       ...hideableColumn(visibleByDefault, "metAt"),
       sortValue: (lead) => lead.metAt?.getTime() ?? 0,
-      cell: (lead) => (lead.metAt ? formatDateOnly(lead.metAt) : null),
+      cell: (lead) => formatDateOnly(lead.metAt),
     },
     {
       key: "jobRole",
@@ -175,15 +176,25 @@ function buildDataColumns(view: LeadView, now: number): readonly Column<AdminLea
   ]
 }
 
-function statusFacet(now: number): Facet<AdminLead> {
-  return enumFacet(
+const IN_PROGRESS_STATUSES = LEAD_DISPLAY_STATUSES.filter((status) => IN_PROGRESS.has(status))
+
+const OPTED_OUT_FACET_VALUE = "opted-out"
+
+// Une personne opposée n'a pas de statut : sans option dédiée, aucun filtre de Tous ne la retrouve.
+function statusFacet(view: LeadView, now: Date): Facet<AdminLead> {
+  const facet: Facet<AdminLead> = enumFacet(
     "status",
     LEAD_FIELD_LABELS.status,
-    LEAD_DISPLAY_STATUSES,
+    view === "en-cours" || view === "chauds" ? IN_PROGRESS_STATUSES : LEAD_DISPLAY_STATUSES,
     LEAD_DISPLAY_STATUS_LABELS,
-    // Une fiche en opposition affiche « Ne plus contacter » à la place du statut : un filtre sur le statut ne doit pas la lister.
-    (lead) => (lead.optedOutAt ? null : leadDisplayStatus(lead, now)),
+    (lead) => leadDisplayStatus(lead, now),
   )
+  if (view !== "all") return facet
+  return {
+    ...facet,
+    options: [...facet.options, { value: OPTED_OUT_FACET_VALUE, label: OPTED_OUT_LABEL }],
+    value: (lead) => leadDisplayStatus(lead, now) ?? OPTED_OUT_FACET_VALUE,
+  }
 }
 
 const baseFacets: readonly Facet<AdminLead>[] = [
@@ -219,24 +230,23 @@ interface Props {
 
 export function LeadsTable({ leads, view, actions, initialDetailId }: Props) {
   const router = useRouter()
-  // Instant figé au montage : les filtres d'échéance et de signal et la fraîcheur restent stables pendant la consultation.
+  // Instant figé au montage : le filtre d'échéance et la fraîcheur des signaux restent stables pendant la consultation.
   const [now] = useState(() => new Date())
-  const nowMs = now.getTime()
   const { openSignal, detailFor, reset, formDialog } = useSignalDetail(now)
 
-  const viewLeads = useMemo(() => leadsForView(leads, view, nowMs), [leads, view, nowMs])
+  const viewLeads = useMemo(() => leadsForView(leads, view, now), [leads, view, now])
   const facets = useMemo(() => {
     const { zone, overdue } = personFacets<AdminLead>((lead) => isRetentionOver(lead, now))
-    return [statusFacet(nowMs), ...baseFacets, zone, overdue, signalFacet<AdminLead>(now)]
-  }, [nowMs, now])
+    return [statusFacet(view, now), ...baseFacets, zone, overdue]
+  }, [view, now])
   const historyByPerson = useMemo(() => groupByPersonRecentFirst(actions), [actions])
 
   const columns = useMemo<readonly Column<AdminLead>[]>(
     () => [
-      ...buildDataColumns(view, nowMs),
+      ...buildDataColumns(view, now),
       actionsColumn((lead: AdminLead) => rowActions(lead, now)),
     ],
-    [view, now, nowMs],
+    [view, now],
   )
 
   const buildDetail = useCallback(

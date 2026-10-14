@@ -20,7 +20,15 @@ import {
   type IdentityField,
 } from "./_support/person-guards"
 import { PersonLockedError } from "./persons.types"
-import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
+import {
+  deleteEntity,
+  formStateHandlers,
+  MISSING_COMPANY,
+  missingRelationState,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import type { LeadFormMessage, LeadFormState } from "./leads.types"
 
 const CONFLICT_MESSAGES = {
@@ -66,18 +74,12 @@ function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormSt
     return { ok: false, errors, message: "lead_exists", values }
   }
   if (isPrismaError(err, "P2003")) {
-    return {
-      ok: false,
-      errors: { companyId: ["Cette entreprise n'existe plus, recharge la page"] },
-      message: "company_not_found",
-      values,
-    }
+    return missingRelationState("companyId", MISSING_COMPANY, values)
   }
   return null
 }
 
-const leadExists = (personId: string) =>
-  prisma.lead.count({ where: { personId } }).then((count) => count > 0)
+const leadExists = (personId: string) => rowExists(prisma.lead, { personId })
 
 function saveLead(
   actionName: string,
@@ -96,17 +98,12 @@ function saveLead(
     persist,
     successLogFields: (_data, lead) => ({ personId: lead.personId }),
     invalidateCaches: revalidatePersonLists,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedPersonId === undefined
-        ? undefined
-        : {
-            exists: () => leadExists(updatedPersonId),
-            state: () => ({ ok: false, errors: {}, message: "lead_not_found", values }),
-          },
     mapError: (err) => mapLeadError(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "lead_not_found",
+      updatedId: updatedPersonId,
+      exists: leadExists,
+    }),
   })
 }
 

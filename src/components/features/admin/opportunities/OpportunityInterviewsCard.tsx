@@ -1,6 +1,4 @@
-import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
-import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
-import { CreateLinkButton } from "@/components/features/admin/form/CreateLinkButton"
+import { RelatedCreateCard } from "@/components/features/admin/detail/RelatedCreateCard"
 import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
 import { toOpportunityInterviewLinks } from "@/lib/crm/interviews"
 import { OPPORTUNITY_SECTION_TITLES } from "@/lib/crm/opportunities"
@@ -11,32 +9,17 @@ interface Props {
 }
 
 export function OpportunityInterviewsCard({ opportunity }: Props) {
-  if (!opportunity) {
-    return (
-      <PendingRelatedCard
-        title={OPPORTUNITY_SECTION_TITLES.interviews}
-        emptyText="Après l'enregistrement de l'opportunité."
-        addLabel="Nouvel entretien"
-      />
-    )
-  }
-
   return (
-    <RelatedLinksCard
+    <RelatedCreateCard
       title={OPPORTUNITY_SECTION_TITLES.interviews}
-      links={toOpportunityInterviewLinks(
-        opportunity.interviews,
-        (id) => `${ADMIN_INTERVIEWS_PATH}/${id}`,
-      )}
+      record={opportunity}
+      pendingText="Après l'enregistrement de l'opportunité."
       emptyText="Aucun entretien pour cette opportunité."
-      action={
-        <CreateLinkButton
-          href={`${ADMIN_INTERVIEWS_PATH}/nouveau?opportunity=${opportunity.id}`}
-          label="Nouvel entretien"
-          variant="outline"
-          size="sm"
-        />
+      links={(record) =>
+        toOpportunityInterviewLinks(record.interviews, (id) => `${ADMIN_INTERVIEWS_PATH}/${id}`)
       }
+      createHref={(record) => `${ADMIN_INTERVIEWS_PATH}/nouveau?opportunity=${record.id}`}
+      addLabel="Nouvel entretien"
     />
   )
 }

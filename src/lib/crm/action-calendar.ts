@@ -1,6 +1,7 @@
 import type { EventCalendarI18nOverrides } from "@/components/reui/event-calendar/event-calendar-i18n"
 import type { CalendarEvent } from "@/components/reui/event-calendar/event-calendar-types"
 import type { ActionStatus } from "@/generated/prisma/client"
+import { isReschedulable } from "@/lib/crm/prospecting-action-status"
 import { zonedDayStartOf } from "@/lib/date-time"
 import { EVENT_CALENDAR_FR } from "@/lib/admin/event-calendar-fr"
 
@@ -30,7 +31,7 @@ export function actionEvents<T extends CalendarActionRow>(
     end: zonedDayStartOf(action.occurredAt, 1),
     allDay: true,
     color: STATUS_COLORS[action.status],
-    draggable: action.status === "A_FAIRE",
+    draggable: isReschedulable(action.status),
     data: action,
   }))
 }

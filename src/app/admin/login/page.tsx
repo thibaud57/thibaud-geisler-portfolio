@@ -6,13 +6,15 @@ import { BrandLogo } from "@/components/layout/BrandLogo"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { firstParam } from "@/lib/admin/search-params"
 
 const ERROR_MESSAGES: Record<string, string> = {
   FORBIDDEN: "Ce compte Google n'est pas autorisé à accéder à cet espace.",
 }
 
-async function LoginError({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams
+async function LoginError({ searchParams }: Pick<PageProps<"/admin/login">, "searchParams">) {
+  const { error: rawError } = await searchParams
+  const error = firstParam(rawError)
 
   if (!error) return null
 
@@ -28,11 +30,7 @@ async function LoginError({ searchParams }: { searchParams: Promise<{ error?: st
   )
 }
 
-export default function AdminLoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>
-}) {
+export default function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4 sm:p-8">
       <Card className="w-full max-w-sm">

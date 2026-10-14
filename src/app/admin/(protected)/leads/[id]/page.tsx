@@ -10,6 +10,7 @@ import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/crm/persons"
+import { canReceiveSignal } from "@/lib/crm/signals"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadByIdForAdmin } from "@/server/queries/leads"
 import { findProspectingActionsOfPerson } from "@/server/queries/prospecting-actions"
@@ -43,7 +44,7 @@ async function EditLeadSection({ id }: { id: string }) {
             <SignalsCard
               signals={lead.signals}
               owner={{ kind: "lead", id: lead.id, name: personDisplayName(lead) }}
-              canAdd={lead.origin === "OUTBOUND"}
+              canAdd={canReceiveSignal(lead)}
             />
           </>
         }

@@ -8,6 +8,7 @@ import {
   ADMIN_INTERVIEWS_PATH,
   ADMIN_LEADS_PATH,
   ADMIN_OPPORTUNITIES_PATH,
+  ADMIN_PROSPECTING_ACTIONS_PATH,
 } from "@/lib/admin/routes"
 import { isOptOutOver } from "@/lib/crm/person-retention"
 import { formatShortInstantDate } from "@/lib/date-time"
@@ -78,8 +79,9 @@ export function optOutMessage(optedOutAt: Date): string {
   return `Cette personne s'est opposée à la prospection le ${formatShortInstantDate(optedOutAt)}`
 }
 
-// Leads et contacts affichent le résumé du rôle de l'autre, les opportunités leur apporteur, les entretiens leurs correspondants, les entreprises leurs personnes et leur premier contact : toute écriture sur une personne rafraîchit ces listes.
+// Leads et contacts affichent le résumé du rôle de l'autre, les opportunités leur apporteur, les entretiens leurs correspondants, les entreprises leurs personnes et leur premier contact, les actions de prospection le nom, l'e-mail et l'entreprise de leur lead : toute écriture sur une personne rafraîchit ces listes.
 export function revalidatePersonLists(): void {
+  revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
   revalidatePath(ADMIN_LEADS_PATH, "layout")
   revalidatePath(ADMIN_CONTACTS_PATH, "layout")
   revalidatePath(ADMIN_OPPORTUNITIES_PATH, "layout")
@@ -142,10 +144,12 @@ export async function assertNewIdentity(
   )
 }
 
+// Le verrou de ligne attend le commit d'une opposition en cours (son UPDATE prend le même) : sans lui, la fiche vidée serait repeuplée par l'écriture qui suit la lecture.
 async function findOptedOutAt(
   tx: Prisma.TransactionClient,
   personId: string,
 ): Promise<Date | null> {
+  await tx.$queryRaw`SELECT 1 FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
   const person = await tx.person.findUnique({
     where: { id: personId },
     select: { optedOutAt: true },

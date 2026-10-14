@@ -1,7 +1,7 @@
 import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/AdminFormPage"
 import { InterviewForm } from "@/components/features/admin/interviews/InterviewForm"
 import { ADMIN_INTERVIEWS_PATH } from "@/lib/admin/routes"
-import { firstParam } from "@/lib/admin/search-params"
+import { firstParam, knownId } from "@/lib/admin/search-params"
 import { INTERVIEW_PAGE_SKELETON } from "@/components/features/admin/interviews/interview-table-widths"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { findCompanyOptions } from "@/server/queries/companies"
@@ -19,16 +19,8 @@ async function NewInterviewSection({ searchParams }: { searchParams: SearchParam
       findPersonOptionsWithLeadRole(),
       findCompanyOptions(),
     ])
-  const requestedOpportunityId = firstParam(opportunity)
-  const defaultOpportunityId = opportunityOptions.some(
-    (option) => option.id === requestedOpportunityId,
-  )
-    ? requestedOpportunityId
-    : undefined
-  const requestedLeadId = firstParam(lead)
-  const defaultLeadId = leadOptions.some((option) => option.id === requestedLeadId)
-    ? requestedLeadId
-    : undefined
+  const defaultOpportunityId = knownId(firstParam(opportunity), opportunityOptions)
+  const defaultLeadId = knownId(firstParam(lead), leadOptions)
 
   return (
     <AdminFormContent

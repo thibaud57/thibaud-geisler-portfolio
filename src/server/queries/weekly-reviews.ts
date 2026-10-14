@@ -24,7 +24,7 @@ export async function findWeekCounterSources(bounds: {
       where: { scheduledAt: inWeek },
       select: { status: true, scheduledAt: true },
     }),
-    // Opportunités apportées et entretiens vivent sur la personne, pas sur le rôle Lead.
+    // Opportunités apportées et entretiens vivent sur la personne, pas sur le rôle Lead. `leadDisplayStatus` ne lit que « une opportunité acceptée existe » et les entretiens planifiés.
     prisma.lead.findMany({
       where: { person: { optedOutAt: null } },
       select: {
@@ -32,8 +32,15 @@ export async function findWeekCounterSources(bounds: {
         person: {
           select: {
             optedOutAt: true,
-            referredOpportunities: { select: { status: true } },
-            interviews: { select: { status: true, scheduledAt: true } },
+            referredOpportunities: {
+              where: { status: "ACCEPTEE" },
+              select: { status: true },
+              take: 1,
+            },
+            interviews: {
+              where: { status: "PLANIFIE" },
+              select: { status: true, scheduledAt: true },
+            },
           },
         },
       },

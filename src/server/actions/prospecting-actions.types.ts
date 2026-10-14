@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { ProspectingActionInput } from "@/lib/schemas/prospecting-action"
 
 export type ProspectingActionFormMessage =
@@ -9,8 +9,4 @@ export type ProspectingActionFormState = FormActionState<
   ProspectingActionFormMessage
 >
 
-export const initialProspectingActionFormState: ProspectingActionFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialProspectingActionFormState: ProspectingActionFormState = INITIAL_FORM_STATE

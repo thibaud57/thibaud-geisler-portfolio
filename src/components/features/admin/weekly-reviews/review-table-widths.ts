@@ -24,38 +24,27 @@ export const REVIEW_COLUMN_WIDTHS = {
 
 export type ReviewColumnKey = keyof typeof REVIEW_COLUMN_WIDTHS
 
-const REVIEW_REVUE_COLUMNS: readonly ReviewColumnKey[] = [
+const ALL_REVIEW_COLUMNS: readonly ReviewColumnKey[] = [
   "friday",
   "connectionsSent",
   "connectionsAccepted",
   "acceptanceRate",
   "messagesSent",
+  "conversationsEngaged",
   "responseRate",
   "meetingsBooked",
+  "meetingConversion",
+  "interviewsHeld",
   "activeLeads",
   "status",
   "motivation",
 ]
 
 export const REVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<ReviewView, readonly ReviewColumnKey[]> = {
-  revue: REVIEW_REVUE_COLUMNS,
+  revue: ALL_REVIEW_COLUMNS,
   // Calendrier n'a pas de table : son squelette de chargement reprend les colonnes de Revue.
-  calendrier: REVIEW_REVUE_COLUMNS,
-  journal: [
-    "friday",
-    "connectionsSent",
-    "connectionsAccepted",
-    "acceptanceRate",
-    "messagesSent",
-    "conversationsEngaged",
-    "responseRate",
-    "meetingsBooked",
-    "meetingConversion",
-    "interviewsHeld",
-    "activeLeads",
-    "status",
-    "motivation",
-  ],
+  calendrier: ALL_REVIEW_COLUMNS,
+  journal: ALL_REVIEW_COLUMNS,
 }
 
 export function reviewSkeletonWidths(view: ReviewView): readonly number[] {

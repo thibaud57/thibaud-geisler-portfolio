@@ -1,12 +1,14 @@
 import "server-only"
 
-import { hasAcceptedOpportunity, joinedEndClientNames } from "@/lib/crm/companies"
+import { countClientProjects, isWorkedCompany, joinedEndClientNames } from "@/lib/crm/companies"
 import { firstContactAtOf } from "@/lib/crm/company-first-contact"
 import { leadDisplayStatus, type LeadDisplayStatus } from "@/lib/crm/lead-display-status"
 import { isActiveLead } from "@/lib/crm/lead-views"
+import { SENT_STATUS_WHERE } from "@/lib/crm/prospecting-action-status"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 import { opportunitySummarySelect } from "@/server/queries/opportunities"
+import { personNameOrder } from "@/server/queries/persons"
 import { signalsInclude } from "@/server/queries/signals"
 
 const legalEntityInclude = { legalEntity: { include: { address: true, publisher: true } } } as const
@@ -40,7 +42,7 @@ const companyLeadPersonSelect = {
 const companyPersonSelect = {
   ...companyLeadPersonSelect,
   prospectingActions: {
-    where: { status: { not: "A_FAIRE" } },
+    where: { status: SENT_STATUS_WHERE },
     orderBy: { occurredAt: "asc" },
     take: 1,
     select: { status: true, occurredAt: true },
@@ -68,7 +70,7 @@ const companyListInclude = {
   // Toutes les personnes : le premier contact compte aussi celles sans lead. isProspect et `leads` filtrent sur lead dans toAdminCompany.
   persons: {
     select: companyPersonSelect,
-    orderBy: { name: { sort: "asc", nulls: "last" } },
+    orderBy: personNameOrder,
   },
 } as const
 
@@ -78,7 +80,7 @@ type AdminCompanyLead = Omit<
   AdminCompanyRaw["persons"][number],
   "lead" | "optedOutAt" | "prospectingActions" | "referredOpportunities" | "interviews"
 > & {
-  status: LeadDisplayStatus
+  status: LeadDisplayStatus | null
   createdAt: Date
 }
 
@@ -94,11 +96,10 @@ export type AdminCompany = Omit<AdminCompanyRaw, "clientMetas" | "persons"> & {
 // Seul point de calcul de worked, isProspect, endClients et firstContactAt : une règle recalculée ailleurs finirait par diverger de celle-ci.
 function toAdminCompany(
   { clientMetas, persons, ...company }: AdminCompanyRaw,
-  now: number,
+  now: Date,
 ): AdminCompany {
-  // Un projet personnel crée aussi un ClientMeta (src/server/actions/projects.ts) : seul un projet CLIENT compte, pour travaillée comme pour le nombre de projets.
-  const clientProjectCount = clientMetas.filter((meta) => meta.project.type === "CLIENT").length
-  const worked = clientProjectCount > 0 || hasAcceptedOpportunity(company)
+  const clientProjectCount = countClientProjects(clientMetas)
+  const worked = isWorkedCompany({ ...company, clientProjectCount })
   const isProspect =
     !worked &&
     persons.some(
@@ -119,7 +120,18 @@ function toAdminCompany(
     ...company.opportunitiesAsIntermediary,
   ].flatMap((opportunity) => opportunity.interviews)
   const leads = persons.flatMap(
-    ({ id, name, jobRole, email, linkedinUrl, metAt, lead, referredOpportunities, interviews }) =>
+    ({
+      id,
+      name,
+      jobRole,
+      email,
+      linkedinUrl,
+      metAt,
+      optedOutAt,
+      lead,
+      referredOpportunities,
+      interviews,
+    }) =>
       lead
         ? [
             {
@@ -130,7 +142,12 @@ function toAdminCompany(
               linkedinUrl,
               metAt,
               status: leadDisplayStatus(
-                { status: lead.status, opportunities: referredOpportunities, interviews },
+                {
+                  status: lead.status,
+                  opportunities: referredOpportunities,
+                  interviews,
+                  optedOutAt,
+                },
                 now,
               ),
               createdAt: lead.createdAt,
@@ -157,7 +174,7 @@ export async function findAllCompaniesForAdmin(): Promise<AdminCompany[]> {
     orderBy: { name: "asc" },
   })
 
-  const now = Date.now()
+  const now = new Date()
   return companies.map((company) => toAdminCompany(company, now))
 }
 

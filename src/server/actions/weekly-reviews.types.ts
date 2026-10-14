@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { WeeklyReviewInput } from "@/lib/schemas/weekly-review"
 
 export type WeeklyReviewFormMessage =
@@ -6,8 +6,4 @@ export type WeeklyReviewFormMessage =
 
 export type WeeklyReviewFormState = FormActionState<WeeklyReviewInput, WeeklyReviewFormMessage>
 
-export const initialWeeklyReviewFormState: WeeklyReviewFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialWeeklyReviewFormState: WeeklyReviewFormState = INITIAL_FORM_STATE

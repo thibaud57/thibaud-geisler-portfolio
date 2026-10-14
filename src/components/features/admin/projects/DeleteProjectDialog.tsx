@@ -18,10 +18,7 @@ export function DeleteProjectDialog({ project }: Props) {
         </>
       }
       successMessage="Projet supprimé"
-      onDelete={async () => {
-        const result = await deleteProject(project.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteProject(project.id)}
     />
   )
 }

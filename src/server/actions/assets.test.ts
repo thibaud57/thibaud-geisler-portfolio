@@ -260,6 +260,20 @@ describe("deleteAsset", () => {
   })
 
   it.each([
+    ["a traversal segment", "projets/../secrets/cover.webp"],
+    ["an unknown extension", "projets/client/acme/cover.exe"],
+    ["an empty segment", "projets//acme/cover.webp"],
+  ])("rejects the deletion of a key with %s without calling R2 or Prisma", async (_case, key) => {
+    const state = await deleteAsset(key)
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.filename).toHaveLength(1)
+    expect(prisma.project.findMany).not.toHaveBeenCalled()
+    expect(r2.send).not.toHaveBeenCalled()
+    expect(adminR2.send).not.toHaveBeenCalled()
+  })
+
+  it.each([
     ["branding", "branding/logo-horizontal-light.png"],
     ["documents/cv", "documents/cv/cv-thibaud-geisler-fr.pdf"],
   ])("rejects the deletion of a %s key without calling R2 or Prisma", async (_folder, key) => {

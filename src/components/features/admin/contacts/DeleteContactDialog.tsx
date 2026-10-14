@@ -15,10 +15,7 @@ export function DeleteContactDialog({ contact }: Props) {
       name={personDisplayName(contact)}
       description="La fiche relation est retirée. Si cette personne n'est pas aussi un lead, sa fiche, ses actions et ses signaux sont supprimés avec elle, elle disparaît de ses entretiens et ses opportunités restent sans apporteur."
       successMessage="Contact supprimé"
-      onDelete={async () => {
-        const result = await deleteContact(contact.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteContact(contact.id)}
     />
   )
 }

@@ -11,6 +11,7 @@ import type {
   EventCalendarSlotInfo,
 } from "@/components/reui/event-calendar/event-calendar-types"
 import { ACTION_CALENDAR_I18N, actionEvents } from "@/lib/crm/action-calendar"
+import { isReschedulable } from "@/lib/crm/prospecting-action-status"
 import { toIsoDate } from "@/lib/date-time"
 import { rescheduleProspectingAction } from "@/server/actions/prospecting-actions"
 import type { PersonOption } from "@/server/queries/persons"
@@ -48,7 +49,7 @@ export function ActionsCalendar({ actions, personOptions }: Props) {
 
   function handleEventUpdate(update: EventCalendarProposedUpdate<AdminProspectingAction>) {
     const action = update.event.data
-    if (action?.status !== "A_FAIRE") return false
+    if (!action || !isReschedulable(action.status)) return false
     // Seul le jour part au serveur, lu comme celui des champs date des formulaires.
     const occurredAt = toIsoDate(update.start)
     startTransition(async () => {

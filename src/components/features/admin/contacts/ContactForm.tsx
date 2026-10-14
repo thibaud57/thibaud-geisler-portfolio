@@ -215,7 +215,7 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
               mirror={{
                 id: `${formId}-lead-metAt`,
                 label: PERSON_FIELD_LABELS.metAt,
-                value: lead?.metAt ? formatDateOnly(lead.metAt) : "",
+                value: formatDateOnly(lead?.metAt ?? null) ?? "",
                 loading: leadLoading,
               }}
             >

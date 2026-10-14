@@ -24,6 +24,9 @@ vi.mock("@/lib/prisma", () => {
 })
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 
+import { revalidatePath } from "next/cache"
+
+import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
@@ -76,6 +79,12 @@ describe("optOutPerson", () => {
     )
     expect(data).not.toHaveProperty("email")
     expect(data).not.toHaveProperty("linkedinUrl")
+  })
+
+  it("refreshes the prospecting actions list that shows the person", async () => {
+    await optOutPerson("p1")
+
+    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
   })
 
   it("deletes the person's signals when they object to prospecting", async () => {

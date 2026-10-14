@@ -1,4 +1,5 @@
 import type { Company, ProjectType } from "@/generated/prisma/client"
+import { companyCrmFields, companyFields } from "@/lib/crm/companies"
 import { OPTED_OUT_CLEARED } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import type { CompanyInput } from "@/lib/schemas/company"
@@ -102,16 +103,6 @@ function optionalIdOf(ids: ReadonlyMap<string, string>, key: string | null): str
   return key === null ? null : idOf(ids, key)
 }
 
-function crmFields(data: CompanyInput) {
-  return {
-    types: data.types,
-    relationStatus: data.relationStatus,
-    zones: data.zones,
-    notes: data.notes,
-    details: data.details,
-  }
-}
-
 type PortfolioCompany = Pick<Company, "id" | "sectors" | "size" | "websiteUrl" | "logoFilename">
 
 // Les champs publics alimentent le site publié : Notion n'en remplit que les vides
@@ -121,7 +112,7 @@ function portfolioMerge(existing: PortfolioCompany, data: CompanyInput) {
     size: existing.size ?? data.size,
     websiteUrl: existing.websiteUrl ?? data.websiteUrl,
     logoFilename: existing.logoFilename ?? data.logoFilename,
-    ...crmFields(data),
+    ...companyCrmFields(data),
   }
 }
 
@@ -132,16 +123,7 @@ export async function writeAll(p: Prepared): Promise<void> {
       for (const { record, data } of p.companies) {
         if (record.existingSlug === null) {
           const { id } = await tx.company.create({
-            data: {
-              slug: data.slug,
-              name: data.name,
-              sectors: data.sectors,
-              size: data.size,
-              websiteUrl: data.websiteUrl,
-              logoFilename: data.logoFilename,
-              ...crmFields(data),
-              createdAt: record.createdAt,
-            },
+            data: { ...companyFields(data), createdAt: record.createdAt },
             select: { id: true },
           })
           companyIds.set(record.key, id)

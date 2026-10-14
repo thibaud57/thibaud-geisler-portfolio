@@ -45,5 +45,5 @@ export function useRowDetail<T extends { id: string }>({
 
   const dialog: ReactNode = <DetailDialog detail={detail} onOpenChange={handleOpenChange} />
 
-  return { open, dialog, selected }
+  return { open, dialog }
 }

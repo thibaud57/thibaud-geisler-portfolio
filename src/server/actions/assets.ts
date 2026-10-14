@@ -5,6 +5,7 @@ import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import { ADMIN_ASSETS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2, R2_ADMIN_BUCKET, R2_BUCKET } from "@/lib/r2"
@@ -83,7 +84,7 @@ export async function uploadAsset(
           ContentType: expectedType,
         }),
       )
-      revalidatePath("/admin/assets")
+      revalidatePath(ADMIN_ASSETS_PATH)
       log.info({ event: "asset:uploaded", key, size: file.size })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
@@ -100,6 +101,11 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
   // consultation de la base et tout appel R2, pas seulement le bouton qui l'invoque.
   if (isHardcodedAssetKey(key)) {
     return { ok: false, errors: {}, message: "asset_hardcoded" }
+  }
+
+  const validation = validateAssetPath(key.split("/"))
+  if (!validation.ok) {
+    return { ok: false, errors: { filename: [validation.error] }, message: null }
   }
 
   const { client, bucket } = resolveBucket(key)
@@ -125,7 +131,7 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
     exists: () => Promise.resolve(false),
     destroy: () => client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })),
     invalidateCaches: () => {
-      revalidatePath("/admin/assets")
+      revalidatePath(ADMIN_ASSETS_PATH)
     },
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),

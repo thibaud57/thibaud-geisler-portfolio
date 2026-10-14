@@ -14,10 +14,7 @@ export function DeleteProspectingActionDialog({ action }: Props) {
       name={action.title}
       description="Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré »."
       successMessage="Action supprimée"
-      onDelete={async () => {
-        const result = await deleteProspectingAction(action.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteProspectingAction(action.id)}
     />
   )
 }

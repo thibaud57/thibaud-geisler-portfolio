@@ -54,7 +54,7 @@ export function buildContactDetail(contact: AdminContact, onEdit: () => void): D
           },
           {
             label: PERSON_FIELD_LABELS.metAt,
-            value: contact.metAt ? formatDateOnly(contact.metAt) : null,
+            value: formatDateOnly(contact.metAt),
           },
         ],
       },

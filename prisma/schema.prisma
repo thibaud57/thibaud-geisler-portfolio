@@ -523,12 +523,12 @@ model Opportunity {
 
   // Qui a apporté l'opportunité : un fait de l'opportunité, qui survit au retrait d'un rôle.
   referrerId     String?
-  referrer       Person?  @relation("OpportunityReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  referrer       Person?     @relation("OpportunityReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
   // Vide pour un client direct.
   intermediaryId String?
-  intermediary   Company? @relation("OpportunityIntermediary", fields: [intermediaryId], references: [id], onDelete: Restrict)
+  intermediary   Company?    @relation("OpportunityIntermediary", fields: [intermediaryId], references: [id], onDelete: Restrict)
   clientId       String?
-  client         Company? @relation("OpportunityClient", fields: [clientId], references: [id], onDelete: Restrict)
+  client         Company?    @relation("OpportunityClient", fields: [clientId], references: [id], onDelete: Restrict)
   interviews     Interview[]
 
   createdAt DateTime @default(now()) @db.Timestamptz

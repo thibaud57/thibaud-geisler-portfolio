@@ -11,6 +11,7 @@ import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportun
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 import { personFields } from "@/lib/schemas/person"
 import {
+  instant as instantString,
   prospectingActionSchema,
   type ProspectingActionInput,
 } from "@/lib/schemas/prospecting-action"
@@ -20,7 +21,7 @@ import { signalTypesFor } from "@/lib/crm/signals"
 
 const key = z.string().min(1)
 const optionalKey = key.nullable()
-const instant = z.iso.datetime({ offset: true }).transform((value) => new Date(value))
+const instant = instantString.transform((value) => new Date(value))
 
 const baseRecord = {
   key,

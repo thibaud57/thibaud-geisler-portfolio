@@ -2,19 +2,12 @@ import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { companyRefSelect } from "@/server/queries/company-ref"
+import { personRefSelect } from "@/server/queries/persons"
 
 const adminProspectingActionInclude = {
   person: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      linkedinUrl: true,
-      optedOutAt: true,
-      company: { select: { id: true, name: true, logoFilename: true } },
-      lead: { select: { personId: true } },
-      contact: { select: { personId: true } },
-    },
+    select: { ...personRefSelect, company: { select: companyRefSelect } },
   },
 } as const
 

@@ -17,7 +17,7 @@ interface ActionViewRow {
   createdAt: Date
 }
 
-const MESSAGE_CHANNELS: ReadonlySet<ActionChannel> = new Set([
+export const MESSAGE_CHANNELS: ReadonlySet<ActionChannel> = new Set([
   "DM_LINKEDIN",
   "EMAIL",
   "SMS_WHATSAPP",
@@ -63,11 +63,11 @@ function toDoFirstThenRecent(a: ActionViewRow, b: ActionViewRow): number {
   return rank(a) - rank(b) || byOccurredAtDesc(a, b)
 }
 
-// À faire du plus ancien au plus récent : les retards d'abord, puis les prochaines échéances.
+// À faire, Connexions et Discussions du plus ancien au plus récent : les retards et relances les plus anciennes d'abord.
 const VIEW_SORTS: Record<ActionView, (a: ActionViewRow, b: ActionViewRow) => number> = {
   "a-faire": byOccurredAtAsc,
-  connexions: byOccurredAtDesc,
-  discussions: byOccurredAtDesc,
+  connexions: byOccurredAtAsc,
+  discussions: byOccurredAtAsc,
   candidatures: byOccurredAtDesc,
   journal: toDoFirstThenRecent,
 }
@@ -95,11 +95,12 @@ export const ACTION_VIEW_PAGES: Record<ActionView, { title: string; subtitle: st
   connexions: {
     title: "Connexions",
     subtitle:
-      "Connexions LinkedIn envoyées, en attente d'acceptation. Au-delà de J+14 sans suite, passer le lead en stand-by.",
+      "Connexions LinkedIn envoyées, en attente d'acceptation, les plus anciennes d'abord. Au-delà de J+14 sans suite, passer le lead en stand-by.",
   },
   discussions: {
     title: "Discussions",
-    subtitle: "DM, emails et SMS envoyés en attente de réponse, à relancer selon la séquence.",
+    subtitle:
+      "DM, emails et SMS envoyés en attente de réponse, les plus anciens d'abord, à relancer selon la séquence.",
   },
   candidatures: {
     title: "Candidatures",

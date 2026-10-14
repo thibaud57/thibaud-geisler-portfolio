@@ -5,6 +5,7 @@ import { updateTag } from "next/cache"
 
 import type { LegalForm, Prisma } from "@/generated/prisma/client"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { companyFields } from "@/lib/crm/companies"
 import { DEFAULT_CURRENCY, isFrenchCountry } from "@/lib/crm/legal-entities"
 import { prisma } from "@/lib/prisma"
 import { companySchema, type CompanyInput } from "@/lib/schemas/company"
@@ -17,7 +18,13 @@ import {
 } from "@/lib/server-utils"
 
 import { revalidatePersonLists } from "./_support/person-guards"
-import { deleteEntity, saveEntity } from "./_support/shared"
+import {
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import { type CompanyFormState } from "./companies.types"
 
 // Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.
@@ -109,22 +116,6 @@ function toLegalEntityDraft(data: CompanyInput): LegalEntityDraft | undefined {
   }
 }
 
-function companyFields(data: CompanyInput) {
-  return {
-    slug: data.slug,
-    name: data.name,
-    sectors: data.sectors,
-    size: data.size,
-    websiteUrl: data.websiteUrl,
-    logoFilename: data.logoFilename,
-    types: data.types,
-    relationStatus: data.relationStatus,
-    zones: data.zones,
-    notes: data.notes,
-    details: data.details,
-  }
-}
-
 function legalEntityCreate(slug: string, legal: LegalEntityDraft) {
   return {
     slug,
@@ -164,8 +155,8 @@ function toUpdateData(
   const publisher = current?.publisher
     ? {
         update: {
-          vatRegime: data.legalEntityVatRegime ?? null,
-          vatLiableSince: data.legalEntityVatLiableSince ?? null,
+          vatRegime: data.legalEntityVatRegime,
+          vatLiableSince: data.legalEntityVatLiableSince,
         },
       }
     : undefined
@@ -226,17 +217,11 @@ function invalidateCompanyCaches(): void {
   revalidatePersonLists()
 }
 
-const companyExists = (id: string) =>
-  prisma.company.count({ where: { id } }).then((count) => count > 0)
-
-interface SaveCompanyEvents {
-  success: string
-  failure: string
-}
+const companyExists = (id: string) => rowExists(prisma.company, { id })
 
 function saveCompany(
   actionName: string,
-  events: SaveCompanyEvents,
+  events: ActionEvents,
   formData: FormData,
   persist: (data: CompanyInput) => Promise<unknown>,
   updatedId?: string,
@@ -251,17 +236,12 @@ function saveCompany(
     persist,
     successLogFields: (data) => ({ slug: data.slug }),
     invalidateCaches: invalidateCompanyCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : {
-            exists: () => companyExists(updatedId),
-            state: () => ({ ok: false, errors: {}, message: "company_not_found", values }),
-          },
     mapError: (err) => mapUniqueViolation(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "company_not_found",
+      updatedId,
+      exists: companyExists,
+    }),
   })
 }
 

@@ -9,9 +9,15 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
-import { signalTypesFor, type SignalOwnerKind } from "@/lib/crm/signals"
+import { canReceiveSignal, signalTypesFor, type SignalOwnerKind } from "@/lib/crm/signals"
 
-import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
+import {
+  deleteEntity,
+  formStateHandlers,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import type { SignalFormState } from "./signals.types"
 
 const TYPE_MISMATCH = "Ce type ne concerne pas cette fiche"
@@ -48,7 +54,7 @@ async function assertLeadAccepts(tx: Prisma.TransactionClient, personId: string)
     where: { personId },
     select: { origin: true, person: { select: { optedOutAt: true } } },
   })
-  if (!lead || lead.person.optedOutAt || lead.origin !== "OUTBOUND") {
+  if (!lead || !canReceiveSignal({ origin: lead.origin, optedOutAt: lead.person.optedOutAt })) {
     throw new SignalRefusedError("lead_not_eligible")
   }
 }
@@ -71,12 +77,11 @@ function mapSignalError(err: unknown, values: SignalFormState["values"]): Signal
   return null
 }
 
-function signalGone(values?: SignalFormState["values"]): SignalFormState {
-  return { ok: false, errors: {}, message: "signal_not_found", ...(values ? { values } : {}) }
+function signalGone(values: SignalFormState["values"]): SignalFormState {
+  return { ok: false, errors: {}, message: "signal_not_found", values }
 }
 
-const signalExists = (id: string) =>
-  prisma.signal.count({ where: { id } }).then((count) => count > 0)
+const signalExists = (id: string) => rowExists(prisma.signal, { id })
 
 function saveSignal(
   actionName: string,
@@ -95,14 +100,12 @@ function saveSignal(
     persist,
     successLogFields: (_data, signal) => ({ id: signal.id }),
     invalidateCaches: invalidateSignalCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : { exists: () => signalExists(updatedId), state: () => signalGone(values) },
     mapError: (err) => mapSignalError(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "signal_not_found",
+      updatedId,
+      exists: signalExists,
+    }),
   })
 }
 

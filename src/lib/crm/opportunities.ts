@@ -2,6 +2,7 @@ import { Archive, CircleCheck, CirclePause, CircleX, Clock, Hand, Inbox, Send } 
 
 import type { OpportunityStatus } from "@/generated/prisma/client"
 import { toLinkMarker } from "@/lib/crm/link-marker"
+import { formatMonthYear } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
@@ -46,15 +47,8 @@ export const OPPORTUNITY_FIELD_LABELS = {
   details: "Détails",
 } as const
 
-// Relu en UTC : un fuseau à l'ouest de Greenwich reculerait sinon l'affichage au mois précédent.
-const START_MONTH = new Intl.DateTimeFormat("fr-FR", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-})
-
 export function formatStartMonth(date: Date | null): string | null {
-  return date ? START_MONTH.format(date) : null
+  return date ? formatMonthYear(date) : null
 }
 
 export function toMonthValue(date: Date): string {

@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { ContactFormFields } from "@/lib/schemas/network-contact"
 
 export type ContactFormMessage =
@@ -13,8 +13,4 @@ export type ContactFormMessage =
 
 export type ContactFormState = FormActionState<ContactFormFields, ContactFormMessage>
 
-export const initialContactFormState: ContactFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialContactFormState: ContactFormState = INITIAL_FORM_STATE

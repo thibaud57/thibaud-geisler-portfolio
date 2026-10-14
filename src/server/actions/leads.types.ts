@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { LeadInput } from "@/lib/schemas/lead"
 
 export type LeadFormMessage =
@@ -12,8 +12,4 @@ export type LeadFormMessage =
 
 export type LeadFormState = FormActionState<LeadInput, LeadFormMessage>
 
-export const initialLeadFormState: LeadFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialLeadFormState: LeadFormState = INITIAL_FORM_STATE

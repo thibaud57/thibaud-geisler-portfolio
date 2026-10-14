@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { InterviewInput } from "@/lib/schemas/interview"
 
 export type InterviewFormMessage =
@@ -12,8 +12,4 @@ export type InterviewFormMessage =
 
 export type InterviewFormState = FormActionState<InterviewInput, InterviewFormMessage>
 
-export const initialInterviewFormState: InterviewFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialInterviewFormState: InterviewFormState = INITIAL_FORM_STATE

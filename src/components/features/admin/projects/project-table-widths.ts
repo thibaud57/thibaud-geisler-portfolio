@@ -18,7 +18,7 @@ export const PROJECT_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type ProjectColumnKey = keyof typeof PROJECT_COLUMN_WIDTHS
+type ProjectColumnKey = keyof typeof PROJECT_COLUMN_WIDTHS
 
 export const PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   ProjectView,

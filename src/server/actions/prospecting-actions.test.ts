@@ -340,6 +340,17 @@ describe("changeProspectingActionStatus", () => {
     expect(state.errors.status).toEqual([OPTED_OUT_MESSAGE])
     expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
   })
+
+  it("tells the board the action was deleted and refreshes the screens", async () => {
+    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
+
+    const state = await changeProspectingActionStatus("a1", "FAIT")
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.status).toEqual(["Cette action a été supprimée"])
+    expect(revalidatePath).toHaveBeenCalled()
+  })
 })
 
 describe("rescheduleProspectingAction", () => {

@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { CAPITAL_CURRENCIES, LEGAL_FORMS, VAT_REGIMES } from "@/lib/crm/legal-entities"
+import { optionalDateField, optionalTextField } from "@/lib/schemas/fields"
 import {
   emptyToNull,
   NONE_VALUE,
@@ -8,7 +9,7 @@ import {
   nullifyNoneValue,
 } from "@/lib/schemas/none-value"
 
-const optionalText = z.string().trim().transform(emptyToNull).optional()
+const optionalText = optionalTextField.optional()
 
 const nullableEnum = <T extends string>(values: readonly T[], error: string) =>
   nullableEnumField(values, error).optional()
@@ -37,12 +38,7 @@ export const legalEntityFields = {
     .transform(emptyToNull)
     .optional(),
   // Les champs de TVA appartiennent au Publisher, ils ne comptent jamais comme une valeur de l'entité.
-  legalEntityVatLiableSince: z
-    .preprocess(
-      (value) => (value === "" ? null : value),
-      z.coerce.date({ error: "Date invalide" }).nullable(),
-    )
-    .optional(),
+  legalEntityVatLiableSince: optionalDateField.optional(),
   legalEntityVatRegime: nullableEnum(VAT_REGIMES, "Régime de TVA inconnu"),
   legalEntityRcsCity: optionalText,
   legalEntityRcsNumber: optionalText,

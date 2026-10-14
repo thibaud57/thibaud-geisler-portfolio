@@ -1,24 +1,24 @@
 import "server-only"
 
 import type {
-  JobRole,
   LeadChannel,
   LeadInterest,
   LeadOrigin,
   LeadStatus,
   Prisma,
-  Zone,
 } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { SignalItem } from "@/lib/crm/signals"
+import { companyRefSelect } from "@/server/queries/company-ref"
 import { orderedInterviewSelect } from "@/server/queries/interviews"
 import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
+import { flattenPerson, type FlatPerson, personNameOrder } from "@/server/queries/persons"
 import { signalsInclude } from "@/server/queries/signals"
 
 const adminLeadInclude = {
   person: {
     include: {
-      company: { select: { id: true, name: true, logoFilename: true } },
+      company: { select: companyRefSelect },
       referredOpportunities: {
         select: opportunitySummarySelect,
         orderBy: { updatedAt: "desc" },
@@ -56,22 +56,12 @@ const adminLeadInclude = {
 
 type LeadWithPerson = Prisma.LeadGetPayload<{ include: typeof adminLeadInclude }>
 
-export interface AdminLead {
+export type AdminLead = FlatPerson & {
   id: string
-  name: string | null
-  jobRole: JobRole | null
-  zone: Zone | null
-  email: string | null
-  phone: string | null
-  linkedinUrl: string | null
-  metAt: Date | null
-  notes: string | null
-  details: string | null
   optedOutAt: Date | null
   exchangesErasedAt: Date | null
   // Traitement 7 (registre) : point de départ des 3 ans de conservation, avec la date de création du rôle.
   lastReplyAt: Date | null
-  company: { id: string; name: string; logoFilename: string | null } | null
   origin: LeadOrigin
   status: LeadStatus
   interest: LeadInterest | null
@@ -89,19 +79,10 @@ export interface AdminLead {
 function toAdminLead(row: LeadWithPerson): AdminLead {
   return {
     id: row.personId,
-    name: row.person.name,
-    jobRole: row.person.jobRole,
-    zone: row.person.zone,
-    email: row.person.email,
-    phone: row.person.phone,
-    linkedinUrl: row.person.linkedinUrl,
-    metAt: row.person.metAt,
-    notes: row.person.notes,
-    details: row.person.details,
+    ...flattenPerson(row.person),
     optedOutAt: row.person.optedOutAt,
     exchangesErasedAt: row.person.exchangesErasedAt,
     lastReplyAt: row.person.prospectingActions[0]?.respondedAt ?? null,
-    company: row.person.company,
     origin: row.origin,
     status: row.status,
     interest: row.interest,
@@ -120,7 +101,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
 export async function findAllLeadsForAdmin(): Promise<AdminLead[]> {
   const rows = await prisma.lead.findMany({
     include: adminLeadInclude,
-    orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
+    orderBy: { person: personNameOrder },
   })
   return rows.map(toAdminLead)
 }
@@ -141,6 +122,6 @@ export async function findLeadsOfCompany(companyId: string) {
         select: { name: true, email: true, linkedinUrl: true, jobRole: true, metAt: true },
       },
     },
-    orderBy: { person: { name: { sort: "asc", nulls: "last" } } },
+    orderBy: { person: personNameOrder },
   })
 }

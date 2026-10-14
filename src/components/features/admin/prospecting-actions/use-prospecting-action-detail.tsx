@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useCallback, useState, type ReactNode } from "react"
 
-import { type DetailContent, DetailDialog } from "@/components/features/admin/detail/DetailDialog"
+import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import { buildActionDetail } from "@/components/features/admin/prospecting-actions/action-detail"
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospecting-actions/ProspectingActionFormDialog"
 import type { PersonOption } from "@/server/queries/persons"
@@ -28,30 +28,22 @@ export function useProspectingActionDetail({
   personOptions,
   initialDetailId,
 }: Options): ProspectingActionDetail {
-  const [selectedAction, setSelectedAction] = useState<AdminProspectingAction | null>(
-    () => actions.find((action) => action.id === initialDetailId) ?? null,
-  )
   // Survit à la désélection : « Modifier » ferme la vue détail avant d'ouvrir le formulaire.
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null)
 
-  const detail = useMemo<DetailContent | null>(
-    () =>
-      selectedAction
-        ? buildActionDetail(selectedAction, () => {
-            setFormTarget({ action: selectedAction })
-          })
-        : null,
-    [selectedAction],
+  const build = useCallback(
+    (action: AdminProspectingAction) =>
+      buildActionDetail(action, () => {
+        setFormTarget({ action })
+      }),
+    [],
   )
+
+  const { open, dialog } = useRowDetail({ rows: actions, initialDetailId, build })
 
   const dialogs = (
     <>
-      <DetailDialog
-        detail={detail}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAction(null)
-        }}
-      />
+      {dialog}
       {formTarget ? (
         <ProspectingActionFormDialog
           key={formTarget.action?.id ?? "new"}
@@ -59,8 +51,8 @@ export function useProspectingActionDetail({
           defaultDate={formTarget.defaultDate}
           personOptions={personOptions}
           open
-          onOpenChange={(open) => {
-            if (!open) setFormTarget(null)
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setFormTarget(null)
           }}
         />
       ) : null}
@@ -68,7 +60,7 @@ export function useProspectingActionDetail({
   )
 
   return {
-    openDetail: setSelectedAction,
+    openDetail: open,
     openCreate: (defaultDate) => {
       setFormTarget({ action: null, defaultDate })
     },

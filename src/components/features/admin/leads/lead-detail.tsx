@@ -10,7 +10,7 @@ import { personActionsSection } from "@/components/features/admin/persons/person
 import { personDetailSections } from "@/components/features/admin/persons/person-table"
 import { signalsSection } from "@/components/features/admin/signals/signal-detail"
 import { ADMIN_INTERVIEWS_PATH, ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
-import { formatDateOnly, formatShortDate, formatShortInstantDate } from "@/lib/date-time"
+import { formatDateOnly, formatShortInstantDate } from "@/lib/date-time"
 import { detailHref } from "@/lib/admin/detail-links"
 import { contactDetailHrefOf } from "@/lib/crm/person-links"
 import { toLeadInterviewLinks } from "@/lib/crm/interviews"
@@ -53,13 +53,10 @@ export function channelBadge(lead: AdminLead) {
   return enumBadge(lead.channel, LEAD_CHANNEL_LABELS, LEAD_CHANNEL_ICONS)
 }
 
-function headerStatusBadge(lead: AdminLead, now: number) {
-  if (lead.optedOutAt) return { label: OPTED_OUT_LABEL }
-  return headerBadge(
-    leadDisplayStatus(lead, now),
-    LEAD_DISPLAY_STATUS_LABELS,
-    LEAD_DISPLAY_STATUS_ICONS,
-  )
+function headerStatusBadge(lead: AdminLead, now: Date) {
+  const status = leadDisplayStatus(lead, now)
+  if (status === null) return { label: OPTED_OUT_LABEL }
+  return headerBadge(status, LEAD_DISPLAY_STATUS_LABELS, LEAD_DISPLAY_STATUS_ICONS)
 }
 
 function opportunitiesSection(lead: AdminLead) {
@@ -91,17 +88,20 @@ export function buildLeadDetail(
   if (lead.optedOutAt) {
     return {
       title: personDisplayName(lead),
-      badges: [headerStatusBadge(lead, now.getTime())],
+      badges: [headerStatusBadge(lead, now)],
       sections: [
         {
           title: PERSON_SECTION_TITLES.optOut,
           rows: [
             { label: PERSON_FIELD_LABELS.email, value: lead.email },
             { label: PERSON_FIELD_LABELS.linkedinUrl, value: linkedinLink(lead) },
-            { label: PERSON_FIELD_LABELS.optedOutAt, value: formatShortDate(lead.optedOutAt) },
+            {
+              label: PERSON_FIELD_LABELS.optedOutAt,
+              value: formatShortInstantDate(lead.optedOutAt),
+            },
             {
               label: PERSON_FIELD_LABELS.exchangesErasedAt,
-              value: formatShortDate(lead.exchangesErasedAt),
+              value: formatShortInstantDate(lead.exchangesErasedAt),
             },
           ],
         },
@@ -116,7 +116,7 @@ export function buildLeadDetail(
   return {
     title: personDisplayName(lead),
     ...(lead.jobRole ? { subtitle: JOB_ROLE_LABELS[lead.jobRole] } : {}),
-    badges: [headerStatusBadge(lead, now.getTime())],
+    badges: [headerStatusBadge(lead, now)],
     // Le poste est dans le sous-titre et le statut en tête : ni l'un ni l'autre n'a de ligne dans un bloc.
     sections: [
       ...personDetailSections(lead, {
@@ -135,7 +135,7 @@ export function buildLeadDetail(
           { label: LEAD_FIELD_LABELS.channel, value: channelBadge(lead) },
           {
             label: PERSON_FIELD_LABELS.metAt,
-            value: lead.metAt ? formatDateOnly(lead.metAt) : null,
+            value: formatDateOnly(lead.metAt),
           },
           {
             label: LEAD_FIELD_LABELS.lastReplyAt,

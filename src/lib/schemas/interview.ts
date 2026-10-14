@@ -9,9 +9,9 @@ import {
   InterviewStatus,
   InterviewType,
 } from "@/generated/prisma/browser"
+import { notesField, optionalInt, optionalTextField } from "@/lib/schemas/fields"
 import { nullableEnumField } from "@/lib/schemas/none-value"
-import { optionalInt } from "@/lib/schemas/opportunity"
-import { notesField, optionalTextField, personFields } from "@/lib/schemas/person"
+import { personFields } from "@/lib/schemas/person"
 import { instant } from "@/lib/schemas/prospecting-action"
 
 export const INTERVIEW_SIDES = Object.values(InterviewSide)

@@ -14,10 +14,7 @@ export function DeleteInterviewDialog({ interviewId, name }: Props) {
       name={name}
       description="Les entretiens suivants de l'opportunité se renumérotent."
       successMessage="Entretien supprimé"
-      onDelete={async () => {
-        const result = await deleteInterview(interviewId)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteInterview(interviewId)}
     />
   )
 }

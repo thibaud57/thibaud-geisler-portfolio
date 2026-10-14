@@ -1,6 +1,6 @@
 // Sans "use client" : la page serveur en tire son squelette, la table ses largeurs (lib/admin/table-widths).
 
-import { ACTIONS_COLUMN_WIDTH, skeletonWidths } from "@/lib/admin/table-widths"
+import { ACTIONS_COLUMN_WIDTH, columnsWithout, skeletonWidths } from "@/lib/admin/table-widths"
 import type { OpportunityView } from "@/lib/crm/opportunity-views"
 
 export const OPPORTUNITY_COLUMN_WIDTHS = {
@@ -20,36 +20,31 @@ export const OPPORTUNITY_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type OpportunityColumnKey = keyof typeof OPPORTUNITY_COLUMN_WIDTHS
+type OpportunityColumnKey = keyof typeof OPPORTUNITY_COLUMN_WIDTHS
+
+const ALL_OPPORTUNITY_COLUMNS: readonly OpportunityColumnKey[] = [
+  "status",
+  "referrer",
+  "intermediary",
+  "client",
+  "dailyRate",
+  "contract",
+  "workMode",
+  "rhythm",
+  "zone",
+  "startMonth",
+  "duration",
+  "notes",
+]
 
 export const OPPORTUNITY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   OpportunityView,
   readonly OpportunityColumnKey[]
 > = {
-  "en-cours": ["status", "intermediary", "client", "dailyRate", "workMode", "rhythm", "startMonth"],
-  acceptees: [
-    "intermediary",
-    "client",
-    "dailyRate",
-    "contract",
-    "rhythm",
-    "startMonth",
-    "duration",
-  ],
-  all: [
-    "status",
-    "referrer",
-    "intermediary",
-    "client",
-    "dailyRate",
-    "contract",
-    "workMode",
-    "rhythm",
-    "zone",
-    "startMonth",
-    "duration",
-    "notes",
-  ],
+  "en-cours": ALL_OPPORTUNITY_COLUMNS,
+  // Toutes les acceptées ont le même statut.
+  acceptees: columnsWithout(ALL_OPPORTUNITY_COLUMNS, "status"),
+  all: ALL_OPPORTUNITY_COLUMNS,
 }
 
 export function opportunitySkeletonWidths(view: OpportunityView): readonly number[] {

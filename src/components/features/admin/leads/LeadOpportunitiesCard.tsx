@@ -1,6 +1,4 @@
-import { CreateLinkButton } from "@/components/features/admin/form/CreateLinkButton"
-import { PendingRelatedCard } from "@/components/features/admin/detail/PendingRelatedCard"
-import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
+import { RelatedCreateCard } from "@/components/features/admin/detail/RelatedCreateCard"
 import { ADMIN_OPPORTUNITIES_PATH } from "@/lib/admin/routes"
 import { LEAD_SECTION_TITLES } from "@/lib/crm/leads"
 import { toOpportunityLink } from "@/lib/crm/opportunities"
@@ -11,34 +9,22 @@ interface Props {
 }
 
 export function LeadOpportunitiesCard({ lead }: Props) {
-  if (!lead) {
-    return (
-      <PendingRelatedCard
-        title={LEAD_SECTION_TITLES.opportunities}
-        emptyText="Après l'enregistrement du lead."
-        addLabel="Nouvelle opportunité"
-      />
-    )
-  }
-
   return (
-    <RelatedLinksCard
+    <RelatedCreateCard
       title={LEAD_SECTION_TITLES.opportunities}
-      links={lead.opportunities.map((opportunity) =>
-        toOpportunityLink(opportunity, {
-          href: `${ADMIN_OPPORTUNITIES_PATH}/${opportunity.id}`,
-          metaSuffix: opportunity.client?.name,
-        }),
-      )}
+      record={lead}
+      pendingText="Après l'enregistrement du lead."
       emptyText="Aucune opportunité apportée par ce lead."
-      action={
-        <CreateLinkButton
-          href={`${ADMIN_OPPORTUNITIES_PATH}/nouvelle?referrer=${lead.id}`}
-          label="Nouvelle opportunité"
-          variant="outline"
-          size="sm"
-        />
+      links={(record) =>
+        record.opportunities.map((opportunity) =>
+          toOpportunityLink(opportunity, {
+            href: `${ADMIN_OPPORTUNITIES_PATH}/${opportunity.id}`,
+            metaSuffix: opportunity.client?.name,
+          }),
+        )
       }
+      createHref={(record) => `${ADMIN_OPPORTUNITIES_PATH}/nouvelle?referrer=${record.id}`}
+      addLabel="Nouvelle opportunité"
     />
   )
 }

@@ -17,10 +17,7 @@ export function DeleteReviewDialog({ review }: Props) {
       name={name}
       description="Les KPIs de cette semaine disparaissent de l'historique. Les actions et les leads comptés ne sont pas touchés."
       successMessage="Revue supprimée"
-      onDelete={async () => {
-        const result = await deleteWeeklyReview(review.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteWeeklyReview(review.id)}
     />
   )
 }

@@ -3,6 +3,7 @@
 import "server-only"
 import { revalidatePath } from "next/cache"
 
+import { ADMIN_ASSETS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { isValidWebsiteUrl } from "@/lib/schemas/company"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
@@ -40,7 +41,7 @@ export async function fetchCompanyLogo(
     const host = new URL(url).host
     try {
       const logo = await retrieveCompanyLogo(url, normalizedSlug)
-      revalidatePath("/admin/assets")
+      revalidatePath(ADMIN_ASSETS_PATH)
       log.info({
         event: "company_logo:fetched",
         host,

@@ -22,7 +22,7 @@ interface Props {
   options: readonly string[]
   labels: Record<string, string>
   errors: string[] | undefined
-  defaultValue?: string
+  defaultValue?: string | null
   value?: string
   onValueChange?: (value: string) => void
   placeholder?: string
@@ -46,9 +46,11 @@ export function SelectField({
   noneLabel,
   help,
 }: Props) {
+  const initialValue = defaultValue ?? (noneLabel && value === undefined ? NONE_VALUE : undefined)
+
   return (
     <FormField id={id} label={label} errors={errors} help={help}>
-      <Select name={name} defaultValue={defaultValue} value={value} onValueChange={onValueChange}>
+      <Select name={name} defaultValue={initialValue} value={value} onValueChange={onValueChange}>
         <SelectTrigger
           id={id}
           className="w-full"

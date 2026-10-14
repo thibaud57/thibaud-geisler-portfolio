@@ -21,6 +21,7 @@ vi.mock("@/lib/prisma", () => {
       count: vi.fn(),
     },
     signal: { deleteMany: vi.fn() },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   }
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
@@ -73,6 +74,7 @@ beforeEach(() => {
   vi.mocked(prisma.lead.update).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.lead.delete).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.person.deleteMany).mockResolvedValue({ count: 1 })
+  vi.mocked(prisma.$queryRaw).mockResolvedValue([{ "?column?": 1 }] as never)
 })
 
 it.each([
@@ -283,6 +285,18 @@ describe("updateLead", () => {
     const state = await updateLead("p1", initialLeadFormState, buildFormData())
 
     expect(state.message).toBe("unknown_error")
+  })
+
+  it("locks the person row before reading its opt-out and writing the update", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
+
+    await updateLead("p1", initialLeadFormState, buildFormData())
+
+    const lockOrder = vi.mocked(prisma.$queryRaw).mock.invocationCallOrder[0] ?? Infinity
+    const readOrder = vi.mocked(prisma.person.findUnique).mock.invocationCallOrder[0] ?? -1
+    const updateOrder = vi.mocked(prisma.person.update).mock.invocationCallOrder[0] ?? -1
+    expect(lockOrder).toBeLessThan(readOrder)
+    expect(lockOrder).toBeLessThan(updateOrder)
   })
 
   it("refuses to update an opted-out lead", async () => {

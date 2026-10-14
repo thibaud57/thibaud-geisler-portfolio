@@ -11,19 +11,25 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      findFirst: vi.fn(),
       count: vi.fn(),
     },
   },
 }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/queries/weekly-reviews", () => ({ findWeekCounterSources: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { constraintViolation } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
+import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
-import { createWeeklyReview, deleteWeeklyReview, updateWeeklyReview } from "./weekly-reviews"
+import {
+  computeWeekCounters,
+  createWeeklyReview,
+  deleteWeeklyReview,
+  updateWeeklyReview,
+} from "./weekly-reviews"
 import { initialWeeklyReviewFormState } from "./weekly-reviews.types"
 
 const BASE_FIELDS = {
@@ -52,7 +58,6 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
 }
 
 beforeEach(() => {
-  vi.mocked(prisma.weeklyReview.findFirst).mockResolvedValue(null)
   vi.mocked(prisma.weeklyReview.create).mockResolvedValue({ id: "r1" } as never)
   vi.mocked(prisma.weeklyReview.update).mockResolvedValue({ id: "r1" } as never)
 })
@@ -64,6 +69,7 @@ it.each([
     () => updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData()),
   ],
   ["deleteWeeklyReview", () => deleteWeeklyReview("r1")],
+  ["computeWeekCounters", () => computeWeekCounters("2026-09-25")],
 ])("%s rejects a call without a session, before touching the database", async (_name, call) => {
   vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
 
@@ -73,6 +79,7 @@ it.each([
   expect(prisma.weeklyReview.create).not.toHaveBeenCalled()
   expect(prisma.weeklyReview.update).not.toHaveBeenCalled()
   expect(prisma.weeklyReview.delete).not.toHaveBeenCalled()
+  expect(findWeekCounterSources).not.toHaveBeenCalled()
 })
 
 describe("createWeeklyReview", () => {
@@ -87,13 +94,14 @@ describe("createWeeklyReview", () => {
   })
 
   it("refuses a second review for the same week", async () => {
-    vi.mocked(prisma.weeklyReview.findFirst).mockResolvedValue({ id: "r0" } as never)
+    vi.mocked(prisma.weeklyReview.create).mockRejectedValueOnce(
+      constraintViolation("P2002", "WeeklyReview_closingFriday_key"),
+    )
 
     const state = await createWeeklyReview(initialWeeklyReviewFormState, buildFormData())
 
     expect(state.message).toBe("review_week_exists")
     expect(state.errors.closingFriday).toEqual(["Une revue existe déjà pour cette semaine"])
-    expect(prisma.weeklyReview.create).not.toHaveBeenCalled()
   })
 
   it("rejects a negative counter", async () => {
@@ -108,12 +116,15 @@ describe("createWeeklyReview", () => {
 })
 
 describe("updateWeeklyReview", () => {
-  it("ignores the review being edited when checking its week", async () => {
-    await updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData())
-
-    expect(prisma.weeklyReview.findFirst).toHaveBeenCalledWith(
-      objectMatch({ where: objectMatch({ NOT: { id: "r1" } }) }),
+  it("refuses a week already taken by another review", async () => {
+    vi.mocked(prisma.weeklyReview.update).mockRejectedValueOnce(
+      constraintViolation("P2002", "WeeklyReview_closingFriday_key"),
     )
+
+    const state = await updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData())
+
+    expect(state.message).toBe("review_week_exists")
+    expect(state.errors.closingFriday).toEqual(["Une revue existe déjà pour cette semaine"])
   })
 
   it("answers weekly_review_not_found when the review was deleted meanwhile", async () => {

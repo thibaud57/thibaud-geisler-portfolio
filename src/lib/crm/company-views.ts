@@ -3,7 +3,7 @@ export type CompanyView = "all" | "travaillees" | "recrutement" | "prospects"
 export const COMPANY_VIEW_PAGES: Record<CompanyView, { title: string; subtitle: string }> = {
   all: {
     title: "Toutes les entreprises",
-    subtitle: "Clients, intermédiaires et prospects.",
+    subtitle: "Toutes les entreprises, sans filtre.",
   },
   travaillees: {
     title: "Entreprises travaillées",

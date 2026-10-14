@@ -15,7 +15,7 @@ export default async function AdminHomePage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ADMIN_NAV_QUICK_LINKS.map((item) => (
           <Link key={item.href} href={entryHref(item)}>
-            <Card className="transition duration-300 ease-out hover:scale-[1.01] hover:shadow-xl">
+            <Card>
               <CardHeader className="flex flex-row items-center gap-3">
                 <item.icon className="size-5 text-muted-foreground" />
                 <CardTitle className="text-base">{item.label}</CardTitle>

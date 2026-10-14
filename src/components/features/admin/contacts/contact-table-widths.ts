@@ -10,13 +10,14 @@ export const CONTACT_COLUMN_WIDTHS = {
   actions: ACTIONS_COLUMN_WIDTH,
 } as const
 
-export type ContactColumnKey = keyof typeof CONTACT_COLUMN_WIDTHS
+type ContactColumnKey = keyof typeof CONTACT_COLUMN_WIDTHS
 
 export const CONTACT_DEFAULT_VISIBLE_COLUMNS: readonly ContactColumnKey[] = [
   "types",
   "status",
   "zone",
   "email",
+  "phone",
   "linkedinUrl",
   "notes",
 ]

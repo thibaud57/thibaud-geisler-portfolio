@@ -1,9 +1,7 @@
 "use server"
 
 import "server-only"
-import { revalidatePath } from "next/cache"
 
-import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
@@ -83,7 +81,6 @@ export async function erasePersonExchanges(id: string): Promise<PersonActionStat
         })
         return "erased"
       })
-      revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
       revalidatePersonLists()
       log.info({ event: "person:exchanges_erased", id, outcome })
       return { ok: true, message: null }

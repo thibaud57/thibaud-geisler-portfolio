@@ -17,7 +17,7 @@ import { FormField } from "@/components/ui/form-field"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { dateOnlyToLocal, toIsoDate } from "@/lib/date-time"
-import { NONE_LABEL, NONE_LABEL_FEMININE, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL, NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 import { REVIEW_MOTIVATIONS, REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
 import {
   defaultClosingFriday,
@@ -178,7 +178,7 @@ function ReviewForm({
         options={REVIEW_STATUSES}
         labels={REVIEW_STATUS_LABELS}
         icons={REVIEW_STATUS_ICONS}
-        defaultValue={review?.status ?? NONE_VALUE}
+        defaultValue={review?.status}
         errors={state.errors.status}
         noneLabel={NONE_LABEL}
       />
@@ -190,7 +190,7 @@ function ReviewForm({
         options={REVIEW_MOTIVATIONS}
         labels={REVIEW_MOTIVATION_LABELS}
         icons={REVIEW_MOTIVATION_ICONS}
-        defaultValue={review?.motivation ?? NONE_VALUE}
+        defaultValue={review?.motivation}
         errors={state.errors.motivation}
         noneLabel={NONE_LABEL_FEMININE}
       />

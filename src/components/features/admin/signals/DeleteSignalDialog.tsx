@@ -15,10 +15,7 @@ export function DeleteSignalDialog({ signal }: Props) {
     <ConfirmDeleteDialog
       name={name}
       successMessage="Signal supprimé"
-      onDelete={async () => {
-        const result = await deleteSignal(signal.id)
-        return result.ok ? { ok: true } : { ok: false, denied: null }
-      }}
+      onDelete={() => deleteSignal(signal.id)}
     />
   )
 }

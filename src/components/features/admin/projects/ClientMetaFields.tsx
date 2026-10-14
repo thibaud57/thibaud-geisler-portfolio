@@ -14,7 +14,7 @@ import {
   WORK_MODE_LABELS,
   WORK_MODES,
 } from "@/lib/contract-terms"
-import { NONE_LABEL, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL } from "@/lib/schemas/none-value"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminProjectDetail } from "@/server/queries/projects"
 
@@ -61,7 +61,7 @@ export function ClientMetaFields({ companies, clientMeta, errors }: Props) {
           options={CONTRACT_STATUSES}
           labels={CONTRACT_STATUS_LABELS}
           icons={CONTRACT_STATUS_ICONS}
-          defaultValue={clientMeta?.contractStatus ?? NONE_VALUE}
+          defaultValue={clientMeta?.contractStatus}
           errors={errors.contractStatus}
           noneLabel={NONE_LABEL}
         />

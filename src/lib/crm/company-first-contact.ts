@@ -1,4 +1,5 @@
 import type { ActionStatus, InterviewStatus } from "@/generated/prisma/client"
+import { isSentStatus } from "@/lib/crm/prospecting-action-status"
 
 interface ContactPerson {
   metAt: Date | null
@@ -18,7 +19,7 @@ export function firstContactAtOf(
   const times = [
     ...persons.flatMap((person) =>
       person.prospectingActions
-        .filter((action) => action.status !== "A_FAIRE")
+        .filter((action) => isSentStatus(action.status))
         .map((action) => action.occurredAt.getTime()),
     ),
     ...persons.flatMap((person) => (person.metAt ? [person.metAt.getTime()] : [])),

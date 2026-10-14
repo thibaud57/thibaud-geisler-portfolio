@@ -19,6 +19,7 @@ import type { Zone } from "@/generated/prisma/client"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
 import type { Facet } from "@/lib/admin/facets"
+import type { CompanyRef } from "@/server/queries/company-ref"
 
 interface PersonRow {
   name: string | null
@@ -27,7 +28,7 @@ interface PersonRow {
   phone: string | null
   notes: string | null
   zone: Zone | null
-  company: { id: string; name: string; logoFilename: string | null } | null
+  company: CompanyRef | null
 }
 
 type PersonColumnKey = "name" | "zone" | "linkedinUrl" | "email" | "phone" | "notes"

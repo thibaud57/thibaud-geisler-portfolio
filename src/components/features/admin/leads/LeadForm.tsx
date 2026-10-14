@@ -32,7 +32,7 @@ import {
 } from "@/lib/crm/leads"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { LEAD_CHANNELS, LEAD_INTERESTS, LEAD_ORIGINS, LEAD_STATUSES } from "@/lib/schemas/lead"
-import { NONE_LABEL, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL } from "@/lib/schemas/none-value"
 import { createLead, updateLead } from "@/server/actions/leads"
 import { initialLeadFormState } from "@/server/actions/leads.types"
 import type { CompanyOption } from "@/server/queries/companies"
@@ -145,7 +145,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
               options={LEAD_INTERESTS}
               labels={LEAD_INTEREST_LABELS}
               icons={LEAD_INTEREST_ICONS}
-              defaultValue={lead?.interest ?? NONE_VALUE}
+              defaultValue={lead?.interest}
               errors={state.errors.interest}
               noneLabel={NONE_LABEL}
             />
@@ -170,7 +170,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
               options={LEAD_CHANNELS}
               labels={LEAD_CHANNEL_LABELS}
               icons={LEAD_CHANNEL_ICONS}
-              defaultValue={lead?.channel ?? NONE_VALUE}
+              defaultValue={lead?.channel}
               errors={state.errors.channel}
               noneLabel={NONE_LABEL}
             />

@@ -17,15 +17,6 @@ export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null)
   }
 }
 
-// new Date("YYYY-MM-DD") parse la chaîne en UTC (spec ECMA-262) : décalage symétrique à toIsoDate.
-// slice plutôt que split+destructuring : évite le string | undefined de noUncheckedIndexedAccess.
-export function parseIsoDate(value: string): Date {
-  const year = Number(value.slice(0, 4))
-  const month = Number(value.slice(5, 7))
-  const day = Number(value.slice(8, 10))
-  return new Date(year, month - 1, day)
-}
-
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   CLIENT: "Client",
   PERSONAL: "Perso",

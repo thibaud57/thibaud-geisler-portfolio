@@ -1,10 +1,8 @@
 "use server"
 
 import "server-only"
-import { revalidatePath } from "next/cache"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
@@ -17,19 +15,22 @@ import { createActionLogger, isPrismaError, stringField } from "@/lib/server-uti
 import {
   assertProspectionAllowed,
   conflictErrors,
-  PersonConflictError,
   revalidatePersonLists,
+  PersonConflictError,
 } from "./_support/person-guards"
-import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
+import {
+  deleteEntity,
+  formStateHandlers,
+  MISSING_PERSON,
+  missingRelationState,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import type { ProspectingActionFormState } from "./prospecting-actions.types"
 
+const DELETED_ACTION_MESSAGE = "Cette action a été supprimée"
 const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true, reply: true } as const
-
-// Variante "layout" : les vues actions, leads, contacts et entreprises se rafraîchissent toutes (le premier contact et la date de revue des leads en dérivent).
-function invalidateActionCaches(): void {
-  revalidatePath(ADMIN_PROSPECTING_ACTIONS_PATH, "layout")
-  revalidatePersonLists()
-}
 
 function collectValues(formData: FormData): ProspectingActionFormState["values"] {
   return {
@@ -65,16 +66,10 @@ function mapActionError(
     return { ok: false, errors: conflictErrors(err), message: null, values }
   }
   if (!isPrismaError(err, "P2003")) return null
-  return {
-    ok: false,
-    errors: { personId: ["Cette personne n'existe plus, recharge la page"] },
-    message: "person_not_found",
-    values,
-  }
+  return missingRelationState("personId", MISSING_PERSON, values)
 }
 
-const prospectingActionExists = (id: string) =>
-  prisma.prospectingAction.count({ where: { id } }).then((count) => count > 0)
+const prospectingActionExists = (id: string) => rowExists(prisma.prospectingAction, { id })
 
 function saveProspectingAction(
   actionName: string,
@@ -96,23 +91,13 @@ function saveProspectingAction(
         return persist(tx, data)
       }),
     successLogFields: (_data, action) => ({ id: action.id }),
-    invalidateCaches: invalidateActionCaches,
-    onValidationError: (fieldErrors) => ({ ok: false, errors: fieldErrors, message: null, values }),
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    notFound:
-      updatedId === undefined
-        ? undefined
-        : {
-            exists: () => prospectingActionExists(updatedId),
-            state: () => ({
-              ok: false,
-              errors: {},
-              message: "prospecting_action_not_found",
-              values,
-            }),
-          },
+    invalidateCaches: revalidatePersonLists,
     mapError: (err) => mapActionError(err, values),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error", values }),
+    ...formStateHandlers(values, {
+      message: "prospecting_action_not_found",
+      updatedId,
+      exists: prospectingActionExists,
+    }),
   })
 }
 
@@ -185,13 +170,19 @@ export async function changeProspectingActionStatus(
         )
         await tx.prospectingAction.update({ where: { id }, data: timing })
       })
-      invalidateActionCaches()
+      revalidatePersonLists()
       log.info({ event: "prospecting_action:status_changed", id, status: parsed.data })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
       if (err instanceof PersonConflictError) {
         log.warn({ event: "prospecting_action:status_change_refused", id, reason: "opted_out" })
         return { ok: false, errors: { status: [err.message] }, message: null }
+      }
+      if (isPrismaError(err, "P2025") && !(await prospectingActionExists(id))) {
+        // L'écran montrait une action supprimée ailleurs : la revalidation le réaligne sur la base, sans quoi chaque glissement échouerait.
+        revalidatePersonLists()
+        log.warn({ event: "prospecting_action:status_change_refused", id, reason: "deleted" })
+        return { ok: false, errors: { status: [DELETED_ACTION_MESSAGE] }, message: null }
       }
       log.error({ err, event: "prospecting_action:status_change_failed", id })
       return { ok: false, errors: {}, message: "unknown_error" }
@@ -223,26 +214,24 @@ export async function rescheduleProspectingAction(
       if (count === 0) {
         const stillExists = await prospectingActionExists(id)
         // L'écran montrait une action périmée (passée à Fait ou supprimée ailleurs) : la revalidation le réaligne sur la base, sans quoi chaque nouvel essai échouerait.
-        invalidateActionCaches()
+        revalidatePersonLists()
         log.warn({ event: "prospecting_action:reschedule_refused", id })
         return {
           ok: false,
           errors: {
             occurredAt: [
-              stillExists
-                ? "Seule une action à faire se replanifie"
-                : "Cette action a été supprimée",
+              stillExists ? "Seule une action à faire se replanifie" : DELETED_ACTION_MESSAGE,
             ],
           },
           message: null,
         }
       }
-      invalidateActionCaches()
+      revalidatePersonLists()
       log.info({ event: "prospecting_action:rescheduled", id })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
       if (err instanceof PersonConflictError) {
-        invalidateActionCaches()
+        revalidatePersonLists()
         log.warn({ event: "prospecting_action:reschedule_refused", id })
         return { ok: false, errors: { occurredAt: [err.message] }, message: null }
       }
@@ -261,7 +250,7 @@ export async function deleteProspectingAction(id: string): Promise<ProspectingAc
     successLogFields: { id },
     exists: () => prospectingActionExists(id),
     destroy: () => prisma.prospectingAction.delete({ where: { id } }),
-    invalidateCaches: invalidateActionCaches,
+    invalidateCaches: revalidatePersonLists,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })

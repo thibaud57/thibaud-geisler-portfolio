@@ -214,7 +214,7 @@ export function OpportunityForm({
               options={CONTRACT_STATUSES}
               labels={CONTRACT_STATUS_LABELS}
               icons={CONTRACT_STATUS_ICONS}
-              defaultValue={opportunity?.contract ?? NONE_VALUE}
+              defaultValue={opportunity?.contract}
               errors={state.errors.contract}
               noneLabel={NONE_LABEL}
             />
@@ -226,7 +226,7 @@ export function OpportunityForm({
               options={WORK_MODES}
               labels={WORK_MODE_LABELS}
               icons={WORK_MODE_ICONS}
-              defaultValue={opportunity?.workMode ?? NONE_VALUE}
+              defaultValue={opportunity?.workMode}
               errors={state.errors.workMode}
               noneLabel={NONE_LABEL}
             />
@@ -244,7 +244,7 @@ export function OpportunityForm({
               label={LABELS.daysPerWeek}
               options={DAYS_PER_WEEK}
               labels={DAY_LABELS}
-              defaultValue={opportunity?.daysPerWeek?.toString() ?? NONE_VALUE}
+              defaultValue={opportunity?.daysPerWeek?.toString()}
               errors={state.errors.daysPerWeek}
               noneLabel={NONE_LABEL}
             />
@@ -255,7 +255,7 @@ export function OpportunityForm({
               label={LABELS.onSiteDays}
               options={ON_SITE_DAYS}
               labels={DAY_LABELS}
-              defaultValue={opportunity?.onSiteDays?.toString() ?? NONE_VALUE}
+              defaultValue={opportunity?.onSiteDays?.toString()}
               errors={state.errors.onSiteDays}
               noneLabel={NONE_LABEL}
             />

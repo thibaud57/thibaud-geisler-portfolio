@@ -29,7 +29,16 @@ import {
   type DuplicateWording,
 } from "./_support/person-guards"
 import { PersonLockedError } from "./persons.types"
-import { deleteEntity, saveEntity, type ActionEvents } from "./_support/shared"
+import {
+  deleteEntity,
+  formStateHandlers,
+  MISSING_COMPANY,
+  MISSING_PERSON,
+  missingRelationState,
+  rowExists,
+  saveEntity,
+  type ActionEvents,
+} from "./_support/shared"
 import type { ContactFormMessage, ContactFormState } from "./contacts.types"
 
 const CONFLICT_MESSAGES = {
@@ -76,11 +85,7 @@ async function assertAttachable(
     },
   })
   if (!person) {
-    throw new PersonConflictError(
-      "personId",
-      "not_found",
-      "Cette personne n'existe plus, recharge la page",
-    )
+    throw new PersonConflictError("personId", "not_found", MISSING_PERSON.text)
   }
   if (person.optedOutAt) {
     throw new PersonConflictError("personId", "opted_out", optOutMessage(person.optedOutAt))
@@ -128,49 +133,29 @@ function mapContactError(
   }
   // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
   if (isPrismaError(err, "P2003")) {
-    if (violatedConstraint(err).includes("personId")) {
-      return {
-        ok: false,
-        errors: { personId: ["Cette personne n'existe plus, recharge la page"] },
-        message: "person_not_found",
-        values,
-      }
-    }
-    return {
-      ok: false,
-      errors: { companyId: ["Cette entreprise n'existe plus, recharge la page"] },
-      message: "company_not_found",
-      values,
-    }
+    return violatedConstraint(err).includes("personId")
+      ? missingRelationState("personId", MISSING_PERSON, values)
+      : missingRelationState("companyId", MISSING_COMPANY, values)
   }
   return null
 }
 
-function sharedHandlers(values: ContactFormState["values"]) {
+const contactExists = (personId: string) => rowExists(prisma.contact, { personId })
+
+function contactHandlers(values: ContactFormState["values"], updatedId?: string) {
   return {
     successLogFields: (_data: object, contact: { personId: string }) => ({
       personId: contact.personId,
     }),
     invalidateCaches: revalidatePersonLists,
-    onValidationError: (errors: ContactFormState["errors"]): ContactFormState => ({
-      ok: false,
-      errors,
-      message: null,
-      values,
-    }),
-    onSuccess: (): ContactFormState => ({ ok: true, errors: {}, message: null }),
     mapError: (err: unknown) => mapContactError(err, values),
-    onUnknownError: (): ContactFormState => ({
-      ok: false,
-      errors: {},
-      message: "unknown_error",
-      values,
+    ...formStateHandlers(values, {
+      message: "contact_not_found",
+      updatedId,
+      exists: contactExists,
     }),
   }
 }
-
-const contactExists = (personId: string) =>
-  prisma.contact.count({ where: { personId } }).then((count) => count > 0)
 
 export async function createContact(
   _prevState: ContactFormState,
@@ -197,7 +182,7 @@ export async function createContact(
           }
           return tx.contact.create({ data: { personId, types, status } })
         }),
-      ...sharedHandlers(values),
+      ...contactHandlers(values),
     })
   }
 
@@ -212,7 +197,7 @@ export async function createContact(
         const created = await tx.person.create({ data: person })
         return tx.contact.create({ data: { types, status, personId: created.id } })
       }),
-    ...sharedHandlers(values),
+    ...contactHandlers(values),
   })
 }
 
@@ -244,11 +229,7 @@ export async function updateContact(
         await tx.person.update({ where: { id: personId }, data: person })
         return tx.contact.update({ where: { personId }, data: { types, status } })
       }),
-    notFound: {
-      exists: () => contactExists(personId),
-      state: () => ({ ok: false, errors: {}, message: "contact_not_found", values }),
-    },
-    ...sharedHandlers(values),
+    ...contactHandlers(values, personId),
   })
 }
 

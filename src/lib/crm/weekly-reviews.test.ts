@@ -81,7 +81,8 @@ describe("fridayOfWeek", () => {
   it.each([
     { label: "Monday", day: new Date(2026, 8, 21), expected: new Date(2026, 8, 25) },
     { label: "Friday", day: new Date(2026, 8, 25), expected: new Date(2026, 8, 25) },
-    { label: "Sunday", day: new Date(2026, 8, 27), expected: new Date(2026, 8, 25) },
+    { label: "Saturday", day: new Date(2026, 8, 26), expected: new Date(2026, 9, 2) },
+    { label: "Sunday", day: new Date(2026, 8, 27), expected: new Date(2026, 9, 2) },
     {
       label: "30 September, across the month boundary",
       day: new Date(2026, 8, 30),

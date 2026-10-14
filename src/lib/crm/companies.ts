@@ -5,9 +5,11 @@ import type {
   CompanySize,
   CompanyType,
   OpportunityStatus,
+  ProjectType,
   RelationStatus,
 } from "@/generated/prisma/client"
 import type { IconComponent } from "@/lib/icons"
+import type { CompanyInput } from "@/lib/schemas/company"
 import { OPPORTUNITY_FIELD_LABELS } from "@/lib/crm/opportunities"
 
 export const COMPANY_SECTOR_LABELS: Record<CompanySector, string> = {
@@ -122,6 +124,43 @@ export function hasAcceptedOpportunity(company: {
     company.opportunitiesAsIntermediary.some((opportunity) => opportunity.status === "ACCEPTEE") ||
     company.opportunitiesAsClient.some((opportunity) => opportunity.status === "ACCEPTEE")
   )
+}
+
+// Un projet personnel crée aussi un ClientMeta (ma société) : seul un projet CLIENT compte.
+export function countClientProjects(
+  clientMetas: readonly { project: { type: ProjectType } }[],
+): number {
+  return clientMetas.filter((meta) => meta.project.type === "CLIENT").length
+}
+
+export function isWorkedCompany(company: {
+  clientProjectCount: number
+  opportunitiesAsIntermediary: readonly { status: OpportunityStatus }[]
+  opportunitiesAsClient: readonly { status: OpportunityStatus }[]
+}): boolean {
+  return company.clientProjectCount > 0 || hasAcceptedOpportunity(company)
+}
+
+export function companyCrmFields(data: CompanyInput) {
+  return {
+    types: data.types,
+    relationStatus: data.relationStatus,
+    zones: data.zones,
+    notes: data.notes,
+    details: data.details,
+  }
+}
+
+export function companyFields(data: CompanyInput) {
+  return {
+    slug: data.slug,
+    name: data.name,
+    sectors: data.sectors,
+    size: data.size,
+    websiteUrl: data.websiteUrl,
+    logoFilename: data.logoFilename,
+    ...companyCrmFields(data),
+  }
 }
 
 export function isEsn(company: { types: readonly CompanyType[] }): boolean {

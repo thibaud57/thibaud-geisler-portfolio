@@ -36,6 +36,7 @@ import {
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/crm/opportunities"
 import {
+  ONGOING,
   opportunitiesForView,
   OPPORTUNITY_VIEW_LOCKED_FACETS,
   type OpportunityView,
@@ -186,30 +187,34 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
   ]
 }
 
-const facets: readonly Facet<AdminOpportunity>[] = [
-  enumFacet(
-    "status",
-    LABELS.status,
-    OPPORTUNITY_STATUSES,
-    OPPORTUNITY_STATUS_LABELS,
-    (opportunity) => opportunity.status,
-  ),
-  enumFacet(
-    "contract",
-    LABELS.contract,
-    CONTRACT_STATUSES,
-    CONTRACT_STATUS_LABELS,
-    (opportunity) => opportunity.contract,
-  ),
-  enumFacet(
-    "workMode",
-    LABELS.workMode,
-    WORK_MODES,
-    WORK_MODE_LABELS,
-    (opportunity) => opportunity.workMode,
-  ),
-  enumFacet("zone", LABELS.zone, ZONES, ZONE_LABELS, (opportunity) => opportunity.zone),
-]
+function buildFacets(view: OpportunityView): readonly Facet<AdminOpportunity>[] {
+  return [
+    enumFacet(
+      "status",
+      LABELS.status,
+      view === "en-cours"
+        ? OPPORTUNITY_STATUSES.filter((status) => ONGOING.has(status))
+        : OPPORTUNITY_STATUSES,
+      OPPORTUNITY_STATUS_LABELS,
+      (opportunity) => opportunity.status,
+    ),
+    enumFacet(
+      "contract",
+      LABELS.contract,
+      CONTRACT_STATUSES,
+      CONTRACT_STATUS_LABELS,
+      (opportunity) => opportunity.contract,
+    ),
+    enumFacet(
+      "workMode",
+      LABELS.workMode,
+      WORK_MODES,
+      WORK_MODE_LABELS,
+      (opportunity) => opportunity.workMode,
+    ),
+    enumFacet("zone", LABELS.zone, ZONES, ZONE_LABELS, (opportunity) => opportunity.zone),
+  ]
+}
 
 interface Props {
   opportunities: readonly AdminOpportunity[]
@@ -233,6 +238,8 @@ export function OpportunitiesTable({ opportunities, view, initialDetailId }: Pro
     () => opportunitiesForView(opportunities, view),
     [opportunities, view],
   )
+
+  const facets = useMemo(() => buildFacets(view), [view])
 
   const columns = useMemo<readonly Column<AdminOpportunity>[]>(
     () => [...buildDataColumns(view), actionsColumn(rowActions)],

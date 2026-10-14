@@ -1,4 +1,4 @@
-import type { FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
 import type { OpportunityInput } from "@/lib/schemas/opportunity"
 
 export type OpportunityFormMessage =
@@ -11,8 +11,4 @@ export type OpportunityFormMessage =
 
 export type OpportunityFormState = FormActionState<OpportunityInput, OpportunityFormMessage>
 
-export const initialOpportunityFormState: OpportunityFormState = {
-  ok: null,
-  errors: {},
-  message: null,
-}
+export const initialOpportunityFormState: OpportunityFormState = INITIAL_FORM_STATE
