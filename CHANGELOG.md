@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.1.0...v2.1.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **build:** installe pnpm sans Corepack, retiré de Node 25 ([#179](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/179)) ([d22d9c4](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d22d9c4d5d1172e55610265deebc2a5ebc0ceb54))
+
 ## [2.1.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.0.4...v2.1.0) (2026-10-14)
 
 
