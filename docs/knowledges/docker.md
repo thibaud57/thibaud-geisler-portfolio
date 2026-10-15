@@ -20,14 +20,14 @@ technologies: ["Node.js", "Next.js", "PostgreSQL", "Dokploy"]
 
 ### Description
 
-Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime. Le `Dockerfile` du portfolio compte cinq stages : `base` (Node 24 alpine, corepack), `deps` (install complet et génération du client Prisma), `builder` (build Next.js standalone), `deploy-prisma` (dépendances de production à plat pour la CLI Prisma) et `runner` (image finale).
+Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime. Le `Dockerfile` du portfolio compte cinq stages : `base` (Node 24 alpine, pnpm 12 par npm), `deps` (install complet et génération du client Prisma), `builder` (build Next.js standalone), `deploy-prisma` (dépendances de production à plat pour la CLI Prisma) et `runner` (image finale).
 
 ### Exemple
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
 FROM node:24-alpine AS base
-RUN corepack enable
+RUN npm install -g pnpm@12   # devEngines de package.json impose ensuite la version exacte
 WORKDIR /app
 
 FROM base AS deps
@@ -69,7 +69,7 @@ CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && exec
 - Utilisateur non-root (`USER nextjs`), et `npm`/`npx` retirés de l'image finale : jamais exécutés au runtime, ils sortent leurs dépendances des alertes Trivy
 - **`exec` en fin de `sh -c`** : sans lui, `sh` reste parent de Node et ne lui relaie pas le `SIGTERM` de `docker stop`, que Docker conclut par un `SIGKILL` au bout de 10 s. Relevé le 9 octobre 2026 avec `exec` : arrêt en 0,37 s, code de sortie 143 (`SIGTERM` reçu par Node). `init: true` du compose ne suffit pas, il relaie à `sh`, pas au petit-fils
 - Pas de `libc6-compat` : `sharp` et les moteurs Prisma publient des binaires musl. Retiré le 9 octobre 2026 après une image testée (migrations appliquées, AVIF servi par `/_next/image`)
-- `corepack enable` dans `base` suffit tant que l'image est en Node 24 : Corepack n'est plus distribué avec Node à partir de la ligne 25, il faudra alors l'installer
+- `npm install -g pnpm@12` dans `base` : Corepack n'est plus utilisé (retiré de Node à partir de la ligne 25), `devEngines.packageManager` télécharge la version exacte au premier `pnpm install`
 
 ---
 

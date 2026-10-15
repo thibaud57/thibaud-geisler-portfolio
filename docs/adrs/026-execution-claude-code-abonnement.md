@@ -151,13 +151,15 @@ Les autres options : B paie un démarrage à chaque message et ne sait pas relay
 
 # 📝 Notes complémentaires
 
-**À vérifier par un prototype en sandbox avant l'implémentation :**
+**Prototype en sandbox**, exécuté le 2026-10-01 dans un conteneur Docker du poste (`claude-agent-sdk` 0.2.163, 2 Go de RAM, utilisateur non-root, sans socket Docker) :
 
-1. Une session charge la configuration globale et les plugins attendus, contrôlé par l'événement `system/init`
-2. Aucune facturation API : la consommation apparaît sur l'usage de l'abonnement
-3. Une question et une demande d'accord partent sur Telegram, attendent et reprennent à la réponse
-4. Latence du premier message et tenue mémoire d'une session longue
-5. L'isolation de chaque session : micro-VM [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/), avec son propre noyau et son propre démon Docker, ou conteneur unique. La sandbox Bash de Claude Code et le sandbox runtime d'Anthropic reposent sur bubblewrap, que le VPS bloque en mode normal : seul le mode affaibli `enableWeakerNestedSandbox` y fonctionnerait, que la documentation réserve aux cas où une autre isolation est en place
+1. Configuration globale et plugins chargés, contrôlés par l'événement `system/init` : validé
+2. Abonnement et non l'API : `apiKeySource = none` dans `system/init`, `authMethod: "oauth_token"` dans `claude auth status`. La hausse de l'usage claude.ai n'a pas été relevée
+3. Une question (`AskUserQuestion`) et une demande d'accord Bash attendent et reprennent à la réponse : validé en mode terminal, le transport Telegram reste à tester
+4. Ouverture de session en 0,9 s, 284 Mo de mémoire au maximum sur une session courte. La session longue reste à tester
+5. Non testé, l'isolation de chaque session : micro-VM [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/), avec son propre noyau et son propre démon Docker, ou conteneur unique. La sandbox Bash de Claude Code et le sandbox runtime d'Anthropic reposent sur bubblewrap, que le VPS bloque en mode normal : seul le mode affaibli `enableWeakerNestedSandbox` y fonctionnerait, que la documentation réserve aux cas où une autre isolation est en place
+
+Enseignements du prototype, testé en mode `default` : le mode de permission se fixe dans `agent-os`, jamais hérité de la configuration globale. Le mode retenu est `bypassPermissions` : les questions remontent toujours au callback, plus aucune demande d'accord d'outil, sauf une suppression visant un chemin critique (« tools that require user interaction, and `rm` and `rmdir` removals targeting a critical path still fall through to your `canUseTool` callback », [Agent SDK, Configure permissions](https://code.claude.com/docs/en/agent-sdk/permissions), consultée le 2026-10-15). Les plugins s'installent à la construction de l'image, Playwright ne s'étant pas installé seul au démarrage ; le plugin Notion se désactive dans le conteneur, son serveur MCP attendant une authentification à chaque session.
 
 **Constats sur le VPS**, relevés le 2026-10-01 : `/dev/kvm` présent (AMD-V), donc les micro-VM sont possibles ; `kernel.unprivileged_userns_clone = 0` et `kernel.apparmor_restrict_unprivileged_userns = 1`, donc bubblewrap seulement en mode affaibli ; 7,7 Gio de RAM dont 2,9 disponibles, donc une session à la fois tant que la RAM n'est pas augmentée.
 

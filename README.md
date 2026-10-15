@@ -16,7 +16,7 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 ## Prérequis
 
 - Node.js >= 24
-- pnpm >= 12 (version pinnée via `packageManager` dans `package.json`)
+- pnpm 12 (version exacte imposée par `devEngines.packageManager` dans `package.json`, téléchargée automatiquement)
 - Docker (Compose, pour Postgres en dev)
 - [`just`](https://github.com/casey/just) (workflow standard du projet) avec bash (Git Bash sous Windows, le `Justfile` pose `set shell := ["bash", "-cu"]`)
 - [`actionlint`](https://github.com/rhysd/actionlint) (`winget install rhysd.actionlint`, requis par `just lint`)
