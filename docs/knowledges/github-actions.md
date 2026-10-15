@@ -63,10 +63,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
-      - uses: pnpm/action-setup@<sha> # v6.1.0, version lue dans `packageManager`
+      - uses: pnpm/action-setup@<sha> # v6.1.0, version lue dans `devEngines.packageManager`
       - uses: actions/setup-node@<sha> # v7.1.0
         with: { node-version: '24', cache: 'pnpm' }
       - uses: extractions/setup-just@<sha> # v4.0.0
+        with:
+          just-version: "<minimum-version du Justfile>"
       - run: pnpm install --frozen-lockfile
       - run: just lint
       - run: just typecheck
@@ -140,7 +142,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 
 ```yaml
 # Option 1 : cache automatique via setup-node (celle du projet)
-- uses: pnpm/action-setup@<sha> # v6.1.0, sans `version:` : lue dans `packageManager`
+- uses: pnpm/action-setup@<sha> # v6.1.0, sans `version:` : lue dans `devEngines.packageManager`
 
 - uses: actions/setup-node@<sha> # v7.1.0
   with:
@@ -169,7 +171,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 - Le cache est partagé entre workflows du même repo
 - Option 2 (explicite) préférée pour les monorepos complexes
 - Le projet cache aussi `.next/cache` par `actions/cache`, clé sur le lockfile et les sources : le build Next réutilise sa compilation précédente
-- Ne pas pinner `version:` dans `pnpm/action-setup` : un second pin diverge silencieusement de `packageManager` au prochain bump de pnpm
+- Ne pas pinner `version:` dans `pnpm/action-setup` : un second pin diverge silencieusement de `devEngines.packageManager` au prochain bump de pnpm
 
 ---
 

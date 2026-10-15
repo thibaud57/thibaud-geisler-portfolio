@@ -9,7 +9,7 @@ paths:
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` pour isoler toolchain/devDeps du runtime image. Le projet enchaîne `base` (Node + pnpm, hérité par tous) → `deps` → `builder` → `deploy-prisma` → `runner`
 - Image de base **`node:<ligne LTS>-alpine`** : runtime sur une ligne LTS uniquement. La ligne exécutée et ses dates de bascule vivent dans `docs/VERSIONS.md` § Montées Bloquées, pas ici. Le tag de ligne flottant est assumé (chaque build suit le dernier patch), le digest `@sha256:` reste l'option si la reproductibilité stricte devient nécessaire
-- Activer pnpm via **`corepack enable`** dans le stage `base`, pas `npm install -g pnpm` : la version se lit dans `packageManager`
+- Installer un pnpm 12 quelconque par **`npm install -g pnpm@12`** dans le stage `base` : `devEngines.packageManager` de `package.json` impose ensuite la version exacte (`onFail: download`). Pas de Corepack, retiré de Node à partir de la 25
 - Copier **`package.json`**, **`pnpm-lock.yaml`** et **`pnpm-workspace.yaml`** AVANT le code source pour maximiser le cache de layers. Le troisième porte `allowBuilds` : sans lui, une dépendance à scripts de build fait échouer l'install (`strictDepBuilds`, cf. `pnpm/setup.md`)
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
 - Monter un **cache BuildKit** sur le store pnpm (`RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store`) : il profite aux builds locaux. Le build de production tourne sur un runner GitHub Actions éphémère, où seul le cache de couches (`cache-from: type=gha`) évite de réinstaller
@@ -26,7 +26,7 @@ paths:
 - Copier `node_modules` depuis l'hôte via le build context : toujours réinstaller dans le build pour des binaires natifs corrects (cross-arch Alpine vs host)
 
 ## Gotchas
-- **Corepack est distribué avec Node jusqu'à la ligne 24 incluse** : à partir de Node 25, `npm install -g corepack` avant `corepack enable`. À traiter avec la montée de ligne, et le `runner` supprime npm (alertes Trivy) : l'installer dans `base`
+- Le `runner` supprime npm (alertes Trivy) : pnpm s'installe dans `base`, jamais dans `runner`
 - `init: true` du compose relaie les signaux à son enfant direct, `sh`, pas au Node lancé par `sh -c` : il ne remplace pas `exec`
 - **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou par `ulimits:` dans le compose si le service a beaucoup de connexions, jamais dans le Dockerfile (détail : `docs/knowledges/docker.md` § ulimit nofile v29)
 
@@ -35,7 +35,7 @@ paths:
 # ✅ Stage base commun, manifests avant le code, runner non-root, exec en fin de sh -c
 FROM node:24-alpine AS base
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@12
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -53,6 +53,6 @@ CMD ["sh", "-c", "node migrate.js && exec node server.js"]
 # ❌ COPY . . avant install, et sh reste parent de node (SIGTERM jamais relayé)
 FROM node:24-alpine AS deps
 COPY . .
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && pnpm install --frozen-lockfile   # Corepack : absent de Node 25+
 CMD ["sh", "-c", "node migrate.js && node server.js"]
 ```

@@ -2,7 +2,7 @@
 title: "pnpm — Package Manager"
 version: "12.11.2"
 description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
-date: "2026-10-11"
+date: "2026-10-15"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs", "supply-chain"]
 scope: ["docs"]
 technologies: ["Node.js", "TypeScript", "Next.js"]
@@ -147,7 +147,7 @@ pnpm install --frozen-lockfile
 ```
 
 ```yaml
-# .github/workflows/ci.yml — sans `version:`, lue dans `packageManager`
+# .github/workflows/ci.yml — sans `version:`, lue dans `devEngines.packageManager`
 - uses: pnpm/action-setup@<sha> # vX.Y.Z
 - run: pnpm install --frozen-lockfile
 ```
@@ -158,43 +158,41 @@ pnpm install --frozen-lockfile
 - Protège contre les modifications involontaires du lockfile en pipeline
 - Commit systématiquement `pnpm-lock.yaml`
 - Pour régénérer le lockfile : `pnpm install --no-frozen-lockfile` (la forme `--frozen-lockfile false` n'existe plus en pnpm 12, [notes 12.0](https://pnpm.io/blog/releases/12.0))
-- pnpm 12 : `pnpm-lock.yaml` porte un second document YAML `packageManagerDependencies` (la résolution de pnpm lui-même, ~158 lignes). `pnpm install --frozen-lockfile` échoue avec `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE` s'il manque (constaté le 2026-10-11 sur 12.11.2). `corepack use pnpm@<version>` le produit
+- `devEngines.packageManager` ajoute un premier document YAML `packageManagerDependencies` à `pnpm-lock.yaml` (la résolution de pnpm lui-même, ~158 lignes). `pnpm install --frozen-lockfile` échoue avec `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE` s'il manque (constaté le 2026-10-11 sur 12.11.2). `pnpm install` le régénère. Le graphe de dépendances GitHub ne lit que ce document : alertes de sécurité npm non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte
 - pnpm 12 : les cycles de dépendances sont cassés dans un ordre canonique. Les lockfiles existants restent valides, le premier install qui re-résout peut réécrire des variantes de peers (un diff unique, [notes 12.0](https://pnpm.io/blog/releases/12.0))
-- pnpm 12 : une clé inconnue de `pnpm-workspace.yaml` fait échouer la commande (`ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`) quand `packageManager` épingle la version qui tourne, sinon elle donne un warning ([notes 12.0](https://pnpm.io/blog/releases/12.0))
+- pnpm 12 : une clé inconnue de `pnpm-workspace.yaml` fait échouer la commande (`ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`) quand le projet épingle la version qui tourne, sinon elle donne un warning ([notes 12.0](https://pnpm.io/blog/releases/12.0))
 - Le lockfile reste en `lockfileVersion: '9.0'` de pnpm 9 à 12 : le passage en pnpm 11 n'a demandé aucune régénération, celui en pnpm 12 a ajouté le document `packageManagerDependencies`
 
 ---
 
 # Commandes Clés
 
-## Activation via corepack
+## Installation et épinglage
 
 ### Description
 
-Méthode recommandée pour installer/activer pnpm : via `corepack`, distribué avec Node.js jusqu'à la ligne 24 incluse (à installer par `npm install -g corepack` à partir de Node 25). `corepack use` écrit le champ `packageManager` dans `package.json`, avec le hash de la version, pour l'épingler au projet.
+`devEngines.packageManager` de `package.json` épingle la version de pnpm pour tout le monde : avec `onFail: "download"`, un pnpm d'une autre version télécharge la bonne et la relance. Il suffit d'avoir un pnpm 12 quelconque sur le poste, dans le Dockerfile ou en CI. Corepack et le champ `packageManager` ne sont plus utilisés (Corepack est retiré de Node à partir de la 25).
 
 ### Syntaxe
 
 ```bash
-# Activer pnpm via corepack
-corepack enable pnpm
+# Un pnpm 12 quelconque, une seule fois par poste (ou dans le stage base du Dockerfile)
+npm install -g pnpm@12
 
-# Épingler la version pnpm dans le package.json du projet courant
-corepack use pnpm@12.11.2
-# → "packageManager": "pnpm@12.11.2+sha512.<hash>" dans package.json, et document packageManagerDependencies dans pnpm-lock.yaml
+# Montée de pnpm : changer la version dans devEngines, puis
+pnpm install
+# → télécharge la nouvelle version, régénère le document packageManagerDependencies du lockfile
+```
 
-# Activer une version globalement (optionnel)
-corepack prepare pnpm@12.11.2 --activate
+```json
+{ "devEngines": { "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" } } }
 ```
 
 ### Points Importants
 
-- Pas besoin d'installer pnpm globalement (`npm install -g pnpm`) : `corepack enable` suffit
-- `corepack use` épingle la version au projet, garantit la reproductibilité entre développeurs, Dockerfile et CI
-- Le champ `packageManager` de `package.json` est lu par pnpm, `pnpm/action-setup` et corepack. pnpm 11 remplace `managePackageManagerVersions` et `packageManagerStrict*` par `pmOnFail`
-- `engines.pnpm` suit la majeure épinglée (`>=12.0.0`). Les métadonnées npm de pnpm 12.11.2 déclarent `engines.node >=18` (relevé le 2026-10-11)
-- Corepack de `node:24-alpine` : `docker build --target deploy-prisma` passe avec pnpm 12.11.2, `pnpm deploy --legacy --prod` compris (2026-10-11)
-- Dependabot : pas de support pnpm 12 publié. `dependabot-core` v0.399.0 (2026-10-05) est la dernière release ; les PR [#16513](https://github.com/dependabot/dependabot-core/pull/16513) et [#16517](https://github.com/dependabot/dependabot-core/pull/16517) sont fusionnées le 2026-10-09, la [#16521](https://github.com/dependabot/dependabot-core/pull/16521) est ouverte. Ses PR npm peuvent échouer d'ici là
+- Le champ est lu par pnpm lui-même et par `pnpm/action-setup` (sans `version:`). pnpm 11 remplace `managePackageManagerVersions` et `packageManagerStrict*` par `pmOnFail`
+- Les métadonnées npm de pnpm 12.11.2 déclarent `engines.node >=18` (relevé le 2026-10-11)
+- `docker build --target deploy-prisma` passait avec Corepack le 2026-10-11 ; le passage à `npm install -g pnpm@12` du 2026-10-15 est à vérifier au prochain build
 
 ---
 
@@ -273,7 +271,7 @@ pnpm peers check                      # liste les peers non satisfaites (pnpm 11
 - Ne pas activer `shamefullyHoist=true` (masque les dépendances transitives implicites)
 - Ne pas utiliser `npx` dans un projet pnpm (risque de versions divergentes)
 - Ne pas laisser une version de moins de 24 h dans le lockfile poussé : la CI et le Dockerfile échoueraient
-- Ne pas passer `version:` à `pnpm/action-setup` : un second pin diverge de `packageManager` au premier bump
+- Ne pas passer `version:` à `pnpm/action-setup` ni ajouter un champ `packageManager` : un second pin diverge de `devEngines` au premier bump
 - Ne pas committer `node_modules/`
 
 ---

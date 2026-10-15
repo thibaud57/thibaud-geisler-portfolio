@@ -178,7 +178,7 @@ setup: install db
 [group('setup')]
 check:
     @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir engines de package.json)"
-    @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir packageManager de package.json)"
+    @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir devEngines de package.json)"
     @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
     @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"
     @test -d .next/types || echo "⚠️ Types Next absents, lancer just install (postinstall les génère)"

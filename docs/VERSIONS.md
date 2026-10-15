@@ -1,7 +1,7 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-14"
+date: "2026-10-15"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
@@ -20,7 +20,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | Node.js | `24.21.0` | ✅ LTS Active | Ligne 24 « Krypton », **suivie sans patch épinglé** : `node:24-alpine` et `node-version: '24'` résolvent la dernière 24.x à chaque build. La 24 passe en Maintenance LTS le **20 octobre 2026**, la 26 devient Active LTS le **28 octobre 2026** : ne pas migrer avant |
-| pnpm | `12.11.2` | ⚠️ | Montée depuis 11.28.2 le 11 octobre 2026. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. **Dependabot ne publie pas encore le support de pnpm 12** (dernière release `v0.399.0` du 5 octobre 2026, PR de support fusionnées le 9 octobre 2026) : ses PR npm peuvent échouer d'ici là |
+| pnpm | `12.11.2` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 | ESLint | `10.12.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.71.1` |
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
@@ -122,13 +122,13 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - pnpm 12 : ✅ (`engines.node >=18` dans les métadonnées npm, relevé le 11 octobre 2026)
 - Docker : ✅ (`node:24-alpine`, sans `libc6-compat` depuis le 9 octobre 2026 : `sharp` et les moteurs Prisma publient des binaires musl)
 
-**À noter** : Node.js 20 est EOL depuis le **30 avril 2026**. Node.js 22 est en Maintenance LTS. La ligne 24 y passe à son tour le **20 octobre 2026**, la 26 devient Active LTS le **28 octobre 2026** (README `nodejs/Release`). Corepack est distribué avec Node jusqu'à la ligne 24 incluse : la montée vers 26 devra l'installer dans l'image.
+**À noter** : Node.js 20 est EOL depuis le **30 avril 2026**. Node.js 22 est en Maintenance LTS. La ligne 24 y passe à son tour le **20 octobre 2026**, la 26 devient Active LTS le **28 octobre 2026** (README `nodejs/Release`). Corepack n'est plus utilisé depuis le 15 octobre 2026 (retiré de Node à partir de la 25) : pnpm s'installe par `npm install -g pnpm@12` dans l'image.
 
 **Recommandation** : ✅ Node.js 24 LTS. Node.js 20 est EOL, ne jamais y redescendre.
 
 ### 2. pnpm
 
-**Version actuelle** : `12.11.2` (publiée le 9 octobre 2026, montée depuis 11.28.2 le 11 octobre 2026, épinglée avec son hash dans `packageManager`)
+**Version actuelle** : `12.11.2` (publiée le 9 octobre 2026, montée depuis 11.28.2 le 11 octobre 2026, épinglée par `devEngines.packageManager` depuis le 15 octobre 2026, à la place du champ `packageManager` lu par Corepack)
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v9 → v10)** :
@@ -149,7 +149,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Breaking Changes Majeurs (v11 → v12)** (blog 12.0, [pnpm.io/blog/releases/12.0](https://pnpm.io/blog/releases/12.0), relu le 11 octobre 2026) :
 - Une clé inconnue de `pnpm-workspace.yaml` fait échouer la commande (`ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS`) quand `packageManager` épingle une version que le pnpm courant satisfait, sinon un warning. Le fichier du projet passe tel quel
 - `pnpm install --frozen-lockfile false` n'existe plus : `--no-frozen-lockfile`
-- `pnpm-lock.yaml` gagne un second document YAML (`packageManagerDependencies`, la résolution de pnpm lui-même, ~158 lignes) : `pnpm install --frozen-lockfile` échoue avec `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE` s'il manque. Produit par `corepack use pnpm@<version>`, qui relance l'install
+- `pnpm-lock.yaml` gagne un premier document YAML (`packageManagerDependencies`, la résolution de pnpm lui-même, ~158 lignes) dès que `devEngines.packageManager` est déclaré : `pnpm install --frozen-lockfile` échoue avec `ERR_PNPM_FROZEN_LOCKFILE_WITH_OUTDATED_LOCKFILE` s'il manque. `pnpm install` le régénère à chaque montée. Le graphe de dépendances GitHub ne lit que ce premier document (voir Dependabot ci-dessous)
 - Cycles de dépendances cassés dans un ordre canonique : le premier install qui re-résout peut réécrire des variantes de peers du lockfile. `lockfileVersion` reste `'9.0'`
 - Dépendances git GitHub, GitLab et Bitbucket résolues en HTTPS dans le lockfile, jamais en SSH (aucune dépendance git ici)
 - `engineStrict` suit désormais les arêtes `dependencies` ordinaires, `packageImportMethod: auto` tente le hardlink avant le reflink sous Linux, `hooks.filterLog` ignoré
@@ -167,15 +167,15 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - Next.js : ✅
 - TypeScript : ⚠️ ne pas activer `preserveSymlinks: true` (résolution des types cassée)
 - Node.js : `>=22` en 11.x (le projet est en Node 24)
-- Corepack de `node:24-alpine` : ✅ build de l'image vérifié le 9 octobre 2026
-- `pnpm/action-setup@v6.1.0` : ✅ (supporte jusqu'à pnpm 12)
-- Dependabot : ⚠️ pnpm 12 non publié. `dependabot-core` `v0.399.0` (5 octobre 2026) est la dernière release ; la PR « Part 1 of 3 » (#16513) et la « Part 2 » (#16517) sont fusionnées le 9 octobre 2026, la « Part 3 » (#16521) est ouverte. Revérifier à la release suivante. Pour pnpm 11 : son cooldown par défaut (3 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
+- Dockerfile : `npm install -g pnpm@12` dans `base`, puis `devEngines` télécharge la version exacte. Corepack n'est plus utilisé (retiré de Node à partir de la 25)
+- `pnpm/action-setup@v6.1.0` : ✅ lit `devEngines.packageManager` sans `version:` (supporte jusqu'à pnpm 12)
+- Dependabot : ⚠️ PR de mise à jour fonctionnelles ; alertes de sécurité npm non fiables, le graphe de dépendances GitHub ne lisant que le premier document du lockfile ([dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904), ouverte au 15 octobre 2026). Son cooldown par défaut (3 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
 
 **Issues connues** :
 - ~1-2% des packages supposent un `node_modules` plat (`publicHoistPattern` dans `pnpm-workspace.yaml` si besoin)
 - Le stage `deploy-prisma` du Dockerfile logue « Shared workspace lockfile detected but configuration forces legacy deploy implementation » : attendu, `--legacy` est voulu
 
-**Recommandation** : ✅ pnpm 12.11.2 (ADR-008, package manager du projet). Régénérer le lockfile avec `corepack use pnpm@<version>` à chaque montée de pnpm.
+**Recommandation** : ✅ pnpm 12.11.2 (ADR-008, package manager du projet). `package.json` est la seule source de la version : `devEngines.packageManager` avec `onFail: download`, lu par chaque poste, le Dockerfile et `pnpm/action-setup`. Montée : changer la version, lancer `pnpm install`, committer le lockfile. Même schéma que les autres projets pnpm et uv du poste, aligné le 15 octobre 2026.
 
 ### 3. TypeScript
 
@@ -1025,7 +1025,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 **Points d'attention** :
 - `ubuntu-latest` bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 19 octobre et le 19 novembre 2026) : **épingler explicitement la version**
 - **Node par défaut sur le runner ≠ Node du projet** : sur l'image `20260831.293.1`, le Node système est `22.23.2` et le tool cache contient `22.23.2` et `24.20.0`. Ces valeurs bougent à chaque image runner, ne pas s'y fier : toujours `node-version: '24'` dans `setup-node`
-- **Ne pas pinner `version:` dans `pnpm/action-setup`** : l'action déduit la version depuis `packageManager` du `package.json`, seule source de vérité. Un pin en double diverge silencieusement au prochain bump de pnpm
+- **Ne pas pinner `version:` dans `pnpm/action-setup`** : l'action déduit la version depuis `devEngines.packageManager` du `package.json`, seule source de vérité. Un pin en double diverge silencieusement au prochain bump de pnpm
 - **`pnpm/action-setup` a un successeur** : la release 6.0.10 ajoute « docs(README): point users to the successor `pnpm/setup` action » (PR #282). Aucune dépréciation formelle à ce jour, à trancher avant la prochaine montée majeure
 - Node.js 20, EOL depuis le 30 avril 2026, est retiré des runners depuis le 23 septembre 2026
 - **Réglage du dépôt** (Settings > Actions > General) : `default_workflow_permissions: read` et approbation de PR par les workflows désactivée depuis le 9 octobre 2026 (auparavant `write` et autorisée). Chaque workflow déclare en plus ses `permissions:`
@@ -1053,7 +1053,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Tailwind 4.3.3 | Aceternity UI | ✅ | Tailwind v4 standard documenté |
 | Zod 4.6.5 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
 | pnpm 12.11.2 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
-| pnpm 12.11.2 | Node.js 24.21.0 | ✅ | `engines.node >=18`, Corepack de `node:24-alpine` vérifié au build de l'image le 11 octobre 2026 |
+| pnpm 12.11.2 | Node.js 24.21.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, à vérifier au prochain build |
 | Node.js 24.21.0 | Prisma 7.10.0 | ✅ | Node.js >= 20.19 requis |
 | Node.js 24.21.0 | Next.js 16.4.0 | ✅ | Node.js >= 20.9 requis |
 | Node.js 24.21.0 | Pino 10.4.0 | ✅ | Node.js >= 20 requis |
@@ -1103,10 +1103,9 @@ Le fichier réel est la source de vérité, ne pas dupliquer la liste des dépen
 {
   "version": "<bumpé par release-please>", // jamais à la main
   "type": "module",                // requis : Prisma 7 est ESM-only
-  "packageManager": "pnpm@12.11.2+sha512.<hash>", // seule déclaration de la version de pnpm (lue par corepack ET par pnpm/action-setup), écrite par `corepack use`
-  "engines": {
-    "node": ">=24.0.0",
-    "pnpm": ">=12.0.0"
+  "engines": { "node": ">=24.0.0" },
+  "devEngines": {                  // seule déclaration de la version de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/action-setup
+    "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" }
   },
   "scripts": {
     "postinstall": "prisma generate" // convention Prisma standard, sans quoi le client n'existe pas après un install propre
@@ -1281,7 +1280,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
-      - uses: pnpm/action-setup@<sha> # v6.1.0, pas de `version:` : déduite de `packageManager`
+      - uses: pnpm/action-setup@<sha> # v6.1.0, pas de `version:` : déduite de `devEngines.packageManager`
       - uses: actions/setup-node@<sha> # v7.1.0
         with:
           node-version: '24'
@@ -1351,7 +1350,7 @@ Ces mises à jour majeures ont été testées puis écartées, ou identifiées e
 
 | Paquet | Actuel | Disponible | Blocage | Levée attendue |
 |---|---|---|---|---|
-| Node.js | `24.21.0` | `26.11.1` | Node 26 est **Current**, pas LTS. Le projet suit la règle « runtime sur LTS uniquement » (`engines.node: >=24.0.0`). Corepack n'est plus distribué avec Node depuis la ligne 25 : l'image devra l'installer | Bascule LTS de la ligne 26, le 28 octobre 2026 |
+| Node.js | `24.21.0` | `26.11.1` | Node 26 est **Current**, pas LTS. Le projet suit la règle « runtime sur LTS uniquement » (`engines.node: >=24.0.0`). Sans Corepack depuis le 15 octobre 2026, la montée ne touche que le tag de l'image et `node-version` | Bascule LTS de la ligne 26, le 28 octobre 2026 |
 | @types/node | `24.13.3` | `26.6.4` | Doit rester aligné sur le runtime réellement exécuté. Proposée par Dependabot (PR #157), écartée le 3 octobre 2026 pour cette raison | En même temps que Node 26 |
 | TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.71.1` (installée, dernière stable aux 9 et 11 octobre 2026) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
 | Prisma | `7.10.0` | `8.0.0-rc.22` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.0 est sur `prev`), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. `@prisma/client` et `@prisma/adapter-pg` restent en `latest: 7.10.0`. **C'est ce blocage qui rend `just audit` rouge** : le CLI `prisma` tire `deepmerge-ts@7.1.5` via `@prisma/config` (< 8.0.0, [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)) et `mysql2@3.15.3` (< 3.22.0, [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr)). Transitives d'une devDependency, et `mysql2` n'est jamais chargé (le projet est sur PostgreSQL) | Publication de la 8.0.0 stable, qui lève `deepmerge-ts` mais **pas `mysql2`** : `better-auth` le tire aussi (peer `^3.0.0`, toujours résolu en `3.15.3` après la montée en 1.7.7 du 9 octobre 2026), pour son adaptateur MySQL que le projet n'emploie pas. Ne pas forcer par `pnpm.overrides` : `deepmerge-ts@8` est une majeure que `@prisma/config` n'a pas validée |
