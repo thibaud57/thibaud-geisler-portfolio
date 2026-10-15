@@ -8,9 +8,10 @@ paths:
 ## À faire
 - Runner épinglé **`ubuntu-24.04`**, pas `ubuntu-latest` : celui-ci bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 2026-10-19 et le 2026-11-19)
 - **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@<sha> # vX.Y.Z`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files` en mars 2025, `aquasecurity/trivy-action`, utilisée par le projet, en mars 2026 : tags force-pushés vers du code malveillant). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble, l'inventaire vit dans VERSIONS.md § GitHub Actions
-- **`pnpm/action-setup` AVANT `setup-node`**, sans `version:` : setup-node doit trouver pnpm sur le PATH pour le cache, et la version se lit dans `packageManager`
+- **`pnpm/action-setup` AVANT `setup-node`**, sans `version:` : setup-node doit trouver pnpm sur le PATH pour le cache, et la version se lit dans `devEngines.packageManager`
 - **Node 24** explicite dans `setup-node` (`node-version: '24'`) : le Node système de l'image runner change à chaque image, ne jamais s'y fier
 - **Cache pnpm** explicite : `cache: 'pnpm'` dans `actions/setup-node` (le cache auto a été retiré en v6), puis **`pnpm install --frozen-lockfile`**
+- **`just-version`** sur `extractions/setup-just`, égal au `minimum-version` du `Justfile` : sans pin, l'action prend la dernière release, qui peut durcir la grammaire
 - **Concurrency** : `group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict
 - **Permissions minimales** au niveau workflow (`contents: read`) : sans elles, un job hérite du défaut du dépôt (Settings > Actions > General), à garder lui aussi en lecture seule
 - **`timeout-minutes: 15`** sur les jobs de qualité : un test qui hang ne consomme pas les 6 h par défaut
@@ -29,7 +30,7 @@ paths:
 - **`hashFiles` ne développe pas les accolades** : `hashFiles('src/**/*.{ts,tsx}')` rend une chaîne vide, sans erreur. Passer un glob par argument (`hashFiles('src/**/*.ts', 'src/**/*.tsx')`)
 - **Épingler un tag annoté** (`pnpm/action-setup`, `trivy-action`, `codeql-action`) : `gh api repos/<o>/<r>/git/ref/tags/<tag>` renvoie le SHA de l'objet tag, à déréférencer par `git/tags/<sha>` pour obtenir celui du commit
 - **`actions/setup-node` v5 → v6** : le cache automatique pour pnpm a été retiré, `cache: 'pnpm'` est obligatoire (VERSIONS.md)
-- **`pnpm/action-setup` v3 → v4** : erreur si `packageManager` contredit une `version:` passée à l'action. Un pin en double diverge en silence au prochain bump de pnpm, d'où l'absence de `version:`
+- **`pnpm/action-setup` v3 → v4** : erreur si le pin de `package.json` contredit une `version:` passée à l'action. Un pin en double diverge en silence au prochain bump de pnpm, d'où l'absence de `version:`
 - **Node 20** (fin de vie le 30 avril 2026) est retiré des runners depuis le 23 septembre 2026 : seul l'override `node-version: '24'` rend le runtime déterministe
 - Le script d'installation d'`actionlint` (`ci.yml`) est épinglé à la main, Dependabot ne le suit pas
 - Release, déploiement et tokens : voir `github-actions/release-deploy.md`
@@ -47,6 +48,8 @@ quality:
     - uses: pnpm/action-setup@<sha> # vX.Y.Z
     - uses: actions/setup-node@<sha> # vX.Y.Z
       with: { node-version: '24', cache: 'pnpm' }
+    - uses: extractions/setup-just@<sha> # vX.Y.Z
+      with: { just-version: "<minimum-version du Justfile>" }
     - run: pnpm install --frozen-lockfile
     - run: just lint && just typecheck && just test
     - run: just build

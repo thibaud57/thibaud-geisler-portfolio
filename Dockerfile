@@ -1,12 +1,13 @@
 # syntax=docker/dockerfile:1.7
 
 # =============================================================================
-# Base — Node 24 alpine + pnpm via corepack. Pas de libc6-compat : sharp et les moteurs
-# Prisma publient des binaires musl.
+# Base — Node 24 alpine + pnpm 12 par npm : devEngines de package.json impose ensuite la
+# version exacte (onFail: download). Pas de Corepack, retiré de Node à partir de la 25.
+# Pas de libc6-compat : sharp et les moteurs Prisma publient des binaires musl.
 # =============================================================================
 FROM node:24-alpine AS base
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@12
 
 
 # =============================================================================
