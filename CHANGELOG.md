@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.1.1...v2.2.0) (2026-10-22)
+
+
+### Features
+
+* **tags:** ajoute les icônes Grafana, Traefik, Qdrant, MCP, Pydantic, Tauri et Remotion ([#183](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/183)) ([14a57b8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/14a57b811642d804c604ae503107caa6d4ce2f72))
+
 ## [2.1.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.1.0...v2.1.1) (2026-10-15)
 
 
