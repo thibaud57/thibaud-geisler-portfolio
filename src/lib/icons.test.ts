@@ -5,6 +5,7 @@ describe("resolveTagIcon", () => {
   it.each([
     ["a Simple Icons slug", "simple-icons:react"],
     ["a Lucide kebab-case slug", "lucide:brain-circuit"],
+    ["a custom logo slug", "custom:remotion"],
   ])("resolves %s", (_label, key) => {
     const icon = resolveTagIcon(key)
 
