@@ -1,6 +1,6 @@
 ---
 title: "nodemailer — SMTP Email"
-version: "10.0.16"
+version: "10.2.1"
 description: "Référence technique pour nodemailer : SMTP, Server Actions Next.js et sécurité pour le formulaire de contact."
 date: "2026-10-11"
 keywords: ["nodemailer", "smtp", "email", "nextjs", "server-action"]

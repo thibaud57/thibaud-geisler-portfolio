@@ -1,6 +1,6 @@
 ---
 title: "Vitest — Framework de test"
-version: "5.0.3"
+version: "5.0.5"
 description: "Référence technique pour Vitest 5 : config Next.js, mocks, coverage et Testing Library."
 date: "2026-10-03"
 keywords: ["vitest", "testing", "mocks", "coverage", "react"]

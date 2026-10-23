@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS — Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-15"
+date: "2026-10-23"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), Tiptap et tippy.js (**14 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **23 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), Tiptap et tippy.js (**14 octobre 2026**).
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -22,24 +22,24 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Node.js | `24.21.0` | ✅ LTS Active | Ligne 24 « Krypton », **suivie sans patch épinglé** : `node:24-alpine` et `node-version: '24'` résolvent la dernière 24.x à chaque build. La 24 passe en Maintenance LTS le **20 octobre 2026**, la 26 devient Active LTS le **28 octobre 2026** : ne pas migrer avant |
 | pnpm | `12.11.2` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
-| ESLint | `10.12.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.71.1` |
+| ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.0` |
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
 
 ## Framework & UI
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Next.js | `16.4.0` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`). **16.4** : strict route matching par défaut, warning si `partialPrefetching` n'est pas défini à côté de `cacheComponents` |
-| React | `19.3.0` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19. `<ViewTransition>` et Fragment Refs stables depuis la 19.3 |
+| Next.js | `16.4.2` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`). **16.4** : strict route matching par défaut, warning si `partialPrefetching` n'est pas défini à côté de `cacheComponents`. **16.4.2** : corrige les advisories critiques et hautes de `next` <= 16.4.0 (`pnpm audit`, 23 octobre 2026) |
+| React | `19.3.1` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19. `<ViewTransition>` et Fragment Refs stables depuis la 19.3 |
 | Tailwind CSS | `4.3.3` | ✅ | CSS-first config, utilitaires renommés |
-| shadcn/ui (CLI) | `shadcn@4.21.4` | ✅ | Composants copiés localement, style `radix-nova`. `init` choisit Base UI par défaut depuis juillet 2026 : `-b radix` |
+| shadcn/ui (CLI) | `shadcn@4.22.1` | ✅ | Composants copiés localement, style `radix-nova`. `init` choisit Base UI par défaut depuis juillet 2026 : `-b radix` |
 | cn | `0.4.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels) |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
 | ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. `Kanban` et `EventCalendar` installés |
 | dnd-kit (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) | `6.3.1`, `10.0.0`, `3.2.2` | ✅ | Glisser-déposer du `Kanban` ReUI, que ces paquets servent au 8 octobre 2026. Relevé dans `pnpm-lock.yaml` le 8 octobre 2026 |
 | @date-fns/tz | `1.5.0` | ✅ | Fuseaux horaires de l'`EventCalendar` ReUI, compagnon de `date-fns` (`4.4.0`). Relevé dans `pnpm-lock.yaml` le 9 octobre 2026 |
-| motion | `14.0.0` | ✅ | Animations des composants Magic UI (`motion/react`). Aucun breaking change de l'API React en v14 (guide de migration officiel) |
+| motion | `14.6.0` | ✅ | Animations des composants Magic UI (`motion/react`). Aucun breaking change de l'API React en v14 (guide de migration officiel) |
 | next-intl | `4.14.9` | ✅ | Nécessite Next.js >= 16.3 pour `use cache`. `alternateLinks: false` : les hreflang viennent des seules métadonnées |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
@@ -48,29 +48,29 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Zod | `4.6.5` | ✅ | Validateurs string déplacés en top-level |
-| nodemailer | `10.0.16` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` retiré |
+| Zod | `4.6.7` | ✅ | Validateurs string déplacés en top-level |
+| nodemailer | `10.2.1` | ✅ | CVE CRLF corrigée depuis 8.0.5. Montée en v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` retiré |
 | Pino | `10.4.0` | ✅ | `pino`, `pino-pretty` et `thread-stream` figurent dans la liste `serverExternalPackages` par défaut de Next, que `next.config.ts` redéclare. `thread-stream@4.2.0` est installé en dépendance directe |
-| @next/env | `16.4.0` | ✅ | Chargement `.env` dans `prisma.config.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
+| @next/env | `16.4.2` | ✅ | Chargement `.env` dans `prisma.config.ts`, `vitest.env-loader.ts` (recommandation officielle Next.js pour env hors runtime Next) |
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
 | @c15t/nextjs | `2.3.0` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
 | react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
 | remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
-| Sentry (`@sentry/nextjs`) | `11.6.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : spans des Server Actions absents (relevé en 11.1.0 le 3 octobre 2026, non revalidé en 11.6.0), capture d'erreur et tracing routes/queries opérationnels. Détail : § Sentry |
-| @aws-sdk/client-s3 | `3.1147.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
-| Better Auth | `1.7.7` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
-| sharp | `0.35.5` | ✅ | Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Même version que la dépendance optionnelle de Next 16.4.0 (`^0.35.4`, résolue en 0.35.5 dans `pnpm-lock.yaml`), épinglée sans `^` pour garder une seule copie dans le lockfile (épingle passée de 0.35.4 à 0.35.5 le 12 octobre 2026) |
+| Sentry (`@sentry/nextjs`) | `11.8.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : spans des Server Actions absents (relevé en 11.1.0 le 3 octobre 2026, non revalidé en 11.8.0), capture d'erreur et tracing routes/queries opérationnels. Détail : § Sentry |
+| @aws-sdk/client-s3 | `3.1155.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
+| Better Auth | `1.7.12` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
+| sharp | `0.35.5` | ✅ | Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Même version que la dépendance optionnelle de Next 16.4.2 (`^0.35.5`, résolue en 0.35.5 dans `pnpm-lock.yaml`), épinglée sans `^` pour garder une seule copie dans le lockfile (épingle passée de 0.35.4 à 0.35.5 le 12 octobre 2026) |
 | decode-ico | `0.4.1` | ✅ | Plus grande image d'un conteneur ICO, que sharp ne lit pas (spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026). JavaScript pur, trois dépendances du même auteur, dernière version publiée en novembre 2022 |
-| Tiptap (`@tiptap/core`, `@tiptap/pm`, `@tiptap/react`, `@tiptap/markdown`, `@tiptap/starter-kit`, 10 autres) | `3.31.3` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024), éditeur markdown de l'admin. 15 paquets `@tiptap/*` épinglés sans `^`, à monter ensemble. `@tiptap/markdown` est présenté comme « early release » par la documentation Tiptap et normalise espaces et marques de liste au réenregistrement. Détail : § Tiptap |
+| Tiptap (`@tiptap/core`, `@tiptap/pm`, `@tiptap/react`, `@tiptap/markdown`, `@tiptap/starter-kit`, 10 autres) | `3.32.0` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024), éditeur markdown de l'admin. 15 paquets `@tiptap/*` épinglés sans `^`, à monter ensemble. `@tiptap/markdown` est présenté comme « early release » par la documentation Tiptap et normalise espaces et marques de liste au réenregistrement. Détail : § Tiptap |
 | tippy.js | `6.3.7` | ✅ | Menu `/` de l'éditeur (`src/components/ui/editor/slash-command/suggestion.tsx`). Importé par le code copié, pas par Tiptap 3 qui passe par Floating UI. Détail : § Tiptap |
 
 ## Tests
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Vitest | `5.0.3` | ✅ | Vite >= 6.4 (peer obligatoire) + Node.js >= 22.12. `clearMocks: true` par défaut en v5. Combo `@testing-library/react 16.x`. `jsdom@30`, `@testing-library/jest-dom@7` |
+| Vitest | `5.0.5` | ✅ | Vite >= 6.4 (peer obligatoire) + Node.js >= 22.12. `clearMocks: true` par défaut en v5. Combo `@testing-library/react 16.x`. `jsdom@30`, `@testing-library/jest-dom@7` |
 | @vitejs/plugin-react | `6.1.2` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
 
 ## Base de données
@@ -78,7 +78,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | PostgreSQL | `18.6` | ✅ | Image `postgres:18-alpine`, aucun patch épinglé. Checksums activés par défaut, volume Docker changé |
-| Prisma ORM | `7.10.0` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| Prisma ORM | `7.10.1` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
 
 ## CI / CD
 
@@ -217,7 +217,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 ### 1. Next.js
 
-**Version actuelle** : `16.4.0` (blog du 6 octobre 2026)
+**Version actuelle** : `16.4.2` (publiée le 15 octobre 2026)
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v15 → v16)** :
@@ -250,20 +250,20 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - `eslint-config-next@16.4.0` supporte ESLint 10 ([#99628](https://github.com/vercel/next.js/pull/99628)), voir § Vue d'ensemble > ESLint
 
 **Compatibilité Écosystème** :
-- React 19.3 : ✅ (peer `^19.0.0` de `next@16.4.0`, 19.3.0 installée)
+- React 19.3 : ✅ (peer `^19.0.0` de `next@16.4.2`, 19.3.1 installée)
 - shadcn/ui : ✅
 - next-intl : ✅ (peer `^16.0.0`, 4.14.9 installée)
-- Sentry 11.6.0 : ✅ (peer `^16.0.0-0`)
+- Sentry 11.8.0 : ✅ (peer `^16.0.0-0`)
 - Prisma 7 : ✅ (build Turbopack et migrations vérifiés sur l'image le 9 octobre 2026, voir § Prisma ORM > Issues connues)
 - Pino : ✅ (`pino`, `pino-pretty`, `thread-stream` dans la liste `serverExternalPackages` par défaut)
 
-**Dernière publiée** : `16.4.0`. `next`, `@next/env` et `eslint-config-next` suivent la même numérotation et se montent ensemble.
+**Dernière publiée** : `16.4.2`. `next`, `@next/env` et `eslint-config-next` suivent la même numérotation et se montent ensemble.
 
-**Recommandation** : ✅ Next.js 16.4.0. Suivre le guide officiel Prisma + Next.js pour la config client/adapter.
+**Recommandation** : ✅ Next.js 16.4.2. Suivre le guide officiel Prisma + Next.js pour la config client/adapter.
 
 ### 2. React
 
-**Version actuelle** : `19.3.0` (9 septembre 2026, bundlé avec Next.js 16)
+**Version actuelle** : `19.3.1` (bundlé avec Next.js 16)
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v18 → v19)** :
@@ -345,7 +345,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 ### 4. shadcn/ui
 
-**Version actuelle** : `shadcn@4.21.4` (CLI)
+**Version actuelle** : `shadcn@4.22.1` (CLI)
 **Stabilité** : ✅
 
 shadcn/ui n'est pas une lib npm classique, les composants sont copiés localement dans le projet.
@@ -440,7 +440,7 @@ pnpm dlx shadcn@latest add @aceternity/<component>
 pnpm dlx shadcn@latest add "https://ui.aceternity.com/registry/<component>.json"
 ```
 
-**Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `14.0.0` installée depuis le 9 octobre 2026 (« There are no breaking changes in Motion for React in version 14 », guide de migration officiel). Utiliser la syntaxe namespacée.
+**Recommandation** : ✅ Installer `motion` v12+ (pas framer-motion), `14.6.0` installée (v14 depuis le 9 octobre 2026) (« There are no breaking changes in Motion for React in version 14 », guide de migration officiel). Utiliser la syntaxe namespacée.
 
 ### 7. ReUI
 
@@ -544,7 +544,7 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 
 ### 1. Zod
 
-**Version actuelle** : `4.6.5`
+**Version actuelle** : `4.6.7`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v3 → v4)** :
@@ -569,11 +569,11 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 - Next.js Server Actions : ✅
 - React : ✅
 
-**Recommandation** : ✅ Zod 4.6.5. Vérifier les usages de `.email()`, `.uuid()` lors de la migration depuis v3.
+**Recommandation** : ✅ Zod 4.6.7. Vérifier les usages de `.email()`, `.uuid()` lors de la migration depuis v3.
 
 ### 2. nodemailer
 
-**Version actuelle** : `10.0.16`
+**Version actuelle** : `10.2.1`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v9 → v10)** :
@@ -604,7 +604,7 @@ Drapeaux SVG en composants React, importés fichier par fichier : `country-flag-
 - TypeScript : ✅ via les types embarqués depuis la v10. `@types/nodemailer` est retiré des devDependencies le 3 octobre 2026, typecheck vert sans lui. DefinitelyTyped n'a publié ni 9.x ni 10.x : ne pas le réinstaller
 - SMTP IONOS : ✅ (STARTTLS/TLS/SMTPS)
 
-**Recommandation** : ✅ nodemailer 10.0.16, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse, et jamais une 10.x antérieure à 10.0.11.
+**Recommandation** : ✅ nodemailer 10.2.1, avec le plancher de sécurité **>= 8.0.5** à ne jamais franchir à la baisse, et jamais une 10.x antérieure à 10.0.11.
 
 ### 3. Pino
 
@@ -641,14 +641,14 @@ serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']
 
 ### 4. @next/env
 
-**Version actuelle** : `16.4.0`
+**Version actuelle** : `16.4.2`
 **Stabilité** : ✅
 
 Charge les fichiers de configuration d'environnement avec la même cascade que Next.js, mais **hors du runtime Next**. Utilisé dans `prisma.config.ts` et le loader de tests Vitest.
 
 **Pourquoi il est là** : Prisma 7 a supprimé le chargement automatique. Sans ce paquet, la CLI Prisma tourne sans `DATABASE_URL`, ce qui se manifeste par une erreur P1010. C'est la recommandation officielle Next.js pour ce cas, et il n'ajoute aucune dépendance nouvelle puisque `next` le tire déjà.
 
-**Épinglé sur la version exacte de Next** : `16.4.0`, sans accent circonflexe, comme `next` lui-même. Le paquet est publié au même rythme que Next et suit sa numérotation, les deux se montent ensemble.
+**Épinglé sur la version exacte de Next** : `16.4.2`, sans accent circonflexe, comme `next` lui-même. Le paquet est publié au même rythme que Next et suit sa numérotation, les deux se montent ensemble.
 
 **Ordre d'appel** : `loadEnvConfig(process.cwd())` doit s'exécuter **avant** tout import qui lit `process.env`, d'où les deux lignes isolées en tête de `prisma.config.ts`, au-dessus des autres imports.
 
@@ -667,7 +667,7 @@ Charge les fichiers de configuration d'environnement avec la même cascade que N
 Validation des variables d'environnement au boot, dans `src/env.ts`, avec séparation stricte `server` et `client` : les secrets serveur sont exclus du bundle client par construction.
 
 **Compatibilité Écosystème** :
-- Zod : ✅ peer `^3.24.0 || ^4.0.0`, le projet est en Zod 4.6.5
+- Zod : ✅ peer `^3.24.0 || ^4.0.0`, le projet est en Zod 4.6.7
 - TypeScript : ✅ peer `>=5.0.0`
 - Next.js 16 : ✅
 
@@ -748,7 +748,7 @@ Moteur de rendu du contenu éditorial : il transforme le markdown des case studi
 
 ### 10. Sentry (`@sentry/nextjs`)
 
-**Version actuelle** : `11.6.0` (8 octobre 2026)
+**Version actuelle** : `11.8.0`
 **Stabilité** : ⚠️ (spans des Server Actions absents sous Turbopack, relevé en 11.1.0)
 
 Monitoring d'erreurs et tracing applicatif en cloud, le self-hosted étant exclu par [ADR-017](adrs/017-observabilite-cloud.md) (4 cœurs et 16 Go de RAM minimum, hors de portée du VPS). Capture d'erreur vérifiée fonctionnelle côté serveur, edge et navigateur ; tracing actif pour les routes, pages et queries Prisma, sans tracing navigateur ni Session Replay. Fiche détaillée : [knowledges/sentry.md](knowledges/sentry.md).
@@ -768,14 +768,14 @@ Monitoring d'erreurs et tracing applicatif en cloud, le self-hosted étant exclu
 **Compatibilité Écosystème** :
 - Next.js 16 : ✅ App Router, fichiers d'instrumentation `instrumentation.ts` / `instrumentation-client.ts`. L'annotation de composants sous Turbopack exige Next 16
 - React 19 : ✅
-- Turbopack : ⚠️ bundler par défaut du projet, dev comme build (opt-out Webpack retiré le 3 septembre 2026). **Spans des Server Actions absents**, relevé en 11.1.0 le 3 octobre 2026 sur l'image de production : l'erreur de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, mais la trace ne compte aucun span après plus de 4 minutes, quand les spans des GET voisins arrivent en quelques secondes. Capture d'erreur et tracing routes/queries inaffectés. Ce document rattachait le constat à [#18871](https://github.com/getsentry/sentry-javascript/issues/18871), qui porte en réalité sur des events serveur perdus par le transport Node (« `makeNodeTransport` silently drops server-side events with Next.js 16 + Turbopack »), fermée le 19 janvier 2026 sans reproduction. Sentry décrit le tracing des Server Actions sous Turbopack comme une limite structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026), et les notes 11.2 à 11.6 ne citent aucun correctif. Non revalidé en 11.6.0 : à refaire après le déploiement, puis à chaque montée du SDK.
+- Turbopack : ⚠️ bundler par défaut du projet, dev comme build (opt-out Webpack retiré le 3 septembre 2026). **Spans des Server Actions absents**, relevé en 11.1.0 le 3 octobre 2026 sur l'image de production : l'erreur de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, mais la trace ne compte aucun span après plus de 4 minutes, quand les spans des GET voisins arrivent en quelques secondes. Capture d'erreur et tracing routes/queries inaffectés. Ce document rattachait le constat à [#18871](https://github.com/getsentry/sentry-javascript/issues/18871), qui porte en réalité sur des events serveur perdus par le transport Node (« `makeNodeTransport` silently drops server-side events with Next.js 16 + Turbopack »), fermée le 19 janvier 2026 sans reproduction. Sentry décrit le tracing des Server Actions sous Turbopack comme une limite structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026), et les notes 11.2 à 11.6 ne citent aucun correctif. Non revalidé en 11.8.0 : à refaire après le déploiement, puis à chaque montée du SDK.
 - Pino 10 : ✅ `pinoIntegration` couvre `>=8.0.0 <11`
 
-**Recommandation** : ⚠️ 11.6.0 avec `SENTRY_DATA_COLLECTION` dans chaque `Sentry.init` : une config Sentry qui l'omet collecte tout.
+**Recommandation** : ⚠️ 11.8.0 avec `SENTRY_DATA_COLLECTION` dans chaque `Sentry.init` : une config Sentry qui l'omet collecte tout.
 
 ### 11. Better Auth
 
-**Version actuelle** : `1.7.7`
+**Version actuelle** : `1.7.12`
 **Stabilité** : ✅
 
 Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5, publiée le 14 septembre 2026, est la dernière version npm au 15 septembre 2026, sans advisory GitHub ouvert sur le paquet core à cette date. Les breaking changes de la 1.7.0 portent sur OAuth provider, SSO, SCIM et MCP, hors du périmètre utilisé ([releases](https://github.com/better-auth/better-auth/releases)). La 1.7.7, montée le 9 octobre 2026, corrige notamment une prise de contrôle de compte par Magic Link, plugin que le projet n'utilise pas. Elle laisse `mysql2` en `3.15.3` (cf. § Montées Bloquées > Prisma).
@@ -788,7 +788,7 @@ Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5
 
 **Modèles Prisma écrits à la main** : `@better-auth/cli generate` fusionne ses modèles dans le schéma existant puis réécrit tout `prisma/schema.prisma`, sans jamais émettre `@@schema(...)` sur les modèles qu'il ajoute (générateur Prisma de la 1.7.5, `packages/cli/src/generators/prisma.ts`). Son incompatibilité Prisma 7 (issue better-auth#6277) est corrigée depuis la 1.4.5 (PR #6459). Les quatre modèles (`User`, `Session`, `Account`, `Verification`) sont transcrits à la main depuis la documentation du schéma Better Auth, annotés `@@schema("auth")`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification`.
 
-**Recommandation** : ✅ Better Auth 1.7.7 en place. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
+**Recommandation** : ✅ Better Auth 1.7.12 en place. Suivre le guide officiel [Prisma + Better Auth + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs).
 
 ### 12. sharp
 
@@ -798,7 +798,7 @@ Authentification de l'espace admin, Google OAuth comme unique provider. La 1.7.5
 Conversion en PNG des logos récupérés depuis le site d'une entreprise (ADR-023). Version lue dans `pnpm-lock.yaml` au 12 octobre 2026.
 
 **Compatibilité Écosystème** :
-- Next.js 16.4.0 : ✅ même version que sa dépendance optionnelle (`^0.35.4`), une seule copie de `sharp` installée
+- Next.js 16.4.2 : ✅ même version que sa dépendance optionnelle (`^0.35.5`), une seule copie de `sharp` installée
 - Docker alpine : ✅ binaires musl publiés, aucun `libc6-compat` dans le `Dockerfile`
 - pnpm : ✅ autorisé à compiler via `allowBuilds` dans `pnpm-workspace.yaml`
 
@@ -824,7 +824,7 @@ Extraction des images d'un conteneur ICO, format que `sharp` ne lit pas : le ré
 
 ### 14. Tiptap
 
-**Versions actuelles** : `3.31.3` sur les 15 paquets `@tiptap/*` (`core`, `pm`, `react`, `markdown`, `starter-kit`, `suggestion`, `extension-image`, `extension-link`, `extension-list`, `extension-placeholder`, `extension-table`, `extension-table-cell`, `extension-table-header`, `extension-table-row`, `extension-underline`), `tippy.js` `6.3.7` (plage `^6.3.7`)
+**Versions actuelles** : `3.32.0` sur les 15 paquets `@tiptap/*` (`core`, `pm`, `react`, `markdown`, `starter-kit`, `suggestion`, `extension-image`, `extension-link`, `extension-list`, `extension-placeholder`, `extension-table`, `extension-table-cell`, `extension-table-header`, `extension-table-row`, `extension-underline`), `tippy.js` `6.3.7` (plage `^6.3.7`)
 **Stabilité** : ⚠️
 
 Éditeur markdown des champs texte longs de l'espace admin (ADR-024). C'est le « Pages CMS Editor », copié dans le projet par la CLI shadcn depuis le registre `https://editor.pagescms.org/r/editor.json` (URL directe, sans entrée `registries` dans `components.json`). Ses fichiers vivent sous `src/components/ui/editor/` (`index.tsx`, `labels.ts`, `slash-command/`, `typeset.css`). Seul `src/components/features/admin/form/MarkdownEditorField.tsx` l'importe : le site public n'embarque jamais l'éditeur. Pas de versioning sémantique côté registre, le code copié est maintenu par le projet. Versions lues dans `package.json` et `pnpm-lock.yaml` le 14 octobre 2026.
@@ -832,7 +832,7 @@ Extraction des images d'un conteneur ICO, format que `sharp` ne lit pas : le ré
 `tippy.js` n'est pas une dépendance de Tiptap 3 : l'éditeur copié l'importe pour le popup du menu `/` (`slash-command/suggestion.tsx`). Tiptap 3 a remplacé tippy.js par Floating UI dans ses propres menus (`@floating-ui/dom` `1.8.0` résolu dans le lockfile).
 
 **Compatibilité Écosystème** :
-- React 19 : ✅ peers de `@tiptap/react` 3.31.3 sur `react` et `react-dom` en `^17.0.0 || ^18.0.0 || ^19.0.0` (registre npm, relevé par tech-researcher le 14 octobre 2026)
+- React 19 : ✅ peers de `@tiptap/react` 3.32.0 sur `react` et `react-dom` en `^17.0.0 || ^18.0.0 || ^19.0.0` (`node_modules`, relevé le 23 octobre 2026)
 - Next.js 16 : documentation Tiptap générique (App Router et Pages Router), aucune mention de Next.js 16 lue. Éditeur monté côté client avec `immediatelyRender: false` (`src/components/ui/editor/index.tsx`), le réglage que le guide Next.js de Tiptap impose contre les erreurs d'hydratation
 - Entrée et sortie markdown : `@tiptap/markdown` via `contentType: "markdown"`, le markdown restant le seul format stocké
 
@@ -848,7 +848,7 @@ Extraction des images d'un conteneur ICO, format que `sharp` ne lit pas : le ré
 
 ### 1. Vitest
 
-**Version actuelle** : `5.0.3` (30 septembre 2026)
+**Version actuelle** : `5.0.5`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v4 → v5)** :
@@ -887,7 +887,7 @@ La suite du projet est passée sans modification de code ni de config (CI verte 
 pnpm add -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
 ```
 
-**Recommandation** : ✅ Vitest 5.0.3, `environment: 'jsdom'` pour les composants React.
+**Recommandation** : ✅ Vitest 5.0.5, `environment: 'jsdom'` pour les composants React.
 
 ### 2. @vitejs/plugin-react
 
@@ -936,7 +936,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 
 ### 2. Prisma ORM
 
-**Version actuelle** : `7.10.0`
+**Version actuelle** : `7.10.1`
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v6 → v7)** :
@@ -949,7 +949,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 - **`prisma migrate dev`** ne lance plus `prisma generate` automatiquement
 - **Seeding automatique supprimé** : lancer `pnpm prisma db seed` explicitement
 - **API `$use()` supprimée** → `$extends()`
-- **Node.js minimum : 20.19.0**, TypeScript minimum : 5.4.0. Le champ `engines` de `prisma@7.10.0` est plus strict que ce plancher : `^20.19 || ^22.12 || >=24.0`, les lignes impaires 21 et 23 sont exclues
+- **Node.js minimum : 20.19.0**, TypeScript minimum : 5.4.0. Le champ `engines` de `prisma@7.10.1` est plus strict que ce plancher : `^20.19 || ^22.12 || >=24.0`, les lignes impaires 21 et 23 sont exclues
 
 **Nouvelles Features Pertinentes** :
 - Client Rust-free : bundle ~90% plus petit, queries ~3x plus rapides, perf TS ~70% plus rapide
@@ -972,7 +972,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 - **Server Components + `'use cache'` au prerender** : la base doit être joignable au build, ce qui conditionne le pipeline de déploiement. Règle et gotcha `connection()` : `.claude/rules/nextjs/data-fetching.md`, pipeline : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement
 - **`postinstall: "prisma generate"`** obligatoire dans `package.json` (convention standard Prisma)
 
-**Recommandation** : ✅ Prisma 7.10.0 avec le guide officiel `prisma/nextjs-auth-starter`. **Ne pas upgrader Prisma et Next.js simultanément** (règle PRODUCTION.md).
+**Recommandation** : ✅ Prisma 7.10.1 avec le guide officiel `prisma/nextjs-auth-starter`. **Ne pas upgrader Prisma et Next.js simultanément** (règle PRODUCTION.md).
 
 ## CI / CD
 
@@ -1038,32 +1038,32 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
-| Next.js 16.4.0 | Prisma 7.10.0 | ✅ | Setup standard. Build Turbopack (défaut Next 16) vérifié en CI (`just build`) et en image Docker sur 16.4.0 (9 octobre 2026), l'opt-out `--webpack` posé pour l'erreur WASM `query_compiler_fast_bg.postgresql.mjs` a été retiré |
-| Next.js 16.4.0 | next-intl 4.14.9 | ✅ | Nécessite Next.js >= 16.3 pour `use cache` (root params) |
-| Next.js 16.4.0 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.1 requis |
-| Next.js 16.4.0 | ESLint 10.12.0 | ✅ | `eslint-config-next@16.4.0` patche les plugins React, import et jsx-a11y ; leurs peers déclarés restent à ESLint 9 |
-| Next.js 16.4.0 | Pino 10.4.0 | ✅ | Pino dans la liste `serverExternalPackages` par défaut de Next, redéclarée par le projet |
-| Next.js 16.4.0 | Vitest 5.0.3 | ✅ | Async Server Components non testables en unit |
-| Next.js 16.4.0 | Magic UI | ✅ | Via shadcn CLI (vérifier imports `@/`) |
-| Next.js 16.4.0 | Aceternity UI | ✅ | Utiliser `motion` v12+ (`14.0.0` installée), pas `framer-motion` |
-| Prisma 7.10.0 | PostgreSQL 18.6 | ✅ | PG 18 listé dans les bases supportées depuis décembre 2025 |
-| Prisma 7.10.0 | TypeScript 6.0.3 | ✅ | `moduleResolution: bundler` recommandé |
+| Next.js 16.4.2 | Prisma 7.10.1 | ✅ | Setup standard. Build Turbopack (défaut Next 16) vérifié en CI (`just build`) et en image Docker sur 16.4.0 (9 octobre 2026), l'opt-out `--webpack` posé pour l'erreur WASM `query_compiler_fast_bg.postgresql.mjs` a été retiré |
+| Next.js 16.4.2 | next-intl 4.14.9 | ✅ | Nécessite Next.js >= 16.3 pour `use cache` (root params) |
+| Next.js 16.4.2 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.1 requis |
+| Next.js 16.4.2 | ESLint 10.13.0 | ✅ | `eslint-config-next@16.4.0` patche les plugins React, import et jsx-a11y ; leurs peers déclarés restent à ESLint 9 |
+| Next.js 16.4.2 | Pino 10.4.0 | ✅ | Pino dans la liste `serverExternalPackages` par défaut de Next, redéclarée par le projet |
+| Next.js 16.4.2 | Vitest 5.0.5 | ✅ | Async Server Components non testables en unit |
+| Next.js 16.4.2 | Magic UI | ✅ | Via shadcn CLI (vérifier imports `@/`) |
+| Next.js 16.4.2 | Aceternity UI | ✅ | Utiliser `motion` v12+ (`14.6.0` installée), pas `framer-motion` |
+| Prisma 7.10.1 | PostgreSQL 18.6 | ✅ | PG 18 listé dans les bases supportées depuis décembre 2025 |
+| Prisma 7.10.1 | TypeScript 6.0.3 | ✅ | `moduleResolution: bundler` recommandé |
 | Tailwind 4.3.3 | shadcn/ui | ✅ | Composants mis à jour pour v4 |
 | Tailwind 4.3.3 | Magic UI | ✅ | Tailwind v4 par défaut depuis avril 2025 |
 | Tailwind 4.3.3 | Aceternity UI | ✅ | Tailwind v4 standard documenté |
-| Zod 4.6.5 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
+| Zod 4.6.7 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
 | pnpm 12.11.2 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
 | pnpm 12.11.2 | Node.js 24.21.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, à vérifier au prochain build |
-| Node.js 24.21.0 | Prisma 7.10.0 | ✅ | Node.js >= 20.19 requis |
-| Node.js 24.21.0 | Next.js 16.4.0 | ✅ | Node.js >= 20.9 requis |
+| Node.js 24.21.0 | Prisma 7.10.1 | ✅ | Node.js >= 20.19 requis |
+| Node.js 24.21.0 | Next.js 16.4.2 | ✅ | Node.js >= 20.9 requis |
 | Node.js 24.21.0 | Pino 10.4.0 | ✅ | Node.js >= 20 requis |
 | `postgres:18-alpine` | Volume Docker | ⚠️ | PG18+ change le chemin par défaut : monter `/var/lib/postgresql`, pas `/var/lib/postgresql/data` |
-| Next.js 16.4.0 | Better Auth 1.7.7 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (workaround trivial, Issue #5584) |
-| Prisma 7.10.0 | Better Auth 1.7.7 | ✅ | L'URL de base est disponible au runtime via les variables d'environnement. `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth |
-| Sentry 11.6.0 | Next.js 16.4.0 | ⚠️ | Peer `^16.0.0-0`, Turbopack supporté (annotation de composants : Next 16 requis). Spans des Server Actions absents (relevé en 11.1.0, § Sentry) |
-| Vitest 5.0.3 | Vite 8.2.2 | ✅ | Vite est une peer obligatoire depuis Vitest 5 (>= 6.4), installée automatiquement par pnpm |
-| Vitest 5.0.3 | jsdom 30.1.2 | ✅ | Suite de tests verte |
-| nodemailer 10.0.16 | TypeScript 6.0.3 | ✅ | Types embarqués, sans `@types/nodemailer` |
+| Next.js 16.4.2 | Better Auth 1.7.12 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (workaround trivial, Issue #5584) |
+| Prisma 7.10.1 | Better Auth 1.7.12 | ✅ | L'URL de base est disponible au runtime via les variables d'environnement. `prisma.config.ts` concerne uniquement la CLI Prisma, pas le runtime Better Auth |
+| Sentry 11.8.0 | Next.js 16.4.2 | ⚠️ | Peer `^16.0.0-0`, Turbopack supporté (annotation de composants : Next 16 requis). Spans des Server Actions absents (relevé en 11.1.0, § Sentry) |
+| Vitest 5.0.5 | Vite 8.2.2 | ✅ | Vite est une peer obligatoire depuis Vitest 5 (>= 6.4), installée automatiquement par pnpm |
+| Vitest 5.0.5 | jsdom 30.1.3 | ✅ | Suite de tests verte |
+| nodemailer 10.2.1 | TypeScript 6.0.3 | ✅ | Types embarqués, sans `@types/nodemailer` |
 | cn 0.4.0 | Tailwind 4.3.3 | ✅ | Merge Tailwind v4, même sortie annoncée que `tailwind-merge` v3 |
 
 ---
@@ -1076,7 +1076,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Node.js 20 EOL (30 avril 2026) | ✅ Traité | Échéance passée, le projet est en `node:24-alpine` et `node-version: '24'`. Ne jamais redescendre sur `node:20-*` |
 | Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, recommandation Next.js. Cause de l'erreur P1010 si oublié |
 | Pino + Next.js App Router (bundling) | ✅ Traité | Pino figure dans la liste `serverExternalPackages` par défaut de Next, que `next.config.ts` redéclare |
-| next-intl + `use cache` (Next 16.0 à 16.2) | 🟡 Moyen | Utiliser Next.js >= 16.3 (le projet est en 16.4.0) |
+| next-intl + `use cache` (Next 16.0 à 16.2) | 🟡 Moyen | Utiliser Next.js >= 16.3 (le projet est en 16.4.2) |
 | Next.js 16.4 strict route matching | ✅ Traité | Build sans signalement, 404 d'un slug projet inconnu (rewrite du proxy) vérifié sur l'image le 9 octobre 2026. Échappatoire `deprecated.looseRouteMatching: true` si une route casse |
 | pnpm 11 `minimumReleaseAge` + install `--frozen-lockfile` | 🟡 Moyen | Une version de moins de 24 h dans le lockfile fait échouer la CI et le Dockerfile. Retirer les `minimumReleaseAgeExclude` qu'écrit `pnpm add` une fois le délai passé. Le cooldown par défaut de Dependabot (3 jours) couvre ses mises à jour de version, pas de sécurité |
 | ESLint 10 + peers des plugins de `eslint-config-next` | 🟢 Faible | `eslint-plugin-react`, `-import`, `-jsx-a11y` déclarent ESLint <= 9, `eslint-config-next@16.4.0` les patche. Warning `pnpm peers check` attendu. Revérifier par un fichier sonde à chaque montée d'ESLint ou de Next |
@@ -1344,16 +1344,18 @@ pnpm test
 
 ---
 
-## Montées Bloquées (état au 9 octobre 2026)
+## Montées Bloquées (état au 23 octobre 2026)
 
 Ces mises à jour majeures ont été testées puis écartées, ou identifiées et non tentées. Ne pas les rejouer sans que la contrainte listée soit levée.
 
 | Paquet | Actuel | Disponible | Blocage | Levée attendue |
 |---|---|---|---|---|
 | Node.js | `24.21.0` | `26.11.1` | Node 26 est **Current**, pas LTS. Le projet suit la règle « runtime sur LTS uniquement » (`engines.node: >=24.0.0`). Sans Corepack depuis le 15 octobre 2026, la montée ne touche que le tag de l'image et `node-version` | Bascule LTS de la ligne 26, le 28 octobre 2026 |
-| @types/node | `24.13.3` | `26.6.4` | Doit rester aligné sur le runtime réellement exécuté. Proposée par Dependabot (PR #157), écartée le 3 octobre 2026 pour cette raison | En même temps que Node 26 |
-| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.71.1` (installée, dernière stable aux 9 et 11 octobre 2026) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
-| Prisma | `7.10.0` | `8.0.0-rc.22` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.0 est sur `prev`), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. `@prisma/client` et `@prisma/adapter-pg` restent en `latest: 7.10.0`. **C'est ce blocage qui rend `just audit` rouge** : le CLI `prisma` tire `deepmerge-ts@7.1.5` via `@prisma/config` (< 8.0.0, [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx)) et `mysql2@3.15.3` (< 3.22.0, [GHSA-3f6p-5ww8-9rcr](https://github.com/advisories/GHSA-3f6p-5ww8-9rcr)). Transitives d'une devDependency, et `mysql2` n'est jamais chargé (le projet est sur PostgreSQL) | Publication de la 8.0.0 stable, qui lève `deepmerge-ts` mais **pas `mysql2`** : `better-auth` le tire aussi (peer `^3.0.0`, toujours résolu en `3.15.3` après la montée en 1.7.7 du 9 octobre 2026), pour son adaptateur MySQL que le projet n'emploie pas. Ne pas forcer par `pnpm.overrides` : `deepmerge-ts@8` est une majeure que `@prisma/config` n'a pas validée |
+| @types/node | `24.19.2` | `26.6.5` | Doit rester aligné sur le runtime réellement exécuté. Proposée par Dependabot (PR #157), écartée le 3 octobre 2026 pour cette raison | En même temps que Node 26 |
+| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.0` (installée le 23 octobre 2026) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
+| Prisma | `7.10.1` | `8.0.0-rc.27` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.1 est sur `prev`, relevé le 23 octobre 2026), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. Les advisories transitives `deepmerge-ts` et `mysql2` qui rendaient `just audit` rouge sont levées depuis la montée du 23 octobre 2026 (`deepmerge-ts@8.0.2`, `mysql2@3.24.4` dans `pnpm-lock.yaml`), `pnpm audit` est vide | Publication de la 8.0.0 stable |
+| `@c15t/nextjs`, `@c15t/translations` | `2.3.0` | `3.1.0` | Identifiée le 23 octobre 2026, non tentée : aucun blocage technique identifié. Majeure du CMP de consentement, à monter avec relecture de [knowledges/c15t.md](knowledges/c15t.md) | Chantier dédié |
+| cn | `0.4.0` | `0.5.0` | Identifiée le 23 octobre 2026, non tentée : aucun blocage technique identifié. En pré-1.0, une mineure peut casser | Chantier dédié |
 
 > Le blocage TypeScript vient de `typescript-eslint`, tiré par `eslint-config-next`. Celui d'ESLint 10, de même origine, a été levé par `eslint-config-next@16.4.0`, qui patche les plugins React, import et jsx-a11y ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)) : ESLint 10.12.0 est monté depuis le 9 octobre 2026.
 
@@ -1454,7 +1456,7 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 
 | A | B | Compatibilité | Notes |
 |---|---|---|---|
-| Prisma 7.10.0 | pgvector 0.8.6 | ⚠️ | Support partiel : `Unsupported("vector")` + SQL manuel |
+| Prisma 7.10.1 | pgvector 0.8.6 | ⚠️ | Support partiel : `Unsupported("vector")` + SQL manuel |
 | PostgreSQL 18.6 | pgvector 0.8.6 | ✅ | Support PG 18 depuis 0.8.1 |
 | PostgreSQL 18.6 | Umami 3.3.1 | ⚠️ | Aucun retour upstream sur PG 18 (issue #3888, PG 17.6, fermée `not_planned`), à valider en staging |
 
