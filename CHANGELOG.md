@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.2.0...v2.2.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** monte Next.js 16.4.2 et les dépendances patch et mineures ([#186](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/186)) ([0d24777](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0d247771953353d548b8046f74ca5d07f4e7a4cb))
+
 ## [2.2.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.1.1...v2.2.0) (2026-10-22)
 
 
