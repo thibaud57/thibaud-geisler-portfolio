@@ -1,6 +1,6 @@
 ---
 title: "Next.js — Framework full-stack"
-version: "16.4.0"
+version: "16.4.2"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
 date: "2026-10-11"
 keywords: ["nextjs", "app-router", "server-components", "server-actions", "turbopack"]

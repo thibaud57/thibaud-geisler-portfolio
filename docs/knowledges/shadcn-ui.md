@@ -1,6 +1,6 @@
 ---
 title: "shadcn/ui — Composants UI copy-paste"
-version: "4.21.4"
+version: "4.22.1"
 description: "Référence technique pour shadcn/ui : philosophie copy-paste, CLI et patterns pour le portfolio."
 date: "2026-04-13"
 keywords: ["shadcn", "ui", "radix", "tailwind", "components"]
