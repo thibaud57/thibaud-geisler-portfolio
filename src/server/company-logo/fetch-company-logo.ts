@@ -20,8 +20,10 @@ const ICON_MAX_BYTES = 1024 * 1024
 const HASH_LENGTH = 12
 // Une page peut déclarer des milliers d'icônes, chacune pouvant coûter jusqu'à 10 s de timeout.
 const MAX_CANDIDATES = 8
+// L'écran attend la réponse sans retour d'avancement : de quoi lire une page lente (capture d'archive) puis quelques icônes.
+const DEADLINE_MS = 20_000
 
-// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (cible interne : accès réseau refusé).
+// Un candidat injoignable, trop lourd ou illisible laisse sa chance au suivant ; une adresse refusée arrête tout (cible interne : accès réseau refusé), l'échéance aussi.
 const SKIPPABLE_ERRORS = [FetchFailedError, ResponseTooLargeError, UnreadableIconError]
 
 export class NoIconFoundError extends Error {}
@@ -35,8 +37,13 @@ export interface CompanyLogo {
 
 export async function fetchCompanyIcon(
   websiteUrl: string,
+  deadline: AbortSignal = AbortSignal.timeout(DEADLINE_MS),
 ): Promise<{ icon: NormalizedIcon; source: IconSource }> {
-  const page = await safeFetch(websiteUrl, { maxBytes: PAGE_MAX_BYTES, truncate: true })
+  const page = await safeFetch(websiteUrl, {
+    maxBytes: PAGE_MAX_BYTES,
+    truncate: true,
+    deadline,
+  })
   const declared = findIconCandidates(page.body.toString("utf8"), page.url)
   // Dernier recours (ADR-023)
   const candidates: IconCandidate[] =
@@ -47,7 +54,7 @@ export async function fetchCompanyIcon(
   let largestTooSmall = 0
   for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {
     try {
-      const image = await safeFetch(candidate.url, { maxBytes: ICON_MAX_BYTES })
+      const image = await safeFetch(candidate.url, { maxBytes: ICON_MAX_BYTES, deadline })
       return { icon: await normalizeIcon(image.body), source: candidate.source }
     } catch (err) {
       if (err instanceof IconTooSmallError) largestTooSmall = Math.max(largestTooSmall, err.size)

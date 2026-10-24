@@ -24,10 +24,14 @@ export class FetchFailedError extends Error {
 
 export class ResponseTooLargeError extends Error {}
 
+export class DeadlineExceededError extends Error {}
+
 export interface FetchOptions {
   maxBytes: number
   // Une page se lit tronquée, ses balises d'icône étant dans l'en-tête ; une image tronquée ne sert à rien.
   truncate?: boolean
+  // Échéance de toute la récupération : le timeout par requête repart à zéro à chaque redirection et ne borne rien au-delà.
+  deadline?: AbortSignal
 }
 
 export interface FetchedResource {
@@ -57,11 +61,22 @@ export const guardedLookup: LookupFunction = (hostname, options, callback) => {
   })
 }
 
-function request(url: URL, { maxBytes, truncate = false }: FetchOptions): Promise<RawResponse> {
+// Une requête coupée par l'échéance n'est pas un site injoignable : la boucle des icônes doit s'arrêter, pas passer à la suivante.
+function requestFailure(err: unknown, deadline: AbortSignal | undefined): Error {
+  if (err instanceof BlockedAddressError) return err
+  if (deadline?.aborted) return new DeadlineExceededError("Échéance dépassée", { cause: err })
+  return new FetchFailedError(null, { cause: err })
+}
+
+function request(
+  url: URL,
+  { maxBytes, truncate = false, deadline }: FetchOptions,
+): Promise<RawResponse> {
+  const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const options: RequestOptions = {
     lookup: guardedLookup,
     headers: { "user-agent": USER_AGENT, accept: "*/*", "accept-encoding": "identity" },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: deadline ? AbortSignal.any([timeout, deadline]) : timeout,
   }
 
   return new Promise((resolve, reject) => {
@@ -108,7 +123,11 @@ function request(url: URL, { maxBytes, truncate = false }: FetchOptions): Promis
         resolve({ kind: "body", body: Buffer.concat(chunks) })
       })
       res.on("error", (err) => {
-        reject(new FetchFailedError(null, { cause: err }))
+        reject(requestFailure(err, deadline))
+      })
+      // Un abandon peut détruire le corps sans émettre `error` : la requête resterait pendante et l'échéance ne bornerait plus rien.
+      res.on("close", () => {
+        if (!res.complete) reject(requestFailure(new Error("Réponse interrompue"), deadline))
       })
     }
 
@@ -117,7 +136,7 @@ function request(url: URL, { maxBytes, truncate = false }: FetchOptions): Promis
         ? https.get(url, options, onResponse)
         : http.get(url, options, onResponse)
     req.on("error", (err) => {
-      reject(err instanceof BlockedAddressError ? err : new FetchFailedError(null, { cause: err }))
+      reject(requestFailure(err, deadline))
     })
   })
 }
@@ -148,6 +167,7 @@ export async function safeFetch(
 ): Promise<FetchedResource> {
   let url = outboundTarget(target)
   for (let redirects = 0; ; redirects++) {
+    if (options.deadline?.aborted) throw new DeadlineExceededError()
     const response = await request(url, options)
     if (response.kind === "body") return { url, body: response.body }
     if (redirects === MAX_REDIRECTS) throw new FetchFailedError(null)

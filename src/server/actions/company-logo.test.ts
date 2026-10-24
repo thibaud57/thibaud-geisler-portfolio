@@ -16,7 +16,11 @@ import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { NoIconFoundError, retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 import { IconTooSmallError } from "@/server/company-logo/normalize-icon"
-import { BlockedAddressError, FetchFailedError } from "@/server/company-logo/safe-fetch"
+import {
+  BlockedAddressError,
+  DeadlineExceededError,
+  FetchFailedError,
+} from "@/server/company-logo/safe-fetch"
 
 import { fetchCompanyLogo } from "./company-logo"
 
@@ -77,6 +81,11 @@ describe("fetchCompanyLogo", () => {
       label: "an unreachable site",
       error: new FetchFailedError(403),
       expected: { ok: false, message: "site_unreachable", status: 403 },
+    },
+    {
+      label: "a site too slow for the deadline",
+      error: new DeadlineExceededError(),
+      expected: { ok: false, message: "site_too_slow" },
     },
     {
       label: "a missing icon",

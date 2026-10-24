@@ -20,7 +20,12 @@ import {
   storeCompanyLogo,
 } from "./fetch-company-logo"
 import { IconTooSmallError, normalizeIcon } from "./normalize-icon"
-import { BlockedAddressError, FetchFailedError, safeFetch } from "./safe-fetch"
+import {
+  BlockedAddressError,
+  DeadlineExceededError,
+  FetchFailedError,
+  safeFetch,
+} from "./safe-fetch"
 
 const SITE = "https://acme.example/"
 
@@ -30,6 +35,10 @@ function page(head: string) {
 
 function image(path: string) {
   return { url: new URL(path, SITE), body: Buffer.from(path) }
+}
+
+function normalizedIcon(size: number) {
+  return { png: Buffer.from("png"), width: size, height: size }
 }
 
 describe("fetchCompanyIcon", () => {
@@ -42,11 +51,7 @@ describe("fetchCompanyIcon", () => {
       )
       .mockRejectedValueOnce(new FetchFailedError(404))
       .mockResolvedValueOnce(image("/icon.png"))
-    vi.mocked(normalizeIcon).mockResolvedValueOnce({
-      png: Buffer.from("png"),
-      width: 64,
-      height: 64,
-    })
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
 
     const result = await fetchCompanyIcon(SITE)
 
@@ -86,11 +91,7 @@ describe("fetchCompanyIcon", () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page("<title>Acme</title>"))
       .mockResolvedValueOnce(image("/favicon.ico"))
-    vi.mocked(normalizeIcon).mockResolvedValueOnce({
-      png: Buffer.from("png"),
-      width: 48,
-      height: 48,
-    })
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(48))
 
     const result = await fetchCompanyIcon(SITE)
 
@@ -109,15 +110,33 @@ describe("fetchCompanyIcon", () => {
     await expect(result).rejects.toBeInstanceOf(NoIconFoundError)
   })
 
-  it("stops at a blocked address", async () => {
+  it.each([
+    { label: "a blocked address", error: new BlockedAddressError("intranet") },
+    { label: "the deadline", error: new DeadlineExceededError() },
+  ])("stops at $label instead of trying the next candidate", async ({ error }) => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))
-      .mockRejectedValueOnce(new BlockedAddressError("intranet"))
+      .mockRejectedValueOnce(error)
 
     const result = fetchCompanyIcon(SITE)
 
-    await expect(result).rejects.toBeInstanceOf(BlockedAddressError)
+    await expect(result).rejects.toBe(error)
     expect(safeFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it("shares one deadline between the page and every candidate", async () => {
+    const deadline = new AbortController().signal
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce(page('<link rel="icon" href="/icon.png">'))
+      .mockResolvedValueOnce(image("/icon.png"))
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
+
+    await fetchCompanyIcon(SITE, deadline)
+
+    expect(vi.mocked(safeFetch).mock.calls.map(([, options]) => options.deadline)).toEqual([
+      deadline,
+      deadline,
+    ])
   })
 })
 
@@ -126,17 +145,28 @@ describe("retrieveCompanyLogo", () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/icon.png">'))
       .mockResolvedValueOnce(image("/icon.png"))
-    vi.mocked(normalizeIcon).mockResolvedValueOnce({
-      png: Buffer.from("png"),
-      width: 64,
-      height: 64,
-    })
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
 
     const result = await retrieveCompanyLogo(SITE, "acme")
 
     expect(result.key).toMatch(/^freelance\/crm\/entreprises\/acme\/logo-[0-9a-f]{12}\.png$/)
     expect(result).toMatchObject({ width: 64, height: 64, source: "icon" })
     expect(adminR2.send).toHaveBeenCalledTimes(1)
+  })
+
+  it("bounds the whole retrieval with a deadline by default", async () => {
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce(page('<link rel="icon" href="/icon.png">'))
+      .mockResolvedValueOnce(image("/icon.png"))
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
+
+    await retrieveCompanyLogo(SITE, "acme")
+
+    const [pageDeadline, iconDeadline] = vi
+      .mocked(safeFetch)
+      .mock.calls.map(([, options]) => options.deadline)
+    expect(pageDeadline).toBeInstanceOf(AbortSignal)
+    expect(iconDeadline).toBe(pageDeadline)
   })
 })
 

@@ -3,16 +3,20 @@ import { Plus } from "lucide-react"
 
 import { ProspectingActionFormDialog } from "@/components/features/admin/prospecting-actions/ProspectingActionFormDialog"
 import { Button } from "@/components/ui/button"
-import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
+import type { PersonOption } from "@/server/queries/persons"
 
-async function NewActionButton() {
-  const personOptions = await findPersonOptionsWithLeadRole()
-  return <ProspectingActionFormDialog action={null} personOptions={personOptions} />
+interface Props {
+  // Promesse plutôt que lecture ici : la page la partage, `cache()` de React étant exclu sur une query Prisma (rule nextjs/data-fetching).
+  personOptions: Promise<PersonOption[]>
 }
 
-export function NewActionHeaderButton() {
+async function NewActionButton({ personOptions }: Props) {
+  return <ProspectingActionFormDialog action={null} personOptions={await personOptions} />
+}
+
+export function NewActionHeaderButton({ personOptions }: Props) {
   return (
-    // Le bouton lit les personnes sans cache : sous <Suspense>, comme la table.
+    // Lecture sans cache : sous <Suspense>.
     <Suspense
       fallback={
         <Button disabled>
@@ -21,7 +25,7 @@ export function NewActionHeaderButton() {
         </Button>
       }
     >
-      <NewActionButton />
+      <NewActionButton personOptions={personOptions} />
     </Suspense>
   )
 }
