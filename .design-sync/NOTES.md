@@ -105,6 +105,15 @@ système, puis refait entièrement.
   réclame un `react/jsx-runtime` absent), `--tsconfig-raw={}` parce qu'esbuild lit sinon le
   `tsconfig.json` du dépôt et réimpose ce JSX automatique, et un alias `react` vers un shim qui
   renvoie le global, faute de quoi le bundle embarque son propre React et entre en conflit.
+- **Capturer la maquette en local** : `support.js` charge React depuis unpkg après le helmet, si bien
+  que `_ds_src/_ds_bundle.js` s'évalue sans React et que rien ne s'affiche. Servir le dossier en
+  HTTP, intercepter la requête du `.dc.html` et y injecter les deux scripts UMD de React 18.3.1 en
+  tête de `<head>` ; cela ne vaut que pour la capture, le fichier envoyé reste intact. Les entrées
+  du menu se cliquent par leur texte dans `[data-slot="sidebar"]`.
+- **Une fenêtre flottante passe sous les menus de l'en-tête** : l'en-tête collant de la maquette
+  (`z-index: 30`) crée un contexte d'empilement, si bien que son menu de compte (`z-index: 50`)
+  plafonne à 30. `FloatingPanel` est donc à 20 : au-dessus de la page, sous l'en-tête, les menus et
+  les modales, avec `minTop` à 56 pour ne pas glisser sous l'en-tête.
 - **Ce que le rendu a attrapé et que rien d'autre n'aurait vu** : le `Tooltip` de ce système
   enveloppe son déclencheur dans un span `inline-flex`, là où Radix le clone sans wrapper. Deux
   tooltips voisins se posaient donc côte à côte, collant le nom d'un asset à son dossier. Le style
@@ -115,14 +124,10 @@ système, puis refait entièrement.
 Décisions prises que la maquette ne montre pas, et écrans qu'elle n'a pas. À reporter quand le
 propriétaire le demande ; chaque ligne part une fois faite.
 
-- **Écrans à dessiner** : assistant interne (Feature 3), seconde interface du même assistant que le
-  bot Telegram, dessinée après lui : fenêtre flottante déplaçable et redimensionnable qui connaît
-  la page en cours, fait confirmer chaque écriture et affiche ses propres questions et demandes
-  d'accord dans la conversation, plus une page d'historique qui montre aussi les conversations
-  commencées sur Telegram ; résultats des jobs à valider (Feature 3 : candidats du sourcing à
-  trier, pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ;
-  Accueil (`isHome`), à revoir avec la feature Missions (Feature 4).
-- **Avant de dessiner l'assistant et le chatbot public** : faire les recherches sur ces deux sujets.
+- **Écrans à dessiner** : résultats des jobs à valider (Feature 3 : candidats du sourcing à trier,
+  pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ; Accueil
+  (`isHome`), à revoir avec la feature Missions (Feature 4) ; chatbot public (Feature 10), sur les
+  composants de chat du système.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
   garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs
   tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
@@ -147,6 +152,17 @@ propriétaire le demande ; chaque ligne part une fois faite.
 
 ## Journal
 
+- **Composants de chat et écrans des agents (synchronisés le 2026-10-24)** : le système gagne
+  `post-mvp/chat/` (ADR-027) : `Message`, `Bubble`, `Marker`, `MessageScroller`, `InputGroup`,
+  `Attachment`, `Questionnaire`, `Trace`, `CodeBlock` et `Item` lus du registry `radix-nova`, plus
+  `FloatingPanel`, composant maison ; une carte de dossier, quatre cartes `showcase/post-mvp-chat-*`,
+  sept glyphes Lucide. Contrôle : 108 miroirs compilés, 62 cartes rendues sans erreur hors les 404
+  voulus, questionnaire et fenêtre pilotés. Arbitrages du propriétaire votés sur une page de rendu
+  réel : lanceur en icône dans l'en-tête, historique par « Conversations » dans le menu de l'avatar,
+  « Specs & docs » au-dessus de Kanban (`docs/DESIGN.md`, ligne Fenêtre de l'assistant). La maquette
+  dessine la fenêtre de l'assistant, la page Conversations et le créateur de specs (lancement,
+  session en attente, session terminée) ; `_ds_src/` recompilé ; 11 écrans capturés avant et après,
+  seule l'icône de l'en-tête change. Détail dans les `github.md` des deux projets.
 - **Système et maquette réalignés sur le code et les arbitrages (synchronisés le 2026-10-13)** :
   le système sort du `post-mvp/` ce que le CRM a installé (`EventCalendar`, `Kanban`, `Editor` et
   `ScrollArea` vers `core/`, champs date et fiches rattachées vers `patterns/`), retire

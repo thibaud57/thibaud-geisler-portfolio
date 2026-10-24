@@ -197,7 +197,7 @@ Next.js (App Router), TypeScript strict
 
 ### Styling & UI
 
-- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md)). Le registry ReUI complète l'espace admin avec le kanban et l'agenda mensuel, copiés sous `src/components/reui/`
+- **Web** : Option C actée, shadcn/ui hybride + Magic UI / Aceternity UI pour effets visuels (cf. [ADR-009](adrs/009-ui-system.md)). Le registry ReUI complète l'espace admin avec le kanban et l'agenda mensuel, copiés sous `src/components/reui/`. Les conversations (assistant interne, créateur de specs, chatbot public) reprendront les composants de chat du registry shadcn, alimentés par un flux lu dans ce dépôt (cf. [ADR-027](adrs/027-composants-chat.md))
 - **Dark/Light mode** : CSS variables + store maison `src/lib/theme.ts` (singleton `useSyncExternalStore`, sans provider : survit à React 19 Activity, cf. rule `theming/theme-store.md`)
 - **i18n** : FR/EN, cf. [ADR-010](adrs/010-i18n.md)
 
@@ -375,7 +375,7 @@ Le logo d'une entreprise est traité côté serveur avant son stockage dans R2 (
 
 ### Message Queue / Event Streaming
 
-Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne. Seule exception, le flux des sessions Claude Code d'`agent-os` (état des runs, texte de l'assistant interne) remonte en Server-Sent Events sur le même réseau interne, et ce dépôt le relaie au navigateur ([ADR-026](adrs/026-execution-claude-code-abonnement.md)).
+Aucun bus de messages ni broker d'événements. Les files de jobs post-MVP vivent dans `agent-os`, hors de ce dépôt ([ADR-019](adrs/019-communication-inter-services.md)), les appels inter-services sont synchrones en HTTP interne. Exception, le flux des sessions Claude Code d'`agent-os` (état des runs, texte de l'assistant interne et du créateur de specs) remonte en Server-Sent Events sur le même réseau interne, puis ce dépôt le relaie au navigateur ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Les réponses du chatbot public arrivent elles aussi au fil de l'eau : ce dépôt traduit les deux flux vers un même format d'événements ([ADR-027](adrs/027-composants-chat.md)).
 
 ---
 
@@ -622,6 +622,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise](adrs/023-source-logos-entreprise.md)
 - [ADR-024 : Éditeur markdown des champs texte longs de l'espace admin](adrs/024-editeur-markdown-admin.md)
 - [ADR-026 : Exécution de Claude Code sur l'abonnement](adrs/026-execution-claude-code-abonnement.md)
+- [ADR-027 : Composants de chat : primitives shadcn/ui et flux d'événements propre au portfolio](adrs/027-composants-chat.md)
 
 > Les ADR-015 à 020 sont **transverses** : ils engagent aussi `ai-kit`, `agent-os`, `portfolio-chatbot` et `rag-documents`, dépôts distincts qui y renvoient par lien plutôt que d'en recopier le contenu. L'ADR-026 engage aussi `agent-os` et `ai-kit`. Le présent document décrit l'application Next.js ; les services externes sont décrits dans leurs dépôts respectifs.
 
@@ -647,7 +648,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - **CRUD contenu** : projets, tags, entreprises, assets
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
-- **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
+- **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 
 **Dans les dépôts voisins**
