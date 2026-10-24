@@ -5,28 +5,26 @@ import { NewActionHeaderButton } from "@/components/features/admin/prospecting-a
 import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole, type PersonOption } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 
-async function CalendarSection() {
-  const [actions, personOptions] = await Promise.all([
-    findAllProspectingActionsForAdmin(),
-    findPersonOptionsWithLeadRole(),
-  ])
-  return <ActionsCalendar actions={actions} personOptions={personOptions} />
+async function CalendarSection({ personOptions }: { personOptions: Promise<PersonOption[]> }) {
+  const [actions, options] = await Promise.all([findAllProspectingActionsForAdmin(), personOptions])
+  return <ActionsCalendar actions={actions} personOptions={options} />
 }
 
 export default async function AdminActionsCalendarPage() {
   await getCurrentUser()
+  const personOptions = findPersonOptionsWithLeadRole()
 
   return (
     <AdminPageShell
       title="Calendrier des actions"
       subtitle="Chaque action posée sur sa date."
-      actions={<NewActionHeaderButton />}
+      actions={<NewActionHeaderButton personOptions={personOptions} />}
     >
       <Suspense fallback={<Skeleton className="h-160 rounded-xl" aria-hidden />}>
-        <CalendarSection />
+        <CalendarSection personOptions={personOptions} />
       </Suspense>
     </AdminPageShell>
   )

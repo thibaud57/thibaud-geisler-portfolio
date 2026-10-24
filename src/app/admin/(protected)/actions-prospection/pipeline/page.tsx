@@ -6,7 +6,7 @@ import { AdminPageShell } from "@/components/layout/admin/AdminPageShell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BOARD_STATUSES } from "@/lib/crm/action-board"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { findPersonOptionsWithLeadRole } from "@/server/queries/persons"
+import { findPersonOptionsWithLeadRole, type PersonOption } from "@/server/queries/persons"
 import { findAllProspectingActionsForAdmin } from "@/server/queries/prospecting-actions"
 
 function BoardSkeleton() {
@@ -22,16 +22,14 @@ function BoardSkeleton() {
   )
 }
 
-async function BoardSection() {
-  const [actions, personOptions] = await Promise.all([
-    findAllProspectingActionsForAdmin(),
-    findPersonOptionsWithLeadRole(),
-  ])
-  return <ActionsBoard actions={actions} personOptions={personOptions} />
+async function BoardSection({ personOptions }: { personOptions: Promise<PersonOption[]> }) {
+  const [actions, options] = await Promise.all([findAllProspectingActionsForAdmin(), personOptions])
+  return <ActionsBoard actions={actions} personOptions={options} />
 }
 
 export default async function AdminActionsPipelinePage() {
   await getCurrentUser()
+  const personOptions = findPersonOptionsWithLeadRole()
 
   return (
     // Hauteur de l'écran moins l'en-tête admin (h-14) : le tableau la remplit, les colonnes défilent chacune, jamais la page.
@@ -39,10 +37,10 @@ export default async function AdminActionsPipelinePage() {
       className="h-[calc(100svh-3.5rem)]"
       title="Pipeline de prospection"
       subtitle="Une carte par action, groupées par statut. Le glisser-déposer change le statut."
-      actions={<NewActionHeaderButton />}
+      actions={<NewActionHeaderButton personOptions={personOptions} />}
     >
       <Suspense fallback={<BoardSkeleton />}>
-        <BoardSection />
+        <BoardSection personOptions={personOptions} />
       </Suspense>
     </AdminPageShell>
   )
