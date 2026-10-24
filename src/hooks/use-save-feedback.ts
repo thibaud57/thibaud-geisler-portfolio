@@ -1,6 +1,9 @@
 import { useEffect, useEffectEvent } from "react"
 import { toast } from "sonner"
 import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
+import type { FormOutcome } from "@/lib/form-state"
+
+export type SaveFeedbackState<M extends string> = FormOutcome<M | "unknown_error">
 
 interface Options<M extends string> {
   saved: string
@@ -11,17 +14,18 @@ interface Options<M extends string> {
 }
 
 export function useSaveFeedback<M extends string>(
-  state: { ok: boolean | null; message: M | "unknown_error" | null },
+  state: SaveFeedbackState<M>,
   { saved, onSaved, messages, gone }: Options<M>,
 ) {
   // Effect Event : seul un nouvel état rejoue le toast, ni la revalidation qui livre un nouvel objet fiche ni un `onSaved` d'identité changeante (le formulaire d'une modale reste monté pendant sa fermeture).
   const notify = useEffectEvent(() => {
-    if (state.ok === true) {
+    if (state.ok === null) return
+    if (state.ok) {
       toast.success(saved)
       onSaved()
       return
     }
-    if (state.ok !== false || state.message === null) return
+    if (state.message === null) return
     if (gone?.code === state.message) {
       toast.error(gone.toast)
       onSaved()

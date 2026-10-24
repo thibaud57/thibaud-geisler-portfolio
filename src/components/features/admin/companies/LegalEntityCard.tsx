@@ -28,6 +28,8 @@ import {
   VAT_REGIME_LABELS,
   VAT_REGIMES,
 } from "@/lib/crm/legal-entities"
+import { isOneOf } from "@/lib/is-one-of"
+import { recordFromKeys } from "@/lib/record-from-keys"
 import { NONE_LABEL, NONE_LABEL_FEMININE, NONE_VALUE } from "@/lib/schemas/none-value"
 import { cn } from "@/lib/utils"
 import type { CompanyFormState } from "@/server/actions/companies.types"
@@ -40,14 +42,15 @@ interface Props {
   legalEntity: (LegalEntity & { address: Address | null; publisher: Publisher | null }) | null
 }
 
-const CURRENCY_LABELS = Object.fromEntries(
-  CAPITAL_CURRENCIES.map((currency) => [currency, currency]),
-) as Record<(typeof CAPITAL_CURRENCIES)[number], string>
+// Une valeur déjà enregistrée hors liste reste sélectionnable : elle est ajoutée en fin.
+function withStored(options: readonly string[], stored: string | null | undefined): string[] {
+  return stored && !isOneOf(options, stored) ? [...options, stored] : [...options]
+}
 
 export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
-  const [statusKey, setStatusKey] = useState<LegalForm | "">(legalEntity?.legalForm ?? "")
+  const [statusKey, setStatusKey] = useState<LegalForm | null>(legalEntity?.legalForm ?? null)
   const [statusOpen, setStatusOpen] = useState(false)
-  const [country, setCountry] = useState(legalEntity?.address?.country ?? NONE_VALUE)
+  const [country, setCountry] = useState<string | null>(legalEntity?.address?.country ?? null)
   const [vatLiableSince, setVatLiableSince] = useState<Date | undefined>(
     legalEntity?.publisher?.vatLiableSince ?? undefined,
   )
@@ -60,14 +63,14 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
   const hasMoreErrors = LEGAL_ENTITY_MORE_FIELDS.some((name) => !!errors[name]?.length)
   const [moreOpen, setMoreOpen] = useState(hasStoredMore || hasMoreErrors)
 
-  const storedCountry = legalEntity?.address?.country
-  const countries =
-    storedCountry && !REGISTERED_OFFICE_COUNTRIES.some((code) => code === storedCountry)
-      ? [...REGISTERED_OFFICE_COUNTRIES, storedCountry]
-      : [...REGISTERED_OFFICE_COUNTRIES]
-  const countryLabels = Object.fromEntries(countries.map((code) => [code, countryName(code)]))
+  const countries = withStored(REGISTERED_OFFICE_COUNTRIES, legalEntity?.address?.country)
+  const countryLabels = recordFromKeys(countries, (code) => countryName(code))
 
-  const french = isFrenchLayout(country === NONE_VALUE ? null : country)
+  const storedCurrency = legalEntity?.capitalCurrency
+  const currencies = withStored(CAPITAL_CURRENCIES, storedCurrency)
+  const currencyLabels = recordFromKeys(currencies, (code) => code)
+
+  const french = isFrenchLayout(country)
 
   const field = (name: string) => `${formId}-${name}`
 
@@ -93,8 +96,8 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
             open={statusOpen}
             onOpenChange={setStatusOpen}
             triggerContent={
-              <span className={cn(!statusKey && "text-muted-foreground")}>
-                {statusKey ? LEGAL_FORM_LABELS[statusKey] : "Choisir une forme"}
+              <span className={cn(statusKey === null && "text-muted-foreground")}>
+                {statusKey === null ? "Choisir une forme" : LEGAL_FORM_LABELS[statusKey]}
               </span>
             }
             ariaInvalid={!!errors.legalEntityStatusKey?.length}
@@ -106,9 +109,9 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
               <CommandItem
                 value={NONE_VALUE}
                 keywords={[NONE_LABEL_FEMININE]}
-                data-checked={statusKey === ""}
+                data-checked={statusKey === null}
                 onSelect={() => {
-                  setStatusKey("")
+                  setStatusKey(null)
                   setStatusOpen(false)
                 }}
               >
@@ -134,7 +137,7 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
               </CommandGroup>
             ))}
           </ComboboxPopover>
-          <input type="hidden" name="legalEntityStatusKey" value={statusKey} />
+          <input type="hidden" name="legalEntityStatusKey" value={statusKey ?? ""} />
         </FormField>
 
         <FieldInput
@@ -258,9 +261,9 @@ export function LegalEntityCard({ formId, errors, legalEntity }: Props) {
             id={field("legalEntityCapitalCurrency")}
             name="legalEntityCapitalCurrency"
             label={LABELS.capitalCurrency}
-            options={CAPITAL_CURRENCIES}
-            labels={CURRENCY_LABELS}
-            defaultValue={legalEntity?.capitalCurrency ?? DEFAULT_CURRENCY}
+            options={currencies}
+            labels={currencyLabels}
+            defaultValue={storedCurrency ?? DEFAULT_CURRENCY}
             errors={errors.legalEntityCapitalCurrency}
           />
         </div>

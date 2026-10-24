@@ -24,7 +24,7 @@ paths:
 
 ## Gotchas
 - **`{count && <Badge />}` rend `0`** quand `count === 0` : forcer un booléen, `{count > 0 && <Badge />}`
-- **`value={undefined}`** sur un input le bascule en non contrôlé, puis de nouveau en contrôlé au render suivant (warning React) : initialiser les chaînes à `''`
+- **`value={undefined}`** sur un input le bascule en non contrôlé, puis de nouveau en contrôlé au render suivant (warning React) : initialiser à `''` les champs **texte** (`<input>`, `<textarea>`). Un champ enum, identifiant ou date porte `T | null` (`undefined` pour une `Date`), la sentinelle (`''`, `NONE_VALUE`) ne vit que dans le composant de champ, au contact de Radix et du `FormData`
 - Règles des hooks, effets et stores externes : voir `react/hooks.md`
 
 ## Exemples

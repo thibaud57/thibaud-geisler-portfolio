@@ -1,23 +1,23 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { formatProjectDuration, getProjectDuration, getProjectTimeline } from "./projects"
 
 describe("getProjectTimeline", () => {
-  it("flags a project with a start date and no end date as in progress", () => {
+  it("reports a project with a start date and no end date as ongoing", () => {
     const timeline = getProjectTimeline(new Date("2023-06-01"), null)
 
-    expect(timeline).toEqual({ startYear: 2023, endYear: null, inProgress: true })
+    expect(timeline).toEqual({ kind: "ongoing", startYear: 2023 })
   })
 
-  it("flags a project with both dates as finished", () => {
+  it("reports a project with both dates as ended", () => {
     const timeline = getProjectTimeline(new Date("2022-03-01"), new Date("2024-11-15"))
 
-    expect(timeline).toEqual({ startYear: 2022, endYear: 2024, inProgress: false })
+    expect(timeline).toEqual({ kind: "ended", startYear: 2022, endYear: 2024 })
   })
 
-  it("does not flag a project without a start date as in progress, and leaves both years null", () => {
+  it("reports a project without a start date as having no timeline", () => {
     const timeline = getProjectTimeline(null, null)
 
-    expect(timeline).toEqual({ startYear: null, endYear: null, inProgress: false })
+    expect(timeline).toEqual({ kind: "none" })
   })
 })
 
@@ -46,15 +46,8 @@ describe("getProjectDuration", () => {
 })
 
 describe("formatProjectDuration", () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
   it("counts an in-progress project up to today", () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 8, 22))
-
-    const label = formatProjectDuration(new Date(2025, 5, 1), null)
+    const label = formatProjectDuration(new Date(2025, 5, 1), null, new Date(2026, 8, 22))
 
     expect(label).toBe("1 an 3 mois")
   })

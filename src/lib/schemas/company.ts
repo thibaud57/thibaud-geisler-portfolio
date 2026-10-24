@@ -19,11 +19,13 @@ export const COMPANY_SIZES = Object.values(CompanySize)
 export const COMPANY_TYPES = Object.values(CompanyType)
 export const RELATION_STATUSES = Object.values(RelationStatus)
 
-const WEBSITE_URL_SCHEMA = z.url({ protocol: /^https?$/ })
+export const websiteUrlSchema = z
+  .string()
+  .trim()
+  .pipe(z.url({ protocol: /^https?$/ }))
 
-export function isValidWebsiteUrl(value: string): boolean {
-  return WEBSITE_URL_SCHEMA.safeParse(value).success
-}
+export const isValidWebsiteUrl = (value: string): boolean =>
+  websiteUrlSchema.safeParse(value).success
 
 export const companySchema = z
   .object({

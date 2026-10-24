@@ -1,3 +1,4 @@
+import type { RelatedHref } from "@/lib/admin/related-links"
 import {
   Ban,
   BadgeEuro,
@@ -143,20 +144,21 @@ function byDateThenCreation(a: OrderedInterview, b: OrderedInterview): number {
 export function interviewPlaces(
   interviews: readonly OrderedInterview[],
 ): Map<string, InterviewPlace> {
-  const places = new Map<string, InterviewPlace>()
-  for (const list of Map.groupBy(interviews, (interview) => interview.opportunityId).values()) {
-    list.sort(byDateThenCreation)
-    let count = 0
-    list.forEach((interview, index) => {
-      const isFirstContact = interview.type === "PREMIER_CONTACT"
-      if (!isFirstContact) count += 1
-      places.set(interview.id, {
-        number: isFirstContact ? null : count,
-        previousId: list[index - 1]?.id ?? null,
-      })
-    })
-  }
-  return places
+  const entries = [...Map.groupBy(interviews, (interview) => interview.opportunityId).values()]
+    .map((list) => list.toSorted(byDateThenCreation))
+    .flatMap((list) =>
+      list.map((interview, index) => {
+        const isFirstContact = interview.type === "PREMIER_CONTACT"
+        const place: InterviewPlace = {
+          number: isFirstContact
+            ? null
+            : list.slice(0, index + 1).filter((other) => other.type !== "PREMIER_CONTACT").length,
+          previousId: list[index - 1]?.id ?? null,
+        }
+        return [interview.id, place] as const
+      }),
+    )
+  return new Map(entries)
 }
 
 export function interviewTitle(type: InterviewType, number: number | null): string {
@@ -180,7 +182,7 @@ type LinkedInterview = Pick<Interview, "id" | "type" | "status" | "scheduledAt">
 export function toInterviewLink(
   interview: LinkedInterview,
   places: ReadonlyMap<string, InterviewPlace>,
-  href: string,
+  href: RelatedHref,
   metaPrefix?: string,
 ) {
   const status = INTERVIEW_STATUS_LABELS[interview.status]
@@ -197,7 +199,7 @@ export function toInterviewLink(
 
 export function toOpportunityInterviewLinks(
   interviews: readonly (LinkedInterview & OrderedInterview)[],
-  hrefOf: (interviewId: string) => string,
+  hrefOf: (interviewId: string) => RelatedHref,
 ) {
   const places = interviewPlaces(interviews)
   return interviews.map((interview) => toInterviewLink(interview, places, hrefOf(interview.id)))
@@ -208,7 +210,7 @@ export function toLeadInterviewLinks(
   interviews: readonly (LinkedInterview & {
     opportunity: { id: string; title: string; interviews: readonly OrderedInterview[] }
   })[],
-  hrefOf: (interviewId: string) => string,
+  hrefOf: (interviewId: string) => RelatedHref,
 ) {
   const placesByOpportunity = new Map<string, Map<string, InterviewPlace>>()
   return interviews.map((interview) => {
@@ -220,4 +222,19 @@ export function toLeadInterviewLinks(
     }
     return toInterviewLink(interview, places, hrefOf(interview.id), opportunity.title)
   })
+}
+
+// Seul le choix explicite est stocké : la valeur effective se déduit de l'opportunité,
+// donc elle suit son intermédiaire sans écriture dans un handler.
+export function resolveInterviewSide({
+  choice,
+  stored,
+  hasIntermediary,
+}: {
+  choice: InterviewSide | null
+  stored: InterviewSide | undefined
+  hasIntermediary: boolean
+}): InterviewSide {
+  const wanted = choice ?? stored ?? (hasIntermediary ? "ESN" : "CLIENT_FINAL")
+  return wanted === "ESN" && !hasIntermediary ? "CLIENT_FINAL" : wanted
 }

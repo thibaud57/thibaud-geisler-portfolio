@@ -1,14 +1,16 @@
 "use client"
 
-import type { ComponentProps } from "react"
-
-import { SelectField } from "@/components/features/admin/form/SelectField"
+import {
+  SelectField,
+  type NullableSelectFieldProps,
+} from "@/components/features/admin/form/SelectField"
+import type { Zone } from "@/generated/prisma/client"
 import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
 import { PERSON_FIELD_LABELS } from "@/lib/crm/persons"
 import { NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 
 type Props = Omit<
-  ComponentProps<typeof SelectField>,
+  NullableSelectFieldProps<Zone>,
   "name" | "label" | "options" | "labels" | "icons" | "noneLabel"
 > & {
   name?: string

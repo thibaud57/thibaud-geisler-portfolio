@@ -219,9 +219,13 @@ describe("deleteAsset", () => {
 
     const state = await deleteAsset("projets/client/projet-exemple/cover.webp")
 
-    expect(state.ok).toBe(false)
-    expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("projet-exemple")
+    expect(state).toEqual(
+      objectMatch({
+        ok: false,
+        message: "asset_in_use",
+        usedBy: expect.arrayContaining(["projet-exemple"]),
+      }),
+    )
     expect(r2.send).not.toHaveBeenCalled()
   })
 
@@ -230,8 +234,9 @@ describe("deleteAsset", () => {
 
     const state = await deleteAsset("projets/client/projet-exemple/screenshot-1.webp")
 
-    expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("projet-exemple")
+    expect(state).toEqual(
+      objectMatch({ message: "asset_in_use", usedBy: expect.arrayContaining(["projet-exemple"]) }),
+    )
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       objectMatch({
         where: objectMatch({
@@ -254,8 +259,9 @@ describe("deleteAsset", () => {
 
     const state = await deleteAsset("freelance/crm/entreprises/acme/logo.png")
 
-    expect(state.message).toBe("asset_in_use")
-    expect(state.usedBy).toContain("acme")
+    expect(state).toEqual(
+      objectMatch({ message: "asset_in_use", usedBy: expect.arrayContaining(["acme"]) }),
+    )
     expect(adminR2.send).not.toHaveBeenCalled()
   })
 
@@ -266,8 +272,7 @@ describe("deleteAsset", () => {
   ])("rejects the deletion of a key with %s without calling R2 or Prisma", async (_case, key) => {
     const state = await deleteAsset(key)
 
-    expect(state.ok).toBe(false)
-    expect(state.errors.filename).toHaveLength(1)
+    expect(state).toEqual({ ok: false, message: "invalid_path" })
     expect(prisma.project.findMany).not.toHaveBeenCalled()
     expect(r2.send).not.toHaveBeenCalled()
     expect(adminR2.send).not.toHaveBeenCalled()
@@ -279,8 +284,7 @@ describe("deleteAsset", () => {
   ])("rejects the deletion of a %s key without calling R2 or Prisma", async (_folder, key) => {
     const state = await deleteAsset(key)
 
-    expect(state.ok).toBe(false)
-    expect(state.message).toBe("asset_hardcoded")
+    expect(state).toEqual({ ok: false, message: "asset_hardcoded" })
     expect(prisma.project.findMany).not.toHaveBeenCalled()
     expect(prisma.company.findMany).not.toHaveBeenCalled()
     expect(r2.send).not.toHaveBeenCalled()

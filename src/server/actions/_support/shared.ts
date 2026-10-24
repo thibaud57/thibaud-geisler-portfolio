@@ -1,7 +1,8 @@
 import "server-only"
 import { z } from "zod"
 
-import type { FormActionState } from "@/lib/form-state"
+import { PERSON_NOT_FOUND_TOAST } from "@/lib/admin/toasts"
+import type { FieldErrors, FormFailure, FormSuccess, FormValues } from "@/lib/form-state"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
 
 export interface ActionEvents {
@@ -22,7 +23,7 @@ export const MISSING_COMPANY = {
 } as const
 
 export const MISSING_PERSON = {
-  text: "Cette personne n'existe plus, recharge la page",
+  text: PERSON_NOT_FOUND_TOAST,
   code: "person_not_found",
 } as const
 
@@ -49,11 +50,9 @@ export function missingRelationState<TField extends string, TCode extends string
   }
 }
 
-type FormValues<TInput> = FormActionState<TInput, null>["values"]
-
 // `values` absent (formulaire sans réaffichage de saisie) : la clé n'est pas posée plutôt que posée à undefined.
 export function formStateHandlers<TInput, const TNotFound extends string = never>(
-  values: FormValues<TInput>,
+  values: FormValues<TInput> | undefined,
   notFound?: {
     message: TNotFound
     updatedId: string | undefined
@@ -64,11 +63,14 @@ export function formStateHandlers<TInput, const TNotFound extends string = never
   const { updatedId } = notFound ?? {}
 
   return {
-    onValidationError: (
-      errors: FormActionState<TInput, null>["errors"],
-    ): FormActionState<TInput, null> => ({ ok: false, errors, message: null, ...echoed }),
-    onSuccess: (): FormActionState<TInput, null> => ({ ok: true, errors: {}, message: null }),
-    onUnknownError: (): FormActionState<TInput, "unknown_error"> => ({
+    onValidationError: (errors: FieldErrors<keyof TInput>): FormFailure<TInput, never> => ({
+      ok: false,
+      errors,
+      message: null,
+      ...echoed,
+    }),
+    onSuccess: (): FormSuccess<keyof TInput> => ({ ok: true, errors: {}, message: null }),
+    onUnknownError: (): FormFailure<TInput, "unknown_error"> => ({
       ok: false,
       errors: {},
       message: "unknown_error",
@@ -79,7 +81,7 @@ export function formStateHandlers<TInput, const TNotFound extends string = never
         ? undefined
         : {
             exists: () => notFound.exists(updatedId),
-            state: (): FormActionState<TInput, TNotFound> => ({
+            state: (): FormFailure<TInput, TNotFound> => ({
               ok: false,
               errors: {},
               message: notFound.message,

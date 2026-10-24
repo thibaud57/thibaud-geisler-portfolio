@@ -33,12 +33,15 @@ import {
 import { useFacetedSearch } from "@/components/features/admin/table/use-faceted-search"
 import type { Facet } from "@/lib/admin/facets"
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/lib/admin/pagination"
+import type { ReorderResult } from "@/lib/admin/reorder-state"
 import { normalizeForSearch } from "@/lib/admin/search"
 import { computeReorderedIds, sameIdSet } from "@/lib/reorder"
+import { toggled } from "@/lib/toggled"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 const UNGROUPED_KEY = "__all__"
+type GroupKey<K extends string> = K | typeof UNGROUPED_KEY
 
 // Construit une fois au chargement du module : la collation FR sert tous les tris de toutes les
 // instances de DataTable, sans reconstruction par rendu ni par paire comparée. Le classement par
@@ -78,16 +81,20 @@ export interface GroupBy<T, K extends string = string> {
   label: (key: K) => ReactNode
 }
 
-// Le retour commun des actions de réordonnancement : DataTable garde ou annule l'ordre optimiste
-// et porte lui-même le message, l'écran ne fait que passer son action.
-export type ReorderResult = { ok: true } | { ok: false; message: string }
+type ReorderFailureMessage = Extract<ReorderResult, { ok: false }>["message"]
+
+const REORDER_FAILURE_TOASTS: Record<ReorderFailureMessage, string> = {
+  stale_order: "La liste a changé entre-temps. Rechargez la page.",
+  invalid_order: "Le nouvel ordre n'a pas pu être enregistré.",
+  unknown_error: "Le nouvel ordre n'a pas pu être enregistré.",
+}
 
 type SortDirection = "asc" | "desc"
 type SortState = { key: string; direction: SortDirection } | null
 type RenderItem<T, K extends string> =
   { type: "row"; row: T } | { type: "group"; key: K; count: number }
 
-interface Props<T, K extends string = string> {
+interface Props<T, K extends string = string, FacetKey extends string = string> {
   rows: readonly T[]
   columns: readonly Column<T>[]
   getRowId: (row: T) => string
@@ -99,10 +106,12 @@ interface Props<T, K extends string = string> {
   // Restreint aux options du sélecteur : une autre valeur laisserait son libellé vide.
   pageSize?: (typeof PAGE_SIZE_OPTIONS)[number]
   groupBy?: GroupBy<T, K>
-  facets?: readonly Facet<T, K>[]
-  lockedFacets?: readonly string[]
+  facets?: readonly Facet<T, FacetKey>[]
+  lockedFacets?: readonly FacetKey[]
   defaultFacetSelections?: Record<string, readonly string[]>
-  onReorder?: (groupKey: K, orderedRowIds: string[]) => Promise<ReorderResult>
+  // Avec `groupBy` : l'ordre se réécrit par groupe. Sans : une liste unique, donc pas de clé de groupe.
+  onReorder?: (groupKey: K, orderedRowIds: readonly string[]) => Promise<ReorderResult>
+  onReorderAll?: (orderedRowIds: readonly string[]) => Promise<ReorderResult>
   onRowClick?: (row: T) => void
   // DataTable ignore la sémantique des colonnes : l'écran fournit le nom qui identifie la ligne
   // (titre de projet, nom de tag, nom d'entreprise) pour que le tabIndex ajouté par onRowClick
@@ -110,7 +119,7 @@ interface Props<T, K extends string = string> {
   rowLabel?: (row: T) => string
 }
 
-export function DataTable<T, K extends string = string>({
+export function DataTable<T, K extends string = string, FacetKey extends string = string>({
   rows,
   columns,
   getRowId,
@@ -124,9 +133,10 @@ export function DataTable<T, K extends string = string>({
   lockedFacets,
   defaultFacetSelections,
   onReorder,
+  onReorderAll,
   onRowClick,
   rowLabel,
-}: Props<T, K>) {
+}: Props<T, K, FacetKey>) {
   const hasOrderColumn = orderValue !== undefined
   const colSpanOffset = hasOrderColumn ? 1 : 0
 
@@ -134,7 +144,7 @@ export function DataTable<T, K extends string = string>({
   const [filterOpen, setFilterOpen] = useState(false)
   const [orderOverrides, setOrderOverrides] = useState<Record<string, string[]>>({})
   const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [draggedGroupKey, setDraggedGroupKey] = useState<K | null>(null)
+  const [draggedGroupKey, setDraggedGroupKey] = useState<GroupKey<K> | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [, startReorderTransition] = useTransition()
   // Ref et non state : un clic parasite après un drop (Firefox notamment) ne doit pas déclencher
@@ -149,7 +159,7 @@ export function DataTable<T, K extends string = string>({
         .map((column) => column.key),
     [hideableColumns],
   )
-  const [hiddenColumnKeys, setHiddenColumnKeys] = useState<Set<string>>(
+  const [hiddenColumnKeys, setHiddenColumnKeys] = useState<ReadonlySet<string>>(
     () => new Set(defaultHiddenColumnKeys),
   )
   const [columnsOpen, setColumnsOpen] = useState(false)
@@ -194,7 +204,7 @@ export function DataTable<T, K extends string = string>({
     resetFacets,
     resetSearchAndFacets,
     paginate: paginateRows,
-  } = useFacetedSearch<T, K>({
+  } = useFacetedSearch<T, FacetKey>({
     rows,
     matchesSearch: matchesColumnSearch,
     facets,
@@ -204,36 +214,37 @@ export function DataTable<T, K extends string = string>({
 
   const isOrderView = !sort && search.trim() === "" && activeFacetCount === 0
 
-  // K vaut string (sa valeur par défaut) quand groupBy est omis, seul cas où ce sentinel est utilisé :
-  // TypeScript ne peut pas déduire cette corrélation entre deux props optionnelles indépendantes sans
-  // un type conditionnel disproportionné pour ce détail interne à DataTable.
   const effectiveGroupKey = useCallback(
-    (row: T): K => (groupBy ? groupBy.key(row) : (UNGROUPED_KEY as K)),
+    (row: T): GroupKey<K> => (groupBy ? groupBy.key(row) : UNGROUPED_KEY),
     [groupBy],
   )
+
+  const reorderRow = groupBy
+    ? onReorder && ((row: T, ids: readonly string[]) => onReorder(groupBy.key(row), ids))
+    : onReorderAll && ((_row: T, ids: readonly string[]) => onReorderAll(ids))
 
   const groupedView = useMemo(() => {
     if (!isOrderView || !orderValue) return null
     const byId = new Map(facetFilteredRows.map((row) => [getRowId(row), row]))
-    const groupKeys: readonly K[] = groupBy ? groupBy.order : [UNGROUPED_KEY as K]
-    const idsByGroup: Record<string, string[]> = {}
-    const positionById = new Map<string, number>()
-    const flatRows: T[] = []
-
-    for (const key of groupKeys) {
+    const groupKeys: readonly GroupKey<K>[] = groupBy ? groupBy.order : [UNGROUPED_KEY]
+    const idsPerGroup = groupKeys.map((key) => {
       const idsInGroup = facetFilteredRows
         .filter((row) => effectiveGroupKey(row) === key)
         .sort((a, b) => orderValue(a) - orderValue(b))
         .map(getRowId)
       const override = orderOverrides[key]
-      const finalIds = override && sameIdSet(override, idsInGroup) ? override : idsInGroup
-      idsByGroup[key] = finalIds
-      finalIds.forEach((id, index) => {
-        positionById.set(id, index + 1)
+      return [key, override && sameIdSet(override, idsInGroup) ? override : idsInGroup] as const
+    })
+    const idsByGroup: Readonly<Record<string, readonly string[]>> = Object.fromEntries(idsPerGroup)
+    const positionById = new Map(
+      idsPerGroup.flatMap(([, ids]) => ids.map((id, index) => [id, index + 1] as const)),
+    )
+    const groupedRows = idsPerGroup.flatMap(([, ids]) =>
+      ids.flatMap((id) => {
         const row = byId.get(id)
-        if (row) flatRows.push(row)
-      })
-    }
+        return row ? [row] : []
+      }),
+    )
 
     // Filet pour une ligne dont la clé de groupe n'appartient pas à groupBy.order : sans lui,
     // une catégorie oubliée dans l'ordre configuré ferait disparaître silencieusement ses tags.
@@ -241,9 +252,8 @@ export function DataTable<T, K extends string = string>({
     const leftover = facetFilteredRows
       .filter((row) => !knownIds.has(getRowId(row)))
       .sort((a, b) => orderValue(a) - orderValue(b))
-    flatRows.push(...leftover)
 
-    return { flatRows, idsByGroup, positionById }
+    return { flatRows: [...groupedRows, ...leftover], idsByGroup, positionById }
   }, [
     isOrderView,
     facetFilteredRows,
@@ -281,18 +291,16 @@ export function DataTable<T, K extends string = string>({
     if (!isOrderView || !groupBy || !hasOrderColumn) {
       return paginatedRows.map((row) => ({ type: "row", row }))
     }
-    const items: RenderItem<T, K>[] = []
-    let previousKey: K | null = null
-    for (const row of paginatedRows) {
+    return paginatedRows.flatMap((row, index): RenderItem<T, K>[] => {
       const key = groupBy.key(row)
-      if (key !== previousKey) {
-        const count = rows.filter((candidate) => groupBy.key(candidate) === key).length
-        items.push({ type: "group", key, count })
-        previousKey = key
-      }
-      items.push({ type: "row", row })
-    }
-    return items
+      const previous = paginatedRows[index - 1]
+      if (previous !== undefined && groupBy.key(previous) === key) return [{ type: "row", row }]
+      const count = rows.filter((candidate) => groupBy.key(candidate) === key).length
+      return [
+        { type: "group", key, count },
+        { type: "row", row },
+      ]
+    })
   }, [isOrderView, groupBy, hasOrderColumn, paginatedRows, rows])
 
   function handleSort(key: string) {
@@ -306,12 +314,7 @@ export function DataTable<T, K extends string = string>({
 
   function toggleColumn(key: string) {
     const isHiding = !hiddenColumnKeys.has(key)
-    setHiddenColumnKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setHiddenColumnKeys((prev) => toggled(prev, key))
     // Hors updater (StrictMode le rejoue) : une colonne masquée ne peut pas rester triée.
     if (isHiding) setSort((current) => (current?.key === key ? null : current))
   }
@@ -336,7 +339,7 @@ export function DataTable<T, K extends string = string>({
     event.preventDefault()
     const targetGroupKey = effectiveGroupKey(row)
     const targetId = getRowId(row)
-    if (!draggedId || !onReorder || draggedGroupKey !== targetGroupKey) {
+    if (!draggedId || !reorderRow || draggedGroupKey !== targetGroupKey) {
       handleDragEnd()
       return
     }
@@ -351,14 +354,10 @@ export function DataTable<T, K extends string = string>({
       let ok = false
       // finally : une action qui lève (session expirée) doit aussi rendre l'ordre réel à l'écran.
       try {
-        const result = await onReorder(targetGroupKey, nextIds)
+        const result = await reorderRow(row, nextIds)
         ok = result.ok
         if (!result.ok) {
-          toast.error(
-            result.message === "stale_order"
-              ? "La liste a changé entre-temps. Rechargez la page."
-              : "Le nouvel ordre n'a pas pu être enregistré.",
-          )
+          toast.error(REORDER_FAILURE_TOASTS[result.message])
         }
       } finally {
         if (!ok) {
@@ -489,7 +488,7 @@ export function DataTable<T, K extends string = string>({
 
   function renderDataRow(row: T) {
     const rowId = getRowId(row)
-    const draggable = isOrderView && hasOrderColumn && !!onReorder
+    const draggable = isOrderView && hasOrderColumn && !!reorderRow
     const isValidDropTarget = draggable && draggedGroupKey === effectiveGroupKey(row)
     return (
       <TableRow
@@ -508,7 +507,7 @@ export function DataTable<T, K extends string = string>({
             {/* positionById recontiguïse 1..N sur les lignes reçues, correct seulement si elles couvrent
                 tout l'ordre : sur un sous-ensemble filtré (vue Client/Perso), la valeur d'ordre réelle
                 doit s'afficher telle quelle. */}
-            {onReorder
+            {reorderRow
               ? (groupedView?.positionById.get(rowId) ?? orderValue(row))
               : orderValue(row)}
           </TableCell>

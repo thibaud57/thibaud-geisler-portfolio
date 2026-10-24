@@ -1,7 +1,17 @@
 import sharp from "sharp"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { IconTooSmallError, normalizeIcon, UnreadableIconError } from "./normalize-icon"
+vi.mock("@/lib/logger", () => ({ logger: { warn: vi.fn() } }))
+
+import { logger } from "@/lib/logger"
+
+import { type NormalizedIcon, normalizeIcon } from "./normalize-icon"
+
+async function normalized(icon: Buffer): Promise<NormalizedIcon> {
+  const outcome = await normalizeIcon(icon)
+  if (!outcome.ok) throw new Error(`Icône rejetée : ${outcome.message}`)
+  return outcome.icon
+}
 
 function pngOf(width: number, height = width): Promise<Buffer> {
   return sharp({
@@ -56,25 +66,24 @@ describe("normalizeIcon", () => {
 
     const result = normalizeIcon(icon)
 
-    await expect(result).rejects.toBeInstanceOf(IconTooSmallError)
-    await expect(result).rejects.toMatchObject({ size: 16 })
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_too_small", size: 16 })
   })
 
   it("never enlarges a 48 px icon", async () => {
-    const icon = await pngOf(48)
+    const source = await pngOf(48)
 
-    const normalized = await normalizeIcon(icon)
+    const icon = await normalized(source)
 
-    expect(await sizeOf(normalized.png)).toEqual({ width: 48, height: 48 })
+    expect(await sizeOf(icon.png)).toEqual({ width: 48, height: 48 })
   })
 
   it("scales a large icon down to 256 px", async () => {
-    const icon = await pngOf(512, 256)
+    const source = await pngOf(512, 256)
 
-    const normalized = await normalizeIcon(icon)
+    const icon = await normalized(source)
 
-    expect(await sizeOf(normalized.png)).toEqual({ width: 256, height: 128 })
-    expect([normalized.width, normalized.height]).toEqual([512, 256])
+    expect(await sizeOf(icon.png)).toEqual({ width: 256, height: 128 })
+    expect([icon.width, icon.height]).toEqual([512, 256])
   })
 
   it("renders an svg icon at 256 px", async () => {
@@ -82,9 +91,9 @@ describe("normalizeIcon", () => {
       '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" fill="#123456"/></svg>',
     )
 
-    const normalized = await normalizeIcon(svg)
+    const icon = await normalized(svg)
 
-    expect(await sizeOf(normalized.png)).toEqual({ width: 256, height: 256 })
+    expect(await sizeOf(icon.png)).toEqual({ width: 256, height: 256 })
   })
 
   it("reads the largest image of an ico, png entries included", async () => {
@@ -93,23 +102,25 @@ describe("normalizeIcon", () => {
       { width: 128, data: await pngOf(128) },
     ])
 
-    const normalized = await normalizeIcon(ico)
+    const icon = await normalized(ico)
 
-    expect(await sizeOf(normalized.png)).toEqual({ width: 128, height: 128 })
+    expect(await sizeOf(icon.png)).toEqual({ width: 128, height: 128 })
   })
 
   it("reads a classic bitmap ico entry", async () => {
     const ico = icoOf([{ width: 48, data: bmpEntryOf(48) }])
 
-    const normalized = await normalizeIcon(ico)
+    const icon = await normalized(ico)
 
-    expect(await sizeOf(normalized.png)).toEqual({ width: 48, height: 48 })
+    expect(await sizeOf(icon.png)).toEqual({ width: 48, height: 48 })
   })
 
   it("rejects an ico whose largest image is too small", async () => {
     const ico = icoOf([{ width: 16, data: await pngOf(16) }])
 
-    await expect(normalizeIcon(ico)).rejects.toMatchObject({ size: 16 })
+    const result = normalizeIcon(ico)
+
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_too_small", size: 16 })
   })
 
   it("rejects a file that is not an image", async () => {
@@ -117,7 +128,25 @@ describe("normalizeIcon", () => {
 
     const result = normalizeIcon(html)
 
-    await expect(result).rejects.toBeInstanceOf(UnreadableIconError)
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_unreadable" })
+  })
+
+  it("rejects an ico that cannot be decoded", async () => {
+    const ico = Buffer.concat([Buffer.from([0, 0, 1, 0, 1, 0, 0]), Buffer.alloc(8)])
+
+    const result = normalizeIcon(ico)
+
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_unreadable" })
+  })
+
+  it("logs the cause of an image it cannot read", async () => {
+    const html = Buffer.from("<html><body>Not found</body></html>")
+
+    await normalizeIcon(html)
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ event: "company_logo:icon_unreadable" }),
+    )
   })
 
   it("rejects an image that fails to render", async () => {
@@ -126,7 +155,7 @@ describe("normalizeIcon", () => {
 
     const result = normalizeIcon(truncated)
 
-    await expect(result).rejects.toBeInstanceOf(UnreadableIconError)
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_unreadable" })
   })
 
   it("rejects a very wide svg as unreadable instead of failing on density", async () => {
@@ -136,6 +165,6 @@ describe("normalizeIcon", () => {
 
     const result = normalizeIcon(svg)
 
-    await expect(result).rejects.toBeInstanceOf(UnreadableIconError)
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_unreadable" })
   })
 })

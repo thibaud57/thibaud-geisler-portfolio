@@ -2,6 +2,7 @@ import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import * as Sentry from "@sentry/nextjs"
 import { headers } from "next/headers"
+import { z } from "zod"
 
 import { env } from "@/env"
 import { logger } from "@/lib/logger"
@@ -24,27 +25,35 @@ export function optionalStringField(formData: FormData, key: string): string | u
   return formData.has(key) ? stringField(formData, key) : undefined
 }
 
-export function isPrismaError(err: unknown, code: string): boolean {
+type PrismaErrorCode = "P2002" | "P2003" | "P2025"
+
+export function isPrismaError(err: unknown, code: PrismaErrorCode): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === code
 }
+
+const DriverConstraintError = z
+  .object({
+    meta: z.object({
+      driverAdapterError: z.object({
+        cause: z.object({ constraint: z.object({ index: z.string() }) }),
+      }),
+    }),
+  })
+  .transform((err) => err.meta.driverAdapterError.cause.constraint.index)
+
+const TargetConstraintError = z
+  .object({ meta: z.object({ target: z.union([z.string(), z.array(z.string())]) }) })
+  .transform((err) => [err.meta.target].flat().join(","))
 
 // Prisma 7 + @prisma/adapter-pg ne porte pas `meta.target` sur un P2002 : l'index de contrainte
 // vit sous `meta.driverAdapterError.cause.constraint.index` (nom Postgres `<Table>_<col>_key`),
 // constaté sur ce projet le 2026-09-19. `meta.target` reste un filet pour un autre chemin d'erreur.
 // Une clé étrangère violée (P2003) suit le même chemin, avec un nom en `<Table>_<col>_fkey`.
-export function violatedConstraint(err: unknown): string {
-  if (typeof err !== "object" || err === null) return ""
-  const meta = (err as { meta?: unknown }).meta
-  if (typeof meta !== "object" || meta === null) return ""
-
-  const driverIndex = (
-    meta as { driverAdapterError?: { cause?: { constraint?: { index?: unknown } } } }
-  ).driverAdapterError?.cause?.constraint?.index
-  if (typeof driverIndex === "string") return driverIndex
-
-  const target = (meta as { target?: unknown }).target
-  if (Array.isArray(target)) return target.join(",")
-  return typeof target === "string" ? target : ""
+export function violatedConstraint(err: unknown): string | undefined {
+  const driverIndex = DriverConstraintError.safeParse(err)
+  if (driverIndex.success) return driverIndex.data
+  const target = TargetConstraintError.safeParse(err)
+  return target.success ? target.data : undefined
 }
 
 export function extractClientIp(forwardedFor: string | null): string {
@@ -54,9 +63,9 @@ export function extractClientIp(forwardedFor: string | null): string {
 }
 
 // Sel obligatoire : un hash d'IP non salé est réversible par brute-force (espace IPv4 fini).
-export function hashIp(ip: string): string {
+export function hashIp(ip: string, salt: string): string {
   return createHash("sha256")
-    .update(env.IP_HASH_SALT + ip)
+    .update(salt + ip)
     .digest("hex")
     .slice(0, IP_HASH_LENGTH)
 }
@@ -66,7 +75,7 @@ export function hashIp(ip: string): string {
 // sur son défaut au lieu du type réellement produit par cet appel précis) garde `ActionContext.log`
 // et la valeur construite ci-dessous strictement identiques.
 function createChildLogger(action: string, ip: string) {
-  return logger.child({ action, requestId: randomUUID(), ip_hash: hashIp(ip) })
+  return logger.child({ action, requestId: randomUUID(), ip_hash: hashIp(ip, env.IP_HASH_SALT) })
 }
 
 export interface ActionContext {

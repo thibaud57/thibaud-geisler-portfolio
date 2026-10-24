@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 interface Props extends Omit<ComponentProps<typeof Input>, "id"> {
   id: string
   label?: ReactNode
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   help?: ReactNode
 }
 

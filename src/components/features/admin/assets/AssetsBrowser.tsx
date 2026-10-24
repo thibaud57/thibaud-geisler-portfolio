@@ -49,7 +49,7 @@ const FACETS: readonly Facet<AssetEntry>[] = [
     key: "folder",
     label: "Dossier",
     options: ASSET_FOLDERS.map((folder) => ({ value: folder, label: `${folder}/` })),
-    value: (asset) => folderOf(asset.key),
+    values: (asset) => [folderOf(asset.key)],
   },
   {
     key: "nature",
@@ -58,7 +58,7 @@ const FACETS: readonly Facet<AssetEntry>[] = [
       { value: "image", label: "Image" },
       { value: "pdf", label: "PDF" },
     ],
-    value: (asset) => kindOf(asset.key),
+    values: (asset) => [kindOf(asset.key)],
   },
 ]
 

@@ -19,11 +19,10 @@ interface Props {
   id: string
   label: string
   options: readonly SingleSelectOption[]
-  value: string
-  onChange: (value: string) => void
-  errors?: string[]
+  value: string | null
+  onChange: (value: string | null) => void
+  errors?: readonly string[]
   name?: string
-  // Ajoute l'option vide : la valeur vide est alors NONE_VALUE. Sans elle, la valeur vide est "".
   noneLabel?: string
   // Dans une modale : le verrou de défilement du Dialog parent bloquerait sinon la molette sur la liste.
   modal?: boolean
@@ -56,7 +55,7 @@ export function SingleSelectCombobox({
     options.find((option) => option.value === value)?.label ??
     (selectedFallback?.value === value ? selectedFallback.label : null)
 
-  function select(next: string) {
+  function select(next: string | null) {
     onChange(next)
     setOpen(false)
   }
@@ -85,9 +84,9 @@ export function SingleSelectCombobox({
             <CommandItem
               value={NONE_VALUE}
               keywords={[noneLabel]}
-              data-checked={value === NONE_VALUE}
+              data-checked={value === null}
               onSelect={() => {
-                select(NONE_VALUE)
+                select(null)
               }}
             >
               {noneLabel}
@@ -115,7 +114,9 @@ export function SingleSelectCombobox({
           ))}
         </CommandGroup>
       </ComboboxPopover>
-      {name ? <input type="hidden" name={name} value={value} /> : null}
+      {name ? (
+        <input type="hidden" name={name} value={value ?? (noneLabel ? NONE_VALUE : "")} />
+      ) : null}
     </FormField>
   )
 }

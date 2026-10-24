@@ -18,7 +18,7 @@ interface EditableProps extends BaseProps {
   name: string
   label?: ReactNode
   onChange: (value: string) => void
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   help?: ReactNode
   // Rien ne garantit que l'éditeur relise `value` après son montage : une nouvelle clé le remonte sur un texte remplacé de l'extérieur.
   editorKey?: string | number

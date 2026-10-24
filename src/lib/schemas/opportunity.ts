@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { ContractStatus, OpportunityStatus, WorkMode } from "@/generated/prisma/browser"
+import { companyIdSchema, personIdSchema } from "@/lib/ids"
 import {
   emptyToNull,
   NONE_VALUE,
@@ -14,10 +15,12 @@ export const OPPORTUNITY_STATUSES = Object.values(OpportunityStatus)
 
 const POSTGRES_INT_MAX = 2147483647
 
-const optionalId = z
-  .string()
-  .trim()
-  .transform((value) => nullifyNoneValue(value, NONE_VALUE))
+const optionalId = <TSchema extends z.ZodType<string, string>>(idSchema: TSchema) =>
+  z
+    .string()
+    .trim()
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE))
+    .pipe(idSchema.nullable())
 
 export const DAYS_PER_WEEK = ["1", "2", "3", "4", "5"] as const
 export const ON_SITE_DAYS = ["0", "1", "2", "3", "4", "5"] as const
@@ -46,9 +49,9 @@ export const opportunitySchema = z
       .max(120, "L'intitulé ne peut pas dépasser 120 caractères"),
     role: z.string().trim().max(80, "Le rôle tient en 80 caractères").transform(emptyToNull),
     status: z.enum(OpportunityStatus, { error: "Statut inconnu" }),
-    referrerId: optionalId,
-    intermediaryId: optionalId,
-    clientId: optionalId,
+    referrerId: optionalId(personIdSchema),
+    intermediaryId: optionalId(companyIdSchema),
+    clientId: optionalId(companyIdSchema),
     dailyRate: optionalInt(1, POSTGRES_INT_MAX, "Le TJM est un entier positif"),
     contract: nullableEnumField(Object.values(ContractStatus), "Contrat inconnu"),
     workMode: nullableEnumField(Object.values(WorkMode), "Mode de travail inconnu"),

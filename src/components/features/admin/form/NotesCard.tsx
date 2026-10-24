@@ -4,7 +4,7 @@ import { NotesField } from "@/components/features/admin/form/NotesField"
 interface Props {
   formId: string
   title: string
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   defaultValue: string | null | undefined
   placeholder?: string
   mirror?: { value: string; loading: boolean }

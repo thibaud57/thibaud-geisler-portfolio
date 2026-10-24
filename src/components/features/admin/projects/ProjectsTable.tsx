@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, type ReactNode } from "react"
+import { useCallback, useMemo, useState, type ReactNode } from "react"
 import { Folder } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { DataTable, type Column } from "@/components/features/admin/table/DataTable"
@@ -26,7 +26,11 @@ import {
 } from "@/components/features/admin/projects/project-table-widths"
 import { formatShortDate } from "@/lib/date-time"
 import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
-import { PROJECT_VIEW_LOCKED_FACETS, type ProjectView } from "@/lib/project-views"
+import {
+  PROJECT_VIEW_LOCKED_FACETS,
+  type ProjectFacetKey,
+  type ProjectView,
+} from "@/lib/project-views"
 import {
   formatProjectDuration,
   PROJECT_FORMAT_LABELS,
@@ -93,7 +97,7 @@ function renderProjectLinks(project: AdminProjectListItem): ReactNode {
   )
 }
 
-function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[] {
+function buildColumns(view: ProjectView, now: Date): readonly Column<AdminProjectListItem>[] {
   const visibleByDefault = PROJECT_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
   return [
     {
@@ -169,7 +173,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
       width: PROJECT_COLUMN_WIDTHS.duree,
       className: "whitespace-nowrap text-muted-foreground",
       ...hideableColumn(visibleByDefault, "duree"),
-      cell: (project) => formatProjectDuration(project.startedAt, project.endedAt),
+      cell: (project) => formatProjectDuration(project.startedAt, project.endedAt, now),
     },
     {
       key: "equipe",
@@ -210,7 +214,7 @@ function buildColumns(view: ProjectView): readonly Column<AdminProjectListItem>[
   ]
 }
 
-const facets: readonly Facet<AdminProjectListItem>[] = [
+const facets: readonly Facet<AdminProjectListItem, ProjectFacetKey>[] = [
   enumFacet(
     "nature",
     PROJECT_FIELD_LABELS.type,
@@ -241,20 +245,24 @@ interface Props {
 
 export function ProjectsTable({ projects, view }: Props) {
   const router = useRouter()
+  const [now] = useState(() => new Date())
 
   const viewProjects = useMemo(() => {
     const type = VIEW_TYPE[view]
     return type ? projects.filter((project) => project.type === type) : projects
   }, [projects, view])
 
-  const columns = useMemo<readonly Column<AdminProjectListItem>[]>(() => buildColumns(view), [view])
+  const columns = useMemo<readonly Column<AdminProjectListItem>[]>(
+    () => buildColumns(view, now),
+    [view, now],
+  )
 
   const buildDetail = useCallback(
     (project: AdminProjectListItem) =>
-      buildProjectDetail(project, () => {
+      buildProjectDetail(project, now, () => {
         router.push(`${ADMIN_PROJECTS_PATH}/${project.id}`)
       }),
-    [router],
+    [router, now],
   )
 
   const { open, dialog } = useRowDetail({ rows: projects, build: buildDetail })
@@ -268,9 +276,7 @@ export function ProjectsTable({ projects, view }: Props) {
         orderValue={(project) => project.displayOrder}
         facets={facets}
         lockedFacets={PROJECT_VIEW_LOCKED_FACETS[view]}
-        onReorder={
-          view === "all" ? (_groupKey, orderedRowIds) => reorderProjects(orderedRowIds) : undefined
-        }
+        onReorderAll={view === "all" ? reorderProjects : undefined}
         onRowClick={open}
         rowLabel={(project) => project.titleFr}
         searchPlaceholder="Rechercher un titre ou un slug"

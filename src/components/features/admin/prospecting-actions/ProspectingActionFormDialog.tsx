@@ -12,6 +12,7 @@ import { EditRowButton } from "@/components/features/admin/table/EditRowButton"
 import { SelectField } from "@/components/features/admin/form/SelectField"
 import { TextareaField } from "@/components/features/admin/form/TextareaField"
 import { Button } from "@/components/ui/button"
+import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { personDisplayName } from "@/lib/crm/persons"
@@ -110,9 +111,11 @@ function ProspectingActionForm({
   const handleSubmit = useFormActionSubmit(submitAction)
 
   const [now] = useState(() => new Date())
-  const [personId, setPersonId] = useState(action?.person.id ?? defaultPersonId ?? "")
-  const [channel, setChannel] = useState<string>(action?.channel ?? "DM_LINKEDIN")
-  const [status, setStatus] = useState<string>(action?.status ?? "A_FAIRE")
+  const [personId, setPersonId] = useState<string | null>(
+    action?.person.id ?? defaultPersonId ?? null,
+  )
+  const [channel, setChannel] = useState<ActionChannel>(action?.channel ?? "DM_LINKEDIN")
+  const [status, setStatus] = useState<ActionStatus>(action?.status ?? "A_FAIRE")
   const [date, setDate] = useState<Date | undefined>(action?.occurredAt ?? defaultDate ?? now)
   const [respondedDate, setRespondedDate] = useState<Date | undefined>(
     action?.respondedAt ?? undefined,

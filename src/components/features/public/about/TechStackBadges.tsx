@@ -10,7 +10,7 @@ import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 interface Props {
-  tags: LocalizedTag<Tag>[]
+  tags: readonly LocalizedTag<Tag>[]
   className?: string
 }
 
@@ -31,12 +31,7 @@ const KIND_ACCENT: Partial<Record<TagKind, string>> = {
 export async function TechStackBadges({ tags, className }: Props) {
   const t = await getTranslations("AboutPage.stack.kindLabels")
 
-  const byKind = new Map<TagKind, LocalizedTag<Tag>[]>()
-  for (const tag of tags) {
-    const bucket = byKind.get(tag.kind) ?? []
-    bucket.push(tag)
-    byKind.set(tag.kind, bucket)
-  }
+  const byKind = Map.groupBy(tags, (tag) => tag.kind)
 
   return (
     <BentoGrid className={cn("md:grid-cols-3", className)}>

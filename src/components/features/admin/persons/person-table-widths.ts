@@ -10,4 +10,9 @@ export const PERSON_COLUMN_WIDTHS = {
   notes: 224,
 } as const
 
-export const PERSON_PAGE_SKELETON: string[] = ["h-[24px]", "h-[280px]", "h-[200px]", "h-[320px]"]
+export const PERSON_PAGE_SKELETON: readonly string[] = [
+  "h-[24px]",
+  "h-[280px]",
+  "h-[200px]",
+  "h-[320px]",
+]

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import type { AdminTag } from "@/server/queries/tags"
 
 interface Props {
-  tags: AdminTag[]
+  tags: readonly AdminTag[]
   defaultSelectedIds: string[]
 }
 

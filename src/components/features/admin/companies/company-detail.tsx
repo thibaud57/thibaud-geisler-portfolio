@@ -46,15 +46,15 @@ import { type SignalItem } from "@/lib/crm/signals"
 import { ZONE_LABELS } from "@/lib/crm/zones"
 import type { AdminCompany } from "@/server/queries/companies"
 
-export function typeLabels(company: AdminCompany): string[] {
+export function typeLabels(company: AdminCompany): readonly string[] {
   return company.types.map((type) => COMPANY_TYPE_LABELS[type])
 }
 
-export function sectorLabels(company: AdminCompany): string[] {
+export function sectorLabels(company: AdminCompany): readonly string[] {
   return company.sectors.map((sector) => COMPANY_SECTOR_LABELS[sector])
 }
 
-export function zoneLabels(company: AdminCompany): string[] {
+export function zoneLabels(company: AdminCompany): readonly string[] {
   return company.zones.map((zone) => ZONE_LABELS[zone])
 }
 

@@ -3,6 +3,7 @@ import createMiddleware from "next-intl/middleware"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { ADMIN_LOGIN_PATH, isAdminPath, requiresSession } from "@/lib/admin/routes"
+import { logger } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
 import { routing } from "@/i18n/routing"
 
@@ -35,8 +36,9 @@ export default async function proxy(request: NextRequest) {
         // Chemin sans page.tsx : Next rend global-not-found.tsx avec un vrai 404, posé avant tout Suspense.
         return NextResponse.rewrite(new URL(`/${locale}/_unmatched-project-slug`, request.url))
       }
-    } catch {
+    } catch (err) {
       // Panne base : laisser passer plutôt que de transformer une page valide en 404.
+      logger.warn({ err, event: "proxy:project_lookup_failed" })
     }
   }
 

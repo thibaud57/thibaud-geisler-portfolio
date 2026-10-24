@@ -11,7 +11,7 @@ interface Props {
   name: string
   value: string | null
   onChange: (key: string | null) => void
-  assets: AssetEntry[]
+  assets: readonly AssetEntry[]
   picker: { title: string; description: string; triggerLabel: string }
   sizes: string
   caption?: string | null

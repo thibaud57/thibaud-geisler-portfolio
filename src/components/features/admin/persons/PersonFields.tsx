@@ -14,7 +14,7 @@ import type { JobRole, Zone } from "@/generated/prisma/client"
 import { JOB_ROLE_LABELS } from "@/lib/crm/job-roles"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES } from "@/lib/crm/persons"
 import { ZONE_LABELS } from "@/lib/crm/zones"
-import { NONE_LABEL, NONE_LABEL_FEMININE, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL, NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { AttachableLead } from "@/server/queries/persons"
 
@@ -50,7 +50,7 @@ export function PersonFields({
   identityHeader,
   otherRole,
 }: Props) {
-  const [companyId, setCompanyId] = useState(defaults?.company?.id ?? NONE_VALUE)
+  const [companyId, setCompanyId] = useState<string | null>(defaults?.company?.id ?? null)
   const mirrored = mirror !== undefined
 
   function mirrorOf(

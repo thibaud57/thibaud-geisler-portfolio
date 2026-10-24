@@ -10,14 +10,13 @@ import { lookup, type LookupAddress } from "node:dns"
 import http from "node:http"
 import https from "node:https"
 
-import {
-  BlockedAddressError,
-  DeadlineExceededError,
-  FetchFailedError,
-  guardedLookup,
-  ResponseTooLargeError,
-  safeFetch,
-} from "./safe-fetch"
+import { BlockedAddressError, guardedLookup, safeFetch } from "./safe-fetch"
+
+const unreachable = (status: number | null) => ({
+  ok: false,
+  message: "site_unreachable",
+  status,
+})
 
 function fakeResponse(statusCode: number, headers: Record<string, string>, body?: Buffer) {
   return Object.assign(Readable.from(body ? [body] : []), { statusCode, headers })
@@ -118,9 +117,9 @@ describe("safeFetch", () => {
   ])(
     "refuses an internal IP literal before any request, whatever its notation (%s)",
     async (target) => {
-      const result = safeFetch(target, { maxBytes: 1024 })
+      const result = safeFetch(new URL(target), { maxBytes: 1024 })
 
-      await expect(result).rejects.toBeInstanceOf(BlockedAddressError)
+      await expect(result).resolves.toEqual({ ok: false, message: "address_blocked" })
       expect(http.get).not.toHaveBeenCalled()
     },
   )
@@ -128,9 +127,9 @@ describe("safeFetch", () => {
   it.each(["ftp://acme.example/", "http://acme.example:8080/", "http://user:secret@acme.example/"])(
     "reports a non-http scheme, a port or credentials as unreachable (%s)",
     async (target) => {
-      const result = safeFetch(target, { maxBytes: 1024 })
+      const result = safeFetch(new URL(target), { maxBytes: 1024 })
 
-      await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+      await expect(result).resolves.toEqual(unreachable(null))
       expect(http.get).not.toHaveBeenCalled()
     },
   )
@@ -138,18 +137,18 @@ describe("safeFetch", () => {
   it("re-checks the target of a redirect", async () => {
     httpsRepliesWith(fakeResponse(302, { location: "http://192.168.1.1/admin" }))
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(BlockedAddressError)
+    await expect(result).resolves.toEqual({ ok: false, message: "address_blocked" })
     expect(http.get).not.toHaveBeenCalled()
   })
 
   it("reports a redirect to a custom port as unreachable, not blocked", async () => {
     httpsRepliesWith(fakeResponse(302, { location: "https://acme.example:8443/" }))
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+    await expect(result).resolves.toEqual(unreachable(null))
     expect(https.get).toHaveBeenCalledTimes(1)
     expect(http.get).not.toHaveBeenCalled()
   })
@@ -162,9 +161,9 @@ describe("safeFetch", () => {
       fakeResponse(200, {}, Buffer.from("ok")),
     )
 
-    const page = await safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = await safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    expect(page.body.toString()).toBe("ok")
+    expect(result.ok && result.resource.body.toString()).toBe("ok")
     expect(https.get).toHaveBeenCalledTimes(6)
   })
 
@@ -175,16 +174,16 @@ describe("safeFetch", () => {
       ),
     )
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+    await expect(result).resolves.toEqual(unreachable(null))
     expect(https.get).toHaveBeenCalledTimes(6)
   })
 
   it("connects through the guarded lookup", async () => {
     httpsRepliesWith(fakeResponse(200, {}, Buffer.from("ok")))
 
-    await safeFetch("https://acme.example/", { maxBytes: 1024 })
+    await safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
     expect(vi.mocked(https.get).mock.calls[0]?.[1]).toMatchObject({ lookup: guardedLookup })
   })
@@ -192,26 +191,28 @@ describe("safeFetch", () => {
   it("truncates a page past its size limit", async () => {
     httpsRepliesWith(fakeResponse(200, {}, Buffer.alloc(2048, "a")))
 
-    const page = await safeFetch("https://acme.example/", { maxBytes: 1024, truncate: true })
+    const result = await safeFetch(new URL("https://acme.example/"), {
+      maxBytes: 1024,
+      truncate: true,
+    })
 
-    expect(page.body.length).toBe(1024)
+    expect(result.ok && result.resource.body.length).toBe(1024)
   })
 
-  it("rejects an image past its size limit", async () => {
+  it("reports an image past its size limit as too large", async () => {
     httpsRepliesWith(fakeResponse(200, {}, Buffer.alloc(2048, "a")))
 
-    const result = safeFetch("https://acme.example/logo.png", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/logo.png"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(ResponseTooLargeError)
+    await expect(result).resolves.toEqual({ ok: false, message: "response_too_large" })
   })
 
   it("reports the status of a failed response", async () => {
     httpsRepliesWith(fakeResponse(404, {}))
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
-    await expect(result).rejects.toMatchObject({ status: 404 })
+    await expect(result).resolves.toEqual(unreachable(404))
   })
 
   it("fails a response whose body is cut without an error event", async () => {
@@ -219,21 +220,21 @@ describe("safeFetch", () => {
     httpsRepliesWith(body)
     queueMicrotask(() => body.destroy())
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024 })
 
-    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+    await expect(result).resolves.toEqual(unreachable(null))
   })
 
   it("sends no request once the deadline has passed", async () => {
     const deadline = AbortSignal.abort()
 
-    const result = safeFetch("https://acme.example/", { maxBytes: 1024, deadline })
+    const result = safeFetch(new URL("https://acme.example/"), { maxBytes: 1024, deadline })
 
-    await expect(result).rejects.toBeInstanceOf(DeadlineExceededError)
+    await expect(result).resolves.toEqual({ ok: false, message: "site_too_slow" })
     expect(https.get).not.toHaveBeenCalled()
   })
 
-  it("reports a request cut by the deadline as a deadline error, not as unreachable", async () => {
+  it("reports a request cut by the deadline as too slow, not as unreachable", async () => {
     const controller = new AbortController()
     vi.mocked(https.get).mockImplementationOnce((() => {
       const req = new EventEmitter()
@@ -244,11 +245,47 @@ describe("safeFetch", () => {
       return req
     }) as never)
 
-    const result = safeFetch("https://acme.example/", {
+    const result = safeFetch(new URL("https://acme.example/"), {
       maxBytes: 1024,
       deadline: controller.signal,
     })
 
-    await expect(result).rejects.toBeInstanceOf(DeadlineExceededError)
+    await expect(result).resolves.toEqual({ ok: false, message: "site_too_slow" })
+  })
+
+  it("reports a response cut by the deadline as too slow", async () => {
+    const controller = new AbortController()
+    const body = Object.assign(new Readable({ read() {} }), { statusCode: 200, headers: {} })
+    httpsRepliesWith(body)
+    queueMicrotask(() => {
+      controller.abort()
+      body.destroy()
+    })
+
+    const result = safeFetch(new URL("https://acme.example/"), {
+      maxBytes: 1024,
+      deadline: controller.signal,
+    })
+
+    await expect(result).resolves.toEqual({ ok: false, message: "site_too_slow" })
+  })
+
+  it("reports a blocked address as such even when the deadline has passed", async () => {
+    const controller = new AbortController()
+    vi.mocked(https.get).mockImplementationOnce((() => {
+      const req = new EventEmitter()
+      queueMicrotask(() => {
+        controller.abort()
+        req.emit("error", new BlockedAddressError("intranet"))
+      })
+      return req
+    }) as never)
+
+    const result = safeFetch(new URL("https://acme.example/"), {
+      maxBytes: 1024,
+      deadline: controller.signal,
+    })
+
+    await expect(result).resolves.toEqual({ ok: false, message: "address_blocked" })
   })
 })

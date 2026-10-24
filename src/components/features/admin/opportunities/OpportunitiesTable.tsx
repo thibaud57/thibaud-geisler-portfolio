@@ -39,6 +39,7 @@ import {
   ONGOING,
   opportunitiesForView,
   OPPORTUNITY_VIEW_LOCKED_FACETS,
+  type OpportunityFacetKey,
   type OpportunityView,
 } from "@/lib/crm/opportunity-views"
 import { personDisplayName } from "@/lib/crm/persons"
@@ -187,7 +188,9 @@ function buildDataColumns(view: OpportunityView): readonly Column<AdminOpportuni
   ]
 }
 
-function buildFacets(view: OpportunityView): readonly Facet<AdminOpportunity>[] {
+function buildFacets(
+  view: OpportunityView,
+): readonly Facet<AdminOpportunity, OpportunityFacetKey>[] {
   return [
     enumFacet(
       "status",

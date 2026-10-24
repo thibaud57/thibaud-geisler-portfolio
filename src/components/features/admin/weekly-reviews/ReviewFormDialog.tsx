@@ -3,6 +3,7 @@
 import { useActionState, useId, useState, useTransition } from "react"
 import { Calculator, Plus } from "lucide-react"
 import { toast } from "sonner"
+import { recordFromKeys } from "@/lib/record-from-keys"
 
 import { DateField } from "@/components/features/admin/form/DateField"
 import { FormDialog, FormDialogForm } from "@/components/features/admin/form/FormDialog"
@@ -51,9 +52,7 @@ function fridayLabel(day: Date): string {
 type CounterValues = Record<keyof ReviewCounts, string>
 
 function toCounterValues(counts: ReviewCounts | null): CounterValues {
-  return Object.fromEntries(
-    REVIEW_COUNTER_KEYS.map((key) => [key, String(counts?.[key] ?? 0)]),
-  ) as CounterValues
+  return recordFromKeys(REVIEW_COUNTER_KEYS, (key) => String(counts?.[key] ?? 0))
 }
 
 const TEXT_FIELDS = [

@@ -24,6 +24,9 @@ const eslintConfig = defineConfig([
       // Le rest destructuring (`const { sensible, ...safe } = obj`) est un pattern légitime
       // pour omettre des clés d'un objet, pas du code mort.
       "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+      // Absentes des presets. Aux options par defaut, un `default` ne masque pas le cas oublie d'une union
+      "@typescript-eslint/switch-exhaustiveness-check": "error",
+      "@typescript-eslint/prefer-readonly": "error",
     },
   },
   {

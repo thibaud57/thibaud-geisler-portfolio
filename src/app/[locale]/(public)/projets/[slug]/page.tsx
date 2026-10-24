@@ -12,6 +12,7 @@ import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { JsonLd } from "@/components/seo/json-ld"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { setupLocalePage } from "@/i18n/locale-guard"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildBreadcrumbList, buildProjectCreativeWork } from "@/lib/seo/json-ld"
 import { safeExternalUrl } from "@/lib/url"
@@ -35,6 +36,7 @@ export async function generateMetadata(
     title: project.title,
     description: project.description,
     siteName: t("siteTitle"),
+    indexable,
     ogType: "article",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,

@@ -5,12 +5,11 @@ import type { CompanyOption } from "@/server/queries/companies"
 interface Props {
   id: string
   options: readonly CompanyOption[]
-  value: string
-  onChange: (companyId: string) => void
-  errors?: string[]
+  value: string | null
+  onChange: (companyId: string | null) => void
+  errors?: readonly string[]
   label?: string
   name?: string
-  // Sans option « Aucune » pour un champ obligatoire : la valeur vide est alors "".
   nullable?: boolean
 }
 

@@ -1,3 +1,4 @@
+import { assertNever } from "@/lib/assert-never"
 import type { InterviewStatus } from "@/generated/prisma/client"
 
 export type InterviewView = "a-venir" | "journal"
@@ -12,15 +13,23 @@ export function interviewsForView<T extends InterviewViewRow>(
   interviews: readonly T[],
   view: InterviewView,
 ): T[] {
-  if (view === "journal") {
-    return [...interviews].sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
+  switch (view) {
+    case "journal":
+      return [...interviews].sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())
+    case "a-venir":
+      return interviews
+        .filter((interview) => interview.status === "PLANIFIE")
+        .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+    default:
+      return assertNever(view)
   }
-  return interviews
-    .filter((interview) => interview.status === "PLANIFIE")
-    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
 }
 
-export const INTERVIEW_VIEW_LOCKED_FACETS: Partial<Record<InterviewView, readonly string[]>> = {
+export type InterviewFacetKey = "type" | "format" | "status" | "outcome"
+
+export const INTERVIEW_VIEW_LOCKED_FACETS: Partial<
+  Record<InterviewView, readonly InterviewFacetKey[]>
+> = {
   "a-venir": ["status", "outcome"],
 }
 

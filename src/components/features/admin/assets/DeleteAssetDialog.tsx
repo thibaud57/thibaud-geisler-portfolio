@@ -2,6 +2,8 @@
 
 import { Trash2 } from "lucide-react"
 
+import { assertNever } from "@/lib/assert-never"
+import type { DeleteOutcome } from "@/lib/admin/delete-outcome"
 import { ConfirmDeleteDialog } from "@/components/features/admin/form/ConfirmDeleteDialog"
 import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
 import { nameOfAssetKey } from "@/lib/assets"
@@ -22,6 +24,9 @@ function formatDenialMessage(usedBy: readonly string[]): string {
   return `Ce fichier est utilisé par ${joined}. Retirez ${rattachement} avant de le supprimer.`
 }
 
+const HARDCODED_DENIAL =
+  "Ce fichier est référencé en dur dans le code du site. Il se remplace par un dépôt sur la même clé, il ne se supprime pas ici."
+
 export function DeleteAssetDialog({ assetKey, usedBy }: Props) {
   return (
     <ConfirmDeleteDialog
@@ -36,22 +41,22 @@ export function DeleteAssetDialog({ assetKey, usedBy }: Props) {
       name={nameOfAssetKey(assetKey)}
       denied={usedBy.length > 0 ? formatDenialMessage(usedBy) : null}
       successMessage="Fichier supprimé"
-      onDelete={async () => {
+      onDelete={async (): Promise<DeleteOutcome> => {
         const result = await deleteAsset(assetKey)
-        if (result.ok) return { ok: true }
-        // asset_hardcoded ne vient normalement jamais d'ici (déclencheur disabled), seulement si
-        // deleteAsset est appelée autrement que par cet écran.
-        if (result.message === "asset_hardcoded") {
-          return {
-            ok: false,
-            denied:
-              "Ce fichier est référencé en dur dans le code du site. Il se remplace par un dépôt sur la même clé, il ne se supprime pas ici.",
-          }
+        if (result.ok) return { status: "deleted" }
+        switch (result.message) {
+          // asset_hardcoded ne vient normalement jamais d'ici (déclencheur disabled), seulement si
+          // deleteAsset est appelée autrement que par cet écran.
+          case "asset_hardcoded":
+            return { status: "denied", reason: HARDCODED_DENIAL }
+          case "asset_in_use":
+            return { status: "denied", reason: formatDenialMessage(result.usedBy) }
+          case "invalid_path":
+          case "unknown_error":
+            return { status: "failed" }
+          default:
+            return assertNever(result)
         }
-        if (result.message === "asset_in_use") {
-          return { ok: false, denied: formatDenialMessage(result.usedBy ?? []) }
-        }
-        return { ok: false, denied: null }
       }}
     />
   )

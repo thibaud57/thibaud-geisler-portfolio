@@ -2,7 +2,9 @@
 
 import "server-only"
 
+import type { FieldErrors } from "@/lib/form-state"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { leadSchema, type LeadInput } from "@/lib/schemas/lead"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
@@ -29,7 +31,7 @@ import {
   saveEntity,
   type ActionEvents,
 } from "./_support/shared"
-import type { LeadFormMessage, LeadFormState } from "./leads.types"
+import type { LeadFormMessage, LeadDeleteState, LeadFormState } from "./leads.types"
 
 const CONFLICT_MESSAGES = {
   exists: "lead_exists",
@@ -68,9 +70,8 @@ function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormSt
   }
   if (isPrismaError(err, "P2002")) {
     const constraint = violatedConstraint(err)
-    const field: IdentityField = constraint.includes("email") ? "email" : "linkedinUrl"
-    const errors: LeadFormState["errors"] = {}
-    errors[field] = ["Cette personne existe déjà"]
+    const field: IdentityField = constraint?.includes("email") ? "email" : "linkedinUrl"
+    const errors: FieldErrors<keyof LeadInput> = { [field]: ["Cette personne existe déjà"] }
     return { ok: false, errors, message: "lead_exists", values }
   }
   if (isPrismaError(err, "P2003")) {
@@ -135,11 +136,17 @@ export async function createLead(
 }
 
 export async function updateLead(
-  personId: string,
+  rawPersonId: string,
   _prevState: LeadFormState,
   formData: FormData,
 ): Promise<LeadFormState> {
   await getCurrentUser()
+
+  const parsedId = personIdSchema.safeParse(rawPersonId)
+  if (!parsedId.success) {
+    return { ok: false, errors: {}, message: "lead_not_found", values: collectValues(formData) }
+  }
+  const personId = parsedId.data
 
   return saveLead(
     "updateLead",
@@ -159,10 +166,15 @@ export async function updateLead(
   )
 }
 
-export async function deleteLead(personId: string): Promise<LeadFormState> {
+export async function deleteLead(rawPersonId: string): Promise<LeadDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<LeadFormState>({
+  const parsedId = personIdSchema.safeParse(rawPersonId)
+  // Un id invalide ne désigne aucune fiche : même réponse idempotente qu'une fiche déjà supprimée.
+  if (!parsedId.success) return { ok: true, errors: {}, message: null }
+  const personId = parsedId.data
+
+  return deleteEntity<LeadDeleteState>({
     actionName: "deleteLead",
     events: { success: "lead:deleted", failure: "lead:delete_failed" },
     successLogFields: { personId },

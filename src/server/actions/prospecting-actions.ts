@@ -3,6 +3,7 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
+import { prospectingActionIdSchema, type PersonId, type ProspectingActionId } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
@@ -27,7 +28,10 @@ import {
   saveEntity,
   type ActionEvents,
 } from "./_support/shared"
-import type { ProspectingActionFormState } from "./prospecting-actions.types"
+import type {
+  ProspectingActionDeleteState,
+  ProspectingActionFormState,
+} from "./prospecting-actions.types"
 
 const DELETED_ACTION_MESSAGE = "Cette action a été supprimée"
 const TIMING_SELECT = { status: true, occurredAt: true, respondedAt: true, reply: true } as const
@@ -48,8 +52,8 @@ function collectValues(formData: FormData): ProspectingActionFormState["values"]
 // Une action de prospection ne vise qu'un lead : une personne seulement contact n'a pas de pipeline à nourrir.
 async function requireProspectableLead(
   tx: Prisma.TransactionClient,
-  personId: string,
-  actionId?: string,
+  personId: PersonId,
+  actionId?: ProspectingActionId,
 ): Promise<void> {
   const lead = await tx.lead.findUnique({ where: { personId }, select: { personId: true } })
   if (!lead) {
@@ -76,7 +80,7 @@ function saveProspectingAction(
   events: ActionEvents,
   formData: FormData,
   persist: (tx: Prisma.TransactionClient, data: ProspectingActionInput) => Promise<{ id: string }>,
-  updatedId?: string,
+  updatedId?: ProspectingActionId,
 ): Promise<ProspectingActionFormState> {
   const values = collectValues(formData)
 
@@ -120,11 +124,22 @@ export async function createProspectingAction(
 }
 
 export async function updateProspectingAction(
-  id: string,
+  rawId: string,
   _prevState: ProspectingActionFormState,
   formData: FormData,
 ): Promise<ProspectingActionFormState> {
   await getCurrentUser()
+
+  const parsedId = prospectingActionIdSchema.safeParse(rawId)
+  if (!parsedId.success) {
+    return {
+      ok: false,
+      errors: {},
+      message: "prospecting_action_not_found",
+      values: collectValues(formData),
+    }
+  }
+  const id = parsedId.data
 
   return saveProspectingAction(
     "updateProspectingAction",
@@ -145,7 +160,7 @@ export async function updateProspectingAction(
 }
 
 export async function changeProspectingActionStatus(
-  id: string,
+  rawId: string,
   status: string,
 ): Promise<ProspectingActionFormState> {
   await getCurrentUser()
@@ -155,6 +170,11 @@ export async function changeProspectingActionStatus(
     if (!parsed.success) {
       return { ok: false, errors: { status: ["Statut inconnu"] }, message: null }
     }
+    const parsedId = prospectingActionIdSchema.safeParse(rawId)
+    if (!parsedId.success) {
+      return { ok: false, errors: { status: [DELETED_ACTION_MESSAGE] }, message: null }
+    }
+    const id = parsedId.data
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -192,7 +212,7 @@ export async function changeProspectingActionStatus(
 
 // La garde vit dans la requête (updateMany conditionné au statut), pas seulement dans le calendrier : une action passée à Fait dans un autre onglet garde sa date réelle d'envoi.
 export async function rescheduleProspectingAction(
-  id: string,
+  rawId: string,
   occurredAt: string,
 ): Promise<ProspectingActionFormState> {
   await getCurrentUser()
@@ -202,6 +222,11 @@ export async function rescheduleProspectingAction(
     if (!parsed.success) {
       return { ok: false, errors: { occurredAt: ["Date invalide"] }, message: null }
     }
+    const parsedId = prospectingActionIdSchema.safeParse(rawId)
+    if (!parsedId.success) {
+      return { ok: false, errors: { occurredAt: [DELETED_ACTION_MESSAGE] }, message: null }
+    }
+    const id = parsedId.data
 
     try {
       const { count } = await prisma.$transaction(async (tx) => {
@@ -241,10 +266,10 @@ export async function rescheduleProspectingAction(
   })
 }
 
-export async function deleteProspectingAction(id: string): Promise<ProspectingActionFormState> {
+export async function deleteProspectingAction(id: string): Promise<ProspectingActionDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<ProspectingActionFormState>({
+  return deleteEntity<ProspectingActionDeleteState>({
     actionName: "deleteProspectingAction",
     events: { success: "prospecting_action:deleted", failure: "prospecting_action:delete_failed" },
     successLogFields: { id },

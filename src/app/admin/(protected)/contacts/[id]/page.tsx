@@ -4,12 +4,13 @@ import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/Admin
 import { ContactForm } from "@/components/features/admin/contacts/ContactForm"
 import { ADMIN_CONTACTS_PATH } from "@/lib/admin/routes"
 import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
+import { personIdSchema, type PersonId } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/crm/persons"
 import { findCompanyOptions } from "@/server/queries/companies"
 import { findContactByIdForAdmin } from "@/server/queries/contacts"
 
-async function EditContactSection({ id }: { id: string }) {
+async function EditContactSection({ id }: { id: PersonId }) {
   const [contact, companyOptions] = await Promise.all([
     findContactByIdForAdmin(id),
     findCompanyOptions(),
@@ -30,11 +31,12 @@ async function EditContactSection({ id }: { id: string }) {
 
 export default async function EditContactPage({ params }: PageProps<"/admin/contacts/[id]">) {
   await getCurrentUser()
-  const { id } = await params
+  const parsedId = personIdSchema.safeParse((await params).id)
+  if (!parsedId.success) notFound()
 
   return (
     <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
-      <EditContactSection id={id} />
+      <EditContactSection id={parsedId.data} />
     </AdminFormPage>
   )
 }

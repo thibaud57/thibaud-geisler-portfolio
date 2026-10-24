@@ -21,7 +21,7 @@ import { getContentType, validateAssetPath } from "@/server/assets/serve-asset"
 import { COMPANY_LOGO_FIELD, PROJECT_ASSET_REFERENCES } from "@/server/queries/assets"
 
 import { deleteEntity } from "./_support/shared"
-import { type AssetFormState } from "./assets.types"
+import { type AssetDeleteState, type AssetFormState } from "./assets.types"
 
 function resolveBucket(key: string): { client: typeof r2; bucket: string } {
   return isAdminAssetKey(key)
@@ -94,23 +94,25 @@ export async function uploadAsset(
   })
 }
 
-export async function deleteAsset(key: string): Promise<AssetFormState> {
+export async function deleteAsset(rawKey: string): Promise<AssetDeleteState> {
   await getCurrentUser()
 
   // Une Server Action exportée reste un endpoint HTTP : ce refus doit précéder toute
   // consultation de la base et tout appel R2, pas seulement le bouton qui l'invoque.
-  if (isHardcodedAssetKey(key)) {
-    return { ok: false, errors: {}, message: "asset_hardcoded" }
+  if (isHardcodedAssetKey(rawKey)) {
+    return { ok: false, message: "asset_hardcoded" }
   }
 
-  const validation = validateAssetPath(key.split("/"))
+  const validation = validateAssetPath(rawKey.split("/"))
   if (!validation.ok) {
-    return { ok: false, errors: { filename: [validation.error] }, message: null }
+    return { ok: false, message: "invalid_path" }
   }
+
+  const key = validation.joined
 
   const { client, bucket } = resolveBucket(key)
 
-  return deleteEntity<AssetFormState>({
+  return deleteEntity<AssetDeleteState>({
     actionName: "deleteAsset",
     events: { success: "asset:deleted", failure: "asset:delete_failed" },
     successLogFields: { key },
@@ -125,7 +127,7 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
       ])
 
       const usedBy = [...projects.map((p) => p.slug), ...companies.map((c) => c.slug)]
-      return usedBy.length > 0 ? { ok: false, errors: {}, message: "asset_in_use", usedBy } : null
+      return usedBy.length > 0 ? { ok: false, message: "asset_in_use", usedBy } : null
     },
     // La suppression R2 est idempotente et ne lève jamais de P2025 : l'état est toujours « absent ».
     exists: () => Promise.resolve(false),
@@ -133,7 +135,7 @@ export async function deleteAsset(key: string): Promise<AssetFormState> {
     invalidateCaches: () => {
       revalidatePath(ADMIN_ASSETS_PATH)
     },
-    onSuccess: () => ({ ok: true, errors: {}, message: null }),
-    onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
+    onSuccess: () => ({ ok: true }),
+    onUnknownError: () => ({ ok: false, message: "unknown_error" }),
   })
 }

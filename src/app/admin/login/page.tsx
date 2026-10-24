@@ -8,24 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { Separator } from "@/components/ui/separator"
 import { firstParam } from "@/lib/admin/search-params"
 
-const ERROR_MESSAGES: Record<string, string> = {
-  FORBIDDEN: "Ce compte Google n'est pas autorisé à accéder à cet espace.",
-}
-
 async function LoginError({ searchParams }: Pick<PageProps<"/admin/login">, "searchParams">) {
   const { error: rawError } = await searchParams
   const error = firstParam(rawError)
 
   if (!error) return null
 
-  const Icon = error === "FORBIDDEN" ? ShieldBan : CircleAlert
+  const { Icon, message } =
+    error === "FORBIDDEN"
+      ? { Icon: ShieldBan, message: "Ce compte Google n'est pas autorisé à accéder à cet espace." }
+      : { Icon: CircleAlert, message: "La connexion a échoué. Réessayez." }
 
   return (
     <Alert variant="destructive">
       <Icon aria-hidden />
-      <AlertDescription>
-        {ERROR_MESSAGES[error] ?? "La connexion a échoué. Réessayez."}
-      </AlertDescription>
+      <AlertDescription>{message}</AlertDescription>
     </Alert>
   )
 }

@@ -1,6 +1,7 @@
 import { Archive, CircleCheck, CirclePause, CircleX, Clock, Hand, Inbox, Send } from "lucide-react"
 
 import type { OpportunityStatus } from "@/generated/prisma/client"
+import type { RelatedHref } from "@/lib/admin/related-links"
 import { toLinkMarker } from "@/lib/crm/link-marker"
 import { formatMonthYear } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
@@ -94,7 +95,11 @@ export function toOpportunityLink(
     startMonth: Date | null
     createdAt: Date
   },
-  { href, metaSuffix, idPrefix }: { href: string; metaSuffix?: string | null; idPrefix?: string },
+  {
+    href,
+    metaSuffix,
+    idPrefix,
+  }: { href: RelatedHref; metaSuffix?: string | null; idPrefix?: string },
 ) {
   const status = OPPORTUNITY_STATUS_LABELS[opportunity.status]
   return {

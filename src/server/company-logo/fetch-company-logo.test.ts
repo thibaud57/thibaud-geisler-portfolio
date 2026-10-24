@@ -13,32 +13,27 @@ vi.mock("./normalize-icon", async (importOriginal) => ({
 import { objectMatch } from "@/lib/matchers-test-setup"
 import { adminR2 } from "@/lib/r2"
 
-import {
-  fetchCompanyIcon,
-  NoIconFoundError,
-  retrieveCompanyLogo,
-  storeCompanyLogo,
-} from "./fetch-company-logo"
-import { IconTooSmallError, normalizeIcon } from "./normalize-icon"
-import {
-  BlockedAddressError,
-  DeadlineExceededError,
-  FetchFailedError,
-  safeFetch,
-} from "./safe-fetch"
+import { fetchCompanyIcon, retrieveCompanyLogo, storeCompanyLogo } from "./fetch-company-logo"
+import { normalizeIcon } from "./normalize-icon"
+import { safeFetch } from "./safe-fetch"
 
-const SITE = "https://acme.example/"
+const SITE = new URL("https://acme.example/")
+
+const NOT_FOUND = { ok: false, message: "site_unreachable", status: 404 } as const
 
 function page(head: string) {
-  return { url: new URL(SITE), body: Buffer.from(`<html><head>${head}</head></html>`) }
+  return {
+    ok: true,
+    resource: { url: SITE, body: Buffer.from(`<html><head>${head}</head></html>`) },
+  } as const
 }
 
 function image(path: string) {
-  return { url: new URL(path, SITE), body: Buffer.from(path) }
+  return { ok: true, resource: { url: new URL(path, SITE), body: Buffer.from(path) } } as const
 }
 
 function normalizedIcon(size: number) {
-  return { png: Buffer.from("png"), width: size, height: size }
+  return { ok: true, icon: { png: Buffer.from("png"), width: size, height: size } } as const
 }
 
 describe("fetchCompanyIcon", () => {
@@ -49,13 +44,13 @@ describe("fetchCompanyIcon", () => {
           '<link rel="apple-touch-icon" href="/apple.png"><link rel="icon" href="/icon.png" sizes="64x64">',
         ),
       )
-      .mockRejectedValueOnce(new FetchFailedError(404))
+      .mockResolvedValueOnce(NOT_FOUND)
       .mockResolvedValueOnce(image("/icon.png"))
     vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
 
     const result = await fetchCompanyIcon(SITE)
 
-    expect(result.source).toBe("icon")
+    expect(result).toMatchObject({ ok: true, source: "icon" })
     expect(normalizeIcon).toHaveBeenCalledTimes(1)
   })
 
@@ -65,25 +60,60 @@ describe("fetchCompanyIcon", () => {
       .mockResolvedValueOnce(image("/a.png"))
       .mockResolvedValueOnce(image("/b.png"))
     vi.mocked(normalizeIcon)
-      .mockRejectedValueOnce(new IconTooSmallError(16))
-      .mockRejectedValueOnce(new IconTooSmallError(24))
+      .mockResolvedValueOnce({ ok: false, message: "icon_too_small", size: 16 })
+      .mockResolvedValueOnce({ ok: false, message: "icon_too_small", size: 24 })
 
     const result = fetchCompanyIcon(SITE)
 
-    await expect(result).rejects.toBeInstanceOf(IconTooSmallError)
-    await expect(result).rejects.toMatchObject({ size: 24 })
+    await expect(result).resolves.toEqual({ ok: false, message: "icon_too_small", size: 24 })
+  })
+
+  it("moves on to the next candidate when an image is too large", async () => {
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))
+      .mockResolvedValueOnce({ ok: false, message: "response_too_large" })
+      .mockResolvedValueOnce(image("/b.png"))
+    vi.mocked(normalizeIcon).mockResolvedValueOnce(normalizedIcon(64))
+
+    const result = await fetchCompanyIcon(SITE)
+
+    expect(result).toMatchObject({ ok: true, source: "icon" })
+    expect(normalizeIcon).toHaveBeenCalledTimes(1)
+  })
+
+  it("moves on to the next candidate when an image is unreadable", async () => {
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))
+      .mockResolvedValueOnce(image("/a.png"))
+      .mockResolvedValueOnce(image("/b.png"))
+    vi.mocked(normalizeIcon)
+      .mockResolvedValueOnce({ ok: false, message: "icon_unreadable" })
+      .mockResolvedValueOnce(normalizedIcon(64))
+
+    const result = await fetchCompanyIcon(SITE)
+
+    expect(result).toMatchObject({ ok: true, source: "icon" })
+    expect(normalizeIcon).toHaveBeenCalledTimes(2)
+  })
+
+  it("reports the status of an unreachable site", async () => {
+    vi.mocked(safeFetch).mockResolvedValueOnce(NOT_FOUND)
+
+    const result = fetchCompanyIcon(SITE)
+
+    await expect(result).resolves.toEqual(NOT_FOUND)
   })
 
   it("tries at most eight candidates", async () => {
     const icons = Array.from({ length: 10 }, (_, i) => `<link rel="icon" href="/i${i}.png">`)
     vi.mocked(safeFetch).mockResolvedValueOnce(page(icons.join("")))
     for (let i = 0; i < 8; i++) {
-      vi.mocked(safeFetch).mockRejectedValueOnce(new FetchFailedError(404))
+      vi.mocked(safeFetch).mockResolvedValueOnce(NOT_FOUND)
     }
 
     const result = fetchCompanyIcon(SITE)
 
-    await expect(result).rejects.toBeInstanceOf(NoIconFoundError)
+    await expect(result).resolves.toEqual({ ok: false, message: "no_icon_found" })
     expect(safeFetch).toHaveBeenCalledTimes(9)
   })
 
@@ -95,32 +125,32 @@ describe("fetchCompanyIcon", () => {
 
     const result = await fetchCompanyIcon(SITE)
 
-    expect(result.source).toBe("icon")
+    expect(result).toMatchObject({ ok: true, source: "icon" })
     expect(safeFetch).toHaveBeenLastCalledWith(new URL("/favicon.ico", SITE), expect.anything())
   })
 
   it("reports no icon when every candidate fails", async () => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))
-      .mockRejectedValueOnce(new FetchFailedError(404))
-      .mockRejectedValueOnce(new FetchFailedError(404))
+      .mockResolvedValueOnce(NOT_FOUND)
+      .mockResolvedValueOnce(NOT_FOUND)
 
     const result = fetchCompanyIcon(SITE)
 
-    await expect(result).rejects.toBeInstanceOf(NoIconFoundError)
+    await expect(result).resolves.toEqual({ ok: false, message: "no_icon_found" })
   })
 
   it.each([
-    { label: "a blocked address", error: new BlockedAddressError("intranet") },
-    { label: "the deadline", error: new DeadlineExceededError() },
-  ])("stops at $label instead of trying the next candidate", async ({ error }) => {
+    { label: "a blocked address", failure: { ok: false, message: "address_blocked" } },
+    { label: "the deadline", failure: { ok: false, message: "site_too_slow" } },
+  ] as const)("stops at $label instead of trying the next candidate", async ({ failure }) => {
     vi.mocked(safeFetch)
       .mockResolvedValueOnce(page('<link rel="icon" href="/a.png"><link rel="icon" href="/b.png">'))
-      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce(failure)
 
     const result = fetchCompanyIcon(SITE)
 
-    await expect(result).rejects.toBe(error)
+    await expect(result).resolves.toEqual(failure)
     expect(safeFetch).toHaveBeenCalledTimes(2)
   })
 
@@ -149,8 +179,10 @@ describe("retrieveCompanyLogo", () => {
 
     const result = await retrieveCompanyLogo(SITE, "acme")
 
-    expect(result.key).toMatch(/^freelance\/crm\/entreprises\/acme\/logo-[0-9a-f]{12}\.png$/)
-    expect(result).toMatchObject({ width: 64, height: 64, source: "icon" })
+    expect(result).toMatchObject({ ok: true, width: 64, height: 64, source: "icon" })
+    expect(result.ok && result.key).toMatch(
+      /^freelance\/crm\/entreprises\/acme\/logo-[0-9a-f]{12}\.png$/,
+    )
     expect(adminR2.send).toHaveBeenCalledTimes(1)
   })
 
@@ -167,6 +199,17 @@ describe("retrieveCompanyLogo", () => {
       .mock.calls.map(([, options]) => options.deadline)
     expect(pageDeadline).toBeInstanceOf(AbortSignal)
     expect(iconDeadline).toBe(pageDeadline)
+  })
+})
+
+describe("retrieveCompanyLogo failure", () => {
+  it("passes a fetch failure through without storing", async () => {
+    vi.mocked(safeFetch).mockResolvedValueOnce(NOT_FOUND)
+
+    const result = await retrieveCompanyLogo(SITE, "acme")
+
+    expect(result).toEqual(NOT_FOUND)
+    expect(adminR2.send).not.toHaveBeenCalled()
   })
 })
 

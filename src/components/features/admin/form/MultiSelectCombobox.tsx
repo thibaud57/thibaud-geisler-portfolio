@@ -7,18 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { ComboboxPopover } from "@/components/features/admin/form/ComboboxPopover"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 
-export interface ComboboxOption {
-  value: string
+export interface ComboboxOption<T extends string = string> {
+  value: T
   label: string
   hint?: string
 }
 
-interface Props {
+interface Props<T extends string> {
   id: string
   name: string
-  options: readonly ComboboxOption[]
-  selected: readonly string[]
-  onChange: (next: string[]) => void
+  options: readonly ComboboxOption<T>[]
+  selected: readonly T[]
+  onChange: (next: readonly T[]) => void
   placeholder: string
   searchPlaceholder: string
   emptyMessage: string
@@ -26,7 +26,7 @@ interface Props {
   ariaDescribedby?: string
 }
 
-export function MultiSelectCombobox({
+export function MultiSelectCombobox<T extends string>({
   id,
   name,
   options,
@@ -37,7 +37,7 @@ export function MultiSelectCombobox({
   emptyMessage,
   ariaInvalid,
   ariaDescribedby,
-}: Props) {
+}: Props<T>) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const labelByValue = useMemo(
@@ -45,12 +45,12 @@ export function MultiSelectCombobox({
     [options],
   )
 
-  function toggle(value: string) {
+  function toggle(value: T) {
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
   }
 
   // Sans ça, retirer une puce au clavier détruit l'élément focalisé et le focus retombe sur body.
-  function removeSelected(value: string) {
+  function removeSelected(value: T) {
     toggle(value)
     triggerRef.current?.focus()
   }

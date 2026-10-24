@@ -1,6 +1,5 @@
 "use client"
 
-import type { Route } from "next"
 import Link from "next/link"
 
 import type { LinkMarker, RelatedLink } from "@/lib/admin/related-links"
@@ -12,21 +11,20 @@ interface Props {
 }
 
 export function RelatedLinkRow({ link }: Props) {
-  const clickable = Boolean(link.href) || Boolean(link.onClick)
+  const { href, onClick } = link
 
   return (
     <li className="relative flex min-w-0 items-center gap-2 py-1.5 pl-8 text-sm">
       <TimelineMarker marker={link.marker} />
       <TruncateTooltip className={cn("min-w-0 font-medium", link.meta && "max-w-[60%]")}>
-        {clickable ? (
+        {href ? (
           <Link
-            // `href` est un `string` : typedRoutes ne vérifie plus la route d'aucun appelant, le cast ne fait que contenter `Link`.
-            href={(link.href as Route | undefined) ?? "#"}
+            href={href}
             onClick={
-              link.onClick
+              onClick
                 ? (event) => {
                     event.preventDefault()
-                    link.onClick?.()
+                    onClick()
                   }
                 : undefined
             }
@@ -34,6 +32,10 @@ export function RelatedLinkRow({ link }: Props) {
           >
             {link.label}
           </Link>
+        ) : onClick ? (
+          <button type="button" onClick={onClick} className="underline-offset-4 hover:underline">
+            {link.label}
+          </button>
         ) : (
           link.label
         )}

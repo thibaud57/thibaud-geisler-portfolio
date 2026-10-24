@@ -9,7 +9,7 @@ import {
 
 describe("detailsAfterOriginChange", () => {
   it("fills the template of the new origin when details are empty", () => {
-    const details = detailsAfterOriginChange("", "", "OUTBOUND")
+    const details = detailsAfterOriginChange("", null, "OUTBOUND")
 
     expect(details).toBe(leadDetailsTemplate("OUTBOUND"))
   })

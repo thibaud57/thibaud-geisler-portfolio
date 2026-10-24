@@ -1,19 +1,19 @@
-import type { TagKind } from "@/generated/prisma/client"
+import { TagKind } from "@/generated/prisma/browser"
 
-export const KIND_ORDER: readonly TagKind[] = [
-  "EXPERTISE",
-  "AI",
-  "LANGUAGE",
-  "FRAMEWORK",
-  "DATABASE",
-  "INFRA",
-]
+const KIND_RANK = {
+  EXPERTISE: 0,
+  AI: 1,
+  LANGUAGE: 2,
+  FRAMEWORK: 3,
+  DATABASE: 4,
+  INFRA: 5,
+} satisfies Record<TagKind, number>
+
+export const KIND_ORDER: readonly TagKind[] = Object.values(TagKind).toSorted(
+  (a, b) => KIND_RANK[a] - KIND_RANK[b],
+)
 
 export type TagCountByKind = Record<TagKind, number>
-
-export function emptyTagCountByKind(): TagCountByKind {
-  return Object.fromEntries(KIND_ORDER.map((kind) => [kind, 0])) as TagCountByKind
-}
 
 export const TAG_KIND_LABELS: Record<TagKind, string> = {
   LANGUAGE: "Langage",

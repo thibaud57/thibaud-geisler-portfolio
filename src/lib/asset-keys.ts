@@ -1,3 +1,5 @@
+import { isOneOf } from "@/lib/is-one-of"
+
 // Sans Zod, à la différence de `@/lib/schemas/asset` : `buildAssetUrl` s'en sert dans des composants
 // client des pages publiques, qui embarqueraient sinon Zod et son test `new Function`, refusé par la CSP.
 
@@ -40,8 +42,12 @@ export const FOLDERS_WITH_SLUG = [
 export const FOLDERS_WITHOUT_SLUG = ["branding", "documents/cv"] as const
 export const ASSET_FOLDERS = [...FOLDERS_WITH_SLUG, ...FOLDERS_WITHOUT_SLUG] as const
 
-export function folderNeedsSlug(folder: string): boolean {
-  return (FOLDERS_WITH_SLUG as readonly string[]).includes(folder)
+export type FolderWithSlug = (typeof FOLDERS_WITH_SLUG)[number]
+export type FolderWithoutSlug = (typeof FOLDERS_WITHOUT_SLUG)[number]
+export type AssetFolder = FolderWithSlug | FolderWithoutSlug
+
+export function folderNeedsSlug(folder: AssetFolder): folder is FolderWithSlug {
+  return isOneOf(FOLDERS_WITH_SLUG, folder)
 }
 
 // Ces dossiers ne vivent dans aucune colonne : leur chemin est écrit en dur dans le code du site
@@ -50,12 +56,12 @@ export function isHardcodedAssetKey(key: string): boolean {
   return (FOLDERS_WITHOUT_SLUG as readonly string[]).some((folder) => key.startsWith(`${folder}/`))
 }
 
-export function buildAssetKey(input: {
-  folder: string
-  slug?: string | undefined
-  filename: string
-}): string {
-  return input.slug
-    ? `${input.folder}/${input.slug}/${input.filename}`
-    : `${input.folder}/${input.filename}`
+export type AssetKeyInput =
+  | { folder: FolderWithSlug; slug: string; filename: string }
+  | { folder: FolderWithoutSlug; slug?: undefined; filename: string }
+
+export function buildAssetKey(input: AssetKeyInput): string {
+  return input.slug === undefined
+    ? `${input.folder}/${input.filename}`
+    : `${input.folder}/${input.slug}/${input.filename}`
 }

@@ -5,9 +5,9 @@ export const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100] as const
 export const DEFAULT_PAGE_SIZE: (typeof PAGE_SIZE_OPTIONS)[number] = 25
 
 export interface PaginationResult<T> {
-  currentPage: number
-  pageCount: number
-  pageItems: T[]
+  readonly currentPage: number
+  readonly pageCount: number
+  readonly pageItems: readonly T[]
 }
 
 // Recalculé à chaque rendu plutôt que dans un effet : un effet ne corrigerait la page qu'au rendu
@@ -28,7 +28,7 @@ export function paginate<T>(
 // Toujours cinq emplacements au-delà de cinq pages, pour que le bloc ne change jamais de
 // largeur quand on navigue : c'est ce qui coûte les voisines de la page courante en position
 // médiane, où seules les flèches permettent d'avancer d'une page.
-export function getVisiblePages(current: number, total: number): PaginationEntry[] {
+export function getVisiblePages(current: number, total: number): readonly PaginationEntry[] {
   if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
   if (current <= 3) return [1, 2, 3, "ellipsis", total]
   if (current >= total - 2) return [1, "ellipsis", total - 2, total - 1, total]

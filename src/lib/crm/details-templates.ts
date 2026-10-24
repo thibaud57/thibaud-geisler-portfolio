@@ -32,8 +32,8 @@ const LEAD_DETAILS_TEMPLATES: Record<LeadOrigin, string> = {
   OUTBOUND: LEAD_OUTBOUND_DETAILS_TEMPLATE,
 }
 
-export function leadDetailsTemplate(origin: LeadOrigin | ""): string {
-  return origin === "" ? "" : LEAD_DETAILS_TEMPLATES[origin]
+export function leadDetailsTemplate(origin: LeadOrigin | null): string {
+  return origin === null ? "" : LEAD_DETAILS_TEMPLATES[origin]
 }
 
 // L'éditeur peut réécrire les espaces du gabarit dès son affichage : la comparaison les ignore.
@@ -53,8 +53,8 @@ export function detailsAfterTemplateChange(
 
 export function detailsAfterOriginChange(
   details: string,
-  previousOrigin: LeadOrigin | "",
-  nextOrigin: LeadOrigin | "",
+  previousOrigin: LeadOrigin | null,
+  nextOrigin: LeadOrigin | null,
 ): string {
   return detailsAfterTemplateChange(
     details,
@@ -96,7 +96,7 @@ const INTERVIEW_FIRST_CONTACT_TEMPLATE = `# 📋 Contexte du contact
 # ➡️ Suite
 `
 
-const INTERVIEW_HEADINGS = [
+const INTERVIEW_HEADINGS: readonly string[] = [
   "# 🎯 Objectifs",
   "# 💪 Préparation ciblée",
   "# 🗒️ Déroulé",
@@ -125,6 +125,6 @@ const INTERVIEW_TEMPLATES: Record<InterviewType, string> = {
   TECHNIQUE: TECHNICAL_INTERVIEW_TEMPLATE,
 }
 
-export function interviewDetailsTemplate(type: InterviewType | ""): string {
-  return type === "" ? "" : INTERVIEW_TEMPLATES[type]
+export function interviewDetailsTemplate(type: InterviewType | null): string {
+  return type === null ? "" : INTERVIEW_TEMPLATES[type]
 }

@@ -65,4 +65,9 @@ export function interviewSkeletonWidths(view: InterviewView): readonly number[] 
   )
 }
 
-export const INTERVIEW_PAGE_SKELETON: string[] = ["h-[24px]", "h-[180px]", "h-[260px]", "h-[320px]"]
+export const INTERVIEW_PAGE_SKELETON: readonly string[] = [
+  "h-[24px]",
+  "h-[180px]",
+  "h-[260px]",
+  "h-[320px]",
+]

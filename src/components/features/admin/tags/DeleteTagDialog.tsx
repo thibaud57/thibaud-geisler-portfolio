@@ -20,16 +20,9 @@ export function DeleteTagDialog({ tag }: Props) {
           : null
       }
       successMessage="Tag supprimé"
-      onDelete={async () => {
-        const result = await deleteTag(tag.id)
-        if (result.ok) return { ok: true }
-        return {
-          ok: false,
-          denied:
-            result.message === "tag_in_use"
-              ? "Ce tag est utilisé par des projets et ne peut pas être supprimé."
-              : null,
-        }
+      onDelete={() => deleteTag(tag.id)}
+      denials={{
+        tag_in_use: "Ce tag est utilisé par des projets et ne peut pas être supprimé.",
       }}
     />
   )

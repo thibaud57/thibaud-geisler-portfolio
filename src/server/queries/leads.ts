@@ -7,6 +7,7 @@ import type {
   LeadStatus,
   Prisma,
 } from "@/generated/prisma/client"
+import type { CompanyId, PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { SignalItem } from "@/lib/crm/signals"
 import { companyRefSelect } from "@/server/queries/company-ref"
@@ -71,8 +72,8 @@ export type AdminLead = FlatPerson & {
   actionsCount: number
   interviews: LeadWithPerson["person"]["interviews"]
   hasContactRole: boolean
-  opportunities: OpportunitySummary[]
-  signals: SignalItem[]
+  opportunities: readonly OpportunitySummary[]
+  signals: readonly SignalItem[]
 }
 
 // La personne aplatie sur son rôle Lead : liste et formulaire lisent une seule forme, jamais une relation imbriquée.
@@ -106,13 +107,13 @@ export async function findAllLeadsForAdmin(): Promise<AdminLead[]> {
   return rows.map(toAdminLead)
 }
 
-export async function findLeadByIdForAdmin(personId: string): Promise<AdminLead | null> {
+export async function findLeadByIdForAdmin(personId: PersonId): Promise<AdminLead | null> {
   const row = await prisma.lead.findUnique({ where: { personId }, include: adminLeadInclude })
   return row ? toAdminLead(row) : null
 }
 
 // Leads d'une entreprise : une fiche en opposition a perdu son entreprise, elle n'y apparaît plus. Relation lue imbriquée exprès, cette liste ne sert qu'à construire des liens ; `AdminLead` reste la seule forme aplatie.
-export async function findLeadsOfCompany(companyId: string) {
+export async function findLeadsOfCompany(companyId: CompanyId) {
   return prisma.lead.findMany({
     where: { person: { companyId } },
     select: {

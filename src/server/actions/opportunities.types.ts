@@ -1,4 +1,4 @@
-import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState, type SettledFormState } from "@/lib/form-state"
 import type { OpportunityInput } from "@/lib/schemas/opportunity"
 
 export type OpportunityFormMessage =
@@ -7,8 +7,9 @@ export type OpportunityFormMessage =
   | "referrer_not_found"
   | "opportunity_not_found"
   | "unknown_error"
-  | null
 
 export type OpportunityFormState = FormActionState<OpportunityInput, OpportunityFormMessage>
+
+export type OpportunityDeleteState = SettledFormState<OpportunityFormState>
 
 export const initialOpportunityFormState: OpportunityFormState = INITIAL_FORM_STATE

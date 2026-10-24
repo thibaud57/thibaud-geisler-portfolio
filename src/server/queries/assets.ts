@@ -108,7 +108,7 @@ export async function loadAssetReferences(): Promise<AssetReferences> {
   return { projects, companies }
 }
 
-export function matchAssetUsage(references: AssetReferences, keys: string[]): AssetUsage {
+export function matchAssetUsage(references: AssetReferences, keys: readonly string[]): AssetUsage {
   return new Map(
     keys.map((key) => {
       const usedBy = [

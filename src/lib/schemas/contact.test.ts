@@ -56,6 +56,8 @@ describe("contactSchema", () => {
     ],
     ["email has an invalid format", { email: "pas-un-email" }, "email", "email_invalid"],
     ["message is under 20 characters", { message: "Trop court" }, "message", "message_too_short"],
+    ["name is absent", { name: undefined }, "name", "name_required"],
+    ["email is absent", { email: undefined }, "email", "email_invalid"],
   ] as const)("returns the code for a field error when %s", (_label, overrides, field, code) => {
     const result = contactSchema.safeParse(createPayload(overrides))
 

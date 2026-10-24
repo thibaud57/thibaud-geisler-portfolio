@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation"
 
 import { DateTimeField } from "@/components/features/admin/interviews/DateTimeField"
 import { DetailsCard } from "@/components/features/admin/form/DetailsCard"
-import { EnumSelectItems } from "@/components/features/admin/form/EnumSelectItems"
 import { FormCard } from "@/components/features/admin/form/FormCard"
 import { FormPage } from "@/components/features/admin/form/FormPage"
 import { MultiSelectCombobox } from "@/components/features/admin/form/MultiSelectCombobox"
 import { NotesCard } from "@/components/features/admin/form/NotesCard"
 import { NumberField } from "@/components/features/admin/form/NumberField"
+import { OptionSelect } from "@/components/features/admin/form/OptionSelect"
 import { SelectField } from "@/components/features/admin/form/SelectField"
 import { SingleSelectCombobox } from "@/components/features/admin/form/SingleSelectCombobox"
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,7 @@ import {
 } from "@/lib/admin/routes"
 import { CONTACT_TYPE_ICONS, CONTACT_TYPE_LABELS } from "@/lib/crm/contacts"
 import { timeOf } from "@/lib/date-time"
+import { requireOption } from "@/lib/is-one-of"
 import { detailsAfterTemplateChange, interviewDetailsTemplate } from "@/lib/crm/details-templates"
 import {
   INTERVIEW_DECISION_ICONS,
@@ -59,6 +60,7 @@ import {
   INTERVIEW_STATUS_LABELS,
   INTERVIEW_TYPE_ICONS,
   INTERVIEW_TYPE_LABELS,
+  resolveInterviewSide,
 } from "@/lib/crm/interviews"
 import { JOB_ROLE_LABELS, JOB_ROLES } from "@/lib/crm/job-roles"
 import { OPPORTUNITY_SECTION_TITLES } from "@/lib/crm/opportunities"
@@ -67,6 +69,7 @@ import {
   INTERVIEW_DECISIONS,
   INTERVIEW_FORMATS,
   INTERVIEW_OUTCOMES,
+  INTERVIEW_SIDES,
   INTERVIEW_STATUSES,
   INTERVIEW_TYPES,
 } from "@/lib/schemas/interview"
@@ -89,9 +92,9 @@ function initialTime(interview: AdminInterview | null, storedAt: Date | undefine
 interface NewCorrespondentDraft {
   key: string
   name: string
-  jobRole: JobRole | ""
-  companyId: string
-  contactType: ContactType | ""
+  jobRole: JobRole | null
+  companyId: string | null
+  contactType: ContactType | null
   email: string
   linkedinUrl: string
 }
@@ -109,21 +112,21 @@ function emptyCorrespondentDraft(): NewCorrespondentDraft {
   return {
     key: crypto.randomUUID(),
     name: "",
-    jobRole: "",
-    companyId: "",
-    contactType: "",
+    jobRole: null,
+    companyId: null,
+    contactType: null,
     email: "",
     linkedinUrl: "",
   }
 }
 
-// Une clé absente vaut une chaîne vide côté schéma : on n'envoie que les champs saisis.
+// Une clé absente vaut une chaîne vide côté schéma (JSON, pas FormData) : null ne passe pas le schéma, donc undefined à la frontière.
 function toNewCorrespondentPayload(draft: NewCorrespondentDraft) {
   return {
     name: draft.name.trim() || undefined,
-    jobRole: draft.jobRole || undefined,
-    companyId: draft.companyId || undefined,
-    contactType: draft.contactType || undefined,
+    jobRole: draft.jobRole ?? undefined,
+    companyId: draft.companyId ?? undefined,
+    contactType: draft.contactType ?? undefined,
     email: draft.email.trim() || undefined,
     linkedinUrl: draft.linkedinUrl.trim() || undefined,
   }
@@ -152,23 +155,21 @@ function NewCorrespondentRow({
           onChange({ ...draft, name: event.target.value })
         }}
       />
-      <Select
+      <OptionSelect
+        aria-label="Poste du nouveau contact"
+        placeholder="Poste"
+        options={JOB_ROLES}
+        labels={JOB_ROLE_LABELS}
         value={draft.jobRole}
-        onValueChange={(value) => {
-          onChange({ ...draft, jobRole: value as JobRole })
+        onValueChange={(jobRole) => {
+          onChange({ ...draft, jobRole })
         }}
-      >
-        <SelectTrigger className="w-full" aria-label="Poste du nouveau contact">
-          <SelectValue placeholder="Poste" />
-        </SelectTrigger>
-        <SelectContent>
-          <EnumSelectItems values={JOB_ROLES} labels={JOB_ROLE_LABELS} />
-        </SelectContent>
-      </Select>
+      />
+      {/* Select brut : un OptionSelect nullable remplacerait le placeholder par « Aucune ». */}
       <Select
-        value={draft.companyId}
+        value={draft.companyId ?? ""}
         onValueChange={(value) => {
-          onChange({ ...draft, companyId: value === NONE_VALUE ? "" : value })
+          onChange({ ...draft, companyId: value === NONE_VALUE ? null : value })
         }}
       >
         <SelectTrigger className="w-full" aria-label="Entreprise du nouveau contact">
@@ -183,23 +184,17 @@ function NewCorrespondentRow({
           ))}
         </SelectContent>
       </Select>
-      <Select
+      <OptionSelect
+        aria-label="Type du nouveau contact"
+        placeholder="Type de contact"
+        options={CONTACT_TYPES}
+        labels={CONTACT_TYPE_LABELS}
+        icons={CONTACT_TYPE_ICONS}
         value={draft.contactType}
-        onValueChange={(value) => {
-          onChange({ ...draft, contactType: value as ContactType })
+        onValueChange={(contactType) => {
+          onChange({ ...draft, contactType })
         }}
-      >
-        <SelectTrigger className="w-full" aria-label="Type du nouveau contact">
-          <SelectValue placeholder="Type de contact" />
-        </SelectTrigger>
-        <SelectContent>
-          <EnumSelectItems
-            values={CONTACT_TYPES}
-            labels={CONTACT_TYPE_LABELS}
-            icons={CONTACT_TYPE_ICONS}
-          />
-        </SelectContent>
-      </Select>
+      />
       <Input
         type="email"
         aria-label="Email du nouveau contact"
@@ -268,26 +263,28 @@ export function InterviewForm({
   // L'opportunité d'un entretien existant peut être close, donc sortie des choix : elle reste affichée.
   const opportunities = withCurrentOption(opportunityOptions, interview?.opportunity)
 
-  const [opportunityId, setOpportunityId] = useState(
-    interview?.opportunityId ?? defaultOpportunityId ?? "",
+  const [opportunityId, setOpportunityId] = useState<string | null>(
+    interview?.opportunityId ?? defaultOpportunityId ?? null,
   )
   const returnPath =
-    defaultOpportunityId && opportunityId
+    defaultOpportunityId && opportunityId !== null
       ? (`${ADMIN_OPPORTUNITIES_PATH}/${opportunityId}` as const)
       : cancelPath
   const selectedOpportunity =
     opportunities.find((opportunity) => opportunity.id === opportunityId) ?? null
   const hasIntermediary = selectedOpportunity?.intermediary != null
-  const [side, setSide] = useState<InterviewSide>(
-    interview?.side ?? (hasIntermediary ? "ESN" : "CLIENT_FINAL"),
-  )
-  const [correspondentIds, setCorrespondentIds] = useState<string[]>(
+  const [sideChoice, setSideChoice] = useState<InterviewSide | null>(null)
+  const side = resolveInterviewSide({
+    choice: sideChoice,
+    stored: interview?.side,
+    hasIntermediary,
+  })
+  const [correspondentIds, setCorrespondentIds] = useState<readonly string[]>(
     interview?.correspondents.map((person) => person.id) ?? (defaultLeadId ? [defaultLeadId] : []),
   )
   const [newCorrespondents, setNewCorrespondents] = useState<NewCorrespondentDraft[]>([])
   const [type, setType] = useState<InterviewType>(interview?.type ?? "PREMIER_CONTACT")
   const [status, setStatus] = useState<InterviewStatus>(interview?.status ?? "PLANIFIE")
-  const [outcome, setOutcome] = useState<string>(interview?.outcome ?? NONE_VALUE)
   const hydrated = useHydrated()
   const [editedDate, setEditedDate] = useState<Date | null>(null)
   const [editedTime, setEditedTime] = useState<string | null>(null)
@@ -328,17 +325,7 @@ export function InterviewForm({
     gone: { code: "interview_not_found", toast: "Cet entretien a été supprimé" },
   })
 
-  function handleOpportunityChange(nextId: string) {
-    setOpportunityId(nextId)
-    const nextHasIntermediary =
-      opportunities.find((opportunity) => opportunity.id === nextId)?.intermediary != null
-    // Une opportunité en client direct ne peut pas être menée côté ESN ; un nouvel entretien part du côté qui mène par défaut.
-    if (!interview) setSide(nextHasIntermediary ? "ESN" : "CLIENT_FINAL")
-    else if (side === "ESN" && !nextHasIntermediary) setSide("CLIENT_FINAL")
-  }
-
-  function handleTypeChange(value: string) {
-    const nextType = value as InterviewType
+  function handleTypeChange(nextType: InterviewType) {
     if (!interview) {
       const nextDetails = detailsAfterTemplateChange(
         details,
@@ -351,12 +338,6 @@ export function InterviewForm({
       }
     }
     setType(nextType)
-  }
-
-  function handleStatusChange(value: string) {
-    const nextStatus = value as InterviewStatus
-    if (nextStatus !== "FAIT") setOutcome(NONE_VALUE)
-    setStatus(nextStatus)
   }
 
   return (
@@ -374,7 +355,7 @@ export function InterviewForm({
               label={LABELS.opportunityId}
               options={opportunities.map(toOpportunityOption)}
               value={opportunityId}
-              onChange={handleOpportunityChange}
+              onChange={setOpportunityId}
               errors={state.errors.opportunityId}
               placeholder="Choisir une opportunité"
               searchPlaceholder="Chercher une opportunité"
@@ -386,7 +367,7 @@ export function InterviewForm({
                 id={`${formId}-side`}
                 value={side}
                 onValueChange={(value) => {
-                  setSide(value as InterviewSide)
+                  setSideChoice(requireOption(INTERVIEW_SIDES, value))
                 }}
                 // Hauteur d'un champ (h-8) : à côté d'une liste déroulante, les radios s'alignent sur son centre.
                 className="flex min-h-8 flex-wrap items-center gap-4"
@@ -432,7 +413,7 @@ export function InterviewForm({
               options={INTERVIEW_FORMATS}
               labels={INTERVIEW_FORMAT_LABELS}
               icons={INTERVIEW_FORMAT_ICONS}
-              defaultValue={interview?.format ?? NONE_VALUE}
+              defaultValue={interview?.format ?? null}
               errors={state.errors.format}
             />
 
@@ -458,7 +439,7 @@ export function InterviewForm({
               labels={INTERVIEW_STATUS_LABELS}
               icons={INTERVIEW_STATUS_ICONS}
               value={status}
-              onValueChange={handleStatusChange}
+              onValueChange={setStatus}
               errors={state.errors.status}
             />
 
@@ -549,8 +530,7 @@ export function InterviewForm({
                   options={INTERVIEW_OUTCOMES}
                   labels={INTERVIEW_OUTCOME_LABELS}
                   icons={INTERVIEW_OUTCOME_ICONS}
-                  value={outcome}
-                  onValueChange={setOutcome}
+                  defaultValue={interview?.outcome ?? null}
                   errors={state.errors.outcome}
                   noneLabel={NONE_LABEL_FEMININE}
                 />

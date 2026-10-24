@@ -1,4 +1,4 @@
-import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState, type SettledFormState } from "@/lib/form-state"
 import type { InterviewInput } from "@/lib/schemas/interview"
 
 export type InterviewFormMessage =
@@ -8,8 +8,9 @@ export type InterviewFormMessage =
   | "correspondent_not_found"
   | "correspondent_exists"
   | "unknown_error"
-  | null
 
 export type InterviewFormState = FormActionState<InterviewInput, InterviewFormMessage>
+
+export type InterviewDeleteState = SettledFormState<InterviewFormState>
 
 export const initialInterviewFormState: InterviewFormState = INITIAL_FORM_STATE

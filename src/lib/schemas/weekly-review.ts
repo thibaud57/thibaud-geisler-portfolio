@@ -16,11 +16,13 @@ const counter = z
   })
   .transform((value) => (value === "" ? 0 : Number(value)))
 
+export const closingFridayField = z.iso
+  .date({ error: "Choisissez un vendredi" })
+  .refine(isFridayIso, { error: "Choisissez un vendredi" })
+  .transform(isoDayToDate)
+
 export const weeklyReviewSchema = z.object({
-  closingFriday: z.iso
-    .date({ error: "Choisissez un vendredi" })
-    .refine(isFridayIso, { error: "Choisissez un vendredi" })
-    .transform(isoDayToDate),
+  closingFriday: closingFridayField,
   connectionsSent: counter,
   connectionsAccepted: counter,
   messagesSent: counter,

@@ -9,6 +9,7 @@ import {
   InterviewStatus,
   InterviewType,
 } from "@/generated/prisma/browser"
+import { opportunityIdField, personIdSchema } from "@/lib/ids"
 import { notesField, optionalInt, optionalTextField } from "@/lib/schemas/fields"
 import { nullableEnumField } from "@/lib/schemas/none-value"
 import { personFields } from "@/lib/schemas/person"
@@ -39,9 +40,9 @@ const newCorrespondentSchema = z.object({
 
 export const interviewSchema = z
   .object({
-    opportunityId: z.string().trim().min(1, "Choisissez une opportunité"),
+    opportunityId: opportunityIdField("Choisissez une opportunité"),
     side: z.enum(InterviewSide, { error: "Choisissez qui mène l'entretien" }),
-    correspondentIds: z.array(z.string().trim().min(1)).transform((ids) => [...new Set(ids)]),
+    correspondentIds: z.array(personIdSchema).transform((ids) => [...new Set(ids)]),
     // Encodés en JSON par le formulaire : un tableau d'objets ne se porte pas nativement en FormData.
     newCorrespondents: z
       .string()

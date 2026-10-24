@@ -44,9 +44,8 @@ function parseRRuleString(input: string, timeZone?: string): EventCalendarRecurr
 
   for (const pair of body.split(";")) {
     if (!pair) continue
-    const [rawKey, rawValue] = pair.split("=")
-    const key = rawKey?.toUpperCase()
-    const value = rawValue ?? ""
+    const [rawKey = "", value = ""] = pair.split("=")
+    const key = rawKey.toUpperCase()
 
     switch (key) {
       case "FREQ": {
@@ -99,7 +98,7 @@ function parseRRuleString(input: string, timeZone?: string): EventCalendarRecurr
         break
       }
       default:
-        throw new EventCalendarRecurrenceError(key ?? pair)
+        throw new EventCalendarRecurrenceError(key)
     }
   }
 

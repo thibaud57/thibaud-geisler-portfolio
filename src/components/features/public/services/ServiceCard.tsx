@@ -12,15 +12,18 @@ import { LabeledText } from "@/components/ui/labeled-text"
 import { ServiceCardBeam } from "./ServiceCardBeam"
 import { SERVICE_HIGHLIGHTS, SERVICE_ICONS, type ServiceSlug } from "./service-slugs"
 
-interface Props {
+interface BaseProps {
   slug: ServiceSlug
   title: string
   description: string
-  bullets?: string[]
-  ctaLabel?: string
-  variant?: "full" | "teaser"
   headingLevel?: "h2" | "h3"
 }
+
+type Props = BaseProps &
+  (
+    | { variant: "teaser"; bullets?: never; ctaLabel?: never }
+    | { variant: "full"; bullets: readonly string[]; ctaLabel: string }
+  )
 
 export function ServiceCard({
   slug,
@@ -28,13 +31,12 @@ export function ServiceCard({
   description,
   bullets,
   ctaLabel,
-  variant = "full",
+  variant,
   // Sur /services la carte est un titre de section (h2) ; sur l'accueil elle vit sous le h2
   // de la section teaser (h3). tracking-normal et text-wrap neutralisent la scale globale h2/h3.
   headingLevel = variant === "full" ? "h2" : "h3",
 }: Props) {
   const Icon = SERVICE_ICONS[slug]
-  const isFull = variant === "full"
 
   return (
     <Card className="relative flex h-full flex-col overflow-hidden transition duration-300 ease-out hover:ring-primary/40">
@@ -49,7 +51,7 @@ export function ServiceCard({
         <CardDescription className="text-base text-muted-foreground">{description}</CardDescription>
       </CardHeader>
 
-      {isFull && bullets && (
+      {bullets && (
         <CardContent className="flex-1">
           <ul className="flex flex-col gap-2 text-base">
             {bullets.map((bullet) => (
@@ -62,7 +64,7 @@ export function ServiceCard({
         </CardContent>
       )}
 
-      {isFull && ctaLabel && (
+      {ctaLabel && (
         <CardFooter>
           <Button asChild className="w-full">
             <Link href={{ pathname: "/contact", query: { service: slug } }}>{ctaLabel}</Link>

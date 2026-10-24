@@ -6,6 +6,7 @@ import {
   interviewPlaces,
   interviewTitle,
   interviewTitleOf,
+  resolveInterviewSide,
   toInterviewLink,
   toLeadInterviewLinks,
   toOpportunityInterviewLinks,
@@ -177,5 +178,45 @@ describe("toInterviewLink", () => {
     const link = toInterviewLink({ ...hr(), status: "FAIT" }, places, "/admin/entretiens/hr")
 
     expect(link).toMatchObject({ label: "Entretien 1 · Recruteur/RH", meta: "Fait" })
+  })
+})
+
+describe("resolveInterviewSide", () => {
+  it("defaults to ESN when the opportunity has an intermediary", () => {
+    const side = resolveInterviewSide({ choice: null, stored: undefined, hasIntermediary: true })
+
+    expect(side).toBe("ESN")
+  })
+
+  it("defaults to CLIENT_FINAL when the opportunity has no intermediary", () => {
+    const side = resolveInterviewSide({ choice: null, stored: undefined, hasIntermediary: false })
+
+    expect(side).toBe("CLIENT_FINAL")
+  })
+
+  it("keeps the explicit choice over the default", () => {
+    const side = resolveInterviewSide({
+      choice: "CLIENT_FINAL",
+      stored: undefined,
+      hasIntermediary: true,
+    })
+
+    expect(side).toBe("CLIENT_FINAL")
+  })
+
+  it("falls back to CLIENT_FINAL when ESN is chosen without an intermediary", () => {
+    const side = resolveInterviewSide({ choice: "ESN", stored: undefined, hasIntermediary: false })
+
+    expect(side).toBe("CLIENT_FINAL")
+  })
+
+  it("returns the stored side when nothing is chosen", () => {
+    const side = resolveInterviewSide({
+      choice: null,
+      stored: "CLIENT_FINAL",
+      hasIntermediary: true,
+    })
+
+    expect(side).toBe("CLIENT_FINAL")
   })
 })

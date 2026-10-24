@@ -1,27 +1,23 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 import { rateLimiter } from "./rate-limiter"
 
 describe("rateLimiter.check", () => {
   const opts = { max: 5, windowMs: 600_000 }
 
+  const now = new Date("2026-04-26T12:00:00Z").getTime()
+
   function exhaust(key: string, hits: number, options = opts) {
     for (let i = 0; i < hits; i++) {
-      rateLimiter.check(key, options)
+      rateLimiter.check(key, options, now)
     }
   }
 
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-04-26T12:00:00Z"))
     rateLimiter.reset()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
   it("allows the first request on a new key", () => {
-    const result = rateLimiter.check("1.2.3.4", opts)
+    const result = rateLimiter.check("1.2.3.4", opts, now)
 
     expect(result.allowed).toBe(true)
     expect(result.retryAfterSeconds).toBe(0)
@@ -33,7 +29,7 @@ describe("rateLimiter.check", () => {
   ])("%s (max=5)", (_label, previousHits, allowed) => {
     exhaust("1.2.3.4", previousHits)
 
-    const result = rateLimiter.check("1.2.3.4", opts)
+    const result = rateLimiter.check("1.2.3.4", opts, now)
 
     expect(result.allowed).toBe(allowed)
   })
@@ -41,7 +37,7 @@ describe("rateLimiter.check", () => {
   it("reports a retry delay within the window once limited", () => {
     exhaust("1.2.3.4", 5)
 
-    const result = rateLimiter.check("1.2.3.4", opts)
+    const result = rateLimiter.check("1.2.3.4", opts, now)
 
     expect(result.retryAfterSeconds).toBeGreaterThan(0)
     expect(result.retryAfterSeconds).toBeLessThanOrEqual(600)
@@ -49,9 +45,8 @@ describe("rateLimiter.check", () => {
 
   it("allows requests again once the TTL window expires", () => {
     exhaust("1.2.3.4", 5)
-    vi.advanceTimersByTime(600_001)
 
-    const result = rateLimiter.check("1.2.3.4", opts)
+    const result = rateLimiter.check("1.2.3.4", opts, now + 600_001)
 
     expect(result.allowed).toBe(true)
     expect(result.retryAfterSeconds).toBe(0)
@@ -60,7 +55,7 @@ describe("rateLimiter.check", () => {
   it("counts distinct keys separately", () => {
     exhaust("1.2.3.4", 5)
 
-    const result = rateLimiter.check("5.6.7.8", opts)
+    const result = rateLimiter.check("5.6.7.8", opts, now)
 
     expect(result.allowed).toBe(true)
   })
@@ -74,8 +69,8 @@ describe("rateLimiter.check", () => {
     exhaust("key-1", 1, lruOpts)
     exhaust("key-4", 1, lruOpts)
 
-    const recentlyHit = rateLimiter.check("key-1", lruOpts)
-    const evicted = rateLimiter.check("key-2", lruOpts)
+    const recentlyHit = rateLimiter.check("key-1", lruOpts, now)
+    const evicted = rateLimiter.check("key-2", lruOpts, now)
 
     expect(recentlyHit.allowed).toBe(false)
     expect(evicted.allowed).toBe(true)

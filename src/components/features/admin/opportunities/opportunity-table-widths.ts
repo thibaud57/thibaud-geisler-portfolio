@@ -55,7 +55,7 @@ export function opportunitySkeletonWidths(view: OpportunityView): readonly numbe
   )
 }
 
-export const OPPORTUNITY_PAGE_SKELETON: string[] = [
+export const OPPORTUNITY_PAGE_SKELETON: readonly string[] = [
   "h-[24px]",
   "h-[200px]",
   "h-[220px]",
