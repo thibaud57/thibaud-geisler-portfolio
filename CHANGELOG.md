@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.2.1...v2.3.0) (2026-10-24)
+
+
+### Features
+
+* **tags:** ajoute l'icône OpenRouter ([#188](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/188)) ([6e2595c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6e2595c454280b0b48172cef7244dd593b80afa6))
+
+
+### Bug Fixes
+
+* **auth:** signale l'échec de la connexion Google ([#191](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/191)) ([6e2595c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6e2595c454280b0b48172cef7244dd593b80afa6))
+* **company-logo:** plafonne la récupération du logo à 20 s ([#189](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/189)) ([6e2595c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6e2595c454280b0b48172cef7244dd593b80afa6))
+* **persons:** refuse l'effacement des échanges d'une personne sans opposition ([#191](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/191)) ([6e2595c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6e2595c454280b0b48172cef7244dd593b80afa6))
+
 ## [2.2.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.2.0...v2.2.1) (2026-10-23)
 
 
