@@ -10,12 +10,17 @@ import { SLUG_PATTERN } from "@/lib/schemas/slug"
 import { createActionLogger } from "@/lib/server-utils"
 import { NoIconFoundError, retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 import { IconTooSmallError } from "@/server/company-logo/normalize-icon"
-import { BlockedAddressError, FetchFailedError } from "@/server/company-logo/safe-fetch"
+import {
+  BlockedAddressError,
+  DeadlineExceededError,
+  FetchFailedError,
+} from "@/server/company-logo/safe-fetch"
 
 import type { CompanyLogoFailure, CompanyLogoResult } from "./company-logo.types"
 
 function toFailure(err: unknown): CompanyLogoFailure | null {
   if (err instanceof BlockedAddressError) return { ok: false, message: "address_blocked" }
+  if (err instanceof DeadlineExceededError) return { ok: false, message: "site_too_slow" }
   if (err instanceof FetchFailedError)
     return { ok: false, message: "site_unreachable", status: err.status }
   if (err instanceof NoIconFoundError) return { ok: false, message: "no_icon_found" }

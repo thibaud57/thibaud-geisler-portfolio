@@ -12,6 +12,7 @@ import https from "node:https"
 
 import {
   BlockedAddressError,
+  DeadlineExceededError,
   FetchFailedError,
   guardedLookup,
   ResponseTooLargeError,
@@ -50,32 +51,26 @@ function dnsAnswers(addresses: LookupAddress[]) {
 }
 
 describe("guardedLookup", () => {
-  it("refuses a host name that resolves to a private address", () => {
-    dnsAnswers([{ address: "10.0.0.5", family: 4 }])
+  it.each([
+    {
+      label: "that resolves to a private address",
+      host: "intranet.acme.example",
+      addresses: [{ address: "10.0.0.5", family: 4 }],
+    },
+    {
+      label: "when any resolved address is private",
+      host: "mixed.acme.example",
+      addresses: [
+        { address: "93.184.216.34", family: 4 },
+        { address: "10.0.0.5", family: 4 },
+      ],
+    },
+    { label: "that resolves to nothing", host: "empty.acme.example", addresses: [] },
+  ])("refuses a host name $label", ({ host, addresses }) => {
+    dnsAnswers(addresses)
     const callback = vi.fn()
 
-    guardedLookup("intranet.acme.example", {}, callback)
-
-    expect(callback.mock.calls[0]?.[0]).toBeInstanceOf(BlockedAddressError)
-  })
-
-  it("refuses a host name when any resolved address is private", () => {
-    dnsAnswers([
-      { address: "93.184.216.34", family: 4 },
-      { address: "10.0.0.5", family: 4 },
-    ])
-    const callback = vi.fn()
-
-    guardedLookup("mixed.acme.example", {}, callback)
-
-    expect(callback.mock.calls[0]?.[0]).toBeInstanceOf(BlockedAddressError)
-  })
-
-  it("refuses a host name that resolves to nothing", () => {
-    dnsAnswers([])
-    const callback = vi.fn()
-
-    guardedLookup("empty.acme.example", {}, callback)
+    guardedLookup(host, {}, callback)
 
     expect(callback.mock.calls[0]?.[0]).toBeInstanceOf(BlockedAddressError)
   })
@@ -217,5 +212,43 @@ describe("safeFetch", () => {
 
     await expect(result).rejects.toBeInstanceOf(FetchFailedError)
     await expect(result).rejects.toMatchObject({ status: 404 })
+  })
+
+  it("fails a response whose body is cut without an error event", async () => {
+    const body = Object.assign(new Readable({ read() {} }), { statusCode: 200, headers: {} })
+    httpsRepliesWith(body)
+    queueMicrotask(() => body.destroy())
+
+    const result = safeFetch("https://acme.example/", { maxBytes: 1024 })
+
+    await expect(result).rejects.toBeInstanceOf(FetchFailedError)
+  })
+
+  it("sends no request once the deadline has passed", async () => {
+    const deadline = AbortSignal.abort()
+
+    const result = safeFetch("https://acme.example/", { maxBytes: 1024, deadline })
+
+    await expect(result).rejects.toBeInstanceOf(DeadlineExceededError)
+    expect(https.get).not.toHaveBeenCalled()
+  })
+
+  it("reports a request cut by the deadline as a deadline error, not as unreachable", async () => {
+    const controller = new AbortController()
+    vi.mocked(https.get).mockImplementationOnce((() => {
+      const req = new EventEmitter()
+      queueMicrotask(() => {
+        controller.abort()
+        req.emit("error", new Error("aborted"))
+      })
+      return req
+    }) as never)
+
+    const result = safeFetch("https://acme.example/", {
+      maxBytes: 1024,
+      deadline: controller.signal,
+    })
+
+    await expect(result).rejects.toBeInstanceOf(DeadlineExceededError)
   })
 })

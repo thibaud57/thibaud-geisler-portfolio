@@ -55,9 +55,9 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 - **Garde réseau** (ADR-023, le `fetch` natif n'offrant ni protection SSRF ni plafond de taille) : requête `node:http`/`node:https` dont l'option `lookup` résout le nom, refuse toute réponse contenant une adresse interne et connecte sur l'adresse vérifiée, sans seconde résolution ; une adresse IP écrite en toutes lettres est vérifiée avant la requête
   - schémas `http` et `https`, ports 80 et 443 seulement
   - refusés : IPv4 non routables (`0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10`, `127.0.0.0/8`, `169.254.0.0/16`, `172.16.0.0/12`, `192.168.0.0/16`, multicast et réservées) ; IPv6 `::`, `::1`, `fc00::/7`, `fe80::/10`, multicast, et toute adresse IPv4 intégrée dans une IPv6 qui tombe dans ces plages
-  - cinq redirections au plus, chacune revérifiée ; 10 secondes par requête (Internet Archive répond lentement)
+  - cinq redirections au plus, chacune revérifiée ; 10 secondes par requête (Internet Archive répond lentement) et 20 secondes pour toute la récupération, page et icônes comprises (amendé le 2026-10-24 : le délai par requête repartait à chaque redirection et à chaque icône, un clic pouvait attendre plusieurs minutes)
   - réponse demandée non compressée (`Accept-Encoding: identity`), lecture en flux arrêtée au plafond : 1 Mo pour la page, 1 Mo pour une image
-- **Messages** : `invalid_input`, `site_unreachable` (avec le code HTTP quand il existe), `address_blocked`, `no_icon_found`, `icon_too_small` (avec la plus grande taille lue), `unknown_error`, affichés en toutes lettres sous l'aperçu de la card ; aucun n'efface le logo en place
+- **Messages** : `invalid_input`, `site_unreachable` (avec le code HTTP quand il existe), `site_too_slow` (échéance de la récupération dépassée, amendé le 2026-10-24), `address_blocked`, `no_icon_found`, `icon_too_small` (avec la plus grande taille lue), `unknown_error`, affichés en toutes lettres sous l'aperçu de la card ; aucun n'efface le logo en place
 - **Journalisation** (`createActionLogger`) : hôte, source retenue, taille, motif d'échec ; jamais la page lue
 - **Card Logo** (`CompanyLogoCard`) : aperçu en `object-contain` sur fond neutre, règle d'aperçu de `CompanyLogoTile` (`docs/DESIGN.md`), une icône carrée en `object-cover` dans le cadre 16/9 étant rognée ; « Choisir un logo » existant, bouton « Récupérer depuis le site » en `outline` à côté, désactivé tant que le site web ou le slug est vide ou qu'une récupération est en cours, libellé « Récupération… » pendant l'appel ; sous l'aperçu, « <largeur> × <hauteur> px · <source> » après une récupération réussie. Le formulaire suit la valeur des champs slug et site web pour activer le bouton
 - **Revue de sécurité** : le réseau sortant est une surface sensible, `/security-review` passe à la fin de l'epic
@@ -115,6 +115,7 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
   - truncates a page past its size limit
   - rejects an image past its size limit
   - reports the status of a failed response
+  - fails a response whose body is cut without an error event, sends no request once the deadline has passed, reports a request cut by the deadline as a deadline error, not as unreachable (ajoutés le 2026-10-24)
 - `src/server/company-logo/icon-candidates.test.ts` :
   - ranks apple-touch-icon before any other icon
   - orders icons by largest declared size, an svg first
@@ -138,13 +139,14 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
   - tries /favicon.ico when the page declares no icon
   - reports the largest too small size when no candidate is large enough
   - stops at a blocked address
+  - stops at the deadline instead of trying the next candidate, shares one deadline between the page and every candidate, bounds the whole retrieval with a deadline by default (ajoutés le 2026-10-24)
   - stores the icon under the company folder with a content-derived name
 - `src/server/actions/company-logo.test.ts` :
   - rejects a call without a session before any network access
   - rejects an invalid website URL or slug without fetching
   - lowercases the slug before storing
   - returns the stored key, size and source
-  - maps a blocked address, an unreachable site, a missing icon and a too small icon to their messages
+  - maps a blocked address, an unreachable site, a site too slow for the deadline, a missing icon and a too small icon to their messages
 
 ## Edge cases
 
@@ -154,6 +156,7 @@ Ajoute à la card Logo du formulaire entreprise un bouton « Récupérer depuis 
 - **SVG pensé pour le thème sombre** (blanc sur fond transparent) : quasi invisible sur fond clair ; l'aperçu le montre, le dépôt manuel le remplace
 - **Slug modifié après la récupération** : le fichier reste dans le dossier de l'ancien slug et la fiche pointe vers lui, comme pour un logo choisi à la main
 - **Capture Wayback sans icône archivée** : `no_icon_found`
+- **Site qui répond au compte-gouttes** (redirections lentes, icônes qui expirent l'une après l'autre) : la récupération s'arrête à l'échéance sur `site_too_slow`, sans essayer les icônes restantes, et le dépôt manuel reste (amendé le 2026-10-24)
 
 ## Architectural decisions
 
