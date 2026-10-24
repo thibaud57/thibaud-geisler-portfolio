@@ -2,69 +2,43 @@
 
 import type { ReactNode } from "react"
 
-import { EnumSelectItems } from "@/components/features/admin/form/EnumSelectItems"
 import { describedBy } from "@/components/features/admin/form/field-aria"
-import { FormField } from "@/components/ui/form-field"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import type { IconComponent } from "@/lib/icons"
-import { NONE_VALUE } from "@/lib/schemas/none-value"
+  OptionSelect,
+  type NullableOptionSelectProps,
+  type RequiredOptionSelectProps,
+} from "@/components/features/admin/form/OptionSelect"
+import { FormField } from "@/components/ui/form-field"
 
-interface Props {
+interface FieldExtras {
   id: string
   name: string
   label: string
-  options: readonly string[]
-  labels: Record<string, string>
-  errors: string[] | undefined
-  defaultValue?: string | null
-  value?: string
-  onValueChange?: (value: string) => void
-  placeholder?: string
-  icons?: Record<string, IconComponent | null>
-  noneLabel?: string
+  errors: readonly string[] | undefined
   help?: ReactNode
 }
 
-export function SelectField({
-  id,
-  name,
-  label,
-  options,
-  labels,
-  errors,
-  defaultValue,
-  value,
-  onValueChange,
-  placeholder,
-  icons,
-  noneLabel,
-  help,
-}: Props) {
-  const initialValue = defaultValue ?? (noneLabel && value === undefined ? NONE_VALUE : undefined)
+type Controlled = keyof FieldExtras | "aria-invalid" | "aria-describedby" | "aria-label"
 
+type RequiredSelectFieldProps<T extends string> = FieldExtras &
+  Omit<RequiredOptionSelectProps<T>, Controlled>
+export type NullableSelectFieldProps<T extends string> = FieldExtras &
+  Omit<NullableOptionSelectProps<T>, Controlled>
+type SelectFieldProps<T extends string> = RequiredSelectFieldProps<T> | NullableSelectFieldProps<T>
+
+export function SelectField<T extends string>({
+  label,
+  errors,
+  help,
+  ...select
+}: SelectFieldProps<T>) {
   return (
-    <FormField id={id} label={label} errors={errors} help={help}>
-      <Select name={name} defaultValue={initialValue} value={value} onValueChange={onValueChange}>
-        <SelectTrigger
-          id={id}
-          className="w-full"
-          aria-invalid={!!errors?.length}
-          aria-describedby={describedBy(id, help)}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {/* La sentinelle remplace une valeur vide, que Radix refuse ; le schéma la retraduit en null. */}
-          {noneLabel ? <SelectItem value={NONE_VALUE}>{noneLabel}</SelectItem> : null}
-          <EnumSelectItems values={options} labels={labels} icons={icons} />
-        </SelectContent>
-      </Select>
+    <FormField id={select.id} label={label} errors={errors} help={help}>
+      <OptionSelect
+        {...select}
+        aria-invalid={!!errors?.length}
+        aria-describedby={describedBy(select.id, help)}
+      />
     </FormField>
   )
 }

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import { describe, expect, it } from "vitest"
 
-import { extractClientIp, hashIp } from "./server-utils"
+import { extractClientIp, hashIp, violatedConstraint } from "./server-utils"
 
 describe("extractClientIp", () => {
   it.each([
@@ -19,24 +19,34 @@ describe("extractClientIp", () => {
 })
 
 describe("hashIp", () => {
+  const SALT = "test-salt"
+
   it("returns 8 hexadecimal characters", () => {
-    const hash = hashIp("203.0.113.7")
+    const hash = hashIp("203.0.113.7", SALT)
 
     expect(hash).toMatch(/^[0-9a-f]{8}$/)
   })
 
   it("returns the same hash for the same address", () => {
-    const hash = hashIp("203.0.113.7")
+    const hash = hashIp("203.0.113.7", SALT)
 
-    const repeated = hashIp("203.0.113.7")
+    const repeated = hashIp("203.0.113.7", SALT)
 
     expect(repeated).toBe(hash)
   })
 
   it("returns a different hash for another address", () => {
-    const hash = hashIp("203.0.113.7")
+    const hash = hashIp("203.0.113.7", SALT)
 
-    const other = hashIp("203.0.113.8")
+    const other = hashIp("203.0.113.8", SALT)
+
+    expect(other).not.toBe(hash)
+  })
+
+  it("returns a different hash for another salt", () => {
+    const hash = hashIp("203.0.113.7", SALT)
+
+    const other = hashIp("203.0.113.7", "other-salt")
 
     expect(other).not.toBe(hash)
   })
@@ -44,8 +54,34 @@ describe("hashIp", () => {
   it("salts the hash, so it is not the bare SHA-256 of the address", () => {
     const bare = createHash("sha256").update("203.0.113.7").digest("hex").slice(0, 8)
 
-    const hash = hashIp("203.0.113.7")
+    const hash = hashIp("203.0.113.7", SALT)
 
     expect(hash).not.toBe(bare)
+  })
+})
+
+describe("violatedConstraint", () => {
+  it.each([
+    [
+      "the driver adapter index",
+      { meta: { driverAdapterError: { cause: { constraint: { index: "Lead_email_key" } } } } },
+      "Lead_email_key",
+    ],
+    ["a string target", { meta: { target: "Lead_email_key" } }, "Lead_email_key"],
+    ["an array target", { meta: { target: ["slug", "companyId"] } }, "slug,companyId"],
+  ])("reads %s", (_label, err, expected) => {
+    const constraint = violatedConstraint(err)
+
+    expect(constraint).toBe(expected)
+  })
+
+  it.each([
+    ["a non-object error", "boom"],
+    ["an error without meta", { code: "P2002" }],
+    ["a meta without any constraint", { meta: { modelName: "Lead" } }],
+  ])("returns undefined for %s", (_label, err) => {
+    const constraint = violatedConstraint(err)
+
+    expect(constraint).toBeUndefined()
   })
 })

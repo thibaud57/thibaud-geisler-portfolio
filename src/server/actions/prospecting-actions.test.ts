@@ -247,6 +247,17 @@ describe("updateProspectingAction", () => {
     expect(state.message).toBe("prospecting_action_not_found")
   })
 
+  it("answers prospecting_action_not_found for an empty action id, without writing", async () => {
+    const state = await updateProspectingAction(
+      "",
+      initialProspectingActionFormState,
+      buildFormData(),
+    )
+
+    expect(state.message).toBe("prospecting_action_not_found")
+    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
+  })
+
   it("answers unknown_error on a P2025 while the action still exists", async () => {
     vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)

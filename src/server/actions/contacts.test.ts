@@ -444,6 +444,13 @@ describe("updateContact", () => {
     expect(state.message).toBe("contact_not_found")
   })
 
+  it("answers contact_not_found for an empty person id, without writing", async () => {
+    const state = await updateContact("", initialContactFormState, buildFormData())
+
+    expect(state.message).toBe("contact_not_found")
+    expect(prisma.contact.update).not.toHaveBeenCalled()
+  })
+
   it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
     vi.mocked(prisma.contact.update).mockRejectedValueOnce({ code: "P2025" })

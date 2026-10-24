@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
+import type { PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { companyRefSelect } from "@/server/queries/company-ref"
 import { personRefSelect } from "@/server/queries/persons"
@@ -46,7 +47,7 @@ export async function findActionTimelinesForAdmin(): Promise<ActionTimelineRow[]
 }
 
 export async function findProspectingActionsOfPerson(
-  personId: string,
+  personId: PersonId,
 ): Promise<AdminProspectingAction[]> {
   return prisma.prospectingAction.findMany({
     where: { personId },

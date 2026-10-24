@@ -32,11 +32,6 @@ export function signalRelatedRows(
       trailing: formatSignalDate(signal),
       at: signal.occurredOn,
       marker: toLinkMarker(SIGNAL_TYPE_ICONS[signal.type]),
-      onClick:
-        onOpen &&
-        (() => {
-          onOpen(signal)
-        }),
       actions: onEdit && (
         <>
           <EditRowButton
@@ -48,6 +43,11 @@ export function signalRelatedRows(
           <DeleteSignalDialog signal={signal} />
         </>
       ),
+      onClick:
+        onOpen &&
+        (() => {
+          onOpen(signal)
+        }),
     }
   })
 }

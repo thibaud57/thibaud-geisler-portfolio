@@ -181,9 +181,9 @@ describe("toInstant", () => {
     ["a missing date", undefined, "09:30"],
     ["a malformed time", "2026-07-10T00:00:00+02:00", "9:30"],
     ["an empty time", "2026-07-10T00:00:00+02:00", ""],
-  ])("returns an empty string for %s", (_label, date, time) => {
+  ])("returns null for %s", (_label, date, time) => {
     const instant = toInstant(date ? new Date(date) : undefined, time)
 
-    expect(instant).toBe("")
+    expect(instant).toBeNull()
   })
 })

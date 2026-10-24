@@ -16,13 +16,13 @@ import type { TagKind } from "@/generated/prisma/client"
 import { TAG_COLUMN_WIDTHS } from "@/components/features/admin/tags/tag-table-widths"
 import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
 import {
-  emptyTagCountByKind,
   KIND_ORDER,
   TAG_FIELD_LABELS,
   TAG_KIND_GROUP_LABELS,
   TAG_KIND_LABELS,
   type TagCountByKind,
 } from "@/lib/tags"
+import { recordFromKeys } from "@/lib/record-from-keys"
 import { reorderTags } from "@/server/actions/tags"
 import type { AdminTag } from "@/server/queries/tags"
 import { renderTagIcon, tagDetailRows } from "@/components/features/admin/tags/tag-detail"
@@ -93,21 +93,17 @@ const groupBy: GroupBy<AdminTag, TagKind> = {
   label: (key) => TAG_KIND_GROUP_LABELS[key],
 }
 
-const facets: readonly Facet<AdminTag, TagKind>[] = [
+const facets: readonly Facet<AdminTag>[] = [
   {
     key: "kind",
     label: "Catégorie",
     options: KIND_ORDER.map((kind) => ({ value: kind, label: TAG_KIND_LABELS[kind] })),
-    value: (tag) => tag.kind,
+    values: (tag) => [tag.kind],
   },
 ]
 
 function countByKind(tags: readonly AdminTag[]): TagCountByKind {
-  const counts = emptyTagCountByKind()
-  for (const tag of tags) {
-    counts[tag.kind] += 1
-  }
-  return counts
+  return recordFromKeys(KIND_ORDER, (kind) => tags.filter((tag) => tag.kind === kind).length)
 }
 
 interface Props {

@@ -4,6 +4,7 @@ import "server-only"
 
 import { isEsn } from "@/lib/crm/companies"
 import { getCurrentUser } from "@/lib/get-current-user"
+import type { CompanyId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
@@ -18,7 +19,7 @@ import {
   rowExists,
   saveEntity,
 } from "./_support/shared"
-import type { OpportunityFormState } from "./opportunities.types"
+import type { OpportunityDeleteState, OpportunityFormState } from "./opportunities.types"
 import { revalidatePersonLists } from "./_support/person-guards"
 
 // Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent), les entretiens leur titre, tarif, zone et contrat. Supprimer une opportunité supprime ses entretiens : leurs vues se rafraîchissent aussi (entretiens et entreprises via `revalidatePersonLists`).
@@ -51,7 +52,7 @@ function collectValues(formData: FormData): OpportunityFormState["values"] {
 
 // Le formulaire ne propose que des ESN : le serveur revérifie, le type ayant pu changer depuis l'affichage.
 // Une ESN disparue passe ici et se lit ensuite sur la clé étrangère violée.
-async function assertIntermediaryIsEsn(intermediaryId: string | null): Promise<void> {
+async function assertIntermediaryIsEsn(intermediaryId: CompanyId | null): Promise<void> {
   if (!intermediaryId) return
   const company = await prisma.company.findUnique({
     where: { id: intermediaryId },
@@ -75,11 +76,11 @@ function mapOpportunityError(
   // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
   if (isPrismaError(err, "P2003")) {
     const constraint = violatedConstraint(err)
-    if (constraint.includes("referrerId")) {
+    if (constraint?.includes("referrerId")) {
       return missingRelationState("referrerId", MISSING_REFERRER, values)
     }
     const companyField = (["intermediaryId", "clientId"] as const).find((field) =>
-      constraint.includes(field),
+      constraint?.includes(field),
     )
     if (companyField) return missingRelationState(companyField, MISSING_COMPANY, values)
   }
@@ -159,10 +160,10 @@ export async function updateOpportunity(
   )
 }
 
-export async function deleteOpportunity(id: string): Promise<OpportunityFormState> {
+export async function deleteOpportunity(id: string): Promise<OpportunityDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<OpportunityFormState>({
+  return deleteEntity<OpportunityDeleteState>({
     actionName: "deleteOpportunity",
     events: { success: "opportunity:deleted", failure: "opportunity:delete_failed" },
     successLogFields: { id },

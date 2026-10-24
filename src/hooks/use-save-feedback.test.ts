@@ -3,19 +3,15 @@ import { toast } from "sonner"
 import { describe, expect, it, vi } from "vitest"
 
 import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
-import { useSaveFeedback } from "./use-save-feedback"
+import { useSaveFeedback, type SaveFeedbackState } from "./use-save-feedback"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 type Message = "opportunity_not_found" | "company_not_found" | "unknown_error"
-interface State {
-  ok: boolean | null
-  message: Message | null
-}
 
 const GONE = { code: "opportunity_not_found", toast: "Cette opportunité a été supprimée" } as const
 
-function renderFeedback(state: State, onSaved = vi.fn()) {
+function renderFeedback(state: SaveFeedbackState<Message>, onSaved = vi.fn()) {
   renderHook(() => {
     useSaveFeedback<Message>(state, {
       saved: "Opportunité créée",

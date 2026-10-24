@@ -20,6 +20,8 @@ function failureText(failure: CompanyLogoFailure): string {
       return "Adresse refusée : elle mène vers un réseau interne."
     case "site_unreachable":
       return failure.status === null ? "Site injoignable." : `Site injoignable (${failure.status}).`
+    case "site_too_slow":
+      return "Le site met trop de temps à répondre. Choisissez un logo déposé dans Assets."
     case "no_icon_found":
       return "Le site ne déclare aucune icône exploitable. Choisissez un logo déposé dans Assets."
     case "icon_too_small":
@@ -32,7 +34,7 @@ function failureText(failure: CompanyLogoFailure): string {
 interface Props {
   logoFilename: string | null
   onLogoFilenameChange: (key: string | null) => void
-  logoAssets: AssetEntry[]
+  logoAssets: readonly AssetEntry[]
   websiteUrl: string
   slug: string
   error: string | undefined

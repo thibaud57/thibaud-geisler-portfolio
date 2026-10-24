@@ -1,7 +1,10 @@
 import { VatRegime } from "@/generated/prisma/browser"
 import type { LegalForm } from "@/generated/prisma/client"
 
-export const LEGAL_FORM_GROUPS: { country: string; forms: readonly LegalForm[] }[] = [
+export const LEGAL_FORM_GROUPS: readonly {
+  readonly country: string
+  readonly forms: readonly LegalForm[]
+}[] = [
   {
     country: "France",
     forms: [
@@ -26,7 +29,7 @@ export const LEGAL_FORM_GROUPS: { country: string; forms: readonly LegalForm[] }
   },
 ]
 
-export const LEGAL_FORMS: LegalForm[] = LEGAL_FORM_GROUPS.flatMap((group) => group.forms)
+export const LEGAL_FORMS: readonly LegalForm[] = LEGAL_FORM_GROUPS.flatMap((group) => group.forms)
 
 // Le groupe suffit à situer une forme hors de France : inutile de répéter le pays dans les messages publics.
 export const LEGAL_FORM_LABELS: Record<LegalForm, string> = {

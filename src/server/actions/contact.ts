@@ -6,7 +6,7 @@ import { MAIL_FROM, MAIL_TO, transporter } from "@/lib/mailer"
 import { rateLimiter } from "@/lib/rate-limiter"
 import { z } from "zod"
 
-import { contactSchema } from "@/lib/schemas/contact"
+import { ContactFieldErrors, contactSchema } from "@/lib/schemas/contact"
 import { createActionLogger, stringField } from "@/lib/server-utils"
 
 import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, type ContactFormState } from "./contact.types"
@@ -68,7 +68,8 @@ export async function submitContact(
     if (!result.success) {
       return {
         ok: false,
-        errors: z.flattenError(result.error).fieldErrors,
+        // Fail fast : les messages du schéma sont tous des codes, un message non codé doit casser en test et jamais passer à la traduction.
+        errors: ContactFieldErrors.parse(z.flattenError(result.error).fieldErrors),
         message: null,
         values: submittedValues,
       }

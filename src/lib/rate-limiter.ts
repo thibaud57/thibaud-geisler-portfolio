@@ -13,9 +13,8 @@ export interface RateLimitResult {
 const DEFAULT_CAP = 1000
 const buckets = new Map<string, number[]>()
 
-function check(key: string, options: RateLimitOptions): RateLimitResult {
+function check(key: string, options: RateLimitOptions, now = Date.now()): RateLimitResult {
   const { max, windowMs, cap = DEFAULT_CAP } = options
-  const now = Date.now()
   const cutoff = now - windowMs
   const timestamps = (buckets.get(key) ?? []).filter((t) => t > cutoff)
 

@@ -6,7 +6,7 @@ interface Props {
   id: string
   label?: ReactNode
   error?: ReactNode
-  errors?: string[]
+  errors?: readonly string[]
   help?: ReactNode
   children: ReactNode
 }

@@ -23,6 +23,7 @@ import {
   SiNextdotjs,
   SiNodedotjs,
   SiOdoo,
+  SiOpenrouter,
   SiPerplexity,
   SiPhp,
   SiPostgresql,
@@ -59,73 +60,72 @@ import {
   Workflow,
 } from "lucide-react"
 
+import { keysOf } from "@/lib/keys-of"
+
 export type IconComponent = React.ComponentType<{ size?: number; className?: string }>
 
-const SIMPLE_ICONS: Record<string, IconComponent> = {
-  android: SiAndroid,
-  angular: SiAngular,
-  anthropic: SiAnthropic,
-  apachekafka: SiApachekafka,
-  claude: SiClaude,
-  datadog: SiDatadog,
-  docker: SiDocker,
-  elasticsearch: SiElasticsearch,
-  express: SiExpress,
-  fastapi: SiFastapi,
-  github: SiGithub,
-  githubactions: SiGithubactions,
-  google: SiGoogle,
-  googlecloud: SiGooglecloud,
-  googlegemini: SiGooglegemini,
-  grafana: SiGrafana,
-  kubernetes: SiKubernetes,
-  modelcontextprotocol: SiModelcontextprotocol,
-  mongodb: SiMongodb,
-  n8n: SiN8n,
-  nestjs: SiNestjs,
-  nextdotjs: SiNextdotjs,
-  nodedotjs: SiNodedotjs,
-  odoo: SiOdoo,
-  perplexity: SiPerplexity,
-  php: SiPhp,
-  postgresql: SiPostgresql,
-  pydantic: SiPydantic,
-  python: SiPython,
-  qdrant: SiQdrant,
-  react: SiReact,
-  scala: SiScala,
-  sentry: SiSentry,
-  sonarqubeserver: SiSonarqubeserver,
-  spring: SiSpring,
-  springboot: SiSpringboot,
-  tauri: SiTauri,
-  traefikproxy: SiTraefikproxy,
-  typescript: SiTypescript,
-}
+const TAG_ICONS = {
+  "simple-icons:android": SiAndroid,
+  "simple-icons:angular": SiAngular,
+  "simple-icons:anthropic": SiAnthropic,
+  "simple-icons:apachekafka": SiApachekafka,
+  "simple-icons:claude": SiClaude,
+  "simple-icons:datadog": SiDatadog,
+  "simple-icons:docker": SiDocker,
+  "simple-icons:elasticsearch": SiElasticsearch,
+  "simple-icons:express": SiExpress,
+  "simple-icons:fastapi": SiFastapi,
+  "simple-icons:github": SiGithub,
+  "simple-icons:githubactions": SiGithubactions,
+  "simple-icons:google": SiGoogle,
+  "simple-icons:googlecloud": SiGooglecloud,
+  "simple-icons:googlegemini": SiGooglegemini,
+  "simple-icons:grafana": SiGrafana,
+  "simple-icons:kubernetes": SiKubernetes,
+  "simple-icons:modelcontextprotocol": SiModelcontextprotocol,
+  "simple-icons:mongodb": SiMongodb,
+  "simple-icons:n8n": SiN8n,
+  "simple-icons:nestjs": SiNestjs,
+  "simple-icons:nextdotjs": SiNextdotjs,
+  "simple-icons:nodedotjs": SiNodedotjs,
+  "simple-icons:odoo": SiOdoo,
+  "simple-icons:openrouter": SiOpenrouter,
+  "simple-icons:perplexity": SiPerplexity,
+  "simple-icons:php": SiPhp,
+  "simple-icons:postgresql": SiPostgresql,
+  "simple-icons:pydantic": SiPydantic,
+  "simple-icons:python": SiPython,
+  "simple-icons:qdrant": SiQdrant,
+  "simple-icons:react": SiReact,
+  "simple-icons:scala": SiScala,
+  "simple-icons:sentry": SiSentry,
+  "simple-icons:sonarqubeserver": SiSonarqubeserver,
+  "simple-icons:spring": SiSpring,
+  "simple-icons:springboot": SiSpringboot,
+  "simple-icons:tauri": SiTauri,
+  "simple-icons:traefikproxy": SiTraefikproxy,
+  "simple-icons:typescript": SiTypescript,
+  "lucide:bot": Bot,
+  "lucide:brain-circuit": BrainCircuit,
+  "lucide:bug": Bug,
+  "lucide:chevron-right": ChevronRight,
+  "lucide:coffee": Coffee,
+  "lucide:database": Database,
+  "lucide:database-zap": DatabaseZap,
+  "lucide:ghost": Ghost,
+  "lucide:laptop": Laptop,
+  "lucide:message-circle": MessageCircle,
+  "lucide:network": Network,
+  "lucide:plug": Plug,
+  "lucide:shield-ban": ShieldBan,
+  "lucide:ship": Ship,
+  "lucide:sparkles": Sparkles,
+  "lucide:square-function": SquareFunction,
+  "lucide:workflow": Workflow,
+  "custom:remotion": RemotionIcon,
+} as const satisfies Record<string, IconComponent>
 
-const LUCIDE_ICONS: Record<string, IconComponent> = {
-  bot: Bot,
-  "brain-circuit": BrainCircuit,
-  bug: Bug,
-  "chevron-right": ChevronRight,
-  coffee: Coffee,
-  database: Database,
-  "database-zap": DatabaseZap,
-  ghost: Ghost,
-  laptop: Laptop,
-  "message-circle": MessageCircle,
-  network: Network,
-  plug: Plug,
-  "shield-ban": ShieldBan,
-  ship: Ship,
-  sparkles: Sparkles,
-  "square-function": SquareFunction,
-  workflow: Workflow,
-}
-
-const CUSTOM_ICONS: Record<string, IconComponent> = {
-  remotion: RemotionIcon,
-}
+export type TagIconKey = keyof typeof TAG_ICONS
 
 // Malt absent de Simple Icons : symbole du logo officiel (media kit Malt), en currentColor
 // comme LinkedIn ci-dessous, pour suivre le thème comme le reste de la rangée d'icônes.
@@ -190,17 +190,12 @@ function RemotionIcon({ className }: { className?: string }) {
   )
 }
 
+export function isTagIconKey(value: string): value is TagIconKey {
+  return Object.hasOwn(TAG_ICONS, value)
+}
+
 export function resolveTagIcon(icon: string | null): IconComponent | null {
-  if (!icon) return null
-  const colonIdx = icon.indexOf(":")
-  if (colonIdx === -1) return null
-  const lib = icon.slice(0, colonIdx)
-  const slug = icon.slice(colonIdx + 1)
-  if (!slug) return null
-  if (lib === "simple-icons") return SIMPLE_ICONS[slug] ?? null
-  if (lib === "lucide") return LUCIDE_ICONS[slug] ?? null
-  if (lib === "custom") return CUSTOM_ICONS[slug] ?? null
-  return null
+  return icon !== null && isTagIconKey(icon) ? TAG_ICONS[icon] : null
 }
 
 export function TagIcon({ icon, className }: { icon: string | null; className?: string }) {
@@ -209,8 +204,4 @@ export function TagIcon({ icon, className }: { icon: string | null; className?: 
   return Icon ? <Icon className={className} aria-hidden /> : null
 }
 
-export const TAG_ICON_KEYS: readonly string[] = [
-  ...Object.keys(SIMPLE_ICONS).map((slug) => `simple-icons:${slug}`),
-  ...Object.keys(LUCIDE_ICONS).map((slug) => `lucide:${slug}`),
-  ...Object.keys(CUSTOM_ICONS).map((slug) => `custom:${slug}`),
-].sort()
+export const TAG_ICON_KEYS: readonly TagIconKey[] = keysOf(TAG_ICONS).sort()

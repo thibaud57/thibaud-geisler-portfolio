@@ -19,6 +19,7 @@ import { useProspectingActionDetail } from "@/components/features/admin/prospect
 import { BOARD_PERIOD_LABELS, type BoardPeriod } from "@/lib/crm/action-board"
 import {
   ACTION_VIEW_LOCKED_FACETS,
+  type ActionFacetKey,
   actionsForView,
   MESSAGE_CHANNELS,
   type ActionView,
@@ -104,7 +105,7 @@ export function ProspectingActionsTable({ actions, view, personOptions, initialD
   })
   const viewActions = useMemo(() => actionsForView(actions, view), [actions, view])
 
-  const facets = useMemo<readonly Facet<AdminProspectingAction>[]>(
+  const facets = useMemo<readonly Facet<AdminProspectingAction, ActionFacetKey>[]>(
     () => [
       enumFacet(
         "status",

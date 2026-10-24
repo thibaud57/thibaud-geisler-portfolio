@@ -21,6 +21,7 @@ import { setupLocalePage } from "@/i18n/locale-guard"
 import { countryName } from "@/lib/crm/legal-entities"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
 import { LINK_CLASS } from "@/lib/typography"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
 import { getDataProcessors, getPublisher } from "@/server/queries/legal"
 
@@ -38,6 +39,7 @@ export async function generateMetadata(
     title: t("privacyPolicyTitle"),
     description: t("privacyPolicyDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
@@ -72,14 +74,16 @@ export default async function ConfidentialitePage({
 
 async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
   await io()
-  const [t, tLegal, publisher, processors, introContent, cookiesContent] = await Promise.all([
-    getTranslations("PrivacyPolicy"),
-    getTranslations("Legal"),
-    getPublisher(),
-    getDataProcessors(),
-    loadLegalContent(locale, "confidentialite-intro"),
-    loadLegalContent(locale, "confidentialite-cookies"),
-  ])
+  const [t, tLegal, tRetention, publisher, processors, introContent, cookiesContent] =
+    await Promise.all([
+      getTranslations("PrivacyPolicy"),
+      getTranslations("Legal"),
+      getTranslations("Legal.retention"),
+      getPublisher(),
+      getDataProcessors(),
+      loadLegalContent(locale, "confidentialite-intro"),
+      loadLegalContent(locale, "confidentialite-cookies"),
+    ])
 
   if (!publisher?.publisher) notFound()
   const pub = publisher.publisher
@@ -144,11 +148,7 @@ async function ConfidentialiteContentAsync({ locale }: { locale: Locale }) {
               <TableRow key={entry.processing.slug}>
                 <TableCell className="font-medium">{entry.name}</TableCell>
                 <TableCell className="whitespace-normal">
-                  {tLegal(
-                    `retention.${entry.processing.retentionPolicyKey}` as Parameters<
-                      typeof tLegal
-                    >[0],
-                  )}
+                  {tRetention(entry.processing.retentionPolicyKey)}
                 </TableCell>
               </TableRow>
             ))}

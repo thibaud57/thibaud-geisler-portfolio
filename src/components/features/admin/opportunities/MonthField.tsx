@@ -31,7 +31,7 @@ interface Props {
   id: string
   name: string
   label: string
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   // « AAAA-MM », vide si aucun mois ; une valeur partielle (ex. "-04") passe telle quelle, la validation la refuse.
   defaultValue: string
 }
@@ -39,7 +39,7 @@ interface Props {
 export function MonthField({ id, name, label, errors, defaultValue }: Props) {
   const [value, setValue] = useState(defaultValue)
   const [open, setOpen] = useState(false)
-  const now = new Date()
+  const [now] = useState(() => new Date())
   const picked = parseValue(value)
   const pickedOrCurrentYear = picked?.year ?? now.getFullYear()
   const [year, setYear] = useState(pickedOrCurrentYear)

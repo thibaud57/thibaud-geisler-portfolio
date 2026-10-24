@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { JOB_ROLES } from "@/lib/crm/job-roles"
+import { companyIdSchema } from "@/lib/ids"
 import { LINKEDIN_PROFILE_ERROR, normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { notesField, optionalDateField, optionalTextField } from "@/lib/schemas/fields"
 import {
@@ -54,5 +55,6 @@ export const personFields = {
   companyId: z
     .string()
     .trim()
-    .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE))
+    .pipe(companyIdSchema.nullable()),
 }

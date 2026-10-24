@@ -16,6 +16,6 @@ export const ZONE_LABELS: Record<Zone, string> = {
 
 export const ZONE_OPTIONS = ZONES.map((value) => ({ value, label: ZONE_LABELS[value] }))
 
-export function sortZones(zones: Zone[]): Zone[] {
+export function sortZones(zones: readonly Zone[]): Zone[] {
   return [...zones].sort((a, b) => ZONES.indexOf(a) - ZONES.indexOf(b))
 }

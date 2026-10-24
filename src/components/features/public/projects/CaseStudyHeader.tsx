@@ -19,8 +19,6 @@ export async function CaseStudyHeader({ project }: Props) {
   const t = await getTranslations("Projects.caseStudy")
 
   const timeline = getProjectTimeline(project.startedAt, project.endedAt)
-  const { startYear, endYear, inProgress } = timeline
-  const endLabel = endYear?.toString() ?? (inProgress ? t("inProgress") : "")
   const { company, teamSize, contractStatus: contract, workMode } = project.clientMeta ?? {}
   const companyUrl = safeExternalUrl(company?.websiteUrl)
   // Un projet personnel est rattaché à l'entreprise du freelance lui-même : la vitrine montre la
@@ -40,14 +38,18 @@ export async function CaseStudyHeader({ project }: Props) {
 
   return (
     <header>
-      {startYear !== null ? (
+      {timeline.kind !== "none" ? (
         <div className="mb-6 flex items-center gap-3" aria-label={t("meta.duration")}>
-          <TimelineMarker label={String(startYear)} />
+          <TimelineMarker label={String(timeline.startYear)} />
           <span
             className="h-px max-w-24 flex-1 bg-linear-to-r from-primary/60 to-primary/10"
             aria-hidden="true"
           />
-          <TimelineMarker label={endLabel} variant={inProgress ? "active" : "default"} />
+          {timeline.kind === "ongoing" ? (
+            <TimelineMarker label={t("inProgress")} variant="active" />
+          ) : (
+            <TimelineMarker label={String(timeline.endYear)} />
+          )}
         </div>
       ) : null}
 

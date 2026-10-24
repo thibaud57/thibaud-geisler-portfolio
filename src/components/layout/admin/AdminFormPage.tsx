@@ -6,7 +6,7 @@ import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { cn } from "@/lib/utils"
 
 interface PageProps {
-  skeleton: string[]
+  skeleton: readonly string[]
   children: ReactNode
 }
 

@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { TagKind } from "@/generated/prisma/browser"
-import { TAG_ICON_KEYS } from "@/lib/icons"
+import { isTagIconKey, type TagIconKey } from "@/lib/icons"
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
@@ -27,11 +27,15 @@ export const tagSchema = z.object({
   icon: z
     .string()
     .trim()
-    .refine((value) => value === "" || TAG_ICON_KEYS.includes(value), {
-      error: "Cette icône n'existe pas dans le registre",
-    })
     .optional()
-    .transform((value) => (value === "" || value === undefined ? null : value)),
+    .transform((value) => (value === "" || value === undefined ? null : value))
+    .pipe(
+      z.nullable(
+        z.custom<TagIconKey>((value) => typeof value === "string" && isTagIconKey(value), {
+          error: "Cette icône n'existe pas dans le registre",
+        }),
+      ),
+    ),
   displayOrder: positiveIntegerString({
     requiredMessage: "L'ordre est requis",
     numberMessage: "L'ordre doit être un nombre",

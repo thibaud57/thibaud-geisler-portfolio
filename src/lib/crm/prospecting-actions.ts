@@ -91,7 +91,7 @@ export const PROSPECTING_ACTION_FIELD_LABELS = {
 } as const
 
 // Pour une connexion, Répondu veut dire invitation acceptée.
-export function respondedAtLabel(channel: string): string {
+export function respondedAtLabel(channel: ActionChannel): string {
   return channel === "CONNEXION_LINKEDIN"
     ? "Acceptée le"
     : PROSPECTING_ACTION_FIELD_LABELS.respondedAt

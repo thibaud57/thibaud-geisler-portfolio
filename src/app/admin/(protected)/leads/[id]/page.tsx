@@ -8,6 +8,7 @@ import { PersonActionsCard } from "@/components/features/admin/persons/PersonAct
 import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
 import { ADMIN_LEADS_PATH } from "@/lib/admin/routes"
 import { PERSON_PAGE_SKELETON } from "@/components/features/admin/persons/person-table-widths"
+import { personIdSchema, type PersonId } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personDisplayName } from "@/lib/crm/persons"
 import { canReceiveSignal } from "@/lib/crm/signals"
@@ -15,7 +16,7 @@ import { findCompanyOptions } from "@/server/queries/companies"
 import { findLeadByIdForAdmin } from "@/server/queries/leads"
 import { findProspectingActionsOfPerson } from "@/server/queries/prospecting-actions"
 
-async function EditLeadSection({ id }: { id: string }) {
+async function EditLeadSection({ id }: { id: PersonId }) {
   const [lead, companyOptions, actions] = await Promise.all([
     findLeadByIdForAdmin(id),
     findCompanyOptions(),
@@ -55,11 +56,12 @@ async function EditLeadSection({ id }: { id: string }) {
 
 export default async function EditLeadPage({ params }: PageProps<"/admin/leads/[id]">) {
   await getCurrentUser()
-  const { id } = await params
+  const parsedId = personIdSchema.safeParse((await params).id)
+  if (!parsedId.success) notFound()
 
   return (
     <AdminFormPage skeleton={PERSON_PAGE_SKELETON}>
-      <EditLeadSection id={id} />
+      <EditLeadSection id={parsedId.data} />
     </AdminFormPage>
   )
 }

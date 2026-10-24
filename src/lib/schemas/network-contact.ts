@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { ContactStatus, ContactType } from "@/generated/prisma/browser"
+import { personIdSchema } from "@/lib/ids"
 import { personFields } from "@/lib/schemas/person"
 
 export const CONTACT_TYPES = Object.values(ContactType)
@@ -16,7 +17,7 @@ export const newContactSchema = z.object({ ...personFields, ...roleFields })
 
 // La personne existe déjà : seul le rôle s'écrit, ses champs n'ont donc pas à être valides ici.
 export const attachContactSchema = z.object({
-  personId: z.string().trim().min(1),
+  personId: personIdSchema,
   ...roleFields,
 })
 

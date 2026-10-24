@@ -10,24 +10,27 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
 import { submitContact } from "@/server/actions/contact"
-import { initialContactFormState } from "@/server/actions/contact.types"
+import type { ContactFieldErrorCode } from "@/lib/schemas/contact"
+import { initialContactFormState, type ContactFormMessage } from "@/server/actions/contact.types"
 
 import { SubmitButton } from "./SubmitButton"
 
+type TranslatableErrorCode = ContactFieldErrorCode | ContactFormMessage
+
 interface Labels {
-  name: string
-  company: string
-  email: string
-  subject: string
-  message: string
-  namePlaceholder: string
-  companyPlaceholder: string
-  emailPlaceholder: string
-  subjectPlaceholder: string
-  messagePlaceholder: string
-  submit: string
-  submitting: string
-  successToast: string
+  readonly name: string
+  readonly company: string
+  readonly email: string
+  readonly subject: string
+  readonly message: string
+  readonly namePlaceholder: string
+  readonly companyPlaceholder: string
+  readonly emailPlaceholder: string
+  readonly subjectPlaceholder: string
+  readonly messagePlaceholder: string
+  readonly submit: string
+  readonly submitting: string
+  readonly successToast: string
 }
 
 interface Props {
@@ -39,7 +42,7 @@ interface Props {
 export function ContactForm({ labels, defaultSubject = "", privacyNotice }: Props) {
   const tErrors = useTranslations("ContactPage.form.errors")
   const translateError = useCallback(
-    (code: string): string => tErrors(code as Parameters<typeof tErrors>[0]),
+    (code: TranslatableErrorCode): string => tErrors(code),
     [tErrors],
   )
   const [state, formAction] = useActionState(submitContact, initialContactFormState)
@@ -179,8 +182,8 @@ function Field({
   id: string
   label: string
   required?: boolean
-  errors?: string[]
-  tError: (code: string) => string
+  errors?: readonly ContactFieldErrorCode[]
+  tError: (code: ContactFieldErrorCode) => string
   children: React.ReactNode
 }) {
   return (

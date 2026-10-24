@@ -26,14 +26,13 @@ export function reviewsForPeriod<T extends { closingFriday: Date }>(
   now: Date,
 ): T[] {
   const today = new TZDate(now, TIME_ZONE)
-  const keep = (review: T) => {
-    const friday = review.closingFriday
-    if (period === "30j") return friday.getTime() >= now.getTime() - 30 * DAY_MS
-    if (period === "annee") return friday.getUTCFullYear() === today.getFullYear()
-    return (
-      friday.getUTCFullYear() === today.getFullYear() && friday.getUTCMonth() === today.getMonth()
-    )
+  const keepByPeriod: Record<ReviewPeriod, (friday: Date) => boolean> = {
+    "30j": (friday) => friday.getTime() >= now.getTime() - 30 * DAY_MS,
+    mois: (friday) =>
+      friday.getUTCFullYear() === today.getFullYear() && friday.getUTCMonth() === today.getMonth(),
+    annee: (friday) => friday.getUTCFullYear() === today.getFullYear(),
   }
+  const keep = (review: T) => keepByPeriod[period](review.closingFriday)
   return reviewsByRecency(reviews.filter(keep))
 }
 

@@ -2,6 +2,7 @@ import "server-only"
 
 import type { Person, Prisma } from "@/generated/prisma/client"
 import { personDisplayName } from "@/lib/crm/persons"
+import type { PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { CompanyRef } from "@/server/queries/company-ref"
 
@@ -102,7 +103,7 @@ const attachableLeadSelect = {
 
 export type AttachableLead = Prisma.PersonGetPayload<{ select: typeof attachableLeadSelect }>
 
-export function findAttachableLead(personId: string): Promise<AttachableLead | null> {
+export function findAttachableLead(personId: PersonId): Promise<AttachableLead | null> {
   return prisma.person.findFirst({
     where: { id: personId, ...attachableLeadWhere },
     select: attachableLeadSelect,

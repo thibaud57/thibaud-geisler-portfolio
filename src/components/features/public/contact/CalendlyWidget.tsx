@@ -27,7 +27,7 @@ const TOP_PADDING_CROP_MOBILE_PX = 0
 const MOBILE_BREAKPOINT = "(max-width: 767px)"
 
 interface Props {
-  url: string
+  url: string | undefined
   placeholderLabel: string
   className?: string
 }
@@ -103,7 +103,7 @@ export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
     )
   }
 
-  if (!url) {
+  if (url === undefined) {
     return (
       <PlaceholderShell
         icon={<CalendarClock className="size-10" aria-hidden />}

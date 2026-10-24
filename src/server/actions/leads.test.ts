@@ -277,6 +277,13 @@ describe("updateLead", () => {
     expect(state.message).toBe("lead_not_found")
   })
 
+  it("answers lead_not_found for an empty person id, without writing", async () => {
+    const state = await updateLead("", initialLeadFormState, buildFormData())
+
+    expect(state.message).toBe("lead_not_found")
+    expect(prisma.lead.update).not.toHaveBeenCalled()
+  })
+
   it("reports an unknown error when a P2025 comes while the lead still exists", async () => {
     vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
     vi.mocked(prisma.lead.update).mockRejectedValueOnce({ code: "P2025" })

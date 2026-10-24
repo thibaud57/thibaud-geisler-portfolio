@@ -1,9 +1,12 @@
 export type ProjectView = "all" | "client" | "perso"
 
-export const PROJECT_VIEW_LOCKED_FACETS: Partial<Record<ProjectView, readonly string[]>> = {
-  client: ["nature"],
-  perso: ["nature"],
-}
+export type ProjectFacetKey = "nature" | "statut" | "formats"
+
+export const PROJECT_VIEW_LOCKED_FACETS: Partial<Record<ProjectView, readonly ProjectFacetKey[]>> =
+  {
+    client: ["nature"],
+    perso: ["nature"],
+  }
 
 export const PROJECT_VIEW_PAGES: Record<ProjectView, { title: string; subtitle: string }> = {
   all: {

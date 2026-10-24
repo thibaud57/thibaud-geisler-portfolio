@@ -5,14 +5,14 @@ import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 
 export interface Stat {
-  slug: string
-  value: number
-  label: string
-  suffix?: string
+  readonly slug: string
+  readonly value: number
+  readonly label: string
+  readonly suffix?: string
 }
 
 interface Props {
-  stats: Stat[]
+  stats: readonly Stat[]
   className?: string
 }
 

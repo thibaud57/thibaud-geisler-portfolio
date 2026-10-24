@@ -109,10 +109,21 @@ describe("optOutPerson", () => {
 
     const state = await optOutPerson("p1")
 
-    expect(state).toEqual({ ok: false, message: "unknown_error" })
+    expect(state).toEqual({ ok: false, message: "opt_out_refused" })
     expect(prisma.person.update).not.toHaveBeenCalled()
     expect(prisma.person.delete).not.toHaveBeenCalled()
     expect(prisma.contact.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("answers person_not_found and refreshes the lists when the person is gone", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValueOnce(null)
+
+    const state = await optOutPerson("p1")
+
+    expect(state).toEqual({ ok: false, message: "person_not_found" })
+    expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(prisma.person.delete).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
   it("deletes a person that opts out without email nor LinkedIn", async () => {
@@ -178,8 +189,20 @@ describe("erasePersonExchanges", () => {
 
     const state = await erasePersonExchanges("p1")
 
-    expect(state.ok).toBe(true)
+    expect(state).toEqual({ ok: false, message: "not_opted_out" })
     expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("answers person_not_found and refreshes the lists when the person is gone", async () => {
+    vi.mocked(prisma.person.findUnique).mockResolvedValueOnce(null)
+
+    const state = await erasePersonExchanges("p1")
+
+    expect(state).toEqual({ ok: false, message: "person_not_found" })
+    expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(prisma.prospectingAction.deleteMany).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
   it("keeps the first erasure date when exchanges are erased twice", async () => {

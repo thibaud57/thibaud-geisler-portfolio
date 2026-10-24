@@ -17,6 +17,7 @@ import { contactEmail, socialSameAs } from "@/config/social-links"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { buildAssetUrl } from "@/lib/assets"
 import { isVatLiable } from "@/lib/legal/vat-status"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildProfilePagePerson, type ProfilePagePersonInput } from "@/lib/seo/json-ld"
 import {
@@ -41,6 +42,7 @@ export async function generateMetadata(
     title: t("aboutTitle"),
     description: t("aboutDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
@@ -125,7 +127,7 @@ async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
         ? {
             siret: publisher.siret,
             address: publisher.address,
-            ...(isVatLiable(publisher.publisher) && publisher.vatNumber
+            ...(isVatLiable(publisher.publisher, new Date()) && publisher.vatNumber
               ? { vatId: publisher.vatNumber }
               : {}),
           }
@@ -136,10 +138,10 @@ async function ProfileJsonLdAsync({ locale }: { locale: Locale }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/require-await -- "use cache" impose async même sans await interne (cf. doc Next.js)
-async function getCachedProfileJsonLd(input: ProfilePagePersonInput) {
+async function getCachedProfileJsonLd(input: Omit<ProfilePagePersonInput, "dateModified">) {
   "use cache"
   cacheLife("days")
-  return buildProfilePagePerson(input)
+  return buildProfilePagePerson({ ...input, dateModified: new Date() })
 }
 
 async function StatsAsync() {

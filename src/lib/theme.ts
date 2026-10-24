@@ -96,23 +96,36 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener)
 }
 
-// Snapshot composite : inclure le resolved permet aux consommateurs de re-render
-// quand la préférence OS change alors que le choix reste 'system'.
-function getSnapshot(): string {
-  const theme = getTheme()
-  return `${theme}|${resolve(theme)}`
+interface ThemeSnapshot {
+  readonly theme: Theme
+  readonly resolvedTheme: ResolvedTheme | undefined
 }
 
-function getServerSnapshot(): string {
-  return "system|"
+function snapshot(theme: Theme, resolvedTheme: ResolvedTheme | undefined): ThemeSnapshot {
+  return Object.freeze({ theme, resolvedTheme })
+}
+
+// Snapshot composite : inclure le resolved permet aux consommateurs de re-render quand la
+// préférence OS change alors que le choix reste 'system'. Table de constantes figées : un
+// objet créé à chaque lecture ferait boucler useSyncExternalStore (identité différente à chaque appel).
+const SNAPSHOTS = {
+  light: { light: snapshot("light", "light"), dark: snapshot("light", "dark") },
+  dark: { light: snapshot("dark", "light"), dark: snapshot("dark", "dark") },
+  system: { light: snapshot("system", "light"), dark: snapshot("system", "dark") },
+} as const satisfies Record<Theme, Record<ResolvedTheme, ThemeSnapshot>>
+
+const SERVER_SNAPSHOT = snapshot("system", undefined)
+
+function getSnapshot(): ThemeSnapshot {
+  const theme = getTheme()
+  return SNAPSHOTS[theme][resolve(theme)]
+}
+
+function getServerSnapshot(): ThemeSnapshot {
+  return SERVER_SNAPSHOT
 }
 
 export function useTheme() {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const [theme, resolved] = snapshot.split("|") as [Theme, ResolvedTheme | ""]
-  return {
-    theme,
-    resolvedTheme: resolved === "" ? undefined : resolved,
-    setTheme,
-  }
+  const { theme, resolvedTheme } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return { theme, resolvedTheme, setTheme }
 }

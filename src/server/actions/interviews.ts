@@ -3,6 +3,7 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
+import type { FieldErrors } from "@/lib/form-state"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
@@ -15,7 +16,11 @@ import {
   rowExists,
   saveEntity,
 } from "./_support/shared"
-import type { InterviewFormMessage, InterviewFormState } from "./interviews.types"
+import type {
+  InterviewFormMessage,
+  InterviewDeleteState,
+  InterviewFormState,
+} from "./interviews.types"
 import {
   assertNewIdentity,
   type DuplicateWording,
@@ -39,7 +44,7 @@ type RuleField = "opportunityId" | "side" | "correspondentIds" | "newCorresponde
 
 class InterviewRuleError extends Error {
   readonly field: RuleField
-  readonly code: Exclude<InterviewFormMessage, "unknown_error" | null>
+  readonly code: Exclude<InterviewFormMessage, "unknown_error">
 
   constructor(field: RuleField, code: InterviewRuleError["code"], message: string) {
     super(message)
@@ -117,7 +122,7 @@ async function correspondentRefs(
   correspondentIds: InterviewInput["correspondentIds"],
   newCorrespondents: InterviewInput["newCorrespondents"],
 ): Promise<{ id: string }[]> {
-  const refs = correspondentIds.map((id) => ({ id }))
+  const refs: { id: string }[] = correspondentIds.map((id) => ({ id }))
   for (const { contactType, ...person } of newCorrespondents) {
     await assertNewIdentity(
       tx,
@@ -138,14 +143,13 @@ function mapInterviewError(
   err: unknown,
   values: InterviewFormState["values"],
 ): InterviewFormState | null {
-  const errors: InterviewFormState["errors"] = {}
   // « exists » comme « opted_out » refusent le doublon ; le message du garde dit lequel des deux.
   if (err instanceof PersonConflictError) {
-    errors.newCorrespondents = [err.message]
+    const errors: FieldErrors<keyof InterviewInput> = { newCorrespondents: [err.message] }
     return { ok: false, errors, message: "correspondent_exists", values }
   }
   if (!(err instanceof InterviewRuleError)) return null
-  errors[err.field] = [err.message]
+  const errors: FieldErrors<keyof InterviewInput> = { [err.field]: [err.message] }
   return { ok: false, errors, message: err.code, values }
 }
 
@@ -227,10 +231,10 @@ export async function updateInterview(
   )
 }
 
-export async function deleteInterview(id: string): Promise<InterviewFormState> {
+export async function deleteInterview(id: string): Promise<InterviewDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<InterviewFormState>({
+  return deleteEntity<InterviewDeleteState>({
     actionName: "deleteInterview",
     events: { success: "interview:deleted", failure: "interview:delete_failed" },
     successLogFields: { id },

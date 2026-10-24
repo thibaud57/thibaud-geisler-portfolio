@@ -17,16 +17,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { RowActionButton } from "@/components/features/admin/table/RowActionButton"
+import { deleteOutcomeOf, type DeleteOutcome, type DeleteResult } from "@/lib/admin/delete-outcome"
+import { assertNever } from "@/lib/assert-never"
 import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
-// `denied` porte le refus métier que le serveur vient d'opposer (élément encore rattaché) ; absent
-// ou null quand l'échec est technique, auquel cas la modale se ferme sur un toast générique.
-interface DeleteOutcome {
-  ok: boolean | null
-  denied?: string | null
-}
-
-interface Props {
+interface Props<M extends string> {
   trigger?: ReactNode
   // Nom de l'élément, pour « Supprimer « X » ? » : le titre nomme l'élément, jamais son type.
   name: string
@@ -35,10 +30,12 @@ interface Props {
   // si un rattachement survient entre l'affichage et la confirmation.
   denied?: string | null
   successMessage: string
-  onDelete: () => Promise<DeleteOutcome>
+  // Un résultat d'action brut est traduit par `denials` ; un DeleteOutcome déjà calculé passe tel quel.
+  onDelete: () => Promise<DeleteResult<M> | DeleteOutcome>
+  denials?: Partial<Record<M, string>>
 }
 
-export function ConfirmDeleteDialog({
+export function ConfirmDeleteDialog<M extends string>({
   name,
   trigger = (
     <RowActionButton aria-label={`Supprimer ${name}`}>
@@ -49,7 +46,8 @@ export function ConfirmDeleteDialog({
   denied = null,
   successMessage,
   onDelete,
-}: Props) {
+  denials,
+}: Props<M>) {
   const [open, setOpen] = useState(false)
   const [serverDenied, setServerDenied] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -66,14 +64,22 @@ export function ConfirmDeleteDialog({
     event.preventDefault()
     startTransition(async () => {
       const result = await onDelete()
-      if (result.ok) {
-        toast.success(successMessage)
-        setOpen(false)
-      } else if (!result.denied) {
-        toast.error(GENERIC_ERROR_TOAST)
-        setOpen(false)
-      } else {
-        setServerDenied(result.denied)
+      const outcome = "status" in result ? result : deleteOutcomeOf(result, denials)
+      switch (outcome.status) {
+        case "deleted":
+          toast.success(successMessage)
+          setOpen(false)
+          return
+        case "denied":
+          // Refus métier que le serveur vient d'opposer (élément encore rattaché).
+          setServerDenied(outcome.reason)
+          return
+        case "failed":
+          toast.error(GENERIC_ERROR_TOAST)
+          setOpen(false)
+          return
+        default:
+          assertNever(outcome)
       }
     })
   }

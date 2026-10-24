@@ -51,7 +51,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
   const [state, formAction, pending] = useActionState(action, initialLeadFormState)
   const handleSubmit = useFormActionSubmit(formAction)
 
-  const [origin, setOrigin] = useState<LeadOrigin | "">(lead?.origin ?? "")
+  const [origin, setOrigin] = useState<LeadOrigin | null>(lead?.origin ?? null)
   const [details, setDetails] = useState(lead?.details ?? "")
   const [editorKey, setEditorKey] = useState(0)
   const [metAt, setMetAt] = useState<Date | undefined>(lead?.metAt ?? undefined)
@@ -68,8 +68,7 @@ export function LeadForm({ lead, companyOptions, relatedCards }: Props) {
     gone: { code: "lead_not_found", toast: "Ce lead a été supprimé" },
   })
 
-  function handleOriginChange(next: string) {
-    const nextOrigin = next as LeadOrigin
+  function handleOriginChange(nextOrigin: LeadOrigin) {
     if (!lead) {
       const nextDetails = detailsAfterOriginChange(details, origin, nextOrigin)
       if (nextDetails !== details) {

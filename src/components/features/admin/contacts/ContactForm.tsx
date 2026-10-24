@@ -30,15 +30,23 @@ import {
 import { CONTACT_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
 import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@/lib/crm/persons"
 import { formatDateOnly } from "@/lib/date-time"
+import { requireOption } from "@/lib/is-one-of"
 import { CONTACT_STATUSES, CONTACT_TYPES } from "@/lib/schemas/network-contact"
-import { NONE_VALUE } from "@/lib/schemas/none-value"
 import { createContact, findLeadForContactAttach, updateContact } from "@/server/actions/contacts"
 import { initialContactFormState } from "@/server/actions/contacts.types"
 import type { CompanyOption } from "@/server/queries/companies"
 import type { ContactRecord } from "@/server/queries/contacts"
 import type { AttachableLead, PersonOption } from "@/server/queries/persons"
 
-type Mode = "new" | "fromLead"
+const MODES = ["new", "fromLead"] as const
+
+type LeadSource =
+  | { readonly mode: "new" }
+  | {
+      readonly mode: "fromLead"
+      readonly leadId: string | null
+      readonly error: string[] | undefined
+    }
 
 interface Props {
   contact: ContactRecord | null
@@ -52,17 +60,16 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
   const action = contact ? updateContact.bind(null, contact.id) : createContact
   const [state, formAction, pending] = useActionState(action, initialContactFormState)
 
-  const [mode, setMode] = useState<Mode>("new")
-  const [selectedLeadId, setSelectedLeadId] = useState(NONE_VALUE)
-  const [leadError, setLeadError] = useState<string[] | undefined>(undefined)
+  const [source, setSource] = useState<LeadSource>({ mode: "new" })
   const [loadedLead, setLoadedLead] = useState<AttachableLead | null>(null)
-  const fromLead = selectedLeadId !== NONE_VALUE
-  const lead = loadedLead?.id === selectedLeadId ? loadedLead : null
+  const leadId = source.mode === "fromLead" ? source.leadId : null
+  const fromLead = leadId !== null
+  const lead = loadedLead?.id === leadId ? loadedLead : null
   const leadLoading = fromLead && lead === null
   // Sans lead choisi, le formulaire partirait en création d'une personne vide : la garde le retient côté client.
   const handleSubmit = useFormActionSubmit(formAction, () => {
-    if (mode === "fromLead" && !fromLead) {
-      setLeadError(["Choisissez un lead"])
+    if (source.mode === "fromLead" && source.leadId === null) {
+      setSource({ ...source, error: ["Choisissez un lead"] })
       return false
     }
     return !leadLoading
@@ -87,13 +94,12 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
   })
 
   useEffect(() => {
-    if (selectedLeadId === NONE_VALUE) return
+    if (leadId === null) return
     let ignore = false
     function fail(message: string) {
-      setLeadError([message])
-      setSelectedLeadId(NONE_VALUE)
+      setSource({ mode: "fromLead", leadId: null, error: [message] })
     }
-    findLeadForContactAttach(selectedLeadId)
+    findLeadForContactAttach(leadId)
       .then((result) => {
         if (ignore) return
         if (result === null) fail("Ce lead n'existe plus, recharge la page")
@@ -105,18 +111,17 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
     return () => {
       ignore = true
     }
-  }, [selectedLeadId])
+  }, [leadId])
 
   function handleModeChange(next: string) {
-    const nextMode = next as Mode
-    if (nextMode === "new") setSelectedLeadId(NONE_VALUE)
-    setLeadError(undefined)
-    setMode(nextMode)
+    const mode = requireOption(MODES, next)
+    setSource(
+      mode === "new" ? { mode: "new" } : { mode: "fromLead", leadId: null, error: undefined },
+    )
   }
 
-  function handleLeadSelect(leadId: string) {
-    setSelectedLeadId(leadId)
-    setLeadError(undefined)
+  function handleLeadSelect(next: string | null) {
+    setSource({ mode: "fromLead", leadId: next, error: undefined })
   }
 
   return (
@@ -143,7 +148,7 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
                 <>
                   <RadioGroup
                     aria-label="Source du contact"
-                    value={mode}
+                    value={source.mode}
                     onValueChange={handleModeChange}
                     className="flex flex-wrap gap-4"
                   >
@@ -156,14 +161,14 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
                       <Label htmlFor={`${formId}-mode-fromLead`}>Depuis un lead</Label>
                     </div>
                   </RadioGroup>
-                  {mode === "fromLead" ? (
+                  {source.mode === "fromLead" ? (
                     <PersonCombobox
                       id={`${formId}-leadId`}
                       label="Lead"
                       options={leadOptions}
-                      value={selectedLeadId}
+                      value={source.leadId}
                       onChange={handleLeadSelect}
-                      errors={leadError ?? state.errors.personId}
+                      errors={source.error ?? state.errors.personId}
                       placeholder="Choisir un lead"
                       searchPlaceholder="Chercher un lead"
                       emptyMessage="Aucun lead ne correspond."
@@ -173,7 +178,7 @@ export function ContactForm({ contact, companyOptions, leadOptions = [] }: Props
               )
             }
           />
-          {fromLead ? <input type="hidden" name="personId" value={selectedLeadId} /> : null}
+          {fromLead ? <input type="hidden" name="personId" value={leadId} /> : null}
 
           <DetailsCard
             formId={formId}

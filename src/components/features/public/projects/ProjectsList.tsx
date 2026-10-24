@@ -11,7 +11,7 @@ import { ProjectFilters, type ProjectsFilter } from "./ProjectFilters"
 const ABOVE_THE_FOLD_COUNT = 3
 
 interface Props {
-  projects: LocalizedProjectWithRelations[]
+  projects: readonly LocalizedProjectWithRelations[]
 }
 
 export function ProjectsList({ projects }: Props) {

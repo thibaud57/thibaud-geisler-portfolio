@@ -47,7 +47,7 @@ export function projectSkeletonWidths(view: ProjectView): readonly number[] {
   ]
 }
 
-export const PROJECT_PAGE_SKELETON: string[] = [
+export const PROJECT_PAGE_SKELETON: readonly string[] = [
   "h-[24px]",
   "h-[320px]",
   "h-[260px]",

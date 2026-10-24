@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache"
 
 import type { Prisma, SignalType } from "@/generated/prisma/client"
 import { ADMIN_COMPANIES_PATH, ADMIN_LEADS_PATH } from "@/lib/admin/routes"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { companyIdSchema, personIdSchema, type PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
@@ -18,7 +20,7 @@ import {
   saveEntity,
   type ActionEvents,
 } from "./_support/shared"
-import type { SignalFormState } from "./signals.types"
+import type { SignalDeleteState, SignalFormState } from "./signals.types"
 
 const TYPE_MISMATCH = "Ce type ne concerne pas cette fiche"
 
@@ -49,7 +51,7 @@ function assertTypeFits(kind: SignalOwnerKind, type: SignalType): void {
 // Seul un lead outbound reçoit un signal, jamais une personne opposée. Lu sur le client de la
 // transaction qui crée le signal : une opposition posée entre la lecture et l'écriture ne peut
 // plus laisser passer un signal.
-async function assertLeadAccepts(tx: Prisma.TransactionClient, personId: string): Promise<void> {
+async function assertLeadAccepts(tx: Prisma.TransactionClient, personId: PersonId): Promise<void> {
   const lead = await tx.lead.findUnique({
     where: { personId },
     select: { origin: true, person: { select: { optedOutAt: true } } },
@@ -61,16 +63,19 @@ async function assertLeadAccepts(tx: Prisma.TransactionClient, personId: string)
 
 function mapSignalError(err: unknown, values: SignalFormState["values"]): SignalFormState | null {
   if (err instanceof SignalRefusedError) {
-    if (err.reason === "type_mismatch") {
-      return { ok: false, errors: { type: [TYPE_MISMATCH] }, message: null, values }
+    switch (err.reason) {
+      case "type_mismatch":
+        return { ok: false, errors: { type: [TYPE_MISMATCH] }, message: null, values }
+      case "signal_not_found":
+        invalidateSignalCaches()
+        return signalGone(values)
+      case "lead_not_eligible":
+        return { ok: false, errors: {}, message: "lead_not_eligible", values }
+      default:
+        return assertNever(err.reason)
     }
-    if (err.reason === "signal_not_found") {
-      invalidateSignalCaches()
-      return signalGone(values)
-    }
-    return { ok: false, errors: {}, message: "lead_not_eligible", values }
   }
-  if (isPrismaError(err, "P2003") && violatedConstraint(err).includes("companyId")) {
+  if (isPrismaError(err, "P2003") && violatedConstraint(err)?.includes("companyId")) {
     invalidateSignalCaches()
     return { ok: false, errors: {}, message: "company_not_found", values }
   }
@@ -110,12 +115,18 @@ function saveSignal(
 }
 
 export async function createCompanySignal(
-  companyId: string,
+  rawCompanyId: string,
   _prevState: SignalFormState,
   formData: FormData,
 ): Promise<SignalFormState> {
   // Défense en profondeur, hors du try : une Server Action exportée est joignable sans passer par la page.
   await getCurrentUser()
+
+  const parsedId = companyIdSchema.safeParse(rawCompanyId)
+  if (!parsedId.success) {
+    return { ok: false, errors: {}, message: "company_not_found", values: collectValues(formData) }
+  }
+  const companyId = parsedId.data
 
   return saveSignal(
     "createCompanySignal",
@@ -129,11 +140,17 @@ export async function createCompanySignal(
 }
 
 export async function createPersonSignal(
-  personId: string,
+  rawPersonId: string,
   _prevState: SignalFormState,
   formData: FormData,
 ): Promise<SignalFormState> {
   await getCurrentUser()
+
+  const parsedId = personIdSchema.safeParse(rawPersonId)
+  if (!parsedId.success) {
+    return { ok: false, errors: {}, message: "lead_not_eligible", values: collectValues(formData) }
+  }
+  const personId = parsedId.data
 
   return saveSignal(
     "createPersonSignal",
@@ -174,10 +191,10 @@ export async function updateSignal(
   )
 }
 
-export async function deleteSignal(id: string): Promise<SignalFormState> {
+export async function deleteSignal(id: string): Promise<SignalDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<SignalFormState>({
+  return deleteEntity<SignalDeleteState>({
     actionName: "deleteSignal",
     events: { success: "signal:deleted", failure: "signal:delete_failed" },
     successLogFields: { id },

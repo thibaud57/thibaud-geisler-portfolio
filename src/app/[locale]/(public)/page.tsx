@@ -10,6 +10,7 @@ import { MotionItem } from "@/components/ui/motion-item"
 import { socialSameAs } from "@/config/social-links"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { buildAssetUrl } from "@/lib/assets"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildWebSiteGraph } from "@/lib/seo/json-ld"
 import { getTranslations } from "next-intl/server"
@@ -28,6 +29,7 @@ export async function generateMetadata(
     title: t("homeTitle"),
     description: t("homeDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,

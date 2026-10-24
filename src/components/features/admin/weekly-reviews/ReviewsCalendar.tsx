@@ -9,7 +9,7 @@ import { REVIEW_CALENDAR_I18N, reviewEvents } from "@/lib/crm/review-calendar"
 import { fridayOfWeek } from "@/lib/crm/weekly-reviews"
 import type { AdminWeeklyReview } from "@/server/queries/weekly-reviews"
 
-const CALENDAR_INTERACTIONS = { drag: false, resize: false, selectSlot: false }
+const CALENDAR_INTERACTIONS = { drag: false, resize: false, selectSlot: false } as const
 
 interface Props {
   reviews: readonly AdminWeeklyReview[]

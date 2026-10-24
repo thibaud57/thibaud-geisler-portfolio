@@ -171,6 +171,25 @@ describe("submitContact", () => {
     expect(result.errors.message).toEqual(["message_too_short"])
   })
 
+  it.each([
+    ["name", "name_required"],
+    ["email", "email_invalid"],
+    ["subject", "subject_required"],
+    ["message", "message_too_short"],
+  ] as const)(
+    "returns the %s code when the field is absent from the payload",
+    async (field, code) => {
+      const result = await submitContact(
+        initialContactFormState,
+        buildFormData({}, { omit: [field] }),
+      )
+
+      expect(transporter.sendMail).not.toHaveBeenCalled()
+      expect(result.ok).toBe(false)
+      expect(result.errors[field]).toEqual([code])
+    },
+  )
+
   it("rejects with rate_limit and a warn log when rateLimiter.check denies", async () => {
     vi.mocked(rateLimiter.check).mockReturnValueOnce({
       allowed: false,

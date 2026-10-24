@@ -20,7 +20,7 @@ import {
 
 import { personDisplayName, type PersonRef } from "@/lib/crm/persons"
 import { erasePersonExchanges } from "@/server/actions/persons"
-import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
+import { ERASE_EXCHANGES_ERROR_TOASTS } from "@/lib/admin/toasts"
 
 interface Props {
   person: PersonRef
@@ -40,7 +40,7 @@ export function ErasePersonExchangesDialog({ person }: Props) {
       if (result.ok) {
         toast.success("Échanges effacés")
       } else {
-        toast.error(GENERIC_ERROR_TOAST)
+        toast.error(ERASE_EXCHANGES_ERROR_TOASTS[result.message])
       }
     })
   }

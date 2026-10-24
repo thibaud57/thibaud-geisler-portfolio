@@ -15,7 +15,7 @@ import { MultiSelectCombobox } from "@/components/features/admin/form/MultiSelec
 import { NotesCard } from "@/components/features/admin/form/NotesCard"
 import { FormField } from "@/components/ui/form-field"
 
-import type { Zone } from "@/generated/prisma/client"
+import type { CompanySector, Zone } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
@@ -41,7 +41,7 @@ const SECTOR_OPTIONS = COMPANY_SECTORS.map((value) => ({
 
 interface Props {
   company: AdminCompanyDetail | null
-  logoAssets: AssetEntry[]
+  logoAssets: readonly AssetEntry[]
   relatedCards?: React.ReactNode
 }
 
@@ -51,8 +51,8 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
   const action = company ? updateCompany.bind(null, company.id) : createCompany
   const [state, formAction, pending] = useActionState(action, initialCompanyFormState)
   const handleSubmit = useFormActionSubmit(formAction)
-  const [sectors, setSectors] = useState<string[]>(company?.sectors ?? [])
-  const [zones, setZones] = useState<string[]>(company?.zones ?? [])
+  const [sectors, setSectors] = useState<readonly CompanySector[]>(company?.sectors ?? [])
+  const [zones, setZones] = useState<readonly Zone[]>(company?.zones ?? [])
   // Le gabarit ne s'applique qu'à la création : une fiche existante garde son contenu enregistré, vide ou non.
   const [details, setDetails] = useState(
     company ? (company.details ?? "") : COMPANY_DETAILS_TEMPLATE,
@@ -125,8 +125,8 @@ export function CompanyForm({ company, logoAssets, relatedCards }: Props) {
                   name="zones"
                   options={ZONE_OPTIONS}
                   selected={zones}
-                  onChange={(values) => {
-                    setZones(sortZones(values as Zone[]))
+                  onChange={(next) => {
+                    setZones(sortZones(next))
                   }}
                   placeholder="Ajouter une localité"
                   searchPlaceholder="Chercher une localité"

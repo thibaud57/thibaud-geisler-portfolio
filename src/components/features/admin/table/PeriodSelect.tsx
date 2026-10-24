@@ -1,6 +1,7 @@
 "use client"
 
 import { EnumSelectItems } from "@/components/features/admin/form/EnumSelectItems"
+import { requireOption } from "@/lib/is-one-of"
 import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Props<T extends string> {
@@ -15,8 +16,7 @@ export function PeriodSelect<T extends string>({ value, onChange, values, labels
     <Select
       value={value}
       onValueChange={(next) => {
-        // Radix rend une string : seules les options de `values` sont proposées.
-        onChange(next as T)
+        onChange(requireOption(values, next))
       }}
     >
       <SelectTrigger className="w-50" aria-label="Période">

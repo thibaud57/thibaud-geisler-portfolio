@@ -32,7 +32,7 @@ export function ProjectCard({
   const t = useTranslations("Projects")
   const visibleProjectTags = project.tags.slice(0, MAX_VISIBLE_TAGS)
   const extraCount = Math.max(0, project.tags.length - MAX_VISIBLE_TAGS)
-  const { inProgress } = getProjectTimeline(project.startedAt, project.endedAt)
+  const inProgress = getProjectTimeline(project.startedAt, project.endedAt).kind === "ongoing"
   const company = project.clientMeta?.company
   // Un projet personnel est rattaché à l'entreprise du freelance lui-même : badge, pas fiche.
   const isPersonal = project.type === "PERSONAL"

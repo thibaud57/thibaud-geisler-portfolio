@@ -8,11 +8,10 @@ interface Props {
   id: string
   label: string
   options: readonly PersonOption[]
-  value: string
-  onChange: (personId: string) => void
-  errors?: string[]
+  value: string | null
+  onChange: (personId: string | null) => void
+  errors?: readonly string[]
   name?: string
-  // Ajoute l'option « Aucun » : la valeur vide est alors NONE_VALUE. Sans elle, la valeur vide est "".
   nullable?: boolean
   modal?: boolean
   // La personne déjà choisie peut être sortie des options (opposition) : son nom reste affiché.

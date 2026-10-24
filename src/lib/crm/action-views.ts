@@ -49,13 +49,7 @@ function byOccurredAtDesc(a: ChronologicalRow, b: ChronologicalRow): number {
 export function groupByPersonRecentFirst<T extends ChronologicalRow & { personId: string }>(
   actions: readonly T[],
 ): Map<string, T[]> {
-  const map = new Map<string, T[]>()
-  for (const action of [...actions].sort(byOccurredAtDesc)) {
-    const list = map.get(action.personId) ?? []
-    list.push(action)
-    map.set(action.personId, list)
-  }
-  return map
+  return Map.groupBy([...actions].sort(byOccurredAtDesc), (action) => action.personId)
 }
 
 function toDoFirstThenRecent(a: ActionViewRow, b: ActionViewRow): number {
@@ -80,7 +74,9 @@ export function actionsForView<T extends ActionViewRow>(
   return actions.filter(VIEW_FILTERS[view]).sort(VIEW_SORTS[view])
 }
 
-export const ACTION_VIEW_LOCKED_FACETS: Partial<Record<ActionView, readonly string[]>> = {
+export type ActionFacetKey = "status" | "channel" | "period"
+
+export const ACTION_VIEW_LOCKED_FACETS: Partial<Record<ActionView, readonly ActionFacetKey[]>> = {
   "a-faire": ["status"],
   connexions: ["status", "channel"],
   discussions: ["status"],

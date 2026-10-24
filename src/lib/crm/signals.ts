@@ -141,11 +141,13 @@ export function hasRecentSignal(
   return signals.some((signal) => signalFreshness(signal, now) === "RECENT")
 }
 
-export function signalFacet<T extends { signals: readonly SignalItem[] }>(now: Date): Facet<T> {
+export function signalFacet<T extends { signals: readonly SignalItem[] }>(
+  now: Date,
+): Facet<T, "signal"> {
   return {
     key: "signal",
     label: "Signal",
     options: [{ value: "recent", label: SIGNAL_FRESHNESS_LABELS.RECENT }],
-    value: (row) => (hasRecentSignal(row.signals, now) ? ["recent"] : []),
+    values: (row) => (hasRecentSignal(row.signals, now) ? ["recent"] : []),
   }
 }
