@@ -2,12 +2,14 @@ import type { Metadata, ResolvingMetadata } from "next"
 import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
+import { z } from "zod"
 
 import { contactEmail } from "@/config/social-links"
 import { env } from "@/env"
 import { setupLocalePage } from "@/i18n/locale-guard"
 import { Link } from "@/i18n/navigation"
 import { logger } from "@/lib/logger"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildContactPage } from "@/lib/seo/json-ld"
 import { LINK_CLASS } from "@/lib/typography"
@@ -18,15 +20,11 @@ import { ContactForm } from "@/components/features/public/contact/ContactForm"
 import { ContactTabs } from "@/components/features/public/contact/ContactTabs"
 import { LocationLine } from "@/components/features/public/contact/LocationLine"
 import { SocialLinks } from "@/components/features/public/contact/SocialLinks"
+import { SERVICE_SLUGS } from "@/components/features/public/services/service-slugs"
 import { PageShell } from "@/components/layout/public/PageShell"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 
-const PREFILL_SLUGS = ["ia", "fullstack", "formation"] as const
-type PrefillSlug = (typeof PREFILL_SLUGS)[number]
-
-function isPrefillSlug(value: string | undefined): value is PrefillSlug {
-  return typeof value === "string" && (PREFILL_SLUGS as readonly string[]).includes(value)
-}
+const serviceSlugSchema = z.enum(SERVICE_SLUGS)
 
 const CALENDLY_URL_BY_LOCALE = {
   fr: env.NEXT_PUBLIC_CALENDLY_URL_FR,
@@ -47,6 +45,7 @@ export async function generateMetadata(
     title: t("contactTitle"),
     description: t("contactDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
@@ -101,7 +100,8 @@ async function ContactTabsAsync({
 
   const t = await getTranslations("ContactPage")
 
-  const defaultSubject = isPrefillSlug(serviceParam) ? t(`form.subjectPrefill.${serviceParam}`) : ""
+  const service = serviceSlugSchema.safeParse(serviceParam)
+  const defaultSubject = service.success ? t(`form.subjectPrefill.${service.data}`) : ""
 
   const formLabels = {
     name: t("form.fields.name"),
@@ -131,8 +131,8 @@ async function ContactTabsAsync({
     </p>
   )
 
-  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale] ?? ""
-  if (!calendlyUrl) {
+  const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale]
+  if (calendlyUrl === undefined) {
     logger.warn(
       { event: "calendly:url_missing", locale },
       "NEXT_PUBLIC_CALENDLY_URL_<locale> absent",

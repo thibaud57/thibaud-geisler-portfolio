@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface Props {
-  heights: string[]
+  heights: readonly string[]
   className?: string
 }
 

@@ -79,7 +79,9 @@ export function leadsForView<T extends LeadViewRow>(
     .sort(VIEW_SORTS[view])
 }
 
-export const LEAD_VIEW_LOCKED_FACETS: Partial<Record<LeadView, readonly string[]>> = {
+export type LeadFacetKey = "status" | "interest" | "origin" | "jobRole" | "zone" | "overdue"
+
+export const LEAD_VIEW_LOCKED_FACETS: Partial<Record<LeadView, readonly LeadFacetKey[]>> = {
   "en-cours": ["overdue"],
   chauds: ["interest", "overdue"],
   "a-qualifier": ["status", "interest", "overdue"],

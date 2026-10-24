@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import type { ReviewMotivation, ReviewStatus } from "@/generated/prisma/client"
+import { recordFromKeys } from "@/lib/record-from-keys"
 import { dateOnlyToLocal } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
@@ -102,9 +103,7 @@ export type ReviewCounts = Record<(typeof REVIEW_COUNTER_KEYS)[number], number>
 
 // Saisie du formulaire : un champ vide vaut 0, comme au serveur.
 export function parseCounterInputs(inputs: Record<keyof ReviewCounts, string>): ReviewCounts {
-  return Object.fromEntries(
-    REVIEW_COUNTER_KEYS.map((key) => [key, Number(inputs[key]) || 0]),
-  ) as ReviewCounts
+  return recordFromKeys(REVIEW_COUNTER_KEYS, (key) => Number(inputs[key]) || 0)
 }
 
 function rate(numerator: number, denominator: number): number | null {

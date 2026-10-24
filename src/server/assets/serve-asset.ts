@@ -5,9 +5,9 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 
 import {
-  ALLOWED_EXTENSIONS,
   ASSET_EXTENSION_ERROR_MESSAGE,
   CONTENT_TYPE_MAP,
+  isAllowedExtension,
 } from "@/lib/asset-content-types"
 import { logger } from "@/lib/logger"
 
@@ -28,7 +28,7 @@ export const AssetPathSchema = z
     (segments) => {
       const last = segments.at(-1) ?? ""
       const ext = path.extname(last).slice(1).toLowerCase()
-      return ALLOWED_EXTENSIONS.includes(ext)
+      return isAllowedExtension(ext)
     },
     { message: ASSET_EXTENSION_ERROR_MESSAGE },
   )
@@ -39,7 +39,7 @@ export const AssetPathSchema = z
 export type ValidateAssetPathResult =
   { ok: true; segments: string[]; joined: string } | { ok: false; error: string }
 
-export function validateAssetPath(raw: string[]): ValidateAssetPathResult {
+export function validateAssetPath(raw: readonly string[]): ValidateAssetPathResult {
   const parsed = AssetPathSchema.safeParse(raw)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Chemin invalide" }
@@ -49,7 +49,7 @@ export function validateAssetPath(raw: string[]): ValidateAssetPathResult {
 
 export function getContentType(filename: string): string {
   const ext = path.extname(filename).slice(1).toLowerCase()
-  return CONTENT_TYPE_MAP[ext] ?? "application/octet-stream"
+  return isAllowedExtension(ext) ? CONTENT_TYPE_MAP[ext] : "application/octet-stream"
 }
 
 interface ServeAssetOptions {
@@ -60,7 +60,10 @@ interface ServeAssetOptions {
 }
 
 // La garde d'auth et le choix du bucket restent dans chaque route : voir nextjs/assets.md.
-export async function serveAsset(rawPath: string[], options: ServeAssetOptions): Promise<Response> {
+export async function serveAsset(
+  rawPath: readonly string[],
+  options: ServeAssetOptions,
+): Promise<Response> {
   const log = logger.child({ route: options.routeLabel })
 
   const validation = validateAssetPath(rawPath)

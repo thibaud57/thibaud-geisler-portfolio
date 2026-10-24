@@ -25,6 +25,7 @@ function buildProfileInput(overrides?: Partial<ProfilePagePersonInput>): Profile
     description: "Description courte test",
     email: "contact@example.com",
     image: "https://thibaud-geisler.com/api/assets/branding/portrait.jpg",
+    dateModified: new Date("2026-05-01T10:00:00.000Z"),
     sameAs: ["https://social.example/jane-doe", "https://code.example/jane-doe"],
     expertise: [
       {
@@ -97,10 +98,10 @@ describe("buildProfilePagePerson", () => {
     expect(result.mainEntity.knowsAbout[1]).toBe("AI Training")
   })
 
-  it("exposes dateModified as an ISO 8601 string on the ProfilePage", () => {
+  it("exposes the given modification date as an ISO 8601 string on the ProfilePage", () => {
     const result = buildProfilePagePerson(buildProfileInput())
 
-    expect(new Date(result.dateModified).toISOString()).toBe(result.dateModified)
+    expect(result.dateModified).toBe("2026-05-01T10:00:00.000Z")
   })
 
   const LEGAL_FIXTURE = {

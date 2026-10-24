@@ -26,7 +26,7 @@ import type { AssetEntry } from "@/server/queries/assets"
 interface Props {
   value: string | null
   onChange: (key: string | null) => void
-  assets: AssetEntry[]
+  assets: readonly AssetEntry[]
   title: string
   description: string
   triggerLabel: string

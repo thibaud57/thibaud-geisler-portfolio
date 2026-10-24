@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { ActionChannel, ActionStatus } from "@/generated/prisma/browser"
 import { zonedDayStart } from "@/lib/date-time"
+import { personIdField } from "@/lib/ids"
 import { optionalTextField } from "@/lib/schemas/fields"
 
 export const ACTION_CHANNELS = Object.values(ActionChannel)
@@ -21,7 +22,7 @@ export const prospectingActionSchema = z.object({
     .trim()
     .min(1, "L'action est requise")
     .max(120, "L'action ne peut pas dépasser 120 caractères"),
-  personId: z.string().trim().min(1, "Choisissez une personne"),
+  personId: personIdField("Choisissez une personne"),
   channel: z.enum(ActionChannel, { error: "Type inconnu" }),
   status: z.enum(ActionStatus, { error: "Statut inconnu" }),
   occurredAt: actionDay,

@@ -4,9 +4,15 @@ import "server-only"
 
 import type { LeadOrigin, Prisma } from "@/generated/prisma/client"
 import { detailsAfterContactPromotion } from "@/lib/crm/details-templates"
+import type { FieldErrors } from "@/lib/form-state"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { personIdSchema, type PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
-import { attachContactSchema, newContactSchema } from "@/lib/schemas/network-contact"
+import {
+  attachContactSchema,
+  newContactSchema,
+  type ContactFormFields,
+} from "@/lib/schemas/network-contact"
 import {
   createActionLogger,
   isPrismaError,
@@ -39,7 +45,7 @@ import {
   saveEntity,
   type ActionEvents,
 } from "./_support/shared"
-import type { ContactFormMessage, ContactFormState } from "./contacts.types"
+import type { ContactFormMessage, ContactDeleteState, ContactFormState } from "./contacts.types"
 
 const CONFLICT_MESSAGES = {
   exists: "contact_exists",
@@ -71,7 +77,7 @@ function collectValues(formData: FormData): ContactFormState["values"] {
 // Le verrou de ligne sérialise avec `optOutPerson`, dont l'UPDATE prend le même verrou : soit l'attache voit l'opposition, soit l'opposition passe après et son `contact.deleteMany` retire le rôle posé ici.
 async function assertAttachable(
   tx: Prisma.TransactionClient,
-  personId: string,
+  personId: PersonId,
 ): Promise<{ details: string | null; origin: LeadOrigin }> {
   await tx.$queryRaw`SELECT 1 FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
   const person = await tx.person.findUnique({
@@ -122,18 +128,17 @@ function mapContactError(
     const constraint = violatedConstraint(err)
     // `email` en repli : visible en création comme en édition, quand `personId` ne l'est que dans le sélecteur de lead.
     const field: ConflictField =
-      constraint.includes("Contact_pkey") || constraint.includes("personId")
+      constraint?.includes("Contact_pkey") || constraint?.includes("personId")
         ? "personId"
-        : constraint.includes("linkedinUrl")
+        : constraint?.includes("linkedinUrl")
           ? "linkedinUrl"
           : "email"
-    const errors: ContactFormState["errors"] = {}
-    errors[field] = ["Cette personne existe déjà"]
+    const errors: FieldErrors<keyof ContactFormFields> = { [field]: ["Cette personne existe déjà"] }
     return { ok: false, errors, message: "contact_exists", values }
   }
   // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
   if (isPrismaError(err, "P2003")) {
-    return violatedConstraint(err).includes("personId")
+    return violatedConstraint(err)?.includes("personId")
       ? missingRelationState("personId", MISSING_PERSON, values)
       : missingRelationState("companyId", MISSING_COMPANY, values)
   }
@@ -204,17 +209,25 @@ export async function createContact(
 export async function findLeadForContactAttach(personId: string): Promise<AttachableLead | null> {
   await getCurrentUser()
 
-  return createActionLogger("findLeadForContactAttach", () => findAttachableLead(personId))
+  const parsedId = personIdSchema.safeParse(personId)
+  if (!parsedId.success) return null
+
+  return createActionLogger("findLeadForContactAttach", () => findAttachableLead(parsedId.data))
 }
 
 export async function updateContact(
-  personId: string,
+  rawPersonId: string,
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
   await getCurrentUser()
 
   const values = collectValues(formData)
+  const parsedId = personIdSchema.safeParse(rawPersonId)
+  if (!parsedId.success) {
+    return { ok: false, errors: {}, message: "contact_not_found", values }
+  }
+  const personId = parsedId.data
 
   return saveEntity({
     actionName: "updateContact",
@@ -233,10 +246,15 @@ export async function updateContact(
   })
 }
 
-export async function deleteContact(personId: string): Promise<ContactFormState> {
+export async function deleteContact(rawPersonId: string): Promise<ContactDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<ContactFormState>({
+  const parsedId = personIdSchema.safeParse(rawPersonId)
+  // Un id invalide ne désigne aucune fiche : même réponse idempotente qu'une fiche déjà supprimée.
+  if (!parsedId.success) return { ok: true, errors: {}, message: null }
+  const personId = parsedId.data
+
+  return deleteEntity<ContactDeleteState>({
     actionName: "deleteContact",
     events: { success: "contact:deleted", failure: "contact:delete_failed" },
     successLogFields: { personId },

@@ -8,9 +8,9 @@ export interface ActionTiming {
   reply: string | null
 }
 
-const REPLIED: ReadonlySet<string> = new Set<ActionStatus>(["REPONDU", "CONVERTI"])
+const REPLIED: ReadonlySet<ActionStatus> = new Set(["REPONDU", "CONVERTI"])
 
-export function isRepliedStatus(status: string): boolean {
+export function isRepliedStatus(status: ActionStatus): boolean {
   return REPLIED.has(status)
 }
 

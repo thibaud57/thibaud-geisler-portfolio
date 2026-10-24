@@ -4,8 +4,10 @@ import type { Locale } from "next-intl"
 
 import type { Prisma, Tag } from "@/generated/prisma/client"
 import { localizeTag, type LocalizedTag } from "@/i18n/localize-content"
+import { logger } from "@/lib/logger"
 import { prisma } from "@/lib/prisma"
-import { emptyTagCountByKind, type TagCountByKind } from "@/lib/tags"
+import { recordFromKeys } from "@/lib/record-from-keys"
+import { KIND_ORDER, type TagCountByKind } from "@/lib/tags"
 
 export const TAG_LOGO_SELECT = {
   slug: true,
@@ -39,10 +41,10 @@ export async function findTagsBySlugs(params: {
     select: TAG_LOGO_SELECT,
   })
 
-  if (process.env.NODE_ENV !== "production" && tags.length !== params.slugs.length) {
+  if (tags.length !== params.slugs.length) {
     const found = new Set(tags.map((t) => t.slug))
     const missing = params.slugs.filter((s) => !found.has(s))
-    console.warn(`[findTagsBySlugs] Slugs absents en DB (silent filter) : ${missing.join(", ")}`)
+    logger.warn({ event: "tags:missing_slugs", missing })
   }
 
   const bySlug = new Map(tags.map((t) => [t.slug, t]))
@@ -77,9 +79,6 @@ export async function countTagsByKind(): Promise<TagCountByKind> {
   cacheTag("tags")
 
   const grouped = await prisma.tag.groupBy({ by: ["kind"], _count: { _all: true } })
-  const countsByKind = emptyTagCountByKind()
-  for (const entry of grouped) {
-    countsByKind[entry.kind] = entry._count._all
-  }
-  return countsByKind
+  const countByKind = new Map(grouped.map((entry) => [entry.kind, entry._count._all]))
+  return recordFromKeys(KIND_ORDER, (kind) => countByKind.get(kind) ?? 0)
 }

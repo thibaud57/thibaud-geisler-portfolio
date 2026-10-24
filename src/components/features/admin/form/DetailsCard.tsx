@@ -9,7 +9,7 @@ interface Props {
   title: string
   value: string
   onChange: (value: string) => void
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   editorKey?: string | number
   mirror?: { value: string; loading: boolean }
 }

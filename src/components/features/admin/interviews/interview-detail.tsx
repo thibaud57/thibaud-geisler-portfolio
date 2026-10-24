@@ -28,6 +28,7 @@ import {
   INTERVIEW_TYPE_ICONS,
   INTERVIEW_TYPE_LABELS,
   type InterviewPlace,
+  interviewTitleOf,
   toInterviewLink,
 } from "@/lib/crm/interviews"
 import {
@@ -86,7 +87,6 @@ function opportunityLink(interview: AdminInterview) {
 
 export function buildInterviewDetail(
   interview: AdminInterview,
-  titles: ReadonlyMap<string, string>,
   places: ReadonlyMap<string, InterviewPlace>,
   previous: AdminInterview | null,
   onEdit: () => void,
@@ -95,7 +95,7 @@ export function buildInterviewDetail(
   const { opportunity } = interview
 
   return {
-    title: titles.get(interview.id) ?? "",
+    title: interviewTitleOf(interview, places),
     subtitle: formatShortDateTime(interview.scheduledAt),
     badges: [headerBadge(interview.status, INTERVIEW_STATUS_LABELS, INTERVIEW_STATUS_ICONS)],
     sections: [

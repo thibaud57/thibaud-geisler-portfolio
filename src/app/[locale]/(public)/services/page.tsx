@@ -2,6 +2,8 @@ import type { Metadata, ResolvingMetadata } from "next"
 import { getTranslations } from "next-intl/server"
 
 import { setupLocalePage } from "@/i18n/locale-guard"
+import { StringList } from "@/lib/schemas/string-list"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildBreadcrumbList, buildOfferCatalog } from "@/lib/seo/json-ld"
 
@@ -25,6 +27,7 @@ export async function generateMetadata(
     title: t("servicesTitle"),
     description: t("servicesDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
@@ -70,10 +73,11 @@ export default async function ServicesPage({ params }: PageProps<"/[locale]/serv
             className="h-full"
           >
             <ServiceCard
+              variant="full"
               slug={slug}
               title={t(`offers.${slug}.title`)}
               description={t(`offers.${slug}.description`)}
-              bullets={t.raw(`offers.${slug}.bullets`) as string[]}
+              bullets={StringList.parse(t.raw(`offers.${slug}.bullets`))}
               ctaLabel={t(`offers.${slug}.ctaLabel`)}
             />
           </MotionItem>

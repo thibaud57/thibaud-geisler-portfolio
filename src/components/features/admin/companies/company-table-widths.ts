@@ -50,7 +50,7 @@ export const COMPANY_VIEW_DEFAULT_VISIBLE_COLUMNS: Record<
   prospects: columnsWithout(ALL_COMPANY_COLUMNS, "worked", "endClients", "projects"),
 }
 
-export const COMPANY_PAGE_SKELETON: string[] = [
+export const COMPANY_PAGE_SKELETON: readonly string[] = [
   "h-[24px]",
   "h-[260px]",
   "h-[160px]",

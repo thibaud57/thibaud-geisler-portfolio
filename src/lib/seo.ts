@@ -48,6 +48,7 @@ export interface BuildPageMetadataInput {
   title: string
   description: string
   siteName: string
+  indexable: boolean
   ogType?: "website" | "article"
   parentOpenGraphImages?: OpenGraphImages
   parentTwitterImages?: TwitterImages
@@ -59,12 +60,12 @@ export function buildPageMetadata({
   title,
   description,
   siteName,
+  indexable,
   ogType = "website",
   parentOpenGraphImages,
   parentTwitterImages,
 }: BuildPageMetadataInput): Metadata {
   const url = `${siteUrl}/${locale}${path}`
-  const isProduction = process.env.NODE_ENV === "production"
 
   return {
     title,
@@ -89,6 +90,6 @@ export function buildPageMetadata({
       canonical: url,
       languages: buildLanguageAlternates(path),
     },
-    ...(isProduction ? {} : { robots: { index: false, follow: false } }),
+    ...(indexable ? {} : { robots: { index: false, follow: false } }),
   }
 }

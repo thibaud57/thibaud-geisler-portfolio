@@ -20,6 +20,7 @@ import type { ProjectType } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
+import { requireOption } from "@/lib/is-one-of"
 import {
   PROJECT_FIELD_LABELS as LABELS,
   PROJECT_FORMAT_ICONS,
@@ -40,9 +41,9 @@ import type { AdminTag } from "@/server/queries/tags"
 
 interface Props {
   project: AdminProjectDetail | null
-  tags: AdminTag[]
+  tags: readonly AdminTag[]
   companies: readonly CompanyOption[]
-  coverAssets: AssetEntry[]
+  coverAssets: readonly AssetEntry[]
   defaultDisplayOrder: number
 }
 
@@ -209,7 +210,7 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
                 id={`${formId}-type`}
                 value={type}
                 onValueChange={(v) => {
-                  setType(v as ProjectType)
+                  setType(requireOption(PROJECT_TYPES, v))
                 }}
                 aria-invalid={!!state.errors.type?.length}
                 aria-describedby={`${formId}-type-error`}

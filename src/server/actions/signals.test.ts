@@ -106,6 +106,13 @@ describe("createCompanySignal", () => {
     expect(revalidatePath).toHaveBeenCalled()
   })
 
+  it("answers company_not_found for an empty company id, without writing", async () => {
+    const state = await createCompanySignal("", initialSignalFormState, buildFormData())
+
+    expect(state.message).toBe("company_not_found")
+    expect(prisma.signal.create).not.toHaveBeenCalled()
+  })
+
   it("refuses a content over 500 characters and a link over 2048", async () => {
     const state = await createCompanySignal(
       "c1",

@@ -13,7 +13,9 @@ import { countryName, sirenFromSiret } from "@/lib/crm/legal-entities"
 import { formatSiret } from "@/lib/legal/format-siret"
 import { loadLegalContent } from "@/lib/legal/load-legal-content"
 import { isVatLiable } from "@/lib/legal/vat-status"
+import { ApeCode } from "@/lib/schemas/legal-keys"
 import { LINK_CLASS } from "@/lib/typography"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata } from "@/lib/seo"
 import { getHostingProvider, getPublisher } from "@/server/queries/legal"
 
@@ -31,6 +33,7 @@ export async function generateMetadata(
     title: t("legalMentionsTitle"),
     description: t("legalMentionsDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,
@@ -60,13 +63,17 @@ export default async function MentionsLegalesPage({
 
 async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
   await io()
-  const [t, tLegal, publisher, hosting, legalContent] = await Promise.all([
+  const [t, tLegalStatus, tApe, publisher, hosting, legalContent] = await Promise.all([
     getTranslations("LegalMentions"),
-    getTranslations("Legal"),
+    getTranslations("Legal.legalStatus"),
+    getTranslations("Legal.ape"),
     getPublisher(),
     getHostingProvider(),
     loadLegalContent(locale, "mentions"),
   ])
+
+  const siren = sirenFromSiret(publisher?.siret ?? null)
+  const hostingSiren = sirenFromSiret(hosting?.siret ?? null)
 
   // Facultatifs en base, mais requis ici pour l'éditeur comme pour l'hébergeur.
   if (
@@ -75,22 +82,24 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
     !publisher.address ||
     !hosting.address ||
     !publisher.legalForm ||
-    !hosting.legalForm
+    !hosting.legalForm ||
+    !publisher.siret ||
+    !siren
   ) {
     notFound()
   }
   const pub = publisher.publisher
-  const siret = publisher.siret ?? ""
-  const siren = sirenFromSiret(siret) ?? ""
+  const vatLiable = isVatLiable(pub, new Date())
+  const siret = publisher.siret
+  // Parsé ici et non dans getPublisher, partagé avec le Footer : une clé hors enum ne casse que cette page.
+  const apeCode = ApeCode.parse(pub.apeCode)
 
   const numberFormatter = new Intl.NumberFormat(locale)
 
   const publisherCountry = countryName(publisher.address.country, locale)
   const hostingCountry = countryName(hosting.address.country, locale)
 
-  const hostingLegalStatus = tLegal(
-    `legalStatus.${hosting.legalForm}` as Parameters<typeof tLegal>[0],
-  )
+  const hostingLegalStatus = tLegalStatus(hosting.legalForm)
   const hostingCapital =
     hosting.capitalAmount !== null && hosting.capitalCurrency !== null
       ? t("hosting.capitalLine", {
@@ -99,8 +108,6 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           currency: hosting.capitalCurrency,
         })
       : hostingLegalStatus
-
-  const hostingSiren = sirenFromSiret(hosting.siret) ?? ""
 
   return (
     <div className="space-y-12">
@@ -112,7 +119,7 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dd>{publisher.name}</dd>
 
           <dt className="font-semibold">{t("identity.statusLabel")}</dt>
-          <dd>{tLegal(`legalStatus.${publisher.legalForm}` as Parameters<typeof tLegal>[0])}</dd>
+          <dd>{tLegalStatus(publisher.legalForm)}</dd>
 
           <dt className="font-semibold">{t("identity.sirenLabel")}</dt>
           <dd>{siren}</dd>
@@ -131,8 +138,8 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dt className="font-semibold">{t("identity.apeLabel")}</dt>
           <dd>
             {t("identity.apeValue", {
-              code: pub.apeCode,
-              label: tLegal(`ape.${pub.apeCode}` as Parameters<typeof tLegal>[0]),
+              code: apeCode,
+              label: tApe(apeCode),
             })}
           </dd>
 
@@ -152,14 +159,14 @@ async function MentionsLegalesContentAsync({ locale }: { locale: Locale }) {
           <dt className="font-semibold">{t("identity.directorLabel")}</dt>
           <dd>{publisher.name}</dd>
 
-          {isVatLiable(pub) && (
+          {vatLiable && (
             <>
               <dt className="font-semibold">{t("identity.vatNumberLabel")}</dt>
               <dd>{publisher.vatNumber}</dd>
             </>
           )}
         </dl>
-        {!isVatLiable(pub) && (
+        {!vatLiable && (
           <p className="text-sm text-muted-foreground">{t("identity.vatNotApplicable")}</p>
         )}
       </section>

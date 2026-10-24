@@ -183,7 +183,10 @@ export async function deleteTag(id: string): Promise<TagDeleteState> {
   })
 }
 
-export async function reorderTags(kind: TagKind, orderedIds: string[]): Promise<TagReorderState> {
+export async function reorderTags(
+  kind: TagKind,
+  orderedIds: readonly string[],
+): Promise<TagReorderState> {
   await getCurrentUser()
 
   return createActionLogger("reorderTags", async ({ log }) => {

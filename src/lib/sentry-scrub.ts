@@ -40,17 +40,18 @@ function redactExceptionMessages(event: ErrorEvent): ErrorEvent {
   }
 }
 
+function dropUserIdentity(event: ErrorEvent): ErrorEvent {
+  if (!event.user) return event
+  const { email, ip_address, ...safeUser } = event.user
+  return { ...event, user: safeUser }
+}
+
+function redactMessage(event: ErrorEvent): ErrorEvent {
+  return event.message ? { ...event, message: redactEmails(event.message) } : event
+}
+
 export function scrubSentryEvent(event: ErrorEvent): ErrorEvent {
-  let result = event
-
-  if (result.user) {
-    const { email, ip_address, ...safeUser } = result.user
-    result = { ...result, user: safeUser }
-  }
-
-  if (result.message) result = { ...result, message: redactEmails(result.message) }
-
-  return redactExceptionMessages(result)
+  return redactExceptionMessages(redactMessage(dropUserIdentity(event)))
 }
 
 function redactDeep(value: unknown): unknown {

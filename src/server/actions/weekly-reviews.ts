@@ -6,15 +6,15 @@ import { revalidatePath } from "next/cache"
 import { ADMIN_WEEKLY_REVIEWS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
+import { recordFromKeys } from "@/lib/record-from-keys"
 import { countWeek, weekBounds } from "@/lib/crm/review-counters"
-import { weeklyReviewSchema, type WeeklyReviewInput } from "@/lib/schemas/weekly-review"
-import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
 import {
-  isFridayIso,
-  isoDayToDate,
-  REVIEW_COUNTER_KEYS,
-  type ReviewCounts,
-} from "@/lib/crm/weekly-reviews"
+  closingFridayField,
+  weeklyReviewSchema,
+  type WeeklyReviewInput,
+} from "@/lib/schemas/weekly-review"
+import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
+import { REVIEW_COUNTER_KEYS, type ReviewCounts } from "@/lib/crm/weekly-reviews"
 import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
 import {
@@ -24,25 +24,23 @@ import {
   rowExists,
   saveEntity,
 } from "./_support/shared"
-import type { WeeklyReviewFormState } from "./weekly-reviews.types"
+import type { WeeklyReviewDeleteState, WeeklyReviewFormState } from "./weekly-reviews.types"
 
 const WEEK_TAKEN = "Une revue existe déjà pour cette semaine"
 
+const FORM_FIELD_KEYS = [
+  "closingFriday",
+  ...REVIEW_COUNTER_KEYS,
+  "status",
+  "motivation",
+  "wins",
+  "blockers",
+  "nextWeekPlan",
+  "notes",
+] as const
+
 function collectValues(formData: FormData): WeeklyReviewFormState["values"] {
-  const values: Record<string, string> = {}
-  for (const key of [
-    "closingFriday",
-    ...REVIEW_COUNTER_KEYS,
-    "status",
-    "motivation",
-    "wins",
-    "blockers",
-    "nextWeekPlan",
-    "notes",
-  ]) {
-    values[key] = stringField(formData, key)
-  }
-  return values
+  return recordFromKeys(FORM_FIELD_KEYS, (key) => stringField(formData, key))
 }
 
 function invalidateReviewCaches(): void {
@@ -123,10 +121,10 @@ export async function updateWeeklyReview(
   )
 }
 
-export async function deleteWeeklyReview(id: string): Promise<WeeklyReviewFormState> {
+export async function deleteWeeklyReview(id: string): Promise<WeeklyReviewDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<WeeklyReviewFormState>({
+  return deleteEntity<WeeklyReviewDeleteState>({
     actionName: "deleteWeeklyReview",
     events: { success: "weekly_review:deleted", failure: "weekly_review:delete_failed" },
     successLogFields: { id },
@@ -145,8 +143,9 @@ export async function computeWeekCounters(
   await getCurrentUser()
 
   return createActionLogger("computeWeekCounters", async ({ log }) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(isoFriday) || !isFridayIso(isoFriday)) return { ok: false }
-    const bounds = weekBounds(isoDayToDate(isoFriday))
+    const closingFriday = closingFridayField.safeParse(isoFriday)
+    if (!closingFriday.success) return { ok: false }
+    const bounds = weekBounds(closingFriday.data)
     try {
       const sources = await findWeekCounterSources(bounds)
       return { ok: true, counts: countWeek(sources, bounds, new Date()) }

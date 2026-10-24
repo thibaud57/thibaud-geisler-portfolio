@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 interface Props extends Omit<ComponentProps<typeof Textarea>, "id"> {
   id: string
   label?: ReactNode
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   help?: ReactNode
 }
 

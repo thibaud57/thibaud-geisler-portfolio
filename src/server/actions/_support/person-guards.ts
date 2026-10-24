@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin/routes"
 import { isOptOutOver } from "@/lib/crm/person-retention"
 import { formatShortInstantDate } from "@/lib/date-time"
+import type { PersonId, ProspectingActionId } from "@/lib/ids"
 import { stringField } from "@/lib/server-utils"
 
 import { PersonLockedError } from "../persons.types"
@@ -93,7 +94,7 @@ export function revalidatePersonLists(): void {
 async function findIdentityConflict(
   client: Prisma.TransactionClient,
   data: { email: string | null; linkedinUrl: string | null },
-  currentPersonId: string | null,
+  currentPersonId: PersonId | null,
 ): Promise<IdentityConflict | null> {
   const identities: Prisma.PersonWhereInput[] = [
     ...(data.email ? [{ email: data.email }] : []),
@@ -128,7 +129,7 @@ async function findIdentityConflict(
 export async function assertNewIdentity(
   client: Prisma.TransactionClient,
   data: { email: string | null; linkedinUrl: string | null },
-  currentPersonId: string | null,
+  currentPersonId: PersonId | null,
   wording: DuplicateWording,
 ): Promise<void> {
   const conflict = await findIdentityConflict(client, data, currentPersonId)
@@ -147,7 +148,7 @@ export async function assertNewIdentity(
 // Le verrou de ligne attend le commit d'une opposition en cours (son UPDATE prend le même) : sans lui, la fiche vidée serait repeuplée par l'écriture qui suit la lecture.
 async function findOptedOutAt(
   tx: Prisma.TransactionClient,
-  personId: string,
+  personId: PersonId,
 ): Promise<Date | null> {
   await tx.$queryRaw`SELECT 1 FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
   const person = await tx.person.findUnique({
@@ -160,7 +161,7 @@ async function findOptedOutAt(
 // Une personne opposée ne se modifie pas : sa fiche vidée est la seule trace qui empêche de la reprospecter.
 export async function assertNotOptedOut(
   tx: Prisma.TransactionClient,
-  personId: string,
+  personId: PersonId,
 ): Promise<void> {
   if (await findOptedOutAt(tx, personId)) throw new PersonLockedError()
 }
@@ -168,7 +169,7 @@ export async function assertNotOptedOut(
 // La même trace ne se supprime qu'au terme de ses 3 ans : la perdre plus tôt rouvrirait la personne à la prospection.
 export async function assertOptOutOver(
   tx: Prisma.TransactionClient,
-  personId: string,
+  personId: PersonId,
 ): Promise<void> {
   const optedOutAt = await findOptedOutAt(tx, personId)
   if (optedOutAt && !isOptOutOver(optedOutAt, new Date())) throw new PersonLockedError()
@@ -178,7 +179,9 @@ export async function assertOptOutOver(
 // FOR SHARE attend le commit d'une opposition en cours (son UPDATE verrouille la ligne) : sans lui, une action s'écrirait entre la lecture et l'écriture.
 export async function assertProspectionAllowed(
   tx: Prisma.TransactionClient,
-  target: { personId?: string; actionId?: string },
+  target:
+    | { personId: PersonId; actionId?: ProspectingActionId }
+    | { actionId: ProspectingActionId; personId?: undefined },
 ): Promise<void> {
   // Verrouille d'abord l'action : sans cela, un déplacement concurrent vers une autre personne passerait entre ce contrôle et l'écriture.
   if (target.actionId) {
@@ -196,7 +199,7 @@ export async function assertProspectionAllowed(
 // Une seule instruction conditionnelle : lire l'autre rôle puis supprimer laisserait une fenêtre où un rôle posé entre-temps ferait disparaître la personne avec lui.
 export function deletePersonIfRoleless(
   tx: Prisma.TransactionClient,
-  personId: string,
+  personId: PersonId,
 ): Promise<Prisma.BatchPayload> {
   return tx.person.deleteMany({
     where: { id: personId, lead: { is: null }, contact: { is: null } },

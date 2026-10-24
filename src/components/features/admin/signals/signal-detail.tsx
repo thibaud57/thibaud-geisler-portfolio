@@ -29,10 +29,10 @@ const OWNER_KIND_LABELS: Record<SignalOwnerKind, string> = {
   lead: "Lead",
 }
 
-const OWNER_PATHS: Record<SignalOwnerKind, string> = {
+const OWNER_PATHS = {
   company: ADMIN_COMPANIES_PATH,
   lead: ADMIN_LEADS_PATH,
-}
+} as const satisfies Record<SignalOwnerKind, string>
 
 export function buildSignalDetail(
   signal: SignalItem,

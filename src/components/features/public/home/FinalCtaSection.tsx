@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { StackedSkeleton } from "@/components/ui/stacked-skeleton"
 import { Link } from "@/i18n/navigation"
 import { TagIcon } from "@/lib/icons"
+import { StringList } from "@/lib/schemas/string-list"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
 import { findTagsBySlugs } from "@/server/queries/tags"
@@ -36,7 +37,7 @@ interface Props {
 export async function FinalCtaSection({ locale }: Props) {
   const t = await getTranslations("HomePage")
 
-  const rotateWords = t.raw("finalCta.rotateWords") as string[]
+  const rotateWords = StringList.parse(t.raw("finalCta.rotateWords"))
 
   return (
     <section className="flex flex-col items-center gap-8 rounded-xl border bg-card px-6 py-12 text-center sm:py-16">

@@ -24,7 +24,7 @@ interface Props extends PickerProps {
   label: string
   value: Date | undefined
   onChange: (date: Date | undefined) => void
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   action?: ReactNode
 }
 

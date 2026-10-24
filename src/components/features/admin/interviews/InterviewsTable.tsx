@@ -26,6 +26,7 @@ import {
 import { formatShortDateTime } from "@/lib/date-time"
 import {
   INTERVIEW_VIEW_LOCKED_FACETS,
+  type InterviewFacetKey,
   interviewsForView,
   type InterviewView,
 } from "@/lib/crm/interview-views"
@@ -38,6 +39,7 @@ import {
   INTERVIEW_TYPE_LABELS,
   interviewPlaces,
   interviewTitleOf,
+  type InterviewPlace,
 } from "@/lib/crm/interviews"
 import { formatDailyRate, OPPORTUNITY_FIELD_LABELS } from "@/lib/crm/opportunities"
 import { personDisplayName } from "@/lib/crm/persons"
@@ -62,7 +64,7 @@ function correspondentNames(interview: AdminInterview): string[] {
 }
 
 function buildDataColumns(
-  titles: ReadonlyMap<string, string>,
+  places: ReadonlyMap<string, InterviewPlace>,
   view: InterviewView,
 ): readonly Column<AdminInterview>[] {
   const visibleByDefault = INTERVIEW_VIEW_DEFAULT_VISIBLE_COLUMNS[view]
@@ -71,15 +73,15 @@ function buildDataColumns(
       key: "title",
       header: "Entretien",
       width: INTERVIEW_COLUMN_WIDTHS.title,
-      sortValue: (interview) => titles.get(interview.id) ?? "",
+      sortValue: (interview) => interviewTitleOf(interview, places),
       searchValue: (interview) =>
         [
-          titles.get(interview.id) ?? "",
+          interviewTitleOf(interview, places),
           interview.opportunity.title,
           leadingCompany(interview)?.name ?? "",
           ...correspondentNames(interview),
         ].join(" "),
-      cell: (interview) => <TitleCell title={titles.get(interview.id) ?? ""} />,
+      cell: (interview) => <TitleCell title={interviewTitleOf(interview, places)} />,
     },
     {
       key: "opportunity",
@@ -203,7 +205,7 @@ function rowActions(interview: AdminInterview, fullTitle: string) {
   )
 }
 
-const facets: readonly Facet<AdminInterview>[] = [
+const facets: readonly Facet<AdminInterview, InterviewFacetKey>[] = [
   enumFacet(
     "type",
     LABELS.type,
@@ -244,21 +246,16 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
   const router = useRouter()
   // Titres calculés sur tous les entretiens, jamais sur la seule vue : « Entretien 2 » le reste même si l'entretien 1 n'y figure pas.
   const places = useMemo(() => interviewPlaces(interviews), [interviews])
-  const titles = useMemo(
-    () =>
-      new Map(interviews.map((interview) => [interview.id, interviewTitleOf(interview, places)])),
-    [interviews, places],
-  )
   const viewInterviews = useMemo(() => interviewsForView(interviews, view), [interviews, view])
 
   const columns = useMemo<readonly Column<AdminInterview>[]>(
     () => [
-      ...buildDataColumns(titles, view),
+      ...buildDataColumns(places, view),
       actionsColumn((interview: AdminInterview) =>
         rowActions(interview, interviewTitleOf(interview, places, { withOpportunity: true })),
       ),
     ],
-    [titles, places, view],
+    [places, view],
   )
 
   const build = useCallback(
@@ -274,7 +271,6 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
           : undefined
       return buildInterviewDetail(
         interview,
-        titles,
         places,
         previous,
         () => {
@@ -283,7 +279,7 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
         onOpenPrevious,
       )
     },
-    [places, interviews, titles, router, view],
+    [places, interviews, router, view],
   )
   const { open, dialog } = useRowDetail({ rows: interviews, initialDetailId, build })
 
@@ -296,7 +292,7 @@ export function InterviewsTable({ interviews, view, initialDetailId }: Props) {
         searchPlaceholder="Rechercher une opportunité ou un nom"
         noun="entretien"
         onRowClick={open}
-        rowLabel={(interview) => titles.get(interview.id) ?? ""}
+        rowLabel={(interview) => interviewTitleOf(interview, places)}
         facets={facets}
         lockedFacets={INTERVIEW_VIEW_LOCKED_FACETS[view]}
         empty={{

@@ -28,18 +28,21 @@ export function actionsColumn<T>(cell: (row: T) => ReactNode): Column<T> {
   }
 }
 
-export function enumFacet<T, V extends string>(
-  key: string,
+export function enumFacet<T, V extends string, FacetKey extends string>(
+  key: FacetKey,
   label: string,
   values: readonly V[],
   labels: Record<V, string>,
   pick: (row: T) => V | readonly V[] | null,
-): Facet<T> {
+): Facet<T, FacetKey> {
   return {
     key,
     label,
     options: values.map((value) => ({ value, label: labels[value] })),
-    value: (row) => pick(row) ?? [],
+    values: (row) => {
+      const picked = pick(row)
+      return picked === null ? [] : typeof picked === "string" ? [picked] : picked
+    },
   }
 }
 

@@ -62,17 +62,16 @@ function TagForm({
   onDone: () => void
 }) {
   const formId = useId()
-  const [iconValue, setIconValue] = useState(tag?.icon ?? "")
+  const [iconValue, setIconValue] = useState<string | null>(tag?.icon ?? null)
   const action = tag ? updateTag.bind(null, tag.id) : createTag
   const [state, formAction, pending] = useActionState(action, initialTagFormState)
   const handleSubmit = useFormActionSubmit(formAction)
 
   // Contrôlés : changer de catégorie recalcule l'ordre affiché sans aller-retour serveur.
-  const [kindValue, setKindValue] = useState<TagKind | "">(tag?.kind ?? "")
+  const [kindValue, setKindValue] = useState<TagKind | null>(tag?.kind ?? null)
   const [displayOrderValue, setDisplayOrderValue] = useState(tag ? String(tag.displayOrder) : "")
 
-  function handleKindChange(nextKind: string) {
-    const kind = nextKind as TagKind
+  function handleKindChange(kind: TagKind) {
     setKindValue(kind)
     const tagKind = tag?.kind
     const tagOrder = tag?.displayOrder
@@ -159,7 +158,7 @@ function TagForm({
           onValueChange={setIconValue}
           ariaInvalid={!!state.errors.icon?.length}
         />
-        <input type="hidden" name="icon" value={iconValue} />
+        <input type="hidden" name="icon" value={iconValue ?? ""} />
       </FormField>
     </FormDialogForm>
   )
@@ -172,8 +171,8 @@ function IconCombobox({
   ariaInvalid,
 }: {
   id: string
-  value: string
-  onValueChange: (value: string) => void
+  value: string | null
+  onValueChange: (value: string | null) => void
   ariaInvalid: boolean
 }) {
   const [open, setOpen] = useState(false)
@@ -189,7 +188,7 @@ function IconCombobox({
       modal
       triggerContent={
         <span className="flex min-w-0 items-center gap-2">
-          {value ? (
+          {value !== null ? (
             <>
               <TagIcon icon={value} className="size-4 shrink-0" />
               <TruncateTooltip className="font-mono text-xs">{value}</TruncateTooltip>
@@ -215,9 +214,9 @@ function IconCombobox({
       <CommandGroup>
         <CommandItem
           value={NO_ICON_OPTION}
-          data-checked={value === ""}
+          data-checked={value === null}
           onSelect={() => {
-            onValueChange("")
+            onValueChange(null)
             setOpen(false)
           }}
         >

@@ -8,7 +8,7 @@ import { timeOf, toInstant } from "@/lib/date-time"
 interface DateTimeFieldProps {
   id: string
   label: string
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   date: Date | undefined
   onDateChange: (date: Date | undefined) => void
   time: string
@@ -51,7 +51,7 @@ export function DateTimeField({
           }}
         />
       </div>
-      {name ? <input type="hidden" name={name} value={toInstant(date, time)} /> : null}
+      {name ? <input type="hidden" name={name} value={toInstant(date, time) ?? ""} /> : null}
     </FormField>
   )
 }

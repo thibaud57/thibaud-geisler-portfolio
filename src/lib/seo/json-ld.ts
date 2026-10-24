@@ -21,6 +21,7 @@ export interface ProfilePagePersonInput {
   description: string
   email: string
   image: string
+  dateModified: Date
   sameAs: readonly string[]
   expertise: readonly Expertise[]
   legal?: {
@@ -44,7 +45,7 @@ export interface ProfilePagePerson {
     email: string
     image: string
     sameAs: readonly string[]
-    knowsAbout: KnowsAboutEntry[]
+    knowsAbout: readonly KnowsAboutEntry[]
     address?: SchemaOrgPostalAddress
     taxID?: string
     vatID?: string
@@ -268,7 +269,7 @@ export function buildProfilePagePerson(input: ProfilePagePersonInput): ProfilePa
   return {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
-    dateModified: new Date().toISOString(),
+    dateModified: input.dateModified.toISOString(),
     mainEntity: {
       "@type": "Person",
       "@id": buildPersonId(input.siteUrl),

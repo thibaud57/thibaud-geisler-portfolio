@@ -15,7 +15,7 @@ interface Props<T extends string> {
   labels: Record<T, string>
   icons?: Record<T, IconComponent | null>
   defaultValue: readonly string[]
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   help?: ReactNode
   columns?: 2 | 3
 }

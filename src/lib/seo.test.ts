@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import { buildPageMetadata, type BuildPageMetadataInput } from "./seo"
 
@@ -12,6 +12,7 @@ function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetad
     title: "Services",
     description: "Description des services",
     siteName: "Thibaud Geisler : IA & Développement",
+    indexable: true,
     ...overrides,
   }
 }
@@ -19,14 +20,6 @@ function buildInput(overrides?: Partial<BuildPageMetadataInput>): BuildPageMetad
 function ogType(meta: Metadata): string | undefined {
   return (meta.openGraph as { type?: string } | undefined)?.type
 }
-
-beforeEach(() => {
-  vi.stubEnv("NODE_ENV", "production")
-})
-
-afterEach(() => {
-  vi.unstubAllEnvs()
-})
 
 describe("buildPageMetadata", () => {
   it("passes title and description through unchanged (Next.js applies the template from the root layout)", () => {
@@ -114,13 +107,10 @@ describe("buildPageMetadata", () => {
   })
 
   it.each([
-    ["production", undefined],
-    ["development", { index: false, follow: false }],
-    ["test", { index: false, follow: false }],
-  ])("sets robots for NODE_ENV %s", (nodeEnv, expected) => {
-    vi.stubEnv("NODE_ENV", nodeEnv)
-
-    const meta = buildPageMetadata(buildInput())
+    [true, undefined],
+    [false, { index: false, follow: false }],
+  ])("sets robots when indexable is %s", (indexable, expected) => {
+    const meta = buildPageMetadata(buildInput({ indexable }))
 
     expect(meta.robots).toEqual(expected)
   })

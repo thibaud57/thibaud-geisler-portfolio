@@ -11,7 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { CONTENT_TYPE_MAP } from "@/lib/asset-content-types"
-import { ASSET_FOLDERS, buildAssetKey, folderNeedsSlug, MAX_ASSET_BYTES } from "@/lib/asset-keys"
+import {
+  ASSET_FOLDERS,
+  type AssetFolder,
+  buildAssetKey,
+  folderNeedsSlug,
+  MAX_ASSET_BYTES,
+} from "@/lib/asset-keys"
+import { recordFromKeys } from "@/lib/record-from-keys"
 import { uploadAsset } from "@/server/actions/assets"
 import { initialAssetFormState } from "@/server/actions/assets.types"
 import type { AssetFormMessage } from "@/server/actions/assets.types"
@@ -30,11 +37,11 @@ const EXTENSION_LABELS: Record<string, string> = {
 }
 
 function buildAcceptedExtensionsLabel(): string {
-  const labels: string[] = []
-  for (const extension of Object.keys(CONTENT_TYPE_MAP)) {
-    const label = EXTENSION_LABELS[extension] ?? extension.toUpperCase()
-    if (!labels.includes(label)) labels.push(label)
-  }
+  const labels = new Set(
+    Object.keys(CONTENT_TYPE_MAP).map(
+      (extension) => EXTENSION_LABELS[extension] ?? extension.toUpperCase(),
+    ),
+  )
   return new Intl.ListFormat("fr", { type: "disjunction" }).format(labels)
 }
 
@@ -45,7 +52,7 @@ const FILE_ACCEPT = Object.keys(CONTENT_TYPE_MAP)
 
 const OVERSIZED_MESSAGE = `Fichier trop volumineux (${MAX_SIZE_MB} Mo maximum).`
 
-const FILE_MESSAGE_LABELS: Partial<Record<NonNullable<AssetFormMessage>, string>> = {
+const FILE_MESSAGE_LABELS: Record<Exclude<AssetFormMessage, "unknown_error">, string> = {
   file_too_large: OVERSIZED_MESSAGE,
   file_empty: "Choisissez un fichier à déposer.",
   file_type_mismatch: "Le type du fichier ne correspond pas à son extension.",
@@ -70,9 +77,10 @@ export function AssetUploadDialog({ existingKeys }: Props) {
   )
 }
 
-type FolderValue = (typeof ASSET_FOLDERS)[number] | ""
-
-const FOLDER_LABELS = Object.fromEntries(ASSET_FOLDERS.map((value) => [value, `${value}/`]))
+const FOLDER_LABELS: Record<AssetFolder, string> = recordFromKeys(
+  ASSET_FOLDERS,
+  (folder) => `${folder}/`,
+)
 
 function UploadForm({
   existingKeys,
@@ -84,16 +92,15 @@ function UploadForm({
   const formId = useId()
   const [state, formAction, pending] = useActionState(uploadAsset, initialAssetFormState)
 
-  const [folder, setFolder] = useState<FolderValue>("")
+  const [folder, setFolder] = useState<AssetFolder | null>(null)
   const [slug, setSlug] = useState("")
   const [filename, setFilename] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [overwriteAckKey, setOverwriteAckKey] = useState<string | null>(null)
 
-  const needsSlug = folder !== "" && folderNeedsSlug(folder)
+  const needsSlug = folder !== null && folderNeedsSlug(folder)
 
-  function handleFolderChange(next: string) {
-    const nextFolder = next as FolderValue
+  function handleFolderChange(nextFolder: AssetFolder) {
     setFolder(nextFolder)
     if (!folderNeedsSlug(nextFolder)) setSlug("")
   }
@@ -115,13 +122,15 @@ function UploadForm({
     if (selected) selectFile(selected)
   }
 
+  const normalizedFilename = filename.trim().toLowerCase()
+  const normalizedSlug = slug.trim().toLowerCase()
   const predictedKey =
-    folder !== "" && filename.trim() !== ""
-      ? buildAssetKey({
-          folder,
-          slug: needsSlug ? slug.trim().toLowerCase() || undefined : undefined,
-          filename: filename.trim().toLowerCase(),
-        })
+    folder !== null && normalizedFilename !== "" && (!needsSlug || normalizedSlug !== "")
+      ? buildAssetKey(
+          needsSlug
+            ? { folder, slug: normalizedSlug, filename: normalizedFilename }
+            : { folder, filename: normalizedFilename },
+        )
       : null
   const isOverwrite = predictedKey !== null && existingKeys.includes(predictedKey)
   // Ajustement pendant le rendu (pas un useEffect) : une confirmation ne doit pas survivre à un
@@ -131,7 +140,9 @@ function UploadForm({
 
   const oversizedMessage = file && file.size > MAX_ASSET_BYTES ? OVERSIZED_MESSAGE : null
   const fileMessage =
-    state.ok === false && state.message ? FILE_MESSAGE_LABELS[state.message] : undefined
+    state.ok === false && state.message !== null && state.message !== "unknown_error"
+      ? FILE_MESSAGE_LABELS[state.message]
+      : undefined
 
   useSaveFeedback(state, { saved: "Fichier déposé", onSaved: onDone })
 

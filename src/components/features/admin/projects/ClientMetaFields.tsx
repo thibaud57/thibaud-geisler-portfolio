@@ -28,7 +28,7 @@ interface Props {
 
 export function ClientMetaFields({ companies, clientMeta, errors }: Props) {
   const formId = useId()
-  const [companyId, setCompanyId] = useState(clientMeta?.companyId ?? "")
+  const [companyId, setCompanyId] = useState<string | null>(clientMeta?.companyId ?? null)
 
   return (
     <div className="flex flex-col gap-4">

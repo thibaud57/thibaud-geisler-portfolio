@@ -36,7 +36,7 @@ import {
   WORK_MODE_LABELS,
   WORK_MODES,
 } from "@/lib/contract-terms"
-import { NONE_LABEL, NONE_VALUE } from "@/lib/schemas/none-value"
+import { NONE_LABEL } from "@/lib/schemas/none-value"
 import { DAYS_PER_WEEK, ON_SITE_DAYS, OPPORTUNITY_STATUSES } from "@/lib/schemas/opportunity"
 import { createOpportunity, updateOpportunity } from "@/server/actions/opportunities"
 import { initialOpportunityFormState } from "@/server/actions/opportunities.types"
@@ -69,11 +69,13 @@ export function OpportunityForm({
   const [state, formAction, pending] = useActionState(action, initialOpportunityFormState)
   const handleSubmit = useFormActionSubmit(formAction)
 
-  const [referrerId, setReferrerId] = useState(
-    (opportunity ? opportunity.referrerId : defaultReferrerId) ?? NONE_VALUE,
+  const [referrerId, setReferrerId] = useState<string | null>(
+    (opportunity ? opportunity.referrerId : defaultReferrerId) ?? null,
   )
-  const [intermediaryId, setIntermediaryId] = useState(opportunity?.intermediaryId ?? NONE_VALUE)
-  const [clientId, setClientId] = useState(opportunity?.clientId ?? NONE_VALUE)
+  const [intermediaryId, setIntermediaryId] = useState<string | null>(
+    opportunity?.intermediaryId ?? null,
+  )
+  const [clientId, setClientId] = useState<string | null>(opportunity?.clientId ?? null)
   // Le gabarit ne se pose qu'à la création : un Détails vidé exprès reste vide.
   const [details, setDetails] = useState(
     opportunity ? (opportunity.details ?? "") : OPPORTUNITY_DETAILS_TEMPLATE,
@@ -97,10 +99,10 @@ export function OpportunityForm({
     ? { id: opportunity.referrer.id, name: personDisplayName(opportunity.referrer) }
     : null
 
-  function handleIntermediaryChange(next: string) {
+  function handleIntermediaryChange(next: string | null) {
     setIntermediaryId(next)
     // Une même entreprise ne peut pas être l'ESN et le client final.
-    if (next !== NONE_VALUE && next === clientId) setClientId(NONE_VALUE)
+    if (next !== null && next === clientId) setClientId(null)
   }
 
   return (

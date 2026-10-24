@@ -5,8 +5,8 @@ export function timeOf(date: Date): string {
 }
 
 // Accesseurs locaux : l'instant porte le décalage du navigateur, heure d'été comprise. Une chaîne « AAAA-MM-JJTHH:MM » sans décalage serait lue en UTC par le serveur.
-export function toInstant(date: Date | undefined, time: string): string {
-  if (!date || !/^\d{2}:\d{2}$/.test(time)) return ""
+export function toInstant(date: Date | undefined, time: string): string | null {
+  if (!date || !/^\d{2}:\d{2}$/.test(time)) return null
   const hours = Number(time.slice(0, 2))
   const minutes = Number(time.slice(3, 5))
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes).toISOString()

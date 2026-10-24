@@ -1,5 +1,4 @@
 import { useTranslations } from "next-intl"
-import type { TagKind } from "@/generated/prisma/client"
 import { KIND_ORDER } from "@/lib/tags"
 import { LABEL_CLASS } from "@/lib/typography"
 import { cn } from "@/lib/utils"
@@ -7,7 +6,7 @@ import type { LocalizedProjectTag } from "@/types/project"
 import { TagBadge } from "./TagBadge"
 
 interface Props {
-  tags: LocalizedProjectTag[]
+  tags: readonly LocalizedProjectTag[]
 }
 
 export function TagStackGrouped({ tags }: Props) {
@@ -15,16 +14,7 @@ export function TagStackGrouped({ tags }: Props) {
 
   if (tags.length === 0) return null
 
-  const grouped = tags.reduce<Partial<Record<TagKind, LocalizedProjectTag[]>>>(
-    (acc, projectTag) => {
-      const kind = projectTag.tag.kind
-      const list = acc[kind] ?? []
-      list.push(projectTag)
-      acc[kind] = list
-      return acc
-    },
-    {},
-  )
+  const grouped = Object.groupBy(tags, ({ tag }) => tag.kind)
 
   const orderedGroups = KIND_ORDER.flatMap((kind) => {
     const groupTags = grouped[kind]

@@ -4,6 +4,7 @@ import { AdminFormContent, AdminFormPage } from "@/components/layout/admin/Admin
 import { CompanyForm } from "@/components/features/admin/companies/CompanyForm"
 import { RelatedLinksCard } from "@/components/features/admin/detail/RelatedLinksCard"
 import { SignalsCard } from "@/components/features/admin/signals/SignalsCard"
+import { companyIdSchema, type CompanyId } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import {
   ADMIN_COMPANIES_PATH,
@@ -19,7 +20,7 @@ import { findCompanyByIdForAdmin } from "@/server/queries/companies"
 import { listAdminAssets } from "@/server/queries/assets"
 import { findLeadsOfCompany } from "@/server/queries/leads"
 
-async function EditCompanySection({ id }: { id: string }) {
+async function EditCompanySection({ id }: { id: CompanyId }) {
   const [company, logoAssets, leads] = await Promise.all([
     findCompanyByIdForAdmin(id),
     listAdminAssets(COMPANY_LOGO_FOLDER),
@@ -71,11 +72,12 @@ async function EditCompanySection({ id }: { id: string }) {
 
 export default async function EditCompanyPage({ params }: PageProps<"/admin/entreprises/[id]">) {
   await getCurrentUser()
-  const { id } = await params
+  const parsedId = companyIdSchema.safeParse((await params).id)
+  if (!parsedId.success) notFound()
 
   return (
     <AdminFormPage skeleton={COMPANY_PAGE_SKELETON}>
-      <EditCompanySection id={id} />
+      <EditCompanySection id={parsedId.data} />
     </AdminFormPage>
   )
 }

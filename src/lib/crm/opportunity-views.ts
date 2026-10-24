@@ -47,7 +47,11 @@ export function opportunitiesForView<T extends OpportunityViewRow>(
   return opportunities.filter(VIEW_FILTERS[view]).sort(VIEW_SORTS[view])
 }
 
-export const OPPORTUNITY_VIEW_LOCKED_FACETS: Partial<Record<OpportunityView, readonly string[]>> = {
+export type OpportunityFacetKey = "status" | "contract" | "workMode" | "zone"
+
+export const OPPORTUNITY_VIEW_LOCKED_FACETS: Partial<
+  Record<OpportunityView, readonly OpportunityFacetKey[]>
+> = {
   acceptees: ["status"],
 }
 

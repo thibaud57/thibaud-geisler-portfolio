@@ -1,4 +1,4 @@
-import { INITIAL_FORM_STATE, type FormActionState } from "@/lib/form-state"
+import { INITIAL_FORM_STATE, type FormActionState, type SettledFormState } from "@/lib/form-state"
 import type { ContactFormFields } from "@/lib/schemas/network-contact"
 
 export type ContactFormMessage =
@@ -9,8 +9,9 @@ export type ContactFormMessage =
   | "person_not_found"
   | "contact_not_found"
   | "unknown_error"
-  | null
 
 export type ContactFormState = FormActionState<ContactFormFields, ContactFormMessage>
+
+export type ContactDeleteState = SettledFormState<ContactFormState>
 
 export const initialContactFormState: ContactFormState = INITIAL_FORM_STATE

@@ -14,17 +14,12 @@ vi.mock("@/server/company-logo/fetch-company-logo", async (importOriginal) => ({
 import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { NoIconFoundError, retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
-import { IconTooSmallError } from "@/server/company-logo/normalize-icon"
-import {
-  BlockedAddressError,
-  DeadlineExceededError,
-  FetchFailedError,
-} from "@/server/company-logo/safe-fetch"
+import { retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 
 import { fetchCompanyLogo } from "./company-logo"
 
 const LOGO = {
+  ok: true as const,
   key: "freelance/crm/entreprises/acme/logo-0123456789ab.png",
   width: 180,
   height: 180,
@@ -59,7 +54,7 @@ describe("fetchCompanyLogo", () => {
 
     await fetchCompanyLogo(" https://acme.example/ ", " ACME ")
 
-    expect(retrieveCompanyLogo).toHaveBeenCalledWith("https://acme.example/", "acme")
+    expect(retrieveCompanyLogo).toHaveBeenCalledWith(new URL("https://acme.example/"), "acme")
   })
 
   it("returns the stored key, size and source", async () => {
@@ -67,42 +62,29 @@ describe("fetchCompanyLogo", () => {
 
     const result = await fetchCompanyLogo("https://acme.example/", "acme")
 
-    expect(result).toEqual({ ok: true, ...LOGO })
+    expect(result).toEqual(LOGO)
     expect(revalidatePath).toHaveBeenCalledWith("/admin/assets")
   })
 
   it.each([
-    {
-      label: "a blocked address",
-      error: new BlockedAddressError("intranet"),
-      expected: { ok: false, message: "address_blocked" },
-    },
+    { label: "a blocked address", failure: { ok: false, message: "address_blocked" } },
     {
       label: "an unreachable site",
-      error: new FetchFailedError(403),
-      expected: { ok: false, message: "site_unreachable", status: 403 },
+      failure: { ok: false, message: "site_unreachable", status: 403 },
     },
-    {
-      label: "a site too slow for the deadline",
-      error: new DeadlineExceededError(),
-      expected: { ok: false, message: "site_too_slow" },
-    },
-    {
-      label: "a missing icon",
-      error: new NoIconFoundError(),
-      expected: { ok: false, message: "no_icon_found" },
-    },
-    {
-      label: "a too small icon",
-      error: new IconTooSmallError(16),
-      expected: { ok: false, message: "icon_too_small", size: 16 },
-    },
-  ])("maps $label to its message", async ({ error, expected }) => {
-    vi.mocked(retrieveCompanyLogo).mockRejectedValueOnce(error)
+    { label: "a site too slow for the deadline", failure: { ok: false, message: "site_too_slow" } },
+    { label: "a missing icon", failure: { ok: false, message: "no_icon_found" } },
+    { label: "a too small icon", failure: { ok: false, message: "icon_too_small", size: 16 } },
+  ] as const)("returns $label as is and logs it", async ({ failure }) => {
+    vi.mocked(retrieveCompanyLogo).mockResolvedValueOnce(failure)
 
     const result = await fetchCompanyLogo("https://acme.example/", "acme")
 
-    expect(result).toEqual(expected)
+    expect(result).toEqual(failure)
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ event: "company_logo:not_fetched", reason: failure.message }),
+    )
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
   it("maps an unexpected error to unknown_error", async () => {

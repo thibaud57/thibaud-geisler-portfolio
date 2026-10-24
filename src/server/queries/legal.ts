@@ -1,6 +1,7 @@
 import "server-only"
 import { cacheLife, cacheTag } from "next/cache"
 import { prisma } from "@/lib/prisma"
+import { RetentionPolicyKey } from "@/lib/schemas/legal-keys"
 
 const PUBLISHER_SLUG = "thibaud"
 
@@ -22,7 +23,13 @@ export async function getDataProcessors() {
     orderBy: { displayOrder: "asc" },
     include: { processor: { include: { address: true } } },
   })
-  return processings.map(({ processor, ...processing }) => ({ ...processor, processing }))
+  return processings.map(({ processor, ...processing }) => ({
+    ...processor,
+    processing: {
+      ...processing,
+      retentionPolicyKey: RetentionPolicyKey.parse(processing.retentionPolicyKey),
+    },
+  }))
 }
 
 export async function getHostingProvider() {

@@ -127,8 +127,8 @@ export function personDetailSections(
   ]
 }
 
-export function zoneFacet<T extends { zone: Zone | null }>(): Facet<T> {
-  return enumFacet<T, Zone>(
+export function zoneFacet<T extends { zone: Zone | null }>(): Facet<T, "zone"> {
+  return enumFacet<T, Zone, "zone">(
     "zone",
     PERSON_FIELD_LABELS.zone,
     ZONES,
@@ -140,11 +140,11 @@ export function zoneFacet<T extends { zone: Zone | null }>(): Facet<T> {
 // Les contacts n'ont pas d'échéance : le réseau n'a aucune durée légale, seuls les leads lisent `overdue`.
 export function personFacets<T extends { zone: Zone | null }>(isOverdue: (row: T) => boolean) {
   const zone = zoneFacet<T>()
-  const overdue: Facet<T> = {
+  const overdue: Facet<T, "overdue"> = {
     key: "overdue",
     label: "Échéance",
     options: [{ value: "overdue", label: "Dépassée" }],
-    value: (person) => (isOverdue(person) ? ["overdue"] : []),
+    values: (person) => (isOverdue(person) ? ["overdue"] : []),
   }
   return { zone, overdue }
 }

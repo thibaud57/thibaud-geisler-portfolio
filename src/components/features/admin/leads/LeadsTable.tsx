@@ -35,6 +35,7 @@ import {
 import {
   IN_PROGRESS,
   LEAD_VIEW_LOCKED_FACETS,
+  type LeadFacetKey,
   leadsForView,
   type LeadView,
 } from "@/lib/crm/lead-views"
@@ -181,8 +182,8 @@ const IN_PROGRESS_STATUSES = LEAD_DISPLAY_STATUSES.filter((status) => IN_PROGRES
 const OPTED_OUT_FACET_VALUE = "opted-out"
 
 // Une personne opposée n'a pas de statut : sans option dédiée, aucun filtre de Tous ne la retrouve.
-function statusFacet(view: LeadView, now: Date): Facet<AdminLead> {
-  const facet: Facet<AdminLead> = enumFacet(
+function statusFacet(view: LeadView, now: Date): Facet<AdminLead, "status"> {
+  const facet: Facet<AdminLead, "status"> = enumFacet(
     "status",
     LEAD_FIELD_LABELS.status,
     view === "en-cours" || view === "chauds" ? IN_PROGRESS_STATUSES : LEAD_DISPLAY_STATUSES,
@@ -193,11 +194,11 @@ function statusFacet(view: LeadView, now: Date): Facet<AdminLead> {
   return {
     ...facet,
     options: [...facet.options, { value: OPTED_OUT_FACET_VALUE, label: OPTED_OUT_LABEL }],
-    value: (lead) => leadDisplayStatus(lead, now) ?? OPTED_OUT_FACET_VALUE,
+    values: (lead) => [leadDisplayStatus(lead, now) ?? OPTED_OUT_FACET_VALUE],
   }
 }
 
-const baseFacets: readonly Facet<AdminLead>[] = [
+const baseFacets: readonly Facet<AdminLead, LeadFacetKey>[] = [
   enumFacet(
     "interest",
     LEAD_FIELD_LABELS.interest,

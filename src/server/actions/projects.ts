@@ -27,7 +27,11 @@ import {
   rowExists,
   saveEntity,
 } from "./_support/shared"
-import { type ProjectFormState, type ProjectReorderState } from "./projects.types"
+import {
+  type ProjectDeleteState,
+  type ProjectFormState,
+  type ProjectReorderState,
+} from "./projects.types"
 
 // Seule lecture du FormData : le même objet est validé puis réaffiché en cas d'échec, les deux ne
 // peuvent pas diverger.
@@ -84,7 +88,7 @@ function mapConstraintViolation(
 ): ProjectFormState | null {
   const constraint = violatedConstraint(err)
 
-  if (isPrismaError(err, "P2002") && constraint.includes("slug")) {
+  if (isPrismaError(err, "P2002") && constraint?.includes("slug")) {
     return {
       ok: false,
       errors: { slug: ["Ce slug est déjà utilisé par un autre projet"] },
@@ -94,11 +98,11 @@ function mapConstraintViolation(
   }
 
   // Entreprise ou tag supprimé entre l'affichage du formulaire et son envoi.
-  if (isPrismaError(err, "P2003") && constraint.includes("companyId")) {
+  if (isPrismaError(err, "P2003") && constraint?.includes("companyId")) {
     return missingRelationState("companyId", MISSING_COMPANY, values)
   }
 
-  if (isPrismaError(err, "P2003") && constraint.includes("tagId")) {
+  if (isPrismaError(err, "P2003") && constraint?.includes("tagId")) {
     return missingRelationState("tagIds", MISSING_TAG, values)
   }
 
@@ -250,10 +254,10 @@ export async function updateProject(
   )
 }
 
-export async function deleteProject(id: string): Promise<ProjectFormState> {
+export async function deleteProject(id: string): Promise<ProjectDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<ProjectFormState>({
+  return deleteEntity<ProjectDeleteState>({
     actionName: "deleteProject",
     events: { success: "project:deleted", failure: "project:delete_failed" },
     successLogFields: { id },
@@ -278,7 +282,7 @@ export async function deleteProject(id: string): Promise<ProjectFormState> {
   })
 }
 
-export async function reorderProjects(orderedIds: string[]): Promise<ProjectReorderState> {
+export async function reorderProjects(orderedIds: readonly string[]): Promise<ProjectReorderState> {
   await getCurrentUser()
 
   return createActionLogger("reorderProjects", async ({ log }) => {

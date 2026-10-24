@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
 
 import { setupLocalePage } from "@/i18n/locale-guard"
+import { indexable } from "@/config/indexing"
 import { buildPageMetadata, resolveParentOgImages, setupLocaleMetadata, siteUrl } from "@/lib/seo"
 import { buildBreadcrumbList } from "@/lib/seo/json-ld"
 import type { Locale } from "next-intl"
@@ -27,6 +28,7 @@ export async function generateMetadata(
     title: t("projectsTitle"),
     description: t("projectsDescription"),
     siteName: t("siteTitle"),
+    indexable,
     ogType: "website",
     parentOpenGraphImages: parentImages.og,
     parentTwitterImages: parentImages.twitter,

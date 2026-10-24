@@ -1,3 +1,4 @@
+import type { Route } from "next"
 import type { ReactNode } from "react"
 
 export interface LinkMarker {
@@ -5,11 +6,12 @@ export interface LinkMarker {
   emphasized?: boolean
 }
 
-export interface RelatedLink {
+// `Route` seul refuse les routes dynamiques : les fiches de modification d'un lead, d'une opportunité ou d'un entretien se déclarent à part.
+export type RelatedHref =
+  Route | Route<`${"/admin/leads" | "/admin/opportunites" | "/admin/entretiens"}/${string}`>
+
+interface RelatedLinkBase {
   id: string
-  href?: string
-  // Une fonction ne traverse pas la frontière serveur/client : seul un appelant client peut en définir une.
-  onClick?: () => void
   label: string
   meta?: string
   trailing?: string
@@ -17,3 +19,7 @@ export interface RelatedLink {
   at?: Date
   marker?: LinkMarker
 }
+
+// Une fonction ne traverse pas la frontière serveur/client : seul un appelant client peut définir `onClick`.
+export type RelatedLink = RelatedLinkBase &
+  ({ href: RelatedHref; onClick?: () => void } | { href?: never; onClick?: () => void })

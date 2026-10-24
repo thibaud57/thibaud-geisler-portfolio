@@ -1,20 +1,19 @@
 import { AppWindow, Bot, Monitor, Smartphone, SquareTerminal, Webhook } from "lucide-react"
 
-import type { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/client"
+import { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/browser"
 import type { IconComponent } from "@/lib/icons"
 
-export interface ProjectTimeline {
-  startYear: number | null
-  endYear: number | null
-  inProgress: boolean
-}
+export type ProjectTimeline =
+  | { kind: "none" }
+  | { kind: "ongoing"; startYear: number }
+  | { kind: "ended"; startYear: number; endYear: number }
 
 export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null): ProjectTimeline {
-  return {
-    startYear: startedAt?.getFullYear() ?? null,
-    endYear: endedAt?.getFullYear() ?? null,
-    inProgress: startedAt !== null && endedAt === null,
-  }
+  if (startedAt === null) return { kind: "none" }
+  const startYear = startedAt.getFullYear()
+  return endedAt === null
+    ? { kind: "ongoing", startYear }
+    : { kind: "ended", startYear, endYear: endedAt.getFullYear() }
 }
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
@@ -37,9 +36,9 @@ export const PROJECT_FORMAT_LABELS: Record<ProjectFormat, string> = {
   IA: "IA",
 }
 
-export const PROJECT_TYPES = Object.keys(PROJECT_TYPE_LABELS) as ProjectType[]
-export const PROJECT_STATUSES = Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]
-export const PROJECT_FORMATS = Object.keys(PROJECT_FORMAT_LABELS) as ProjectFormat[]
+export const PROJECT_TYPES = Object.values(ProjectType)
+export const PROJECT_STATUSES = Object.values(ProjectStatus)
+export const PROJECT_FORMATS = Object.values(ProjectFormat)
 
 export const PROJECT_FORMAT_ICONS: Record<ProjectFormat, IconComponent | null> = {
   API: Webhook,
@@ -75,8 +74,12 @@ export function getProjectDuration(
   return { years: Math.floor(totalMonths / 12), months: totalMonths % 12 }
 }
 
-export function formatProjectDuration(startedAt: Date | null, endedAt: Date | null): string | null {
-  const duration = getProjectDuration(startedAt, endedAt ?? new Date())
+export function formatProjectDuration(
+  startedAt: Date | null,
+  endedAt: Date | null,
+  now: Date,
+): string | null {
+  const duration = getProjectDuration(startedAt, endedAt ?? now)
   if (!duration) return null
   const { years, months } = duration
   const yearsLabel = years === 0 ? null : years === 1 ? "1 an" : `${years} ans`

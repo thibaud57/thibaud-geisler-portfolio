@@ -1,3 +1,4 @@
+import type { RelatedHref } from "@/lib/admin/related-links"
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -123,7 +124,7 @@ export function toLeadLink(
     metAt: Date | null
     createdAt: Date
   },
-  { href, statusLabel }: { href: string; statusLabel?: string },
+  { href, statusLabel }: { href: RelatedHref; statusLabel?: string },
 ) {
   const meta = [lead.jobRole ? JOB_ROLE_LABELS[lead.jobRole] : null, statusLabel]
     .filter(Boolean)

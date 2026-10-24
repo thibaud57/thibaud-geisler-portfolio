@@ -41,11 +41,15 @@ export type LocalizedProject<
   tags: (Omit<T["tags"][number], "tag"> & { tag: LocalizedTag<TTag> })[]
 }
 
+function pickByLocale<T>(locale: Locale, values: Record<Locale, T>): T {
+  return values[locale]
+}
+
 export function localizeTag<T extends TagBilingual>(tag: T, locale: Locale): LocalizedTag<T> {
   const { nameFr, nameEn, ...rest } = tag
   return {
     ...rest,
-    name: locale === "fr" ? nameFr : nameEn,
+    name: pickByLocale(locale, { fr: nameFr, en: nameEn }),
   }
 }
 
@@ -65,9 +69,12 @@ export function localizeProject<
   } = project
   return {
     ...rest,
-    title: locale === "fr" ? titleFr : titleEn,
-    description: locale === "fr" ? descriptionFr : descriptionEn,
-    caseStudyMarkdown: locale === "fr" ? caseStudyMarkdownFr : caseStudyMarkdownEn,
+    title: pickByLocale(locale, { fr: titleFr, en: titleEn }),
+    description: pickByLocale(locale, { fr: descriptionFr, en: descriptionEn }),
+    caseStudyMarkdown: pickByLocale(locale, {
+      fr: caseStudyMarkdownFr,
+      en: caseStudyMarkdownEn,
+    }),
     tags: tags.map((pt) => ({ ...pt, tag: localizeTag(pt.tag, locale) })),
   } as LocalizedProject<TTag, T>
 }

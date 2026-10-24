@@ -7,7 +7,7 @@ import type { FacetFilterGroup } from "@/lib/admin/facets"
 
 interface Props {
   groups: readonly FacetFilterGroup[]
-  selected: Record<string, ReadonlySet<string>>
+  selected: Readonly<Record<string, ReadonlySet<string>>>
   onToggle: (groupKey: string, value: string) => void
   onReset: () => void
   open: boolean

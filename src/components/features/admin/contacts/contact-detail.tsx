@@ -18,7 +18,7 @@ import { PERSON_FIELD_LABELS, PERSON_SECTION_TITLES, personDisplayName } from "@
 import { CONTACT_TYPES } from "@/lib/schemas/network-contact"
 import type { AdminContact } from "@/server/queries/contacts"
 
-export function typeLabels(contact: AdminContact): string[] {
+export function typeLabels(contact: AdminContact): readonly string[] {
   return contact.types.map((type) => CONTACT_TYPE_LABELS[type])
 }
 

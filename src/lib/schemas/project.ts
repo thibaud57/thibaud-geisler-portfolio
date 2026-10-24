@@ -8,6 +8,7 @@ import {
   WorkMode,
 } from "@/generated/prisma/browser"
 import { isProjectAssetKey } from "@/lib/asset-keys"
+import { companyIdField } from "@/lib/ids"
 import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-value"
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
@@ -74,7 +75,7 @@ export const projectSchema = z
         error: "Un tag ne peut pas être rattaché deux fois",
       }),
 
-    companyId: z.string().trim().min(1, "L'entreprise est requise"),
+    companyId: companyIdField("L'entreprise est requise"),
     workMode: z.enum(WorkMode, { error: "Le mode de travail est requis" }),
     contractStatus: z
       .union([z.enum(ContractStatus), z.literal(NONE_VALUE), z.literal("")], {

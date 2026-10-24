@@ -20,7 +20,7 @@ import { GENERIC_ERROR_TOAST } from "@/lib/admin/toasts"
 
 type ActionEvent = CalendarEvent<AdminProspectingAction>
 
-const CALENDAR_INTERACTIONS = { resize: false, selectSlot: false }
+const CALENDAR_INTERACTIONS = { resize: false, selectSlot: false } as const
 
 interface Props {
   actions: readonly AdminProspectingAction[]

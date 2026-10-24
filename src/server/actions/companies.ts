@@ -25,7 +25,7 @@ import {
   saveEntity,
   type ActionEvents,
 } from "./_support/shared"
-import { type CompanyFormState } from "./companies.types"
+import { type CompanyDeleteState, type CompanyFormState } from "./companies.types"
 
 // Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.
 function collectValues(formData: FormData): CompanyFormState["values"] {
@@ -183,7 +183,7 @@ function mapUniqueViolation(
   if (!isPrismaError(err, "P2002")) return null
 
   const constraint = violatedConstraint(err)
-  if (constraint.includes("siret")) {
+  if (constraint?.includes("siret")) {
     return {
       ok: false,
       errors: { legalEntitySiret: ["Ce SIRET est déjà porté par une autre entité légale"] },
@@ -191,7 +191,7 @@ function mapUniqueViolation(
       values,
     }
   }
-  if (constraint.includes("LegalEntity_slug")) {
+  if (constraint?.includes("LegalEntity_slug")) {
     return {
       ok: false,
       errors: {
@@ -291,10 +291,10 @@ export async function updateCompany(
   )
 }
 
-export async function deleteCompany(id: string): Promise<CompanyFormState> {
+export async function deleteCompany(id: string): Promise<CompanyDeleteState> {
   await getCurrentUser()
 
-  return deleteEntity<CompanyFormState>({
+  return deleteEntity<CompanyDeleteState>({
     actionName: "deleteCompany",
     events: { success: "company:deleted", failure: "company:delete_failed" },
     successLogFields: { id },

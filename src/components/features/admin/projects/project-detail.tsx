@@ -34,6 +34,7 @@ function describeMarkdown(markdown: string | null): ReactNode {
 
 export function buildProjectDetail(
   project: AdminProjectListItem,
+  now: Date,
   onEdit: () => void,
 ): DetailContent {
   const clientMeta = project.clientMeta
@@ -84,7 +85,7 @@ export function buildProjectDetail(
           { label: PROJECT_FIELD_LABELS.endedAt, value: formatShortDate(project.endedAt) },
           {
             label: PROJECT_FIELD_LABELS.duration,
-            value: formatProjectDuration(project.startedAt, project.endedAt),
+            value: formatProjectDuration(project.startedAt, project.endedAt, now),
           },
         ],
       },

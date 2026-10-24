@@ -14,7 +14,7 @@ interface BaseProps {
 interface EditableProps extends BaseProps {
   readOnly?: false
   label?: ReactNode
-  errors: string[] | undefined
+  errors: readonly string[] | undefined
   defaultValue: string | null | undefined
   placeholder?: string
 }

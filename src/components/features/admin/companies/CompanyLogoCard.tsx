@@ -34,7 +34,7 @@ function failureText(failure: CompanyLogoFailure): string {
 interface Props {
   logoFilename: string | null
   onLogoFilenameChange: (key: string | null) => void
-  logoAssets: AssetEntry[]
+  logoAssets: readonly AssetEntry[]
   websiteUrl: string
   slug: string
   error: string | undefined

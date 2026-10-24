@@ -5,29 +5,11 @@ import { revalidatePath } from "next/cache"
 
 import { ADMIN_ASSETS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { isValidWebsiteUrl } from "@/lib/schemas/company"
-import { SLUG_PATTERN } from "@/lib/schemas/slug"
+import { companyLogoRequestSchema } from "@/lib/schemas/company-logo"
 import { createActionLogger } from "@/lib/server-utils"
-import { NoIconFoundError, retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
-import { IconTooSmallError } from "@/server/company-logo/normalize-icon"
-import {
-  BlockedAddressError,
-  DeadlineExceededError,
-  FetchFailedError,
-} from "@/server/company-logo/safe-fetch"
+import { retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 
-import type { CompanyLogoFailure, CompanyLogoResult } from "./company-logo.types"
-
-function toFailure(err: unknown): CompanyLogoFailure | null {
-  if (err instanceof BlockedAddressError) return { ok: false, message: "address_blocked" }
-  if (err instanceof DeadlineExceededError) return { ok: false, message: "site_too_slow" }
-  if (err instanceof FetchFailedError)
-    return { ok: false, message: "site_unreachable", status: err.status }
-  if (err instanceof NoIconFoundError) return { ok: false, message: "no_icon_found" }
-  if (err instanceof IconTooSmallError)
-    return { ok: false, message: "icon_too_small", size: err.size }
-  return null
-}
+import type { CompanyLogoResult } from "./company-logo.types"
 
 export async function fetchCompanyLogo(
   websiteUrl: string,
@@ -36,31 +18,27 @@ export async function fetchCompanyLogo(
   await getCurrentUser()
 
   return createActionLogger("fetchCompanyLogo", async ({ log }): Promise<CompanyLogoResult> => {
-    // Le formulaire met le slug en minuscules à l'enregistrement : le logo doit tomber dans ce dossier-là.
-    const url = websiteUrl.trim()
-    const normalizedSlug = slug.trim().toLowerCase()
-    if (!isValidWebsiteUrl(url) || !SLUG_PATTERN.test(normalizedSlug)) {
-      return { ok: false, message: "invalid_input" }
-    }
+    const parsed = companyLogoRequestSchema.safeParse({ websiteUrl, slug })
+    if (!parsed.success) return { ok: false, message: "invalid_input" }
+    const { websiteUrl: url, slug: normalizedSlug } = parsed.data
+    const host = url.host
 
-    const host = new URL(url).host
     try {
-      const logo = await retrieveCompanyLogo(url, normalizedSlug)
+      const outcome = await retrieveCompanyLogo(url, normalizedSlug)
+      if (!outcome.ok) {
+        log.warn({ event: "company_logo:not_fetched", host, reason: outcome.message })
+        return outcome
+      }
       revalidatePath(ADMIN_ASSETS_PATH)
       log.info({
         event: "company_logo:fetched",
         host,
-        source: logo.source,
-        width: logo.width,
-        height: logo.height,
+        source: outcome.source,
+        width: outcome.width,
+        height: outcome.height,
       })
-      return { ok: true, ...logo }
+      return outcome
     } catch (err) {
-      const failure = toFailure(err)
-      if (failure) {
-        log.warn({ event: "company_logo:not_fetched", host, reason: failure.message })
-        return failure
-      }
       log.error({ err, event: "company_logo:fetch_failed", host })
       return { ok: false, message: "unknown_error" }
     }
