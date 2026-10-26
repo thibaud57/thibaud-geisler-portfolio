@@ -25,7 +25,7 @@ export function FormCard({ title, titleId, description, columns = 1, action, chi
       <CardHeader>
         <CardTitle id={titleId}>{title}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
-        {action ? <CardAction>{action}</CardAction> : null}
+        {action ? <CardAction className="self-end">{action}</CardAction> : null}
       </CardHeader>
       <CardContent className={cn("grid gap-4", columns === 2 && "sm:grid-cols-2")}>
         {children}

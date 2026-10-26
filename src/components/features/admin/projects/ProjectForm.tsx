@@ -9,6 +9,7 @@ import { DateField } from "@/components/features/admin/form/DateField"
 import { FieldInput } from "@/components/features/admin/form/FieldInput"
 import { FormCard } from "@/components/features/admin/form/FormCard"
 import { FormPage } from "@/components/features/admin/form/FormPage"
+import { LocalizedTabsCard } from "@/components/features/admin/form/LocalizedTabsCard"
 import { MarkdownEditorField } from "@/components/features/admin/form/MarkdownEditorField"
 import { ClientMetaFields } from "@/components/features/admin/projects/ClientMetaFields"
 import { ProjectTagsField } from "@/components/features/admin/projects/ProjectTagsField"
@@ -58,6 +59,8 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
   const [coverFilename, setCoverFilename] = useState<string | null>(project?.coverFilename ?? null)
   const [startedAt, setStartedAt] = useState<Date | undefined>(project?.startedAt ?? undefined)
   const [endedAt, setEndedAt] = useState<Date | undefined>(project?.endedAt ?? undefined)
+  const [descriptionFr, setDescriptionFr] = useState(project?.descriptionFr ?? "")
+  const [descriptionEn, setDescriptionEn] = useState(project?.descriptionEn ?? "")
   const [caseStudyMarkdownFr, setCaseStudyMarkdownFr] = useState(project?.caseStudyMarkdownFr ?? "")
   const [caseStudyMarkdownEn, setCaseStudyMarkdownEn] = useState(project?.caseStudyMarkdownEn ?? "")
 
@@ -130,28 +133,48 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             </div>
           </FormCard>
 
-          <FormCard
+          <LocalizedTabsCard
             title={PROJECT_SECTION_TITLES.description}
             description="Deux à quatre phrases : ce que c'est, la partie difficile, le résultat."
-          >
-            <TextareaField
-              id={`${formId}-descriptionFr`}
-              name="descriptionFr"
-              label={LABELS.descriptionFr}
-              rows={4}
-              defaultValue={project?.descriptionFr ?? ""}
-              errors={state.errors.descriptionFr}
-            />
-
-            <TextareaField
-              id={`${formId}-descriptionEn`}
-              name="descriptionEn"
-              label={LABELS.descriptionEn}
-              rows={4}
-              defaultValue={project?.descriptionEn ?? ""}
-              errors={state.errors.descriptionEn}
-            />
-          </FormCard>
+            texts={{
+              fr: {
+                label: LABELS.descriptionFr,
+                value: descriptionFr,
+                errors: state.errors.descriptionFr,
+                render: (labelledBy) => (
+                  <TextareaField
+                    id={`${formId}-descriptionFr`}
+                    name="descriptionFr"
+                    aria-labelledby={labelledBy}
+                    rows={4}
+                    value={descriptionFr}
+                    onChange={(e) => {
+                      setDescriptionFr(e.target.value)
+                    }}
+                    errors={state.errors.descriptionFr}
+                  />
+                ),
+              },
+              en: {
+                label: LABELS.descriptionEn,
+                value: descriptionEn,
+                errors: state.errors.descriptionEn,
+                render: (labelledBy) => (
+                  <TextareaField
+                    id={`${formId}-descriptionEn`}
+                    name="descriptionEn"
+                    aria-labelledby={labelledBy}
+                    rows={4}
+                    value={descriptionEn}
+                    onChange={(e) => {
+                      setDescriptionEn(e.target.value)
+                    }}
+                    errors={state.errors.descriptionEn}
+                  />
+                ),
+              },
+            }}
+          />
 
           <FormCard
             title={PROJECT_SECTION_TITLES.tags}
@@ -168,28 +191,42 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
             </div>
           </FormCard>
 
-          <FormCard
+          <LocalizedTabsCard
             title={PROJECT_SECTION_TITLES.caseStudy}
-            description="Une zone par langue. Le rendu se relit sur le site public."
-          >
-            <MarkdownEditorField
-              id={`${formId}-caseStudyMarkdownFr`}
-              name="caseStudyMarkdownFr"
-              label={LABELS.caseStudyMarkdownFr}
-              value={caseStudyMarkdownFr}
-              onChange={setCaseStudyMarkdownFr}
-              errors={state.errors.caseStudyMarkdownFr}
-            />
-
-            <MarkdownEditorField
-              id={`${formId}-caseStudyMarkdownEn`}
-              name="caseStudyMarkdownEn"
-              label={LABELS.caseStudyMarkdownEn}
-              value={caseStudyMarkdownEn}
-              onChange={setCaseStudyMarkdownEn}
-              errors={state.errors.caseStudyMarkdownEn}
-            />
-          </FormCard>
+            description="Le rendu se relit sur le site public."
+            texts={{
+              fr: {
+                label: LABELS.caseStudyMarkdownFr,
+                value: caseStudyMarkdownFr,
+                errors: state.errors.caseStudyMarkdownFr,
+                render: (labelledBy) => (
+                  <MarkdownEditorField
+                    id={`${formId}-caseStudyMarkdownFr`}
+                    name="caseStudyMarkdownFr"
+                    labelledBy={labelledBy}
+                    value={caseStudyMarkdownFr}
+                    onChange={setCaseStudyMarkdownFr}
+                    errors={state.errors.caseStudyMarkdownFr}
+                  />
+                ),
+              },
+              en: {
+                label: LABELS.caseStudyMarkdownEn,
+                value: caseStudyMarkdownEn,
+                errors: state.errors.caseStudyMarkdownEn,
+                render: (labelledBy) => (
+                  <MarkdownEditorField
+                    id={`${formId}-caseStudyMarkdownEn`}
+                    name="caseStudyMarkdownEn"
+                    labelledBy={labelledBy}
+                    value={caseStudyMarkdownEn}
+                    onChange={setCaseStudyMarkdownEn}
+                    errors={state.errors.caseStudyMarkdownEn}
+                  />
+                ),
+              },
+            }}
+          />
         </>
       }
       aside={

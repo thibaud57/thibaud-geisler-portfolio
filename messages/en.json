@@ -152,6 +152,12 @@
       "links": {
         "demo": "View demo",
         "github": "View code"
+      },
+      "zoom": {
+        "open": "Enlarge image: {alt}",
+        "openUntitled": "Enlarge image",
+        "title": "Enlarged image",
+        "close": "Close"
       }
     }
   },
