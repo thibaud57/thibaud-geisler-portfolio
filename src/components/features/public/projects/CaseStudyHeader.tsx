@@ -1,7 +1,7 @@
 import { safeExternalUrl } from "@/lib/url"
 import Image from "next/image"
 import { User } from "lucide-react"
-import { getTranslations } from "next-intl/server"
+import { getFormatter, getTranslations } from "next-intl/server"
 import { cn } from "@/lib/utils"
 import { buildAssetUrl } from "@/lib/assets"
 import { getProjectTimeline } from "@/lib/projects"
@@ -9,24 +9,31 @@ import { LABEL_CLASS } from "@/lib/typography"
 import { getLiveProjectDuration } from "@/server/queries/projects"
 import type { LocalizedProjectWithRelations } from "@/types/project"
 import { LeadParagraph } from "@/components/ui/lead-paragraph"
+import { CaseStudyLinks } from "./CaseStudyLinks"
 import { FormatBadges } from "./FormatBadges"
+import { ZoomableImage } from "./ZoomableImage"
 
 interface Props {
   project: LocalizedProjectWithRelations
 }
 
 export async function CaseStudyHeader({ project }: Props) {
-  const t = await getTranslations("Projects.caseStudy")
+  const [t, format, duration] = await Promise.all([
+    getTranslations("Projects.caseStudy"),
+    getFormatter(),
+    getLiveProjectDuration(project.startedAt, project.endedAt),
+  ])
 
   const timeline = getProjectTimeline(project.startedAt, project.endedAt)
+  // Dates stockées à minuit UTC : lues ailleurs, le 1er du mois glisserait au mois précédent.
+  const monthYear = (date: Date) =>
+    format.dateTime(date, { month: "short", year: "numeric", timeZone: "UTC" })
   const { company, teamSize, contractStatus: contract, workMode } = project.clientMeta ?? {}
   const companyUrl = safeExternalUrl(company?.websiteUrl)
   // Un projet personnel est rattaché à l'entreprise du freelance lui-même : la vitrine montre la
   // même carte, mais « Personnel » avec une icône, jamais la fiche de cette entreprise.
   const isPersonal = project.type === "PERSONAL"
 
-  // La frise porte déjà les années : Durée dit combien de temps, jusqu'à aujourd'hui en cours.
-  const duration = await getLiveProjectDuration(project.startedAt, project.endedAt)
   const durationValue = duration
     ? [
         duration.years > 0 ? t("meta.durationYears", { count: duration.years }) : null,
@@ -39,8 +46,11 @@ export async function CaseStudyHeader({ project }: Props) {
   return (
     <header>
       {timeline.kind !== "none" ? (
-        <div className="mb-6 flex items-center gap-3" aria-label={t("meta.duration")}>
-          <TimelineMarker label={String(timeline.startYear)} />
+        <div
+          className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2"
+          aria-label={t("meta.duration")}
+        >
+          <TimelineMarker label={monthYear(timeline.start)} />
           <span
             className="h-px max-w-24 flex-1 bg-linear-to-r from-primary/60 to-primary/10"
             aria-hidden="true"
@@ -48,26 +58,29 @@ export async function CaseStudyHeader({ project }: Props) {
           {timeline.kind === "ongoing" ? (
             <TimelineMarker label={t("inProgress")} variant="active" />
           ) : (
-            <TimelineMarker label={String(timeline.endYear)} />
+            <TimelineMarker label={monthYear(timeline.end)} />
           )}
         </div>
       ) : null}
 
       <h1>{project.title}</h1>
 
-      <FormatBadges formats={project.formats} className="mt-5" />
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 empty:hidden">
+        <FormatBadges formats={project.formats} />
+        <CaseStudyLinks project={project} />
+      </div>
 
       <LeadParagraph className="mt-8">{project.description}</LeadParagraph>
 
       {project.coverFilename ? (
-        <figure className="relative mt-10 aspect-[16/7] w-full overflow-hidden rounded-2xl border border-border">
-          <Image
+        <figure className="relative mt-10 aspect-16/7 w-full overflow-hidden rounded-2xl border border-border">
+          <ZoomableImage
             src={buildAssetUrl(project.coverFilename)}
             alt={project.title}
             fill
             sizes="(max-width: 1024px) 100vw, 1024px"
             preload
-            className="object-cover"
+            imageClassName="object-cover"
           />
         </figure>
       ) : (

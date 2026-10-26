@@ -4,16 +4,13 @@ import { ProjectFormat, ProjectStatus, ProjectType } from "@/generated/prisma/br
 import type { IconComponent } from "@/lib/icons"
 
 export type ProjectTimeline =
-  | { kind: "none" }
-  | { kind: "ongoing"; startYear: number }
-  | { kind: "ended"; startYear: number; endYear: number }
+  { kind: "none" } | { kind: "ongoing"; start: Date } | { kind: "ended"; start: Date; end: Date }
 
 export function getProjectTimeline(startedAt: Date | null, endedAt: Date | null): ProjectTimeline {
   if (startedAt === null) return { kind: "none" }
-  const startYear = startedAt.getFullYear()
   return endedAt === null
-    ? { kind: "ongoing", startYear }
-    : { kind: "ended", startYear, endYear: endedAt.getFullYear() }
+    ? { kind: "ongoing", start: startedAt }
+    : { kind: "ended", start: startedAt, end: endedAt }
 }
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
@@ -67,10 +64,11 @@ export function getProjectDuration(
   // Zod refuse endedAt < startedAt, pas la base (edit SQL direct, donnée legacy) : une plage inversée
   // n'a pas de durée à afficher. Comparer les dates, pas le delta en mois : 20 mai → 1er mai a un delta de 0.
   if (end < startedAt) return null
-  const totalMonths = Math.max(
-    1,
-    (end.getFullYear() - startedAt.getFullYear()) * 12 + (end.getMonth() - startedAt.getMonth()),
-  )
+  // Mois de début et de fin inclus, comme LinkedIn, pour recouper le profil. Lus en UTC, où les dates sont stockées à minuit.
+  const totalMonths =
+    (end.getUTCFullYear() - startedAt.getUTCFullYear()) * 12 +
+    (end.getUTCMonth() - startedAt.getUTCMonth()) +
+    1
   return { years: Math.floor(totalMonths / 12), months: totalMonths % 12 }
 }
 

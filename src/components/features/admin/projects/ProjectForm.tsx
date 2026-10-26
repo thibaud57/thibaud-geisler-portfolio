@@ -16,6 +16,8 @@ import { SelectField } from "@/components/features/admin/form/SelectField"
 import { TextareaField } from "@/components/features/admin/form/TextareaField"
 import { FormField } from "@/components/ui/form-field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { StatusDot } from "@/components/ui/status-dot"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { ProjectType } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
@@ -39,6 +41,9 @@ import type { CompanyOption } from "@/server/queries/companies"
 import type { AdminProjectDetail } from "@/server/queries/projects"
 import type { AdminTag } from "@/server/queries/tags"
 
+const CASE_STUDY_LANGS = ["fr", "en"] as const
+type CaseStudyLang = (typeof CASE_STUDY_LANGS)[number]
+
 interface Props {
   project: AdminProjectDetail | null
   tags: readonly AdminTag[]
@@ -60,6 +65,26 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
   const [endedAt, setEndedAt] = useState<Date | undefined>(project?.endedAt ?? undefined)
   const [caseStudyMarkdownFr, setCaseStudyMarkdownFr] = useState(project?.caseStudyMarkdownFr ?? "")
   const [caseStudyMarkdownEn, setCaseStudyMarkdownEn] = useState(project?.caseStudyMarkdownEn ?? "")
+  const [caseStudyLang, setCaseStudyLang] = useState<CaseStudyLang>("fr")
+
+  const caseStudies = [
+    {
+      lang: "fr",
+      tab: "Français",
+      name: "caseStudyMarkdownFr",
+      value: caseStudyMarkdownFr,
+      onChange: setCaseStudyMarkdownFr,
+      errors: state.errors.caseStudyMarkdownFr,
+    },
+    {
+      lang: "en",
+      tab: "Anglais",
+      name: "caseStudyMarkdownEn",
+      value: caseStudyMarkdownEn,
+      onChange: setCaseStudyMarkdownEn,
+      errors: state.errors.caseStudyMarkdownEn,
+    },
+  ] as const
 
   useSaveFeedback(state, {
     saved: project ? "Projet mis à jour" : "Projet créé",
@@ -170,25 +195,52 @@ export function ProjectForm({ project, tags, companies, coverAssets, defaultDisp
 
           <FormCard
             title={PROJECT_SECTION_TITLES.caseStudy}
-            description="Une zone par langue. Le rendu se relit sur le site public."
+            description="Une langue par onglet. Le rendu se relit sur le site public."
           >
-            <MarkdownEditorField
-              id={`${formId}-caseStudyMarkdownFr`}
-              name="caseStudyMarkdownFr"
-              label={LABELS.caseStudyMarkdownFr}
-              value={caseStudyMarkdownFr}
-              onChange={setCaseStudyMarkdownFr}
-              errors={state.errors.caseStudyMarkdownFr}
-            />
-
-            <MarkdownEditorField
-              id={`${formId}-caseStudyMarkdownEn`}
-              name="caseStudyMarkdownEn"
-              label={LABELS.caseStudyMarkdownEn}
-              value={caseStudyMarkdownEn}
-              onChange={setCaseStudyMarkdownEn}
-              errors={state.errors.caseStudyMarkdownEn}
-            />
+            <Tabs
+              value={caseStudyLang}
+              onValueChange={(v) => {
+                setCaseStudyLang(requireOption(CASE_STUDY_LANGS, v))
+              }}
+            >
+              <TabsList>
+                {caseStudies.map((study) => (
+                  <TabsTrigger key={study.lang} value={study.lang}>
+                    {study.tab}
+                    {study.value.trim() === "" ? (
+                      <>
+                        <StatusDot tone="warning" />
+                        <span className="text-xs text-muted-foreground">vide</span>
+                      </>
+                    ) : null}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {/* Montés tous deux : chaque langue part avec le formulaire. */}
+              {caseStudies.map((study) => {
+                const labelId = `${formId}-${study.name}-label`
+                return (
+                  <TabsContent
+                    key={study.lang}
+                    value={study.lang}
+                    forceMount
+                    className="data-[state=inactive]:hidden"
+                  >
+                    <span id={labelId} className="sr-only">
+                      {LABELS[study.name]}
+                    </span>
+                    <MarkdownEditorField
+                      id={`${formId}-${study.name}`}
+                      name={study.name}
+                      labelledBy={labelId}
+                      value={study.value}
+                      onChange={study.onChange}
+                      errors={study.errors}
+                    />
+                  </TabsContent>
+                )
+              })}
+            </Tabs>
           </FormCard>
         </>
       }

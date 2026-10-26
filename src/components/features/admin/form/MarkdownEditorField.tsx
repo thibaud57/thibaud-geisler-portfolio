@@ -53,6 +53,7 @@ export function MarkdownEditorField(props: EditableProps | ReadOnlyProps) {
         aria-labelledby={labelledBy}
         format="markdown"
         enableImages={false}
+        editorClassName="min-h-32 max-h-[60vh] overflow-y-auto"
         value={value}
         onChange={onChange}
         aria-invalid={!!errors?.length}

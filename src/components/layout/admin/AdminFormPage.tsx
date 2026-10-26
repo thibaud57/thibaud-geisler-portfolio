@@ -26,7 +26,7 @@ interface ContentProps {
 // Dans la section async : le dernier élément du fil d'Ariane nomme la fiche chargée.
 export function AdminFormContent({ breadcrumb, children }: ContentProps) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <AdminBreadcrumb items={breadcrumb} />
       {children}
     </div>

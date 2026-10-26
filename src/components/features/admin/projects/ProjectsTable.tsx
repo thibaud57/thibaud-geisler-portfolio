@@ -18,6 +18,7 @@ import { BadgeList } from "@/components/features/admin/display/BadgeList"
 import { ExternalUrl } from "@/components/features/admin/display/ExternalUrl"
 import { TitleCell } from "@/components/features/admin/table/TitleCell"
 import { Badge } from "@/components/ui/badge"
+import { StatusDot, type StatusDotTone } from "@/components/ui/status-dot"
 import type { ProjectStatus, ProjectType } from "@/generated/prisma/client"
 import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
 import {
@@ -44,7 +45,6 @@ import {
 } from "@/lib/projects"
 import { CONTRACT_STATUS_ICONS, CONTRACT_STATUS_LABELS } from "@/lib/contract-terms"
 import { safeExternalUrl } from "@/lib/url"
-import { cn } from "@/lib/utils"
 import { reorderProjects } from "@/server/actions/projects"
 import type { AdminProjectListItem } from "@/server/queries/projects"
 import {
@@ -58,10 +58,10 @@ const VIEW_TYPE: Record<ProjectView, ProjectType | null> = {
   perso: "PERSONAL",
 }
 
-const PROJECT_STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
-  DRAFT: "bg-warning",
-  PUBLISHED: "bg-success",
-  ARCHIVED: "bg-muted-foreground",
+const PROJECT_STATUS_TONE: Record<ProjectStatus, StatusDotTone> = {
+  DRAFT: "warning",
+  PUBLISHED: "success",
+  ARCHIVED: "muted",
 }
 
 function typeBadge(project: AdminProjectListItem) {
@@ -71,7 +71,7 @@ function typeBadge(project: AdminProjectListItem) {
 function renderProjectStatus(status: ProjectStatus): ReactNode {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={cn("size-1.5 shrink-0 rounded-full", PROJECT_STATUS_DOT_CLASS[status])} />
+      <StatusDot tone={PROJECT_STATUS_TONE[status]} />
       {PROJECT_STATUS_LABELS[status]}
     </span>
   )

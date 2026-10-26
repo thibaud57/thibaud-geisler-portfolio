@@ -690,6 +690,8 @@ export function Editor({
   const [isOnImage, setIsOnImage] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
   const [imageAltText, setImageAltText] = useState("")
+  // Menu de sélection calé sur le défilement de la surface, qui défile seule quand sa hauteur est plafonnée.
+  const [scrollTarget, setScrollTarget] = useState<HTMLElement | null>(null)
   const bubbleMenuRef = useRef<HTMLDivElement>(null)
   const linkInputRef = useRef<HTMLInputElement>(null)
   const lastEmittedValueRef = useRef<string>(value)
@@ -797,6 +799,9 @@ export function Editor({
     },
     editable: !disabled,
     immediatelyRender: false,
+    onCreate: ({ editor: createdEditor }) => {
+      setScrollTarget(createdEditor.view.dom)
+    },
     onUpdate: ({ editor: nextEditor }) => {
       const nextValue =
         format === "markdown"
@@ -1363,6 +1368,7 @@ export function Editor({
           offset: 10,
           flip: { padding: 8 },
           shift: { padding: 8 },
+          scrollTarget: scrollTarget ?? window,
         }}
         shouldShow={({ editor: bubbleEditor, from, to, view, element }) => {
           const hasEditorFocus = view.hasFocus() || element.contains(document.activeElement)
