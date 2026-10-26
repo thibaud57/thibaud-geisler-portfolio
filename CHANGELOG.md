@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.3.0...v2.4.0) (2026-10-26)
+
+
+### Features
+
+* **admin:** barre Enregistrer collante, éditeur markdown plafonné et onglets FR/EN ([#194](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/194)) ([ff5f0ef](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff5f0ef5cfff19bf87400824d449b85b7391bc64))
+* **projets:** agrandit la couverture et les images de l'étude de cas ([#194](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/194)) ([ff5f0ef](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff5f0ef5cfff19bf87400824d449b85b7391bc64))
+* **projets:** compte la durée en mois inclusifs, comme LinkedIn ([#194](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/194)) ([ff5f0ef](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff5f0ef5cfff19bf87400824d449b85b7391bc64))
+* **projets:** remonte les liens démo et code et affiche la frise en mois ([#194](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/194)) ([ff5f0ef](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff5f0ef5cfff19bf87400824d449b85b7391bc64))
+
+
+### Bug Fixes
+
+* **projets:** sort l'image seule du markdown de son paragraphe ([#194](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/194)) ([ff5f0ef](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ff5f0ef5cfff19bf87400824d449b85b7391bc64))
+
 ## [2.3.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.2.1...v2.3.0) (2026-10-24)
 
 
