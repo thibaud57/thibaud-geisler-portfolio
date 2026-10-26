@@ -31,6 +31,10 @@ type Props = Sizing & {
 // Taille réelle inconnue : ne fixe que le ratio avant chargement, w-auto/h-auto prennent la taille naturelle.
 const ZOOMED_SIZE_HINT = { width: 1600, height: 900 }
 
+// Pastille posée sur une image, claire ou sombre : l'indice d'agrandissement et Fermer.
+const MEDIA_ICON_CLASS =
+  "dark flex size-8 items-center justify-center rounded-lg border border-input bg-background/50 text-foreground backdrop-blur-sm"
+
 export function ZoomableImage({
   src,
   alt,
@@ -50,7 +54,7 @@ export function ZoomableImage({
           type="button"
           aria-label={alt ? t("open", { alt }) : t("openUntitled")}
           className={cn(
-            "relative block w-full outline-none focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ring/50",
+            "group relative block w-full outline-none focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-ring/50",
             sizing.fill && "h-full",
             className,
           )}
@@ -63,9 +67,13 @@ export function ZoomableImage({
             className={imageClassName}
             {...sizing}
           />
+          {/* Sans survol sur un écran tactile : l'indice y reste affiché. */}
           <span
             aria-hidden="true"
-            className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-lg border border-border bg-background/80 text-foreground backdrop-blur-sm"
+            className={cn(
+              MEDIA_ICON_CLASS,
+              "absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100",
+            )}
           >
             <Maximize2 className="size-4" />
           </span>
@@ -83,10 +91,10 @@ export function ZoomableImage({
         >
           <DialogClose asChild>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               aria-label={t("close")}
-              className="absolute top-4 right-4"
+              className={cn(MEDIA_ICON_CLASS, "absolute top-4 right-4")}
             >
               <X />
             </Button>
