@@ -1,12 +1,12 @@
 import type { Metadata, ResolvingMetadata } from "next"
 import { getTranslations } from "next-intl/server"
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import { CaseStudyFooter } from "@/components/features/public/projects/CaseStudyFooter"
 import { CaseStudyHeader } from "@/components/features/public/projects/CaseStudyHeader"
 import { TagStackGrouped } from "@/components/features/public/projects/TagStackGrouped"
+import { ZoomableImage } from "@/components/features/public/projects/ZoomableImage"
 import { PageShell } from "@/components/layout/public/PageShell"
 import { MarkdownContent } from "@/components/markdown/MarkdownContent"
 import { JsonLd } from "@/components/seo/json-ld"
@@ -102,17 +102,27 @@ async function CaseStudyContentAsync({
             markdown={project.caseStudyMarkdown}
             links="standalone"
             components={{
+              // Image seule : sa <figure> ne peut pas vivre dans un <p> (échec d'hydratation).
+              p: ({ node, children }) => {
+                const [only, ...rest] = node?.children ?? []
+                return rest.length === 0 && only?.type === "element" && only.tagName === "img" ? (
+                  children
+                ) : (
+                  <p>{children}</p>
+                )
+              },
               img: ({ src, alt }) => {
                 if (typeof src !== "string") return null
                 return (
                   <figure className="my-8">
-                    <Image
+                    <ZoomableImage
                       src={src}
                       alt={alt ?? ""}
                       width={1600}
                       height={900}
                       sizes="(max-width: 768px) 100vw, 1200px"
-                      className="h-auto w-full rounded-lg border border-border"
+                      className="rounded-lg"
+                      imageClassName="h-auto w-full rounded-lg border border-border"
                     />
                     {alt ? (
                       <figcaption className="mt-2 text-center text-sm text-muted-foreground">
