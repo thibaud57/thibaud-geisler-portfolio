@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils"
 
-export type StatusDotTone = "success" | "warning" | "muted"
+export type StatusDotTone = "success" | "warning" | "destructive" | "muted"
 
 const TONE_CLASS: Record<StatusDotTone, string> = {
   success: "bg-success",
   warning: "bg-warning",
+  destructive: "bg-destructive",
   muted: "bg-muted-foreground",
 }
 

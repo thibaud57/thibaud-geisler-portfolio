@@ -51,7 +51,7 @@ export function FormPage<T extends string>({
           "lg:flex-nowrap",
         )}
       >
-        <h1 className="min-w-0 font-sans text-2xl font-semibold tracking-tight lg:truncate">
+        <h1 className="min-w-0 truncate font-sans text-2xl font-semibold tracking-tight">
           {title}
         </h1>
         <div className="flex flex-wrap gap-2 lg:shrink-0">
