@@ -4,7 +4,7 @@ description: "Matrice de compatibilité, versions recommandées et configuration
 date: "2026-10-27"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "@c15t/nextjs", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
 > **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **27 octobre 2026** (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), Tiptap et tippy.js (**14 octobre 2026**).
@@ -20,7 +20,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | Node.js | `24.21.0` | ✅ LTS Active | Ligne 24 « Krypton », **suivie sans patch épinglé** : `node:24-alpine` et `node-version: '24'` résolvent la dernière 24.x à chaque build. La 24 passe en Maintenance LTS le **20 octobre 2026**, la 26 devient Active LTS le **28 octobre 2026** : ne pas migrer avant |
-| pnpm | `12.11.2` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
+| pnpm | `12.15.0` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 | ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.0` |
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
@@ -29,11 +29,11 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Next.js | `16.4.2` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`). **16.4** : strict route matching par défaut, warning si `partialPrefetching` n'est pas défini à côté de `cacheComponents`. **16.4.2** : corrige les advisories critiques et hautes de `next` <= 16.4.0 (`pnpm audit`, 23 octobre 2026). **16.4.3** : correctifs de bugs, relevée le 27 octobre 2026 |
+| Next.js | `16.4.3` | ✅ | Middleware renommé `proxy.ts`, Turbopack par défaut. **16.3** : `export const runtime` interdit quand `cacheComponents: true` (retiré des `opengraph-image.tsx`). **16.4** : strict route matching par défaut, warning si `partialPrefetching` n'est pas défini à côté de `cacheComponents`. **16.4.2** : corrige les advisories critiques et hautes de `next` <= 16.4.0 (`pnpm audit`, 23 octobre 2026). **16.4.3** : correctifs de bugs, publiée le 23 octobre 2026 et installée le 27 octobre 2026 (la date de publication est celle du registre npm, celle du relevé est la date de vérification dans ce dépôt) |
 | React | `19.3.1` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19. `<ViewTransition>` et Fragment Refs stables depuis la 19.3 |
 | Tailwind CSS | `4.3.3` | ✅ | CSS-first config, utilitaires renommés |
 | shadcn/ui (CLI) | `shadcn@4.22.1` | ✅ | Composants copiés localement, style `radix-nova`. `init` choisit Base UI par défaut depuis juillet 2026 : `-b radix` |
-| cn | `0.5.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels) |
+| cn | `0.5.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels). **0.4.0 → 0.5.0** (16 octobre 2026) : aucun breaking sur l'API `cn()` que le projet utilise ; la 0.5.0 abandonne Node 20 (Node 22 minimum, le projet est en Node 24) et ajuste `cn build`, que le projet n'utilise pas (changelog [shadcn-ui/cn](https://github.com/shadcn-ui/cn/releases/tag/cn%400.5.0)) |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
 | ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. `Kanban` et `EventCalendar` installés |
@@ -55,7 +55,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation runtime des env vars dans `src/env.ts` via Zod, séparation server/client, `skipValidation` flag pour tests/build |
 | server-only | `0.0.1` | ✅ | Garde-fou : throw si import côté client (protège Pino, Prisma, secrets côté serveur) |
 | react-calendly | `4.4.0` | ✅ | Wrapper React du widget Calendly inline (hook `useCalendlyEventListener` typé) |
-| @c15t/nextjs | `2.3.0` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
+| c15t | `3.1.0` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Monté en v3 le 27 octobre 2026 : un accord enregistré en v2 est redemandé une fois (un refus reste respecté). Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
 | react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
 | remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
 | Sentry (`@sentry/nextjs`) | `11.9.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : spans des Server Actions absents (relevé en 11.1.0 le 3 octobre 2026, non revalidé en 11.9.0), capture d'erreur et tracing routes/queries opérationnels. Détail : § Sentry |
@@ -128,7 +128,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 ### 2. pnpm
 
-**Version actuelle** : `12.11.2` (publiée le 9 octobre 2026, montée depuis 11.28.2 le 11 octobre 2026, épinglée par `devEngines.packageManager` depuis le 15 octobre 2026, à la place du champ `packageManager` lu par Corepack)
+**Version actuelle** : `12.15.0` (montée depuis 12.11.2 le 27 octobre 2026 ; 12.11.2 avait été publiée le 9 octobre 2026 et montée depuis 11.28.2 le 11 octobre 2026, épinglée par `devEngines.packageManager` depuis le 15 octobre 2026, à la place du champ `packageManager` lu par Corepack)
 **Stabilité** : ✅
 
 **Breaking Changes Majeurs (v9 → v10)** :
@@ -153,7 +153,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - Cycles de dépendances cassés dans un ordre canonique : le premier install qui re-résout peut réécrire des variantes de peers du lockfile. `lockfileVersion` reste `'9.0'`
 - Dépendances git GitHub, GitLab et Bitbucket résolues en HTTPS dans le lockfile, jamais en SSH (aucune dépendance git ici)
 - `engineStrict` suit désormais les arêtes `dependencies` ordinaires, `packageImportMethod: auto` tente le hardlink avant le reflink sous Linux, `hooks.filterLog` ignoré
-- Vérifié le 11 octobre 2026 sur 12.11.2 : `just lint`, `just typecheck`, `just test`, `just build` verts, `docker build --target deploy-prisma` passe (Corepack de `node:24-alpine`, `pnpm deploy --legacy --prod` inclus)
+- Vérifié le 27 octobre 2026 sur 12.15.0 (`pnpm install --frozen-lockfile`, `pnpm audit` vide, `just lint`, `just typecheck`, `just test`, `just build` verts) et le 11 octobre 2026 sur 12.11.2 : `just lint`, `just typecheck`, `just test`, `just build` verts, `docker build --target deploy-prisma` passe (Corepack de `node:24-alpine`, `pnpm deploy --legacy --prod` inclus)
 
 **`allowBuilds` va dans `pnpm-workspace.yaml`** : c'est le seul emplacement documenté par pnpm, et le seul où le projet l'a vu pris en compte (constat projet, une déclaration dans `package.json` reste sans effet). Lister chaque package explicitement, les patterns glob ne sont pas supportés : c'est l'objet de l'[issue #11171](https://github.com/pnpm/pnpm/issues/11171), ouverte le 2 avril 2026.
 
@@ -175,7 +175,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - ~1-2% des packages supposent un `node_modules` plat (`publicHoistPattern` dans `pnpm-workspace.yaml` si besoin)
 - Le stage `deploy-prisma` du Dockerfile logue « Shared workspace lockfile detected but configuration forces legacy deploy implementation » : attendu, `--legacy` est voulu
 
-**Recommandation** : ✅ pnpm 12.11.2 (ADR-008, package manager du projet). `package.json` est la seule source de la version : `devEngines.packageManager` avec `onFail: download`, lu par chaque poste, le Dockerfile et `pnpm/action-setup`. Montée : changer la version, lancer `pnpm install`, committer le lockfile. Même schéma que les autres projets pnpm et uv du poste, aligné le 15 octobre 2026.
+**Recommandation** : ✅ pnpm 12.15.0 (ADR-008, package manager du projet). `package.json` est la seule source de la version : `devEngines.packageManager` avec `onFail: download`, lu par chaque poste, le Dockerfile et `pnpm/action-setup`. Montée : changer la version, lancer `pnpm install`, committer le lockfile. Même schéma que les autres projets pnpm et uv du poste, aligné le 15 octobre 2026.
 
 ### 3. TypeScript
 
@@ -706,28 +706,38 @@ Wrapper React du widget Calendly. Le projet utilise `InlineWidget` et le hook ty
 - React 19 : ✅ (peers `react >= 16.8.0`, `react-dom >= 16.8.0`)
 - Next.js 16 : ✅ en Client Component
 
-**Contraintes qui ne viennent pas du paquet** : le widget est un iframe, la CSP doit l'autoriser ([PRODUCTION.md](PRODUCTION.md) § Sécurité & Configuration > Security Headers), et son montage est conditionné au consentement marketing (§ @c15t/nextjs).
+**Contraintes qui ne viennent pas du paquet** : le widget est un iframe, la CSP doit l'autoriser ([PRODUCTION.md](PRODUCTION.md) § Sécurité & Configuration > Security Headers), et son montage est conditionné au consentement marketing (§ c15t).
 
 **À noter** : dernière publication en mai 2025. Stable mais peu actif, vérifier son état avant d'en dépendre davantage.
 
 **Recommandation** : ✅ 4.4.0.
 
-### 8. @c15t/nextjs
+### 8. c15t
 
-**Version actuelle** : `2.3.0` (avec `@c15t/translations` à la même version)
+**Version actuelle** : `3.1.0` (publiée avant le 27 octobre 2026, avec `@c15t/translations` à la même version ; montée depuis `@c15t/nextjs` 2.3.0 le 27 octobre 2026)
 **Stabilité** : ✅
 
-CMP (Consent Management Platform) headless, sous licence Apache 2.0. `ConsentManagerProvider`, `ConsentBanner` et `ConsentDialog` sont montés dans `src/app/providers.tsx`. Fiche détaillée : [knowledges/c15t.md](knowledges/c15t.md).
+CMP (Consent Management Platform) headless, sous licence Apache 2.0. `ConsentProvider`, `ConsentBanner` et `ConsentDialog` sont montés dans `src/app/providers.tsx`, `ConsentTheme` dans le layout serveur. Le paquet à installer est `c15t` (imports `c15t`, `c15t/next`, `c15t/react`) : `@c15t/nextjs` reste publié à la même version mais n'exporte pas le transport `offline()` dont le provider a besoin. Fiche détaillée : [knowledges/c15t.md](knowledges/c15t.md).
 
-**Ce que le consentement conditionne** : `useConsentManager` gouverne le montage de Calendly (§ react-calendly). Sans accord marketing, un placeholder est rendu à la place du widget.
+**Breaking Changes Majeurs (v2 → v3)** :
+- `ConsentManagerProvider` devient `ConsentProvider`, `useConsentManager()` disparaît au profit d'un hook par champ (`useConsent`, `useSetActiveUI`, `useSetLanguage`)
+- `mode: 'offline'` devient `offline({ policyRules })` (transport importé de `c15t/react`), avec `policyRulePresets.europeOptIn()` pour garder le modèle opt-in
+- `options.theme` ne génère plus de CSS : les tokens sont rendus par `ConsentTheme` côté serveur, `theme.slots` s'applique enfin
+- L'import `styles.css` disparaît : les composants rendent leur CSS en `<style>`
+- Les classes de c15t 3 se doublent (spécificité 0,2,0) : un slot de layout demande le suffixe `!`
+- ESM uniquement
 
-Configuration retenue (mode `offline`, `overrides.country: 'FR'`) et gotcha de theming : [knowledges/c15t.md](knowledges/c15t.md).
+**Stockage et visiteurs existants** : même clé `c15t` (localStorage et cookie), format d'enregistrement v3. Un enregistrement v2 est lu sans être réécrit. Constat du 27 octobre 2026 sur un build de production : un refus v2 reste respecté (pas de bannière, Calendly bloqué), un accord v2 est redemandé une fois (bannière de nouveau affichée, Calendly bloqué jusqu'au nouveau choix). Accepté par le propriétaire lors de la montée.
+
+**Rendu** : comparaison des styles calculés et des captures (FR et EN, clair et sombre, 1280 px et 320 px) contre c15t 2. Couleurs, rayons, polices et tailles identiques. Les slots de `src/components/cookies/consent-theme.ts` ramènent le pied de la modale (filet, boutons qui rétrécissent) et les liens (non soulignés) au rendu v2. Écarts acceptés : titres en `h2`, boutons d'accordéon en Geist, boutons de la bannière mobile à 4 à 8 px près. Arbitrage dans [DESIGN.md](DESIGN.md) § Mapping Composants > Overlays.
+
+**Ce que le consentement conditionne** : `useConsent('marketing')` gouverne le montage de Calendly (§ react-calendly). Sans accord marketing, un placeholder est rendu à la place du widget.
 
 **Compatibilité Écosystème** :
-- Next.js 16 / React 19 : ✅ en Client Component
+- Next.js 16 / React 19 : ✅ en Client Component, shell statique conservé (initialisation navigateur, pas de `ConsentRoot`)
 - next-intl : ✅ traductions FR/EN via `@c15t/translations/all`
 
-**Recommandation** : ✅ 2.3.0. Monter `@c15t/nextjs` et `@c15t/translations` ensemble, ils partagent la numérotation.
+**Recommandation** : ✅ 3.1.0. Monter `c15t` et `@c15t/translations` ensemble, ils partagent la numérotation.
 
 ### 9. react-markdown
 
@@ -1052,8 +1062,8 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Tailwind 4.3.3 | Magic UI | ✅ | Tailwind v4 par défaut depuis avril 2025 |
 | Tailwind 4.3.3 | Aceternity UI | ✅ | Tailwind v4 standard documenté |
 | Zod 4.6.7 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
-| pnpm 12.11.2 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
-| pnpm 12.11.2 | Node.js 24.21.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, à vérifier au prochain build |
+| pnpm 12.15.0 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
+| pnpm 12.15.0 | Node.js 24.21.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, à vérifier au prochain build |
 | Node.js 24.21.0 | Prisma 7.10.1 | ✅ | Node.js >= 20.19 requis |
 | Node.js 24.21.0 | Next.js 16.4.3 | ✅ | Node.js >= 20.9 requis |
 | Node.js 24.21.0 | Pino 10.4.0 | ✅ | Node.js >= 20 requis |
@@ -1079,6 +1089,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | next-intl + `use cache` (Next 16.0 à 16.2) | 🟡 Moyen | Utiliser Next.js >= 16.3 (le projet est en 16.4.3) |
 | Next.js 16.4 strict route matching | ✅ Traité | Build sans signalement, 404 d'un slug projet inconnu (rewrite du proxy) vérifié sur l'image le 9 octobre 2026. Échappatoire `deprecated.looseRouteMatching: true` si une route casse |
 | pnpm 11 `minimumReleaseAge` + install `--frozen-lockfile` | 🟡 Moyen | Une version de moins de 24 h dans le lockfile fait échouer la CI et le Dockerfile. Retirer les `minimumReleaseAgeExclude` qu'écrit `pnpm add` une fois le délai passé. Le cooldown par défaut de Dependabot (3 jours) couvre ses mises à jour de version, pas de sécurité |
+| `@tailwindcss/typography` + `postcss-selector-parser` | 🟢 Faible | `@tailwindcss/typography@0.5.20` (dernière version) épingle `postcss-selector-parser` à `6.0.10` exactement, touché par GHSA-rj75-hqrm-r3gf (CPU exhaustion, corrigé en 6.1.5). Un `overrides` de `pnpm-workspace.yaml` force `6.1.5` (même majeure 6), `pnpm audit` est vide depuis le 27 octobre 2026 et les 193 règles CSS `prose` générées sont identiques avant et après. Retirer l'override quand `@tailwindcss/typography` relève cette dépendance à `>=6.1.5` |
 | ESLint 10 + peers des plugins de `eslint-config-next` | 🟢 Faible | `eslint-plugin-react`, `-import`, `-jsx-a11y` déclarent ESLint <= 9, `eslint-config-next@16.4.0` les patche. Warning `pnpm peers check` attendu. Revérifier par un fichier sonde à chaque montée d'ESLint ou de Next |
 | TypeScript 6 `module: esnext` par défaut | 🟡 Moyen | Vérifier les imports CJS, migrer les `require()` si présents |
 | Prisma 7 + Turbopack build (défaut Next 16) | ✅ Traité | Erreur WASM non reproduite sur 16.3.3 + 7.10.0 : opt-out `--webpack` retiré du Dockerfile. Revérifier le build Docker à chaque montée de Next ou de Prisma, fait sur 16.4.0 le 9 octobre 2026 |
@@ -1105,7 +1116,7 @@ Le fichier réel est la source de vérité, ne pas dupliquer la liste des dépen
   "type": "module",                // requis : Prisma 7 est ESM-only
   "engines": { "node": ">=24.0.0" },
   "devEngines": {                  // seule déclaration de la version de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/action-setup
-    "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" }
+    "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" }
   },
   "scripts": {
     "postinstall": "prisma generate" // convention Prisma standard, sans quoi le client n'existe pas après un install propre
@@ -1352,11 +1363,10 @@ Ces mises à jour majeures ont été testées puis écartées, ou identifiées e
 |---|---|---|---|---|
 | Node.js | `24.21.0` | `26.11.1` | Node 26 est **Current**, pas LTS. Le projet suit la règle « runtime sur LTS uniquement » (`engines.node: >=24.0.0`). Sans Corepack depuis le 15 octobre 2026, la montée ne touche que le tag de l'image et `node-version` | Bascule LTS de la ligne 26, le 28 octobre 2026 |
 | @types/node | `24.19.2` | `26.6.5` | Doit rester aligné sur le runtime réellement exécuté. Proposée par Dependabot (PR #157), écartée le 3 octobre 2026 pour cette raison | En même temps que Node 26 |
-| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.0` (installée) et `8.72.1` (publiée le 26 octobre 2026, non montée : moins de 24 h, `minimumReleaseAge`) déclarent `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
+| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.1` (installée le 27 octobre 2026, 8.72.0 avant) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0` : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire proposée par le blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
 | Prisma | `7.10.1` | `8.0.0-rc.27` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.1 est sur `prev`, relevé le 23 octobre 2026), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire. Les advisories transitives `deepmerge-ts` et `mysql2` qui rendaient `just audit` rouge sont levées depuis la montée du 23 octobre 2026 (`deepmerge-ts@8.0.2`, `mysql2@3.24.4` dans `pnpm-lock.yaml`), `pnpm audit` est vide | Publication de la 8.0.0 stable |
-| `@c15t/nextjs`, `@c15t/translations` | `2.3.0` | `3.1.0` | Tentée puis abandonnée le 27 octobre 2026 : `ConsentManagerProvider` et `useConsentManager` n'existent plus (`tsc` échoue dans 6 fichiers), le thème (`options.theme`) ne produit plus de CSS et exige `ConsentTheme` rendu côté serveur, l'import `styles.css` du chunk lazy devient inutile, `mode: 'offline'` et `overrides.country` passent par `offline({ policyRules })`, 11 codemods `@c15t/cli` à relire. Plus qu'une adaptation mécanique : guide `node_modules/@c15t/nextjs/docs/frameworks/next/upgrade-v3.md` (v3.1.0) | Chantier dédié : refonte du provider, du thème et des hooks, avec revue visuelle de la bannière et relecture de [knowledges/c15t.md](knowledges/c15t.md) |
 
-> Le blocage TypeScript vient de `typescript-eslint`, tiré par `eslint-config-next`. Celui d'ESLint 10, de même origine, a été levé par `eslint-config-next@16.4.0`, qui patche les plugins React, import et jsx-a11y ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)) : ESLint 10.12.0 est monté depuis le 9 octobre 2026.
+> Le blocage TypeScript vient de `typescript-eslint`, tiré par `eslint-config-next`. Celui d'ESLint 10, de même origine, a été levé par `eslint-config-next@16.4.0`, qui patche les plugins React, import et jsx-a11y ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)) : ESLint 10 est monté depuis le 9 octobre 2026 (10.12.0 à l'époque, 10.13.0 installée à la date du relevé).
 
 ---
 

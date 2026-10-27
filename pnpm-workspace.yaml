@@ -7,3 +7,7 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+# GHSA-rj75-hqrm-r3gf (postcss-selector-parser < 6.1.5, CPU exhaustion) : @tailwindcss/typography 0.5.20 épingle 6.0.10 exactement.
+# Retirer quand @tailwindcss/typography relève cette dépendance à >=6.1.5 (pnpm audit reste à zéro sans l'override).
+overrides:
+  "@tailwindcss/typography>postcss-selector-parser": 6.1.5

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next"
+import { ConsentTheme } from "c15t/next"
 import { NextIntlClientProvider } from "next-intl"
+import { consentTheme } from "@/components/cookies/consent-theme"
 import { ThemeScript } from "@/components/layout/theme-script"
 import { fontVariables } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
@@ -59,6 +61,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
     >
       <body className="flex min-h-full flex-col font-sans">
         <ThemeScript />
+        <ConsentTheme theme={consentTheme} />
         <NextIntlClientProvider>
           <Providers>
             <Navbar />

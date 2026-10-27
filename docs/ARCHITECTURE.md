@@ -70,7 +70,7 @@ pnpm
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via les routes API catch-all `/api/assets/[...path]` et `/admin/api/assets/[...path]`, jamais depuis `public/`
 - **Sécurité** : `src/proxy.ts` (locale routing, dont `/admin` est exclu, et vérification du cookie de session sur `/admin`) + security headers dans `next.config.ts` + Better Auth avec Google OAuth
-- **Conformité cookies / RGPD** : `@c15t/nextjs` (Consent Manager Provider, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
+- **Conformité cookies / RGPD** : `c15t` (`ConsentProvider`, `ConsentBanner`, `ConsentDialog`) côté client, gating du widget Calendly tant que la catégorie `marketing` n'est pas accordée
 - **Intégrations Externes** : SMTP IONOS (contact), Calendly (prise de RDV, chargé après consentement marketing via c15t)
 
 ## Diagrammes d'Architecture
@@ -269,7 +269,7 @@ src/
 ### Services Externes (côté client)
 
 - **Calendly** : widget embed sur la page Contact, chargé conditionnellement via `react-calendly` uniquement après consentement de la catégorie `marketing` (CMP c15t, cf. section Conformité cookies)
-- **c15t Consent Manager** (`@c15t/nextjs`) : bannière + dialog de gestion des cookies, mode `offline` (état persisté côté client), i18n FR/EN synchronisé avec next-intl via `ConsentLanguageSync`
+- **c15t Consent Manager** (`c15t`) : bannière + dialog de gestion des cookies, mode `offline` (état persisté côté client), i18n FR/EN synchronisé avec next-intl via `ConsentLanguageSync`
 
 ## 💻 Backend
 
@@ -535,7 +535,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 
 ### Conformité Cookies / RGPD
 
-Gestion du consentement via `@c15t/nextjs` (Consent Manager Provider monté dans `src/app/providers.tsx`). Catégories utilisées : `necessary` (toujours actif) et `marketing` (opt-in explicite). Mode `offline` : aucun appel à un backend c15t, l'état de consentement est persisté côté client.
+Gestion du consentement via `c15t` (`ConsentProvider` monté dans `src/app/providers.tsx`). Catégories utilisées : `necessary` (toujours actif) et `marketing` (opt-in explicite). Mode `offline` : aucun appel à un backend c15t, l'état de consentement est persisté côté client.
 
 Flow de gating Calendly :
 
