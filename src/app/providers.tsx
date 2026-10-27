@@ -3,7 +3,9 @@
 import { useMemo, type ReactNode } from "react"
 import { useLocale } from "next-intl"
 import dynamic from "next/dynamic"
-import { ConsentManagerProvider, type ConsentManagerOptions } from "@c15t/nextjs/headless"
+import { policyRulePresets } from "c15t"
+import { ConsentProvider, type ConsentProviderOptions } from "c15t/next"
+import { offline } from "c15t/react"
 import { baseTranslations } from "@c15t/translations/all"
 
 import frMessages from "../../messages/fr.json"
@@ -11,11 +13,11 @@ import enMessages from "../../messages/en.json"
 
 import { Toaster } from "@/components/ui/sonner"
 import { ConsentLanguageSync } from "@/components/cookies/consent-language-sync"
+import { consentTheme } from "@/components/cookies/consent-theme"
 import { buildLegalLinks } from "@/lib/cookies/build-legal-links"
 
-// Le provider vient de /headless (sans UI) et les surfaces du module consent-ui, qui porte
-// aussi leur CSS : c'est ce couple qui crée une vraie frontière de chunk. Les importer du
-// même point d'entrée remettrait l'UI dans le bundle synchrone, dynamic() ou pas.
+// Surfaces chargées par le seul module consent-ui : c'est cette frontière de chunk qui garde
+// leur code et leur CSS hors du bundle synchrone.
 // ssr: false assumé : overlays purement interactifs, aucun contenu indexable.
 const ConsentBanner = dynamic(
   () => import("@/components/cookies/consent-ui").then((m) => m.ConsentBanner),
@@ -26,18 +28,6 @@ const ConsentDialog = dynamic(
   { ssr: false },
 )
 
-const themeColors = {
-  primary: "var(--primary)",
-  primaryHover: "var(--primary)",
-  surface: "var(--card)",
-  surfaceHover: "var(--muted)",
-  border: "var(--border)",
-  text: "var(--foreground)",
-  textMuted: "var(--muted-foreground)",
-  textOnPrimary: "var(--primary-foreground)",
-  switchTrackActive: "var(--primary)",
-} as const
-
 // Override des descriptions par défaut de c15t : sa copie générique mentionne mesure
 // d'audience et contenu personnalisé, deux traitements que ce site ne fait pas.
 // Clone obligatoire : ne pas muter l'objet exporté par la lib.
@@ -45,11 +35,13 @@ const consentMessages = structuredClone(baseTranslations)
 consentMessages.fr.cookieBanner.description = frMessages.Cookies.bannerDescription
 consentMessages.en.cookieBanner.description = enMessages.Cookies.bannerDescription
 
+const offlineMode = offline({ policyRules: [policyRulePresets.europeOptIn()] })
+
 export function Providers({ children }: { children: ReactNode }) {
   const locale = useLocale()
-  const consentOptions = useMemo<ConsentManagerOptions>(
+  const consentOptions = useMemo<ConsentProviderOptions>(
     () => ({
-      mode: "offline",
+      mode: offlineMode,
       overrides: { country: "FR" },
       consentCategories: ["necessary", "marketing"],
       i18n: {
@@ -58,32 +50,18 @@ export function Providers({ children }: { children: ReactNode }) {
         messages: consentMessages,
       },
       legalLinks: buildLegalLinks(locale),
-      theme: {
-        colors: themeColors,
-        // Sans theme.dark explicite, c15t injecte ses defaults en :root.dark qui battent nos overrides par spécificité.
-        dark: themeColors,
-        radius: {
-          md: "var(--radius)",
-        },
-        typography: {
-          fontFamily: "var(--font-sans)",
-        },
-        slots: {
-          consentBannerDescription: "[&_a]:text-primary",
-          consentDialogDescription: "[&_a]:block [&_a]:mt-2 [&_a]:text-primary",
-        },
-      },
+      theme: consentTheme,
     }),
     [locale],
   )
 
   return (
-    <ConsentManagerProvider options={consentOptions}>
+    <ConsentProvider options={consentOptions}>
       <ConsentLanguageSync />
       {children}
       <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
       <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
       <Toaster />
-    </ConsentManagerProvider>
+    </ConsentProvider>
   )
 }
