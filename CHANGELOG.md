@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.0...v2.4.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* monte Next.js 16.4.3 et les dépendances ([#199](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/199)) ([e455463](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/e455463444b31738de66bbd923d102e377043468))
+
 ## [2.4.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.3.0...v2.4.0) (2026-10-26)
 
 
