@@ -6,7 +6,6 @@ updates:
     target-branch: develop
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
     groups:
       minor-patch:
         update-types:
@@ -14,11 +13,14 @@ updates:
           - patch
 
   - package-ecosystem: github-actions
-    directory: /
+    # "/" ne couvre que .github/workflows : les actions composites locales
+    # epinglent aussi des actions tierces, a suivre par leur propre entree
+    directories:
+      - /
+      - /.github/actions/*
     target-branch: develop
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
     groups:
       minor-patch:
         update-types:
@@ -30,7 +32,6 @@ updates:
     target-branch: develop
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
     groups:
       minor-patch:
         update-types:
