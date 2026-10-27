@@ -1,4 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next"
+import { io } from "next/cache"
 import type { Locale } from "next-intl"
 import { getTranslations } from "next-intl/server"
 import { Suspense } from "react"
@@ -133,6 +134,8 @@ async function ContactTabsAsync({
 
   const calendlyUrl = CALENDLY_URL_BY_LOCALE[locale]
   if (calendlyUrl === undefined) {
+    // pino horodate via Date.now() : sans io() le log part pendant un prerender et Next le signale.
+    await io()
     logger.warn(
       { event: "calendly:url_missing", locale },
       "NEXT_PUBLIC_CALENDLY_URL_<locale> absent",

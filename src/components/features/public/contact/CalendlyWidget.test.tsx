@@ -3,8 +3,9 @@ import { NextIntlClientProvider } from "next-intl"
 import { describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 
-vi.mock("@c15t/nextjs/headless", () => ({
-  useConsentManager: vi.fn(),
+vi.mock("c15t/next", () => ({
+  useConsent: vi.fn(),
+  useSetActiveUI: () => vi.fn(),
 }))
 
 vi.mock("react-calendly", () => ({
@@ -19,7 +20,7 @@ vi.mock("@/server/actions/calendly", () => ({
 }))
 
 import { CalendlyWidget } from "./CalendlyWidget"
-import { useConsentManager } from "@c15t/nextjs/headless"
+import { useConsent } from "c15t/next"
 
 const messages = {
   Cookies: {
@@ -39,19 +40,7 @@ function Wrapper({ children }: { children: ReactNode }) {
   )
 }
 
-const useConsentManagerMock = vi.mocked(useConsentManager)
-
-function buildManagerMock(marketingAccepted: boolean) {
-  return {
-    has: (category: string) =>
-      category === "necessary" || (category === "marketing" && marketingAccepted),
-    setActiveUI: vi.fn(),
-    setLanguage: vi.fn(),
-    consents: marketingAccepted
-      ? { necessary: true, marketing: true }
-      : { necessary: true, marketing: false },
-  } as unknown as ReturnType<typeof useConsentManager>
-}
+const useConsentMock = vi.mocked(useConsent)
 
 function Widget() {
   return (
@@ -65,7 +54,7 @@ const GATED_LABEL = /L'affichage du widget Calendly nécessite votre accord/
 
 describe("CalendlyWidget marketing gating", () => {
   it("renders the gated placeholder when marketing is refused", () => {
-    useConsentManagerMock.mockReturnValue(buildManagerMock(false))
+    useConsentMock.mockReturnValue(false)
 
     render(<Widget />)
 
@@ -75,7 +64,7 @@ describe("CalendlyWidget marketing gating", () => {
   })
 
   it("renders the Calendly widget when marketing is accepted", () => {
-    useConsentManagerMock.mockReturnValue(buildManagerMock(true))
+    useConsentMock.mockReturnValue(true)
 
     render(<Widget />)
 
@@ -85,9 +74,9 @@ describe("CalendlyWidget marketing gating", () => {
   })
 
   it("swaps the gated placeholder for the widget once marketing is accepted", () => {
-    useConsentManagerMock.mockReturnValue(buildManagerMock(false))
+    useConsentMock.mockReturnValue(false)
     const { rerender } = render(<Widget />)
-    useConsentManagerMock.mockReturnValue(buildManagerMock(true))
+    useConsentMock.mockReturnValue(true)
 
     rerender(<Widget />)
 
