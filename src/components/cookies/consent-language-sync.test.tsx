@@ -11,13 +11,8 @@ vi.mock("next-intl", () => ({
   useLocale: () => useLocaleMock(),
 }))
 
-vi.mock("@c15t/nextjs/headless", () => ({
-  useConsentManager: () => ({
-    setLanguage: setLanguageMock,
-    consents: {},
-    has: () => false,
-    setActiveUI: () => undefined,
-  }),
+vi.mock("c15t/next", () => ({
+  useSetLanguage: () => setLanguageMock,
 }))
 
 import { ConsentLanguageSync } from "./consent-language-sync"

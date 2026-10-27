@@ -2,12 +2,12 @@
 
 import type { VariantProps } from "class-variance-authority"
 import { useTranslations } from "next-intl"
-import { useConsentManager } from "@c15t/nextjs/headless"
+import { useSetActiveUI } from "c15t/next"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 
 function useOpenCookiePreferences() {
-  const { setActiveUI } = useConsentManager()
+  const setActiveUI = useSetActiveUI()
   const t = useTranslations("Cookies")
   return {
     open: () => {

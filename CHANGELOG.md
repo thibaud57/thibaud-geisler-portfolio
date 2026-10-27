@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.1...v2.4.2) (2026-10-27)
+
+
+### Bug Fixes
+
+* bannière de consentement c15t 3, audit postcss-selector-parser, log du prerender de /contact ([#202](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/202)) ([ca2d725](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ca2d7252ccc5674869756f39508d8b802d43a7dd))
+
 ## [2.4.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.0...v2.4.1) (2026-10-27)
 
 

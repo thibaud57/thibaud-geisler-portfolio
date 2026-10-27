@@ -1,6 +1,6 @@
 ---
 title: "pnpm — Package Manager"
-version: "12.11.2"
+version: "12.15.0"
 description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
 date: "2026-10-15"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs", "supply-chain"]
@@ -185,7 +185,7 @@ pnpm install
 ```
 
 ```json
-{ "devEngines": { "packageManager": { "name": "pnpm", "version": "12.11.2", "onFail": "download" } } }
+{ "devEngines": { "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" } } }
 ```
 
 ### Points Importants

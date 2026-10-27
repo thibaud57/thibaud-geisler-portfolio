@@ -1,6 +1,6 @@
 "use client"
 
-import { useConsentManager } from "@c15t/nextjs/headless"
+import { useConsent } from "c15t/next"
 import { CalendarClock, Cookie } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useEffect, useState, type ReactNode } from "react"
@@ -55,8 +55,7 @@ function PlaceholderShell({ icon, label, action, className }: PlaceholderShellPr
 }
 
 export function CalendlyWidget({ url, placeholderLabel, className }: Props) {
-  const { has } = useConsentManager()
-  const marketingAccepted = has("marketing")
+  const marketingAccepted = useConsent("marketing")
   const tCookies = useTranslations("Cookies.calendlyGated")
 
   const [height, setHeight] = useState(INITIAL_HEIGHT_PX)
