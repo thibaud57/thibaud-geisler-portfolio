@@ -1,0 +1,14 @@
+name: Installer pnpm et Node
+description: Seul endroit des workflows ou vit la version de Node
+runs:
+  using: composite
+  steps:
+    # Version de pnpm lue dans devEngines de package.json. Remplace pnpm/action-setup,
+    # setup-node et le pnpm install du workflow.
+    - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+      with:
+        # package.json ne declare Node que dans engines, que l'action ne lit pas
+        runtime: node@24
+        cache: true
+        # L'install de l'action remplace celui du workflow : ce flag garde l'echec sur lockfile absent.
+        require-lockfile: true
