@@ -1,6 +1,6 @@
 ---
 title: "Sentry — Monitoring d'erreurs applicatives"
-version: "11.8.0"
+version: "11.9.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
 date: "2026-10-03"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
@@ -188,6 +188,8 @@ withSentryConfig(config, { tunnelRoute: '/sentry-tunnel' })
 - Résout la perte d'événements due aux bloqueurs, au prix d'un passage par le serveur applicatif
 - La route de tunnel doit être exclue de tout middleware ou proxy qui l'intercepterait : le projet a un `src/proxy.ts` dont le matcher devra en tenir compte
 - Une CVE de type SSRF a affecté `tunnelRoute` sur les versions 7.26.0 à 7.76.x ([GHSA-2rmr-xw8m-22q9](https://github.com/advisories/GHSA-2rmr-xw8m-22q9)), corrigée en 7.77.0. Sans objet sur la version courante, mais le rappel vaut : cette route élargit la surface d'attaque et doit valider que sa cible est bien Sentry
+- Depuis `11.9.0` (#25456, #25509), le handler de tunnel relaie le seul payload de l'événement, sans les headers de la requête, et les requêtes navigateur partent en `credentials: 'omit'` : aucun cookie n'atteint le tunnel. Un layer devant l'app qui exige des cookies règle `transportOptions.fetchOptions.credentials` dans `Sentry.init` ([notes 11.9.0](https://github.com/getsentry/sentry-javascript/blob/develop/CHANGELOG.md), relues le 2026-10-27)
+- Depuis `11.9.0` (#25141), une page prérendue n'émet plus de meta tags de trace (`sentry-trace`, `baggage`), ISR compris : un HTML mis en cache ne lie plus un visiteur à la requête d'un autre. Avec `cacheComponents`, le pageload attend les données de trace de la partie streamée de la page. Sans effet à régler ici, le projet n'enregistre pas de `SentryPropagator` lui-même (sinon : `NextSentryPropagator`)
 
 ---
 
