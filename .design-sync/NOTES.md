@@ -131,26 +131,35 @@ propriétaire le demande ; chaque ligne part une fois faite.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
   garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs
   tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
-- **Date d'une action de prospection (arbitrage du 2026-10-14)** : le jour seul, sans heure, affiché
-  en journée entière dans le calendrier. La maquette saisit et affiche encore une heure (champ
-  « Date et heure » du formulaire d'action).
-- **« Marquer fait » (arbitrage du 2026-10-14)** : le bouton de ligne est retiré du code, le statut
-  d'une action changeant par le formulaire ou le Kanban. La maquette le pose encore sur la ligne
-  d'une action à faire.
-- **Titres des vues entreprises (arbitrage du 2026-10-14)** : « Entreprises de recrutement » et
-  « Entreprises prospects ». La maquette dit encore « Recrutement » et « Prospects ».
-- **Sous-titre de la vue À venir des entretiens (arbitrage du 2026-10-14)** : « les retards d'abord
-  puis le prochain », la vue gardant les entretiens planifiés en retard. La maquette dit encore
-  « le prochain en premier ».
-- **Carte d'action d'une personne opposée (arbitrage du 2026-10-14)** : visible et glissable dans le
-  Kanban comme dans le calendrier, le serveur refusant le déplacement ; la carte revient à sa place
-  et un toast dit l'opposition. La maquette ne montre pas ce refus.
-- **Colonnes et facettes par vue (arbitrage du 2026-10-14)** : la vue « tout » montre toutes ses
-  colonnes et toutes ses facettes, une vue filtrée ne masque que les colonnes que son filtre rend
-  constantes ou toujours vides et verrouille la facette correspondante (Projets inchangé). La
-  maquette masque encore des colonnes sur chaque vue.
 
 ## Journal
+
+- **Étude de cas et formulaires de la v2.4.0, puis fin de la liste des arbitrages (préparés le
+  2026-10-27)** : six arbitrages du 2026-10-26 reportés, et les six du 2026-10-14 restés ouverts
+  appliqués à la maquette (colonnes et facettes par vue, date d'une action au jour, plus de
+  « Marquer fait », titres des vues entreprises, sous-titre À venir, déplacement refusé d'une carte
+  opposée). Plus aucun écart ouvert : `docs/DESIGN.md` perd sa sous-rubrique Arbitrages, chaque
+  règle vivant dans sa section, et le readme du système cesse de la recopier, ses fiches renvoyant
+  aux sections.
+  - **Système** :
+    - trois miroirs, `core/StatusDot`, `patterns/LocalizedTabsCard` et `patterns/ZoomableImage` ;
+    - `FormCard` cale son action en bas, `TabsContent` prend `forceMount` ;
+    - `Editor` va de 8rem à 60vh, son menu « / » sort de la zone qui défile ;
+    - le kit public reçoit les liens sur la ligne des badges, la frise en mois, la durée en mois
+      inclusifs et la couverture agrandissable ;
+    - deux cartes, le glyphe `maximize-2`, une illustration neutre.
+  - **Contrôle du système** : 111 miroirs compilés, 64 cartes rendues, 59 des 62 existantes
+    identiques au pixel.
+  - **Maquette** :
+    - en-tête non collant ;
+    - barre collante sur les six formulaires en page ;
+    - Description et Case study du projet en onglets de langue ;
+    - `_ds_src/` recompilé.
+  - **Contrôle de la maquette** : les six formulaires pilotés.
+  - **Envoi** : les deux projets le 2026-10-27 (62 fichiers et le drapeau de recompilation pour le
+    système, 6 pour la maquette). Détail dans les `github.md` des deux projets.
+- **Piège du rendu local** : plafonné, l'éditeur tassait ses lignes au lieu de défiler, ses blocs
+  étant des enfants flex. Corrigé par `flex-shrink:0` sur `editor-block`.
 
 - **Composants de chat et écrans des agents (synchronisés le 2026-10-24)** : le système gagne
   `post-mvp/chat/` (ADR-027) : `Message`, `Bubble`, `Marker`, `MessageScroller`, `InputGroup`,
