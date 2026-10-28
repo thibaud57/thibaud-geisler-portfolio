@@ -10,7 +10,7 @@ technologies: ["Node.js", "pnpm", "Vitest", "Dokploy"]
 
 # Description
 
-`GitHub Actions` est le service CI du portfolio. Le workflow principal, `ci.yml`, tourne sur les pull requests vers `main` et `develop` et sur les push vers `main`, sur un runner `ubuntu-24.04` : il lance `just lint`, `typecheck`, `test`, `build` et `audit`, et saute ces étapes quand le diff ne touche que de la documentation. Deux autres workflows complètent : `security.yml` (scan Trivy hebdomadaire de l'image publiée) et `release-please.yml` (version et tag). Le déploiement est porté par un second workflow, `deploy.yml`, déclenché sur le tag `v*` : build de l'image, push sur GHCR, puis appel de l'API Dokploy qui tire l'image sans rien builder. Pattern canonique : `actions/checkout@v7`, `pnpm/action-setup@v6`, `actions/setup-node@v7` avec `cache: 'pnpm'`.
+`GitHub Actions` est le service CI du portfolio. Le workflow principal, `ci.yml`, tourne sur les pull requests vers `main` et `develop` et sur les push vers `main`, sur un runner `ubuntu-24.04` : il lance `just lint`, `typecheck`, `test`, `build` et `audit` puis saute ces étapes quand le diff ne touche que de la documentation. Deux autres workflows complètent : `security.yml` (scan Trivy hebdomadaire de l'image publiée) et `release-please.yml` (version et tag). Le déploiement est porté par un second workflow, `deploy.yml`, déclenché sur le tag `v*` : build de l'image, push sur GHCR, puis appel de l'API Dokploy qui tire l'image sans rien builder. Pattern canonique : `actions/checkout@v7`, puis `pnpm/setup@v3` qui installe pnpm, Node et les dépendances en un step.
 
 ---
 
@@ -63,13 +63,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
-      - uses: pnpm/action-setup@<sha> # v6.1.0, version lue dans `devEngines.packageManager`
-      - uses: actions/setup-node@<sha> # v7.1.0
-        with: { node-version: '24', cache: 'pnpm' }
-      - uses: extractions/setup-just@<sha> # v4.0.0
-        with:
-          just-version: "<minimum-version du Justfile>"
-      - run: pnpm install --frozen-lockfile
+      - uses: pnpm/setup@<sha> # v3.1.2, pnpm lu dans `devEngines.packageManager`
+        with: { runtime: node@24, cache: true, require-lockfile: true }
+      - uses: ./.github/actions/setup-just # just épinglé sur `minimum-version` du Justfile
       - run: just lint
       - run: just typecheck
       - run: just test
@@ -136,20 +132,17 @@ env:
 
 ### Description
 
-Accélère les installations en cachant le store pnpm entre les runs. Le cache est automatique via `actions/setup-node@v7` avec `cache: 'pnpm'`, ou manuel via `actions/cache@v6`. La clé de cache dépend du hash de `pnpm-lock.yaml`.
+Accélère les installations en cachant le store pnpm entre les runs. Le cache est automatique via `pnpm/setup@v3` avec `cache: true`, ou manuel via `actions/cache@v6`. La clé de cache dépend du hash de `pnpm-lock.yaml`.
 
 ### Exemple
 
 ```yaml
-# Option 1 : cache automatique via setup-node (celle du projet)
-- uses: pnpm/action-setup@<sha> # v6.1.0, sans `version:` : lue dans `devEngines.packageManager`
-
-- uses: actions/setup-node@<sha> # v7.1.0
+# Option 1 : cache automatique via pnpm/setup (celle du projet)
+- uses: pnpm/setup@<sha> # v3.1.2
   with:
-    node-version: '24'
-    cache: 'pnpm'
-
-- run: pnpm install --frozen-lockfile
+    runtime: node@24
+    cache: true
+    require-lockfile: true  # l'install de l'action remplace `pnpm install --frozen-lockfile`
 
 # Option 2 : cache explicite (plus de contrôle)
 - name: Get pnpm store directory
@@ -167,11 +160,11 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 ### Points Importants
 
 - Cache basé sur le hash de `pnpm-lock.yaml`
-- `--frozen-lockfile` échoue si le lockfile est désynchronisé
+- L'install de `pnpm/setup` remplace celui du workflow : `require-lockfile: true` garde l'échec sur lockfile absent
 - Le cache est partagé entre workflows du même repo
 - Option 2 (explicite) préférée pour les monorepos complexes
 - Le projet cache aussi `.next/cache` par `actions/cache`, clé sur le lockfile et les sources : le build Next réutilise sa compilation précédente
-- Ne pas pinner `version:` dans `pnpm/action-setup` : un second pin diverge silencieusement de `devEngines.packageManager` au prochain bump de pnpm
+- `pnpm/setup` ne lit pas `engines` : Node se passe par `runtime: node@24`, le Node système du runner changeant à chaque image
 
 ---
 
@@ -250,10 +243,10 @@ jobs:
 
 - Utiliser `ubuntu-24.04` explicitement (pas `ubuntu-latest`)
 - Actions épinglées par SHA de commit, version en commentaire (`checkout@<sha> # v7.0.1`) : un tag `@vN` est mobile et détournable, Dependabot met à jour SHA et commentaire ensemble
-- `cache: 'pnpm'` dans `setup-node` pour accélérer
+- `cache: true` dans `pnpm/setup` pour accélérer
 - `concurrency.cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : annule les runs redondants d'une PR, garde le verdict de chaque commit de `main`
 - `permissions: contents: read` par défaut
-- `--frozen-lockfile` en CI (garantit la reproductibilité)
+- `require-lockfile: true` sur `pnpm/setup` en CI (garantit la reproductibilité)
 
 ## ❌ Anti-Patterns
 
@@ -262,7 +255,7 @@ jobs:
 - Ne pas laisser un step `continue-on-error: true` sans signal : il conclut en succès, doubler d'un `::warning::` sur `steps.<id>.outcome == 'failure'`
 - Ne pas utiliser `actions/checkout@v4` ou antérieur (updates de sécurité)
 - Ne pas hardcoder des valeurs sensibles dans le YAML
-- Ne pas oublier `--frozen-lockfile` (risque de versions divergentes)
+- Retirer `require-lockfile: true` de `pnpm/setup` (risque de versions divergentes)
 - Ne pas omettre `permissions:` au niveau workflow (le job hériterait du défaut du dépôt)
 
 ---
@@ -278,6 +271,5 @@ jobs:
 ## Ressources Complémentaires
 
 - [actions/checkout](https://github.com/actions/checkout)
-- [actions/setup-node](https://github.com/actions/setup-node)
-- [pnpm/action-setup](https://github.com/pnpm/action-setup)
+- [pnpm/setup](https://github.com/pnpm/setup)
 - [pnpm CI guide](https://pnpm.io/continuous-integration)

@@ -74,7 +74,7 @@ export function Hero() {
 - Package `motion` installé (pas `framer-motion`), en v14 depuis le 9 octobre 2026 : aucun breaking change de l'API React entre 13 et 14 (guide de migration officiel)
 - Import : `from 'motion/react'` (pas `'motion'` sans sous-chemin)
 - API identique à framer-motion : `initial`, `animate`, `whileInView`, etc.
-- Les composants doivent être marqués `'use client'`
+- Les composants qui animent par `motion` portent `'use client'` dans leur propre fichier
 
 ---
 
@@ -105,9 +105,8 @@ export const BackgroundRippleEffect = ({ children, className, ...props }) => {
 
 ### Points Importants
 
-- Pas utilisable dans un Server Component direct
-- Pattern : wrapper dans un composant parent marqué `'use client'`
-- Ou créer un composant `(public)/HomeSection.tsx` client qui importe Aceternity
+- `'use client'` vit dans le fichier du composant : un Server Component parent l'importe et le rend directement, sans wrapper client intermédiaire
+- Le parent n'a pas à porter `'use client'` : la frontière client commence au module importé
 - Les Server Components parents peuvent passer du contenu via `children`
 
 ---
@@ -141,13 +140,13 @@ export { cn } from "cn"
 - Installer via shadcn CLI avec la syntaxe `@aceternity/<component>`
 - Documenter toute modification locale en commentaire de tête du fichier copié, avec le lien vers la version upstream et le pourquoi du diff (cf. `background-ripple-effect.tsx`) : sans lui, une réinstallation par le CLI écrase la modification sans que personne le voie
 - Importer `motion` depuis `motion/react` (pas `framer-motion`)
-- Marquer explicitement `'use client'` dans les composants parents qui utilisent Aceternity
+- Garder `'use client'` dans le fichier du composant Aceternity, jamais le remonter sur le parent qui l'importe
 - Combiner shadcn/ui (UI fonctionnelle) + Aceternity (effets visuels premium)
 - Partager le `cn()` entre toutes les libs copy-paste
 
 ## ❌ Anti-Patterns
 
-- Ne pas importer Aceternity dans un Server Component direct
+- Ne pas marquer `'use client'` une page ou une section entière pour y rendre un effet Aceternity
 - Ne pas garder `framer-motion` comme dépendance (déprécié, utiliser `motion`)
 - Ne pas dupliquer `cn()` à chaque composant
 - Ne pas surcharger tout le site d'effets Aceternity (sobriété recommandée)

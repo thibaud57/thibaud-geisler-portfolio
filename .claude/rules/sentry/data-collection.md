@@ -5,14 +5,14 @@ paths:
   - "src/lib/sentry-scrub.ts"
 ---
 
-# Sentry — Collecte et données personnelles
+# Sentry : collecte et données personnelles
 
 ## À faire
 - Passer `dataCollection: SENTRY_DATA_COLLECTION` (`src/lib/sentry-scrub.ts`) à chaque `Sentry.init`, serveur, edge et navigateur : depuis le SDK 11, l'option absente collecte identité, IP, cookies, en-têtes, corps de requête, données des requêtes Prisma et variables locales
 - Fermer les catégories dans cette constante partagée, jamais dans un objet par `Sentry.init` : trois copies divergent à la première modification. `satisfies` n'en vérifie pas l'exhaustivité : confronter ses clés à la liste de la doc `dataCollection` à chaque montée du SDK. Seul `frameContextLines` reste au défaut, des lignes de code source sans donnée personnelle
 - Dériver le type depuis la signature de `init` (`NonNullable<Parameters<typeof init>[0]["dataCollection"]>`) : `DataCollection` n'est exporté que par `@sentry/core`, que pnpm strict rend inaccessible
 - Filtrer les données personnelles dans `beforeSend`, qui doit retourner un event valide ou `null`, jamais `undefined`. Il reste nécessaire avec `dataCollection` : le texte des messages d'erreur (ex: un rejet SMTP qui cite l'adresse) n'est couvert par aucune catégorie
-- Filtrer aussi dans `beforeSendLog` dès que `pinoIntegration` est active : `log.levels` alimente le produit *Logs*, un canal distinct des issues que `beforeSend` ne voit jamais, et qui transporte l'objet Pino entier, `err` sérialisé compris. Filtrer un seul des deux canaux laisse la donnée fuiter par l'autre
+- Filtrer aussi dans `beforeSendLog` dès que `pinoIntegration` est active : `log.levels` alimente le produit *Logs*, un canal distinct des issues que `beforeSend` ne voit jamais, qui transporte l'objet Pino entier, `err` sérialisé compris. Filtrer un seul des deux canaux laisse la donnée fuiter par l'autre
 - Relire la config résolue après chaque montée du SDK, par `Sentry.getClient()?.getDataCollectionOptions()` dans un process neuf
 
 ## À éviter

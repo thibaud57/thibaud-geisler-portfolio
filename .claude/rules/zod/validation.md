@@ -6,35 +6,26 @@ paths:
   - "src/env.ts"
 ---
 
-# Zod — Validation runtime (safeParse / parse)
+# Zod : validation runtime (safeParse / parse)
 
 ## À faire
 - Utiliser **`safeParse`** dans les Server Actions et route handlers : retourne `{ success: true, data } | { success: false, error }`, pas besoin de try/catch
 - Retourner **`z.flattenError(result.error).fieldErrors`** pour alimenter l'UI formulaire : objet `{ champ: string[] }` directement exploitable par `useActionState` (forme en usage dans `src/server/actions/contact.ts` et `tags.ts`)
-- Valider les variables d'environnement au boot via **`createEnv` de `@t3-oss/env-nextjs`** (pattern du projet, `src/env.ts`) : fail-fast au démarrage et séparation `server` / `client`. Le `z.parse(process.env)` direct ne vaut que hors Next.js
-- Ne jamais typer `process.env` à la main : le typage vient du schéma
-- Valider **toujours côté serveur** même si une validation client existe déjà : client = feedback UX, serveur = sécurité (seul le serveur est source de vérité)
+- Valider **toujours côté serveur** même si une validation client existe déjà : client = feedback UX, serveur = sécurité, une action exportée étant un endpoint public
 - `Object.fromEntries(formData)` avant `safeParse` pour convertir un `FormData` en objet plain
+- Typer `process.env` par le schéma de `createEnv` (`src/env.ts`, cf. `nextjs/configuration.md`), jamais à la main
 
 ## À éviter
 - `parse` dans une Server Action : exception non gérée remonte en 500, pas de feedback utilisateur propre
 - Typer `process.env` à la main avec `declare namespace NodeJS` : diverge forcément du schéma Zod, perd le fail-fast
-- Valider uniquement côté client : contournable via DevTools, ne compte pas comme validation sécurité
-- Oublier `z.coerce.number()` pour les `FormData` / env vars : `z.number()` strict refusera les strings brutes
 
 ## Gotchas
-- **`result.error.flatten()` est déprécié** au profit de la fonction libre `z.flattenError(error)` : la méthode porte `@deprecated` (constaté sur Zod 4.5.4 le 2026-09-17, `node_modules/zod/v4/classic/errors.d.ts`) et `@typescript-eslint/no-deprecated` fait échouer le lint du projet
 - `Object.fromEntries(formData)` **perd les champs multi-valeurs** (checkbox multi, input `name="tags[]"`) : utiliser `formData.getAll('key')` explicitement et un schéma avec `z.array()`
 - **`safeParseAsync`** obligatoire si le schéma contient un refinement ou un transform asynchrone : sinon erreur runtime « Encountered Promise during synchronous parse. Use .parseAsync() instead. »
-- Pour **Next.js spécifiquement** : utiliser **`@t3-oss/env-nextjs`** + `createEnv` (sépare `server` / `client`, tree-shake les secrets serveur du bundle client) plutôt que `z.parse(process.env)` direct (voir `nextjs/configuration.md`)
 
 ## Exemples
 ```typescript
 // ✅ Server Action avec safeParse + z.flattenError
-'use server'
-import { z } from 'zod'
-import { Schema } from '@/lib/schemas/example'
-
 export async function action(_prev: unknown, formData: FormData) {
   const result = Schema.safeParse(Object.fromEntries(formData))
 
@@ -42,43 +33,13 @@ export async function action(_prev: unknown, formData: FormData) {
     return { errors: z.flattenError(result.error).fieldErrors }
   }
 
-  // result.data est typé automatiquement après le narrowing
   await doSomething(result.data)
   return { success: true }
 }
-```
 
-```typescript
-// ✅ Variables d'environnement fail-fast, pattern du projet (src/env.ts)
-import { createEnv } from '@t3-oss/env-nextjs'
-import { z } from 'zod'
-
-export const env = createEnv({
-  server: {
-    DATABASE_URL: z.url(),
-    SMTP_PORT: z.coerce.number().int().positive(),
-  },
-  client: {
-    NEXT_PUBLIC_SITE_URL: z.url(),
-  },
-  runtimeEnv: { /* mapping explicite */ },
-  skipValidation: process.env.SKIP_ENV_VALIDATION === 'true',
-})
-```
-
-```typescript
-// ❌ parse dans une Server Action → exception non gérée = 500
-'use server'
+// ❌ parse dans une Server Action : exception non gérée = 500
 export async function action(formData: FormData) {
   const data = Schema.parse(Object.fromEntries(formData)) // throw si invalide
   return { data }
-}
-
-// ❌ process.env typé à la main — diverge du schéma Zod
-declare namespace NodeJS {
-  interface ProcessEnv {
-    DATABASE_URL: string
-    SMTP_PORT: string  // oublie la coercition number
-  }
 }
 ```

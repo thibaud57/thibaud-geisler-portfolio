@@ -4,18 +4,14 @@ paths:
   - "src/{app,components}/**/*.tsx"
 ---
 
-# Next.js — Images (next/image)
+# Next.js : images (next/image)
 
 ## À faire
-- Utiliser exclusivement `next/image` pour les images (jamais `<img>`) : lazy loading, avif/webp, redimensionnement, prévention du CLS
-- Fournir `width` et `height` pour les images distantes (calcul du ratio, réservation de l'espace)
-- Fournir `alt`, chaîne vide `""` si l'image est purement décorative
 - Définir `sizes` sur les images `fill` pour un `srcset` adaptatif complet
 - Poser `preload` sur l'image LCP au-dessus de la ligne de flottaison (hero, logo de navbar)
 - Pointer un asset de la route `/api/assets/[...path]` (ADR-011) par le **chemin relatif** que construit `buildAssetUrl()` : ni préfixe `NEXT_PUBLIC_SITE_URL`, ni domaine dans `images.remotePatterns`, une URL absolue ferait traiter comme distante une image de la même origine
 - Poser `unoptimized` sur un asset servi par une **route authentifiée** : l'optimiseur rejoue la requête sans cookie et se fait refuser. Le wrapper `AssetImage` pose le flag d'après la clé, les assets publics gardent l'optimisation
 - Déclarer `images.remotePatterns` (`protocol`, `hostname`, `pathname`) pour chaque domaine externe réellement autorisé
-- Utiliser `placeholder="blur"` pour les imports statiques (blurDataURL auto-généré)
 
 ## À éviter
 - `images.domains` (déprécié depuis Next 14, → `remotePatterns`), `next/legacy/image` et la prop `priority` (dépréciés en Next 16, → `next/image`, `preload`)
@@ -30,12 +26,12 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ Image LCP : preload, dimensions, alt, sizes
+// ✅ Image LCP : preload, dimensions, sizes
 <Image src="/hero.jpg" alt="…" width={1200} height={600} preload sizes="100vw" />
 
 // ✅ Asset de la route interne : chemin relatif, aucun remotePatterns
 <Image src={buildAssetUrl(key)} alt="…" width={640} height={360} />
 
-// ❌ priority déprécié, alt manquant, URL absolue sur la même origine
-<Image src={`${siteUrl}/api/assets/${key}`} priority fill />
+// ❌ priority déprécié, URL absolue sur la même origine
+<Image src={`${siteUrl}/api/assets/${key}`} alt="…" priority fill />
 ```

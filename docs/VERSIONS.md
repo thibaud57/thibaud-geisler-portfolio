@@ -84,7 +84,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA (`checkout` 7.0.1, `setup-node` 7.1.0, `cache` 6.1.0, `pnpm/action-setup` 6.1.0), `cache: 'pnpm'` explicite |
+| GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA (`checkout` 7.0.1, `cache` 6.1.0, `pnpm/setup` 3.1.2), `runtime: node@24` explicite |
 
 ---
 
@@ -168,14 +168,14 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - TypeScript : ⚠️ ne pas activer `preserveSymlinks: true` (résolution des types cassée)
 - Node.js : `>=22` en 11.x (le projet est en Node 24)
 - Dockerfile : `npm install -g pnpm@12` dans `base`, puis `devEngines` télécharge la version exacte. Corepack n'est plus utilisé (retiré de Node à partir de la 25)
-- `pnpm/action-setup@v6.1.0` : ✅ lit `devEngines.packageManager` sans `version:` (supporte jusqu'à pnpm 12)
+- `pnpm/setup@v3.1.2` : ✅ lit `devEngines.packageManager` et installe pnpm, Node (`runtime:`) et les dépendances en un step
 - Dependabot : ⚠️ PR de mise à jour fonctionnelles ; alertes de sécurité npm non fiables, le graphe de dépendances GitHub ne lisant que le premier document du lockfile ([dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904), ouverte au 15 octobre 2026). Son cooldown par défaut (3 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
 
 **Issues connues** :
 - ~1-2% des packages supposent un `node_modules` plat (`publicHoistPattern` dans `pnpm-workspace.yaml` si besoin)
 - Le stage `deploy-prisma` du Dockerfile logue « Shared workspace lockfile detected but configuration forces legacy deploy implementation » : attendu, `--legacy` est voulu
 
-**Recommandation** : ✅ pnpm 12.15.0 (ADR-008, package manager du projet). `package.json` est la seule source de la version : `devEngines.packageManager` avec `onFail: download`, lu par chaque poste, le Dockerfile et `pnpm/action-setup`. Montée : changer la version, lancer `pnpm install`, committer le lockfile. Même schéma que les autres projets pnpm et uv du poste, aligné le 15 octobre 2026.
+**Recommandation** : ✅ pnpm 12.15.0 (ADR-008, package manager du projet). `package.json` est la seule source de la version : `devEngines.packageManager` avec `onFail: download`, lu par chaque poste, le Dockerfile et `pnpm/setup`. Montée : changer la version, lancer `pnpm install`, committer le lockfile. Même schéma que les autres projets pnpm et uv du poste, aligné le 15 octobre 2026.
 
 ### 3. TypeScript
 
@@ -996,11 +996,10 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Action | Version épinglée | Dernière publiée |
 |---|---|---|
 | `actions/checkout` | 7.0.1 | 7.0.1 (20 juillet 2026) |
-| `actions/setup-node` | 7.1.0 | 7.1.0 (8 octobre 2026) |
 | `actions/cache` | 6.1.0 | 6.1.0 (26 juin 2026) |
-| `pnpm/action-setup` | 6.1.0 | 6.1.0 (5 septembre 2026) |
+| `pnpm/setup` | 3.1.2 | 3.1.2 (25 octobre 2026) |
 | `dorny/paths-filter` | 4.0.3 | 4.0.3 (5 août 2026) |
-| `extractions/setup-just` | 4.0.0 | 4.0.0 (5 avril 2026) |
+| `extractions/setup-just` (composite `.github/actions/setup-just`) | 4.0.0 | 4.0.0 (5 avril 2026) |
 | `googleapis/release-please-action` | 5.0.0 | 5.0.0 (22 avril 2026) |
 | `actions/create-github-app-token` | 3.3.0 | 3.3.0 (12 octobre 2026) |
 | `docker/build-push-action` | 7.4.0 | 7.4.0 (15 septembre 2026) |
@@ -1016,27 +1015,22 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
   - `ubuntu-20.04` retiré définitivement le **15 avril 2025**, toute référence à ce label échoue
   - Différences de packages pré-installés sur ubuntu-24.04 vs 22.04 (certains outils retirés pour respecter le SLA de disk space)
 - **actions/checkout v6 → v7** : le checkout d'une PR issue d'un fork est **bloqué** sur `pull_request_target` et `workflow_run`. Sans objet pour ce dépôt (aucun de ces deux déclencheurs), mais c'est le changement de comportement de la majeure. L'action est aussi passée en ESM
-- **actions/setup-node v6 → v7** : passage en ESM, retrait de l'export factice `NODE_AUTH_TOKEN`, nouvelles sorties `cache-primary-key` et `cache-matched-key`. Aucun breaking change annoncé par l'upstream
-- **actions/setup-node v5 → v6** : **cache automatique retiré pour pnpm/yarn**, le cache auto est désormais limité à npm uniquement. Pour pnpm, ajouter `cache: 'pnpm'` explicitement. Source : [PR #1374](https://github.com/actions/setup-node/pull/1374). Retrait aussi de `always-auth`. Runtime Node 20 → Node 24
+- **`pnpm/action-setup` + `actions/setup-node` → `pnpm/setup`** (#207 et #208, 27 octobre 2026) : un seul step installe pnpm (version lue dans `devEngines.packageManager`), Node (`runtime: node@24`, l'action ne lisant pas `engines`) et les dépendances (`cache: true`). Son install remplace le `pnpm install --frozen-lockfile` du workflow : `require-lockfile: true` garde l'échec sur lockfile absent
 - **actions/checkout v5 → v6** : credentials ne sont plus écrits inline dans `.git/config`, stockés dans un fichier séparé (impact potentiel sur les outils qui lisent `.git/config` directement)
-- **pnpm/action-setup v3 → v4** : erreur levée si la version `packageManager` du `package.json` contredit celle spécifiée dans l'action (avant : conflit ignoré silencieusement)
 - **Immutable Actions (février 2025)** : nouveaux domaines à autoriser pour les self-hosted runners (`pkg.actions.githubusercontent.com`, `ghcr.io`)
 
 **Nouvelles Features Pertinentes** :
-- **actions/setup-node v6.3.0** : support du champ `devEngines.runtime` dans `package.json` (prioritaire sur `engines.node`)
 - **actions/checkout v6** : support des git worktrees avec `persist-credentials` + `includeIf`, correction du comportement `fetch-tags` sur les tags annotés
-- **pnpm/action-setup v6** : support pnpm v11
 
 **Compatibilité Écosystème** :
-- Node.js 24 : ✅ via `actions/setup-node@v7` (override requis, le défaut du runner n'est pas Node 24)
-- pnpm 12.11 : ✅ via `pnpm/action-setup@v6` (la 6.1.0 supporte jusqu'à pnpm 12) + `cache: 'pnpm'` explicite dans setup-node
+- Node.js 24 : ✅ via `runtime: node@24` de `pnpm/setup` (override requis, le défaut du runner n'est pas Node 24)
+- pnpm 12 : ✅ via `pnpm/setup@v3`, version lue dans `devEngines.packageManager`
 - PostgreSQL 18 : ✅ via service container (image Docker `postgres:18`)
 
 **Points d'attention** :
 - `ubuntu-latest` bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 19 octobre et le 19 novembre 2026) : **épingler explicitement la version**
-- **Node par défaut sur le runner ≠ Node du projet** : sur l'image `20260831.293.1`, le Node système est `22.23.2` et le tool cache contient `22.23.2` et `24.20.0`. Ces valeurs bougent à chaque image runner, ne pas s'y fier : toujours `node-version: '24'` dans `setup-node`
-- **Ne pas pinner `version:` dans `pnpm/action-setup`** : l'action déduit la version depuis `devEngines.packageManager` du `package.json`, seule source de vérité. Un pin en double diverge silencieusement au prochain bump de pnpm
-- **`pnpm/action-setup` a un successeur** : la release 6.0.10 ajoute « docs(README): point users to the successor `pnpm/setup` action » (PR #282). Aucune dépréciation formelle à ce jour, à trancher avant la prochaine montée majeure
+- **Node par défaut sur le runner ≠ Node du projet** : sur l'image `20260831.293.1`, le Node système est `22.23.2` et le tool cache contient `22.23.2` et `24.20.0`. Ces valeurs bougent à chaque image runner, ne pas s'y fier : toujours `runtime: node@24` dans `pnpm/setup`
+- **`just` épinglé par la composite `.github/actions/setup-just`** : elle lit `minimum-version` du `Justfile` et le passe à `extractions/setup-just`, seule source de la version
 - Node.js 20, EOL depuis le 30 avril 2026, est retiré des runners depuis le 23 septembre 2026
 - **Réglage du dépôt** (Settings > Actions > General) : `default_workflow_permissions: read` et approbation de PR par les workflows désactivée depuis le 9 octobre 2026 (auparavant `write` et autorisée). Chaque workflow déclare en plus ses `permissions:`
 
@@ -1115,7 +1109,7 @@ Le fichier réel est la source de vérité, ne pas dupliquer la liste des dépen
   "version": "<bumpé par release-please>", // jamais à la main
   "type": "module",                // requis : Prisma 7 est ESM-only
   "engines": { "node": ">=24.0.0" },
-  "devEngines": {                  // seule déclaration de la version de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/action-setup
+  "devEngines": {                  // seule déclaration de la version de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/setup
     "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" }
   },
   "scripts": {
@@ -1239,7 +1233,7 @@ const nextConfig: NextConfig = {
 }
 
 export default withSentryConfig(withNextIntl(nextConfig), {
-  org: 'tg-ws',
+  org: '<org>',
   project: 'thibaud-geisler-portfolio',
 })
 ```
@@ -1291,12 +1285,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
-      - uses: pnpm/action-setup@<sha> # v6.1.0, pas de `version:` : déduite de `devEngines.packageManager`
-      - uses: actions/setup-node@<sha> # v7.1.0
+      - uses: pnpm/setup@<sha> # v3.1.2, pnpm lu dans `devEngines.packageManager`
         with:
-          node-version: '24'
-          cache: 'pnpm'  # explicite : le cache auto pnpm a été retiré en setup-node v6
-      - run: pnpm install --frozen-lockfile
+          runtime: node@24
+          cache: true
+          require-lockfile: true  # l'install de l'action remplace `pnpm install --frozen-lockfile`
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test

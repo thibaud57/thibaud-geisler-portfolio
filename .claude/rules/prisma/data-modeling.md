@@ -3,13 +3,12 @@ paths:
   - "prisma/schema.prisma"
 ---
 
-# Prisma 7 — Modélisation des données
+# Prisma 7 : modélisation des données
 
 ## À faire
 - Utiliser **`@default(uuid(7))`** pour les IDs : UUID v7 est ordonné temporellement, meilleure localité B-tree que cuid/uuid v4
-- Préférer **`TEXT`** à `VARCHAR(n)` et **`TIMESTAMPTZ`** à `TIMESTAMP`
-- **Contenu bilingue** : pour un champ texte éditorial traduisible (titre, description, markdown long, nom de tag affiché), utiliser des **colonnes jumelées `<champ>Fr` + `<champ>En`** (`titleFr`/`titleEn`, `caseStudyMarkdownFr`/`caseStudyMarkdownEn`), et passer le résultat Prisma par `localizeProject` / `localizeTag` (`src/i18n/localize-content.ts`)
-- Imbriquer les transactions quand il le faut : leurs rollbacks passent par des savepoints depuis Prisma 7.5.0
+- Annoter les dates par **`@db.Timestamptz`** : un `DateTime` seul donne un `TIMESTAMP` sans fuseau
+- **Contenu bilingue** : pour un champ texte éditorial traduisible (titre, description, markdown long, nom de tag affiché), utiliser des **colonnes jumelées `<champ>Fr` + `<champ>En`** (`titleFr`/`titleEn`, `caseStudyMarkdownFr`/`caseStudyMarkdownEn`), puis passer le résultat Prisma par `localizeProject` / `localizeTag` (`src/i18n/localize-content.ts`)
 - Pour pgvector (post-MVP) : `Unsupported("vector")` dans le schéma, migration SQL manuelle (`CREATE EXTENSION IF NOT EXISTS vector`) et TypedSQL pour les requêtes
 
 ## À éviter
@@ -17,6 +16,7 @@ paths:
 - Attendre un support natif de pgvector : partiel en v7, sans GA, passer par `Unsupported`
 
 ## Gotchas
+- Les transactions imbriquées s'annulent par savepoints depuis Prisma 7.5.0
 - pgvector 0.8.2 + PostgreSQL 18 : compatible, image Docker `pgvector/pgvector:pg18`
 - CVE-2026-3172 : buffer overflow dans les index HNSW parallèles, corrigé en pgvector 0.8.2
 
