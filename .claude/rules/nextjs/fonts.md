@@ -7,16 +7,12 @@ paths:
   - "src/app/globals.css"
 ---
 
-# Next.js — Polices (next/font)
+# Next.js : polices (next/font)
 
 ## À faire
 - Charger les polices par `next/font/google` ou `next/font/local` avec `variable: '--font-xxx'` et `display: 'swap'` : self-hosting, pas de FOIT
 - Mapper les variables CSS dans `@theme inline` de `globals.css` pour Tailwind v4
-- Charger les polices du projet dans `src/lib/fonts.ts`, exposées par `fontVariables` et posées sur le `<html>` (DESIGN.md) :
-  - **`Geist Sans`** (`--font-sans`) : corps de texte, UI, navigation, boutons, et titres H2-H6 hors exceptions de la landing
-  - **`Geist Mono`** (`--font-mono`) : code, snippets, éléments de stack technique
-  - **`Sansation`** (`next/font/local` sur `src/lib/seo/fonts/Sansation-Bold.woff2`, `--font-display`, classe `font-display`) : titres hero H1, logo, et selon DESIGN.md les titres de cards marketing et les H2 des sections de la landing
-- Respecter la scale typographique de DESIGN.md, appliquée globalement par `@layer base` (voir `tailwind/conventions.md`)
+- Déclarer les polices de [DESIGN.md § Typographie](../../../docs/DESIGN.md) dans `src/lib/fonts.ts`, exposées par `fontVariables` et posées sur le `<html>` : rôles, classes et scale vivent dans DESIGN.md (scale appliquée par `@layer base`, voir `tailwind/conventions.md`)
 - Vérifier qu'une police Google figure dans le jeu de métriques de Next avant de l'adopter, sinon passer par `next/font/local` (cf. Gotchas)
 
 ## À éviter
@@ -24,7 +20,7 @@ paths:
 - Poser `preload: false` sur une police (cf. Gotchas)
 
 ## Gotchas
-- **`adjustFontFallback` échoue en silence sur une police Google absente du jeu de métriques** (`next/dist/server/capsize-font-metrics.json`, ~1750 entrées figées) : un `Log.error` au build, aucune `@font-face` de fallback, aucun `size-adjust`, et le swap décale la mise en page. Sansation était dans ce cas (CLS desktop 0,28 sur les titres longs)
+- **`adjustFontFallback` échoue en silence sur une police Google absente du jeu de métriques** (`next/dist/server/capsize-font-metrics.json`) : un `Log.error` au build, aucune `@font-face` de fallback ni `size-adjust`, puis le swap décale la mise en page. Sansation était dans ce cas (CLS desktop 0,28 sur les titres longs)
   - Vérifier : `node -e "console.log('<nom-minuscules>' in require('next/dist/server/capsize-font-metrics.json'))"`
   - Si absente → `next/font/local`, qui mesure le fichier réel avec `fontkit`
   - Contrôler : le CSS de build porte `font-family:<police>,<police> Fallback` et une `@font-face` avec `size-adjust`
@@ -39,6 +35,6 @@ const display = localFont({ src: './fonts/Display-Bold.woff2', variable: '--font
 // ✅ ImageResponse : police lue sur disque, en TTF
 const font = await readFile(join(process.cwd(), 'src/lib/seo/fonts/Display-Bold.ttf'))
 
-// ❌ next/font dans ImageResponse, et preload: false
+// ❌ preload: false
 const mono = Geist_Mono({ subsets: ['latin'], preload: false })
 ```

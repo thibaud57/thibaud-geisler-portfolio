@@ -31,7 +31,7 @@ Migration Prisma ajoutant 4 modèles (`Address`, `LegalEntity`, `Publisher`, `Da
 
 ### État livré
 
-À la fin de ce sub-project, on peut : (a) lancer `pnpm db:migrate` et `pnpm db:seed`, observer en BDD `Address × 3`, `LegalEntity × 3`, `Publisher × 1`, `DataProcessing × 3` (sous-traitants : `ionos-hosting`, `ionos-smtp`, `calendly-embedded`) ; (b) appeler `await getPublisher()` depuis un Server Component et obtenir l'objet typé contenant `siret = "88041912200036"` + `address.street = "11 rue Gouvy"` + `publisher.siren = "880419122"` ; (c) relancer `pnpm db:seed` une seconde fois sans duplication ni erreur (upsert idempotent garanti par `slug @unique`) ; (d) `pnpm test src/server/queries/legal.integration.test.ts` retourne vert sur tous les scénarios listés en Tests.
+À la fin de ce sub-project, on peut : (a) lancer `pnpm db:migrate` et `pnpm db:seed`, observer en BDD `Address × 3`, `LegalEntity × 3`, `Publisher × 1`, `DataProcessing × 3` (sous-traitants : `ionos-hosting`, `ionos-smtp`, `calendly-embedded`) ; (b) appeler `await getPublisher()` depuis un Server Component et obtenir l'objet typé contenant `siret = "12345678900012"` + `address.street = "1 rue Exemple"` + `publisher.siren = "123456789"` ; (c) relancer `pnpm db:seed` une seconde fois sans duplication ni erreur (upsert idempotent garanti par `slug @unique`) ; (d) `pnpm test src/server/queries/legal.integration.test.ts` retourne vert sur tous les scénarios listés en Tests.
 
 ## Dependencies
 
@@ -94,9 +94,9 @@ Aucune. Ce sub-project est autoporté. Il introduit son propre schéma sans dép
 **GIVEN** une DB fraîchement migrée et vide
 **WHEN** je lance `pnpm db:seed`
 **THEN** le script termine sans erreur et logue 3 entrées `Address`, 3 entrées `LegalEntity` (`thibaud`, `ionos-sarl`, `calendly-inc`), 1 entrée `Publisher`, 3 entrées `DataProcessing` (`ionos-hosting`, `ionos-smtp`, `calendly-embedded`)
-**AND** la requête SQL `SELECT siret FROM "LegalEntity" WHERE slug = 'thibaud'` retourne `'88041912200036'`
-**AND** la requête `SELECT siren FROM "Publisher"` retourne `'880419122'`
-**AND** la requête `SELECT street, "postalCode", city FROM "Address" JOIN "LegalEntity" ON "Address".id = "LegalEntity"."addressId" WHERE "LegalEntity".slug = 'thibaud'` retourne `('11 rue Gouvy', '57000', 'Metz')`
+**AND** la requête SQL `SELECT siret FROM "LegalEntity" WHERE slug = 'thibaud'` retourne `'12345678900012'`
+**AND** la requête `SELECT siren FROM "Publisher"` retourne `'123456789'`
+**AND** la requête `SELECT street, "postalCode", city FROM "Address" JOIN "LegalEntity" ON "Address".id = "LegalEntity"."addressId" WHERE "LegalEntity".slug = 'thibaud'` retourne `('1 rue Exemple', '00000', 'Exempleville')`
 **AND** la requête `SELECT count(*) FROM "DataProcessing" WHERE "legalEntityId" = (SELECT id FROM "LegalEntity" WHERE slug = 'ionos-sarl')` retourne `2` (HOSTING + EMAIL_PROVIDER)
 
 ### Scénario 3 : Seed idempotent (run 2x)
@@ -113,10 +113,10 @@ Aucune. Ce sub-project est autoporté. Il introduit son propre schéma sans dép
 **WHEN** un Server Component appelle `await getPublisher()`
 **THEN** le retour est un objet typé `LegalEntity & { address: Address, publisher: Publisher }` (publisher non-nullable grâce au `include`)
 **AND** `result.slug === 'thibaud'`
-**AND** `result.siret === '88041912200036'`
+**AND** `result.siret === '12345678900012'`
 **AND** `result.legalStatusKey === 'entrepreneurIndividuel'`
-**AND** `result.address.street === '11 rue Gouvy'`
-**AND** `result.publisher.siren === '880419122'`
+**AND** `result.address.street === '1 rue Exemple'`
+**AND** `result.publisher.siren === '123456789'`
 **AND** `result.publisher.apeCode === '6201Z'`
 **AND** `result.publisher.registrationType === 'RNE'`
 **AND** `result.publisher.vatRegime === 'FRANCHISE'`
@@ -163,7 +163,7 @@ Aucune. Ce sub-project est autoporté. Il introduit son propre schéma sans dép
 
 `src/server/queries/legal.integration.test.ts` :
 
-- **`getPublisher()` retourne l'éditeur seedé avec relations** : seed un `LegalEntity` `thibaud` + `Address` Metz + `Publisher` Thibaud Pierre Geisler, appelle `getPublisher()`, attend `result.siret = '88041912200036'`, `result.address.street = '11 rue Gouvy'`, `result.publisher.siren = '880419122'`
+- **`getPublisher()` retourne l'éditeur seedé avec relations** : seed un `LegalEntity` `thibaud` + `Address` Exempleville + `Publisher` Thibaud Pierre Geisler, appelle `getPublisher()`, attend `result.siret = '12345678900012'`, `result.address.street = '1 rue Exemple'`, `result.publisher.siren = '123456789'`
 - **`getPublisher()` lance `NotFoundError` si pas de publisher seedé** : DB vide, appelle `getPublisher()`, attend `expect(...).rejects.toThrow()` (`findUniqueOrThrow` lance si slug inexistant)
 - **`getDataProcessors()` retourne array vide si aucun seedé** : seed uniquement le publisher, appelle `getDataProcessors()`, attend `result.length === 0`
 - **`getDataProcessors()` retourne tous les processors triés par displayOrder** : seed 3 DataProcessing avec `displayOrder` 0, 1, 2 mélangés, appelle, attend `result.map(p => p.slug)` dans l'ordre 0/1/2

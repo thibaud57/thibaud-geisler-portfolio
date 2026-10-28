@@ -15,7 +15,7 @@ date: "2026-09-03"
 
 Installer `@sentry/nextjs`, poser les quatre fichiers d'instrumentation, brancher les deux error boundaries existantes, connecter le logger Pino, étendre la CSP et uploader les source maps depuis la CI. Le périmètre couvre la **capture d'erreurs** et le **tracing côté serveur uniquement** : le tracing navigateur reste désactivé et le Session Replay n'est pas installé.
 
-Sentry se consulte sur son dashboard cloud : aucun écran de restitution n'est construit ici. Le projet Sentry lui-même est créé dans l'organisation existante `tg-ws`, qui est déjà en région européenne.
+Sentry se consulte sur son dashboard cloud : aucun écran de restitution n'est construit ici. Le projet Sentry lui-même est créé dans l'organisation existante `<org>`, qui est déjà en région européenne.
 
 ### État livré
 
@@ -48,7 +48,7 @@ Aucune : ce sub-project est autoporté. Il précède la fondation admin pour que
 
 ## Architecture approach
 
-**Création du projet en CLI, instrumentation à la main.** Le CLI `sentry` est déjà installé et authentifié sur l'organisation `tg-ws`. Il crée le projet, tandis que les fichiers sont écrits manuellement. Le wizard `@sentry/wizard` est écarté pour deux raisons : c'est un TUI qui exige une saisie interactive, et il modifie `next.config.ts` sans connaître les wrappers `withBundleAnalyzer(withNextIntl(...))` déjà en place, ce qui imposerait de repasser derrière lui.
+**Création du projet en CLI, instrumentation à la main.** Le CLI `sentry` est déjà installé et authentifié sur l'organisation `<org>`. Il crée le projet, tandis que les fichiers sont écrits manuellement. Le wizard `@sentry/wizard` est écarté pour deux raisons : c'est un TUI qui exige une saisie interactive, et il modifie `next.config.ts` sans connaître les wrappers `withBundleAnalyzer(withNextIntl(...))` déjà en place, ce qui imposerait de repasser derrière lui.
 
 **Quatre fichiers d'instrumentation**, selon la convention actuelle du SDK décrite dans `.claude/rules/sentry/instrumentation.md` : `instrumentation.ts` porte `register()` qui importe la config selon `process.env.NEXT_RUNTIME`, et exporte `onRequestError` qui capte les erreurs des Server Components et du proxy. Cet export **existe déjà** et émet l'event Pino `request:unhandled_error`, documenté en PRODUCTION.md § Logging et exploité par sa procédure d'incident : la capture Sentry s'y ajoute, elle ne s'y substitue pas.
 
@@ -62,7 +62,7 @@ Aucune : ce sub-project est autoporté. Il précède la fondation admin pour que
 
 **Pas de `tunnelRoute`.** Cette option relaie les événements par une route de l'application pour contourner les bloqueurs de publicité. Elle est écartée parce qu'elle entre en conflit direct avec le tracing qu'on vient d'activer : les requêtes vers la route de tunnel et vers les URLs d'ingestion produisent des spans qui polluent la mesure. S'y ajoutent une charge supplémentaire sur un VPS unique qui porte déjà l'application et PostgreSQL, une route à exclure du matcher de `src/proxy.ts`, et un gain que Sentry lui-même ne chiffre nulle part. L'option reste ajoutable plus tard à faible coût si une perte d'événements clients est constatée.
 
-**CSP** : `connect-src` gagne `https://o4511826481774592.ingest.de.sentry.io`, host d'ingestion de l'organisation `tg-ws`. Le segment de région est `de` et non `eu`, une organisation européenne ingérant sur le datacenter de Francfort.
+**CSP** : `connect-src` gagne `https://o<org-id>.ingest.de.sentry.io`, host d'ingestion de l'organisation `<org>`. Le segment de région est `de` et non `eu`, une organisation européenne ingérant sur le datacenter de Francfort.
 
 **Secret de build cloisonné.** `SENTRY_AUTH_TOKEN` transite par un secret BuildKit monté sur la seule commande de build, donc n'apparaît dans aucune couche de l'image publiée sur GHCR. `DATABASE_URL` conserve son passage par `build-args` : le migrer serait un changement de build sans rapport avec Sentry, à traiter séparément. Le Dockerfile porte donc deux mécanismes, ce qui est assumé et documenté.
 

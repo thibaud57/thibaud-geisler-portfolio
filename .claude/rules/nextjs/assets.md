@@ -7,7 +7,7 @@ paths:
   - "src/lib/r2.ts"
 ---
 
-# Next.js — Assets dynamiques (ADR-011)
+# Next.js : assets dynamiques (ADR-011)
 
 ## À faire
 - Servir tous les assets publics (images de projets, captures, CV, branding) via la route catch-all `GET /api/assets/[...path]` qui lit le bucket Cloudflare R2 `portfolio-assets` (ou `portfolio-assets-dev` en développement) via `GetObjectCommand` du SDK S3
@@ -15,7 +15,7 @@ paths:
 - **Une seule exception, le logo d'entreprise** : il reste dans `portfolio-admin` (donnée du CRM) mais s'affiche sur la page publique des projets de l'entreprise, donc `/api/assets/[...path]` sert les clés `freelance/crm/entreprises/**` depuis le bucket admin, sans session et sans cache (`isCompanyLogoKey`), **et seulement si l'entreprise a un projet publié** : le logo d'un prospect du CRM répond 404 sans lire R2, quel que soit le slug deviné. Toute autre clé `freelance/` reste derrière `/admin/api/assets` (`isGuardedAssetKey`), qui décide de l'URL publique (`buildAssetUrl`). L'espace admin, lui, lit tout le bucket admin par la route gardée (`AssetImage` : `buildGuardedAssetUrl` + `unoptimized`), donc aussi le logo d'une entreprise pas encore en ligne
 - **Organisation `portfolio-assets`** : `branding/<fichier>` (2 segments, logo, portrait), `documents/cv/<fichier>` (3 segments, CV, un fichier par locale `cv-thibaud-geisler-<locale>.pdf`), `projets/{client,personal}/<slug-projet>/<fichier>` (4 segments, couverture, captures, vidéos du projet, sous **son propre** slug, `Project.slug`, plus le slug de l'entreprise pour un projet client)
 - **L'emplacement choisi au dépôt détermine le bucket, jamais l'inverse** : le dossier sélectionné (`branding`, `documents/cv`, `projets/{client,personal}`, `freelance/crm/entreprises`) fixe à lui seul la destination, aucun autre paramètre ne l'influence
-- Valider chaque segment du `path` via un schéma Zod strict (regex `^[a-z0-9][a-z0-9._-]*$` par segment, insensible à la casse) : elle rejette tout séparateur interne (`/`, `\`) et, en imposant un premier caractère alphanumérique, `.` et `..`. Le **dernier segment** porte une extension whitelist (png/jpg/jpeg/webp/svg/pdf). Profondeur max 5 segments, exactement la plus profonde des structures valides (`freelance/crm/entreprises/<slug>/<fichier>`), clé entière limitée à 1 024 caractères : au-delà, R2 répond `InvalidObjectName`, que la route renverrait en 500 au lieu de 400. Le chemin validé devient directement la clé d'objet R2
+- Valider chaque segment du `path` via un schéma Zod strict (regex `^[a-z0-9][a-z0-9._-]*$` par segment, insensible à la casse) : elle rejette tout séparateur interne (`/`, `\`) ainsi que `.` et `..`, son premier caractère devant être alphanumérique. Le **dernier segment** porte une extension whitelist (png/jpg/jpeg/webp/svg/pdf). Profondeur max 5 segments, exactement la plus profonde des structures valides (`freelance/crm/entreprises/<slug>/<fichier>`), clé entière limitée à 1 024 caractères : au-delà, R2 répond `InvalidObjectName`, que la route renverrait en 500 au lieu de 400. Le chemin validé devient directement la clé d'objet R2
 - Relayer le corps de la réponse en flux (`object.Body.transformToWebStream()`) plutôt que de le charger en mémoire : le CV en PDF étant le plus lourd des assets, cela évite de le tamponner entièrement à chaque requête
 - Retourner `Cache-Control` conditionnel : `public, max-age=31536000, immutable` en production (assets immutables, convention : changer le filename pour invalider, pas le cache) et `no-cache, no-store, must-revalidate` en dev (sinon Chrome garde 1 an le premier fichier servi localement, pénible au moindre remplacement d'asset)
 - Retourner `NextResponse.json({ error }, { status: 400 })` pour path invalide (avant tout appel R2), `{ status: 404 }` pour clé absente (distinction HTTP standard, pas de `security through obscurity` sur des assets publics par nature)
@@ -40,61 +40,34 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ Helper pur : Zod whitelist par segment, la clé validée sert directement d'objet R2
-import 'server-only'
-import path from 'node:path'
-import { z } from 'zod'
-
-export const CONTENT_TYPE_MAP: Record<string, string> = {
-  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-  webp: 'image/webp', svg: 'image/svg+xml', pdf: 'application/pdf',
-}
-
-const ALLOWED = Object.keys(CONTENT_TYPE_MAP)
+// ✅ Whitelist par segment, extension dérivée de la table des types
 const SEGMENT = /^[a-z0-9][a-z0-9._-]*$/i
+const ALLOWED = Object.keys(CONTENT_TYPE_MAP)
 
-export const AssetPathSchema = z
-  .array(z.string().regex(SEGMENT))
-  .min(1)
-  .max(5)
-  .refine((segs) => {
-    const ext = path.extname(segs.at(-1) ?? '').slice(1).toLowerCase()
-    return ALLOWED.includes(ext)
-  }, { message: 'Extension non autorisée' })
+export const AssetPathSchema = z.array(z.string().regex(SEGMENT)).min(1).max(5)
+  .refine((segs) => ALLOWED.includes(extensionOf(segs.at(-1))), { message: 'Extension non autorisée' })
 ```
 
 ```typescript
 // ✅ Client S3 pour R2 : région "auto", endpoint .eu, checksum désactivé
-import { S3Client } from '@aws-sdk/client-s3'
-
 export const r2 = new S3Client({
   region: 'auto',
   endpoint: `https://${env.R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`,
-  credentials: { accessKeyId: env.R2_ASSETS_ACCESS_KEY_ID, secretAccessKey: env.R2_ASSETS_SECRET_ACCESS_KEY },
+  credentials: { accessKeyId, secretAccessKey },
   requestChecksumCalculation: 'WHEN_REQUIRED',
 })
 ```
 
 ```typescript
-// ✅ Route handler catch-all : validate → GetObject → stream → Response
-export async function GET(_req: Request, ctx: RouteContext): Promise<Response> {
-  const { path: raw } = await ctx.params
-  const v = validateAssetPath(raw)
-  if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 })
-  try {
-    const object = await r2.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: v.joined }))
-    return new Response(object.Body?.transformToWebStream(), {
-      status: 200,
-      headers: {
-        'Content-Type': getContentType(v.joined),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    })
-  } catch (err) {
-    if (err instanceof NoSuchKey) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-    throw err
-  }
+// ✅ Clé absente : 404 sur NoSuchKey, toute autre erreur relancée
+try {
+  const object = await r2.send(new GetObjectCommand({ Bucket, Key }))
+  return new Response(object.Body?.transformToWebStream(), { headers })
+} catch (err) {
+  if (err instanceof NoSuchKey) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  throw err
 }
+
+// ❌ Comparaison par nom : toute erreur portant ce nom devient un 404
+if ((err as Error).name === 'NoSuchKey') return notFoundResponse()
 ```

@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/server/actions/contact*.ts"
+  - "src/server/actions/contact.ts"
+  - "src/server/actions/contact.test.ts"
 ---
 
-# nodemailer — Envoi depuis une Server Action
+# nodemailer : envoi depuis une Server Action
 
 ## À faire
-- Valider les entrées avec **Zod** avant `sendMail()` : toute Server Action exportée est un endpoint public
 - Utiliser **`replyTo: <email-utilisateur>`** pour répondre directement à l'expéditeur du formulaire
 - Envoyer depuis **`MAIL_FROM`**, une adresse autorisée par le relais SMTP : toute autre est rejetée côté serveur
 - Toujours **`await transporter.sendMail()`** : sinon l'action retourne avant l'envoi
@@ -14,7 +14,6 @@ paths:
 - **Mocker** le transporter dans les tests : jamais d'envoi réel, ni en CI ni en dev
 
 ## À éviter
-- Logger le **contenu** d'un message de contact, même en `debug` : données personnelles
 - Committer les credentials SMTP ou un fichier de configuration qui les porte
 
 ## Gotchas

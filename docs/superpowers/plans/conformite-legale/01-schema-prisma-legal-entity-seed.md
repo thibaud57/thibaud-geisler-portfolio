@@ -440,7 +440,7 @@ export const legalEntities: LegalEntityInput[] = [
     slug: 'thibaud',
     name: 'Thibaud Pierre Geisler',
     legalStatusKey: 'entrepreneurIndividuel',
-    siret: '88041912200036',
+    siret: '12345678900012',
     vatNumber: null,
     rcsCity: null,
     rcsNumber: null,
@@ -448,9 +448,9 @@ export const legalEntities: LegalEntityInput[] = [
     capitalAmount: null,
     capitalCurrency: null,
     address: {
-      street: '11 rue Gouvy',
-      postalCode: '57000',
-      city: 'Metz',
+      street: '1 rue Exemple',
+      postalCode: '00000',
+      city: 'Exempleville',
       country: 'France',
     },
   },
@@ -496,7 +496,7 @@ export const legalEntities: LegalEntityInput[] = [
 
 export const publisher: PublisherInput = {
   legalEntitySlug: 'thibaud',
-  siren: '880419122',
+  siren: '123456789',
   apeCode: '6201Z',
   registrationType: 'RNE',
   vatRegime: 'FRANCHISE',
@@ -754,18 +754,18 @@ async function seedLegalForTest(options: SeedLegalOptions = {}) {
         slug: 'thibaud',
         name: 'Thibaud Pierre Geisler',
         legalStatusKey: 'entrepreneurIndividuel',
-        siret: '88041912200036',
+        siret: '12345678900012',
         address: {
           create: {
-            street: '11 rue Gouvy',
-            postalCode: '57000',
-            city: 'Metz',
+            street: '1 rue Exemple',
+            postalCode: '00000',
+            city: 'Exempleville',
             country: 'France',
           },
         },
         publisher: {
           create: {
-            siren: '880419122',
+            siren: '123456789',
             apeCode: '6201Z',
             registrationType: 'RNE',
             vatRegime: 'FRANCHISE',
@@ -876,12 +876,12 @@ describe('getPublisher', () => {
     const result = await getPublisher()
 
     expect(result.slug).toBe('thibaud')
-    expect(result.siret).toBe('88041912200036')
+    expect(result.siret).toBe('12345678900012')
     expect(result.legalStatusKey).toBe('entrepreneurIndividuel')
-    expect(result.address.street).toBe('11 rue Gouvy')
-    expect(result.address.city).toBe('Metz')
+    expect(result.address.street).toBe('1 rue Exemple')
+    expect(result.address.city).toBe('Exempleville')
     expect(result.publisher).not.toBeNull()
-    expect(result.publisher?.siren).toBe('880419122')
+    expect(result.publisher?.siren).toBe('123456789')
     expect(result.publisher?.apeCode).toBe('6201Z')
     expect(result.publisher?.registrationType).toBe('RNE')
     expect(result.publisher?.vatRegime).toBe('FRANCHISE')
@@ -1013,7 +1013,7 @@ describe('Idempotence et cascade', () => {
     await prisma.legalEntity.delete({ where: { slug: 'ionos-sarl' } })
 
     expect(await prisma.legalEntity.count()).toBe(2) // thibaud + calendly-inc
-    expect(await prisma.address.count()).toBe(2) // adresses Metz + Atlanta
+    expect(await prisma.address.count()).toBe(2) // adresses Exempleville + Atlanta
     expect(await prisma.dataProcessing.count()).toBe(1) // calendly-embedded restant
     expect(await prisma.legalEntity.findUnique({ where: { slug: 'ionos-sarl' } })).toBeNull()
   })
@@ -1146,7 +1146,7 @@ Expected: ouverture de Prisma Studio, vérifier la présence de :
 - 3 lignes dans `LegalEntity` (`thibaud`, `ionos-sarl`, `calendly-inc`)
 - 1 ligne dans `Publisher` (rattachée à `thibaud`)
 - 3 lignes dans `DataProcessing` (`ionos-hosting`, `calendly-embedded`, `ionos-smtp`)
-- 3 lignes dans `Address` (Metz, Sarreguemines, Atlanta)
+- 3 lignes dans `Address` (Exempleville, Sarreguemines, Atlanta)
 - Les FK `addressId` et `legalEntityId` correctement résolues.
 
 - [ ] **Step 9.6: Vérifier le build**

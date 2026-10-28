@@ -4,21 +4,19 @@ paths:
   - "src/app/**/{page,layout}.tsx"
 ---
 
-# Next.js — Data Fetching (Server Components)
+# Next.js : data fetching (Server Components)
 
 ## À faire
-- Faire les queries directement dans les Server Components `async`, sans couche API intermédiaire
+- Lire les données dans les Server Components `async` par les fonctions de `src/server/queries/`, sans route API intermédiaire
 - Lire la base du site public **sous `<Suspense>`, après `await io()`**, en appelant une query `'use cache'` + `cacheLife()` + `cacheTag()` de `src/server/queries/` : le composant sort du prerender, la query se met en cache à la requête ([ADR-022](../../../docs/adrs/022-rendu-public-sans-donnee-au-build.md))
 - **Exception : les lectures de l'espace admin** (`*ForAdmin` et assimilées) restent sans `'use cache'`, sous le `<Suspense>` de leur page, gardée par `getCurrentUser()` : l'administration doit relire la base juste après ses propres mutations
-- Paralléliser les lectures indépendantes par `Promise.all()`, jamais deux `await` indépendants à la suite (waterfall)
-- `await cookies()`, `await headers()`, `await draftMode()`, `await searchParams`, `await params` : APIs async, hard error si sync en Next 16
 - Utiliser `after(callback)` de `next/server` pour le logging ou l'analytics non bloquants, en lisant `cookies()`/`headers()` **avant** : ils lèvent une erreur dans le callback
 - Ouvrir tout module qui accède à Prisma par `import 'server-only'`
 
 ## À éviter
 - Rendre une query `'use cache'` sans `io()` préalable dans le site public : le composant entrerait dans le shell statique et lirait la base au build
 - Placer `await io()` dans la fonction `'use cache'` : il y est sans effet. Il suspend le composant appelant au prerender, c'est donc là qu'il se pose
-- Envelopper une query Prisma par `cache()` de React : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions sans IO appelées plusieurs fois dans un rendu, et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()`
+- Envelopper une query Prisma par `cache()` de React : redondant avec `'use cache'` (scopes isolés). Réserver `cache()` aux fonctions sans IO appelées plusieurs fois dans un rendu et à la lecture de session par requête (`getCurrentUser()`, cf. `nextjs/auth.md`), qui lit `headers()`
 - Compter sur le cache automatique pour les queries Prisma : elles ne participent pas au cache `fetch()`
 
 ## Gotchas
