@@ -12,9 +12,9 @@
 
 ## Global Constraints
 
-- Organisation Sentry : `tg-ws`, région européenne (`https://de.sentry.io`), org id `4511826481774592`. Le CLI `sentry` est déjà installé et authentifié.
+- Organisation Sentry : `<org>`, région européenne (`https://de.sentry.io`), org id `<org-id>`. Le CLI `sentry` est déjà installé et authentifié.
 - Projet à créer : `thibaud-geisler-portfolio`, plateforme `javascript-nextjs`. Ne pas toucher aux projets existants.
-- Host d'ingestion : `o4511826481774592.ingest.de.sentry.io`. Le segment de région est **`de`**, pas `eu`.
+- Host d'ingestion : `o<org-id>.ingest.de.sentry.io`. Le segment de région est **`de`**, pas `eu`.
 - `withSentryConfig` doit être le wrapper **le plus externe** : `withSentryConfig(withBundleAnalyzer(withNextIntl(nextConfig)), options)`.
 - `NEXT_PUBLIC_SENTRY_DSN` est **optionnelle** dans `src/env.ts`, qui est fail-fast, et doit figurer dans les `build-args` du workflow puisqu'elle est inlinée dans le bundle au build.
 - Les trois fichiers de configuration lisent le DSN **via `env`**, jamais `process.env` : c'est la règle de PRODUCTION.md § Gestion des Secrets, et la déclarer dans `src/env.ts` sans l'y lire laisserait la validation Zod inopérante. Aucune garde conditionnelle autour de `Sentry.init` : un DSN absent désactive le SDK de lui-même, c'est le comportement documenté, et l'envelopper dans un `if` n'ajouterait que du bruit.
@@ -34,19 +34,19 @@
 **Files:** aucun fichier du dépôt.
 
 **Interfaces:**
-- Consomme : le CLI `sentry` déjà authentifié sur l'org `tg-ws`.
+- Consomme : le CLI `sentry` déjà authentifié sur l'org `<org>`.
 - Produit : le **DSN** du nouveau projet, consommé par les Tasks 3 et 6, et un **org auth token** consommé par la Task 6.
 
 - [ ] **Step 1: Créer le projet**
 
 ```bash
-sentry project create tg-ws/thibaud-geisler-portfolio:javascript-nextjs
+sentry project create <org>/thibaud-geisler-portfolio:javascript-nextjs
 ```
 
 - [ ] **Step 2: Vérifier la création**
 
 ```bash
-sentry project list tg-ws
+sentry project list <org>
 ```
 
 Attendu : `thibaud-geisler-portfolio` figure parmi les projets listés.
@@ -54,7 +54,7 @@ Attendu : `thibaud-geisler-portfolio` figure parmi les projets listés.
 - [ ] **Step 3: Relever le DSN**
 
 ```bash
-sentry project view tg-ws/thibaud-geisler-portfolio --json | grep -oE 'https://[a-f0-9]+@o[0-9]+\.ingest\.de\.sentry\.io/[0-9]+'
+sentry project view <org>/thibaud-geisler-portfolio --json | grep -oE 'https://[a-f0-9]+@o[0-9]+\.ingest\.de\.sentry\.io/[0-9]+'
 ```
 
 Le DSN est semi-public : il est inliné dans le bundle navigateur. Il n'a pas à être traité comme un secret, mais il n'a pas non plus à être commité en dur.
@@ -320,7 +320,7 @@ Expected: aucune erreur.
 Dans le tableau `cspDirectives`, remplacer la ligne `connect-src` par :
 
 ```typescript
-  ['connect-src', "'self' https://*.calendly.com https://o4511826481774592.ingest.de.sentry.io"],
+  ['connect-src', "'self' https://*.calendly.com https://o<org-id>.ingest.de.sentry.io"],
 ```
 
 Sans cette directive, le navigateur bloque les envois et rien ne remonte. Le symptôme est une absence d'erreurs clientes, qui ressemble à un site en bonne santé.
@@ -333,7 +333,7 @@ import { withSentryConfig } from '@sentry/nextjs'
 export default withSentryConfig(
   withBundleAnalyzer(withNextIntl(nextConfig)),
   {
-    org: 'tg-ws',
+    org: '<org>',
     project: 'thibaud-geisler-portfolio',
     authToken: process.env.SENTRY_AUTH_TOKEN,
     silent: !process.env.CI,
@@ -497,7 +497,7 @@ Expected: une issue apparaît, et **aucune violation de CSP** n'est signalée da
 Soumettre le formulaire de contact, puis :
 
 ```bash
-sentry trace list tg-ws/thibaud-geisler-portfolio --limit 5 --period 1h
+sentry trace list <org>/thibaud-geisler-portfolio --limit 5 --period 1h
 ```
 
 Expected: au moins une transaction couvrant la Server Action, avec sa durée. Comparer à la cible de 3 s hors SMTP fixée par `docs/PRODUCTION.md`.
@@ -519,7 +519,7 @@ Expected: ni adresse email, ni adresse IP en clair. C'est le `beforeSend` de la 
 Déclencher successivement un `logger.debug()`, un `logger.warn()` et un `logger.error()` depuis du code serveur, puis :
 
 ```bash
-sentry log list tg-ws/thibaud-geisler-portfolio --limit 10
+sentry log list <org>/thibaud-geisler-portfolio --limit 10
 ```
 
 Expected, conformément à `log.levels` et `error.levels` :

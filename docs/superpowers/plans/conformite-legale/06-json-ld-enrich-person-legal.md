@@ -42,11 +42,11 @@ Insérer le code suivant juste avant le `})` de fermeture du `describe('buildPro
     const result = buildProfilePagePerson(
       buildProfileInput({
         legal: {
-          siret: '88041912200036',
+          siret: '12345678900012',
           address: {
-            street: '11 rue Gouvy',
-            postalCode: '57000',
-            city: 'Metz',
+            street: '1 rue Exemple',
+            postalCode: '00000',
+            city: 'Exempleville',
             country: 'France',
           },
         },
@@ -54,16 +54,16 @@ Insérer le code suivant juste avant le `})` de fermeture du `describe('buildPro
     )
     expect(result.mainEntity.address).toEqual({
       '@type': 'PostalAddress',
-      streetAddress: '11 rue Gouvy',
-      postalCode: '57000',
-      addressLocality: 'Metz',
+      streetAddress: '1 rue Exemple',
+      postalCode: '00000',
+      addressLocality: 'Exempleville',
       addressCountry: 'France',
     })
-    expect(result.mainEntity.taxID).toBe('88041912200036')
+    expect(result.mainEntity.taxID).toBe('12345678900012')
     expect(result.mainEntity.identifier).toEqual({
       '@type': 'PropertyValue',
       propertyID: 'SIRET',
-      value: '88041912200036',
+      value: '12345678900012',
     })
   })
 
@@ -78,11 +78,11 @@ Insérer le code suivant juste avant le `})` de fermeture du `describe('buildPro
     const result = buildProfilePagePerson(
       buildProfileInput({
         legal: {
-          siret: '88041912200036',
+          siret: '12345678900012',
           address: {
-            street: '11 rue Gouvy',
-            postalCode: '57000',
-            city: 'Metz',
+            street: '1 rue Exemple',
+            postalCode: '00000',
+            city: 'Exempleville',
             country: 'France',
           },
         },
@@ -409,7 +409,7 @@ Ajouter une 10e propriété `legal` conditionnelle juste avant la fermeture `})`
   })
 ```
 
-Note : le ternaire `publisher.siret ? { ... } : undefined` gère le cas hypothétique où `publisher.siret` serait `null` (DB non seedée en dev local). Pour MVP avec DB seedée correctement par sub 1, le SIRET est toujours `'88041912200036'`, donc le ternaire évalue toujours la branche `then`. Mais le compilateur Prisma type `siret` comme `String | null` (champ nullable au schema), d'où le ternaire défensif.
+Note : le ternaire `publisher.siret ? { ... } : undefined` gère le cas hypothétique où `publisher.siret` serait `null` (DB non seedée en dev local). Pour MVP avec DB seedée correctement par sub 1, le SIRET est toujours `'12345678900012'`, donc le ternaire évalue toujours la branche `then`. Mais le compilateur Prisma type `siret` comme `String | null` (champ nullable au schema), d'où le ternaire défensif.
 
 - [ ] **Step 3.4: Vérifier la compilation**
 
@@ -425,7 +425,7 @@ Expected: aucune erreur. `publisher.address` (type Prisma `Address`) est compati
 - [ ] **Step 4.1: Démarrer le serveur dev**
 
 Run: `pnpm dev`
-Expected: serveur démarre sur `http://localhost:3000`. Note : nécessite que sub 1 soit déjà implémenté ET la DB seedée (publisher Thibaud avec siret `88041912200036` et adresse `11 rue Gouvy 57000 Metz France`).
+Expected: serveur démarre sur `http://localhost:3000`. Note : nécessite que sub 1 soit déjà implémenté ET la DB seedée (publisher Thibaud avec siret `12345678900012` et adresse `1 rue Exemple 00000 Exempleville France`).
 
 - [ ] **Step 4.2: Charger /fr/a-propos et faire View Source**
 
@@ -436,16 +436,16 @@ Expected: dans le HTML rendu, localiser le `<script type="application/ld+json">`
   ```json
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "11 rue Gouvy",
-    "postalCode": "57000",
-    "addressLocality": "Metz",
+    "streetAddress": "1 rue Exemple",
+    "postalCode": "00000",
+    "addressLocality": "Exempleville",
     "addressCountry": "France"
   },
-  "taxID": "88041912200036",
+  "taxID": "12345678900012",
   "identifier": {
     "@type": "PropertyValue",
     "propertyID": "SIRET",
-    "value": "88041912200036"
+    "value": "12345678900012"
   }
   ```
 

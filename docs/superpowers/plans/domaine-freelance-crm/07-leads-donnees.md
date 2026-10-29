@@ -1539,7 +1539,7 @@ Expected: tables `Person` et `Lead` visibles dans le schema `freelance`, colonne
 Lire `docs/ARCHITECTURE.md` § Observabilité et `src/lib/sentry-scrub.ts` : aujourd'hui seuls `beforeSend` (`scrubSentryEvent`) et `beforeSendLog` (`scrubSentryLog`) filtrent les événements Sentry, aucun hook n'existe pour les traces (`beforeSendTransaction`).
 
 Run: `just dev`, puis déclencher une lecture de lead qui passe par `findAllLeadsForAdmin` ou `findLeadByIdForAdmin` (script ponctuel `pnpm tsx`, ou depuis Prisma Studio si une route les appelle déjà).
-Expected : ouvrir le dashboard Sentry (organisation `tg-ws`), trouver la trace de la requête Prisma correspondante et constater qu'elle est paramétrée (`$1`, `$2`…) sans valeur d'email, de nom ou de lien LinkedIn en clair dans la description du span.
+Expected : ouvrir le dashboard Sentry (organisation `<org>`), trouver la trace de la requête Prisma correspondante et constater qu'elle est paramétrée (`$1`, `$2`…) sans valeur d'email, de nom ou de lien LinkedIn en clair dans la description du span.
 
 Si une valeur de personne apparaît en clair : ajouter un hook `beforeSendTransaction` dans `sentry.server.config.ts`, appelant une nouvelle fonction `scrubSentryTransaction` dans `src/lib/sentry-scrub.ts` qui réutilise la même logique de rédaction (`redactEmails`/`redactDeep`) sur les descriptions de span, avant de relancer ce contrôle.
 

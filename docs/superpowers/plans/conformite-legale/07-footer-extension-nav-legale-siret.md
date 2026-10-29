@@ -198,7 +198,7 @@ Expected: serveur démarre sur `http://localhost:3000` sans erreur.
 Ouvrir `http://localhost:3000/fr/` dans un navigateur, scroller en bas de page.
 Expected:
 - Row bottom du footer contient :
-  - Ligne copyright `© 2026 Thibaud Geisler - SIRET 880 419 122 00036` (tiret simple, SIRET formaté avec 3 espaces)
+  - Ligne copyright `© 2026 Thibaud Geisler - SIRET 123 456 789 00012` (tiret simple, SIRET formaté avec 3 espaces)
   - Une `<nav>` (avec aria-label "Liens légaux" inspectable via DevTools) contenant 3 éléments interactifs côte à côte : "Mentions légales" (lien), "Politique de confidentialité" (lien), "Gérer mes cookies" (bouton style link)
 - Row haute (Logo + tagline + location + SocialLinks + CV) inchangée
 
@@ -229,7 +229,7 @@ Expected:
 Ouvrir `http://localhost:3000/en/`.
 Expected:
 - Le footer affiche en row bottom :
-  - Ligne copyright `© 2026 Thibaud Geisler - SIRET 880 419 122 00036` (les nombres ne se traduisent pas)
+  - Ligne copyright `© 2026 Thibaud Geisler - SIRET 123 456 789 00012` (les nombres ne se traduisent pas)
   - Nav avec aria-label "Legal links", liens "Legal notice" / "Privacy policy" / "Manage my cookies"
 - Clic "Legal notice" navigue vers `/en/mentions-legales`
 - Clic "Privacy policy" navigue vers `/en/confidentialite`

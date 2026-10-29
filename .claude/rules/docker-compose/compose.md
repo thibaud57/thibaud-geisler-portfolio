@@ -3,11 +3,10 @@ paths:
   - "compose*.yaml"
 ---
 
-# Docker Compose — services, volumes, healthchecks
+# Docker Compose : services, volumes, healthchecks
 
 ## À faire
 - Nommer le fichier **`compose.yaml`** (nom canonique v5) et démarrer directement par `services:`, **sans** `version:` (ignoré en v5)
-- Utiliser la syntaxe **`docker compose`** (plugin CLI officiel), jamais `docker-compose` (binaire v1 supprimé avril 2025)
 - Persister Postgres dans un **volume nommé** monté sur **`/var/lib/postgresql`**, jamais `/var/lib/postgresql/data` (Postgres 18 déplace `PGDATA`, l'ancien mount casse le conteneur) ni un bind mount
 - **Healthcheck `pg_isready`** sur la base + **`depends_on.<db>.condition: service_healthy`** sur l'application : `service_started`, le défaut, laisserait l'app démarrer avant que Postgres accepte les connexions
 - Résoudre les services entre eux par **nom de service DNS** interne (`postgresql://user:pass@postgres:5432/...`), jamais par IP ni `localhost`
@@ -15,13 +14,11 @@ paths:
 - **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
 - **`init: true` et `mem_limit` sur le service app** : Node en PID 1 ne récolte pas les processus orphelins ; sans plafond, l'OOM killer du VPS peut tuer un autre service
 - **Borner les logs** du service app : `logging.driver: json-file` avec `max-size` et `max-file`, Dokploy ne fait aucune rotation
-- **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé), et dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy, tout le service `postgres` de dev (image, volume, healthcheck, port pour un client SQL)
+- **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé, aucun réglage de dev). Tout le service `postgres` de dev (image, volume, healthcheck, port pour un client SQL) vit dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy
 - **Profile `validation`** sur le service app dans `compose.override.yaml` : le port 3000 reste libre pour le dev natif, le container ne se lance qu'avec `--profile validation`
 
 ## À éviter
 - Ajouter un **`build:`** à `compose.yaml` : l'image se construit en CI et Dokploy la tire en pull-only (`pull_policy: always`)
-- Exposer publiquement le port de la base en production : l'exposition ne vit que dans `compose.override.yaml`
-- Mettre des réglages de dev (bind mounts, `DATABASE_URL` vers `localhost`, ports internes) dans `compose.yaml`
 - `docker compose down --volumes` sans backup : suppression irréversible des données Postgres
 - `docker volume prune -a` et `docker system prune -a --volumes` : `-a` inclut les volumes nommés inutilisés, donc le volume Postgres de dev dès que son conteneur est arrêté
 

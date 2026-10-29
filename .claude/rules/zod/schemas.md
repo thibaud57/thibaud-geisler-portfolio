@@ -4,55 +4,41 @@ paths:
   - "src/env.ts"
   - "src/server/**/*.ts"
   - "src/app/api/**/*.ts"
-  - "scripts/**/*.ts"
 ---
 
-# Zod — Schémas & Typing
+# Zod : schémas et typing
 
 ## À faire
-- Déclarer les schémas **au niveau module** dans `src/lib/schemas/` (pas à l'intérieur d'une fonction) : partage client/serveur et pas de re-compilation à chaque appel
+- Déclarer les schémas **au niveau module** dans `src/lib/schemas/`, jamais dans un handler ou une Server Action : partage client/serveur, pas de recompilation à chaque appel, importable depuis un test unitaire
 - Dériver les types via **`z.infer<typeof Schema>`** : JAMAIS dupliquer le type TypeScript à la main à côté du schéma
-- Préférer les **validators top-level v4** (`z.email()`, `z.url()`, `z.iso.datetime()`) aux formes chaînées v3 (`z.string().email()`) : plus rapide et tree-shakable
-- Utiliser **`z.coerce.number()`** pour convertir les nombres bruts de `FormData` ou `process.env` (toutes en string à la base), et **`z.stringbool()`** pour leurs booléens (`"true"`/`"false"`, `"1"`/`"0"`…)
+- Utiliser **`z.coerce.number()`** pour convertir les nombres bruts de `FormData` ou `process.env` (toutes en string à la base) et **`z.stringbool()`** pour leurs booléens (`"true"`/`"false"`, `"1"`/`"0"`…)
 - `.refine()` pour les validations mono-champ, **`.superRefine()`** pour les validations cross-champs (multi-erreurs via `ctx.addIssue`)
 - `.transform()` pour normaliser après validation (trim, lowercase) : distinguer **`z.input<typeof S>`** (avant transform) et **`z.output<typeof S>`** (après, alias de `z.infer`)
 
 ## À éviter
-- Dupliquer le type TypeScript à la main à côté du schéma : divergence inévitable, toujours passer par `z.infer`
 - Utiliser `z.any()` / `z.unknown()` pour contourner la validation : perd la garantie runtime, utiliser un schéma discriminé
-- Chaîner `z.string().email()` / `.uuid()` / `.url()` : **déprécié en v4**, les validators top-level sont obligatoires
 - `z.coerce.boolean()` sur une chaîne : c'est `Boolean(input)`, donc `"false"` et `"0"` donnent `true`
-- Déclarer un schéma à l'intérieur d'un handler ou d'une Server Action : recompilation à chaque appel, et impossible à importer depuis un test unitaire
 
 ## Gotchas
-- Zod 4 requiert **TypeScript 5.5+** avec **`strict: true`** obligatoire (VERSIONS.md)
 - **`z.uuid()` v4 ≠ `z.string().uuid()` v3** : strict RFC 9562, rejette les UUID v3/v5 non conformes. Utiliser **`z.guid()`** pour l'équivalent lâche v3
 - Erreurs v4 : `message`, `invalid_type_error`, `required_error` **fusionnés** en un paramètre `error` unique (string ou `(issue) => string`)
 - **`z.coerce.number()` accepte un champ vide** : `Number("")` vaut `0`, donc un input numérique vidé dans un `FormData` passe la validation avec la valeur `0`. Pour un champ requis, contrôler la chaîne avant de convertir : `z.string().trim().min(1, '…').pipe(z.coerce.number<string>())`
 - **`.pipe()` derrière une chaîne exige `z.coerce.number<string>()`** : l'entrée d'un schéma coercé est typée `unknown`, que `.pipe()` refuse en `TS2345` après un `z.string()`. Le générique aligne le type d'entrée (constaté sur Zod 4.5.4 le 2026-09-17)
-- `.passthrough()` / `.merge()` sur un objet : **dépréciés en v4** → `z.looseObject({ ... })`, `.extend({ ... })`. `.strict()` reste disponible mais legacy → `z.strictObject({ ... })`
+- `.strict()` reste disponible mais legacy → `z.strictObject({ ... })`
 
 ## Exemples
 ```typescript
 // ✅ Schéma module + z.infer + validators top-level v4
-import { z } from 'zod'
-
 export const Schema = z.object({
   name: z.string().min(1).max(100),
   email: z.email(),
   age: z.coerce.number().int().positive(),
-  website: z.url().optional(),
 })
 
 export type SchemaInput = z.infer<typeof Schema>
 
 // ❌ Type dupliqué à la main (divergence inévitable)
-type SchemaInput = {
-  name: string
-  email: string
-  age: number
-  website?: string
-}
+type SchemaInput = { name: string; email: string; age: number }
 ```
 
 ```typescript
@@ -64,18 +50,4 @@ const PairSchema = z
       ctx.addIssue({ path: ['confirm'], code: 'custom', message: 'Mismatch' })
     }
   })
-
-// ✅ transform + distinction input/output
-const Email = z.email().transform((v) => v.toLowerCase().trim())
-type EmailRaw = z.input<typeof Email>    // string brut
-type EmailNorm = z.output<typeof Email>  // string normalisée
-```
-
-```typescript
-// ❌ Formes chaînées v3 dépréciées en v4
-const Bad = z.object({
-  email: z.string().email(),  // → z.email()
-  id: z.string().uuid(),      // → z.uuid() (strict) ou z.guid() (lâche)
-  site: z.string().url(),     // → z.url()
-})
 ```

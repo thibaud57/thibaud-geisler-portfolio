@@ -1,6 +1,6 @@
 ---
 title: "Sentry — Monitoring d'erreurs applicatives"
-version: "11.8.0"
+version: "11.9.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
 date: "2026-10-03"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
@@ -139,7 +139,7 @@ RUN --mount=type=secret,id=sentry_auth_token \
 - La doc officielle se limite à « Make sure to also add it to your CI »
 - Le projet buildant en Turbopack (l'opt-out `--webpack` a été retiré le 3 septembre 2026), l'upload se fait **après** la compilation, par le hook Next `runAfterProductionCompile` (Next >= 15.4.1). L'option `useRunAfterProductionCompileHook`, de premier niveau dans `withSentryConfig`, vaut `true` par défaut sous Turbopack : rien à poser. Le `_experimental.useRunAfterProductionCompileHook` d'avant le SDK 11 était ignoré, retiré de `next.config.ts` le 9 octobre 2026
 - Laisser `deleteSourcemapsAfterUpload` actif : des source maps servies publiquement exposeraient le code source
-- Un échec d'upload est silencieux (relevé du 2026-09-25) : un token invalide ne fait pas échouer le build, et `CI` n'entrant pas dans le build Docker, `silent: !process.env["CI"]` masque aussi les logs. Seule la présence d'un bundle côté Sentry le prouve : `sentry api projects/tg-ws/thibaud-geisler-portfolio/files/artifact-bundles/`
+- Un échec d'upload est silencieux (relevé du 2026-09-25) : un token invalide ne fait pas échouer le build, et `CI` n'entrant pas dans le build Docker, `silent: !process.env["CI"]` masque aussi les logs. Seule la présence d'un bundle côté Sentry le prouve : `sentry api projects/<org>/thibaud-geisler-portfolio/files/artifact-bundles/`
 
 ---
 
@@ -164,7 +164,7 @@ report-uri  https://o<org-id>.ingest.<region>.sentry.io/api/<project-id>/securit
 ### Points Importants
 
 - Le host exact se lit dans Project Settings → SDK Setup → Client Keys (DSN), il n'est pas devinable
-- **L'organisation du projet est `tg-ws`, en région européenne (`https://de.sentry.io`, Francfort).** Son host d'ingestion est `o4511826481774592.ingest.de.sentry.io`. Le segment de région est `de`, pas `eu` : une organisation européenne ingère sur `.ingest.de.sentry.io`
+- **L'organisation du projet est `<org>`, en région européenne (`https://de.sentry.io`, Francfort).** Son host d'ingestion est `o<org-id>.ingest.de.sentry.io`. Le segment de région est `de`, pas `eu` : une organisation européenne ingère sur `.ingest.de.sentry.io`
 - La région d'une organisation se lit avec `sentry org view <slug> --json`, champ `links.regionUrl`
 - La CSP actuelle du projet est stricte (`connect-src 'self' https://*.calendly.com`) : elle bloquera Sentry tant que la directive n'est pas étendue
 - Avec `tunnelRoute`, `connect-src 'self'` suffit pour cette partie, les événements transitant par l'application
@@ -188,6 +188,8 @@ withSentryConfig(config, { tunnelRoute: '/sentry-tunnel' })
 - Résout la perte d'événements due aux bloqueurs, au prix d'un passage par le serveur applicatif
 - La route de tunnel doit être exclue de tout middleware ou proxy qui l'intercepterait : le projet a un `src/proxy.ts` dont le matcher devra en tenir compte
 - Une CVE de type SSRF a affecté `tunnelRoute` sur les versions 7.26.0 à 7.76.x ([GHSA-2rmr-xw8m-22q9](https://github.com/advisories/GHSA-2rmr-xw8m-22q9)), corrigée en 7.77.0. Sans objet sur la version courante, mais le rappel vaut : cette route élargit la surface d'attaque et doit valider que sa cible est bien Sentry
+- Depuis `11.9.0` (#25456, #25509), le handler de tunnel relaie le seul payload de l'événement, sans les headers de la requête, et les requêtes navigateur partent en `credentials: 'omit'` : aucun cookie n'atteint le tunnel. Un layer devant l'app qui exige des cookies règle `transportOptions.fetchOptions.credentials` dans `Sentry.init` ([notes 11.9.0](https://github.com/getsentry/sentry-javascript/blob/develop/CHANGELOG.md), relues le 2026-10-27)
+- Depuis `11.9.0` (#25141), une page prérendue n'émet plus de meta tags de trace (`sentry-trace`, `baggage`), ISR compris : un HTML mis en cache ne lie plus un visiteur à la requête d'un autre. Avec `cacheComponents`, le pageload attend les données de trace de la partie streamée de la page. Sans effet à régler ici, le projet n'enregistre pas de `SentryPropagator` lui-même (sinon : `NextSentryPropagator`)
 
 ---
 

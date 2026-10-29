@@ -3,17 +3,15 @@ paths:
   - "src/server/actions/**/*.ts"
 ---
 
-# Next.js — Server Actions & Mutations
+# Next.js : Server Actions et mutations
 
 ## À faire
 - Déclarer `'use server'` en haut du fichier pour un module d'actions, ou inline dans un Server Component pour une action locale
-- Envelopper le corps de chaque action dans **`createActionLogger(action, handler)`** (`src/lib/server-utils.ts`) : il fournit `log` et `ip`, et pose l'instrumentation Sentry, aucune action ne peut l'oublier. La garde d'authentification, elle, se place avant (cf. `nextjs/server-actions-security.md`)
-- Valider toute entrée `FormData` par Zod `safeParse()` côté serveur, indépendamment de toute validation client : une action exportée est un endpoint public
+- Envelopper le corps de chaque action dans **`createActionLogger(action, handler)`** (`src/lib/server-utils.ts`) : il fournit `log` et `ip` puis pose l'instrumentation Sentry, aucune action ne peut l'oublier. La garde d'authentification, elle, se place avant (cf. `nextjs/server-actions-security.md`)
 - Retourner un état typé consommé par `useActionState` (`{ ok, errors, message }`) plutôt que de throw : le formulaire affiche les erreurs sans perdre sa saisie
 - Appeler `redirect()` **hors** de tout `try/catch`, ou appeler `unstable_rethrow(error)` en tête du `catch` : sinon `redirect()`, `notFound()`, `unauthorized()` sont avalés en silence
 - Invalider par `revalidatePath(path)` (layout ou page entière) ou `revalidateTag(tag, profile)` (par tag)
 - Privilégier `updateTag(tag)` (read-your-writes) quand l'auteur doit voir sa modification immédiatement
-- Passer des arguments supplémentaires par `bind()` (compatible progressive enhancement)
 - Exporter l'état initial et les types qu'importe le client depuis un module voisin `<module>.types.ts` : un module `'use server'` n'exporte que des fonctions async, toute autre valeur casse le build
 - Ranger les helpers partagés par les actions, sans `'use server'`, dans `src/server/actions/_support/` : chaque export d'un module `'use server'` devient un endpoint public
 

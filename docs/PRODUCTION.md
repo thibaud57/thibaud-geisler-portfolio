@@ -393,7 +393,7 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 | `SMTP_PASS` | En cas de compromission ou changement de mot de passe IONOS | Mettre à jour dans Dokploy → redéploiement automatique |
 | `DATABASE_URL` (mot de passe) | En cas de compromission | Régénérer le password sur la Database `portfolio-db` → **recopier la nouvelle URL** dans l'Environment du Compose → Redeploy. Rien ne propage automatiquement : Database et Compose sont deux services distincts, l'URL y est un littéral. Sans la recopie, l'app redémarre avec l'ancienne et ne se connecte plus |
 | `IP_HASH_SALT` | En cas de compromission | Régénérer (`openssl rand -hex 32`) → Dokploy → les nouveaux logs utilisent le nouveau sel, les hashs déjà écrits restent inchangés |
-| Clé privée de la GitHub App de release | **Aucune expiration, donc aucune échéance à surveiller.** Rotation sur compromission uniquement | Settings → Developer settings → GitHub Apps → `thibaud57-release` → General → Private keys → Generate a private key, puis remplacer `RELEASE_APP_PRIVATE_KEY` par le contenu intégral du `.pem` (lignes `BEGIN`/`END` incluses) dans chaque dépôt où l'App est installée. Supprimer l'ancienne clé dans l'App et le `.pem` du disque. Dernière rotation : 27 octobre 2026 |
+| Clé privée de la GitHub App de release | **Aucune expiration, donc aucune échéance à surveiller.** Rotation sur compromission uniquement | Settings → Developer settings → GitHub Apps → `thibaud57-release` → Credentials → Key pairs → New key, puis remplacer `RELEASE_APP_PRIVATE_KEY` par le contenu intégral du `.pem` (lignes `BEGIN`/`END` incluses) dans chaque dépôt où l'App est installée. Supprimer l'ancienne clé dans l'App et le `.pem` du disque. Dernière rotation : 27 octobre 2026 |
 | `DOKPLOY_TOKEN` | En cas de compromission | Régénérer dans Dokploy UI (Settings → API tokens) → mettre à jour le secret repo GitHub |
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
@@ -429,11 +429,11 @@ Configurés dans `next.config.ts` (`poweredByHeader: false` activé, retire `X-P
 ```
 default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
 img-src 'self' data: https:; frame-src https://calendly.com https://*.calendly.com;
-connect-src 'self' https://*.calendly.com https://o4511826481774592.ingest.de.sentry.io;
+connect-src 'self' https://*.calendly.com https://o<org-id>.ingest.de.sentry.io;
 font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 ```
 
-> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` n'ouvre que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `connect-src` ouvre Calendly et l'ingestion Sentry (organisation `tg-ws`, région européenne `de.sentry.io`). `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
+> ℹ️ **Ce que la politique concède, et à qui** : `frame-src` n'ouvre que Calendly, dont le widget est embarqué sur `/contact` et n'est chargé qu'après consentement. `connect-src` ouvre Calendly et l'ingestion Sentry (organisation `<org>`, région européenne `de.sentry.io`). `'unsafe-inline'` sur `script-src` et `style-src` est la contrepartie du rendu Next sans nonce. `img-src https:` reste large pour les images distantes. En dev seulement, `script-src` gagne `'unsafe-eval'` (HMR). Toute origine tierce ajoutée plus tard (Umami) doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur.
 
 > ⚠️ **En production, Traefik réécrit `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` et `Permissions-Policy`** (middleware `security-headers@file` du point d'entrée, relevé du 2026-09-21). `next.config.ts` porte les mêmes valeurs, en fallback. `Permissions-Policy` sort dans l'ordre de Traefik : `geolocation=(), microphone=(), camera=()`.
 
@@ -489,7 +489,7 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
 | Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
 | UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
-| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack, détail : [knowledges/sentry.md](knowledges/sentry.md). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `tg-ws` |
+| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack, détail : [knowledges/sentry.md](knowledges/sentry.md). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
 
 ## Métriques Clés
 

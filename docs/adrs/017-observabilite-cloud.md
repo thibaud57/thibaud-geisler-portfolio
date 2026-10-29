@@ -77,7 +77,7 @@ Où envoyer les traces et les erreurs, sachant que le VPS héberge déjà le sit
 - **Logfire ou Langfuse Cloud** pour les traces LLM, au choix : les deux ingèrent de l'OpenTelemetry, changer de destination coûte une variable d'environnement
 - **Aucun des deux en self-hosted**, la contrainte de mémoire est rédhibitoire sur ce VPS
 
-L'instrumentation vit dans `ai-kit`, via une fonction `setup_telemetry()` que chaque service appelle au démarrage. PydanticAI produit déjà un span par appel de modèle et par appel d'outil, il n'y a rien à instrumenter à la main.
+L'instrumentation vit dans `ai-kit`, via une fonction `setup_telemetry()` que chaque service appelle au démarrage (mécanique : ADR-005 d'`ai-kit`, 2026-10-27). PydanticAI produit un span par appel de modèle et par appel d'outil ; le kit instrumente lui-même la session Claude Code, que PydanticAI ne couvre pas.
 
 ---
 
@@ -92,7 +92,7 @@ L'instrumentation vit dans `ai-kit`, via une fonction `setup_telemetry()` que ch
 
 ## Négatives
 
-- Les prompts et réponses transitent par un tiers. À proscrire pour `rag-documents` : ce service ne doit pas exporter le contenu de ses documents, seulement des métadonnées de performance
+- Les prompts et réponses transitent par un tiers. À proscrire pour `rag-documents` : ce service ne doit pas exporter le contenu de ses documents, seulement des métadonnées de performance. Le contenu suit un réglage par application, éteint par défaut et laissé éteint pour `rag-documents` (ADR-005 d'`ai-kit`)
 - La rétention des niveaux gratuits est courte, ce qui interdit les analyses rétrospectives lointaines
 - Deux fournisseurs cloud de plus dans le registre des traitements
 

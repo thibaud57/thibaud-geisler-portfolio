@@ -15,7 +15,7 @@ scope: ["docs", "legal"]
 | Champ | Valeur |
 |---|---|
 | Identité | Thibaud Geisler |
-| SIRET | 880 419 122 00036 |
+| SIRET | <SIRET> |
 | Contact | contact@thibaud-geisler.com |
 | Coordonnées complètes | voir les [mentions légales](https://thibaud-geisler.com/fr/mentions-legales) |
 | Délégué à la protection des données | Non désigné (non obligatoire) |
@@ -73,7 +73,7 @@ scope: ["docs", "legal"]
 | Données | Trace technique de l'erreur : message, pile d'appels, URL et méthode de la requête. Identité, adresse IP, cookies, en-têtes et contenu des requêtes sont exclus, et une adresse email citée dans un message d'erreur est masquée avant envoi. Sentry déduit de l'adresse IP de connexion une localisation approximative (pays, ville) sans conserver l'adresse : pour une erreur survenue dans le navigateur, c'est celle du visiteur |
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | Sentry (Functional Software, Inc.) |
-| Transferts hors UE | Aucun : organisation `tg-ws` en région européenne, ingestion `de.sentry.io` (Francfort) |
+| Transferts hors UE | Aucun : organisation `<org>` en région européenne, ingestion `de.sentry.io` (Francfort) |
 | Conservation | 30 jours (plan Developer), géré par Sentry |
 | Sécurité | Collecte restreinte à la source par la configuration du SDK, masquage des emails avant envoi (erreurs et logs), stockage des adresses IP désactivé côté Sentry, HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
 

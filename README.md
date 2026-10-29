@@ -8,14 +8,14 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 
 | Couche | Technologies |
 |--------|--------------|
-| Backend | Node.js 24, TypeScript 6 (strict), Next.js 16 (App Router, Server Actions) |
+| Backend | Node.js 26, TypeScript 6 (strict), Next.js 16 (App Router, Server Actions) |
 | Frontend | React 19, Tailwind 4, shadcn/ui (+ Magic UI, Aceternity UI, ReUI, Pages CMS Editor / Tiptap), next-intl 4 (FR/EN) |
 | Base de données | PostgreSQL 18, Prisma 7 |
 | Observabilité | Pino 10 (logs structurés serveur) |
 
 ## Prérequis
 
-- Node.js >= 24
+- Node.js ^26
 - pnpm 12 (version exacte imposée par `devEngines.packageManager` dans `package.json`, téléchargée automatiquement)
 - Docker (Compose, pour Postgres en dev)
 - [`just`](https://github.com/casey/just) (workflow standard du projet) avec bash (Git Bash sous Windows, le `Justfile` pose `set shell := ["bash", "-cu"]`)

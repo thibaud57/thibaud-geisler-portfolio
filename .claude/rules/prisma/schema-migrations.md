@@ -4,7 +4,7 @@ paths:
   - "prisma.config.ts"
 ---
 
-# Prisma 7 — Schema & Migrations
+# Prisma 7 : schema et migrations
 
 ## À faire
 - Déclarer le generator avec `provider = "prisma-client"` (plus `prisma-client-js`) et un champ **`output` obligatoire** vers le code source (`../src/generated/prisma`)
@@ -22,7 +22,6 @@ paths:
 - Mettre la `url` dans `schema.prisma` : elle contredirait `prisma.config.ts`
 
 ## Gotchas
-- Breaking v6→v7 : ESM-only (`"type": "module"` requis), Node 20.19+ minimum, TypeScript 5.4+ minimum
 - Ne **pas** upgrader Prisma et Next.js simultanément (règle PRODUCTION.md) : isoler les upgrades pour isoler les régressions
 - Types de colonnes, identifiants, contenu bilingue et pgvector : voir `prisma/data-modeling.md`
 

@@ -2,13 +2,14 @@
 paths:
   - "src/server/**/*.ts"
   - "src/lib/server-utils.ts"
+  - "src/proxy.ts"
   - "src/app/**/route.ts"
 ---
 
-# Pino — Usage dans le code serveur
+# Pino : usage dans le code serveur
 
 ## À faire
-- Obtenir le logger d'une Server Action par **`createActionLogger(action, handler)`** (`src/lib/server-utils.ts`) : il crée un child logger lié à `action`, `requestId` et `ip_hash`, et pose l'instrumentation Sentry
+- Obtenir le logger d'une Server Action par **`createActionLogger(action, handler)`** (`src/lib/server-utils.ts`) : il crée un child logger lié à `action`, `requestId` et `ip_hash` puis pose l'instrumentation Sentry
 - Nommer chaque ligne par un champ **`event`** stable (`email:sent`, `tag:created`, `rate_limit:exceeded`) : c'est lui qu'on filtre dans Dokploy, pas le message
 - Logger une erreur avec **`err` comme clé** : `log.error({ err, event: 'email:failed' })`. Pino sérialise `message`, `stack` et `type`
 - Respecter les niveaux : `info` événements normaux, `warn` dégradés non bloquants (rate limit, retry), `error` échecs bloquants

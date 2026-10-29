@@ -4,7 +4,7 @@ paths:
   - ".dockerignore"
 ---
 
-# Docker — Dockerfile (multi-stage, cache, base image)
+# Docker : Dockerfile (multi-stage, cache, base image)
 
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` pour isoler toolchain/devDeps du runtime image. Le projet enchaîne `base` (Node + pnpm, hérité par tous) → `deps` → `builder` → `deploy-prisma` → `runner`
@@ -14,16 +14,12 @@ paths:
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
 - Monter un **cache BuildKit** sur le store pnpm (`RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store`) : il profite aux builds locaux. Le build de production tourne sur un runner GitHub Actions éphémère, où seul le cache de couches (`cache-from: type=gha`) évite de réinstaller
 - Créer un **utilisateur non-root** dédié (`addgroup` + `adduser`) et l'activer via `USER` dans le stage final `runner`
-- Lancer le process en **forme exec**. Un enchaînement par `sh -c` (migration puis serveur) finit par **`exec node server.js`** : sinon `sh` reste parent de Node, ne lui relaie pas le `SIGTERM` de `docker stop`, et Docker tue le conteneur au bout de 10 s
-- Maintenir un **`.dockerignore`** excluant `node_modules`, `.next`, `.git`, `.env*`, `*.md`, et tout fichier qui change sans entrer dans le build (`.github`, `compose*.yaml`, `Justfile`, `Dockerfile`) : chaque fichier du contexte peut invalider `COPY . .`, donc `next build`
-- Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `/api/health`, `instrumentation.ts`) : voir `nextjs/production-deployment.md`
+- Lancer le process en **forme exec**. Un enchaînement par `sh -c` (migration puis serveur) finit par **`exec node server.js`** : sinon `sh` reste parent de Node, ne lui relaie pas le `SIGTERM` de `docker stop` et Docker tue le conteneur au bout de 10 s
+- Maintenir un **`.dockerignore`** excluant `node_modules`, `.next`, `.git`, `.env*`, `*.md` et tout fichier qui change sans entrer dans le build (`.github`, `compose*.yaml`, `Justfile`, `Dockerfile`) : chaque fichier du contexte peut invalider `COPY . .`, donc `next build`
+- Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `/api/health`) : voir `nextjs/production-deployment.md`
 
 ## À éviter
-- `COPY . .` avant l'installation des dépendances : invalide le cache de layers à chaque modification de code
-- Épingler le tag **`latest`** pour l'image de base en production : non reproductible, un rebuild peut casser sans changement code
 - Utiliser une ligne Node arrivée en fin de vie (`node:20-*` depuis le 30 avril 2026)
-- Lancer le stage final en **root** : risque de sécurité, toujours un USER non-root dédié
-- Copier `node_modules` depuis l'hôte via le build context : toujours réinstaller dans le build pour des binaires natifs corrects (cross-arch Alpine vs host)
 
 ## Gotchas
 - Le `runner` supprime npm (alertes Trivy) : pnpm s'installe dans `base`, jamais dans `runner`
@@ -33,7 +29,7 @@ paths:
 ## Exemples
 ```dockerfile
 # ✅ Stage base commun, manifests avant le code, runner non-root, exec en fin de sh -c
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /app
 RUN npm install -g pnpm@12
 
@@ -50,8 +46,8 @@ CMD ["sh", "-c", "node migrate.js && exec node server.js"]
 ```
 
 ```dockerfile
-# ❌ COPY . . avant install, et sh reste parent de node (SIGTERM jamais relayé)
-FROM node:24-alpine AS deps
+# ❌ COPY . . avant install et sh parent de node (SIGTERM jamais relayé)
+FROM node:26-alpine AS deps
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile   # Corepack : absent de Node 25+
 CMD ["sh", "-c", "node migrate.js && node server.js"]

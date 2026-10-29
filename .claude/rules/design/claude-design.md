@@ -5,7 +5,7 @@ paths:
   - "src/components/layout/admin/*.tsx"
 ---
 
-# Claude Design — la maquette de l'espace admin
+# Claude Design : la maquette de l'espace admin
 
 La maquette « Espace Admin » (`Espace admin.dc.html`) fait foi sur **à quoi l'écran ressemble**, le design system sur **avec quels composants** (rules `shadcn-ui` et `docs/DESIGN.md`). Liens des deux projets : [docs/DESIGN.md § Maquette et design system externes](../../../docs/DESIGN.md), procédure de sync : `.design-sync/NOTES.md`.
 
@@ -15,7 +15,7 @@ La maquette « Espace Admin » (`Espace admin.dc.html`) fait foi sur **à quoi l
 - **Lire les fiches du design system depuis son export local** (`.design-sync/design-system/components/<groupe>/<Nom>.prompt.md`) : `DesignSync` est réservé à `/design-sync`, que le propriétaire lance
 - **Signaler une divergence** entre la maquette et la spec au lieu de la trancher en silence : l'écart est une décision à prendre
 - **Appliquer les règles du DESIGN.md avant la maquette** : chaque écart tranché par le propriétaire vit dans la section de `docs/DESIGN.md` qui le porte (Mapping Composants, États des Composants, Conventions de Code) et vaut pour tous les écrans ; sa sous-rubrique Arbitrages, quand elle existe, ne liste que les écarts pas encore réalignés dans la maquette ou le design system
-- **Consigner un nouvel arbitrage dans la sous-rubrique Arbitrages** tant que la maquette ou le design system ne l'applique pas, puis le faire passer dans sa section une fois réaligné (skill design-doc)
+- **Consigner un nouvel arbitrage dans la sous-rubrique Arbitrages**, à créer au premier écart tranché (skill design-doc), tant que la maquette ou le design system ne l'applique pas, puis le faire passer dans sa section une fois réaligné
 - **Relire `ecarts-design-system.md`** (dans le projet de la maquette) après avoir corrigé un composant du design system : la correction peut y rendre un contournement inutile
 
 ## À éviter

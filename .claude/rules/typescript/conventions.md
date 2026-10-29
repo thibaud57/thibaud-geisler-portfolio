@@ -8,22 +8,16 @@ paths:
   - "tsconfig.json"
 ---
 
-# TypeScript — Patterns & Gotchas v6
+# TypeScript : patterns et gotchas v6
 
 ## À faire
-- Dériver les types via **`z.infer<typeof Schema>`** (Zod) ou **`typeof`** (constantes) : source unique de vérité entre runtime et types
-- Préférer les **discriminated unions** aux enums : narrowing automatique via `switch`/`if` sur la propriété discriminante (`status`, `kind`, `type`), pattern utilisé par `safeParse` Zod (`{ success, data } | { success: false, error }`)
-- Importer les types Prisma via **`@/generated/prisma/client`** (Prisma 7, plus `@prisma/client`) et utiliser **`Prisma.ModelGetPayload<T>`** pour typer un résultat avec relations incluses
+- Dériver les types de leur source (`typeof` d'une constante, types exportés par Prisma, `z.infer` : cf. `zod/schemas.md`), jamais un type dupliqué à la main à côté
+- Importer les types Prisma via **`@/generated/prisma/client`** (Prisma 7, plus `@prisma/client`) et utiliser **`Prisma.<Model>GetPayload<T>`** pour typer un résultat avec relations incluses
 - Importer un enum Prisma **en valeur** (`z.enum(TagKind)`, une itération) depuis **`@/generated/prisma/browser`** dès que le module est atteignable côté client : c'est le cas des schémas Zod partagés, que la Server Action et le formulaire consomment tous deux. `@/generated/prisma/client` embarque le runtime Node et ne passe pas dans un bundle navigateur. Un `import type` reste sur `client` quelle que soit la couche : TypeScript l'efface à la compilation, il n'atteint jamais le bundle
 - Utiliser l'alias **`@/*`** pour tous les imports : jamais de chemins relatifs de plus de 2 niveaux (`../../../lib/foo` → `@/lib/foo`)
-- Narrowing via **`unknown` + `typeof`/`in`/discriminant check** plutôt que `any` : préserve la type-safety tout en acceptant des entrées runtime inconnues
-- Exécuter **`tsc --noEmit`** en CI et pre-commit : Turbopack et Vitest gèrent la compilation en dev, `tsc` sert uniquement au type-check
+- Exécuter **`tsc --noEmit`** en CI (`just typecheck`) : Turbopack et Vitest gèrent la compilation en dev, `tsc` sert uniquement au type-check
 
 ## À éviter
-- Utiliser **`any`** pour contourner le typage : toujours `unknown` + narrowing (préserve la type-safety)
-- Dupliquer les types TypeScript à la main à côté d'un schéma Zod ou d'un modèle Prisma : utiliser `z.infer` ou les types exportés Prisma
-- Utiliser **`tsc --emit`** pour un projet Next.js : le bundler (Turbopack) gère la compilation, `tsc` sert uniquement au type-check (`--noEmit`)
-- Chemins d'import **relatifs profonds** (`../../../lib/foo`) : utiliser l'alias `@/*`
 - Activer **`preserveSymlinks: true`** dans `tsconfig.json` : incompatible pnpm, casse la résolution des types
 
 ## Gotchas
@@ -35,35 +29,13 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ z.infer comme source unique de vérité
-const Schema = z.object({ id: z.string(), email: z.email() })
-type Input = z.infer<typeof Schema>  // { id: string; email: string }
-
-// ❌ Type dupliqué à la main → divergence inévitable
-type Input = { id: string; email: string }
-```
-
-```typescript
-// ✅ Discriminated union + narrowing automatique via switch
-type Result<T> =
-  | { status: 'success'; data: T }
-  | { status: 'error'; message: string }
-  | { status: 'loading' }
-
-function handle<T>(result: Result<T>) {
-  switch (result.status) {
-    case 'success': return result.data     // typé T
-    case 'error': return result.message    // typé string
-    case 'loading': return 'Chargement...'
-  }
-}
-```
-
-```typescript
 // ✅ Import Prisma v7 + type avec relations
 import type { Prisma } from '@/generated/prisma/client'
 
-type ModelWithRelations = Prisma.ModelGetPayload<{
-  include: { relation: true }
+type OrderWithItems = Prisma.OrderGetPayload<{
+  include: { items: true }
 }>
+
+// ❌ Ancien chemin v6
+import type { Prisma } from '@prisma/client'
 ```

@@ -1,8 +1,8 @@
 ---
 title: "Node.js — Runtime JavaScript"
-version: "24"
-description: "Référence technique pour Node.js 24 : runtime, TypeScript natif, test runner, env files."
-date: "2026-10-03"
+version: "26"
+description: "Référence technique pour Node.js 26 : runtime, TypeScript natif, test runner, env files."
+date: "2026-10-29"
 keywords: ["nodejs", "runtime", "typescript", "esm"]
 scope: ["docs"]
 technologies: ["TypeScript", "pnpm", "Next.js"]
@@ -10,7 +10,7 @@ technologies: ["TypeScript", "pnpm", "Next.js"]
 
 # Description
 
-`Node.js` 24 « Krypton » est le runtime JavaScript utilisé dans le portfolio. La fiche documente la ligne, pas un patch : `node:24-alpine` et `node-version: '24'` résolvent la dernière 24.x à chaque build (24.21.0 le 3 octobre 2026). La ligne est en Active LTS jusqu'au 20 octobre 2026, en Maintenance LTS ensuite, et la 26 devient Active LTS le 28 octobre 2026. La v24 apporte TypeScript natif via type stripping, le chargement natif des `.env` via `--env-file`, un test runner mature, `URLPattern` global, et V8 13.6 (Float16Array, RegExp.escape, using keyword). Node.js 20 passe en EOL le 30 avril 2026, d'où la migration vers v24.
+`Node.js` 26 « Lithium » est le runtime JavaScript utilisé dans le portfolio. La fiche documente la ligne, pas un patch : `node:26-alpine` et `runtime: node@26` résolvent la dernière 26.x à chaque build (26.13.0 le 28 octobre 2026, V8 14.6, source `nodejs.org/dist/index.json`). La ligne est en Active LTS depuis le 28 octobre 2026 jusqu'au 20 octobre 2027, en Maintenance LTS ensuite, fin de vie le 30 avril 2029 (`schedule.json` de `nodejs/Release`, relevé le 29 octobre 2026). TypeScript natif via type stripping, chargement natif des fichiers d'environnement via `--env-file` et test runner mature viennent des lignes 22 à 24. Node.js 20 est EOL depuis le 30 avril 2026.
 
 ---
 
@@ -151,7 +151,7 @@ node -v                                # version courante
 - `--watch` utile pour les scripts dev (seed, workers locaux)
 - `--import` pour précharger un module ESM (ex: `--import tsx`)
 - `--inspect` pour activer l'inspecteur V8 (debug DevTools)
-- Les flags expérimentaux deviennent stables au fil des versions (ex: `--permission` stable en v24)
+- Les flags expérimentaux deviennent stables au fil des versions (ex: `--permission` stable depuis la v24)
 
 ---
 
@@ -159,7 +159,7 @@ node -v                                # version courante
 
 ## ✅ Recommandations
 
-- Utiliser Node.js 24 LTS (v20 en EOL le 30 avril 2026)
+- Utiliser Node.js 26 LTS (v20 en EOL depuis le 30 avril 2026)
 - Exécuter les scripts TypeScript directement via `node script.ts`
 - Charger les env vars via `--env-file=.env.local` dans les scripts standalone
 - Garder `tsc --noEmit` dans le CI pour valider les types
@@ -179,11 +179,10 @@ node -v                                # version courante
 
 ## Documentation Officielle
 
-- [Node.js v24 : Documentation](https://nodejs.org/docs/latest-v24.x/api/index.html)
-- [Command-line API](https://nodejs.org/docs/latest-v24.x/api/cli.html)
+- [Node.js v26 : Documentation](https://nodejs.org/docs/latest-v26.x/api/index.html)
+- [Command-line API](https://nodejs.org/docs/latest-v26.x/api/cli.html)
 - [TypeScript natif](https://nodejs.org/learn/typescript/run-natively)
 
 ## Ressources Complémentaires
 
-- [Node.js 24 release](https://nodejs.org/en/blog/release/v24.0.0)
-- [AppSignal, What's new in Node.js 24](https://blog.appsignal.com/2025/05/09/whats-new-in-nodejs-24.html)
+- [Node.js 26 release](https://nodejs.org/en/blog/release/v26.0.0)

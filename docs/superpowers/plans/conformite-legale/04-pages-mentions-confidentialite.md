@@ -89,7 +89,7 @@ Ajouter le bloc suivant :
   },
   "law": {
     "title": "5. Droit applicable et juridiction compétente",
-    "body": "Les présentes mentions légales sont régies par le droit français. En cas de litige, et après tentative de résolution amiable, les tribunaux du ressort de Metz seront seuls compétents."
+    "body": "Les présentes mentions légales sont régies par le droit français. En cas de litige, et après tentative de résolution amiable, les tribunaux du ressort de Exempleville seront seuls compétents."
   },
   "privacyLink": "Pour le traitement des données personnelles, consultez notre <link>politique de confidentialité</link>."
 }
@@ -215,7 +215,7 @@ Identifier le namespace `Metadata` dans `messages/en.json`. Ajouter à la fin :
   },
   "law": {
     "title": "5. Applicable law and competent jurisdiction",
-    "body": "These legal notices are governed by French law. In the event of a dispute, and after attempted amicable resolution, the courts within the jurisdiction of Metz shall have exclusive competence."
+    "body": "These legal notices are governed by French law. In the event of a dispute, and after attempted amicable resolution, the courts within the jurisdiction of Exempleville shall have exclusive competence."
   },
   "privacyLink": "For the processing of personal data, see our <link>privacy policy</link>."
 }
@@ -300,11 +300,11 @@ import { formatSiret } from './format-siret'
 
 describe('formatSiret', () => {
   it('formate un SIRET valide 14 chiffres avec espaces aux bons emplacements', () => {
-    expect(formatSiret('88041912200036')).toBe('880 419 122 00036')
+    expect(formatSiret('12345678900012')).toBe('123 456 789 00012')
   })
 
   it('retourne un SIREN 9 chiffres tel quel (pas de match du regex 14 chiffres)', () => {
-    expect(formatSiret('880419122')).toBe('880419122')
+    expect(formatSiret('123456789')).toBe('123456789')
   })
 
   it('retourne une chaîne vide telle quelle', () => {
@@ -316,7 +316,7 @@ describe('formatSiret', () => {
   })
 
   it('retourne un SIRET déjà formatté tel quel (idempotence regex stricte sur 14 chiffres consécutifs)', () => {
-    expect(formatSiret('880 419 122 00036')).toBe('880 419 122 00036')
+    expect(formatSiret('123 456 789 00012')).toBe('123 456 789 00012')
   })
 })
 ```
@@ -803,7 +803,7 @@ Ouvrir `http://localhost:3000/fr/mentions-legales` dans un navigateur.
 Expected:
 - Statut HTTP 200, page rendue.
 - `<h1>` "Mentions légales".
-- Section 1 affiche `Thibaud Pierre Geisler`, `Entrepreneur Individuel`, SIRET `880 419 122 00036`, SIREN `880419122`, ligne `Inscrit au RNE sous le n° SIREN 880419122`, code APE `6201Z - Programmation informatique`, adresse `11 rue Gouvy, 57000 Metz, France`, email cliquable `contact@thibaud-geisler.com`, mention `TVA non applicable, article 293 B du CGI`.
+- Section 1 affiche `Thibaud Pierre Geisler`, `Entrepreneur Individuel`, SIRET `123 456 789 00012`, SIREN `123456789`, ligne `Inscrit au RNE sous le n° SIREN 123456789`, code APE `6201Z - Programmation informatique`, adresse `1 rue Exemple, 00000 Exempleville, France`, email cliquable `contact@thibaud-geisler.com`, mention `TVA non applicable, article 293 B du CGI`.
 - Section 2 affiche `IONOS SARL`, `SARL au capital de 100 000 EUR`, adresse Sarreguemines, `RCS Sarreguemines 431 303 775`, `+33 9 70 80 89 11`.
 - Sections 3, 4, 5 contiennent les textes fixes i18n FR.
 - Lien "politique de confidentialité" en bas pointe vers `/fr/confidentialite`.
