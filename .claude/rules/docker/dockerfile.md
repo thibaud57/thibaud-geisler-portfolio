@@ -29,7 +29,7 @@ paths:
 ## Exemples
 ```dockerfile
 # ✅ Stage base commun, manifests avant le code, runner non-root, exec en fin de sh -c
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /app
 RUN npm install -g pnpm@12
 
@@ -47,7 +47,7 @@ CMD ["sh", "-c", "node migrate.js && exec node server.js"]
 
 ```dockerfile
 # ❌ COPY . . avant install et sh parent de node (SIGTERM jamais relayé)
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile   # Corepack : absent de Node 25+
 CMD ["sh", "-c", "node migrate.js && node server.js"]
