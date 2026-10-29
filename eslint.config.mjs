@@ -36,8 +36,6 @@ const eslintConfig = defineConfig([
     files: ["**/*.test.ts", "**/*.test.tsx", "vitest.setup.ts"],
     rules: {
       "@typescript-eslint/unbound-method": "off",
-      // Un double de test remplace une API absente de jsdom : ses methodes sont vides par nature
-      "@typescript-eslint/no-empty-function": "off",
     },
   },
   // Override default ignores of eslint-config-next.
