@@ -1,6 +1,6 @@
 ---
 title: "Dokploy — Self-hosted PaaS"
-version: "0.30.10"
+version: "0.30"
 description: "Référence technique pour Dokploy : déploiement par API, Traefik, environments et CLI."
 date: "2026-10-29"
 keywords: ["dokploy", "paas", "self-hosted", "traefik", "deployment"]
@@ -97,7 +97,7 @@ NEXT_PUBLIC_SITE_URL=https://thibaud-geisler.com
 
 ### Description
 
-Dokploy embarque Traefik v3 comme reverse proxy (version en place : [PRODUCTION.md § Plateforme d'hébergement](../PRODUCTION.md#plateforme-dhébergement)). Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
+Dokploy embarque Traefik v3 comme reverse proxy (version relevée dans la doc privée du VPS). Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
 
 ### Exemple
 
@@ -300,7 +300,7 @@ dokploy compose redeploy --composeId <id>
 ### Points Importants
 
 - Authentification via API token (généré dans le profil Dokploy)
-- ⚠️ CLI 0.30.7 face à un serveur 0.30.10 (relevé du 2026-10-29) : `project all` et `application deploy` répondent, mais les lectures par identifiant (`application one`, `deployment all`) échouent en `Request failed with status code 400`. Même symptôme face à un serveur 0.30.7 (relevé du 2026-09-25) : `project all` répond, mais toute commande qui prend un identifiant (`compose one`, `deployment all-by-compose`) échoue en `Request failed with status code 400`. Passer par le dashboard, ou par la base de Dokploy pour une lecture (§ Déclenchement du déploiement)
+- ⚠️ CLI en retard sur le serveur (relevé du 2026-10-29, confirmé le 2026-09-25) : `project all` et `application deploy` répondent, mais les lectures par identifiant (`application one`, `compose one`, `deployment all`) échouent en `Request failed with status code 400`. Passer par le dashboard, ou par la base de Dokploy pour une lecture (§ Déclenchement du déploiement)
 - Aucune commande `env` dans cette version : les variables se gèrent dans l'onglet Environment
 
 ---
