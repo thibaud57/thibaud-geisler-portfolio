@@ -1,5 +1,5 @@
 ---
-title: "ADR-005 — Hébergement Dokploy self-hosted vs Vercel"
+title: "ADR-005 : Hébergement Dokploy self-hosted vs Vercel"
 status: "accepted"
 description: "Choix d'héberger l'application sur un VPS via Dokploy plutôt que sur Vercel"
 date: "2026-03-31"
@@ -70,14 +70,12 @@ Le VPS IONOS est déjà payé. Dokploy permet d'héberger l'ensemble de la stack
 
 ## Positives
 
-- Coût marginal nul (VPS déjà payé)
-- Toute la stack (app + BDD + analytics + workflows) sur la même infra
-- Indépendance vis-à-vis des plateformes tierces
+- L'image est construite par GitHub Actions et publiée sur GHCR, Dokploy ne fait que la tirer
 
 ## Négatives
 
-- Responsabilité de la sécurité et des mises à jour infra
 - Pas de CDN global (performance potentiellement moindre hors Europe)
+- Docker, Dokploy et Traefik tournent sur le VPS sans qu'aucun fichier du dépôt ne les déclare : leurs versions se suivent à la main
 
 ---
 

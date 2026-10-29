@@ -1,8 +1,8 @@
 ---
-title: "Docker Engine — Conteneurisation"
+title: "Docker Engine : Conteneurisation"
 version: "29"
 description: "Référence technique pour Docker Engine 29 : Dockerfile multi-stage, volumes, networks."
-date: "2026-04-13"
+date: "2026-10-29"
 keywords: ["docker", "container", "dockerfile", "multistage", "volumes"]
 scope: ["docs"]
 technologies: ["Node.js", "Next.js", "PostgreSQL", "Dokploy"]

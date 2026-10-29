@@ -1,5 +1,5 @@
 ---
-title: "Dokploy — Self-hosted PaaS"
+title: "Dokploy : Self-hosted PaaS"
 version: "0.30"
 description: "Référence technique pour Dokploy : déploiement par API, Traefik, environments et CLI."
 date: "2026-10-29"

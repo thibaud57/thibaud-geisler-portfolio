@@ -1,5 +1,5 @@
 ---
-title: "React — Librairie UI"
+title: "React : Librairie UI"
 version: "19.3.1"
 description: "Référence technique pour React 19 : Server Components, Actions, hooks modernes et patterns Next.js."
 date: "2026-10-03"

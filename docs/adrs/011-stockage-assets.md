@@ -1,5 +1,5 @@
 ---
-title: "ADR-011 — Stockage assets : volumes Docker (MVP) → Cloudflare R2 (post-MVP)"
+title: "ADR-011 : Stockage assets : volumes Docker (MVP) → Cloudflare R2 (post-MVP)"
 status: "accepted"
 description: "Décision actée : volumes Docker pour le MVP, migration vers Cloudflare R2 lors de l'implémentation de l'upload depuis l'espace admin"
 date: "2026-03-31"
@@ -94,15 +94,11 @@ Zéro coût, zéro service supplémentaire, suffisant pour les assets du MVP (CV
 
 ## Positives
 
-- Zéro coût et zéro infrastructure supplémentaire pour le MVP
-- Volume persistant entre les redéploiements, sans opération supplémentaire sur le VPS
-- La contrainte "route API uniquement" (pas de `public/`) étant actée, une migration ultérieure ne touche que la couche d'accès au fichier
+- La contrainte « route API uniquement » (pas de `public/`) étant actée, la migration vers R2 n'a touché que la couche d'accès au fichier
 
 ## Négatives
 
-- Backup du volume Docker à mettre en place manuellement (risque de perte)
-- Pas de CDN, performance moindre pour des assets lourds servis hors Europe
-- Migration vers R2 à prévoir dès l'upload depuis l'espace admin, avec sa dépendance cloud et son coût variable
+- Les buckets d'assets ne sont pas sauvegardés et R2 n'a ni versioning ni corbeille : une suppression reste définitive ([PRODUCTION.md § Backup & Recovery](../PRODUCTION.md#stratégie-backup))
 
 ---
 

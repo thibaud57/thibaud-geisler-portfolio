@@ -1,5 +1,5 @@
 ---
-title: "pnpm — Package Manager"
+title: "pnpm : Package Manager"
 version: "12.15.0"
 description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
 date: "2026-10-29"
@@ -86,7 +86,7 @@ pnpm 11 refuse par défaut d'installer une version publiée depuis moins de 1 44
 ### Exemple
 
 ```yaml
-# pnpm-workspace.yaml — ce qu'écrit `pnpm add sentry@<version publiée hier>`
+# pnpm-workspace.yaml : ce qu'écrit `pnpm add sentry@<version publiée hier>`
 minimumReleaseAgeExclude:
   - '@sentry/nextjs@11.6.0'
 ```
@@ -147,7 +147,7 @@ pnpm install --frozen-lockfile
 ```
 
 ```yaml
-# .github/workflows/ci.yml — sans `version:`, lue dans `devEngines.packageManager`
+# .github/workflows/ci.yml : sans `version:`, lue dans `devEngines.packageManager`
 - uses: pnpm/action-setup@<sha> # vX.Y.Z
 - run: pnpm install --frozen-lockfile
 ```

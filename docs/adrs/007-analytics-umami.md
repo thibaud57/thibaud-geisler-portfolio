@@ -1,5 +1,5 @@
 ---
-title: "ADR-007 — Analytics : Umami self-hosted"
+title: "ADR-007 : Analytics : Umami self-hosted"
 status: "accepted"
 description: "Décision actée : Umami self-hosted post-MVP, RGPD-friendly, zéro coût, compatible PostgreSQL"
 date: "2026-03-31"
@@ -81,13 +81,11 @@ La combinaison self-hosted + RGPD-friendly + compatible PostgreSQL en fait le ch
 
 ## Positives
 
-- Zéro coût supplémentaire (partage du PostgreSQL existant, inclus dans le VPS)
-- RGPD-compliant sans effort (pas de cookies, pas de bannière de consentement)
-- Données sur le VPS, indépendance totale vis-à-vis des services tiers
+- Le portfolio n'embarque que le script de suivi, la restitution dans l'espace admin lit l'API Umami
 
 ## Négatives
 
-- Service supplémentaire à déployer et maintenir sur Dokploy (post-MVP)
+- Toute origine tierce ajoutée à la CSP doit être déclarée explicitement, sans quoi elle est bloquée en silence côté navigateur
 
 ---
 

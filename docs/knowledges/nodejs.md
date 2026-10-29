@@ -1,5 +1,5 @@
 ---
-title: "Node.js — Runtime JavaScript"
+title: "Node.js : Runtime JavaScript"
 version: "26"
 description: "Référence technique pour Node.js 26 : runtime, TypeScript natif, test runner, env files."
 date: "2026-10-29"

@@ -1,5 +1,5 @@
 ---
-title: "PRODUCTION — Thibaud Geisler Portfolio"
+title: "PRODUCTION : Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
 date: "2026-10-29"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
@@ -24,8 +24,8 @@ technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokpl
 ### Flow
 
 ```
-feature/* → develop → main → tag vX.Y.Z   (flux normal — fin d'epic)
-hotfix/*  → main → tag vX.Y.Z             (flux hotfix — bug critique prod)
+feature/* → develop → main → tag vX.Y.Z   (flux normal, fin d'epic)
+hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
 ```
 
 ### Flux Release
@@ -87,7 +87,6 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
-- [ ] Si la release embarque la migration `20261006100000_legal_entity_optional_fields` (elle remet `Publisher.vatRegime` à NULL, redéfinit l'enum en `REEL_SIMPLIFIE` / `REEL_NORMAL` et ajoute `vatLiableSince`) : ressaisir la date d'assujettissement et le régime TVA de l'éditeur (Entreprises → fiche de l'éditeur → card Entité légale), puis vérifier `/fr/mentions-legales` (numéro de TVA affiché à la place de la mention 293 B quand l'éditeur est assujetti) et le `vatID` du JSON-LD de `/fr/a-propos`. Si la release charge aussi un dump de la dev (§ Procédure : Remplir la base depuis un dump de dev), `Publisher` est tronquée puis rechargée depuis la dev : ressaisir en dev avant `just db-dump`, ou en production après le chargement. La page légale déduit la franchise de l'absence de `vatLiableSince` (`src/lib/legal/vat-status.ts`), un oubli affiche donc la mention de franchise à un éditeur assujetti
 - [ ] Smoke test : accueil, `/projets`, formulaire contact
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
@@ -129,9 +128,9 @@ NODE_ENV=                           # development | production
 NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, sitemap, JSON-LD, OG)
                                     # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
                                     # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
-LOG_LEVEL=                          # Optionnel — niveau de log Pino (fatal|error|warn|info|debug|trace|silent). Défaut : debug en dev, info en prod
+LOG_LEVEL=                          # Optionnel : niveau de log Pino (fatal|error|warn|info|debug|trace|silent). Défaut : debug en dev, info en prod
 
-# Calendly (widget inline /contact, exposé au navigateur — une URL par locale, event types FR/EN distincts)
+# Calendly (widget inline /contact, exposé au navigateur, une URL par locale, event types FR/EN distincts)
 # ⚠️ Inlinées dans le bundle JS au build → propagées via build args du workflow GHA `deploy.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
 NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
 NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
@@ -148,7 +147,7 @@ NEXT_PUBLIC_SENTRY_DSN=             # DSN du projet Sentry (Project Settings →
 ```bash
 # Via Dokploy → projet Portfolio → Compose Portfolio-app → onglet Environment
 
-# Base de données (Postgres séparée Dokploy Database — DNS interne au réseau Dokploy)
+# Base de données (Postgres séparée Dokploy Database, DNS interne au réseau Dokploy)
 DATABASE_URL=                       # ex prod : postgresql://portfolio:<pass>@portfolio-db-<suffix>:5432/portfolio
                                     # ex dev local : postgresql://portfolio:portfolio@localhost:5432/portfolio
                                     # ⚠️ Le host change selon le contexte : `localhost` en `just dev` natif, `postgres` pour le service nextjs du compose local
@@ -163,7 +162,7 @@ SMTP_PASS=                         # Mot de passe SMTP IONOS
 SMTP_FROM=                         # Adresse expéditeur affichée
 MAIL_TO=                           # Adresse destinataire des messages du formulaire de contact
 
-# Sécurité (hachage des IP dans les logs — pseudonymisation)
+# Sécurité (hachage des IP dans les logs, pseudonymisation)
 IP_HASH_SALT=                      # Sel secret du hash SHA-256 des IP loggées. 16+ caractères. Générer : openssl rand -hex 32
 
 # Cloudflare R2 (assets servis via /api/assets/[...path] et /admin/api/assets/[...path], SDK S3, ADR-011)
@@ -271,7 +270,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 ### Bootstrap technique
 
 - [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`.
-- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7 (`query_compiler_fast_bg.postgresql.mjs`), a été **retiré le 3 septembre 2026**, l'erreur n'étant plus reproductible (build de l'image et runtime du conteneur vérifiés contre une base réelle). Dev, CI et image de production partagent désormais le même bundler. À revalider par un build d'image à chaque montée de Next ou de Prisma. Versions et détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
+- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7, a été **retiré le 2026-09-03** (erreur non reproductible, image et runtime vérifiés contre une base réelle). À revalider par un build d'image à chaque montée de Next ou de Prisma. Détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && exec node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
@@ -284,7 +283,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 - [x] **`/simplify`** : passe qualité sur toute la branche
 - [x] **`/code-review`** + **`Agent(code-reviewer)`** : correctness et conventions du projet
 - [x] **Appliquer les findings retenus** : écartés justifiés en commentaire de PR
-- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (contenu strictement identique à `main`, tag `v1.6.0`). Périmètre porté à l'application entière, le diff de branche étant vide. **Aucune vulnérabilité exploitable.** Path traversal, injection d'en-têtes SMTP, SQLi, XSS, fuite de secrets, `'use cache'` lisant `headers()`/`cookies()` : tous vérifiés et sains. La seule dette relevée, trois `href` alimentés par la BDD sans allowlist de scheme, est close : les schémas Zod de l'espace admin n'y acceptent que `http` et `https`
+- [x] **`/security-review`** : passé le 2026-09-04 sur l'état gelé de `develop` (identique à `main`, tag `v1.6.0`), périmètre porté à l'application entière faute de diff de branche. Aucune vulnérabilité exploitable ; l'unique dette relevée (trois `href` alimentés par la BDD sans allowlist de scheme) est close, les schémas Zod de l'espace admin n'y acceptant que `http` et `https`
 
 > Points de vigilance connus, sans que la revue s'y limite : Server Actions, upload d'assets, surface Prisma exposée.
 
@@ -315,14 +314,12 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 Items effectués une fois, après le premier déploiement validé : ils exigeaient pour la plupart que le site soit accessible publiquement. Comme la Pré-MEP, cette liste est une trace, pas une procédure à rejouer.
 
-- [x] **Seed BDD initial** : effectué au premier déploiement (mai 2026) par le Schedule Dokploy `manual-seed`. Le seed et le Schedule ont disparu avec le sub-project `14` de l'espace admin (septembre 2026) : le contenu vient de l'espace admin, et une base vide se remplit par transfert (§ Backup & Recovery, Procédure : Remplir la base depuis un dump de dev)
-- [x] **Upload assets initial** : copier le contenu local de `assets/` vers le volume Docker `portfolio_assets` (monté sur `/app/assets` du service nextjs) une fois après le 1er déploiement. Sans ça, toutes les images projets et documents retournent 404 via `/api/assets/[...path]` (ADR-011 : assets gitignorés, persistance par volume).
+- [x] **Seed BDD initial** : effectué au premier déploiement (mai 2026) par le Schedule Dokploy `manual-seed`. Il n'existe plus de seed ni de Schedule depuis le sub-project `14` de l'espace admin (septembre 2026) : le contenu vient de l'espace admin
+- [x] **Assets en ligne** : les images projets et les documents répondent via `/api/assets/[...path]` (objets dans les buckets R2, [ADR-011](adrs/011-stockage-assets.md))
 - [x] **Search Console + Bing Webmaster** : vérifier propriété (DNS TXT) + soumettre `sitemap.xml`
 - [x] **Validation rich results JSON-LD** : [Google Rich Results Test](https://search.google.com/test/rich-results) sur `/a-propos` (Profile page) et pages internes (Breadcrumbs), FR + EN, 0 erreur
 - [x] **Accessibilité `/llms.txt`** : `curl` sur l'URL prod retourne le markdown attendu
 - [x] **Baseline Core Web Vitals** : [PageSpeed Insights](https://pagespeed.web.dev/) sur 4 pages clés × 2 locales, noter LCP/INP/CLS comme baseline (cf. [baselines/](baselines/))
-
-> ℹ️ **Il n'existe plus de seed** : `prisma db seed` n'est pas configuré et le dépôt ne porte plus aucune donnée de contenu. Une base se remplit par un dump (`just db-restore` en local, § Backup & Recovery en production), jamais par rejeu de fichiers du dépôt.
 
 ---
 
@@ -342,7 +339,7 @@ Items effectués une fois, après le premier déploiement validé : ils exigeaie
 
 ## Plateforme d'hébergement
 
-Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment. Versions et procédure de relevé : relevé dans la doc privée du VPS.
+Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment. Versions et procédure de relevé : tenues dans une doc privée, hors de ce dépôt public.
 
 **Pièges de montée**, à lire avant d'y toucher :
 
@@ -395,11 +392,11 @@ Procédure pour une demande reçue sur une personne du Traitement 7, prospection
 
 | Droit | Procédure |
 |-------|-----------|
-| **Accès** (réponse sous 1 mois, exigence CNIL) | Aucun écran dédié : réunir à la main tout ce qui concerne la personne (sa fiche, ses actions de prospection, ses opportunités, ses entretiens, ses signaux) |
-| **Rectification** | Correction directe de la fiche depuis l'écran d'administration (`08`, `13`) |
-| **Opposition** (art. 21) | Bouton « Ne plus contacter » (`OptOutPersonDialog`) sur la page d'un lead en modification, actionnable à tout moment et sans justification : appelle `optOutPerson(id)`, qui réduit la fiche à ce qui identifie la personne (email, LinkedIn), pose `Person.optedOutAt` une seule fois, supprime ses signaux, conserve le rôle Lead et l'historique, figé (aucune action créée, modifiée, replanifiée ni changée de statut, seule la suppression reste permise), retire le rôle Contact : une personne opposée sort du réseau, la trace de l'opposition restant sur son rôle Lead. Sa case « La personne demande aussi l'effacement de nos échanges » enchaîne aussitôt `erasePersonExchanges(id)`. Une fiche opposée ne se modifie pas (`updateLead` la refuse) et ne se supprime qu'au terme de ses 3 ans (`deleteLead` la refuse avant) |
-| **Effacement** des échanges (art. 17.1.c) | À tout moment après l'opposition : second geste, bouton « Effacer les échanges » (`ErasePersonExchangesDialog`), action de ligne dans Leads > Tous sur une fiche opposée sans date d'effacement. Il appelle seul `erasePersonExchanges(id)`, qui retire les actions de prospection (message envoyé et réponse reçue) et la place de correspondant d'entretien de la personne, pose `Person.exchangesErasedAt` une seule fois. L'action disparaît de la ligne dès cette date posée |
-| **Fin de conservation** | Leads > Tous, filtre « Échéance : Dépassée ». Un lead actif échu (3 ans après sa création ou sa dernière réponse) se relance pour savoir s'il souhaite rester, puis se supprime depuis l'écran sans réponse positive. Une fiche opposée échue (3 ans après `optedOutAt`) retrouve sur sa ligne le bouton Supprimer, à la place de « Effacer les échanges » : suppression définitive de la fiche et de ses actions. Aucune purge automatique : ce filtre se consulte à la main. Un contact sans rôle Lead n'a pas d'échéance : il se supprime à sa demande (« Supprimer ») |
+| **Accès** (réponse sous 1 mois, exigence CNIL) | Aucun écran dédié : réunir à la main tout ce qui concerne la personne (fiche, actions de prospection, opportunités, entretiens, signaux) |
+| **Rectification** | Corriger la fiche depuis l'espace admin |
+| **Opposition** (art. 21) | Bouton « Ne plus contacter » sur la fiche du lead, à tout moment et sans justification. La fiche est réduite à ce qui identifie la personne et figée, ses signaux sont supprimés, son rôle Contact retiré ; la date d'opposition est posée une seule fois (`Person.optedOutAt`). Une fiche opposée ne se modifie plus et ne se supprime qu'au terme de ses 3 ans. Comportement exact : specs `domaine-freelance-crm` 01, 08 et 13 |
+| **Effacement** des échanges (art. 17.1.c) | Après l'opposition, bouton « Effacer les échanges » sur la ligne de la fiche dans Leads > Tous : retire les actions de prospection et la place de correspondant d'entretien, date posée une seule fois (`Person.exchangesErasedAt`) |
+| **Fin de conservation** | Leads > Tous, filtre « Échéance : Dépassée » : 3 ans après la création ou la dernière réponse d'un lead actif (à relancer, puis à supprimer sans réponse positive), 3 ans après `optedOutAt` pour une fiche opposée (bouton Supprimer). Aucune purge automatique : le filtre se consulte à la main. Un contact sans rôle Lead n'a pas d'échéance, il se supprime à sa demande |
 | **Journal des demandes** | Date de la demande, nature, réponse, date de l'effacement le cas échéant. Tenu hors de ce dépôt, dans une note privée, parce qu'il contient des noms |
 
 ## Security Headers
@@ -448,7 +445,7 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 
 ## Taille des requêtes
 
-`serverActions.bodySizeLimit` (`next.config.ts`) est relevée à **10 Mo** pour l'upload d'assets depuis l'espace admin, contre 1 Mo par défaut. Cette limite porte sur le corps HTTP brut, overhead multipart compris, et diffère de `MAX_ASSET_BYTES` (**8 Mo**, `src/lib/asset-keys.ts`) : c'est ce second chiffre qu'annonce l'interface et que vérifient le client comme le serveur. Les 2 Mo d'écart couvrent cet overhead (boundary et en-têtes multipart) : sans marge, un fichier proche de 8 Mo ferait dépasser le corps de requête et déclencherait le rejet générique du framework au lieu du message de `MAX_ASSET_BYTES`. La mise en garde de Next sur la consommation de ressources d'une limite élevée ne s'applique pas ici : l'action vit derrière l'authentification de l'espace admin et n'est joignable que par le seul compte autorisé (`ADMIN_EMAIL`).
+`serverActions.bodySizeLimit` (`next.config.ts`) est relevée à **10 Mo** pour l'upload d'assets depuis l'espace admin, contre 1 Mo par défaut. Elle porte sur le corps HTTP brut, overhead multipart compris, et diffère de `MAX_ASSET_BYTES` (**8 Mo**, `src/lib/asset-keys.ts`), le chiffre qu'annonce l'interface et que vérifient client et serveur : sans les 2 Mo de marge, un fichier proche de 8 Mo subirait le rejet générique du framework au lieu du message de `MAX_ASSET_BYTES`. Limite élevée sans risque ici : l'action n'est joignable que par le compte `ADMIN_EMAIL`.
 
 ## Domaine & Redirection
 
@@ -479,7 +476,7 @@ Aucune politique CORS : le site ne sert que ses propres pages et ses Server Acti
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
 | Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
 | UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
-| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack, détail : [knowledges/sentry.md](knowledges/sentry.md). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
+| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack : la transaction n'atteint pas le dashboard (reproduit en `11.1.0` le 2026-10-03 sur l'image de production, erreur SMTP de l'action contact reçue avec son `trace_id` mais sans span après plus de 4 minutes, non revalidé en `11.6.0`). Cause et contournements : [knowledges/sentry.md](knowledges/sentry.md#bundler-et-incidents-connus). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
 
 ## Métriques Clés
 
@@ -669,60 +666,6 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 > ⚠️ Tout ce qui a été écrit après la dernière sauvegarde est perdu, c'est le sens du RPO de 24 h. Lire l'horodatage avant de restaurer, et si la perte est inacceptable, chercher d'abord si les données récentes sont récupérables autrement.
 
-### Procédure : Remplir la base depuis un dump de dev
-
-> Exécutée en production le 2026-09-25 (11 projets, 6 entreprises, 47 tags), puis le 2026-10-14 pour la reprise du CRM Notion (entreprises, personnes, leads, contacts, actions, opportunités, entretiens, signaux, revues), chaque fois après répétition sur une base locale à l'état de la prod.
-
-1. Seulement après le déploiement dont les migrations ont créé le schéma du dump : `just db-dump` ne produit que des données, schéma `auth` exclu
-2. **Vérifier que la production n'a pas bougé depuis le dernier chargement**, le `TRUNCATE` effaçant toute saisie faite depuis. Même requête sur la production et sur la base de dev avant les ajouts à transférer :
-   ```bash
-   sudo docker exec -i $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
-   SELECT 'Project' AS t, count(*), max("updatedAt") FROM public."Project"
-   UNION ALL SELECT 'ClientMeta', count(*), max("updatedAt") FROM public."ClientMeta"
-   UNION ALL SELECT 'Tag', count(*), max("updatedAt") FROM public."Tag"
-   UNION ALL SELECT 'ProjectTag', count(*), NULL FROM public."ProjectTag"
-   UNION ALL SELECT 'Company', count(*), max("updatedAt") FROM freelance."Company"
-   UNION ALL SELECT 'Publisher', count(*), max("updatedAt") FROM public."Publisher"
-   UNION ALL SELECT 'DataProcessing', count(*), max("updatedAt") FROM public."DataProcessing"
-   UNION ALL SELECT 'LegalEntity', count(*), max("updatedAt") FROM public."LegalEntity"
-   UNION ALL SELECT 'Address', count(*), max("updatedAt") FROM public."Address"
-   UNION ALL SELECT 'Person', count(*), max("updatedAt") FROM freelance."Person"
-   UNION ALL SELECT 'Lead', count(*), max("updatedAt") FROM freelance."Lead"
-   UNION ALL SELECT 'ProspectingAction', count(*), max("updatedAt") FROM freelance."ProspectingAction"
-   UNION ALL SELECT 'Contact', count(*), max("updatedAt") FROM freelance."Contact"
-   UNION ALL SELECT 'Opportunity', count(*), max("updatedAt") FROM freelance."Opportunity"
-   UNION ALL SELECT 'Interview', count(*), max("updatedAt") FROM freelance."Interview"
-   UNION ALL SELECT 'Signal', count(*), max("updatedAt") FROM freelance."Signal"
-   UNION ALL SELECT 'WeeklyReview', count(*), max("updatedAt") FROM freelance."WeeklyReview";
-   SQL
-   ```
-   Sur la base de dev : `docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev' <<'SQL'`, même requête, prise sur la base de dev **avant** les ajouts à transférer (relevé pris au début de la reprise, avant le `--write`). Les comptes doivent être égaux et aucun `max("updatedAt")` de production postérieur au dernier chargement (la date la plus récente du blockquote ci-dessus, qui s'enrichit à chaque chargement). Sinon, reporter en dev les saisies faites en production, puis refaire le dump. Une fois le CRM transféré, la production est la source de vérité du CRM et un remplissage par dump l'écrase : d'où ce contrôle
-3. Copier le dump sur le VPS (`scp`), puis dans le container de la base : `sudo docker cp <dump> $(sudo docker ps --format '{{.Names}}' | grep portfolio-db):/tmp/content.dump`, et supprimer la copie de l'hôte
-4. **Logos d'entreprise**, avant le chargement : un objet copié en trop est inoffensif, une clé référencée sans objet casse l'affichage. Copier de `portfolio-admin-dev` vers `portfolio-admin` chaque objet que la base de dev référence ; recopier un logo déjà présent en production le remplace par le même fichier. Liste des clés, sur la base de dev :
-   ```bash
-   docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -At' <<'SQL' > logos.txt
-   SELECT "logoFilename" FROM freelance."Company" WHERE "logoFilename" LIKE 'freelance/crm/entreprises/%';
-   SQL
-   while read -r key; do
-     rm -f logo.png
-     wrangler r2 object get "portfolio-admin-dev/$key" --remote --jurisdiction eu --file logo.png < /dev/null || { echo "échec get $key"; break; }
-     wrangler r2 object put "portfolio-admin/$key" --remote --jurisdiction eu --file logo.png --content-type image/png < /dev/null || { echo "échec put $key"; break; }
-   done < logos.txt
-   ```
-   Un `échec` imprimé arrête la boucle : reprendre à cette clé avant d'aller plus loin. Relire chaque objet copié (`wrangler r2 object get "portfolio-admin/$key" --remote --jurisdiction eu --file relu.png`) : pour une clé `logo-<hash>.png`, les 12 premiers caractères de `sha256sum relu.png` égalent ce hash ; pour une autre clé, `sha256sum` donne la même empreinte sur l'objet de dev et sur celui de production. Supprimer ensuite `logos.txt`, `logo.png` et `relu.png`
-5. Vider les tables de contenu et charger le dump dans une seule transaction, `_prisma_migrations` exclue :
-   ```bash
-   sudo docker exec $(sudo docker ps --format '{{.Names}}' | grep portfolio-db) sh -c '
-   pg_restore -l /tmp/content.dump | grep -v _prisma_migrations > /tmp/content.list
-   { echo "BEGIN; TRUNCATE public.\"ProjectTag\", public.\"ClientMeta\", public.\"Project\", public.\"Tag\", freelance.\"Signal\", freelance.\"_InterviewCorrespondents\", freelance.\"Interview\", freelance.\"Opportunity\", freelance.\"ProspectingAction\", freelance.\"Contact\", freelance.\"Lead\", freelance.\"WeeklyReview\", freelance.\"Person\", freelance.\"Company\", public.\"Publisher\", public.\"DataProcessing\", public.\"LegalEntity\", public.\"Address\";"
-     pg_restore --data-only --disable-triggers -L /tmp/content.list -f - /tmp/content.dump
-     echo "COMMIT;"; } | psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -v ON_ERROR_STOP=1 && rm -f /tmp/content.*'
-   ```
-6. Redeploy du Compose : le cache `'use cache'` vit en mémoire, et un chargement SQL ne le revalide pas
-7. Smoke test : accueil, `/projets`, une page projet, `/fr/mentions-legales`, puis dans l'admin la liste des entreprises et, si le dump porte le CRM, celles des leads et des opportunités
-
-> ⚠️ Un échec annule toute la transaction, les tables restent intactes. `--disable-triggers` exige un superuser, ce qu'est l'utilisateur de `portfolio-db` (relevé du 2026-09-25).
-
 ### Procédure : Perte VPS Totale
 
 1. Créer un nouveau VPS IONOS avec la même spec, installer Dokploy (procédure : [knowledges/dokploy.md](knowledges/dokploy.md) ; choix de la plateforme : [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
@@ -743,12 +686,11 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 | Page/Feature | Target | Current |
 |--------------|--------|---------|
-| LCP `/fr` mobile | < 2,5 s | **3,8 à 4,4 s** sur 3 runs PSI (2026-09-25, `v2.0.1`), contre 3,3 à 3,9 s le 5 septembre. Seul indicateur nettement hors cible |
+| LCP `/fr` mobile | < 2,5 s | **3,8 à 4,4 s** sur 3 runs PSI (2026-09-25, `v2.0.1`), seul indicateur nettement hors cible |
 | LCP `/fr/projets` mobile | < 2,5 s | **4,1 s** (PSI, 2026-09-25, `v2.0.1`), 2,8 s sur une page projet |
-| LCP pages publiques desktop | < 2,5 s | **0,7 à 1,1 s** sur les 4 pages × 2 locales (PSI, 2026-09-25, `v2.0.1`), scores 91 à 99 |
+| LCP pages publiques desktop | < 2,5 s | **0,7 à 1,1 s** sur les 4 pages × 2 locales (PSI, 2026-09-25, `v2.0.1`) |
 | CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0,046 sur `/en`, 0 ailleurs** (PSI, 2026-09-25, `v2.0.1`) |
 | TBT (proxy INP en lab) | < 200 ms | **40 à 290 ms** en mobile, 60 à 210 ms en desktop (PSI, 2026-09-25, `v2.0.1`) |
-| Score performance mobile | — | `/fr` **77, 81 et 87** sur 3 runs, 84 à 96 ailleurs (PSI, 2026-09-25, `v2.0.1`). Contre une médiane de 86 sur `/fr` le 5 septembre |
 | TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
@@ -758,24 +700,18 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 
 > ⚠️ **Ne pas relever le TBT en pilotage CDP** : l'observer `longtask` sous CPU ×4 compte sa propre instrumentation et surestime d'un facteur 5 (295-444 ms contre 60-70 ms chez PSI, même build).
 
-> ℹ️ **Sentry ne remplace pas `duration_ms`** sur l'envoi du formulaire de contact : c'est une seconde source pour les routes/queries tracées, pas pour la Server Action elle-même (§ Observabilité › Stack Monitoring, [knowledges/sentry.md](knowledges/sentry.md#instrumentation-des-server-actions)).
-
 ## Optimisations
 
-- [x] Taille des bundles JS surveillée (alors par `@next/bundle-analyzer`, remplacé le 9 octobre 2026 par `next analyze`, seul analyseur qui lise un build Turbopack) : le chunk d'icônes de 2,1 Mo gzip a été éliminé en passant d'un import global à un registre de named imports
-- [x] Baseline LCP/CLS/TBT prise sur les pages clés × 2 locales. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
-- [x] `preload` posé sur les images LCP above-the-fold (cf. [.claude/rules/nextjs/images.md](../.claude/rules/nextjs/images.md) : `priority` est déprécié depuis Next 16, renommé `preload`). Le logo de la navbar, rendu en deux variantes light/dark, voit ses deux variantes préchargées : React 19 précharge aussi une image `loading="eager"`, le passage de l'un à l'autre n'y change rien (constaté le 9 octobre 2026)
-- [x] **CLS desktop** : corrigé et confirmé en prod le 2026-09-04 (`v1.6.1`, Lighthouse 13.4.1). Cause : la coquille PPR ne contenait que la navbar et le footer, que `mt-auto` collait en bas de fenêtre ; l'arrivée du contenu streamé le repoussait de plus de 2000 px. Corrigé en réservant la hauteur du contenu dans le layout racine. **`0,288 → 0,012` en prod** (score perf desktop 74 → 89), cohérent avec le build local (`0,29 → 0,012`). Une première mesure juste après le déploiement avait rendu 0,288 : coïncidence avec la fenêtre où Traefik route déjà vers le nouveau container avant sa pleine disponibilité (§ CI/CD), écartée par une seconde mesure stable
-- [x] Fallback de police calibré : `Sansation` passée en `next/font/local`, le build produit `size-adjust: 102.05%` là où aucune `@font-face` de secours n'était générée. Sans effet mesuré sur le CLS. Mécanisme et garde-fou : [.claude/rules/nextjs/fonts.md](../.claude/rules/nextjs/fonts.md)
-- [x] **`Sansation-Bold` en woff2 pour le navigateur** (`v1.6.3`) : 45 → 16 Ko, 8 Ko de moins sur le chemin critique du LCP. Les OG gardent des `.ttf` ([fonts.md](../.claude/rules/nextjs/fonts.md))
-- [x] Bandeau de consentement sorti du chemin critique : provider de `c15t/next`, surfaces UI en `next/dynamic` (`ssr: false`) via `src/components/cookies/consent-ui.tsx`, qui porte leur CSS (relevé avant c15t 3, dont les surfaces rendent leurs règles en `<style>` : la frontière de chunk reste dans ce module). Les importer du même point d'entrée que le provider aurait laissé l'UI dans le chunk synchrone, et laisser l'`import` CSS dans `providers.tsx` gardait 71 Ko de feuille bloquant le premier rendu : un import CSS ne se conditionne pas. Gain non distinguable du bruit en mesure locale, 11,5 Ko de moins en bloquant
-- [x] **Baseline Core Web Vitals reprise** le 2026-09-05, 5 pages × 2 locales × mobile/desktop ([baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)) plus PSI sur `/fr` et `/fr/projets`, mobile et desktop. **L'élément LCP est le `H1`**, donc un texte : ni les images ni le JS ne sont en cause
-- [x] **Brotli servi** depuis le 2026-09-05 : middleware Traefik `compress-br` sur l'apex + `compress: false` côté Next. Vérifié en prod sur le HTML, le CSS et le JS, HTML 68,3 → 39,7 Ko (-41 %), page complète 656 → 560 Ko ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
-- [x] **`will-change` et `motion` inutiles retirés** (`v1.6.4`) : `will-change: transform` maintenait 216 couches de composition sur les cellules du hero, et `motion` était importé dans `HyperText` sans y animer quoi que ce soit. Aucun changement visuel
-- [x] **Zod sorti du bundle public** (`v2.0.1`) : `src/instrumentation-client.ts` lit le DSN Sentry sans `src/env.ts`, et les fonctions de clés d'asset vivent dans `src/lib/asset-keys.ts`, sans Zod. Bonnes pratiques 96 → **100** partout, JS inutilisé de `/fr` 102 → **42 Kio** ([baselines/cwv-2026-09-25.md](baselines/cwv-2026-09-25.md))
-- [ ] **LCP mobile de l'accueil**, 3,8 à 4,4 s sur 3 runs le 2026-09-25 (`v2.0.1`). Relevé du 2026-09-05 : **3,3 à 3,9 s sur 6 runs** (médiane 3,5 s), contre 3,9 s avant Brotli et 2,5 s visés. Seul indicateur nettement hors cible, `/fr/projets` étant à 3,0 s et le desktop à 1,0 s. La répartition du LCP donne 40 ms de TTFB contre **2 310 ms de délai d'affichage** du `H1`. Les requêtes bloquant le rendu restent chiffrées à 560-590 ms en mobile et 120 ms en desktop : Brotli les a allégées sans les supprimer. La cause est le thread principal (2,4 s de travail, 4 tâches longues), avec 700 ms pour l'hydratation `react-dom` et 359 ms pour `motion`. Les 216 cellules de `BackgroundRippleEffect`, que PSI désigne dans « Optimiser la taille du DOM » (216 enfants sur 888 éléments, seuil Lighthouse à 60), ne pèsent que 55 ms : mesuré, puis écarté (cf. baseline). Restent ensuite 41 Kio de JS inutilisé et les 35 Ko de `motion` sur l'accueil
+- [x] Taille des bundles JS surveillée (`next analyze`, seul analyseur qui lise un build Turbopack) : chunk d'icônes éliminé par un registre de named imports ; `preload` sur les images LCP above-the-fold ([.claude/rules/nextjs/images.md](../.claude/rules/nextjs/images.md))
+- [x] **CLS desktop** : `0,288 → 0,012` en prod au 2026-09-04 (`v1.6.1`). Cause : la coquille PPR ne contenait que navbar et footer, que `mt-auto` collait en bas de fenêtre, repoussés de plus de 2000 px par le contenu streamé. Corrigé en réservant la hauteur du contenu dans le layout racine
+- [x] Police : fallback calibré (`Sansation` en `next/font/local`, `size-adjust` généré) et `Sansation-Bold` en woff2 pour le navigateur, 45 → 16 Ko ([.claude/rules/nextjs/fonts.md](../.claude/rules/nextjs/fonts.md))
+- [x] Bandeau de consentement sorti du chemin critique : surfaces UI en `next/dynamic` (`ssr: false`), CSS importé dans `src/components/cookies/consent-ui.tsx` et non dans `providers.tsx` (un import CSS ne se conditionne pas, 71 Ko de feuille bloquaient le premier rendu)
+- [x] **Brotli** servi depuis le 2026-09-05 : middleware Traefik `compress-br` sur l'apex + `compress: false` côté Next, HTML 68,3 → 39,7 Ko ([knowledges/dokploy.md](knowledges/dokploy.md#compression-brotli-via-traefik))
+- [x] `will-change` et import `motion` inutiles retirés (`v1.6.4`) ; Zod sorti du bundle public (`v2.0.1`), JS inutilisé de `/fr` 102 → 42 Kio ([baselines/cwv-2026-09-25.md](baselines/cwv-2026-09-25.md))
+- [x] Baseline Core Web Vitals reprise sur les pages clés × 2 locales ([baselines/](baselines/)). L'élément LCP est le `H1`, donc un texte. L'INP n'est pas mesurable ici : il demande du terrain, et CrUX reste vide
+- [ ] **LCP mobile de l'accueil** : cible 2,5 s, mesure en § Benchmarks. Cause : le thread principal (hydratation `react-dom` 700 ms, `motion` 359 ms), non le réseau (TTFB 40 ms contre 2 310 ms de délai d'affichage du `H1`). Les 216 cellules de `BackgroundRippleEffect` ne pèsent que 55 ms : écartées. Détail et pistes : [baselines/cwv-2026-09-05.md](baselines/cwv-2026-09-05.md)
 
-> La revalidation type ISR est en place : `cacheComponents: true` + `'use cache'` + `cacheLife` sur les queries, avec 4 tags (`projects`, `tags`, `legal-entity`, `legal-content`). Les actions de l'espace admin invalident `projects` et `tags` par `updateTag`. Une écriture faite hors de l'app, chargement SQL compris, n'invalide rien : le cache vit en mémoire, un Redeploy le vide.
+> Cache `'use cache'` en mémoire : une écriture faite hors de l'app (chargement SQL compris) n'invalide rien, un Redeploy le vide. Tags et invalidation : [ARCHITECTURE.md § Cache](ARCHITECTURE.md#cache).
 
 ---
 

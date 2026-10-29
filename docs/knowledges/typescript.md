@@ -1,5 +1,5 @@
 ---
-title: "TypeScript — Langage typé"
+title: "TypeScript : Langage typé"
 version: "6.0.3"
 description: "Référence technique pour TypeScript 6 : tsconfig, inférence, patterns et intégration Next.js."
 date: "2026-10-11"
@@ -217,7 +217,7 @@ type ProjectWithAssets = Prisma.ProjectGetPayload<{
 # Générer un tsconfig.json avec les défauts v6
 pnpm exec tsc --init
 
-# Pour Next.js, le tsconfig est généré par create-next-app — pas besoin
+# Pour Next.js, le tsconfig est généré par create-next-app : pas besoin
 ```
 
 ### Points Importants
