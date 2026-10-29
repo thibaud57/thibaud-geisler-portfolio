@@ -19,7 +19,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Node.js | `26.13.0` | ✅ LTS Active | Ligne 26 « Lithium », **suivie sans patch épinglé** : `node:26-alpine` et `runtime: node@26` résolvent la dernière 26.x à chaque build, `engines.node` vaut `^26.0.0`. Active LTS depuis le **28 octobre 2026** (champ `lts` de `nodejs.org/dist/index.json`, relevé le 29 octobre 2026). La 24 est en Maintenance LTS depuis le 20 octobre 2026 |
+| Node.js | `26.13.0` | ✅ LTS Active | Ligne 26 « Lithium », patch épinglé par `devEngines.runtime` (`onFail: download`), repris par le tag `node:26.13.0-alpine`. Montée manuelle : Dependabot ne monte pas `devEngines.runtime` (dependabot-core#13722, relevé le 2026-10-29). Active LTS depuis le **28 octobre 2026** (champ `lts` de `nodejs.org/dist/index.json`, relevé le 29 octobre 2026). La 24 est en Maintenance LTS depuis le 20 octobre 2026 |
 | pnpm | `12.15.0` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 | ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.1` |
@@ -99,7 +99,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA (`checkout` 7.0.1, `cache` 6.1.0, `pnpm/setup` 3.1.2), `runtime: node@26` explicite |
+| GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA (`checkout` 7.0.1, `cache` 6.1.0, `pnpm/setup` 3.1.2), `pnpm/setup` lit `devEngines.runtime` |
 | actionlint | `1.7.12` | ✅ | Appelé par `just lint`, absent des runners : `ci.yml` télécharge le script épinglé au commit du tag, en lui passant `1.7.12` (relevé le 29 octobre 2026). Installation locale : `winget install rhysd.actionlint` |
 
 ---
@@ -113,13 +113,13 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Version actuelle** : `26.13.0` (LTS Active, « Lithium », publiée le 28 octobre 2026, V8 14.6, npm 11.20.0 : `nodejs.org/dist/index.json`, relevé le 29 octobre 2026)
 **Stabilité** : ✅
 
-**Le patch ci-dessus est celui du jour, pas une contrainte** : `node:26-alpine` dans le Dockerfile et `runtime: node@26` dans `ci.yml` résolvent la dernière 26.x disponible à chaque build. C'est la **ligne 26** qui est la décision, le patch se relit ici à titre indicatif.
+**Le patch ci-dessus est épinglé** : `devEngines.runtime` (poste et CI) et le tag `node:26.13.0-alpine` du Dockerfile se montent ensemble, à la main pour le premier, par PR Dependabot (`docker`) pour le second. Image alpine : `sharp` et les moteurs Prisma publient des binaires musl.
 
 **Breaking Changes Majeurs (v24 → v26)** (notes de version `v26.0.0` du 2026-05-05, `nodejs.org/en/blog/release/v26.0.0`, relevées le 2026-10-29). Aucune ne touche le code du projet (grep du 2026-10-29) :
 - Retirés : `http.Server.prototype.writeHeader()` (→ `writeHead()`), modules `_stream_*`, option `--experimental-transform-types`
 - Dépréciation à l'exécution : `module.register()`
 - Undici 8.0.2 pour `fetch()`
-- Build Node depuis les sources : GCC 13.2 minimum, Python 3.9 abandonné (sans objet, image `node:26-alpine`)
+- Build Node depuis les sources : GCC 13.2 minimum, Python 3.9 abandonné (sans objet, image `node:26.13.0-alpine`)
 
 **Nouvelles Features Pertinentes** (mêmes notes) :
 - V8 14.6 : `Map.prototype.getOrInsert()` / `getOrInsertComputed()`, `Iterator.concat()`
@@ -129,9 +129,9 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - Next.js 16 : ✅
 - Prisma 7 : ✅ (`engines` de `prisma@7.10.1` : `^20.19 || ^22.12 || >=24.0`)
 - pnpm 12 : ✅ (`engines.node >=18` dans les métadonnées npm, relevé le 11 octobre 2026)
-- Docker : ✅ (`node:26-alpine`, sans `libc6-compat` depuis le 9 octobre 2026 : `sharp` et les moteurs Prisma publient des binaires musl)
+- Docker : ✅ (`node:26.13.0-alpine`, sans `libc6-compat` depuis le 9 octobre 2026 : `sharp` et les moteurs Prisma publient des binaires musl)
 
-**À noter** : Node.js 20 est EOL depuis le **30 avril 2026**. Node.js 22 est en Maintenance LTS. La ligne 24 y est passée le **20 octobre 2026**, la 26 est Active LTS depuis le **28 octobre 2026** jusqu'au 20 octobre 2027, puis Maintenance jusqu'au 30 avril 2029 (`schedule.json` de `nodejs/Release`, relevé le 29 octobre 2026). Une ligne impaire (27) n'est jamais LTS : `engines.node` en `^26.0.0`, pas `>=`. Corepack n'est plus utilisé depuis le 15 octobre 2026 (retiré de Node à partir de la 25) : pnpm s'installe par `npm install -g pnpm@12` dans l'image.
+**À noter** : Node.js 20 est EOL depuis le **30 avril 2026**. Node.js 22 est en Maintenance LTS. La ligne 24 y est passée le **20 octobre 2026**, la 26 est Active LTS depuis le **28 octobre 2026** jusqu'au 20 octobre 2027, puis Maintenance jusqu'au 30 avril 2029 (`schedule.json` de `nodejs/Release`, relevé le 29 octobre 2026). Une ligne impaire (27) n'est jamais LTS : rester sur une 26.x exacte. Corepack n'est plus utilisé depuis le 15 octobre 2026 (retiré de Node à partir de la 25) : pnpm s'installe par `npm install -g pnpm@12` dans l'image.
 
 **Vérifié le 29 octobre 2026** sur 26.13.0 : `just lint`, `just typecheck`, `just test` (unit et intégration), `just build` verts, `pnpm audit` sans high, `docker build --target runner` passe et l'image exécute Node 26.13.0, Prisma 7.10.1 et sharp 0.35.5.
 
@@ -179,7 +179,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 - TypeScript : ⚠️ ne pas activer `preserveSymlinks: true` (résolution des types cassée)
 - Node.js : `>=22` en 11.x (le projet est en Node 26)
 - Dockerfile : `npm install -g pnpm@12` dans `base`, puis `devEngines` télécharge la version exacte. Corepack n'est plus utilisé (retiré de Node à partir de la 25)
-- `pnpm/setup@v3.1.2` : ✅ lit `devEngines.packageManager` et installe pnpm, Node (`runtime:`) et les dépendances en un step
+- `pnpm/setup@v3.1.2` : ✅ lit `devEngines.packageManager` et lit aussi `devEngines.runtime` pour Node et installe les dépendances en un step
 - Dependabot : ⚠️ PR de mise à jour fonctionnelles ; alertes de sécurité npm non fiables, le graphe de dépendances GitHub ne lisant que le premier document du lockfile ([dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904), ouverte au 15 octobre 2026). Son cooldown par défaut (3 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
 
 **Issues connues** :
@@ -1026,7 +1026,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
   - `ubuntu-20.04` retiré définitivement le **15 avril 2025**, toute référence à ce label échoue
   - Différences de packages pré-installés sur ubuntu-24.04 vs 22.04 (certains outils retirés pour respecter le SLA de disk space)
 - **actions/checkout v6 → v7** : le checkout d'une PR issue d'un fork est **bloqué** sur `pull_request_target` et `workflow_run`. Sans objet pour ce dépôt (aucun de ces deux déclencheurs), mais c'est le changement de comportement de la majeure. L'action est aussi passée en ESM
-- **`pnpm/action-setup` + `actions/setup-node` → `pnpm/setup`** (#207 et #208, 27 octobre 2026) : un seul step installe pnpm (version lue dans `devEngines.packageManager`), Node (`runtime: node@24` alors, passé en `node@26` le 29 octobre 2026 ; l'action ne lit pas `engines`) et les dépendances (`cache: true`). Son install remplace le `pnpm install --frozen-lockfile` du workflow : `require-lockfile: true` garde l'échec sur lockfile absent
+- **`pnpm/action-setup` + `actions/setup-node` → `pnpm/setup`** (#207 et #208, 27 octobre 2026) : un seul step installe pnpm (version lue dans `devEngines.packageManager`), Node (`runtime: node@24` alors, puis `node@26`, remplacé par `devEngines.runtime` le 29 octobre 2026) et les dépendances (`cache: true`). Son install remplace le `pnpm install --frozen-lockfile` du workflow : `require-lockfile: true` garde l'échec sur lockfile absent
 - **actions/checkout v5 → v6** : credentials ne sont plus écrits inline dans `.git/config`, stockés dans un fichier séparé (impact potentiel sur les outils qui lisent `.git/config` directement)
 - **Immutable Actions (février 2025)** : nouveaux domaines à autoriser pour les self-hosted runners (`pkg.actions.githubusercontent.com`, `ghcr.io`)
 
@@ -1034,13 +1034,13 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 - **actions/checkout v6** : support des git worktrees avec `persist-credentials` + `includeIf`, correction du comportement `fetch-tags` sur les tags annotés
 
 **Compatibilité Écosystème** :
-- Node.js 26 : ✅ via `runtime: node@26` de `pnpm/setup` (override requis, le défaut du runner n'est pas Node 26)
+- Node.js 26 : ✅ via `devEngines.runtime` lu par `pnpm/setup` (le défaut du runner n'est pas Node 26)
 - pnpm 12 : ✅ via `pnpm/setup@v3`, version lue dans `devEngines.packageManager`
 - PostgreSQL 18 : ✅ via service container (image Docker `postgres:18-alpine`)
 
 **Points d'attention** :
 - `ubuntu-latest` bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 19 octobre et le 19 novembre 2026) : **épingler explicitement la version**
-- **Node par défaut sur le runner ≠ Node du projet** : sur l'image `20260831.293.1`, le Node système est `22.23.2` et le tool cache contient `22.23.2` et `24.20.0`. Ces valeurs bougent à chaque image runner, ne pas s'y fier : toujours `runtime: node@26` dans `pnpm/setup`
+- **Node par défaut sur le runner ≠ Node du projet** : sur l'image `20260831.293.1`, le Node système est `22.23.2` et le tool cache contient `22.23.2` et `24.20.0`. Ces valeurs bougent à chaque image runner, ne pas s'y fier : Node vient de `devEngines.runtime`, jamais du runner
 - **`just` épinglé par la composite `.github/actions/setup-just`** : elle lit `minimum-version` du `Justfile` et le passe à `extractions/setup-just`, seule source de la version
 - Node.js 20, EOL depuis le 30 avril 2026, est retiré des runners depuis le 23 septembre 2026
 - **Réglage du dépôt** (Settings > Actions > General) : `default_workflow_permissions: read` et approbation de PR par les workflows désactivée depuis le 9 octobre 2026 (auparavant `write` et autorisée). Chaque workflow déclare en plus ses `permissions:`
@@ -1088,7 +1088,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Conflit | Risque | Solution |
 |---|---|---|
 | nodemailer < 8.0.5 + CRLF injection | 🔴 Critique | Pinner nodemailer >= 8.0.5 dans `package.json` |
-| Node.js 20 EOL (30 avril 2026) | ✅ Traité | Échéance passée, le projet est en `node:26-alpine` et `runtime: node@26`. Ne jamais redescendre sur `node:20-*` |
+| Node.js 20 EOL (30 avril 2026) | ✅ Traité | Échéance passée, le projet est en `node:26.13.0-alpine` et `devEngines.runtime` 26.13.0. Ne jamais redescendre sur `node:20-*` |
 | Prisma 7 `.env` non chargé au runtime | 🟡 Moyen | `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, recommandation Next.js. Cause de l'erreur P1010 si oublié |
 | Pino + Next.js App Router (bundling) | ✅ Traité | Pino figure dans la liste `serverExternalPackages` par défaut de Next, que `next.config.ts` redéclare |
 | next-intl + `use cache` (Next 16.0 à 16.2) | 🟡 Moyen | Utiliser Next.js >= 16.3 (le projet est en 16.4.3) |
@@ -1119,8 +1119,8 @@ Le fichier réel est la source de vérité, ne pas dupliquer la liste des dépen
 {
   "version": "<bumpé par release-please>", // jamais à la main
   "type": "module",                // requis : Prisma 7 est ESM-only
-  "engines": { "node": "^26.0.0" },
-  "devEngines": {                  // seule déclaration de la version de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/setup
+  "devEngines": {                  // seule déclaration des versions de Node et de pnpm, lue par pnpm (poste, Dockerfile) et pnpm/setup
+    "runtime": { "name": "node", "version": "26.13.0", "onFail": "download" },
     "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" }
   },
   "scripts": {
@@ -1298,7 +1298,6 @@ jobs:
       - uses: actions/checkout@<sha> # v7.0.1
       - uses: pnpm/setup@<sha> # v3.1.2, pnpm lu dans `devEngines.packageManager`
         with:
-          runtime: node@26
           cache: true
           require-lockfile: true  # l'install de l'action remplace `pnpm install --frozen-lockfile`
       - run: pnpm typecheck
@@ -1347,7 +1346,7 @@ pnpm test
 - [ ] `preserveSymlinks: false` (ou omis) dans `tsconfig.json`
 - [ ] nodemailer >= 10.0.11 dans `package.json` (plancher de sécurité 8.0.5, entrée CommonJS rétablie en 10.0.11)
 - [ ] `dataCollection: SENTRY_DATA_COLLECTION` dans chacun des trois `Sentry.init` (Sentry 11 collecte tout sans)
-- [ ] Image Docker Node.js : `node:26-alpine` (pas `node:20-*`)
+- [ ] Image Docker Node.js : `node:26.13.0-alpine`, égale à `devEngines.runtime` (pas `node:20-*`)
 - [ ] Image Docker Postgres : `postgres:18-alpine` avec PGDATA adapté
 - [ ] `allowBuilds` de `pnpm-workspace.yaml` liste chaque dépendance à scripts de build, à `true` ou `false` (`strictDepBuilds` depuis pnpm 11)
 - [ ] Aucun `minimumReleaseAgeExclude` résiduel dans `pnpm-workspace.yaml` une fois les 24 h passées
@@ -1378,7 +1377,7 @@ Verdict : Stack compatible et production-ready. Prisma 7 + Next.js 16 + PostgreS
 
 ## Points Critiques
 
-1. **Node.js : rester sur une LTS paire** : image Docker `node:26-alpine` (ligne 26 « Lithium », Active LTS depuis le 28 octobre 2026), `engines.node` en `^26.0.0`. Ne jamais suivre une ligne Current (impaire)
+1. **Node.js : rester sur une LTS paire** : image Docker `node:26.13.0-alpine` égale à `devEngines.runtime` (ligne 26 « Lithium », Active LTS depuis le 28 octobre 2026). Ne jamais suivre une ligne Current (impaire)
 2. **nodemailer** : v10 depuis le 3 octobre 2026, jamais une 10.x antérieure à 10.0.11. La CVE CRLF (GHSA-vvjj-xcjg-gr5g) est corrigée depuis 8.0.5, ne jamais déployer une version antérieure
 3. **Prisma 7 `.env` runtime** : charger via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts`, la cause principale de l'erreur P1010 "User was denied access"
 4. **Pino + Next.js App Router** : `serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream']`, déjà dans la liste par défaut de Next, redéclaré dans `next.config.ts`
@@ -1575,7 +1574,7 @@ Elles sont hors du tableau principal et hors numérotation, pour une raison pré
 - [endoflife.date : Node.js](https://endoflife.date/nodejs)
 - [endoflife.date : PostgreSQL](https://endoflife.date/postgresql)
 - [endoflife.date : pnpm](https://endoflife.date/pnpm)
-- [Docker Hub : node:26-alpine](https://hub.docker.com/_/node)
+- [Docker Hub : node (tag 26.13.0-alpine)](https://hub.docker.com/_/node)
 - [Docker Hub : postgres:18](https://hub.docker.com/_/postgres)
 - [GHSA-vvjj-xcjg-gr5g : nodemailer CRLF](https://github.com/advisories/GHSA-vvjj-xcjg-gr5g)
 - [The Twelve-Factor App](https://12factor.net/)
