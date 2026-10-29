@@ -22,7 +22,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Node.js | `26.13.0` | ✅ LTS Active | Ligne 26 « Lithium », **suivie sans patch épinglé** : `node:26-alpine` et `runtime: node@26` résolvent la dernière 26.x à chaque build, `engines.node` vaut `^26.0.0`. Active LTS depuis le **28 octobre 2026** (champ `lts` de `nodejs.org/dist/index.json`, relevé le 29 octobre 2026). La 24 est en Maintenance LTS depuis le 20 octobre 2026 |
 | pnpm | `12.15.0` | ⚠️ | Épinglé par `devEngines.packageManager` (`onFail: download`) depuis le 15 octobre 2026, lu par le Dockerfile, la CI et chaque poste. `strictDepBuilds` et `minimumReleaseAge` d'un jour actifs, cf. § pnpm. Lockfile à deux documents : alertes de sécurité npm de GitHub non fiables tant que [dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904) est ouverte |
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
-| ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.0` |
+| ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.1` |
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
 | just | `1.58.0` (plancher) | ✅ | `set minimum-version := "1.58.0"` dans le `Justfile`, pas une version épinglée : la composite `.github/actions/setup-just` lit ce plancher et installe cette version en CI, un poste local peut avoir plus récent. Le plancher n'a pas bougé (relevé le 29 octobre 2026) |
 | tsx | `4.23.15` | ✅ | Exécute les scripts TypeScript hors Next (devDependency, `pnpm-lock.yaml`, relevé le 29 octobre 2026) |
@@ -37,7 +37,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | React | `19.3.1` | ✅ | Bundlé avec Next.js 16, nombreuses APIs legacy retirées en v19. `<ViewTransition>` et Fragment Refs stables depuis la 19.3 |
 | Tailwind CSS | `4.3.3` | ✅ | CSS-first config, utilitaires renommés |
 | shadcn/ui (CLI) | `shadcn@4.23.0` | ✅ | Composants copiés localement, style `radix-nova`. `init` choisit Base UI par défaut depuis juillet 2026 : `-b radix` |
-| cn | `0.5.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels). **0.4.0 → 0.5.0** (16 octobre 2026) : aucun breaking sur l'API `cn()` que le projet utilise ; la 0.5.0 abandonne Node 20 (Node 22 minimum, le projet est en Node 24) et ajuste `cn build`, que le projet n'utilise pas (changelog [shadcn-ui/cn](https://github.com/shadcn-ui/cn/releases/tag/cn%400.5.0)) |
+| cn | `0.5.0` | ⚠️ | Merge des classes Tailwind importé par les composants du registry shadcn depuis septembre 2026. Remplace `clsx` + `tailwind-merge` depuis le 9 octobre 2026 (`shadcn migrate cn`), `src/lib/utils.ts` le réexporte. Pré-1.0 : son README annonce la même sortie que `tailwind-merge` v3 (356 000 tests différentiels). **0.4.0 → 0.5.0** (16 octobre 2026) : aucun breaking sur l'API `cn()` que le projet utilise ; la 0.5.0 abandonne Node 20 (Node 22 minimum) et ajuste `cn build`, que le projet n'utilise pas (changelog [shadcn-ui/cn](https://github.com/shadcn-ui/cn/releases/tag/cn%400.5.0)) |
 | Magic UI | copy-paste (no semver) | ✅ | Installation via `shadcn@latest add` |
 | Aceternity UI | copy-paste (no semver) | ✅ | Utilise `motion` (pas `framer-motion`) |
 | ReUI | copy-paste (no semver) | ✅ | Registre `@reui` via le CLI shadcn, style `radix-nova`. `Kanban` et `EventCalendar` installés |
@@ -115,22 +115,15 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 **Le patch ci-dessus est celui du jour, pas une contrainte** : `node:26-alpine` dans le Dockerfile et `runtime: node@26` dans `ci.yml` résolvent la dernière 26.x disponible à chaque build. C'est la **ligne 26** qui est la décision, le patch se relit ici à titre indicatif.
 
-**Breaking Changes Majeurs (v22 → v24, acquis de la ligne précédente)** :
-- OpenSSL 3.5 : clés RSA/DSA < 2048 bits et ECC < 224 bits refusées, RC4 bloqué
-- 32-bit Linux armv7 : « no longer supported » selon le guide de migration v22 → v24, « downgraded to experimental support » selon le blog `v24.0.0`. Les deux sources divergent, sans objet ici (build amd64/arm64)
-- macOS minimum : 13.5
-- `dirent.path` → `dirent.parentPath` (DEP0178 finalisée)
-- `fs.F_OK` etc. doivent passer par `fs.constants.*` (DEP0176 finalisée)
-- Erreurs stream/pipe silencieuses deviennent des exceptions
-- V8 13.6 : C++20 potentiellement requis pour les addons natifs
+**Breaking Changes Majeurs (v24 → v26)** (notes de version `v26.0.0` du 2026-05-05, `nodejs.org/en/blog/release/v26.0.0`, relevées le 2026-10-29). Aucune ne touche le code du projet (grep du 2026-10-29) :
+- Retirés : `http.Server.prototype.writeHeader()` (→ `writeHead()`), modules `_stream_*`, option `--experimental-transform-types`
+- Dépréciation à l'exécution : `module.register()`
+- Undici 8.0.2 pour `fetch()`
+- Build Node depuis les sources : GCC 13.2 minimum, Python 3.9 abandonné (sans objet, image `node:26-alpine`)
 
-**Deux sources, pas une** : le guide de migration officiel ne couvre qu'OpenSSL 3.5, armv7, macOS 13.5 et V8 13.6. Les dépréciations finalisées (`dirent.path`, `fs.F_OK`), `URLPattern`, Undici 7 et npm 11 viennent du blog de release `v24.0.0`.
-
-**Nouvelles Features Pertinentes** :
-- V8 13.6 : améliorations de perf ~30% sur cas réels
-- `URLPattern` global sans import
-- Undici v7 pour `fetch()` plus rapide
-- npm v11 inclus
+**Nouvelles Features Pertinentes** (mêmes notes) :
+- V8 14.6 : `Map.prototype.getOrInsert()` / `getOrInsertComputed()`, `Iterator.concat()`
+- Temporal API activée par défaut
 
 **Compatibilité Écosystème** :
 - Next.js 16 : ✅
