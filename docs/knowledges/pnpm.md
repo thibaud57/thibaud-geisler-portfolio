@@ -2,7 +2,7 @@
 title: "pnpm — Package Manager"
 version: "12.15.0"
 description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
-date: "2026-10-15"
+date: "2026-10-29"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs", "supply-chain"]
 scope: ["docs"]
 technologies: ["Node.js", "TypeScript", "Next.js"]
@@ -192,7 +192,7 @@ pnpm install
 
 - Le champ est lu par pnpm lui-même et par `pnpm/action-setup` (sans `version:`). pnpm 11 remplace `managePackageManagerVersions` et `packageManagerStrict*` par `pmOnFail`
 - Les métadonnées npm de pnpm 12.11.2 déclarent `engines.node >=18` (relevé le 2026-10-11)
-- `docker build --target deploy-prisma` passait avec Corepack le 2026-10-11 ; le passage à `npm install -g pnpm@12` du 2026-10-15 est à vérifier au prochain build
+- `docker build --target deploy-prisma` passait avec Corepack le 2026-10-11 ; le passage à `npm install -g pnpm@12` du 2026-10-15 est vérifié par `docker build --target runner` du 2026-10-29 (Node 26)
 
 ---
 

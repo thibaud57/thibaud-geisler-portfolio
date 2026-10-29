@@ -24,6 +24,10 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | TypeScript | `6.0.3` | ✅ | `strict: true` et `module: esnext` par défaut. **TS 7 bloqué** : `typescript-eslint` (tiré par `eslint-config-next`) plafonne à `typescript <6.1.0` |
 | ESLint | `10.13.0` | ✅ | **Montée en v10 le 9 octobre 2026**, débloquée par `eslint-config-next@16.4.0`, qui patche `eslint-plugin-react`, `eslint-plugin-import` et `eslint-plugin-jsx-a11y` pour ESLint 10 ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). Leurs peers déclarés s'arrêtent à ESLint 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Typed linting **adopté le 2026-09-06** : `typescript-eslint@8.69.0` passé en devDependency directe, `strictTypeChecked` + `stylisticTypeChecked` dans `eslint.config.mjs`, `projectService: true`. Parti de 92 erreurs, ramené à 0. Deux réglages en portent 78 : `restrict-template-expressions` avec `allowNumber: true` (67, retour au défaut de la règle, `allowAny`/`allowNullish`/`allowBoolean` restent à `false`) et `unbound-method` désactivée sur `**/*.test.ts(x)` seulement (11, un mock se lit par référence et n'est jamais appelé ; `vi.mocked()` déclenche la même erreur, mesuré). `typescript-eslint` en `8.72.0` |
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes Tailwind (déclaré dans `.prettierrc`, feuille `src/app/globals.css`) |
+| just | `1.58.0` (plancher) | ✅ | `set minimum-version := "1.58.0"` dans le `Justfile`, pas une version épinglée : la composite `.github/actions/setup-just` lit ce plancher et installe cette version en CI, un poste local peut avoir plus récent. Le plancher n'a pas bougé (relevé le 29 octobre 2026) |
+| tsx | `4.23.15` | ✅ | Exécute les scripts TypeScript hors Next (devDependency, `pnpm-lock.yaml`, relevé le 29 octobre 2026) |
+| @types/node | `26.6.5` | ✅ | Types Node.js, même ligne majeure que le runtime (devDependency, relevé le 29 octobre 2026) |
+| eslint-config-prettier | `10.1.8` | ✅ | Désactive les règles ESLint qui entrent en conflit avec Prettier, dernier bloc de la flat config (version épinglée sans plage, relevé le 29 octobre 2026) |
 
 ## Framework & UI
 
@@ -43,6 +47,14 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | next-intl | `4.14.9` | ✅ | Nécessite Next.js >= 16.3 pour `use cache`. `alternateLinks: false` : les hreflang viennent des seules métadonnées |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques pour badges stack projets (DESIGN.md § Mapping Composants). Lucide (inclus shadcn) pour l'UI |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG pour LanguageSwitcher (ratio 3:2, compatible TS 6 via `typeof FR`) |
+| lucide-react | `1.63.0` | ✅ | Icônes de l'UI générale, fournies avec shadcn/ui (relevé dans `pnpm-lock.yaml` le 29 octobre 2026) |
+| radix-ui | `1.8.1` | ✅ | Paquet unique des primitives Radix utilisées par les composants shadcn (style `radix-nova`) |
+| class-variance-authority | `0.7.1` | ✅ | Variantes de classes des composants shadcn (`cva`) |
+| cmdk | `1.1.1` | ✅ | Palette de commandes, dépendance des composants shadcn `command` |
+| react-day-picker | `10.0.2` | ✅ | Calendrier du composant shadcn `calendar` |
+| sonner | `2.0.8` | ✅ | Toasts, composant shadcn `sonner` |
+| @types/react | `19.3.0` | ✅ | Types React, alignés sur React 19.3 (devDependency) |
+| @types/react-dom | `19.3.0` | ✅ | Types React DOM, alignés sur React 19.3 (devDependency) |
 
 ## Librairies applicatives
 
@@ -58,6 +70,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | c15t | `3.1.0` | ✅ | CMP de consentement cookies, mode `offline`, juridiction forcée FR. Conditionne le montage de Calendly. Monté en v3 le 27 octobre 2026 : un accord enregistré en v2 est redemandé une fois (un refus reste respecté). Fiche : [knowledges/c15t.md](knowledges/c15t.md) |
 | react-markdown | `10.1.0` | ✅ | Rendu du markdown des case studies. Neutralise nativement les URL `javascript:` via `defaultUrlTransform`, ne pas poser de `urlTransform` custom sans revalider ce point |
 | remark-gfm | `4.0.1` | ✅ | Plugin GitHub Flavored Markdown de react-markdown (tableaux, checkboxes, autolinks, barré). Paquet distinct, non embarqué par react-markdown |
+| pg | `8.23.1` | ✅ | Driver PostgreSQL, consommé par `@prisma/adapter-pg` (cf. § Prisma ORM). Relevé dans `pnpm-lock.yaml` le 29 octobre 2026 |
 | Sentry (`@sentry/nextjs`) | `11.9.0` | ⚠️ | Monitoring d'erreurs et tracing serveur, cloud (ADR-017). **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Turbopack : spans des Server Actions absents (relevé en 11.1.0 le 3 octobre 2026, non revalidé en 11.9.0), capture d'erreur et tracing routes/queries opérationnels. Détail : § Sentry |
 | @aws-sdk/client-s3 | `3.1158.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.14` | ✅ | Authentification de l'espace admin, Google OAuth comme unique provider, aucun Credentials (ADR-002). Modèles Prisma écrits à la main dans le schema `auth`, jamais via `@better-auth/cli generate`. Détail : [knowledges/better-auth.md](knowledges/better-auth.md) |
@@ -72,6 +85,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 |---|---|---|---|
 | Vitest | `5.0.5` | ✅ | Vite >= 6.4 (peer obligatoire) + Node.js >= 22.12. `clearMocks: true` par défaut en v5. Combo `@testing-library/react 16.x`. `jsdom@30`, `@testing-library/jest-dom@7` |
 | @vitejs/plugin-react | `6.1.2` | ✅ | Plugin officiel (doc Next 16 Vitest), JSX transform (Babel, pas SWC) |
+| @testing-library/dom | `10.4.2` | ✅ | Peer de `@testing-library/react` 16.x, déclaré explicitement (devDependency, relevé le 29 octobre 2026) |
 
 ## Base de données
 
@@ -79,12 +93,14 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 |---|---|---|---|
 | PostgreSQL | `18.6` | ✅ | Image `postgres:18-alpine`, aucun patch épinglé. Checksums activés par défaut, volume Docker changé |
 | Prisma ORM | `7.10.1` | ✅ | ESM-only, driver adapter obligatoire, `.env` non auto-chargé au runtime |
+| @types/pg | `8.23.1` | ✅ | Types du driver `pg` (devDependency, même version que `pg`, relevé le 29 octobre 2026) |
 
 ## CI / CD
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA (`checkout` 7.0.1, `cache` 6.1.0, `pnpm/setup` 3.1.2), `runtime: node@26` explicite |
+| actionlint | `1.7.12` | ✅ | Appelé par `just lint`, absent des runners : `ci.yml` télécharge le script épinglé au commit du tag, en lui passant `1.7.12` (relevé le 29 octobre 2026). Installation locale : `winget install rhysd.actionlint` |
 
 ---
 
@@ -1027,7 +1043,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 **Compatibilité Écosystème** :
 - Node.js 26 : ✅ via `runtime: node@26` de `pnpm/setup` (override requis, le défaut du runner n'est pas Node 26)
 - pnpm 12 : ✅ via `pnpm/setup@v3`, version lue dans `devEngines.packageManager`
-- PostgreSQL 18 : ✅ via service container (image Docker `postgres:18`)
+- PostgreSQL 18 : ✅ via service container (image Docker `postgres:18-alpine`)
 
 **Points d'attention** :
 - `ubuntu-latest` bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 19 octobre et le 19 novembre 2026) : **épingler explicitement la version**
@@ -1059,7 +1075,7 @@ Comme pour Node, **aucun patch n'est épinglé** : l'image est `postgres:18-alpi
 | Tailwind 4.3.3 | Aceternity UI | ✅ | Tailwind v4 standard documenté |
 | Zod 4.6.7 | TypeScript 6.0.3 | ✅ | TypeScript >= 5.5 requis |
 | pnpm 12.15.0 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
-| pnpm 12.15.0 | Node.js 26.13.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, à vérifier au prochain build |
+| pnpm 12.15.0 | Node.js 26.13.0 | ✅ | `engines.node >=18`. Build de l'image vérifié le 11 octobre 2026 avec Corepack ; installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, `docker build --target runner` vérifié le 29 octobre 2026 avec Node 26 |
 | Node.js 26.13.0 | Prisma 7.10.1 | ✅ | `engines` : `^20.19 || ^22.12 || >=24.0` |
 | Node.js 26.13.0 | Next.js 16.4.3 | ✅ | Node.js >= 20.9 requis |
 | Node.js 26.13.0 | Pino 10.4.0 | ✅ | Node.js >= 20 requis |
