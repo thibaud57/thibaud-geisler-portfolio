@@ -9,10 +9,10 @@ if (typeof window !== "undefined" && typeof window.matchMedia === "undefined") {
       matches: false,
       media: query,
       onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
       dispatchEvent: () => false,
     }),
   })
@@ -24,9 +24,9 @@ if (typeof window !== "undefined" && typeof window.IntersectionObserver === "und
   Object.defineProperty(window, "IntersectionObserver", {
     writable: true,
     value: class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe = () => undefined
+      unobserve = () => undefined
+      disconnect = () => undefined
     },
   })
 }
