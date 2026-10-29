@@ -56,8 +56,6 @@ Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop 
 
 ## Commandes
 
-**`just` exige bash** : le `Justfile` pose `set shell := ["bash", "-cu"]`. Le hook `env-check` vérifie au démarrage que `bash` résout bien vers Git Bash et non vers le lanceur WSL.
-
 | Commande / Skill | Rôle |
 |---|---|
 | `/dev-server` | Démarre/arrête le serveur Next.js (`just dev` / `just stop`) |
