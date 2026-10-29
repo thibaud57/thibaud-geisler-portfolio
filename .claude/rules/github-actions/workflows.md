@@ -9,7 +9,7 @@ paths:
 ## À faire
 - Runner épinglé **`ubuntu-24.04`**, pas `ubuntu-latest` : celui-ci bascule de lui-même vers chaque nouvelle LTS d'Ubuntu (vers 26.04 entre le 2026-10-19 et le 2026-11-19)
 - **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@<sha> # vX.Y.Z`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files` en mars 2025, `aquasecurity/trivy-action`, utilisée par le projet, en mars 2026 : tags force-pushés vers du code malveillant). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble, l'inventaire vit dans VERSIONS.md § GitHub Actions
-- **`pnpm/setup`** installe pnpm, Node et les dépendances en un seul step, sans `setup-node` ni `pnpm install` à part : pnpm se lit dans `devEngines.packageManager`, Node se passe par **`runtime: node@24`** (l'action ne lit pas `engines` et le Node système du runner change à chaque image), avec **`cache: true`** et **`require-lockfile: true`**, qui garde l'échec sur lockfile absent
+- **`pnpm/setup`** installe pnpm, Node et les dépendances en un seul step, sans `setup-node` ni `pnpm install` à part : pnpm se lit dans `devEngines.packageManager`, Node se passe par **`runtime: node@26`** (l'action ne lit pas `engines` et le Node système du runner change à chaque image), avec **`cache: true`** et **`require-lockfile: true`**, qui garde l'échec sur lockfile absent
 - **`just`** par la composite locale **`./.github/actions/setup-just`**, qui épingle `extractions/setup-just` sur le `minimum-version` du `Justfile` : sans pin, l'action prend la dernière release, qui peut durcir la grammaire
 - **Concurrency** : `group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict
 - **Permissions minimales** au niveau workflow (`contents: read`), jamais omises : sans elles, un job hérite du défaut du dépôt (Settings > Actions > General), à garder lui aussi en lecture seule
@@ -41,7 +41,7 @@ quality:
   steps:
     - uses: actions/checkout@<sha> # vX.Y.Z
     - uses: pnpm/setup@<sha> # vX.Y.Z
-      with: { runtime: node@24, cache: true, require-lockfile: true }
+      with: { runtime: node@26, cache: true, require-lockfile: true }
     - uses: ./.github/actions/setup-just
     - run: just lint && just typecheck && just test
     - run: just build

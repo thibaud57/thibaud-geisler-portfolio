@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@<sha> # v7.0.1
       - uses: pnpm/setup@<sha> # v3.1.2, pnpm lu dans `devEngines.packageManager`
-        with: { runtime: node@24, cache: true, require-lockfile: true }
+        with: { runtime: node@26, cache: true, require-lockfile: true }
       - uses: ./.github/actions/setup-just # just épinglé sur `minimum-version` du Justfile
       - run: just lint
       - run: just typecheck
@@ -140,7 +140,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 # Option 1 : cache automatique via pnpm/setup (celle du projet)
 - uses: pnpm/setup@<sha> # v3.1.2
   with:
-    runtime: node@24
+    runtime: node@26
     cache: true
     require-lockfile: true  # l'install de l'action remplace `pnpm install --frozen-lockfile`
 
@@ -164,7 +164,7 @@ Accélère les installations en cachant le store pnpm entre les runs. Le cache e
 - Le cache est partagé entre workflows du même repo
 - Option 2 (explicite) préférée pour les monorepos complexes
 - Le projet cache aussi `.next/cache` par `actions/cache`, clé sur le lockfile et les sources : le build Next réutilise sa compilation précédente
-- `pnpm/setup` ne lit pas `engines` : Node se passe par `runtime: node@24`, le Node système du runner changeant à chaque image
+- `pnpm/setup` ne lit pas `engines` : Node se passe par `runtime: node@26`, le Node système du runner changeant à chaque image
 
 ---
 
