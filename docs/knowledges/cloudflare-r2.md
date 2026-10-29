@@ -1,5 +1,5 @@
 ---
-title: "Cloudflare R2 — Stockage objet S3-compatible"
+title: "Cloudflare R2 : Stockage objet S3-compatible"
 version: "n/a (service managé, sans versioning)"
 description: "Référence technique pour Cloudflare R2 : buckets, endpoint S3, tokens scopés, classes d'opérations et lifecycle."
 date: "2026-09-03"
@@ -353,6 +353,6 @@ wrangler r2 object delete <bucket>/<clé>
 
 ## Ressources Complémentaires
 
-- [Dokploy — Cloudflare R2](https://docs.dokploy.com/docs/core/cloudflare-r2) : procédure de configuration de la destination de sauvegarde
-- [Cloudflare Community — rupture checksum SDK 3.729.0](https://community.cloudflare.com/t/aws-sdk-client-s3-v3-729-0-breaks-uploadpart-and-putobject-r2-s3-api-compatibility/758637)
+- [Dokploy : Cloudflare R2](https://docs.dokploy.com/docs/core/cloudflare-r2) : procédure de configuration de la destination de sauvegarde
+- [Cloudflare Community : rupture checksum SDK 3.729.0](https://community.cloudflare.com/t/aws-sdk-client-s3-v3-729-0-breaks-uploadpart-and-putobject-r2-s3-api-compatibility/758637)
 - Issues Dokploy relatives à R2, à consulter si une sauvegarde échoue : [#1263](https://github.com/Dokploy/dokploy/issues/1263) (rclone `Failed to ls`), [#1943](https://github.com/Dokploy/dokploy/issues/1943) (échec en automatique alors que rclone manuel passe, corrigée par la PR #1954), [#2676](https://github.com/Dokploy/dokploy/issues/2676) (403 sur serveurs distants, fermée en doublon de #2616). Leur statut courant n'a pas été revérifié à la date de cette fiche

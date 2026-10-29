@@ -1,8 +1,8 @@
 ---
-title: "Aceternity UI — Effets visuels premium"
-version: "copy-paste"
+title: "Aceternity UI : Effets visuels premium"
+version: "n/a (composant copié)"
 description: "Référence technique pour Aceternity UI : composants d'effets copy-paste via shadcn CLI."
-date: "2026-04-13"
+date: "2026-10-28"
 keywords: ["aceternity", "ui", "motion", "shadcn", "effects"]
 scope: ["docs"]
 technologies: ["Next.js", "shadcn/ui", "Tailwind CSS", "motion"]

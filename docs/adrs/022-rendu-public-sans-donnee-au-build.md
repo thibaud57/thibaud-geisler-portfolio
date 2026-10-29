@@ -1,5 +1,5 @@
 ---
-title: "ADR-022 — Rendu public sans donnée au build"
+title: "ADR-022 : Rendu public sans donnée au build"
 status: "accepted"
 description: "Décision actée : le build ne lit plus la base, chaque lecture Prisma du site public est différée à la requête sous <Suspense>, le seed est supprimé"
 date: "2026-09-23"

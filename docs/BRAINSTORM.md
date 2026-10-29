@@ -1,7 +1,7 @@
 ---
-title: "BRAINSTORM — Vision & Idéation Projet"
+title: "BRAINSTORM : Vision & Idéation Projet"
 description: "Vision globale du portfolio personnel thibaud-geisler.com : plateforme de crédibilité, hub de démos et outils internes freelance."
-date: "2026-08-29"
+date: "2026-10-29"
 keywords: ["brainstorm", "portfolio", "freelance", "platform", "ia", "rag", "admin"]
 scope: ["docs", "planning"]
 technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Cloudflare R2", "Sentry", "Python"]
@@ -88,7 +88,7 @@ Le portfolio est un **hub** : chaque application développée a sa propre démo 
 * **Calendly** : prise de rendez-vous intégrée à la page Contact
 * **API LLM** (post-MVP) : chatbot IA avec RAG, accès tranché par [ADR-016](adrs/016-acces-llm.md)
 * **Umami** (post-MVP) : analytics self-hosted sur Dokploy, service séparé dont le portfolio n'embarque que le script de suivi
-* **Sentry**, **Logfire ou Langfuse** (post-MVP) : erreurs et traces, en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
+* **Sentry** (erreurs, en place) et **Logfire ou Langfuse** (traces LLM, post-MVP) : en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
 * **Indy API**, **LinkedIn** (tardifs) : à étudier selon le besoin réel
 
 ---
@@ -153,7 +153,7 @@ Chaque projet porte : un titre, une description courte, une stack technique (bad
 * Solution mise en place
 * Captures d'écran ou schémas
 * Lien GitHub et lien démo
-* Pages rendues à la demande au premier hit puis servies depuis le Data Cache, `generateStaticParams` restant optionnel (voir ARCHITECTURE.md § Use-case 3)
+* Rendu : [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)
 
 Voir [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédiées vs modales.
 
@@ -165,7 +165,7 @@ Stockage et mise à disposition publique dès le MVP :
 * Images de projets (screenshots, schémas)
 * Documents publics
 
-Stratégie : volumes Docker pour le MVP, migration Cloudflare R2 au moment de l'upload depuis l'espace admin. Assets servis exclusivement via route API catch-all `/api/assets/[...path]` (organisation en sous-dossiers `projets/{client,personal}/<slug>/<filename>`, voir ADR-011).
+Stockage sur Cloudflare R2, servi exclusivement via la route API catch-all `/api/assets/[...path]`, jamais depuis `public/` ([ADR-011](adrs/011-stockage-assets.md)).
 
 ### Feature 4 : Formulaire de contact
 
@@ -196,21 +196,14 @@ Basculement entre français et anglais pour toucher des clients nationaux et int
 
 ### Feature 7 : Conformité légale
 
-Pages légales et consentement cookies obligatoires avant mise en production publique. Bloquante légalement (LCEN France, loi e-commerce Luxembourg, RGPD, directive ePrivacy).
+Pages légales et consentement cookies, obligatoires avant la mise en production publique (LCEN France, loi e-commerce Luxembourg, RGPD, directive ePrivacy). Le formulaire de contact collecte des données personnelles dès le premier visiteur EU, et Calendly inline pose des cookies tiers marketing.
 
-* Page `/mentions-legales` (identification responsable + hébergeur, base légale LCEN art 6-III)
-* Page `/confidentialite` (politique RGPD art 13/14, traitement du formulaire de contact, base légale intérêt légitime art 6-1-f, rétention 3 ans maximum, droits utilisateur, transfert hors UE Calendly via Data Privacy Framework)
-* Bandeau consentement cookies (`@c15t/nextjs` v2 mode offline, MIT, React Provider natif, theming CSS vars, conformité CNIL out-of-the-box), conforme CNIL 2025 : Accept all / Reject all même niveau visuel (override CSS pour symétrie 2020-092), opt-in granulaire par finalité, durée cookie 13 mois max, retrait aussi simple que l'acceptation
-* Gating du script Calendly inline (Feature 1 sub 04) : `widget.js` ne charge qu'après consentement de la catégorie marketing (Calendly pose des cookies tiers Segment, Google Analytics, Google Ads, Hotjar, LinkedIn Insight Tag, Facebook Pixel)
-* CSP (Content-Security-Policy) finalisé en synchronisation avec le gating cookies : `*.calendly.com` autorisé seulement après consentement marketing. Umami, sans cookies, n'exige aucun consentement et sera simplement ajouté à la CSP post-MVP
-* Banner cookies non-bloquant pour les Core Web Vitals : lazy load après FCP, position `fixed` pour CLS = 0, contenu indexable servi avant consentement (Googlebot ne consent jamais)
-* Extension du footer (Feature 1 sub 05) : décommenter la nav légale dans la row bottom déjà préparée (Mentions légales, Politique de confidentialité, Gérer mes cookies)
+* Pages `/mentions-legales` et `/confidentialite` (politique RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact, rétention 3 ans maximum, transfert hors UE de Calendly via Data Privacy Framework)
+* Bandeau de consentement cookies conforme CNIL, `c15t` en mode offline : Accept all / Reject all au même niveau visuel, opt-in granulaire par finalité, durée de cookie 13 mois maximum. Sans impact sur les Core Web Vitals (chargé après FCP, position `fixed`), contenu indexable servi avant consentement
+* Gating du widget Calendly, qui ne charge qu'après consentement de la catégorie marketing, et CSP synchronisée : `*.calendly.com` n'est autorisé qu'à ce moment. Umami, sans cookies, n'exige aucun consentement et s'ajoutera simplement à la CSP
+* Registre des traitements (RGPD art. 30), obligatoire (le formulaire de contact et les logs sont des traitements réguliers) : [registre-traitements.md](registre-traitements.md)
 
-Justification positionnement MVP : le formulaire de contact (Feature 4) collecte des données personnelles dès le 1er visiteur EU → politique de confidentialité obligatoire. Calendly inline embed (Feature 1 sub 04) pose des cookies tiers marketing → bandeau consentement obligatoire. Risque CNIL jusqu'à 20 M€ ou 4 % CA.
-
-Exclu MVP : CGV (pas de vente en ligne), CGU (pas de compte utilisateur).
-
-Registre des traitements (RGPD art. 30) : obligatoire, la dispense < 250 salariés ne couvre pas les traitements réguliers, et le formulaire de contact + les logs en sont. Document interne, tenu dans [registre-traitements.md](registre-traitements.md).
+Exclu : CGV (pas de vente en ligne) et CGU (pas de compte utilisateur).
 
 ---
 
@@ -380,8 +373,6 @@ Prérequis : les publications LinkedIn (Feature 7) pour LinkedIn ; la comptabili
 
 > La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 9 ci-dessus.
 
-> **Blog abandonné.** La Feature « Section Blog / Articles » est retirée du périmètre : l'effort de rédaction régulière ne se justifie pas face aux autres chantiers, et le SEO du portfolio repose sur les case studies de projets. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
-
 ---
 
 # ⚠️ Contraintes
@@ -404,8 +395,8 @@ Prérequis : les publications LinkedIn (Feature 7) pour LinkedIn ; la comptabili
 
 ## Techniques
 
-* **Modèle LLM** : quel modèle pour le chatbot RAG (coût, latence, qualité) ? Le mode d'accès est tranché par l'ADR-016, il ne reste que ce choix
-* **Rate limiting chatbot** : quelle implémentation pour un chatbot public sans auth ?
+* **Modèle LLM** : quel modèle pour le chatbot RAG (coût, latence, qualité) ? Le mode d'accès est tranché par l'ADR-016, il ne reste que ce choix ([ADR-012](adrs/012-api-llm-chatbot-rag.md))
+* **Rate limiting chatbot** : quelle implémentation pour un chatbot public sans auth ? ([ADR-014](adrs/014-rate-limiting-chatbot.md))
 * **LinkedIn** : quelles sont les limites réelles de l'API officielle pour publication et prospection ?
 * **Indy API** : quel est le scope exact de l'API (lecture seule ? facturation ?) ?
 
@@ -416,52 +407,37 @@ Prérequis : les publications LinkedIn (Feature 7) pour LinkedIn ; la comptabili
 
 ---
 
-# 📝 Notes & Décisions
+# 📝 Notes
 
-**Décisions actées :**
+## Décisions actées
 
-- **Décision Architecture** : Monolithe Next.js vs Séparation frontend/backend (simplicité de maintenance, projet solo, voir ADR-001)
-- **Décision Auth** : Better Auth + Google OAuth (Gmail pro, whitelist email unique), surface d'attaque minimale, 2FA Google héritée, zéro credential stocké localement (voir ADR-002, révisé avril 2026)
+- **Décision Architecture** : Monolithe Next.js vs Séparation frontend/backend ([ADR-001](adrs/001-monolithe-nextjs-fullstack.md))
+- **Décision Auth** : Better Auth + Google OAuth, whitelist email unique ([ADR-002](adrs/002-auth-better-auth-google-oauth.md))
 - **Décision Page Formations** : Intégrée dans `/services` vs Sous-page dédiée (MVP : offre non stabilisée, sous-page si l'offre grossit)
-- **Décision Case Studies** : Pages dédiées `/projets/[slug]` vs Modales (SEO, partage de lien, Open Graph, voir ADR-003)
-- **Décision Base de données** : PostgreSQL dès le MVP vs SQLite temporaire (DB cible finale, pgvector prévu post-MVP, voir ADR-004)
-- **Décision Infrastructure** : Dokploy self-hosted vs Vercel (VPS déjà payé, contrôle total, stack complète sur même infra, voir ADR-005)
+- **Décision Case Studies** : Pages dédiées `/projets/[slug]` vs Modales ([ADR-003](adrs/003-case-studies-pages-dedicees.md))
+- **Décision Base de données** : PostgreSQL dès le MVP vs SQLite temporaire ([ADR-004](adrs/004-postgresql-des-le-mvp.md))
+- **Décision Infrastructure** : Dokploy self-hosted vs Vercel ([ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md))
 - **Décision Périmètre** : Single-user toujours vs Multi-tenant (outil personnel, pas un SaaS)
-- **Décision Démos** : Hub vers domaines autonomes vs Intégration dans le portfolio (découplage, indépendance de stack, voir ADR-006)
+- **Décision Démos** : Hub vers domaines autonomes vs Intégration dans le portfolio ([ADR-006](adrs/006-strategie-demos-hub.md))
 - **Décision Chatbot RAG** : Post-MVP vs MVP (priorité au portfolio fonctionnel, chatbot = vitrine compétence non critique au lancement)
 - **Décision Positionnement** : IA & Automatisation en premier vs Full-Stack en premier (différenciation principale, marché plus porteur)
-- **Décision Analytics** : Umami self-hosted vs Plausible vs PostHog (RGPD-friendly, zéro coût, compatible PostgreSQL, voir ADR-007)
+- **Décision Analytics** : Umami self-hosted vs Plausible vs PostHog ([ADR-007](adrs/007-analytics-umami.md))
 - **Décision Notion API** : hors scope, aucune synchro ni API Notion dans le code de ce dépôt.
-- **Décision Agents internes** : feature dédiée (jobs `agent-os`, outils de l'app pour les agents, assistant interne) sur l'abonnement Claude vs rattachement au chatbot public (dépôts, facturation et exposition différents, voir ADR-015 et ADR-016). Les jobs d'abord : l'IA propose, l'app enregistre après validation ; les outils pour qu'un agent agisse lui-même sur l'app, leur forme (MCP ou CLI) tranchée par ADR-025.
-- **Décision Exécution des agents** : Agent SDK dans `agent-os`, sur l'abonnement, lancé par le propriétaire vs routines claude.ai, `claude-code-action` ou Remote Control (seule option qui garde l'environnement global complet et relaie questions et accords, voir ADR-026). Aucun cron : chaque run part d'une action du propriétaire.
-- **Décision Canal des attentes** : bot Telegram tenu par `agent-os` vs fil de conversation dans l'admin ou plugin Telegram des channels (runs lancés sans surveillance, signalés et débloqués depuis le téléphone ; le plugin ne relaie pas les questions à choix et n'accepte qu'une session par bot, voir ADR-026).
+- **Décision Agents internes** : feature dédiée (jobs `agent-os`, outils de l'app pour les agents, assistant interne) sur l'abonnement Claude vs rattachement au chatbot public (dépôts, facturation et exposition différents, [ADR-015](adrs/015-decoupage-services.md) et [ADR-016](adrs/016-acces-llm.md)). Les jobs d'abord : l'IA propose, l'app enregistre après validation ; la forme des outils pour qu'un agent agisse lui-même sur l'app (MCP ou CLI) est à trancher par [ADR-025](adrs/025-acces-agents-app.md)
+- **Décision Exécution des agents** : Agent SDK dans `agent-os`, sur l'abonnement, lancé par le propriétaire vs routines claude.ai, `claude-code-action` ou Remote Control ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Aucun cron : chaque run part d'une action du propriétaire
+- **Décision Canal des attentes** : bot Telegram tenu par `agent-os` vs fil de conversation dans l'admin ou plugin Telegram des channels ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Décision Interfaces de l'assistant** : Telegram d'abord, fenêtre de l'admin ensuite vs fenêtre de l'admin seule (Telegram couvre le téléphone et les ordres rapides pour peu de travail ; l'admin apporte la page en cours et l'affichage riche, utiles au travail de fond comme le tri du sourcing).
-- **Décision Composants de chat** : primitives de chat du registry shadcn/ui, flux et état écrits dans le portfolio, vs assistant-ui, AI SDK UI ou CopilotKit (même style et même CLI que le reste, aucun moteur tiers ni Zod dans le bundle public, `Questionnaire` couvre les questions des agents, voir ADR-027).
+- **Décision Composants de chat** : primitives de chat du registry shadcn/ui, flux et état écrits dans le portfolio, vs assistant-ui, AI SDK UI ou CopilotKit ([ADR-027](adrs/027-composants-chat.md))
 - **Décision Source du kanban dev** : base vs GitHub Issues (les cartes suivent les specs et plans écrits par les skills, une issue par carte alourdirait le workflow ; l'état des PR remonte par le webhook du dépôt).
 - **Décision Découpage du domaine freelance** : trois features (CRM, Missions, Comptabilité), les Finances et les Publications LinkedIn à part, vs un seul epic (plus de quarante sub-projects, aucune mise en production avant la fin). Chaque domaine livre son CRUD, ses outils et ses jobs, et reprend ses propres données Notion à la fin de son epic.
 - **Décision Personne unique** : un modèle personne qui porte l'identité et l'opposition, lead et contact en rôles, vs deux fiches séparées (une seule opposition, un seul email par personne, un interlocuteur d'entretien hors du pipeline). Même logique pour l'entreprise : ce qui se déduit des projets, des missions et des actions n'est jamais saisi.
-- **Décision Blog** : feature retirée du périmètre (août 2026) vs section d'articles en PostgreSQL (effort de rédaction non justifié, le SEO repose sur les case studies). ADR-013 marqué `deprecated`.
-- **Décision Brouillons IA** : PostgreSQL standard plutôt que Redis, volume trop faible pour justifier un service supplémentaire. La table `Article` qui portait cette décision a disparu avec le blog, le principe reste valable pour les contenus générés de l'espace admin.
-- **Décision UI System** : shadcn/ui hybride (Option C), shadcn/ui comme socle fonctionnel, Magic UI + Aceternity UI pour les effets visuels du site public (copy-paste, combinables), voir ADR-009.
-- **Décision i18n** : next-intl, standard de facto pour App Router, type safety des clés, middleware de routing intégré, voir ADR-010.
-- **Décision Stockage assets** : volumes Docker pour le MVP, migration vers Cloudflare R2 au moment de l'implémentation de l'upload depuis l'espace admin (free tier 10 Go, zéro egress), voir ADR-011.
+- **Décision Blog** : feature retirée du périmètre (août 2026) vs section d'articles en PostgreSQL (effort de rédaction non justifié, le SEO repose sur les case studies, [ADR-013](adrs/013-blog-stockage.md) `deprecated`)
+- **Décision Brouillons IA** : PostgreSQL standard plutôt que Redis (volume trop faible pour justifier un service supplémentaire)
+- **Décision UI System** : shadcn/ui hybride (Option C) avec Magic UI et Aceternity UI pour les effets visuels ([ADR-009](adrs/009-ui-system.md))
+- **Décision i18n** : next-intl ([ADR-010](adrs/010-i18n.md))
+- **Décision Stockage assets** : Cloudflare R2 vs volumes Docker et Minio ([ADR-011](adrs/011-stockage-assets.md))
 
-**Ordre de développement MVP :**
-
-| Étape | Contenu | Pourquoi cet ordre |
-|-------|---------|-------------------|
-| 1 | Setup infra : Next.js, Docker, PostgreSQL, Prisma schema | Fondation de tout le reste |
-| 2 | Feature 6 : i18n (next-intl) | À câbler avant d'écrire le moindre contenu |
-| 3 | Feature 2 : Projets (BDD + liste + case studies) | Coeur du portfolio, démontre la valeur |
-| 4 | Feature 3 : Assets (volumes Docker + route API + CV + images) | Nécessaire pour les projets et l'accueil |
-| 5 | Feature 1 : Pages publiques statiques (accueil, services, a-propos, contact) | S'appuie sur les projets déjà en BDD |
-| 6 | Feature 4 : Formulaire de contact (Server Action + SMTP) + widget Calendly | Dernière pièce fonctionnelle |
-| 7 | Feature 5 : SEO (metadata, sitemap, robots.txt) | Avant mise en prod, pas avant |
-| 8 | Feature 7 : Conformité légale (mentions, confidentialité, bandeau cookies + gating Calendly) | **Bloquante avant prod publique**, LCEN + RGPD + directive ePrivacy (risque CNIL). Passe par les tests de l'étape 9 |
-| 9 | Tests, perf, polish | Smoke test, Core Web Vitals, vérif headers, couvre tout le code livré étapes 1 à 8 |
-| 10 | Mise en production | Dokploy + DNS + smoke test final |
-
-**Principes directeurs :**
+## Principes directeurs
 
 * Ce site n'est pas un SaaS, ni une plateforme multi-utilisateur : outil personnel qui peut évoluer
 * Pas de sur-ingénierie initiale : chaque complexité ajoutée uniquement si le besoin réel apparaît

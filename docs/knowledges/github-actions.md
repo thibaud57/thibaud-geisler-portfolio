@@ -1,8 +1,8 @@
 ---
-title: "GitHub Actions — CI/CD"
+title: "GitHub Actions : CI/CD"
 version: "ubuntu-24.04"
 description: "Référence technique pour GitHub Actions : workflows, service containers Postgres et déploiement Dokploy."
-date: "2026-04-13"
+date: "2026-10-29"
 keywords: ["github-actions", "ci", "cd", "workflow", "pnpm"]
 scope: ["docs"]
 technologies: ["Node.js", "pnpm", "Vitest", "Dokploy"]

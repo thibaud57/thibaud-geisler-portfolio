@@ -1,5 +1,5 @@
 ---
-title: "ADR-008 — Single repository (monolithe)"
+title: "ADR-008 : Single repository (monolithe)"
 status: "accepted"
 description: "Choix d'un single repository plutôt qu'un monorepo Turborepo pour ce projet"
 date: "2026-03-31"
@@ -65,12 +65,11 @@ Un seul repo pour une seule application Next.js. Aucun avantage du monorepo ne s
 
 ## Positives
 
-- Structure simple, zéro overhead
-- Configuration CI/CD et Docker simplifiée
+- La portée de cet ADR reste ce dépôt TypeScript : les services Python de l'écosystème ont chacun le leur ([ADR-015](015-decoupage-services.md))
 
 ## Négatives
 
-- Migration vers monorepo si des packages partagés apparaissent (improbable)
+Aucune conséquence propre au-delà des inconvénients de l'option retenue.
 
 ---
 

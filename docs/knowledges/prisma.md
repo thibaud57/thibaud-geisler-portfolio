@@ -1,8 +1,8 @@
 ---
-title: "Prisma ORM — Type-safe database toolkit"
+title: "Prisma ORM : Type-safe database toolkit"
 version: "7.10.1"
 description: "Référence technique pour Prisma 7 : schéma, driver adapter PostgreSQL, migrations et queries type-safe."
-date: "2026-04-13"
+date: "2026-10-23"
 keywords: ["prisma", "orm", "postgresql", "migrations", "type-safe"]
 scope: ["docs"]
 technologies: ["PostgreSQL", "Next.js", "TypeScript"]

@@ -1,5 +1,5 @@
 ---
-title: "ADR-015 — Découpage en services par frontière d'exécution"
+title: "ADR-015 : Découpage en services par frontière d'exécution"
 status: "accepted"
 description: "Décision actée : découper l'écosystème selon ce qui ne peut pas partager le même processus, et non selon les domaines métier"
 date: "2026-08-29"

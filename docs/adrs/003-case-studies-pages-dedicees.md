@@ -1,5 +1,5 @@
 ---
-title: "ADR-003 — Case studies en pages dédiées"
+title: "ADR-003 : Case studies en pages dédiées"
 status: "accepted"
 description: "Choix d'afficher les détails de projet dans des pages dédiées plutôt que dans des modales"
 date: "2026-03-31"
@@ -65,13 +65,11 @@ Le SEO et le partage de lien sont des critères primaires pour un portfolio prof
 
 ## Positives
 
-- Chaque projet est indexable (Google, LinkedIn, etc.)
-- URLs partageables directement dans les emails/propositions commerciales
-- Metadata Open Graph personnalisée par projet
+- Le rendu et le cache des pages projet suivent [ADR-022](022-rendu-public-sans-donnee-au-build.md) : rendu à la demande, Data Cache invalidé par le tag `projects`
 
 ## Négatives
 
-- Nécessite de maintenir un template de page case study cohérent
+Aucune conséquence propre au-delà des inconvénients de l'option retenue.
 
 ---
 

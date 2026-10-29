@@ -1,5 +1,5 @@
 ---
-title: "ADR-016 — Accès LLM : OpenRouter, sans gateway auto-hébergée"
+title: "ADR-016 : Accès LLM : OpenRouter, sans gateway auto-hébergée"
 status: "accepted"
 description: "Décision actée : routeur cloud OpenRouter, provider Anthropic en direct sur le périmètre sensible, jamais de gateway devant Claude Code"
 date: "2026-08-29"

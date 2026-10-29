@@ -1,5 +1,5 @@
 ---
-title: "Next.js — Framework full-stack"
+title: "Next.js : Framework full-stack"
 version: "16.4.3"
 description: "Référence technique pour Next.js 16 : App Router, Server Components, Server Actions, caching opt-in."
 date: "2026-10-11"

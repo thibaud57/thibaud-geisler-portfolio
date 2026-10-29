@@ -1,5 +1,5 @@
 ---
-title: "ADR-023 — Logos d'entreprise récupérés depuis le site de l'entreprise"
+title: "ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise"
 status: "accepted"
 description: "Décision actée : le logo d'une entreprise est lu sur son propre site (ou sa dernière capture Wayback si le site a disparu) puis stocké dans R2, sans Logo.dev ni autre service tiers"
 date: "2026-09-26"
@@ -121,7 +121,6 @@ Usage de la marque : afficher le logo d'une entreprise pour l'identifier relève
 
 - Premier fetch sortant du serveur vers une URL arbitraire : garde SSRF à écrire (résolution DNS puis refus des adresses privées et de loopback, redirections contrôlées, délai, taille lue en flux), et `/security-review` à passer sur le sub-project
 - Certaines entreprises ne déclarent qu'une icône basse définition ou rien d'exploitable : le dépôt manuel reste nécessaire pour celles-là
-- La phrase de la Feature 2 de `BRAINSTORM.md` qui prévoit un appel Logo.dev est remplacée par cet ADR
 
 ---
 

@@ -1,7 +1,7 @@
 ---
-title: "ARCHITECTURE — Thibaud Geisler Portfolio"
+title: "ARCHITECTURE : Thibaud Geisler Portfolio"
 description: "Documentation de l'architecture du portfolio personnel thibaud-geisler.com : vitrine professionnelle, hub de démos et outils internes freelance."
-date: "2026-10-14"
+date: "2026-10-29"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
 technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "sharp", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
@@ -17,7 +17,7 @@ Le site ne démo pas les applications lui-même : il sert de répertoire central
 
 ## Type de Projet
 
-Monolithe web fullstack : application Next.js unique couvrant le site public et l'espace admin (post-MVP), hébergée en self-hosted via Dokploy.
+Monolithe web fullstack : application Next.js unique couvrant le site public et l'espace admin, hébergée en self-hosted via Dokploy.
 
 ## Enjeux & Contraintes
 
@@ -65,7 +65,7 @@ pnpm
 
 ## Composants Principaux (Haut Niveau)
 
-- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (post-MVP, cf. [ADR-021](adrs/021-routing-espace-admin.md))
+- **Frontend** : Pages publiques React (Partial Prerendering + `'use cache'`) + espace admin sous `/admin`, hors `[locale]` (cf. [ADR-021](adrs/021-routing-espace-admin.md))
 - **Backend** : Server Actions + API Routes Next.js. Ce dépôt porte les fronts et le CRUD synchrone, les traitements longs et l'IA vivent dans les services voisins ([ADR-020](adrs/020-portfolio-bff.md))
 - **Données** : PostgreSQL externe via Dokploy Database + Prisma 7. Le client Prisma est généré dans `src/generated/prisma/` (gitignored). En production `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Découpage en schemas par domaine, détaillé en [§ Base de Données Principale](#base-de-données-principale) ([ADR-018](adrs/018-cloisonnement-donnees.md))
 - **Assets** : Cloudflare R2 (cf. [ADR-011](adrs/011-stockage-assets.md)), servis via les routes API catch-all `/api/assets/[...path]` et `/admin/api/assets/[...path]`, jamais depuis `public/`
@@ -179,10 +179,10 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 |---------|------------------------|
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
-| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD projets post-MVP) |
-| **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin (tags par catégorie, projets, tags d'un projet) garde une suite continue qui commence à 1 : une position occupée décale les suivants, une suppression renumérote, un glisser-déposer donne au déplacé la place de la cible. Calcul pur dans `src/lib/reorder.ts`, réécriture de la suite entière dans une transaction à chaque mutation |
-| **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison). `formStateHandlers` fournit les états de retour du formulaire. Un `P2025` (ligne introuvable) ne vaut « déjà supprimée » que si `rowExists` confirme l'absence de la ligne : il vient aussi d'une fiche voisine ou d'un rattachement disparu |
-| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) appelle `revalidatePath(..., "layout")` sur les racines des listes qui l'affichent : actions de prospection, leads, contacts, opportunités, entretiens, entreprises |
+| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin) |
+| **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin garde une suite continue qui commence à 1, réécrite en entier dans une transaction à chaque mutation. Calcul pur dans `src/lib/reorder.ts` |
+| **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison) |
+| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) revalide les listes qui l'affichent |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -291,7 +291,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 ### API
 
-- **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), CRUD projets post-MVP
+- **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), actions CRUD de l'espace admin (`src/server/actions/`)
 - **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
@@ -305,14 +305,12 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 - **nodemailer** : envoi SMTP via IONOS (formulaire contact)
 - **Fetch sortant vers une URL saisie par l'admin** : le logo d'une entreprise se lit à l'adresse du champ site web, soit son site, soit la capture Wayback Machine que l'admin y a collée quand le site a disparu, puis aux icônes que cette page déclare ([ADR-023](adrs/023-source-logos-entreprise.md)). Le fetch passe par `src/server/company-logo/safe-fetch.ts` et `address-guard.ts` : adresses privées, loopback et métadonnées du VPS refusées, redirections et taille de réponse bornées, délai plafonné
 - **API LLM** (post-MVP) : mode d'accès tranché par [ADR-016](adrs/016-acces-llm.md), choix du modèle par [ADR-012](adrs/012-api-llm-chatbot-rag.md). Aucun appel direct depuis ce dépôt : les services IA voisins portent ces appels
-- **Indy API** (post-MVP, à réévaluer) : la comptabilité étant tenue en interne, cette intégration ne garde de sens que pour les déclarations et l'export comptable
-- **LinkedIn API** (post-MVP, à étudier) : publication assistée et prospection, sous réserve des limites de l'API officielle
 
 ## 🗄️ Données (Base de Données)
 
 ### Base de Données Principale
 
-PostgreSQL géré comme service Dokploy Database autonome (plus de service `postgres` dans le compose applicatif, il ne subsiste qu'en `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
+PostgreSQL géré comme service Dokploy Database autonome (absent du compose applicatif, présent dans `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
 La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
@@ -467,21 +465,15 @@ sequenceDiagram
 
 ### Hébergement
 
-VPS IONOS, Dokploy self-hosted, en mode **pull-only** : Dokploy ne build pas l'image, il pull `ghcr.io/thibaud57/thibaud-geisler-portfolio:latest` depuis GHCR et lance le container via `docker compose pull && docker compose up`. Provider Dokploy configuré sur `GitHub` : Dokploy clone le dépôt et déploie son `compose.yaml`. Cf. [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md).
+VPS IONOS, Dokploy self-hosted, en mode **pull-only** : GitHub Actions construit l'image et la publie sur GHCR, Dokploy la tire et lance le `compose.yaml`, sans jamais builder. Cf. [ADR-005](adrs/005-hebergement-dokploy-vs-vercel.md), exploitation dans [PRODUCTION.md § CI/CD & Déploiement](PRODUCTION.md#-cicd--déploiement).
 
 ### Conteneurisation
 
-Docker + Docker Compose côté application (service `nextjs` uniquement). Postgres n'est plus dans le compose applicatif : il est provisionné comme Dokploy Database séparée et joint via le réseau interne Dokploy.
+Docker + Docker Compose côté application (service `nextjs` uniquement). PostgreSQL est une Dokploy Database séparée, jointe via le réseau interne Dokploy.
 
 ### CI/CD
 
-3 workflows GitHub Actions :
-- **`ci.yml`** : lint + typecheck + tests + build sur push `main` et PR vers `main` ou `develop` (Postgres CI éphémère, migrations appliquées avant les tests). Les PR doc-only et les PR release-please sautent le job `quality`, un job agrégateur `ci` restant le required check. Audit des dépendances non bloquant.
-- **`release-please.yml`** : ouvre/maj la PR de release sur merge `main`, crée le tag `vX.Y.Z` au merge. S'authentifie par GitHub App (`actions/create-github-app-token@v3`), le tag étant ainsi poussé par un acteur dont les événements déclenchent `deploy.yml` (chaînage workflows bloqué avec `GITHUB_TOKEN`).
-- **`deploy.yml`** : sur push tag `v*`, ou `workflow_dispatch` sur le ref d'un tag pour rejouer un déploiement (tout autre ref est sauté) → build Docker sans base → push GHCR → trigger Dokploy redeploy.
-- **`security.yml`** : chaque semaine, scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security. Ne conditionne ni la CI ni le déploiement.
-
-Déploiement piloté par les tags release-please, jamais par un merge `main` direct.
+GitHub Actions porte quatre workflows : CI (lint, typecheck, tests, build, audit non bloquant), release-please (PR de release puis tag `vX.Y.Z`, authentifié par GitHub App pour que le tag déclenche le déploiement), déploiement sur tag `v*` (build Docker sans base, push GHCR, redeploy Dokploy) et scan Trivy hebdomadaire de l'image publiée. Le déploiement est piloté par les tags release-please, jamais par un merge `main` direct. Détail : [PRODUCTION.md § CI/CD & Déploiement](PRODUCTION.md#-cicd--déploiement).
 
 ### Environnements
 
@@ -491,7 +483,7 @@ Déploiement piloté par les tags release-please, jamais par un merge `main` dir
 | `test` | Vitest, base PostgreSQL dédiée | `.env.test` |
 | `production` | VPS IONOS via Dokploy | Variables d'env Dokploy |
 
-> **Authentification** : cinq variables serveur (`BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAIL`), validées par `src/env.ts`. Détail : [PRODUCTION.md § Variables d'Environnement](PRODUCTION.md#variables-denvironnement).
+> Variables validées par `src/env.ts`, liste dans [PRODUCTION.md § Variables d'Environnement](PRODUCTION.md#variables-denvironnement).
 
 ### Sécurité Infrastructure
 
@@ -531,7 +523,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
-- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` (`assertNotOptedOut`, `assertOptOutOver`, `assertProspectionAllowed`, sous verrous `FOR UPDATE` / `FOR SHARE`, et `deletePersonIfRoleless`) et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. La procédure de traitement des demandes est dans [PRODUCTION.md](PRODUCTION.md) § Demandes RGPD.
+- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. Traitement des demandes : [PRODUCTION.md § Demandes RGPD](PRODUCTION.md#demandes-rgpd).
 
 ### Conformité Cookies / RGPD
 
@@ -555,20 +547,20 @@ Pino, logger JSON structuré. Output stdout, visible dans l'onglet Logs de Dokpl
 ### Monitoring
 
 - **Umami** : analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Cf. [ADR-007](adrs/007-analytics-umami.md)
-- **Sentry** : en place, cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Le tracing des Server Actions est affecté par un bug SDK connu sous Turbopack : l'instrumentation est en place côté code mais la transaction n'atteint pas le dashboard. Détail : [knowledges/sentry.md](knowledges/sentry.md)
+- **Sentry** : en place, cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Limite connue du tracing des Server Actions : [knowledges/sentry.md](knowledges/sentry.md)
 - **Logfire ou Langfuse** (post-MVP) : traces LLM des services IA, en cloud, via OpenTelemetry émis nativement par PydanticAI
 
 Sentry et Logfire ou Langfuse ne sont pas auto-hébergés : leur empreinte mémoire est incompatible avec le VPS. Umami reste self-hosted, son empreinte étant sans commune mesure. Cf. [ADR-017](adrs/017-observabilite-cloud.md).
 
 ### Alerts
 
-Notifications Dokploy (service arrêté, échec de déploiement) au MVP. Seuils applicatifs à définir post-MVP.
+Sonde externe sur `/api/health` et notification Dokploy d'échec de build. Seuils et canaux : [PRODUCTION.md § Observabilité](PRODUCTION.md#-observabilité).
 
 ## 🧪 Tests
 
 ### Stratégie de Tests
 
-- **Tests unitaires** : fonctions pures, helpers, schémas Zod, Server Actions critiques dont le formulaire contact et les actions CRUD de l'espace admin (post-MVP, Prisma mocké)
+- **Tests unitaires** : fonctions pures, helpers, schémas Zod, Server Actions critiques dont le formulaire contact et les actions CRUD de l'espace admin (Prisma mocké)
 - **Tests d'intégration** : routes à effets de bord et queries Prisma sur la base de test
 - **Tests e2e** : non prévus pour le MVP (ajout si l'espace admin devient complexe)
 
@@ -642,10 +634,8 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 > Ce qui suit distingue ce que porte **ce dépôt** de ce qui vit dans les dépôts voisins ([ADR-015](adrs/015-decoupage-services.md), [ADR-020](adrs/020-portfolio-bff.md)).
 
-**Dans ce dépôt**
+**Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
-- **Espace admin** : interface privée single-user sous `/admin`, hors `[locale]` ([ADR-021](adrs/021-routing-espace-admin.md)), protection des routes par proxy, layout et pages (cf. § Autorisation)
-- **CRUD contenu** : projets, tags, entreprises, assets
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
 - **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
@@ -660,11 +650,9 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 **Hors application**
 
 - **Umami** : instance analytics self-hosted sur Dokploy, service séparé ([ADR-007](adrs/007-analytics-umami.md))
-- **Intégrations** : LinkedIn (contenu, prospection) et Indy (déclarations), à étudier selon le besoin réel
+- **Intégrations** : LinkedIn (publication assistée et prospection, sous réserve des limites de l'API officielle) et Indy (déclarations et export comptable seulement, la comptabilité étant tenue en interne), à étudier selon le besoin réel
 
-> **Blog retiré du périmètre** (août 2026) : l'effort de rédaction régulière ne se justifie pas, le SEO repose sur les case studies. [ADR-013](adrs/013-blog-stockage.md) est marqué `deprecated`.
-
-> **CRM livré** (2026-10-14) : le domaine CRM de l'epic `domaine-freelance-crm` (modèles du schema `freelance`, écrans admin, garde RGPD) est en place, cf. § Base de Données Principale.
+> **Blog** : retiré du périmètre, cf. [ADR-013](adrs/013-blog-stockage.md).
 
 ---
 

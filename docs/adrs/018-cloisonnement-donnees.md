@@ -1,5 +1,5 @@
 ---
-title: "ADR-018 — Cloisonnement des données : deux bases, schemas par domaine"
+title: "ADR-018 : Cloisonnement des données : deux bases, schemas par domaine"
 status: "accepted"
 description: "Décision actée : base portfolio découpée en schemas, base séparée pour les documents personnels sensibles"
 date: "2026-08-29"

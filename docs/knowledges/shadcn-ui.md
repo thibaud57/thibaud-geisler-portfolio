@@ -1,5 +1,5 @@
 ---
-title: "shadcn/ui — Composants UI copy-paste"
+title: "shadcn/ui : Composants UI copy-paste"
 version: "4.23.0"
 description: "Référence technique pour shadcn/ui : philosophie copy-paste, CLI et patterns pour le portfolio."
 date: "2026-10-29"
