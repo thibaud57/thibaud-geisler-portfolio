@@ -218,7 +218,7 @@ Le dépôt est public : n'importe qui peut ouvrir une PR depuis un fork, et ce q
 |---------|-------|----------------------|----------|
 | Permissions par défaut du `GITHUB_TOKEN` | `read` (restricted) | ✅ `read` (corrigé le 2026-10-09, avant : écriture) | Chaque workflow déclare en plus ses `permissions:`, un oubli retombe sur la lecture seule |
 | Autoriser Actions à créer et approuver des PR | Désactivé | ✅ désactivé (corrigé le 2026-10-09) | release-please passe par le token d'App ([Gestion des Secrets](#gestion-des-secrets)), le `GITHUB_TOKEN` n'a aucune PR à ouvrir ni à valider |
-| Épinglage SHA obligatoire | Activé, à tester sur un run | ❌ désactivé | Activé, il refuse une action composite qui appelle d'autres actions par tag flottant : ne l'activer qu'après un run vert de chaque workflow |
+| Épinglage SHA obligatoire | Activé | ✅ activé (corrigé le 2026-10-29, avant : désactivé) | Toutes les actions, y compris celles que les composites tierces appellent (`trivy-action`, `setup-trivy`, `setup-just`), sont appelées par SHA (lu dans leurs `action.yml`, 2026-10-29) |
 | Approbation des workflows de fork | Tous les contributeurs externes | ✅ tous les contributeurs externes (corrigé le 2026-10-12, avant : `first_time_contributors`) | Sinon, une seule PR acceptée (une typo suffit) dispense d'approbation toutes les suivantes |
 | Actor rules (rulesets) | Aucune, ou `dependabot[bot]` inclus | ✅ aucune | Une actor rule qui oublie `dependabot[bot]` bloque ses PR sans erreur visible |
 
@@ -342,17 +342,7 @@ Items effectués une fois, après le premier déploiement validé : ils exigeaie
 
 ## Plateforme d'hébergement
 
-Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare**. Conséquence directe : rien ne signale quand ces valeurs périment, contrairement aux dépendances applicatives que `pnpm-lock.yaml` verrouille. C'est pourquoi elles vivent ici et non dans [VERSIONS.md](VERSIONS.md), dont le périmètre est ce que le dépôt déclare.
-
-| Composant | Version documentée | Dernière publiée | Relevé le |
-|---|---|---|---|
-| Docker Engine | `29.8.0` | `29.8.0` | 2026-09-04 |
-| Docker Compose | `5.5.1` | `5.5.1` | 2026-09-04 |
-| Dokploy | `0.30.10` | `0.30.10` (2026-10-22) | 2026-10-29 |
-| Traefik | `3.7.13` | `3.7.13` (2026-09-04) | 2026-09-20 |
-| Cloudflare R2 | managed service | — | sans objet |
-
-> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, `dokploy settings get-dokploy-version` la renvoie depuis la CLI (relevé du 2026-10-29), et son API sur `settings.getDokployVersion` ; celle de Traefik se lit sur l'image du container, `docker ps --filter name=traefik --format '{{.Image}}'`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
+Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment. Versions et procédure de relevé : relevé dans la doc privée du VPS.
 
 **Pièges de montée**, à lire avant d'y toucher :
 

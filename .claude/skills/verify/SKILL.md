@@ -37,7 +37,7 @@ just stop   # à la fin, libère le port 3000
 | Espace admin sans session | `curl -s -o /dev/null -D - http://localhost:3000/admin` : 307 vers `/admin/login`, sans préfixe de locale |
 | Espace admin connecté | `just dev-login` puis `curl -b <jar>`, voir « Se connecter sans Google » |
 | Base de données | `docker exec thibaud-geisler-portfolio-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -A -c "<SQL>"'` : les credentials viennent de l'environnement du conteneur, sans lire `.env` (base de test : `portfolio_test`, liste via `psql -d postgres -l`, sans `-d` psql cherche une base au nom de l'utilisateur, absente) |
-| Erreurs remontées à Sentry | `sentry issue list tg-ws/thibaud-geisler-portfolio --limit 5 --fresh`, puis `sentry issue view <SHORT-ID>` (l'ingestion prend 15 à 60 s, boucler plutôt qu'attendre un délai fixe). Détail et pièges : [knowledges/sentry.md](../../../docs/knowledges/sentry.md) |
+| Erreurs remontées à Sentry | `sentry issue list <org>/thibaud-geisler-portfolio --limit 5 --fresh`, puis `sentry issue view <SHORT-ID>` (l'ingestion prend 15 à 60 s, boucler plutôt qu'attendre un délai fixe). Détail et pièges : [knowledges/sentry.md](../../../docs/knowledges/sentry.md) |
 
 ## Piloter une Server Action sans navigateur
 
@@ -76,8 +76,8 @@ docker rm -f verif-app verif-pg && docker network rm verif-net && docker rmi por
 
 - La CMD applique les migrations avant de servir : `docker logs verif-app` doit les lister, puis les routes publiques répondent 200 sur une base vide
 - Attendus sans secrets, sans rapport avec le changement : `/api/auth/*` en 500 (`BETTER_AUTH_SECRET` absent), images `/_next/image` en 400 (bucket R2 non configuré), action contact en `smtp_error`
-- `SENTRY_ENVIRONMENT=verification` isole les événements du run dans Sentry. Ils créent pourtant de vraies issues dans le projet : les résoudre en fin de run par `sentry issue resolve <SHORT-ID>` (sans préfixe d'org : `tg-ws/<SHORT-ID>` affiche l'issue sans la résoudre), après avoir vérifié leur `firstSeen`
-- Les spans d'un run se listent par `sentry api "organizations/tg-ws/events/?dataset=spans&field=span.op&field=span.description&field=timestamp&query=environment:verification&statsPeriod=1h&project=-1&sort=-timestamp"`, ceux d'une trace précise avec `query=trace:<trace_id>`
+- `SENTRY_ENVIRONMENT=verification` isole les événements du run dans Sentry. Ils créent pourtant de vraies issues dans le projet : les résoudre en fin de run par `sentry issue resolve <SHORT-ID>` (sans préfixe d'org : `<org>/<SHORT-ID>` affiche l'issue sans la résoudre), après avoir vérifié leur `firstSeen`
+- Les spans d'un run se listent par `sentry api "organizations/<org>/events/?dataset=spans&field=span.op&field=span.description&field=timestamp&query=environment:verification&statsPeriod=1h&project=-1&sort=-timestamp"`, ceux d'une trace précise avec `query=trace:<trace_id>`
 
 ## Piloter une Server Action de l'espace admin
 

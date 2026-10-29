@@ -23,7 +23,7 @@ paths:
 - `docker volume prune -a` et `docker system prune -a --volumes` : `-a` inclut les volumes nommés inutilisés, donc le volume Postgres de dev dès que son conteneur est arrêté
 
 ## Gotchas
-- Version de Docker Compose et de l'Engine : PRODUCTION.md § Mises à jour > Plateforme d'hébergement
+- Versions de Docker Compose et de l'Engine : relevées dans la doc privée du VPS
 - **`compose.override.yaml` est auto-chargé** par `docker compose up` en local, mais **Dokploy ne charge que `compose.yaml`** : les overrides dev sont ignorés en prod sans config particulière
 - En production, Postgres est une Dokploy Database autonome, pas un service de `compose.yaml`
 - Config runtime Next.js du service app (`output: standalone`, `HOSTNAME`, health endpoint) : voir `nextjs/production-deployment.md`. Build de l'image : voir `docker/dockerfile.md`

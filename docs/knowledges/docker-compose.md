@@ -1,6 +1,6 @@
 ---
 title: "Docker Compose — Orchestration multi-services"
-version: "5.5.1"
+version: "5"
 description: "Référence technique pour Docker Compose v5 : compose.yaml, healthchecks et depends_on."
 date: "2026-04-13"
 keywords: ["docker-compose", "orchestration", "yaml", "healthcheck"]
