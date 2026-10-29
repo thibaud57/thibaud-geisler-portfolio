@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.2...v2.4.3) (2026-10-29)
+
+
+### Bug Fixes
+
+* **deps:** Node 26 LTS et montées de dépendances ([#211](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/211)) ([670ed0b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/670ed0bcbc2353a96b7cc898a09fec802c2f98c4))
+
 ## [2.4.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.1...v2.4.2) (2026-10-27)
 
 
