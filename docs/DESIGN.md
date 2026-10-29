@@ -563,9 +563,9 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 
 ## Maquette et design system externes
 
-- **Design system** : [Thibaud Geisler Design System](https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c) : composants, fiches d'usage, cartes et kit du site public. Synchronisé depuis le dépôt par `/design-sync`, fait foi sur les composants
+- **Design system** : [Thibaud Geisler Design System](https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi), artifact Claude : composants, fiches d'usage, cartes et kit du site public. Synchronisé à la main depuis le dépôt, fait foi sur les composants
 - **Maquette** : [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : écrans de l'espace admin, fait foi sur l'apparence des écrans
-- **Lecture locale** : export dans `.design-sync/maquette/` et `.design-sync/design-system/`, ignorés par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
+- **Lecture locale** : export de la maquette dans `.design-sync/maquette/` et copie du design system dans `.design-sync/design-system/` (mêmes chemins que l'artifact), ignorés par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

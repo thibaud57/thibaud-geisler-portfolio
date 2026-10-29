@@ -1,10 +1,10 @@
 # Notes de sync du design system
 
-## Les deux projets Claude Design, et ce que chacun fait foi
+## Le design system et la maquette, et ce que chacun fait foi
 
 | Projet | Lien | Rôle |
 | --- | --- | --- |
-| Thibaud Geisler Design System (`75a17be1-6ed8-4e44-9517-0b3184998c0c`) | https://claude.ai/design/p/75a17be1-6ed8-4e44-9517-0b3184998c0c | Les **composants** : miroir JSX, `.d.ts`, fiche `.prompt.md` et carte par composant, plus tokens, guidelines, assets et le kit du site public (`ui_kits/portfolio/`) |
+| Thibaud Geisler Design System, artifact Claude (projet d'origine `75a17be1-6ed8-4e44-9517-0b3184998c0c`) | https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi | Les **composants** : miroir JSX, `.d.ts`, fiche `README.md` et aperçu par composant, plus tokens, guidelines, assets et le kit du site public (`ui_kits/portfolio/`) |
 | Espace Admin (`d2229cd8-49ca-4774-b7c8-0fdc88b83103`) | https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103 | La **maquette** des écrans admin (`Espace admin.dc.html`), construite sur une copie liée du design system (`_ds/`), plus `ecarts-design-system.md` |
 
 **Les deux se lisent ensemble avant d'implémenter un écran admin** : le système dit avec quels
@@ -24,15 +24,12 @@ système, puis refait entièrement.
 - **Lire la maquette depuis son export** : dans Claude Design, menu du projet, Export puis
   ZIP, dézippé dans `.design-sync/maquette/` (ignoré par git : la maquette fait foi, une copie
   versionnée vieillirait). Ré-exporter avant de s'en servir si la maquette a bougé.
-- **Lire les fiches du design system depuis son export** : même procédure sur le projet du design
-  system, dézippé dans `.design-sync/design-system/` (ignoré par git, comme par ESLint, Prettier et
-  TypeScript : il porte des `.jsx` et des `.d.ts`). Chaque composant y a sa fiche
-  `components/<groupe>/<Nom>.prompt.md` (`components/post-mvp/<famille>/<Nom>.prompt.md` sous `post-mvp/`). Cet export est la copie que `/design-sync` modifie puis
-  envoie : il reste aligné sur le projet en ligne sans nouveau ZIP. Seuls `_ds_bundle.js`,
-  `_ds_manifest.json` et `_adherence.oxlintrc.json`, que l'app régénère à la recompilation, y gardent
-  la date du dernier ZIP. Pour contrôler l'alignement : `list_files` (mêmes chemins des deux côtés),
-  puis `get_file` sur un fichier précis, deux lectures sans plan ni écriture. La copie `_ds/` de la
-  maquette n'a pas les fiches.
+- **Lire les fiches du design system depuis sa copie locale** `.design-sync/design-system/`
+  (ignorée par git, comme par ESLint, Prettier et TypeScript : elle porte des `.jsx` et des `.d.ts`),
+  qui reprend les chemins de l'artifact sans le préfixe `project/`. Chaque composant y a sa fiche
+  `components/<Nom>/README.md` et ses types `components/<Nom>/<Nom>.d.ts` ; une fiche citée en
+  `components/<groupe>/<Nom>.prompt.md` par un ancien spec est ce `README.md`. Les sources restent
+  sous `components/<groupe>/<Nom>.jsx`. La copie `_ds/` de la maquette n'a pas les fiches.
 - **Lire un écran, pas le fichier** : l'export porte tous les écrans dans un seul fichier. Repérer
   l'écran par son identifiant (`isTags`, `dlgDeleteTag`…), lire sa plage, puis les valeurs
   calculées qu'il utilise (libellés, colonnes, items) dans le script en fin de fichier.
@@ -41,39 +38,37 @@ système, puis refait entièrement.
 
 ## Comment ce dépôt se synchronise
 
-- **Le convertisseur de `/design-sync` ne s'applique pas ; le lancer détruirait le projet distant** :
+- **Le design system est un artifact Claude depuis le 2026-10-29**, au format Design System
+  (`tokens.json`, un dossier par composant sous `components/` avec fiche et aperçu, feuilles réunies
+  dans `components/bundle.css`, anciens fichiers sous `archived/`). La copie locale a les mêmes
+  chemins sans `project/` : un sync est 1 pour 1. Un fichier changé en local se publie au même chemin
+  sous `project/` par l'outil Artifact, selon le `SKILL.md` de l'artifact (relire d'abord le fichier
+  distant, publier ensemble les fichiers changés, l'index `project/design-system.json` en dernier
+  avec son `lastChange`) ; un fichier changé en ligne se rapatrie au même chemin.
+- **Le convertisseur de `/design-sync` ne s'applique pas ; le lancer détruirait le distant** :
   app Next.js privée, sans point d'entrée de librairie, sans `dist`, sans Storybook, il n'a rien à
   empaqueter. Sa clôture supprime du distant tout ce que le build local ne contient pas : avec un build
   vide, elle effacerait le design system, la maquette vivant dans un projet à part. La clé
   `mode: manual` de `config.json`, hors schéma du skill, fait échouer un run du convertisseur avant
   toute écriture : ne pas la retirer. Un sync se fait donc toujours à la main, fichier par fichier.
-- **Le design system s'écrit donc fichier par fichier** : `components/<groupe>/<Nom>.{jsx,d.ts,prompt.md}`,
-  une carte `@dsCard` par dossier, via `finalize_plan` puis `write_files`.
-- **Tenir `github.md` à jour** : c'est le registre de sync du projet Claude Design, il porte la branche
+- **Tenir `github.md` à jour** : c'est le registre de sync du design system, il porte la branche
   d'origine, la date, ce qui a changé et la table qui relie chaque dossier du système à ses fichiers
   du dépôt. Un sync qui ne le touche pas laisse le lecteur suivant sur un état faux.
-- **Finir par `_ds_needs_recompile`** (`{"by":"design-sync-manual"}`) : c'est lui qui déclenche
-  l'auto-contrôle de l'app à l'ouverture du projet, qui relit les `.d.ts`, réenregistre les cartes,
-  régénère `_ds_manifest.json` et l'adherence, puis l'efface.
-- **Pas de `_ds_sync.json`** : cette ancre décrit un build du convertisseur. Sans elle, le prochain
-  sync revérifie tout, ce que le skill appelle le choix honnête hors convertisseur.
-- **Ne pas envoyer `_ds_bundle.js`** : l'app le recompile depuis les `.jsx` envoyés, à l'ouverture qui
-  suit `_ds_needs_recompile` (le correctif `Sidebar.jsx` du 06 y est arrivé sans bundle envoyé).
-- **Travailler dans l'export et vérifier avant l'envoi** : l'export `.design-sync/design-system/` est
-  la copie à modifier, en gardant une copie intacte pour calculer ce qui s'écrit et ce qui se
-  supprime. Pour voir les cartes, recompiler un bundle local depuis les `.jsx` (un bloc par
+- **Reconstruire `components/bundle.js` à chaque composant ajouté ou modifié** : l'artifact le
+  charge tel qu'il est publié, rien ne le recompile. Il se publie avec le composant (compilation au
+  point `_ds_src/` ci-dessous).
+- **Vérifier avant l'envoi** : garder une copie intacte des fichiers distants touchés pour calculer
+  ce qui s'écrit et ce qui se supprime. Pour voir les rendus, recompiler un bundle local depuis les `.jsx` (un bloc par
   fichier, imports repris depuis `__ds_scope`, noms publiés sur le namespace), servir le dossier en
   HTTP (les icônes se chargent par `fetch`, refusé en `file://`),
   puis capturer chaque carte avec le Chromium de Playwright en headless à son viewport `@dsCard`.
   Comparer au rendu de la copie intacte distingue une régression d'un défaut ancien.
-- **Un composant installé quitte `post-mvp/`** : fichiers vers `components/core/` pour une primitive
-  du registry, vers `components/patterns/` pour un composé maison, règles de
-  `post-mvp.css` vers `components.css`. Les deux feuilles restent à leur place : la maquette les
-  charge directement.
+- **Un composant installé quitte `post-mvp/`** : sources vers `components/core/` pour une primitive
+  du registry, vers `components/patterns/` pour un composé maison. Les feuilles `components.css` et
+  `post-mvp.css` sont réunies dans `components/bundle.css` (originaux sous `archived/components/`).
 - **La maquette charge `_ds_src/`, pas `_ds/`** : `_ds/` est l'instantané lié que l'app gère,
-  `_ds_src/` une copie écrite à la main. Après un sync du système, y recopier depuis l'export les
-  feuilles et le readme qui ont changé, et y compiler le bundle depuis les `.jsx` de l'export :
-  celui de l'app dépasse les 256 Kio que `get_file` rend, celui de l'export date du dernier ZIP.
+  `_ds_src/` une copie écrite à la main. Après un sync du système, y recopier `components/bundle.css`
+  et le `README.md` s'ils ont changé, et y compiler le bundle depuis les `.jsx` du système.
   Compilation : un point d'entrée qui importe chaque `.jsx` et publie ses exports sur
   `window.ThibaudGeislerDesignSystem_75a17b`, passé à `esbuild --bundle --format=iife --jsx=transform
   --jsx-factory=React.createElement --tsconfig-raw={} --minify-whitespace` (sans minification, le
@@ -306,3 +301,15 @@ propriétaire le demande ; chaque ligne part une fois faite.
   `github.md` de la maquette.
 - **Reste ouvert** : écart n° 1, `Kanban` n'accepte que trois champs par carte, la maquette propose
   un champ `meta` ou `badges` et un `line-clamp-2`.
+- **2026-10-29, migration en artifact** : le design system devient l'artifact
+  https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi, mis au format (« Finish setting up ») le même
+  jour. Export local relu contre un export frais du projet d'origine : 652 fichiers identiques, seuls
+  `_ds_bundle.js`, `_ds_manifest.json` et `_adherence.oxlintrc.json` dataient d'avant le sync du
+  2026-10-27, remplacés. La maquette Espace Admin reste sur claude.ai/design, déplacement pas encore
+  proposé sur le compte ce jour-là ; le site ferme le 2026-12-14 (aide Anthropic « Move from
+  standalone Claude Design to Claude »).
+- **2026-10-29, copie locale alignée sur l'artifact** : l'artifact, complété des cartes de l'ancien
+  projet (18 guidelines et kit) et des groupes d'origine, est téléchargé en entier (724 fichiers) à la
+  place de l'ancien export. Aperçus `Effects`
+  et `Patterns` renommés `EffectsCard` et `PatternsCard` : ils ne différaient des dossiers de sources
+  `effects/` et `patterns/` que par la casse, que Windows ne distingue pas.
