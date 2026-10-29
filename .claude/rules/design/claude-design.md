@@ -12,7 +12,7 @@ La maquette « Espace Admin » (`Espace admin.dc.html`) fait foi sur **à quoi l
 ## À faire
 - **Lire l'écran de la maquette** avant d'écrire le composant. La spec du sub-project le nomme dans sa section « Références de design »
 - **Lire la maquette depuis son export local** (`.design-sync/maquette/`), pas par `DesignSync`
-- **Lire les fiches du design system depuis son export local** (`.design-sync/design-system/components/<groupe>/<Nom>.prompt.md`) : `DesignSync` est réservé à `/design-sync`, que le propriétaire lance
+- **Lire les fiches du design system depuis sa copie locale** (`.design-sync/design-system/components/<Nom>/README.md`, aux chemins de son artifact) : une fiche citée en `components/<groupe>/<Nom>.prompt.md` par un ancien spec est ce `README.md`
 - **Signaler une divergence** entre la maquette et la spec au lieu de la trancher en silence : l'écart est une décision à prendre
 - **Appliquer les règles du DESIGN.md avant la maquette** : chaque écart tranché par le propriétaire vit dans la section de `docs/DESIGN.md` qui le porte (Mapping Composants, États des Composants, Conventions de Code) et vaut pour tous les écrans ; sa sous-rubrique Arbitrages, quand elle existe, ne liste que les écarts pas encore réalignés dans la maquette ou le design system
 - **Consigner un nouvel arbitrage dans la sous-rubrique Arbitrages**, à créer au premier écart tranché (skill design-doc), tant que la maquette ou le design system ne l'applique pas, puis le faire passer dans sa section une fois réaligné

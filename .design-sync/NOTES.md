@@ -302,14 +302,12 @@ propriétaire le demande ; chaque ligne part une fois faite.
 - **Reste ouvert** : écart n° 1, `Kanban` n'accepte que trois champs par carte, la maquette propose
   un champ `meta` ou `badges` et un `line-clamp-2`.
 - **2026-10-29, migration en artifact** : le design system devient l'artifact
-  https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi, mis au format (« Finish setting up ») le même
-  jour. Export local relu contre un export frais du projet d'origine : 652 fichiers identiques, seuls
-  `_ds_bundle.js`, `_ds_manifest.json` et `_adherence.oxlintrc.json` dataient d'avant le sync du
-  2026-10-27, remplacés. La maquette Espace Admin reste sur claude.ai/design, déplacement pas encore
-  proposé sur le compte ce jour-là ; le site ferme le 2026-12-14 (aide Anthropic « Move from
-  standalone Claude Design to Claude »).
-- **2026-10-29, copie locale alignée sur l'artifact** : l'artifact, complété des cartes de l'ancien
-  projet (18 guidelines et kit) et des groupes d'origine, est téléchargé en entier (724 fichiers) à la
-  place de l'ancien export. Aperçus `Effects`
-  et `Patterns` renommés `EffectsCard` et `PatternsCard` : ils ne différaient des dossiers de sources
-  `effects/` et `patterns/` que par la casse, que Windows ne distingue pas.
+  https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi, mis au format (« Finish setting up »), complété
+  des cartes de l'ancien projet (18 guidelines et kit) et de ses groupes d'origine, puis téléchargé en
+  entier à la place de l'ancien export, anciens fichiers sous `archived/`. Aperçus `Effects` et
+  `Patterns` renommés `EffectsCard` et `PatternsCard` : ils ne différaient des dossiers de sources
+  `effects/` et `patterns/` que par la casse, que Windows ne distingue pas. 126 sous-éléments sans
+  fiche (`CardTitle`, `DialogFooter`…) retirés de la liste des composants du bundle, un aperçu ajouté
+  à chacun des 93 composants qui n'en avaient pas (817 fichiers). La maquette Espace Admin reste sur
+  claude.ai/design, déplacement pas encore proposé sur le compte ce jour-là ; le site ferme le
+  2026-12-14 (aide Anthropic « Move from standalone Claude Design to Claude »).
