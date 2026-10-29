@@ -691,12 +691,14 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 | LCP pages publiques desktop | < 2,5 s | **0,7 à 1,1 s** sur les 4 pages × 2 locales (PSI, 2026-09-25, `v2.0.1`) |
 | CLS pages publiques | < 0,1 | **0,025 à 0,051 sur `/fr`, 0,046 sur `/en`, 0 ailleurs** (PSI, 2026-09-25, `v2.0.1`) |
 | TBT (proxy INP en lab) | < 200 ms | **40 à 290 ms** en mobile, 60 à 210 ms en desktop (PSI, 2026-09-25, `v2.0.1`) |
-| TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), Kaspersky désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
+| TTFB pages publiques | < 200 ms | **0,13 à 0,19 s** (2026-09-05, 3 runs × 4 pages), antivirus désactivé : `curl -o /dev/null -s -w "%{time_starttransfer}\n" https://thibaud-geisler.com/fr` (URL localisée, la racine ne renvoie qu'une redirection) |
 | Envoi du formulaire de contact | < 3 s | `duration_ms` de l'event `email:sent` |
 
 > Colonne `Current` : dernière baseline en date, [baselines/](baselines/). Données de laboratoire, à ne pas confondre avec du terrain : le champ CrUX de PSI affiche toujours « Aucune donnée », faute de trafic suffisant. Reprendre une mesure après chaque optimisation significative et déposer un nouveau fichier de baseline plutôt que d'écraser celui-ci.
 
-> ⚠️ **Suspendre Kaspersky avant toute mesure, `curl` compris** : il s'interpose sur le TLS et gonfle le TTFB d'un facteur 3 à 5 (0,55-0,75 s actif contre 0,13-0,19 s désactivé, 2026-09-05). Il supprime aussi l'entrée LCP en émulation mobile. Seul PSI y échappe.
+> ⚠️ **Suspendre tout antivirus avec inspection TLS avant toute mesure, `curl` compris** : il s'interpose sur le TLS et gonfle le TTFB d'un facteur 3 à 5 (0,55-0,75 s actif contre 0,13-0,19 s désactivé, 2026-09-05). Il supprime aussi l'entrée LCP en émulation mobile. Seul PSI y échappe. Il injecte aussi environ 212 Ko de JS bloquant dans chaque page, au niveau réseau, donc dans tout navigateur : vérifier son absence des requêtes avant d'interpréter un chiffre.
+
+> ⚠️ **Lighthouse simule le throttling, il ne l'applique pas** : jusqu'à 5× d'écart sur le LCP avec une mesure sous throttling réel. Chiffre opposable = [PageSpeed Insights](https://pagespeed.web.dev/) sur l'URL de production, via son interface web (l'API refuse l'accès anonyme).
 
 > ⚠️ **Ne pas relever le TBT en pilotage CDP** : l'observer `longtask` sous CPU ×4 compte sa propre instrumentation et surestime d'un facteur 5 (295-444 ms contre 60-70 ms chez PSI, même build).
 
