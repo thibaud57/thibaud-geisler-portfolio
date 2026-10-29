@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION — Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-10-03"
+date: "2026-10-29"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
@@ -335,7 +335,7 @@ Items effectués une fois, après le premier déploiement validé : ils exigeaie
 | Dépendances npm | Mensuelle | PRs Dependabot sur `develop` (cf. § Dépendances) → CI verte → merge | Dev |
 | Next.js, Prisma (major) | Sur release majeure | PR dédiée, jamais groupée : suivre le guide de migration → build de l'image → smoke test prod | Dev |
 | Image Docker Node | Au fil des PRs Dependabot | Le `FROM` du `Dockerfile` est surveillé par l'écosystème `docker` de Dependabot → pris en compte au prochain build GHA | Dev |
-| Image Docker Postgres | Trimestrielle | Non couverte par Dependabot (déclarée dans Dokploy, pas dans le dépôt) : changer `dockerImage` sur la Database → redeploy | Dev |
+| Image Docker Postgres | Trimestrielle | **Production** : image de la Database Dokploy, déclarée dans Dokploy et non dans le dépôt, donc hors de portée de Dependabot : changer `dockerImage` sur la Database → redeploy. **Dev local et CI** : `postgres:18-alpine`, déclarée dans `compose.override.yaml` et `ci.yml`, versionnée dans le dépôt (cf. [VERSIONS.md § PostgreSQL](VERSIONS.md)) | Dev |
 
 > ✅ **Toujours vérifier le build et les tests avant de merger une mise à jour de dépendances**
 > ❌ **Ne jamais mettre à jour Next.js et Prisma simultanément** : isoler les mises à jour critiques
@@ -348,11 +348,11 @@ Ces composants tournent sur le VPS et **aucun fichier du dépôt ne les déclare
 |---|---|---|---|
 | Docker Engine | `29.8.0` | `29.8.0` | 2026-09-04 |
 | Docker Compose | `5.5.1` | `5.5.1` | 2026-09-04 |
-| Dokploy | `0.30.7` | `0.30.7` (2026-09-18) | 2026-09-21 |
+| Dokploy | `0.30.10` | `0.30.10` (2026-10-22) | 2026-10-29 |
 | Traefik | `3.7.13` | `3.7.13` (2026-09-04) | 2026-09-20 |
 | Cloudflare R2 | managed service | — | sans objet |
 
-> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, et son API la renvoie sur `settings.getDokployVersion` ; celle de Traefik se lit sur l'image du container, `docker ps --filter name=traefik --format '{{.Image}}'`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
+> **Comment relever** : `docker version --format '{{.Server.Version}}'` et `docker compose version --short` en SSH sur le VPS ; la version de Dokploy s'affiche dans son UI, `dokploy settings get-dokploy-version` la renvoie depuis la CLI (relevé du 2026-10-29), et son API sur `settings.getDokployVersion` ; celle de Traefik se lit sur l'image du container, `docker ps --filter name=traefik --format '{{.Image}}'`. Refaire ce relevé avant toute montée, c'est la seule chose qui signale que ce tableau a périmé.
 
 **Pièges de montée**, à lire avant d'y toucher :
 

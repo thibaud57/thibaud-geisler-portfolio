@@ -2,7 +2,7 @@
 title: "Vitest — Framework de test"
 version: "5.0.5"
 description: "Référence technique pour Vitest 5 : config Next.js, mocks, coverage et Testing Library."
-date: "2026-10-03"
+date: "2026-10-29"
 keywords: ["vitest", "testing", "mocks", "coverage", "react"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
@@ -38,12 +38,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['**/*.{test,spec}.{ts,tsx}'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'json'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/test/**'],
-    },
   },
 })
 ```
@@ -243,6 +237,8 @@ describe('submitContact', () => {
 
 Vitest utilise V8 nativement pour la couverture de code, sans instrumentation. Plus rapide qu'Istanbul. Configuration dans `vitest.config.ts`, exécution via `vitest run --coverage`.
 
+> ℹ️ **Non activée dans ce projet** (relevé le 2026-10-29) : `vitest.config.ts` n'a pas de bloc `coverage`, `@vitest/coverage-v8` n'est pas installé et aucun script ne la lance. [ARCHITECTURE.md § Coverage](../ARCHITECTURE.md) tranche « Pas d'objectif de coverage pour le MVP ». L'exemple ci-dessous est une référence générique de l'API, à adopter seulement si cette décision change.
+
 ### Exemple
 
 ```ts
@@ -275,7 +271,8 @@ pnpm exec vitest run --coverage
 ### Points Importants
 
 - `provider: 'v8'` par défaut (plus rapide qu'Istanbul)
-- Pas d'objectif de coverage strict pour le MVP du portfolio
+- Exige le paquet `@vitest/coverage-v8`, absent des dépendances du projet
+- Aucun objectif de coverage pour le MVP (décision d'ARCHITECTURE.md)
 - `/* v8 ignore next -- raison */` pour ignorer ponctuellement
 - Reporters multiples pour HTML local + lcov pour CI
 
@@ -346,7 +343,7 @@ Les commandes courantes pour lancer les tests en dev (watch mode) ou en CI (run 
 ```bash
 pnpm exec vitest               # watch mode (dev)
 pnpm exec vitest run           # passe unique (CI)
-pnpm exec vitest --coverage    # avec coverage
+pnpm exec vitest --coverage    # avec coverage (inopérant ici : @vitest/coverage-v8 n'est pas installé)
 pnpm exec vitest related src/lib/mailer.ts  # tests couvrant ce fichier
 pnpm exec vitest -t "submitContact"  # filtrer par nom de test
 ```
