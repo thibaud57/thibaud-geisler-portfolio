@@ -10,7 +10,7 @@ technologies: ["TypeScript", "pnpm", "Next.js"]
 
 # Description
 
-`Node.js` 26 « Lithium » est le runtime JavaScript utilisé dans le portfolio. La fiche documente la ligne, pas un patch : `node:26-alpine` et `runtime: node@26` résolvent la dernière 26.x à chaque build (26.13.0 le 28 octobre 2026, V8 14.6, source `nodejs.org/dist/index.json`). La ligne est en Active LTS depuis le 28 octobre 2026 jusqu'au 20 octobre 2027, en Maintenance LTS ensuite, fin de vie le 30 avril 2029 (`schedule.json` de `nodejs/Release`, relevé le 29 octobre 2026). TypeScript natif via type stripping, chargement natif des fichiers d'environnement via `--env-file` et test runner mature viennent des lignes 22 à 24. Node.js 20 est EOL depuis le 30 avril 2026.
+`Node.js` 26 « Lithium » est le runtime JavaScript utilisé dans le portfolio. Version exacte épinglée par `devEngines.runtime` (`26.13.0`, `onFail: download`), lue par pnpm et `pnpm/setup`, et reprise par le tag `node:26.13.0-alpine` du `Dockerfile` (26.13.0 le 28 octobre 2026, V8 14.6, source `nodejs.org/dist/index.json`). Dependabot ne monte pas `devEngines.runtime` (dependabot-core#13722) : la montée est manuelle. La ligne est en Active LTS depuis le 28 octobre 2026 jusqu'au 20 octobre 2027, en Maintenance LTS ensuite, fin de vie le 30 avril 2029 (`schedule.json` de `nodejs/Release`, relevé le 29 octobre 2026). TypeScript natif via type stripping, chargement natif des fichiers d'environnement via `--env-file` et test runner mature viennent des lignes 22 à 24. Node.js 20 est EOL depuis le 30 avril 2026.
 
 ---
 

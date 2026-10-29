@@ -71,11 +71,9 @@ jobs:
           NEXT_PUBLIC_SITE_URL=http://localhost:3000
           EOF
 
-      # Version de pnpm lue dans devEngines de package.json ; installe aussi Node et les dependances
+      # Versions de pnpm et de Node lues dans devEngines de package.json ; installe aussi les dependances
       - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
         with:
-          # package.json ne declare Node que dans engines, que l'action ne lit pas
-          runtime: node@26
           cache: true
           # L'install de l'action remplace celui du workflow : ce flag garde l'echec sur lockfile absent.
           require-lockfile: true

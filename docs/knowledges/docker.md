@@ -20,13 +20,13 @@ technologies: ["Node.js", "Next.js", "PostgreSQL", "Dokploy"]
 
 ### Description
 
-Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime. Le `Dockerfile` du portfolio compte cinq stages : `base` (Node 26 alpine, pnpm 12 par npm), `deps` (install complet et génération du client Prisma), `builder` (build Next.js standalone), `deploy-prisma` (dépendances de production à plat pour la CLI Prisma) et `runner` (image finale).
+Pattern fondamental pour réduire la taille des images de production : séparer les dépendances de build (toolchain, devDependencies) des dépendances runtime. Le `Dockerfile` du portfolio compte cinq stages : `base` (Node 26.13.0 alpine, pnpm 12 par npm), `deps` (install complet et génération du client Prisma), `builder` (build Next.js standalone), `deploy-prisma` (dépendances de production à plat pour la CLI Prisma) et `runner` (image finale).
 
 ### Exemple
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
-FROM node:26-alpine AS base
+FROM node:26.13.0-alpine AS base
 RUN npm install -g pnpm@12   # devEngines de package.json impose ensuite la version exacte
 WORKDIR /app
 
@@ -83,13 +83,13 @@ Docker cache chaque instruction du Dockerfile. Ordonner du moins fréquemment mo
 
 ```dockerfile
 # ❌ Mauvais : COPY . . invalide le cache à chaque changement
-FROM node:26-alpine
+FROM node:26.13.0-alpine
 WORKDIR /app
 COPY . .
 RUN pnpm install
 
 # ✅ Bon : les dépendances ne sont réinstallées que si package.json change
-FROM node:26-alpine
+FROM node:26.13.0-alpine
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -126,7 +126,7 @@ docker run -d \
 docker run -d \
   --mount type=bind,src=$(pwd),dst=/app \
   -p 3000:3000 \
-  node:26-alpine
+  node:26.13.0-alpine
 
 # tmpfs pour les données temporaires
 docker run --tmpfs /tmp ...

@@ -8,7 +8,7 @@ paths:
 
 ## À faire
 - Utiliser un **Dockerfile multi-stage** avec stages nommés via `AS <name>` pour isoler toolchain/devDeps du runtime image. Le projet enchaîne `base` (Node + pnpm, hérité par tous) → `deps` → `builder` → `deploy-prisma` → `runner`
-- Image de base **`node:<ligne LTS>-alpine`** : runtime sur une ligne LTS uniquement. La ligne exécutée et ses dates de bascule vivent dans `docs/VERSIONS.md` § Montées Bloquées, pas ici. Le tag de ligne flottant est assumé (chaque build suit le dernier patch), le digest `@sha256:` reste l'option si la reproductibilité stricte devient nécessaire
+- Image de base **`node:<x.y.z>-alpine`** : tag complet de patch, égal à `devEngines.runtime.version` de `package.json`, sur une ligne LTS uniquement. Dependabot (écosystème `docker`) monte le tag mais pas `devEngines.runtime` (dependabot-core#13722) : monter les deux ensemble, à la main. La ligne exécutée et ses dates de bascule vivent dans `docs/VERSIONS.md`, pas ici. Le digest `@sha256:` reste l'option si la reproductibilité stricte devient nécessaire
 - Installer un pnpm 12 quelconque par **`npm install -g pnpm@12`** dans le stage `base` : `devEngines.packageManager` de `package.json` impose ensuite la version exacte (`onFail: download`). Pas de Corepack, retiré de Node à partir de la 25
 - Copier **`package.json`**, **`pnpm-lock.yaml`** et **`pnpm-workspace.yaml`** AVANT le code source pour maximiser le cache de layers. Le troisième porte `allowBuilds` : sans lui, une dépendance à scripts de build fait échouer l'install (`strictDepBuilds`, cf. `pnpm/setup.md`)
 - **`pnpm install --frozen-lockfile`** pour garantir la reproductibilité du build (échoue si lockfile désynchronisé)
@@ -29,7 +29,7 @@ paths:
 ## Exemples
 ```dockerfile
 # ✅ Stage base commun, manifests avant le code, runner non-root, exec en fin de sh -c
-FROM node:26-alpine AS base
+FROM node:26.13.0-alpine AS base
 WORKDIR /app
 RUN npm install -g pnpm@12
 
@@ -47,7 +47,7 @@ CMD ["sh", "-c", "node migrate.js && exec node server.js"]
 
 ```dockerfile
 # ❌ COPY . . avant install et sh parent de node (SIGTERM jamais relayé)
-FROM node:26-alpine AS deps
+FROM node:26.13.0-alpine AS deps
 COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile   # Corepack : absent de Node 25+
 CMD ["sh", "-c", "node migrate.js && node server.js"]
