@@ -577,7 +577,7 @@ Sonde externe sur `/api/health` et notification Dokploy d'échec de build. Seuil
 
 ### Coverage
 
-Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formulaire contact, mutations BDD).
+Plancher du socle qualité (80 % lignes et branches, fusion unit + server + integration) dans `just test`, mesuré sur `server`, `lib`, `hooks`, `i18n`, `app/api` et `config`. Écart : l'UI (`components`, `app` hors `api`, `proxy.ts`, `instrumentation*.ts`) est hors mesure, aucun test de composant n'existe et son rendu est couvert par la recette `/verify` (Playwright).
 
 ---
 

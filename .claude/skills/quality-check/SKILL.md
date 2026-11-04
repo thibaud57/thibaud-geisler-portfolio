@@ -18,7 +18,7 @@ Optionnel : l'utilisateur peut préciser quel check (`lint`, `format`, `typechec
 
 1. `just lint` : ESLint sur `src/`, Prettier en vérification, `prisma validate` sur le schéma, `actionlint` sur `.github/workflows`
 2. `just typecheck` : `tsc --noEmit`
-3. `just test` : unit + integration
+3. `just test` : unit + server + integration avec le plancher de couverture
 
 Stopper au premier échec, afficher l'erreur brute sans troncature.
 
