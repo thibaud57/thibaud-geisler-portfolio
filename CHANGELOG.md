@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.3...v2.5.0) (2026-11-04)
+
+
+### Features
+
+* icônes vidéo, image, audio, FFmpeg et SEO au registre des tags ([#226](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/226)) ([7ca6d27](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/7ca6d27d79ad4352ab255ddfe00237dd98617620))
+
 ## [2.4.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.2...v2.4.3) (2026-10-29)
 
 
