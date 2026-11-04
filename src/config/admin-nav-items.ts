@@ -15,7 +15,7 @@ import {
   ImageIcon,
   Landmark,
   MessageCircle,
-  ReceiptEuro,
+  ReceiptText,
   Search,
   Send,
   ShieldCheck,
@@ -165,7 +165,7 @@ export const ADMIN_NAV_GROUPS: readonly AdminNavGroup[] = [
   {
     label: "Comptabilité",
     items: [
-      { label: "Facturation", icon: ReceiptEuro },
+      { label: "Facturation", icon: ReceiptText },
       { label: "Déclarations", icon: Landmark },
     ],
   },
