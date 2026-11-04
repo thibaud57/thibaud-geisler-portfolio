@@ -1,13 +1,13 @@
 import type { RelatedHref } from "@/lib/admin/related-links"
 import {
   Ban,
-  BadgeEuro,
   CalendarClock,
   CircleCheck,
   CircleMinus,
   CircleX,
   Code,
   Coffee,
+  Handshake,
   MapPin,
   Phone,
   Rocket,
@@ -45,7 +45,7 @@ export const INTERVIEW_TYPE_ICONS: Record<InterviewType, IconComponent | null> =
   RECRUTEUR_RH: UserSearch,
   TECHNIQUE: Code,
   MANAGER_EQUIPE: Users,
-  NEGOCIATION: BadgeEuro,
+  NEGOCIATION: Handshake,
 }
 
 export const INTERVIEW_FORMAT_LABELS: Record<InterviewFormat, string> = {
