@@ -7,7 +7,7 @@ scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **27 octobre 2026** (Node.js, `@types/node`, better-auth, `@aws-sdk/client-s3`, lucide-react, motion et shadcn : **29 octobre 2026**) (puis Tiptap, Sentry, `@aws-sdk/client-s3`, lucide-react, nodemailer et `@types/node` : **4 novembre 2026**) (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), tippy.js (**14 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **4 novembre 2026** ; les lignes relevées à une autre date portent la leur.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -431,7 +431,7 @@ pnpm typecheck && pnpm lint && pnpm test
 - [ ] Runner CI `ubuntu-24.04` (pas `ubuntu-latest`), actions épinglées par SHA (§ GitHub Actions)
 - [ ] Build Docker en Turbopack (aucun `--webpack`) : revalider après chaque montée de Next ou de Prisma
 
-## Montées Bloquées (état au 27 octobre 2026)
+## Montées Bloquées (état au 4 novembre 2026)
 
 Ces mises à jour majeures ont été testées puis écartées, ou identifiées et non tentées. Ne pas les rejouer sans que la contrainte listée soit levée.
 

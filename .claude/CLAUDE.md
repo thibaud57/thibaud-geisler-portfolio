@@ -4,7 +4,7 @@ Plateforme personnelle servant de vitrine professionnelle et de hub central (ser
 
 ## Stack
 
-Backend : Node.js + TypeScript strict (Next.js App Router, Server Actions) | Frontend : React + Tailwind + shadcn/ui (Magic UI, Aceternity UI) + next-intl (FR/EN) | DB : PostgreSQL + Prisma 7 | Infra : Docker Compose + Dokploy self-hosted (VPS IONOS)
+Backend : Node.js + TypeScript strict (Next.js App Router, Server Actions) | Frontend : React + Tailwind + shadcn/ui (Magic UI, Aceternity UI) + next-intl (FR/EN) | DB : PostgreSQL + Prisma | Infra : Docker Compose + Dokploy self-hosted (VPS IONOS)
 
 ## Documentation
 
