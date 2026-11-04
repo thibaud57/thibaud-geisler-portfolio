@@ -1,5 +1,5 @@
 ---
-title: "ADR-027 — Composants de chat : primitives shadcn/ui et flux d'événements propre au portfolio"
+title: "ADR-027 : Composants de chat : primitives shadcn/ui et flux d'événements propre au portfolio"
 status: "accepted"
 description: "Décision actée : l'assistant interne, le chatbot public et le créateur de specs partagent les composants de chat du registry shadcn/ui, alimentés par un lecteur SSE et un état écrits dans le portfolio ; les réponses en streaming se rendent par react-markdown avec réparation du markdown incomplet"
 date: "2026-10-24"

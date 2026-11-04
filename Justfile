@@ -177,7 +177,7 @@ setup: install db
 # Vérifie que l'environnement local est prêt : sortie vide = rien à signaler
 [group('setup')]
 check:
-    @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir engines de package.json)"
+    @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir devEngines de package.json)"
     @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir devEngines de package.json)"
     @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
     @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"

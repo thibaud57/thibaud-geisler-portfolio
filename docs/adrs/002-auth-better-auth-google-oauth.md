@@ -1,5 +1,5 @@
 ---
-title: "ADR-002 — Authentification Better Auth + Google OAuth"
+title: "ADR-002 : Authentification Better Auth + Google OAuth"
 status: "accepted"
 description: "Décision actée : Better Auth avec Google OAuth comme unique provider, whitelist email single-user"
 date: "2026-03-31"
@@ -89,17 +89,12 @@ Aucun provider Credentials n'est activé en fallback : garder un second provider
 
 ## Positives
 
-- Surface d'attaque minimale : pas d'endpoint de login local, pas de credential stocké
-- 2FA héritée du compte Google, protection renforcée sans code supplémentaire
-- DX TypeScript excellente avec Better Auth (inférence complète, adaptateur Prisma natif)
-- Whitelist email single-user garantie par hook de création de compte
+- Whitelist email single-user garantie par un hook de création de compte (`databaseHooks.user.create.before`)
 - Écosystème de plugins Better Auth disponible si besoins futurs (sessions avancées, audit, etc.)
 
 ## Négatives
 
-- Dépendance à Google pour la connexion admin (risque acceptable pour un outil personnel)
-- Configuration initiale supplémentaire : créer un projet Google Cloud Console, activer l'API OAuth, gérer les redirect URIs par environnement
-- Variables d'environnement supplémentaires à gérer dans Dokploy (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ADMIN_EMAIL`)
+- Variables d'environnement supplémentaires à gérer dans Dokploy (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ADMIN_EMAIL`), redirect URIs à déclarer par environnement
 
 ---
 

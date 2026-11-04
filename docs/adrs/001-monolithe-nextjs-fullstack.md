@@ -1,5 +1,5 @@
 ---
-title: "ADR-001 — Monolithe Next.js fullstack"
+title: "ADR-001 : Monolithe Next.js fullstack"
 status: "accepted"
 description: "Choix d'une architecture monolithique Next.js plutôt qu'une séparation frontend/backend distincte"
 date: "2026-03-31"
@@ -70,14 +70,12 @@ Choix naturel pour un projet solo avec Next.js App Router. La colocation Server 
 
 ## Positives
 
-- Un seul déploiement Docker
-- Développement rapide, zéro friction CORS
-- Types TypeScript partagés nativement
+- Le découpage logique passe par l'organisation du code (`server/actions/`, `server/queries/`) plutôt que par des services
 
 ## Négatives
 
-- Couplage présentation/logique, à mitiger via organisation en `server/actions/` et `server/queries/`
 - Si une API publique est un jour nécessaire, les routes API devront être exposées explicitement
+- Les traitements longs et l'IA ne vivent pas dans ce monolithe mais dans des dépôts voisins ([ADR-015](015-decoupage-services.md), [ADR-020](020-portfolio-bff.md))
 
 ---
 

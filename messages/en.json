@@ -74,8 +74,6 @@
     "placeholder": "Content coming soon."
   },
   "Projects": {
-    "metaTitle": "Projects",
-    "metaDescription": "Selected client and personal projects in full-stack development and AI",
     "pageTitle": "My projects",
     "pageSubtitle": "Client and personal projects",
     "filters": {
@@ -326,8 +324,6 @@
     "servicesDescription": "AI agents, RAG, MCP and n8n automation in production, full-stack development in Python, TypeScript, Scala and Angular, corporate AI training. From scoping to infra.",
     "projectsTitle": "AI and full-stack projects, case studies",
     "projectsDescription": "Case studies of AI and full-stack projects: agents, RAG, n8n automation, web apps. Client work and personal projects, with stack and results.",
-    "projectTitle": "Project: {slug}",
-    "projectDescription": "Case study of the {slug} project by Thibaud Geisler.",
     "aboutTitle": "About",
     "aboutDescription": "Freelance GenAI & full-stack tech lead based in Metz, Grand Est · Paris · Luxembourg · Remote. Background, stack and way of working, from small businesses to large accounts.",
     "contactTitle": "Contact",

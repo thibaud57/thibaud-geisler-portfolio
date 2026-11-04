@@ -20,7 +20,7 @@ paths:
 
 ## Gotchas
 - Next 16 : `images.minimumCacheTTL` passe de 60 s à **4 h**, `images.qualities` est restreint à `[75]` (toute autre valeur coercée sauf déclaration explicite), `images.imageSizes` perd la valeur `16`
-- `sharp` publie des binaires musl : aucun paquet système à ajouter sur `node:26-alpine`. En `output: 'standalone'`, il doit être résolu, sinon définir `NEXT_SHARP_PATH`. Le prouver par une requête `/_next/image` sur l'image Docker, pas par un `import('sharp')` depuis `/app`, qui ne voit pas le `node_modules` de Next
+- `sharp` publie des binaires musl : aucun paquet système à ajouter sur `node:26.13.0-alpine`. En `output: 'standalone'`, il doit être résolu, sinon définir `NEXT_SHARP_PATH`. Le prouver par une requête `/_next/image` sur l'image Docker, pas par un `import('sharp')` depuis `/app`, qui ne voit pas le `node_modules` de Next
 - **React 19 précharge de lui-même une `<img>` non lazy rendue dans le shell** : `loading="eager"` émet le même `<link rel="preload">` que la prop `preload` de `next/image`. Une image en deux variantes masquées par thème (`ThemedImage`) voit donc ses deux variantes préchargées quelle que soit la prop (constaté le 9 octobre 2026, Next 16.4 et React 19.3). Seul `loading="lazy"` y échappe
 - Polices et `ImageResponse` : voir `nextjs/fonts.md`
 

@@ -1,8 +1,8 @@
 ---
-title: "Magic UI — Composants animés"
-version: "copy-paste"
+title: "Magic UI : Composants animés"
+version: "n/a (composant copié)"
 description: "Référence technique pour Magic UI : 150+ composants animés copy-paste via shadcn CLI."
-date: "2026-04-13"
+date: "2026-08-30"
 keywords: ["magic-ui", "animation", "shadcn", "motion", "components"]
 scope: ["docs"]
 technologies: ["Next.js", "shadcn/ui", "Tailwind CSS", "motion"]
@@ -49,7 +49,7 @@ Magic UI regroupe ses composants par catégorie d'usage. Pour le portfolio, les 
 ### Exemple
 
 ```tsx
-// src/app/[locale]/(public)/page.tsx — Server Component
+// src/app/[locale]/(public)/page.tsx : Server Component
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Marquee } from '@/components/magicui/marquee'
 

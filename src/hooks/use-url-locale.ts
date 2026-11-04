@@ -11,8 +11,7 @@ function getUrlLocale(): Locale {
 }
 
 // Pas de souscription : les pages qui l'emploient ne survivent pas à une navigation popstate.
-// eslint-disable-next-line @typescript-eslint/no-empty-function -- no-op requis par la signature useSyncExternalStore
-const subscribe = () => () => {}
+const subscribe = () => () => undefined
 const getServerLocale = (): Locale => routing.defaultLocale
 
 // Pour les pages hors du layout [locale] (global-error, global-not-found), que next-intl ne voit

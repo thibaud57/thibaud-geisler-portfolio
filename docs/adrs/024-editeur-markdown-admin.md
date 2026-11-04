@@ -1,5 +1,5 @@
 ---
-title: "ADR-024 — Éditeur markdown des champs texte longs de l'espace admin"
+title: "ADR-024 : Éditeur markdown des champs texte longs de l'espace admin"
 status: "accepted"
 description: "Décision actée : les champs markdown de l'espace admin se saisissent avec Pages CMS Editor (Tiptap, installé par la CLI shadcn), le markdown restant le format stocké et rendu"
 date: "2026-09-27"

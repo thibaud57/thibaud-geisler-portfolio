@@ -1,5 +1,5 @@
 ---
-title: "ADR-012 — API LLM pour le chatbot RAG"
+title: "ADR-012 : API LLM pour le chatbot RAG"
 status: "proposed"
 description: "Décision ouverte : choix du modèle pour le chatbot RAG public, le mode d'accès étant tranché par l'ADR-016 (post-MVP)"
 date: "2026-03-31"
@@ -86,14 +86,11 @@ Les arguments comparatifs ci-dessus restent valables sur la qualité et le coût
 
 ## Positives
 
-- Chatbot IA public sur le portfolio = vitrine concrète de compétences techniques en IA
-- Coût marginal très faible à faible trafic (quelques centimes/mois avec rate limiting)
 - pgvector déjà prévu dans l'infra PostgreSQL, pas d'infrastructure supplémentaire pour le RAG
 
 ## Négatives
 
-- Coût variable par token à surveiller, rate limiting obligatoire côté service chatbot (par IP, quotas journaliers)
-- Dépendance à un service tiers externe (disponibilité, changements de pricing)
+- Rate limiting obligatoire côté service chatbot (par IP, quotas journaliers), cf. [ADR-014](014-rate-limiting-chatbot.md)
 - **Conformité RGPD à traiter avec OpenRouter**, qui devient le sous-traitant direct du chatbot ([ADR-016](016-acces-llm.md)), quel que soit le modèle retenu. Un contrat de sous-traitance signé et opposable y est réservé aux clients enterprise : arbitrage à documenter dans le [registre des traitements](../registre-traitements.md)
 
 ---

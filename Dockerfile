@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 
 # =============================================================================
-# Base — Node 26 alpine + pnpm 12 par npm : devEngines de package.json impose ensuite la
-# version exacte (onFail: download). Pas de Corepack, retiré de Node à partir de la 25.
+# Base — Node alpine (tag = devEngines.runtime) + pnpm 12 par npm : devEngines de package.json impose ensuite la
+# version exacte de pnpm (onFail: download). Pas de Corepack, retiré de Node à partir de la 25.
 # Pas de libc6-compat : sharp et les moteurs Prisma publient des binaires musl.
 # =============================================================================
-FROM node:26-alpine AS base
+FROM node:26.13.0-alpine AS base
 WORKDIR /app
 RUN npm install -g pnpm@12
 

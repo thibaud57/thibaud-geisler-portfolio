@@ -74,8 +74,6 @@
     "placeholder": "Contenu à venir."
   },
   "Projects": {
-    "metaTitle": "Projets",
-    "metaDescription": "Sélection de projets clients et personnels en développement full-stack et IA",
     "pageTitle": "Mes projets",
     "pageSubtitle": "Projets clients et projets personnels",
     "filters": {
@@ -326,8 +324,6 @@
     "servicesDescription": "Agents IA, RAG, MCP et automatisation n8n en production, développement full-stack Python, TypeScript, Scala et Angular, formation IA en entreprise. Du cadrage à l'infra.",
     "projectsTitle": "Projets IA et full-stack, études de cas",
     "projectsDescription": "Études de cas de projets IA et full-stack : agents, RAG, automatisation n8n, applications web. Missions clients et projets personnels, stack et résultats.",
-    "projectTitle": "Projet : {slug}",
-    "projectDescription": "Étude de cas du projet {slug} par Thibaud Geisler.",
     "aboutTitle": "À propos",
     "aboutDescription": "Tech Lead IA & full-stack freelance basé à Metz, Grand Est · Paris · Luxembourg · Remote. Parcours, stack et façon de travailler, de la TPE au grand compte.",
     "contactTitle": "Contact",

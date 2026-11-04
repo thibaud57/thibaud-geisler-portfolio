@@ -10,7 +10,7 @@ paths:
 - Déclarer **`allowBuilds`** dans **`pnpm-workspace.yaml`** (racine du repo, même en single-repo) et y **lister chaque dépendance à scripts de build** : `true` si son script est nécessaire (binaire natif compilé ou téléchargé), `false` si le projet s'en passe (`esbuild`, dont le binaire vient de `@esbuild/<plateforme>`). Depuis pnpm 11 (`strictDepBuilds`), une dépendance absente de la liste fait échouer l'install
 - Écrire ces entrées par **`pnpm approve-builds <pkg>`** (ou `'!<pkg>'` pour refuser), non interactif depuis pnpm 11
 - Déclarer les **`overrides`** dans le même `pnpm-workspace.yaml` avec un commentaire : un override force une version dans tout l'arbre, il doit dire pourquoi et quand le retirer
-- Pinner pnpm par **`devEngines.packageManager`** (`name: "pnpm"`, version exacte, `onFail: "download"`) dans `package.json` : seule source pour le poste, le Dockerfile et la CI (`pnpm/setup`), pnpm télécharge lui-même la version épinglée. Ni `packageManager`, ni `engines.pnpm`, ni Corepack
+- Pinner pnpm par **`devEngines.packageManager`** et Node par **`devEngines.runtime`** (`name`, version exacte, `onFail: "download"`) dans `package.json` : seules sources pour le poste, le Dockerfile et la CI (`pnpm/setup`), pnpm télécharge lui-même la version épinglée. Pas d'`engines.node` (app non publiée). Ni `packageManager`, ni `engines.pnpm`, ni Corepack
 - Après l'ajout d'une dep native autorisée, lancer **`pnpm rebuild`** : il exécute les build scripts sans re-résoudre tout l'arbre
 - Retirer les **`minimumReleaseAgeExclude`** qu'écrit `pnpm add` pour une version de moins de 24 h dès que le délai est passé, puis vérifier par `pnpm install --frozen-lockfile` (cf. Gotchas)
 

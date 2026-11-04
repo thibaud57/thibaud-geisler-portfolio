@@ -1,8 +1,8 @@
 ---
-title: "PostgreSQL — Base de données relationnelle"
+title: "PostgreSQL : Base de données relationnelle"
 version: "18.6"
 description: "Référence technique pour PostgreSQL 18 : types, indexes, transactions et Docker."
-date: "2026-04-13"
+date: "2026-10-29"
 keywords: ["postgresql", "database", "sql", "indexes", "jsonb"]
 scope: ["docs"]
 technologies: ["Prisma", "Docker"]
@@ -161,7 +161,7 @@ En v18, l'image Docker `postgres:18` change la convention de volume. `PGDATA` pa
 # docker-compose.yml
 services:
   db:
-    image: postgres:18.3
+    image: postgres:18.6
     environment:
       POSTGRES_USER: portfolio
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

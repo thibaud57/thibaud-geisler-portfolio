@@ -1,5 +1,5 @@
 ---
-title: "ADR-013 — Blog : PostgreSQL"
+title: "ADR-013 : Blog : PostgreSQL"
 status: "deprecated"
 description: "Sans objet : la feature blog est retirée du périmètre du projet (août 2026)"
 date: "2026-03-31"
@@ -69,8 +69,7 @@ Décision actée à l'époque. La génération de contenu assistée impliquait d
 
 ## Positives
 
-- Publication sans redéploiement ni accès Git, workflow accessible depuis n'importe quel appareil
-- Contenu indexable et favorable au SEO via `generateStaticParams` ou ISR
+- Le principe de brouillons IA en PostgreSQL standard reste valable pour les contenus générés de l'espace admin
 
 ## Négatives
 

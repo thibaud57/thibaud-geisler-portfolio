@@ -1,5 +1,5 @@
 ---
-title: "ADR-026 — Exécution de Claude Code sur l'abonnement"
+title: "ADR-026 : Exécution de Claude Code sur l'abonnement"
 status: "accepted"
 description: "Décision actée : agent-os pilote le binaire Claude Code par l'Agent SDK Python, sur l'abonnement et jamais l'API, avec l'environnement complet du propriétaire, déclenché uniquement par une action du propriétaire, attentes et fin de run signalées sur Telegram"
 date: "2026-09-30"

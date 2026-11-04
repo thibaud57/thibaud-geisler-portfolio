@@ -1,8 +1,8 @@
 ---
-title: "Pino — Logger JSON structuré"
+title: "Pino : Logger JSON structuré"
 version: "10.4.0"
 description: "Référence technique pour Pino : logger JSON, child loggers, transports et intégration Next.js."
-date: "2026-04-13"
+date: "2026-10-09"
 keywords: ["pino", "logger", "json", "observability", "nextjs"]
 scope: ["docs"]
 technologies: ["Node.js", "Next.js", "TypeScript"]

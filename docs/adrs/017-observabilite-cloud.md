@@ -1,5 +1,5 @@
 ---
-title: "ADR-017 — Observabilité en cloud, pas en self-hosted"
+title: "ADR-017 : Observabilité en cloud, pas en self-hosted"
 status: "accepted"
 description: "Décision actée : Sentry et Logfire ou Langfuse en cloud, self-hosting écarté sur critère de ressources"
 date: "2026-08-29"

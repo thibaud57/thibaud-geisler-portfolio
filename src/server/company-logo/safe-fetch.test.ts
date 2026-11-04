@@ -216,7 +216,10 @@ describe("safeFetch", () => {
   })
 
   it("fails a response whose body is cut without an error event", async () => {
-    const body = Object.assign(new Readable({ read() {} }), { statusCode: 200, headers: {} })
+    const body = Object.assign(new Readable({ read: () => undefined }), {
+      statusCode: 200,
+      headers: {},
+    })
     httpsRepliesWith(body)
     queueMicrotask(() => body.destroy())
 
@@ -255,7 +258,10 @@ describe("safeFetch", () => {
 
   it("reports a response cut by the deadline as too slow", async () => {
     const controller = new AbortController()
-    const body = Object.assign(new Readable({ read() {} }), { statusCode: 200, headers: {} })
+    const body = Object.assign(new Readable({ read: () => undefined }), {
+      statusCode: 200,
+      headers: {},
+    })
     httpsRepliesWith(body)
     queueMicrotask(() => {
       controller.abort()

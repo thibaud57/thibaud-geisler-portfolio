@@ -1,5 +1,5 @@
 ---
-title: "Zod — Validation & Inference"
+title: "Zod : Validation & Inference"
 version: "4.6.7"
 description: "Référence technique pour Zod v4 : schémas, safeParse, inference TS et intégration Server Actions."
 date: "2026-10-03"
@@ -74,7 +74,7 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     from: process.env.SMTP_FROM,
     to: process.env.MAIL_TO,
     replyTo: result.data.email,
-    subject: `Contact portfolio — ${result.data.name}`,
+    subject: `Contact portfolio : ${result.data.name}`,
     text: result.data.message,
   })
 

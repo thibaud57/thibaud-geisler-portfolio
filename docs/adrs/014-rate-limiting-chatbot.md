@@ -1,5 +1,5 @@
 ---
-title: "ADR-014 — Rate limiting chatbot public"
+title: "ADR-014 : Rate limiting chatbot public"
 status: "proposed"
 description: "Décision ouverte : stratégie de rate limiting sur le chatbot public sans authentification (post-MVP)"
 date: "2026-03-31"
@@ -84,17 +84,7 @@ Comment implémenter un rate limiting efficace sur le chatbot pour des utilisate
 
 # 🔄 Conséquences
 
-## Positives
-
-- Si Option A (in-memory) : implémentation minimale, zéro coût, zéro dépendance, suffisant pour dissuader les abus simples à faible trafic
-- Si Option B (PostgreSQL) : persistance et auditabilité sans service supplémentaire, PostgreSQL déjà là
-- Si Option C (Upstash) : robustesse maximale avec sliding window, résistant à la mise à l'échelle
-
-## Négatives
-
-- Si Option A : compteurs non persistés entre redémarrages, bypassable via VPN, protection partielle
-- Si Option B : latence BDD sur chaque appel chatbot, schéma de compteurs à maintenir
-- Si Option C : dépendance externe, coût variable, over-engineered pour ce contexte
+Non applicables tant que le mécanisme n'est pas décidé : elles s'écriront avec la décision, dans `portfolio-chatbot`.
 
 ---
 

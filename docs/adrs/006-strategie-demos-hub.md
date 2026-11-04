@@ -1,5 +1,5 @@
 ---
-title: "ADR-006 — Stratégie démos : hub pointant vers domaines autonomes"
+title: "ADR-006 : Stratégie démos : hub pointant vers domaines autonomes"
 status: "accepted"
 description: "Choix d'héberger les démos d'applications sur leurs propres domaines, le portfolio servant de hub central"
 date: "2026-03-31"
@@ -67,9 +67,7 @@ Le portfolio est un répertoire central. Chaque application démo a sa propre lo
 
 ## Positives
 
-- Portfolio léger et rapide
-- Applications indépendantes (cycle de vie, déploiement, stack)
-- Partage direct des démos possible
+- Le portfolio ne porte que le champ `demoUrl` d'un projet, jamais le code ni le déploiement d'une démo
 
 ## Négatives
 

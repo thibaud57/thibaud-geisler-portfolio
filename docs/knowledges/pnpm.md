@@ -1,8 +1,8 @@
 ---
-title: "pnpm — Package Manager"
+title: "pnpm : Package Manager"
 version: "12.15.0"
 description: "Référence technique pour pnpm 12 : installation, builds autorisés, délai de publication, scripts, lockfile et CI."
-date: "2026-10-15"
+date: "2026-10-29"
 keywords: ["pnpm", "package-manager", "monorepo", "nodejs", "supply-chain"]
 scope: ["docs"]
 technologies: ["Node.js", "TypeScript", "Next.js"]
@@ -86,7 +86,7 @@ pnpm 11 refuse par défaut d'installer une version publiée depuis moins de 1 44
 ### Exemple
 
 ```yaml
-# pnpm-workspace.yaml — ce qu'écrit `pnpm add sentry@<version publiée hier>`
+# pnpm-workspace.yaml : ce qu'écrit `pnpm add sentry@<version publiée hier>`
 minimumReleaseAgeExclude:
   - '@sentry/nextjs@11.6.0'
 ```
@@ -147,7 +147,7 @@ pnpm install --frozen-lockfile
 ```
 
 ```yaml
-# .github/workflows/ci.yml — sans `version:`, lue dans `devEngines.packageManager`
+# .github/workflows/ci.yml : sans `version:`, lue dans `devEngines.packageManager`
 - uses: pnpm/action-setup@<sha> # vX.Y.Z
 - run: pnpm install --frozen-lockfile
 ```
@@ -192,7 +192,7 @@ pnpm install
 
 - Le champ est lu par pnpm lui-même et par `pnpm/action-setup` (sans `version:`). pnpm 11 remplace `managePackageManagerVersions` et `packageManagerStrict*` par `pmOnFail`
 - Les métadonnées npm de pnpm 12.11.2 déclarent `engines.node >=18` (relevé le 2026-10-11)
-- `docker build --target deploy-prisma` passait avec Corepack le 2026-10-11 ; le passage à `npm install -g pnpm@12` du 2026-10-15 est à vérifier au prochain build
+- `docker build --target deploy-prisma` passait avec Corepack le 2026-10-11 ; le passage à `npm install -g pnpm@12` du 2026-10-15 est vérifié par `docker build --target runner` du 2026-10-29 (Node 26)
 
 ---
 

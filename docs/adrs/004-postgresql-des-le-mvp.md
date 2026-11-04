@@ -1,5 +1,5 @@
 ---
-title: "ADR-004 — PostgreSQL dès le MVP"
+title: "ADR-004 : PostgreSQL dès le MVP"
 status: "accepted"
 description: "Choix d'introduire PostgreSQL et Prisma dès le MVP plutôt que de démarrer avec une solution file-based"
 date: "2026-03-31"
@@ -67,13 +67,12 @@ Le contenu dynamique (projets) est nécessaire dès le MVP. PostgreSQL est la DB
 
 ## Positives
 
-- Pas de migration à gérer ultérieurement
 - Schéma évolutif via Prisma Migrate dès le début
 - PostgreSQL prêt pour pgvector (chatbot RAG post-MVP)
 
 ## Négatives
 
-- Un container Docker de plus en dev (mitiger avec Docker Compose)
+- La base est un service Dokploy Database séparé, hors du compose applicatif (`compose.override.yaml` pour le développement local)
 
 ---
 

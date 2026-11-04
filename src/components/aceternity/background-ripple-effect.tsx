@@ -83,8 +83,7 @@ const DivGrid = ({
   borderColor,
   fillColor,
   clickedCell,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function -- no-op par défaut, onCellClick est optionnel
-  onCellClick = () => {},
+  onCellClick = () => undefined,
   interactive = true,
 }: DivGridProps) => {
   const cells = useMemo(() => Array.from({ length: rows * cols }, (_, idx) => idx), [rows, cols])

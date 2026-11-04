@@ -1,5 +1,5 @@
 ---
-title: "ADR-009 — UI System : shadcn/ui hybride + effets visuels"
+title: "ADR-009 : UI System : shadcn/ui hybride + effets visuels"
 status: "accepted"
 description: "Décision actée : shadcn/ui comme socle fonctionnel + Magic UI / Aceternity UI pour les effets visuels du portfolio"
 date: "2026-03-31"
@@ -82,14 +82,12 @@ shadcn/ui comme socle fonctionnel pour tous les composants complexes (dialog, co
 
 ## Positives
 
-- Composants fonctionnels complexes (dialog, combobox, select, tables, forms) délégués à shadcn/Radix UI : accessibilité native, dark mode intégré, démarrage rapide
-- Identité visuelle différenciante via Magic UI / Aceternity UI sans réinventer les composants fonctionnels
-- Magic UI et Aceternity UI combinables (copy-paste) : flexibilité pour choisir les meilleurs effets de chaque lib
+- Aucune dépendance package à monter pour les effets : le code copié appartient au dépôt
 
 ## Négatives
 
-- Cohérence visuelle à maintenir entre composants shadcn customisés et effets décoratifs
-- La personnalisation poussée peut devenir chronophage si le périmètre des effets n'est pas cadré dès le départ
+- Chaque effet copié est à maintenir à la main, sans mise à jour automatique depuis la source
+- Les effets retenus sont à cadrer dès l'implémentation UI, sinon la personnalisation s'étire
 
 ---
 

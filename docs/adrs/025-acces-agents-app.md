@@ -1,5 +1,5 @@
 ---
-title: "ADR-025 — Accès des agents à l'app"
+title: "ADR-025 : Accès des agents à l'app"
 status: "proposed"
 description: "Décision ouverte : forme des outils que l'app expose aux agents (serveur MCP, CLI ou API appelée en direct) et leur authentification ; orientation provisoire vers un serveur MCP par domaine, authentifié par clé d'API"
 date: "2026-09-28"

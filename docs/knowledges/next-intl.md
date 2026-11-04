@@ -1,5 +1,5 @@
 ---
-title: "next-intl — Internationalisation Next.js"
+title: "next-intl : Internationalisation Next.js"
 version: "4.14.9"
 description: "Référence technique pour next-intl : i18n App Router, locale routing, useTranslations et static rendering."
 date: "2026-10-09"
@@ -121,7 +121,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
 ### Exemple
 
 ```tsx
-// src/app/[locale]/(public)/page.tsx — Server Component async
+// src/app/[locale]/(public)/page.tsx : Server Component async
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 
 export default async function HomePage({
@@ -143,7 +143,7 @@ export default async function HomePage({
 ```
 
 ```tsx
-// src/components/layout/public/Navbar.tsx — Client Component
+// src/components/layout/public/Navbar.tsx : Client Component
 'use client'
 import { useTranslations } from 'next-intl'
 
@@ -179,7 +179,7 @@ Les messages sont stockés en JSON hiérarchique par namespace. Supportent l'int
 // messages/fr.json
 {
   "HomePage": {
-    "title": "Thibaud Geisler — IA & Full-Stack",
+    "title": "Thibaud Geisler | IA & Full-Stack",
     "intro": "Bonjour {name}, bienvenue sur mon portfolio.",
     "followers": "{count, plural, =0 {aucun abonné} =1 {un abonné} other {# abonnés}}",
     "terms": "Lire nos <link>conditions</link>."

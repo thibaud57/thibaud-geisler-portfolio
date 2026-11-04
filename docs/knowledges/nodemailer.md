@@ -1,5 +1,5 @@
 ---
-title: "nodemailer — SMTP Email"
+title: "nodemailer : SMTP Email"
 version: "10.2.1"
 description: "Référence technique pour nodemailer : SMTP, Server Actions Next.js et sécurité pour le formulaire de contact."
 date: "2026-10-11"
@@ -83,7 +83,7 @@ export async function submitContact(prevState: unknown, formData: FormData) {
     from: process.env.SMTP_FROM,
     to: process.env.MAIL_TO,
     replyTo: email,
-    subject: `Contact portfolio — ${name}`,
+    subject: `Contact portfolio : ${name}`,
     text: message,
   })
 

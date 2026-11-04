@@ -1,5 +1,5 @@
 ---
-title: "ADR-019 — Communication inter-services : HTTP interne, jamais exposé"
+title: "ADR-019 : Communication inter-services : HTTP interne, jamais exposé"
 status: "accepted"
 description: "Décision actée : appels HTTP sur réseau Docker interne, contrats OpenAPI, aucun service Python exposé par Traefik"
 date: "2026-08-29"

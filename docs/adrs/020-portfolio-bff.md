@@ -1,5 +1,5 @@
 ---
-title: "ADR-020 — Le portfolio comme Backend For Frontend"
+title: "ADR-020 : Le portfolio comme Backend For Frontend"
 status: "accepted"
 description: "Décision actée : tous les fronts et tout le CRUD synchrone dans Next.js, le métier long et risqué dans les services"
 date: "2026-08-29"
@@ -62,7 +62,7 @@ Le CRUD des domaines métier vit-il dans Next.js ou dans des services dédiés ?
 | Dans le portfolio | Dans les services |
 |---|---|
 | Tous les fronts, public et admin | Aucune interface |
-| Authentification et sessions | — |
+| Authentification et sessions | n/a |
 | CRUD des schemas `public`, `auth`, `freelance` | Traitements longs, IA, exécution shell |
 | Scoring ICP, calculs comptables, agrégats | Rédaction, sourcing web, RAG |
 
