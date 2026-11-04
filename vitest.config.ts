@@ -13,6 +13,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.env-loader.ts", "./vitest.setup.ts"],
     exclude: ["**/node_modules/**", "**/.next/**", "**/dist/**"],
+    coverage: {
+      provider: "v8",
+      include: [
+        "src/server/**",
+        "src/lib/**",
+        "src/hooks/**",
+        "src/i18n/**",
+        "src/app/api/**",
+        "src/config/**",
+      ],
+      exclude: ["src/generated/**", "**/*.test.*"],
+    },
     projects: [
       {
         extends: true,

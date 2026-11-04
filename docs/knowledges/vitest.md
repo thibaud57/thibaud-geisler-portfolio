@@ -237,7 +237,7 @@ describe('submitContact', () => {
 
 Vitest utilise V8 nativement pour la couverture de code, sans instrumentation. Plus rapide qu'Istanbul. Configuration dans `vitest.config.ts`, exécution via `vitest run --coverage`.
 
-> ℹ️ **Non activée dans ce projet** (relevé le 2026-10-29) : `vitest.config.ts` n'a pas de bloc `coverage`, `@vitest/coverage-v8` n'est pas installé et aucun script ne la lance. [ARCHITECTURE.md § Coverage](../ARCHITECTURE.md) tranche « Pas d'objectif de coverage pour le MVP ». L'exemple ci-dessous est une référence générique de l'API, à adopter seulement si cette décision change.
+> ℹ️ **Activée dans ce projet** : périmètre dans `vitest.config.ts`, plancher dans `just test` ([ARCHITECTURE.md § Coverage](../ARCHITECTURE.md)). L'exemple ci-dessous est une référence générique de l'API.
 
 ### Exemple
 
@@ -271,8 +271,7 @@ pnpm exec vitest run --coverage
 ### Points Importants
 
 - `provider: 'v8'` par défaut (plus rapide qu'Istanbul)
-- Exige le paquet `@vitest/coverage-v8`, absent des dépendances du projet
-- Aucun objectif de coverage pour le MVP (décision d'ARCHITECTURE.md)
+- Exige le paquet `@vitest/coverage-v8`, à la même version que `vitest`
 - `/* v8 ignore next -- raison */` pour ignorer ponctuellement
 - Reporters multiples pour HTML local + lcov pour CI
 
@@ -343,7 +342,7 @@ Les commandes courantes pour lancer les tests en dev (watch mode) ou en CI (run 
 ```bash
 pnpm exec vitest               # watch mode (dev)
 pnpm exec vitest run           # passe unique (CI)
-pnpm exec vitest --coverage    # avec coverage (inopérant ici : @vitest/coverage-v8 n'est pas installé)
+pnpm exec vitest --coverage    # avec coverage
 pnpm exec vitest related src/lib/mailer.ts  # tests couvrant ce fichier
 pnpm exec vitest -t "submitContact"  # filtrer par nom de test
 ```
