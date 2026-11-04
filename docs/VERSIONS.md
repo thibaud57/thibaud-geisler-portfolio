@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS : Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-10-29"
+date: "2026-11-04"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **27 octobre 2026** (Node.js, `@types/node`, better-auth, `@aws-sdk/client-s3`, lucide-react, motion et shadcn : **29 octobre 2026**) (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), Tiptap et tippy.js (**14 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **27 octobre 2026** (Node.js, `@types/node`, better-auth, `@aws-sdk/client-s3`, lucide-react, motion et shadcn : **29 octobre 2026**) (puis Tiptap, Sentry, `@aws-sdk/client-s3`, lucide-react, nodemailer et `@types/node` : **4 novembre 2026**) (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), tippy.js (**14 octobre 2026**).
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -26,7 +26,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Prettier | `3.9.10` | ✅ | `eslint-config-prettier` `10.1.8` en dernier bloc de la flat config ; `prettier-plugin-tailwindcss` `0.8.1` trie les classes (`.prettierrc`, feuille `src/app/globals.css`) |
 | just | `1.58.0` (plancher) | ✅ | `set minimum-version := "1.58.0"` dans le `Justfile`, pas une version épinglée : la composite `.github/actions/setup-just` lit ce plancher et installe cette version en CI (relevé le 29 octobre 2026) |
 | tsx | `4.23.15` | ✅ | Scripts TypeScript hors Next (relevé le 29 octobre 2026) |
-| @types/node | `26.6.5` | ✅ | Même ligne majeure que le runtime (relevé le 29 octobre 2026) |
+| @types/node | `26.6.6` | ✅ | Même ligne majeure que le runtime (relevé le 4 novembre 2026) |
 
 ## Framework & UI
 
@@ -46,7 +46,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | next-intl | `4.14.9` | ✅ | Nécessite Next.js >= 16.3 pour `use cache`. `alternateLinks: false` : les hreflang viennent des seules métadonnées. Détail : § next-intl |
 | @icons-pack/react-simple-icons | `13.15.1` | ✅ | Logos techs/marques des badges de stack (DESIGN.md § Mapping Composants), imports nommés dans `src/lib/icons.tsx`. Un export peut disparaître à une majeure si la marque disparaît de Simple Icons : `tsc --noEmit` l'attrape. Lucide pour l'UI, ne pas mélanger sur un même rôle |
 | country-flag-icons | `1.6.20` | ✅ | Drapeaux SVG du LanguageSwitcher (FR et GB, ratio 3:2). Pas de type public : le mapping se type par `satisfies Record<Locale, typeof FR>` (TS 6) |
-| lucide-react | `1.63.0` | ✅ | Icônes de l'UI, fournies avec shadcn/ui (relevé le 29 octobre 2026) |
+| lucide-react | `1.64.0` | ✅ | Icônes de l'UI, fournies avec shadcn/ui. Les icônes liées à une devise (`*Euro`, `*Dollar`, etc.) sont dépréciées depuis la 1.64.0 (`deprecationReason` « icon.use-case », sans remplaçant) et `@typescript-eslint/no-deprecated` casse le lint : `ReceiptText` (menu Facturation) et `Handshake` (entretien Négociation) les remplacent (relevé le 4 novembre 2026) |
 | radix-ui | `1.8.1` | ✅ | Primitives des composants shadcn `radix-nova` |
 | class-variance-authority | `0.7.1` | ✅ | Variantes (`cva`) des composants shadcn |
 | cmdk | `1.1.1` | ✅ | Composant shadcn `command` |
@@ -58,7 +58,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | Zod | `4.6.7` | ✅ | Validateurs string en top-level (`z.email()`) |
-| nodemailer | `10.2.1` | ✅ | v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` retiré (DefinitelyTyped n'a publié ni 9.x ni 10.x, ne pas le réinstaller). Planchers : **>= 8.0.5** (GHSA-vvjj-xcjg-gr5g, CRLF injection) et **>= 10.0.11** (10.0.0 à 10.0.10 cassaient l'entrée CommonJS et la forme des types, rétablies le 27 septembre 2026). v9 (TLS validé sur le contenu distant) et v8 (`ENOAUTH`) sans effet : le transport IONOS est un SMTP direct sans proxy, OAuth2 ni pièce jointe distante |
+| nodemailer | `10.3.0` | ✅ | v10 le 3 octobre 2026 : types embarqués, `@types/nodemailer` retiré (DefinitelyTyped n'a publié ni 9.x ni 10.x, ne pas le réinstaller). Planchers : **>= 8.0.5** (GHSA-vvjj-xcjg-gr5g, CRLF injection) et **>= 10.0.11** (10.0.0 à 10.0.10 cassaient l'entrée CommonJS et la forme des types, rétablies le 27 septembre 2026). v9 (TLS validé sur le contenu distant) et v8 (`ENOAUTH`) sans effet : le transport IONOS est un SMTP direct sans proxy, OAuth2 ni pièce jointe distante |
 | Pino | `10.4.0` | ✅ | `pino-pretty` `13.2.0`. `pino`, `pino-pretty` et `thread-stream` sont dans la liste `serverExternalPackages` par défaut de Next (`node_modules/next/dist/lib/server-external-packages.jsonc`), que `next.config.ts` redéclare pour documenter la dépendance. `thread-stream@4.2.0` en dépendance directe : Pino ne le résout pas toujours seul sous pnpm strict |
 | @next/env | `16.4.3` | ✅ | Épinglé à la version exacte de Next. Charge `.env` hors runtime Next (`prisma.config.ts`, `vitest.env-loader.ts`) : Prisma 7 ne le fait plus, sans lui la CLI tourne sans `DATABASE_URL` (erreur P1010). `loadEnvConfig(process.cwd())` avant tout import qui lit `process.env` |
 | @t3-oss/env-nextjs | `0.13.11` | ✅ | Validation Zod des env vars dans `src/env.ts`, séparation server/client. `skipValidation: !!process.env.SKIP_ENV_VALIDATION` : la CI pose `SKIP_ENV_VALIDATION: 'true'` dans `ci.yml`, sinon `just build` échoue. Version `0.x` : relire le changelog même pour une mineure |
@@ -67,12 +67,12 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | c15t | `3.1.0` | ✅ | CMP de consentement cookies. Monté en v3 le 27 octobre 2026. Détail : § c15t |
 | react-markdown | `10.1.0` | ✅ | Markdown des case studies et pages légales (`MarkdownContent.tsx`). `defaultUrlTransform` neutralise `javascript:`, HTML brut désactivé, `rehype-raw` absent : **ne pas poser de `urlTransform` ni ajouter `rehype-raw` sans revalider**. `remark-gfm` `4.0.1`, paquet distinct à monter avec lui (sans lui un tableau markdown se rend en texte brut) |
 | pg | `8.23.1` | ✅ | Driver consommé par `@prisma/adapter-pg` (relevé le 29 octobre 2026). `@types/pg` même version |
-| Sentry (`@sentry/nextjs`) | `11.9.0` | ⚠️ | ADR-017. **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, non revalidé en 11.9.0). Détail : § Sentry |
-| @aws-sdk/client-s3 | `3.1158.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
+| Sentry (`@sentry/nextjs`) | `11.10.0` | ⚠️ | ADR-017. **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, non revalidé en 11.10.0). Détail : § Sentry |
+| @aws-sdk/client-s3 | `3.1159.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
 | Better Auth | `1.7.14` | ✅ | Admin, Google OAuth unique provider, aucun Credentials (ADR-002). Détail : § Better Auth |
 | sharp | `0.35.5` | ✅ | Conversion PNG des logos récupérés (ADR-023). Même version que la dépendance optionnelle de Next 16.4.3 (`^0.35.5`), épinglée sans `^` pour garder une seule copie (binaires natifs) : l'aligner sur Next à chaque montée de Next (épingle passée à 0.35.5 le 12 octobre 2026) |
 | decode-ico | `0.4.1` | ✅ | Plus grande image d'un conteneur ICO, que sharp ne lit pas (spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026). JavaScript pur, trois dépendances du même auteur, dernière publication en novembre 2022 : sur alerte de sécurité sans correctif, le remplacer par un parseur maison des seules entrées PNG et DIB 32 bits. Épinglé sans `^` |
-| Tiptap (15 paquets `@tiptap/*`) | `3.32.0` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024). Épinglés sans `^`, à monter ensemble. Détail : § Tiptap |
+| Tiptap (15 paquets `@tiptap/*`) | `3.32.1` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024). Épinglés sans `^`, à monter ensemble. Détail : § Tiptap |
 | tippy.js | `6.3.7` | ✅ | Popup du menu `/` de l'éditeur (`slash-command/suggestion.tsx`), importé par le code copié et non par Tiptap 3 (Floating UI). Reste tant que ce fichier l'importe |
 
 ## Tests
@@ -215,7 +215,7 @@ CMP headless Apache 2.0, mode `offline`, juridiction forcée FR. Le paquet à in
 
 ### 2. Sentry (`@sentry/nextjs`)
 
-**Version actuelle** : `11.9.0`
+**Version actuelle** : `11.10.0`
 **Stabilité** : ⚠️ (spans des Server Actions absents sous Turbopack, relevé en 11.1.0)
 
 Monitoring cloud, le self-hosted étant exclu par [ADR-017](adrs/017-observabilite-cloud.md) (4 cœurs et 16 Go de RAM minimum, hors de portée du VPS). Capture d'erreur vérifiée côté serveur, edge et navigateur ; tracing actif pour routes, pages et queries Prisma, sans tracing navigateur ni Session Replay. Fiche : [knowledges/sentry.md](knowledges/sentry.md).
@@ -226,9 +226,9 @@ Monitoring cloud, le self-hosted étant exclu par [ADR-017](adrs/017-observabili
 
 **`SENTRY_DATA_COLLECTION`** (`src/lib/sentry-scrub.ts`) ferme chaque catégorie et se passe aux trois `Sentry.init`. `beforeSend` et `beforeSendLog` restent : ils filtrent ce que `dataCollection` ne couvre pas, le texte des messages d'erreur et des logs Pino. Vérifié le 3 octobre 2026 : `getDataCollectionOptions()` résout toutes les catégories à `false`, et l'événement reçu depuis l'image de production (erreur SMTP de l'action contact) n'a ni cookie, ni en-tête, ni corps de requête, ni IP, ni contenu du formulaire.
 
-**Turbopack** (bundler par défaut, dev comme build) : **spans des Server Actions absents**, relevé en 11.1.0 le 3 octobre 2026 sur l'image de production : l'erreur de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, mais la trace ne compte aucun span après plus de 4 minutes, quand ceux des GET voisins arrivent en quelques secondes. Capture d'erreur et tracing routes/queries inaffectés. Ce constat a été rattaché à tort à [#18871](https://github.com/getsentry/sentry-javascript/issues/18871), qui porte sur des events serveur perdus par le transport Node (fermée le 19 janvier 2026 sans reproduction). Sentry décrit cette limite comme structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026) et les notes 11.2 à 11.6 ne citent aucun correctif. Non revalidé en 11.9.0 : à refaire après le déploiement, puis à chaque montée du SDK.
+**Turbopack** (bundler par défaut, dev comme build) : **spans des Server Actions absents**, relevé en 11.1.0 le 3 octobre 2026 sur l'image de production : l'erreur de l'action contact arrive avec `transaction: serverAction/submitContact` et son `trace_id`, mais la trace ne compte aucun span après plus de 4 minutes, quand ceux des GET voisins arrivent en quelques secondes. Capture d'erreur et tracing routes/queries inaffectés. Ce constat a été rattaché à tort à [#18871](https://github.com/getsentry/sentry-javascript/issues/18871), qui porte sur des events serveur perdus par le transport Node (fermée le 19 janvier 2026 sans reproduction). Sentry décrit cette limite comme structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026) et les notes 11.2 à 11.6 ne citent aucun correctif. Non revalidé en 11.10.0 : à refaire après le déploiement, puis à chaque montée du SDK.
 
-**Recommandation** : ⚠️ 11.9.0 avec `SENTRY_DATA_COLLECTION` dans chaque `Sentry.init`.
+**Recommandation** : ⚠️ 11.10.0 avec `SENTRY_DATA_COLLECTION` dans chaque `Sentry.init`.
 
 ### 3. Better Auth
 
@@ -247,13 +247,13 @@ Les breaking changes de la 1.7.0 portent sur OAuth provider, SSO, SCIM et MCP, h
 
 ### 4. Tiptap
 
-**Version actuelle** : `3.32.0` sur les 15 paquets `@tiptap/*` (`core`, `pm`, `react`, `markdown`, `starter-kit`, `suggestion`, `extension-image`, `-link`, `-list`, `-placeholder`, `-table`, `-table-cell`, `-table-header`, `-table-row`, `-underline`), `tippy.js` `6.3.7`, relevé le 14 octobre 2026
+**Version actuelle** : `3.32.1` sur les 15 paquets `@tiptap/*` (`core`, `pm`, `react`, `markdown`, `starter-kit`, `suggestion`, `extension-image`, `-link`, `-list`, `-placeholder`, `-table`, `-table-cell`, `-table-header`, `-table-row`, `-underline`), `tippy.js` `6.3.7` (relevé le 14 octobre 2026), Tiptap relevé le 4 novembre 2026
 **Stabilité** : ⚠️
 
 Éditeur markdown des champs texte longs de l'admin (ADR-024), « Pages CMS Editor » copié par la CLI shadcn depuis `https://editor.pagescms.org/r/editor.json` (URL directe, sans entrée `registries`), sous `src/components/ui/editor/`. Seul `MarkdownEditorField.tsx` l'importe : le site public n'embarque jamais l'éditeur. Pas de versioning côté registre, le code copié est maintenu par le projet. Tiptap 3 a remplacé tippy.js par Floating UI (`@floating-ui/dom` `1.8.0`), mais l'éditeur copié importe encore tippy.js.
 
 **Compatibilité Écosystème** :
-- React 19 : peers de `@tiptap/react` 3.32.0 `^17.0.0 || ^18.0.0 || ^19.0.0` (relevé le 23 octobre 2026)
+- React 19 : peers de `@tiptap/react` 3.32.1 `^17.0.0 || ^18.0.0 || ^19.0.0` (relevé le 23 octobre 2026)
 - Next.js 16 : documentation Tiptap générique, aucune mention de Next.js 16 lue. Monté côté client avec `immediatelyRender: false` (`index.tsx`), réglage du guide Next.js de Tiptap contre les erreurs d'hydratation
 - Entrée et sortie par `@tiptap/markdown` (`contentType: "markdown"`), le markdown reste le seul format stocké
 
@@ -345,7 +345,7 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux troi
 | Next.js 16.4.3 | ESLint 10.13.0 | ✅ | `eslint-config-next@16.4.0` patche les plugins React, import et jsx-a11y ; leurs peers restent à ESLint 9 |
 | Next.js 16.4.3 | Aceternity UI | ✅ | `motion` v12+ (`14.7.1` installée), pas `framer-motion` |
 | Next.js 16.4.3 | Better Auth 1.7.14 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (Issue #5584) |
-| Next.js 16.4.3 | Sentry 11.9.0 | ⚠️ | Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, § Sentry) |
+| Next.js 16.4.3 | Sentry 11.10.0 | ⚠️ | Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, § Sentry) |
 | Prisma 7.10.1 | Better Auth 1.7.14 | ✅ | `prisma.config.ts` concerne la CLI Prisma uniquement, pas le runtime Better Auth |
 | pnpm 12.15.0 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
 | pnpm 12.15.0 | Node.js 26.13.0 | ✅ | Installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, `docker build --target runner` vérifié le 29 octobre 2026 avec Node 26 |
