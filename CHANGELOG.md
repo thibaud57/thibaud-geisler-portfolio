@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.5.0...v2.5.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* montées de dépendances ([#229](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/229)) ([d9f5214](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d9f521473ce03ef5e7858c7afe83001a91de9233))
+
 ## [2.5.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.4.3...v2.5.0) (2026-11-04)
 
 
