@@ -86,7 +86,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 
 **Règle absolue : jamais de gateway devant Claude Code.** La documentation Anthropic est explicite : passer par une gateway avec un credential facture l'usage au tarif API et **désactive l'abonnement** pour cette session. Router l'orchestrateur reviendrait à transformer un forfait déjà payé en facturation à l'acte. Le même effet vient d'une clé API laissée dans l'environnement : en mode non interactif, Claude Code l'utilise dès qu'elle est présente. Aucune clé API ne cohabite donc avec Claude Code. La garde qui refuse une session dans ce cas est portée par l'ADR-004 d'`ai-kit` (2026-10-27).
 
-**Discipline d'implémentation.** Partout où un modèle est appelé **par API**, le framework est **PydanticAI** et seul le provider change. Ce qui passe par l'abonnement emprunte le binaire Claude Code, pas PydanticAI. Aucune application ne code un provider en dur. Tout passe par `base_url` et `api_key` venant de la configuration, via `ai-kit`. Basculer de routeur, ou vers une gateway auto-hébergée si un déclencheur se réalise, reste alors un changement de variable d'environnement. Mécanique : ADR-003 d'`ai-kit`. Exception (amendement du 2026-10-27, ADR-008 d'`ai-kit`) : la génération de médias, que PydanticAI ne couvre pas, passe par un client HTTP direct du kit.
+**Discipline d'implémentation.** Partout où un modèle est appelé **par API**, le framework est **PydanticAI** et seul le provider change. Ce qui passe par l'abonnement emprunte le binaire Claude Code, pas PydanticAI. Aucune application ne code un provider en dur. Tout passe par `base_url` et `api_key` venant de la configuration, via `ai-kit`. Basculer de routeur, ou vers une gateway auto-hébergée si un déclencheur se réalise, reste alors un changement de variable d'environnement. Mécanique : ADR-003 d'`ai-kit`. Exception (amendement du 2026-10-27, ADR-008 d'`ai-kit`, proposé) : la génération de médias, que PydanticAI ne couvre pas, passera par un client HTTP direct du kit.
 
 ---
 
@@ -110,7 +110,7 @@ Faut-il une AI gateway (passerelle LLM unifiée), et si oui, auto-hébergée ou 
 
 # 📝 Notes complémentaires
 
-**Piège du prompt caching.** `claude-haiku-4.5` dispose de huit points d'accès chez OpenRouter (Anthropic, Vertex, Azure, Bedrock). Un cache écrit sur l'un est illisible depuis les autres, et un cache manqué coûte une dizaine de fois le prix d'une lecture en cache. Épingler systématiquement `{'order': ['anthropic'], 'allow_fallbacks': False}` et vérifier empiriquement que `cache_read_input_tokens` est non nul au second appel. L'épinglage est porté par l'ADR-003 d'`ai-kit`.
+**Piège du prompt caching.** `claude-haiku-4.5` dispose de huit points d'accès chez OpenRouter (Anthropic, Vertex, Azure, Bedrock). Un cache écrit sur l'un est illisible depuis les autres, et un cache manqué coûte une dizaine de fois le prix d'une lecture en cache. Ne pas épingler le provider : un ordre imposé désactive le sticky routing, qui garde la conversation sur le même point d'accès, et le fallback d'OpenRouter. Passer le même `session_id` à chaque appel de la conversation et vérifier que `cache_read_tokens` est non nul au second appel. Mécanique et épinglage écarté : ADR-003 d'`ai-kit`.
 
 **Déclencheurs de réévaluation.** Basculer vers une gateway si et seulement si : la facture dépasse 150 $ par mois pendant trois mois consécutifs, un client tiers doit être refacturé à l'usage, ou un point d'appel hors monolithe manipulant des données sensibles apparaît sans contournement possible.
 
