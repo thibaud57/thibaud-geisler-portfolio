@@ -157,6 +157,23 @@ propriétaire le demande ; chaque ligne part une fois faite.
     `github.md`). Un sous-agent n'a pas toujours `DesignSync` : l'envoi de la maquette se fait depuis
     la session principale.
 
+- **Set Lucide réaligné, cartes `Iconography` et `InputGroup` (système synchronisé le 2026-11-06)** :
+  la maquette avait 167 glyphes, le système 136 ; les 32 absents du système y entrent, `maximize-2`, seul du système, passe dans la maquette et
+  `circle-dashed`, qu’aucun des deux n’avait, rejoint les deux (les dossiers portent les mêmes 169 noms).
+  `Iconography` recense les 169 (dont huit anciens jamais montrés), `InputGroup` montre en plus du prompt
+  de chat (post-MVP) le cadre du champ de recherche de `Command` et la valeur secrète avec « Copier »,
+  viewport de 394 à 600 px ; readme du système et de `_ds_src/` à 169 glyphes.
+  - **Contrôle du système** : les deux cartes capturées avant et après avec le Chromium de Playwright,
+    sans erreur console hors polices externes, sans 404, sans image cassée, sans racine vide ni hauteur
+    nulle ; aucun glyphe copié sans `stroke`, `viewBox 0 0 24 24` ou `stroke-width 2` ; `key-round` passe à
+    sa place alphabétique dans la carte.
+  - **Maquette** : aucun écran modifié ; les noms d'icônes de `Espace admin.dc.html` contrôlés contre
+    `assets/icons/lucide/` : seul `circle-dashed` manquait (statut « En cours » des chantiers, `CH_ICON`), ajouté aux deux ; plus
+    aucun 404 sur l’écran des chantiers.
+  - **Envoi** : le système par l'outil Artifact (voir `github.md`) ; la maquette (`assets/icons/lucide/maximize-2.svg`, `assets/icons/lucide/circle-dashed.svg`,
+    `_ds_src/readme.md`, `github.md`) sera envoyée depuis la session principale, `DesignSync` n'étant pas
+    dans celle d'un sous-agent.
+
 - **Étude de cas et formulaires de la v2.4.0, puis fin de la liste des arbitrages (préparés le
   2026-10-27)** : six arbitrages du 2026-10-26 reportés, et les six du 2026-10-14 restés ouverts
   appliqués à la maquette (colonnes et facettes par vue, date d'une action au jour, plus de
