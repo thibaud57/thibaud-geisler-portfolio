@@ -113,7 +113,7 @@ Acté dès maintenant, quelle que soit l'option retenue :
 
 Conditions pour passer en `accepted`, levées par un prototype au début de la Feature 3 :
 
-1. Une session d'`agent-os` ne charge, parmi les outils de l'app, que le serveur MCP de son domaine ; parmi les autres serveurs, que ceux prévus pour son type de run (Playwright pour la vérification, Jina pour le sourcing) ; et aucun connecteur claude.ai du compte. Vérifié sur la version de Claude Code épinglée dans `agent-os`
+1. Une session d'`agent-os` ne charge, parmi les outils de l'app, que le serveur MCP de son domaine, plugins et connecteurs claude.ai du compte chargés comme sur le poste ([ADR-026](026-execution-claude-code-abonnement.md)) : aucun connecteur ni settings de la configuration globale n'expose le MCP de l'app. Vérifié sur la version de Claude Code épinglée dans `agent-os`
 2. Un serveur MCP minimal dans Next.js 16, en mode sans état et avec Zod 4, répond de façon stable (SDK officiel ou `mcp-handler` 2.x)
 3. Le contexte consommé par les outils d'un domaine reste faible avec le chargement à la demande (mesure par `/context`)
 
