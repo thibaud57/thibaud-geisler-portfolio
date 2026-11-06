@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "public"."Project", "public"."ClientMeta", "freelance"."Company", "public"."Tag", "public"."ProjectTag", "public"."DataProcessing", "public"."Publisher", "public"."LegalEntity", "public"."Address", "freelance"."Person", "freelance"."Lead", "freelance"."Contact", "freelance"."Opportunity", "freelance"."Interview", "freelance"."Signal", "freelance"."ProspectingAction", "freelance"."WeeklyReview", "auth"."session", "auth"."account", "auth"."verification", "auth"."user" RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE "public"."Project", "public"."ClientMeta", "freelance"."Company", "public"."Tag", "public"."ProjectTag", "public"."DataProcessing", "public"."Publisher", "public"."LegalEntity", "public"."Address", "freelance"."Person", "freelance"."Lead", "freelance"."Contact", "freelance"."Opportunity", "freelance"."Interview", "freelance"."Signal", "freelance"."ProspectingAction", "freelance"."WeeklyReview", "auth"."session", "auth"."account", "auth"."verification", "auth"."apikey", "auth"."user" RESTART IDENTITY CASCADE',
   )
 }
 

@@ -223,7 +223,8 @@ src/
 │   │                             # mentions-legales, confidentialite ; un opengraph-image.tsx par page
 │   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), second root layout
 │   │                             # du dépôt ; login/ hors garde, (protected)/ gardé, une route par entité
-│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health ; ceux de l'admin vivent
+│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health, mcp/[domain] (serveur MCP
+│   │                             # des agents) ; ceux de l'admin vivent
 │   │                             # sous admin/(protected)/api/ (assets gardés, test Sentry)
 │   ├── sitemap.ts, robots.ts, llms.txt/          # SEO
 │   ├── global-error.tsx, global-not-found.tsx    # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
@@ -259,7 +260,8 @@ src/
 │   │                             # état initial et types du client dans <module>.types.ts, helpers partagés
 │   │                             # non exposés dans actions/_support/
 │   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
-│   └── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   └── mcp/                      # Serveur MCP des agents : chaîne de refus de la route, serveur par domaine, outils
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
@@ -295,7 +297,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), actions CRUD de l'espace admin (`src/server/actions/`)
-- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/api/mcp/[domain]` (serveur MCP des agents, `POST` seul, [ADR-025](adrs/025-acces-agents-app.md)), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
@@ -315,7 +317,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (absent du compose applicatif, présent dans `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les cinq tables Better Auth, dont `apikey` pour les clés des agents. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
@@ -518,7 +520,8 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 
 - **Rate limiting formulaire contact** : compteur IP in-memory simple dans la Server Action, décision d'implémentation, pas d'ADR dédié
 - **Rate limiting chatbot** (post-MVP) : décision architecturale à prendre (coût LLM en jeu), cf. [ADR-014](adrs/014-rate-limiting-chatbot.md)
-- **CORS** : aucune configuration, les API routes ne servent que des consommateurs de même origine. À poser si un client tiers apparaît
+- **Route MCP** (`/api/mcp/<domaine>`) : une clé d'API `@better-auth/api-key` par usage, ses `permissions` limitées à ses domaines, jamais la session admin. La route refuse elle-même, avant le SDK : `Origin` étranger, rate limit par IP avant toute lecture en base, domaine inconnu, clé absente ou invalide, domaine hors des `permissions`. Le plugin borne en plus chaque clé. Seuils : [PRODUCTION.md § Rate Limiting](PRODUCTION.md#rate-limiting). Cf. [ADR-025](adrs/025-acces-agents-app.md)
+- **CORS** : aucune configuration. Les API routes servent des consommateurs de même origine, la route MCP des clients hors navigateur, dont l'origine est validée. À poser si un client navigateur tiers apparaît
 - **Validation** : Zod sur toutes les entrées utilisateur (Server Actions + API routes)
 
 ### Protection Données
@@ -616,6 +619,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 - [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
 - [ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise](adrs/023-source-logos-entreprise.md)
 - [ADR-024 : Éditeur markdown des champs texte longs de l'espace admin](adrs/024-editeur-markdown-admin.md)
+- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md)
 - [ADR-026 : Exécution de Claude Code sur l'abonnement](adrs/026-execution-claude-code-abonnement.md)
 - [ADR-027 : Composants de chat : primitives shadcn/ui et flux d'événements propre au portfolio](adrs/027-composants-chat.md)
 
@@ -625,7 +629,6 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 
 - [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
-- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), serveur MCP par domaine authentifié par clé d'API, en attente du prototype qui lève ses conditions
 
 ### Dépréciées
 
@@ -640,7 +643,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : serveur MCP servi par l'app, une route par domaine (`/api/mcp/<domaine>`) et un service sous `src/server/mcp/`, dont les outils génériques appellent la logique métier commune aux Server Actions, sans accès direct à la base ; une clé d'API Better Auth par usage. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>` et son authentification par clé sont en place (§ Protection API). Restent la création des clés depuis l'espace admin et les outils génériques de chaque domaine, qui appellent la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

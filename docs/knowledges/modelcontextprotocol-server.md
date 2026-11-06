@@ -62,6 +62,7 @@ export function buildServer(): McpServer {
 - Les annotations ne changent rien à l'exécution, ce sont des indices pour le client. Claude Code lit `readOnlyHint` (il parallélise ces appels avec les autres lectures) et `idempotentHint`, pas `destructiveHint` : une confirmation d'écriture ne repose jamais sur une annotation
 - La forme v2 remplace les surcharges variadiques de la v1 (`server.tool(nom, description, shape, cb)`) : un exemple en ligne qui les emploie vise la v1
 - L'option `instructions` (texte lu par le modèle avec le chargement différé des outils) se passe en second argument du constructeur : `new McpServer({ name, version }, { instructions })`, champ de `ServerOptions` dans les types 2.4.0 (lus le 2026-11-06), absent des pages de la documentation v2
+- Coût en contexte mesuré par `/context` de Claude Code le 2026-11-06, un serveur à un outil connecté : environ 100 tokens pour deux phrases d'`instructions` ; le schéma d'un outil n'entre en contexte qu'à son chargement pour un appel (196 tokens pour un `_fetch` à union d'une entité), seul son nom y figure avant
 
 ---
 
@@ -86,7 +87,7 @@ const response = await handler.fetch(request, { authInfo })
 ### Points Importants
 
 - `ctx` de la factory contient `era` (`'legacy'` pour un client des révisions 2025, `'modern'` pour la 2026-07-28), `authInfo` et `requestInfo` : `era`, journalisé par requête, dit quelle révision parle chaque client
-- `legacy: 'stateless'` (défaut) sert aussi les clients des révisions 2025, avec une instance fraîche par requête et sans session ; `legacy: 'reject'` leur renvoie une erreur de version. Garder le défaut tant que les clients visés ne parlent pas tous la révision 2026-07-28
+- `legacy: 'stateless'` (défaut) sert aussi les clients des révisions 2025, avec une instance fraîche par requête et sans session ; `legacy: 'reject'` leur renvoie une erreur de version. Claude Code 2.1.310 et le CLI 2.1.317 embarqué par `claude-agent-sdk` 0.2.177 parlent déjà la 2026-07-28 (`era: 'modern'`, relevé le 2026-11-06), comme `@modelcontextprotocol/client` 2.4.0 : garder le défaut, rien ne justifiant de couper un client 2025
 - `responseMode` : `'auto'` (défaut) n'ouvre un flux SSE que si une notification précède la réponse, `'json'` répond toujours en JSON et perd les notifications émises avant le résultat. Des outils CRUD n'émettent pas de notification : `'auto'` leur répond déjà en JSON. `'json'` émet en plus un `console.warn` à chaque construction du handler (code 2.4.0) et ne s'applique qu'à l'ère modern, la branche legacy n'en tenant pas compte
 - Chaque construction du handler crée son bus d'événements et son routeur d'abonnements : le construire dans la route à chaque requête les multiplie
 - Autres options et défauts : `keepAliveMs` 15000, `maxSubscriptions` 1024, `maxRequestBodySize` 4194304 octets, `onerror`
@@ -195,7 +196,7 @@ server.registerTool('sales_create', { description: 'Create a customer or a suppl
 
 - Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)) : la ligne v2 contient le correctif
 - Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à sa conversion au `tools/list`, et la branche `null` d'un `z.object().nullable()` devient inatteignable
-- La lecture d'un `oneOf` racine par les clients LLM n'est pas vérifiée au 2026-11-06. Repli possible : un `z.object` plat avec `entity: z.enum([...])` et des champs optionnels, puis un parse discriminé dans le handler
+- La lecture d'un `oneOf` racine par les clients LLM : Claude Code 2.1.310 appelle correctement un outil dont l'union racine n'a qu'une entité (relevé le 2026-11-06), à revérifier dès plusieurs entités. Repli possible : un `z.object` plat avec `entity: z.enum([...])` et des champs optionnels, puis un parse discriminé dans le handler
 - Le narrowing par `switch` sur le discriminant garde l'exhaustivité au typage
 
 ---

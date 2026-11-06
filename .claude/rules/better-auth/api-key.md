@@ -27,7 +27,7 @@ paths:
 ## Gotchas
 - Rate limit actif par défaut à 10 requêtes par 24 h (code 1.7.14) et copié dans chaque clé à sa création. Ce n'est pas une fenêtre fixe : le compteur cumule les requêtes acceptées, ne repart à zéro qu'après une fenêtre entière sans requête acceptée, puis refuse jusqu'à une fenêtre après la dernière acceptée (`evaluateRateLimit`). Chaque requête HTTP compte, initialisation MCP et notifications comprises
 - Nommer le modèle Prisma `Apikey`, jamais `ApiKey` : l'adaptateur appelle `prisma.apikey` (`db[model]` avec le nom `apikey`) et lève « Model apikey does not exist ». Better Auth contrôle le schéma au démarrage par défaut (`advanced.database.validateSchema`) et logge un `SchemaMismatchError`
-- `verifyApiKey` rend `INVALID_API_KEY` aussi bien pour une clé inconnue que pour une erreur interne (base en panne) : le code ne distingue pas les deux, seule la ligne `error` « Failed to validate API key » du logger de Better Auth signale la seconde
+- `verifyApiKey` rend `INVALID_API_KEY` aussi bien pour une clé inconnue que pour une erreur interne (base en panne) : ni le code ni la ligne `error` « Failed to validate API key » du logger de Better Auth, écrite à chaque refus, ne distinguent les deux : une base en panne se lit sur `/api/health`
 - Des permissions insuffisantes passées à `verifyApiKey` reviennent en `KEY_NOT_FOUND`, sans code dédié : d'où la vérification sans `permissions` et la comparaison faite par la route
 - `expiresIn` est en secondes et borné par défaut entre 1 et 365 jours (`keyExpiration`) ; une clé sans expiration omet le champ
 - `referenceId` remplace `userId` dans le schéma et les réponses depuis la 1.7

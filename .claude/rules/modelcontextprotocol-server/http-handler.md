@@ -14,7 +14,7 @@ paths:
 - Passer l'identité de la clé vérifiée en `authInfo` et la lire dans l'outil par `ctx.http?.authInfo`
 - Exporter `POST` seul pour le transport, `GET` et `DELETE` répondant 405 avec `Allow: POST`
 - Laisser `responseMode` à son défaut `'auto'` : la réponse reste en JSON tant qu'aucune notification ne part avant le résultat, ce qui est le cas d'outils CRUD
-- Garder `legacy` à son défaut (`'stateless'`) tant que la révision parlée par Claude Code et l'Agent SDK n'est pas relevée : `'reject'` couperait les clients des révisions 2025
+- Garder `legacy` à son défaut (`'stateless'`) : Claude Code 2.1.310 et le CLI 2.1.317 de `claude-agent-sdk` 0.2.177 parlent la révision 2026-07-28 (`era: 'modern'`, relevé le 2026-11-06), `'reject'` couperait sans gain un client des révisions 2025
 
 ## À éviter
 - Un `McpServer` singleton de module partagé entre requêtes : la factory doit rendre une instance neuve, sinon le handler lève « still serving another request »
