@@ -339,7 +339,17 @@ Items effectués une fois, après le premier déploiement validé : ils exigeaie
 
 ## Plateforme d'hébergement
 
-Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment. Versions et procédure de relevé : tenues dans une doc privée, hors de ce dépôt public.
+Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment.
+
+| Composant | Rôle pour le projet | Relever la version |
+|-----------|---------------------|--------------------|
+| Docker Engine | exécute les conteneurs de l'app et de la Database | SSH, `docker version --format '{{.Server.Version}}'` |
+| Docker Compose | lance le Compose `Portfolio-app` | SSH, `docker compose version --short` |
+| Dokploy | redéploie le Compose à l'appel de `deploy.yml`, porte la Database et ses backups | UI Dokploy |
+| Traefik (embarqué par Dokploy) | TLS et routage du domaine | SSH, `docker ps --filter name=traefik --format '{{.Image}}'` |
+| Cloudflare R2 | assets et sauvegardes | managed service, sans version |
+
+> ⚠️ **Relever la version réelle avant toute montée** : ce tableau n'en porte aucune.
 
 **Pièges de montée**, à lire avant d'y toucher :
 
