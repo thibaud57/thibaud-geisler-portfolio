@@ -395,6 +395,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
+| Clé d'API d'un client MCP (poste, `agent-os`) | En cas de compromission, ou à l'expiration choisie à la création | Créer la nouvelle clé depuis `/admin/cles-api` (valeur affichée une seule fois), la poser dans la configuration MCP du client, puis supprimer l'ancienne depuis la même page : la suppression la rend aussitôt invalide (`401`). Aucune variable d'environnement n'est en jeu |
 
 ## Demandes RGPD
 

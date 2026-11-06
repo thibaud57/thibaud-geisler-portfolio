@@ -242,7 +242,8 @@ src/
 │   │                             # (<entité>-table-widths.ts), ses formulaires et ses composants à usage unique.
 │   │                             # Communs rangés par rôle, aucun à la racine : display/, form/, table/, detail/
 │   └── cookies/, markdown/, seo/ # Consentement c15t, rendu des contenus légaux, JSON-LD
-├── config/                       # Données statiques : navigations publique et admin, réseaux, expertise
+├── config/                       # Données statiques : navigations publique et admin, entrées du menu de compte
+│                                 # (admin-account-items.ts), réseaux, expertise
 ├── hooks/                        # Hooks client génériques (formulaires admin, mobile, locale, erreurs) ; un hook
 │                                 # propre à une feature vit dans son dossier
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content)
@@ -297,6 +298,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), actions CRUD de l'espace admin (`src/server/actions/`)
+- **Clés d'API** : page `/admin/cles-api`, ouverte depuis le menu de compte. `createApiKey` passe par `auth.api.createApiKey` du plugin `@better-auth/api-key` et renvoie la valeur une seule fois, `deleteApiKey` et la query `findApiKeysForAdmin` passent par Prisma (le hash n'est jamais lu). Cf. [ADR-025](adrs/025-acces-agents-app.md)
 - **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/api/mcp/[domain]` (serveur MCP des agents, `POST` seul, [ADR-025](adrs/025-acces-agents-app.md)), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
@@ -643,7 +645,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : la route `/api/mcp/<domaine>` et son authentification par clé sont en place (§ Protection API). Restent la création des clés depuis l'espace admin et les outils génériques de chaque domaine, qui appellent la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin sont en place (§ Protection API, § API). Restent les outils génériques de chaque domaine, qui appellent la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 
