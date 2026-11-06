@@ -57,7 +57,7 @@ export function buildServer(): McpServer {
 
 ### Points Importants
 
-- `inputSchema` exige un schéma Zod 4 (dépendance `zod ^4.2.0`). Zod 4.2+ convertit en JSON Schema nativement, les `.describe()` arrivent au modèle ; Zod 3 n'est pas supporté et échoue en silence au premier `tools/list`
+- `inputSchema` exige un schéma Zod 4 (dépendance `zod ^4.2.0`). Zod 4.2+ convertit en JSON Schema nativement, les `.describe()` arrivent au modèle ; Zod 3 n'est pas supporté et lève « Schema appears to be from zod 3 » à la conversion. Les `inputSchema` se convertissent à chaque `tools/list`, pas à l'enregistrement (code 2.4.0) : un seul schéma inconvertible fait échouer la liste de tout le serveur
 - `structuredContent` est validé contre `outputSchema` avant l'envoi : renvoyer aussi `content` en texte JSON pour les clients qui ignorent la sortie structurée
 - Les annotations ne changent rien à l'exécution, ce sont des indices pour le client. Claude Code lit `readOnlyHint` (il parallélise ces appels avec les autres lectures) et `idempotentHint`, pas `destructiveHint` : une confirmation d'écriture ne repose jamais sur une annotation
 - La forme v2 remplace les surcharges variadiques de la v1 (`server.tool(nom, description, shape, cb)`) : un exemple en ligne qui les emploie vise la v1
@@ -69,7 +69,7 @@ export function buildServer(): McpServer {
 
 ### Description
 
-`createMcpHandler(factory, options)` rend un handler Web standard, `fetch(Request) → Promise<Response>`, qui sert le transport Streamable HTTP. La factory est appelée **une fois par requête** et construit le `McpServer` de cette requête : aucun serveur singleton, aucun état entre deux appels.
+`createMcpHandler(factory, options)` rend un handler Web standard, `fetch(Request) → Promise<Response>`, qui sert le transport Streamable HTTP. Le handler se crée une fois, au niveau du module ; sa factory est appelée **une fois par requête** et construit le `McpServer` de cette requête : aucun serveur singleton, aucun état entre deux appels.
 
 ### Exemple
 
@@ -78,7 +78,6 @@ import { createMcpHandler } from '@modelcontextprotocol/server'
 
 const handler = createMcpHandler((ctx) => buildServer(), {
   legacy: 'stateless',
-  responseMode: 'json',
 })
 
 const response = await handler.fetch(request, { authInfo })
@@ -88,7 +87,8 @@ const response = await handler.fetch(request, { authInfo })
 
 - `ctx` de la factory contient `era` (`'legacy'` pour un client des révisions 2025, `'modern'` pour la 2026-07-28), `authInfo` et `requestInfo` : `era`, journalisé par requête, dit quelle révision parle chaque client
 - `legacy: 'stateless'` (défaut) sert aussi les clients des révisions 2025, avec une instance fraîche par requête et sans session ; `legacy: 'reject'` leur renvoie une erreur de version. Garder le défaut tant que les clients visés ne parlent pas tous la révision 2026-07-28
-- `responseMode` : `'auto'` (défaut) n'ouvre un flux SSE que si une notification précède la réponse, `'json'` répond toujours en JSON, sans flux ni notification de progression. Des outils CRUD n'ont besoin que de `'json'`
+- `responseMode` : `'auto'` (défaut) n'ouvre un flux SSE que si une notification précède la réponse, `'json'` répond toujours en JSON et perd les notifications émises avant le résultat. Des outils CRUD n'émettent pas de notification : `'auto'` leur répond déjà en JSON. `'json'` émet en plus un `console.warn` à chaque construction du handler (code 2.4.0) et ne s'applique qu'à l'ère modern, la branche legacy n'en tenant pas compte
+- Chaque construction du handler crée son bus d'événements et son routeur d'abonnements : le construire dans la route à chaque requête les multiplie
 - Autres options et défauts : `keepAliveMs` 15000, `maxSubscriptions` 1024, `maxRequestBodySize` 4194304 octets, `onerror`
 - Le handler expose aussi `close()`, à appeler en fin de test
 - Le handler ne lit jamais l'authentification dans les en-têtes : `authInfo` est « passed through, never derived from headers ». L'app vérifie le jeton elle-même et le transmet
@@ -107,6 +107,8 @@ Le handler Web standard se branche tel quel dans un route handler de l'App Route
 // app/api/mcp/[domain]/route.ts
 import { createMcpHandler, originValidationResponse } from '@modelcontextprotocol/server'
 
+const handlers = { orders: createMcpHandler(() => buildServer('orders')) }
+
 export async function POST(request: Request, { params }: { params: Promise<{ domain: string }> }) {
   const rejected = originValidationResponse(request, allowedOrigins)
   if (rejected) return rejected
@@ -116,8 +118,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dom
   if (!key) return new Response(null, { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } })
 
   const { domain } = await params
-  const handler = createMcpHandler(() => buildServer(domain), { responseMode: 'json' })
-  return handler.fetch(request, { authInfo: { token, clientId: key.id, scopes: key.scopes } })
+  return handlers[domain].fetch(request, { authInfo: { token, clientId: key.id, scopes: key.scopes } })
 }
 
 const methodNotAllowed = () => new Response(null, { status: 405, headers: { Allow: 'POST' } })
@@ -193,7 +194,7 @@ server.registerTool('sales_create', { description: 'Create a customer or a suppl
 ### Points Importants
 
 - Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)) : la ligne v2 contient le correctif
-- Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à l'enregistrement, et la branche `null` d'un `z.object().nullable()` devient inatteignable
+- Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à sa conversion au `tools/list`, et la branche `null` d'un `z.object().nullable()` devient inatteignable
 - La lecture d'un `oneOf` racine par les clients LLM n'est pas vérifiée au 2026-11-06. Repli possible : un `z.object` plat avec `entity: z.enum([...])` et des champs optionnels, puis un parse discriminé dans le handler
 - Le narrowing par `switch` sur le discriminant garde l'exhaustivité au typage
 
@@ -254,7 +255,7 @@ Mcp-Name: sales_fetch
 ### Points Importants
 
 - Sessions et `initialize` retirés : chaque requête porte sa version de protocole et ses capacités dans `_meta`. Un état côté serveur passe par des identifiants explicites en arguments d'outil
-- Un seul endpoint POST, réponse en JSON ou en SSE ; GET et DELETE répondent 405 ; les en-têtes `Mcp-Method` et `Mcp-Name` sont obligatoires côté client, une discordance avec le corps se rejette en 400 (code -32020). Que `createMcpHandler` fasse ce contrôle lui-même n'est pas confirmé
+- Un seul endpoint POST, réponse en JSON ou en SSE ; GET et DELETE répondent 405 ; les en-têtes `Mcp-Method` et `Mcp-Name` sont obligatoires côté client, une discordance avec le corps se rejette en 400 (code -32020). `createMcpHandler` fait ce contrôle lui-même en ère modern, avec celui de `MCP-Protocol-Version` (`validateStandardRequestHeaders`, code 2.4.0)
 - Autorisation facultative : « Authorization is **OPTIONAL** for MCP implementations ». Si l'OAuth est adopté, la Protected Resource Metadata (RFC 9728) devient obligatoire et l'enregistrement dynamique des clients est déprécié au profit des Client ID Metadata Documents
 - Dépréciés : transport HTTP+SSE, Sampling, Roots, Logging, enregistrement dynamique des clients ; le batching JSON-RPC est retiré depuis 2025-06-18
 - `Tasks` devient une extension officielle (`io.modelcontextprotocol/tasks`) réservée aux opérations longues ; la 2.4.0 ajoute l'extension Skills (SEP-2640) par des sous-chemins `ext/skills`

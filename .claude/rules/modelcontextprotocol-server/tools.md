@@ -26,8 +26,9 @@ paths:
 - Les surcharges v1 `server.tool(nom, description, shape, cb)` et `extra.authInfo` : la v2 passe par `registerTool` et `ctx.http?.authInfo`
 
 ## Gotchas
-- `@modelcontextprotocol/server` 2.x exige `zod ^4.2.0` : un schéma Zod 3 échoue en silence au premier `tools/list`
-- Un schéma racine en union est accepté depuis la PR #1796 (le SDK ajoute `type: "object"` à la racine), mais un schéma racine ni objet ni union (`z.string()`) lève à l'enregistrement
+- `@modelcontextprotocol/server` 2.x exige `zod ^4.2.0` : un schéma Zod 3 lève « Schema appears to be from zod 3 » à la conversion
+- Les `inputSchema` se convertissent en JSON Schema à chaque `tools/list`, pas à l'enregistrement (code 2.4.0) : un seul schéma inconvertible fait échouer la liste de tout le domaine, d'où un test de contrat qui appelle `listTools`
+- Un schéma racine en union est accepté depuis la PR #1796 (le SDK ajoute `type: "object"` à la racine), mais un schéma racine ni objet ni union (`z.string()`) lève à cette conversion
 - La lecture d'un `oneOf` racine par les clients LLM n'est pas vérifiée au 2026-11-06 : si un client le lit mal, replier sur un `z.object` plat avec `entity: z.enum([...])` et un parse discriminé dans le handler
 - Des arguments qui ne passent pas `inputSchema` reviennent en `isError: true` sans appel du handler, et la validation de `outputSchema` est sautée sur tout résultat `isError`
 - Les schémas de `src/lib/schemas/` sont écrits pour `FormData` (chaînes, `transform`, `preprocess`, sentinelle de valeur vide, messages en français pour le formulaire) : un `inputSchema` décrit des types JSON, il ne reprend pas ces schémas tels quels mais leurs définitions communes (enums Prisma, bornes, identifiants de `@/lib/ids`)
