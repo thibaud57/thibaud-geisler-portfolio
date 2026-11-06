@@ -2,7 +2,7 @@
 feature: "Feature 3 : Outils de l'app pour les agents"
 subproject: "prototype-serveur-mcp"
 goal: "Servir depuis l'app un serveur MCP minimal, authentifié par une clé d'API Better Auth, et lever les trois conditions de l'ADR-025."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "partial"
 execution: "inline"
