@@ -129,6 +129,15 @@ propriétaire le demande ; chaque ligne part une fois faite.
 
 ## Journal
 
+- **Page des clés d'API (envoyée le 2026-11-06)** : écrans `isApiKeys`, `dlgApiKeyForm`,
+  `dlgApiKeyCreated` et confirmation `delete-api-key` ajoutés à la maquette, ouverts par une entrée
+  « Clés d'API » du menu de compte. Placement choisi par le propriétaire sur une page de quatre
+  options rendues en local (menu de compte, pied de sidebar, groupe Réglages, modale Paramètres),
+  vocabulaire « Supprimer » retenu, `ConfirmDeleteDialog` restant inchangé. Glyphe `key-round`
+  ajouté à la maquette ; le système ne l'a pas encore. Contrôle : sept vues capturées en local sans
+  erreur console. **Envoi** : trois fichiers de la maquette (`Espace admin.dc.html`,
+  `assets/icons/lucide/key-round.svg`, `github.md`), système non touché.
+
 - **Étude de cas et formulaires de la v2.4.0, puis fin de la liste des arbitrages (préparés le
   2026-10-27)** : six arbitrages du 2026-10-26 reportés, et les six du 2026-10-14 restés ouverts
   appliqués à la maquette (colonnes et facettes par vue, date d'une action au jour, plus de
