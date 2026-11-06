@@ -381,7 +381,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Réglage appliqué à l'instant | Switch | shadcn/ui | Une bascule qui s'engage sans passer par « Enregistrer ». Un choix soumis par un formulaire reste un `RadioGroup` (§ Formulaires) |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : `--chart-*` et § Palette de Couleurs > Règles |
 | Fil de conversation | Message, Bubble, MessageScroller, Marker | shadcn/ui | Assistant interne, créateur de specs et chatbot public, mêmes composants ([ADR-027](adrs/027-composants-chat.md)). Libellés en props : français en dur dans l'admin, next-intl sur le site public |
-| Saisie de message | Prompt Input (pattern AI Elements), Input Group | shadcn/ui | Champ sous le fil ; pendant qu'une question attend, ce qui s'y tape répond à la question en cours |
+| Saisie de message | Prompt Input (pattern AI Elements), sur Input Group (§ Formulaires) | shadcn/ui | Champ sous le fil ; pendant qu'une question attend, ce qui s'y tape répond à la question en cours |
 | Questions de l'agent | Questionnaire | shadcn/ui | Questions posées une à une par l'agent : choix simple ou multiple, réponse libre, étapes. Stepper du créateur de specs |
 | Étapes d'une session | Trace, Tool (pattern AI Elements) | shadcn/ui | Appels d'outils, liste des tâches et agents lancés en parallèle |
 | Confirmation d'écriture | Confirmation (pattern AI Elements) | shadcn/ui | Écriture de l'agent dans l'app à valider avant exécution |
