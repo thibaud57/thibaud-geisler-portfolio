@@ -1,0 +1,334 @@
+---
+title: "MCP TypeScript SDK (serveur) - Outils exposés aux agents"
+version: "2.4.0"
+description: "Référence technique pour @modelcontextprotocol/server v2 : serveur et outils, handler HTTP sans état, intégration en route handler Next.js, erreurs, unions Zod, tests et spec MCP 2026-07-28."
+date: "2026-11-06"
+keywords: ["mcp", "model-context-protocol", "agents", "outils", "streamable-http", "zod", "route-handler"]
+scope: ["docs"]
+technologies: ["Next.js", "TypeScript", "Zod", "Better Auth", "Claude Code"]
+---
+
+# Description
+
+`@modelcontextprotocol/server` est le paquet serveur de la ligne v2 du SDK TypeScript officiel du Model Context Protocol, le protocole par lequel un client d'agent (Claude Code, Claude Agent SDK, connecteurs claude.ai) découvre et appelle les outils d'une application. La v2, stable depuis le 2026-07-27, implémente la révision 2026-07-28 de la spec : plus de handshake `initialize` ni de session, chaque requête HTTP POST se suffit à elle-même. Le portfolio l'emploie pour servir ses outils aux agents depuis une route Next.js, une adresse par domaine, authentifiée par une clé d'API vérifiée par l'app ([ADR-025](../adrs/025-acces-agents-app.md)).
+
+La ligne v1 (`@modelcontextprotocol/sdk`) reste publiée mais n'est pas utilisée ici : son mode sans état garde la régression [typescript-sdk #1994](https://github.com/modelcontextprotocol/typescript-sdk/issues/1994).
+
+---
+
+# Concepts Clés
+
+## Serveur et enregistrement d'outils
+
+### Description
+
+Un `McpServer` porte un nom, une version et la liste de ses outils. Chaque outil se déclare par `registerTool(nom, config, handler)` : la config donne la description lue par le modèle, le schéma d'entrée en Zod 4, un schéma de sortie optionnel et des annotations. Le handler reçoit les arguments déjà validés et un contexte de requête.
+
+### Exemple
+
+```ts
+import { McpServer } from '@modelcontextprotocol/server'
+import { z } from 'zod'
+
+export function buildServer(): McpServer {
+  const server = new McpServer({ name: 'acme-orders', version: '1.0.0' })
+
+  server.registerTool(
+    'orders_fetch',
+    {
+      title: 'Fetch an order',
+      description: 'Returns one order with its lines. Use orders_search first to find the id.',
+      inputSchema: z.object({ id: z.string().describe('Order id returned by orders_search') }),
+      outputSchema: z.object({ id: z.string(), status: z.enum(['draft', 'sent']) }),
+      annotations: { readOnlyHint: true, idempotentHint: true },
+    },
+    async ({ id }) => {
+      const order = await getOrder(id)
+      return {
+        content: [{ type: 'text', text: JSON.stringify(order) }],
+        structuredContent: order,
+      }
+    },
+  )
+
+  return server
+}
+```
+
+### Points Importants
+
+- `inputSchema` exige un schéma Zod 4 (dépendance `zod ^4.2.0`). Zod 4.2+ convertit en JSON Schema nativement, les `.describe()` arrivent au modèle ; Zod 3 n'est pas supporté et échoue en silence au premier `tools/list`
+- `structuredContent` est validé contre `outputSchema` avant l'envoi : renvoyer aussi `content` en texte JSON pour les clients qui ignorent la sortie structurée
+- Les annotations ne changent rien à l'exécution, ce sont des indices pour le client. Claude Code lit `readOnlyHint` (il parallélise ces appels avec les autres lectures) et `idempotentHint`, pas `destructiveHint` : une confirmation d'écriture ne repose jamais sur une annotation
+- La forme v2 remplace les surcharges variadiques de la v1 (`server.tool(nom, description, shape, cb)`) : un exemple en ligne qui les emploie vise la v1
+- L'option `instructions` du serveur (texte lu par le modèle avec le chargement différé des outils) n'est pas confirmée dans la documentation v2 au 2026-11-06 : sa place exacte se vérifie dans les types du paquet
+
+---
+
+## Handler HTTP sans état
+
+### Description
+
+`createMcpHandler(factory, options)` rend un handler Web standard, `fetch(Request) → Promise<Response>`, qui sert le transport Streamable HTTP. La factory est appelée **une fois par requête** et construit le `McpServer` de cette requête : aucun serveur singleton, aucun état entre deux appels.
+
+### Exemple
+
+```ts
+import { createMcpHandler } from '@modelcontextprotocol/server'
+
+const handler = createMcpHandler((ctx) => buildServer(), {
+  legacy: 'stateless',
+  responseMode: 'json',
+})
+
+const response = await handler.fetch(request, { authInfo })
+```
+
+### Points Importants
+
+- `ctx` de la factory contient `era` (`'legacy'` ou `'modern'`), `authInfo` et `requestInfo`
+- `legacy: 'stateless'` (défaut) sert aussi les clients des révisions 2025, avec une instance fraîche par requête et sans session ; `legacy: 'reject'` leur renvoie une erreur de version. Garder le défaut tant que les clients visés ne parlent pas tous la révision 2026-07-28
+- `responseMode` : `'auto'` (défaut) n'ouvre un flux SSE que si une notification précède la réponse, `'json'` répond toujours en JSON, sans flux ni notification de progression. Des outils CRUD n'ont besoin que de `'json'`
+- Autres options et défauts : `keepAliveMs` 15000, `maxSubscriptions` 1024, `maxRequestBodySize` 4194304 octets, `onerror`
+- Le handler expose aussi `close()`, à appeler en fin de test
+- Le handler ne lit jamais l'authentification dans les en-têtes : `authInfo` est « passed through, never derived from headers ». L'app vérifie le jeton elle-même et le transmet
+
+---
+
+## Route handler Next.js
+
+### Description
+
+Le handler Web standard se branche tel quel dans un route handler de l'App Router. Avant de lui passer la requête, la route valide l'origine, vérifie le jeton et répond elle-même en 401 ou 403. Le transport 2026-07-28 n'utilise que POST : GET et DELETE répondent 405.
+
+### Exemple
+
+```ts
+// app/api/mcp/[domain]/route.ts
+import { createMcpHandler, originValidationResponse } from '@modelcontextprotocol/server'
+
+export async function POST(request: Request, { params }: { params: Promise<{ domain: string }> }) {
+  const rejected = originValidationResponse(request, allowedOrigins)
+  if (rejected) return rejected
+
+  const token = request.headers.get('authorization')?.replace(/^Bearer /, '')
+  const key = token ? await verifyKey(token) : null
+  if (!key) return new Response(null, { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } })
+
+  const { domain } = await params
+  const handler = createMcpHandler(() => buildServer(domain), { responseMode: 'json' })
+  return handler.fetch(request, { authInfo: { token, clientId: key.id, scopes: key.scopes } })
+}
+
+const methodNotAllowed = () => new Response(null, { status: 405, headers: { Allow: 'POST' } })
+export const GET = methodNotAllowed
+export const DELETE = methodNotAllowed
+```
+
+### Points Importants
+
+- `createMcpHandler` ne valide ni `Origin` ni `Host`. La spec l'impose : « Servers MUST validate the Origin header on all incoming connections to prevent DNS rebinding attacks. If the Origin header is present and invalid, servers MUST respond with HTTP 403 Forbidden. » Le paquet exporte `originValidationResponse` et `hostHeaderValidationResponse` ; la documentation ne montre que leurs variantes localhost, et le traitement d'un `Origin` absent (client non navigateur, cas normal d'un agent) se vérifie au prototype
+- Dans l'outil, l'authentification se lit par `ctx.http?.authInfo` et la requête brute par `ctx.http?.req` (objet `Request` Web) ; la forme exacte du type `AuthInfo` se vérifie dans les types du paquet
+- Le segment dynamique se résout par `await params` (Promise depuis Next 15) avant de construire le handler
+- Le SDK exige Node.js 20 ou plus : la route tourne en runtime Node, pas Edge
+- Les en-têtes `Mcp-Session-Id` et `Last-Event-ID` sont à ignorer : la révision 2026-07-28 retire les sessions et la reprise de flux
+
+---
+
+## Erreurs d'outil
+
+### Description
+
+Un outil signale un échec par un résultat `isError: true`, que le modèle lit et peut corriger. Lever une exception dans le handler produit la même forme : le message de l'exception devient le texte du résultat. Un outil ne produit jamais d'erreur de protocole JSON-RPC.
+
+### Exemple
+
+```ts
+async ({ id }) => {
+  const order = await findOrder(id)
+  if (!order) {
+    return {
+      isError: true,
+      content: [{ type: 'text', text: `No order ${id}. Search with orders_search to get a valid id.` }],
+    }
+  }
+  return { content: [{ type: 'text', text: JSON.stringify(order) }], structuredContent: order }
+}
+```
+
+### Points Importants
+
+- Un message d'erreur nomme la correction attendue : c'est le seul retour que le modèle reçoit pour réessayer
+- La validation de `outputSchema` est sautée pour tout résultat `isError`
+- Des arguments qui ne passent pas `inputSchema` reviennent aussi en `isError: true` (« Input validation error: Invalid arguments for tool … ») sans que le handler soit appelé
+- Seule exception de protocole possible depuis un outil : `UrlElicitationRequiredError` (code -32042)
+- `ProtocolError` et `ProtocolErrorCode` remplacent `McpError` et `ErrorCode` de la v1
+
+---
+
+## Union discriminée en schéma d'entrée
+
+### Description
+
+Un outil générique qui sert plusieurs entités prend une union discriminée Zod en `inputSchema`. Le SDK accepte un schéma racine non objet depuis la PR [#1796](https://github.com/modelcontextprotocol/typescript-sdk/pull/1796), mergée le 30 mars 2026, et ajoute `type: "object"` à la racine du JSON Schema annoncé, l'union restant en `oneOf` ou `anyOf` dessous.
+
+### Exemple
+
+```ts
+const createInput = z.discriminatedUnion('entity', [
+  z.object({ entity: z.literal('customer'), name: z.string(), email: z.email() }),
+  z.object({ entity: z.literal('supplier'), name: z.string(), vatId: z.string() }),
+])
+
+server.registerTool('sales_create', { description: 'Create a customer or a supplier', inputSchema: createInput }, async (input) => {
+  switch (input.entity) {
+    case 'customer':
+      return toResult(await createCustomer(input))
+    case 'supplier':
+      return toResult(await createSupplier(input))
+  }
+})
+```
+
+### Points Importants
+
+- Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)) : la ligne v2 contient le correctif
+- Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à l'enregistrement, et la branche `null` d'un `z.object().nullable()` devient inatteignable
+- La lecture d'un `oneOf` racine par les clients LLM n'est pas vérifiée au 2026-11-06. Repli possible : un `z.object` plat avec `entity: z.enum([...])` et des champs optionnels, puis un parse discriminé dans le handler
+- Le narrowing par `switch` sur le discriminant garde l'exhaustivité au typage
+
+---
+
+## Tests sans réseau
+
+### Description
+
+Un test appelle les outils par le vrai handler HTTP, sans serveur ni port : le transport client reçoit une fonction `fetch` branchée sur `handler.fetch`. Le chemin testé est celui de la production, révision 2026-07-28 comprise.
+
+### Exemple
+
+```ts
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import { createMcpHandler } from '@modelcontextprotocol/server'
+
+const handler = createMcpHandler(() => buildServer())
+const transport = new StreamableHTTPClientTransport(new URL('http://test.invalid/mcp'), {
+  fetch: (url, init) => handler.fetch(new Request(url, init), { authInfo }),
+})
+const client = new Client({ name: 'test', version: '1.0.0' }, { versionNegotiation: { mode: 'auto' } })
+await client.connect(transport)
+
+const result = await client.callTool({ name: 'orders_fetch', arguments: { id: 'o1' } })
+
+await client.close()
+await handler.close()
+```
+
+### Points Importants
+
+- `@modelcontextprotocol/client` est une dépendance de développement, pour les tests seulement
+- `InMemoryTransport.createLinkedPair()` ne couvre que l'ère 2025 (`server.connect`) : il ne teste pas le chemin servi par `createMcpHandler`
+- `authInfo` s'injecte dans le `fetch` du test, comme la route le fait après vérification de la clé
+- Fermer le client puis le handler à chaque test
+
+---
+
+## Révision 2026-07-28 de la spec
+
+### Description
+
+La révision en vigueur au 2026-11-06 rend le protocole sans état et précise le transport HTTP. Ce qui suit est ce qu'un serveur d'outils doit savoir ; le SDK v2 en implémente le cœur.
+
+### Exemple
+
+```http
+POST /api/mcp/sales HTTP/1.1
+Authorization: Bearer <clé>
+Content-Type: application/json
+Mcp-Method: tools/call
+Mcp-Name: sales_fetch
+
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"sales_fetch","arguments":{"entity":"customer","id":"c1"}}}
+```
+
+### Points Importants
+
+- Sessions et `initialize` retirés : chaque requête porte sa version de protocole et ses capacités dans `_meta`. Un état côté serveur passe par des identifiants explicites en arguments d'outil
+- Un seul endpoint POST, réponse en JSON ou en SSE ; GET et DELETE répondent 405 ; les en-têtes `Mcp-Method` et `Mcp-Name` sont obligatoires côté client, une discordance avec le corps se rejette en 400 (code -32020). Que `createMcpHandler` fasse ce contrôle lui-même n'est pas confirmé
+- Autorisation facultative : « Authorization is **OPTIONAL** for MCP implementations ». Si l'OAuth est adopté, la Protected Resource Metadata (RFC 9728) devient obligatoire et l'enregistrement dynamique des clients est déprécié au profit des Client ID Metadata Documents
+- Dépréciés : transport HTTP+SSE, Sampling, Roots, Logging, enregistrement dynamique des clients ; le batching JSON-RPC est retiré depuis 2025-06-18
+- `Tasks` devient une extension officielle (`io.modelcontextprotocol/tasks`) réservée aux opérations longues ; la 2.4.0 ajoute l'extension Skills (SEP-2640) par des sous-chemins `ext/skills`
+
+---
+
+## Différences avec la ligne v1
+
+### Description
+
+Une grande partie des exemples publiés visent encore la v1. La table de migration officielle donne les correspondances ; un codemod les applique.
+
+### Exemple
+
+```ts
+// v1
+server.tool('greet', 'Greet a user', { name: z.string() }, cb)
+server.setRequestHandler(CallToolRequestSchema, (req, extra) => extra.authInfo)
+
+// v2
+server.registerTool('greet', { description: 'Greet a user', inputSchema: z.object({ name: z.string() }) }, cb)
+server.setRequestHandler('tools/call', (req, ctx) => ctx.http?.authInfo)
+```
+
+### Points Importants
+
+- Paquets : `@modelcontextprotocol/sdk` devient `@modelcontextprotocol/server`, `/client` et `/core`, plus des adaptateurs (`/node`, `/express`, `/hono`, `/fastify`) inutiles derrière un route handler
+- `extra.authInfo` devient `ctx.http?.authInfo`, `extra.requestInfo` devient `ctx.http?.req`, `RequestHandlerExtra` devient `ServerContext`
+- `StreamableHTTPServerTransport` devient `WebStandardStreamableHTTPServerTransport` ; `server.connect(transport)` ne sert que les clients 2025, la révision 2026-07-28 passe par `createMcpHandler`
+- Retirés : `SSEServerTransport`, les tâches expérimentales, les helpers de conversion Zod
+- Codemod : `npx @modelcontextprotocol/codemod@latest v1-to-v2 .`
+
+---
+
+# Bonnes Pratiques
+
+## ✅ Recommandations
+
+- Construire le `McpServer` dans la factory de `createMcpHandler`, une instance par requête, jamais en singleton de module
+- Valider l'origine et vérifier la clé dans la route, avant `handler.fetch`, et répondre soi-même 401 (clé absente ou invalide) ou 403 (domaine hors des permissions de la clé)
+- Peu d'outils, orientés tâche, nommés avec le préfixe de leur domaine (`crm_search`, `crm_fetch`…) : un même générique enregistré une fois par domaine, l'entité désignée par un discriminant ([ADR-025](../adrs/025-acces-agents-app.md))
+- Des réponses courtes par défaut, paginées et filtrables : le résultat d'un outil entre en contexte
+- Des descriptions d'outils écrites pour un nouvel arrivant : quand l'appeler, ce que chaque champ attend, quel outil appeler avant
+- Faire appeler par chaque outil la logique métier commune aux Server Actions, jamais Prisma directement : les règles de validation et métier ne s'écrivent qu'une fois
+- Poser `readOnlyHint: true` sur les lectures, pour que Claude Code les parallélise
+- Tester chaque outil par le handler HTTP et un client en mémoire, pas en appelant la fonction du handler à la main
+
+## ❌ Anti-Patterns
+
+- Un outil par entité et par opération, ou des outils générés depuis des routes REST : « A common error we've observed is tools that merely wrap existing software functionality or API endpoints » (Anthropic)
+- Un jeu d'outils global à tous les domaines : chaque schéma porterait toutes les entités, et aucune restriction ne serait possible par domaine
+- Compter sur `destructiveHint` ou sur une règle de permission de Claude Code pour confirmer une écriture : les sessions d'`agent-os` tournent sans accord d'outil
+- Accepter la session de l'espace admin ou un jeton émis pour un autre service : « MCP servers MUST NOT accept any tokens that were not explicitly issued for the MCP server »
+- Suivre un exemple v1 (`server.tool`, `extra.authInfo`, `StreamableHTTPServerTransport`) sans le traduire
+- Exposer un outil de suppression par défaut : une suppression se fait dans l'admin, sauf besoin établi
+
+---
+
+# 🔗 Ressources
+
+## Documentation Officielle
+
+- [Documentation du SDK TypeScript v2](https://ts.sdk.modelcontextprotocol.io/v2/)
+- [createMcpHandler](https://ts.sdk.modelcontextprotocol.io/v2/api/@modelcontextprotocol/server/server/createMcpHandler.html)
+- [Outils](https://ts.sdk.modelcontextprotocol.io/v2/servers/tools.html)
+- [Erreurs](https://ts.sdk.modelcontextprotocol.io/v2/servers/errors.html)
+- [Tests](https://ts.sdk.modelcontextprotocol.io/v2/testing.html)
+- [Migration v1 vers v2](https://ts.sdk.modelcontextprotocol.io/v2/migration/upgrade-to-v2)
+- [Dépôt typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Spec MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28)
+- [Transport Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
+
+## Ressources Complémentaires
+
+- [Anthropic, Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)
+- [Claude Code, MCP](https://code.claude.com/docs/en/mcp)
+- [MCP, Security Best Practices](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)

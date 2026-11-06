@@ -211,7 +211,7 @@ Exclu : CGV (pas de vente en ligne) et CGU (pas de compte utilisateur).
 
 > Le post-MVP dépasse le périmètre de ce dépôt. Le portfolio porte **les interfaces, l'authentification et le CRUD synchrone** ; les traitements longs, l'IA et l'exécution d'agents vivent dans des dépôts voisins. Le découpage et son critère sont actés dans [ADR-015](adrs/015-decoupage-services.md), la répartition des responsabilités dans [ADR-020](adrs/020-portfolio-bff.md).
 
-Les features sont numérotées dans l'ordre de priorité, chacune avec ses prérequis. L'espace admin (Feature 1), livré, est le prérequis commun de toutes celles qui ont un écran : il n'est cité que là où il est le seul. Chaque domaine livre ensemble son CRUD, ses outils pour les agents et ses jobs, sur le socle posé par les agents internes (Feature 3).
+Les features sont numérotées dans l'ordre de priorité, chacune avec ses prérequis. L'espace admin (Feature 1), livré, est le prérequis commun de toutes celles qui ont un écran : il n'est cité que là où il est le seul. Chaque domaine livre ensemble son CRUD, ses outils pour les agents et ses jobs, sur les socles posés par les outils de l'app (Feature 3) et les agents internes (Feature 4).
 
 ### Feature 1 : Espace admin
 
@@ -233,11 +233,11 @@ Prérequis : le MVP en production. Livrée en `v2.0.0` le 2026-09-25.
 
 ### Feature 2 : Domaine freelance CRM
 
-Reprise du CRM tenu dans Notion : entreprises, leads, actions de prospection, contacts, opportunités (missions proposées) et leurs entretiens, revues hebdomadaires, signaux. Une personne n'existe qu'une fois : elle porte son identité et son opposition, et prospect (lead) ou relation durable (contact) sont ses rôles. L'opportunité y va de sa proposition à son acceptation : le suivi de la mission acceptée relève de la Feature 4.
+Reprise du CRM tenu dans Notion : entreprises, leads, actions de prospection, contacts, opportunités (missions proposées) et leurs entretiens, revues hebdomadaires, signaux. Une personne n'existe qu'une fois : elle porte son identité et son opposition, et prospect (lead) ou relation durable (contact) sont ses rôles. L'opportunité y va de sa proposition à son acceptation : le suivi de la mission acceptée relève de la Feature 5.
 
 Données et écrans **dans ce dépôt**, avec les jointures vers les projets que cela permet ([ADR-020](adrs/020-portfolio-bff.md)).
 
-Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans les agents internes (Feature 3) ; ce qui est déterministe (grille de qualification, indicateurs, échéances de conservation) reste du code TypeScript ici. La reprise des données Notion passe une fois les leads par une session Claude, comme les skills freelance aujourd'hui : le volet RGPD de ce passage par Anthropic se traite avec la Feature 3.
+Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans les agents internes (Feature 4) ; ce qui est déterministe (grille de qualification, indicateurs, échéances de conservation) reste du code TypeScript ici. La reprise des données Notion passe une fois les leads par une session Claude, comme les skills freelance aujourd'hui : le volet RGPD de ce passage par Anthropic se traite avec la Feature 3.
 
 La maquette de l'espace admin dessine déjà ces écrans, et le CRUD des entreprises livré avant eux s'arrête au sous-ensemble que le schéma porte. Côté entreprises, cette feature reprend donc, écrans de la maquette à l'appui :
 
@@ -248,28 +248,45 @@ La maquette de l'espace admin dessine déjà ces écrans, et le CRUD des entrepr
 
 Reportés, écrans de la maquette à l'appui :
 
-* **Pré-remplissage de l'entité légale**, avec les agents internes (Feature 3) : bouton « Pré-remplir » de la card Entité légale, écran `isCompanyForm`
-* **Qualification ICP**, avec les agents internes (Feature 3), qui en collectent les critères : le score du formulaire lead (`dlgLeadForm`, « le score se calcule ») reste saisi à la main d'ici là
-* **Outils de saisie des temps** imposés par un client pour le CRA, avec le suivi de mission (Feature 4) : champ de la card Relation de `isCompanyForm`. Une liste fixe ne couvre pas les logiciels internes des entreprises, la forme se décide quand le CRA en aura besoin
+* **Pré-remplissage de l'entité légale**, avec les agents internes (Feature 4) : bouton « Pré-remplir » de la card Entité légale, écran `isCompanyForm`
+* **Qualification ICP**, avec les agents internes (Feature 4), qui en collectent les critères : le score du formulaire lead (`dlgLeadForm`, « le score se calcule ») reste saisi à la main d'ici là
+* **Outils de saisie des temps** imposés par un client pour le CRA, avec le suivi de mission (Feature 5) : champ de la card Relation de `isCompanyForm`. Une liste fixe ne couvre pas les logiciels internes des entreprises, la forme se décide quand le CRA en aura besoin
 * **Purge automatique des fiches échues** : leads arrivés au terme de leurs 3 ans (après la relance que demande le registre) et fiches d'opposition au terme des leurs. Elles se suppriment à la main depuis Leads > Tous, filtre « Échéance : Dépassée », ce qui respecte déjà la durée annoncée ; l'automatisme ne se justifie qu'avec un volume réel, la première échéance possible tombant en novembre 2028 (relevé du 2026-10-13)
 
 Prérequis : l'espace admin (Feature 1).
 
-### Feature 3 : Agents internes
+### Feature 3 : Outils de l'app pour les agents
 
-Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, skills freelance). L'admin affiche l'état des runs ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Trois briques, de la plus simple à la plus ouverte :
+Les actions de chaque domaine exposées aux agents, pour qu'un agent lise et agisse sur l'app sans toucher la base, sous les mêmes règles de validation que l'admin. Un serveur MCP servi par l'app, une adresse par domaine, authentifié par une clé d'API : forme, authentification et conditions de validation dans [ADR-025](adrs/025-acces-agents-app.md).
 
-* **Jobs déclenchés depuis l'admin** : l'IA propose, le propriétaire valide. L'espace admin dépose un job sur l'API interne d'`agent-os` ([ADR-015](adrs/015-decoupage-services.md), [ADR-019](adrs/019-communication-inter-services.md)), qui exécute une commande des skills freelance ; la session lit et écrit dans l'app par ses outils (brique suivante), sous les mêmes règles que l'admin, après la validation du propriétaire relayée sur Telegram. L'app reste seule à écrire dans ses schemas, chaque écriture passant par ses outils (ADR-010 d'`agent-os`). Premiers usages : les reports de la Feature 2 (pré-remplissage de l'entité légale, qualification ICP), l'enrichissement des fiches, la rédaction des messages de prospection et un sourcing qui dépose des candidats à trier
-* **Outils de l'app pour les agents** : les actions de chaque domaine exposées aux agents (créer un lead, lister les leads sans signal récent, ajouter un signal…), découpées par domaine, pour qu'un agent lise et agisse sur l'app sans toucher la base, avec les mêmes règles de validation que l'admin. Les skills freelance s'y rebranchent. Leur forme (serveur MCP ou CLI) et leur authentification se tranchent dans [ADR-025](adrs/025-acces-agents-app.md)
-* **Assistant interne** : un chat ouvert par un bouton de l'espace admin, en fenêtre flottante que l'admin déplace et redimensionne pour ne jamais masquer la page, qui connaît la page en cours ; une page Assistant garde l'historique des conversations. Il tourne sur l'abonnement via `agent-os`, garde sa session d'un message à l'autre, pilote l'app par ces outils et fait confirmer chaque écriture, par exemple pour discuter chaque candidat du sourcing avant de le garder. Le bot Telegram d'`agent-os` en est une seconde interface, pour les ordres rapides depuis le téléphone (créer un ticket) : un seul assistant, dont une conversation commencée d'un côté se reprend de l'autre. Telegram vient d'abord ; la fenêtre de l'admin suit quand le travail de fond la justifie, pour la page en cours et l'affichage riche
+* **Outils génériques par domaine** : recherche tolérante, lecture d'une fiche et de ses liens, requête filtrée et paginée, création, modification (y compris par section du champ Détails), l'entité désignée par un discriminant ; aucune suppression par défaut. Un outil propre à une tâche seulement quand le générique ne suffit pas, comme récupérer le logo d'une entreprise. Le même générique sert chaque domaine : le CRM ici, les suivants dans leur feature
+* **Logique métier commune** : sortie des Server Actions pour servir à l'admin comme aux agents, les règles (doublons, opposition RGPD) ne s'écrivant qu'une fois
+* **Clés d'API** : une par usage (poste, `agent-os`), limitée à ses domaines, créée et révoquée depuis l'admin, affichée une seule fois
+* **Clients** : Claude Code sur le poste, les sessions d'`agent-os` (Feature 4) et tout client MCP qui accepte une clé en en-tête. Claude Desktop et claude.ai servent de cas de test, sans écran ni OAuth dédiés
+* **Skills freelance** : rebranchés du MCP Notion sur celui de l'app, domaine par domaine
 
-Données personnelles : dès qu'un agent traite des leads, Anthropic devient destinataire de ces données, Telegram aussi quand une alerte en porte, OpenRouter quand le criblage des résultats web d'un job en contient, Jina et Bright Data quand les requêtes de sourcing ou d'enrichissement en portent (liste de référence : ARCHITECTURE.md d'`agent-os` § Données Personnelles). Le spec de cette feature met à jour le registre des traitements, la politique de confidentialité et l'évaluation d'impact, et fixe la durée de conservation des conversations et des sessions.
+Le premier sub-project est le prototype qui lève les conditions de l'ADR-025.
 
-Écrans à maquetter : la fenêtre de l'assistant et sa page d'historique. Rien de public : le chatbot du site et ses crédits au token restent la Feature 10.
+Données personnelles : dès que Claude Code lit des leads par ces outils, Anthropic devient destinataire de ces données. Le spec de cette feature met à jour pour ce destinataire le registre des traitements, la politique de confidentialité et l'évaluation d'impact ; les autres destinataires des agents relèvent de la Feature 4.
 
-Prérequis : le CRM (Feature 2) pour les premiers outils ; `ai-kit` et `agent-os` implémentés dans leurs dépôts pour les jobs et le chat.
+Écran à maquetter : la gestion des clés d'API.
 
-### Feature 4 : Domaine freelance Missions
+Prérequis : le CRM (Feature 2).
+
+### Feature 4 : Agents internes
+
+Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, skills freelance). L'admin affiche l'état des runs ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Deux briques, sur les outils de l'app (Feature 3) :
+
+* **Jobs déclenchés depuis l'admin** : l'IA propose, le propriétaire valide. L'espace admin dépose un job sur l'API interne d'`agent-os` ([ADR-015](adrs/015-decoupage-services.md), [ADR-019](adrs/019-communication-inter-services.md)), qui exécute une commande des skills freelance ; la session lit et écrit dans l'app par ses outils, sous les mêmes règles que l'admin, après la validation du propriétaire relayée sur Telegram. L'app reste seule à écrire dans ses schemas, chaque écriture passant par ses outils (ADR-010 d'`agent-os`). Premiers usages : les reports de la Feature 2 (pré-remplissage de l'entité légale, qualification ICP), l'enrichissement des fiches, la rédaction des messages de prospection et un sourcing qui dépose des candidats à trier
+* **Assistant interne** : un chat ouvert par un bouton de l'espace admin, en fenêtre flottante que l'admin déplace et redimensionne pour ne jamais masquer la page, qui connaît la page en cours ; une page Assistant garde l'historique des conversations. Il tourne sur l'abonnement via `agent-os`, garde sa session d'un message à l'autre, pilote l'app par ses outils et fait confirmer chaque écriture, par exemple pour discuter chaque candidat du sourcing avant de le garder. Le bot Telegram d'`agent-os` en est une seconde interface, pour les ordres rapides depuis le téléphone (créer un ticket) : un seul assistant, dont une conversation commencée d'un côté se reprend de l'autre. Telegram vient d'abord ; la fenêtre de l'admin suit quand le travail de fond la justifie, pour la page en cours et l'affichage riche
+
+Données personnelles : au-delà d'Anthropic, traité avec la Feature 3, Telegram devient destinataire quand une alerte porte une donnée de lead, OpenRouter quand le criblage des résultats web d'un job en contient, Jina et Bright Data quand les requêtes de sourcing ou d'enrichissement en portent (liste de référence : ARCHITECTURE.md d'`agent-os` § Données Personnelles). Le spec de cette feature met à jour le registre des traitements, la politique de confidentialité et l'évaluation d'impact puis fixe la durée de conservation des conversations et des sessions.
+
+Écrans à maquetter : la fenêtre de l'assistant et sa page d'historique. Rien de public : le chatbot du site et ses crédits au token restent la Feature 11.
+
+Prérequis : les outils de l'app (Feature 3) ; `ai-kit` et `agent-os` implémentés dans leurs dépôts.
+
+### Feature 5 : Domaine freelance Missions
 
 Suivi d'une mission une fois acceptée, écran `isMissions` de la maquette. Prolonge l'opportunité acceptée du CRM (Feature 2), sans nouveau modèle :
 
@@ -279,11 +296,11 @@ Suivi d'une mission une fois acceptée, écran `isMissions` de la maquette. Prol
 * **Menu** : une entrée par mission active dans le groupe « Suivi mission »
 * **Accueil** (`isHome`) : actions du jour, une card de suivi par mission active et agenda, comme la maquette les dessine ; leur contenu se tranche au spec
 
-Côté agents (Feature 3) : revue du matin et bilan du soir des chantiers, pré-remplissage du CRA depuis les chantiers de la semaine.
+Côté agents (Feature 4) : revue du matin et bilan du soir des chantiers, pré-remplissage du CRA depuis les chantiers de la semaine.
 
-Prérequis : le CRM (Feature 2), dont la mission acceptée ; les agents internes (Feature 3) pour ses outils et ses jobs.
+Prérequis : le CRM (Feature 2), dont la mission acceptée ; les outils de l'app (Feature 3) pour ses outils, les agents internes (Feature 4) pour ses jobs.
 
-### Feature 5 : Domaine freelance Comptabilité
+### Feature 6 : Domaine freelance Comptabilité
 
 Facturation et déclarations du freelance, écrans du groupe « Comptabilité » de la maquette :
 
@@ -291,11 +308,11 @@ Facturation et déclarations du freelance, écrans du groupe « Comptabilité »
 * **Déclarations** (`isDeclarations`) : URSSAF, dont le CA encaissé et les cotisations dues se calculent depuis les factures payées ; TVA, avec base encaissée, TVA collectée, déductible et à reverser
 * **Régime de TVA de l'éditeur** : la date d'assujettissement et le régime d'imposition (réel simplifié ou réel normal) se saisissent dès le CRM (Feature 2), sur la fiche de sa société, parce que les mentions légales du site en dépendent. La comptabilité les lit pour savoir quelles déclarations produire (CA12 annuelle et acomptes au réel simplifié, CA3 au réel normal) ; la périodicité des CA3 et la TVA de chaque facture, décidée facture par facture, restent à cette feature
 
-Les calculs sont déterministes et restent du code TypeScript ici ; les agents (Feature 3) n'y interviennent que pour l'aide à la saisie, précisée au spec.
+Les calculs sont déterministes et restent du code TypeScript ici ; les agents (Feature 4) n'y interviennent que pour l'aide à la saisie, précisée au spec.
 
-Prérequis : les missions (Feature 4), dont la phase porte le TJM et le CRA la quantité facturée ; les agents internes (Feature 3).
+Prérequis : les missions (Feature 5), dont la phase porte le TJM et le CRA la quantité facturée ; les agents internes (Feature 4).
 
-### Feature 6 : Finances
+### Feature 7 : Finances
 
 Pilotage de l'argent, professionnel et personnel, écrans du groupe « Finances » de la maquette :
 
@@ -306,19 +323,19 @@ Pilotage de l'argent, professionnel et personnel, écrans du groupe « Finances 
 
 Aucun schéma existant à reprendre : le domaine se conçoit de zéro.
 
-Prérequis : la comptabilité (Feature 5) pour la trésorerie et le prévisionnel, qui lisent factures et déclarations ; l'espace admin seul (Feature 1) pour le budget et l'investissement.
+Prérequis : la comptabilité (Feature 6) pour la trésorerie et le prévisionnel, qui lisent factures et déclarations ; l'espace admin seul (Feature 1) pour le budget et l'investissement.
 
-### Feature 7 : Publications LinkedIn
+### Feature 8 : Publications LinkedIn
 
 Posts LinkedIn de l'idée à la publication, écran `isLinkedin` : pipeline, calendrier, piliers, formats et angles, métriques saisies (réactions, commentaires, reposts, impressions) et vue Performance.
 
 Rédaction assistée : veille de sujets, rédaction à partir d'un sujet, d'un projet ou d'une URL, relecture critique avant le brouillon, jamais de publication automatique. L'écran de commande et le stockage des brouillons sont ici, l'exécution passe par les jobs `agent-os`, donc sur l'abonnement plutôt qu'à l'acte.
 
-Prérequis : l'espace admin seul (Feature 1) pour les posts et leurs métriques ; les agents internes (Feature 3) pour la rédaction assistée.
+Prérequis : l'espace admin seul (Feature 1) pour les posts et leurs métriques ; les agents internes (Feature 4) pour la rédaction assistée.
 
-### Feature 8 : Suivi du cycle de développement
+### Feature 9 : Suivi du cycle de développement
 
-Kanban des chantiers de développement, en base, chaque carte liée à une spec ou à un plan du dépôt. Depuis une carte, le propriétaire lance une session Claude Code avec son workflow complet (commandes, skills, superpowers) puis passe à autre chose, prévenu et débloqué sur Telegram comme pour tout run (Feature 3). La carte reste un ticket : état du run et lien de la PR, sans fil de conversation. La session ouvre une PR sans jamais la merger, et la carte avance avec l'état de la PR. Une carte se crée depuis l'admin, le bot Telegram ou le MCP de l'app depuis un autre client Claude Code. Les audits de dépôts se lancent de la même façon, jamais par planification ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Les issues Sentry peuvent alimenter le kanban en cartes, sans lancement automatique.
+Kanban des chantiers de développement, en base, chaque carte liée à une spec ou à un plan du dépôt. Depuis une carte, le propriétaire lance une session Claude Code avec son workflow complet (commandes, skills, superpowers) puis passe à autre chose, prévenu et débloqué sur Telegram comme pour tout run (Feature 4). La carte reste un ticket : état du run et lien de la PR, sans fil de conversation. La session ouvre une PR sans jamais la merger, et la carte avance avec l'état de la PR. Une carte se crée depuis l'admin, le bot Telegram ou le MCP de l'app (Feature 3) depuis un autre client Claude Code. Les audits de dépôts se lancent de la même façon, jamais par planification ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Les issues Sentry peuvent alimenter le kanban en cartes, sans lancement automatique.
 
 **Créateur de specs et de docs** : depuis la partie Dev, le propriétaire lance une session guidée qui reprend son workflow de rédaction (skills de documentation, `/decompose-feature`) pour rédiger ou compléter un document à sections comme `ARCHITECTURE.md`, découper une feature en specs et plans, ou créer à la volée une spec, son plan et sa carte. La session commence par l'analyse du contexte : l'état du projet (docs et code) et les sources fournies pour l'occasion, documents déposés ou URLs, qui ne sont pas conservées puisque ce qui dure finit dans le dépôt. Elle avance ensuite à l'écran : questions posées une à une avec réponse libre possible, agents de recherche en parallèle, liste des tâches qui progresse. Elle se rattache toujours à un projet ainsi qu'à une feature existante ou nouvelle, qui regroupe une ou plusieurs specs. Elle ouvre une PR avec les documents produits et pose les cartes dans le kanban. Avec l'assistant interne, c'est la seule surface qui garde un échange dans l'admin, sur les mêmes composants de chat ([ADR-027](adrs/027-composants-chat.md)).
 
@@ -326,9 +343,9 @@ Vue et déclenchement ici, exécution dans `agent-os` : cloner des dépôts et l
 
 En viennent aussi deux champs que la maquette montre sur un projet et que le CRUD des projets n'implémente pas : l'étape de développement (à venir, en cours, terminé), distincte du statut de publication, et la date de mise en production.
 
-Prérequis : `agent-os`, construit avec les agents internes (Feature 3), dont le créateur de specs reprend les composants de chat.
+Prérequis : `agent-os`, construit avec les agents internes (Feature 4), dont le créateur de specs reprend les composants de chat.
 
-### Feature 9 : Analytics
+### Feature 10 : Analytics
 
 Savoir quelles pages fonctionnent, d'où viennent les visiteurs et quels projets sont consultés. **Umami**, self-hosted sur Dokploy ([ADR-007](adrs/007-analytics-umami.md)).
 
@@ -342,7 +359,7 @@ Placée avant le chatbot public : tout ce qui précède est interne, et le chatb
 
 Prérequis : aucun pour l'ingestion ; l'espace admin (Feature 1) pour la restitution.
 
-### Feature 10 : Chatbot IA public
+### Feature 11 : Chatbot IA public
 
 Chatbot sur le site public, vitrine de compétence technique, répondant sur le parcours, les projets et les compétences.
 
@@ -350,11 +367,11 @@ Interface et pilotage ici, RAG et appel au modèle dans un service dédié. C'es
 
 Contraintes : garde-fous contre l'injection de prompt, rate limiting applicatif, plafond de dépense.
 
-L'interface reprend les composants de chat de l'assistant interne (Feature 3) : messages, saisie, réponse affichée au fil de l'eau, rendu markdown. Seuls changent l'habillage du site public, bilingue, sans historique conservé ni action proposée, et le service appelé derrière.
+L'interface reprend les composants de chat de l'assistant interne (Feature 4) : messages, saisie, réponse affichée au fil de l'eau, rendu markdown. Seuls changent l'habillage du site public, bilingue, sans historique conservé ni action proposée, et le service appelé derrière.
 
-Prérequis : `ai-kit` et le service `portfolio-chatbot` ; les composants de chat de l'assistant interne (Feature 3) ; l'analytics (Feature 9) en place pour mesurer son effet.
+Prérequis : `ai-kit` et le service `portfolio-chatbot` ; les composants de chat de l'assistant interne (Feature 4) ; l'analytics (Feature 10) en place pour mesurer son effet.
 
-### Feature 11 : Documents personnels
+### Feature 12 : Documents personnels
 
 Recherche dans des documents privés (contrats, administratif). Deux chemins d'interrogation : depuis Claude Code sur l'abonnement, et depuis l'écran admin via l'API interne du service, au token ([ADR-016](adrs/016-acces-llm.md)). Base isolée avec ses propres credentials, service séparé du chatbot public ([ADR-018](adrs/018-cloisonnement-donnees.md)).
 
@@ -362,16 +379,16 @@ Recherche dans des documents privés (contrats, administratif). Deux chemins d'i
 
 Prérequis : `ai-kit` et le service `rag-documents`, dont le fournisseur d'embeddings reste à trancher ([ADR-016](adrs/016-acces-llm.md)).
 
-### Feature 12 : Intégrations externes
+### Feature 13 : Intégrations externes
 
 Capacités produit à étudier selon le besoin réel :
 
 * **LinkedIn** : publication assistée et prospection. API officielle limitée et surveillée, faisabilité à valider avant de s'engager
 * **Indy** : déclarations et export comptable. La facturation elle-même étant tenue en interne, cette intégration ne couvrirait que le déclaratif
 
-Prérequis : les publications LinkedIn (Feature 7) pour LinkedIn ; la comptabilité (Feature 5) pour Indy.
+Prérequis : les publications LinkedIn (Feature 8) pour LinkedIn ; la comptabilité (Feature 6) pour Indy.
 
-> La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 9 ci-dessus.
+> La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 10 ci-dessus.
 
 ---
 
@@ -423,7 +440,8 @@ Prérequis : les publications LinkedIn (Feature 7) pour LinkedIn ; la comptabili
 - **Décision Positionnement** : IA & Automatisation en premier vs Full-Stack en premier (différenciation principale, marché plus porteur)
 - **Décision Analytics** : Umami self-hosted vs Plausible vs PostHog ([ADR-007](adrs/007-analytics-umami.md))
 - **Décision Notion API** : hors scope, aucune synchro ni API Notion dans le code de ce dépôt.
-- **Décision Agents internes** : feature dédiée (jobs `agent-os`, outils de l'app pour les agents, assistant interne) sur l'abonnement Claude vs rattachement au chatbot public (dépôts, facturation et exposition différents, [ADR-015](adrs/015-decoupage-services.md) et [ADR-016](adrs/016-acces-llm.md)). Les jobs d'abord : l'IA propose, l'app enregistre après validation ; la forme des outils pour qu'un agent agisse lui-même sur l'app (MCP ou CLI) est à trancher par [ADR-025](adrs/025-acces-agents-app.md)
+- **Décision Agents internes** : feature dédiée (jobs `agent-os`, assistant interne) sur l'abonnement Claude vs rattachement au chatbot public (dépôts, facturation et exposition différents, [ADR-015](adrs/015-decoupage-services.md) et [ADR-016](adrs/016-acces-llm.md)). Les jobs d'abord : l'IA propose, l'app enregistre après validation
+- **Décision Outils pour les agents** : feature dédiée placée avant les agents internes vs brique des agents internes (livrable sans `agent-os`, utile dès Claude Code sur le poste, prérequis des jobs et de l'assistant). Forme et authentification : [ADR-025](adrs/025-acces-agents-app.md)
 - **Décision Exécution des agents** : Agent SDK dans `agent-os`, sur l'abonnement, lancé par le propriétaire vs routines claude.ai, `claude-code-action` ou Remote Control ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Aucun cron : chaque run part d'une action du propriétaire
 - **Décision Canal des attentes** : bot Telegram tenu par `agent-os` vs fil de conversation dans l'admin ou plugin Telegram des channels ([ADR-026](adrs/026-execution-claude-code-abonnement.md))
 - **Décision Interfaces de l'assistant** : Telegram d'abord, fenêtre de l'admin ensuite vs fenêtre de l'admin seule (Telegram couvre le téléphone et les ordres rapides pour peu de travail ; l'admin apporte la page en cours et l'affichage riche, utiles au travail de fond comme le tri du sourcing).

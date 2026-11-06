@@ -119,9 +119,9 @@ système, puis refait entièrement.
 Décisions prises que la maquette ne montre pas, et écrans qu'elle n'a pas. À reporter quand le
 propriétaire le demande ; chaque ligne part une fois faite.
 
-- **Écrans à dessiner** : résultats des jobs à valider (Feature 3 : candidats du sourcing à trier,
-  pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ; Accueil
-  (`isHome`), à revoir avec la feature Missions (Feature 4) ; chatbot public (Feature 10), sur les
+- **Écrans à dessiner** : résultats des jobs à valider (Feature 4 : candidats du sourcing à trier,
+  pré-remplissage à accepter) ; Analytics (Feature 10, avec les graphiques du système) ; Accueil
+  (`isHome`), à revoir avec la feature Missions (Feature 5) ; chatbot public (Feature 11), sur les
   composants de chat du système.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
   garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs

@@ -82,6 +82,7 @@ Trait plein : en place aujourd'hui. Trait pointillé : prévu post-MVP.
 ```mermaid
 graph LR
     Browser["Navigateur"]
+    Poste["Claude Code<br/>(poste du propriétaire)"]
 
     subgraph VPS["VPS IONOS"]
         Dokploy["Dokploy<br/>(reverse proxy)"]
@@ -110,6 +111,8 @@ graph LR
     Browser -->|embed widget, après consentement c15t| Calendly
     Browser -.->|script analytics| Umami
     Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
+    Poste -.->|MCP, clé d'API, ADR-025| Dokploy
+    AgentOS -.->|MCP interne, clé d'API, ADR-025| Next
     Next -->|Prisma| PG
     Next --> Assets
     Assets -->|S3| R2
@@ -622,7 +625,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 
 - [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
-- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), orientation provisoire vers un serveur MCP par domaine, authentifié par clé d'API
+- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), serveur MCP par domaine authentifié par clé d'API, en attente du prototype qui lève ses conditions
 
 ### Dépréciées
 
@@ -637,7 +640,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : serveur MCP servi par l'app, une route par domaine (`/api/mcp/<domaine>`) et un service sous `src/server/mcp/`, dont les outils génériques appellent la logique métier commune aux Server Actions, sans accès direct à la base ; une clé d'API Better Auth par usage. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

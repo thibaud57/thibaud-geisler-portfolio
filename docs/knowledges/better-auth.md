@@ -1,9 +1,9 @@
 ---
 title: "Better Auth : Authentification Google OAuth single-user"
 version: "1.7.14"
-description: "Référence technique pour Better Auth : configuration, adaptateur Prisma sur schéma dédié, hooks de base, session en proxy et garde serveur."
-date: "2026-10-29"
-keywords: ["better-auth", "authentification", "oauth", "google", "session", "prisma"]
+description: "Référence technique pour Better Auth : configuration, adaptateur Prisma sur schéma dédié, hooks de base, session en proxy et garde serveur, clés d'API des agents et OAuth MCP en réserve."
+date: "2026-11-06"
+keywords: ["better-auth", "authentification", "oauth", "google", "session", "prisma", "api-key", "mcp"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Prisma", "PostgreSQL", "Zod"]
 ---
@@ -138,6 +138,75 @@ if (!session || !isAllowed(session.user.email)) unauthorized()
 
 ---
 
+## Clés d'API (plugin `@better-auth/api-key`)
+
+### Description
+
+Le plugin ajoute des clés d'API rattachées à un utilisateur : création, liste, modification, révocation et vérification par l'API serveur, avec des permissions, une expiration et un rate limit par clé. Il sert ici à authentifier les agents sur le serveur MCP de l'app, une clé par usage, sans jamais leur ouvrir de session ([ADR-025](../adrs/025-acces-agents-app.md)).
+
+### Exemple
+
+```ts
+import { apiKey } from '@better-auth/api-key'
+
+export const auth = betterAuth({
+  // ...
+  plugins: [
+    apiKey({
+      defaultPrefix: 'app_',
+      enableMetadata: true,
+      rateLimit: { enabled: true, maxRequests: 1000, timeWindow: 60 * 60 * 1000 },
+    }),
+    nextCookies(),
+  ],
+})
+
+// Création depuis une Server Action, après la garde de session : sans `headers`
+const created = await auth.api.createApiKey({
+  body: { userId: user.id, name: 'Poste', expiresIn: 90 * 24 * 60 * 60, permissions: { orders: ['read', 'write'] } },
+})
+
+// Vérification dans un route handler, une seule fois par requête
+const { valid, error, key } = await auth.api.verifyApiKey({ body: { key: bearer, permissions: { orders: ['read'] } } })
+```
+
+### Points Importants
+
+- Paquet séparé, importé depuis `@better-auth/api-key` (client : `@better-auth/api-key/client`), à installer **à la même version** que `better-auth`
+- La clé est hachée au repos par défaut, en SHA-256 encodé base64url (`defaultKeyHasher`, `packages/api-key/src/index.ts`, tag v1.7.14) ; la valeur en clair n'est renvoyée qu'une fois, par `createApiKey`. `disableKeyHashing` existe et ne s'active jamais
+- `start` garde en clair les 6 premiers caractères, préfixe compris, pour reconnaître une clé dans une liste ; le préfixe accepte `[a-zA-Z0-9_-]` et se termine de préférence par `_`
+- `permissions`, `rateLimit*`, `refill*`, `remaining` et `enabled` sont **server-only** : un appel qui passe `headers` est traité comme client et lève `SERVER_ONLY_PROPERTY`. La création avec permissions se fait donc sans `headers`, avec `body.userId` lu après la garde de session
+- Le rate limit est actif par défaut, à 10 requêtes par 24 h d'après le code lu au 2026-11-06 : un serveur d'outils le règle explicitement, sinon il bloque dès le onzième appel
+- `verifyApiKey` ne lève pas : il renvoie `{ valid: false, error: { code, message } }`. Des permissions insuffisantes reviennent en `KEY_NOT_FOUND`, sans code dédié. Chaque appel consomme le rate limit : une vérification par requête
+- `expiresIn` est en secondes, borné par défaut entre 1 jour et 365 jours (`keyExpiration`) ; une clé sans expiration omet le champ
+- Une clé n'ouvre une session que si `enableSessionForAPIKeys` est activé (défaut `false`) : ne pas l'activer, sinon une clé fuitée donne la session du propriétaire sur tous les endpoints Better Auth
+- Le modèle `apikey` (21 champs, index sur `configId`, `referenceId` et `key`, sans clé étrangère) se transcrit à la main avec `@@schema("auth")`, comme les quatre modèles de base ; `referenceId` remplace `userId` depuis la 1.7
+- Le plugin lit par défaut l'en-tête `x-api-key` pour ses propres hooks : une route qui lit `Authorization: Bearer` extrait la clé elle-même avant `verifyApiKey`
+
+---
+
+## OAuth pour clients MCP (plugin `@better-auth/mcp`)
+
+### Description
+
+Le plugin fait de l'app un serveur d'autorisation OAuth 2.1 et une ressource protégée (RFC 9728) pour des clients MCP qui exigent OAuth, comme les connecteurs claude.ai. Il reste en réserve : l'app authentifie ses agents par clé d'API, et aucun client utilisé ne l'impose ([ADR-025](../adrs/025-acces-agents-app.md)).
+
+### Exemple
+
+```ts
+// Route MCP enveloppée : JWT vérifié localement, 401 ou 403 insufficient_scope sinon
+export const POST = requireMcpAuth(auth, mcpHandler, { resource: 'https://app.example.com/api/mcp' })
+```
+
+### Points Importants
+
+- Il demande le plugin `jwt` (signature, JWKS) et recommande `@better-auth/cimd` (Client ID Metadata Documents, profil `mcp-2026-07-28`), en plus du SDK MCP v2
+- Il remplace `oauthProvider()` : ne jamais enregistrer les deux dans la même instance
+- L'enregistrement dynamique des clients n'est jamais activé implicitement, la spec MCP le dépréciant
+- Le login Google et sa whitelist restent l'étape d'identification du flux OAuth
+
+---
+
 # Commandes Clés
 
 ## Schéma et diagnostic
@@ -172,6 +241,8 @@ npx @better-auth/cli info --json                 # diagnostic, secrets remplacé
 - Marquer l'objet `user` et le token de session avec le Taint API de React, pour qu'une fuite vers un Client Component échoue au rendu plutôt qu'en silence
 - Exclure le schéma `auth` des dumps de données de développement
 - Vérifier la valeur de `BETTER_AUTH_URL` avant de déboguer un retour OAuth : une origine qui ne correspond pas produit des échecs sans message clair
+- Une clé d'API par usage, limitée à ses domaines par ses `permissions`, créée et révoquée depuis l'espace admin, sa valeur affichée une seule fois
+- Régler le rate limit du plugin `api-key` à la création de l'instance, au lieu de subir son défaut
 
 ## ❌ Anti-Patterns
 
@@ -181,6 +252,9 @@ npx @better-auth/cli info --json                 # diagnostic, secrets remplacé
 - Lancer `@better-auth/cli generate` sur ce projet : il réécrit le schéma Prisma entier et perd les `@@schema("auth")`
 - Exposer l'instance `auth` hors d'un module `server-only` : elle porte le secret de signature
 - Persister l'adresse IP d'une session sans l'inscrire au registre des traitements
+- Activer `enableSessionForAPIKeys` : une clé d'agent ouvrirait alors la session du propriétaire
+- Passer `headers` à `createApiKey` en même temps que des `permissions` : l'appel est traité comme client et refusé
+- Désactiver le hachage des clés (`disableKeyHashing`)
 
 ---
 
@@ -195,6 +269,8 @@ npx @better-auth/cli info --json                 # diagnostic, secrets remplacé
 - [Hooks de base de données](https://better-auth.com/docs/concepts/hooks)
 - [Cookies et sessions](https://better-auth.com/docs/concepts/cookies)
 - [CLI](https://better-auth.com/docs/concepts/cli)
+- [Plugin API Key](https://better-auth.com/docs/plugins/api-key) et sa [référence](https://better-auth.com/docs/plugins/api-key/reference)
+- [Plugin MCP](https://better-auth.com/docs/plugins/mcp)
 
 ## Ressources Complémentaires
 
