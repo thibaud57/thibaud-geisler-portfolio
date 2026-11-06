@@ -61,7 +61,7 @@ export function buildServer(): McpServer {
 - `structuredContent` est validé contre `outputSchema` avant l'envoi : renvoyer aussi `content` en texte JSON pour les clients qui ignorent la sortie structurée
 - Les annotations ne changent rien à l'exécution, ce sont des indices pour le client. Claude Code lit `readOnlyHint` (il parallélise ces appels avec les autres lectures) et `idempotentHint`, pas `destructiveHint` : une confirmation d'écriture ne repose jamais sur une annotation
 - La forme v2 remplace les surcharges variadiques de la v1 (`server.tool(nom, description, shape, cb)`) : un exemple en ligne qui les emploie vise la v1
-- L'option `instructions` du serveur (texte lu par le modèle avec le chargement différé des outils) n'est pas confirmée dans la documentation v2 au 2026-11-06 : sa place exacte se vérifie dans les types du paquet
+- L'option `instructions` (texte lu par le modèle avec le chargement différé des outils) se passe en second argument du constructeur : `new McpServer({ name, version }, { instructions })`, champ de `ServerOptions` dans les types 2.4.0 (lus le 2026-11-06), absent des pages de la documentation v2
 
 ---
 
@@ -86,7 +86,7 @@ const response = await handler.fetch(request, { authInfo })
 
 ### Points Importants
 
-- `ctx` de la factory contient `era` (`'legacy'` ou `'modern'`), `authInfo` et `requestInfo`
+- `ctx` de la factory contient `era` (`'legacy'` pour un client des révisions 2025, `'modern'` pour la 2026-07-28), `authInfo` et `requestInfo` : `era`, journalisé par requête, dit quelle révision parle chaque client
 - `legacy: 'stateless'` (défaut) sert aussi les clients des révisions 2025, avec une instance fraîche par requête et sans session ; `legacy: 'reject'` leur renvoie une erreur de version. Garder le défaut tant que les clients visés ne parlent pas tous la révision 2026-07-28
 - `responseMode` : `'auto'` (défaut) n'ouvre un flux SSE que si une notification précède la réponse, `'json'` répond toujours en JSON, sans flux ni notification de progression. Des outils CRUD n'ont besoin que de `'json'`
 - Autres options et défauts : `keepAliveMs` 15000, `maxSubscriptions` 1024, `maxRequestBodySize` 4194304 octets, `onerror`
@@ -127,7 +127,7 @@ export const DELETE = methodNotAllowed
 
 ### Points Importants
 
-- `createMcpHandler` ne valide ni `Origin` ni `Host`. La spec l'impose : « Servers MUST validate the Origin header on all incoming connections to prevent DNS rebinding attacks. If the Origin header is present and invalid, servers MUST respond with HTTP 403 Forbidden. » Le paquet exporte `originValidationResponse` et `hostHeaderValidationResponse` ; la documentation ne montre que leurs variantes localhost, et le traitement d'un `Origin` absent (client non navigateur, cas normal d'un agent) se vérifie au prototype
+- `createMcpHandler` ne valide ni `Origin` ni `Host`. La spec l'impose : « Servers MUST validate the Origin header on all incoming connections to prevent DNS rebinding attacks. If the Origin header is present and invalid, servers MUST respond with HTTP 403 Forbidden. » Le paquet exporte `originValidationResponse(request, hostnames)` et `hostHeaderValidationResponse(request, hostnames)`, qui rendent une `Response` 403 ou `undefined`. La liste attend des noms d'hôte (`example.com`), pas des origines complètes. Un `Origin` absent ou vide passe : c'est le cas normal d'un agent hors navigateur. Une valeur non analysable, dont le littéral `null` des contextes opaques, est refusée (`validateOriginHeader`, code 2.4.0 lu le 2026-11-06)
 - Dans l'outil, l'authentification se lit par `ctx.http?.authInfo` et la requête brute par `ctx.http?.req` (objet `Request` Web) ; la forme exacte du type `AuthInfo` se vérifie dans les types du paquet
 - Le segment dynamique se résout par `await params` (Promise depuis Next 15) avant de construire le handler
 - Le SDK exige Node.js 20 ou plus : la route tourne en runtime Node, pas Edge

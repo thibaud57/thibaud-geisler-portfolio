@@ -12,7 +12,7 @@ technologies: ["Next.js", "Model Context Protocol", "Claude Code", "Better Auth"
 
 La Feature 3 « Outils de l'app pour les agents » de `BRAINSTORM.md` fait agir des agents sur l'app, dans trois situations :
 
-- **Claude Code sur le poste du propriétaire**, par internet, avec les skills freelance, qui écrivent aujourd'hui dans Notion et s'y rebranchent
+- **Claude Code sur le poste du propriétaire**, par internet, avec les skills freelance, qui écrivent aujourd'hui dans Notion et s'y rebranchent à leur bascule (Feature 4)
 - **Les jobs d'`agent-os`** (Feature 4), qui exécutent Claude Code sur l'abonnement par l'Agent SDK ([ADR-016](016-acces-llm.md), [ADR-026](026-execution-claude-code-abonnement.md)), depuis le réseau Docker interne ([ADR-019](019-communication-inter-services.md))
 - **L'assistant interne de l'espace admin** (Feature 4), qui tourne à travers `agent-os`
 
@@ -132,7 +132,7 @@ Si la condition 1 échoue sur la version épinglée, l'Option B reprend l'avanta
 
 ## Positives
 - Une seule brique à construire, qui sert les trois usages : poste, `agent-os`, assistant interne
-- Les skills freelance passent du MCP Notion à celui de l'app, domaine par domaine
+- Les skills freelance peuvent passer du MCP Notion à celui de l'app : ceux du CRM à la bascule qui ouvre la Feature 4, ceux des domaines suivants dans leur feature
 - Un nouveau domaine n'écrit que ses schémas et sa logique : les outils viennent du générique
 
 ## Négatives

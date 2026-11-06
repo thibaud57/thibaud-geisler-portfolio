@@ -23,10 +23,10 @@ paths:
 - La ligne v1 `@modelcontextprotocol/sdk` et son `StreamableHTTPServerTransport` : régression #1994 en mode sans état, ouverte au 2026-11-06
 
 ## Gotchas
-- `createMcpHandler` ne valide ni `Origin` ni `Host`, que la spec 2026-07-28 impose (403 sur un `Origin` présent et invalide) : passer par `originValidationResponse` et `hostHeaderValidationResponse` avant le handler, le cas d'un `Origin` absent (agent non navigateur) se vérifiant au prototype
+- `createMcpHandler` ne valide pas `Origin`, que la spec 2026-07-28 impose (403 sur un `Origin` présent et invalide) : passer par `originValidationResponse(request, hostnames)` avant le handler. La liste attend des noms d'hôte, pas des origines. Un `Origin` absent passe (agent hors navigateur), le littéral `null` est refusé (code 2.4.0)
 - La révision 2026-07-28 retire sessions et reprise de flux : ignorer `Mcp-Session-Id` et `Last-Event-ID`, ne jamais en émettre
 - Le SDK exige Node.js 20 ou plus : la route reste en runtime Node, défaut du projet
-- L'option `instructions` du serveur n'est pas confirmée dans la documentation v2 au 2026-11-06 : vérifier sa place dans les types du paquet avant de l'écrire
+- L'option `instructions` se passe en second argument du constructeur, `new McpServer({ name, version }, { instructions })` (`ServerOptions`, types 2.4.0) : la documentation v2 ne la montre pas
 
 ## Exemples
 ```typescript
