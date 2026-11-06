@@ -202,3 +202,15 @@ Couvre cinq entrées du registre des outils CRM, `opportunity`, `interview`, `pr
 
 **Rationale :**
 - Décision du propriétaire du 2026-11-06 : la bascule du CRM (commandes, agents et skills, formats JSON, nouvel instantané des données, gel de Notion) se fera d'un bloc quand il sera prêt, en premier sub-project de la Feature 4, dont les jobs en dépendent
+
+## À traiter avant la mise en production
+
+Sub-project de clôture de l'epic, il porte les contrôles uniques de la première mise en production de la route `/api/mcp/<domaine>` ([PRODUCTION.md § Checklist Release](../../../PRODUCTION.md) ne garde que les contrôles de chaque release).
+
+- [ ] Créer depuis `/admin/cles-api` une clé d'API dédiée à l'essai depuis Claude Desktop et claude.ai (à supprimer ensuite)
+- [ ] Retenir le cas de test de la Feature 3 de `docs/BRAINSTORM.md` pour cet essai
+
+## À vérifier après la mise en production
+
+- [ ] Essai depuis Claude Desktop et claude.ai : cas de test de la Feature 3, par un connecteur personnalisé avec en-tête fixe (bêta selon l'ADR-025)
+- [ ] Consigner le résultat dans `docs/knowledges/modelcontextprotocol-server.md` par `knowledge-doc`

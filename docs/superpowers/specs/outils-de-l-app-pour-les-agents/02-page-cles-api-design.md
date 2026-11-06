@@ -2,7 +2,7 @@
 feature: "Feature 3 : Outils de l'app pour les agents"
 subproject: "page-cles-api"
 goal: "Créer, lister et supprimer depuis l'espace admin les clés d'API des agents, la valeur d'une clé n'étant affichée qu'une fois."
-status: "draft"
+status: "implemented"
 complexity: "M"
 tdd_scope: "partial"
 execution: "subagent-driven"
