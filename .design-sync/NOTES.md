@@ -133,7 +133,8 @@ propriétaire le demande ; chaque ligne part une fois faite.
   `dlgApiKeyCreated` et confirmation `delete-api-key` ajoutés à la maquette, ouverts par une entrée
   « Clés d'API » du menu de compte. Placement choisi par le propriétaire sur une page de quatre
   options rendues en local (menu de compte, pied de sidebar, groupe Réglages, modale Paramètres),
-  vocabulaire « Supprimer » retenu, `ConfirmDeleteDialog` restant inchangé. Glyphe `key-round`
+  vocabulaire « Supprimer » retenu partout, alerte de `dlgApiKeyCreated` comprise (« supprimez-la »,
+  renvoyée le même jour), `ConfirmDeleteDialog` restant inchangé. Glyphe `key-round`
   ajouté à la maquette (le système l'a reçu à la sync qui suit). Contrôle : sept vues capturées en local sans
   erreur console. **Envoi** : trois fichiers de la maquette (`Espace admin.dc.html`,
   `assets/icons/lucide/key-round.svg`, `github.md`), système non touché.
