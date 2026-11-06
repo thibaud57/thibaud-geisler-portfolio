@@ -182,7 +182,7 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 |---------|------------------------|
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
-| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin) |
+| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin). Les outils MCP des agents sont une seconde entrée vers la même logique de domaine (`src/server/crm/`), l'action n'y est qu'un adaptateur (`FormData`, état du formulaire, invalidation) |
 | **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin garde une suite continue qui commence à 1, réécrite en entier dans une transaction à chaque mutation. Calcul pur dans `src/lib/reorder.ts` |
 | **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison) |
 | **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) revalide les listes qui l'affichent |
@@ -262,7 +262,12 @@ src/
 │   │                             # non exposés dans actions/_support/
 │   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
 │   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   ├── crm/                      # Logique de domaine du CRM, sans cache ni FormData : une fonction par écriture,
+│   │                             # erreur attendue rendue en DomainResult (result.ts). Appelée par les Server Actions
+│   │                             # et par les outils MCP, la règle métier n'existe qu'ici
 │   └── mcp/                      # Serveur MCP des agents : chaîne de refus de la route, serveur par domaine, outils
+│       └── crm/                  # Outils du domaine crm : registre des entités (registry.ts), une définition par
+│                                 # entité (entities/), outils génériques crm_* (tools.ts)
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
@@ -355,7 +360,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les outils MCP invalident par `revalidateTag(tag, 'max')` pour `projects` et `legal-entity` et par `revalidatePath` pour les listes du CRM (et `revalidatePath(ADMIN_ASSETS_PATH)` pour `crm_fetch_company_logo`), `updateTag` n'étant permis que dans une Server Action. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
 
 ### Files / Assets Storage
 
@@ -645,7 +650,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin sont en place (§ Protection API, § API). Restent les outils génériques de chaque domaine, qui appellent la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin sont en place (§ Protection API, § API). Les outils du domaine `crm` sont en place pour les entreprises (§ Structure du Code), les autres entités et domaines restent à brancher. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

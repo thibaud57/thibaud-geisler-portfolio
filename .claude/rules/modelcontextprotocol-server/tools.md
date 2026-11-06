@@ -9,7 +9,7 @@ paths:
 - Exposer par domaine un même jeu d'outils génériques, préfixés du domaine (`<domaine>_search`, `_fetch`, `_query`, `_create`, `_update`), l'entité désignée par un discriminant `entity` (ADR-025)
 - Déclarer chaque outil par `registerTool(nom, { title, description, inputSchema, outputSchema?, annotations }, handler)` du paquet `@modelcontextprotocol/server`
 - Écrire `inputSchema` en Zod 4, avec un `.describe()` sur chaque champ que le modèle doit remplir : la description arrive au modèle
-- Typer l'union d'entités par `z.discriminatedUnion('entity', [...])` et la traiter par un `switch` exhaustif sur `entity`
+- Construire l'union d'entités du schéma (`z.discriminatedUnion('entity', [...])`) depuis le registre des entités du domaine, et faire résoudre l'entité par ce registre dans le handler : une entité ajoutée ne touche ni les outils ni un `switch`. L'exhaustivité se porte sur les codes d'erreur du domaine (`assertNever`)
 - Renvoyer `content` (texte JSON) en plus de `structuredContent` quand l'outil a un `outputSchema`
 - Poser `readOnlyHint: true` sur les lectures (`search`, `fetch`, `query`), `idempotentHint: true` sur `update`
 - Signaler un échec récupérable par `isError: true` avec un message qui nomme la correction attendue (outil à appeler, champ à fournir)
@@ -35,15 +35,12 @@ paths:
 
 ## Exemples
 ```typescript
-// ✅ Un outil générique du domaine, entité discriminée
+// ✅ Un outil générique du domaine : union et résolution passent par le registre
 server.registerTool('sales_fetch', {
   description: 'Fetch one record. Get the id from sales_search first.',
-  inputSchema: z.discriminatedUnion('entity', [
-    z.object({ entity: z.literal('customer'), id: z.string() }),
-    z.object({ entity: z.literal('supplier'), id: z.string() }),
-  ]),
+  inputSchema: z.discriminatedUnion('entity', ENTITIES.map(fetchSchemaFor)),
   annotations: { readOnlyHint: true },
-}, async (input) => { ... })
+}, ({ entity, id }) => ENTITIES.find((e) => e.entity === entity).fetch(id))
 
 // ❌ Un outil par entité et par opération
 server.registerTool('update_customer', { ... }, async () => { ... })

@@ -185,6 +185,56 @@ export async function findCompanyByIdForAdmin(id: string) {
   })
 }
 
+// Fiche pour les outils des agents : les personnes y sont réduites à ce qui les nomme et à leurs rôles.
+const toolCompanyInclude = {
+  ...adminCompanyInclude,
+  persons: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      linkedinUrl: true,
+      lead: { select: { personId: true } },
+      contact: { select: { personId: true } },
+    },
+    orderBy: personNameOrder,
+  },
+} as const
+
+export async function findCompanyWithLinks(id: string) {
+  return prisma.company.findUnique({ where: { id }, include: toolCompanyInclude })
+}
+
+export async function findCompanyNames() {
+  return prisma.company.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
+  })
+}
+
+const companyRowSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  relationStatus: true,
+  types: true,
+  zones: true,
+  updatedAt: true,
+} as const
+
+export async function findCompaniesPage(page: {
+  where: Prisma.CompanyWhereInput
+  orderBy: Prisma.CompanyOrderByWithRelationInput[]
+  take: number
+  skip: number
+}) {
+  const [rows, total] = await prisma.$transaction([
+    prisma.company.findMany({ ...page, select: companyRowSelect }),
+    prisma.company.count({ where: page.where }),
+  ])
+  return { rows, total }
+}
+
 export type AdminCompanyDetail = NonNullable<Awaited<ReturnType<typeof findCompanyByIdForAdmin>>>
 
 export async function findCompanyOptions() {

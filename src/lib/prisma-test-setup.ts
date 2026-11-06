@@ -22,4 +22,30 @@ export function createProject(overrides: Partial<Prisma.ProjectCreateInput> = {}
   })
 }
 
+export function seedCompany(overrides: Partial<Prisma.CompanyCreateInput> = {}) {
+  return prisma.company.create({ data: { slug: "acme", name: "Acme", ...overrides } })
+}
+
+export function seedCompanyWithLegalEntity(
+  legalEntity: Partial<Prisma.LegalEntityCreateWithoutCompanyInput> = {},
+) {
+  return seedCompany({
+    legalEntity: {
+      create: {
+        slug: "acme",
+        name: "Acme SAS",
+        address: {
+          create: {
+            street: "1 rue de l'Exemple",
+            postalCode: "75000",
+            city: "Paris",
+            country: "FR",
+          },
+        },
+        ...legalEntity,
+      },
+    },
+  })
+}
+
 export { prisma }

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { PERSON_NOT_FOUND_TOAST } from "@/lib/admin/toasts"
 import type { FieldErrors, FormFailure, FormSuccess, FormValues } from "@/lib/form-state"
 import { createActionLogger, isPrismaError } from "@/lib/server-utils"
+import type { DomainResult } from "@/server/crm/result"
 
 export interface ActionEvents {
   success: string
@@ -107,8 +108,29 @@ interface SaveEntityConfig<TInput extends object, TState, TPersistResult> {
   onUnknownError: (err: unknown) => TState
 }
 
+// `onDomainError` rend `invalidate: true` quand la cible a disparu : la revalidation réaligne l'écran périmé sur la base.
+interface SaveDomainEntityConfig<
+  TInput extends object,
+  TState,
+  TValue,
+  E extends { code: string },
+> extends Omit<SaveEntityConfig<TInput, TState, TValue>, "persist" | "notFound"> {
+  persist: (data: TInput) => Promise<DomainResult<TValue, E>>
+  onDomainError: (error: E) => { state: TState; invalidate: boolean }
+}
+
+type SaveOutcome<TValue, TState> =
+  { ok: true; value: TValue } | { ok: false; state: TState; invalidate: boolean }
+
+export function saveEntity<TInput extends object, TState, TValue, E extends { code: string }>(
+  config: SaveDomainEntityConfig<TInput, TState, TValue, E>,
+): Promise<TState>
 export function saveEntity<TInput extends object, TState, TPersistResult>(
   config: SaveEntityConfig<TInput, TState, TPersistResult>,
+): Promise<TState>
+export function saveEntity<TInput extends object, TState, TValue, E extends { code: string }>(
+  config:
+    SaveEntityConfig<TInput, TState, TValue> | SaveDomainEntityConfig<TInput, TState, TValue, E>,
 ): Promise<TState> {
   return createActionLogger(config.actionName, async ({ log }) => {
     const result = config.schema.safeParse(config.input)
@@ -116,17 +138,31 @@ export function saveEntity<TInput extends object, TState, TPersistResult>(
       return config.onValidationError(z.flattenError(result.error).fieldErrors)
     }
 
+    const persist = async (data: TInput): Promise<SaveOutcome<TValue, TState>> => {
+      if (!("onDomainError" in config)) return { ok: true, value: await config.persist(data) }
+      const domain = await config.persist(data)
+      return domain.ok ? domain : { ok: false, ...config.onDomainError(domain.error) }
+    }
+    const notFound = "notFound" in config ? config.notFound : undefined
+
     try {
-      const persisted = await config.persist(result.data)
+      const outcome = await persist(result.data)
+      if (!outcome.ok) {
+        if (outcome.invalidate) config.invalidateCaches()
+        return outcome.state
+      }
       // Après l'écriture réussie seulement : une invalidation précédant un échec purgerait le cache sans raison.
       config.invalidateCaches()
-      log.info({ event: config.events.success, ...config.successLogFields(result.data, persisted) })
-      return config.onSuccess(persisted, result.data)
+      log.info({
+        event: config.events.success,
+        ...config.successLogFields(result.data, outcome.value),
+      })
+      return config.onSuccess(outcome.value, result.data)
     } catch (err) {
-      if (config.notFound && isPrismaError(err, "P2025") && !(await config.notFound.exists())) {
+      if (notFound && isPrismaError(err, "P2025") && !(await notFound.exists())) {
         // La revalidation réaligne l'écran périmé (autre onglet, double clic) sur la base.
         config.invalidateCaches()
-        return config.notFound.state()
+        return notFound.state()
       }
       const mapped = config.mapError?.(err)
       if (mapped) return mapped
