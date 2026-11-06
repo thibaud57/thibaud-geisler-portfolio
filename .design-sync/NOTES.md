@@ -134,9 +134,28 @@ propriétaire le demande ; chaque ligne part une fois faite.
   « Clés d'API » du menu de compte. Placement choisi par le propriétaire sur une page de quatre
   options rendues en local (menu de compte, pied de sidebar, groupe Réglages, modale Paramètres),
   vocabulaire « Supprimer » retenu, `ConfirmDeleteDialog` restant inchangé. Glyphe `key-round`
-  ajouté à la maquette ; le système ne l'a pas encore. Contrôle : sept vues capturées en local sans
+  ajouté à la maquette (le système l'a reçu à la sync qui suit). Contrôle : sept vues capturées en local sans
   erreur console. **Envoi** : trois fichiers de la maquette (`Espace admin.dc.html`,
   `assets/icons/lucide/key-round.svg`, `github.md`), système non touché.
+
+- **`InputGroup` sort de `post-mvp/` (système synchronisé le 2026-11-06)** : le composant est dans le
+  code depuis longtemps (cadre du champ de recherche de `Command`) et la page des clés d'API l'emploie
+  pour la valeur secrète affichée une fois. Le système le range sous `core/`, sa fiche dit « installé »
+  avec le chemin du code et ses usages réels (le prompt de chat reste post-MVP), `bundle.js`,
+  `_ds_manifest.json`, readme, `index.d.ts` et `COMPONENTS.md` suivent. Glyphe `key-round` ajouté
+  au système et à la carte `Iconography`, que huit glyphes plus anciens n'ont jamais rejointe.
+  - **Contrôle du système** : 111 miroirs compilés ; dix cartes capturées avant et après, sans erreur
+    ni racine vide ni hauteur nulle, identiques au pixel sauf `Iconography` (le glyphe) et quelques
+    pixels de curseur ou d'animation qui bougent déjà entre deux rendus d'un bundle inchangé ;
+    `bundle.js` publié rend comme les miroirs compilés.
+  - **Maquette** : `_ds_src/` recompilé (bundle octet pour octet reproductible depuis l'ancien état
+    avant la modification, 240 exports identiques, les 80 composants employés présents), `readme.md`
+    corrigé à la main (son texte garde la disposition de l'export, pas celle de l'artifact). Onze vues
+    capturées avant et après, aucun écart hors du bruit de rendu.
+  - **Envoi** : le système par l'outil Artifact (voir `github.md`), puis trois fichiers de la
+    maquette par `DesignSync` le même jour (`_ds_src/_ds_bundle.js`, `_ds_src/readme.md`,
+    `github.md`). Un sous-agent n'a pas toujours `DesignSync` : l'envoi de la maquette se fait depuis
+    la session principale.
 
 - **Étude de cas et formulaires de la v2.4.0, puis fin de la liste des arbitrages (préparés le
   2026-10-27)** : six arbitrages du 2026-10-26 reportés, et les six du 2026-10-14 restés ouverts
