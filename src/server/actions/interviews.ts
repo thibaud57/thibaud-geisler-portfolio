@@ -8,6 +8,11 @@ import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
 import { stringField, stringValues } from "@/lib/server-utils"
+import {
+  assertNewIdentity,
+  PersonConflictError,
+  revalidatePersonLists,
+} from "@/server/crm/person-guards"
 
 import {
   type ActionEvents,
@@ -21,23 +26,11 @@ import type {
   InterviewDeleteState,
   InterviewFormState,
 } from "./interviews.types"
-import {
-  assertNewIdentity,
-  type DuplicateWording,
-  PersonConflictError,
-  revalidatePersonLists,
-} from "./_support/person-guards"
+import { CORRESPONDENT_WORDING, personConflictMessage } from "./_support/person-form"
 
 // L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre les listes des entretiens et des entreprises.
 function invalidateInterviewCaches(): void {
   revalidatePersonLists()
-}
-
-const CORRESPONDENT_WORDING: DuplicateWording = {
-  role: "contact",
-  own: "Ce contact existe déjà",
-  other: "Cette personne est déjà un lead",
-  otherHint: ", choisissez-la parmi les correspondants existants",
 }
 
 type RuleField = "opportunityId" | "side" | "correspondentIds" | "newCorrespondents"
@@ -124,12 +117,7 @@ async function correspondentRefs(
 ): Promise<{ id: string }[]> {
   const refs: { id: string }[] = correspondentIds.map((id) => ({ id }))
   for (const { contactType, ...person } of newCorrespondents) {
-    await assertNewIdentity(
-      tx,
-      { email: person.email, linkedinUrl: person.linkedinUrl },
-      null,
-      CORRESPONDENT_WORDING,
-    )
+    await assertNewIdentity(tx, { email: person.email, linkedinUrl: person.linkedinUrl }, null)
     const created = await tx.person.create({
       data: { ...person, contact: { create: { types: [contactType], status: "ACTIF" } } },
       select: { id: true },
@@ -145,7 +133,9 @@ function mapInterviewError(
 ): InterviewFormState | null {
   // « exists » comme « opted_out » refusent le doublon ; le message du garde dit lequel des deux.
   if (err instanceof PersonConflictError) {
-    const errors: FieldErrors<keyof InterviewInput> = { newCorrespondents: [err.message] }
+    const errors: FieldErrors<keyof InterviewInput> = {
+      newCorrespondents: [personConflictMessage(err.conflict, CORRESPONDENT_WORDING)],
+    }
     return { ok: false, errors, message: "correspondent_exists", values }
   }
   if (!(err instanceof InterviewRuleError)) return null

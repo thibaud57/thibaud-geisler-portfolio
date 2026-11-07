@@ -108,7 +108,25 @@ interface SaveEntityConfig<TInput extends object, TState, TPersistResult> {
   onUnknownError: (err: unknown) => TState
 }
 
-// `onDomainError` rend `invalidate: true` quand la cible a disparu : la revalidation réaligne l'écran périmé sur la base.
+// `invalidate: true` quand la cible a disparu : la revalidation réaligne l'écran périmé sur la base.
+export interface DomainFailure<TState> {
+  state: TState
+  invalidate: boolean
+}
+
+export function domainFailure<
+  TInput,
+  TMessage extends string,
+  TField extends PropertyKey = keyof TInput,
+>(
+  values: FormFailure<TInput, TMessage, TField>["values"],
+  errors: FieldErrors<TField>,
+  message: TMessage | null,
+  invalidate = false,
+): DomainFailure<FormFailure<TInput, TMessage, TField>> {
+  return { state: { ok: false, errors, message, values }, invalidate }
+}
+
 interface SaveDomainEntityConfig<
   TInput extends object,
   TState,
@@ -116,7 +134,7 @@ interface SaveDomainEntityConfig<
   E extends { code: string },
 > extends Omit<SaveEntityConfig<TInput, TState, TValue>, "persist" | "notFound"> {
   persist: (data: TInput) => Promise<DomainResult<TValue, E>>
-  onDomainError: (error: E) => { state: TState; invalidate: boolean }
+  onDomainError: (error: E) => DomainFailure<TState>
 }
 
 type SaveOutcome<TValue, TState> =

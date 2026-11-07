@@ -91,7 +91,7 @@ export function registerCrmTools(server: McpServer): void {
     {
       title: "Search CRM records by name",
       description:
-        "Find CRM records by an approximate name, case and accents ignored. Call this first: crm_fetch and crm_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint is the slug for a company and tells two homonyms apart.",
+        'Find CRM records by an approximate name, case and accents ignored. Call this first: crm_fetch and crm_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: the slug for a company, the company and roles for a lead or contact. A person who opted out of prospecting is returned only on her exact email or LinkedIn URL, as { label: "Opposée à la prospection", optedOut: true } without name: never recreate or contact her.',
       inputSchema: searchInputSchema,
       annotations: { readOnlyHint: true },
     },
@@ -109,7 +109,7 @@ export function registerCrmTools(server: McpServer): void {
     {
       title: "Fetch a CRM record",
       description:
-        "Fetch one CRM record by id, with its links. For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact). Call crm_search first to get the id. Returns an error naming the id if nothing matches.",
+        "Fetch one CRM record by id, with its links. For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact). For a lead or contact: her record, company and roles, and for a lead her referred opportunities, interviews, signals and prospecting action count. A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches.",
       inputSchema: fetchInputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
@@ -129,7 +129,7 @@ export function registerCrmTools(server: McpServer): void {
     {
       title: "List CRM records with filters",
       description:
-        "List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug, status, types, zones, updated date) and the total count before pagination. Page with offset.",
+        "List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date) and the total count before pagination. Persons who opted out are never listed. Page with offset.",
       inputSchema: queryInputSchema,
       annotations: { readOnlyHint: true },
     },
@@ -141,7 +141,7 @@ export function registerCrmTools(server: McpServer): void {
     {
       title: "Create a CRM record",
       description:
-        "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, only slug and name are required, and the Details get the standard section template unless you send your own. The legal entity cannot be written here. Returns the id, slug and name of the new record.",
+        "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, only slug and name are required, and the Details get the standard section template unless you send your own. For a lead, only name and origin are required. A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field. A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company) of the new record.",
       inputSchema: createInputSchema,
     },
     (args, ctx) =>
@@ -153,7 +153,7 @@ export function registerCrmTools(server: McpServer): void {
     {
       title: "Update a CRM record",
       description:
-        "Update a CRM record by id: fields (absent stays unchanged, null clears an optional field), a Details section by title, or both. Call crm_search first for the id, and crm_fetch to read the current values. Replacing one Details section leaves the others untouched. The legal entity cannot be written here. Returns the id, slug and name.",
+        "Update a CRM record by id: fields (absent stays unchanged, null clears an optional field), a Details section by title, or both. Call crm_search first for the id, and crm_fetch to read the current values. Replacing one Details section leaves the others untouched. The legal entity cannot be written here, nor the score of a lead, and the record of a person who opted out is locked. Returns the id (and the slug and name for a company).",
       inputSchema: updateInputSchema,
       annotations: { idempotentHint: true },
     },

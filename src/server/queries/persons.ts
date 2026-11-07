@@ -109,3 +109,31 @@ export function findAttachableLead(personId: PersonId): Promise<AttachableLead |
     select: attachableLeadSelect,
   })
 }
+
+const personSearchSelect = { ...personRefSelect, company: { select: { name: true } } } as const
+
+// Lecture légère pour la recherche des outils : les personnes qui ont le rôle, opposées comprises, que la recherche filtre elle-même.
+export function findPersonsWithRole(role: "lead" | "contact") {
+  return prisma.person.findMany({
+    where: { [role]: { isNot: null } },
+    select: personSearchSelect,
+  })
+}
+
+export interface PageQuery<Where, OrderBy> {
+  where: Where
+  orderBy: OrderBy[]
+  take: number
+  skip: number
+}
+
+export const personRowSelect = {
+  name: true,
+  company: { select: { id: true, name: true } },
+} as const
+
+type PersonRowSource = Prisma.PersonGetPayload<{ select: typeof personRowSelect }>
+
+export function toPersonRow(row: { personId: string; person: PersonRowSource }) {
+  return { id: row.personId, name: row.person.name, company: row.person.company }
+}

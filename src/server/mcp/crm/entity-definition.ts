@@ -11,6 +11,8 @@ export interface SearchHit<E extends string = string> {
   id: string
   label: string
   hint: string | null
+  // Personne opposée à la prospection : l'agent sait qu'il ne doit pas la recréer
+  optedOut?: true
 }
 
 export interface CrmWriteContext {

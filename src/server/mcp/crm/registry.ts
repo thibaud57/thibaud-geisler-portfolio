@@ -1,13 +1,15 @@
 import "server-only"
 
 import { companyEntity } from "./entities/company"
+import { contactEntity } from "./entities/contact"
+import { leadEntity } from "./entities/lead"
 import type { RegisteredCrmEntity } from "./entity-definition"
 
-const REGISTERED_ENTITIES = [companyEntity] as const
+const REGISTERED_ENTITIES = [companyEntity, leadEntity, contactEntity] as const
 
 export type CrmEntity = (typeof REGISTERED_ENTITIES)[number]["entity"]
 
-// Un registre à une seule entité type `...others` en `[]` : annoter la forme générale garde les `.map` typés
+// Annoter la forme générale : le tuple littéral figerait le nombre d'entités dans le type des `.map`
 export const CRM_ENTITIES: readonly [
   RegisteredCrmEntity<CrmEntity>,
   ...RegisteredCrmEntity<CrmEntity>[],

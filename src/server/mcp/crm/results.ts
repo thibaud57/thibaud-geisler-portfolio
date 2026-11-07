@@ -11,6 +11,12 @@ export function toolError(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true }
 }
 
+// Les textes d'une écriture : événements de log et message rendu à l'agent quand l'opération échoue.
+export interface WriteTexts {
+  events: { success: string; failure: string }
+  failureMessage: string
+}
+
 interface ToolFailure {
   event: string
   message: string

@@ -16,12 +16,17 @@ vi.mock("@/server/company-logo/fetch-company-logo", () => ({ retrieveCompanyLogo
 
 import type { Prisma } from "@/generated/prisma/client"
 import { ADMIN_ASSETS_PATH } from "@/lib/admin/routes"
-import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
+import {
+  COMPANY_DETAILS_TEMPLATE,
+  CONTACT_DETAILS_TEMPLATE,
+  leadDetailsTemplate,
+} from "@/lib/crm/details-templates"
 import {
   prisma,
   resetDatabase,
   seedCompany,
   seedCompanyWithLegalEntity,
+  seedPerson,
 } from "@/lib/prisma-test-setup"
 import {
   retrieveCompanyLogo,
@@ -642,5 +647,658 @@ describe("write logs", () => {
     expect(childLog.error).toHaveBeenCalledWith(
       expect.objectContaining({ err: failure, event: "company:update_failed", id: company.id }),
     )
+  })
+})
+
+const OPTED_OUT_AT = new Date("2026-10-01T00:00:00Z")
+
+function seedOptedOutLead(identity: { email?: string; linkedinUrl?: string }) {
+  return seedPerson({ name: null, optedOutAt: OPTED_OUT_AT, ...identity })
+}
+
+function seedLeadsWithStatus(status: "DISCUSSION" | "NOUVEAU", count: number) {
+  return Promise.all(
+    Array.from({ length: count }, (_, index) =>
+      prisma.person.create({
+        data: {
+          name: `${status} ${index}`,
+          lead: { create: { origin: "OUTBOUND", status } },
+        },
+      }),
+    ),
+  )
+}
+
+const idBodySchema = z.object({ id: z.string() })
+
+const createLeadArgs = (data: Record<string, unknown>) => ({ entity: "lead", data })
+const createContactArgs = (data: Record<string, unknown>) => ({ entity: "contact", data })
+
+describe("persons in crm_search", () => {
+  it("finds a person by name and by email, ignoring case and accents", async () => {
+    const acme = await seedCompany()
+    const jane = await seedPerson({
+      name: "Jane Doe",
+      email: "jane.doe@example.com",
+      companyId: acme.id,
+    })
+
+    const byName = await call("crm_search", { query: "JÁNE doe" })
+    const byEmail = await call("crm_search", { query: "Jane.Doe@Example" })
+
+    const expected = {
+      results: [{ entity: "lead", id: jane.id, label: "Jane Doe", hint: "Acme · lead" }],
+    }
+    expect(jsonOf(byName)).toEqual(expected)
+    expect(jsonOf(byEmail)).toEqual(expected)
+  })
+
+  it("names every role of the person in the hint of each entity", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: true, contact: true })
+
+    const result = await call("crm_search", { query: "jane" })
+
+    expect(searchBodySchema.parse(jsonOf(result)).results).toEqual(
+      expect.arrayContaining([
+        { entity: "lead", id: jane.id, label: "Jane Doe", hint: "lead and contact" },
+        { entity: "contact", id: jane.id, label: "Jane Doe", hint: "lead and contact" },
+      ]),
+    )
+  })
+
+  it("skips a person who holds no role", async () => {
+    await seedPerson({ name: "Jane Doe" }, { lead: false, contact: false })
+
+    const result = await call("crm_search", { query: "jane" })
+
+    expect(jsonOf(result)).toEqual({ results: [] })
+  })
+
+  it.each(["janedoe", "jane.doe@exam"])(
+    "finds a person by the fragment %j, never an opted-out one",
+    async (fragment) => {
+      const jane = await seedPerson({
+        name: "Jane Doe",
+        email: "jane.doe@example.com",
+        linkedinUrl: "https://www.linkedin.com/in/janedoe",
+      })
+      await seedOptedOutLead({
+        email: "john.roe@example.com",
+        linkedinUrl: "https://www.linkedin.com/in/johnroe",
+      })
+
+      const found = await call("crm_search", { query: fragment })
+      const opposedByEmail = await call("crm_search", { query: "john.roe" })
+      const opposedByLinkedin = await call("crm_search", { query: "johnroe" })
+
+      expect(jsonOf(found)).toMatchObject({ results: [{ id: jane.id }] })
+      expect(jsonOf(opposedByEmail)).toEqual({ results: [] })
+      expect(jsonOf(opposedByLinkedin)).toEqual({ results: [] })
+    },
+  )
+
+  it.each([
+    ["her email", " John.Roe@Example.com ", "john.roe@example.com"],
+    ["her LinkedIn URL", "linkedin.com/in/JohnRoe/", "https://www.linkedin.com/in/johnroe"],
+  ])("finds an opted-out person by %s only", async (_label, query, hint) => {
+    const opposed = await seedOptedOutLead({
+      email: "john.roe@example.com",
+      linkedinUrl: "https://www.linkedin.com/in/johnroe",
+    })
+
+    const result = await call("crm_search", { query })
+
+    expect(jsonOf(result)).toStrictEqual({
+      results: [
+        {
+          entity: "lead",
+          id: opposed.id,
+          label: "Opposée à la prospection",
+          hint,
+          optedOut: true,
+        },
+      ],
+    })
+  })
+})
+
+describe("persons in crm_fetch", () => {
+  it("fetches a lead with its links and its roles", async () => {
+    const acme = await seedCompany()
+    const jane = await seedPerson({
+      name: "Jane Doe",
+      email: "jane.doe@example.com",
+      companyId: acme.id,
+    })
+    const opportunity = await prisma.opportunity.create({
+      data: { title: "Mission Acme", clientId: acme.id, referrerId: jane.id },
+    })
+    await prisma.signal.create({
+      data: {
+        personId: jane.id,
+        type: "POST",
+        occurredOn: new Date("2026-09-01"),
+        content: "Post sur le recrutement",
+      },
+    })
+
+    const result = await call("crm_fetch", { entity: "lead", id: jane.id })
+
+    expect(result.isError).toBeFalsy()
+    expect(jsonOf(result)).toMatchObject({
+      id: jane.id,
+      name: "Jane Doe",
+      email: "jane.doe@example.com",
+      company: { id: acme.id, name: "Acme" },
+      roles: ["lead"],
+      origin: "OUTBOUND",
+      opportunities: [{ id: opportunity.id, title: "Mission Acme" }],
+      signals: [{ content: "Post sur le recrutement" }],
+      interviews: [],
+      actionsCount: 0,
+    })
+  })
+
+  it("fetches a contact with its roles", async () => {
+    const jane = await seedPerson(
+      { name: "Jane Doe", email: "jane.doe@example.com" },
+      { lead: true, contact: true },
+    )
+
+    const result = await call("crm_fetch", { entity: "contact", id: jane.id })
+
+    expect(jsonOf(result)).toMatchObject({
+      id: jane.id,
+      name: "Jane Doe",
+      roles: ["lead", "contact"],
+      status: "ACTIF",
+    })
+  })
+
+  it("fetches an opted-out record reduced, without email or LinkedIn", async () => {
+    const opposed = await seedOptedOutLead({
+      email: "john.roe@example.com",
+      linkedinUrl: "https://www.linkedin.com/in/johnroe",
+    })
+
+    const result = await call("crm_fetch", { entity: "lead", id: opposed.id })
+
+    expect(jsonOf(result)).toStrictEqual({
+      id: opposed.id,
+      name: null,
+      optedOut: true,
+      optedOutAt: OPTED_OUT_AT.toISOString(),
+    })
+  })
+
+  it("flags the id of a person who holds the other role only", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: false, contact: true })
+
+    const result = await call("crm_fetch", { entity: "lead", id: jane.id })
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("crm_search")
+  })
+})
+
+describe("persons in crm_query", () => {
+  it("filters leads and contacts in crm_query", async () => {
+    const acme = await seedCompany()
+    await seedLeadsWithStatus("DISCUSSION", 3)
+    await seedLeadsWithStatus("NOUVEAU", 2)
+    await prisma.person.create({
+      data: {
+        name: "Jane Doe",
+        companyId: acme.id,
+        contact: { create: { types: ["CLIENT"], status: "ACTIF" } },
+      },
+    })
+    await prisma.person.create({
+      data: { name: "John Roe", contact: { create: { types: ["MENTOR"], status: "INACTIF" } } },
+    })
+
+    const leads = await call("crm_query", { entity: "lead", filters: { status: "DISCUSSION" } })
+    const contacts = await call("crm_query", {
+      entity: "contact",
+      filters: { types: ["CLIENT"], status: "ACTIF", companyId: acme.id },
+    })
+
+    expect(jsonOf(leads)).toMatchObject({ total: 3, rows: [{}, {}, {}] })
+    expect(jsonOf(contacts)).toMatchObject({
+      total: 1,
+      rows: [{ name: "Jane Doe", company: { name: "Acme" }, status: "ACTIF", types: ["CLIENT"] }],
+    })
+  })
+
+  it("returns summary rows with id, name, company, status and update date", async () => {
+    const acme = await seedCompany()
+    const jane = await seedPerson({ name: "Jane Doe", companyId: acme.id })
+
+    const result = await call("crm_query", { entity: "lead" })
+
+    expect(jsonOf(result)).toStrictEqual({
+      total: 1,
+      rows: [
+        {
+          id: jane.id,
+          name: "Jane Doe",
+          company: { id: acme.id, name: "Acme" },
+          status: "NOUVEAU",
+          updatedAt: expect.any(String) as unknown,
+        },
+      ],
+    })
+  })
+
+  it("sorts and paginates leads", async () => {
+    await seedLeadsWithStatus("NOUVEAU", 3)
+
+    const result = await call("crm_query", {
+      entity: "lead",
+      sort: "name",
+      order: "desc",
+      limit: 1,
+      offset: 1,
+    })
+
+    expect(jsonOf(result)).toMatchObject({ total: 3, rows: [{ name: "NOUVEAU 1" }] })
+  })
+
+  it("keeps opted-out persons out of crm_query", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    await seedOptedOutLead({ email: "john.roe@example.com" })
+
+    const unfiltered = await call("crm_query", { entity: "lead" })
+    const asked = await call("crm_query", { entity: "lead", filters: { optedOut: true } })
+
+    expect(jsonOf(unfiltered)).toMatchObject({ total: 1, rows: [{ id: jane.id }] })
+    expect(asked.isError).toBe(true)
+  })
+})
+
+describe("persons in crm_create", () => {
+  it("creates a lead with the OUTBOUND template", async () => {
+    const acme = await seedCompany()
+
+    const result = await call(
+      "crm_create",
+      createLeadArgs({
+        name: " Jane Doe ",
+        origin: "OUTBOUND",
+        email: "Jane.Doe@Example.com ",
+        linkedinUrl: "linkedin.com/in/JaneDoe/",
+        metAt: "2026-09-15",
+        companyId: acme.id,
+      }),
+    )
+
+    const stored = await prisma.person.findFirstOrThrow({ include: { lead: true } })
+    expect(jsonOf(result)).toEqual({ id: stored.id })
+    expect(stored).toMatchObject({
+      name: "Jane Doe",
+      email: "jane.doe@example.com",
+      linkedinUrl: "https://www.linkedin.com/in/janedoe",
+      companyId: acme.id,
+      details: leadDetailsTemplate("OUTBOUND"),
+      lead: { origin: "OUTBOUND", status: "NOUVEAU", score: null },
+    })
+    expect(stored.metAt?.toISOString()).toBe("2026-09-15T00:00:00.000Z")
+  })
+
+  it("keeps an explicit null details instead of the template", async () => {
+    await call("crm_create", createLeadArgs({ name: "Jane Doe", origin: "INBOUND", details: null }))
+
+    const stored = await prisma.person.findFirstOrThrow()
+    expect(stored.details).toBeNull()
+  })
+
+  it("creates a contact directly", async () => {
+    const result = await call(
+      "crm_create",
+      createContactArgs({ name: "John Roe", types: ["CLIENT"], status: "ACTIF" }),
+    )
+
+    const stored = await prisma.person.findUniqueOrThrow({
+      where: { id: idBodySchema.parse(jsonOf(result)).id },
+      include: { contact: true, lead: true },
+    })
+    expect(stored).toMatchObject({
+      details: CONTACT_DETAILS_TEMPLATE,
+      contact: { types: ["CLIENT"] },
+      lead: null,
+    })
+  })
+
+  it("promotes a lead to a contact with fromLeadId", async () => {
+    const lead = await seedPerson({ name: "Jane Doe", details: leadDetailsTemplate("OUTBOUND") })
+
+    const result = await call(
+      "crm_create",
+      createContactArgs({ fromLeadId: lead.id, types: ["PARTENAIRE"], status: "ACTIF" }),
+    )
+
+    const stored = await prisma.person.findUniqueOrThrow({
+      where: { id: lead.id },
+      include: { contact: true, lead: true },
+    })
+    expect(jsonOf(result)).toEqual({ id: lead.id })
+    expect(stored).toMatchObject({
+      details: CONTACT_DETAILS_TEMPLATE,
+      contact: { types: ["PARTENAIRE"] },
+      lead: { origin: "OUTBOUND" },
+    })
+  })
+
+  it("rejects fromLeadId mixed with person fields", async () => {
+    const lead = await seedPerson({ name: "Jane Doe" })
+
+    const result = await call(
+      "crm_create",
+      createContactArgs({ fromLeadId: lead.id, name: "Other", types: [], status: "ACTIF" }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("fromLeadId")
+    expect(await prisma.contact.count()).toBe(0)
+    expect(await prisma.person.count()).toBe(1)
+  })
+
+  it("reports the failing field of a contact without fromLeadId", async () => {
+    const result = await call(
+      "crm_create",
+      createContactArgs({ name: "Jane Doe", email: "not-an-email", types: [], status: "ACTIF" }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("email")
+    expect(await prisma.person.count()).toBe(0)
+  })
+
+  it("promotes a lead then writes a section of the contact Details", async () => {
+    const created = await call(
+      "crm_create",
+      createLeadArgs({ name: "Jane Doe", origin: "OUTBOUND" }),
+    )
+    const { id } = idBodySchema.parse(jsonOf(created))
+    await call(
+      "crm_create",
+      createContactArgs({ fromLeadId: id, types: ["CLIENT"], status: "ACTIF" }),
+    )
+
+    const result = await call("crm_update", {
+      entity: "contact",
+      id,
+      detailsSection: { heading: "Relation", content: "Rencontrée au meetup" },
+    })
+
+    const stored = await prisma.person.findUniqueOrThrow({ where: { id } })
+    expect(result.isError).toBeFalsy()
+    expect(stored.details).toBe(
+      CONTACT_DETAILS_TEMPLATE.replace(
+        "# 🤝 Relation\n",
+        "# 🤝 Relation\n\nRencontrée au meetup\n",
+      ),
+    )
+  })
+
+  it.each([
+    ["an email in capitals with spaces", { email: "Jane.Doe@Example.com " }],
+    ["a LinkedIn URL without scheme", { linkedinUrl: "linkedin.com/in/JaneDoe/" }],
+  ])("rejects a duplicate after normalization (%s)", async (_label, identity) => {
+    await seedPerson({
+      name: "Jane Doe",
+      email: "jane.doe@example.com",
+      linkedinUrl: "https://www.linkedin.com/in/janedoe",
+    })
+
+    const result = await call(
+      "crm_create",
+      createLeadArgs({ name: "Other", origin: "INBOUND", ...identity }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("Jane Doe")
+    expect(textOf(result)).toContain("lead")
+    expect(textOf(result)).toContain("crm_search")
+    expect(await prisma.person.count()).toBe(1)
+  })
+
+  it("rejects an opted-out identity with its opt-out date", async () => {
+    await seedOptedOutLead({ email: "john.roe@example.com" })
+
+    const result = await call(
+      "crm_create",
+      createLeadArgs({ name: "John Roe", origin: "INBOUND", email: "john.roe@example.com" }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("2026-10-01")
+    expect(await prisma.person.count()).toBe(1)
+  })
+
+  it("rejects an unknown companyId and points to crm_search", async () => {
+    const result = await call(
+      "crm_create",
+      createLeadArgs({ name: "Jane Doe", origin: "INBOUND", companyId: "missing-id" }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("crm_search")
+    expect(textOf(result)).toContain("companyId")
+    expect(await prisma.person.count()).toBe(0)
+  })
+
+  it("rejects promoting a lead that is already a contact", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: true, contact: true })
+
+    const result = await call(
+      "crm_create",
+      createContactArgs({ fromLeadId: jane.id, types: [], status: "ACTIF" }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("Jane Doe")
+  })
+
+  it("rejects a score in crm_create", async () => {
+    const result = await call(
+      "crm_create",
+      createLeadArgs({ name: "Jane Doe", origin: "INBOUND", score: 8 }),
+    )
+
+    expect(result.isError).toBe(true)
+    expect(await prisma.person.count()).toBe(0)
+  })
+})
+
+describe("persons in crm_update", () => {
+  it("updates the fields of a lead and normalizes its email", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: jane.id,
+      fields: { status: "DISCUSSION", email: " NEW@Example.com ", phone: "0102030405" },
+    })
+
+    const stored = await prisma.person.findUniqueOrThrow({
+      where: { id: jane.id },
+      include: { lead: true },
+    })
+    expect(jsonOf(result)).toEqual({ id: jane.id })
+    expect(stored).toMatchObject({
+      name: "Jane Doe",
+      email: "new@example.com",
+      phone: "0102030405",
+      lead: { status: "DISCUSSION" },
+    })
+  })
+
+  it("updates the role fields of a contact", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: false, contact: true })
+
+    await call("crm_update", {
+      entity: "contact",
+      id: jane.id,
+      fields: { types: ["MENTOR"], status: "A_RECONTACTER" },
+    })
+
+    const stored = await prisma.contact.findUniqueOrThrow({ where: { personId: jane.id } })
+    expect(stored).toMatchObject({ types: ["MENTOR"], status: "A_RECONTACTER" })
+  })
+
+  it("rejects score in crm_update and keeps the score unchanged", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+
+    const result = await call("crm_update", { entity: "lead", id: jane.id, fields: { score: 8 } })
+
+    const stored = await prisma.lead.findUniqueOrThrow({ where: { personId: jane.id } })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("score")
+    expect(stored.score).toBeNull()
+  })
+
+  it.each(["optedOutAt", "exchangesErasedAt"])("rejects %s in crm_update", async (field) => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: jane.id,
+      fields: { [field]: "2026-10-01T00:00:00Z" },
+    })
+
+    expect(result.isError).toBe(true)
+  })
+
+  it("rejects a locked record", async () => {
+    const opposed = await seedOptedOutLead({ email: "john.roe@example.com" })
+
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: opposed.id,
+      fields: { notes: "relance" },
+    })
+
+    const stored = await prisma.person.findUniqueOrThrow({ where: { id: opposed.id } })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("opted out")
+    expect(stored.notes).toBeNull()
+  })
+
+  it("rejects an email held by another person", async () => {
+    await seedPerson({ name: "Jane Doe", email: "jane.doe@example.com" })
+    const john = await seedPerson({ name: "John Roe" })
+
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: john.id,
+      fields: { email: "JANE.DOE@example.com" },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("Jane Doe")
+  })
+
+  it("points to crm_search for an unknown id", async () => {
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: "missing-id",
+      fields: { notes: "x" },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("crm_search")
+  })
+
+  it("reports a missing section with the headings present", async () => {
+    const jane = await seedPerson({ name: "Jane Doe", details: leadDetailsTemplate("OUTBOUND") })
+
+    const result = await call("crm_update", {
+      entity: "lead",
+      id: jane.id,
+      detailsSection: { heading: "Inconnue", content: "x" },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("Sections present")
+  })
+
+  it.each([
+    ["neither fields nor detailsSection", {}],
+    ["an empty fields object", { fields: {} }],
+  ])("rejects crm_update with %s", async (_label, patch) => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+
+    const result = await call("crm_update", { entity: "lead", id: jane.id, ...patch })
+
+    expect(result.isError).toBe(true)
+  })
+})
+
+describe("person write side effects", () => {
+  it("does not refresh the person lists when the write is refused", async () => {
+    await seedPerson({ name: "Jane Doe", email: "jane.doe@example.com" })
+
+    await call(
+      "crm_create",
+      createLeadArgs({ name: "Dup", origin: "INBOUND", email: "jane.doe@example.com" }),
+    )
+
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the person lists after a successful write", async () => {
+    await call("crm_create", createLeadArgs({ name: "John Roe", origin: "INBOUND" }))
+
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/leads", "layout")
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/contacts", "layout")
+  })
+
+  it("logs a lead write with the person id and no identity", async () => {
+    const result = await call(
+      "crm_create",
+      createLeadArgs({ name: "Jane Doe", origin: "INBOUND", email: "jane.doe@example.com" }),
+    )
+
+    const { id } = idBodySchema.parse(jsonOf(result))
+    expect(childLog.info).toHaveBeenCalledWith({ event: "lead:created", personId: id })
+  })
+
+  it("logs a contact update with the person id", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: false, contact: true })
+
+    await call("crm_update", { entity: "contact", id: jane.id, fields: { notes: "x" } })
+
+    expect(childLog.info).toHaveBeenCalledWith({ event: "contact:updated", personId: jane.id })
+  })
+
+  it("logs an unknown lead write failure and answers with a generic error", async () => {
+    const failure = new Error("database down")
+    vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(failure)
+
+    const result = await call("crm_create", createLeadArgs({ name: "Jane Doe", origin: "INBOUND" }))
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).not.toContain("database down")
+    expect(childLog.error).toHaveBeenCalledWith({ err: failure, event: "lead:create_failed" })
+  })
+
+  it("logs an unknown contact update failure with the person id", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" }, { lead: false, contact: true })
+    const failure = new Error("database down")
+    vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(failure)
+
+    const result = await call("crm_update", {
+      entity: "contact",
+      id: jane.id,
+      fields: { notes: "x" },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(childLog.error).toHaveBeenCalledWith({
+      err: failure,
+      event: "contact:update_failed",
+      personId: jane.id,
+    })
   })
 })

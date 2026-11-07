@@ -25,7 +25,7 @@ import {
 } from "@/lib/schemas/company"
 import { NOTES_MAX_LENGTH } from "@/lib/schemas/fields"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
-import { revalidatePersonLists } from "@/server/actions/_support/person-guards"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   COMPANY_CACHE_TAGS,
   createCompany,
@@ -43,7 +43,9 @@ import {
 } from "@/server/queries/companies"
 
 import { defineCrmEntity, type CrmWriteContext } from "../entity-definition"
-import { guardTool, toolError, toolJson } from "../results"
+import { guardTool, toolError, toolJson, type WriteTexts } from "../results"
+import { pageQueryShape } from "../query-page"
+import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("company").describe('Type of CRM record: always "company" here.')
 
@@ -137,30 +139,6 @@ const updateFieldsSchema = z
   .partial()
   .describe("Fields to change. A field left out stays unchanged, null clears an optional field.")
 
-const detailsSectionSchema = z
-  .strictObject({
-    heading: z
-      .string()
-      .trim()
-      .min(1)
-      .describe(
-        'Title of the existing section to fill, without the "#" (e.g. "Chiffres clés"). Case, accents and the leading emoji are ignored.',
-      ),
-    content: z
-      .string()
-      // replaceDetailsSection insère le contenu tel quel : un titre dedans scinderait la section
-      .refine((content) => !/^# /m.test(content), {
-        error:
-          'content must be the section body only, without its heading: remove the line starting with "# ". The heading is given by detailsSection.heading.',
-      })
-      .describe(
-        "New body of the section in markdown, without its heading line. Replaces the previous body.",
-      ),
-  })
-  .describe(
-    "Replace the body of one section of the Details, the other sections stay untouched. Do not combine with fields.details.",
-  )
-
 const companyFilterSchema = z
   .strictObject({
     relationStatus: z.enum(RelationStatus).optional().describe("Only this relationship status."),
@@ -183,21 +161,10 @@ const companyFilterSchema = z
   })
   .describe("Filters, combined with AND. Each list matches any of its values.")
 
-const COMPANY_SORTS = ["name", "createdAt", "updatedAt"] as const
-
 const querySchema = z.strictObject({
   entity: entityField,
   filters: companyFilterSchema.optional(),
-  sort: z.enum(COMPANY_SORTS).default("name").describe("Sort key. Defaults to name."),
-  order: z.enum(["asc", "desc"]).default("asc").describe("Sort direction. Defaults to asc."),
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
-    .describe("Page size, 1 to 100. Defaults to 20."),
-  offset: z.number().int().min(0).default(0).describe("Number of rows to skip. Defaults to 0."),
+  ...pageQueryShape,
 })
 
 const createSchema = z.strictObject({
@@ -205,36 +172,11 @@ const createSchema = z.strictObject({
   data: createDataSchema,
 })
 
-const updateSchema = z
-  .strictObject({
-    entity: entityField,
-    id: companyIdSchema.describe("Id of the company to update. Get it from crm_search first."),
-    fields: updateFieldsSchema.optional(),
-    detailsSection: detailsSectionSchema.optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.fields === undefined && value.detailsSection === undefined) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Provide at least one of fields or detailsSection.",
-      })
-    }
-    if (value.fields !== undefined && Object.keys(value.fields).length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["fields"],
-        message: "fields is empty: name at least one field to change, or omit fields.",
-      })
-    }
-    if (value.fields !== undefined && "details" in value.fields && value.detailsSection) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["fields", "details"],
-        message:
-          "fields.details and detailsSection both write the Details: send the whole text in fields.details, or one section in detailsSection, not both.",
-      })
-    }
-  })
+const updateSchema = updateSchemaOf(
+  entityField,
+  companyIdSchema.describe("Id of the company to update. Get it from crm_search first."),
+  updateFieldsSchema,
+)
 
 type UpdateInput = z.output<typeof updateSchema>
 
@@ -315,19 +257,14 @@ export function refreshCompanyCaches(): void {
   revalidatePersonLists()
 }
 
-interface CompanyWrite {
-  events: { success: string; failure: string }
-  failureMessage: string
-}
-
 // Un create n'a pas d'id à relire : le slug dit si l'entreprise existe déjà avant de réessayer.
-const CREATE_WRITE: CompanyWrite = {
+const CREATE_WRITE: WriteTexts = {
   events: { success: "company:created", failure: "company:create_failed" },
   failureMessage:
     "The company could not be saved because of an internal error. Call crm_search with its slug to check whether it was created before retrying.",
 }
 
-const UPDATE_WRITE: CompanyWrite = {
+const UPDATE_WRITE: WriteTexts = {
   events: { success: "company:updated", failure: "company:update_failed" },
   failureMessage:
     "The company could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
@@ -336,7 +273,7 @@ const UPDATE_WRITE: CompanyWrite = {
 function writeCompany(
   run: () => Promise<DomainResult<CompanySummary, CompanyWriteError>>,
   ctx: CrmWriteContext,
-  { events, failureMessage }: CompanyWrite,
+  { events, failureMessage }: WriteTexts,
   slug: string | undefined,
   logContext: object,
 ): Promise<CallToolResult> {

@@ -332,6 +332,7 @@ enum ProcessingKind {
   EMBEDDED_SERVICE
   EMAIL_PROVIDER
   ANALYTICS
+  AI_ASSISTANT
 
   @@schema("public")
 }
@@ -363,6 +364,7 @@ enum DataCategory {
   USAGE_DATA
   TECHNICAL_LOGS
   COOKIE_DATA
+  PROFESSIONAL_INFO
 
   @@schema("public")
 }

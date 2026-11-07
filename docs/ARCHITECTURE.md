@@ -185,7 +185,7 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 | **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin). Les outils MCP des agents sont une seconde entrée vers la même logique de domaine (`src/server/crm/`), l'action n'y est qu'un adaptateur (`FormData`, état du formulaire, invalidation) |
 | **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin garde une suite continue qui commence à 1, réécrite en entier dans une transaction à chaque mutation. Calcul pur dans `src/lib/reorder.ts` |
 | **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison) |
-| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) revalide les listes qui l'affichent |
+| **`revalidatePersonLists`** | Toute écriture sur une personne (`src/server/crm/person-guards.ts`) revalide les listes qui l'affichent |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -536,7 +536,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
-- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. Traitement des demandes : [PRODUCTION.md § Demandes RGPD](PRODUCTION.md#demandes-rgpd).
+- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/crm/person-guards.ts` et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. Traitement des demandes : [PRODUCTION.md § Demandes RGPD](PRODUCTION.md#demandes-rgpd).
 
 ### Conformité Cookies / RGPD
 

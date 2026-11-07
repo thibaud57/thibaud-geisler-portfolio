@@ -12,13 +12,13 @@ import {
   type ProspectingActionInput,
 } from "@/lib/schemas/prospecting-action"
 import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
-
 import {
   assertProspectionAllowed,
-  conflictErrors,
   revalidatePersonLists,
   PersonConflictError,
-} from "./_support/person-guards"
+} from "@/server/crm/person-guards"
+
+import { conflictErrors, personConflictMessage } from "./_support/person-form"
 import {
   deleteEntity,
   formStateHandlers,
@@ -56,9 +56,7 @@ async function requireProspectableLead(
   actionId?: ProspectingActionId,
 ): Promise<void> {
   const lead = await tx.lead.findUnique({ where: { personId }, select: { personId: true } })
-  if (!lead) {
-    throw new PersonConflictError("personId", "not_found", "Cette personne n'a pas de fiche lead")
-  }
+  if (!lead) throw new PersonConflictError({ reason: "no_lead_role", field: "personId" })
   await assertProspectionAllowed(tx, { personId, actionId })
 }
 
@@ -67,7 +65,7 @@ function mapActionError(
   values: ProspectingActionFormState["values"],
 ): ProspectingActionFormState | null {
   if (err instanceof PersonConflictError) {
-    return { ok: false, errors: conflictErrors(err), message: null, values }
+    return { ok: false, errors: conflictErrors(err.conflict), message: null, values }
   }
   if (!isPrismaError(err, "P2003")) return null
   return missingRelationState("personId", MISSING_PERSON, values)
@@ -196,7 +194,11 @@ export async function changeProspectingActionStatus(
     } catch (err) {
       if (err instanceof PersonConflictError) {
         log.warn({ event: "prospecting_action:status_change_refused", id, reason: "opted_out" })
-        return { ok: false, errors: { status: [err.message] }, message: null }
+        return {
+          ok: false,
+          errors: { status: [personConflictMessage(err.conflict)] },
+          message: null,
+        }
       }
       if (isPrismaError(err, "P2025") && !(await prospectingActionExists(id))) {
         // L'écran montrait une action supprimée ailleurs : la revalidation le réaligne sur la base, sans quoi chaque glissement échouerait.
@@ -258,7 +260,11 @@ export async function rescheduleProspectingAction(
       if (err instanceof PersonConflictError) {
         revalidatePersonLists()
         log.warn({ event: "prospecting_action:reschedule_refused", id })
-        return { ok: false, errors: { occurredAt: [err.message] }, message: null }
+        return {
+          ok: false,
+          errors: { occurredAt: [personConflictMessage(err.conflict)] },
+          message: null,
+        }
       }
       log.error({ err, event: "prospecting_action:reschedule_failed", id })
       return { ok: false, errors: {}, message: "unknown_error" }

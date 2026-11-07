@@ -12,12 +12,14 @@ import {
 } from "@/lib/schemas/none-value"
 import { ZONES } from "@/lib/crm/zones"
 
+export const PERSON_NAME_MAX_LENGTH = 120
+
 // Obligatoire à la saisie : il n'est nul que sur une personne opposée, après `optOutPerson`.
 const personNameField = z
   .string()
   .trim()
   .min(1, "Le nom est requis")
-  .max(120, "Le nom ne peut pas dépasser 120 caractères")
+  .max(PERSON_NAME_MAX_LENGTH, "Le nom ne peut pas dépasser 120 caractères")
 
 const emailField = z
   .string()

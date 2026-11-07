@@ -1,4 +1,7 @@
+import { onTestFinished, vi } from "vitest"
+
 import type { Prisma } from "@/generated/prisma/client"
+import { personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
@@ -45,6 +48,55 @@ export function seedCompanyWithLegalEntity(
         ...legalEntity,
       },
     },
+  })
+}
+
+export function seedPerson(
+  data: Partial<Prisma.PersonUncheckedCreateInput> = {},
+  roles: { lead: boolean; contact: boolean } = { lead: true, contact: false },
+) {
+  return prisma.person.create({
+    data: {
+      name: "John Roe",
+      ...data,
+      ...(roles.lead ? { lead: { create: { origin: "OUTBOUND" } } } : {}),
+      ...(roles.contact ? { contact: { create: {} } } : {}),
+    },
+  })
+}
+
+type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
+
+export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
+
+export const loadPerson = (id: string) =>
+  prisma.person.findUniqueOrThrow({ where: { id }, include: { lead: true, contact: true } })
+
+// Les gardes qui précèdent l'écriture rendent une violation d'unicité ou de clé étrangère inatteignable sans course : ce helper la rejoue au point d'écriture, dans une vraie transaction. Le spy est rendu à la fin du test même s'il n'a pas servi.
+export function rejectNextTransactionWrite(model: "person" | "contact", error: unknown): void {
+  const transaction = prisma.$transaction.bind(prisma)
+  const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce((work: TransactionWork) =>
+    transaction((tx) =>
+      work(
+        new Proxy(tx, {
+          get(target, property) {
+            const value: unknown = Reflect.get(target, property)
+            if (property !== model) return value
+            return new Proxy(value as object, {
+              get: (delegate, name): unknown =>
+                name === "create"
+                  ? // Erreur Prisma simulée : un objet à la forme de la réelle, pas une Error.
+                    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                    () => Promise.reject(error)
+                  : Reflect.get(delegate, name),
+            })
+          },
+        }),
+      ),
+    ),
+  )
+  onTestFinished(() => {
+    spy.mockRestore()
   })
 }
 

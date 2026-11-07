@@ -20,7 +20,7 @@ import {
   saveEntity,
 } from "./_support/shared"
 import type { OpportunityDeleteState, OpportunityFormState } from "./opportunities.types"
-import { revalidatePersonLists } from "./_support/person-guards"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
 
 // Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent), les entretiens leur titre, tarif, zone et contrat. Supprimer une opportunité supprime ses entretiens : leurs vues se rafraîchissent aussi (entretiens et entreprises via `revalidatePersonLists`).
 function invalidateOpportunityCaches(): void {

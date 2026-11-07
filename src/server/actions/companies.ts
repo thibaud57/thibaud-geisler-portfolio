@@ -18,15 +18,21 @@ import {
 } from "@/server/crm/companies"
 import { fail, type DomainResult } from "@/server/crm/result"
 
-import { revalidatePersonLists } from "./_support/person-guards"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   deleteEntity,
+  domainFailure,
   formStateHandlers,
   rowExists,
   saveEntity,
   type ActionEvents,
+  type DomainFailure,
 } from "./_support/shared"
-import { type CompanyDeleteState, type CompanyFormState } from "./companies.types"
+import {
+  type CompanyDeleteState,
+  type CompanyFormMessage,
+  type CompanyFormState,
+} from "./companies.types"
 
 // Seule source des champs lus depuis le FormData : désynchronisé du schéma de validation, un échec réafficherait les mauvaises valeurs.
 function collectValues(formData: FormData): CompanyFormState["values"] {
@@ -60,40 +66,33 @@ function collectValues(formData: FormData): CompanyFormState["values"] {
   }
 }
 
-function domainError(
-  values: CompanyFormState["values"],
-  errors: Extract<CompanyFormState, { ok: false }>["errors"],
-  message: Extract<CompanyFormState, { ok: false }>["message"],
-  invalidate = false,
-): { state: CompanyFormState; invalidate: boolean } {
-  return { state: { ok: false, errors, message, values }, invalidate }
-}
+const failure = domainFailure<CompanyInput, CompanyFormMessage>
 
 function mapDomainError(
   error: CompanyFieldsError,
   values: CompanyFormState["values"],
-): { state: CompanyFormState; invalidate: boolean } {
+): DomainFailure<CompanyFormState> {
   switch (error.code) {
     case "slug_taken":
-      return domainError(
+      return failure(
         values,
         { slug: ["Ce slug est déjà utilisé par une autre entreprise"] },
         "slug_taken",
       )
     case "siret_taken":
-      return domainError(
+      return failure(
         values,
         { legalEntitySiret: ["Ce SIRET est déjà porté par une autre entité légale"] },
         "siret_taken",
       )
     case "legal_entity_slug_taken":
-      return domainError(
+      return failure(
         values,
         { legalEntityName: ["Une entité légale porte déjà l'identifiant de cette entreprise"] },
         null,
       )
     case "not_found":
-      return domainError(values, {}, "company_not_found", true)
+      return failure(values, {}, "company_not_found", true)
     default:
       return assertNever(error)
   }
