@@ -2,7 +2,7 @@
 feature: "Feature 3 : Outils de l'app pour les agents"
 subproject: "outils-crm-personnes"
 goal: "Ajouter les leads et les contacts aux outils génériques du CRM sous les mêmes gardes que l'admin (doublons, opposition RGPD) et déclarer Anthropic comme destinataire de ces données."
-status: "draft"
+status: "implemented"
 complexity: "L"
 tdd_scope: "full"
 execution: "subagent-driven"
