@@ -3,8 +3,8 @@ import { z } from "zod"
 const SORT_KEYS = ["name", "createdAt", "updatedAt"] as const
 const SORT_ORDERS = ["asc", "desc"] as const
 
-type SortKey = (typeof SORT_KEYS)[number]
-type SortOrder = (typeof SORT_ORDERS)[number]
+export type SortKey = (typeof SORT_KEYS)[number]
+export type SortOrder = (typeof SORT_ORDERS)[number]
 
 export const pageQueryShape = {
   sort: z.enum(SORT_KEYS).default("name").describe("Sort key. Defaults to name."),
@@ -19,18 +19,29 @@ export const pageQueryShape = {
   offset: z.number().int().min(0).default(0).describe("Number of rows to skip. Defaults to 0."),
 } as const
 
-type PersonOrderBy =
-  | { person: { name: SortOrder } }
-  | { createdAt: SortOrder }
-  | { updatedAt: SortOrder }
-  | { personId: "asc" }
-
-// Le nom vit sur la personne. L'id départage les ex æquo : sans lui, deux pages pourraient se recouper.
-export function personOrderBy(sort: SortKey, order: SortOrder): PersonOrderBy[] {
+// Le tri « name » dépend de l'entité : l'appelant donne son ordre. L'id départage les ex æquo : sans lui, deux pages pourraient se recouper.
+export function pageOrderBy<TName extends object, const TTiebreak extends object>(
+  sort: SortKey,
+  order: SortOrder,
+  byName: (order: SortOrder) => readonly TName[],
+  tiebreak: TTiebreak,
+): (TName | TTiebreak | { createdAt: SortOrder } | { updatedAt: SortOrder })[] {
   const bySort = {
-    name: { person: { name: order } },
-    createdAt: { createdAt: order },
-    updatedAt: { updatedAt: order },
-  } satisfies Record<SortKey, PersonOrderBy>
-  return [bySort[sort], { personId: "asc" }]
+    name: byName(order),
+    createdAt: [{ createdAt: order }],
+    updatedAt: [{ updatedAt: order }],
+  } satisfies Record<SortKey, readonly object[]>
+  return [...bySort[sort], tiebreak]
 }
+
+export const idOrderBy = <TName extends object>(
+  sort: SortKey,
+  order: SortOrder,
+  byName: (order: SortOrder) => readonly TName[],
+) => pageOrderBy(sort, order, byName, { id: "asc" })
+
+// Le nom vit sur la personne.
+export const personOrderBy = (sort: SortKey, order: SortOrder) =>
+  pageOrderBy(sort, order, (direction) => [{ person: { name: direction } }], {
+    personId: "asc",
+  })

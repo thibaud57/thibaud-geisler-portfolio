@@ -1,12 +1,15 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { assertNever } from "@/lib/assert-never"
-import { replaceDetailsSection } from "@/lib/crm/details-sections"
 import type { PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
-import { isPrismaError } from "@/lib/server-utils"
+import { isRowGone } from "@/lib/server-utils"
 
+import {
+  resolveDetailsSection,
+  type DetailsSection,
+  type DetailsSectionError,
+} from "./details-section"
 import {
   assertNewIdentity,
   assertNotOptedOut,
@@ -24,13 +27,7 @@ export type PersonFieldsError =
   | { code: "company_not_found" }
   | { code: "not_found" }
 
-export type PersonWriteError =
-  PersonFieldsError | { code: "no_details" } | { code: "section_not_found"; headings: string[] }
-
-export interface DetailsSection {
-  heading: string
-  content: string
-}
+export type PersonWriteError = PersonFieldsError | DetailsSectionError
 
 // Les gardes lèvent dans la transaction pour l'annuler : l'erreur redevient une valeur à sa sortie.
 export function guardFailure(
@@ -49,16 +46,7 @@ export async function resolvePersonDetails(
   const person = await tx.person.findUnique({ where: { id: personId }, select: { details: true } })
   if (!person) return fail({ code: "not_found" })
 
-  const replaced = replaceDetailsSection(person.details, section.heading, section.content)
-  if (replaced.ok) return ok(replaced.details)
-  switch (replaced.code) {
-    case "no_details":
-      return fail({ code: "no_details" })
-    case "section_not_found":
-      return fail({ code: "section_not_found", headings: replaced.headings })
-    default:
-      return assertNever(replaced)
-  }
+  return resolveDetailsSection(person.details, section)
 }
 
 // Sous-ensemble de la personne qu'un rôle écrit : l'identité sert à la garde de doublon, le reste part tel quel.
@@ -100,8 +88,7 @@ export async function writePersonRecord<E extends { code: string } = never>(
   } catch (err) {
     const failure = failureOf(err)
     if (failure) return fail(failure)
-    // Un P2025 vient aussi d'une instruction voisine : seule l'absence réelle du rôle vaut « introuvable ».
-    if (roleExists && isPrismaError(err, "P2025") && !(await roleExists())) {
+    if (roleExists && (await isRowGone(err, roleExists))) {
       return fail({ code: "not_found" })
     }
     throw err

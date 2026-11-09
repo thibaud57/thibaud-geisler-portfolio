@@ -1,7 +1,9 @@
 import "server-only"
 
+import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { CounterSources } from "@/lib/crm/review-counters"
+import type { PageQuery } from "@/server/queries/persons"
 
 // Sans 'use cache', comme les autres lectures admin : l'administration relit la base juste après ses mutations.
 export async function findAllWeeklyReviewsForAdmin() {
@@ -9,6 +11,40 @@ export async function findAllWeeklyReviewsForAdmin() {
 }
 
 export type AdminWeeklyReview = Awaited<ReturnType<typeof findAllWeeklyReviewsForAdmin>>[number]
+
+export function findWeeklyReviewById(id: string) {
+  return prisma.weeklyReview.findUnique({ where: { id } })
+}
+
+// Lecture légère pour la recherche des outils : le vendredi donne le libellé de semaine et la date.
+export function findWeeklyReviewSearchRows() {
+  return prisma.weeklyReview.findMany({ select: { id: true, closingFriday: true } })
+}
+
+const weeklyReviewRowSelect = {
+  id: true,
+  closingFriday: true,
+  connectionsSent: true,
+  connectionsAccepted: true,
+  messagesSent: true,
+  conversationsEngaged: true,
+  meetingsBooked: true,
+  interviewsHeld: true,
+  activeLeads: true,
+  status: true,
+  motivation: true,
+  updatedAt: true,
+} as const
+
+export async function findWeeklyReviewsPage(
+  page: PageQuery<Prisma.WeeklyReviewWhereInput, Prisma.WeeklyReviewOrderByWithRelationInput>,
+) {
+  const [rows, total] = await prisma.$transaction([
+    prisma.weeklyReview.findMany({ ...page, select: weeklyReviewRowSelect }),
+    prisma.weeklyReview.count({ where: page.where }),
+  ])
+  return { rows, total }
+}
 
 export async function findWeekCounterSources(bounds: {
   start: Date

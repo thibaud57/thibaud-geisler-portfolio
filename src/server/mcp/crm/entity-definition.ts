@@ -15,6 +15,10 @@ export interface SearchHit<E extends string = string> {
   optedOut?: true
 }
 
+// Les parties absentes ou vides disparaissent plutôt que de laisser un séparateur seul.
+export const joinHint = (...parts: readonly (string | null | undefined)[]): string =>
+  parts.filter((part) => part !== null && part !== undefined && part !== "").join(" · ")
+
 export interface CrmWriteContext {
   log: McpLogger
 }

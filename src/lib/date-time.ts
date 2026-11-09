@@ -94,6 +94,31 @@ export function formatMonthYear(date: Date): string {
   return MONTH_YEAR.format(date)
 }
 
+// Minuit UTC : la colonne `@db.Date` garde ce jour-là, quel que soit le fuseau du navigateur ou du runtime.
+export function isoDayToDate(isoDay: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDay)) {
+    throw new Error(`Expected a day as YYYY-MM-DD, got "${isoDay}"`)
+  }
+  return new Date(`${isoDay}T00:00:00Z`)
+}
+
+// Inverse exact de `isoDayToDate` : le jour d'une colonne `@db.Date` se lit en UTC, jamais à Paris.
+export function dateColumnIsoDay(dateColumn: Date): string {
+  return dateColumn.toISOString().slice(0, 10)
+}
+
+// Jour `YYYY-MM-DD` d'un instant (colonne Timestamptz), lu à Paris : un minuit de Paris (`zonedDayStart`) y retrouve le jour saisi.
+const ISO_DAY = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: TIME_ZONE,
+})
+
+export function zonedIsoDay(instant: Date): string {
+  return ISO_DAY.format(instant)
+}
+
 // Minuit de Paris, changement d'heure compris : additionner des multiples de DAY_MS décalerait d'une heure.
 export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
   return new Date(

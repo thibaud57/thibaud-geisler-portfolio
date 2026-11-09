@@ -8,9 +8,9 @@ import { auth } from "@/lib/auth"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
 import { apiKeySchema, expiryInSeconds, type ApiKeyInput } from "@/lib/schemas/api-key"
-import { stringField, stringValues } from "@/lib/server-utils"
+import { rowExists, stringField, stringValues } from "@/lib/server-utils"
 
-import { deleteEntity, formStateHandlers, rowExists, saveEntity } from "./_support/shared"
+import { deleteEntity, formStateHandlers, saveEntity } from "./_support/shared"
 import type { ApiKeyDeleteState, ApiKeyFormState } from "./api-keys.types"
 
 function invalidateApiKeyCaches(): void {

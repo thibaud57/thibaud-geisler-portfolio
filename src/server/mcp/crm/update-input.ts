@@ -29,15 +29,22 @@ interface UpdateIssue {
   path?: string[]
 }
 
+const EMPTY_PATCH_MESSAGE = {
+  withDetails: "Provide at least one of fields or detailsSection.",
+  fieldsOnly: "Provide fields.",
+} as const
+
+type UpdateShape = keyof typeof EMPTY_PATCH_MESSAGE
+
 // Règles communes des `crm_update` : un patch vide ou une double écriture des Détails est refusé, jamais ignoré.
-export function updateInputIssues(value: {
-  fields?: object
-  detailsSection?: unknown
-}): UpdateIssue[] {
+export function updateInputIssues(
+  value: { fields?: object; detailsSection?: unknown },
+  shape: UpdateShape,
+): UpdateIssue[] {
   const { fields, detailsSection } = value
   return [
     ...(fields === undefined && detailsSection === undefined
-      ? [{ message: "Provide at least one of fields or detailsSection." }]
+      ? [{ message: EMPTY_PATCH_MESSAGE[shape] }]
       : []),
     ...(fields !== undefined && Object.keys(fields).length === 0
       ? [
@@ -73,6 +80,21 @@ export function updateSchemaOf<
       detailsSection: detailsSectionSchema.optional(),
     })
     .superRefine((value, ctx) => {
-      for (const issue of updateInputIssues(value)) ctx.addIssue({ code: "custom", ...issue })
+      for (const issue of updateInputIssues(value, "withDetails")) {
+        ctx.addIssue({ code: "custom", ...issue })
+      }
     })
+}
+
+// Une entité sans Détails n'a pas de `detailsSection` : le schéma strict le refuse au lieu de l'ignorer.
+export function updateSchemaWithoutDetailsOf<
+  TEntity extends z.ZodLiteral<string>,
+  TId extends z.ZodType,
+  TFields extends z.ZodType<object>,
+>(entity: TEntity, id: TId, fields: TFields) {
+  return z.strictObject({ entity, id, fields: fields.optional() }).superRefine((value, ctx) => {
+    for (const issue of updateInputIssues(value, "fieldsOnly")) {
+      ctx.addIssue({ code: "custom", ...issue })
+    }
+  })
 }

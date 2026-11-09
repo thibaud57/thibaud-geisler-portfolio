@@ -5,26 +5,27 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
-vi.mock("@/lib/prisma", () => {
-  const client = {
-    interview: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
-    opportunity: { findUnique: vi.fn() },
-    person: { count: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
-  }
-  // Le mock rejoue la transaction avec le même client : pas de vraie base derrière `tx`.
-  return {
-    prisma: {
-      ...client,
-      $transaction: vi.fn((callback: (tx: typeof client) => unknown) => callback(client)),
-    },
-  }
-})
+vi.mock("@/lib/prisma", () => ({
+  prisma: { interview: { delete: vi.fn(), count: vi.fn() } },
+}))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/interviews", () => ({
+  createInterview: vi.fn(),
+  updateInterview: vi.fn(),
+}))
+
+import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
+import { interviewIdSchema } from "@/lib/ids"
 import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
+import {
+  createInterview as createInterviewRecord,
+  updateInterview as updateInterviewRecord,
+} from "@/server/crm/interviews"
+import { fail, ok } from "@/server/crm/result"
 
 import { createInterview, deleteInterview, updateInterview } from "./interviews"
 import { initialInterviewFormState } from "./interviews.types"
@@ -58,13 +59,11 @@ function buildFormData(
   return data
 }
 
+const WRITTEN = { id: interviewIdSchema.parse("i1") }
+
 beforeEach(() => {
-  vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: "c-esn" } as never)
-  vi.mocked(prisma.person.count).mockResolvedValue(0)
-  vi.mocked(prisma.person.findFirst).mockResolvedValue(null)
-  vi.mocked(prisma.person.create).mockResolvedValue({ id: "new-1" } as never)
-  vi.mocked(prisma.interview.create).mockResolvedValue({ id: "i1" } as never)
-  vi.mocked(prisma.interview.update).mockResolvedValue({ id: "i1" } as never)
+  vi.mocked(createInterviewRecord).mockResolvedValue(ok(WRITTEN))
+  vi.mocked(updateInterviewRecord).mockResolvedValue(ok(WRITTEN))
 })
 
 it.each([
@@ -77,8 +76,8 @@ it.each([
   const result = call()
 
   await expect(result).rejects.toThrow()
-  expect(prisma.$transaction).not.toHaveBeenCalled()
-  expect(prisma.opportunity.findUnique).not.toHaveBeenCalled()
+  expect(createInterviewRecord).not.toHaveBeenCalled()
+  expect(updateInterviewRecord).not.toHaveBeenCalled()
   expect(prisma.interview.delete).not.toHaveBeenCalled()
 })
 
@@ -91,7 +90,7 @@ describe("createInterview", () => {
 
     expect(state.errors.opportunityId).toEqual(["Choisissez une opportunité"])
     expect(state.errors.scheduledAt).toBeDefined()
-    expect(prisma.interview.create).not.toHaveBeenCalled()
+    expect(createInterviewRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a date without its time zone offset", async () => {
@@ -103,72 +102,37 @@ describe("createInterview", () => {
     expect(state.errors.scheduledAt).toBeDefined()
   })
 
-  it("refuses an interview led by the intermediary of an opportunity without one", async () => {
-    vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: null } as never)
-
-    const state = await createInterview(initialInterviewFormState, buildFormData({ side: "ESN" }))
-
-    expect(state.message).toBe("opportunity_without_intermediary")
-    expect(state.errors.side).toEqual([
-      "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
-    ])
-    expect(prisma.interview.create).not.toHaveBeenCalled()
-  })
-
-  it("refuses an unknown or opted-out correspondent", async () => {
-    vi.mocked(prisma.person.count).mockResolvedValue(1)
-
-    const state = await createInterview(initialInterviewFormState, buildFormData({}, ["p1", "p2"]))
-
-    expect(state.message).toBe("correspondent_not_found")
-    expect(prisma.person.count).toHaveBeenCalledWith(
-      objectMatch({ where: objectMatch({ optedOutAt: null }) }),
-    )
-    expect(prisma.interview.create).not.toHaveBeenCalled()
-  })
-
   it.each(["11", "-1", "1.5"])("rejects a score outside 0 to 10 (%s)", async (score) => {
     const state = await createInterview(initialInterviewFormState, buildFormData({ score }))
 
     expect(state.errors.score).toBeDefined()
-    expect(prisma.interview.create).not.toHaveBeenCalled()
+    expect(createInterviewRecord).not.toHaveBeenCalled()
   })
 
   it("accepts a score of 10", async () => {
     await createInterview(initialInterviewFormState, buildFormData({ score: "10" }))
 
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ score: 10 }) }),
-    )
+    expect(createInterviewRecord).toHaveBeenCalledWith(objectMatch({ score: 10 }))
   })
 
   it.each([
     ["the format chosen for the interview", "VISIO", "VISIO"],
     ["no format when none is chosen", NONE_VALUE, null],
-  ])("saves %s", async (_label, format, expected) => {
+  ])("hands %s to the domain", async (_label, format, expected) => {
     await createInterview(initialInterviewFormState, buildFormData({ format }))
 
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ format: expected }) }),
-    )
+    expect(createInterviewRecord).toHaveBeenCalledWith(objectMatch({ format: expected }))
   })
 
-  it("connects the correspondents on create", async () => {
-    vi.mocked(prisma.person.count).mockResolvedValue(2)
-
+  it("hands the date and the distinct correspondent ids to the domain", async () => {
     await createInterview(initialInterviewFormState, buildFormData({}, ["p1", "p2", "p1"]))
 
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          scheduledAt: MEETING,
-          correspondents: { connect: [{ id: "p1" }, { id: "p2" }] },
-        }),
-      }),
+    expect(createInterviewRecord).toHaveBeenCalledWith(
+      objectMatch({ scheduledAt: MEETING, correspondentIds: ["p1", "p2"] }),
     )
   })
 
-  it("creates a Contact-role person of the chosen type for a new correspondent", async () => {
+  it("hands a new correspondent to the domain with its contact type", async () => {
     await createInterview(
       initialInterviewFormState,
       buildFormData({
@@ -183,16 +147,16 @@ describe("createInterview", () => {
       }),
     )
 
-    expect(prisma.person.create).toHaveBeenCalledWith(
+    expect(createInterviewRecord).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({
-          name: "Sami Bernard",
-          contact: { create: { types: ["COMMERCIAL"], status: "ACTIF" } },
-        }),
+        newCorrespondents: [
+          objectMatch({
+            name: "Sami Bernard",
+            contactType: "COMMERCIAL",
+            email: "sami@example.com",
+          }),
+        ],
       }),
-    )
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ correspondents: { connect: [{ id: "new-1" }] } }) }),
     )
   })
 
@@ -205,33 +169,7 @@ describe("createInterview", () => {
     )
 
     expect(state.errors.newCorrespondents).toBeDefined()
-    expect(prisma.interview.create).not.toHaveBeenCalled()
-  })
-
-  it("refuses a new correspondent whose email is already known", async () => {
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Sami Bernard",
-      email: "sami@example.com",
-      optedOutAt: null,
-      lead: null,
-      contact: { personId: "existing" },
-    } as never)
-
-    const state = await createInterview(
-      initialInterviewFormState,
-      buildFormData({
-        newCorrespondents: JSON.stringify([
-          { name: "Sami Bernard", contactType: "COMMERCIAL", email: "sami@example.com" },
-        ]),
-      }),
-    )
-
-    expect(state.message).toBe("correspondent_exists")
-    expect(prisma.person.findFirst).toHaveBeenCalledWith(
-      objectMatch({ where: objectMatch({ OR: [{ email: "sami@example.com" }] }) }),
-    )
-    expect(prisma.person.create).not.toHaveBeenCalled()
-    expect(prisma.interview.create).not.toHaveBeenCalled()
+    expect(createInterviewRecord).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -241,46 +179,124 @@ describe("createInterview", () => {
   ])("%s", async (_label, status, outcome, expected) => {
     await createInterview(initialInterviewFormState, buildFormData({ status, outcome }))
 
-    expect(prisma.interview.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ outcome: expected }) }),
+    expect(createInterviewRecord).toHaveBeenCalledWith(objectMatch({ outcome: expected }))
+  })
+
+  it("keeps the lists as they are after a refusal", async () => {
+    vi.mocked(createInterviewRecord).mockResolvedValueOnce(
+      fail({ code: "opportunity_without_intermediary" }),
     )
+
+    await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the lists after a success", async () => {
+    await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("answers an unexpected failure with an unknown error", async () => {
+    vi.mocked(createInterviewRecord).mockRejectedValueOnce(new Error("database down"))
+
+    const state = await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+    expect(state.errors).toEqual({})
+  })
+})
+
+describe("domain errors", () => {
+  it.each([
+    [
+      { code: "opportunity_not_found" },
+      "opportunity_not_found",
+      "opportunityId",
+      "Cette opportunité n'existe plus, recharge la page",
+    ],
+    [
+      { code: "opportunity_without_intermediary" },
+      "opportunity_without_intermediary",
+      "side",
+      "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
+    ],
+    [
+      { code: "correspondent_not_found" },
+      "correspondent_not_found",
+      "correspondentIds",
+      "Un des correspondants n'existe plus, recharge la page",
+    ],
+    [
+      {
+        code: "correspondent_exists",
+        conflict: {
+          reason: "exists",
+          field: "email",
+          personName: "Sami Bernard",
+          roles: { lead: false, contact: true },
+        },
+      },
+      "correspondent_exists",
+      "newCorrespondents",
+      "Ce contact existe déjà : Sami Bernard",
+    ],
+    [
+      {
+        code: "correspondent_exists",
+        conflict: {
+          reason: "exists",
+          field: "email",
+          personName: "Sami Bernard",
+          roles: { lead: true, contact: false },
+        },
+      },
+      "correspondent_exists",
+      "newCorrespondents",
+      "Cette personne est déjà un lead : Sami Bernard, choisissez-la parmi les correspondants existants",
+    ],
+    [
+      {
+        code: "correspondent_exists",
+        conflict: {
+          reason: "opted_out",
+          field: "email",
+          optedOutAt: new Date("2026-10-01T00:00:00Z"),
+        },
+      },
+      "correspondent_exists",
+      "newCorrespondents",
+      "Cette personne s'est opposée à la prospection le 01/10/2026",
+    ],
+  ] as const)("maps %j to its message and field", async (error, message, field, text) => {
+    vi.mocked(createInterviewRecord).mockResolvedValueOnce(fail(error))
+
+    const state = await createInterview(initialInterviewFormState, buildFormData())
+
+    expect(state.message).toBe(message)
+    expect(state.errors).toEqual({ [field]: [text] })
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 })
 
 describe("updateInterview", () => {
-  it("replaces the correspondents on update", async () => {
-    vi.mocked(prisma.person.count).mockResolvedValue(1)
+  it("hands the parsed id and fields to the domain", async () => {
+    const state = await updateInterview(
+      "i1",
+      initialInterviewFormState,
+      buildFormData({ status: "FAIT", outcome: "POSITIF" }, ["p3"]),
+    )
 
-    await updateInterview("i1", initialInterviewFormState, buildFormData({}, ["p3"]))
-
-    expect(prisma.interview.update).toHaveBeenCalledWith(
-      objectMatch({
-        where: { id: "i1" },
-        data: objectMatch({ correspondents: { set: [{ id: "p3" }] } }),
-      }),
+    expect(state.ok).toBe(true)
+    expect(updateInterviewRecord).toHaveBeenCalledWith(
+      "i1",
+      objectMatch({ status: "FAIT", outcome: "POSITIF", correspondentIds: ["p3"] }),
     )
   })
 
-  it("keeps an opted-out correspondent already attached to the interview", async () => {
-    vi.mocked(prisma.person.count).mockResolvedValue(1)
-
-    await updateInterview("i1", initialInterviewFormState, buildFormData({}, ["p3"]))
-
-    expect(prisma.person.count).toHaveBeenCalledWith(
-      objectMatch({
-        where: objectMatch({
-          OR: [{ optedOutAt: null }, { interviews: { some: { id: "i1" } } }],
-        }),
-      }),
-    )
-    expect(prisma.interview.update).toHaveBeenCalled()
-  })
-})
-
-describe("interview deleted since the screen loaded", () => {
-  it("answers an update with interview_not_found and keeps the typed values", async () => {
-    vi.mocked(prisma.interview.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.interview.count).mockResolvedValueOnce(0)
+  it("answers interview_not_found, keeps the typed values and refreshes the lists", async () => {
+    vi.mocked(updateInterviewRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await updateInterview(
       "i1",
@@ -291,25 +307,19 @@ describe("interview deleted since the screen loaded", () => {
     expect(state.ok).toBe(false)
     expect(state.message).toBe("interview_not_found")
     expect(state.values?.notes).toBe("À rappeler")
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("answers an update with unknown_error when the interview still exists", async () => {
-    vi.mocked(prisma.interview.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.interview.count).mockResolvedValueOnce(1)
+  it("answers an empty id like a deleted interview, without calling the domain", async () => {
+    const state = await updateInterview("", initialInterviewFormState, buildFormData())
 
-    const state = await updateInterview("i1", initialInterviewFormState, buildFormData())
-
-    expect(state.message).toBe("unknown_error")
+    expect(state.message).toBe("interview_not_found")
+    expect(updateInterviewRecord).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
+})
 
-  it("answers a creation with unknown_error when a correspondent to attach vanished", async () => {
-    vi.mocked(prisma.interview.create).mockRejectedValueOnce({ code: "P2025" })
-
-    const state = await createInterview(initialInterviewFormState, buildFormData())
-
-    expect(state.message).toBe("unknown_error")
-  })
-
+describe("interview deleted since the screen loaded", () => {
   it("answers a delete with success", async () => {
     vi.mocked(prisma.interview.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.interview.count).mockResolvedValueOnce(0)

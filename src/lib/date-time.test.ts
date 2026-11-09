@@ -2,11 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   calendarDaysBetween,
+  dateColumnIsoDay,
+  isoDayToDate,
   isSameZonedDay,
   isWithinCalendarDays,
   toInstant,
   zonedDayStart,
   zonedDayStartOf,
+  zonedIsoDay,
 } from "./date-time"
 
 afterEach(() => {
@@ -66,6 +69,61 @@ describe("zonedDayStartOf", () => {
     const start = zonedDayStartOf(new Date(instant), offsetDays)
 
     expect(start.toISOString()).toBe(expected)
+  })
+})
+
+describe("zonedIsoDay", () => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", "UTC")
+  })
+
+  it.each([
+    ["Paris midnight in winter", "2026-01-09T23:00:00.000Z", "2026-01-10"],
+    ["Paris midnight in summer", "2026-07-09T22:00:00.000Z", "2026-07-10"],
+    ["an evening instant", "2026-07-10T21:30:00.000Z", "2026-07-10"],
+  ])("reads the Paris day of %s", (_label, instant, expected) => {
+    const day = zonedIsoDay(new Date(instant))
+
+    expect(day).toBe(expected)
+  })
+
+  it("round-trips with zonedDayStart", () => {
+    const day = zonedIsoDay(zonedDayStart(new Date("2026-03-29")))
+
+    expect(day).toBe("2026-03-29")
+  })
+})
+
+describe("isoDayToDate", () => {
+  it("reads a day as midnight UTC", () => {
+    const date = isoDayToDate("2026-03-29")
+
+    expect(date.toISOString()).toBe("2026-03-29T00:00:00.000Z")
+  })
+
+  it.each(["", "2026-03", "2026-3-9", "2026-03-29T10:00:00Z", "abcd-ef-gh"])(
+    "throws on the malformed day %j",
+    (input) => {
+      expect(() => isoDayToDate(input)).toThrow(`Expected a day as YYYY-MM-DD, got "${input}"`)
+    },
+  )
+})
+
+describe("dateColumnIsoDay", () => {
+  beforeEach(() => {
+    vi.stubEnv("TZ", "America/Los_Angeles")
+  })
+
+  it("reads the UTC day of a date column at midnight UTC", () => {
+    const day = dateColumnIsoDay(new Date("2026-07-10T00:00:00.000Z"))
+
+    expect(day).toBe("2026-07-10")
+  })
+
+  it("round-trips with isoDayToDate", () => {
+    const day = dateColumnIsoDay(isoDayToDate("2026-03-29"))
+
+    expect(day).toBe("2026-03-29")
   })
 })
 

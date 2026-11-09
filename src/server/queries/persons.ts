@@ -38,6 +38,9 @@ export const personRefSelect = {
   contact: { select: { personId: true } },
 } as const
 
+// Le nom du lead suffit ; `optedOutAt` fait rendre une personne opposée par son seul identifiant.
+export const leadNameSelect = { select: { id: true, name: true, optedOutAt: true } } as const
+
 export interface PersonOption {
   id: string
   name: string

@@ -10,7 +10,7 @@ import {
   newContactSchema,
   type ContactFormFields,
 } from "@/lib/schemas/network-contact"
-import { createActionLogger, stringField, stringValues } from "@/lib/server-utils"
+import { createActionLogger, rowExists, stringField, stringValues } from "@/lib/server-utils"
 import {
   attachContact as attachContactRecord,
   createContact as createContactRecord,
@@ -31,7 +31,6 @@ import {
 import {
   deleteEntity,
   formStateHandlers,
-  rowExists,
   saveEntity,
   type ActionEvents,
   type DomainFailure,

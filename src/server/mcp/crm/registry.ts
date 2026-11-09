@@ -2,10 +2,24 @@ import "server-only"
 
 import { companyEntity } from "./entities/company"
 import { contactEntity } from "./entities/contact"
+import { interviewEntity } from "./entities/interview"
 import { leadEntity } from "./entities/lead"
+import { opportunityEntity } from "./entities/opportunity"
+import { prospectingActionEntity } from "./entities/prospecting-action"
+import { signalEntity } from "./entities/signal"
+import { weeklyReviewEntity } from "./entities/weekly-review"
 import type { RegisteredCrmEntity } from "./entity-definition"
 
-const REGISTERED_ENTITIES = [companyEntity, leadEntity, contactEntity] as const
+const REGISTERED_ENTITIES = [
+  companyEntity,
+  leadEntity,
+  contactEntity,
+  opportunityEntity,
+  interviewEntity,
+  prospectingActionEntity,
+  signalEntity,
+  weeklyReviewEntity,
+] as const
 
 export type CrmEntity = (typeof REGISTERED_ENTITIES)[number]["entity"]
 

@@ -11,7 +11,7 @@ import {
   ADMIN_PROSPECTING_ACTIONS_PATH,
 } from "@/lib/admin/routes"
 import { isOptOutOver } from "@/lib/crm/person-retention"
-import type { PersonId, ProspectingActionId } from "@/lib/ids"
+import type { PersonId } from "@/lib/ids"
 
 export type IdentityField = "email" | "linkedinUrl"
 
@@ -148,28 +148,6 @@ export async function assertOptOutOver(
 ): Promise<void> {
   const optedOutAt = await findOptedOutAt(tx, personId)
   if (optedOutAt && !isOptOutOver(optedOutAt, new Date())) throw new PersonLockedError()
-}
-
-// Une action ne se crée, ne se réécrit ni ne se replanifie pour une personne opposée, qu'elle la vise ou qu'elle y soit déjà rattachée : sans ce second cas, un déplacement vers un autre lead contournerait la règle.
-// FOR SHARE attend le commit d'une opposition en cours (son UPDATE verrouille la ligne) : sans lui, une action s'écrirait entre la lecture et l'écriture.
-export async function assertProspectionAllowed(
-  tx: Prisma.TransactionClient,
-  target:
-    | { personId: PersonId; actionId?: ProspectingActionId }
-    | { actionId: ProspectingActionId; personId?: undefined },
-): Promise<void> {
-  // Verrouille d'abord l'action : sans cela, un déplacement concurrent vers une autre personne passerait entre ce contrôle et l'écriture.
-  if (target.actionId) {
-    await tx.$queryRaw`SELECT id FROM "freelance"."ProspectingAction" WHERE id = ${target.actionId} FOR UPDATE`
-  }
-  const persons = await tx.$queryRaw<{ optedOutAt: Date | null }[]>`
-    SELECT "optedOutAt" FROM "freelance"."Person"
-    WHERE id = ${target.personId ?? null}
-       OR id = (SELECT "personId" FROM "freelance"."ProspectingAction" WHERE id = ${target.actionId ?? null})
-    FOR SHARE`
-  const optedOutAt = persons.find((person) => person.optedOutAt)?.optedOutAt
-  if (optedOutAt)
-    throw new PersonConflictError({ reason: "opted_out", field: "personId", optedOutAt })
 }
 
 // Une seule instruction conditionnelle : lire l'autre rôle puis supprimer laisserait une fenêtre où un rôle posé entre-temps ferait disparaître la personne avec lui.

@@ -1,7 +1,7 @@
 import { onTestFinished, vi } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { personIdSchema } from "@/lib/ids"
+import { opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
@@ -65,6 +65,75 @@ export function seedPerson(
   })
 }
 
+export const seedEsn = () =>
+  seedCompany({ slug: "esn", name: "Esn Corp", types: ["ESN_RECRUTEMENT"] })
+
+export async function seedOpportunity(data: Partial<Prisma.OpportunityUncheckedCreateInput> = {}) {
+  const row = await prisma.opportunity.create({ data: { title: "Plateforme data", ...data } })
+  return opportunityIdSchema.parse(row.id)
+}
+
+export const OPTED_OUT_AT = new Date("2026-10-01T00:00:00Z")
+
+// Un lead opposé n'a plus de nom : seuls ses identifiants permettent de le retrouver.
+export const seedOptedOutLead = (
+  identity: { email?: string; linkedinUrl?: string } = { email: "john.roe@example.com" },
+) => seedPerson({ name: null, optedOutAt: OPTED_OUT_AT, ...identity })
+
+// Semaine close le vendredi 2026-10-30 (du samedi 24 au vendredi 30, heure de Paris) : une action ou un entretien hors de ses bornes prouve qu'ils ne comptent pas.
+export const CLOSED_WEEK_FRIDAY = "2026-10-30"
+
+export const CLOSED_WEEK_COUNTS = {
+  connectionsSent: 2,
+  connectionsAccepted: 1,
+  messagesSent: 1,
+  conversationsEngaged: 1,
+  meetingsBooked: 1,
+  interviewsHeld: 1,
+  activeLeads: 1,
+} as const
+
+export async function seedClosedWeek(): Promise<void> {
+  const jane = await seedPerson({ name: "Jane Doe" })
+  await prisma.lead.update({ where: { personId: jane.id }, data: { status: "DISCUSSION" } })
+  const action = (
+    data: Omit<Prisma.ProspectingActionUncheckedCreateInput, "personId" | "title">,
+  ) => ({
+    personId: jane.id,
+    title: "Action de la semaine",
+    ...data,
+  })
+  await prisma.prospectingAction.createMany({
+    data: [
+      action({ channel: "CONNEXION_LINKEDIN", status: "FAIT", occurredAt: "2026-10-26T09:00:00Z" }),
+      action({
+        channel: "CONNEXION_LINKEDIN",
+        status: "REPONDU",
+        occurredAt: "2026-10-27T09:00:00Z",
+        respondedAt: "2026-10-28T09:00:00Z",
+      }),
+      action({
+        channel: "DM_LINKEDIN",
+        status: "CONVERTI",
+        occurredAt: "2026-10-27T10:00:00Z",
+        respondedAt: "2026-10-29T10:00:00Z",
+      }),
+      action({ channel: "CONNEXION_LINKEDIN", status: "FAIT", occurredAt: "2026-10-31T09:00:00Z" }),
+    ],
+  })
+  const opportunity = await prisma.opportunity.create({ data: { title: "Plateforme data" } })
+  const interview = (scheduledAt: string): Prisma.InterviewCreateManyInput => ({
+    opportunityId: opportunity.id,
+    side: "CLIENT_FINAL",
+    type: "TECHNIQUE",
+    status: "FAIT",
+    scheduledAt,
+  })
+  await prisma.interview.createMany({
+    data: [interview("2026-10-28T13:00:00Z"), interview("2026-10-23T13:00:00Z")],
+  })
+}
+
 type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
 
 export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
@@ -73,7 +142,11 @@ export const loadPerson = (id: string) =>
   prisma.person.findUniqueOrThrow({ where: { id }, include: { lead: true, contact: true } })
 
 // Les gardes qui précèdent l'écriture rendent une violation d'unicité ou de clé étrangère inatteignable sans course : ce helper la rejoue au point d'écriture, dans une vraie transaction. Le spy est rendu à la fin du test même s'il n'a pas servi.
-export function rejectNextTransactionWrite(model: "person" | "contact", error: unknown): void {
+export function rejectNextTransactionWrite(
+  model: "person" | "contact" | "interview" | "prospectingAction",
+  error: unknown,
+  method: "create" | "update" = "create",
+): void {
   const transaction = prisma.$transaction.bind(prisma)
   const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce((work: TransactionWork) =>
     transaction((tx) =>
@@ -84,7 +157,7 @@ export function rejectNextTransactionWrite(model: "person" | "contact", error: u
             if (property !== model) return value
             return new Proxy(value as object, {
               get: (delegate, name): unknown =>
-                name === "create"
+                name === method
                   ? // Erreur Prisma simulée : un objet à la forme de la réelle, pas une Error.
                     // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
                     () => Promise.reject(error)

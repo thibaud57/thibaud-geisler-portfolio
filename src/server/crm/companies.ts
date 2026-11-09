@@ -1,20 +1,23 @@
 import "server-only"
 
 import type { LegalForm, Prisma } from "@/generated/prisma/client"
-import { assertNever } from "@/lib/assert-never"
 import { companyFields } from "@/lib/crm/companies"
-import { replaceDetailsSection } from "@/lib/crm/details-sections"
 import { DEFAULT_CURRENCY, isFrenchCountry } from "@/lib/crm/legal-entities"
 import type { CompanyId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { CompanyInput } from "@/lib/schemas/company"
 import { companyLogoRequestSchema } from "@/lib/schemas/company-logo"
-import { isPrismaError, violatedConstraint } from "@/lib/server-utils"
+import { isPrismaError, isRowGone, rowExists, violatedConstraint } from "@/lib/server-utils"
 import {
   retrieveCompanyLogo,
   type CompanyIconFailure,
 } from "@/server/company-logo/fetch-company-logo"
 
+import {
+  resolveDetailsSection,
+  type DetailsSection,
+  type DetailsSectionError,
+} from "./details-section"
 import { fail, ok, type DomainResult } from "./result"
 
 export type LegalEntityKey = Extract<keyof CompanyInput, `legalEntity${string}`>
@@ -26,7 +29,7 @@ export type CompanyPatch =
   | {
       kind: "section"
       fields: Partial<Omit<CompanyInput, "details" | LegalEntityKey>>
-      detailsSection: { heading: string; content: string }
+      detailsSection: DetailsSection
     }
 
 export type CompanyCreateError =
@@ -34,8 +37,7 @@ export type CompanyCreateError =
 
 export type CompanyFieldsError = CompanyCreateError | { code: "not_found" }
 
-export type CompanyWriteError =
-  CompanyFieldsError | { code: "no_details" } | { code: "section_not_found"; headings: string[] }
+export type CompanyWriteError = CompanyFieldsError | DetailsSectionError
 
 const SUMMARY_SELECT = { id: true, slug: true, name: true } as const
 
@@ -174,10 +176,6 @@ function uniqueViolation(err: unknown): CompanyCreateError | null {
   return { code: "slug_taken" }
 }
 
-async function companyExists(id: CompanyId): Promise<boolean> {
-  return (await prisma.company.count({ where: { id } })) > 0
-}
-
 export async function createCompany(
   data: CompanyWriteData,
 ): Promise<DomainResult<CompanySummary, CompanyCreateError>> {
@@ -238,21 +236,12 @@ async function writeFields(
 async function resolveDetails(
   tx: Tx,
   id: CompanyId,
-  section: { heading: string; content: string },
+  section: DetailsSection,
 ): Promise<DomainResult<string, CompanyWriteError>> {
   const company = await tx.company.findUnique({ where: { id }, select: { details: true } })
   if (!company) return fail({ code: "not_found" })
 
-  const replaced = replaceDetailsSection(company.details, section.heading, section.content)
-  if (replaced.ok) return ok(replaced.details)
-  switch (replaced.code) {
-    case "no_details":
-      return fail({ code: "no_details" })
-    case "section_not_found":
-      return fail({ code: "section_not_found", headings: replaced.headings })
-    default:
-      return assertNever(replaced)
-  }
+  return resolveDetailsSection(company.details, section)
 }
 
 export function updateCompany(
@@ -279,7 +268,7 @@ export async function updateCompany(
     const taken = uniqueViolation(err)
     if (taken) return fail(taken)
     // Un P2025 vient aussi d'une instruction secondaire (siège ou Publisher absent) : seule l'absence réelle de l'entreprise vaut « introuvable ».
-    if (isPrismaError(err, "P2025") && !(await companyExists(id))) {
+    if (await isRowGone(err, () => rowExists(prisma.company, { id }))) {
       return fail({ code: "not_found" })
     }
     throw err

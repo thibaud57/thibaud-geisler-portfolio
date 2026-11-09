@@ -3,19 +3,12 @@ import { z } from "zod"
 
 import { PERSON_NOT_FOUND_TOAST } from "@/lib/admin/toasts"
 import type { FieldErrors, FormFailure, FormSuccess, FormValues } from "@/lib/form-state"
-import { createActionLogger, isPrismaError } from "@/lib/server-utils"
+import { createActionLogger, isRowGone } from "@/lib/server-utils"
 import type { DomainResult } from "@/server/crm/result"
 
 export interface ActionEvents {
   success: string
   failure: string
-}
-
-export async function rowExists<TWhere>(
-  delegate: { count: (args: { where: TWhere }) => Promise<number> },
-  where: TWhere,
-): Promise<boolean> {
-  return (await delegate.count({ where })) > 0
 }
 
 export const MISSING_COMPANY = {
@@ -114,6 +107,15 @@ export interface DomainFailure<TState> {
   invalidate: boolean
 }
 
+// Un id illisible ne désigne aucune cible : même réponse que l'échec de domaine équivalent, invalidation comprise.
+export function failureState<TState>(
+  { state, invalidate }: DomainFailure<TState>,
+  invalidateCaches: () => void,
+): TState {
+  if (invalidate) invalidateCaches()
+  return state
+}
+
 export function domainFailure<
   TInput,
   TMessage extends string,
@@ -165,10 +167,7 @@ export function saveEntity<TInput extends object, TState, TValue, E extends { co
 
     try {
       const outcome = await persist(result.data)
-      if (!outcome.ok) {
-        if (outcome.invalidate) config.invalidateCaches()
-        return outcome.state
-      }
+      if (!outcome.ok) return failureState(outcome, config.invalidateCaches)
       // Après l'écriture réussie seulement : une invalidation précédant un échec purgerait le cache sans raison.
       config.invalidateCaches()
       log.info({
@@ -177,7 +176,7 @@ export function saveEntity<TInput extends object, TState, TValue, E extends { co
       })
       return config.onSuccess(outcome.value, result.data)
     } catch (err) {
-      if (notFound && isPrismaError(err, "P2025") && !(await notFound.exists())) {
+      if (notFound && (await isRowGone(err, notFound.exists))) {
         // La revalidation réaligne l'écran périmé (autre onglet, double clic) sur la base.
         config.invalidateCaches()
         return notFound.state()
@@ -220,7 +219,7 @@ export function deleteEntity<TState>(config: DeleteEntityConfig<TState>): Promis
       return config.onSuccess()
     } catch (err) {
       // Déjà supprimée (autre onglet, double clic) : idempotent. Un P2025 d'une instruction secondaire annule la transaction, la ligne existe alors encore.
-      if (isPrismaError(err, "P2025") && !(await config.exists())) {
+      if (await isRowGone(err, config.exists)) {
         config.invalidateCaches()
         return config.onSuccess()
       }

@@ -3,14 +3,14 @@ import "server-only"
 import type { PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { LeadInput } from "@/lib/schemas/lead"
-import { isPrismaError, violatedConstraint } from "@/lib/server-utils"
+import { isPrismaError, rowExists, violatedConstraint } from "@/lib/server-utils"
 
+import type { DetailsSection } from "./details-section"
 import { assertNewIdentity, type IdentityField } from "./person-guards"
 import {
   guardFailure,
   updatePersonFields,
   writePersonRecord,
-  type DetailsSection,
   type PersonFieldsError,
   type PersonWriteError,
 } from "./person-write"
@@ -25,9 +25,6 @@ export type LeadPatch = Partial<LeadWriteData> & { detailsSection?: DetailsSecti
 type LeadFieldsPatch = Partial<LeadWriteData> & { detailsSection?: undefined }
 
 type LeadWriteResult<E extends { code: string }> = Promise<DomainResult<{ personId: string }, E>>
-
-const leadExists = async (personId: PersonId): Promise<boolean> =>
-  (await prisma.lead.count({ where: { personId } })) > 0
 
 function writeFailure(err: unknown): PersonFieldsError | null {
   const guard = guardFailure(err)
@@ -72,6 +69,6 @@ export function updateLead(
         tx.lead.update({ where: { personId }, data: { origin, status, interest, channel, score } }),
       ),
     writeFailure,
-    () => leadExists(personId),
+    () => rowExists(prisma.lead, { personId }),
   )
 }

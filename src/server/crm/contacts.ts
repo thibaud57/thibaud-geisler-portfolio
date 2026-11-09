@@ -5,8 +5,9 @@ import { detailsAfterContactPromotion } from "@/lib/crm/details-templates"
 import type { PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { AttachContactInput, NewContactInput } from "@/lib/schemas/network-contact"
-import { isPrismaError, violatedConstraint } from "@/lib/server-utils"
+import { isPrismaError, rowExists, violatedConstraint } from "@/lib/server-utils"
 
+import type { DetailsSection } from "./details-section"
 import {
   assertNewIdentity,
   lockPerson,
@@ -17,7 +18,6 @@ import {
   guardFailure,
   updatePersonFields,
   writePersonRecord,
-  type DetailsSection,
   type PersonFieldsError,
   type PersonWriteError,
 } from "./person-write"
@@ -31,9 +31,6 @@ export type ContactPatch = Partial<ContactWriteData> & { detailsSection?: Detail
 type ContactFieldsPatch = Partial<ContactWriteData> & { detailsSection?: undefined }
 
 type ContactWriteResult<E extends { code: string }> = Promise<DomainResult<{ personId: string }, E>>
-
-const contactExists = async (personId: PersonId): Promise<boolean> =>
-  (await prisma.contact.count({ where: { personId } })) > 0
 
 function writeFailure(err: unknown): PersonFieldsError | null {
   const guard = guardFailure(err)
@@ -141,6 +138,6 @@ export function updateContact(
         tx.contact.update({ where: { personId }, data: { types, status } }),
       ),
     writeFailure,
-    () => contactExists(personId),
+    () => rowExists(prisma.contact, { personId }),
   )
 }

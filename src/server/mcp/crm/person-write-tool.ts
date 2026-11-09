@@ -22,7 +22,7 @@ const IDENTITY_TAKEN: Record<ConflictField, string> = {
 
 const FIND_EXISTING = "Call crm_search to find the existing record instead of creating a duplicate."
 
-function conflictMessage(conflict: PersonConflict): string {
+export function conflictMessage(conflict: PersonConflict): string {
   switch (conflict.reason) {
     case "exists": {
       const roles = (["lead", "contact"] as const).filter((role) => conflict.roles[role])

@@ -4,7 +4,7 @@ import type { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import { companyRefSelect } from "@/server/queries/company-ref"
 import { orderedInterviewSelect } from "@/server/queries/interviews"
-import { personRefSelect } from "@/server/queries/persons"
+import { type PageQuery, personRefSelect } from "@/server/queries/persons"
 
 const adminOpportunityInclude = {
   referrer: { select: { ...personRefSelect, company: { select: { logoFilename: true } } } },
@@ -60,3 +60,38 @@ export async function findOpportunityOptions() {
 }
 
 export type OpportunityOption = Awaited<ReturnType<typeof findOpportunityOptions>>[number]
+
+// Lecture légère pour la recherche des outils : titre et noms des deux entreprises suffisent.
+export async function findOpportunitySearchRows() {
+  return prisma.opportunity.findMany({
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      intermediary: { select: { name: true } },
+      client: { select: { name: true } },
+    },
+    orderBy: { title: "asc" },
+  })
+}
+
+const opportunityRowSelect = {
+  id: true,
+  title: true,
+  status: true,
+  dailyRate: true,
+  startMonth: true,
+  updatedAt: true,
+  client: { select: { id: true, name: true } },
+  intermediary: { select: { id: true, name: true } },
+} as const
+
+export async function findOpportunitiesPage(
+  page: PageQuery<Prisma.OpportunityWhereInput, Prisma.OpportunityOrderByWithRelationInput>,
+) {
+  const [rows, total] = await prisma.$transaction([
+    prisma.opportunity.findMany({ ...page, select: opportunityRowSelect }),
+    prisma.opportunity.count({ where: page.where }),
+  ])
+  return { rows, total }
+}

@@ -4,9 +4,10 @@ import { JobRole, Zone } from "@/generated/prisma/browser"
 import type { Prisma } from "@/generated/prisma/client"
 import { normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { companyIdSchema } from "@/lib/ids"
-import { NOTES_MAX_LENGTH } from "@/lib/schemas/fields"
 import { PERSON_NAME_MAX_LENGTH } from "@/lib/schemas/person"
-import type { DetailsSection } from "@/server/crm/person-write"
+import type { DetailsSection } from "@/server/crm/details-section"
+
+import { details, notes } from "./fields"
 
 // Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
 // Mêmes bornes et normalisations que l'admin (`src/lib/schemas/person.ts`), écrites pour des types JSON et non du FormData.
@@ -53,21 +54,8 @@ export const personFieldShape = {
       "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
     ),
   metAt: z.iso.date().nullable().describe("Date of the first meeting, YYYY-MM-DD. null clears it."),
-  notes: z
-    .string()
-    .trim()
-    .min(1, "Pass null to clear the notes.")
-    .max(NOTES_MAX_LENGTH)
-    .nullable()
-    .describe(`One-line markers, at most ${NOTES_MAX_LENGTH} characters. null clears them.`),
-  details: z
-    .string()
-    .trim()
-    .min(1, "Pass null to clear the details.")
-    .nullable()
-    .describe(
-      'Whole Details text in markdown, sections introduced by "# " headings. To change one section only, use detailsSection instead. null clears it.',
-    ),
+  notes: notes(),
+  details,
   companyId: companyIdSchema
     .nullable()
     .describe("Id of the company of the person. Get it from crm_search. null clears it."),

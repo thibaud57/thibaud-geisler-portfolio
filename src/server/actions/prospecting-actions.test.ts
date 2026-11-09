@@ -8,14 +8,12 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/prisma", () => {
   const prisma = {
     prospectingAction: {
-      create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
-    lead: { findUnique: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   }
@@ -25,12 +23,23 @@ vi.mock("@/lib/prisma", () => {
   return { prisma }
 })
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/prospecting-actions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/crm/prospecting-actions")>()),
+  createProspectingAction: vi.fn(),
+  updateProspectingAction: vi.fn(),
+}))
 
 import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { prospectingActionIdSchema } from "@/lib/ids"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
+import {
+  createProspectingAction as createProspectingActionRecord,
+  updateProspectingAction as updateProspectingActionRecord,
+} from "@/server/crm/prospecting-actions"
+import { fail, ok } from "@/server/crm/result"
 
 import {
   changeProspectingActionStatus,
@@ -49,6 +58,13 @@ const OPTED_OUT_AT = new Date("2026-02-02T10:00:00Z")
 const OPTED_OUT_MESSAGE = "Cette personne s'est opposée à la prospection le 02/02/2026"
 const PROSPECTABLE_ROWS = [{ optedOutAt: null }]
 const OPTED_OUT_ROWS = [{ optedOutAt: OPTED_OUT_AT }]
+const OPTED_OUT_CONFLICT = {
+  reason: "opted_out",
+  field: "personId",
+  optedOutAt: OPTED_OUT_AT,
+} as const
+const NO_LEAD_CONFLICT = { reason: "no_lead_role", field: "personId" } as const
+const WRITTEN = { id: prospectingActionIdSchema.parse("a1") }
 
 const BASE_FIELDS = {
   title: "Relance proposition",
@@ -73,9 +89,9 @@ beforeEach(() => {
   // Seule l'horloge est figée : les promesses et les timers du logger restent réels.
   vi.useFakeTimers({ toFake: ["Date"] })
   vi.setSystemTime(NOW)
-  vi.mocked(prisma.prospectingAction.create).mockResolvedValue({ id: "a1" } as never)
+  vi.mocked(createProspectingActionRecord).mockResolvedValue(ok(WRITTEN))
+  vi.mocked(updateProspectingActionRecord).mockResolvedValue(ok(WRITTEN))
   vi.mocked(prisma.prospectingAction.update).mockResolvedValue({ id: "a1" } as never)
-  vi.mocked(prisma.lead.findUnique).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.$queryRaw).mockResolvedValue(PROSPECTABLE_ROWS)
 })
 
@@ -102,7 +118,8 @@ it.each([
 
   await expect(result).rejects.toThrow()
   expect(prisma.$transaction).not.toHaveBeenCalled()
-  expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
+  expect(createProspectingActionRecord).not.toHaveBeenCalled()
+  expect(updateProspectingActionRecord).not.toHaveBeenCalled()
   expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
   expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
   expect(prisma.prospectingAction.delete).not.toHaveBeenCalled()
@@ -117,7 +134,7 @@ describe("createProspectingAction", () => {
 
     expect(state.errors.title).toEqual(["L'action est requise"])
     expect(state.errors.personId).toEqual(["Choisissez une personne"])
-    expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
+    expect(createProspectingActionRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a date that is not a calendar day", async () => {
@@ -129,37 +146,27 @@ describe("createProspectingAction", () => {
     expect(state.errors.occurredAt).toBeDefined()
   })
 
-  it("creates a replied action with its reply time", async () => {
-    await createProspectingAction(
-      initialProspectingActionFormState,
-      buildFormData({ status: "REPONDU" }),
-    )
-
-    expect(prisma.prospectingAction.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          status: "REPONDU",
-          occurredAt: MONDAY_MIDNIGHT_IN_PARIS,
-          respondedAt: NOW,
-        }),
-      }),
-    )
-  })
-
-  it("stores the reply with a replied action", async () => {
+  it("hands the parsed fields to the domain, the day at midnight in Paris", async () => {
     await createProspectingAction(
       initialProspectingActionFormState,
       buildFormData({ status: "REPONDU", reply: REPLY }),
     )
 
-    expect(prisma.prospectingAction.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ status: "REPONDU", reply: REPLY }) }),
+    expect(createProspectingActionRecord).toHaveBeenCalledWith(
+      objectMatch({
+        title: "Relance proposition",
+        personId: "p1",
+        status: "REPONDU",
+        occurredAt: MONDAY_MIDNIGHT_IN_PARIS,
+        respondedAt: null,
+        reply: REPLY,
+      }),
     )
   })
 
   it("maps a missing person to the person field", async () => {
-    vi.mocked(prisma.prospectingAction.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "ProspectingAction_personId_fkey"),
+    vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_not_found" }),
     )
 
     const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
@@ -169,47 +176,70 @@ describe("createProspectingAction", () => {
   })
 
   it("refuses a person without a lead record", async () => {
-    vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(null)
+    vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_conflict", conflict: NO_LEAD_CONFLICT }),
+    )
 
     const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
-    expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
   })
 
   it("refuses a person who opposed prospecting", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(OPTED_OUT_ROWS)
+    vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_conflict", conflict: OPTED_OUT_CONFLICT }),
+    )
 
     const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.errors.personId).toEqual([OPTED_OUT_MESSAGE])
-    expect(prisma.prospectingAction.create).not.toHaveBeenCalled()
+  })
+
+  it("keeps the lists as they are after a refusal", async () => {
+    vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_conflict", conflict: NO_LEAD_CONFLICT }),
+    )
+
+    await createProspectingAction(initialProspectingActionFormState, buildFormData())
+
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the lists after a success", async () => {
+    await createProspectingAction(initialProspectingActionFormState, buildFormData())
+
+    expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("answers an unexpected failure with an unknown error", async () => {
+    vi.mocked(createProspectingActionRecord).mockRejectedValueOnce(new Error("database down"))
+
+    const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
 })
 
 describe("updateProspectingAction", () => {
-  it("applies the status rules on update, from the stored status and date", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
-      status: "A_FAIRE",
-      occurredAt: MONDAY,
-      respondedAt: null,
-    } as never)
-
+  it("hands the parsed id and fields to the domain", async () => {
     await updateProspectingAction(
       "a1",
       initialProspectingActionFormState,
       buildFormData({ status: "FAIT" }),
     )
 
-    expect(prisma.prospectingAction.update).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ status: "FAIT", occurredAt: NOW, respondedAt: null }) }),
+    expect(updateProspectingActionRecord).toHaveBeenCalledWith(
+      WRITTEN.id,
+      objectMatch({ personId: "p1", status: "FAIT", occurredAt: MONDAY_MIDNIGHT_IN_PARIS }),
     )
   })
 
   it("refuses to move an action to a person without a lead record", async () => {
-    vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(null)
+    vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_conflict", conflict: NO_LEAD_CONFLICT }),
+    )
 
     const state = await updateProspectingAction(
       "a1",
@@ -218,11 +248,12 @@ describe("updateProspectingAction", () => {
     )
 
     expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
-    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
   })
 
   it("refuses to rewrite an action of a person who opposed prospecting", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([]).mockResolvedValueOnce(OPTED_OUT_ROWS)
+    vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(
+      fail({ code: "person_conflict", conflict: OPTED_OUT_CONFLICT }),
+    )
 
     const state = await updateProspectingAction(
       "a1",
@@ -231,12 +262,10 @@ describe("updateProspectingAction", () => {
     )
 
     expect(state.errors.personId).toEqual([OPTED_OUT_MESSAGE])
-    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
   })
 
-  it("answers prospecting_action_not_found when the action was deleted meanwhile", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
+  it("answers prospecting_action_not_found and refreshes the lists when the action was deleted", async () => {
+    vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await updateProspectingAction(
       "a1",
@@ -245,6 +274,7 @@ describe("updateProspectingAction", () => {
     )
 
     expect(state.message).toBe("prospecting_action_not_found")
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
   it("answers prospecting_action_not_found for an empty action id, without writing", async () => {
@@ -255,12 +285,12 @@ describe("updateProspectingAction", () => {
     )
 
     expect(state.message).toBe("prospecting_action_not_found")
-    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
+    expect(updateProspectingActionRecord).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("answers unknown_error on a P2025 while the action still exists", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
+  it("answers an unexpected failure with an unknown error", async () => {
+    vi.mocked(updateProspectingActionRecord).mockRejectedValueOnce(new Error("database down"))
 
     const state = await updateProspectingAction(
       "a1",

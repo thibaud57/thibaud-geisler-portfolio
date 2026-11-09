@@ -17,12 +17,11 @@ import { Button } from "@/components/ui/button"
 import { FormField } from "@/components/ui/form-field"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
-import { dateOnlyToLocal, toIsoDate } from "@/lib/date-time"
+import { dateOnlyToLocal, isoDayToDate, toIsoDate } from "@/lib/date-time"
 import { NONE_LABEL, NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 import { REVIEW_MOTIVATIONS, REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
 import {
   defaultClosingFriday,
-  isoDayToDate,
   parseCounterInputs,
   REVIEW_COUNTER_KEYS,
   REVIEW_FIELD_LABELS as LABELS,

@@ -1,6 +1,7 @@
 import "server-only"
 import type { CallToolResult } from "@modelcontextprotocol/server"
 
+import type { DomainResult } from "@/server/crm/result"
 import type { McpLogger } from "@/server/mcp/logger"
 
 export function toolJson(value: unknown): CallToolResult {
@@ -38,4 +39,27 @@ export async function guardTool<T>(
     return toolError(failure.message)
   }
   return handle(value)
+}
+
+// Écriture d'une entité de suivi : l'échec attendu du domaine devient un message qui nomme la correction, le succès invalide les listes de l'admin que l'entité alimente et rend la valeur écrite.
+export function writeRecord<V extends { id: string }, E extends { code: string }>(
+  run: () => Promise<DomainResult<V, E>>,
+  ctx: { log: McpLogger },
+  { events, failureMessage }: WriteTexts,
+  logContext: object,
+  errorMessage: (error: E) => string,
+  invalidate: () => void,
+): Promise<CallToolResult> {
+  return guardTool(
+    ctx.log,
+    { event: events.failure, message: failureMessage, context: logContext },
+    run,
+    (result) => {
+      if (!result.ok) return toolError(errorMessage(result.error))
+
+      invalidate()
+      ctx.log.info({ event: events.success, id: result.value.id })
+      return toolJson(result.value)
+    },
+  )
 }
