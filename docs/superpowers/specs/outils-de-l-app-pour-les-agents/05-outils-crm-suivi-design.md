@@ -2,7 +2,7 @@
 feature: "Feature 3 : Outils de l'app pour les agents"
 subproject: "outils-crm-suivi"
 goal: "Ajouter les opportunités, entretiens, actions de prospection, signaux et revues hebdomadaires aux outils génériques du CRM, sous les mêmes règles que l'admin et éprouver les outils sur des copies de test de trois commandes freelance."
-status: "draft"
+status: "implemented"
 complexity: "XL"
 tdd_scope: "full"
 execution: "subagent-driven"
