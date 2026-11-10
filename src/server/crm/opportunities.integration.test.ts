@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import {
   companyIdOf,
+  OPTED_OUT_AT,
   prisma,
   resetDatabase,
   seedCompany,
@@ -98,6 +99,27 @@ describe("missing relations", () => {
       expect(updated).toEqual({ ok: false, error })
     },
   )
+})
+
+describe("opted-out referrer", () => {
+  it("rejects an opted-out person as a new referrer and keeps the one already stored", async () => {
+    const opposed = await seedPerson({ optedOutAt: OPTED_OUT_AT })
+    const id = await seedOpportunity({ referrerId: opposed.id })
+    const other = await seedOpportunity({})
+    const referrerId = personIdSchema.parse(opposed.id)
+
+    const created = await createOpportunity(opportunityData({ referrerId }))
+    const changed = await updateOpportunity(other, { referrerId })
+    const unchanged = await updateOpportunity(id, { referrerId, status: "ACCEPTEE" })
+
+    const error = { code: "referrer_not_found", field: "referrerId" }
+    expect(created).toEqual({ ok: false, error })
+    expect(changed).toEqual({ ok: false, error })
+    expect(unchanged.ok).toBe(true)
+    expect(await prisma.opportunity.findUniqueOrThrow({ where: { id: other } })).toMatchObject({
+      referrerId: null,
+    })
+  })
 })
 
 describe("updateOpportunity", () => {

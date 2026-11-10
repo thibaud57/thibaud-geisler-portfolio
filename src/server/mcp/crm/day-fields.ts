@@ -1,6 +1,13 @@
 import { z } from "zod"
 
-import { dateColumnIsoDay, isoDayToDate, zonedDayStart, zonedIsoDay } from "@/lib/date-time"
+import { toMonthValue } from "@/lib/crm/opportunities"
+import {
+  dateColumnIsoDay,
+  isoDayToDate,
+  zonedDayStart,
+  zonedIsoDay,
+  zonedIsoInstant,
+} from "@/lib/date-time"
 import { instantOf } from "@/lib/schemas/prospecting-action"
 import { recordFromKeys } from "@/lib/record-from-keys"
 
@@ -36,13 +43,15 @@ export const instantDate = (error: string, description?: string) => {
   const instant = instantOf(error)
   return z.codec(description === undefined ? instant : instant.describe(description), z.date(), {
     decode: (value) => new Date(value),
-    encode: (date) => date.toISOString(),
+    encode: zonedIsoInstant,
   })
 }
 
 type DayCodec = z.ZodCodec<z.ZodType<string, string>, z.ZodType<Date>>
 
 const DATE_COLUMN_DAY = dateColumnDay()
+
+export const ZONED_DAY = zonedDay()
 
 type DaysAsStrings<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: T[P] extends Date ? string : string | null
@@ -60,3 +69,12 @@ export function withDays<K extends string, T extends Record<K, Date | null>>(
   })
   return { ...row, ...days }
 }
+
+// Le mois sort comme il entre : un instant relu puis réécrit serait refusé par le schéma d'entrée.
+export const withMonth = <T extends { startMonth: Date | null }>(row: T) => ({
+  ...row,
+  startMonth: row.startMonth && toMonthValue(row.startMonth),
+})
+
+export const withSignalDay = <T extends { occurredOn: Date }>(signal: T) =>
+  withDays(signal, ["occurredOn"])

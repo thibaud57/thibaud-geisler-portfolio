@@ -2,6 +2,7 @@ import "server-only"
 import type { CallToolResult } from "@modelcontextprotocol/server"
 
 import { assertNever } from "@/lib/assert-never"
+import { zonedIsoDay } from "@/lib/date-time"
 import {
   revalidatePersonLists,
   type ConflictField,
@@ -34,11 +35,11 @@ export function conflictMessage(conflict: PersonConflict): string {
       return `This person already exists${who === "" ? "" : `: ${who}`}. ${FIND_EXISTING}`
     }
     case "opted_out":
-      return `This person opted out of prospecting on ${conflict.optedOutAt.toISOString().slice(0, 10)}: do not recreate or contact her.`
+      return `This person opted out of prospecting on ${zonedIsoDay(conflict.optedOutAt)}: do not recreate or contact them.`
     case "person_missing":
       return "No person has this id. Call crm_search with the entity lead to find the right id, then call the tool again."
     case "not_a_lead":
-      return "This person is not a lead, so fromLeadId cannot promote her. Create the contact from its person fields instead."
+      return "This person is not a lead, so fromLeadId cannot promote them. Create the contact from its person fields instead."
     case "no_lead_role":
       return "This person has no lead record. Call crm_search with the entity lead to find a lead."
     default:
@@ -53,7 +54,7 @@ function personWriteErrorMessage(error: PersonWriteError): string {
     case "identity_taken":
       return `${IDENTITY_TAKEN[error.field]} ${FIND_EXISTING}`
     case "person_locked":
-      return "This person opted out of prospecting: her record is locked and cannot be modified."
+      return "This person opted out of prospecting: their record is locked and cannot be modified."
     case "company_not_found":
       return "No company has this companyId. Call crm_search with the entity company to find the right id, then call the tool again."
     case "not_found":
@@ -68,8 +69,8 @@ function personWriteErrorMessage(error: PersonWriteError): string {
 
 export function personWrites(role: PersonRole): { create: WriteTexts; update: WriteTexts } {
   return writeTexts(
-    { key: role, noun: role, pronoun: "her" },
-    "Call crm_search with her name or email to check whether she was created before retrying.",
+    { key: role, noun: role, pronoun: "their" },
+    "Call crm_search with their name or email to check whether the person was created before retrying.",
   )
 }
 

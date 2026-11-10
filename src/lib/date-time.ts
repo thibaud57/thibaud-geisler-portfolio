@@ -121,6 +121,11 @@ export function zonedIsoDay(instant: Date): string {
   return ISO_DAY.format(instant)
 }
 
+// L'heure de Paris de l'utilisateur, là où `toISOString` donne l'UTC.
+export function zonedIsoInstant(instant: Date): string {
+  return new TZDate(instant, TIME_ZONE).toISOString()
+}
+
 // Minuit de Paris, changement d'heure compris : additionner des multiples de DAY_MS décalerait d'une heure.
 export function zonedDayStart(dateOnly: Date, offsetDays = 0): Date {
   return new Date(

@@ -14,6 +14,7 @@ import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { interviewDetailsTemplate } from "@/lib/crm/details-templates"
 import { interviewPlaces, interviewTitle } from "@/lib/crm/interviews"
+import { zonedIsoInstant } from "@/lib/date-time"
 import { interviewIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
@@ -199,11 +200,11 @@ export const interviewEntity = defineCrmEntity({
   entity: "interview",
   docs: {
     search:
-      'the label "Entretien N · type" and "opportunity title · date" for an interview (found by that label or by its opportunity title)',
+      'the label "Entretien N · type" (or "Premier contact" for a first contact) and "opportunity title · date and time in Paris" for an interview (found by that label or by its opportunity title)',
     fetch:
       "For an interview: its title, opportunity with intermediary and client, and correspondents (id and name, or id only when opted out).",
     queryRow:
-      "for an interview id, title (Entretien N · type), type, side, status, outcome, date, score and opportunity title",
+      "for an interview id, title (Entretien N · type, or Premier contact), type, side, status, outcome, date, score and opportunity title",
     querySort: "An interview has no name: sort name orders by opportunity title then date.",
     create:
       "For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own.",
@@ -224,7 +225,7 @@ export const interviewEntity = defineCrmEntity({
         entity: "interview" as const,
         id: interview.id,
         label: title,
-        hint: joinHint(interview.opportunity.title, interview.scheduledAt.toISOString()),
+        hint: joinHint(interview.opportunity.title, zonedIsoInstant(interview.scheduledAt)),
       }))
   },
   async fetch(id) {

@@ -125,7 +125,7 @@ export function lockPerson(
   return tx.$queryRaw`SELECT "optedOutAt" FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
 }
 
-async function findOptedOutAt(
+export async function findOptedOutAt(
   tx: Prisma.TransactionClient,
   personId: PersonId,
 ): Promise<Date | null> {

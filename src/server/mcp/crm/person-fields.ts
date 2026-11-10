@@ -66,9 +66,9 @@ export const personFieldShape = {
 
 // Lead et contact portent le même fragment : `tools.ts` ne l'écrit qu'une fois.
 export const PERSON_DOCS: CrmToolDocs = {
-  search: "the company and roles for a lead or contact",
+  search: "the company and roles for a lead or contact (found by name, email or LinkedIn URL)",
   fetch:
-    "For a lead or contact: her record, company and roles, and for a lead her referred opportunities, interviews, signals and prospecting action count.",
+    "For a lead or contact: their record, company and roles, and for a lead their referred opportunities, interviews, signals and prospecting action count.",
 }
 
 // Les champs d'une personne à la création, sauf `details` dont le gabarit dépend du rôle : seul le nom est requis.
