@@ -1,8 +1,8 @@
 ---
 title: "Vitest : Framework de test"
-version: "5.0.5"
+version: "5.1.0"
 description: "Référence technique pour Vitest 5 : config Next.js, mocks, coverage et Testing Library."
-date: "2026-10-29"
+date: "2026-11-10"
 keywords: ["vitest", "testing", "mocks", "coverage", "react"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
@@ -301,7 +301,8 @@ pnpm add -D jsdom \
 
 ### Points Importants
 
-- Versions en place avec Vitest 5.0.3, suite verte le 9 octobre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/dom ^10.4.2`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.6`, `jsdom ^30.1.2`
+- Versions en place avec Vitest 5.1.0, suite verte le 10 novembre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/dom ^10.4.2`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.8`, `jsdom ^31.0.0`
+- jsdom 31 réécrit son moteur CSS (styles calculés et sérialisation peuvent différer), met le parsing en pause aux scripts bloquants (`new JSDOM()` peut rendre un document partiel) et lit le canvas via `@napi-rs/canvas` : aucun effet sur la suite du projet, verte sans modification (notes de la 31.0.0, lues le 2026-11-10)
 - `@testing-library/dom` est une peer **obligatoire** de `@testing-library/jest-dom` 7 : déclarée en devDependency le 9 octobre 2026, elle n'arrivait avant que par l'auto-install des peers de pnpm
 - `jsdom` requis pour tester les composants React (DOM simulé)
 - Alternative plus rapide : `happy-dom` à la place de `jsdom`

@@ -199,7 +199,7 @@ Basculement entre français et anglais pour toucher des clients nationaux et int
 Pages légales et consentement cookies, obligatoires avant la mise en production publique (LCEN France, loi e-commerce Luxembourg, RGPD, directive ePrivacy). Le formulaire de contact collecte des données personnelles dès le premier visiteur EU, et Calendly inline pose des cookies tiers marketing.
 
 * Pages `/mentions-legales` et `/confidentialite` (politique RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact, rétention 3 ans maximum, transfert hors UE de Calendly via Data Privacy Framework)
-* Bandeau de consentement cookies conforme CNIL, `c15t` en mode offline : Accept all / Reject all au même niveau visuel, opt-in granulaire par finalité, durée de cookie 13 mois maximum. Sans impact sur les Core Web Vitals (chargé après FCP, position `fixed`), contenu indexable servi avant consentement
+* Bandeau de consentement cookies conforme CNIL, `c15t` en mode local : Accept all / Reject all au même niveau visuel, opt-in granulaire par finalité, durée de cookie 13 mois maximum. Sans impact sur les Core Web Vitals (chargé après FCP, position `fixed`), contenu indexable servi avant consentement
 * Gating du widget Calendly, qui ne charge qu'après consentement de la catégorie marketing, et CSP synchronisée : `*.calendly.com` n'est autorisé qu'à ce moment. Umami, sans cookies, n'exige aucun consentement et s'ajoutera simplement à la CSP
 * Registre des traitements (RGPD art. 30), obligatoire (le formulaire de contact et les logs sont des traitements réguliers) : [registre-traitements.md](registre-traitements.md)
 

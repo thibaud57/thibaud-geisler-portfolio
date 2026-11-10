@@ -17,7 +17,7 @@ const IP_RATE_LIMIT = { max: 120, windowMs: 60_000 }
 const ALLOWED_ORIGIN_HOSTNAMES = [new URL(env.NEXT_PUBLIC_SITE_URL).hostname]
 const BEARER_PATTERN = /^bearer\s+(\S+)$/i
 
-// Délai en ms que le plugin met dans `error.details` sans le typer (`@better-auth/api-key` 1.7.14, `evaluateRateLimit`)
+// Délai en ms que le plugin met dans `error.details` sans le typer (`@better-auth/api-key` 1.7.18, `evaluateRateLimit`)
 const keyRateLimitSchema = z.object({ details: z.object({ tryAgainIn: z.number() }) })
 
 const unauthorized = () =>

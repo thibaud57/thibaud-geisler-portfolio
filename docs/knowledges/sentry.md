@@ -1,8 +1,8 @@
 ---
 title: "Sentry : Monitoring d'erreurs applicatives"
-version: "11.10.0"
+version: "11.11.0"
 description: "Référence technique pour @sentry/nextjs : instrumentation App Router, source maps, CSP, PII et cohabitation avec Pino."
-date: "2026-10-29"
+date: "2026-11-10"
 keywords: ["sentry", "monitoring", "erreurs", "observabilite", "nextjs", "rgpd"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Pino", "Docker", "GitHub Actions"]
