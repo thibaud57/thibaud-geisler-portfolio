@@ -28,7 +28,7 @@ Couvre cinq entrées du registre des outils CRM, `opportunity`, `interview`, `pr
 
 ## Dependencies
 
-- `04-outils-crm-personnes-design.md` (statut: draft) : gardes de personnes dans `src/server/crm/person-guards.ts`, textes des conflits dans `src/server/actions/_support/person-form.ts`, rendu des personnes liées `personRef`, entrées `lead` et `contact` (les actions et signaux visent un lead, les entretiens des contacts), motif d'extraction et registre du 03
+- `04-outils-crm-personnes-design.md` (statut: implemented) : gardes de personnes dans `src/server/crm/person-guards.ts`, textes des conflits dans `src/server/actions/_support/person-form.ts`, rendu des personnes liées `personRef`, entrées `lead` et `contact` (les actions et signaux visent un lead, les entretiens des contacts), motif d'extraction et registre du 03
 
 ## Files touched
 
@@ -37,7 +37,7 @@ Couvre cinq entrées du registre des outils CRM, `opportunity`, `interview`, `pr
 - **À modifier** : `src/server/actions/{opportunities,interviews,prospecting-actions,signals,weekly-reviews}.ts` (adaptateurs)
 - **À modifier** : `src/server/actions/{opportunities,interviews,prospecting-actions,signals,weekly-reviews}.test.ts`
 - **À modifier** : `src/server/actions/prospecting-actions.integration.test.ts` (les cas du tableau passent sur le domaine déplacé)
-- **À modifier** : `src/lib/schemas/prospecting-action.ts` (`actionDay` exporté pour le schéma d'outil)
+- **À modifier** : `src/lib/schemas/prospecting-action.ts` (`actionDay` n'est pas exporté : le schéma d'outil emploie le codec `zonedDay` de `src/server/mcp/crm/day-fields.ts`)
 - **À modifier** : `src/lib/ids.ts` (`OpportunityId` exporté, `InterviewId`, `SignalId`, `WeeklyReviewId` nominaux, avec leurs schémas)
 - **À créer** : `src/server/mcp/crm/entities/{opportunity,interview,prospecting-action,signal,weekly-review}.ts`
 - **À créer** : `src/server/mcp/crm/date-range.ts` et `src/server/mcp/crm/date-range.test.ts` (intervalle `from ≤ to` partagé par les filtres de dates)

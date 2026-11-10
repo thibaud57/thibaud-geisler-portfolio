@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION : Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-10-29"
+date: "2026-11-10"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
@@ -17,7 +17,7 @@ technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokpl
 - `MINOR` : nouvelle fonctionnalité rétrocompatible (nouvelle page, nouvelle section)
 - `PATCH` : correction de bug ou ajustement mineur
 
-> **Régime `1.x` actif depuis mai 2026**, franchi avec le premier déploiement validé et les features MVP livrées (accueil, projets, services, contact). Toute rupture impose désormais un MAJOR. Les bumps sont calculés par release-please depuis les commits Conventional (`feat:` → MINOR, `fix:` → PATCH, `feat!:` ou `BREAKING CHANGE` → MAJOR) ; la version courante vit dans [CHANGELOG.md](../CHANGELOG.md), jamais dans cette prose.
+> **Régime `2.x` actif depuis le 25 septembre 2026** (`v2.0.0`, back-office single-user et base multi-schéma, cf. [CHANGELOG.md](../CHANGELOG.md)) : une rupture de l'interface publique du site ou du schéma de base de données impose un MAJOR. Les bumps sont calculés par release-please depuis les commits Conventional (`feat:` → MINOR, `fix:` → PATCH, `feat!:` ou `BREAKING CHANGE` → MAJOR) ; la version courante vit dans le CHANGELOG, jamais dans cette prose.
 
 ## Workflow Release
 
@@ -88,7 +88,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
 - [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` sans clé → `401`
-- [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste, jamais écrite dans une commande : `tools/list` rend les 6 outils, `crm_query` et `crm_fetch` répondent sur chaque entité, un id inconnu et un jour impossible rendent `isError` ; puis les `mcp:request` du test portent la `keyId` de la clé dans les logs (§ Logging)
+- [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste (jamais écrite dans une commande) : `tools/list`, `crm_query` et `crm_fetch` sur chaque entité, refus sans écriture, `keyId` de la clé dans les `mcp:request` des logs (§ Logging). Détail : recette `verify`
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
@@ -202,13 +202,13 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 | Trigger | Étapes | Cible |
 |---------|--------|-------|
-| Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`), typecheck, tests, build, `pnpm audit` non bloquant (workflow `ci.yml`) | - |
+| Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`), typecheck, tests, build (avec cache `.next/cache`, clé sur le lockfile et les sources), `pnpm audit` non bloquant (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
 | Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
 | Chaque lundi, ou dispatch manuel | Scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security (workflow `security.yml`) | - |
 
-> GitHub Actions porte désormais l'intégralité du build Docker : Dokploy ne build plus, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
+> GitHub Actions porte l'intégralité du build Docker : Dokploy ne build pas, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
 ## Réglages Actions du dépôt
 
@@ -271,7 +271,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 ### Bootstrap technique
 
 - [x] **Dockerfile `output: 'standalone'`** : activé dans `next.config.ts`, le stage `runner` copie `.next/standalone`, `.next/static` et `public/`.
-- [x] **Build Docker en Turbopack** : l'opt-out `next build --webpack`, posé pour une erreur de résolution WASM de Prisma 7, a été **retiré le 2026-09-03** (erreur non reproductible, image et runtime vérifiés contre une base réelle). À revalider par un build d'image à chaque montée de Next ou de Prisma. Détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
+- [x] **Build Docker en Turbopack** : aucun `--webpack` (opt-out retiré le 2026-09-03), à revalider par un build d'image à chaque montée de Next ou de Prisma. Détail : [VERSIONS.md § Prisma ORM](VERSIONS.md).
 - [x] **Migrations auto au startup container** : stage `deploy-prisma` (pnpm deploy --legacy --prod) + CMD `node node_modules/prisma/build/index.js migrate deploy && exec node server.js`. `prisma migrate deploy` s'exécute atomiquement au démarrage de chaque container.
 - [x] **Favicon & icônes app** : favicon custom installé dans `src/app/` (convention Next.js App Router) : `favicon.ico` (legacy), `icon.svg` (vectoriel moderne), `apple-icon.png` (180x180 iOS). Next.js génère automatiquement les `<link rel="icon">` correspondants.
 
@@ -356,7 +356,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 
 - **Dokploy** : depuis la v0.26 les rollbacks sont registry-based, ce qui rend GHCR indispensable à la fonctionnalité, sans objet ici tant que `compose.yaml` pointe `:latest` (cf. § Rollback). L'auto-update par l'UI est parfois défaillant, préférer le script d'update officiel.
 - **Traefik** : Dokploy ne monte jamais son image, mais peut recréer le container sur une version plus ancienne lors de ses propres mises à jour. Relever l'image après chaque montée de Dokploy ([knowledges/dokploy.md](knowledges/dokploy.md#traefik-et-lets-encrypt)).
-- **Docker Engine 29** : API minimale v1.44, un client antérieur à la v25 ne parle plus au daemon.
+- **Docker Engine 29** : API minimale v1.44, un client antérieur à la v25 ne parle plus au daemon. `ulimit nofile` par défaut tombé de 1048576 à 1024, sans avertissement : `compose.yaml` ne déclare aucun `ulimits` et la valeur du `daemon.json` du VPS n'est pas relevée (2026-11-10), à régler par `ulimits.nofile` du service ou `daemon.json` si une erreur `EMFILE` apparaît.
 - **Docker Compose v5** : le build passe par Docker Bake, le builder interne a disparu ; le champ `version:` du YAML est ignoré.
 - **Cloudflare R2** : service managé, aucune version à suivre, donc aucune montée à préparer. Ses limites structurelles (pas de versioning, Bucket Locks ≠ Object Lock WORM, facturation arrondie) conditionnent la stratégie de sauvegarde et sont documentées dans [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md).
 
@@ -375,7 +375,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
-| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token@v3`. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux trois dépôts où elle est installée (le portfolio en fait partie). Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job, et restreint par les inputs `permission-contents`, `permission-issues` et `permission-pull-requests` aux trois droits que demande release-please. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token`, appelée par SHA. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux trois dépôts où elle est installée (le portfolio en fait partie). Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job, et restreint par les inputs `permission-contents`, `permission-issues` et `permission-pull-requests` aux trois droits que demande release-please. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
@@ -449,7 +449,7 @@ Aucune politique CORS : le site sert ses propres pages et ses Server Actions, et
 |-----------------|--------|---------|-----------|
 | Formulaire contact (Server Action) | 5 requêtes | 10 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`, cap 1000 clés). Dépassement → event `rate_limit:exceeded` en `warn` |
 | Route MCP (`/api/mcp/<domaine>`), par IP | 120 requêtes | 1 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`), avant toute lecture en base. IP = première entrée de `X-Forwarded-For`, fiable derrière Traefik ; sans cet en-tête (réseau Docker interne d'`agent-os`), toutes les requêtes partagent le seau `unknown`. Remis à zéro à chaque redéploiement. Dépassement → `429` avec `Retry-After`, event `rate_limit:exceeded` (`limit: "ip"`) |
-| Route MCP, par clé d'API | 1000 requêtes acceptées | Cumul remis à zéro après 1 h sans requête acceptée | Plugin `@better-auth/api-key` (`src/lib/auth.ts`), réglage copié dans chaque clé à sa création : une clé existante garde le sien. Chaque requête HTTP compte (initialisation, notifications, appels d'outils). Dépassement → `429` jusqu'à 1 h après la dernière requête acceptée, avec `Retry-After` (secondes restantes, tirées de `error.details.tryAgainIn` que renvoie le plugin, `src/server/mcp/authenticate.ts`), event `rate_limit:exceeded` (`limit: "key"`) |
+| Route MCP, par clé d'API | 1000 requêtes acceptées | Cumul remis à zéro après 1 h sans requête acceptée | Plugin `@better-auth/api-key` (`src/lib/auth.ts`), réglage copié dans chaque clé à sa création : une clé existante garde le sien. Dépassement → `429` avec `Retry-After` (`src/server/mcp/authenticate.ts`), event `rate_limit:exceeded` (`limit: "key"`). Mécanique du plugin (cumul, `tryAgainIn`) : [knowledges/better-auth.md](knowledges/better-auth.md) § Clés d'API |
 | Domaine, toutes routes | 600 requêtes, rafale 200 | 1 min | Middleware Traefik `rate-limit-strict@file`, posé sur le domaine, par IP source (IPv6 regroupées par `/64`). Dépassement → `429` |
 | Défaut du VPS, tous sites | 3000 requêtes, rafale 1000 | 1 min | Middleware Traefik `rate-limit@file`, posé sur le point d'entrée `websecure` |
 
@@ -490,7 +490,7 @@ Aucune politique CORS : le site sert ses propres pages et ses Server Actions, et
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
 | Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
 | UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
-| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Tracing des Server Actions affecté par un bug SDK connu sous Turbopack : la transaction n'atteint pas le dashboard (reproduit en `11.1.0` le 2026-10-03 sur l'image de production, erreur SMTP de l'action contact reçue avec son `trace_id` mais sans span après plus de 4 minutes, non revalidé en `11.6.0`). Cause et contournements : [knowledges/sentry.md](knowledges/sentry.md#bundler-et-incidents-connus). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
+| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Spans des Server Actions absents sous Turbopack, non revalidé en `11.11.0` : [knowledges/sentry.md](knowledges/sentry.md#bundler-et-incidents-connus). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
 
 ## Métriques Clés
 
@@ -537,9 +537,9 @@ JSON structuré via Pino (`src/lib/logger.ts`), une ligne par événement sur st
 
 > **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action ou par requête MCP (`action: "mcp"`) : `action`, `requestId` (corrèle toutes les lignes d'une même soumission ou requête) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
 
-> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `request:unhandled_error` → `err`, `path` ; `mcp:request` → `domain`, `keyId`, `era` (`legacy` ou `modern`, révision MCP du client) ; `mcp:rejected` → `reason` (`origin`, `unknown_domain`, `no_key`, `invalid_key`, `forbidden`), `domain` une fois vérifié ; `mcp:handler_error` → `err`, `domain` ; `rate_limit:exceeded` de la route MCP → `limit` (`ip` ou `key`).
+> **Champs propres à l'event** (exemples, `grep "event":"<nom>"` pour la liste réelle) : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds`, et `limit` (`ip` ou `key`) sur la route MCP ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `mcp:request` → `domain`, `keyId`, `era` (`legacy` ou `modern`, révision MCP du client) ; `mcp:rejected` → `reason` (`origin`, `unknown_domain`, `no_key`, `invalid_key`, `forbidden`).
 
-> **`calendly:url_missing` est le seul event émis hors Server Action** (rendu de la page contact, quand `NEXT_PUBLIC_CALENDLY_URL_<LOCALE>` manque). Il ne porte donc ni `action`, ni `requestId`, ni `ip_hash` : inutile de chercher à le corréler à une soumission.
+> **Les events émis hors Server Action** (ex. `calendly:url_missing`, au rendu de la page contact quand `NEXT_PUBLIC_CALENDLY_URL_<LOCALE>` manque) ne portent ni `action`, ni `requestId`, ni `ip_hash` : inutile de chercher à les corréler à une soumission. Les events de la route MCP portent leurs propres bindings (`action: "mcp"`).
 
 Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message` recopié par le sérialiseur. Le seul autre event à porter un `msg` est `calendly:url_missing`, dont le message est passé explicitement à l'appel.
 
@@ -608,7 +608,7 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 2. **État du service** → même écran : le Compose est-il up, a-t-il redémarré ? Un container qui crash-loop se voit dans les logs de démarrage
 3. **Base de données** → Database `portfolio-db` → onglet Logs : Postgres et les erreurs Prisma d'initialisation y sortent en texte natif, pas en JSON Pino
 4. **Dernier déploiement** → Compose `Portfolio-app` → onglet Deployments : quel tag a précédé l'incident ?
-5. **Rollback** si la cause est la dernière version déployée → voir § Déploiement, Rollback
+5. **Rollback** si la cause est la dernière version déployée → voir § CI/CD & Déploiement > Rollback
 
 > ℹ️ **En SSH sur le VPS**, ne jamais écrire un nom de container en dur : le Compose suffixe ses services (`-nextjs-1`) et la Database Dokploy tourne en Swarm avec un identifiant de tâche qui change à chaque redémarrage. Résoudre par nom partiel : `docker ps -qf name=portfolio-`. Détail du fonctionnement Dokploy : [knowledges/dokploy.md](knowledges/dokploy.md).
 

@@ -1,7 +1,7 @@
 ---
 title: "BRAINSTORM : Vision & Idéation Projet"
 description: "Vision globale du portfolio personnel thibaud-geisler.com : plateforme de crédibilité, hub de démos et outils internes freelance."
-date: "2026-10-29"
+date: "2026-11-10"
 keywords: ["brainstorm", "portfolio", "freelance", "platform", "ia", "rag", "admin"]
 scope: ["docs", "planning"]
 technologies: ["Next.js", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Cloudflare R2", "Sentry", "Python"]
@@ -86,9 +86,11 @@ Le portfolio est un **hub** : chaque application développée a sa propre démo 
 
 * **SMTP IONOS** : envoi d'emails via formulaire de contact
 * **Calendly** : prise de rendez-vous intégrée à la page Contact
+* **Cloudflare R2** : stockage des assets, servis par l'app ([ADR-011](adrs/011-stockage-assets.md))
+* **Google OAuth** : connexion à l'espace admin, via Better Auth ([ADR-002](adrs/002-auth-better-auth-google-oauth.md))
 * **API LLM** (post-MVP) : chatbot IA avec RAG, accès tranché par [ADR-016](adrs/016-acces-llm.md)
 * **Umami** (post-MVP) : analytics self-hosted sur Dokploy, service séparé dont le portfolio n'embarque que le script de suivi
-* **Sentry** (erreurs, en place) et **Logfire ou Langfuse** (traces LLM, post-MVP) : en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
+* **Sentry** (erreurs) et **Logfire ou Langfuse** (traces LLM, post-MVP) : en cloud ([ADR-017](adrs/017-observabilite-cloud.md))
 * **Indy API**, **LinkedIn** (tardifs) : à étudier selon le besoin réel
 
 ---
@@ -265,7 +267,7 @@ Les actions de chaque domaine exposées aux agents, pour qu'un agent lise et agi
 * **Clients** : Claude Code sur le poste, les sessions d'`agent-os` (Feature 4) et tout client MCP qui accepte une clé en en-tête. Claude Desktop et claude.ai servent de cas de test, sans écran ni OAuth dédiés
 * **Skills freelance** : trois commandes du CRM dupliquées sur les outils de l'app pour les éprouver, les skills restant sur Notion. Leur bascule ouvre la Feature 4
 
-Le premier sub-project est le prototype qui lève les conditions de l'ADR-025.
+Le premier sub-project, le prototype, a mesuré les conditions de l'ADR-025 ; la première reste en partie ouverte ([ADR-025](adrs/025-acces-agents-app.md) § Décision).
 
 Données personnelles : dès que Claude Code lit des leads par ces outils, Anthropic devient destinataire de ces données. Le spec de cette feature met à jour pour ce destinataire le registre des traitements, la politique de confidentialité et l'évaluation d'impact ; les autres destinataires des agents relèvent de la Feature 4.
 

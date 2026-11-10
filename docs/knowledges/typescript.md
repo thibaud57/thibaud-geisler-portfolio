@@ -10,7 +10,7 @@ technologies: ["Node.js", "Next.js", "React"]
 
 # Description
 
-`TypeScript` 6 est utilisé en mode `strict` pour tout le portfolio. La v6 change les defaults : `strict: true`, `module: esnext`, `target: es2025`, `types: []` (plus de auto-crawl des `@types/*`). Ces changements imposent une config explicite mais accélèrent les builds de 20-50%. Supporte la Temporal API, `using`, et `RegExp.escape` via les libs ES2025.
+`TypeScript` 6 est utilisé en mode `strict` pour tout le portfolio. La v6 change les defaults : `strict: true`, `module: esnext`, `target: es2025`, `types: []` (plus de auto-crawl des `@types/*`). Ces changements imposent une config explicite, qui accélère les builds : « Many projects we've looked at have improved their build time anywhere from 20-50% just by setting `types` appropriately » ([annonce TypeScript 6.0](https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/), relevé non garanti). Supporte la Temporal API, `using`, et `RegExp.escape` via les libs ES2025.
 
 ---
 
@@ -28,7 +28,7 @@ Configuration adaptée à Next.js 16 + React 19 + Prisma. Mode strict obligatoir
 {
   "compilerOptions": {
     "target": "es2025",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": ["dom", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -58,7 +58,7 @@ Configuration adaptée à Next.js 16 + React 19 + Prisma. Mode strict obligatoir
 
 ### Points Importants
 
-- `strict: true` est désormais le défaut en v6
+- `strict: true` est le défaut en v6
 - Cinq options strictes en plus de `strict` : `noUncheckedIndexedAccess` (un accès indexé peut valoir `undefined`), `noImplicitOverride`, `noPropertyAccessFromIndexSignature` (d'où `process.env["X"]` plutôt que `process.env.X`), `noImplicitReturns`, `noFallthroughCasesInSwitch`
 - `jsx: "react-jsx"` et non le `preserve` du template Next : le bundler transforme dans les deux cas, la valeur ne joue que sur ce que vérifie `tsc --noEmit`
 - `react/canary` et `react/experimental` dans `types` exposent les API React pas encore dans les types stables
@@ -98,7 +98,7 @@ type UserWithoutRole = Omit<User, 'role'>
 
 ### Points Importants
 
-- `z.infer` : source unique de vérité entre runtime et types
+- `z.infer` pour dériver un type d'un schéma : voir [zod.md](zod.md)
 - `typeof` pour capturer le type d'une constante
 - `Pick`, `Omit`, `Partial`, `Required` pour dériver des types
 - Éviter `any` : utiliser `unknown` puis narrowing
@@ -171,12 +171,12 @@ import { logger } from '@/lib/logger'
 
 ### Description
 
-Les types générés par Prisma sont disponibles via `@prisma/client`. Combinés avec `z.infer`, ils permettent de typer de bout en bout les données : de la validation Zod (entrée) à la persistance Prisma (sortie).
+Les types générés par Prisma sont disponibles depuis le dossier `output` du générateur du `schema.prisma`. Combinés avec `z.infer`, ils permettent de typer de bout en bout les données : de la validation Zod (entrée) à la persistance Prisma (sortie).
 
 ### Exemple
 
 ```ts
-import type { Project, Prisma } from '@/generated/prisma/client'
+import type { Project, Prisma } from './generated/prisma/client' // chemin = `output` du générateur
 import { z } from 'zod'
 
 export const CreateProjectSchema = z.object({
@@ -198,37 +198,11 @@ type ProjectWithAssets = Prisma.ProjectGetPayload<{
 - `Project` : type de base du modèle (champs scalaires)
 - `Prisma.ProjectGetPayload<T>` : type avec relations incluses
 - `Prisma.ProjectCreateInput` : type attendu par `prisma.project.create`
-- Importer depuis `@/generated/prisma/client` en Prisma 7 (plus `@prisma/client` : le client est généré dans `output` du schema.prisma)
-- Partager les schémas Zod entre client et serveur via `src/lib/schemas/`
+- Importer depuis le chemin `output` du générateur en Prisma 7 (plus `@prisma/client` : le client est généré dans `output` du schema.prisma)
 
 ---
 
 # Commandes Clés
-
-## Initialisation (tsc --init)
-
-### Description
-
-`tsc --init` génère un `tsconfig.json` initial. En v6, les nouveaux défauts sont breaking par rapport à v5 : `strict: true`, `module: esnext`, `target: es2025`, `moduleResolution: bundler`, `types: []`. Dans un projet Next.js 16, `create-next-app` génère déjà un `tsconfig.json` adapté, `tsc --init` sert surtout pour des projets TS purs.
-
-### Syntaxe
-
-```bash
-# Générer un tsconfig.json avec les défauts v6
-pnpm exec tsc --init
-
-# Pour Next.js, le tsconfig est généré par create-next-app : pas besoin
-```
-
-### Points Importants
-
-- **Breaking v6** : nouveaux défauts `strict: true`, `target: es2025`, `module: esnext`, `moduleResolution: bundler`, `types: []`
-- `types: []` signifie que `@types/node` doit être déclaré explicitement si besoin (plus d'auto-discovery)
-- `moduleResolution: bundler` est aligné avec les attentes de Next.js 16+ et Turbopack
-- Pour un projet Next.js, `create-next-app` génère le `tsconfig.json` correct, pas besoin de `tsc --init`
-- Pour supprimer les warnings de dépréciation des anciennes options : `"ignoreDeprecations": "6.0"`
-
----
 
 ## Type-check sans émission
 
@@ -263,19 +237,11 @@ pnpm exec tsc --ignoreConfig foo.ts
 
 ## ✅ Recommandations
 
-- Activer `strict: true` (désormais le défaut v6)
-- Utiliser `moduleResolution: bundler` avec Next.js 16
-- Déclarer les alias `@/*` pour éviter les imports relatifs profonds
-- Préférer les discriminated unions aux enums
-- Dériver les types des schémas Zod via `z.infer`
-- Exécuter `tsc --noEmit` en CI
+- Dériver les types des schémas Zod (voir [zod.md](zod.md))
+- Lancer `tsc --noEmit` en CI, précédé de `next typegen` avec Next : les types de routes (`PageProps`, `LayoutProps`, `RouteContext`) en dépendent
 
 ## ❌ Anti-Patterns
 
-- Ne pas utiliser `any` : préférer `unknown` + narrowing
-- Ne pas désactiver `strict` sans raison explicite
-- Ne pas dupliquer les types à la main si `z.infer` peut les dériver
-- Ne pas utiliser `--emit` pour Next.js (le bundler gère)
 - Ne pas activer `preserveSymlinks: true` (casse avec pnpm)
 
 ---
@@ -286,6 +252,7 @@ pnpm exec tsc --ignoreConfig foo.ts
 
 - [TypeScript : Documentation](https://www.typescriptlang.org/docs/)
 - [TypeScript 6.0 Release Notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html)
+- [Annonce TypeScript 6.0](https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/)
 
 ## Ressources Complémentaires
 

@@ -1,6 +1,6 @@
 # Thibaud Geisler Portfolio
 
-Plateforme personnelle servant de vitrine professionnelle et de hub central (services, projets, démos externes) en IA, développement full-stack et formation. Monolithe Next.js single-user, évolutif vers un espace admin interne freelance post-MVP.
+Plateforme personnelle servant de vitrine professionnelle et de hub central (services, projets, démos externes) en IA, développement full-stack et formation. Monolithe Next.js single-user, avec un espace admin interne (CRM freelance) et un serveur MCP par lequel les agents agissent sur l'app.
 
 ## Stack
 
@@ -28,10 +28,10 @@ Backend : Node.js + TypeScript strict (Next.js App Router, Server Actions) | Fro
 
 ### Standards
 
-- **Périmètre single-user** : pas de multi-tenant, pas de gestion multi-utilisateur, whitelist email unique côté auth (post-MVP)
+- **Périmètre single-user** : pas de multi-tenant, pas de gestion multi-utilisateur, whitelist email unique côté auth
 - **Hub de démos externes** : le portfolio liste et pointe vers des démos autonomes, il ne démo pas les applications lui-même
 - **Pas de sur-ingénierie anticipatoire** : chaque complexité ajoutée uniquement si le besoin réel apparaît
-- **Stratégie de tests** : TDD sur les Server Actions critiques (contact, mutations de l'espace admin), intégration sur les chemins critiques uniquement, pas de tests e2e en MVP
+- **Stratégie de tests** : TDD sur les mutations critiques (contact, domaine CRM, espace admin), intégration sur les chemins critiques uniquement, pas de tests e2e en MVP
 - **Commentaires `TODO` autorisés** : ils tracent une intention future volontairement reportée (hors scope actuel, suite envisagée, amélioration différée)
 
 > Les règles techniques (Zod, Prisma, Next.js, secrets, etc.) sont dans [.claude/rules/](rules/) et chargées dynamiquement.

@@ -29,8 +29,8 @@ Quel mécanisme d'authentification mettre en place pour protéger l'espace admin
 **Description :** Better Auth avec Google comme unique provider social. Whitelist email via un hook `databaseHooks.user.create.before` qui rejette toute création de compte dont l'email ne correspond pas au Gmail pro autorisé. Aucun provider Credentials activé.
 
 **Avantages :**
-- Brute force éliminé : aucun endpoint de login direct à attaquer, l'authentification est déléguée à Google
-- Aucun credential stocké en BDD : une fuite de la base expose au pire un `accountId` Google inutilisable seul
+- Brute force éliminé : aucun endpoint de login direct à attaquer pour l'espace admin, l'authentification est déléguée à Google
+- Aucun credential d'espace admin stocké en BDD : une fuite de la base expose au pire un `accountId` Google inutilisable seul (les clés d'API des agents y sont stockées hachées, [ADR-025](025-acces-agents-app.md))
 - 2FA héritée du compte Google, protection renforcée sans effort supplémentaire
 - Phishing réduit : un attaquant devrait reproduire une fausse page Google crédible ET contourner le redirect URI whitelist de la Google Cloud Console
 - Better Auth : version stable 1.6+, TypeScript natif, adaptateur Prisma first-class, écosystème actif en 2026
@@ -79,7 +79,7 @@ Quel mécanisme d'authentification mettre en place pour protéger l'espace admin
 
 **Option A actée : Better Auth + Google OAuth uniquement.**
 
-Pour un espace admin single-user protégeant un compte admin unique, déléguer l'authentification à Google est objectivement plus sécurisé qu'une implémentation locale : brute force éliminé, aucun credential stocké localement, 2FA Google héritée. Better Auth est la librairie de référence en 2026 (Auth.js v5 est en beta indéfinie et maintenu en mode security-only par la même équipe).
+Pour un espace admin single-user protégeant un compte admin unique, déléguer l'authentification à Google est objectivement plus sécurisé qu'une implémentation locale : brute force éliminé, aucun credential d'espace admin stocké localement, 2FA Google héritée. Better Auth est la librairie de référence en 2026 (Auth.js v5 est en beta indéfinie et maintenu en mode security-only par la même équipe).
 
 Aucun provider Credentials n'est activé en fallback : garder un second provider reviendrait à conserver la surface d'attaque que l'on cherche à éliminer. En cas de perte d'accès au compte Google, un accès manuel via SSH Dokploy + requête SQL directe reste possible en dernier recours.
 
@@ -100,10 +100,10 @@ Aucun provider Credentials n'est activé en fallback : garder un second provider
 
 # 📝 Notes complémentaires
 
-Cette décision s'applique uniquement à l'espace admin (post-MVP). Les pages publiques restent sans authentification.
+Cette décision porte sur la session de l'espace admin. Les pages publiques restent sans authentification. Les agents ont une seconde entrée authentifiée, `/api/mcp/<domaine>`, par clé d'API (plugin `@better-auth/api-key`, clés stockées hachées dans la table `apikey`), jamais par cette session ([ADR-025](025-acces-agents-app.md)).
 
 **Whitelist email single-user :** implémentée via le hook `databaseHooks.user.create.before` de Better Auth. Toute tentative de création de compte dont l'email diffère de celui stocké dans `ADMIN_EMAIL` est rejetée. Cela garantit qu'un seul compte peut exister dans la base, même si un autre utilisateur tente de s'authentifier via le flow Google OAuth.
 
-**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`. Les modèles Prisma correspondants sont écrits à la main : `@better-auth/cli generate` réécrit tout le `schema.prisma` du projet sans émettre les `@@schema(...)` du multi-schema. Elles cohabitent avec les tables applicatives dans la même base PostgreSQL, dans un schema `auth` dédié (cf. [ADR-018](018-cloisonnement-donnees.md)).
+**Tables BDD créées par Better Auth :** `user`, `session`, `account`, `verification`, `apikey` (clés d'API des agents). Les modèles Prisma correspondants sont écrits à la main : `@better-auth/cli generate` réécrit tout le `schema.prisma` du projet sans émettre les `@@schema(...)` du multi-schema. Elles cohabitent avec les tables applicatives dans la même base PostgreSQL, dans un schema `auth` dédié (cf. [ADR-018](018-cloisonnement-donnees.md)).
 
 **Historique de la décision :** la version précédente de cet ADR (datée 2026-03-31) avait acté NextAuth.js Credentials provider. Révision en avril 2026 pour deux raisons : (1) changement d'écosystème, Auth.js passé sous maintenance Better Auth, (2) analyse de sécurité, OAuth Google objectivement plus sûr qu'un hash bcrypt local pour un compte admin unique. Better Auth + Google OAuth remplace NextAuth.js Credentials comme choix retenu.

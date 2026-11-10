@@ -11,7 +11,7 @@ paths:
 - Injecter `authInfo` dans ce `fetch` de test, comme la route le fait après vérification de la clé
 - Négocier la version côté client par `versionNegotiation: { mode: 'auto' }`
 - Fermer le client puis le handler (`client.close()`, `handler.close()`) après chaque test
-- Tester la règle métier et le contrat de l'outil (arguments refusés, `isError`, `structuredContent`), pas le transport du SDK
+- Tester la règle métier et le contrat de l'outil (arguments refusés, `isError`, `structuredContent`)
 
 ## À éviter
 - `InMemoryTransport.createLinkedPair()` avec `server.connect` : il ne couvre que l'ère 2025, pas le chemin servi par `createMcpHandler`

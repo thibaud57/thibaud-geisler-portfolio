@@ -10,7 +10,7 @@ technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
 
 # Description
 
-`Vitest` est le framework de test utilisé dans le portfolio pour les tests unitaires (fonctions pures, helpers, Server Actions critiques, schémas Zod) et d'intégration (formulaire contact avec SMTP mock, queries Prisma sur PostgreSQL de test). Intégration native avec Vite, support TypeScript, compatible Testing Library React et jsdom. La v4 apporte Vite 8, `test.extend` avec inférence automatique, et un reporter `agent` pour les AI coding agents. La v5 (3 septembre 2026) exige Vite >= 6.4 et Node.js >= 22.12, fait de `vite` une peer obligatoire et active `clearMocks` par défaut.
+`Vitest` est le framework de test utilisé dans le portfolio pour les tests unitaires (fonctions pures, helpers, Server Actions critiques, schémas Zod) et d'intégration (formulaire contact avec SMTP mock, queries Prisma sur PostgreSQL de test). Intégration native avec Vite, support TypeScript, compatible Testing Library React et jsdom. La v4 apporte `test.extend` avec inférence automatique, et un reporter `agent` pour les AI coding agents. La v5 (3 septembre 2026) exige Vite >= 6.4 et Node.js >= 22.12, fait de `vite` une peer obligatoire et active `clearMocks` par défaut.
 
 ---
 
@@ -20,7 +20,7 @@ technologies: ["TypeScript", "Next.js", "React", "Testing Library"]
 
 ### Description
 
-Configuration minimale pour tester une application Next.js avec React 19 et TypeScript. Utilise `jsdom` comme environnement, `tsconfig-paths` pour les alias `@/*`, et un fichier `setup.ts` pour charger les matchers Testing Library.
+Configuration minimale pour tester une application Next.js avec React 19 et TypeScript. Utilise `jsdom` comme environnement, l'option native `resolve.tsconfigPaths` pour les alias `@/*` (aucun plugin `vite-tsconfig-paths`), et un fichier de setup pour charger les matchers Testing Library. Avec plusieurs projects (section suivante), l'environnement se pose par project, pas à la racine comme dans cet exemple minimal.
 
 ### Exemple
 
@@ -36,8 +36,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./vitest.setup.ts'],
   },
 })
 ```
@@ -52,15 +51,17 @@ import '@testing-library/jest-dom/vitest'
 - `environment: 'jsdom'` pour les tests React DOM
 - `globals: true` injecte `describe`/`it`/`expect` sans import
 - Ajouter `"types": ["vitest/globals"]` dans `tsconfig.json`
-- `@testing-library/jest-dom/vitest` étend `expect` avec `toBeInTheDocument`, etc.
+- `@testing-library/jest-dom/vitest` étend `expect` avec `toBeInTheDocument`, etc. Il s'importe par ce chemin, pas par l'import standard
+- `@testing-library/dom` est une peer **obligatoire** de `@testing-library/jest-dom` 7 : à déclarer en devDependency, faute de quoi elle n'arrive que par l'auto-install des peers de pnpm
+- jsdom 31 réécrit son moteur CSS (styles calculés et sérialisation peuvent différer), met le parsing en pause aux scripts bloquants (`new JSDOM()` peut rendre un document partiel) et lit le canvas via `@napi-rs/canvas` : aucun effet sur la suite du projet, verte sans modification (notes de la 31.0.0, lues le 2026-11-10)
 
 ---
 
-## Projects unit / integration et mock de server-only
+## Projects unit / server / integration et mock de server-only
 
 ### Description
 
-`vitest.config.ts` sépare deux projects : `unit` (jsdom, parallèle) pour les composants et la logique, `integration` (node, sérialisé) pour les tests qui écrivent dans le Postgres de test. Le module `server-only`, qui garde les modules serveur, n'a pas d'implémentation hors du bundler Next : il est remplacé par un module vide via un alias.
+`vitest.config.ts` sépare des projects par environnement (`extends: true`, donc `plugins`, `resolve` et `setupFiles` communs) : `unit` (jsdom) pour les composants et la logique, `server` (node) pour le code serveur, `integration` (node, sérialisé) pour les tests qui écrivent dans une base de test. Le module `server-only`, qui garde les modules serveur, n'a pas d'implémentation hors du bundler Next : il est remplacé par un module vide via un alias.
 
 ### Exemple
 
@@ -76,7 +77,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.env-loader.ts', './vitest.setup.ts'],
     projects: [
-      { extends: true, test: { name: 'unit', environment: 'jsdom', exclude: ['src/**/*.integration.test.{ts,tsx}'] } },
+      { extends: true, test: { name: 'unit', environment: 'jsdom', exclude: ['src/**/*.integration.test.{ts,tsx}', 'src/server/**'] } },
+      { extends: true, test: { name: 'server', environment: 'node', include: ['src/server/**/*.test.{ts,tsx}'], exclude: ['src/**/*.integration.test.{ts,tsx}'] } },
       { extends: true, test: { name: 'integration', environment: 'node', include: ['src/**/*.integration.test.{ts,tsx}'], pool: 'forks', fileParallelism: false } },
     ],
   },
@@ -86,8 +88,10 @@ export default defineConfig({
 ### Points Importants
 
 - Sans l'alias, tout test qui importe une Server Action ou un module `import 'server-only'` échoue dès l'import
+- Un project en `environment: 'node'` fait tourner le code serveur avec le `FormData`, le `File` et le `fetch` de Node, comme en production : jsdom les remplace par ses propres implémentations
 - `fileParallelism: false` sur `integration` (il ramène à lui seul `maxWorkers` à 1) : les fichiers partagent une base, en parallèle ils se marchent dessus (truncate et insert concurrents)
-- Un test d'intégration se nomme `*.integration.test.ts`, c'est ce suffixe qui l'oriente vers le bon project
+- Un test d'intégration se nomme `*.integration.test.ts`, c'est ce suffixe qui l'oriente vers le bon project.
+- Un paquet ESM seul qui importe `next/navigation` sans extension (next-intl) échoue sous Node strict : l'inliner par `server.deps.inline` (vercel/next.js#77200)
 - `vitest.env-loader.ts` charge la configuration d'environnement via `@next/env`, avant tout import qui lit `process.env`
 
 ---
@@ -278,59 +282,6 @@ pnpm exec vitest run --coverage
 ---
 
 # Commandes Clés
-
-## Installation (Next.js + React)
-
-### Description
-
-Installation de Vitest dans un projet Next.js 16 avec Testing Library : core Vitest, plugin React Vite, jsdom pour le DOM, puis la suite Testing Library (React + jest-dom + user-event). Les alias TypeScript ne demandent plus de paquet depuis Vitest 4, et `vite`, peer obligatoire de Vitest 5, est installé seul par pnpm.
-
-### Syntaxe
-
-```bash
-# 1. Core Vitest + plugin React (les alias `@/*` passent par resolve.tsconfigPaths, natif depuis Vitest 4)
-pnpm add -D vitest @vitejs/plugin-react
-
-# 2. Testing Library (pour tester les composants React)
-pnpm add -D jsdom \
-  @testing-library/react \
-  @testing-library/dom \
-  @testing-library/jest-dom \
-  @testing-library/user-event
-```
-
-### Points Importants
-
-- Versions en place avec Vitest 5.1.0, suite verte le 10 novembre 2026 : `@testing-library/react ^16.3.3`, `@testing-library/dom ^10.4.2`, `@testing-library/jest-dom ^7.0.1`, `@testing-library/user-event ^14.6.8`, `jsdom ^31.0.0`
-- jsdom 31 réécrit son moteur CSS (styles calculés et sérialisation peuvent différer), met le parsing en pause aux scripts bloquants (`new JSDOM()` peut rendre un document partiel) et lit le canvas via `@napi-rs/canvas` : aucun effet sur la suite du projet, verte sans modification (notes de la 31.0.0, lues le 2026-11-10)
-- `@testing-library/dom` est une peer **obligatoire** de `@testing-library/jest-dom` 7 : déclarée en devDependency le 9 octobre 2026, elle n'arrivait avant que par l'auto-install des peers de pnpm
-- `jsdom` requis pour tester les composants React (DOM simulé)
-- Alternative plus rapide : `happy-dom` à la place de `jsdom`
-- `@testing-library/jest-dom` s'importe via `'@testing-library/jest-dom/vitest'` dans le fichier setup (pas l'import standard)
-- Les **async Server Components Next.js ne sont pas testables** avec Vitest : utiliser Playwright/Cypress pour ces cas
-
----
-
-## Initialisation (browser mode uniquement)
-
-### Description
-
-`vitest init` existe mais **uniquement** pour le browser mode (valeur supportée : `browser`). Pas de commande `init` générique pour la config standard, il faut créer le fichier de configuration manuellement.
-
-### Syntaxe
-
-```bash
-# Pour browser mode uniquement (pas utilisé dans le portfolio)
-pnpm exec vitest init browser
-```
-
-### Points Importants
-
-- Pour le portfolio (tests React + unit), `vitest init` n'est **pas nécessaire** : le projet a un `vitest.config.ts` écrit à la main
-- Le fichier de config doit déclarer `plugins: [react()]`, `resolve.tsconfigPaths: true` et `test.environment: 'jsdom'` (le projet utilise `vitest.config.ts`)
-- Créer aussi `vitest.setup.ts` avec `import '@testing-library/jest-dom/vitest'` pour les matchers étendus
-
----
 
 ## Exécution et watch
 
