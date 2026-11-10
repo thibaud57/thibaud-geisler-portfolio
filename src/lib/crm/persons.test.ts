@@ -19,7 +19,7 @@ describe("optOutDeletesPerson", () => {
     {
       label: "keeps a person with a LinkedIn profile",
       email: null,
-      linkedinUrl: "https://www.linkedin.com/in/jane-doe",
+      linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
       expected: false,
     },
   ])("$label on opt-out", ({ email, linkedinUrl, expected }) => {
@@ -36,7 +36,7 @@ describe("personDisplayName", () => {
       person: {
         name: "Jane Doe",
         email: "jane.doe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/jane-doe",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
       },
       expected: "Jane Doe",
     },
@@ -45,14 +45,18 @@ describe("personDisplayName", () => {
       person: {
         name: null,
         email: "jane.doe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/jane-doe",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
       },
       expected: "jane.doe@example.com",
     },
     {
       label: "the LinkedIn profile when name and email are missing",
-      person: { name: null, email: null, linkedinUrl: "https://www.linkedin.com/in/jane-doe" },
-      expected: "https://www.linkedin.com/in/jane-doe",
+      person: {
+        name: null,
+        email: null,
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
+      },
+      expected: "https://www.linkedin.com/in/jane_doe_example",
     },
     {
       label: "an empty string when nothing identifies the person",

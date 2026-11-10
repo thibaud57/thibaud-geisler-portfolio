@@ -2,32 +2,42 @@
 
 import "server-only"
 
-import { isEsn } from "@/lib/crm/companies"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
-import type { CompanyId } from "@/lib/ids"
+import { opportunityIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { opportunitySchema, type OpportunityInput } from "@/lib/schemas/opportunity"
-import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
+import { rowExists, stringField } from "@/lib/server-utils"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
+import {
+  createOpportunity as createOpportunityRecord,
+  updateOpportunity as updateOpportunityRecord,
+  type OpportunityFieldsError,
+  type WrittenOpportunity,
+} from "@/server/crm/opportunities"
+import type { DomainResult } from "@/server/crm/result"
 
 import {
   type ActionEvents,
   deleteEntity,
+  domainFailure,
+  type DomainFailure,
+  failureState,
   formStateHandlers,
   MISSING_COMPANY,
   MISSING_REFERRER,
-  missingRelationState,
-  rowExists,
   saveEntity,
 } from "./_support/shared"
-import type { OpportunityDeleteState, OpportunityFormState } from "./opportunities.types"
-import { revalidatePersonLists } from "./_support/person-guards"
+import type {
+  OpportunityDeleteState,
+  OpportunityFormMessage,
+  OpportunityFormState,
+} from "./opportunities.types"
 
 // Les fiches lead, contact et entreprise montrent leurs opportunités (ou le statut Deal qu'elles dérivent), les entretiens leur titre, tarif, zone et contrat. Supprimer une opportunité supprime ses entretiens : leurs vues se rafraîchissent aussi (entretiens et entreprises via `revalidatePersonLists`).
 function invalidateOpportunityCaches(): void {
   revalidatePersonLists()
 }
-
-class IntermediaryNotEsnError extends Error {}
 
 function collectValues(formData: FormData): OpportunityFormState["values"] {
   return {
@@ -50,82 +60,65 @@ function collectValues(formData: FormData): OpportunityFormState["values"] {
   }
 }
 
-// Le formulaire ne propose que des ESN : le serveur revérifie, le type ayant pu changer depuis l'affichage.
-// Une ESN disparue passe ici et se lit ensuite sur la clé étrangère violée.
-async function assertIntermediaryIsEsn(intermediaryId: CompanyId | null): Promise<void> {
-  if (!intermediaryId) return
-  const company = await prisma.company.findUnique({
-    where: { id: intermediaryId },
-    select: { types: true },
-  })
-  if (company && !isEsn(company)) throw new IntermediaryNotEsnError()
-}
+const failure = domainFailure<OpportunityInput, OpportunityFormMessage>
 
-function mapOpportunityError(
-  err: unknown,
+function mapDomainError(
+  error: OpportunityFieldsError,
   values: OpportunityFormState["values"],
-): OpportunityFormState | null {
-  if (err instanceof IntermediaryNotEsnError) {
-    return {
-      ok: false,
-      errors: { intermediaryId: ["L'ESN doit être une entreprise de type ESN / Recrutement"] },
-      message: "intermediary_not_esn",
-      values,
-    }
+): DomainFailure<OpportunityFormState> {
+  switch (error.code) {
+    case "intermediary_not_esn":
+      return failure(
+        values,
+        { intermediaryId: ["L'ESN doit être une entreprise de type ESN / Recrutement"] },
+        "intermediary_not_esn",
+      )
+    case "referrer_not_found":
+      return failure(values, { referrerId: [MISSING_REFERRER.text] }, MISSING_REFERRER.code)
+    case "company_not_found":
+      return failure(values, { [error.field]: [MISSING_COMPANY.text] }, MISSING_COMPANY.code)
+    case "client_is_intermediary":
+      return failure(values, { clientId: ["Le client final ne peut pas être l'ESN"] }, null)
+    case "days_out_of_range":
+      return failure(
+        values,
+        { onSiteDays: ["Pas plus de jours sur site que de jours travaillés"] },
+        null,
+      )
+    case "not_found":
+      return failure(values, {}, "opportunity_not_found", true)
+    default:
+      return assertNever(error)
   }
-  // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
-  if (isPrismaError(err, "P2003")) {
-    const constraint = violatedConstraint(err)
-    if (constraint?.includes("referrerId")) {
-      return missingRelationState("referrerId", MISSING_REFERRER, values)
-    }
-    const companyField = (["intermediaryId", "clientId"] as const).find((field) =>
-      constraint?.includes(field),
-    )
-    if (companyField) return missingRelationState(companyField, MISSING_COMPANY, values)
-  }
-  return null
 }
 
 const opportunityExists = (id: string) => rowExists(prisma.opportunity, { id })
-
-async function storedIntermediaryId(id: string): Promise<string | null> {
-  const stored = await prisma.opportunity.findUnique({
-    where: { id },
-    select: { intermediaryId: true },
-  })
-  return stored?.intermediaryId ?? null
-}
 
 function saveOpportunity(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  write: (data: OpportunityInput) => Promise<{ id: string }>,
-  updatedId?: string,
+  persist: (
+    data: OpportunityInput,
+  ) => Promise<DomainResult<WrittenOpportunity, OpportunityFieldsError>>,
 ): Promise<OpportunityFormState> {
   const values = collectValues(formData)
 
-  return saveEntity<OpportunityInput, OpportunityFormState, { id: string }>({
+  return saveEntity<
+    OpportunityInput,
+    OpportunityFormState,
+    WrittenOpportunity,
+    OpportunityFieldsError
+  >({
     actionName,
     events,
     schema: opportunitySchema,
     input: values,
-    persist: async (data) => {
-      // Une ESN déjà reliée qui a perdu son type reste acceptée, sinon plus aucune modification ne passerait : seul un nouveau choix est revérifié.
-      const unchanged =
-        updatedId !== undefined && data.intermediaryId === (await storedIntermediaryId(updatedId))
-      if (!unchanged) await assertIntermediaryIsEsn(data.intermediaryId)
-      return write(data)
-    },
+    persist,
     successLogFields: (_data, opportunity) => ({ id: opportunity.id }),
     invalidateCaches: invalidateOpportunityCaches,
-    mapError: (err) => mapOpportunityError(err, values),
-    ...formStateHandlers(values, {
-      message: "opportunity_not_found",
-      updatedId,
-      exists: opportunityExists,
-    }),
+    onDomainError: (error) => mapDomainError(error, values),
+    ...formStateHandlers(values),
   })
 }
 
@@ -140,7 +133,7 @@ export async function createOpportunity(
     "createOpportunity",
     { success: "opportunity:created", failure: "opportunity:create_failed" },
     formData,
-    (data) => prisma.opportunity.create({ data }),
+    createOpportunityRecord,
   )
 }
 
@@ -151,12 +144,21 @@ export async function updateOpportunity(
 ): Promise<OpportunityFormState> {
   await getCurrentUser()
 
+  // Un id invalide ne désigne aucune fiche : même réponse qu'une opportunité supprimée.
+  const parsedId = opportunityIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return failureState(
+      mapDomainError({ code: "not_found" }, collectValues(formData)),
+      invalidateOpportunityCaches,
+    )
+  }
+  const opportunityId = parsedId.data
+
   return saveOpportunity(
     "updateOpportunity",
     { success: "opportunity:updated", failure: "opportunity:update_failed" },
     formData,
-    (data) => prisma.opportunity.update({ where: { id }, data }),
-    id,
+    (data) => updateOpportunityRecord(opportunityId, data),
   )
 }
 

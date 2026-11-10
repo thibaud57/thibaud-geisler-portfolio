@@ -18,6 +18,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 vi.mock("@/server/queries/weekly-reviews", () => ({ findWeekCounterSources: vi.fn() }))
 
+import { revalidatePath } from "next/cache"
+
 import { getCurrentUser } from "@/lib/get-current-user"
 import { constraintViolation } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
@@ -104,6 +106,15 @@ describe("createWeeklyReview", () => {
     expect(state.errors.closingFriday).toEqual(["Une revue existe déjà pour cette semaine"])
   })
 
+  it("rejects a malformed closing day without throwing", async () => {
+    const state = await createWeeklyReview(
+      initialWeeklyReviewFormState,
+      buildFormData({ closingFriday: "30/10/2026" }),
+    )
+
+    expect(state.errors.closingFriday).toEqual(["Choisissez un vendredi"])
+  })
+
   it("rejects a negative counter", async () => {
     const state = await createWeeklyReview(
       initialWeeklyReviewFormState,
@@ -134,6 +145,15 @@ describe("updateWeeklyReview", () => {
     const state = await updateWeeklyReview("r1", initialWeeklyReviewFormState, buildFormData())
 
     expect(state.message).toBe("weekly_review_not_found")
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/revues-hebdo", "layout")
+  })
+
+  it("answers weekly_review_not_found for an empty id, without writing, and invalidates the lists", async () => {
+    const state = await updateWeeklyReview("", initialWeeklyReviewFormState, buildFormData())
+
+    expect(state.message).toBe("weekly_review_not_found")
+    expect(prisma.weeklyReview.update).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/revues-hebdo", "layout")
   })
 
   it("answers unknown_error on a P2025 while the review still exists", async () => {

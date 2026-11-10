@@ -82,6 +82,7 @@ Trait plein : en place aujourd'hui. Trait pointillé : prévu post-MVP.
 ```mermaid
 graph LR
     Browser["Navigateur"]
+    Poste["Claude Code<br/>(poste du propriétaire)"]
 
     subgraph VPS["VPS IONOS"]
         Dokploy["Dokploy<br/>(reverse proxy)"]
@@ -110,6 +111,8 @@ graph LR
     Browser -->|embed widget, après consentement c15t| Calendly
     Browser -.->|script analytics| Umami
     Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
+    Poste -.->|MCP, clé d'API, ADR-025| Dokploy
+    AgentOS -.->|MCP interne, clé d'API, ADR-025| Next
     Next -->|Prisma| PG
     Next --> Assets
     Assets -->|S3| R2
@@ -179,10 +182,10 @@ Cf. [ADR-003](adrs/003-case-studies-pages-dedicees.md) pour le choix pages dédi
 |---------|------------------------|
 | **Partial Prerendering (PPR)** | Modèle par défaut Next 16 activé via `cacheComponents: true` : shell statique pré-rendu au build + zones dynamiques streamées au runtime (wrappées `<Suspense>`) |
 | **`'use cache'`** | Directive de cache opt-in sur queries Prisma (`cacheLife('hours' \| 'days' \| 'max')` + `cacheTag`) : Data Cache persistant en self-hosted, invalidation ciblée par tag |
-| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin) |
+| **Server Actions** | Mutations côté serveur sans API route dédiée (formulaire contact, CRUD de l'espace admin). Les outils MCP des agents sont une seconde entrée vers la même logique de domaine (`src/server/crm/`), l'action n'y est qu'un adaptateur (`FormData`, état du formulaire, invalidation) |
 | **Ordre d'affichage 1..n** | Toute entité ordonnable de l'espace admin garde une suite continue qui commence à 1, réécrite en entier dans une transaction à chaque mutation. Calcul pur dans `src/lib/reorder.ts` |
 | **`saveEntity` / `deleteEntity`** | Mutations de l'espace admin factorisées dans `src/server/actions/_support/shared.ts` : validation Zod, persistance, puis invalidation des caches après le succès seulement (une invalidation avant un échec purgerait le cache sans raison) |
-| **`revalidatePersonLists`** | Toute écriture sur une personne (`_support/person-guards.ts`) revalide les listes qui l'affichent |
+| **`revalidatePersonLists`** | Toute écriture sur une personne (`src/server/crm/person-guards.ts`) revalide les listes qui l'affichent |
 | **RAG** (Retrieval-Augmented Generation) | Post-MVP : chatbot IA enrichi par pgvector (recherche sémantique dans PostgreSQL) |
 
 ---
@@ -220,7 +223,8 @@ src/
 │   │                             # mentions-legales, confidentialite ; un opengraph-image.tsx par page
 │   ├── admin/                    # Espace admin, HORS [locale] : français seul (ADR-021), second root layout
 │   │                             # du dépôt ; login/ hors garde, (protected)/ gardé, une route par entité
-│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health ; ceux de l'admin vivent
+│   ├── api/                      # Route handlers (hors [locale]) : assets, auth, health, mcp/[domain] (serveur MCP
+│   │                             # des agents) ; ceux de l'admin vivent
 │   │                             # sous admin/(protected)/api/ (assets gardés, test Sentry)
 │   ├── sitemap.ts, robots.ts, llms.txt/          # SEO
 │   ├── global-error.tsx, global-not-found.tsx    # Hors root layout, pages dégradées (d'où experimental.globalNotFound)
@@ -238,7 +242,8 @@ src/
 │   │                             # (<entité>-table-widths.ts), ses formulaires et ses composants à usage unique.
 │   │                             # Communs rangés par rôle, aucun à la racine : display/, form/, table/, detail/
 │   └── cookies/, markdown/, seo/ # Consentement c15t, rendu des contenus légaux, JSON-LD
-├── config/                       # Données statiques : navigations publique et admin, réseaux, expertise
+├── config/                       # Données statiques : navigations publique et admin, entrées du menu de compte
+│                                 # (admin-account-items.ts), réseaux, expertise
 ├── hooks/                        # Hooks client génériques (formulaires admin, mobile, locale, erreurs) ; un hook
 │                                 # propre à une feature vit dans son dossier
 ├── i18n/                         # Setup next-intl (routing, request, locale-guard, navigation, localize-content)
@@ -256,7 +261,14 @@ src/
 │   │                             # état initial et types du client dans <module>.types.ts, helpers partagés
 │   │                             # non exposés dans actions/_support/
 │   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
-│   └── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
+│   ├── crm/                      # Logique de domaine du CRM, sans FormData : une fonction par écriture,
+│   │                             # erreur attendue rendue en DomainResult (result.ts), invalidation des caches par la
+│   │                             # primitive que l'adaptateur lui passe. Appelée par les Server Actions et par les
+│   │                             # outils MCP, la règle métier n'existe qu'ici
+│   └── mcp/                      # Serveur MCP des agents : chaîne de refus de la route, serveur par domaine, outils
+│       └── crm/                  # Outils du domaine crm : registre des entités (registry.ts), une définition par
+│                                 # entité (entities/), outils génériques crm_* (tools.ts)
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
 ├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
@@ -292,7 +304,8 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 ### API
 
 - **Server Actions** : `submitContact` (formulaire contact), `trackCalendlyEvent` (télémétrie post-booking), actions CRUD de l'espace admin (`src/server/actions/`)
-- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
+- **Clés d'API** : page `/admin/cles-api`, ouverte depuis le menu de compte. `createApiKey` passe par `auth.api.createApiKey` du plugin `@better-auth/api-key` et renvoie la valeur une seule fois, `deleteApiKey` et la query `findApiKeysForAdmin` passent par Prisma (le hash n'est jamais lu). Cf. [ADR-025](adrs/025-acces-agents-app.md)
+- **Route handlers** : `/api/assets/[...path]` (streaming des objets R2 publics), `/admin/api/assets/[...path]` (mêmes objets pour le bucket back-office, derrière la garde de session), `/api/auth/[...all]` (catch-all Better Auth), `/api/health` (healthcheck Dokploy), `/api/mcp/[domain]` (serveur MCP des agents, `POST` seul, [ADR-025](adrs/025-acces-agents-app.md)), `/llms.txt` (résumé du site pour les agents). Endpoints tiers post-MVP (chatbot)
 
 ### Sécurité Backend
 
@@ -312,7 +325,7 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 PostgreSQL géré comme service Dokploy Database autonome (absent du compose applicatif, présent dans `compose.override.yaml` pour le développement local). En production, `DATABASE_URL` pointe vers le DNS interne Dokploy de la Database. Volume persistant géré par Dokploy. Extension pgvector prévue post-MVP. Cf. [ADR-004](adrs/004-postgresql-des-le-mvp.md).
 
-La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les quatre tables Better Auth. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
+La base se découpe en schemas par domaine : `public` porte les modèles de la vitrine, `freelance` porte le domaine CRM (`Company`, `Person` et ses rôles `Lead` et `Contact`, `Opportunity`, `Interview`, `Signal`, `WeeklyReview`, `ProspectingAction`), `auth` porte les cinq tables Better Auth, dont `apikey` pour les clés des agents. Les schemas `dev` et `rag_public` compléteront ce découpage, avec une **seconde base isolée** pour les documents personnels, dotée de ses propres credentials. Un seul propriétaire par schema. Cf. [ADR-018](adrs/018-cloisonnement-donnees.md).
 
 ### Approche Modélisation
 
@@ -348,7 +361,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les outils MCP invalident par `revalidateTag(tag, 'max')` pour `projects` et `legal-entity` et par `revalidatePath` pour les listes du CRM (et `revalidatePath(ADMIN_ASSETS_PATH)` pour `crm_fetch_company_logo`), `updateTag` n'étant permis que dans une Server Action. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
 
 ### Files / Assets Storage
 
@@ -515,7 +528,8 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 
 - **Rate limiting formulaire contact** : compteur IP in-memory simple dans la Server Action, décision d'implémentation, pas d'ADR dédié
 - **Rate limiting chatbot** (post-MVP) : décision architecturale à prendre (coût LLM en jeu), cf. [ADR-014](adrs/014-rate-limiting-chatbot.md)
-- **CORS** : aucune configuration, les API routes ne servent que des consommateurs de même origine. À poser si un client tiers apparaît
+- **Route MCP** (`/api/mcp/<domaine>`) : une clé d'API `@better-auth/api-key` par usage, ses `permissions` limitées à ses domaines, jamais la session admin. La route refuse elle-même, avant le SDK : `Origin` étranger, rate limit par IP avant toute lecture en base, domaine inconnu, clé absente ou invalide, domaine hors des `permissions`. Le plugin borne en plus chaque clé. Seuils : [PRODUCTION.md § Rate Limiting](PRODUCTION.md#rate-limiting). Cf. [ADR-025](adrs/025-acces-agents-app.md)
+- **CORS** : aucune configuration. Les API routes servent des consommateurs de même origine, la route MCP des clients hors navigateur, dont l'origine est validée. À poser si un client navigateur tiers apparaît
 - **Validation** : Zod sur toutes les entrées utilisateur (Server Actions + API routes)
 
 ### Protection Données
@@ -523,7 +537,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 - **Transit** : HTTPS/TLS obligatoire (Dokploy + Let's Encrypt)
 - **Repos** : pas de données sensibles stockées en dehors de la BDD PostgreSQL (accès réseau interne Docker via DNS Dokploy)
 - **Logs applicatifs** : l'adresse IP n'est jamais journalisée en clair, uniquement un hash SHA-256 salé tronqué (`ip_hash`), soit de l'observabilité sans donnée personnelle réversible
-- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/actions/_support/person-guards.ts` et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. Traitement des demandes : [PRODUCTION.md § Demandes RGPD](PRODUCTION.md#demandes-rgpd).
+- **Données personnelles de tiers** : les contacts, prospects et entreprises nominatifs du domaine freelance, dans le schema `freelance`, relèvent du Traitement 7 du [registre des traitements](registre-traitements.md) et de la finalité « prospection et relations professionnelles » de la politique de confidentialité. Les gardes techniques vivent dans `src/server/crm/person-guards.ts` et la conservation de 3 ans dans `src/lib/crm/person-retention.ts`. Traitement des demandes : [PRODUCTION.md § Demandes RGPD](PRODUCTION.md#demandes-rgpd).
 
 ### Conformité Cookies / RGPD
 
@@ -577,7 +591,7 @@ Sonde externe sur `/api/health` et notification Dokploy d'échec de build. Seuil
 
 ### Coverage
 
-Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formulaire contact, mutations BDD).
+Plancher du socle qualité (80 % lignes et branches, fusion unit + server + integration) dans `just test`, mesuré sur `server`, `lib`, `hooks`, `i18n`, `app/api` et `config`. Écart : l'UI (`components`, `app` hors `api`, `proxy.ts`, `instrumentation*.ts`) est hors mesure, aucun test de composant n'existe et son rendu est couvert par la recette `/verify` (Playwright).
 
 ---
 
@@ -613,6 +627,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 - [ADR-022 : Rendu public sans donnée au build](adrs/022-rendu-public-sans-donnee-au-build.md)
 - [ADR-023 : Logos d'entreprise récupérés depuis le site de l'entreprise](adrs/023-source-logos-entreprise.md)
 - [ADR-024 : Éditeur markdown des champs texte longs de l'espace admin](adrs/024-editeur-markdown-admin.md)
+- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md)
 - [ADR-026 : Exécution de Claude Code sur l'abonnement](adrs/026-execution-claude-code-abonnement.md)
 - [ADR-027 : Composants de chat : primitives shadcn/ui et flux d'événements propre au portfolio](adrs/027-composants-chat.md)
 
@@ -622,7 +637,6 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 
 - [ADR-012 : API LLM pour le chatbot RAG](adrs/012-api-llm-chatbot-rag.md), réduit au seul choix du modèle par l'ADR-016
 - [ADR-014 : Rate limiting chatbot public](adrs/014-rate-limiting-chatbot.md)
-- [ADR-025 : Accès des agents à l'app](adrs/025-acces-agents-app.md), orientation provisoire vers un serveur MCP par domaine, authentifié par clé d'API
 
 ### Dépréciées
 
@@ -637,7 +651,7 @@ Pas d'objectif de coverage pour le MVP. Priorité aux chemins critiques (formula
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : les actions de chaque domaine exposées aux agents internes, sans accès direct à la base ; forme et authentification en cours de décision ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin sont en place (§ Protection API, § API). Les outils du domaine `crm` sont en place pour les entreprises (§ Structure du Code), les autres entités et domaines restent à brancher. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

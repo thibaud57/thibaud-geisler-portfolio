@@ -1,0 +1,318 @@
+import "server-only"
+import { revalidateTag } from "next/cache"
+import { z } from "zod"
+
+import {
+  CompanySector,
+  CompanySize,
+  CompanyType,
+  RelationStatus,
+  Zone,
+} from "@/generated/prisma/browser"
+import type { Prisma } from "@/generated/prisma/client"
+import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
+import { assertNever } from "@/lib/assert-never"
+import { COMPANY_LOGO_FOLDER, isCompanyLogoKey } from "@/lib/asset-keys"
+import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
+import { personDisplayName } from "@/lib/crm/persons"
+import { sortZones } from "@/lib/crm/zones"
+import { companyIdSchema } from "@/lib/ids"
+import {
+  COMPANY_NAME_MAX_LENGTH,
+  COMPANY_SLUG_MAX_LENGTH,
+  websiteUrlSchema,
+} from "@/lib/schemas/company"
+import { SLUG_PATTERN } from "@/lib/schemas/slug"
+import {
+  createCompany,
+  invalidateCompanyCaches,
+  updateCompany,
+  type CompanyLogoError,
+  type CompanyPatch,
+  type CompanyWriteError,
+} from "@/server/crm/companies"
+import {
+  findCompaniesPage,
+  findCompanyNames,
+  findCompanyWithLinks,
+} from "@/server/queries/companies"
+
+import { defineCrmEntity } from "../entity-definition"
+import { details, notes } from "../fields"
+import { rolesOf } from "../person-ref"
+import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
+import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
+import { updateSchemaOf } from "../update-input"
+
+const entityField = z.literal("company").describe('Type of CRM record: always "company" here.')
+
+// Les `.describe()` arrivent au modèle.
+const fieldShape = {
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(COMPANY_SLUG_MAX_LENGTH)
+    .regex(
+      SLUG_PATTERN,
+      'The slug may only hold lowercase letters, digits and hyphens (e.g. "acme-corp").',
+    )
+    .describe(
+      `Unique URL identifier, at most ${COMPANY_SLUG_MAX_LENGTH} characters: lowercase letters, digits and single hyphens (e.g. "acme-corp"). Trimmed and lowercased like in the admin.`,
+    ),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(COMPANY_NAME_MAX_LENGTH)
+    .describe(`Display name, at most ${COMPANY_NAME_MAX_LENGTH} characters.`),
+  sectors: z.array(z.enum(CompanySector)).describe("Business sectors of the company."),
+  size: z
+    .enum(CompanySize)
+    .nullable()
+    .describe("Legal size category (TPE, PME, ETI, GROUPE). null clears it."),
+  websiteUrl: websiteUrlSchema
+    .nullable()
+    .describe("Website, an http or https URL. null clears it."),
+  logoFilename: z
+    .string()
+    .trim()
+    .refine(isCompanyLogoKey, `The logo key must start with "${COMPANY_LOGO_FOLDER}/".`)
+    .nullable()
+    .describe(
+      `Storage key of the logo, under "${COMPANY_LOGO_FOLDER}/". Call crm_fetch_company_logo to fetch it from the website instead of writing it. null clears it.`,
+    ),
+  types: z
+    .array(z.enum(CompanyType))
+    .min(1, "Give at least one type.")
+    .describe("Relationship types (e.g. CLIENT_FINAL, ESN_RECRUTEMENT). At least one."),
+  relationStatus: z
+    .enum(RelationStatus)
+    .describe("Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."),
+  zones: z
+    .array(z.enum(Zone))
+    // overwrite plutôt que transform : le schéma reste représentable en JSON Schema
+    .overwrite((zones) => sortZones(zones))
+    .describe("Geographic zones of the company."),
+  notes: notes(),
+  details,
+} as const
+
+const createDataSchema = z
+  .strictObject({
+    slug: fieldShape.slug,
+    name: fieldShape.name,
+    sectors: fieldShape.sectors.default([]),
+    size: fieldShape.size.default(null),
+    websiteUrl: fieldShape.websiteUrl.default(null),
+    logoFilename: fieldShape.logoFilename.default(null),
+    types: fieldShape.types.optional(),
+    relationStatus: fieldShape.relationStatus.optional(),
+    zones: fieldShape.zones.optional(),
+    notes: fieldShape.notes.optional(),
+    details: fieldShape.details
+      .optional()
+      .describe(
+        "Whole Details text in markdown. Omit it to get the standard section template (À propos, Chiffres clés, ...). null creates the company without Details.",
+      ),
+  })
+  .describe("Fields of the company to create. Only slug and name are required.")
+
+const updateFieldsSchema = z
+  .strictObject(fieldShape)
+  .partial()
+  .describe("Fields to change. A field left out stays unchanged, null clears an optional field.")
+
+const companyFilterSchema = z
+  .strictObject({
+    relationStatus: z.enum(RelationStatus).optional().describe("Only this relationship status."),
+    types: z
+      .array(z.enum(CompanyType))
+      .min(1)
+      .optional()
+      .describe("Companies having at least one of these types."),
+    zones: z
+      .array(z.enum(Zone))
+      .min(1)
+      .optional()
+      .describe("Companies having at least one of these zones."),
+    sectors: z
+      .array(z.enum(CompanySector))
+      .min(1)
+      .optional()
+      .describe("Companies having at least one of these sectors."),
+    size: z.enum(CompanySize).optional().describe("Only this size category."),
+  })
+  .describe("Filters, combined with AND. Each list matches any of its values.")
+
+const querySchema = z.strictObject({
+  entity: entityField,
+  filters: companyFilterSchema.optional(),
+  ...pageQueryShape,
+})
+
+const createSchema = z.strictObject({
+  entity: entityField,
+  data: createDataSchema,
+})
+
+const updateSchema = updateSchemaOf(
+  entityField,
+  companyIdSchema.describe("Id of the company to update. Get it from crm_search first."),
+  updateFieldsSchema,
+)
+
+type UpdateInput = z.output<typeof updateSchema>
+
+function toWhere(filters: z.output<typeof querySchema>["filters"]): Prisma.CompanyWhereInput {
+  return {
+    relationStatus: filters?.relationStatus,
+    size: filters?.size,
+    types: filters?.types ? { hasSome: filters.types } : undefined,
+    zones: filters?.zones ? { hasSome: filters.zones } : undefined,
+    sectors: filters?.sectors ? { hasSome: filters.sectors } : undefined,
+  }
+}
+
+// Le superRefine du schéma a déjà refusé `details` avec une section : le type du patch d'une section l'exclut.
+function withoutDetails({ details, ...rest }: NonNullable<UpdateInput["fields"]>) {
+  return rest
+}
+
+const nameOrder = (order: SortOrder): Prisma.CompanyOrderByWithRelationInput[] => [{ name: order }]
+
+function toPatch(input: UpdateInput): CompanyPatch {
+  const fields = input.fields ?? {}
+  return input.detailsSection
+    ? { kind: "section", fields: withoutDetails(fields), detailsSection: input.detailsSection }
+    : { kind: "fields", fields }
+}
+
+// Le slug reçu (déjà normalisé par le schéma) nomme la collision ; absent d'un patch, le message reste générique.
+function companyWriteErrorMessage(error: CompanyWriteError, slug: string | undefined): string {
+  switch (error.code) {
+    case "slug_taken":
+      return `${slug === undefined ? "This slug" : `The slug "${slug}"`} (trimmed and lowercased) is already used by another company. Choose another slug, or call crm_search to find the existing company.`
+    case "siret_taken":
+      return "This SIRET is already held by another legal entity."
+    case "legal_entity_slug_taken":
+      return "A legal entity already uses the slug of this company. Choose another slug."
+    case "not_found":
+      return notFoundMessage("company")
+    case "no_details":
+    case "section_not_found":
+      return detailsErrorMessage(error, "company")
+    default:
+      return assertNever(error)
+  }
+}
+
+const WAYBACK_FIX =
+  "set websiteUrl with crm_update to a capture of the site on the Wayback Machine (web.archive.org)"
+
+export function companyLogoErrorMessage(error: CompanyLogoError): string {
+  switch (error.code) {
+    case "not_found":
+      return "No company has this id. Call crm_search to find the right id, then call crm_fetch_company_logo again."
+    case "no_website":
+      return `This company has no websiteUrl, so there is no site to read a logo from. Fill websiteUrl with crm_update, or ${WAYBACK_FIX}, then call crm_fetch_company_logo again.`
+    case "invalid_website":
+      return "The websiteUrl of this company is not a usable http or https address. Correct it with crm_update, then call crm_fetch_company_logo again."
+    case "site_unreachable":
+      return `The website could not be reached. Check websiteUrl with crm_update, or ${WAYBACK_FIX}, then call crm_fetch_company_logo again.`
+    case "site_too_slow":
+      return `The website answered too slowly. Call crm_fetch_company_logo again later, or ${WAYBACK_FIX}.`
+    case "address_blocked":
+      return "The website address points to an internal or private network, which the logo fetch refuses. Set websiteUrl with crm_update to a public address, then call crm_fetch_company_logo again."
+    case "icon_too_small":
+      return `The icons declared by the website are too small to make a logo. Set websiteUrl with crm_update to a page that declares a larger icon, or ${WAYBACK_FIX}.`
+    case "no_icon_found":
+      return `No icon was found on the website. Set websiteUrl with crm_update to a page that declares an icon, or ${WAYBACK_FIX}.`
+    default:
+      return assertNever(error)
+  }
+}
+
+export function refreshCompanyCaches(): void {
+  invalidateCompanyCaches((tag) => {
+    revalidateTag(tag, "max")
+  })
+}
+
+const WRITES = writeTexts(
+  { key: "company", noun: "company" },
+  "Call crm_search with its slug to check whether it was created before retrying.",
+)
+
+export const companyEntity = defineCrmEntity({
+  entity: "company",
+  docs: {
+    search: "the slug for a company",
+    fetch:
+      "For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact).",
+    create:
+      "For a company, only slug and name are required, and the Details get the standard section template unless you send your own.",
+  },
+  async search(query) {
+    const needle = normalizeForSearch(query)
+    const companies = await findCompanyNames()
+    return companies
+      .filter((company) => matchesSearch(needle, company.name, company.slug))
+      .map((company) => ({
+        entity: "company" as const,
+        id: company.id,
+        label: company.name,
+        hint: company.slug,
+      }))
+  },
+  async fetch(id) {
+    const company = await findCompanyWithLinks(id)
+    if (!company) return null
+
+    const { persons, ...record } = company
+    return {
+      ...record,
+      persons: persons.map((person) => ({
+        id: person.id,
+        name: personDisplayName(person),
+        roles: rolesOf(person),
+      })),
+    }
+  },
+  querySchema,
+  query: ({ filters, sort, order, limit, offset }) =>
+    findCompaniesPage({
+      where: toWhere(filters),
+      orderBy: idOrderBy(sort, order, nameOrder),
+      take: limit,
+      skip: offset,
+    }),
+  createSchema,
+  create: ({ data }, ctx) =>
+    writeRecord({
+      run: () =>
+        createCompany({
+          ...data,
+          details: data.details === undefined ? COMPANY_DETAILS_TEMPLATE : data.details,
+        }),
+      ctx,
+      texts: WRITES.create,
+      logContext: { slug: data.slug },
+      errorMessage: (error) => companyWriteErrorMessage(error, data.slug),
+      invalidate: refreshCompanyCaches,
+      logged: ({ id, slug }) => ({ id, slug }),
+      rendered: byId.rendered,
+    }),
+  updateSchema,
+  update: (input, ctx) =>
+    writeRecord({
+      run: () => updateCompany(input.id, toPatch(input)),
+      ctx,
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: (error) => companyWriteErrorMessage(error, input.fields?.slug),
+      invalidate: refreshCompanyCaches,
+      logged: ({ id, slug }) => ({ id, slug }),
+      rendered: byId.rendered,
+    }),
+})

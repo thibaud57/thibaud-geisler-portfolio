@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS : Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-11-04"
+date: "2026-11-06"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
-technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
+technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "@better-auth/api-key", "MCP TypeScript SDK", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **9 octobre 2026**, versions npm remontées en patch et mineure le **27 octobre 2026** (Node.js, `@types/node`, better-auth, `@aws-sdk/client-s3`, lucide-react, motion et shadcn : **29 octobre 2026**) (puis Tiptap, Sentry, `@aws-sdk/client-s3`, lucide-react, nodemailer et `@types/node` : **4 novembre 2026**) (pnpm et Prettier : **11 octobre 2026**), sauf les lignes dnd-kit (**8 octobre 2026**), sharp et decode-ico (**12 octobre 2026**), tippy.js (**14 octobre 2026**).
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **4 novembre 2026** ; les lignes relevées à une autre date portent la leur.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -69,7 +69,9 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | pg | `8.23.1` | ✅ | Driver consommé par `@prisma/adapter-pg` (relevé le 29 octobre 2026). `@types/pg` même version |
 | Sentry (`@sentry/nextjs`) | `11.10.0` | ⚠️ | ADR-017. **v11 : un `dataCollection` absent collecte tout**, d'où `SENTRY_DATA_COLLECTION` dans les trois `Sentry.init`. Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, non revalidé en 11.10.0). Détail : § Sentry |
 | @aws-sdk/client-s3 | `3.1159.0` | ✅ | Client S3 pour Cloudflare R2 (ADR-011). `requestChecksumCalculation: 'WHEN_REQUIRED'` obligatoire, R2 rejette le CRC32 par défaut du SDK. Détail : [knowledges/cloudflare-r2.md](knowledges/cloudflare-r2.md) |
-| Better Auth | `1.7.14` | ✅ | Admin, Google OAuth unique provider, aucun Credentials (ADR-002). Détail : § Better Auth |
+| Better Auth | `1.7.14` | ✅ | Admin, Google OAuth unique provider, aucun Credentials (ADR-002). Épinglé sans `^` avec `@better-auth/api-key`, monté avec lui (depuis le 6 novembre 2026). Détail : § Better Auth |
+| @better-auth/api-key | `1.7.14` | ✅ | Clés d'API des agents sur la route MCP (ADR-025). Épinglé sans `^` à la version exacte de `better-auth`, à monter avec lui (peers `better-auth ^1.7.14` et `better-call 1.4.4` exacte). Relevé le 6 novembre 2026 |
+| MCP TypeScript SDK (`@modelcontextprotocol/server`) | `2.4.0` | ✅ | Serveur MCP de l'app (ADR-025), `createMcpHandler` sur la route `/api/mcp/[domain]`. Dépend de `zod ^4.2.0` et de Node >= 20. `@modelcontextprotocol/client` `2.4.0` en dev pour les tests, à monter ensemble. Ligne v1 `@modelcontextprotocol/sdk` écartée : régression du mode sans état ([typescript-sdk #1994](https://github.com/modelcontextprotocol/typescript-sdk/issues/1994)). Publiée le 23 octobre 2026, relevé le 6 novembre 2026. Détail : [knowledges/modelcontextprotocol-server.md](knowledges/modelcontextprotocol-server.md) |
 | sharp | `0.35.5` | ✅ | Conversion PNG des logos récupérés (ADR-023). Même version que la dépendance optionnelle de Next 16.4.3 (`^0.35.5`), épinglée sans `^` pour garder une seule copie (binaires natifs) : l'aligner sur Next à chaque montée de Next (épingle passée à 0.35.5 le 12 octobre 2026) |
 | decode-ico | `0.4.1` | ✅ | Plus grande image d'un conteneur ICO, que sharp ne lit pas (spec `domaine-freelance-crm/06`, amendement du 12 octobre 2026). JavaScript pur, trois dépendances du même auteur, dernière publication en novembre 2022 : sur alerte de sécurité sans correctif, le remplacer par un parseur maison des seules entrées PNG et DIB 32 bits. Épinglé sans `^` |
 | Tiptap (15 paquets `@tiptap/*`) | `3.32.1` | ⚠️ | Moteur du « Pages CMS Editor » (ADR-024). Épinglés sans `^`, à monter ensemble. Détail : § Tiptap |
@@ -347,6 +349,8 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux troi
 | Next.js 16.4.3 | Better Auth 1.7.14 | ✅ | `getServerSession` + `use cache` : extraire les cookies avant le scope cache (Issue #5584) |
 | Next.js 16.4.3 | Sentry 11.10.0 | ⚠️ | Spans des Server Actions absents sous Turbopack (relevé en 11.1.0, § Sentry) |
 | Prisma 7.10.1 | Better Auth 1.7.14 | ✅ | `prisma.config.ts` concerne la CLI Prisma uniquement, pas le runtime Better Auth |
+| Better Auth 1.7.14 | @better-auth/api-key 1.7.14 | ✅ | Même version exigée. Modèle Prisma nommé `Apikey`, jamais `ApiKey` (l'adaptateur appelle `prisma.apikey`) |
+| MCP TypeScript SDK 2.4.0 | Zod 4.6.7 | ✅ | `zod ^4.2.0` requis : un schéma Zod 3 lève à la conversion JSON Schema |
 | pnpm 12.15.0 | TypeScript 6.0.3 | ⚠️ | Ne pas activer `preserveSymlinks: true` |
 | pnpm 12.15.0 | Node.js 26.13.0 | ✅ | Installation par `npm install -g pnpm@12` + `devEngines` depuis le 15 octobre 2026, `docker build --target runner` vérifié le 29 octobre 2026 avec Node 26 |
 | `postgres:18-alpine` | Volume Docker | ⚠️ | PG18+ : monter `/var/lib/postgresql`, pas `/var/lib/postgresql/data` |
@@ -431,7 +435,7 @@ pnpm typecheck && pnpm lint && pnpm test
 - [ ] Runner CI `ubuntu-24.04` (pas `ubuntu-latest`), actions épinglées par SHA (§ GitHub Actions)
 - [ ] Build Docker en Turbopack (aucun `--webpack`) : revalider après chaque montée de Next ou de Prisma
 
-## Montées Bloquées (état au 27 octobre 2026)
+## Montées Bloquées (état au 4 novembre 2026)
 
 Ces mises à jour majeures ont été testées puis écartées, ou identifiées et non tentées. Ne pas les rejouer sans que la contrainte listée soit levée.
 
@@ -556,6 +560,8 @@ Rien de ce qui suit n'existe dans le dépôt (ni `package.json`, ni compose, ni 
 - [Sentry : options, dont `dataCollection`](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/)
 - [Better Auth : Changelog](https://better-auth.com/changelog)
 - [Better Auth + Prisma + Next.js](https://www.prisma.io/docs/guides/authentication/better-auth/nextjs)
+- [Better Auth : plugin API Key](https://better-auth.com/docs/plugins/api-key)
+- [MCP TypeScript SDK : dépôt](https://github.com/modelcontextprotocol/typescript-sdk)
 
 ### Tests
 

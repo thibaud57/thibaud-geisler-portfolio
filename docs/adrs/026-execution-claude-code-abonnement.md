@@ -1,69 +1,52 @@
 ---
 title: "ADR-026 : Exécution de Claude Code sur l'abonnement"
 status: "accepted"
-description: "Décision actée : agent-os pilote le binaire Claude Code par l'Agent SDK Python, sur l'abonnement et jamais l'API, avec l'environnement complet du propriétaire, déclenché uniquement par une action du propriétaire, attentes et fin de run signalées sur Telegram"
+description: "Décision actée : Claude Code s'exécute dans le service agent-os sur le VPS, sur l'abonnement et jamais l'API, avec l'environnement complet du propriétaire, déclenché uniquement par une action du propriétaire, attentes et fin de run signalées sur Telegram"
 date: "2026-09-30"
-keywords: ["architecture", "adr", "claude-code", "agent-sdk", "abonnement", "agent-os", "routines", "remote-control", "telegram"]
+keywords: ["architecture", "adr", "claude-code", "abonnement", "agent-os", "routines", "remote-control", "telegram"]
 scope: ["docs", "architecture"]
 technologies: ["Claude Code", "Claude Agent SDK", "Python", "Dokploy"]
 ---
 
 # 🎯 Contexte
 
-L'espace admin fait exécuter Claude Code par `agent-os` ([ADR-015](015-decoupage-services.md)) dans trois situations : les jobs des agents internes (pré-remplissage, enrichissement, rédaction, dont la rédaction assistée des publications), l'assistant interne, et le cycle de développement (implémenter un sub-project spécifié, auditer un dépôt).
+L'espace admin fait exécuter Claude Code par `agent-os` ([ADR-015](015-decoupage-services.md)) dans trois situations : les jobs des agents internes (pré-remplissage, enrichissement, rédaction, dont la rédaction assistée des publications), l'assistant interne et le cycle de développement (implémenter un sub-project spécifié, auditer un dépôt).
 
 Contraintes :
 
 - **Abonnement uniquement, jamais l'API** ([ADR-016](016-acces-llm.md)) : le plan Max est déjà payé
-- **L'environnement complet du propriétaire** : sa configuration globale, versionnée dans le dépôt `.claude` (CLAUDE.md, commandes dont `implement-subproject`, skills, agents, hooks, plugins dont superpowers), et les skills freelance pour le domaine freelance. Un run qui ne verrait que la configuration du dépôt de code ne sait pas dérouler le workflow
-- **Lancé sans surveillance** : le propriétaire lance plusieurs runs, depuis l'espace admin ou son téléphone, puis passe à autre chose. Il est prévenu quand un run attend un accord ou une réponse, ou se termine, et répond depuis son téléphone
+- **L'environnement complet du propriétaire** : sa configuration globale, versionnée dans le dépôt `.claude` (CLAUDE.md, commandes dont `implement-subproject`, skills, agents, hooks, plugins dont superpowers) ainsi que les skills freelance pour le domaine freelance. Un run qui ne verrait que la configuration du dépôt de code ne sait pas dérouler le workflow
+- **Lancé sans surveillance** : le propriétaire lance plusieurs runs, depuis l'espace admin ou son téléphone, puis passe à autre chose. Il est prévenu quand un run attend un accord ou une réponse, ou se termine ; il répond depuis son téléphone
 - **Un VPS de production partagé** avec le site public, n8n et un service interne de collecte de pages publiques
 
 ---
 
 # 🧩 Problème
 
-Où et comment exécuter Claude Code pour que chaque run lancé par le propriétaire dispose de l'environnement complet, reste sur l'abonnement et puisse s'interrompre pour poser une question au propriétaire.
+Où exécuter Claude Code pour que chaque run lancé par le propriétaire dispose de l'environnement complet, reste sur l'abonnement et puisse s'interrompre pour poser une question au propriétaire.
 
 ---
 
 # 🛠️ Options Envisagées
 
-## Option A : Agent SDK Python dans `agent-os`, sur le VPS
+## Option A : un service dédié, `agent-os`, sur le VPS
 
-**Description :** `agent-os` pilote le binaire Claude Code, que le paquet `claude-agent-sdk` embarque, dans son conteneur. Une session vivante par job, carte du kanban ou conversation.
-
-**Avantages :**
-- Environnement complet : le conteneur porte la configuration globale et travaille dans le dépôt concerné, avec un chargement déclaré explicitement (`setting_sources`) plutôt que laissé à une valeur par défaut
-- Sur l'abonnement, au même titre que `claude -p`
-- Questions et accords relayables : `AskUserQuestion` et les demandes de permission passent par le callback `can_use_tool`, qui « can stay pending indefinitely ». Pour une attente longue, un hook `PreToolUse` en `defer` libère le processus et la session reprend à la réponse
-- Conversation sans redémarrage : un `ClaudeSDKClient` garde la même session d'un message à l'autre
-- Messages typés et réponse au fil de l'eau (`include_partial_messages`)
-
-**Inconvénients :**
-- Exécution sur la machine de production : limites de ressources et isolation du conteneur à tenir
-- Jeton d'abonnement présent sur le VPS
-- Fuites mémoire signalées sur les sessions longues ([claude-code #85015](https://github.com/anthropics/claude-code/issues/85015))
-- Exposé comme `claude -p` au changement de facturation mis en pause (cf. Notes)
-
-**Coût estimé :** l'abonnement seul, un conteneur.
-
-## Option B : `claude -p` relancé à chaque appel dans `agent-os`
-
-**Description :** même emplacement, un processus par appel, la conversation reprise par `--resume`.
+**Description :** `agent-os` pilote le binaire Claude Code dans son container, avec la configuration globale et le dépôt concerné. La mécanique de session (Agent SDK par `ai-kit` plutôt que `claude -p` relancé à chaque appel) est décidée dans l'ADR-002 d'`agent-os`.
 
 **Avantages :**
-- Le plus simple à écrire
-- Même environnement, même abonnement, même statut que l'Option A : la documentation traite `claude -p` comme l'Agent SDK en ligne de commande
+- Environnement complet : le container porte la configuration globale et travaille dans le dépôt concerné
+- Sur l'abonnement
+- Questions et accords relayables jusqu'au téléphone, avec une attente longue
+- Pilotable depuis l'admin, qui lance les runs et lit leur état
 
 **Inconvénients :**
-- Démarrage complet à chaque message : configuration, plugins, serveurs MCP
-- Aucune question ne peut attendre une réponse : en exécution sans surveillance, une demande de permission est refusée et `AskUserQuestion` est retiré
-- Le multi-tour sur un seul processus (`--input-format stream-json`) n'a pas de format d'entrée documenté ([claude-code #24594](https://github.com/anthropics/claude-code/issues/24594))
+- Exécution sur la machine de production : limites de ressources et isolation du container à tenir
+- Token d'abonnement présent sur le VPS
+- Exposé au changement de facturation de l'usage programmatique mis en pause (cf. Notes)
 
-**Coût estimé :** l'abonnement seul.
+**Coût estimé :** l'abonnement seul, un service à construire et à opérer.
 
-## Option C : routines claude.ai déclenchées par API
+## Option B : routines claude.ai déclenchées par API
 
 **Description :** l'admin appelle l'endpoint `/fire` d'une routine ; Anthropic ouvre une session cloud qui clone le dépôt, travaille et ouvre une PR.
 
@@ -79,12 +62,12 @@ Où et comment exécuter Claude Code pour que chaque run lancé par le propriét
 
 **Coût estimé :** l'abonnement seul.
 
-## Option D : `claude-code-action` sur GitHub Actions
+## Option C : `claude-code-action` sur GitHub Actions
 
 **Description :** une mention `@claude` ou un label sur une issue lance Claude Code sur un runner GitHub.
 
 **Avantages :**
-- Plugins installables par l'entrée `plugins`, jeton d'abonnement accepté
+- Plugins installables par l'entrée `plugins`, token d'abonnement accepté
 - Rien ne tourne sur le VPS
 
 **Inconvénients :**
@@ -95,7 +78,7 @@ Où et comment exécuter Claude Code pour que chaque run lancé par le propriét
 
 **Coût estimé :** l'abonnement et les minutes GitHub au-delà du quota gratuit.
 
-## Option E : Remote Control
+## Option D : Remote Control
 
 **Description :** une session Claude Code interactive, sur le poste ou en mode serveur sur le VPS, pilotée depuis claude.ai/code ou l'application mobile.
 
@@ -105,7 +88,7 @@ Où et comment exécuter Claude Code pour que chaque run lancé par le propriét
 
 **Inconvénients :**
 - Aucune API pour ouvrir ou alimenter une session depuis l'admin ([claude-code #97482](https://github.com/anthropics/claude-code/issues/97482) ouverte, [#70546](https://github.com/anthropics/claude-code/issues/70546) fermée sans suite)
-- Exige une connexion complète : le jeton de `claude setup-token` ne peut pas l'établir
+- Exige une connexion complète : le token de `claude setup-token` ne peut pas l'établir
 
 **Coût estimé :** l'abonnement seul.
 
@@ -113,21 +96,22 @@ Où et comment exécuter Claude Code pour que chaque run lancé par le propriét
 
 # 🎉 Décision
 
-**Option A.** `agent-os` pilote le binaire Claude Code par l'Agent SDK Python, sur l'abonnement, avec l'environnement complet du propriétaire.
+**Option A.** Claude Code s'exécute dans `agent-os`, sur l'abonnement, avec l'environnement complet du propriétaire.
 
 Acté :
 
 - **Déclenchement uniquement par une action du propriétaire** : depuis l'espace admin (bouton d'un job, carte du kanban, message à l'assistant), ou par un message au bot Telegram. Aucun cron, aucun lancement sur événement. Chaque run part d'une action du propriétaire
-- **Jamais l'API** : aucune clé API dans l'environnement qui exécute Claude Code, authentification par jeton d'abonnement, dépassement payant désactivé sur le compte. Un quota épuisé suspend les runs au lieu de les facturer
+- **Jamais l'API** : aucune API key dans l'environnement qui exécute Claude Code, authentification par token d'abonnement, dépassement payant désactivé sur le compte. Un quota épuisé suspend les runs au lieu de les facturer
 - **Environnement complet, sans duplication** : la configuration globale vient du dépôt `.claude`, celle d'un domaine vient du dépôt où la session travaille (les skills freelance pour le freelance, le dépôt de code pour le cycle de développement). Les connecteurs claude.ai du compte ne sont pas chargés
-- **Le téléphone remplace le terminal, l'admin sert de cockpit** : quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram. Un accord se donne par boutons, une question par un bouton par option ou une réponse libre, la fin porte le lien de la PR. L'admin lance les runs et affiche leur état sur les cartes et les jobs, sans fil de conversation ; seul l'assistant interne y reste une conversation (amendement du 2026-10-24 : le créateur de specs et de docs de la Feature 8 aussi, [ADR-027](027-composants-chat.md)). Les règles de la configuration globale, comme la validation avant commit, s'appliquent telles quelles
-- **Un seul bot Telegram, tenu par `agent-os`** : alertes, réponses, et messages libres qui ouvrent une session de l'assistant avec le MCP de l'app, par exemple pour créer un ticket. Réception par long polling, le service n'ayant ni domaine ni port public ([ADR-019](019-communication-inter-services.md)). Telegram n'acceptant qu'un lecteur par bot, celui-ci ne sert qu'à `agent-os`. Le client Telegram sans état et le long polling sont portés par l'ADR-006 d'`ai-kit` (2026-10-27), un bot par application
+- **Le téléphone remplace le terminal, l'admin sert de cockpit** : quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram. L'admin lance les runs et affiche leur état sur les cartes et les jobs, sans fil de conversation ; seul l'assistant interne y reste une conversation (amendement du 2026-10-24 : le créateur de specs et de docs de la Feature 9 aussi, [ADR-027](027-composants-chat.md)). Les règles de la configuration globale, comme la validation avant commit, s'appliquent telles quelles
+- **Un seul bot Telegram, tenu par `agent-os`** : alertes, réponses et messages libres qui ouvrent une session de l'assistant avec le MCP de l'app. Réception par long polling, le service n'ayant ni domaine ni port public ([ADR-019](019-communication-inter-services.md))
 - **Des PR, jamais de merge** : le propriétaire merge
-- **Version épinglée**, montée par PR après contrôle de ce que la session charge
 
-Les autres options : B paie un démarrage à chaque message et ne sait pas relayer une question ; C et D n'ont pas l'environnement global et ne se pilotent pas depuis l'admin ; E ne se déclenche pas par programme.
+Le fonctionnement interne d'`agent-os` vit dans ses ADR : mécanique de session et résultats du prototype (ADR-002), isolation et relevés du VPS (ADR-004), relais Telegram (ADR-007), cycle de dev (ADR-008).
 
-**E reste le plan B.** Si le crédit séparé revient et ne suffit plus, les sessions lourdes passent en interactif par Remote Control, dont l'usage reste sur les limites normales.
+Les autres options : B et C n'ont pas l'environnement global et ne se pilotent pas depuis l'admin ; D ne se déclenche pas par programme.
+
+**D reste le plan B.** Si le crédit séparé revient et ne suffit plus, les sessions lourdes passent en interactif par Remote Control, dont l'usage reste sur les limites normales.
 
 ---
 
@@ -140,43 +124,24 @@ Les autres options : B paie un démarrage à chaque message et ne sait pas relay
 - Le moteur ne dépend d'aucune fonctionnalité en research preview
 
 ## Négatives
-- Claude Code tourne sur le VPS de production : limites de ressources et isolation du conteneur à tenir ([ADR-019](019-communication-inter-services.md))
-- Compromettre le conteneur livre le jeton d'abonnement : jeton dédié, révocable, seul secret Anthropic du VPS
-- Un chantier à construire : relais des questions et des accords vers Telegram, état des runs dans l'admin, reprise de session
+- Claude Code tourne sur le VPS de production : limites de ressources et isolation du container à tenir ([ADR-019](019-communication-inter-services.md))
+- Compromettre le container livre le token d'abonnement : token dédié, révocable, seul secret Anthropic du VPS
+- Un service à construire : relais des questions et des accords vers Telegram, état des runs dans l'admin, reprise de session
 - Le texte des alertes transite par Telegram, sans chiffrement de bout en bout pour un bot : une question qui porte une donnée de lead fait de Telegram un destinataire, à inscrire au registre des traitements avec les agents internes
 - Exposé à la politique de facturation de l'usage programmatique d'Anthropic, suspendue et non abandonnée
-- Les transcripts de sessions restent sur le VPS et portent des données de leads : leur durée de conservation se fixe avec les agents internes (réglage `cleanupPeriodDays`, 30 jours par défaut)
+- Les transcripts de sessions restent sur le VPS et portent des données de leads : leur durée de conservation se fixe avec les agents internes
 
 ---
 
 # 📝 Notes complémentaires
 
-**Prototype en sandbox**, exécuté le 2026-10-01 dans un conteneur Docker du poste (`claude-agent-sdk` 0.2.163, 2 Go de RAM, utilisateur non-root, sans socket Docker) :
-
-1. Configuration globale et plugins chargés, contrôlés par l'événement `system/init` : validé
-2. Abonnement et non l'API : `apiKeySource = none` dans `system/init`, `authMethod: "oauth_token"` dans `claude auth status`. La hausse de l'usage claude.ai n'a pas été relevée
-3. Une question (`AskUserQuestion`) et une demande d'accord Bash attendent et reprennent à la réponse : validé en mode terminal, le transport Telegram reste à tester
-4. Ouverture de session en 0,9 s, 284 Mo de mémoire au maximum sur une session courte. La session longue reste à tester
-5. Non testé, l'isolation de chaque session : micro-VM [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/), avec son propre noyau et son propre démon Docker, ou conteneur unique. La sandbox Bash de Claude Code et le sandbox runtime d'Anthropic reposent sur bubblewrap, que le VPS bloque en mode normal : seul le mode affaibli `enableWeakerNestedSandbox` y fonctionnerait, que la documentation réserve aux cas où une autre isolation est en place
-
-Enseignements du prototype, testé en mode `default` : le mode de permission se fixe dans `agent-os`, jamais hérité de la configuration globale. Le mode retenu est `bypassPermissions` : les questions remontent toujours au callback, plus aucune demande d'accord d'outil, sauf une suppression visant un chemin critique (« tools that require user interaction, and `rm` and `rmdir` removals targeting a critical path still fall through to your `canUseTool` callback », [Agent SDK, Configure permissions](https://code.claude.com/docs/en/agent-sdk/permissions), consultée le 2026-10-15). Les plugins s'installent à la construction de l'image, Playwright ne s'étant pas installé seul au démarrage ; le plugin Notion se désactive dans le conteneur, son serveur MCP attendant une authentification à chaque session. Ces enseignements forment la mécanique de session de l'ADR-004 d'`ai-kit` depuis le 2026-10-27 ; cet ADR en garde les motifs.
-
-**Constats sur le VPS**, relevés le 2026-10-01 : `/dev/kvm` présent (AMD-V), donc les micro-VM sont possibles ; `kernel.unprivileged_userns_clone = 0` et `kernel.apparmor_restrict_unprivileged_userns = 1`, donc bubblewrap seulement en mode affaibli ; 7,7 Gio de RAM dont 2,9 disponibles, donc une session à la fois tant que la RAM n'est pas augmentée.
-
-**Socket Docker de l'hôte, jamais.** La documentation de la sandbox de Claude Code le rappelle : « allowing access to `/var/run/docker.sock` effectively grants access to the host system through the Docker socket » ([Claude Code, Sandboxing](https://code.claude.com/docs/en/sandboxing)).
-
-**Pourquoi pas le plugin Telegram des channels.** Il relaie les accords d'outils avec des boutons, mais « Relay covers tool-use approvals like `Bash`, `Write`, and `Edit` » ([Channels reference](https://code.claude.com/docs/en/channels-reference), consultée le 2026-10-01) : les questions à choix n'y passent pas. Il exige aussi une session `claude --channels` ouverte en permanence, et « Telegram allows exactly one getUpdates consumer per token » ([code du plugin officiel](https://github.com/anthropics/claude-plugins-official/tree/main/external_plugins/telegram), relevé le 2026-10-01) : un bot par session. Le relais part donc du callback `can_use_tool` d'`agent-os`, qui reçoit les deux.
-
 **Environnements self-hosted.** Ils combineraient déclenchement par API et exécution sur le VPS, mais « Self-hosted environments are in public beta on Team and Enterprise plans » : hors de portée d'un plan Max.
 
 **Sources**, consultées le 2026-09-30 :
 
-- [Support Anthropic, Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan) : « We're pausing the changes to Claude Agent SDK usage described below. For now, nothing has changed: Claude Agent SDK, `claude -p`, and third-party app usage still draw from your subscription's usage limits. » Le changement suspendu, prévu au 15 juin 2026, créait selon l'article un crédit mensuel séparé (20 $ en Pro, 100 $ en Max 5x, 200 $ en Max 20x) pour l'Agent SDK, `claude -p`, les GitHub Actions et les applications tierces, Claude Code interactif restant sur les limites normales
+- [Support Anthropic, Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan) : « We're pausing the changes to Claude Agent SDK usage described below. For now, nothing has changed: Claude Agent SDK, `claude -p`, and third-party app usage still draw from your subscription's usage limits. » Le changement suspendu, prévu au 15 juin 2026, créait selon l'article un crédit mensuel séparé (20 $ en Pro, 100 $ en Max 5x, 200 $ en Max 20x) pour l'Agent SDK, `claude -p`, les GitHub Actions et les applications tierces, Claude Code interactif restant sur les limites normales. Mise à jour du 7 octobre 2026, relevée le 2026-11-05 : « when you're signed in with your Claude plan, the Claude Agent SDK and `claude -p` still draw from your subscription limits »
 - [Claude Code, Legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) : « Advertised usage limits for Pro and Max plans assume ordinary, individual usage of Claude Code and the Agent SDK »
-- [Claude Code, Run Claude Code programmatically](https://code.claude.com/docs/en/headless) : « This page covers using the Agent SDK via the CLI (`claude -p`) » ; « `--bare` is the recommended mode for scripted and SDK calls, and will become the default for `-p` in a future release » ; « In bare mode, Claude Code never reads OAuth credentials or the system keychain »
-- [Claude Code, Authentication](https://code.claude.com/docs/en/authentication) : « In non-interactive mode (`-p`), the key is always used when present » ; le jeton de `claude setup-token` « can only make model requests, so it can't establish Remote Control sessions or fetch claude.ai connectors »
-- [claude-agent-sdk-python, README](https://github.com/anthropics/claude-agent-sdk-python) : « The Claude Code CLI is automatically bundled with the package »
-- [Agent SDK, Handle approvals and user input](https://code.claude.com/docs/en/agent-sdk/user-input) : « The callback can stay pending indefinitely »
+- [Claude Code, Authentication](https://code.claude.com/docs/en/authentication) : « In non-interactive mode (`-p`), the key is always used when present » ; le token de `claude setup-token` « can only make model requests, so it can't establish Remote Control sessions or fetch claude.ai connectors »
 - [Claude Code, Settings in cloud sessions](https://code.claude.com/docs/en/settings#settings-in-cloud-sessions) : « User and project local settings (`~/.claude/settings.json` and `.claude/settings.local.json`): not read » ; [Configure cloud environments](https://code.claude.com/docs/en/cloud-environments) : « A cloud session doesn't install the plugins a repository turns on »
 - [Claude Code, Routines](https://code.claude.com/docs/en/routines) : « Routines draw down subscription usage the same way interactive sessions do »
 - [Claude Code, Remote Control](https://code.claude.com/docs/en/remote-control) : « available on Pro, Max, Team, and Enterprise plans. API keys are not supported »

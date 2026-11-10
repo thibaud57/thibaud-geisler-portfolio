@@ -225,6 +225,6 @@ Remplace le rattachement à une entité légale existante par une saisie directe
 **Choix : C**
 
 **Rationale :**
-- Décision du propriétaire (17, 2026-09-30) : la Comptabilité (Feature 5) a besoin de la date de bascule autant que du régime pour ses déclarations, qu'un régime seul ne porterait pas
+- Décision du propriétaire (17, 2026-09-30) : la Comptabilité (Feature 6) a besoin de la date de bascule autant que du régime pour ses déclarations, qu'un régime seul ne porterait pas
 - Un numéro de TVA peut être saisi avant la bascule effective (préparation d'une facture) : le dériver de sa présence confondrait la donnée d'identification avec le fait générateur
 - La franchise se dit par l'absence des deux champs, sans valeur qui doublerait l'information déjà portée par la date

@@ -141,7 +141,7 @@ export function isWorkedCompany(company: {
   return company.clientProjectCount > 0 || hasAcceptedOpportunity(company)
 }
 
-export function companyCrmFields(data: CompanyInput) {
+export function companyCrmFields(data: Partial<CompanyInput>) {
   return {
     types: data.types,
     relationStatus: data.relationStatus,
@@ -151,7 +151,13 @@ export function companyCrmFields(data: CompanyInput) {
   }
 }
 
-export function companyFields(data: CompanyInput) {
+type CompanyFieldKey = Exclude<keyof CompanyInput, `legalEntity${string}`>
+
+// Une création garde `slug` et `name` obligatoires, un patch les laisse `undefined`, que Prisma ignore.
+export function companyFields<T extends Partial<CompanyInput>>(data: T): Pick<T, CompanyFieldKey>
+export function companyFields(
+  data: Partial<CompanyInput>,
+): Pick<Partial<CompanyInput>, CompanyFieldKey> {
   return {
     slug: data.slug,
     name: data.name,

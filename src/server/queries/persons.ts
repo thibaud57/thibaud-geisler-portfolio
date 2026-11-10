@@ -38,6 +38,9 @@ export const personRefSelect = {
   contact: { select: { personId: true } },
 } as const
 
+// Le nom du lead suffit ; `optedOutAt` fait rendre une personne opposée par son seul identifiant.
+export const leadNameSelect = { select: { id: true, name: true, optedOutAt: true } } as const
+
 export interface PersonOption {
   id: string
   name: string
@@ -108,4 +111,32 @@ export function findAttachableLead(personId: PersonId): Promise<AttachableLead |
     where: { id: personId, ...attachableLeadWhere },
     select: attachableLeadSelect,
   })
+}
+
+const personSearchSelect = { ...personRefSelect, company: { select: { name: true } } } as const
+
+// Lecture légère pour la recherche des outils : les personnes qui ont le rôle, opposées comprises, que la recherche filtre elle-même.
+export function findPersonsWithRole(role: "lead" | "contact") {
+  return prisma.person.findMany({
+    where: { [role]: { isNot: null } },
+    select: personSearchSelect,
+  })
+}
+
+export interface PageQuery<Where, OrderBy> {
+  where: Where
+  orderBy: OrderBy[]
+  take: number
+  skip: number
+}
+
+export const personRowSelect = {
+  name: true,
+  company: { select: { id: true, name: true } },
+} as const
+
+type PersonRowSource = Prisma.PersonGetPayload<{ select: typeof personRowSelect }>
+
+export function toPersonRow(row: { personId: string; person: PersonRowSource }) {
+  return { id: row.personId, name: row.person.name, company: row.person.company }
 }

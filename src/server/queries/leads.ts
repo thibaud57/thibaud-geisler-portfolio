@@ -13,7 +13,14 @@ import type { SignalItem } from "@/lib/crm/signals"
 import { companyRefSelect } from "@/server/queries/company-ref"
 import { orderedInterviewSelect } from "@/server/queries/interviews"
 import { type OpportunitySummary, opportunitySummarySelect } from "@/server/queries/opportunities"
-import { flattenPerson, type FlatPerson, personNameOrder } from "@/server/queries/persons"
+import {
+  flattenPerson,
+  type FlatPerson,
+  type PageQuery,
+  personNameOrder,
+  personRowSelect,
+  toPersonRow,
+} from "@/server/queries/persons"
 import { signalsInclude } from "@/server/queries/signals"
 
 const adminLeadInclude = {
@@ -112,6 +119,15 @@ export async function findLeadByIdForAdmin(personId: PersonId): Promise<AdminLea
   return row ? toAdminLead(row) : null
 }
 
+// Lecture légère de la personne d'un lead, pour décider de la lecture complète.
+export async function findLeadPerson(personId: PersonId) {
+  const row = await prisma.lead.findUnique({
+    where: { personId },
+    select: { person: { select: { id: true, name: true, optedOutAt: true } } },
+  })
+  return row?.person ?? null
+}
+
 // Leads d'une entreprise : une fiche en opposition a perdu son entreprise, elle n'y apparaît plus. Relation lue imbriquée exprès, cette liste ne sert qu'à construire des liens ; `AdminLead` reste la seule forme aplatie.
 export async function findLeadsOfCompany(companyId: CompanyId) {
   return prisma.lead.findMany({
@@ -125,4 +141,30 @@ export async function findLeadsOfCompany(companyId: CompanyId) {
     },
     orderBy: { person: personNameOrder },
   })
+}
+
+const leadRowSelect = {
+  personId: true,
+  status: true,
+  updatedAt: true,
+  person: { select: personRowSelect },
+} as const
+
+// Une personne opposée n'est jamais listée : la garde est ici, pas chez l'appelant.
+export async function findLeadsPage(
+  page: PageQuery<Prisma.LeadWhereInput, Prisma.LeadOrderByWithRelationInput>,
+) {
+  const where: Prisma.LeadWhereInput = { AND: [page.where, { person: { optedOutAt: null } }] }
+  const [rows, total] = await prisma.$transaction([
+    prisma.lead.findMany({ ...page, where, select: leadRowSelect }),
+    prisma.lead.count({ where }),
+  ])
+  return {
+    rows: rows.map((row) => ({
+      ...toPersonRow(row),
+      status: row.status,
+      updatedAt: row.updatedAt,
+    })),
+    total,
+  }
 }

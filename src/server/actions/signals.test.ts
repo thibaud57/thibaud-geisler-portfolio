@@ -5,33 +5,29 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
-vi.mock("@/lib/prisma", () => {
-  const prisma = {
-    signal: {
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      findUnique: vi.fn(),
-      count: vi.fn(),
-    },
-    lead: { findUnique: vi.fn() },
-    $transaction: vi.fn(),
-  }
-  prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
-    callback(prisma),
-  )
-  return { prisma }
-})
+vi.mock("@/lib/prisma", () => ({
+  prisma: { signal: { delete: vi.fn(), count: vi.fn() } },
+}))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/signals", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/crm/signals")>()),
+  createSignal: vi.fn(),
+  updateSignal: vi.fn(),
+}))
 
 import { revalidatePath } from "next/cache"
 
+import { signalIdSchema } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
+import { fail, ok } from "@/server/crm/result"
+import { createSignal, updateSignal as updateSignalRecord } from "@/server/crm/signals"
 
 import { createCompanySignal, createPersonSignal, deleteSignal, updateSignal } from "./signals"
 import { initialSignalFormState } from "./signals.types"
+
+const WRITTEN = { id: signalIdSchema.parse("s1") }
 
 const BASE_FIELDS = {
   type: "OFFRE_POSTE",
@@ -49,8 +45,8 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
 }
 
 beforeEach(() => {
-  vi.mocked(prisma.signal.create).mockResolvedValue({ id: "s1" } as never)
-  vi.mocked(prisma.signal.update).mockResolvedValue({ id: "s1" } as never)
+  vi.mocked(createSignal).mockResolvedValue(ok(WRITTEN))
+  vi.mocked(updateSignalRecord).mockResolvedValue(ok(WRITTEN))
 })
 
 it.each([
@@ -64,27 +60,30 @@ it.each([
   const result = call()
 
   await expect(result).rejects.toThrow()
-  expect(prisma.signal.create).not.toHaveBeenCalled()
-  expect(prisma.signal.update).not.toHaveBeenCalled()
+  expect(createSignal).not.toHaveBeenCalled()
+  expect(updateSignalRecord).not.toHaveBeenCalled()
   expect(prisma.signal.delete).not.toHaveBeenCalled()
 })
 
 describe("createCompanySignal", () => {
-  it("attaches a new signal to its company", async () => {
-    await createCompanySignal("c1", initialSignalFormState, buildFormData())
+  it("hands its company and the parsed fields to the domain, the day at midnight UTC", async () => {
+    const state = await createCompanySignal("c1", initialSignalFormState, buildFormData())
 
-    expect(prisma.signal.create).toHaveBeenCalledWith(
+    expect(state.ok).toBe(true)
+    expect(createSignal).toHaveBeenCalledWith(
+      { companyId: "c1" },
       objectMatch({
-        data: objectMatch({
-          companyId: "c1",
-          type: "OFFRE_POSTE",
-          occurredOn: new Date(Date.UTC(2026, 8, 14)),
-        }),
+        type: "OFFRE_POSTE",
+        occurredOn: new Date(Date.UTC(2026, 8, 14)),
+        sourceUrl: "https://example.com/jobs",
       }),
     )
+    expect(revalidatePath).toHaveBeenCalledTimes(2)
   })
 
-  it("refuses a person-level type on a company", async () => {
+  it("shows a type that does not fit on the type field, without invalidating", async () => {
+    vi.mocked(createSignal).mockResolvedValueOnce(fail({ code: "type_mismatch" }))
+
     const state = await createCompanySignal(
       "c1",
       initialSignalFormState,
@@ -92,13 +91,11 @@ describe("createCompanySignal", () => {
     )
 
     expect(state.errors.type).toEqual(["Ce type ne concerne pas cette fiche"])
-    expect(prisma.signal.create).not.toHaveBeenCalled()
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
-  it("reports a company that no longer exists", async () => {
-    vi.mocked(prisma.signal.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "Signal_companyId_fkey"),
-    )
+  it("reports a company that no longer exists and invalidates the lists", async () => {
+    vi.mocked(createSignal).mockResolvedValueOnce(fail({ code: "company_not_found" }))
 
     const state = await createCompanySignal("c1", initialSignalFormState, buildFormData())
 
@@ -110,7 +107,8 @@ describe("createCompanySignal", () => {
     const state = await createCompanySignal("", initialSignalFormState, buildFormData())
 
     expect(state.message).toBe("company_not_found")
-    expect(prisma.signal.create).not.toHaveBeenCalled()
+    expect(createSignal).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
   it("refuses a content over 500 characters and a link over 2048", async () => {
@@ -125,23 +123,24 @@ describe("createCompanySignal", () => {
 
     expect(state.errors.content).toEqual(["Le contenu ne peut pas dépasser 500 caractères"])
     expect(state.errors.sourceUrl).toEqual(["Le lien ne peut pas dépasser 2048 caractères"])
-    expect(prisma.signal.create).not.toHaveBeenCalled()
+    expect(createSignal).not.toHaveBeenCalled()
   })
 })
 
 describe("createPersonSignal", () => {
-  it.each([
-    { label: "an inbound lead", origin: "INBOUND", optedOutAt: null },
-    {
-      label: "an opted-out lead",
-      origin: "OUTBOUND",
-      optedOutAt: new Date("2026-09-01T10:00:00.000Z"),
-    },
-  ])("refuses a signal on $label", async ({ origin, optedOutAt }) => {
-    vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce({
-      origin,
-      person: { optedOutAt },
-    } as never)
+  it("hands its lead to the domain", async () => {
+    const state = await createPersonSignal(
+      "l1",
+      initialSignalFormState,
+      buildFormData({ type: "POST" }),
+    )
+
+    expect(state.ok).toBe(true)
+    expect(createSignal).toHaveBeenCalledWith({ personId: "l1" }, objectMatch({ type: "POST" }))
+  })
+
+  it("reports a lead that cannot receive a signal, without invalidating", async () => {
+    vi.mocked(createSignal).mockResolvedValueOnce(fail({ code: "lead_not_eligible" }))
 
     const state = await createPersonSignal(
       "l1",
@@ -150,42 +149,31 @@ describe("createPersonSignal", () => {
     )
 
     expect(state.message).toBe("lead_not_eligible")
-    expect(prisma.signal.create).not.toHaveBeenCalled()
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
-  it("checks the lead and creates the signal in one transaction", async () => {
-    vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce({
-      origin: "OUTBOUND",
-      person: { optedOutAt: null },
-    } as never)
+  it("answers lead_not_eligible for an empty lead id, without writing or invalidating", async () => {
+    const state = await createPersonSignal("", initialSignalFormState, buildFormData())
 
-    const state = await createPersonSignal(
-      "l1",
-      initialSignalFormState,
-      buildFormData({ type: "POST" }),
-    )
-
-    expect(state.ok).toBe(true)
-    expect(prisma.$transaction).toHaveBeenCalledOnce()
-    expect(prisma.signal.create).toHaveBeenCalledOnce()
+    expect(state.message).toBe("lead_not_eligible")
+    expect(createSignal).not.toHaveBeenCalled()
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 })
 
 describe("updateSignal", () => {
-  it("edits a signal of a lead that became inbound", async () => {
-    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce({
-      companyId: null,
-      personId: "l1",
-    } as never)
-
-    const state = await updateSignal("s1", initialSignalFormState, buildFormData({ type: "POST" }))
+  it("hands its id and the parsed fields to the domain", async () => {
+    const state = await updateSignal("s1", initialSignalFormState, buildFormData())
 
     expect(state.ok).toBe(true)
-    expect(prisma.signal.update).toHaveBeenCalledOnce()
+    expect(updateSignalRecord).toHaveBeenCalledWith(
+      "s1",
+      objectMatch({ type: "OFFRE_POSTE", content: "Recrute deux développeurs IA" }),
+    )
   })
 
-  it("reports a signal that no longer exists", async () => {
-    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce(null)
+  it("reports a signal that no longer exists and invalidates the lists", async () => {
+    vi.mocked(updateSignalRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await updateSignal("s1", initialSignalFormState, buildFormData())
 
@@ -193,43 +181,29 @@ describe("updateSignal", () => {
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("reports a signal deleted between the read and the update", async () => {
-    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce({
-      companyId: "c1",
-      personId: null,
-    } as never)
-    vi.mocked(prisma.signal.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.signal.count).mockResolvedValueOnce(0)
-
-    const state = await updateSignal("s1", initialSignalFormState, buildFormData())
+  it("answers signal_not_found for an empty signal id, without writing, and invalidates the lists", async () => {
+    const state = await updateSignal("", initialSignalFormState, buildFormData())
 
     expect(state.message).toBe("signal_not_found")
+    expect(updateSignalRecord).not.toHaveBeenCalled()
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("reports an unknown error when a P2025 comes while the signal still exists", async () => {
-    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce({
-      companyId: "c1",
-      personId: null,
-    } as never)
-    vi.mocked(prisma.signal.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.signal.count).mockResolvedValueOnce(1)
-
-    const state = await updateSignal("s1", initialSignalFormState, buildFormData())
-
-    expect(state.message).toBe("unknown_error")
-  })
-
-  it("refuses to change a company signal to a person-level type", async () => {
-    vi.mocked(prisma.signal.findUnique).mockResolvedValueOnce({
-      companyId: "c1",
-      personId: null,
-    } as never)
+  it("reports a type that does not fit on the type field", async () => {
+    vi.mocked(updateSignalRecord).mockResolvedValueOnce(fail({ code: "type_mismatch" }))
 
     const state = await updateSignal("s1", initialSignalFormState, buildFormData({ type: "POST" }))
 
     expect(state.errors.type).toEqual(["Ce type ne concerne pas cette fiche"])
-    expect(prisma.signal.update).not.toHaveBeenCalled()
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("reports an unknown error when the domain throws", async () => {
+    vi.mocked(updateSignalRecord).mockRejectedValueOnce(new Error("database down"))
+
+    const state = await updateSignal("s1", initialSignalFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
 })
 

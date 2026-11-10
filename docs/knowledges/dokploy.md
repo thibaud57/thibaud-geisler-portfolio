@@ -97,7 +97,7 @@ NEXT_PUBLIC_SITE_URL=https://thibaud-geisler.com
 
 ### Description
 
-Dokploy embarque Traefik v3 comme reverse proxy (version relevée dans la doc privée du VPS). Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
+Dokploy embarque Traefik v3 comme reverse proxy, sans jamais le monter (relever son image : [PRODUCTION.md § Plateforme d'hébergement](../PRODUCTION.md#plateforme-dhébergement)). Génère automatiquement les certificats Let's Encrypt via HTTP-01 challenge (port 80 ouvert). Configuration statique dans `traefik.yml` (restart requis), dynamique dans `/etc/dokploy/traefik/dynamic/` (hot reload).
 
 ### Exemple
 

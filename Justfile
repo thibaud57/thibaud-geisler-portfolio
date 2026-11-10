@@ -68,9 +68,12 @@ typecheck:
 audit:
     pnpm audit --audit-level=high
 
-# Lance tous les tests (unit + integration)
+# Tous les projets Vitest ensemble, couverture fusionnée : plancher de 80 % (lignes et branches), anti-régression
 [group('quality')]
-test: test-unit test-integration
+[script]
+test:
+    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
+    pnpm vitest run --coverage --coverage.thresholds.lines=80 --coverage.thresholds.branches=80
 
 # Tests unitaires (Vitest) : composants et lib en jsdom, code serveur en Node
 [group('quality')]

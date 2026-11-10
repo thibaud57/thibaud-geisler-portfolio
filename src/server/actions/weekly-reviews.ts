@@ -1,30 +1,43 @@
 "use server"
 
 import "server-only"
-import { revalidatePath } from "next/cache"
 
-import { ADMIN_WEEKLY_REVIEWS_PATH } from "@/lib/admin/routes"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { weeklyReviewIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { recordFromKeys } from "@/lib/record-from-keys"
-import { countWeek, weekBounds } from "@/lib/crm/review-counters"
 import {
   closingFridayField,
   weeklyReviewSchema,
   type WeeklyReviewInput,
 } from "@/lib/schemas/weekly-review"
-import { createActionLogger, isPrismaError, stringField } from "@/lib/server-utils"
+import { createActionLogger, rowExists, stringField } from "@/lib/server-utils"
 import { REVIEW_COUNTER_KEYS, type ReviewCounts } from "@/lib/crm/weekly-reviews"
-import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
+import type { DomainResult } from "@/server/crm/result"
+import {
+  computeWeekCounts,
+  createWeeklyReview as createWeeklyReviewRecord,
+  revalidateReviewLists,
+  updateWeeklyReview as updateWeeklyReviewRecord,
+  type WeeklyReviewWriteError,
+  type WrittenWeeklyReview,
+} from "@/server/crm/weekly-reviews"
 
 import {
   type ActionEvents,
   deleteEntity,
+  domainFailure,
+  type DomainFailure,
+  failureState,
   formStateHandlers,
-  rowExists,
   saveEntity,
 } from "./_support/shared"
-import type { WeeklyReviewDeleteState, WeeklyReviewFormState } from "./weekly-reviews.types"
+import type {
+  WeeklyReviewDeleteState,
+  WeeklyReviewFormMessage,
+  WeeklyReviewFormState,
+} from "./weekly-reviews.types"
 
 const WEEK_TAKEN = "Une revue existe déjà pour cette semaine"
 
@@ -43,23 +56,20 @@ function collectValues(formData: FormData): WeeklyReviewFormState["values"] {
   return recordFromKeys(FORM_FIELD_KEYS, (key) => stringField(formData, key))
 }
 
-function invalidateReviewCaches(): void {
-  revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
-}
+const failure = domainFailure<WeeklyReviewInput, WeeklyReviewFormMessage>
 
-function mapReviewError(
-  err: unknown,
+function mapDomainError(
+  error: WeeklyReviewWriteError,
   values: WeeklyReviewFormState["values"],
-): WeeklyReviewFormState | null {
-  if (isPrismaError(err, "P2002")) {
-    return {
-      ok: false,
-      errors: { closingFriday: [WEEK_TAKEN] },
-      message: "review_week_exists",
-      values,
-    }
+): DomainFailure<WeeklyReviewFormState> {
+  switch (error.code) {
+    case "review_week_exists":
+      return failure(values, { closingFriday: [WEEK_TAKEN] }, "review_week_exists")
+    case "not_found":
+      return failure(values, {}, "weekly_review_not_found", true)
+    default:
+      return assertNever(error)
   }
-  return null
 }
 
 const reviewExists = (id: string) => rowExists(prisma.weeklyReview, { id })
@@ -68,25 +78,27 @@ function saveReview(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: WeeklyReviewInput) => Promise<{ id: string }>,
-  updatedId?: string,
+  persist: (
+    data: WeeklyReviewInput,
+  ) => Promise<DomainResult<WrittenWeeklyReview, WeeklyReviewWriteError>>,
 ): Promise<WeeklyReviewFormState> {
   const values = collectValues(formData)
 
-  return saveEntity<WeeklyReviewInput, WeeklyReviewFormState, { id: string }>({
+  return saveEntity<
+    WeeklyReviewInput,
+    WeeklyReviewFormState,
+    WrittenWeeklyReview,
+    WeeklyReviewWriteError
+  >({
     actionName,
     events,
     schema: weeklyReviewSchema,
     input: values,
     persist,
     successLogFields: (_data, review) => ({ id: review.id }),
-    invalidateCaches: invalidateReviewCaches,
-    mapError: (err) => mapReviewError(err, values),
-    ...formStateHandlers(values, {
-      message: "weekly_review_not_found",
-      updatedId,
-      exists: reviewExists,
-    }),
+    invalidateCaches: revalidateReviewLists,
+    onDomainError: (error) => mapDomainError(error, values),
+    ...formStateHandlers(values),
   })
 }
 
@@ -101,23 +113,31 @@ export async function createWeeklyReview(
     "createWeeklyReview",
     { success: "weekly_review:created", failure: "weekly_review:create_failed" },
     formData,
-    (data) => prisma.weeklyReview.create({ data }),
+    createWeeklyReviewRecord,
   )
 }
 
 export async function updateWeeklyReview(
-  id: string,
+  rawId: string,
   _prevState: WeeklyReviewFormState,
   formData: FormData,
 ): Promise<WeeklyReviewFormState> {
   await getCurrentUser()
 
+  const parsedId = weeklyReviewIdSchema.safeParse(rawId)
+  if (!parsedId.success) {
+    return failureState(
+      mapDomainError({ code: "not_found" }, collectValues(formData)),
+      revalidateReviewLists,
+    )
+  }
+  const id = parsedId.data
+
   return saveReview(
     "updateWeeklyReview",
     { success: "weekly_review:updated", failure: "weekly_review:update_failed" },
     formData,
-    (data) => prisma.weeklyReview.update({ where: { id }, data }),
-    id,
+    (data) => updateWeeklyReviewRecord(id, data),
   )
 }
 
@@ -130,7 +150,7 @@ export async function deleteWeeklyReview(id: string): Promise<WeeklyReviewDelete
     successLogFields: { id },
     exists: () => reviewExists(id),
     destroy: () => prisma.weeklyReview.delete({ where: { id } }),
-    invalidateCaches: invalidateReviewCaches,
+    invalidateCaches: revalidateReviewLists,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
@@ -145,10 +165,8 @@ export async function computeWeekCounters(
   return createActionLogger("computeWeekCounters", async ({ log }) => {
     const closingFriday = closingFridayField.safeParse(isoFriday)
     if (!closingFriday.success) return { ok: false }
-    const bounds = weekBounds(closingFriday.data)
     try {
-      const sources = await findWeekCounterSources(bounds)
-      return { ok: true, counts: countWeek(sources, bounds, new Date()) }
+      return { ok: true, counts: await computeWeekCounts(closingFriday.data, new Date()) }
     } catch (err) {
       log.error({ err, event: "weekly_review:count_failed" })
       return { ok: false }

@@ -2,68 +2,52 @@
 
 import "server-only"
 
-import type { LeadOrigin, Prisma } from "@/generated/prisma/client"
-import { detailsAfterContactPromotion } from "@/lib/crm/details-templates"
-import type { FieldErrors } from "@/lib/form-state"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { personIdSchema, type PersonId } from "@/lib/ids"
+import { personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import {
   attachContactSchema,
   newContactSchema,
   type ContactFormFields,
 } from "@/lib/schemas/network-contact"
+import { createActionLogger, rowExists, stringField, stringValues } from "@/lib/server-utils"
 import {
-  createActionLogger,
-  isPrismaError,
-  stringField,
-  stringValues,
-  violatedConstraint,
-} from "@/lib/server-utils"
+  attachContact as attachContactRecord,
+  createContact as createContactRecord,
+  updateContact as updateContactRecord,
+} from "@/server/crm/contacts"
+import { deletePersonIfRoleless, revalidatePersonLists } from "@/server/crm/person-guards"
+import type { PersonFieldsError } from "@/server/crm/person-write"
 import { findAttachableLead, type AttachableLead } from "@/server/queries/persons"
 
 import {
-  assertNewIdentity,
-  assertNotOptedOut,
   collectPersonValues,
-  conflictErrors,
-  deletePersonIfRoleless,
-  optOutMessage,
-  PersonConflictError,
-  revalidatePersonLists,
-  type ConflictField,
+  CONTACT_CREATE_WORDING,
+  CONTACT_WORDING,
+  mapPersonFieldsError,
   type DuplicateWording,
-} from "./_support/person-guards"
-import { PersonLockedError } from "./persons.types"
+  type PersonFailureMessages,
+} from "./_support/person-form"
 import {
   deleteEntity,
   formStateHandlers,
-  MISSING_COMPANY,
-  MISSING_PERSON,
-  missingRelationState,
-  rowExists,
   saveEntity,
   type ActionEvents,
+  type DomainFailure,
 } from "./_support/shared"
 import type { ContactFormMessage, ContactDeleteState, ContactFormState } from "./contacts.types"
 
-const CONFLICT_MESSAGES = {
-  exists: "contact_exists",
-  opted_out: "contact_opted_out",
-  not_found: "person_not_found",
-} as const satisfies Record<PersonConflictError["reason"], ContactFormMessage>
-
-const CONTACT_WORDING: DuplicateWording = {
-  role: "contact",
-  own: "Ce contact existe déjà",
-  other: "Cette personne est déjà un lead",
-}
-
-// Seule la création propose « Depuis un lead » : en édition, la personne est déjà choisie.
-const CONTACT_CREATE_WORDING: DuplicateWording = {
-  ...CONTACT_WORDING,
-  otherHint: ", choisissez-la « Depuis un lead »",
-}
+const MESSAGES = {
+  conflict: {
+    exists: "contact_exists",
+    opted_out: "contact_opted_out",
+    person_missing: "person_not_found",
+    not_a_lead: "person_not_found",
+    no_lead_role: "person_not_found",
+  },
+  locked: "contact_opted_out_locked",
+  notFound: "contact_not_found",
+} as const satisfies PersonFailureMessages<ContactFormMessage>
 
 function collectValues(formData: FormData): ContactFormState["values"] {
   return {
@@ -74,91 +58,17 @@ function collectValues(formData: FormData): ContactFormState["values"] {
   }
 }
 
-// Le verrou de ligne sérialise avec `optOutPerson`, dont l'UPDATE prend le même verrou : soit l'attache voit l'opposition, soit l'opposition passe après et son `contact.deleteMany` retire le rôle posé ici.
-async function assertAttachable(
-  tx: Prisma.TransactionClient,
-  personId: PersonId,
-): Promise<{ details: string | null; origin: LeadOrigin }> {
-  await tx.$queryRaw`SELECT 1 FROM "freelance"."Person" WHERE id = ${personId} FOR UPDATE`
-  const person = await tx.person.findUnique({
-    where: { id: personId },
-    select: {
-      name: true,
-      details: true,
-      optedOutAt: true,
-      lead: { select: { origin: true } },
-      contact: { select: { personId: true } },
-    },
-  })
-  if (!person) {
-    throw new PersonConflictError("personId", "not_found", MISSING_PERSON.text)
-  }
-  if (person.optedOutAt) {
-    throw new PersonConflictError("personId", "opted_out", optOutMessage(person.optedOutAt))
-  }
-  if (!person.lead) {
-    throw new PersonConflictError("personId", "not_found", "Cette personne n'est pas un lead")
-  }
-  if (person.contact) {
-    throw new PersonConflictError(
-      "personId",
-      "exists",
-      `${CONTACT_WORDING.own} : ${person.name ?? ""}`,
-    )
-  }
-  return { details: person.details, origin: person.lead.origin }
-}
-
-function mapContactError(
-  err: unknown,
-  values: ContactFormState["values"],
-): ContactFormState | null {
-  if (err instanceof PersonConflictError) {
-    return {
-      ok: false,
-      errors: conflictErrors(err),
-      message: CONFLICT_MESSAGES[err.reason],
-      values,
-    }
-  }
-  if (err instanceof PersonLockedError) {
-    return { ok: false, errors: {}, message: "contact_opted_out_locked", values }
-  }
-  if (isPrismaError(err, "P2002")) {
-    const constraint = violatedConstraint(err)
-    // `email` en repli : visible en création comme en édition, quand `personId` ne l'est que dans le sélecteur de lead.
-    const field: ConflictField =
-      constraint?.includes("Contact_pkey") || constraint?.includes("personId")
-        ? "personId"
-        : constraint?.includes("linkedinUrl")
-          ? "linkedinUrl"
-          : "email"
-    const errors: FieldErrors<keyof ContactFormFields> = { [field]: ["Cette personne existe déjà"] }
-    return { ok: false, errors, message: "contact_exists", values }
-  }
-  // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
-  if (isPrismaError(err, "P2003")) {
-    return violatedConstraint(err)?.includes("personId")
-      ? missingRelationState("personId", MISSING_PERSON, values)
-      : missingRelationState("companyId", MISSING_COMPANY, values)
-  }
-  return null
-}
-
 const contactExists = (personId: string) => rowExists(prisma.contact, { personId })
 
-function contactHandlers(values: ContactFormState["values"], updatedId?: string) {
+function contactHandlers(values: ContactFormState["values"], wording: DuplicateWording) {
   return {
     successLogFields: (_data: object, contact: { personId: string }) => ({
       personId: contact.personId,
     }),
     invalidateCaches: revalidatePersonLists,
-    mapError: (err: unknown) => mapContactError(err, values),
-    ...formStateHandlers(values, {
-      message: "contact_not_found",
-      updatedId,
-      exists: contactExists,
-    }),
+    onDomainError: (error: PersonFieldsError): DomainFailure<ContactFormState> =>
+      mapPersonFieldsError<ContactFormFields, ContactFormMessage>(error, values, MESSAGES, wording),
+    ...formStateHandlers(values),
   }
 }
 
@@ -178,16 +88,8 @@ export async function createContact(
       events,
       schema: attachContactSchema,
       input: values,
-      persist: ({ personId, types, status }) =>
-        prisma.$transaction(async (tx) => {
-          const { details, origin } = await assertAttachable(tx, personId)
-          const promoted = detailsAfterContactPromotion(details, origin)
-          if (promoted !== (details ?? "")) {
-            await tx.person.update({ where: { id: personId }, data: { details: promoted } })
-          }
-          return tx.contact.create({ data: { personId, types, status } })
-        }),
-      ...contactHandlers(values),
+      persist: ({ personId, types, status }) => attachContactRecord(personId, { types, status }),
+      ...contactHandlers(values, CONTACT_CREATE_WORDING),
     })
   }
 
@@ -196,13 +98,8 @@ export async function createContact(
     events,
     schema: newContactSchema,
     input: values,
-    persist: ({ types, status, ...person }) =>
-      prisma.$transaction(async (tx) => {
-        await assertNewIdentity(tx, person, null, CONTACT_CREATE_WORDING)
-        const created = await tx.person.create({ data: person })
-        return tx.contact.create({ data: { types, status, personId: created.id } })
-      }),
-    ...contactHandlers(values),
+    persist: createContactRecord,
+    ...contactHandlers(values, CONTACT_CREATE_WORDING),
   })
 }
 
@@ -234,15 +131,8 @@ export async function updateContact(
     events: { success: "contact:updated", failure: "contact:update_failed" },
     schema: newContactSchema,
     input: values,
-    persist: ({ types, status, ...person }) =>
-      prisma.$transaction(async (tx) => {
-        // Après le verrou d'opposition : une personne opposée entre le chargement et l'envoi doit recevoir le message de verrou, pas un doublon.
-        await assertNotOptedOut(tx, personId)
-        await assertNewIdentity(tx, person, personId, CONTACT_WORDING)
-        await tx.person.update({ where: { id: personId }, data: person })
-        return tx.contact.update({ where: { personId }, data: { types, status } })
-      }),
-    ...contactHandlers(values, personId),
+    persist: (data) => updateContactRecord(personId, data),
+    ...contactHandlers(values, CONTACT_WORDING),
   })
 }
 

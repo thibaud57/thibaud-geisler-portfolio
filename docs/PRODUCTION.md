@@ -87,7 +87,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
-- [ ] Smoke test : accueil, `/projets`, formulaire contact
+- [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` sans clé → `401`
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
@@ -339,7 +339,17 @@ Items effectués une fois, après le premier déploiement validé : ils exigeaie
 
 ## Plateforme d'hébergement
 
-Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment. Versions et procédure de relevé : tenues dans une doc privée, hors de ce dépôt public.
+Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun fichier du dépôt ne les déclare** : rien ne signale quand ils périment.
+
+| Composant | Rôle pour le projet | Relever la version |
+|-----------|---------------------|--------------------|
+| Docker Engine | exécute les conteneurs de l'app et de la Database | SSH, `docker version --format '{{.Server.Version}}'` |
+| Docker Compose | lance le Compose `Portfolio-app` | SSH, `docker compose version --short` |
+| Dokploy | redéploie le Compose à l'appel de `deploy.yml`, porte la Database et ses backups | UI Dokploy |
+| Traefik (embarqué par Dokploy) | TLS et routage du domaine | SSH, `docker ps --filter name=traefik --format '{{.Image}}'` |
+| Cloudflare R2 | assets et sauvegardes | managed service, sans version |
+
+> ⚠️ **Relever la version réelle avant toute montée** : ce tableau n'en porte aucune.
 
 **Pièges de montée**, à lire avant d'y toucher :
 
@@ -385,6 +395,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
+| Clé d'API d'un client MCP (poste, `agent-os`) | En cas de compromission, ou à l'expiration choisie à la création | Créer la nouvelle clé depuis `/admin/cles-api` (valeur affichée une seule fois), la poser dans la configuration MCP du client, puis supprimer l'ancienne depuis la même page : la suppression la rend aussitôt invalide (`401`). Aucune variable d'environnement n'est en jeu |
 
 ## Demandes RGPD
 
@@ -429,13 +440,15 @@ font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'sel
 
 ## CORS
 
-Aucune politique CORS : le site ne sert que ses propres pages et ses Server Actions, aucun client tiers n'appelle son origine. Next.js protège déjà les Server Actions en comparant `Origin` et `Host`. À définir le jour où une API publique ou un client navigateur externe apparaîtrait.
+Aucune politique CORS : le site sert ses propres pages et ses Server Actions, et la route MCP (`/api/mcp/<domaine>`) des agents hors navigateur. Next.js protège déjà les Server Actions en comparant `Origin` et `Host`. La route MCP valide elle-même `Origin` contre l'hôte de `NEXT_PUBLIC_SITE_URL` : présent et étranger, ou `null`, il reçoit `403`, absent il est servi. À définir le jour où un client navigateur externe apparaîtrait.
 
 ## Rate Limiting
 
 | Endpoint / Scope | Limite | Fenêtre | Mécanisme |
 |-----------------|--------|---------|-----------|
 | Formulaire contact (Server Action) | 5 requêtes | 10 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`, cap 1000 clés). Dépassement → event `rate_limit:exceeded` en `warn` |
+| Route MCP (`/api/mcp/<domaine>`), par IP | 120 requêtes | 1 min | Fenêtre glissante par IP, en mémoire (`src/lib/rate-limiter.ts`), avant toute lecture en base. IP = première entrée de `X-Forwarded-For`, fiable derrière Traefik ; sans cet en-tête (réseau Docker interne d'`agent-os`), toutes les requêtes partagent le seau `unknown`. Remis à zéro à chaque redéploiement. Dépassement → `429` avec `Retry-After`, event `rate_limit:exceeded` (`limit: "ip"`) |
+| Route MCP, par clé d'API | 1000 requêtes acceptées | Cumul remis à zéro après 1 h sans requête acceptée | Plugin `@better-auth/api-key` (`src/lib/auth.ts`), réglage copié dans chaque clé à sa création : une clé existante garde le sien. Chaque requête HTTP compte (initialisation, notifications, appels d'outils). Dépassement → `429` jusqu'à 1 h après la dernière requête acceptée, avec `Retry-After` (secondes restantes, tirées de `error.details.tryAgainIn` que renvoie le plugin, `src/server/mcp/authenticate.ts`), event `rate_limit:exceeded` (`limit: "key"`) |
 | Domaine, toutes routes | 600 requêtes, rafale 200 | 1 min | Middleware Traefik `rate-limit-strict@file`, posé sur le domaine, par IP source (IPv6 regroupées par `/64`). Dépassement → `429` |
 | Défaut du VPS, tous sites | 3000 requêtes, rafale 1000 | 1 min | Middleware Traefik `rate-limit@file`, posé sur le point d'entrée `websecure` |
 
@@ -521,9 +534,9 @@ JSON structuré via Pino (`src/lib/logger.ts`), une ligne par événement sur st
 {"level":"info","time":"2026-09-03T18:09:24.189Z","service":"thibaud-geisler-portfolio","action":"submitContact","requestId":"b4c784fb-398b-44b9-aa06-34564c598fd7","ip_hash":"7a42ebba","event":"email:sent","has_company":true,"message_length":312,"duration_ms":1180}
 ```
 
-> **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action : `action`, `requestId` (corrèle toutes les lignes d'une même soumission) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
+> **Champs communs à toute ligne** : `level` en label texte (jamais le code numérique Pino), `time` en ISO 8601 UTC, `service` constant, puis les bindings du child logger créé par Server Action ou par requête MCP (`action: "mcp"`) : `action`, `requestId` (corrèle toutes les lignes d'une même soumission ou requête) et `ip_hash` (8 premiers hex du SHA-256 salé de l'IP, cf. `IP_HASH_SALT`). `event` nomme l'événement métier, préfixé par domaine.
 
-> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `request:unhandled_error` → `err`, `path`.
+> **Champs propres à chaque event** : `email:sent` → `has_company`, `message_length`, `duration_ms` (durée de l'appel SMTP) ; `rate_limit:exceeded` → `retryAfterSeconds` ; `calendly:event_scheduled` → `event_uri` ; `honeypot:caught` → aucun ; `email:failed` → `err` ; `calendly:url_missing` → `locale` ; `request:unhandled_error` → `err`, `path` ; `mcp:request` → `domain`, `keyId`, `era` (`legacy` ou `modern`, révision MCP du client) ; `mcp:rejected` → `reason` (`origin`, `unknown_domain`, `no_key`, `invalid_key`, `forbidden`), `domain` une fois vérifié ; `mcp:handler_error` → `err`, `domain` ; `rate_limit:exceeded` de la route MCP → `limit` (`ip` ou `key`).
 
 > **`calendly:url_missing` est le seul event émis hors Server Action** (rendu de la page contact, quand `NEXT_PUBLIC_CALENDLY_URL_<LOCALE>` manque). Il ne porte donc ni `action`, ni `requestId`, ni `ip_hash` : inutile de chercher à le corréler à une soumission.
 
@@ -535,14 +548,16 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 > ⚠️ **Prisma ne passe pas par Pino** : `src/lib/prisma.ts` active son propre `log: ['warn', 'error']`, qui sort en texte natif non JSON. Une erreur de connexion BDD ne se cherche donc pas avec un filtre `"level":"error"`.
 
+> ⚠️ **Better Auth ne passe pas non plus par Pino** : chaque refus d'une clé MCP (inconnue, expirée, rate limit) écrit en texte natif une ligne « Failed to validate API key ». Elle ne signale donc pas une panne de base, qui répond elle aussi `401` (`mcp:rejected`, raison `invalid_key`) comme une clé fausse : la panne se lit sur `/api/health`.
+
 ## Niveaux
 
 | Level | Usage |
 |-------|-------|
 | `debug` | Développement local uniquement (défaut en dev, jamais en production) |
-| `info` | Événements normaux : `email:sent`, `honeypot:caught` (soumission piégée, réponse volontairement `ok`), `calendly:event_scheduled` |
-| `warn` | Dégradé non bloquant : `rate_limit:exceeded`, `calendly:url_missing` (variable d'environnement manquante, la page rend un placeholder) |
-| `error` | Échec bloquant : `email:failed` (SMTP injoignable ou refus), `request:unhandled_error` (exception non gérée d'un rendu serveur, captée par `onRequestError` dans `src/instrumentation.ts`) |
+| `info` | Événements normaux : `email:sent`, `honeypot:caught` (soumission piégée, réponse volontairement `ok`), `calendly:event_scheduled`, `mcp:request` |
+| `warn` | Dégradé non bloquant : `rate_limit:exceeded`, `mcp:rejected` (requête MCP refusée avant le SDK), `calendly:url_missing` (variable d'environnement manquante, la page rend un placeholder) |
+| `error` | Échec bloquant : `email:failed` (SMTP injoignable ou refus), `request:unhandled_error` (exception non gérée d'un rendu serveur, captée par `onRequestError` dans `src/instrumentation.ts`), `mcp:handler_error` (erreur levée dans le handler MCP) |
 
 ## Rétention
 
@@ -569,6 +584,7 @@ Un échec porte l'erreur sérialisée par Pino, et `msg` y reprend `err.message`
 
 - ❌ **Ne jamais logger de secrets** : `SMTP_PASS`, `DATABASE_URL`, `IP_HASH_SALT`, `SENTRY_AUTH_TOKEN`, `R2_ASSETS_SECRET_ACCESS_KEY`, `R2_ADMIN_SECRET_ACCESS_KEY`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_SECRET`
 - ❌ **Ne jamais logger le contenu des messages de contact** ni l'identité de l'émetteur (nom, email, société), ni `ADMIN_EMAIL` (seul élément identifiant la cible d'une tentative d'accès) : données personnelles, RGPD
+- ❌ **Ne jamais logger une clé d'API ni le bearer d'une requête MCP** : seulement `keyId`. Une clé fuitée ouvre ses domaines jusqu'à sa révocation
 - ❌ **Ne jamais logger une IP en clair** : toujours le hash salé tronqué (`hashIp`). Un hash d'IP non salé se casse par force brute, l'espace IPv4 étant fini
 
 ---

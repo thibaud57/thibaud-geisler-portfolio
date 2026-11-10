@@ -12,9 +12,9 @@ technologies: ["shadcn/ui", "react-markdown", "remend", "Server-Sent Events"]
 
 Trois surfaces du portfolio affichent une conversation avec un agent dont la réponse arrive en streaming :
 
-- l'assistant interne de l'espace admin (Feature 3), en fenêtre flottante déplaçable et redimensionnable, avec une page d'historique, servi par `agent-os` (Claude Agent SDK Python) ;
-- le créateur de specs et de docs de la partie Dev (Feature 8), servi lui aussi par `agent-os` ;
-- le chatbot public (Feature 10), bilingue et sans historique conservé, servi par `portfolio-chatbot` (PydanticAI).
+- l'assistant interne de l'espace admin (Feature 4), en fenêtre flottante déplaçable et redimensionnable, avec une page d'historique, servi par `agent-os` (Claude Agent SDK Python) ;
+- le créateur de specs et de docs de la partie Dev (Feature 9), servi lui aussi par `agent-os` ;
+- le chatbot public (Feature 11), bilingue et sans historique conservé, servi par `portfolio-chatbot` (PydanticAI).
 
 Le portfolio porte tous les fronts ([ADR-020](020-portfolio-bff.md)) : les services Python n'ont aucune interface et ne sont joints que par le serveur Next, qui relaie leur flux au navigateur en Server-Sent Events ([ADR-019](019-communication-inter-services.md)). Le `BRAINSTORM.md` impose les mêmes composants de chat aux trois surfaces.
 

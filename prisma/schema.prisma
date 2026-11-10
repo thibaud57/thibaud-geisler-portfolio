@@ -332,6 +332,7 @@ enum ProcessingKind {
   EMBEDDED_SERVICE
   EMAIL_PROVIDER
   ANALYTICS
+  AI_ASSISTANT
 
   @@schema("public")
 }
@@ -363,6 +364,7 @@ enum DataCategory {
   USAGE_DATA
   TECHNICAL_LOGS
   COOKIE_DATA
+  PROFESSIONAL_INFO
 
   @@schema("public")
 }
@@ -834,5 +836,37 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+  @@schema("auth")
+}
+
+// Nom imposé : l'adaptateur Prisma de Better Auth appelle `prisma.apikey` (.claude/rules/better-auth/api-key.md)
+model Apikey {
+  id                  String    @id
+  configId            String    @default("default")
+  name                String?
+  start               String?
+  referenceId         String
+  prefix              String?
+  key                 String
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime? @db.Timestamptz
+  enabled             Boolean?  @default(true)
+  rateLimitEnabled    Boolean?  @default(true)
+  rateLimitTimeWindow Int?
+  rateLimitMax        Int?
+  requestCount        Int?      @default(0)
+  remaining           Int?
+  lastRequest         DateTime? @db.Timestamptz
+  expiresAt           DateTime? @db.Timestamptz
+  createdAt           DateTime  @db.Timestamptz
+  updatedAt           DateTime  @db.Timestamptz
+  permissions         String?
+  metadata            String?
+
+  @@index([configId])
+  @@index([referenceId])
+  @@index([key])
+  @@map("apikey")
   @@schema("auth")
 }

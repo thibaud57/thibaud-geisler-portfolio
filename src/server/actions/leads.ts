@@ -2,48 +2,41 @@
 
 import "server-only"
 
-import type { FieldErrors } from "@/lib/form-state"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { leadSchema, type LeadInput } from "@/lib/schemas/lead"
-import { isPrismaError, stringField, violatedConstraint } from "@/lib/server-utils"
+import { rowExists, stringField } from "@/lib/server-utils"
+import { createLead as createLeadRecord, updateLead as updateLeadRecord } from "@/server/crm/leads"
+import {
+  assertOptOutOver,
+  deletePersonIfRoleless,
+  PersonLockedError,
+  revalidatePersonLists,
+} from "@/server/crm/person-guards"
+import type { PersonFieldsError } from "@/server/crm/person-write"
+import type { DomainResult } from "@/server/crm/result"
 
 import {
-  assertNewIdentity,
-  assertNotOptedOut,
-  assertOptOutOver,
   collectPersonValues,
-  conflictErrors,
-  deletePersonIfRoleless,
-  PersonConflictError,
-  revalidatePersonLists,
-  type DuplicateWording,
-  type IdentityField,
-} from "./_support/person-guards"
-import { PersonLockedError } from "./persons.types"
-import {
-  deleteEntity,
-  formStateHandlers,
-  MISSING_COMPANY,
-  missingRelationState,
-  rowExists,
-  saveEntity,
-  type ActionEvents,
-} from "./_support/shared"
+  LEAD_WORDING,
+  mapPersonFieldsError,
+  type PersonFailureMessages,
+} from "./_support/person-form"
+import { deleteEntity, formStateHandlers, saveEntity, type ActionEvents } from "./_support/shared"
 import type { LeadFormMessage, LeadDeleteState, LeadFormState } from "./leads.types"
 
-const CONFLICT_MESSAGES = {
-  exists: "lead_exists",
-  opted_out: "lead_opted_out",
-  not_found: "lead_not_found",
-} as const satisfies Record<PersonConflictError["reason"], LeadFormMessage>
-
-const LEAD_WORDING: DuplicateWording = {
-  role: "lead",
-  own: "Ce lead existe déjà",
-  other: "Cette personne est déjà un contact",
-}
+const MESSAGES = {
+  conflict: {
+    exists: "lead_exists",
+    opted_out: "lead_opted_out",
+    person_missing: "lead_not_found",
+    not_a_lead: "lead_not_found",
+    no_lead_role: "lead_not_found",
+  },
+  locked: "lead_opted_out_locked",
+  notFound: "lead_not_found",
+} as const satisfies PersonFailureMessages<LeadFormMessage>
 
 function collectValues(formData: FormData): LeadFormState["values"] {
   return {
@@ -56,42 +49,17 @@ function collectValues(formData: FormData): LeadFormState["values"] {
   }
 }
 
-function mapLeadError(err: unknown, values: LeadFormState["values"]): LeadFormState | null {
-  if (err instanceof PersonConflictError) {
-    return {
-      ok: false,
-      errors: conflictErrors(err),
-      message: CONFLICT_MESSAGES[err.reason],
-      values,
-    }
-  }
-  if (err instanceof PersonLockedError) {
-    return { ok: false, errors: {}, message: "lead_opted_out_locked", values }
-  }
-  if (isPrismaError(err, "P2002")) {
-    const constraint = violatedConstraint(err)
-    const field: IdentityField = constraint?.includes("email") ? "email" : "linkedinUrl"
-    const errors: FieldErrors<keyof LeadInput> = { [field]: ["Cette personne existe déjà"] }
-    return { ok: false, errors, message: "lead_exists", values }
-  }
-  if (isPrismaError(err, "P2003")) {
-    return missingRelationState("companyId", MISSING_COMPANY, values)
-  }
-  return null
-}
-
 const leadExists = (personId: string) => rowExists(prisma.lead, { personId })
 
 function saveLead(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: LeadInput) => Promise<{ personId: string }>,
-  updatedPersonId?: string,
+  persist: (data: LeadInput) => Promise<DomainResult<{ personId: string }, PersonFieldsError>>,
 ): Promise<LeadFormState> {
   const values = collectValues(formData)
 
-  return saveEntity<LeadInput, LeadFormState, { personId: string }>({
+  return saveEntity<LeadInput, LeadFormState, { personId: string }, PersonFieldsError>({
     actionName,
     events,
     schema: leadSchema,
@@ -99,18 +67,10 @@ function saveLead(
     persist,
     successLogFields: (_data, lead) => ({ personId: lead.personId }),
     invalidateCaches: revalidatePersonLists,
-    mapError: (err) => mapLeadError(err, values),
-    ...formStateHandlers(values, {
-      message: "lead_not_found",
-      updatedId: updatedPersonId,
-      exists: leadExists,
-    }),
+    onDomainError: (error) =>
+      mapPersonFieldsError<LeadInput, LeadFormMessage>(error, values, MESSAGES, LEAD_WORDING),
+    ...formStateHandlers(values),
   })
-}
-
-function splitLeadInput(data: LeadInput) {
-  const { origin, status, interest, channel, score, ...person } = data
-  return { person, lead: { origin, status, interest, channel, score } }
 }
 
 export async function createLead(
@@ -124,14 +84,7 @@ export async function createLead(
     "createLead",
     { success: "lead:created", failure: "lead:create_failed" },
     formData,
-    async (data) => {
-      const { person, lead } = splitLeadInput(data)
-      return prisma.$transaction(async (tx) => {
-        await assertNewIdentity(tx, data, null, LEAD_WORDING)
-        const created = await tx.person.create({ data: person })
-        return tx.lead.create({ data: { ...lead, personId: created.id } })
-      })
-    },
+    createLeadRecord,
   )
 }
 
@@ -152,17 +105,7 @@ export async function updateLead(
     "updateLead",
     { success: "lead:updated", failure: "lead:update_failed" },
     formData,
-    async (data) => {
-      const { person, lead } = splitLeadInput(data)
-      return prisma.$transaction(async (tx) => {
-        // Après le verrou d'opposition : une personne opposée entre le chargement et l'envoi doit recevoir le message de verrou, pas un doublon.
-        await assertNotOptedOut(tx, personId)
-        await assertNewIdentity(tx, data, personId, LEAD_WORDING)
-        await tx.person.update({ where: { id: personId }, data: person })
-        return tx.lead.update({ where: { personId }, data: lead })
-      })
-    },
-    personId,
+    (data) => updateLeadRecord(personId, data),
   )
 }
 

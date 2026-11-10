@@ -19,6 +19,9 @@ export const COMPANY_SIZES = Object.values(CompanySize)
 export const COMPANY_TYPES = Object.values(CompanyType)
 export const RELATION_STATUSES = Object.values(RelationStatus)
 
+export const COMPANY_SLUG_MAX_LENGTH = 60
+export const COMPANY_NAME_MAX_LENGTH = 120
+
 export const websiteUrlSchema = z
   .string()
   .trim()
@@ -34,7 +37,10 @@ export const companySchema = z
       .trim()
       .toLowerCase()
       .min(1, "Le slug est requis")
-      .max(60, "Le slug ne peut pas dépasser 60 caractères")
+      .max(
+        COMPANY_SLUG_MAX_LENGTH,
+        `Le slug ne peut pas dépasser ${COMPANY_SLUG_MAX_LENGTH} caractères`,
+      )
       .regex(
         SLUG_PATTERN,
         "Le slug ne peut contenir que des minuscules, des chiffres et des tirets",
@@ -43,7 +49,10 @@ export const companySchema = z
       .string()
       .trim()
       .min(1, "Le nom est requis")
-      .max(120, "Le nom ne peut pas dépasser 120 caractères"),
+      .max(
+        COMPANY_NAME_MAX_LENGTH,
+        `Le nom ne peut pas dépasser ${COMPANY_NAME_MAX_LENGTH} caractères`,
+      ),
     sectors: z.array(z.enum(CompanySector, { error: "Secteur inconnu" })),
     size: z
       .union([z.enum(CompanySize), z.literal(NONE_VALUE), z.literal("")], {

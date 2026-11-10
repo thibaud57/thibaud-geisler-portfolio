@@ -1,24 +1,29 @@
 import { z } from "zod"
 
 import { SignalType } from "@/generated/prisma/browser"
+import { isoDayToDate } from "@/lib/date-time"
 import { isValidWebsiteUrl } from "@/lib/schemas/company"
 import { emptyToNull } from "@/lib/schemas/none-value"
 
+export const SIGNAL_CONTENT_MAX_LENGTH = 500
+export const SIGNAL_SOURCE_URL_MAX_LENGTH = 2048
+
 export const signalSchema = z.object({
   type: z.enum(SignalType, { error: "Choisissez un type" }),
-  occurredOn: z.iso
-    .date({ error: "Choisissez une date" })
-    // Minuit UTC : la colonne date garde ce jour-là, quel que soit le fuseau du navigateur.
-    .transform((value) => new Date(`${value}T00:00:00.000Z`)),
+  occurredOn: z.iso.date({ error: "Choisissez une date" }).transform(isoDayToDate),
   content: z
     .string()
     .trim()
     .min(1, { error: "Décrivez le signal" })
-    .max(500, { error: "Le contenu ne peut pas dépasser 500 caractères" }),
+    .max(SIGNAL_CONTENT_MAX_LENGTH, {
+      error: `Le contenu ne peut pas dépasser ${SIGNAL_CONTENT_MAX_LENGTH} caractères`,
+    }),
   sourceUrl: z
     .string()
     .trim()
-    .max(2048, { error: "Le lien ne peut pas dépasser 2048 caractères" })
+    .max(SIGNAL_SOURCE_URL_MAX_LENGTH, {
+      error: `Le lien ne peut pas dépasser ${SIGNAL_SOURCE_URL_MAX_LENGTH} caractères`,
+    })
     .refine((value) => value === "" || isValidWebsiteUrl(value), {
       error: "L'adresse du lien n'est pas valide",
     })

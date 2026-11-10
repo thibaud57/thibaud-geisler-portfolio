@@ -183,16 +183,17 @@ Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une
 
 1. **Auth plus CRUD contenu portfolio.** Fondation obligatoire, ne dépend presque d'aucune décision restante. Livrée en `v2.0.0` le 2026-09-25.
 2. **Domaine freelance CRM** : entreprises, entités légales, leads et prospection, missions proposées, entretiens, revues, signaux ; l'outil du quotidien.
-3. **Agents internes** : `ai-kit` et `agent-os`, jobs déclenchés depuis l'admin, outils de l'app pour les agents ([ADR-025](../../../adrs/025-acces-agents-app.md)), assistant interne (par Telegram, puis dans l'admin). Les outils du CRM peuvent démarrer dès le CRM livré.
-4. **Domaine freelance Missions** : phases, chantiers, CRA, accueil.
-5. **Domaine freelance Comptabilité** : facturation, déclarations URSSAF et TVA.
-6. Finances : trésorerie, prévisionnel, budget, investissement.
-7. Publications LinkedIn, rédaction assistée comprise, en jobs `agent-os`.
-8. Kanban dev et audits, exécutés par `agent-os` sur action du propriétaire.
-9. Analytics, avant le chatbot pour disposer d'une mesure d'audience avant lui.
-10. Chatbot public.
-11. RAG documents personnels.
-12. Intégrations externes (API LinkedIn, Indy), selon le besoin réel.
+3. **Outils de l'app pour les agents** : serveur MCP par domaine et clés d'API ([ADR-025](../../../adrs/025-acces-agents-app.md)), outils du CRM en premier.
+4. **Agents internes** : `ai-kit` et `agent-os`, jobs déclenchés depuis l'admin, assistant interne (par Telegram, puis dans l'admin).
+5. **Domaine freelance Missions** : phases, chantiers, CRA, accueil.
+6. **Domaine freelance Comptabilité** : facturation, déclarations URSSAF et TVA.
+7. Finances : trésorerie, prévisionnel, budget, investissement.
+8. Publications LinkedIn, rédaction assistée comprise, en jobs `agent-os`.
+9. Kanban dev et audits, exécutés par `agent-os` sur action du propriétaire.
+10. Analytics, avant le chatbot pour disposer d'une mesure d'audience avant lui.
+11. Chatbot public.
+12. RAG documents personnels.
+13. Intégrations externes (API LinkedIn, Indy), selon le besoin réel.
 
 > Même ordre que les features post-MVP de `docs/BRAINSTORM.md`, qui porte les prérequis de chacune.
 
@@ -200,5 +201,5 @@ Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une
 
 - Source de vérité du kanban : tranché, la base, chaque carte liée à une spec ou à un plan du dépôt ; l'état des PR remonte par le webhook `pull_request` du dépôt, disponible sur un compte personnel contrairement à ceux des Projects GitHub. Le schema qui porte les cartes et son propriétaire se fixent au spec du kanban dev.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
-- Forme des outils de l'app pour les agents, serveur MCP ou CLI, et leur authentification : [ADR-025](../../../adrs/025-acces-agents-app.md), au statut `proposed`, tranché à la décomposition des agents internes.
+- Forme des outils de l'app pour les agents, serveur MCP ou CLI, et leur authentification : [ADR-025](../../../adrs/025-acces-agents-app.md), au statut `proposed`, tranché par le prototype qui ouvre la Feature 3.
 - Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

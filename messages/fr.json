@@ -370,12 +370,12 @@
   },
   "PrivacyPolicy": {
     "title": "Politique de confidentialité",
-    "lastUpdated": "Dernière mise à jour : 3 octobre 2026",
+    "lastUpdated": "Dernière mise à jour : 7 novembre 2026",
     "recipients": {
       "title": "3. Destinataires et sous-traitants",
-      "intro": "Les données personnelles peuvent être transmises aux sous-traitants suivants pour les finalités décrites :",
+      "intro": "Les données personnelles peuvent être transmises aux destinataires suivants pour les finalités décrites :",
       "tableHeaders": {
-        "name": "Sous-traitant",
+        "name": "Destinataire",
         "role": "Rôle",
         "purpose": "Finalité",
         "dataCategories": "Catégories de données",
@@ -429,7 +429,8 @@
     "retention": {
       "logs1Year": "Durée de la prestation d'hébergement ; logs techniques conservés 1 an maximum",
       "logs30Days": "30 jours (logs SMTP), suppression automatique",
-      "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)"
+      "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)",
+      "recipientTerms": "Selon les conditions du destinataire"
     },
     "legalBasis": {
       "CONSENT": "Consentement (RGPD art. 6-1-a)",
@@ -449,7 +450,8 @@
       "HOSTING": "Hébergement",
       "EMBEDDED_SERVICE": "Service embarqué",
       "EMAIL_PROVIDER": "Fournisseur d'emails",
-      "ANALYTICS": "Analytics"
+      "ANALYTICS": "Analytics",
+      "AI_ASSISTANT": "Assistant IA"
     },
     "dataCategory": {
       "IDENTITY": "Identité",
@@ -457,7 +459,8 @@
       "IP_ADDRESS": "Adresse IP",
       "USAGE_DATA": "Données d'usage",
       "TECHNICAL_LOGS": "Logs techniques",
-      "COOKIE_DATA": "Données de cookies"
+      "COOKIE_DATA": "Données de cookies",
+      "PROFESSIONAL_INFO": "Informations professionnelles (poste, entreprise, notes d'échanges)"
     }
   }
 }

@@ -8,7 +8,7 @@ import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import { createActionLogger } from "@/lib/server-utils"
 
-import { revalidatePersonLists } from "./_support/person-guards"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
 import type { ErasePersonExchangesState, OptOutPersonState } from "./persons.types"
 
 type OptOutOutcome = "not_found" | "refused" | "already_opted_out" | "deleted" | "opted_out"
