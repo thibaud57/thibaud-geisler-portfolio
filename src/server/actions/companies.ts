@@ -16,15 +16,14 @@ import {
   stringValues,
 } from "@/lib/server-utils"
 import {
-  COMPANY_CACHE_TAGS,
   createCompany as createCompanyRecord,
+  invalidateCompanyCaches,
   updateCompany as updateCompanyRecord,
   type CompanyFieldsError,
   type CompanySummary,
 } from "@/server/crm/companies"
 import { fail, type DomainResult } from "@/server/crm/result"
 
-import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   deleteEntity,
   domainFailure,
@@ -103,11 +102,8 @@ function mapDomainError(
   }
 }
 
-// L'entité légale de la société du propriétaire est celle de l'éditeur, lue par les pages légales.
-function invalidateCompanyCaches(): void {
-  for (const tag of COMPANY_CACHE_TAGS) updateTag(tag)
-  // Outre la liste des entreprises, les leads, contacts et opportunités affichent son nom et son logo.
-  revalidatePersonLists()
+function updateCompanyCaches(): void {
+  invalidateCompanyCaches(updateTag)
 }
 
 const companyExists = (id: string) => rowExists(prisma.company, { id })
@@ -127,7 +123,7 @@ function saveCompany(
     input: values,
     persist,
     successLogFields: (data) => ({ slug: data.slug }),
-    invalidateCaches: invalidateCompanyCaches,
+    invalidateCaches: updateCompanyCaches,
     onDomainError: (error) => mapDomainError(error, values),
     ...formStateHandlers(values),
   })
@@ -202,7 +198,7 @@ export async function deleteCompany(id: string): Promise<CompanyDeleteState> {
           if (entity.addressId) await tx.address.delete({ where: { id: entity.addressId } })
         }
       }),
-    invalidateCaches: invalidateCompanyCaches,
+    invalidateCaches: updateCompanyCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     mapError: (err) =>
       isPrismaError(err, "P2003") ? { ok: false, errors: {}, message: "company_in_use" } : null,

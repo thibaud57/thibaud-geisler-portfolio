@@ -101,12 +101,17 @@ describe("isoDayToDate", () => {
     expect(date.toISOString()).toBe("2026-03-29T00:00:00.000Z")
   })
 
-  it.each(["", "2026-03", "2026-3-9", "2026-03-29T10:00:00Z", "abcd-ef-gh"])(
-    "throws on the malformed day %j",
-    (input) => {
-      expect(() => isoDayToDate(input)).toThrow(`Expected a day as YYYY-MM-DD, got "${input}"`)
-    },
-  )
+  it.each([
+    "",
+    "2026-03",
+    "2026-3-9",
+    "2026-03-29T10:00:00Z",
+    "abcd-ef-gh",
+    "2026-02-31",
+    "2026-13-01",
+  ])("throws on the malformed or impossible day %j", (input) => {
+    expect(() => isoDayToDate(input)).toThrow(`Expected a day as YYYY-MM-DD, got "${input}"`)
+  })
 })
 
 describe("dateColumnIsoDay", () => {

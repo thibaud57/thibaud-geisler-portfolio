@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 
 import { companyIdSchema, signalIdSchema } from "@/lib/ids"
 import {
+  companyIdOf,
   idOf,
   OPTED_OUT_AT,
   prisma,
   resetDatabase,
   seedCompany,
   seedPerson,
+  storedSignal,
 } from "@/lib/prisma-test-setup"
 
 import { createSignal, updateSignal, type SignalWriteData } from "./signals"
@@ -26,7 +28,7 @@ function signalData(overrides: Partial<SignalWriteData> = {}): SignalWriteData {
 }
 
 async function seedCompanyOwner() {
-  return companyIdSchema.parse((await seedCompany()).id)
+  return companyIdOf(await seedCompany())
 }
 
 async function seedSignal(owner: { companyId: string } | { personId: string }) {
@@ -41,8 +43,6 @@ async function seedSignal(owner: { companyId: string } | { personId: string }) {
   })
   return signalIdSchema.parse(row.id)
 }
-
-const storedSignal = (id: string) => prisma.signal.findUniqueOrThrow({ where: { id } })
 
 beforeEach(async () => {
   await resetDatabase()

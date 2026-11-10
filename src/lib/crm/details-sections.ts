@@ -1,6 +1,6 @@
 import { normalizeForSearch } from "@/lib/admin/search"
 
-export type ReplaceDetailsSectionResult =
+type ReplaceDetailsSectionResult =
   | { ok: true; details: string }
   | { ok: false; code: "no_details" }
   | { ok: false; code: "section_not_found"; headings: string[] }
@@ -27,24 +27,24 @@ export function replaceDetailsSection(
 
   const target = headingKey(heading)
   // Une section court de son « # » jusqu'au suivant : le texte avant le premier titre n'en fait pas partie.
-  const chunks = details.split(/^(?=# )/m).map((chunk) => {
-    const title = chunk.startsWith("# ") ? headingOf(chunk) : undefined
-    const matched = title !== undefined && headingKey(title) === target ? title : undefined
-    return { chunk, title, matched }
-  })
+  const chunks = details.split(/^(?=# )/m).map((chunk) => ({
+    chunk,
+    title: chunk.startsWith("# ") ? headingOf(chunk) : undefined,
+  }))
 
-  // Deux sections homonymes : la première seule est visée, la seconde reste intacte.
-  const firstMatch = chunks.findIndex(({ matched }) => matched !== undefined)
+  const firstMatch = chunks.findIndex(
+    ({ title }) => title !== undefined && headingKey(title) === target,
+  )
   if (firstMatch === -1) {
     const headings = chunks.flatMap(({ title }) => (title === undefined ? [] : [title]))
     return { ok: false, code: "section_not_found", headings }
   }
 
   const body = content.trim() === "" ? "" : `\n${content.trim()}\n`
-  const replaced = chunks.map(({ chunk, matched }, index) => {
-    if (index !== firstMatch || matched === undefined) return chunk
+  const replaced = chunks.map(({ chunk, title }, index) => {
+    if (index !== firstMatch || title === undefined) return chunk
     const separator = index === chunks.length - 1 ? "" : "\n"
-    return `# ${matched}\n${body}${separator}`
+    return `# ${title}\n${body}${separator}`
   })
 
   return { ok: true, details: replaced.join("") }

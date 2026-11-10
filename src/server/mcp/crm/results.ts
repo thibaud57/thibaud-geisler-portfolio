@@ -1,6 +1,8 @@
 import "server-only"
 import type { CallToolResult } from "@modelcontextprotocol/server"
 
+import { assertNever } from "@/lib/assert-never"
+import type { DetailsSectionError } from "@/server/crm/details-section"
 import type { DomainResult } from "@/server/crm/result"
 import type { McpLogger } from "@/server/mcp/logger"
 
@@ -12,10 +14,42 @@ export function toolError(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true }
 }
 
+export const notFoundMessage = (noun: string): string =>
+  `No ${noun} has this id. Call crm_search to find the right id, then call the tool again.`
+
+export function detailsErrorMessage(error: DetailsSectionError, noun: string): string {
+  switch (error.code) {
+    case "no_details":
+      return `This ${noun} has no Details text, so no section can be replaced. Write the whole text with fields.details instead.`
+    case "section_not_found":
+      return `No section of the Details matches detailsSection.heading. Sections present: ${error.headings.join(", ")}. Use one of these titles.`
+    default:
+      return assertNever(error)
+  }
+}
+
 // Les textes d'une écriture : événements de log et message rendu à l'agent quand l'opération échoue.
 export interface WriteTexts {
   events: { success: string; failure: string }
   failureMessage: string
+}
+
+// Un create n'a pas d'id à relire : `createCheck` dit comment vérifier que l'enregistrement existe déjà avant de réessayer.
+export function writeTexts(
+  { key, noun, pronoun = "its" }: { key: string; noun: string; pronoun?: "its" | "her" },
+  createCheck: string,
+): { create: WriteTexts; update: WriteTexts } {
+  const unsaved = `The ${noun} could not be saved because of an internal error.`
+  return {
+    create: {
+      events: { success: `${key}:created`, failure: `${key}:create_failed` },
+      failureMessage: `${unsaved} ${createCheck}`,
+    },
+    update: {
+      events: { success: `${key}:updated`, failure: `${key}:update_failed` },
+      failureMessage: `${unsaved} Call crm_fetch to check ${pronoun} current state before retrying.`,
+    },
+  }
 }
 
 interface ToolFailure {
@@ -41,15 +75,33 @@ export async function guardTool<T>(
   return handle(value)
 }
 
-// Écriture d'une entité de suivi : l'échec attendu du domaine devient un message qui nomme la correction, le succès invalide les listes de l'admin que l'entité alimente et rend la valeur écrite.
-export function writeRecord<V extends { id: string }, E extends { code: string }>(
-  run: () => Promise<DomainResult<V, E>>,
-  ctx: { log: McpLogger },
-  { events, failureMessage }: WriteTexts,
-  logContext: object,
-  errorMessage: (error: E) => string,
-  invalidate: () => void,
-): Promise<CallToolResult> {
+interface WriteRecordOptions<V, E extends { code: string }> {
+  run: () => Promise<DomainResult<V, E>>
+  ctx: { log: McpLogger }
+  texts: WriteTexts
+  logContext: object
+  errorMessage: (error: E) => string
+  invalidate: () => void
+  logged: (value: V) => object
+  rendered: (value: V) => unknown
+}
+
+export const byId = {
+  logged: ({ id }: { id: string }) => ({ id }),
+  rendered: (value: unknown) => value,
+}
+
+// Écriture d'une entité de suivi : l'échec attendu devient un message qui nomme la correction (l'agent corrige l'appel sans deviner), le succès invalide les listes de l'admin que l'entité alimente.
+export function writeRecord<V, E extends { code: string }>({
+  run,
+  ctx,
+  texts: { events, failureMessage },
+  logContext,
+  errorMessage,
+  invalidate,
+  logged,
+  rendered,
+}: WriteRecordOptions<V, E>): Promise<CallToolResult> {
   return guardTool(
     ctx.log,
     { event: events.failure, message: failureMessage, context: logContext },
@@ -58,8 +110,8 @@ export function writeRecord<V extends { id: string }, E extends { code: string }
       if (!result.ok) return toolError(errorMessage(result.error))
 
       invalidate()
-      ctx.log.info({ event: events.success, id: result.value.id })
-      return toolJson(result.value)
+      ctx.log.info({ event: events.success, ...logged(result.value) })
+      return toolJson(rendered(result.value))
     },
   )
 }

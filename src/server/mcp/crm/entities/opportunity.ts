@@ -34,14 +34,14 @@ import { defineCrmEntity, joinHint } from "../entity-definition"
 import { details, notes } from "../fields"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
 import { personRef } from "../person-ref"
-import { writeRecord, type WriteTexts } from "../results"
+import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaOf } from "../update-input"
 
 const entityField = z
   .literal("opportunity")
   .describe('Type of CRM record: always "opportunity" here.')
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
   title: z
     .string()
@@ -216,7 +216,6 @@ function toPatch({ fields = {}, detailsSection }: UpdateInput): OpportunityPatch
 
 const FIND_COMPANY = "Call crm_search with the entity company to find the right id"
 
-// Chaque code devient un message qui nomme la correction : l'agent corrige l'appel sans deviner.
 function opportunityWriteErrorMessage(error: OpportunityWriteError): string {
   switch (error.code) {
     case "intermediary_not_esn":
@@ -230,31 +229,34 @@ function opportunityWriteErrorMessage(error: OpportunityWriteError): string {
     case "days_out_of_range":
       return "onSiteDays cannot exceed daysPerWeek. Correct one of the two: on an update that sends only one of them, the value already stored counts."
     case "not_found":
-      return "No opportunity has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("opportunity")
     case "no_details":
-      return "This opportunity has no Details text, so no section can be replaced. Write the whole text with fields.details instead."
     case "section_not_found":
-      return `No section of the Details matches detailsSection.heading. Sections present: ${error.headings.join(", ")}. Use one of these titles.`
+      return detailsErrorMessage(error, "opportunity")
     default:
       return assertNever(error)
   }
 }
 
-// Un create n'a pas d'id à relire : le titre dit si l'opportunité existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "opportunity:created", failure: "opportunity:create_failed" },
-  failureMessage:
-    "The opportunity could not be saved because of an internal error. Call crm_search with its title to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "opportunity:updated", failure: "opportunity:update_failed" },
-  failureMessage:
-    "The opportunity could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
+const WRITES = writeTexts(
+  { key: "opportunity", noun: "opportunity" },
+  "Call crm_search with its title to check whether it was created before retrying.",
+)
 
 export const opportunityEntity = defineCrmEntity({
   entity: "opportunity",
+  docs: {
+    search:
+      '"client · status" for an opportunity (found by title or by the name of its client or intermediary)',
+    fetch:
+      "For an opportunity: its referrer (id and name, or id only when she opted out), intermediary, client and interviews.",
+    queryRow:
+      "for an opportunity id, title, status, daily rate, start month, client and intermediary",
+    create:
+      "For an opportunity, only title is required: the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own.",
+    update:
+      "The same rules as at creation apply to an opportunity, checked against its stored values when you send one field only.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const opportunities = await findOpportunitySearchRows()
@@ -294,27 +296,29 @@ export const opportunityEntity = defineCrmEntity({
   },
   createSchema,
   create: ({ data }, ctx) =>
-    writeRecord(
-      () =>
+    writeRecord({
+      run: () =>
         createOpportunity({
           ...data,
           startMonth: startMonthDate(data.startMonth),
           details: data.details === undefined ? OPPORTUNITY_DETAILS_TEMPLATE : data.details,
         }),
       ctx,
-      CREATE_WRITE,
-      {},
-      opportunityWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.create,
+      logContext: {},
+      errorMessage: opportunityWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeRecord(
-      () => updateOpportunity(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateOpportunity(input.id, toPatch(input)),
       ctx,
-      UPDATE_WRITE,
-      { id: input.id },
-      opportunityWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: opportunityWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
 })

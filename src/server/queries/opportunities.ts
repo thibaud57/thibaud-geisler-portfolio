@@ -61,7 +61,7 @@ export async function findOpportunityOptions() {
 
 export type OpportunityOption = Awaited<ReturnType<typeof findOpportunityOptions>>[number]
 
-// Lecture légère pour la recherche des outils : titre et noms des deux entreprises suffisent.
+// Titre et noms des deux entreprises suffisent à la recherche des outils.
 export async function findOpportunitySearchRows() {
   return prisma.opportunity.findMany({
     select: {

@@ -12,7 +12,7 @@ const { childLog } = vi.hoisted(() => {
 })
 vi.mock("@/lib/logger", () => ({ logger: { child: vi.fn(() => childLog) } }))
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), revalidatePath: vi.fn() }))
-// Le préremplissage de l'admin, appelé tel quel pour comparer ses compteurs à ceux de l'outil.
+// Mocks du préremplissage de l'admin, appelé tel quel pour comparer ses compteurs à ceux de l'outil.
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 vi.mock("@/server/company-logo/fetch-company-logo", () => ({ retrieveCompanyLogo: vi.fn() }))
@@ -38,6 +38,9 @@ import {
   seedEsn,
   seedOptedOutLead,
   seedPerson,
+  storedAction,
+  storedReview,
+  storedSignal,
 } from "@/lib/prisma-test-setup"
 import { computeWeekCounters } from "@/server/actions/weekly-reviews"
 import {
@@ -159,6 +162,22 @@ describe("tools/list", () => {
     )
   })
 
+  // Contrat vu par l'agent : un écart de ce fichier est un changement visible, à relire avant de le valider.
+  it("keeps the tool list the agent sees", async () => {
+    const { tools } = await client.listTools()
+
+    const contract = tools.map(({ name, title, description, inputSchema, annotations }) => ({
+      name,
+      title,
+      description,
+      inputSchema,
+      annotations,
+    }))
+    await expect(JSON.stringify(contract, null, 2) + "\n").toMatchFileSnapshot(
+      "./tools-list.snapshot.json",
+    )
+  })
+
   it("names every entity in the server instructions", () => {
     const instructions = client.getInstructions() ?? ""
 
@@ -245,9 +264,7 @@ describe("crm_fetch", () => {
       name: "Acme",
       legalEntity: { create: { slug: "acme", name: "Acme SAS", siret: "12345678901234" } },
     })
-    const person = await prisma.person.create({
-      data: { name: "Jane Doe", companyId: company.id, lead: { create: { origin: "OUTBOUND" } } },
-    })
+    const person = await seedPerson({ name: "Jane Doe", companyId: company.id })
     const opportunity = await prisma.opportunity.create({
       data: { title: "Mission Acme", clientId: company.id },
     })
@@ -410,6 +427,20 @@ describe("cache refresh", () => {
     expect(revalidateTag).toHaveBeenCalledWith("legal-entity", "max")
     expect(revalidatePath).toHaveBeenCalledWith("/admin/entreprises", "layout")
   })
+
+  it("refreshes the caches after a successful update", async () => {
+    const company = await seedCompany()
+
+    await call("crm_update", {
+      entity: "company",
+      id: company.id,
+      fields: { relationStatus: "DORMANTE" },
+    })
+
+    expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
+    expect(revalidateTag).toHaveBeenCalledWith("legal-entity", "max")
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/entreprises", "layout")
+  })
 })
 
 describe("crm_update", () => {
@@ -524,17 +555,6 @@ describe("crm_update", () => {
 
     expect(result.isError).toBe(true)
     expect(textOf(result)).toContain('"acme"')
-  })
-
-  it("flags an unknown id in crm_update", async () => {
-    const result = await call("crm_update", {
-      entity: "company",
-      id: "missing-id",
-      fields: { name: "Renamed" },
-    })
-
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toContain("crm_search")
   })
 
   it("keeps the legal entity untouched on crm_update", async () => {
@@ -660,7 +680,7 @@ describe("crm_fetch_company_logo", () => {
   })
 })
 
-describe("write logs", () => {
+describe("tool logs", () => {
   it("logs a write with the key id", async () => {
     await call("crm_create", createCompanyArgs({ slug: "acme", name: "Acme" }))
 
@@ -698,6 +718,23 @@ describe("write logs", () => {
     expect(childLog.error).toHaveBeenCalledWith(
       expect.objectContaining({ err: failure, event: "company:update_failed", id: company.id }),
     )
+  })
+
+  it("logs an unknown read failure and answers with a generic error", async () => {
+    const company = await seedCompany({ slug: "acme" })
+    const failure = new Error("database down")
+    vi.spyOn(prisma.company, "findUnique").mockRejectedValueOnce(failure)
+
+    const result = await call("crm_fetch", { entity: "company", id: company.id })
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).not.toContain("database down")
+    expect(childLog.error).toHaveBeenCalledWith({
+      err: failure,
+      event: "crm:fetch_failed",
+      entity: "company",
+      id: company.id,
+    })
   })
 })
 
@@ -759,22 +796,22 @@ describe("persons in crm_search", () => {
     expect(jsonOf(result)).toEqual({ results: [] })
   })
 
-  it.each(["janedoe", "jane.doe@exam"])(
+  it.each(["jane_doe_ex", "jane.doe@exam"])(
     "finds a person by the fragment %j, never an opted-out one",
     async (fragment) => {
       const jane = await seedPerson({
         name: "Jane Doe",
         email: "jane.doe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/janedoe",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
       })
       await seedOptedOutLead({
         email: "john.roe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/johnroe",
+        linkedinUrl: "https://www.linkedin.com/in/john_roe_example",
       })
 
       const found = await call("crm_search", { query: fragment })
       const opposedByEmail = await call("crm_search", { query: "john.roe" })
-      const opposedByLinkedin = await call("crm_search", { query: "johnroe" })
+      const opposedByLinkedin = await call("crm_search", { query: "john_roe" })
 
       expect(jsonOf(found)).toMatchObject({ results: [{ id: jane.id }] })
       expect(jsonOf(opposedByEmail)).toEqual({ results: [] })
@@ -784,11 +821,15 @@ describe("persons in crm_search", () => {
 
   it.each([
     ["her email", " John.Roe@Example.com ", "john.roe@example.com"],
-    ["her LinkedIn URL", "linkedin.com/in/JohnRoe/", "https://www.linkedin.com/in/johnroe"],
+    [
+      "her LinkedIn URL",
+      "linkedin.com/in/John_Roe_Example/",
+      "https://www.linkedin.com/in/john_roe_example",
+    ],
   ])("finds an opted-out person by %s only", async (_label, query, hint) => {
     const opposed = await seedOptedOutLead({
       email: "john.roe@example.com",
-      linkedinUrl: "https://www.linkedin.com/in/johnroe",
+      linkedinUrl: "https://www.linkedin.com/in/john_roe_example",
     })
 
     const result = await call("crm_search", { query })
@@ -808,6 +849,20 @@ describe("persons in crm_search", () => {
 })
 
 describe("persons in crm_fetch", () => {
+  it.each(["lead", "contact"] as const)(
+    "fetches the metAt of a %s as the day crm_update takes",
+    async (entity) => {
+      const jane = await seedPerson(
+        { name: "Jane Doe", metAt: new Date("2026-09-15T00:00:00Z") },
+        { lead: true, contact: true },
+      )
+
+      const result = await call("crm_fetch", { entity, id: jane.id })
+
+      expect(jsonOf(result)).toMatchObject({ metAt: "2026-09-15" })
+    },
+  )
+
   it("fetches a lead with its links and its roles", async () => {
     const acme = await seedCompany()
     const jane = await seedPerson({
@@ -863,7 +918,7 @@ describe("persons in crm_fetch", () => {
   it("fetches an opted-out record reduced, without email or LinkedIn", async () => {
     const opposed = await seedOptedOutLead({
       email: "john.roe@example.com",
-      linkedinUrl: "https://www.linkedin.com/in/johnroe",
+      linkedinUrl: "https://www.linkedin.com/in/john_roe_example",
     })
 
     const result = await call("crm_fetch", { entity: "lead", id: opposed.id })
@@ -971,7 +1026,7 @@ describe("persons in crm_create", () => {
         name: " Jane Doe ",
         origin: "OUTBOUND",
         email: "Jane.Doe@Example.com ",
-        linkedinUrl: "linkedin.com/in/JaneDoe/",
+        linkedinUrl: "linkedin.com/in/Jane_Doe_Example/",
         metAt: "2026-09-15",
         companyId: acme.id,
       }),
@@ -982,7 +1037,7 @@ describe("persons in crm_create", () => {
     expect(stored).toMatchObject({
       name: "Jane Doe",
       email: "jane.doe@example.com",
-      linkedinUrl: "https://www.linkedin.com/in/janedoe",
+      linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
       companyId: acme.id,
       details: leadDetailsTemplate("OUTBOUND"),
       lead: { origin: "OUTBOUND", status: "NOUVEAU", score: null },
@@ -1088,12 +1143,12 @@ describe("persons in crm_create", () => {
 
   it.each([
     ["an email in capitals with spaces", { email: "Jane.Doe@Example.com " }],
-    ["a LinkedIn URL without scheme", { linkedinUrl: "linkedin.com/in/JaneDoe/" }],
+    ["a LinkedIn URL without scheme", { linkedinUrl: "linkedin.com/in/Jane_Doe_Example/" }],
   ])("rejects a duplicate after normalization (%s)", async (_label, identity) => {
     await seedPerson({
       name: "Jane Doe",
       email: "jane.doe@example.com",
-      linkedinUrl: "https://www.linkedin.com/in/janedoe",
+      linkedinUrl: "https://www.linkedin.com/in/jane_doe_example",
     })
 
     const result = await call(
@@ -1242,17 +1297,6 @@ describe("persons in crm_update", () => {
 
     expect(result.isError).toBe(true)
     expect(textOf(result)).toContain("Jane Doe")
-  })
-
-  it("points to crm_search for an unknown id", async () => {
-    const result = await call("crm_update", {
-      entity: "lead",
-      id: "missing-id",
-      fields: { notes: "x" },
-    })
-
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toContain("crm_search")
   })
 
   it("reports a missing section with the headings present", async () => {
@@ -1992,7 +2036,7 @@ describe("prospecting actions in crm_update", () => {
       fields: { status: "REPONDU" },
     })
 
-    const stored = await prisma.prospectingAction.findUniqueOrThrow({ where: { id: action.id } })
+    const stored = await storedAction(action.id)
     expect(jsonOf(result)).toEqual({ id: action.id })
     expect(stored.status).toBe("REPONDU")
     expect(stored.respondedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime())
@@ -2009,15 +2053,13 @@ describe("prospecting actions in crm_update", () => {
       reply: "Merci",
       respondedAt: new Date("2026-11-24T09:00:00Z"),
     })
-    const read = async () =>
-      prisma.prospectingAction.findUniqueOrThrow({ where: { id: action.id } })
 
     await call("crm_update", {
       entity: "prospecting-action",
       id: action.id,
       fields: { message: "Relance envoyée" },
     })
-    const kept = (await read()).reply
+    const kept = (await storedAction(action.id)).reply
     await call("crm_update", {
       entity: "prospecting-action",
       id: action.id,
@@ -2025,7 +2067,7 @@ describe("prospecting actions in crm_update", () => {
     })
 
     expect(kept).toBe("Merci")
-    expect(await read()).toMatchObject({
+    expect(await storedAction(action.id)).toMatchObject({
       reply: null,
       respondedAt: new Date("2026-11-24T23:00:00Z"),
     })
@@ -2050,9 +2092,7 @@ describe("prospecting actions in crm_update", () => {
     expect(textOf(refused)).toContain("2026-10-01")
     expect(unknown.isError).toBe(true)
     expect(textOf(unknown)).toContain("crm_search")
-    expect(
-      (await prisma.prospectingAction.findUniqueOrThrow({ where: { id: action.id } })).title,
-    ).toBe("Relance proposition")
+    expect((await storedAction(action.id)).title).toBe("Relance proposition")
   })
 })
 
@@ -2193,7 +2233,7 @@ describe("prospecting actions in crm_search, crm_query and crm_fetch", () => {
       fields: { occurredAt: fetched.occurredAt },
     })
 
-    const stored = await prisma.prospectingAction.findUniqueOrThrow({ where: { id: action.id } })
+    const stored = await storedAction(action.id)
     expect(result.isError).toBeFalsy()
     expect(stored.occurredAt).toEqual(MONDAY_MIDNIGHT_IN_PARIS)
   })
@@ -2408,7 +2448,7 @@ describe("signals in crm_update", () => {
     })
 
     expect(jsonOf(result)).toEqual({ id: signal.id })
-    expect(await prisma.signal.findUniqueOrThrow({ where: { id: signal.id } })).toMatchObject({
+    expect(await storedSignal(signal.id)).toMatchObject({
       type: "OFFRE_POSTE",
       content: "Recrute trois développeurs",
       sourceUrl: null,
@@ -2436,22 +2476,11 @@ describe("signals in crm_update", () => {
     expect(moved.isError).toBe(true)
     expect(retyped.isError).toBe(true)
     expect(textOf(retyped)).toContain("OFFRE_POSTE")
-    expect(await prisma.signal.findUniqueOrThrow({ where: { id: signal.id } })).toMatchObject({
+    expect(await storedSignal(signal.id)).toMatchObject({
       companyId: acme.id,
       personId: null,
       type: "OFFRE_POSTE",
     })
-  })
-
-  it("points to crm_search for an unknown id", async () => {
-    const result = await call("crm_update", {
-      entity: "signal",
-      id: "missing-signal",
-      fields: { content: "x" },
-    })
-
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toContain("crm_search")
   })
 })
 
@@ -2517,9 +2546,7 @@ describe("signals in crm_search, crm_query and crm_fetch", () => {
     })
 
     expect(result.isError).toBeFalsy()
-    expect(
-      (await prisma.signal.findUniqueOrThrow({ where: { id: signal.id } })).occurredOn,
-    ).toEqual(SIGNAL_DAY)
+    expect((await storedSignal(signal.id)).occurredOn).toEqual(SIGNAL_DAY)
   })
 
   it("lists signals with their day, filters by owner, type and an interval including its bounds", async () => {
@@ -2568,8 +2595,6 @@ const seedReview = (data: Partial<Prisma.WeeklyReviewCreateInput> = {}) =>
   prisma.weeklyReview.create({
     data: { closingFriday: REVIEW_DAY, connectionsSent: 5, activeLeads: 7, ...data },
   })
-
-const storedReview = (id: string) => prisma.weeklyReview.findUniqueOrThrow({ where: { id } })
 
 describe("weekly reviews in crm_create", () => {
   it("computes the counters the admin prefill would compute and refuses a second review of the week", async () => {
@@ -2704,17 +2729,6 @@ describe("weekly reviews in crm_update", () => {
       new Date("2026-10-23T00:00:00.000Z"),
     )
   })
-
-  it("points to crm_search for an unknown id", async () => {
-    const result = await call("crm_update", {
-      entity: "weekly-review",
-      id: "missing-review",
-      fields: { wins: "x" },
-    })
-
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toContain("crm_search")
-  })
 })
 
 describe("weekly reviews in crm_search, crm_query and crm_fetch", () => {
@@ -2829,24 +2843,38 @@ describe("date range filters in crm_query", () => {
   )
 })
 
+describe("unknown id in crm_update", () => {
+  it.each([
+    { entity: "company", id: "missing-id", fields: { name: "Renamed" } },
+    { entity: "lead", id: "missing-id", fields: { notes: "x" } },
+    { entity: "signal", id: "missing-signal", fields: { content: "x" } },
+    { entity: "weekly-review", id: "missing-review", fields: { wins: "x" } },
+  ])("points to crm_search for an unknown $entity id", async (args) => {
+    const result = await call("crm_update", args)
+
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("crm_search")
+  })
+})
+
 // Une entité sans Détails refuse `detailsSection` au lieu de l'ignorer en répondant un succès.
 const WITHOUT_DETAILS = [
   {
     entity: "signal",
     seed: async () => (await seedSignal({ companyId: (await seedCompany()).id }, {})).id,
-    read: (id: string) => prisma.signal.findUniqueOrThrow({ where: { id } }),
+    read: storedSignal,
     fields: { content: "Recrute trois développeurs" },
   },
   {
     entity: "prospecting-action",
     seed: async () => (await seedAction((await seedPerson({ name: "Jane Doe" })).id, {})).id,
-    read: (id: string) => prisma.prospectingAction.findUniqueOrThrow({ where: { id } }),
+    read: storedAction,
     fields: { title: "Relance envoyée" },
   },
   {
     entity: "weekly-review",
     seed: async () => (await seedReview()).id,
-    read: (id: string) => storedReview(id),
+    read: storedReview,
     fields: { wins: "Trois réponses" },
   },
 ] as const

@@ -4,7 +4,7 @@ import type { Route } from "next"
 
 import { ADMIN_API_KEYS_PATH } from "@/lib/admin/routes"
 
-export interface AdminAccountItem {
+interface AdminAccountItem {
   href: Route
   label: string
   icon: LucideIcon

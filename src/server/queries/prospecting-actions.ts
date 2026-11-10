@@ -65,7 +65,7 @@ export async function findProspectingActionByIdForAdmin(
   })
 }
 
-// Lecture légère pour la recherche des outils : le titre et le nom du lead suffisent.
+// Titre et nom du lead suffisent à la recherche des outils.
 export async function findProspectingActionSearchRows() {
   return prisma.prospectingAction.findMany({
     select: { id: true, title: true, status: true, occurredAt: true, person: leadNameSelect },

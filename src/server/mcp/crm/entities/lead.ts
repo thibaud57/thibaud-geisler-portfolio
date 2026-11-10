@@ -8,16 +8,16 @@ import { personIdSchema } from "@/lib/ids"
 import { createLead, updateLead, type LeadPatch } from "@/server/crm/leads"
 import { findLeadByIdForAdmin, findLeadPerson, findLeadsPage } from "@/server/queries/leads"
 
+import { withDays } from "../day-fields"
 import { defineCrmEntity } from "../entity-definition"
 import {
-  metAtDate,
   newPersonShape,
+  PERSON_DOCS,
   personFieldShape,
   personFilterShape,
   personFilterWhere,
-  toPersonPatch,
 } from "../person-fields"
-import { personRef } from "../person-ref"
+import { personRef, rolesOf } from "../person-ref"
 import { searchPersons } from "../person-search"
 import { personWrites, writePerson } from "../person-write-tool"
 import { pageQueryShape, personOrderBy } from "../query-page"
@@ -95,12 +95,13 @@ const WRITES = personWrites("lead")
 
 export const leadEntity = defineCrmEntity({
   entity: "lead",
+  docs: { ...PERSON_DOCS, create: "For a lead, only name and origin are required." },
   search: (query) => searchPersons("lead", query),
   async fetch(id) {
     const personId = personIdSchema.parse(id)
     const head = await findLeadPerson(personId)
     if (!head) return null
-    // Une fiche opposée n'a plus que son identifiant et la date : l'email et le LinkedIn restent en base pour la garde de doublon, pas pour l'agent. Lue avant le graphe complet, qu'elle ne charge jamais.
+    // Une fiche opposée n'a que son identifiant et la date : email et LinkedIn restent en base pour la garde de doublon, pas pour l'agent. Lue avant le graphe complet.
     if (head.optedOutAt) return { ...personRef(head), optedOutAt: head.optedOutAt }
 
     const lead = await findLeadByIdForAdmin(personId)
@@ -108,8 +109,8 @@ export const leadEntity = defineCrmEntity({
 
     const { hasContactRole, interviews, ...record } = lead
     return {
-      ...record,
-      roles: hasContactRole ? ["lead", "contact"] : ["lead"],
+      ...withDays(record, ["metAt"]),
+      roles: rolesOf({ lead: true, contact: hasContactRole }),
       // Les entretiens de l'opportunité n'entrent pas dans le contexte de l'agent : l'opportunité se lit par son id
       interviews: interviews.map(({ opportunity, ...interview }) => ({
         ...interview,
@@ -131,7 +132,6 @@ export const leadEntity = defineCrmEntity({
       () =>
         createLead({
           ...data,
-          metAt: metAtDate(data.metAt),
           details: data.details === undefined ? leadDetailsTemplate(data.origin) : data.details,
         }),
       ctx,
@@ -140,7 +140,7 @@ export const leadEntity = defineCrmEntity({
     ),
   updateSchema,
   update: (input, ctx) => {
-    const patch: LeadPatch = toPersonPatch(input.fields ?? {}, input.detailsSection)
+    const patch: LeadPatch = { ...input.fields, detailsSection: input.detailsSection }
     return writePerson(() => updateLead(input.id, patch), ctx, WRITES.update, {
       personId: input.id,
     })

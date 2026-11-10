@@ -13,7 +13,7 @@ import { hashIp } from "@/lib/server-utils"
 // aux outils dans les deux ères, alors que `requestInfo` peut être une copie de la requête en legacy
 const mcpRequestContextSchema = z.strictObject({ requestId: z.string(), ipHash: z.string() })
 
-export type McpRequestContext = z.infer<typeof mcpRequestContextSchema>
+type McpRequestContext = z.infer<typeof mcpRequestContextSchema>
 
 export function createMcpRequestContext(ip: string): McpRequestContext {
   return { requestId: randomUUID(), ipHash: hashIp(ip, env.IP_HASH_SALT) }

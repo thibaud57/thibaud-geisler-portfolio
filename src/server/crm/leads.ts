@@ -19,7 +19,6 @@ import { ok, type DomainResult } from "./result"
 // L'admin passe le score, l'outil jamais.
 export type LeadWriteData = Omit<LeadInput, "score"> & { score?: LeadInput["score"] }
 
-// Un champ absent reste inchangé.
 export type LeadPatch = Partial<LeadWriteData> & { detailsSection?: DetailsSection }
 
 type LeadFieldsPatch = Partial<LeadWriteData> & { detailsSection?: undefined }

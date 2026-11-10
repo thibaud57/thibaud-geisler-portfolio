@@ -112,14 +112,14 @@ describe("createLead", () => {
       initialLeadFormState,
       buildFormData({
         email: " Jane.Doe@Example.COM ",
-        linkedinUrl: "fr.linkedin.com/in/Jane-Doe-7e91d3/",
+        linkedinUrl: "fr.linkedin.com/in/Jane_Doe_Example_B/",
       }),
     )
 
     expect(createLeadRecord).toHaveBeenCalledWith(
       objectMatch({
         email: "jane.doe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/jane-doe-7e91d3",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example_b",
       }),
     )
   })
@@ -139,26 +139,24 @@ describe("createLead", () => {
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("refuses an email already used by another lead, naming it", async () => {
-    vi.mocked(createLeadRecord).mockResolvedValue(
-      fail(existsConflict({ lead: true, contact: false })),
-    )
+  it.each([
+    [
+      "refuses an email already used by another lead, naming it",
+      { lead: true, contact: false },
+      "Ce lead existe déjà : John Roe",
+    ],
+    [
+      "tells that the person is already a contact when only the contact role exists",
+      { lead: false, contact: true },
+      "Cette personne est déjà un contact : John Roe",
+    ],
+  ])("%s", async (_label, roles, message) => {
+    vi.mocked(createLeadRecord).mockResolvedValue(fail(existsConflict(roles)))
 
     const state = await createLead(initialLeadFormState, buildFormData())
 
     expect(state.message).toBe("lead_exists")
-    expect(state.errors.email).toEqual(["Ce lead existe déjà : John Roe"])
-  })
-
-  it("tells that the person is already a contact when only the contact role exists", async () => {
-    vi.mocked(createLeadRecord).mockResolvedValue(
-      fail(existsConflict({ lead: false, contact: true })),
-    )
-
-    const state = await createLead(initialLeadFormState, buildFormData())
-
-    expect(state.message).toBe("lead_exists")
-    expect(state.errors.email).toEqual(["Cette personne est déjà un contact : John Roe"])
+    expect(state.errors.email).toEqual([message])
   })
 
   it("refuses a person who opted out, giving the date", async () => {

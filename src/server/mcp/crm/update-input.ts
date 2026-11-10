@@ -37,7 +37,7 @@ const EMPTY_PATCH_MESSAGE = {
 type UpdateShape = keyof typeof EMPTY_PATCH_MESSAGE
 
 // Règles communes des `crm_update` : un patch vide ou une double écriture des Détails est refusé, jamais ignoré.
-export function updateInputIssues(
+function updateInputIssues(
   value: { fields?: object; detailsSection?: unknown },
   shape: UpdateShape,
 ): UpdateIssue[] {
@@ -66,7 +66,6 @@ export function updateInputIssues(
   ]
 }
 
-// Le schéma d'entrée d'un `crm_update` : seuls l'entité, l'id et les champs propres à l'entité varient.
 export function updateSchemaOf<
   TEntity extends z.ZodLiteral<string>,
   TId extends z.ZodType,

@@ -4,8 +4,8 @@ import { z } from "zod"
 import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
-import { isFridayIso, REVIEW_COUNTER_KEYS, weekLabel } from "@/lib/crm/weekly-reviews"
-import { dateColumnIsoDay, isoDayToDate } from "@/lib/date-time"
+import { REVIEW_COUNTER_KEYS, weekLabel } from "@/lib/crm/weekly-reviews"
+import { dateColumnIsoDay } from "@/lib/date-time"
 import { weeklyReviewIdSchema } from "@/lib/ids"
 import { recordFromKeys } from "@/lib/record-from-keys"
 import { REVIEW_MOTIVATIONS, REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
@@ -13,7 +13,6 @@ import {
   createWeeklyReview,
   revalidateReviewLists,
   updateWeeklyReview,
-  type WeeklyReviewPatch,
   type WeeklyReviewWriteError,
 } from "@/server/crm/weekly-reviews"
 import {
@@ -22,32 +21,30 @@ import {
   findWeeklyReviewsPage,
 } from "@/server/queries/weekly-reviews"
 
-import { toDay, withDays } from "../day-fields"
+import { dateColumnDay, withDays } from "../day-fields"
 import { dateRange } from "../date-range"
 import { defineCrmEntity } from "../entity-definition"
 import { notes, optionalText } from "../fields"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { writeRecord, type WriteTexts } from "../results"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z
   .literal("weekly-review")
   .describe('Type of CRM record: always "weekly-review" here.')
 
-// `abort` : sans lui, `isFridayIso` lirait aussi un jour mal formé, que `isoDayToDate` refuse en levant.
-const reviewDay = z.iso.date({
-  error: "Expected a day as YYYY-MM-DD, e.g. 2026-10-30.",
-  abort: true,
-})
+const reviewDay = (description?: string) => dateColumnDay({ example: "2026-10-30", description })
+
+const isFriday = (day: Date): boolean => day.getUTCDay() === 5
 
 const counter = (description: string) =>
   z.number().int().min(0).max(999).describe(`${description} Integer from 0 to 999.`)
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
-  closingFriday: reviewDay
-    .refine(isFridayIso, "closingFriday must be a Friday: the week runs from Saturday to this day.")
-    .describe("Closing Friday of the reviewed week, YYYY-MM-DD. One review per Friday."),
+  closingFriday: reviewDay(
+    "Closing Friday of the reviewed week, YYYY-MM-DD. One review per Friday.",
+  ).refine(isFriday, "closingFriday must be a Friday: the week runs from Saturday to this day."),
   connectionsSent: counter("LinkedIn connection requests sent in the week."),
   connectionsAccepted: counter("Connection requests accepted in the week."),
   messagesSent: counter("Messages sent in the week."),
@@ -93,7 +90,7 @@ const updateFieldsSchema = z
 
 const reviewFilterSchema = z
   .strictObject({
-    closingFriday: dateRange(reviewDay)
+    closingFriday: dateRange(reviewDay())
       .optional()
       .describe("Only the reviews closing within this interval, days YYYY-MM-DD."),
   })
@@ -104,8 +101,8 @@ const querySchema = z.strictObject({
   entity: entityField,
   filters: reviewFilterSchema.optional(),
   ...pageQueryShape,
-  order: z
-    .enum(["asc", "desc"])
+  order: pageQueryShape.order
+    .unwrap()
     .default("desc")
     .describe("Sort direction. Defaults to desc: the latest week first."),
 })
@@ -119,13 +116,11 @@ const updateSchema = updateSchemaWithoutDetailsOf(
 )
 
 type QueryInput = z.output<typeof querySchema>
-type UpdateInput = z.output<typeof updateSchema>
-
 const REVIEW_DAYS = ["closingFriday"] as const
 
 function toWhere(filters: QueryInput["filters"]): Prisma.WeeklyReviewWhereInput {
   const range = filters?.closingFriday
-  return { closingFriday: range && { gte: toDay(range.from), lte: toDay(range.to) } }
+  return { closingFriday: range && { gte: range.from, lte: range.to } }
 }
 
 // Une revue n'a pas de nom : « name » range par vendredi.
@@ -133,38 +128,38 @@ const nameOrder = (order: SortOrder): Prisma.WeeklyReviewOrderByWithRelationInpu
   { closingFriday: order },
 ]
 
-function toPatch({ fields = {} }: UpdateInput): WeeklyReviewPatch {
-  const { closingFriday, ...rest } = fields
-  return { ...rest, closingFriday: toDay(closingFriday) }
-}
-
-// Chaque code devient un message qui nomme la correction : l'agent corrige l'appel sans deviner.
 function weeklyReviewWriteErrorMessage(error: WeeklyReviewWriteError): string {
   switch (error.code) {
     case "review_week_exists":
       return "A review already exists for this closingFriday. Call crm_query with a closingFriday interval to find it, then crm_update it, or send another Friday."
     case "not_found":
-      return "No weekly review has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("weekly review")
     default:
       return assertNever(error)
   }
 }
 
-// Un create n'a pas d'id à relire : la liste des revues dit si celle-ci existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "weekly_review:created", failure: "weekly_review:create_failed" },
-  failureMessage:
-    "The review could not be saved because of an internal error. Call crm_query with a closingFriday interval to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "weekly_review:updated", failure: "weekly_review:update_failed" },
-  failureMessage:
-    "The review could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
+const WRITES = writeTexts(
+  { key: "weekly_review", noun: "review" },
+  "Call crm_query with a closingFriday interval to check whether it was created before retrying.",
+)
 
 export const weeklyReviewEntity = defineCrmEntity({
   entity: "weekly-review",
+  docs: {
+    search:
+      'the week label ("S44 · 2026") and the closing Friday as YYYY-MM-DD for a weekly review (found by that label or that date)',
+    fetch:
+      "For a weekly review: its seven counters and its qualitative fields; closingFriday is a YYYY-MM-DD day.",
+    queryRow:
+      "for a weekly review id, closingFriday, the seven counters, status, motivation and updated date",
+    querySort:
+      "A weekly review has no name: sort name orders by closingFriday, and the default order is desc, so the first row is the last review, closingFriday as a YYYY-MM-DD day.",
+    create:
+      "For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the seven counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review.",
+    update:
+      "For a weekly review, a counter left out stays unchanged and is never recomputed, and closingFriday must stay a Friday no other review holds.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const reviews = await findWeeklyReviewSearchRows()
@@ -192,23 +187,25 @@ export const weeklyReviewEntity = defineCrmEntity({
     return { rows: rows.map((row) => withDays(row, REVIEW_DAYS)), total }
   },
   createSchema,
-  create: ({ data: { closingFriday, ...fields } }, ctx) =>
-    writeRecord(
-      () => createWeeklyReview({ ...fields, closingFriday: isoDayToDate(closingFriday) }),
+  create: ({ data }, ctx) =>
+    writeRecord({
+      run: () => createWeeklyReview(data),
       ctx,
-      CREATE_WRITE,
-      {},
-      weeklyReviewWriteErrorMessage,
-      revalidateReviewLists,
-    ),
+      texts: WRITES.create,
+      logContext: {},
+      errorMessage: weeklyReviewWriteErrorMessage,
+      invalidate: revalidateReviewLists,
+      ...byId,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeRecord(
-      () => updateWeeklyReview(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateWeeklyReview(input.id, input.fields ?? {}),
       ctx,
-      UPDATE_WRITE,
-      { id: input.id },
-      weeklyReviewWriteErrorMessage,
-      revalidateReviewLists,
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: weeklyReviewWriteErrorMessage,
+      invalidate: revalidateReviewLists,
+      ...byId,
+    }),
 })

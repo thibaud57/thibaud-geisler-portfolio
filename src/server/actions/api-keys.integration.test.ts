@@ -12,7 +12,7 @@ import { auth } from "@/lib/auth"
 import { DAY_MS } from "@/lib/date-time"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { objectMatch } from "@/lib/matchers-test-setup"
-import { prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { prisma, resetDatabase, seedUser } from "@/lib/prisma-test-setup"
 import { createApiKey, deleteApiKey } from "@/server/actions/api-keys"
 import { type ApiKeyFormState, initialApiKeyFormState } from "@/server/actions/api-keys.types"
 import { findApiKeysForAdmin } from "@/server/queries/api-keys"
@@ -23,16 +23,7 @@ let user: TestUser
 
 beforeEach(async () => {
   await resetDatabase()
-  user = await prisma.user.create({
-    data: {
-      id: "user-1",
-      name: "Jane Doe",
-      email: "jane@example.com",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  })
+  user = await seedUser()
   vi.mocked(getCurrentUser).mockResolvedValue(user)
 })
 
@@ -63,14 +54,15 @@ describe("createApiKey against real Postgres", () => {
   it.each([30, 90, 365])(
     "creates a CRM key valid for %i days and returns its value once",
     async (days) => {
+      const expectedExpiry = Date.now() + days * DAY_MS
+
       const state = await createApiKey(initialApiKeyFormState, form({ expiry: String(days) }))
 
       const { key } = createdKey(state)
-      expect(key.startsWith("tgp_")).toBe(true)
       const verified = await auth.api.verifyApiKey({ body: { key } })
+      expect(key.startsWith("tgp_")).toBe(true)
       expect(verified.valid).toBe(true)
       expect(verified.key?.permissions).toEqual({ crm: ["read", "write"] })
-      const expectedExpiry = Date.now() + days * DAY_MS
       expect(Math.abs((verified.key?.expiresAt?.getTime() ?? 0) - expectedExpiry)).toBeLessThan(
         60_000,
       )

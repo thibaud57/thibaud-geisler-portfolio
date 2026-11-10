@@ -159,17 +159,14 @@ describe("createCompany", () => {
     expect(state.values?.name).toBe("Acme")
   })
 
-  it("invalidates the projects cache tag after a successful creation", async () => {
-    await createCompany(initialCompanyFormState, buildFormData())
+  it.each(["projects", "legal-entity"])(
+    "invalidates the %s cache tag after a successful creation",
+    async (tag) => {
+      await createCompany(initialCompanyFormState, buildFormData())
 
-    expect(updateTag).toHaveBeenCalledWith("projects")
-  })
-
-  it("invalidates the legal entity cache tag after a write", async () => {
-    await createCompany(initialCompanyFormState, buildFormData())
-
-    expect(updateTag).toHaveBeenCalledWith("legal-entity")
-  })
+      expect(updateTag).toHaveBeenCalledWith(tag)
+    },
+  )
 
   it("assigns a slug uniqueness violation to the slug field, without invalidating", async () => {
     vi.mocked(createCompanyRecord).mockResolvedValueOnce(fail({ code: "slug_taken" }))
@@ -470,31 +467,12 @@ describe("deleteCompany", () => {
     expect(prisma.address.delete).toHaveBeenCalledWith({ where: { id: "a1" } })
   })
 
-  it("only detaches a legal entity used as publisher or processor", async () => {
+  it.each([
+    ["publisher", { publisher: { id: "p1" }, _count: { processings: 0 } }],
+    ["processor", { publisher: null, _count: { processings: 1 } }],
+  ])("only detaches a legal entity used as %s", async (_role, usage) => {
     vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: {
-        id: "le1",
-        addressId: "a1",
-        publisher: { id: "p1" },
-        _count: { processings: 0 },
-      },
-    } as never)
-
-    await deleteCompany("c1")
-
-    expect(prisma.company.delete).toHaveBeenCalled()
-    expect(prisma.legalEntity.delete).not.toHaveBeenCalled()
-    expect(prisma.address.delete).not.toHaveBeenCalled()
-  })
-
-  it("only detaches a legal entity used as processor", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: {
-        id: "le1",
-        addressId: "a1",
-        publisher: null,
-        _count: { processings: 1 },
-      },
+      legalEntity: { id: "le1", addressId: "a1", ...usage },
     } as never)
 
     await deleteCompany("c1")

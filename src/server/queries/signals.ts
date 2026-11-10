@@ -34,7 +34,7 @@ export function findSignalById(id: string) {
   })
 }
 
-// Lecture légère pour la recherche des outils : le contenu et la fiche visée suffisent.
+// Contenu et fiche visée suffisent à la recherche des outils.
 export function findSignalSearchRows() {
   return prisma.signal.findMany({
     select: { id: true, type: true, occurredOn: true, content: true, ...signalTargetSelect },

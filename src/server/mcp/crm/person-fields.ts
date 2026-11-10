@@ -5,11 +5,12 @@ import type { Prisma } from "@/generated/prisma/client"
 import { normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { companyIdSchema } from "@/lib/ids"
 import { PERSON_NAME_MAX_LENGTH } from "@/lib/schemas/person"
-import type { DetailsSection } from "@/server/crm/details-section"
 
+import { dateColumnDay } from "./day-fields"
+import type { CrmToolDocs } from "./entity-definition"
 import { details, notes } from "./fields"
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 // Mêmes bornes et normalisations que l'admin (`src/lib/schemas/person.ts`), écrites pour des types JSON et non du FormData.
 export const personFieldShape = {
   name: z
@@ -36,7 +37,7 @@ export const personFieldShape = {
   linkedinUrl: z
     .string()
     .trim()
-    // check plutôt que transform : le schéma reste représentable en JSON Schema et idempotent
+    // check plutôt que transform : le schéma reste représentable en JSON Schema
     .check((payload) => {
       const normalized = normalizeLinkedinProfileUrl(payload.value)
       if (normalized === null) {
@@ -53,13 +54,22 @@ export const personFieldShape = {
     .describe(
       "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
     ),
-  metAt: z.iso.date().nullable().describe("Date of the first meeting, YYYY-MM-DD. null clears it."),
+  metAt: dateColumnDay({ example: "2026-10-05" })
+    .nullable()
+    .describe("Date of the first meeting, YYYY-MM-DD. null clears it."),
   notes: notes(),
   details,
   companyId: companyIdSchema
     .nullable()
     .describe("Id of the company of the person. Get it from crm_search. null clears it."),
 } as const
+
+// Lead et contact portent le même fragment : `tools.ts` ne l'écrit qu'une fois.
+export const PERSON_DOCS: CrmToolDocs = {
+  search: "the company and roles for a lead or contact",
+  fetch:
+    "For a lead or contact: her record, company and roles, and for a lead her referred opportunities, interviews, signals and prospecting action count.",
+}
 
 // Les champs d'une personne à la création, sauf `details` dont le gabarit dépend du rôle : seul le nom est requis.
 export const newPersonShape = {
@@ -69,28 +79,11 @@ export const newPersonShape = {
   email: personFieldShape.email.default(null),
   phone: personFieldShape.phone.default(null),
   linkedinUrl: personFieldShape.linkedinUrl.default(null),
-  metAt: personFieldShape.metAt.default(null),
+  // prefault plutôt que default : Zod retire le `default` du JSON Schema d'entrée d'un schéma qui transforme (un codec), l'agent ne verrait plus le défaut
+  metAt: personFieldShape.metAt.prefault(null),
   notes: personFieldShape.notes.default(null),
   companyId: personFieldShape.companyId.default(null),
 } as const
-
-// `metAt` se lit comme du texte dans l'outil et se stocke comme une date.
-export const metAtDate = (metAt: string | null): Date | null =>
-  metAt === null ? null : new Date(`${metAt}T00:00:00Z`)
-
-export function withMetAtDate<T extends { metAt?: string | null }>(
-  fields: T,
-): Omit<T, "metAt"> & { metAt?: Date | null } {
-  const { metAt, ...rest } = fields
-  return metAt === undefined ? rest : { ...rest, metAt: metAtDate(metAt) }
-}
-
-export function toPersonPatch<TFields extends { metAt?: string | null }>(
-  fields: TFields,
-  detailsSection: DetailsSection | undefined,
-): Omit<TFields, "metAt"> & { metAt?: Date | null; detailsSection: DetailsSection | undefined } {
-  return { ...withMetAtDate(fields), detailsSection }
-}
 
 export const personFilterShape = (plural: "leads" | "contacts") =>
   ({

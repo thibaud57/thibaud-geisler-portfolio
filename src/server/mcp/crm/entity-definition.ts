@@ -10,12 +10,11 @@ export interface SearchHit<E extends string = string> {
   entity: E
   id: string
   label: string
-  hint: string | null
+  hint: string
   // Personne opposée à la prospection : l'agent sait qu'il ne doit pas la recréer
   optedOut?: true
 }
 
-// Les parties absentes ou vides disparaissent plutôt que de laisser un séparateur seul.
 export const joinHint = (...parts: readonly (string | null | undefined)[]): string =>
   parts.filter((part) => part !== null && part !== undefined && part !== "").join(" · ")
 
@@ -23,14 +22,25 @@ export interface CrmWriteContext {
   log: McpLogger
 }
 
+// Fragments de la description des outils `crm_*`, assemblés par `tools.ts` dans l'ordre du registre : une entité ajoutée ne touche pas les outils.
+export interface CrmToolDocs {
+  readonly search?: string
+  readonly fetch?: string
+  readonly queryRow?: string
+  readonly querySort?: string
+  readonly create?: string
+  readonly update?: string
+}
+
 // Méthodes plutôt que propriétés fonction : une entité à schémas plus précis reste assignable à `RegisteredCrmEntity`
-export interface CrmEntityDefinition<
+interface CrmEntityDefinition<
   E extends string,
   TQuery extends z.ZodObject,
   TCreate extends z.ZodObject,
   TUpdate extends z.ZodObject,
 > {
   entity: E
+  docs: CrmToolDocs
   search(query: string): Promise<readonly SearchHit<E>[]>
   fetch(id: string): Promise<object | null>
   querySchema: TQuery
@@ -43,6 +53,7 @@ export interface CrmEntityDefinition<
 
 export interface RegisteredCrmEntity<E extends string> {
   entity: E
+  docs: CrmToolDocs
   querySchema: z.ZodObject
   createSchema: z.ZodObject
   updateSchema: z.ZodObject
@@ -53,7 +64,8 @@ export interface RegisteredCrmEntity<E extends string> {
   update(args: unknown, ctx: CrmWriteContext): Promise<CallToolResult>
 }
 
-// Le SDK a déjà validé l'entrée : le reparse ici fixe le type de sortie du schéma sans cast, d'où des schémas idempotents.
+// Seul parse de la partie propre à l'entité (`data`, `fields`, `filters`), que le SDK laisse passer brut (`z.looseObject({})` à la racine de l'`inputSchema`) : il rend le type de sortie du schéma sans cast, `Date` des codecs comprises.
+// Les champs racine (`entity`, `id`, `sort`, `order`, `limit`, `offset`) sont parsés une seconde fois ici après le SDK : leurs schémas restent idempotents, sans codec ni transform.
 function parsedWith<S extends z.ZodType, Rest extends unknown[]>(
   schema: S,
   run: (data: z.output<S>, ...rest: Rest) => Promise<CallToolResult>,

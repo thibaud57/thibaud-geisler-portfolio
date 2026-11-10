@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { z } from "zod"
 
 import { dateRange } from "./date-range"
+import { dateColumnDay, instantDate } from "./day-fields"
 
 interface Bounds {
   from?: string
@@ -12,11 +12,11 @@ interface Bounds {
 describe.each([
   [
     "instant",
-    z.iso.datetime({ offset: true }),
+    instantDate("Expected an instant."),
     "2026-11-20T10:00:00+01:00",
     "2026-11-20T09:30:00Z",
   ],
-  ["day", z.iso.date(), "2026-11-20", "2026-11-21"],
+  ["day", dateColumnDay(), "2026-11-20", "2026-11-21"],
 ] as const)("dateRange on an %s bound", (_name, bound, earlier, later) => {
   const schema = dateRange(bound)
 

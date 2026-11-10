@@ -17,7 +17,7 @@ import { fail, ok, type DomainResult } from "./result"
 export type WeeklyReviewWriteData = Omit<WeeklyReviewInput, keyof ReviewCounts> &
   Partial<ReviewCounts>
 
-// Un champ absent reste inchangé, un compteur absent n'est jamais recalculé.
+// Un compteur absent n'est jamais recalculé.
 export type WeeklyReviewPatch = Partial<WeeklyReviewInput>
 
 export type WeeklyReviewWriteError = { code: "review_week_exists" } | { code: "not_found" }
@@ -34,7 +34,7 @@ export function revalidateReviewLists(): void {
   revalidatePath(ADMIN_WEEKLY_REVIEWS_PATH, "layout")
 }
 
-// Les compteurs de la semaine close à ce vendredi, tels que l'app les calcule : source commune de la création et du préremplissage de l'admin.
+// Compteurs de la semaine close à ce vendredi : source commune de la création et du préremplissage de l'admin.
 export async function computeWeekCounts(closingFriday: Date, now: Date): Promise<ReviewCounts> {
   const bounds = weekBounds(closingFriday)
   return countWeek(await findWeekCounterSources(bounds), bounds, now)

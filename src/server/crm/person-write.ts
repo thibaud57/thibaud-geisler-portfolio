@@ -38,7 +38,7 @@ export function guardFailure(
   return null
 }
 
-export async function resolvePersonDetails(
+async function resolvePersonDetails(
   tx: Prisma.TransactionClient,
   personId: PersonId,
   section: DetailsSection,

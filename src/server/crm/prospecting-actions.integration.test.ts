@@ -11,6 +11,7 @@ import {
   resetDatabase,
   seedOptedOutLead,
   seedPerson,
+  storedAction,
 } from "@/lib/prisma-test-setup"
 
 import {
@@ -56,8 +57,6 @@ async function seedAction(
   })
   return prospectingActionIdSchema.parse(row.id)
 }
-
-const storedAction = (id: string) => prisma.prospectingAction.findUniqueOrThrow({ where: { id } })
 
 beforeEach(async () => {
   await resetDatabase()

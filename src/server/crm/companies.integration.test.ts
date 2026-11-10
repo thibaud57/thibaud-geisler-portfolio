@@ -5,6 +5,7 @@ vi.mock("@/server/company-logo/fetch-company-logo", () => ({ retrieveCompanyLogo
 import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
 import { companyIdSchema } from "@/lib/ids"
 import {
+  companyIdOf,
   prisma,
   resetDatabase,
   seedCompany,
@@ -49,7 +50,6 @@ function loadCompany(slug = "acme") {
   })
 }
 
-const idOf = (company: { id: string }) => companyIdSchema.parse(company.id)
 const UNKNOWN_ID = companyIdSchema.parse("missing-company")
 
 beforeEach(async () => {
@@ -111,20 +111,19 @@ describe("createCompany", () => {
     expect(result).toEqual({ ok: false, error: { code } })
   })
 
-  it("ignores the RCS number when the headquarters is in France", async () => {
-    await createCompany(companyInput(legalEntityFields({ legalEntityRcsNumber: "B123456" })))
-
-    expect((await loadCompany()).legalEntity?.rcsNumber).toBeNull()
-  })
-
-  it("keeps the RCS number when the headquarters is abroad", async () => {
+  it.each([
+    ["ignores the RCS number when the headquarters is in France", {}, null],
+    [
+      "keeps the RCS number when the headquarters is abroad",
+      { legalEntityCountry: "LU" },
+      "B123456",
+    ],
+  ] as const)("%s", async (_label, headquarters, expected) => {
     await createCompany(
-      companyInput(
-        legalEntityFields({ legalEntityRcsNumber: "B123456", legalEntityCountry: "LU" }),
-      ),
+      companyInput(legalEntityFields({ legalEntityRcsNumber: "B123456", ...headquarters })),
     )
 
-    expect((await loadCompany()).legalEntity?.rcsNumber).toBe("B123456")
+    expect((await loadCompany()).legalEntity?.rcsNumber).toBe(expected)
   })
 
   it("defaults the capital currency to EUR when a capital has none", async () => {
@@ -177,7 +176,10 @@ describe("updateCompany with fields", () => {
   it("leaves absent fields unchanged and clears fields set to null", async () => {
     const company = await seedCompany({ size: "PME", websiteUrl: "https://acme.example.com" })
 
-    const result = await updateCompany(idOf(company), { kind: "fields", fields: { size: null } })
+    const result = await updateCompany(companyIdOf(company), {
+      kind: "fields",
+      fields: { size: null },
+    })
 
     expect(result).toEqual({ ok: true, value: { id: company.id, slug: "acme", name: "Acme" } })
     expect(await loadCompany()).toMatchObject({
@@ -190,7 +192,7 @@ describe("updateCompany with fields", () => {
   it("stores types, zones, relation status, notes and details, and keeps the fields the patch omits", async () => {
     const company = await seedCompany({ sectors: ["SAAS"], types: ["CLIENT_FINAL"] })
 
-    await updateCompany(idOf(company), {
+    await updateCompany(companyIdOf(company), {
       kind: "fields",
       fields: {
         types: ["PARTENAIRE"],
@@ -215,7 +217,7 @@ describe("updateCompany with fields", () => {
   it("clears the zones when given an empty list", async () => {
     const company = await seedCompany({ zones: ["PARIS"] })
 
-    await updateCompany(idOf(company), { kind: "fields", fields: { zones: [] } })
+    await updateCompany(companyIdOf(company), { kind: "fields", fields: { zones: [] } })
 
     expect((await loadCompany()).zones).toEqual([])
   })
@@ -223,7 +225,10 @@ describe("updateCompany with fields", () => {
   it("keeps the submitted logo key", async () => {
     const company = await seedCompany()
 
-    await updateCompany(idOf(company), { kind: "fields", fields: { logoFilename: LOGO_KEY } })
+    await updateCompany(companyIdOf(company), {
+      kind: "fields",
+      fields: { logoFilename: LOGO_KEY },
+    })
 
     expect((await loadCompany()).logoFilename).toBe(LOGO_KEY)
   })
@@ -232,7 +237,7 @@ describe("updateCompany with fields", () => {
     const company = await seedCompany()
     await seedCompany({ slug: "other", name: "Other" })
 
-    await updateCompany(idOf(company), { kind: "fields", fields: { name: "Acme 2" } })
+    await updateCompany(companyIdOf(company), { kind: "fields", fields: { name: "Acme 2" } })
 
     expect((await loadCompany("other")).name).toBe("Other")
   })
@@ -241,7 +246,7 @@ describe("updateCompany with fields", () => {
     const company = await seedCompanyWithLegalEntity({ phone: "+33 3 00 00 00 00" })
     const before = await loadCompany()
 
-    await updateCompany(idOf(company), { kind: "fields", fields: { name: "Acme 2" } })
+    await updateCompany(companyIdOf(company), { kind: "fields", fields: { name: "Acme 2" } })
 
     const after = await loadCompany()
     expect(after.name).toBe("Acme 2")
@@ -251,7 +256,7 @@ describe("updateCompany with fields", () => {
   it("upserts the legal entity on update, creating it with the company slug", async () => {
     const company = await seedCompany()
 
-    await updateCompany(idOf(company), { kind: "fields", fields: legalEntityFields() })
+    await updateCompany(companyIdOf(company), { kind: "fields", fields: legalEntityFields() })
 
     expect((await loadCompany()).legalEntity).toMatchObject({
       slug: "acme",
@@ -264,7 +269,7 @@ describe("updateCompany with fields", () => {
     const company = await seedCompanyWithLegalEntity()
     const before = await loadCompany()
 
-    await updateCompany(idOf(company), {
+    await updateCompany(companyIdOf(company), {
       kind: "fields",
       fields: legalEntityFields({ legalEntityPhone: "+33 3 00 00 00 00", legalEntityCity: "Lyon" }),
     })
@@ -281,7 +286,7 @@ describe("updateCompany with fields", () => {
     const company = await seedCompanyWithLegalEntity()
     const addressId = (await loadCompany()).legalEntity?.addressId
 
-    await updateCompany(idOf(company), {
+    await updateCompany(companyIdOf(company), {
       kind: "fields",
       fields: { legalEntityName: "Acme SAS" },
     })
@@ -296,7 +301,7 @@ describe("updateCompany with fields", () => {
       capitalCurrency: "EUR",
     })
 
-    await updateCompany(idOf(company), {
+    await updateCompany(companyIdOf(company), {
       kind: "fields",
       fields: legalEntityFields({ legalEntityCapitalAmount: null }),
     })
@@ -330,7 +335,7 @@ describe("updateCompany with fields", () => {
       const company = await seedCompanyWithLegalEntity()
       await seedPublisher((await loadCompany()).legalEntityId ?? "")
 
-      await updateCompany(idOf(company), { kind: "fields", fields: vatFields })
+      await updateCompany(companyIdOf(company), { kind: "fields", fields: vatFields })
 
       expect((await loadCompany()).legalEntity?.publisher).toMatchObject({
         vatRegime: "REEL_SIMPLIFIE",
@@ -342,7 +347,7 @@ describe("updateCompany with fields", () => {
       const company = await seedCompanyWithLegalEntity()
       await seedPublisher((await loadCompany()).legalEntityId ?? "", "REEL_NORMAL")
 
-      await updateCompany(idOf(company), { kind: "fields", fields: legalEntityFields() })
+      await updateCompany(companyIdOf(company), { kind: "fields", fields: legalEntityFields() })
 
       expect((await loadCompany()).legalEntity?.publisher?.vatRegime).toBe("REEL_NORMAL")
     })
@@ -350,7 +355,7 @@ describe("updateCompany with fields", () => {
     it("ignores the VAT fields when the entity has no publisher", async () => {
       const company = await seedCompanyWithLegalEntity()
 
-      await updateCompany(idOf(company), { kind: "fields", fields: vatFields })
+      await updateCompany(companyIdOf(company), { kind: "fields", fields: vatFields })
 
       expect(await prisma.publisher.count()).toBe(0)
     })
@@ -360,19 +365,22 @@ describe("updateCompany with fields", () => {
     await seedCompany({ slug: "other", name: "Other" })
     const company = await seedCompany()
 
-    const result = await updateCompany(idOf(company), { kind: "fields", fields: { slug: "other" } })
+    const result = await updateCompany(companyIdOf(company), {
+      kind: "fields",
+      fields: { slug: "other" },
+    })
 
     expect(result).toEqual({ ok: false, error: { code: "slug_taken" } })
   })
 
-  it("returns not_found for an unknown id", async () => {
-    const result = await updateCompany(UNKNOWN_ID, { kind: "fields", fields: { name: "Acme 2" } })
-
-    expect(result).toEqual({ ok: false, error: { code: "not_found" } })
-  })
-
-  it("returns not_found for an unknown id when the patch writes a legal entity", async () => {
-    const result = await updateCompany(UNKNOWN_ID, { kind: "fields", fields: legalEntityFields() })
+  it.each([
+    ["returns not_found for an unknown id", { name: "Acme 2" }],
+    [
+      "returns not_found for an unknown id when the patch writes a legal entity",
+      legalEntityFields(),
+    ],
+  ])("%s", async (_label, fields) => {
+    const result = await updateCompany(UNKNOWN_ID, { kind: "fields", fields })
 
     expect(result).toEqual({ ok: false, error: { code: "not_found" } })
   })
@@ -381,7 +389,10 @@ describe("updateCompany with fields", () => {
     const company = await seedCompany()
     vi.spyOn(prisma, "$transaction").mockRejectedValueOnce({ code: "P2025" })
 
-    const update = updateCompany(idOf(company), { kind: "fields", fields: { name: "Acme 2" } })
+    const update = updateCompany(companyIdOf(company), {
+      kind: "fields",
+      fields: { name: "Acme 2" },
+    })
 
     await expect(update).rejects.toEqual({ code: "P2025" })
   })
@@ -397,7 +408,7 @@ describe("updateCompany with a details section", () => {
   it("replaces a details section with the fields in one transaction", async () => {
     const company = await seedCompany({ details: COMPANY_DETAILS_TEMPLATE, notes: "Avant" })
 
-    const result = await updateCompany(idOf(company), sectionPatch)
+    const result = await updateCompany(companyIdOf(company), sectionPatch)
 
     expect(result.ok).toBe(true)
     expect(await loadCompany()).toMatchObject({
@@ -416,7 +427,7 @@ describe("updateCompany with a details section", () => {
       relationStatus: "ACTIVE",
     })
 
-    const result = await updateCompany(idOf(company), {
+    const result = await updateCompany(companyIdOf(company), {
       ...sectionPatch,
       fields: { notes: "Après", relationStatus: "DORMANTE" },
       detailsSection: { heading: "Inconnue", content: "x" },
@@ -445,7 +456,7 @@ describe("updateCompany with a details section", () => {
   it("writes nothing on no_details", async () => {
     const company = await seedCompany({ details: null, notes: "Avant" })
 
-    const result = await updateCompany(idOf(company), {
+    const result = await updateCompany(companyIdOf(company), {
       ...sectionPatch,
       fields: { notes: "Après", relationStatus: "DORMANTE" },
     })
@@ -472,7 +483,7 @@ describe("refreshCompanyLogo", () => {
       source: "icon",
     })
 
-    const result = await refreshCompanyLogo(idOf(company))
+    const result = await refreshCompanyLogo(companyIdOf(company))
 
     expect(result).toEqual({ ok: true, value: { key: LOGO_KEY } })
     expect(retrieveCompanyLogo).toHaveBeenCalledWith(new URL("https://acme.example.com"), "acme")
@@ -491,7 +502,7 @@ describe("refreshCompanyLogo", () => {
   ])("returns %s without calling the service or writing", async (code, websiteUrl) => {
     const company = await seedCompany({ websiteUrl, logoFilename: PREVIOUS_LOGO_KEY })
 
-    const result = await refreshCompanyLogo(idOf(company))
+    const result = await refreshCompanyLogo(companyIdOf(company))
 
     expect(result).toEqual({ ok: false, error: { code } })
     expect(retrieveCompanyLogo).not.toHaveBeenCalled()
@@ -505,7 +516,7 @@ describe("refreshCompanyLogo", () => {
     })
     vi.mocked(retrieveCompanyLogo).mockResolvedValueOnce({ ok: false, message: "no_icon_found" })
 
-    const result = await refreshCompanyLogo(idOf(company))
+    const result = await refreshCompanyLogo(companyIdOf(company))
 
     expect(result).toEqual({ ok: false, error: { code: "no_icon_found" } })
     expect((await loadCompany()).logoFilename).toBe(PREVIOUS_LOGO_KEY)
@@ -515,7 +526,7 @@ describe("refreshCompanyLogo", () => {
     const company = await seedCompany({ websiteUrl: "https://acme.example.com" })
     vi.mocked(retrieveCompanyLogo).mockRejectedValueOnce(new Error("storage down"))
 
-    const refresh = refreshCompanyLogo(idOf(company))
+    const refresh = refreshCompanyLogo(companyIdOf(company))
 
     await expect(refresh).rejects.toThrow("storage down")
   })

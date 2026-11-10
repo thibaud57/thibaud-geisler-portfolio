@@ -91,13 +91,13 @@ describe("createLead", () => {
     await seedPerson({ name: null, email: "john.roe@example.com", optedOutAt })
     await seedPerson({
       name: "Acme Contact",
-      linkedinUrl: "https://www.linkedin.com/in/acme-contact",
+      linkedinUrl: "https://www.linkedin.com/in/acme_contact_example",
     })
 
     const result = await createLead(
       leadData({
         email: "john.roe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/acme-contact",
+        linkedinUrl: "https://www.linkedin.com/in/acme_contact_example",
       }),
     )
 
@@ -207,7 +207,7 @@ describe("updateLead", () => {
     const person = await seedPerson()
     await seedPerson({
       name: "Acme Contact",
-      linkedinUrl: "https://www.linkedin.com/in/acme-contact",
+      linkedinUrl: "https://www.linkedin.com/in/acme_contact_example",
     })
 
     const result = await updateLead(idOf(person), { email: "jane.doe@example.com" })
@@ -221,13 +221,7 @@ describe("updateLead", () => {
   })
 
   it("replaces a details section in the same transaction as the patch", async () => {
-    const person = await prisma.person.create({
-      data: {
-        name: "John Roe",
-        details: "# Contexte\n\nancien\n\n# Suite\n\nà garder\n",
-        lead: { create: { origin: "OUTBOUND" } },
-      },
-    })
+    const person = await seedPerson({ details: "# Contexte\n\nancien\n\n# Suite\n\nà garder\n" })
 
     const result = await updateLead(idOf(person), {
       status: "DISCUSSION",
@@ -242,13 +236,7 @@ describe("updateLead", () => {
   })
 
   it("writes nothing when the details section is missing", async () => {
-    const person = await prisma.person.create({
-      data: {
-        name: "John Roe",
-        details: "# Contexte\n\nancien\n",
-        lead: { create: { origin: "OUTBOUND" } },
-      },
-    })
+    const person = await seedPerson({ details: "# Contexte\n\nancien\n" })
 
     const result = await updateLead(idOf(person), {
       name: "Jane Doe",

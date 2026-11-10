@@ -1,13 +1,28 @@
 import { onTestFinished, vi } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { opportunityIdSchema, personIdSchema } from "@/lib/ids"
+import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
   await prisma.$executeRawUnsafe(
     'TRUNCATE TABLE "public"."Project", "public"."ClientMeta", "freelance"."Company", "public"."Tag", "public"."ProjectTag", "public"."DataProcessing", "public"."Publisher", "public"."LegalEntity", "public"."Address", "freelance"."Person", "freelance"."Lead", "freelance"."Contact", "freelance"."Opportunity", "freelance"."Interview", "freelance"."Signal", "freelance"."ProspectingAction", "freelance"."WeeklyReview", "auth"."session", "auth"."account", "auth"."verification", "auth"."apikey", "auth"."user" RESTART IDENTITY CASCADE',
   )
+}
+
+export const SEED_USER_ID = "user-1"
+
+export function seedUser() {
+  return prisma.user.create({
+    data: {
+      id: SEED_USER_ID,
+      name: "Jane Doe",
+      email: "jane@example.com",
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  })
 }
 
 export function createProject(overrides: Partial<Prisma.ProjectCreateInput> = {}) {
@@ -138,10 +153,19 @@ type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
 
 export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
 
+export const companyIdOf = (company: { id: string }) => companyIdSchema.parse(company.id)
+
+export const storedAction = (id: string) =>
+  prisma.prospectingAction.findUniqueOrThrow({ where: { id } })
+
+export const storedSignal = (id: string) => prisma.signal.findUniqueOrThrow({ where: { id } })
+
+export const storedReview = (id: string) => prisma.weeklyReview.findUniqueOrThrow({ where: { id } })
+
 export const loadPerson = (id: string) =>
   prisma.person.findUniqueOrThrow({ where: { id }, include: { lead: true, contact: true } })
 
-// Les gardes qui précèdent l'écriture rendent une violation d'unicité ou de clé étrangère inatteignable sans course : ce helper la rejoue au point d'écriture, dans une vraie transaction. Le spy est rendu à la fin du test même s'il n'a pas servi.
+// Rejoue au point d'écriture, dans une vraie transaction, une violation d'unicité ou de clé étrangère que les gardes rendent inatteignable sans course. Le spy est rendu à la fin du test même sans usage.
 export function rejectNextTransactionWrite(
   model: "person" | "contact" | "interview" | "prospectingAction",
   error: unknown,

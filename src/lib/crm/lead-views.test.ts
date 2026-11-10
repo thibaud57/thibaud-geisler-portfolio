@@ -207,7 +207,7 @@ describe("leadsForView", () => {
       lead({
         id: "out-linkedin",
         name: null,
-        linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
+        linkedinUrl: "https://www.linkedin.com/in/jeanne_dupont_example",
         optedOutAt,
       }),
       lead({ id: "out-email-last", name: null, email: "zack@example.com", optedOutAt }),

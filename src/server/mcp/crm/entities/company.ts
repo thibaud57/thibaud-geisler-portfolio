@@ -1,5 +1,4 @@
 import "server-only"
-import type { CallToolResult } from "@modelcontextprotocol/server"
 import { revalidateTag } from "next/cache"
 import { z } from "zod"
 
@@ -11,7 +10,7 @@ import {
   Zone,
 } from "@/generated/prisma/browser"
 import type { Prisma } from "@/generated/prisma/client"
-import { normalizeForSearch } from "@/lib/admin/search"
+import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { COMPANY_LOGO_FOLDER, isCompanyLogoKey } from "@/lib/asset-keys"
 import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
@@ -23,33 +22,31 @@ import {
   COMPANY_SLUG_MAX_LENGTH,
   websiteUrlSchema,
 } from "@/lib/schemas/company"
-import { NOTES_MAX_LENGTH } from "@/lib/schemas/fields"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
-import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
-  COMPANY_CACHE_TAGS,
   createCompany,
+  invalidateCompanyCaches,
   updateCompany,
   type CompanyLogoError,
   type CompanyPatch,
-  type CompanySummary,
   type CompanyWriteError,
 } from "@/server/crm/companies"
-import type { DomainResult } from "@/server/crm/result"
 import {
   findCompaniesPage,
   findCompanyNames,
   findCompanyWithLinks,
 } from "@/server/queries/companies"
 
-import { defineCrmEntity, type CrmWriteContext } from "../entity-definition"
-import { guardTool, toolError, toolJson, type WriteTexts } from "../results"
-import { pageQueryShape } from "../query-page"
+import { defineCrmEntity } from "../entity-definition"
+import { details, notes } from "../fields"
+import { rolesOf } from "../person-ref"
+import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
+import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("company").describe('Type of CRM record: always "company" here.')
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
   slug: z
     .string()
@@ -94,24 +91,11 @@ const fieldShape = {
     .describe("Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."),
   zones: z
     .array(z.enum(Zone))
-    // overwrite plutôt que transform : le schéma reste représentable en JSON Schema et idempotent
+    // overwrite plutôt que transform : le schéma reste représentable en JSON Schema
     .overwrite((zones) => sortZones(zones))
     .describe("Geographic zones of the company."),
-  notes: z
-    .string()
-    .trim()
-    .min(1, "Pass null to clear the notes.")
-    .max(NOTES_MAX_LENGTH)
-    .nullable()
-    .describe(`One-line markers, at most ${NOTES_MAX_LENGTH} characters. null clears them.`),
-  details: z
-    .string()
-    .trim()
-    .min(1, "Pass null to clear the details.")
-    .nullable()
-    .describe(
-      'Whole Details text in markdown, sections introduced by "# " headings. To change one section only, use detailsSection instead. null clears it.',
-    ),
+  notes: notes(),
+  details,
 } as const
 
 const createDataSchema = z
@@ -195,6 +179,8 @@ function withoutDetails({ details, ...rest }: NonNullable<UpdateInput["fields"]>
   return rest
 }
 
+const nameOrder = (order: SortOrder): Prisma.CompanyOrderByWithRelationInput[] => [{ name: order }]
+
 function toPatch(input: UpdateInput): CompanyPatch {
   const fields = input.fields ?? {}
   return input.detailsSection
@@ -203,23 +189,19 @@ function toPatch(input: UpdateInput): CompanyPatch {
 }
 
 // Le slug reçu (déjà normalisé par le schéma) nomme la collision ; absent d'un patch, le message reste générique.
-export function companyWriteErrorMessage(
-  error: CompanyWriteError,
-  context: { slug?: string } = {},
-): string {
+function companyWriteErrorMessage(error: CompanyWriteError, slug: string | undefined): string {
   switch (error.code) {
     case "slug_taken":
-      return `${context.slug === undefined ? "This slug" : `The slug "${context.slug}"`} (trimmed and lowercased) is already used by another company. Choose another slug, or call crm_search to find the existing company.`
+      return `${slug === undefined ? "This slug" : `The slug "${slug}"`} (trimmed and lowercased) is already used by another company. Choose another slug, or call crm_search to find the existing company.`
     case "siret_taken":
       return "This SIRET is already held by another legal entity."
     case "legal_entity_slug_taken":
       return "A legal entity already uses the slug of this company. Choose another slug."
     case "not_found":
-      return "No company has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("company")
     case "no_details":
-      return "This company has no Details text, so no section can be replaced. Write the whole text with fields.details instead."
     case "section_not_found":
-      return `No section of the Details matches detailsSection.heading. Sections present: ${error.headings.join(", ")}. Use one of these titles.`
+      return detailsErrorMessage(error, "company")
     default:
       return assertNever(error)
   }
@@ -252,55 +234,30 @@ export function companyLogoErrorMessage(error: CompanyLogoError): string {
 }
 
 export function refreshCompanyCaches(): void {
-  for (const tag of COMPANY_CACHE_TAGS) revalidateTag(tag, "max")
-  // Les listes de personnes, d'opportunités et d'entretiens affichent le nom et le logo de l'entreprise
-  revalidatePersonLists()
+  invalidateCompanyCaches((tag) => {
+    revalidateTag(tag, "max")
+  })
 }
 
-// Un create n'a pas d'id à relire : le slug dit si l'entreprise existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "company:created", failure: "company:create_failed" },
-  failureMessage:
-    "The company could not be saved because of an internal error. Call crm_search with its slug to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "company:updated", failure: "company:update_failed" },
-  failureMessage:
-    "The company could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
-
-function writeCompany(
-  run: () => Promise<DomainResult<CompanySummary, CompanyWriteError>>,
-  ctx: CrmWriteContext,
-  { events, failureMessage }: WriteTexts,
-  slug: string | undefined,
-  logContext: object,
-): Promise<CallToolResult> {
-  return guardTool(
-    ctx.log,
-    { event: events.failure, message: failureMessage, context: logContext },
-    run,
-    (result) => {
-      if (!result.ok) return toolError(companyWriteErrorMessage(result.error, { slug }))
-
-      refreshCompanyCaches()
-      ctx.log.info({ event: events.success, id: result.value.id, slug: result.value.slug })
-      return toolJson(result.value)
-    },
-  )
-}
+const WRITES = writeTexts(
+  { key: "company", noun: "company" },
+  "Call crm_search with its slug to check whether it was created before retrying.",
+)
 
 export const companyEntity = defineCrmEntity({
   entity: "company",
+  docs: {
+    search: "the slug for a company",
+    fetch:
+      "For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact).",
+    create:
+      "For a company, only slug and name are required, and the Details get the standard section template unless you send your own.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const companies = await findCompanyNames()
     return companies
-      .filter(
-        (company) =>
-          normalizeForSearch(company.name).includes(needle) || company.slug.includes(needle),
-      )
+      .filter((company) => matchesSearch(needle, company.name, company.slug))
       .map((company) => ({
         entity: "company" as const,
         id: company.id,
@@ -318,10 +275,7 @@ export const companyEntity = defineCrmEntity({
       persons: persons.map((person) => ({
         id: person.id,
         name: personDisplayName(person),
-        roles: [
-          ...(person.lead ? ["lead" as const] : []),
-          ...(person.contact ? ["contact" as const] : []),
-        ],
+        roles: rolesOf(person),
       })),
     }
   },
@@ -329,31 +283,36 @@ export const companyEntity = defineCrmEntity({
   query: ({ filters, sort, order, limit, offset }) =>
     findCompaniesPage({
       where: toWhere(filters),
-      // L'id départage les ex æquo : sans lui, deux pages pourraient se recouper
-      orderBy: [{ [sort]: order }, { id: "asc" }],
+      orderBy: idOrderBy(sort, order, nameOrder),
       take: limit,
       skip: offset,
     }),
   createSchema,
   create: ({ data }, ctx) =>
-    writeCompany(
-      () =>
+    writeRecord({
+      run: () =>
         createCompany({
           ...data,
           details: data.details === undefined ? COMPANY_DETAILS_TEMPLATE : data.details,
         }),
       ctx,
-      CREATE_WRITE,
-      data.slug,
-      { slug: data.slug },
-    ),
+      texts: WRITES.create,
+      logContext: { slug: data.slug },
+      errorMessage: (error) => companyWriteErrorMessage(error, data.slug),
+      invalidate: refreshCompanyCaches,
+      logged: ({ id, slug }) => ({ id, slug }),
+      rendered: byId.rendered,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeCompany(
-      () => updateCompany(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateCompany(input.id, toPatch(input)),
       ctx,
-      UPDATE_WRITE,
-      input.fields?.slug,
-      { id: input.id },
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: (error) => companyWriteErrorMessage(error, input.fields?.slug),
+      invalidate: refreshCompanyCaches,
+      logged: ({ id, slug }) => ({ id, slug }),
+      rendered: byId.rendered,
+    }),
 })

@@ -15,8 +15,6 @@ import { assertNever } from "@/lib/assert-never"
 import { interviewDetailsTemplate } from "@/lib/crm/details-templates"
 import { interviewPlaces, interviewTitle } from "@/lib/crm/interviews"
 import { interviewIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
-import { instantOf } from "@/lib/schemas/prospecting-action"
-import { mapDefined } from "@/lib/utils"
 import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   createInterview,
@@ -32,20 +30,23 @@ import {
 } from "@/server/queries/interviews"
 
 import { dateRange } from "../date-range"
+import { instantDate } from "../day-fields"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { details, notes } from "../fields"
 import { personRef } from "../person-ref"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { writeRecord, type WriteTexts } from "../results"
+import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("interview").describe('Type of CRM record: always "interview" here.')
 
-const isoInstant = instantOf(
-  "Expected an ISO 8601 date and time with its UTC offset, e.g. 2026-11-20T10:00:00+01:00.",
-)
+const isoInstant = (description?: string) =>
+  instantDate(
+    "Expected an ISO 8601 date and time with its UTC offset, e.g. 2026-11-20T10:00:00+01:00.",
+    description,
+  )
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
   opportunityId: opportunityIdSchema.describe(
     "Id of the opportunity the interview belongs to. Get it from crm_search with the entity opportunity.",
@@ -74,7 +75,7 @@ const fieldShape = {
     .describe(
       "Outcome: POSITIF, NEGATIF or SANS_SUITE. Kept only when the status is FAIT, cleared otherwise. null clears it.",
     ),
-  scheduledAt: isoInstant.describe(
+  scheduledAt: isoInstant(
     "Date and time of the interview, ISO 8601 with its UTC offset (e.g. 2026-11-20T10:00:00+01:00).",
   ),
   score: z.number().int().min(0).max(10).nullable().describe("Score from 0 to 10. null clears it."),
@@ -124,7 +125,7 @@ const interviewFilterSchema = z
     opportunityId: opportunityIdSchema
       .optional()
       .describe("Only the interviews of this opportunity."),
-    scheduledAt: dateRange(isoInstant)
+    scheduledAt: dateRange(isoInstant())
       .optional()
       .describe("Only the interviews scheduled within this interval, ISO 8601 instants."),
   })
@@ -147,9 +148,6 @@ const updateSchema = updateSchemaOf(
 type QueryInput = z.output<typeof querySchema>
 type UpdateInput = z.output<typeof updateSchema>
 
-const toDate = (instant: string | undefined): Date | undefined =>
-  mapDefined(instant, (value) => new Date(value))
-
 function toWhere(filters: QueryInput["filters"]): Prisma.InterviewWhereInput {
   const range = filters?.scheduledAt
   return {
@@ -157,7 +155,7 @@ function toWhere(filters: QueryInput["filters"]): Prisma.InterviewWhereInput {
     type: filters?.type,
     side: filters?.side,
     opportunityId: filters?.opportunityId,
-    scheduledAt: range && { gte: toDate(range.from), lte: toDate(range.to) },
+    scheduledAt: range && { gte: range.from, lte: range.to },
   }
 }
 
@@ -167,15 +165,11 @@ const nameOrder = (order: SortOrder): Prisma.InterviewOrderByWithRelationInput[]
   { scheduledAt: order },
 ]
 
-function toPatch({
+const toPatch = ({
   fields = {},
   detailsSection,
-}: UpdateInput): InterviewPatchWithoutNewCorrespondents {
-  const { scheduledAt, ...rest } = fields
-  return { ...rest, scheduledAt: toDate(scheduledAt), detailsSection }
-}
+}: UpdateInput): InterviewPatchWithoutNewCorrespondents => ({ ...fields, detailsSection })
 
-// Chaque code devient un message qui nomme la correction : l'agent corrige l'appel sans deviner.
 function interviewWriteErrorMessage(
   error: Exclude<InterviewWriteError, CorrespondentExists>,
 ): string {
@@ -187,31 +181,35 @@ function interviewWriteErrorMessage(
     case "correspondent_not_found":
       return "A correspondentIds entry matches no person, or a person who opted out of prospecting. Call crm_search with the entity contact to find the right ids, then call the tool again."
     case "not_found":
-      return "No interview has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("interview")
     case "no_details":
-      return "This interview has no Details text, so no section can be replaced. Write the whole text with fields.details instead."
     case "section_not_found":
-      return `No section of the Details matches detailsSection.heading. Sections present: ${error.headings.join(", ")}. Use one of these titles.`
+      return detailsErrorMessage(error, "interview")
     default:
       return assertNever(error)
   }
 }
 
-// Un create n'a pas d'id à relire : les entretiens de l'opportunité disent si celui-ci existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "interview:created", failure: "interview:create_failed" },
-  failureMessage:
-    "The interview could not be saved because of an internal error. Call crm_query with the opportunityId filter to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "interview:updated", failure: "interview:update_failed" },
-  failureMessage:
-    "The interview could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
+const WRITES = writeTexts(
+  { key: "interview", noun: "interview" },
+  "Call crm_query with the opportunityId filter to check whether it was created before retrying.",
+)
 
 export const interviewEntity = defineCrmEntity({
   entity: "interview",
+  docs: {
+    search:
+      'the label "Entretien N · type" and "opportunity title · date" for an interview (found by that label or by its opportunity title)',
+    fetch:
+      "For an interview: its title, opportunity with intermediary and client, and correspondents (id and name, or id only when opted out).",
+    queryRow:
+      "for an interview id, title (Entretien N · type), type, side, status, outcome, date, score and opportunity title",
+    querySort: "An interview has no name: sort name orders by opportunity title then date.",
+    create:
+      "For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own.",
+    update:
+      "For an interview, correspondentIds replaces the whole list (omit it to keep it) and outcome is cleared unless the status is FAIT.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const interviews = await findInterviewSearchRows()
@@ -262,27 +260,28 @@ export const interviewEntity = defineCrmEntity({
   },
   createSchema,
   create: ({ data }, ctx) =>
-    writeRecord(
-      () =>
+    writeRecord({
+      run: () =>
         createInterview({
           ...data,
-          scheduledAt: new Date(data.scheduledAt),
           details: data.details === undefined ? interviewDetailsTemplate(data.type) : data.details,
         }),
       ctx,
-      CREATE_WRITE,
-      {},
-      interviewWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.create,
+      logContext: {},
+      errorMessage: interviewWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeRecord(
-      () => updateInterview(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateInterview(input.id, toPatch(input)),
       ctx,
-      UPDATE_WRITE,
-      { id: input.id },
-      interviewWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: interviewWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
 })

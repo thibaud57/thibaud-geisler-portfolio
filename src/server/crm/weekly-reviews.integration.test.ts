@@ -8,6 +8,7 @@ import {
   prisma,
   resetDatabase,
   seedClosedWeek,
+  storedReview,
 } from "@/lib/prisma-test-setup"
 
 import {
@@ -47,8 +48,6 @@ async function seedReview(closingFriday: string, data: Partial<typeof STORED_COU
   })
   return weeklyReviewIdSchema.parse(row.id)
 }
-
-const storedReview = (id: string) => prisma.weeklyReview.findUniqueOrThrow({ where: { id } })
 
 beforeEach(async () => {
   await resetDatabase()

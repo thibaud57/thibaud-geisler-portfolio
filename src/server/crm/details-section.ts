@@ -11,7 +11,6 @@ export interface DetailsSection {
 export type DetailsSectionError =
   { code: "no_details" } | { code: "section_not_found"; headings: string[] }
 
-// Le remplacement d'une section des Détails, commun à toutes les entités qui en portent.
 export function resolveDetailsSection(
   details: string | null,
   section: DetailsSection,

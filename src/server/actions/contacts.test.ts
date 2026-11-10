@@ -116,14 +116,14 @@ describe("createContact", () => {
       initialContactFormState,
       buildFormData({
         email: " Jane.Doe@Example.COM ",
-        linkedinUrl: "fr.linkedin.com/in/Jane-Doe-4b2a1c/",
+        linkedinUrl: "fr.linkedin.com/in/Jane_Doe_Example_A/",
       }),
     )
 
     expect(createContactRecord).toHaveBeenCalledWith(
       objectMatch({
         email: "jane.doe@example.com",
-        linkedinUrl: "https://www.linkedin.com/in/jane-doe-4b2a1c",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example_a",
         types: ["COLLEGUE"],
         status: "ACTIF",
       }),
@@ -137,28 +137,24 @@ describe("createContact", () => {
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("refuses a second contact with the same email, naming it", async () => {
-    vi.mocked(createContactRecord).mockResolvedValue(
-      fail(existsConflict({ lead: false, contact: true })),
-    )
-
-    const state = await createContact(initialContactFormState, buildFormData())
-
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual(["Ce contact existe déjà : John Roe"])
-  })
-
-  it("points to the lead picker when the person only holds the lead role", async () => {
-    vi.mocked(createContactRecord).mockResolvedValue(
-      fail(existsConflict({ lead: true, contact: false })),
-    )
-
-    const state = await createContact(initialContactFormState, buildFormData())
-
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual([
+  it.each([
+    [
+      "refuses a second contact with the same email, naming it",
+      { lead: false, contact: true },
+      "Ce contact existe déjà : John Roe",
+    ],
+    [
+      "points to the lead picker when the person only holds the lead role",
+      { lead: true, contact: false },
       "Cette personne est déjà un lead : John Roe, choisissez-la « Depuis un lead »",
-    ])
+    ],
+  ])("%s", async (_label, roles, message) => {
+    vi.mocked(createContactRecord).mockResolvedValue(fail(existsConflict(roles)))
+
+    const state = await createContact(initialContactFormState, buildFormData())
+
+    expect(state.message).toBe("contact_exists")
+    expect(state.errors.email).toEqual([message])
   })
 
   it("names the stop date when the person opposed", async () => {

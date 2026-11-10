@@ -18,6 +18,7 @@ import {
   type DetailsSection,
   type DetailsSectionError,
 } from "./details-section"
+import { revalidatePersonLists } from "./person-guards"
 import { fail, ok, type DomainResult } from "./result"
 
 export type LegalEntityKey = Extract<keyof CompanyInput, `legalEntity${string}`>
@@ -51,8 +52,14 @@ export type CompanyLogoError =
 
 type FieldsPatch = Extract<CompanyPatch, { kind: "fields" }>
 
-// Les tags que lit le site public : chaque adaptateur les invalide avec sa primitive (updateTag en action, revalidateTag en outil MCP).
-export const COMPANY_CACHE_TAGS = ["projects", "legal-entity"] as const
+// Tags lus par le site public : chaque adaptateur les invalide avec sa primitive (updateTag en action, revalidateTag en outil MCP).
+const COMPANY_CACHE_TAGS = ["projects", "legal-entity"] as const
+
+// L'entité légale de la société du propriétaire est celle de l'éditeur (pages légales) ; les listes de personnes, d'opportunités et d'entretiens affichent nom et logo de l'entreprise.
+export function invalidateCompanyCaches(invalidateTag: (tag: string) => void): void {
+  for (const tag of COMPANY_CACHE_TAGS) invalidateTag(tag)
+  revalidatePersonLists()
+}
 
 // Un champ absent du patch reste undefined : Prisma l'ignore à la mise à jour, donc inchangé.
 interface LegalEntityDraft {
@@ -196,7 +203,6 @@ async function writeFields(
   fields: Partial<CompanyInput>,
 ): Promise<DomainResult<CompanySummary, CompanyFieldsError>> {
   const legal = toLegalEntityDraft(fields)
-  // Sans nom d'entité légale, seuls les champs de l'entreprise s'écrivent et l'entité reste intacte.
   if (!legal) {
     return ok(
       await tx.company.update({

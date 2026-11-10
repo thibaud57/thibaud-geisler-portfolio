@@ -7,19 +7,13 @@ const nonEmptyId = (message?: string) => z.string().trim().min(1, message)
 export const personIdField = (message?: string) => nonEmptyId(message).brand<"PersonId">()
 export const companyIdField = (message?: string) => nonEmptyId(message).brand<"CompanyId">()
 export const opportunityIdField = (message?: string) => nonEmptyId(message).brand<"OpportunityId">()
-const prospectingActionIdField = (message?: string) =>
-  nonEmptyId(message).brand<"ProspectingActionId">()
-const interviewIdField = (message?: string) => nonEmptyId(message).brand<"InterviewId">()
-const signalIdField = (message?: string) => nonEmptyId(message).brand<"SignalId">()
-const weeklyReviewIdField = (message?: string) => nonEmptyId(message).brand<"WeeklyReviewId">()
-
 export const personIdSchema = personIdField()
 export const companyIdSchema = companyIdField()
 export const opportunityIdSchema = opportunityIdField()
-export const prospectingActionIdSchema = prospectingActionIdField()
-export const interviewIdSchema = interviewIdField()
-export const signalIdSchema = signalIdField()
-export const weeklyReviewIdSchema = weeklyReviewIdField()
+export const prospectingActionIdSchema = nonEmptyId().brand<"ProspectingActionId">()
+export const interviewIdSchema = nonEmptyId().brand<"InterviewId">()
+export const signalIdSchema = nonEmptyId().brand<"SignalId">()
+export const weeklyReviewIdSchema = nonEmptyId().brand<"WeeklyReviewId">()
 
 export type PersonId = z.infer<typeof personIdSchema>
 export type CompanyId = z.infer<typeof companyIdSchema>

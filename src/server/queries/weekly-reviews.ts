@@ -16,7 +16,7 @@ export function findWeeklyReviewById(id: string) {
   return prisma.weeklyReview.findUnique({ where: { id } })
 }
 
-// Lecture légère pour la recherche des outils : le vendredi donne le libellé de semaine et la date.
+// Le vendredi suffit à la recherche des outils (libellé de semaine et date).
 export function findWeeklyReviewSearchRows() {
   return prisma.weeklyReview.findMany({ select: { id: true, closingFriday: true } })
 }

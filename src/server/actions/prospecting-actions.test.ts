@@ -175,26 +175,22 @@ describe("createProspectingAction", () => {
     expect(state.errors.personId).toBeDefined()
   })
 
-  it("refuses a person without a lead record", async () => {
+  it.each([
+    [
+      "refuses a person without a lead record",
+      NO_LEAD_CONFLICT,
+      "Cette personne n'a pas de fiche lead",
+    ],
+    ["refuses a person who opposed prospecting", OPTED_OUT_CONFLICT, OPTED_OUT_MESSAGE],
+  ])("%s", async (_label, conflict, message) => {
     vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
-      fail({ code: "person_conflict", conflict: NO_LEAD_CONFLICT }),
+      fail({ code: "person_conflict", conflict }),
     )
 
     const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
 
     expect(state.ok).toBe(false)
-    expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
-  })
-
-  it("refuses a person who opposed prospecting", async () => {
-    vi.mocked(createProspectingActionRecord).mockResolvedValueOnce(
-      fail({ code: "person_conflict", conflict: OPTED_OUT_CONFLICT }),
-    )
-
-    const state = await createProspectingAction(initialProspectingActionFormState, buildFormData())
-
-    expect(state.ok).toBe(false)
-    expect(state.errors.personId).toEqual([OPTED_OUT_MESSAGE])
+    expect(state.errors.personId).toEqual([message])
   })
 
   it("keeps the lists as they are after a refusal", async () => {
@@ -236,32 +232,33 @@ describe("updateProspectingAction", () => {
     )
   })
 
-  it("refuses to move an action to a person without a lead record", async () => {
+  it.each<
+    [string, typeof NO_LEAD_CONFLICT | typeof OPTED_OUT_CONFLICT, Record<string, string>, string]
+  >([
+    [
+      "refuses to move an action to a person without a lead record",
+      NO_LEAD_CONFLICT,
+      {},
+      "Cette personne n'a pas de fiche lead",
+    ],
+    [
+      "refuses to rewrite an action of a person who opposed prospecting",
+      OPTED_OUT_CONFLICT,
+      { status: "FAIT" },
+      OPTED_OUT_MESSAGE,
+    ],
+  ])("%s", async (_label, conflict, overrides, message) => {
     vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(
-      fail({ code: "person_conflict", conflict: NO_LEAD_CONFLICT }),
+      fail({ code: "person_conflict", conflict }),
     )
 
     const state = await updateProspectingAction(
       "a1",
       initialProspectingActionFormState,
-      buildFormData(),
+      buildFormData(overrides),
     )
 
-    expect(state.errors.personId).toEqual(["Cette personne n'a pas de fiche lead"])
-  })
-
-  it("refuses to rewrite an action of a person who opposed prospecting", async () => {
-    vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(
-      fail({ code: "person_conflict", conflict: OPTED_OUT_CONFLICT }),
-    )
-
-    const state = await updateProspectingAction(
-      "a1",
-      initialProspectingActionFormState,
-      buildFormData({ status: "FAIT" }),
-    )
-
-    expect(state.errors.personId).toEqual([OPTED_OUT_MESSAGE])
+    expect(state.errors.personId).toEqual([message])
   })
 
   it("answers prospecting_action_not_found and refreshes the lists when the action was deleted", async () => {
@@ -340,7 +337,18 @@ describe("changeProspectingActionStatus", () => {
     })
   })
 
-  it("keeps the reply when the status alone moves a replied action to converted", async () => {
+  it.each([
+    [
+      "keeps the reply when the status alone moves a replied action to converted",
+      "CONVERTI",
+      { respondedAt: NOW, reply: REPLY },
+    ],
+    [
+      "clears the reply when the status alone moves a replied action back to done",
+      "FAIT",
+      { respondedAt: null, reply: null },
+    ],
+  ] as const)("%s", async (_label, status, replied) => {
     vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
       status: "REPONDU",
       occurredAt: MONDAY,
@@ -348,27 +356,11 @@ describe("changeProspectingActionStatus", () => {
       reply: REPLY,
     } as never)
 
-    await changeProspectingActionStatus("a1", "CONVERTI")
+    await changeProspectingActionStatus("a1", status)
 
     expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
       where: { id: "a1" },
-      data: { status: "CONVERTI", occurredAt: MONDAY, respondedAt: NOW, reply: REPLY },
-    })
-  })
-
-  it("clears the reply when the status alone moves a replied action back to done", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
-      status: "REPONDU",
-      occurredAt: MONDAY,
-      respondedAt: NOW,
-      reply: REPLY,
-    } as never)
-
-    await changeProspectingActionStatus("a1", "FAIT")
-
-    expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
-      where: { id: "a1" },
-      data: { status: "FAIT", occurredAt: MONDAY, respondedAt: null, reply: null },
+      data: { status, occurredAt: MONDAY, ...replied },
     })
   })
 
@@ -410,14 +402,17 @@ describe("rescheduleProspectingAction", () => {
     })
   })
 
-  it("refuses to move an action already sent", async () => {
+  it.each([
+    ["refuses to move an action already sent", 1, "Seule une action à faire se replanifie"],
+    ["tells a deleted action apart from one already sent", 0, "Cette action a été supprimée"],
+  ])("%s", async (_label, remaining, message) => {
     vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 0 })
-    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(1)
+    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(remaining)
 
     const state = await rescheduleProspectingAction("a1", THURSDAY)
 
     expect(state.ok).toBe(false)
-    expect(state.errors.occurredAt).toEqual(["Seule une action à faire se replanifie"])
+    expect(state.errors.occurredAt).toEqual([message])
   })
 
   it("refuses to move an action of a person who opposed prospecting", async () => {
@@ -428,16 +423,6 @@ describe("rescheduleProspectingAction", () => {
     expect(state.ok).toBe(false)
     expect(state.errors.occurredAt).toEqual([OPTED_OUT_MESSAGE])
     expect(prisma.prospectingAction.updateMany).not.toHaveBeenCalled()
-  })
-
-  it("tells a deleted action apart from one already sent", async () => {
-    vi.mocked(prisma.prospectingAction.updateMany).mockResolvedValueOnce({ count: 0 })
-    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
-
-    const state = await rescheduleProspectingAction("a1", THURSDAY)
-
-    expect(state.ok).toBe(false)
-    expect(state.errors.occurredAt).toEqual(["Cette action a été supprimée"])
   })
 
   it("refreshes the screens after a refusal, which showed a stale action", async () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 
 import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import {
+  companyIdOf,
   prisma,
   resetDatabase,
   seedCompany,
@@ -34,7 +35,6 @@ function opportunityData(overrides: Partial<OpportunityWriteData> = {}): Opportu
   }
 }
 
-const companyId = (company: { id: string }) => companyIdSchema.parse(company.id)
 const UNKNOWN_COMPANY = companyIdSchema.parse("missing-company")
 const UNKNOWN_PERSON = personIdSchema.parse("missing-person")
 const UNKNOWN_OPPORTUNITY = opportunityIdSchema.parse("missing-opportunity")
@@ -48,7 +48,7 @@ describe("createOpportunity", () => {
     const esn = await seedEsn()
 
     const result = await createOpportunity(
-      opportunityData({ intermediaryId: companyId(esn), dailyRate: 650 }),
+      opportunityData({ intermediaryId: companyIdOf(esn), dailyRate: 650 }),
     )
 
     const stored = await prisma.opportunity.findFirstOrThrow()
@@ -63,12 +63,12 @@ describe("intermediary rule", () => {
     const other = await seedCompany({ slug: "globex", name: "Globex", types: ["CLIENT_FINAL"] })
     const id = await seedOpportunity({ intermediaryId: acme.id })
 
-    const created = await createOpportunity(opportunityData({ intermediaryId: companyId(acme) }))
+    const created = await createOpportunity(opportunityData({ intermediaryId: companyIdOf(acme) }))
     const unchanged = await updateOpportunity(id, {
-      intermediaryId: companyId(acme),
+      intermediaryId: companyIdOf(acme),
       status: "ACCEPTEE",
     })
-    const changed = await updateOpportunity(id, { intermediaryId: companyId(other) })
+    const changed = await updateOpportunity(id, { intermediaryId: companyIdOf(other) })
 
     expect(created).toEqual({ ok: false, error: { code: "intermediary_not_esn" } })
     expect(unchanged.ok).toBe(true)
@@ -109,7 +109,7 @@ describe("updateOpportunity", () => {
     const other = await seedCompany({ slug: "globex", name: "Globex", types: ["ESN_RECRUTEMENT"] })
     const id = await seedOpportunity({ [stored]: acme.id, [patched]: other.id })
 
-    const result = await updateOpportunity(id, { [patched]: companyId(acme) })
+    const result = await updateOpportunity(id, { [patched]: companyIdOf(acme) })
 
     expect(result).toEqual({ ok: false, error: { code: "client_is_intermediary" } })
     expect(await prisma.opportunity.findUniqueOrThrow({ where: { id } })).toMatchObject({

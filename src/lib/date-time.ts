@@ -95,11 +95,13 @@ export function formatMonthYear(date: Date): string {
 }
 
 // Minuit UTC : la colonne `@db.Date` garde ce jour-là, quel que soit le fuseau du navigateur ou du runtime.
+// L'aller-retour refuse aussi un jour impossible, que `Date` reporterait sans erreur (2026-02-31 → 3 mars).
 export function isoDayToDate(isoDay: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDay)) {
+  const date = new Date(`${isoDay}T00:00:00Z`)
+  if (Number.isNaN(date.getTime()) || dateColumnIsoDay(date) !== isoDay) {
     throw new Error(`Expected a day as YYYY-MM-DD, got "${isoDay}"`)
   }
-  return new Date(`${isoDay}T00:00:00Z`)
+  return date
 }
 
 // Inverse exact de `isoDayToDate` : le jour d'une colonne `@db.Date` se lit en UTC, jamais à Paris.

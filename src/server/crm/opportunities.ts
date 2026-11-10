@@ -17,7 +17,6 @@ import { fail, ok, type DomainResult } from "./result"
 
 export type OpportunityWriteData = OpportunityInput
 
-// Un champ absent reste inchangé.
 export type OpportunityPatch = Partial<OpportunityWriteData> & { detailsSection?: DetailsSection }
 
 type OpportunityFieldsPatch = Partial<OpportunityWriteData> & { detailsSection?: undefined }

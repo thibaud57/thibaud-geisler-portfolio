@@ -4,19 +4,17 @@ import { z } from "zod"
 import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
-import { zonedDayStart, zonedIsoDay } from "@/lib/date-time"
+import { zonedDayStartOf, zonedIsoDay } from "@/lib/date-time"
 import { personIdSchema, prospectingActionIdSchema } from "@/lib/ids"
 import {
   ACTION_CHANNELS,
   ACTION_STATUSES,
   ACTION_TITLE_MAX_LENGTH,
-  actionDayStart,
 } from "@/lib/schemas/prospecting-action"
 import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   createProspectingAction,
   updateProspectingAction,
-  type ProspectingActionPatch,
   type ProspectingActionWriteError,
 } from "@/server/crm/prospecting-actions"
 import {
@@ -26,22 +24,23 @@ import {
 } from "@/server/queries/prospecting-actions"
 
 import { dateRange } from "../date-range"
-import { toDay, withDays } from "../day-fields"
+import { withDays, zonedDay } from "../day-fields"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { optionalText } from "../fields"
 import { personRef } from "../person-ref"
 import { conflictMessage } from "../person-write-tool"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { writeRecord, type WriteTexts } from "../results"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z
   .literal("prospecting-action")
   .describe('Type of CRM record: always "prospecting-action" here.')
 
-const actionDay = z.iso.date({ error: "Expected a day as YYYY-MM-DD, e.g. 2026-03-09." })
+// Colonnes Timestamptz : jours lus à Paris (voir `zonedDay`).
+const actionDay = (description?: string) => zonedDay({ example: "2026-03-09", description })
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
   title: z
     .string()
@@ -62,10 +61,10 @@ const fieldShape = {
     .describe(
       "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date.",
     ),
-  occurredAt: actionDay.describe(
+  occurredAt: actionDay(
     "Day of the action, YYYY-MM-DD: the planned day while the status is A_FAIRE, the sending day after.",
   ),
-  respondedAt: actionDay.describe(
+  respondedAt: actionDay(
     "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out, the status rules set it (or keep the stored one).",
   ),
   message: optionalText("Text of the message sent."),
@@ -97,7 +96,7 @@ const actionFilterSchema = z
     status: z.enum(ACTION_STATUSES).optional().describe("Only this status."),
     channel: z.enum(ACTION_CHANNELS).optional().describe("Only this channel."),
     personId: personIdSchema.optional().describe("Only the actions of this lead."),
-    occurredAt: dateRange(actionDay)
+    occurredAt: dateRange(actionDay())
       .optional()
       .describe("Only the actions dated within this interval, days YYYY-MM-DD."),
   })
@@ -120,18 +119,14 @@ const updateSchema = updateSchemaWithoutDetailsOf(
 )
 
 type QueryInput = z.output<typeof querySchema>
-type UpdateInput = z.output<typeof updateSchema>
 
-// Colonnes Timestamptz : les jours entrent en minuit de Paris et sortent en jour de Paris, un instant UTC relu puis réécrit décalerait l'action d'un jour.
 const ACTION_DAYS = ["occurredAt", "respondedAt"] as const
 
-const toActionDay = (day: string | undefined): Date | undefined => toDay(day, actionDayStart)
-
 const withActionDays = <T extends { occurredAt: Date; respondedAt: Date | null }>(row: T) =>
-  withDays(row, ACTION_DAYS, zonedIsoDay)
+  withDays(row, ACTION_DAYS, actionDay())
 
 // La borne haute inclut son jour entier : une action envoyée à 14 h 30 ce jour-là reste dans l'intervalle.
-const dayEnd = (day: string): Date => zonedDayStart(new Date(day), 1)
+const dayEnd = (dayStart: Date): Date => zonedDayStartOf(dayStart, 1)
 
 function toWhere(filters: QueryInput["filters"]): Prisma.ProspectingActionWhereInput {
   const range = filters?.occurredAt
@@ -140,7 +135,7 @@ function toWhere(filters: QueryInput["filters"]): Prisma.ProspectingActionWhereI
     channel: filters?.channel,
     personId: filters?.personId,
     occurredAt: range && {
-      gte: toActionDay(range.from),
+      gte: range.from,
       lt: range.to === undefined ? undefined : dayEnd(range.to),
     },
   }
@@ -151,12 +146,6 @@ const nameOrder = (order: SortOrder): Prisma.ProspectingActionOrderByWithRelatio
   { title: order },
 ]
 
-function toPatch({ fields = {} }: UpdateInput): ProspectingActionPatch {
-  const { occurredAt, respondedAt, ...rest } = fields
-  return { ...rest, occurredAt: toActionDay(occurredAt), respondedAt: toActionDay(respondedAt) }
-}
-
-// Chaque code devient un message qui nomme la correction : l'agent corrige l'appel sans deviner.
 function prospectingActionWriteErrorMessage(error: ProspectingActionWriteError): string {
   switch (error.code) {
     case "person_conflict":
@@ -164,27 +153,33 @@ function prospectingActionWriteErrorMessage(error: ProspectingActionWriteError):
     case "person_not_found":
       return "No person has this personId. Call crm_search with the entity lead to find the right id, then call the tool again."
     case "not_found":
-      return "No prospecting action has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("prospecting action")
     default:
       return assertNever(error)
   }
 }
 
-// Un create n'a pas d'id à relire : les actions du lead disent si celle-ci existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "prospecting_action:created", failure: "prospecting_action:create_failed" },
-  failureMessage:
-    "The action could not be saved because of an internal error. Call crm_query with the personId filter to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "prospecting_action:updated", failure: "prospecting_action:update_failed" },
-  failureMessage:
-    "The action could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
+const WRITES = writeTexts(
+  { key: "prospecting_action", noun: "action" },
+  "Call crm_query with the personId filter to check whether it was created before retrying.",
+)
 
 export const prospectingActionEntity = defineCrmEntity({
   entity: "prospecting-action",
+  docs: {
+    search:
+      '"lead · date · status" for a prospecting action (found by its title or by the name of its lead)',
+    fetch:
+      "For a prospecting action: its fields and its lead (id and name, or id only when opted out); its day fields occurredAt and respondedAt are YYYY-MM-DD days, the format crm_create and crm_update take.",
+    queryRow:
+      "for a prospecting action id, title, channel, status, date, reply date and lead as id and name, or id only when opted out",
+    querySort:
+      "A prospecting action is sorted by its title, and its day fields come as YYYY-MM-DD.",
+    create:
+      "For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules.",
+    update:
+      "For a prospecting action, a status change goes through fields.status alone: the status rules set the dates (leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date), and the lead must not have opted out.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const actions = await findProspectingActionSearchRows()
@@ -232,27 +227,24 @@ export const prospectingActionEntity = defineCrmEntity({
   },
   createSchema,
   create: ({ data }, ctx) =>
-    writeRecord(
-      () =>
-        createProspectingAction({
-          ...data,
-          occurredAt: actionDayStart(data.occurredAt),
-          respondedAt: toActionDay(data.respondedAt),
-        }),
+    writeRecord({
+      run: () => createProspectingAction(data),
       ctx,
-      CREATE_WRITE,
-      {},
-      prospectingActionWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.create,
+      logContext: {},
+      errorMessage: prospectingActionWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeRecord(
-      () => updateProspectingAction(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateProspectingAction(input.id, input.fields ?? {}),
       ctx,
-      UPDATE_WRITE,
-      { id: input.id },
-      prospectingActionWriteErrorMessage,
-      revalidatePersonLists,
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: prospectingActionWriteErrorMessage,
+      invalidate: revalidatePersonLists,
+      ...byId,
+    }),
 })

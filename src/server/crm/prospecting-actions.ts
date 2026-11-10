@@ -20,7 +20,7 @@ export type ProspectingActionWriteData = Omit<ProspectingActionInput, "responded
   respondedAt?: ProspectingActionInput["respondedAt"]
 }
 
-// Un champ absent reste inchangé ; `reply` nul l'efface.
+// `reply` nul l'efface.
 export type ProspectingActionPatch = Partial<ProspectingActionWriteData>
 
 // `Extract` seul perdrait `no_lead_role`, qui partage son membre de l'union avec d'autres raisons.
@@ -51,7 +51,7 @@ const toWritten = (row: { id: string }): WrittenProspectingAction => ({
 })
 
 // Une action de prospection ne vise qu'un lead : une personne seulement contact n'a pas de pipeline à nourrir.
-export async function requireProspectableLead(
+async function requireProspectableLead(
   tx: Prisma.TransactionClient,
   personId: PersonId,
   actionId?: ProspectingActionId,

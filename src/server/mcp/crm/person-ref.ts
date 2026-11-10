@@ -1,4 +1,12 @@
-export type PersonToolRef =
+import type { PersonRole } from "@/server/crm/person-guards"
+
+type RoleHeld = boolean | object | null
+
+// Un rôle est tenu quand sa fiche existe ou que son drapeau est vrai.
+export const rolesOf = (held: Record<PersonRole, RoleHeld>): PersonRole[] =>
+  (["lead", "contact"] as const).filter((role) => Boolean(held[role]))
+
+type PersonToolRef =
   { id: string; name: string; optedOut?: undefined } | { id: string; name: null; optedOut: true }
 
 // Une personne opposée n'est connue que par son identifiant : ni nom, ni email, ni LinkedIn ne sortent d'un outil.

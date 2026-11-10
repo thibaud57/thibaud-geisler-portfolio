@@ -19,7 +19,7 @@ const personNameField = z
   .string()
   .trim()
   .min(1, "Le nom est requis")
-  .max(PERSON_NAME_MAX_LENGTH, "Le nom ne peut pas dépasser 120 caractères")
+  .max(PERSON_NAME_MAX_LENGTH, `Le nom ne peut pas dépasser ${PERSON_NAME_MAX_LENGTH} caractères`)
 
 const emailField = z
   .string()

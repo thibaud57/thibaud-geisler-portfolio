@@ -12,7 +12,7 @@ vi.mock("@/lib/logger", () => ({ logger: { child: vi.fn(() => childLog) } }))
 
 import { env } from "@/env"
 import { auth } from "@/lib/auth"
-import { prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { prisma, resetDatabase, SEED_USER_ID, seedUser } from "@/lib/prisma-test-setup"
 import { rateLimiter } from "@/lib/rate-limiter"
 
 import { DELETE, GET, POST } from "./route"
@@ -32,21 +32,10 @@ const mcpHeaders = {
   Accept: "application/json, text/event-stream",
 }
 
-const USER_ID = "user-1"
-
 beforeEach(async () => {
   await resetDatabase()
   rateLimiter.reset()
-  await prisma.user.create({
-    data: {
-      id: USER_ID,
-      name: "Jane Doe",
-      email: "jane@example.com",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  })
+  await seedUser()
 })
 
 afterEach(() => {
@@ -55,7 +44,7 @@ afterEach(() => {
 
 async function createKey(extra: Record<string, unknown> = {}) {
   const created = await auth.api.createApiKey({
-    body: { userId: USER_ID, name: "Test", permissions: { crm: ["read", "write"] }, ...extra },
+    body: { userId: SEED_USER_ID, name: "Test", permissions: { crm: ["read", "write"] }, ...extra },
   })
   return { id: created.id, key: created.key }
 }
@@ -85,15 +74,21 @@ function postMcp({
 }
 
 describe("POST /api/mcp/[domain]", () => {
-  it("rejects a request without Authorization with 401 and WWW-Authenticate", async () => {
+  it("rejects a request without Authorization with 401 and WWW-Authenticate, without verifying a key", async () => {
+    const verify = vi.spyOn(auth.api, "verifyApiKey")
+
     const res = await postMcp()
 
     expect(res.status).toBe(401)
     expect(res.headers.get("WWW-Authenticate")).toBe("Bearer")
+    expect(verify).not.toHaveBeenCalled()
   })
 
-  it("rejects a non-Bearer scheme with 401", async () => {
-    const res = await postMcp({ headers: { Authorization: "Basic dXNlcjpwYXNz" } })
+  it.each([
+    ["a non-Bearer scheme", "Basic dXNlcjpwYXNz"],
+    ["an unknown key", "Bearer tgp_unknown"],
+  ])("rejects %s with 401", async (_label, authorization) => {
+    const res = await postMcp({ headers: { Authorization: authorization } })
 
     expect(res.status).toBe(401)
   })
@@ -106,12 +101,6 @@ describe("POST /api/mcp/[domain]", () => {
     expect(res.status).toBe(200)
   })
 
-  it("rejects an unknown key with 401", async () => {
-    const res = await postMcp({ headers: { Authorization: "Bearer tgp_unknown" } })
-
-    expect(res.status).toBe(401)
-  })
-
   it("rejects an expired key with 401", async () => {
     const { id, key } = await createKey()
     await prisma.apikey.update({ where: { id }, data: { expiresAt: new Date(Date.now() - 1000) } })
@@ -121,16 +110,11 @@ describe("POST /api/mcp/[domain]", () => {
     expect(res.status).toBe(401)
   })
 
-  it("rejects a key without the crm domain with 403", async () => {
-    const { key } = await createKey({ permissions: { compta: ["read"] } })
-
-    const res = await postMcp({ headers: { Authorization: `Bearer ${key}` } })
-
-    expect(res.status).toBe(403)
-  })
-
-  it("rejects a key created without permissions with 403", async () => {
-    const { key } = await createKey({ permissions: undefined })
+  it.each([
+    ["without the crm domain", { permissions: { compta: ["read"] } }],
+    ["created without permissions", { permissions: undefined }],
+  ])("rejects a key %s with 403", async (_label, extra) => {
+    const { key } = await createKey(extra)
 
     const res = await postMcp({ headers: { Authorization: `Bearer ${key}` } })
 
@@ -181,7 +165,7 @@ describe("POST /api/mcp/[domain]", () => {
     )
   })
 
-  it("answers 429 when the key exceeds its own rate limit", async () => {
+  it("answers 429 with Retry-After when the key exceeds its own rate limit", async () => {
     const { key } = await createKey({ rateLimitMax: 1 })
     const headers = { Authorization: `Bearer ${key}` }
     await postMcp({ headers })
@@ -189,6 +173,7 @@ describe("POST /api/mcp/[domain]", () => {
     const res = await postMcp({ headers })
 
     expect(res.status).toBe(429)
+    expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0)
   })
 
   it("never answers 5xx on an invalid JSON body with a valid key", async () => {

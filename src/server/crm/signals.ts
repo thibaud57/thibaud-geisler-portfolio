@@ -13,7 +13,7 @@ import { fail, ok, type DomainResult } from "./result"
 
 export type SignalWriteData = SignalInput
 
-// Un champ absent reste inchangé, `sourceUrl` nul l'efface.
+// `sourceUrl` nul l'efface.
 export type SignalPatch = Partial<SignalWriteData>
 
 // Le rattachement se pose à la création et ne change jamais : l'union interdit d'en nommer deux ou aucun.
@@ -42,9 +42,8 @@ export function revalidateSignalLists(): void {
   revalidatePath(ADMIN_LEADS_PATH, "layout")
 }
 
-// Seul un lead outbound reçoit un signal, jamais une personne opposée. Lu sur le client de la
-// transaction qui crée le signal : une opposition posée entre la lecture et l'écriture ne peut
-// plus laisser passer un signal.
+// Seul un lead outbound reçoit un signal, jamais une personne opposée. Lu sur le client de la transaction
+// qui crée le signal : une opposition posée entre la lecture et l'écriture ne laisse pas passer un signal.
 async function leadAccepts(tx: Prisma.TransactionClient, personId: PersonId): Promise<boolean> {
   const lead = await tx.lead.findUnique({
     where: { personId },

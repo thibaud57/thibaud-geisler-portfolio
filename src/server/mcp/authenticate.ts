@@ -1,5 +1,6 @@
 import "server-only"
 import { type AuthInfo, originValidationResponse } from "@modelcontextprotocol/server"
+import { z } from "zod"
 
 import { env } from "@/env"
 import { auth } from "@/lib/auth"
@@ -7,7 +8,7 @@ import { isMcpDomain, type McpDomain } from "@/lib/mcp-domains"
 import { rateLimiter } from "@/lib/rate-limiter"
 import { createMcpLogger, createMcpRequestContext, type McpLogger } from "@/server/mcp/logger"
 
-export type McpAuthOutcome =
+type McpAuthOutcome =
   { ok: true; domain: McpDomain; authInfo: AuthInfo } | { ok: false; response: Response }
 
 type RejectionReason = "origin" | "unknown_domain" | "no_key" | "invalid_key" | "forbidden"
@@ -15,6 +16,9 @@ type RejectionReason = "origin" | "unknown_domain" | "no_key" | "invalid_key" | 
 const IP_RATE_LIMIT = { max: 120, windowMs: 60_000 }
 const ALLOWED_ORIGIN_HOSTNAMES = [new URL(env.NEXT_PUBLIC_SITE_URL).hostname]
 const BEARER_PATTERN = /^bearer\s+(\S+)$/i
+
+// Délai en ms que le plugin met dans `error.details` sans le typer (`@better-auth/api-key` 1.7.14, `evaluateRateLimit`)
+const keyRateLimitSchema = z.object({ details: z.object({ tryAgainIn: z.number() }) })
 
 const unauthorized = () =>
   new Response(null, { status: 401, headers: { "WWW-Authenticate": "Bearer" } })
@@ -54,7 +58,16 @@ export async function authenticate(
 
   // Sans `permissions` : passées au plugin, des permissions insuffisantes reviendraient en KEY_NOT_FOUND, indiscernable d'une clé inconnue
   const result = await auth.api.verifyApiKey({ body: { key: token } })
-  if (result.error?.code === "RATE_LIMITED") return rateLimited(domainLog, "key")
+  if (result.error?.code === "RATE_LIMITED") {
+    const limit = keyRateLimitSchema.safeParse(result.error)
+    return rateLimited(
+      domainLog,
+      "key",
+      limit.success
+        ? { "Retry-After": String(Math.ceil(limit.data.details.tryAgainIn / 1000)) }
+        : undefined,
+    )
+  }
   if (!result.valid || !result.key) return reject(domainLog, "invalid_key", unauthorized())
 
   const scopes = result.key.permissions?.[domain] ?? []

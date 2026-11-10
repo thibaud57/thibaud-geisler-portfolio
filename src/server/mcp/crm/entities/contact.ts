@@ -13,15 +13,16 @@ import {
 } from "@/server/crm/contacts"
 import { findContactByIdForAdmin, findContactsPage } from "@/server/queries/contacts"
 
+import { withDays } from "../day-fields"
 import { defineCrmEntity } from "../entity-definition"
 import {
-  metAtDate,
   newPersonShape,
+  PERSON_DOCS,
   personFieldShape,
   personFilterShape,
   personFilterWhere,
-  toPersonPatch,
 } from "../person-fields"
+import { rolesOf } from "../person-ref"
 import { searchPersons } from "../person-search"
 import { personWrites, writePerson } from "../person-write-tool"
 import { pageQueryShape, personOrderBy } from "../query-page"
@@ -117,13 +118,21 @@ const WRITES = personWrites("contact")
 
 export const contactEntity = defineCrmEntity({
   entity: "contact",
+  docs: {
+    ...PERSON_DOCS,
+    create:
+      "A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field.",
+  },
   search: (query) => searchPersons("contact", query),
   async fetch(id) {
     const contact = await findContactByIdForAdmin(personIdSchema.parse(id))
     if (!contact) return null
 
     const { hasLeadRole, ...record } = contact
-    return { ...record, roles: hasLeadRole ? ["lead", "contact"] : ["contact"] }
+    return {
+      ...withDays(record, ["metAt"]),
+      roles: rolesOf({ lead: hasLeadRole, contact: true }),
+    }
   },
   querySchema,
   query: ({ filters, sort, order, limit, offset }) =>
@@ -146,7 +155,6 @@ export const contactEntity = defineCrmEntity({
           () =>
             createContact({
               ...data,
-              metAt: metAtDate(data.metAt),
               details: data.details === undefined ? CONTACT_DETAILS_TEMPLATE : data.details,
             }),
           ctx,
@@ -155,7 +163,7 @@ export const contactEntity = defineCrmEntity({
         ),
   updateSchema,
   update: (input, ctx) => {
-    const patch: ContactPatch = toPersonPatch(input.fields ?? {}, input.detailsSection)
+    const patch: ContactPatch = { ...input.fields, detailsSection: input.detailsSection }
     return writePerson(() => updateContact(input.id, patch), ctx, WRITES.update, {
       personId: input.id,
     })

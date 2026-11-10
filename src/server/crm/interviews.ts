@@ -19,7 +19,7 @@ export type InterviewWriteData = Omit<InterviewInput, "newCorrespondents"> & {
   newCorrespondents?: InterviewInput["newCorrespondents"]
 }
 
-// Un champ absent reste inchangé ; `correspondentIds` présent remplace toute la liste.
+// `correspondentIds` présent remplace toute la liste.
 export type InterviewPatch = Partial<InterviewWriteData> & { detailsSection?: DetailsSection }
 
 type InterviewFieldsPatch = Partial<InterviewWriteData> & { detailsSection?: undefined }
@@ -62,7 +62,6 @@ const distinct = <T>(values: readonly T[]): T[] => [...new Set(values)]
 const outcomeFor = <T>(status: InterviewStatus, outcome: T): T | null =>
   status === "FAIT" ? outcome : null
 
-// Un patch qui ne nomme ni le statut ni l'issue laisse l'issue stockée en l'état.
 const touchesOutcome = ({ status, outcome }: Pick<InterviewFieldsPatch, "status" | "outcome">) =>
   status !== undefined || outcome !== undefined
 
@@ -103,13 +102,12 @@ async function findTargetError(
   return null
 }
 
-// Correspondant inconnu : personne au rôle Contact créée dans la même transaction ; email ou LinkedIn déjà connu (ou opposé à la prospection) refusé plutôt que dupliqué, par le garde partagé des fiches personne.
+// Correspondant inconnu : personne au rôle Contact créée dans la transaction. Le garde partagé des fiches personne refuse un email ou LinkedIn déjà connu (ou opposé) plutôt que de le dupliquer.
 async function createCorrespondents(
   tx: Prisma.TransactionClient,
   newCorrespondents: NonNullable<InterviewWriteData["newCorrespondents"]>,
 ): Promise<{ id: string }[]> {
   const refs: { id: string }[] = []
-  // Séquentiel : le garde puis la création s'enchaînent dans l'ordre, sur le client de la transaction.
   for (const { contactType, ...person } of newCorrespondents) {
     await assertNewIdentity(tx, { email: person.email, linkedinUrl: person.linkedinUrl }, null)
     refs.push(

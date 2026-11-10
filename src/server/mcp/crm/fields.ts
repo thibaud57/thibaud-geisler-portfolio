@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { NOTES_MAX_LENGTH } from "@/lib/schemas/fields"
 
-// Champs communs aux outils CRM. Les `.describe()` arrivent au modèle : `null` efface un champ facultatif.
+// Champs communs aux outils CRM. Les `.describe()` arrivent au modèle : `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
 export const optionalText = (description: string) =>
   z
     .string()

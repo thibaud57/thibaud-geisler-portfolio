@@ -25,7 +25,6 @@ import { ok, type DomainResult } from "./result"
 
 export type ContactWriteData = NewContactInput
 
-// Un champ absent reste inchangé.
 export type ContactPatch = Partial<ContactWriteData> & { detailsSection?: DetailsSection }
 
 type ContactFieldsPatch = Partial<ContactWriteData> & { detailsSection?: undefined }

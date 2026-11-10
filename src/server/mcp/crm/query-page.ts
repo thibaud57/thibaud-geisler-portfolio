@@ -3,7 +3,7 @@ import { z } from "zod"
 const SORT_KEYS = ["name", "createdAt", "updatedAt"] as const
 const SORT_ORDERS = ["asc", "desc"] as const
 
-export type SortKey = (typeof SORT_KEYS)[number]
+type SortKey = (typeof SORT_KEYS)[number]
 export type SortOrder = (typeof SORT_ORDERS)[number]
 
 export const pageQueryShape = {
@@ -20,7 +20,7 @@ export const pageQueryShape = {
 } as const
 
 // Le tri « name » dépend de l'entité : l'appelant donne son ordre. L'id départage les ex æquo : sans lui, deux pages pourraient se recouper.
-export function pageOrderBy<TName extends object, const TTiebreak extends object>(
+function pageOrderBy<TName extends object, const TTiebreak extends object>(
   sort: SortKey,
   order: SortOrder,
   byName: (order: SortOrder) => readonly TName[],

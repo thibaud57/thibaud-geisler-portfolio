@@ -6,7 +6,7 @@ import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { COMPANY_SIGNAL_TYPES, LEAD_SIGNAL_TYPES, SIGNAL_TYPE_LABELS } from "@/lib/crm/signals"
-import { dateColumnIsoDay, isoDayToDate } from "@/lib/date-time"
+import { dateColumnIsoDay } from "@/lib/date-time"
 import {
   companyIdSchema,
   personIdSchema,
@@ -21,7 +21,6 @@ import {
   revalidateSignalLists,
   updateSignal,
   type SignalOwnerRef,
-  type SignalPatch,
   type SignalWriteError,
 } from "@/server/crm/signals"
 import {
@@ -31,26 +30,26 @@ import {
   type SignalTargets,
 } from "@/server/queries/signals"
 
-import { toDay, withDays } from "../day-fields"
+import { dateColumnDay, withDays } from "../day-fields"
 import { dateRange } from "../date-range"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { personRef } from "../person-ref"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { writeRecord, type WriteTexts } from "../results"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
 import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z.literal("signal").describe('Type of CRM record: always "signal" here.')
 
-const signalDay = z.iso.date({ error: "Expected a day as YYYY-MM-DD, e.g. 2026-09-14." })
+const signalDay = (description?: string) => dateColumnDay({ example: "2026-09-14", description })
 
-// Les `.describe()` arrivent au modèle. `null` efface un champ facultatif, un champ absent d'un patch reste inchangé.
+// Les `.describe()` arrivent au modèle.
 const fieldShape = {
   type: z
     .enum(SignalType)
     .describe(
       `Type, which must fit the target. Company: ${COMPANY_SIGNAL_TYPES.join(", ")}. Lead: ${LEAD_SIGNAL_TYPES.join(", ")}.`,
     ),
-  occurredOn: signalDay.describe(
+  occurredOn: signalDay(
     "Day of the signal, YYYY-MM-DD: the day when the source gives it, the 1st of the month otherwise.",
   ),
   content: z
@@ -107,7 +106,7 @@ const signalFilterSchema = z
     companyId: companyIdSchema.optional().describe("Only the signals of this company."),
     personId: personIdSchema.optional().describe("Only the signals of this lead."),
     type: z.enum(SignalType).optional().describe("Only this type."),
-    occurredOn: dateRange(signalDay)
+    occurredOn: dateRange(signalDay())
       .optional()
       .describe("Only the signals dated within this interval, days YYYY-MM-DD."),
   })
@@ -128,9 +127,8 @@ const updateSchema = updateSchemaWithoutDetailsOf(
 )
 
 type QueryInput = z.output<typeof querySchema>
-type UpdateInput = z.output<typeof updateSchema>
 
-// Un seul des deux existe. Le lead opposé n'est connu que par son identifiant : ni email ni LinkedIn ne sortent d'un outil.
+// Le lead opposé n'est connu que par son identifiant : ni email ni LinkedIn ne sortent d'un outil.
 const withTarget = <T extends SignalTargets & { occurredOn: Date }>({
   company,
   person,
@@ -143,7 +141,7 @@ function toWhere(filters: QueryInput["filters"]): Prisma.SignalWhereInput {
     companyId: filters?.companyId,
     personId: filters?.personId,
     type: filters?.type,
-    occurredOn: range && { gte: toDay(range.from), lte: toDay(range.to) },
+    occurredOn: range && { gte: range.from, lte: range.to },
   }
 }
 
@@ -151,11 +149,6 @@ function toWhere(filters: QueryInput["filters"]): Prisma.SignalWhereInput {
 const nameOrder = (order: SortOrder): Prisma.SignalOrderByWithRelationInput[] => [
   { occurredOn: order },
 ]
-
-function toPatch({ fields = {} }: UpdateInput): SignalPatch {
-  const { occurredOn, ...rest } = fields
-  return { ...rest, occurredOn: toDay(occurredOn) }
-}
 
 // Le schéma garantit exactement un rattachement : sans l'un ni l'autre, la validation a été contournée.
 function ownerOf({
@@ -170,7 +163,6 @@ function ownerOf({
   throw new Error("A signal needs a companyId or a personId")
 }
 
-// Chaque code devient un message qui nomme la correction : l'agent corrige l'appel sans deviner.
 function signalWriteErrorMessage(error: SignalWriteError): string {
   switch (error.code) {
     case "type_mismatch":
@@ -180,27 +172,30 @@ function signalWriteErrorMessage(error: SignalWriteError): string {
     case "company_not_found":
       return "No company has this companyId. Call crm_search with the entity company to find the right id, then call the tool again."
     case "not_found":
-      return "No signal has this id. Call crm_search to find the right id, then call the tool again."
+      return notFoundMessage("signal")
     default:
       return assertNever(error)
   }
 }
 
-// Un create n'a pas d'id à relire : les signaux de la fiche disent si celui-ci existe déjà avant de réessayer.
-const CREATE_WRITE: WriteTexts = {
-  events: { success: "signal:created", failure: "signal:create_failed" },
-  failureMessage:
-    "The signal could not be saved because of an internal error. Call crm_query with the companyId or personId filter to check whether it was created before retrying.",
-}
-
-const UPDATE_WRITE: WriteTexts = {
-  events: { success: "signal:updated", failure: "signal:update_failed" },
-  failureMessage:
-    "The signal could not be saved because of an internal error. Call crm_fetch to check its current state before retrying.",
-}
+const WRITES = writeTexts(
+  { key: "signal", noun: "signal" },
+  "Call crm_query with the companyId or personId filter to check whether it was created before retrying.",
+)
 
 export const signalEntity = defineCrmEntity({
   entity: "signal",
+  docs: {
+    search: 'the type label and "company or lead · date" for a signal (found by its content)',
+    fetch:
+      "For a signal: its fields and its company or its lead (id and name, or id only when opted out); occurredOn is a YYYY-MM-DD day.",
+    queryRow:
+      "for a signal id, type, day occurredOn, content, link, and its company or lead as id and name",
+    querySort: "A signal has no name: sort name orders by day.",
+    create:
+      "For a signal, exactly one of companyId or personId, type, occurredOn (a day, YYYY-MM-DD) and content are required: the type must fit the target (company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION; lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION) and a lead must be OUTBOUND and not opted out.",
+    update: "For a signal, the target never changes and the type must keep fitting it.",
+  },
   async search(query) {
     const needle = normalizeForSearch(query)
     const signals = await findSignalSearchRows()
@@ -231,27 +226,25 @@ export const signalEntity = defineCrmEntity({
     return { rows: rows.map(withTarget), total }
   },
   createSchema,
-  create: ({ data: { companyId, personId, occurredOn, ...fields } }, ctx) =>
-    writeRecord(
-      () =>
-        createSignal(ownerOf({ companyId, personId }), {
-          ...fields,
-          occurredOn: isoDayToDate(occurredOn),
-        }),
+  create: ({ data: { companyId, personId, ...fields } }, ctx) =>
+    writeRecord({
+      run: () => createSignal(ownerOf({ companyId, personId }), fields),
       ctx,
-      CREATE_WRITE,
-      {},
-      signalWriteErrorMessage,
-      revalidateSignalLists,
-    ),
+      texts: WRITES.create,
+      logContext: {},
+      errorMessage: signalWriteErrorMessage,
+      invalidate: revalidateSignalLists,
+      ...byId,
+    }),
   updateSchema,
   update: (input, ctx) =>
-    writeRecord(
-      () => updateSignal(input.id, toPatch(input)),
+    writeRecord({
+      run: () => updateSignal(input.id, input.fields ?? {}),
       ctx,
-      UPDATE_WRITE,
-      { id: input.id },
-      signalWriteErrorMessage,
-      revalidateSignalLists,
-    ),
+      texts: WRITES.update,
+      logContext: { id: input.id },
+      errorMessage: signalWriteErrorMessage,
+      invalidate: revalidateSignalLists,
+      ...byId,
+    }),
 })
