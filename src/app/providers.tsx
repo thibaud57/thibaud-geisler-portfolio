@@ -5,7 +5,7 @@ import { useLocale } from "next-intl"
 import dynamic from "next/dynamic"
 import { policyRulePresets } from "c15t"
 import { ConsentProvider, type ConsentProviderOptions } from "c15t/next"
-import { offline } from "c15t/react"
+import { local } from "c15t/react"
 import { baseTranslations } from "@c15t/translations/all"
 
 import frMessages from "../../messages/fr.json"
@@ -35,13 +35,13 @@ const consentMessages = structuredClone(baseTranslations)
 consentMessages.fr.cookieBanner.description = frMessages.Cookies.bannerDescription
 consentMessages.en.cookieBanner.description = enMessages.Cookies.bannerDescription
 
-const offlineMode = offline({ policyRules: [policyRulePresets.europeOptIn()] })
+const localMode = local({ policyRules: [policyRulePresets.europeOptIn()] })
 
 export function Providers({ children }: { children: ReactNode }) {
   const locale = useLocale()
   const consentOptions = useMemo<ConsentProviderOptions>(
     () => ({
-      mode: offlineMode,
+      mode: localMode,
       overrides: { country: "FR" },
       consentCategories: ["necessary", "marketing"],
       i18n: {
