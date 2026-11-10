@@ -77,7 +77,7 @@ Aucune : ce sub-project est autoporté.
 - **Vérifications de l'ADR-025** (pièges de l'ADR, l.153-159), menées dans la session avec le propriétaire : `/context` dans son Claude Code et l'environnement du dépôt `ai-kit` (`uv sync`) sont des points d'arrêt du plan. L'ADR demande une réponse « stable » et un contexte « faible » : les seuils de 50 appels et de 1 000 tokens sont fixés par ce spec :
   - Condition 2 : l'image de prod est construite en local (procédure `docs/PRODUCTION.md` § Validation technique finale) et lancée par `docker compose --profile validation up -d --pull never`, `pull_policy: always` de `compose.yaml` tirant sinon l'image publiée. Elle doit tenir 50 appels successifs et un redémarrage du container
   - Condition 3 : `/context` dans Claude Code, serveur connecté par `claude mcp add --transport http` avec l'en-tête `Authorization`
-  - Condition 1 : lancer le CLI embarqué par `claude-agent-sdk==0.2.177` (`pyproject.toml:9` du dépôt `ai-kit`) avec `--strict-mcp-config --mcp-config`, `-p --output-format stream-json --verbose`, `MCP_CONNECTION_NONBLOCKING=0` et le prompt séparé par `--`
+  - Condition 1 : lancer le CLI embarqué par `claude-agent-sdk==0.2.177` (`pyproject.toml:9` du dépôt `ai-kit`) avec `--strict-mcp-config --mcp-config`, `-p --output-format stream-json --verbose`, `MCP_CONNECTION_NONBLOCKING=0` et le prompt séparé par `--`. Cette mesure porte sur le CLI sous `--strict-mcp-config`, pas sur une session d'`agent-os`, qui est non stricte (ADR-025 § Décision, condition 1)
 - **Fin du prototype** : l'ADR-025 passe en `accepted` par `architecture-doc`, chaque condition datée avec sa mesure. Les docs qui décrivent ce que le code livre (ARCHITECTURE, PRODUCTION, VERSIONS) et ce que seul le prototype révèle (révision MCP parlée, mesure de `/context`, knowledge MCP, rule `http-handler.md`) se mettent à jour par leur skill dans le même plan
 
 ## Acceptance criteria
@@ -124,10 +124,10 @@ Aucune : ce sub-project est autoporté.
 **WHEN** `crm_fetch` reçoit un id qui ne désigne aucune entreprise
 **THEN** le résultat porte `isError: true` et un message qui nomme l'id et la correction attendue
 
-### Scénario 9 : conditions de l'ADR-025 levées
-**GIVEN** l'image de prod construite en local, une clé de vérification, Claude Code sur le poste et le CLI épinglé par `ai-kit`
+### Scénario 9 : conditions de l'ADR-025 mesurées
+**GIVEN** l'image de prod construite en local, une clé de vérification, Claude Code sur le poste et le CLI épinglé par `ai-kit`, lancé sous `--strict-mcp-config`
 **WHEN** les trois vérifications sont menées
-**THEN** le message `system/init` du CLI d'`ai-kit` ne liste que le serveur `crm`, sans serveur user, de plugin ni connecteur claude.ai
+**THEN** le message `system/init` du CLI sous `--strict-mcp-config` ne liste que le serveur `crm`, sans serveur user, de plugin ni connecteur claude.ai (propriété du CLI sous ce drapeau, pas le comportement d'une session d'`agent-os`)
 **AND** l'image tient 50 appels successifs et un redémarrage, répondant 200 avec la clé et 401 sans
 **AND** la part MCP de `/context` reste sous 1 000 tokens, l'outil n'y figurant que par son nom
 **AND** l'ADR-025 est `accepted`, chaque condition datée avec sa mesure
