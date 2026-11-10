@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.1...v2.6.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **legal:** destinataires hors UE dans la politique de confidentialité ([#246](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/246)) ([25bc9d8](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/25bc9d884b383003ad98e5c949ef79f0baa336f5))
+
 ## [2.6.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.0...v2.6.1) (2026-11-10)
 
 
