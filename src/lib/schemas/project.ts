@@ -13,95 +13,88 @@ import { emptyToNull, NONE_VALUE, nullifyNoneValue } from "@/lib/schemas/none-va
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
-export const projectSchema = z
-  .object({
-    slug: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .min(1, "Le slug est requis")
-      .max(80, "Le slug ne peut pas dépasser 80 caractères")
-      .regex(
-        SLUG_PATTERN,
-        "Le slug ne peut contenir que des minuscules, des chiffres et des tirets",
-      ),
-    titleFr: z
-      .string()
-      .trim()
-      .min(1, "Le titre français est requis")
-      .max(120, "Titre français trop long"),
-    titleEn: z
-      .string()
-      .trim()
-      .min(1, "Le titre anglais est requis")
-      .max(120, "Titre anglais trop long"),
-    descriptionFr: z.string().trim().min(1, "La description française est requise"),
-    descriptionEn: z.string().trim().min(1, "La description anglaise est requise"),
-    type: z.enum(ProjectType, { error: "Le type est requis" }),
-    status: z.enum(ProjectStatus, { error: "Le statut est requis" }),
-    formats: z
-      .array(z.enum(ProjectFormat, { error: "Format inconnu" }))
-      .min(1, "Sélectionne au moins un format"),
-    startedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
-    endedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
-    githubUrl: z.preprocess(
-      emptyToNull,
-      z.url({ protocol: /^https?$/, error: "L'URL GitHub n'est pas valide" }).nullable(),
-    ),
-    demoUrl: z.preprocess(
-      emptyToNull,
-      z.url({ protocol: /^https?$/, error: "L'URL de démonstration n'est pas valide" }).nullable(),
-    ),
-    coverFilename: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || isProjectAssetKey(value), {
-        error: "La couverture doit être choisie dans un dossier de projet de l'espace Assets",
-      })
-      .transform((value) => (value === "" ? null : value)),
-    caseStudyMarkdownFr: z.preprocess(emptyToNull, z.string().nullable()),
-    caseStudyMarkdownEn: z.preprocess(emptyToNull, z.string().nullable()),
-    displayOrder: positiveIntegerString({
-      requiredMessage: "L'ordre est requis",
-      numberMessage: "L'ordre doit être un nombre",
-      intMessage: "L'ordre doit être un entier",
-      minValue: 1,
-      minMessage: "L'ordre commence à 1",
-    }),
-    tagIds: z
-      .array(z.string())
-      .default([])
-      .refine((ids) => new Set(ids).size === ids.length, {
-        error: "Un tag ne peut pas être rattaché deux fois",
-      }),
+export const PROJECT_SLUG_MAX_LENGTH = 80
+export const PROJECT_TITLE_MAX_LENGTH = 120
 
-    companyId: companyIdField("L'entreprise est requise"),
-    workMode: z.enum(WorkMode, { error: "Le mode de travail est requis" }),
-    contractStatus: z
-      .union([z.enum(ContractStatus), z.literal(NONE_VALUE), z.literal("")], {
-        error: "Statut de contrat inconnu",
-      })
-      .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
-    teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
-    // 0 est légitime (mission terminée sans livrable, ex. cadrage) : la stat publique
-    // « projets clients livrés » somme cette colonne et doit compter ce 0.
-    deliverablesCount: positiveIntegerString({
-      requiredMessage: "Le nombre de livrables est requis",
-      numberMessage: "Le nombre de livrables doit être un nombre",
-      intMessage: "Le nombre de livrables doit être un entier",
-      minValue: 0,
-      minMessage: "Le nombre de livrables ne peut pas être négatif",
+export const projectSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Le slug est requis")
+    .max(
+      PROJECT_SLUG_MAX_LENGTH,
+      `Le slug ne peut pas dépasser ${PROJECT_SLUG_MAX_LENGTH} caractères`,
+    )
+    .regex(SLUG_PATTERN, "Le slug ne peut contenir que des minuscules, des chiffres et des tirets"),
+  titleFr: z
+    .string()
+    .trim()
+    .min(1, "Le titre français est requis")
+    .max(PROJECT_TITLE_MAX_LENGTH, "Titre français trop long"),
+  titleEn: z
+    .string()
+    .trim()
+    .min(1, "Le titre anglais est requis")
+    .max(PROJECT_TITLE_MAX_LENGTH, "Titre anglais trop long"),
+  descriptionFr: z.string().trim().min(1, "La description française est requise"),
+  descriptionEn: z.string().trim().min(1, "La description anglaise est requise"),
+  type: z.enum(ProjectType, { error: "Le type est requis" }),
+  status: z.enum(ProjectStatus, { error: "Le statut est requis" }),
+  formats: z
+    .array(z.enum(ProjectFormat, { error: "Format inconnu" }))
+    .min(1, "Sélectionne au moins un format"),
+  startedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
+  endedAt: z.preprocess(emptyToNull, z.coerce.date().nullable()),
+  githubUrl: z.preprocess(
+    emptyToNull,
+    z.url({ protocol: /^https?$/, error: "L'URL GitHub n'est pas valide" }).nullable(),
+  ),
+  demoUrl: z.preprocess(
+    emptyToNull,
+    z.url({ protocol: /^https?$/, error: "L'URL de démonstration n'est pas valide" }).nullable(),
+  ),
+  coverFilename: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || isProjectAssetKey(value), {
+      error: "La couverture doit être choisie dans un dossier de projet de l'espace Assets",
+    })
+    .transform((value) => (value === "" ? null : value)),
+  caseStudyMarkdownFr: z.preprocess(emptyToNull, z.string().nullable()),
+  caseStudyMarkdownEn: z.preprocess(emptyToNull, z.string().nullable()),
+  displayOrder: positiveIntegerString({
+    requiredMessage: "L'ordre est requis",
+    numberMessage: "L'ordre doit être un nombre",
+    intMessage: "L'ordre doit être un entier",
+    minValue: 1,
+    minMessage: "L'ordre commence à 1",
+  }),
+  tagIds: z
+    .array(z.string())
+    .default([])
+    .refine((ids) => new Set(ids).size === ids.length, {
+      error: "Un tag ne peut pas être rattaché deux fois",
     }),
-  })
-  .superRefine((data, ctx) => {
-    if (data.startedAt && data.endedAt && data.endedAt < data.startedAt) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["endedAt"],
-        message: "La date de fin ne peut pas précéder la date de début",
-      })
-    }
-  })
+
+  companyId: companyIdField("L'entreprise est requise"),
+  workMode: z.enum(WorkMode, { error: "Le mode de travail est requis" }),
+  contractStatus: z
+    .union([z.enum(ContractStatus), z.literal(NONE_VALUE), z.literal("")], {
+      error: "Statut de contrat inconnu",
+    })
+    .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
+  teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
+  // 0 est légitime (mission terminée sans livrable, ex. cadrage) : la stat publique
+  // « projets clients livrés » somme cette colonne et doit compter ce 0.
+  deliverablesCount: positiveIntegerString({
+    requiredMessage: "Le nombre de livrables est requis",
+    numberMessage: "Le nombre de livrables doit être un nombre",
+    intMessage: "Le nombre de livrables doit être un entier",
+    minValue: 0,
+    minMessage: "Le nombre de livrables ne peut pas être négatif",
+  }),
+})
 
 export type ProjectInput = z.infer<typeof projectSchema>
 

@@ -11,12 +11,12 @@ import {
   updateContact,
   type ContactPatch,
 } from "@/server/crm/contacts"
+import { withDays } from "@/server/mcp/day-fields"
 import { defineEntity } from "@/server/mcp/entity-definition"
 import { pageQueryShape } from "@/server/mcp/query-page"
 import { updateSchemaOf } from "@/server/mcp/update-input"
 import { findContactByIdForAdmin, findContactsPage } from "@/server/queries/contacts"
 
-import { withDays } from "../day-fields"
 import {
   newPersonShape,
   PERSON_DOCS,

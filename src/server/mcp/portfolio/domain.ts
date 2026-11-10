@@ -8,11 +8,11 @@ const SEARCH_DESCRIPTION = `Find portfolio records by an approximate name, case 
 
 const FETCH_DESCRIPTION = `Fetch one portfolio record by id, with its links. ${docsOf(PORTFOLIO_ENTITIES, ({ fetch }) => fetch).join(" ")} Call portfolio_search first to get the id. Returns an error naming the id if nothing matches. ${INSTANTS}`
 
-const QUERY_DESCRIPTION = `List portfolio records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all the tags of a category); use portfolio_search to find one record by name. Returns { rows, total }: summary rows (${docsOf(PORTFOLIO_ENTITIES, ({ queryRow }) => queryRow).join("; ")}) and the total count before pagination. Page with offset. ${docsOf(PORTFOLIO_ENTITIES, ({ querySort }) => querySort).join(" ")} ${INSTANTS}`
+const QUERY_DESCRIPTION = `List portfolio records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all the tags of a category, or the draft projects); use portfolio_search to find one record by name. Returns { rows, total }: summary rows (${docsOf(PORTFOLIO_ENTITIES, ({ queryRow }) => queryRow).join("; ")}) and the total count before pagination. Page with offset. ${docsOf(PORTFOLIO_ENTITIES, ({ querySort }) => querySort).join(" ")} ${INSTANTS}`
 
-const CREATE_DESCRIPTION = `Create a portfolio record. Call portfolio_search first to check it does not exist yet. ${docsOf(PORTFOLIO_ENTITIES, ({ create }) => create).join(" ")} Returns the id and the slug of the new record.`
+const CREATE_DESCRIPTION = `Create a portfolio record. Call portfolio_search first to check it does not exist yet. ${docsOf(PORTFOLIO_ENTITIES, ({ create }) => create).join(" ")} Returns the id, the slug and, for a project, its French title.`
 
-const UPDATE_DESCRIPTION = `Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. ${docsOf(PORTFOLIO_ENTITIES, ({ update }) => update).join(" ")} Returns the id and the slug.`
+const UPDATE_DESCRIPTION = `Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. ${docsOf(PORTFOLIO_ENTITIES, ({ update }) => update).join(" ")} Returns the id, the slug and, for a project, its French title.`
 
 export const portfolioDomain: McpDomainConfig<PortfolioEntity> = {
   prefix: "portfolio",

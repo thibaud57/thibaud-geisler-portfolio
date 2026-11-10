@@ -68,6 +68,11 @@ export function violatedConstraint(err: unknown): string | undefined {
   return target.success ? target.data : undefined
 }
 
+// Attribution par contrainte : une autre unicité de la même table ne doit pas se lire comme un slug déjà pris.
+export function isSlugTaken(err: unknown): boolean {
+  return isPrismaError(err, "P2002") && (violatedConstraint(err)?.includes("slug") ?? false)
+}
+
 export function extractClientIp(forwardedFor: string | null): string {
   if (!forwardedFor) return "unknown"
   const first = forwardedFor.split(",")[0]?.trim()

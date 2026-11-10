@@ -30,6 +30,7 @@ import {
   type CompanyPatch,
   type CompanyWriteError,
 } from "@/server/crm/companies"
+import { withDays } from "@/server/mcp/day-fields"
 import { defineEntity } from "@/server/mcp/entity-definition"
 import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
 import {
@@ -46,7 +47,7 @@ import {
   findCompanyWithLinks,
 } from "@/server/queries/companies"
 
-import { withDays, withMonth, withSignalDay } from "../day-fields"
+import { withMonth, withSignalDay } from "../day-fields"
 import { details, detailsErrorMessage, notes } from "../fields"
 import { rolesOf } from "../person-ref"
 

@@ -1,7 +1,13 @@
 import { onTestFinished, vi } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { companyIdSchema, opportunityIdSchema, personIdSchema, tagIdSchema } from "@/lib/ids"
+import {
+  companyIdSchema,
+  opportunityIdSchema,
+  personIdSchema,
+  projectIdSchema,
+  tagIdSchema,
+} from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
@@ -37,6 +43,14 @@ export function createProject(overrides: Partial<Prisma.ProjectCreateInput> = {}
       status: "PUBLISHED",
       ...overrides,
     },
+  })
+}
+
+// Tout projet a un ClientMeta (invariant du domaine) : `createProject` seul crée un projet nu, réservé aux tests de lecture.
+export function seedProject(companyId: string, overrides: Partial<Prisma.ProjectCreateInput> = {}) {
+  return createProject({
+    clientMeta: { create: { workMode: "REMOTE", company: { connect: { id: companyId } } } },
+    ...overrides,
   })
 }
 
@@ -160,6 +174,8 @@ type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
 export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
 
 export const tagIdOf = (tag: { id: string }) => tagIdSchema.parse(tag.id)
+
+export const projectIdOf = (project: { id: string }) => projectIdSchema.parse(project.id)
 
 export const companyIdOf = (company: { id: string }) => companyIdSchema.parse(company.id)
 

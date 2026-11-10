@@ -17,6 +17,7 @@ import {
   updateProspectingAction,
   type ProspectingActionWriteError,
 } from "@/server/crm/prospecting-actions"
+import { withDays, zonedDay } from "@/server/mcp/day-fields"
 import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
 import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
 import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
@@ -28,7 +29,7 @@ import {
 } from "@/server/queries/prospecting-actions"
 
 import { dateRange } from "../date-range"
-import { withDays, ZONED_DAY, zonedDay } from "../day-fields"
+import { ZONED_DAY } from "../day-fields"
 import { optionalText } from "../fields"
 import { personRef } from "../person-ref"
 import { conflictMessage } from "../person-write-tool"

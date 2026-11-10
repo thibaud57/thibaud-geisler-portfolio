@@ -2,10 +2,12 @@ import "server-only"
 
 import { entityTable } from "@/server/mcp/entity-definition"
 
+import { projectEntity } from "./entities/project"
 import { tagEntity } from "./entities/tag"
 
 export const PORTFOLIO_ENTITY_BY_NAME = entityTable({
   tag: tagEntity,
+  project: projectEntity,
 })
 
 export type PortfolioEntity = keyof typeof PORTFOLIO_ENTITY_BY_NAME

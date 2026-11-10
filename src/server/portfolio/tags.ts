@@ -8,7 +8,7 @@ import { tagIdSchema, type TagId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { computeIdsAtPosition, removeId, renumberEntities } from "@/lib/reorder"
 import type { TagInput } from "@/lib/schemas/tag"
-import { isPrismaError, isRowGone, rowExists, violatedConstraint } from "@/lib/server-utils"
+import { isRowGone, isSlugTaken, rowExists } from "@/lib/server-utils"
 import { fail, ok, type DomainResult } from "@/server/result"
 
 export type TagWriteData = Omit<TagInput, "displayOrder">
@@ -67,10 +67,6 @@ async function nextDisplayOrder(tx: Prisma.TransactionClient, kind: TagKind): Pr
 
 function toSummary(row: { id: string; slug: string }): TagSummary {
   return { id: tagIdSchema.parse(row.id), slug: row.slug }
-}
-
-function isSlugTaken(err: unknown): boolean {
-  return isPrismaError(err, "P2002") && (violatedConstraint(err)?.includes("slug") ?? false)
 }
 
 export async function createTag(

@@ -15,6 +15,7 @@ import {
   updateWeeklyReview,
   type WeeklyReviewWriteError,
 } from "@/server/crm/weekly-reviews"
+import { dateColumnDay, withDays } from "@/server/mcp/day-fields"
 import { defineEntity } from "@/server/mcp/entity-definition"
 import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
 import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
@@ -25,7 +26,6 @@ import {
   findWeeklyReviewsPage,
 } from "@/server/queries/weekly-reviews"
 
-import { dateColumnDay, withDays } from "../day-fields"
 import { dateRange } from "../date-range"
 import { notes, optionalText } from "../fields"
 

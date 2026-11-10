@@ -266,12 +266,14 @@ src/
 │   │                             # erreur attendue rendue en DomainResult (result.ts), invalidation des caches par la
 │   │                             # primitive que l'adaptateur lui passe. Appelée par les Server Actions et par les
 │   │                             # outils MCP, la règle métier n'existe qu'ici
-│   ├── portfolio/                # Logique de domaine des tags (création, modification, renumérotation par catégorie),
+│   ├── portfolio/                # Logique de domaine des tags (tags.ts : création, modification, renumérotation par
+│   │                             # catégorie) et des projets (projects.ts : création, modification, ordre, client, tags),
 │   │                             # même motif que crm/ : DomainResult, invalidation par la primitive de l'adaptateur
 │   └── mcp/                      # Serveur MCP des agents : chaîne de refus de la route, serveur par domaine. Socle
 │       │                         # commun aux domaines : définition d'une entité (entity-definition.ts), résultats et
 │       │                         # gardes (results.ts), pagination et tri (query-page.ts), schéma de modification
-│       │                         # (update-input.ts), enregistrement des cinq outils génériques d'un domaine (domain-tools.ts)
+│       │                         # (update-input.ts), codecs des jours (day-fields.ts), enregistrement des cinq outils
+│       │                         # génériques d'un domaine (domain-tools.ts)
 │       ├── crm/                  # Domaine crm : configuration (domain.ts), registre des entités (registry.ts), une
 │       │                         # définition par entité (entities/), outil du logo
 │       └── portfolio/            # Domaine portfolio : configuration (domain.ts), registre (registry.ts), entités (entities/)
@@ -367,7 +369,7 @@ Data Cache Next 16 opt-in via directive `'use cache'`, sur les queries Prisma co
 
 Deux scopes sans tag : `cacheLife('max')` sur le calcul des années d'expérience, `cacheLife('days')` sur le JSON-LD de la page À propos.
 
-Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les outils MCP invalident par `revalidateTag(tag, 'max')` pour `projects`, `tags` (outils des tags du domaine `portfolio`) et `legal-entity` et par `revalidatePath` pour les listes du CRM (et `revalidatePath(ADMIN_ASSETS_PATH)` pour `crm_fetch_company_logo`), `updateTag` n'étant permis que dans une Server Action. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
+Aucun tag n'est purgé au démarrage : le build ne cuit aucune donnée ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)), le cache se remplit à la première requête. Invalidation par `updateTag` depuis les Server Actions de l'espace admin, pour les seuls tags `projects`, `tags` et `legal-entity`. Les outils MCP invalident par `revalidateTag(tag, 'max')` pour `projects`, `tags` (outils des tags et des projets du domaine `portfolio`) et `legal-entity` et par `revalidatePath` pour les listes du CRM, les pages admin des projets et des tags (et `revalidatePath(ADMIN_ASSETS_PATH)` pour `crm_fetch_company_logo`), `updateTag` n'étant permis que dans une Server Action. Les lectures du domaine CRM sont sans `'use cache'` (l'admin relit la base juste après ses mutations) et leurs actions les rafraîchissent par `revalidatePath`.
 
 ### Files / Assets Storage
 
@@ -657,7 +659,7 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 **Dans ce dépôt** (l'espace admin et le domaine CRM sont décrits en § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin (§ Protection API, § API). Domaines servis : `crm` (les huit entités du CRM, `src/server/mcp/crm/registry.ts`) et `portfolio` (les tags, `src/server/mcp/portfolio/registry.ts`), les autres restent à venir. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin (§ Protection API, § API). Domaines servis : `crm` (les huit entités du CRM, `src/server/mcp/crm/registry.ts`) et `portfolio` (les tags et les projets, `src/server/mcp/portfolio/registry.ts`), les autres restent à venir. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

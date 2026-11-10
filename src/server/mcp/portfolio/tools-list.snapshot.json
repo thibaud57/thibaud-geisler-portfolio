@@ -2,7 +2,7 @@
   {
     "name": "portfolio_search",
     "title": "Search portfolio records by name",
-    "description": "Find portfolio records by an approximate name, case and accents ignored. Call this first: portfolio_fetch and portfolio_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: the slug for a tag.",
+    "description": "Find portfolio records by an approximate name, case and accents ignored. Call this first: portfolio_fetch and portfolio_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: the slug for a tag, the slug for a project (found by slug, French or English title).",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -18,7 +18,8 @@
           "items": {
             "type": "string",
             "enum": [
-              "tag"
+              "tag",
+              "project"
             ]
           }
         },
@@ -42,7 +43,7 @@
   {
     "name": "portfolio_fetch",
     "title": "Fetch a portfolio record",
-    "description": "Fetch one portfolio record by id, with its links. For a tag: its icon and the projects that carry it (id, slug, French title, status), with their count. Call portfolio_search first to get the id. Returns an error naming the id if nothing matches. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "description": "Fetch one portfolio record by id, with its links. For a tag: its icon and the projects that carry it (id, slug, French title, status), with their count. For a project: all its fields, its client company (id, name, logo) with the contract details, and its tags in display order; startedAt and endedAt are YYYY-MM-DD days. Call portfolio_search first to get the id. Returns an error naming the id if nothing matches. Dates with a time are ISO 8601 in Paris time, with their offset.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -50,7 +51,8 @@
         "entity": {
           "type": "string",
           "enum": [
-            "tag"
+            "tag",
+            "project"
           ],
           "description": "Type of portfolio record to fetch."
         },
@@ -74,7 +76,7 @@
   {
     "name": "portfolio_query",
     "title": "List portfolio records with filters",
-    "description": "List portfolio records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all the tags of a category); use portfolio_search to find one record by name. Returns { rows, total }: summary rows (a tag: id, slug, French and English names, category, icon, updated date) and the total count before pagination. Page with offset. Tags sort by category in the order of the admin (expertise, AI, language, framework, database, infrastructure), then by display order. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "description": "List portfolio records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all the tags of a category, or the draft projects); use portfolio_search to find one record by name. Returns { rows, total }: summary rows (a tag: id, slug, French and English names, category, icon, updated date; a project: id, slug, French and English titles, status, type, client company name, display order, updated date) and the total count before pagination. Page with offset. Tags sort by category in the order of the admin (expertise, AI, language, framework, database, infrastructure), then by display order. Projects sort by display order, as in the admin. Dates with a time are ISO 8601 in Paris time, with their offset.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -82,7 +84,8 @@
         "entity": {
           "type": "string",
           "enum": [
-            "tag"
+            "tag",
+            "project"
           ],
           "description": "Type of portfolio record to list."
         },
@@ -107,6 +110,41 @@
                     "AI",
                     "EXPERTISE"
                   ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "project",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "description": "Only this status.",
+                  "type": "string",
+                  "enum": [
+                    "DRAFT",
+                    "PUBLISHED",
+                    "ARCHIVED"
+                  ]
+                },
+                "type": {
+                  "description": "Only this type.",
+                  "type": "string",
+                  "enum": [
+                    "CLIENT",
+                    "PERSONAL"
+                  ]
+                },
+                "companyId": {
+                  "description": "Only the projects of this client company.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tagId": {
+                  "description": "Only the projects that carry this tag.",
+                  "type": "string",
+                  "minLength": 1
                 }
               },
               "additionalProperties": false
@@ -156,7 +194,7 @@
   {
     "name": "portfolio_create",
     "title": "Create a portfolio record",
-    "description": "Create a portfolio record. Call portfolio_search first to check it does not exist yet. For a tag, slug, nameFr, nameEn and kind are required, and the tag goes last in its category. Returns the id and the slug of the new record.",
+    "description": "Create a portfolio record. Call portfolio_search first to check it does not exist yet. For a tag, slug, nameFr, nameEn and kind are required, and the tag goes last in its category. For a project, slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode are required; it is created as a DRAFT, last in the display order. A status PUBLISHED puts the project online at once (list, case study, sitemap), and serves the name, logo, website, sectors and size of its client company publicly. A personal project belongs to the company of type MA_SOCIETE. Returns the id, the slug and, for a project, its French title.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -164,7 +202,8 @@
         "entity": {
           "type": "string",
           "enum": [
-            "tag"
+            "tag",
+            "project"
           ],
           "description": "Type of portfolio record to create."
         },
@@ -295,6 +334,238 @@
                 "kind"
               ],
               "additionalProperties": false
+            },
+            {
+              "title": "project",
+              "description": "Fields of the project to create. Required: slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode.",
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Unique URL identifier of the public page, at most 80 characters: lowercase letters, digits and single hyphens (e.g. \"crm-freelance\"). Fixed once created."
+                },
+                "titleFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "French title, at most 120 characters."
+                },
+                "titleEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "English title, at most 120 characters."
+                },
+                "descriptionFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "French description, plain text."
+                },
+                "descriptionEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "English description, plain text."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "CLIENT",
+                    "PERSONAL"
+                  ],
+                  "description": "CLIENT for a client project, PERSONAL for a personal one."
+                },
+                "status": {
+                  "default": "DRAFT",
+                  "type": "string",
+                  "enum": [
+                    "DRAFT",
+                    "PUBLISHED",
+                    "ARCHIVED"
+                  ],
+                  "description": "DRAFT (offline), PUBLISHED (online at once) or ARCHIVED (offline). Defaults to DRAFT at creation."
+                },
+                "formats": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "API",
+                      "WEB_APP",
+                      "MOBILE_APP",
+                      "DESKTOP_APP",
+                      "CLI",
+                      "IA"
+                    ]
+                  },
+                  "description": "At least one format among API, WEB_APP, MOBILE_APP, DESKTOP_APP, CLI, IA."
+                },
+                "startedAt": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Start day, YYYY-MM-DD. null clears it."
+                },
+                "endedAt": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "End day, YYYY-MM-DD, not before startedAt (the stored one when only endedAt is sent). null clears it."
+                },
+                "githubUrl": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "GitHub URL, http or https. null clears it."
+                },
+                "demoUrl": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "URL of the demo, http or https. null clears it."
+                },
+                "coverFilename": {
+                  "default": null,
+                  "description": "Key of the cover image, starting with \"projets/client/\" or \"projets/personal/\". Uploading is done in the admin. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "caseStudyMarkdownFr": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Case study in markdown, French. Independent of the other language. null clears it."
+                },
+                "caseStudyMarkdownEn": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Case study in markdown, English. Independent of the other language. null clears it."
+                },
+                "tagIds": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Ids of the tags, in display order (get them from portfolio_search). On update, sending it replaces the whole list and leaving it out keeps the current tags."
+                },
+                "companyId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the client company (get it from crm_search with the entity company). A personal project belongs to the company of type MA_SOCIETE."
+                },
+                "workMode": {
+                  "type": "string",
+                  "enum": [
+                    "PRESENTIEL",
+                    "HYBRIDE",
+                    "REMOTE"
+                  ],
+                  "description": "PRESENTIEL, HYBRIDE or REMOTE."
+                },
+                "contractStatus": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FREELANCE",
+                        "CDI",
+                        "STAGE",
+                        "ALTERNANCE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Contract of the mission: FREELANCE, CDI, STAGE or ALTERNANCE. null clears it."
+                },
+                "teamSize": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Number of people on the team, at least 1. null clears it."
+                },
+                "deliverablesCount": {
+                  "default": 1,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Number of deliverables, 0 or more. Defaults to 1 at creation."
+                }
+              },
+              "required": [
+                "slug",
+                "titleFr",
+                "titleEn",
+                "descriptionFr",
+                "descriptionEn",
+                "type",
+                "formats",
+                "companyId",
+                "workMode"
+              ],
+              "additionalProperties": false
             }
           ],
           "description": "Fields of the new record. They depend on entity: use the branch titled with that entity."
@@ -310,7 +581,7 @@
   {
     "name": "portfolio_update",
     "title": "Update a portfolio record",
-    "description": "Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. A tag takes nameFr, nameEn, kind and icon: its slug is fixed at creation, and a new kind puts it last in that category. Returns the id and the slug.",
+    "description": "Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. A tag takes nameFr, nameEn, kind and icon: its slug is fixed at creation, and a new kind puts it last in that category. A project takes the fields of its creation except slug, which is fixed. A status PUBLISHED puts the project online at once and serves the name, logo, website, sectors and size of its client company publicly, and a project that is already PUBLISHED goes online with each change, at once; tagIds replaces the whole list in the order sent, and a field left out stays unchanged. Returns the id, the slug and, for a project, its French title.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -318,7 +589,8 @@
         "entity": {
           "type": "string",
           "enum": [
-            "tag"
+            "tag",
+            "project"
           ],
           "description": "Type of portfolio record to update."
         },
@@ -437,6 +709,208 @@
                     }
                   ],
                   "description": "Icon key from the registry listed here. null means no icon (and clears it)."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "project",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field. tagIds replaces the whole list in the order sent. The slug cannot change.",
+              "type": "object",
+              "properties": {
+                "titleFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "French title, at most 120 characters."
+                },
+                "titleEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "English title, at most 120 characters."
+                },
+                "descriptionFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "French description, plain text."
+                },
+                "descriptionEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "English description, plain text."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "CLIENT",
+                    "PERSONAL"
+                  ],
+                  "description": "CLIENT for a client project, PERSONAL for a personal one."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "DRAFT",
+                    "PUBLISHED",
+                    "ARCHIVED"
+                  ],
+                  "description": "DRAFT (offline), PUBLISHED (online at once) or ARCHIVED (offline). Defaults to DRAFT at creation."
+                },
+                "formats": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "API",
+                      "WEB_APP",
+                      "MOBILE_APP",
+                      "DESKTOP_APP",
+                      "CLI",
+                      "IA"
+                    ]
+                  },
+                  "description": "At least one format among API, WEB_APP, MOBILE_APP, DESKTOP_APP, CLI, IA."
+                },
+                "startedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Start day, YYYY-MM-DD. null clears it."
+                },
+                "endedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "End day, YYYY-MM-DD, not before startedAt (the stored one when only endedAt is sent). null clears it."
+                },
+                "githubUrl": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "GitHub URL, http or https. null clears it."
+                },
+                "demoUrl": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "URL of the demo, http or https. null clears it."
+                },
+                "coverFilename": {
+                  "description": "Key of the cover image, starting with \"projets/client/\" or \"projets/personal/\". Uploading is done in the admin. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "caseStudyMarkdownFr": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Case study in markdown, French. Independent of the other language. null clears it."
+                },
+                "caseStudyMarkdownEn": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Case study in markdown, English. Independent of the other language. null clears it."
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Ids of the tags, in display order (get them from portfolio_search). On update, sending it replaces the whole list and leaving it out keeps the current tags."
+                },
+                "companyId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the client company (get it from crm_search with the entity company). A personal project belongs to the company of type MA_SOCIETE."
+                },
+                "workMode": {
+                  "type": "string",
+                  "enum": [
+                    "PRESENTIEL",
+                    "HYBRIDE",
+                    "REMOTE"
+                  ],
+                  "description": "PRESENTIEL, HYBRIDE or REMOTE."
+                },
+                "contractStatus": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FREELANCE",
+                        "CDI",
+                        "STAGE",
+                        "ALTERNANCE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Contract of the mission: FREELANCE, CDI, STAGE or ALTERNANCE. null clears it."
+                },
+                "teamSize": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Number of people on the team, at least 1. null clears it."
+                },
+                "deliverablesCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Number of deliverables, 0 or more. Defaults to 1 at creation."
                 }
               },
               "additionalProperties": false

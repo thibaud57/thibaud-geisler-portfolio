@@ -5,10 +5,10 @@ import type { Prisma } from "@/generated/prisma/client"
 import { normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { companyIdSchema } from "@/lib/ids"
 import { PERSON_NAME_MAX_LENGTH } from "@/lib/schemas/person"
+import { dateColumnDay } from "@/server/mcp/day-fields"
 import type { ToolDocs } from "@/server/mcp/entity-definition"
 import { pageOrderBy, type SortKey, type SortOrder } from "@/server/mcp/query-page"
 
-import { dateColumnDay } from "./day-fields"
 import { details, notes } from "./fields"
 
 // Les `.describe()` arrivent au modèle.

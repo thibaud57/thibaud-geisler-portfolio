@@ -23,6 +23,7 @@ import {
   type SignalOwnerRef,
   type SignalWriteError,
 } from "@/server/crm/signals"
+import { dateColumnDay } from "@/server/mcp/day-fields"
 import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
 import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
 import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
@@ -34,8 +35,8 @@ import {
   type SignalTargets,
 } from "@/server/queries/signals"
 
-import { dateColumnDay, withSignalDay } from "../day-fields"
 import { dateRange } from "../date-range"
+import { withSignalDay } from "../day-fields"
 import { personRef } from "../person-ref"
 
 const entityField = z.literal("signal").describe('Type of CRM record: always "signal" here.')

@@ -15,6 +15,7 @@ export const interviewIdSchema = nonEmptyId().brand<"InterviewId">()
 export const signalIdSchema = nonEmptyId().brand<"SignalId">()
 export const weeklyReviewIdSchema = nonEmptyId().brand<"WeeklyReviewId">()
 export const tagIdSchema = nonEmptyId().brand<"TagId">()
+export const projectIdSchema = nonEmptyId().brand<"ProjectId">()
 
 export type PersonId = z.infer<typeof personIdSchema>
 export type CompanyId = z.infer<typeof companyIdSchema>
@@ -24,3 +25,4 @@ export type InterviewId = z.infer<typeof interviewIdSchema>
 export type SignalId = z.infer<typeof signalIdSchema>
 export type WeeklyReviewId = z.infer<typeof weeklyReviewIdSchema>
 export type TagId = z.infer<typeof tagIdSchema>
+export type ProjectId = z.infer<typeof projectIdSchema>

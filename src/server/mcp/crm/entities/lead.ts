@@ -6,12 +6,13 @@ import type { Prisma } from "@/generated/prisma/client"
 import { leadDetailsTemplate } from "@/lib/crm/details-templates"
 import { personIdSchema } from "@/lib/ids"
 import { createLead, updateLead, type LeadPatch } from "@/server/crm/leads"
+import { withDays } from "@/server/mcp/day-fields"
 import { defineEntity } from "@/server/mcp/entity-definition"
 import { pageQueryShape } from "@/server/mcp/query-page"
 import { updateSchemaOf } from "@/server/mcp/update-input"
 import { findLeadByIdForAdmin, findLeadPerson, findLeadsPage } from "@/server/queries/leads"
 
-import { withDays, withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
+import { withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
 import {
   newPersonShape,
   PERSON_DOCS,
