@@ -10,11 +10,11 @@ technologies: ["Next.js", "React", "Pino", "Docker", "GitHub Actions"]
 
 # Description
 
-`Sentry` capte les exceptions applicatives du portfolio, côté navigateur comme côté serveur, et les regroupe en issues avec leur stack trace démangée. Il complète Pino sans le remplacer : Pino écrit des logs structurés que Dokploy affiche, Sentry alerte sur ce qui casse.
+`Sentry` capte les exceptions applicatives du portfolio, côté navigateur comme côté serveur, et les regroupe en issues avec leur stack trace lisible. Il complète Pino sans le remplacer : Pino écrit des logs structurés que Dokploy affiche, Sentry alerte sur ce qui casse.
 
 [ADR-017](../adrs/017-observabilite-cloud.md) impose **le service cloud, jamais le self-hosted** : l'installation auto-hébergée réclame 4 cœurs, 16 Go de RAM et 16 Go de swap au minimum, hors de portée du VPS.
 
-Le plan gratuit *Developer* couvre largement l'usage : « 5k errors », « 5M spans », « 50 replays », « 5GB » de logs, « 30-day lookback » de rétention, et « One user », ce dernier point étant sans conséquence pour un projet single-user.
+Le plan gratuit *Developer* couvre largement l'usage. Relevé sur [sentry.io/pricing](https://sentry.io/pricing/) le 2026-11-10 : « 5k errors », « 5M spans », « 50 replays », « 5GB » de logs, « 30-day lookback » de rétention, « 1 User » (sans conséquence pour un projet single-user). Les quotas changent sans préavis : relire la page avant de s'en servir.
 
 ---
 
@@ -51,6 +51,7 @@ export const onRequestError: Instrumentation.onRequestError = (...args) => {
 - `onRequestError` capture les erreurs des Server Components, du middleware et des proxys. Il exige le SDK ≥ 8.28.0 et Next.js 15+
 - Les fichiers `sentry.server.config.ts` et `sentry.edge.config.ts` ne sont plus des points d'entrée directs : ils sont importés par `register()`
 - `error.tsx` et `global-error.tsx` sont les points de branchement côté React. Un hook partagé qui capture systématiquement, sans dédup avec `onRequestError`, peut produire deux issues pour une même erreur de rendu SSR (une serveur, une client après hydration). C'est le pattern recommandé par Sentry pour Next.js : dédupliquer demanderait de faire transiter l'état de capture du serveur au client, hors de portée de l'API publique du SDK
+- Depuis `11.9.0` (#25141), une page prérendue n'émet plus de meta tags de trace (`sentry-trace`, `baggage`), ISR compris : un HTML mis en cache ne lie plus un visiteur à la requête d'un autre. Avec `cacheComponents`, le pageload attend les données de trace de la partie streamée de la page ([notes 11.9.0](https://github.com/getsentry/sentry-javascript/blob/develop/CHANGELOG.md), relues le 2026-10-27). Sans effet à régler ici, le projet n'enregistre pas de `SentryPropagator` lui-même (sinon : `NextSentryPropagator`)
 - Le warning de build `[@sentry/nextjs] ACTION REQUIRED: ... export an onRouterTransitionStart hook ...` est attendu quand `tracesSampleRate: 0` dans `instrumentation-client.ts` (pas de tracing navigateur) : le hook n'a rien à instrumenter. Ne pas l'ajouter pour faire taire le warning
 
 ---
@@ -78,9 +79,9 @@ export async function myAction(prevState: State, formData: FormData): Promise<St
 
 - Chaque Server Action exposée doit être wrappée individuellement : pas de mécanisme global équivalent à `onRequestError`
 - Le callback retourne ce que retourne la Server Action : le wrapping n'altère ni le type de retour ni la gestion d'erreur métier
-- Pertinent pour toute future Server Action de l'espace admin (post-MVP), pas seulement le formulaire de contact
-- **Le wrapping seul ne garantit pas la remontée sous Turbopack** : le span `function.server_action` est créé et flush côté SDK, mais la transaction n'atteint pas le dashboard. Cause et contournements : § Bundler et incidents connus. Suivi sur ce projet : [PRODUCTION.md § Stack Monitoring](../PRODUCTION.md#stack-monitoring)
-- Depuis `11.5.0`, `forbidden()` et `unauthorized()` ne sont plus capturés comme erreurs, comme `redirect()` et `notFound()` avant eux (#10466, fermée en 2024)
+- Pertinent pour toute Server Action de l'espace admin, pas seulement le formulaire de contact
+- **Bug connu : le wrapping seul ne garantit pas la remontée sous Turbopack.** Le span `function.server_action` est créé et flush côté SDK, mais la transaction n'atteint pas le dashboard. Reproduit sur ce projet en `11.1.0` le 2026-10-03 sur l'image de production : l'erreur SMTP de l'action de contact est reçue avec son `trace_id`, sans span après plus de 4 minutes. Pas de revalidation depuis sur les versions suivantes (version installée au 2026-11-10 : `11.11.0`). Cause suspectée, contournements et statut des issues : § Bundler et incidents connus. Mesure de référence de la durée d'une action : l'event Pino `duration_ms`, pas Sentry
+- Depuis `11.5.0`, `forbidden()` et `unauthorized()` ne sont plus capturés comme erreurs, comme `redirect()` et `notFound()` avant eux (#10466, fermée le 2024-02-02)
 
 ---
 
@@ -146,16 +147,12 @@ RUN --mount=type=secret,id=sentry_auth_token \
 
 ### Description
 
-Deux mécanismes distincts, souvent confondus. Le premier est obligatoire pour que Sentry fonctionne, le second est une fonctionnalité produit optionnelle.
-
-1. **`connect-src`** autorise le SDK à poster les événements depuis le navigateur. Sans lui, la CSP bloque tout et rien ne remonte.
-2. **`report-uri` / `report-to`** fait de Sentry le collecteur des violations de CSP. C'est un usage à part, sans rapport avec la capture d'exceptions.
+`connect-src` autorise le SDK à poster les événements depuis le navigateur vers l'ingest Sentry. Sans lui, la CSP bloque tout et rien ne remonte. Le projet n'utilise ni `tunnelRoute` ni `report-uri` : le navigateur poste directement vers l'ingest, et Sentry ne collecte pas les violations de CSP.
 
 ### Exemple
 
 ```
 connect-src 'self' https://o<org-id>.ingest.<region>.sentry.io
-report-uri  https://o<org-id>.ingest.<region>.sentry.io/api/<project-id>/security/?sentry_key=<public-key>
 ```
 
 ### Points Importants
@@ -163,29 +160,7 @@ report-uri  https://o<org-id>.ingest.<region>.sentry.io/api/<project-id>/securit
 - Le host exact se lit dans Project Settings → SDK Setup → Client Keys (DSN), il n'est pas devinable
 - **Une organisation européenne ingère sur `https://o<org-id>.ingest.de.sentry.io`** (Francfort) : le segment de région est `de`, pas `eu`
 - La région d'une organisation se lit avec `sentry org view <slug> --json`, champ `links.regionUrl`
-- Avec `tunnelRoute`, `connect-src 'self'` suffit pour cette partie, les événements transitant par l'application
-
----
-
-## Tunnel route
-
-### Description
-
-Les bloqueurs de publicité filtrent les requêtes vers les domaines d'ingestion connus, dont Sentry, ce qui fait disparaître une partie des erreurs côté navigateur. `tunnelRoute` crée une route same-origin dans l'application qui relaie les événements.
-
-### Exemple
-
-```typescript
-withSentryConfig(config, { tunnelRoute: '/sentry-tunnel' })
-```
-
-### Points Importants
-
-- Résout la perte d'événements due aux bloqueurs, au prix d'un passage par le serveur applicatif
-- La route de tunnel doit être exclue de tout middleware ou proxy qui l'intercepterait : le projet a un `src/proxy.ts` dont le matcher devra en tenir compte
-- Une CVE de type SSRF a affecté `tunnelRoute` sur les versions 7.26.0 à 7.76.x ([GHSA-2rmr-xw8m-22q9](https://github.com/advisories/GHSA-2rmr-xw8m-22q9)), corrigée en 7.77.0. Sans objet sur la version courante, mais le rappel vaut : cette route élargit la surface d'attaque et doit valider que sa cible est bien Sentry
-- Depuis `11.9.0` (#25456, #25509), le handler de tunnel relaie le seul payload de l'événement, sans les headers de la requête, et les requêtes navigateur partent en `credentials: 'omit'` : aucun cookie n'atteint le tunnel. Un layer devant l'app qui exige des cookies règle `transportOptions.fetchOptions.credentials` dans `Sentry.init` ([notes 11.9.0](https://github.com/getsentry/sentry-javascript/blob/develop/CHANGELOG.md), relues le 2026-10-27)
-- Depuis `11.9.0` (#25141), une page prérendue n'émet plus de meta tags de trace (`sentry-trace`, `baggage`), ISR compris : un HTML mis en cache ne lie plus un visiteur à la requête d'un autre. Avec `cacheComponents`, le pageload attend les données de trace de la partie streamée de la page. Sans effet à régler ici, le projet n'enregistre pas de `SentryPropagator` lui-même (sinon : `NextSentryPropagator`)
+- Sans tunnel, un bloqueur de publicité peut filtrer les requêtes vers l'ingest et faire disparaître une partie des erreurs navigateur
 
 ---
 
@@ -259,7 +234,7 @@ Sentry.init({
 
 ### Points Importants
 
-- `log.levels` sélectionne ce qui devient un Sentry Log. Par défaut, tous les niveaux, ce qui consomme le quota de 5 Go pour rien
+- `log.levels` sélectionne ce qui devient un Sentry Log. Par défaut, tous les niveaux, ce qui consomme pour rien le quota de logs du plan gratuit
 - `error.levels` sélectionne ce qui devient en plus une issue. Par défaut `[]`, donc désactivé
 - Sans distinguer les deux, une erreur Pino remonte à la fois en Log et en Issue
 - Plage supportée : Pino `>=8.0.0 <11`. Le projet est en Pino 10
@@ -280,14 +255,15 @@ Conséquence sur les source maps : en Turbopack, l'upload est **toujours post-bu
 
 ### Points Importants
 
-- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix
+- **Bug des Server Actions du projet** : voir le bullet « Bug connu » de § Instrumentation des Server Actions (symptôme, relevé du 2026-10-03). Il se rattache à #18871 ci-dessous et à la limite structurelle décrite par Sentry
+- [#18871](https://github.com/getsentry/sentry-javascript/issues/18871) : événements serveur perdus sous Turbopack, cause suspectée dans `suppressTracing()` qui manipule le contexte asynchrone OpenTelemetry. **Fermée le 2026-01-19 sans fix confirmé par un mainteneur** (le reporter n'a pas pu faire reproduire le bug par Sentry et a clos le ticket en suspectant sa propre config), version corrigeant le SDK inconnue. Le build étant en Turbopack, vérifier la version du SDK installée face à ce fix
   - Même symptôme sur le tracing des Server Actions, au-delà de la capture d'erreur du rapport original : `debug: true` confirme que le span `function.server_action` est créé, terminé et flush côté SDK, mais la transaction n'atteint jamais le dashboard
   - Contournement non officiel proposé dans le fil, non testé ici : remplacer `makeNodeTransport` par un transport basé sur `fetch()`, ou désactiver Turbopack en dev (`next dev --no-turbopack`)
   - Autre explication côté tracing : Sentry décrit les Server Actions sous Turbopack comme une limite structurelle (« server actions don't emit OTel spans Sentry can hook into », blog du 24 mars 2026)
   - Ni le changelog ni le guide de migration de la v11 ne citent l'issue, et les notes 11.2 à 11.6 ne citent aucun correctif
-- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Fermée le 6 juillet 2026, corrigée côté Next (« fixed with vercel/next.js#95357 »), version de Next qui porte le correctif non établie
-- [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`**. Corrigée par la PR #21351, publiée en `10.57.0`
-- [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` capturait `NEXT_REDIRECT` et `NEXT_NOT_FOUND` comme des erreurs. Fermée en 2024 par #10474, et `11.5.0` exclut à leur tour `forbidden()` et `unauthorized()` (#25088)
+- [#21713](https://github.com/getsentry/sentry-javascript/issues/21713) : middleware et `proxy.ts` non instrumentés sous Turbopack en production. Fermée le 2026-07-06, corrigée côté Next (« fixed with vercel/next.js#95357 »), version de Next qui porte le correctif non établie
+- [#21333](https://github.com/getsentry/sentry-javascript/issues/21333) : `captureException` dans un Server Component casse le prerendering avec `cacheComponents: true`. **Indépendant du bundler, et le projet a `cacheComponents: true`**. Fermée le 2026-06-08, corrigée par la PR #21351, publiée en `10.57.0`
+- [#10466](https://github.com/getsentry/sentry-javascript/issues/10466) : `withServerActionInstrumentation` capturait `NEXT_REDIRECT` et `NEXT_NOT_FOUND` comme des erreurs. Fermée le 2024-02-02 par #10474, et `11.5.0` exclut à leur tour `forbidden()` et `unauthorized()` (#25088)
 - **Sans opt-out Webpack**, les incidents Turbopack ci-dessus sont à traiter comme actifs, pas comme théoriques
 - **Conséquence pratique** : ne pas considérer l'intégration comme acquise parce qu'elle compile. Provoquer une erreur serveur réelle et vérifier qu'elle apparaît dans Sentry
 
@@ -337,9 +313,8 @@ next build --webpack                    # opt-out ponctuel, plus utilisé par le
 - Ne pas placer `withSentryConfig` à l'intérieur d'un autre wrapper, les source maps ne refléteraient pas les transformations suivantes
 - Ne pas commiter `.env.sentry-build-plugin`
 - Ne pas laisser `log.levels` à sa valeur par défaut : tous les niveaux partent, y compris `debug`, et le quota de logs s'épuise
-- Ne pas laisser la route de tunnel traverser le proxy sans l'exclure du matcher
 - Ne pas appeler `Sentry.init` sans `dataCollection` en v11 : l'option absente collecte cookies, corps de requête, IP et variables locales
-- Ne pas activer Session Replay sans raison : entre 36 et 50 Ko gzip s'ajoutent au bundle client, contre moins de 20 Ko pour le cœur du SDK
+- Ne pas activer Session Replay sans raison : il alourdit le bundle client, et le quota du plan gratuit est de 50 replays
 
 ---
 
@@ -352,7 +327,6 @@ next build --webpack                    # opt-out ponctuel, plus utilisé par le
 - [Options de build](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/)
 - [Upload des source maps](https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/uploading)
 - [Intégration Pino](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/integrations/pino/)
-- [Rapport de violations CSP](https://docs.sentry.io/platforms/javascript/guides/nextjs/security-policy-reporting/)
 - [Migration v9 vers v10](https://docs.sentry.io/platforms/javascript/migration/v9-to-v10/)
 - [Migration v10 vers v11](https://docs.sentry.io/platforms/javascript/guides/nextjs/migration/v10-to-v11/)
 - [Options, dont `dataCollection`](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/)

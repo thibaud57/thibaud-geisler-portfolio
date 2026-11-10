@@ -77,7 +77,7 @@ Une base unique, une base par domaine, ou un découpage intermédiaire ?
 ```
 Base "portfolio"                  Dokploy Database existante, nom conservé
 ├── schema public       Project, Tag, LegalEntity…
-├── schema auth         user, session, account, verification
+├── schema auth         user, session, account, verification, apikey
 ├── schema freelance    Company, Lead, Contact, Facture, PostLinkedIn…
 ├── schema dev          Run, Finding, Repo            propriété d'agent-os
 └── schema rag_public   documents, chunks, embeddings  propriété de portfolio-chatbot

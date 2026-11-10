@@ -11,7 +11,7 @@ paths:
 - **Healthcheck `pg_isready`** sur la base + **`depends_on.<db>.condition: service_healthy`** sur l'application : `service_started`, le défaut, laisserait l'app démarrer avant que Postgres accepte les connexions
 - Résoudre les services entre eux par **nom de service DNS** interne (`postgresql://user:pass@postgres:5432/...`), jamais par IP ni `localhost`
 - Définir **`restart: unless-stopped`** sur tous les services de production : redémarrage après un crash ou un reboot du VPS, tout en respectant un `docker compose stop` manuel
-- **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
+- **Healthcheck obligatoire sur le service app** : Traefik ne route que vers un container `healthy`. Sonder par `node -e "fetch(...)"`, l'image alpine n'embarque pas `curl`. Inutile de poser `start_interval`, Docker l'applique déjà à 5 s pendant le `start_period`
 - **`init: true` et `mem_limit` sur le service app** : Node en PID 1 ne récolte pas les processus orphelins ; sans plafond, l'OOM killer du VPS peut tuer un autre service
 - **Borner les logs** du service app : `logging.driver: json-file` avec `max-size` et `max-file`, Dokploy ne fait aucune rotation
 - **Séparer prod et dev** : `compose.yaml` prod-ready (image tirée de GHCR, aucun port interne exposé, aucun réglage de dev). Tout le service `postgres` de dev (image, volume, healthcheck, port pour un client SQL) vit dans `compose.override.yaml`, chargé automatiquement en local et ignoré par Dokploy

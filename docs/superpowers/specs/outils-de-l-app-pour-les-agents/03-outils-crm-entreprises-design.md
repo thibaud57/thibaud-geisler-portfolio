@@ -24,7 +24,7 @@ Couvre le socle des cinq outils génériques du domaine CRM (`crm_search`, `crm_
 
 ## Dependencies
 
-- `01-prototype-serveur-mcp-design.md` (statut: draft) : route `/api/mcp/[domain]`, `buildServer`, `crm_fetch` du prototype que ce sub-project remplace par sa version générique, commande ponctuelle de création d'une clé utilisée par la recette
+- `01-prototype-serveur-mcp-design.md` (statut: implemented) : route `/api/mcp/[domain]`, `buildServer`, `crm_fetch` du prototype que ce sub-project remplace par sa version générique, commande ponctuelle de création d'une clé utilisée par la recette
 
 ## Files touched
 
@@ -37,7 +37,7 @@ Couvre le socle des cinq outils génériques du domaine CRM (`crm_search`, `crm_
 - **À modifier** : `src/server/actions/_support/shared.test.ts`
 - **À créer** : `src/lib/crm/details-sections.ts` (remplacement d'une section du markdown des Détails)
 - **À créer** : `src/lib/crm/details-sections.test.ts`
-- **À créer** : `src/server/mcp/crm/registry.ts` (définition d'une entité, `defineCrmEntity`, `CRM_ENTITIES`)
+- **À créer** : `src/server/mcp/crm/entity-definition.ts` (définition d'une entité, `defineCrmEntity`) et `src/server/mcp/crm/registry.ts` (registre `CRM_ENTITY_BY_NAME`, dont `CRM_ENTITIES` dérive)
 - **À créer** : `src/server/mcp/crm/entities/company.ts` (schémas JSON, lecture, recherche, requête, écritures)
 - **À modifier** : `src/server/mcp/crm/tools.ts` (les cinq outils génériques et `crm_fetch_company_logo`)
 - **À créer** : `src/server/mcp/crm/results.ts` (`toolJson`, `toolError`)
@@ -79,9 +79,9 @@ Couvre le socle des cinq outils génériques du domaine CRM (`crm_search`, `crm_
   - `fetch(id)` : fiche et liens, ou `null`
   - `query(params)` : lignes et `total`
   - `create(input, ctx)` et `update(input, ctx)` : rendent le `CallToolResult` du SDK
-  - `defineCrmEntity(definition)` fixe les génériques d'une définition et la rend sous une forme `RegisteredCrmEntity<E>` homogène : ses opérations d'écriture et de requête reçoivent l'entrée brute, la parsent par le schéma de leur définition (dans la fermeture générique, donc sans cast) et rendent un résultat d'outil. Le registre `CRM_ENTITIES = [companyEntity] as const` est ainsi un tuple hétérogène sans union de génériques. L'`inputSchema` des outils a une racine plate : la partie propre à l'entité (`data`, `fields`, `filters`) est un `z.looseObject({})` que le SDK laisse passer brut, seule la définition la parse. Seuls les champs racine (`entity`, `id`, `sort`, `order`, `limit`, `offset`) sont parsés deux fois (SDK, puis définition) et restent idempotents (seules des transforms `trim` et `toLowerCase` y sont permises). Les dates des parties d'entité passent par des codecs Zod (`src/server/mcp/crm/day-fields.ts`)
-  - `CrmEntity` (union des discriminants) et `isCrmEntity(value: string): value is CrmEntity` se dérivent de `CRM_ENTITIES`
-  - Les outils `crm_fetch`, `crm_query`, `crm_create` et `crm_update` assemblent depuis le registre un `inputSchema` à racine plate : `entity: z.enum(CRM_ENTITY_NAMES)`, et pour `crm_query`, `crm_create` et `crm_update` la partie propre à l'entité (`filters`, `data`, `fields`) en `z.looseObject({}).meta({ anyOf: [...] })`, une branche par entité, que le schéma strict de l'entité parse (`crm_fetch` : `{ entity, id }`). Les sub-projects 04 et 05 ajoutent une entrée sans toucher aux outils (`.claude/rules/modelcontextprotocol-server/tools.md`, ADR-025)
+  - `defineCrmEntity(definition)` (`entity-definition.ts`) fixe les génériques d'une définition et la rend sous une forme `RegisteredCrmEntity<E>` homogène : ses opérations d'écriture et de requête reçoivent l'entrée brute, la parsent par le schéma de leur définition (dans la fermeture générique, donc sans cast) et rendent un résultat d'outil. Le registre `CRM_ENTITY_BY_NAME` (table nom d'entité vers entité, dont `CRM_ENTITIES` dérive) est ainsi hétérogène sans union de génériques. L'`inputSchema` des outils a une racine plate : la partie propre à l'entité (`data`, `fields`, `filters`) est un `z.looseObject({})` que le SDK laisse passer brut, seule la définition la parse. Seuls les champs racine (`entity`, `id`, `sort`, `order`, `limit`, `offset`) sont parsés deux fois (SDK, puis définition) et restent idempotents (seules des transforms `trim` et `toLowerCase` y sont permises). Les dates des parties d'entité passent par des codecs Zod (`src/server/mcp/crm/day-fields.ts`)
+  - `CrmEntity` (union des noms d'entité) se dérive des clés de `CRM_ENTITY_BY_NAME`
+  - Les outils `crm_fetch`, `crm_query`, `crm_create` et `crm_update` assemblent depuis le registre un `inputSchema` à racine plate : `entity: z.enum(CRM_ENTITY_NAMES)`, et pour `crm_query`, `crm_create` et `crm_update` la partie propre à l'entité (`filters`, `data`, `fields`) en `z.looseObject({}).meta({ anyOf: [...] })`, une branche par entité, que le schéma strict de l'entité parse (`crm_fetch` : `{ entity, id }`). Les sub-projects 04 et 05 ajoutent une entrée sans toucher aux outils (`.claude/rules/modelcontextprotocol-server/input-schema.md`, ADR-025)
 - **Schémas JSON de l'entreprise** (`entities/company.ts`) : en `z.strictObject`, un champ inconnu ou exclu (`legalEntity*`) étant refusé et jamais ignoré en silence. Ils reprennent les définitions communes de `src/lib/schemas/company.ts`, y compris `.trim().toLowerCase()` du slug (` Acme ` devient `acme`, comme dans l'admin), sans reprendre les transforms propres à `FormData`, et chaque champ porte un `.describe()` :
   - énumérations `COMPANY_SECTORS`, `COMPANY_SIZES`, `COMPANY_TYPES`, `RELATION_STATUSES`, `ZONES`
   - bornes : slug 60 caractères et `SLUG_PATTERN`, nom 120, `NOTES_MAX_LENGTH`, au moins un type
@@ -197,7 +197,7 @@ Couvre le socle des cinq outils génériques du domaine CRM (`crm_search`, `crm_
 
 ## Edge cases
 
-- **Mise en production** : aucune avant la fin de l'epic (`/finalize-feature`, après le sub-project 04 qui déclare le destinataire des données dans la politique de confidentialité). Les recettes 01 à 03 tournent en local
+- **Mise en production** : l'epic est livré (v2.6.0, 2026-11-10). Pendant son développement, aucune mise en production avant sa fin (après le sub-project 04 qui déclare le destinataire des données dans la politique de confidentialité) : les recettes 01 à 03 tournaient en local
 - **Modification concurrente des Détails** (agent et admin à la fois) : la section se remplace sur la valeur lue au même appel, une saisie de l'admin arrivée entre-temps est écrasée. Acceptable pour un seul utilisateur
 - **Détails vides** (entreprise créée sans gabarit avant ce sub-project) : `detailsSection` rend `isError` en invitant à écrire le texte entier par `fields.details`
 - **Volume** : la recherche filtre en mémoire une lecture de trois colonnes. Au-delà de quelques milliers d'entreprises, passer à `unaccent` ou `pg_trgm` en base

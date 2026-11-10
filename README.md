@@ -33,7 +33,7 @@ just dev                    # serveur Next.js sur http://localhost:3000
 
 ## Architecture
 
-Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et saisies depuis l'espace admin.
+Monolithe Next.js single-user (App Router, React Server Components, Server Actions). Le portfolio fonctionne en hub : il liste et pointe vers des démos autonomes (déployées séparément), il ne les héberge pas. Les données métier (projets, services, identité entreprise) sont persistées en PostgreSQL via Prisma et saisies depuis l'espace admin. Les agents (Claude Code, `agent-os`) agissent sur l'app par un serveur MCP par domaine, `/api/mcp/<domaine>`, authentifié par une clé d'API créée dans l'espace admin ([ADR-025](docs/adrs/025-acces-agents-app.md)).
 
 Détails complets : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

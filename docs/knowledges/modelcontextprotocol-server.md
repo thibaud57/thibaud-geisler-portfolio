@@ -161,7 +161,7 @@ async ({ id }) => {
 ### Points Importants
 
 - Un message d'erreur nomme la correction attendue : c'est le seul retour que le modèle reçoit pour réessayer
-- `McpServer` attrape l'exception du handler (`createToolError` dans le `catch` du handler `tools/call`, code 2.4.0, constaté le 2026-11-10) et la rend en `isError` avec son message, sans passer par `onerror` de `createMcpHandler` : aucune trace côté serveur. D'où une garde qui logge l'exception avant de rendre une erreur générique, sur chaque outil, lectures comprises (`guardTool`, `src/server/mcp/crm/results.ts`, règle : `.claude/rules/modelcontextprotocol-server/tools.md`)
+- `McpServer` attrape l'exception du handler (`createToolError` dans le `catch` du handler `tools/call`, code 2.4.0, constaté le 2026-11-10) et la rend en `isError` avec son message, sans passer par `onerror` de `createMcpHandler` : aucune trace côté serveur. D'où une garde qui logge l'exception avant de rendre une erreur générique, sur chaque outil, lectures comprises (règle : `.claude/rules/modelcontextprotocol-server/tool-results.md`)
 - La validation de `outputSchema` est sautée pour tout résultat `isError`
 - Des arguments qui ne passent pas `inputSchema` reviennent aussi en `isError: true` (« Input validation error: Invalid arguments for tool … ») sans que le handler soit appelé
 - Seule exception de protocole possible depuis un outil : `UrlElicitationRequiredError` (code -32042)
@@ -240,6 +240,33 @@ await handler.close()
 - `InMemoryTransport.createLinkedPair()` ne couvre que l'ère 2025 (`server.connect`) : il ne teste pas le chemin servi par `createMcpHandler`
 - `authInfo` s'injecte dans le `fetch` du test, comme la route le fait après vérification de la clé
 - Fermer le client puis le handler à chaque test
+
+---
+
+## Pièges de Claude Code, client du serveur
+
+### Description
+
+Relevés au prototype d'un serveur MCP distant (2026-11-06, Claude Code 2.1.310 et CLI 2.1.317 de `claude-agent-sdk` 0.2.177) : ils concernent le client, pas le SDK serveur, et peuvent fausser une mesure ou un test du serveur.
+
+### Exemple
+
+```bash
+# --mcp-config est variadique : sans le séparateur, il avale le prompt qui le suit
+claude -p --mcp-config ./mcp.json --strict-mcp-config -- "List the available tools"
+
+# Connexion bloquante en -p : le message system/init liste alors les serveurs connectés
+MCP_CONNECTION_NONBLOCKING=0 claude -p --output-format stream-json --verbose --mcp-config ./mcp.json -- "ping"
+```
+
+### Points Importants
+
+- En `-p`, le message `system/init` peut lister `mcp_servers: []` parce que les serveurs se connectent après la construction des outils ([claude-code #102804](https://github.com/anthropics/claude-code/issues/102804)) ; contournement cité : `MCP_CONNECTION_NONBLOCKING=0`
+- `--mcp-config` est variadique et avale un prompt qui le suit : le séparer par `--` ou passer le prompt sur l'entrée standard ([claude-code #5593](https://github.com/anthropics/claude-code/issues/5593))
+- `claude mcp list` ne reflète pas une session lancée avec `--mcp-config` et peut bloquer un serveur du même nom par son cache d'authentification ([claude-code #80635](https://github.com/anthropics/claude-code/issues/80635))
+- `--tools ""` retire la recherche d'outils : tous les outils MCP entrent alors en contexte ([claude-code #106413](https://github.com/anthropics/claude-code/issues/106413))
+- Dans `url` et `headers` d'un serveur distant, Claude Code lit certaines variables d'identifiants comme vides au lieu de les développer ([Claude Code, MCP](https://code.claude.com/docs/en/mcp)) : le nom de la variable qui porte la clé se teste
+- Sous Windows, le CLI et l'extension VS Code indexent le même projet sous `C:/` et `c:/` dans `~/.claude.json` : un serveur ajouté en scope `local` depuis un terminal reste invisible de l'extension (constaté sur 2.1.310). Le déclarer depuis la session qui l'utilisera, ou en scope `user`
 
 ---
 

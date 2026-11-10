@@ -12,6 +12,7 @@ paths:
 - Mocker partiellement **`next/server`** pour un Route Handler qui appelle `connection()` : hors requête, l'API lève « `connection` was called outside a request scope »
 - Pour un **Server Component async** (non testable dans Vitest/jsdom) : extraire le data fetching dans une fonction testable et tester le composant de présentation en lui passant les données en props
 - Pour une **Server Action** : tester la logique (validation Zod, transformation), en mockant `next/cache` et `next/navigation`
+- Pour une action **adaptateur** d'un domaine (`src/server/<domaine>/`, ex. CRM) : mocker sa fonction de domaine et ne tester que l'adaptation (`FormData`, état du formulaire, invalidation) ; la règle métier se teste dans `src/server/<domaine>/*.integration.test.ts`, sur la base de test
 - Construire les fixtures par **factory functions** (`createUser(overrides?)`) plutôt que des constantes partagées, qu'un test pourrait muter
 - Tests de composants (Testing Library, `getByRole`, `userEvent`) : voir `vitest/components.md`
 

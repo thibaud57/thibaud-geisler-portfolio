@@ -1,7 +1,7 @@
 ---
 title: "ARCHITECTURE : Thibaud Geisler Portfolio"
 description: "Documentation de l'architecture du portfolio personnel thibaud-geisler.com : vitrine professionnelle, hub de démos et outils internes freelance."
-date: "2026-10-29"
+date: "2026-11-10"
 keywords: ["architecture", "adr", "nextjs", "portfolio", "admin", "services"]
 scope: ["docs", "architecture"]
 technologies: ["Next.js", "TypeScript", "Tailwind CSS", "next-intl", "PostgreSQL", "Prisma", "Better Auth", "Cloudflare R2", "sharp", "c15t", "Docker", "Dokploy", "Python", "OpenRouter", "Sentry"]
@@ -75,7 +75,7 @@ pnpm
 
 ## Diagrammes d'Architecture
 
-Trait plein : en place aujourd'hui. Trait pointillé : prévu post-MVP.
+Trait plein : lien servi par ce dépôt. Trait pointillé : lien vers un service voisin, prévu post-MVP.
 
 ### Runtime
 
@@ -111,7 +111,7 @@ graph LR
     Browser -->|embed widget, après consentement c15t| Calendly
     Browser -.->|script analytics| Umami
     Browser -->|erreurs client, ingestion directe, sans tracing| Sentry
-    Poste -.->|MCP, clé d'API, ADR-025| Dokploy
+    Poste -->|MCP, clé d'API, ADR-025| Dokploy
     AgentOS -.->|MCP interne, clé d'API, ADR-025| Next
     Next -->|Prisma| PG
     Next --> Assets
@@ -309,9 +309,9 @@ Les textes légaux vivent en markdown versionné (`content/legal/<locale>/*.md`,
 
 ### Sécurité Backend
 
-- **AuthN** : Better Auth avec Google OAuth comme unique provider, aucun provider Credentials (Gmail pro + whitelist email single-user via le hook `databaseHooks.user.create.before`), espace admin uniquement (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
+- **AuthN** : Better Auth avec Google OAuth comme unique provider, aucun provider Credentials (Gmail pro + whitelist email single-user via le hook `databaseHooks.user.create.before`), session réservée à l'espace admin, clé d'API pour la route MCP (cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md))
 - **AuthZ** : proxy Next.js sur `/admin` par présence du cookie de session, puis `getCurrentUser()` dans le layout protégé, dans chaque page et en tête de chaque Server Action admin (cf. § Autorisation)
-- **Durcissement** : Security headers via la configuration Next.js, rate limiting au plus près de l'entrée publique (Server Action contact aujourd'hui), jamais dans le proxy
+- **Durcissement** : Security headers via la configuration Next.js, rate limiting au plus près de l'entrée publique (Server Action contact, route MCP), jamais dans le proxy
 
 ### Services Externes
 
@@ -334,7 +334,7 @@ Relationnelle classique. Modèles présents dans `prisma/schema.prisma` au MVP :
 - **Domaine projets** : `Project`, `ClientMeta`, `Tag`, `ProjectTag`
 - **Domaine CRM** (schema `freelance`) : `Company` (lue par la vitrine via `ClientMeta`), `Person` dont `Lead` et `Contact` sont deux rôles (une personne porte l'un, l'autre ou les deux), `Opportunity`, `Interview` (correspondants rattachés à des `Person` par la table implicite `_InterviewCorrespondents`), `Signal`, `WeeklyReview`, `ProspectingAction`
 - **Domaine légal / mentions / RGPD** : `Address`, `LegalEntity`, `Publisher`, `DataProcessing`
-- **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
+- **Domaine authentification** (schema `auth`) : `User`, `Session`, `Account`, `Verification`, `Apikey` (clés des agents, [ADR-025](adrs/025-acces-agents-app.md)), mappés par `@@map` aux tables minuscules `user`, `session`, `account`, `verification`, `apikey` de la convention Better Auth (cf. [ADR-018](adrs/018-cloisonnement-donnees.md))
 
 Les enums associés (`ProjectType`, `ProjectStatus`, `ProjectFormat`, `TagKind`, `CompanySector`, `LegalBasis`, `DataCategory`, etc.) sont déclarés dans le même fichier. Les assets binaires ne sont pas modélisés en BDD : ils sont stockés dans un bucket R2 et référencés depuis `Project.coverFilename` (bucket `portfolio-assets`) ou `Company.logoFilename` (bucket `portfolio-admin`), qui portent la clé complète (`projets/client/webapp-gestion-sinistres/cover.webp`) et non le seul nom de fichier (cf. [ADR-011](adrs/011-stockage-assets.md)).
 
@@ -518,7 +518,7 @@ OWASP Top 10 comme référence : durcissement des headers, validation stricte de
 
 ### Authentification
 
-Better Auth avec Google OAuth comme unique provider, aucun provider Credentials. Whitelist email single-user via le hook `databaseHooks.user.create.before` : seul `ADMIN_EMAIL` peut créer un compte, tout autre compte lève une `APIError` et redirige vers `/admin/login?error=FORBIDDEN`. Aucune adresse IP conservée en session : le hook `databaseHooks.session.create.before` la retire avant écriture, l'IP ne servant qu'au rate limiting en mémoire de Better Auth (`disableIpTracking` le couperait aussi). Uniquement pour l'espace admin, pages publiques sans auth. Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
+Better Auth avec Google OAuth comme unique provider, aucun provider Credentials. Whitelist email single-user via le hook `databaseHooks.user.create.before` : seul `ADMIN_EMAIL` peut créer un compte, tout autre compte lève une `APIError` et redirige vers `/admin/login?error=FORBIDDEN`. Aucune adresse IP conservée en session : le hook `databaseHooks.session.create.before` la retire avant écriture, l'IP ne servant qu'au rate limiting en mémoire de Better Auth (`disableIpTracking` le couperait aussi). Session réservée à l'espace admin, pages publiques sans auth ; la route MCP des agents s'authentifie par clé d'API ([§ Protection API](#protection-api)). Cf. [ADR-002](adrs/002-auth-better-auth-google-oauth.md).
 
 ### Autorisation
 
@@ -561,7 +561,7 @@ Pino, logger JSON structuré. Output stdout, visible dans l'onglet Logs de Dokpl
 ### Monitoring
 
 - **Umami** : analytics self-hosted prévu post-MVP (RGPD-friendly, sans cookies, compatible PostgreSQL). Cf. [ADR-007](adrs/007-analytics-umami.md)
-- **Sentry** : en place, cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Limite connue du tracing des Server Actions : [knowledges/sentry.md](knowledges/sentry.md)
+- **Sentry** : cloud. Périmètre retenu : capture d'erreurs (serveur, edge et navigateur) et tracing serveur (routes, pages, queries Prisma), sans tracing navigateur ni Session Replay. Limite connue du tracing des Server Actions : [knowledges/sentry.md](knowledges/sentry.md)
 - **Logfire ou Langfuse** (post-MVP) : traces LLM des services IA, en cloud, via OpenTelemetry émis nativement par PydanticAI
 
 Sentry et Logfire ou Langfuse ne sont pas auto-hébergés : leur empreinte mémoire est incompatible avec le VPS. Umami reste self-hosted, son empreinte étant sans commune mesure. Cf. [ADR-017](adrs/017-observabilite-cloud.md).
@@ -648,10 +648,10 @@ Plancher du socle qualité (80 % lignes et branches, fusion unit + server + inte
 
 > Ce qui suit distingue ce que porte **ce dépôt** de ce qui vit dans les dépôts voisins ([ADR-015](adrs/015-decoupage-services.md), [ADR-020](adrs/020-portfolio-bff.md)).
 
-**Dans ce dépôt** (l'espace admin et le domaine CRM sont en place, cf. § Autorisation et § Base de Données Principale)
+**Dans ce dépôt** (l'espace admin et le domaine CRM sont décrits en § Autorisation et § Base de Données Principale)
 
 - **Domaines freelance et finances** : suivi de mission, comptabilité, finances et publications LinkedIn, chacun en feature distincte de `BRAINSTORM.md`. Données, écrans et règles déterministes (qualification, cotisations, TVA, indicateurs) en TypeScript ici ([ADR-020](adrs/020-portfolio-bff.md))
-- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin sont en place (§ Protection API, § API). Les outils du domaine `crm` sont en place pour les entreprises (§ Structure du Code), les autres entités et domaines restent à brancher. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
+- **Outils pour les agents** : la route `/api/mcp/<domaine>`, son authentification par clé et la création des clés depuis l'espace admin (§ Protection API, § API). Les outils du domaine `crm` couvrent les huit entités du CRM (`src/server/mcp/crm/registry.ts`), les autres domaines restent à venir. Chaque outil appelle la logique métier commune aux Server Actions, sans accès direct à la base. Clients : Claude Code sur le poste et les sessions d'`agent-os` ([ADR-025](adrs/025-acces-agents-app.md))
 - **Interfaces de pilotage** : commande de la rédaction assistée, kanban du cycle de développement et son créateur de specs, assistant interne, recherche documentaire. L'écran est ici, l'exécution ailleurs : l'admin lance les sessions d'`agent-os` et affiche leur état, leurs attentes et leur fin arrivent sur le téléphone par Telegram ([ADR-026](adrs/026-execution-claude-code-abonnement.md)) ; l'assistant interne et le créateur de specs échangent aussi dans l'écran ([ADR-027](adrs/027-composants-chat.md))
 - **Restitution de l'audience** : script de suivi Umami ([ADR-007](adrs/007-analytics-umami.md)), puis écrans de synthèse lisant son API, à spécifier
 

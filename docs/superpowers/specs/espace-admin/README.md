@@ -1,7 +1,7 @@
 ---
 title: "Espace admin — récap de conception"
 description: "Contexte de conception de l'epic espace admin. Ce n'est pas une spec de sub-project : les décisions font foi dans les ADR-015 à 021, les specs d'implémentation viendront à côté sous NN-<slug>-design.md."
-date: "2026-09-03"
+date: "2026-11-10"
 keywords: ["admin", "espace-admin", "architecture", "ecosysteme", "freelance"]
 scope: ["docs", "architecture"]
 ---
@@ -47,7 +47,7 @@ Le portfolio porte **tous les fronts**, y compris ceux des services Python. C'es
 
 ```
 schema public     Project, Company, Tag, LegalEntity…   existant
-schema auth       user, session, account, verification  Better Auth
+schema auth       user, session, account, verification, apikey  Better Auth
 schema freelance  Lead, Contact, Facture, PostLinkedIn  migration Notion
 schema dev        Run, Finding, Repo                    alimenté par agent-os
 ```
@@ -176,14 +176,14 @@ Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une
 - Sauvegardes en place depuis le sub-project `01` : destination Cloudflare R2 (`portfolio-backups`, juridiction `eu`), sauvegarde quotidienne de la base `portfolio` avec 30 jours de rétention, restauration vérifiée vers une base jetable. Le volume d'assets n'est pas couvert, il disparaît au sub-project `09`. Voir [PRODUCTION.md](../../../PRODUCTION.md).
 - Un conteneur peut appartenir à plusieurs réseaux Docker, donc des services de projets Dokploy différents peuvent se parler sans aucune exposition publique.
 - Le cookie de session est posé sur `thibaud-geisler.com` et ne traverse pas vers le domaine d'infrastructure. **Tout ce qui est authentifié reste sur le domaine du portfolio.** Ce second domaine garde les outils d'infrastructure avec leur propre authentification.
-- Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
+- Pas de Redis : les files de jobs tiennent en PostgreSQL via `procrastinate`. Le rate limiting du formulaire de contact et de la route MCP (par IP) reste en mémoire (`src/lib/rate-limiter.ts`) : c'est une décision d'implémentation sans ADR dédié (voir ARCHITECTURE.md § Sécurité). [ADR-014](../../../adrs/014-rate-limiting-chatbot.md), encore au statut `proposed`, ne couvre que le chatbot public.
 - Limites mémoire explicites par conteneur, saisies en octets bruts dans Dokploy.
 
 ## Priorités
 
 1. **Auth plus CRUD contenu portfolio.** Fondation obligatoire, ne dépend presque d'aucune décision restante. Livrée en `v2.0.0` le 2026-09-25.
 2. **Domaine freelance CRM** : entreprises, entités légales, leads et prospection, missions proposées, entretiens, revues, signaux ; l'outil du quotidien.
-3. **Outils de l'app pour les agents** : serveur MCP par domaine et clés d'API ([ADR-025](../../../adrs/025-acces-agents-app.md)), outils du CRM en premier.
+3. **Outils de l'app pour les agents** : serveur MCP par domaine et clés d'API ([ADR-025](../../../adrs/025-acces-agents-app.md)), outils du CRM en premier. Livrés en `v2.6.0` le 2026-11-10.
 4. **Agents internes** : `ai-kit` et `agent-os`, jobs déclenchés depuis l'admin, assistant interne (par Telegram, puis dans l'admin).
 5. **Domaine freelance Missions** : phases, chantiers, CRA, accueil.
 6. **Domaine freelance Comptabilité** : facturation, déclarations URSSAF et TVA.
@@ -201,5 +201,5 @@ Plusieurs projets Dokploy existants, dont Portfolio (un service Compose plus une
 
 - Source de vérité du kanban : tranché, la base, chaque carte liée à une spec ou à un plan du dépôt ; l'état des PR remonte par le webhook `pull_request` du dépôt, disponible sur un compte personnel contrairement à ceux des Projects GitHub. Le schema qui porte les cartes et son propriétaire se fixent au spec du kanban dev.
 - Les leads du formulaire de contact ne sont pas persistés aujourd'hui (envoi d'email seul). Les stocker pour le CRM implique de mettre à jour la politique de confidentialité et le registre des traitements.
-- Forme des outils de l'app pour les agents, serveur MCP ou CLI, et leur authentification : [ADR-025](../../../adrs/025-acces-agents-app.md), au statut `proposed`, tranché par le prototype qui ouvre la Feature 3.
+- Forme des outils de l'app pour les agents, serveur MCP ou CLI, et leur authentification : [ADR-025](../../../adrs/025-acces-agents-app.md), au statut `accepted`, tranché par le prototype qui a ouvert la Feature 3.
 - Devenir du seed une fois le contenu saisi depuis l'espace admin : tranché et exécuté par le sub-project `14`, `generateStaticParams` abandonné et le seed supprimé ([ADR-022](../../../adrs/022-rendu-public-sans-donnee-au-build.md)).

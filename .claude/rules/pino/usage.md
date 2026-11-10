@@ -14,6 +14,7 @@ paths:
 - Logger une erreur avec **`err` comme clé** : `log.error({ err, event: 'email:failed' })`. Pino sérialise `message`, `stack` et `type`
 - Respecter les niveaux : `info` événements normaux, `warn` dégradés non bloquants (rate limit, retry), `error` échecs bloquants
 - Hacher l'IP avant de la logger (`ip_hash`, SHA-256 salé), jamais en clair
+- Hors Server Action, la route et les outils MCP loggent par `createMcpLogger` / `mcpLoggerFor` (`src/server/mcp/logger.ts`), qui portent `action: "mcp"`, `requestId` et `ip_hash` : pas de `createActionLogger` (cf. `modelcontextprotocol-server/http-handler.md`)
 
 ## À éviter
 - Logger des secrets ou des données personnelles, même en `debug` (`SMTP_PASS`, `DATABASE_URL`, tokens, contenu d'un message de contact)

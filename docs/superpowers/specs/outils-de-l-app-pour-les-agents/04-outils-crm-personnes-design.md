@@ -24,7 +24,7 @@ Couvre les entrées `lead` et `contact` du registre des outils CRM : recherche, 
 
 ## Dependencies
 
-- `03-outils-crm-entreprises-design.md` (statut: draft) : couche `src/server/crm/`, `DomainResult`, `saveEntity` avec `onDomainError` (qui rend l'état du formulaire et indique s'il faut invalider les caches), registre `CRM_ENTITIES`, `replaceDetailsSection`, helpers de résultat d'outil
+- `03-outils-crm-entreprises-design.md` (statut: implemented) : couche `src/server/crm/`, `DomainResult`, `saveEntity` avec `onDomainError` (qui rend l'état du formulaire et indique s'il faut invalider les caches), registre `CRM_ENTITIES`, `replaceDetailsSection`, helpers de résultat d'outil
 
 ## Files touched
 

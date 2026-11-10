@@ -370,7 +370,7 @@
   },
   "PrivacyPolicy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: November 7, 2026",
+    "lastUpdated": "Last updated: November 10, 2026",
     "recipients": {
       "title": "3. Recipients and processors",
       "intro": "Personal data may be shared with the following recipients for the described purposes:",
@@ -396,7 +396,7 @@
     },
     "transfers": {
       "title": "6. Data transfers outside the European Union",
-      "intro": "Some processors handle your data outside the European Union. These transfers are subject to appropriate safeguards:"
+      "intro": "Some recipients handle your data outside the European Union. These transfers are subject to appropriate safeguards:"
     }
   },
   "Cookies": {

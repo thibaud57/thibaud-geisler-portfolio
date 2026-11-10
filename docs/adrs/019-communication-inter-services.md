@@ -78,7 +78,7 @@ Internet
    │
    ▼
 Traefik
-   ├── thibaud-geisler.com    portfolio (public + /admin)   seul point sous l'auth du portfolio
+   ├── thibaud-geisler.com    portfolio (public + /admin + /api/mcp)   seul point sous l'auth du portfolio, /api/mcp par clé d'API (ADR-025)
    ├── n8n.example.org          n8n            authentification propre
    ├── vpn.example.org          wg-easy        authentification propre
    └── collecte.example.org     service interne de collecte de pages publiques, clé d'API en en-tête
