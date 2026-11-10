@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.0...v2.6.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **deps:** montées de dépendances de novembre ([#240](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/240)) ([fa81d6c](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/fa81d6cf1732fd437691141820269853400515fe))
+
 ## [2.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.5.1...v2.6.0) (2026-11-10)
 
 
