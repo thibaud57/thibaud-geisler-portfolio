@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { isoDayToDate } from "@/lib/date-time"
 import { emptyToNull } from "@/lib/schemas/none-value"
 
 export const NOTES_MAX_LENGTH = 200
@@ -16,9 +17,10 @@ export const notesField = z
   )
   .transform(emptyToNull)
 
+// `z.coerce.date` reporterait un 31 février au 3 mars.
 export const optionalDateField = z.preprocess(
   (value) => (value === "" ? null : value),
-  z.coerce.date({ error: "Date invalide" }).nullable(),
+  z.iso.date({ error: "Date invalide" }).transform(isoDayToDate).nullable(),
 )
 
 export function optionalInt(min: number, max: number, message: string) {

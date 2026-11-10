@@ -6,7 +6,6 @@ import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { OPPORTUNITY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
-import { toMonthValue } from "@/lib/crm/opportunities"
 import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
 import { mapDefined } from "@/lib/utils"
 import {
@@ -30,6 +29,7 @@ import {
   findOpportunitySearchRows,
 } from "@/server/queries/opportunities"
 
+import { withMonth } from "../day-fields"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { details, notes } from "../fields"
 import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
@@ -64,7 +64,7 @@ const fieldShape = {
   referrerId: personIdSchema
     .nullable()
     .describe(
-      "Id of the person who brought the opportunity, a lead or a contact. Get it from crm_search. null clears it.",
+      "Id of the person who brought the opportunity, a lead or a contact who did not opt out. Get it from crm_search. null clears it.",
     ),
   intermediaryId: companyIdSchema
     .nullable()
@@ -196,12 +196,6 @@ const nameOrder = (order: SortOrder): Prisma.OpportunityOrderByWithRelationInput
   { title: order },
 ]
 
-// Le mois sort comme il entre : un instant relu puis réécrit serait refusé par le schéma d'entrée.
-const withMonth = <T extends { startMonth: Date | null }>(row: T) => ({
-  ...row,
-  startMonth: row.startMonth && toMonthValue(row.startMonth),
-})
-
 const startMonthDate = (month: string | null): Date | null =>
   month === null ? null : startMonthToDate(month)
 
@@ -221,7 +215,7 @@ function opportunityWriteErrorMessage(error: OpportunityWriteError): string {
     case "intermediary_not_esn":
       return "The intermediary must be a company of type ESN_RECRUTEMENT. Pick an ESN with crm_search, or add that type to the company with crm_update, then call the tool again."
     case "referrer_not_found":
-      return "No person has this referrerId. Call crm_search with the entity lead or contact to find the right id, then call the tool again."
+      return "No person who did not opt out of prospecting has this referrerId. Call crm_search with the entity lead or contact to find the right id, then call the tool again."
     case "company_not_found":
       return `No company has this ${error.field}. ${FIND_COMPANY}, then call the tool again.`
     case "client_is_intermediary":
@@ -249,11 +243,11 @@ export const opportunityEntity = defineCrmEntity({
     search:
       '"client · status" for an opportunity (found by title or by the name of its client or intermediary)',
     fetch:
-      "For an opportunity: its referrer (id and name, or id only when she opted out), intermediary, client and interviews.",
+      "For an opportunity: its referrer (id and name, or id only when they opted out), intermediary, client and interviews.",
     queryRow:
       "for an opportunity id, title, status, daily rate, start month, client and intermediary",
     create:
-      "For an opportunity, only title is required: the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own.",
+      "For an opportunity, only title is required: the referrer must not have opted out, the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own.",
     update:
       "The same rules as at creation apply to an opportunity, checked against its stored values when you send one field only.",
   },

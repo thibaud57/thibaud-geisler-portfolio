@@ -2,12 +2,19 @@ import "server-only"
 import type { CallToolResult } from "@modelcontextprotocol/server"
 
 import { assertNever } from "@/lib/assert-never"
+import { zonedIsoInstant } from "@/lib/date-time"
 import type { DetailsSectionError } from "@/server/crm/details-section"
 import type { DomainResult } from "@/server/crm/result"
 import type { McpLogger } from "@/server/mcp/logger"
 
+// `this[key]` garde la `Date`, que `toJSON` a déjà changée en chaîne UTC.
+function parisInstant(this: Record<string, unknown>, key: string, value: unknown): unknown {
+  const raw = this[key]
+  return raw instanceof Date ? zonedIsoInstant(raw) : value
+}
+
 export function toolJson(value: unknown): CallToolResult {
-  return { content: [{ type: "text", text: JSON.stringify(value) }] }
+  return { content: [{ type: "text", text: JSON.stringify(value, parisInstant) }] }
 }
 
 export function toolError(message: string): CallToolResult {
@@ -36,7 +43,7 @@ export interface WriteTexts {
 
 // Un create n'a pas d'id à relire : `createCheck` dit comment vérifier que l'enregistrement existe déjà avant de réessayer.
 export function writeTexts(
-  { key, noun, pronoun = "its" }: { key: string; noun: string; pronoun?: "its" | "her" },
+  { key, noun, pronoun = "its" }: { key: string; noun: string; pronoun?: "its" | "their" },
   createCheck: string,
 ): { create: WriteTexts; update: WriteTexts } {
   const unsaved = `The ${noun} could not be saved because of an internal error.`

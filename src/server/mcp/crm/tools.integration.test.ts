@@ -107,7 +107,10 @@ function seedNumberedCompanies(count: number, activeCount: number) {
   return prisma.company.createMany({ data })
 }
 
-const createCompanyArgs = (data: Record<string, unknown>) => ({ entity: "company", data })
+const createCompanyArgs = (data: Record<string, unknown>) => ({
+  entity: "company",
+  data: { types: ["CLIENT_FINAL"], ...data },
+})
 
 const entityEnumSchema = z.looseObject({
   properties: z.looseObject({ entity: z.looseObject({ enum: z.array(z.string()) }) }),
@@ -354,6 +357,23 @@ describe("crm_create", () => {
     const stored = await prisma.company.findUniqueOrThrow({ where: { slug: "acme" } })
     expect(jsonOf(result)).toEqual({ id: stored.id, slug: "acme", name: "Acme" })
     expect(stored.details).toBe(COMPANY_DETAILS_TEMPLATE)
+  })
+
+  it("requires at least one type, like the admin form", async () => {
+    const missing = await call("crm_create", {
+      entity: "company",
+      data: { slug: "acme", name: "Acme" },
+    })
+    const empty = await call(
+      "crm_create",
+      createCompanyArgs({ slug: "acme", name: "Acme", types: [] }),
+    )
+
+    expect(missing.isError).toBe(true)
+    expect(textOf(missing)).toContain("types")
+    expect(empty.isError).toBe(true)
+    expect(textOf(empty)).toContain("types")
+    expect(await prisma.company.count()).toBe(0)
   })
 
   it("keeps an explicit null details instead of the template", async () => {
@@ -927,7 +947,7 @@ describe("persons in crm_fetch", () => {
       id: opposed.id,
       name: null,
       optedOut: true,
-      optedOutAt: OPTED_OUT_AT.toISOString(),
+      optedOutAt: "2026-10-01T02:00:00.000+02:00",
     })
   })
 
@@ -1163,8 +1183,12 @@ describe("persons in crm_create", () => {
     expect(await prisma.person.count()).toBe(1)
   })
 
-  it("rejects an opted-out identity with its opt-out date", async () => {
-    await seedOptedOutLead({ email: "john.roe@example.com" })
+  it("rejects an opted-out identity with its opt-out day in Paris", async () => {
+    await seedPerson({
+      name: null,
+      email: "john.roe@example.com",
+      optedOutAt: new Date("2026-09-30T22:30:00Z"),
+    })
 
     const result = await call(
       "crm_create",
@@ -1848,13 +1872,13 @@ describe("interviews in crm_search, crm_query and crm_fetch", () => {
           entity: "interview",
           id: first.id,
           label: "Entretien 1 · Technique",
-          hint: `Plateforme data · ${INTERVIEW_AT.first.toISOString()}`,
+          hint: "Plateforme data · 2026-11-20T11:00:00.000+01:00",
         },
         {
           entity: "interview",
           id: second.id,
           label: "Entretien 2 · Technique",
-          hint: `Plateforme data · ${INTERVIEW_AT.second.toISOString()}`,
+          hint: "Plateforme data · 2026-11-25T11:00:00.000+01:00",
         },
       ]),
     )
@@ -2046,6 +2070,23 @@ describe("prospecting actions in crm_update", () => {
     })
   })
 
+  it("takes back the null respondedAt it reads from an action without reply", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const action = await seedAction(jane.id, { status: "FAIT", respondedAt: null })
+    const { respondedAt } = z
+      .object({ respondedAt: z.null() })
+      .parse(jsonOf(await call("crm_fetch", { entity: "prospecting-action", id: action.id })))
+
+    const result = await call("crm_update", {
+      entity: "prospecting-action",
+      id: action.id,
+      fields: { respondedAt },
+    })
+
+    expect(result.isError).toBeFalsy()
+    expect((await storedAction(action.id)).respondedAt).toBeNull()
+  })
+
   it("keeps the reply when absent, clears it with null and writes a respondedAt day", async () => {
     const jane = await seedPerson({ name: "Jane Doe" })
     const action = await seedAction(jane.id, {
@@ -2200,7 +2241,7 @@ describe("prospecting actions in crm_search, crm_query and crm_fetch", () => {
     expect(jsonOf(fetched)).toMatchObject({ message: "Bonjour", reply: "Merci" })
   })
 
-  it("renders the day fields as Paris days in fetch and query, and keeps the instants as ISO", async () => {
+  it("renders the day fields as Paris days in fetch and query, and the instants in Paris time", async () => {
     const jane = await seedPerson({ name: "Jane Doe" })
     const action = await seedAction(jane.id, {
       status: "REPONDU",
@@ -2213,10 +2254,10 @@ describe("prospecting actions in crm_search, crm_query and crm_fetch", () => {
     const days = { occurredAt: "2026-11-23", respondedAt: "2026-11-25" }
     expect(jsonOf(fetched)).toMatchObject({
       ...days,
-      createdAt: action.createdAt.toISOString(),
+      createdAt: ISO_INSTANT,
     })
     expect(jsonOf(listed)).toMatchObject({
-      rows: [{ ...days, updatedAt: action.updatedAt.toISOString() }],
+      rows: [{ ...days, updatedAt: ISO_INSTANT }],
     })
   })
 
@@ -2839,6 +2880,333 @@ describe("date range filters in crm_query", () => {
 
       expect(result.isError).toBe(true)
       expect(textOf(result)).toContain("from must not be after to")
+    },
+  )
+})
+
+// Des dates qui encadrent minuit à Paris (été et hiver) : un décalage d'un jour s'y voit.
+async function seedDatedRecords() {
+  const esn = await seedEsn()
+  const acme = await seedCompanyWithLegalEntity({
+    publisher: {
+      create: {
+        apeCode: "6201Z",
+        registrationType: "RCS",
+        publicEmail: "contact@example.com",
+        vatLiableSince: new Date("2026-01-15T00:00:00Z"),
+      },
+    },
+  })
+  const jane = await seedPerson(
+    { name: "Jane Doe", metAt: new Date("2026-10-05T00:00:00Z"), companyId: acme.id },
+    { lead: true, contact: true },
+  )
+  const optedOut = await seedOptedOutLead()
+  const opportunity = await prisma.opportunity.create({
+    data: {
+      title: "Mission",
+      startMonth: new Date("2026-11-01T00:00:00Z"),
+      clientId: acme.id,
+      intermediaryId: esn.id,
+      referrerId: jane.id,
+    },
+  })
+  const interview = await prisma.interview.create({
+    data: {
+      opportunityId: opportunity.id,
+      side: "CLIENT_FINAL",
+      type: "TECHNIQUE",
+      scheduledAt: new Date("2026-11-20T10:00:00Z"),
+      correspondents: { connect: { id: jane.id } },
+    },
+  })
+  const action = await seedAction(jane.id, {
+    status: "REPONDU",
+    occurredAt: new Date("2026-07-13T22:00:00Z"),
+    respondedAt: new Date("2026-11-22T22:59:59Z"),
+  })
+  const acmeSignal = await seedSignal(
+    { companyId: acme.id },
+    { occurredOn: new Date("2026-10-01T00:00:00Z") },
+  )
+  const janeSignal = await seedSignal(
+    { personId: jane.id },
+    { occurredOn: new Date("2026-10-02T00:00:00Z"), content: "Post sur l'IA générative" },
+  )
+  const review = await seedReview()
+  return {
+    esn: esn.id,
+    acme: acme.id,
+    jane: jane.id,
+    optedOut: optedOut.id,
+    opportunity: opportunity.id,
+    interview: interview.id,
+    action: action.id,
+    acmeSignal: acmeSignal.id,
+    janeSignal: janeSignal.id,
+    review: review.id,
+  }
+}
+
+type DatedIds = Awaited<ReturnType<typeof seedDatedRecords>>
+type Path = readonly (string | number)[]
+
+function valueAt(body: unknown, path: Path): unknown {
+  return path.reduce<unknown>((node, key) => {
+    const next: unknown = typeof node === "object" && node !== null ? Reflect.get(node, key) : null
+    return next
+  }, body)
+}
+
+const ISO_INSTANT: unknown = expect.stringMatching(
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+0[12]:00$/,
+)
+
+interface DateCase {
+  label: string
+  request: (ids: DatedIds) => { name: string; args: Record<string, unknown> }
+  path: Path
+  expected: unknown
+}
+
+const inFetch =
+  (entity: string, id: (ids: DatedIds) => string) =>
+  (path: Path, expected: unknown): DateCase => ({
+    label: `crm_fetch ${entity} ${path.join(".")}`,
+    request: (ids) => ({ name: "crm_fetch", args: { entity, id: id(ids) } }),
+    path,
+    expected,
+  })
+
+const inQuery =
+  (entity: string, filters?: (ids: DatedIds) => Record<string, unknown>) =>
+  (field: string, expected: unknown): DateCase => ({
+    label: `crm_query ${entity} rows.${field}`,
+    request: (ids) => ({
+      name: "crm_query",
+      args: { entity, filters: filters?.(ids) },
+    }),
+    path: ["rows", 0, field],
+    expected,
+  })
+
+const inSearch =
+  (entity: string, query: string) =>
+  (expected: string): DateCase => ({
+    label: `crm_search ${entity} hint`,
+    request: () => ({ name: "crm_search", args: { query, entities: [entity] } }),
+    path: ["results", 0, "hint"],
+    expected,
+  })
+
+const companyFetch = inFetch("company", ({ acme }) => acme)
+const esnFetch = inFetch("company", ({ esn }) => esn)
+const leadFetch = inFetch("lead", ({ jane }) => jane)
+const optedOutFetch = inFetch("lead", ({ optedOut }) => optedOut)
+const contactFetch = inFetch("contact", ({ jane }) => jane)
+const opportunityFetch = inFetch("opportunity", ({ opportunity }) => opportunity)
+const interviewFetch = inFetch("interview", ({ interview }) => interview)
+const actionFetch = inFetch("prospecting-action", ({ action }) => action)
+const companySignalFetch = inFetch("signal", ({ acmeSignal }) => acmeSignal)
+const leadSignalFetch = inFetch("signal", ({ janeSignal }) => janeSignal)
+const reviewFetch = inFetch("weekly-review", ({ review }) => review)
+
+const DATE_CASES: readonly DateCase[] = [
+  companyFetch(["signals", 0, "occurredOn"], "2026-10-01"),
+  companyFetch(["opportunitiesAsClient", 0, "startMonth"], "2026-11"),
+  esnFetch(["opportunitiesAsIntermediary", 0, "startMonth"], "2026-11"),
+  companyFetch(["legalEntity", "publisher", "vatLiableSince"], "2026-01-15"),
+  companyFetch(["opportunitiesAsClient", 0, "createdAt"], ISO_INSTANT),
+  inQuery("company", () => ({ types: ["ESN_RECRUTEMENT"] }))("updatedAt", ISO_INSTANT),
+  leadFetch(["metAt"], "2026-10-05"),
+  leadFetch(["signals", 0, "occurredOn"], "2026-10-02"),
+  leadFetch(["opportunities", 0, "startMonth"], "2026-11"),
+  leadFetch(["opportunities", 0, "createdAt"], ISO_INSTANT),
+  leadFetch(["interviews", 0, "scheduledAt"], "2026-11-20T11:00:00.000+01:00"),
+  leadFetch(["interviews", 0, "createdAt"], ISO_INSTANT),
+  leadFetch(["lastReplyAt"], "2026-11-22"),
+  optedOutFetch(["optedOutAt"], "2026-10-01T02:00:00.000+02:00"),
+  contactFetch(["metAt"], "2026-10-05"),
+  opportunityFetch(["startMonth"], "2026-11"),
+  opportunityFetch(["interviews", 0, "scheduledAt"], "2026-11-20T11:00:00.000+01:00"),
+  opportunityFetch(["interviews", 0, "createdAt"], ISO_INSTANT),
+  inQuery("opportunity")("startMonth", "2026-11"),
+  interviewFetch(["scheduledAt"], "2026-11-20T11:00:00.000+01:00"),
+  inQuery("interview")("scheduledAt", "2026-11-20T11:00:00.000+01:00"),
+  inSearch("interview", "mission")("Mission · 2026-11-20T11:00:00.000+01:00"),
+  actionFetch(["occurredAt"], "2026-07-14"),
+  actionFetch(["respondedAt"], "2026-11-22"),
+  inQuery("prospecting-action")("occurredAt", "2026-07-14"),
+  inQuery("prospecting-action")("respondedAt", "2026-11-22"),
+  inSearch("prospecting-action", "relance")("Jane Doe · 2026-07-14 · REPONDU"),
+  companySignalFetch(["occurredOn"], "2026-10-01"),
+  leadSignalFetch(["occurredOn"], "2026-10-02"),
+  inQuery("signal", ({ acme }) => ({ companyId: acme }))("occurredOn", "2026-10-01"),
+  inQuery("signal", ({ jane }) => ({ personId: jane }))("occurredOn", "2026-10-02"),
+  inSearch("signal", "développeurs")("Acme · 2026-10-01"),
+  reviewFetch(["closingFriday"], CLOSED_WEEK_FRIDAY),
+  inQuery("weekly-review")("closingFriday", CLOSED_WEEK_FRIDAY),
+  inSearch("weekly-review", CLOSED_WEEK_FRIDAY)(CLOSED_WEEK_FRIDAY),
+]
+
+describe("dates of every entity in crm_fetch, crm_query and crm_search", () => {
+  it.each(DATE_CASES)("renders $label", async ({ request, path, expected }) => {
+    const { name, args } = request(await seedDatedRecords())
+
+    const result = await call(name, args)
+
+    expect(valueAt(jsonOf(result), path)).toEqual(expected)
+  })
+})
+
+// Une fiche liée ajoutée sans conversion ferait sortir ses jours en instants : chaque clé de jour est contrôlée où qu'elle soit.
+const DAY_KEYS = new Set([
+  "metAt",
+  "occurredOn",
+  "occurredAt",
+  "respondedAt",
+  "lastReplyAt",
+  "vatLiableSince",
+  "closingFriday",
+])
+const ISO_DAY: unknown = expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
+const ISO_MONTH: unknown = expect.stringMatching(/^\d{4}-\d{2}$/)
+
+function dayFieldsIn(body: unknown): [string, unknown][] {
+  if (Array.isArray(body)) return body.flatMap(dayFieldsIn)
+  if (typeof body !== "object" || body === null) return []
+  return Object.entries(body).flatMap(([key, value]): [string, unknown][] => [
+    ...(DAY_KEYS.has(key) || key === "startMonth" ? [[key, value] as [string, unknown]] : []),
+    ...dayFieldsIn(value),
+  ])
+}
+
+describe("day fields nested anywhere in crm_fetch and crm_query", () => {
+  it("renders every day as YYYY-MM-DD and every month as YYYY-MM", async () => {
+    const ids = await seedDatedRecords()
+    const fetches: [string, string][] = [
+      ["company", ids.acme],
+      ["company", ids.esn],
+      ["lead", ids.jane],
+      ["contact", ids.jane],
+      ["opportunity", ids.opportunity],
+      ["interview", ids.interview],
+      ["prospecting-action", ids.action],
+      ["signal", ids.acmeSignal],
+      ["signal", ids.janeSignal],
+      ["weekly-review", ids.review],
+    ]
+
+    const bodies = [
+      ...(await Promise.all(
+        fetches.map(async ([entity, id]) => jsonOf(await call("crm_fetch", { entity, id }))),
+      )),
+      ...(await Promise.all(
+        CRM_ENTITY_NAMES.map(async (entity) => jsonOf(await call("crm_query", { entity }))),
+      )),
+    ]
+
+    const fields = bodies.flatMap(dayFieldsIn).filter(([, value]) => value !== null)
+    expect(fields.length).toBeGreaterThan(10)
+    expect(fields).toEqual(fields.map(([key]) => [key, key === "startMonth" ? ISO_MONTH : ISO_DAY]))
+  })
+})
+
+interface RoundTrip {
+  label: string
+  read: (ids: DatedIds) => Record<string, unknown>
+  path: Path
+  write: (ids: DatedIds, value: unknown) => Record<string, unknown>
+  stored: (ids: DatedIds) => Promise<Date | null>
+  expected: Date
+}
+
+const writeSignalDay =
+  (id: (ids: DatedIds) => string) =>
+  (ids: DatedIds, value: unknown): Record<string, unknown> => ({
+    entity: "signal",
+    id: id(ids),
+    fields: { occurredOn: value },
+  })
+
+const writeStartMonth = ({ opportunity }: DatedIds, value: unknown): Record<string, unknown> => ({
+  entity: "opportunity",
+  id: opportunity,
+  fields: { startMonth: value },
+})
+
+const storedStartMonth = async ({ opportunity }: DatedIds) =>
+  (await prisma.opportunity.findUniqueOrThrow({ where: { id: opportunity } })).startMonth
+
+const NOVEMBER = new Date("2026-11-01T00:00:00Z")
+
+const ROUND_TRIPS: readonly RoundTrip[] = [
+  {
+    label: "a signal in its company",
+    read: ({ acme }) => ({ entity: "company", id: acme }),
+    path: ["signals", 0, "occurredOn"],
+    write: writeSignalDay(({ acmeSignal }) => acmeSignal),
+    stored: async ({ acmeSignal }) => (await storedSignal(acmeSignal)).occurredOn,
+    expected: new Date("2026-10-01T00:00:00Z"),
+  },
+  {
+    label: "a signal in its lead",
+    read: ({ jane }) => ({ entity: "lead", id: jane }),
+    path: ["signals", 0, "occurredOn"],
+    write: writeSignalDay(({ janeSignal }) => janeSignal),
+    stored: async ({ janeSignal }) => (await storedSignal(janeSignal)).occurredOn,
+    expected: new Date("2026-10-02T00:00:00Z"),
+  },
+  {
+    label: "an opportunity in its client company",
+    read: ({ acme }) => ({ entity: "company", id: acme }),
+    path: ["opportunitiesAsClient", 0, "startMonth"],
+    write: writeStartMonth,
+    stored: storedStartMonth,
+    expected: NOVEMBER,
+  },
+  {
+    label: "an opportunity in its intermediary company",
+    read: ({ esn }) => ({ entity: "company", id: esn }),
+    path: ["opportunitiesAsIntermediary", 0, "startMonth"],
+    write: writeStartMonth,
+    stored: storedStartMonth,
+    expected: NOVEMBER,
+  },
+  {
+    label: "an opportunity in its referrer lead",
+    read: ({ jane }) => ({ entity: "lead", id: jane }),
+    path: ["opportunities", 0, "startMonth"],
+    write: writeStartMonth,
+    stored: storedStartMonth,
+    expected: NOVEMBER,
+  },
+  {
+    label: "an interview in its correspondent lead",
+    read: ({ jane }) => ({ entity: "lead", id: jane }),
+    path: ["interviews", 0, "scheduledAt"],
+    write: ({ interview }, value) => ({
+      entity: "interview",
+      id: interview,
+      fields: { scheduledAt: value },
+    }),
+    stored: async ({ interview }) =>
+      (await prisma.interview.findUniqueOrThrow({ where: { id: interview } })).scheduledAt,
+    expected: new Date("2026-11-20T10:00:00Z"),
+  },
+]
+
+describe("dates read in linked records in crm_update", () => {
+  it.each(ROUND_TRIPS)(
+    "accepts the date of $label as read, without shifting it",
+    async ({ read, path, write, stored, expected }) => {
+      const ids = await seedDatedRecords()
+      const value = valueAt(jsonOf(await call("crm_fetch", read(ids))), path)
+
+      const result = await call("crm_update", write(ids, value))
+
+      expect(result.isError).toBeFalsy()
+      expect(await stored(ids)).toEqual(expected)
     },
   )
 })

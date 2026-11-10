@@ -3,7 +3,7 @@ import "server-only"
 import type { Prisma } from "@/generated/prisma/client"
 import { isEsn } from "@/lib/crm/companies"
 import { exceedsDaysPerWeek, isClientIntermediary } from "@/lib/crm/opportunities"
-import { opportunityIdSchema, type CompanyId, type OpportunityId } from "@/lib/ids"
+import { opportunityIdSchema, type CompanyId, type OpportunityId, type PersonId } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import type { OpportunityInput } from "@/lib/schemas/opportunity"
 import { isPrismaError, isRowGone, rowExists, violatedConstraint } from "@/lib/server-utils"
@@ -13,6 +13,7 @@ import {
   type DetailsSection,
   type DetailsSectionError,
 } from "./details-section"
+import { findOptedOutAt } from "./person-guards"
 import { fail, ok, type DomainResult } from "./result"
 
 export type OpportunityWriteData = OpportunityInput
@@ -39,6 +40,8 @@ export interface WrittenOpportunity {
 
 const WRITTEN_SELECT = { id: true, title: true } as const
 
+const REFERRER_NOT_FOUND = { code: "referrer_not_found", field: "referrerId" } as const
+
 const toWritten = (row: { id: string; title: string }): WrittenOpportunity => ({
   id: opportunityIdSchema.parse(row.id),
   title: row.title,
@@ -57,12 +60,20 @@ async function isNotEsn(
   return company !== null && !isEsn(company)
 }
 
+// Un apporteur opposé reste un fait de l'opportunité : seul un nouveau choix est refusé.
+async function isOptedOutReferrer(
+  tx: Prisma.TransactionClient,
+  referrerId: PersonId | null | undefined,
+): Promise<boolean> {
+  return referrerId != null && (await findOptedOutAt(tx, referrerId)) !== null
+}
+
 // Clé étrangère en `<Table>_<col>_fkey` : le nom dit quelle fiche a disparu.
 function missingRelation(err: unknown): OpportunityCreateError | null {
   if (!isPrismaError(err, "P2003")) return null
 
   const constraint = violatedConstraint(err)
-  if (constraint?.includes("referrerId")) return { code: "referrer_not_found", field: "referrerId" }
+  if (constraint?.includes("referrerId")) return REFERRER_NOT_FOUND
 
   const field = (["intermediaryId", "clientId"] as const).find((candidate) =>
     constraint?.includes(candidate),
@@ -79,10 +90,15 @@ export async function createOpportunity(
   if (exceedsDaysPerWeek(data.onSiteDays, data.daysPerWeek)) {
     return fail({ code: "days_out_of_range" })
   }
-  if (await isNotEsn(prisma, data.intermediaryId)) return fail({ code: "intermediary_not_esn" })
 
   try {
-    return ok(toWritten(await prisma.opportunity.create({ data, select: WRITTEN_SELECT })))
+    return await prisma.$transaction(
+      async (tx): Promise<DomainResult<WrittenOpportunity, OpportunityCreateError>> => {
+        if (await isNotEsn(tx, data.intermediaryId)) return fail({ code: "intermediary_not_esn" })
+        if (await isOptedOutReferrer(tx, data.referrerId)) return fail(REFERRER_NOT_FOUND)
+        return ok(toWritten(await tx.opportunity.create({ data, select: WRITTEN_SELECT })))
+      },
+    )
   } catch (err) {
     const missing = missingRelation(err)
     if (missing) return fail(missing)
@@ -110,6 +126,7 @@ export async function updateOpportunity(
         const stored = await tx.opportunity.findUnique({
           where: { id },
           select: {
+            referrerId: true,
             intermediaryId: true,
             clientId: true,
             daysPerWeek: true,
@@ -132,6 +149,13 @@ export async function updateOpportunity(
           fields.intermediaryId !== undefined && fields.intermediaryId !== stored.intermediaryId
         if (intermediaryChanged && (await isNotEsn(tx, fields.intermediaryId ?? null))) {
           return fail({ code: "intermediary_not_esn" })
+        }
+
+        if (
+          fields.referrerId !== stored.referrerId &&
+          (await isOptedOutReferrer(tx, fields.referrerId))
+        ) {
+          return fail(REFERRER_NOT_FOUND)
         }
 
         // Un patch qui ne change qu'un des deux jours se compare à la valeur en base.

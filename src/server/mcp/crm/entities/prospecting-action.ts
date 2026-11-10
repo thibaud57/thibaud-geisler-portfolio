@@ -24,7 +24,7 @@ import {
 } from "@/server/queries/prospecting-actions"
 
 import { dateRange } from "../date-range"
-import { withDays, zonedDay } from "../day-fields"
+import { withDays, ZONED_DAY, zonedDay } from "../day-fields"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { optionalText } from "../fields"
 import { personRef } from "../person-ref"
@@ -64,9 +64,11 @@ const fieldShape = {
   occurredAt: actionDay(
     "Day of the action, YYYY-MM-DD: the planned day while the status is A_FAIRE, the sending day after.",
   ),
-  respondedAt: actionDay(
-    "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out, the status rules set it (or keep the stored one).",
-  ),
+  respondedAt: actionDay()
+    .nullable()
+    .describe(
+      "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out or null, the status rules set it (or keep the stored one).",
+    ),
   message: optionalText("Text of the message sent."),
   reply: optionalText(
     "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status.",
@@ -123,7 +125,7 @@ type QueryInput = z.output<typeof querySchema>
 const ACTION_DAYS = ["occurredAt", "respondedAt"] as const
 
 const withActionDays = <T extends { occurredAt: Date; respondedAt: Date | null }>(row: T) =>
-  withDays(row, ACTION_DAYS, actionDay())
+  withDays(row, ACTION_DAYS, ZONED_DAY)
 
 // La borne haute inclut son jour entier : une action envoyée à 14 h 30 ce jour-là reste dans l'intervalle.
 const dayEnd = (dayStart: Date): Date => zonedDayStartOf(dayStart, 1)
@@ -178,7 +180,7 @@ export const prospectingActionEntity = defineCrmEntity({
     create:
       "For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules.",
     update:
-      "For a prospecting action, a status change goes through fields.status alone: the status rules set the dates (leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date), and the lead must not have opted out.",
+      "For a prospecting action, a status change applies the status rules: leaving A_FAIRE takes the real sending time unless occurredAt moves to another day in the same patch, REPONDU and CONVERTI keep the respondedAt sent with them (else the stored one, else today), any other status clears the reply and its date. The lead must not have opted out.",
   },
   async search(query) {
     const needle = normalizeForSearch(query)
