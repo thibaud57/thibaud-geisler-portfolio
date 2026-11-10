@@ -18,7 +18,7 @@ import {
   type ConflictField,
   type PersonConflict,
 } from "./person-guards"
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 export type PersonFieldsError =
   | { code: "person_conflict"; conflict: PersonConflict }

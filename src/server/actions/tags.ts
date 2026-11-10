@@ -1,82 +1,38 @@
 "use server"
 
 import "server-only"
-import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
+import { updateTag as updateCacheTag } from "next/cache"
 
-import type { Prisma, TagKind } from "@/generated/prisma/client"
-import { ADMIN_TAGS_PATH } from "@/lib/admin/routes"
+import type { TagKind } from "@/generated/prisma/client"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { tagIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
-import { computeIdsAtPosition, removeId, renumberEntities, sameIdSet } from "@/lib/reorder"
+import { removeId, sameIdSet } from "@/lib/reorder"
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
 import { createActionLogger, isPrismaError, rowExists } from "@/lib/server-utils"
+import { fail, type DomainResult } from "@/server/result"
+import {
+  createTag as createTagRecord,
+  findCategoryIds,
+  invalidateTagCaches,
+  renumberTags,
+  updateTag as updateTagRecord,
+  type TagSummary,
+  type TagWriteError,
+} from "@/server/portfolio/tags"
 
-import { type ActionEvents, deleteEntity, formStateHandlers, saveEntity } from "./_support/shared"
+import {
+  type ActionEvents,
+  type DomainFailure,
+  deleteEntity,
+  formStateHandlers,
+  saveEntity,
+} from "./_support/shared"
 import { type TagDeleteState, type TagFormState, type TagReorderState } from "./tags.types"
 
-function invalidateTagCaches(): void {
-  updateCacheTag("tags")
-  updateCacheTag("projects")
-  revalidatePath(ADMIN_TAGS_PATH)
-}
-
-async function findCategoryIds(kind: TagKind): Promise<string[]> {
-  const tags = await prisma.tag.findMany({
-    where: { kind },
-    orderBy: { displayOrder: "asc" },
-    select: { id: true },
-  })
-  return tags.map((tag) => tag.id)
-}
-
-function renumberTags(
-  tagClient: Prisma.TransactionClient["tag"],
-  orderedIds: readonly string[],
-  edited?: { id: string; data: TagInput },
-) {
-  return renumberEntities(
-    (id, data) => tagClient.update({ where: { id }, data }),
-    orderedIds,
-    edited,
-  )
-}
-
-async function createTagWithReorder(data: TagInput) {
-  const existingIds = await findCategoryIds(data.kind)
-
-  return prisma.$transaction(async (tx) => {
-    const created = await tx.tag.create({ data })
-    await Promise.all(
-      renumberTags(tx.tag, computeIdsAtPosition(existingIds, created.id, data.displayOrder)),
-    )
-    return created
-  })
-}
-
-async function updateTagWithReorder(id: string, data: TagInput) {
-  const current = await prisma.tag.findUniqueOrThrow({ where: { id }, select: { kind: true } })
-  const edited = { id, data }
-
-  if (current.kind === data.kind) {
-    const existingIds = await findCategoryIds(data.kind)
-    return prisma.$transaction(
-      renumberTags(prisma.tag, computeIdsAtPosition(existingIds, id, data.displayOrder), edited),
-    )
-  }
-
-  const [oldIds, newExistingIds] = await Promise.all([
-    findCategoryIds(current.kind),
-    findCategoryIds(data.kind),
-  ])
-
-  return prisma.$transaction([
-    ...renumberTags(prisma.tag, removeId(oldIds, id)),
-    ...renumberTags(
-      prisma.tag,
-      computeIdsAtPosition(newExistingIds, id, data.displayOrder),
-      edited,
-    ),
-  ])
+function updateTagCaches(): void {
+  invalidateTagCaches(updateCacheTag)
 }
 
 // Transaction interactive (et non un tableau) : si la suppression échoue (P2003), tx.tag.update
@@ -84,15 +40,7 @@ async function updateTagWithReorder(id: string, data: TagInput) {
 async function deleteTagWithReorder(id: string) {
   return prisma.$transaction(async (tx) => {
     const deleted = await tx.tag.delete({ where: { id } })
-    const remaining = await tx.tag.findMany({
-      where: { kind: deleted.kind },
-      orderBy: { displayOrder: "asc" },
-      select: { id: true },
-    })
-    const remainingIds = removeId(
-      remaining.map((tag) => tag.id),
-      id,
-    )
+    const remainingIds = removeId(await findCategoryIds(deleted.kind, tx.tag), id)
 
     await Promise.all(renumberTags(tx.tag, remainingIds))
 
@@ -102,30 +50,40 @@ async function deleteTagWithReorder(id: string) {
 
 const tagExists = (id: string) => rowExists(prisma.tag, { id })
 
+function mapDomainError(error: TagWriteError): DomainFailure<TagFormState> {
+  switch (error.code) {
+    case "slug_taken":
+      return {
+        state: {
+          ok: false,
+          errors: { slug: ["Ce slug est déjà utilisé."] },
+          message: "slug_taken",
+        },
+        invalidate: false,
+      }
+    case "not_found":
+      return { state: { ok: false, errors: {}, message: "tag_not_found" }, invalidate: true }
+    default:
+      return assertNever(error)
+  }
+}
+
 function saveTag(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: TagInput) => Promise<unknown>,
-  updatedId?: string,
+  persist: (data: TagInput) => Promise<DomainResult<TagSummary, TagWriteError>>,
 ): Promise<TagFormState> {
-  return saveEntity<TagInput, TagFormState, unknown>({
+  return saveEntity<TagInput, TagFormState, TagSummary, TagWriteError>({
     actionName,
     events,
     schema: tagSchema,
     input: Object.fromEntries(formData),
     persist,
     successLogFields: (data) => ({ slug: data.slug }),
-    invalidateCaches: invalidateTagCaches,
-    mapError: (err) =>
-      isPrismaError(err, "P2002")
-        ? { ok: false, errors: { slug: ["Ce slug est déjà utilisé."] }, message: "slug_taken" }
-        : null,
-    ...formStateHandlers<TagInput, "tag_not_found">(undefined, {
-      message: "tag_not_found",
-      updatedId,
-      exists: tagExists,
-    }),
+    invalidateCaches: updateTagCaches,
+    onDomainError: mapDomainError,
+    ...formStateHandlers<TagInput>(undefined),
   })
 }
 
@@ -141,7 +99,7 @@ export async function createTag(
     "createTag",
     { success: "tag:created", failure: "tag:create_failed" },
     formData,
-    (data) => createTagWithReorder(data),
+    ({ displayOrder, ...fields }) => createTagRecord(fields, displayOrder),
   )
 }
 
@@ -156,8 +114,13 @@ export async function updateTag(
     "updateTag",
     { success: "tag:updated", failure: "tag:update_failed" },
     formData,
-    (data) => updateTagWithReorder(id, data),
-    id,
+    async ({ displayOrder, ...fields }) => {
+      // Un id invalide ne désigne aucun tag : même réponse qu'un tag supprimé, sous l'instrumentation de l'action.
+      const parsedId = tagIdSchema.safeParse(id)
+      return parsedId.success
+        ? updateTagRecord(parsedId.data, fields, displayOrder)
+        : fail({ code: "not_found" })
+    },
   )
 }
 
@@ -170,7 +133,7 @@ export async function deleteTag(id: string): Promise<TagDeleteState> {
     successLogFields: { id },
     exists: () => tagExists(id),
     destroy: () => deleteTagWithReorder(id),
-    invalidateCaches: invalidateTagCaches,
+    invalidateCaches: updateTagCaches,
     onSuccess: () => ({ ok: true, message: null }),
     mapError: (err) => (isPrismaError(err, "P2003") ? { ok: false, message: "tag_in_use" } : null),
     onUnknownError: () => ({ ok: false, message: "unknown_error" }),
@@ -205,7 +168,7 @@ export async function reorderTags(
 
       await prisma.$transaction(renumberTags(prisma.tag, result.data.orderedIds))
 
-      invalidateTagCaches()
+      updateTagCaches()
       log.info({
         event: "tag:reordered",
         kind: result.data.kind,

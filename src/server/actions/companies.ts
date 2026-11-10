@@ -22,7 +22,7 @@ import {
   type CompanyFieldsError,
   type CompanySummary,
 } from "@/server/crm/companies"
-import { fail, type DomainResult } from "@/server/crm/result"
+import { fail, type DomainResult } from "@/server/result"
 
 import {
   deleteEntity,

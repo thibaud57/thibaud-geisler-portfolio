@@ -30,7 +30,7 @@ import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 import { createLead as createLeadRecord, updateLead as updateLeadRecord } from "@/server/crm/leads"
 import type { PersonFieldsError } from "@/server/crm/person-write"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 
 import { createLead, deleteLead, updateLead } from "./leads"
 import { initialLeadFormState } from "./leads.types"

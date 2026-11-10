@@ -17,6 +17,10 @@ import {
   updateProspectingAction,
   type ProspectingActionWriteError,
 } from "@/server/crm/prospecting-actions"
+import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
+import { updateSchemaWithoutDetailsOf } from "@/server/mcp/update-input"
 import {
   findProspectingActionByIdForAdmin,
   findProspectingActionSearchRows,
@@ -25,13 +29,9 @@ import {
 
 import { dateRange } from "../date-range"
 import { withDays, ZONED_DAY, zonedDay } from "../day-fields"
-import { defineCrmEntity, joinHint } from "../entity-definition"
 import { optionalText } from "../fields"
 import { personRef } from "../person-ref"
 import { conflictMessage } from "../person-write-tool"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z
   .literal("prospecting-action")
@@ -155,18 +155,18 @@ function prospectingActionWriteErrorMessage(error: ProspectingActionWriteError):
     case "person_not_found":
       return "No person has this personId. Call crm_search with the entity lead to find the right id, then call the tool again."
     case "not_found":
-      return notFoundMessage("prospecting action")
+      return notFoundMessage("crm", "prospecting action")
     default:
       return assertNever(error)
   }
 }
 
 const WRITES = writeTexts(
-  { key: "prospecting_action", noun: "action" },
+  { prefix: "crm", key: "prospecting_action", noun: "action" },
   "Call crm_query with the personId filter to check whether it was created before retrying.",
 )
 
-export const prospectingActionEntity = defineCrmEntity({
+export const prospectingActionEntity = defineEntity({
   entity: "prospecting-action",
   docs: {
     search:

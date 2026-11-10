@@ -23,6 +23,10 @@ import {
   type SignalOwnerRef,
   type SignalWriteError,
 } from "@/server/crm/signals"
+import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
+import { updateSchemaWithoutDetailsOf } from "@/server/mcp/update-input"
 import {
   findSignalById,
   findSignalSearchRows,
@@ -32,11 +36,7 @@ import {
 
 import { dateColumnDay, withSignalDay } from "../day-fields"
 import { dateRange } from "../date-range"
-import { defineCrmEntity, joinHint } from "../entity-definition"
 import { personRef } from "../person-ref"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z.literal("signal").describe('Type of CRM record: always "signal" here.')
 
@@ -172,18 +172,18 @@ function signalWriteErrorMessage(error: SignalWriteError): string {
     case "company_not_found":
       return "No company has this companyId. Call crm_search with the entity company to find the right id, then call the tool again."
     case "not_found":
-      return notFoundMessage("signal")
+      return notFoundMessage("crm", "signal")
     default:
       return assertNever(error)
   }
 }
 
 const WRITES = writeTexts(
-  { key: "signal", noun: "signal" },
+  { prefix: "crm", key: "signal", noun: "signal" },
   "Call crm_query with the companyId or personId filter to check whether it was created before retrying.",
 )
 
-export const signalEntity = defineCrmEntity({
+export const signalEntity = defineEntity({
   entity: "signal",
   docs: {
     search: 'the type label and "company or lead · date" for a signal (found by its content)',

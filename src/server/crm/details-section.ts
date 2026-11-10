@@ -1,7 +1,7 @@
 import { assertNever } from "@/lib/assert-never"
 import { replaceDetailsSection } from "@/lib/crm/details-sections"
 
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 export interface DetailsSection {
   heading: string

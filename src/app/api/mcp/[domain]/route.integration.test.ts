@@ -1,6 +1,6 @@
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import { NextRequest } from "next/server"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 
 const { childLog } = vi.hoisted(() => {
   const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() }
@@ -203,27 +203,44 @@ describe("POST /api/mcp/[domain]", () => {
     expect(logged).not.toContain(key)
   })
 
-  it("serves tools/list with a valid key", async ({ onTestFinished }) => {
-    const { key } = await createKey()
+  it.each([
+    ["crm", "crm_fetch"],
+    ["portfolio", "portfolio_fetch"],
+  ])("serves %s tools/list to a key that carries the domain", async (domain, tool) => {
+    const { key } = await createKey({ permissions: { [domain]: ["read", "write"] } })
     const client = new Client(
       { name: "test", version: "1.0.0" },
       { versionNegotiation: { mode: "auto" } },
     )
     onTestFinished(() => client.close())
     await client.connect(
-      new StreamableHTTPClientTransport(new URL("http://localhost:3000/api/mcp/crm"), {
+      new StreamableHTTPClientTransport(new URL(`http://localhost:3000/api/mcp/${domain}`), {
         requestInit: { headers: { Authorization: `Bearer ${key}` } },
         fetch: (url, init) =>
           POST(new NextRequest(new Request(url, init)), {
-            params: Promise.resolve({ domain: "crm" }),
+            params: Promise.resolve({ domain }),
           }),
       }),
     )
 
     const { tools } = await client.listTools()
 
-    expect(tools.map((t) => t.name)).toContain("crm_fetch")
+    expect(tools.map((t) => t.name)).toContain(tool)
   })
+
+  it.each([
+    ["portfolio", { crm: ["read", "write"] }],
+    ["crm", { portfolio: ["read", "write"] }],
+  ])(
+    "answers 403 on /api/mcp/%s to a key limited to the other domain",
+    async (domain, permissions) => {
+      const { key } = await createKey({ permissions })
+
+      const res = await postMcp({ domain, headers: { Authorization: `Bearer ${key}` } })
+
+      expect(res.status).toBe(403)
+    },
+  )
 })
 
 describe("GET and DELETE /api/mcp/[domain]", () => {

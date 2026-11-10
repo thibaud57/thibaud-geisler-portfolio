@@ -87,8 +87,8 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
-- [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` sans clé → `401`
-- [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste (jamais écrite dans une commande) : `tools/list`, `crm_query` et `crm_fetch` sur chaque entité, refus sans écriture, `keyId` de la clé dans les `mcp:request` des logs (§ Logging). Détail : recette `verify`
+- [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` et `POST /api/mcp/portfolio` sans clé → `401`
+- [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste (jamais écrite dans une commande) : `tools/list`, `crm_query` et `crm_fetch` sur chaque entité, `portfolio_query` sur `tag`, refus sans écriture, `keyId` de la clé dans les `mcp:request` des logs (§ Logging). Détail : recette `verify`
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
@@ -396,7 +396,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | `BETTER_AUTH_SECRET` | En cas de compromission | Régénérer (`openssl rand -base64 32`) → Dokploy → Redeploy. Invalide toutes les sessions actives, la prochaine connexion les recrée |
 | `GOOGLE_CLIENT_SECRET` | En cas de compromission | Google Cloud Console → Credentials → régénérer le secret du client OAuth → recopier dans Dokploy → Redeploy |
 | `ADMIN_EMAIL` | En cas de changement du compte administrateur | Mettre à jour dans Dokploy → Redeploy. Le hook de whitelist n'autorise plus le précédent compte qu'à la prochaine tentative de création |
-| Clé d'API d'un client MCP (poste, `agent-os`) | En cas de compromission, ou à l'expiration choisie à la création | Créer la nouvelle clé depuis `/admin/cles-api` (valeur affichée une seule fois), la poser dans la configuration MCP du client, puis supprimer l'ancienne depuis la même page : la suppression la rend aussitôt invalide (`401`). Aucune variable d'environnement n'est en jeu |
+| Clé d'API d'un client MCP (poste, `agent-os`) | En cas de compromission, ou à l'expiration choisie à la création | Créer la nouvelle clé depuis `/admin/cles-api` (valeur affichée une seule fois), la poser dans la configuration MCP du client, puis supprimer l'ancienne depuis la même page : la suppression la rend aussitôt invalide (`401`). Aucune variable d'environnement n'est en jeu. Le domaine `portfolio` ne se coche que sur la clé du poste, jamais sur celle des jobs d'`agent-os` |
 
 ## Demandes RGPD
 

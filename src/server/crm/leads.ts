@@ -14,7 +14,7 @@ import {
   type PersonFieldsError,
   type PersonWriteError,
 } from "./person-write"
-import { ok, type DomainResult } from "./result"
+import { ok, type DomainResult } from "@/server/result"
 
 // L'admin passe le score, l'outil jamais.
 export type LeadWriteData = Omit<LeadInput, "score"> & { score?: LeadInput["score"] }

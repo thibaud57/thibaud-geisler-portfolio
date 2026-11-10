@@ -14,6 +14,7 @@ export const prospectingActionIdSchema = nonEmptyId().brand<"ProspectingActionId
 export const interviewIdSchema = nonEmptyId().brand<"InterviewId">()
 export const signalIdSchema = nonEmptyId().brand<"SignalId">()
 export const weeklyReviewIdSchema = nonEmptyId().brand<"WeeklyReviewId">()
+export const tagIdSchema = nonEmptyId().brand<"TagId">()
 
 export type PersonId = z.infer<typeof personIdSchema>
 export type CompanyId = z.infer<typeof companyIdSchema>
@@ -22,3 +23,4 @@ export type ProspectingActionId = z.infer<typeof prospectingActionIdSchema>
 export type InterviewId = z.infer<typeof interviewIdSchema>
 export type SignalId = z.infer<typeof signalIdSchema>
 export type WeeklyReviewId = z.infer<typeof weeklyReviewIdSchema>
+export type TagId = z.infer<typeof tagIdSchema>

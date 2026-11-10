@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma"
 import type { SignalInput } from "@/lib/schemas/signal"
 import { isPrismaError, isRowGone, rowExists, violatedConstraint } from "@/lib/server-utils"
 
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 export type SignalWriteData = SignalInput
 

@@ -13,7 +13,7 @@ import type { ProspectingActionInput } from "@/lib/schemas/prospecting-action"
 import { isPrismaError } from "@/lib/server-utils"
 
 import { PersonConflictError, type PersonConflict } from "./person-guards"
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 // La date de réponse reste facultative : la règle de statut la pose ou l'efface.
 export type ProspectingActionWriteData = Omit<ProspectingActionInput, "respondedAt"> & {

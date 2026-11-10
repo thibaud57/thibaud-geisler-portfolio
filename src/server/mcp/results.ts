@@ -1,10 +1,10 @@
 import "server-only"
 import type { CallToolResult } from "@modelcontextprotocol/server"
+import { revalidateTag } from "next/cache"
 
-import { assertNever } from "@/lib/assert-never"
 import { zonedIsoInstant } from "@/lib/date-time"
-import type { DetailsSectionError } from "@/server/crm/details-section"
-import type { DomainResult } from "@/server/crm/result"
+import type { McpDomain } from "@/lib/mcp-domains"
+import type { DomainResult } from "@/server/result"
 import type { McpLogger } from "@/server/mcp/logger"
 
 // `this[key]` garde la `Date`, que `toJSON` a déjà changée en chaîne UTC.
@@ -17,23 +17,17 @@ export function toolJson(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value, parisInstant) }] }
 }
 
+// Une écriture d'outil tourne dans un route handler : seul `revalidateTag(tag, "max")` y est permis (`updateTag` est réservé aux Server Actions).
+export const revalidateTagMax = (tag: string): void => {
+  revalidateTag(tag, "max")
+}
+
 export function toolError(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true }
 }
 
-export const notFoundMessage = (noun: string): string =>
-  `No ${noun} has this id. Call crm_search to find the right id, then call the tool again.`
-
-export function detailsErrorMessage(error: DetailsSectionError, noun: string): string {
-  switch (error.code) {
-    case "no_details":
-      return `This ${noun} has no Details text, so no section can be replaced. Write the whole text with fields.details instead.`
-    case "section_not_found":
-      return `No section of the Details matches detailsSection.heading. Sections present: ${error.headings.join(", ")}. Use one of these titles.`
-    default:
-      return assertNever(error)
-  }
-}
+export const notFoundMessage = (prefix: McpDomain, noun: string): string =>
+  `No ${noun} has this id. Call ${prefix}_search to find the right id, then call the tool again.`
 
 // Les textes d'une écriture : événements de log et message rendu à l'agent quand l'opération échoue.
 export interface WriteTexts {
@@ -43,7 +37,12 @@ export interface WriteTexts {
 
 // Un create n'a pas d'id à relire : `createCheck` dit comment vérifier que l'enregistrement existe déjà avant de réessayer.
 export function writeTexts(
-  { key, noun, pronoun = "its" }: { key: string; noun: string; pronoun?: "its" | "their" },
+  {
+    prefix,
+    key,
+    noun,
+    pronoun = "its",
+  }: { prefix: McpDomain; key: string; noun: string; pronoun?: "its" | "their" },
   createCheck: string,
 ): { create: WriteTexts; update: WriteTexts } {
   const unsaved = `The ${noun} could not be saved because of an internal error.`
@@ -54,7 +53,7 @@ export function writeTexts(
     },
     update: {
       events: { success: `${key}:updated`, failure: `${key}:update_failed` },
-      failureMessage: `${unsaved} Call crm_fetch to check ${pronoun} current state before retrying.`,
+      failureMessage: `${unsaved} Call ${prefix}_fetch to check ${pronoun} current state before retrying.`,
     },
   }
 }

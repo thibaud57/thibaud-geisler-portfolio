@@ -1,5 +1,3 @@
-import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { createMcpHandler, type McpHttpHandler } from "@modelcontextprotocol/server"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
@@ -26,6 +24,7 @@ import {
   leadDetailsTemplate,
   OPPORTUNITY_DETAILS_TEMPLATE,
 } from "@/lib/crm/details-templates"
+import { jsonOf, textOf, setupMcpSession } from "@/lib/mcp-test-setup"
 import {
   CLOSED_WEEK_COUNTS,
   CLOSED_WEEK_FRIDAY,
@@ -48,52 +47,18 @@ import {
   type CompanyIconFailure,
 } from "@/server/company-logo/fetch-company-logo"
 import { CRM_ENTITY_NAMES } from "@/server/mcp/crm/registry"
-import { buildServer } from "@/server/mcp/server"
 
-const authInfo = {
-  token: "tgp_test",
-  clientId: "key-1",
-  scopes: ["read", "write"],
-  extra: { requestId: "req-1", ipHash: "abcd1234" },
-}
-
-let handler: McpHttpHandler
-let client: Client
+const { client, call } = setupMcpSession("crm")
 
 beforeEach(async () => {
   await resetDatabase()
-  // Un handler par test : handler.close() est définitif
-  handler = createMcpHandler(() => buildServer("crm"))
-  client = new Client({ name: "test", version: "1.0.0" }, { versionNegotiation: { mode: "auto" } })
-  await client.connect(
-    new StreamableHTTPClientTransport(new URL("http://test.invalid/mcp"), {
-      fetch: (url, init) => handler.fetch(new Request(url, init), { authInfo }),
-    }),
-  )
 })
 
-afterEach(async () => {
-  await client.close()
-  await handler.close()
+afterEach(() => {
   vi.restoreAllMocks()
 })
 
-type ToolResult = Awaited<ReturnType<Client["callTool"]>>
-
-function textOf(result: ToolResult): string {
-  const [block] = result.content
-  return block?.type === "text" ? block.text : ""
-}
-
-function jsonOf(result: ToolResult): unknown {
-  return JSON.parse(textOf(result))
-}
-
 const searchBodySchema = z.object({ results: z.array(z.unknown()) })
-
-function call(name: string, args: Record<string, unknown>) {
-  return client.callTool({ name, arguments: args })
-}
 
 function seedNumberedCompanies(count: number, activeCount: number) {
   const data: Prisma.CompanyCreateManyInput[] = Array.from({ length: count }, (_, index) => {
@@ -119,7 +84,7 @@ const branchesSchema = z.looseObject({ anyOf: z.array(z.looseObject({ title: z.s
 
 describe("tools/list", () => {
   it("lists the generic tools and the logo tool with their hints", async () => {
-    const { tools } = await client.listTools()
+    const { tools } = await client().listTools()
 
     const hints = Object.fromEntries(tools.map((tool) => [tool.name, tool.annotations]))
     expect(Object.keys(hints).sort()).toEqual([
@@ -141,7 +106,7 @@ describe("tools/list", () => {
   it.each(["crm_fetch", "crm_query", "crm_create", "crm_update"])(
     "gives %s a flat input schema whose entity lists every entity",
     async (name) => {
-      const { tools } = await client.listTools()
+      const { tools } = await client().listTools()
 
       const inputSchema = tools.find((tool) => tool.name === name)?.inputSchema
       expect(inputSchema).not.toHaveProperty("oneOf")
@@ -155,7 +120,7 @@ describe("tools/list", () => {
     { name: "crm_create", part: "data" },
     { name: "crm_update", part: "fields" },
   ])("describes the $part of $name with one branch per entity", async ({ name, part }) => {
-    const { tools } = await client.listTools()
+    const { tools } = await client().listTools()
 
     const properties = entityEnumSchema.parse(
       tools.find((tool) => tool.name === name)?.inputSchema,
@@ -167,7 +132,7 @@ describe("tools/list", () => {
 
   // Contrat vu par l'agent : un écart de ce fichier est un changement visible, à relire avant de le valider.
   it("keeps the tool list the agent sees", async () => {
-    const { tools } = await client.listTools()
+    const { tools } = await client().listTools()
 
     const contract = tools.map(({ name, title, description, inputSchema, annotations }) => ({
       name,
@@ -182,7 +147,7 @@ describe("tools/list", () => {
   })
 
   it("names every entity in the server instructions", () => {
-    const instructions = client.getInstructions() ?? ""
+    const instructions = client().getInstructions() ?? ""
 
     expect(CRM_ENTITY_NAMES.filter((entity) => !instructions.includes(entity))).toEqual([])
   })

@@ -1,0 +1,458 @@
+[
+  {
+    "name": "portfolio_search",
+    "title": "Search portfolio records by name",
+    "description": "Find portfolio records by an approximate name, case and accents ignored. Call this first: portfolio_fetch and portfolio_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: the slug for a tag.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name or part of the name, case and accents ignored (e.g. \"societe acm\")."
+        },
+        "entities": {
+          "description": "Record types to search. All by default.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tag"
+            ]
+          }
+        },
+        "limit": {
+          "default": 10,
+          "description": "Maximum hits, 1 to 50. Defaults to 10.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "portfolio_fetch",
+    "title": "Fetch a portfolio record",
+    "description": "Fetch one portfolio record by id, with its links. For a tag: its icon and the projects that carry it (id, slug, French title, status), with their count. Call portfolio_search first to get the id. Returns an error naming the id if nothing matches. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "tag"
+          ],
+          "description": "Type of portfolio record to fetch."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the record. Get it from portfolio_search first."
+        }
+      },
+      "required": [
+        "entity",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "portfolio_query",
+    "title": "List portfolio records with filters",
+    "description": "List portfolio records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all the tags of a category); use portfolio_search to find one record by name. Returns { rows, total }: summary rows (a tag: id, slug, French and English names, category, icon, updated date) and the total count before pagination. Page with offset. Tags sort by category in the order of the admin (expertise, AI, language, framework, database, infrastructure), then by display order. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "tag"
+          ],
+          "description": "Type of portfolio record to list."
+        },
+        "filters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "tag",
+              "description": "Filters.",
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "description": "Only this category.",
+                  "type": "string",
+                  "enum": [
+                    "LANGUAGE",
+                    "FRAMEWORK",
+                    "DATABASE",
+                    "INFRA",
+                    "AI",
+                    "EXPERTISE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "description": "Filters, all optional. The accepted filters depend on entity: use the branch titled with that entity."
+        },
+        "sort": {
+          "description": "Sort key. Defaults to name.",
+          "type": "string",
+          "enum": [
+            "name",
+            "createdAt",
+            "updatedAt"
+          ]
+        },
+        "order": {
+          "description": "Sort direction. Defaults to asc: for the name sort, asc follows the order of the admin.",
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "description": "Page size, 1 to 100. Defaults to 20.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "offset": {
+          "description": "Number of rows to skip. Defaults to 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "entity"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "portfolio_create",
+    "title": "Create a portfolio record",
+    "description": "Create a portfolio record. Call portfolio_search first to check it does not exist yet. For a tag, slug, nameFr, nameEn and kind are required, and the tag goes last in its category. Returns the id and the slug of the new record.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "tag"
+          ],
+          "description": "Type of portfolio record to create."
+        },
+        "data": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "tag",
+              "description": "Fields of the tag to create. Required: slug, nameFr, nameEn and kind.",
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Unique URL identifier, at most 60 characters: lowercase letters, digits and single hyphens (e.g. \"next-js\"). Trimmed and lowercased like in the admin. Fixed once created."
+                },
+                "nameFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "description": "French display name, at most 60 characters."
+                },
+                "nameEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "description": "English display name, at most 60 characters."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "LANGUAGE",
+                    "FRAMEWORK",
+                    "DATABASE",
+                    "INFRA",
+                    "AI",
+                    "EXPERTISE"
+                  ],
+                  "description": "Category of the tag: EXPERTISE, AI, LANGUAGE, FRAMEWORK, DATABASE or INFRA."
+                },
+                "icon": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "custom:remotion",
+                        "lucide:audio-waveform",
+                        "lucide:bot",
+                        "lucide:brain-circuit",
+                        "lucide:bug",
+                        "lucide:chevron-right",
+                        "lucide:clapperboard",
+                        "lucide:coffee",
+                        "lucide:database",
+                        "lucide:database-zap",
+                        "lucide:film",
+                        "lucide:ghost",
+                        "lucide:image",
+                        "lucide:laptop",
+                        "lucide:message-circle",
+                        "lucide:network",
+                        "lucide:plug",
+                        "lucide:scan-search",
+                        "lucide:shield-ban",
+                        "lucide:ship",
+                        "lucide:sparkles",
+                        "lucide:square-function",
+                        "lucide:workflow",
+                        "simple-icons:android",
+                        "simple-icons:angular",
+                        "simple-icons:anthropic",
+                        "simple-icons:apachekafka",
+                        "simple-icons:claude",
+                        "simple-icons:datadog",
+                        "simple-icons:docker",
+                        "simple-icons:elasticsearch",
+                        "simple-icons:express",
+                        "simple-icons:fastapi",
+                        "simple-icons:ffmpeg",
+                        "simple-icons:github",
+                        "simple-icons:githubactions",
+                        "simple-icons:google",
+                        "simple-icons:googlecloud",
+                        "simple-icons:googlegemini",
+                        "simple-icons:grafana",
+                        "simple-icons:kubernetes",
+                        "simple-icons:modelcontextprotocol",
+                        "simple-icons:mongodb",
+                        "simple-icons:n8n",
+                        "simple-icons:nestjs",
+                        "simple-icons:nextdotjs",
+                        "simple-icons:nodedotjs",
+                        "simple-icons:odoo",
+                        "simple-icons:openrouter",
+                        "simple-icons:perplexity",
+                        "simple-icons:php",
+                        "simple-icons:postgresql",
+                        "simple-icons:pydantic",
+                        "simple-icons:python",
+                        "simple-icons:qdrant",
+                        "simple-icons:react",
+                        "simple-icons:scala",
+                        "simple-icons:sentry",
+                        "simple-icons:sonarqubeserver",
+                        "simple-icons:spring",
+                        "simple-icons:springboot",
+                        "simple-icons:tauri",
+                        "simple-icons:traefikproxy",
+                        "simple-icons:typescript"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Icon key from the registry listed here. null means no icon (and clears it)."
+                }
+              },
+              "required": [
+                "slug",
+                "nameFr",
+                "nameEn",
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Fields of the new record. They depend on entity: use the branch titled with that entity."
+        }
+      },
+      "required": [
+        "entity",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "portfolio_update",
+    "title": "Update a portfolio record",
+    "description": "Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. A tag takes nameFr, nameEn, kind and icon: its slug is fixed at creation, and a new kind puts it last in that category. Returns the id and the slug.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "tag"
+          ],
+          "description": "Type of portfolio record to update."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the record. Get it from portfolio_search first."
+        },
+        "fields": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "tag",
+              "description": "Fields to change: nameFr, nameEn, kind, icon. A field left out stays unchanged, null clears the icon. A new kind puts the tag last in that category. The slug cannot change.",
+              "type": "object",
+              "properties": {
+                "nameFr": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "description": "French display name, at most 60 characters."
+                },
+                "nameEn": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "description": "English display name, at most 60 characters."
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "LANGUAGE",
+                    "FRAMEWORK",
+                    "DATABASE",
+                    "INFRA",
+                    "AI",
+                    "EXPERTISE"
+                  ],
+                  "description": "Category of the tag: EXPERTISE, AI, LANGUAGE, FRAMEWORK, DATABASE or INFRA."
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "custom:remotion",
+                        "lucide:audio-waveform",
+                        "lucide:bot",
+                        "lucide:brain-circuit",
+                        "lucide:bug",
+                        "lucide:chevron-right",
+                        "lucide:clapperboard",
+                        "lucide:coffee",
+                        "lucide:database",
+                        "lucide:database-zap",
+                        "lucide:film",
+                        "lucide:ghost",
+                        "lucide:image",
+                        "lucide:laptop",
+                        "lucide:message-circle",
+                        "lucide:network",
+                        "lucide:plug",
+                        "lucide:scan-search",
+                        "lucide:shield-ban",
+                        "lucide:ship",
+                        "lucide:sparkles",
+                        "lucide:square-function",
+                        "lucide:workflow",
+                        "simple-icons:android",
+                        "simple-icons:angular",
+                        "simple-icons:anthropic",
+                        "simple-icons:apachekafka",
+                        "simple-icons:claude",
+                        "simple-icons:datadog",
+                        "simple-icons:docker",
+                        "simple-icons:elasticsearch",
+                        "simple-icons:express",
+                        "simple-icons:fastapi",
+                        "simple-icons:ffmpeg",
+                        "simple-icons:github",
+                        "simple-icons:githubactions",
+                        "simple-icons:google",
+                        "simple-icons:googlecloud",
+                        "simple-icons:googlegemini",
+                        "simple-icons:grafana",
+                        "simple-icons:kubernetes",
+                        "simple-icons:modelcontextprotocol",
+                        "simple-icons:mongodb",
+                        "simple-icons:n8n",
+                        "simple-icons:nestjs",
+                        "simple-icons:nextdotjs",
+                        "simple-icons:nodedotjs",
+                        "simple-icons:odoo",
+                        "simple-icons:openrouter",
+                        "simple-icons:perplexity",
+                        "simple-icons:php",
+                        "simple-icons:postgresql",
+                        "simple-icons:pydantic",
+                        "simple-icons:python",
+                        "simple-icons:qdrant",
+                        "simple-icons:react",
+                        "simple-icons:scala",
+                        "simple-icons:sentry",
+                        "simple-icons:sonarqubeserver",
+                        "simple-icons:spring",
+                        "simple-icons:springboot",
+                        "simple-icons:tauri",
+                        "simple-icons:traefikproxy",
+                        "simple-icons:typescript"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Icon key from the registry listed here. null means no icon (and clears it)."
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "description": "Fields to change. They depend on entity: use the branch titled with that entity. A field left out stays unchanged, null clears an optional field."
+        }
+      },
+      "required": [
+        "entity",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "idempotentHint": true
+    }
+  }
+]

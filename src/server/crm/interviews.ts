@@ -12,7 +12,7 @@ import {
   type DetailsSectionError,
 } from "./details-section"
 import { assertNewIdentity, PersonConflictError, type PersonConflict } from "./person-guards"
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 // Les nouveaux correspondants ne servent qu'à l'admin : l'outil n'en expose pas.
 export type InterviewWriteData = Omit<InterviewInput, "newCorrespondents"> & {

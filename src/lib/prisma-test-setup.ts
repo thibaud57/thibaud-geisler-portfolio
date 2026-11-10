@@ -1,7 +1,7 @@
 import { onTestFinished, vi } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
+import { companyIdSchema, opportunityIdSchema, personIdSchema, tagIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
@@ -37,6 +37,12 @@ export function createProject(overrides: Partial<Prisma.ProjectCreateInput> = {}
       status: "PUBLISHED",
       ...overrides,
     },
+  })
+}
+
+export function seedTag(overrides: Partial<Prisma.TagUncheckedCreateInput> = {}) {
+  return prisma.tag.create({
+    data: { slug: "react", nameFr: "React", nameEn: "React", kind: "FRAMEWORK", ...overrides },
   })
 }
 
@@ -152,6 +158,8 @@ export async function seedClosedWeek(): Promise<void> {
 type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
 
 export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
+
+export const tagIdOf = (tag: { id: string }) => tagIdSchema.parse(tag.id)
 
 export const companyIdOf = (company: { id: string }) => companyIdSchema.parse(company.id)
 
