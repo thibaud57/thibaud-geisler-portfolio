@@ -88,6 +88,7 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
 - [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` sans clé → `401`
+- [ ] Smoke test MCP authentifié, sans écriture, avec la clé du poste (`CRM_API_KEY`, jamais en clair dans la commande) : `tools/list` rend les 6 outils, `crm_query` et `crm_fetch` répondent sur chaque entité, un id inconnu et un jour impossible rendent `isError` ; puis les `mcp:request` du test portent la `keyId` de la clé dans les logs (§ Logging)
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
 > **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.

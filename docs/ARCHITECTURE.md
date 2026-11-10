@@ -281,7 +281,7 @@ src/
 ### Services Externes (côté client)
 
 - **Calendly** : widget embed sur la page Contact, chargé conditionnellement via `react-calendly` uniquement après consentement de la catégorie `marketing` (CMP c15t, cf. section Conformité cookies)
-- **c15t Consent Manager** (`c15t`) : bannière + dialog de gestion des cookies, mode `offline` (état persisté côté client), i18n FR/EN synchronisé avec next-intl via `ConsentLanguageSync`
+- **c15t Consent Manager** (`c15t`) : bannière + dialog de gestion des cookies, mode `local` (état persisté côté client), i18n FR/EN synchronisé avec next-intl via `ConsentLanguageSync`
 
 ## 💻 Backend
 
@@ -541,7 +541,7 @@ Trois couches sur `/admin`. Le proxy Next.js oriente : sans cookie de session, r
 
 ### Conformité Cookies / RGPD
 
-Gestion du consentement via `c15t` (`ConsentProvider` monté dans `src/app/providers.tsx`). Catégories utilisées : `necessary` (toujours actif) et `marketing` (opt-in explicite). Mode `offline` : aucun appel à un backend c15t, l'état de consentement est persisté côté client.
+Gestion du consentement via `c15t` (`ConsentProvider` monté dans `src/app/providers.tsx`). Catégories utilisées : `necessary` (toujours actif) et `marketing` (opt-in explicite). Mode `local` (`local()` de `c15t/react`) : aucun appel à un backend c15t, l'état de consentement est persisté côté client.
 
 Flow de gating Calendly :
 
