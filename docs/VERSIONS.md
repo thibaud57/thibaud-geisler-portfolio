@@ -81,7 +81,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
-| Vitest | `5.1.0` | ✅ | `vite` est une peer obligatoire depuis la v5 (>= 6.4, résolu en `8.3.5`). `clearMocks: true` par défaut, `vi.mock` hors top-level lève une erreur. Les async Server Components ne sont pas testables en unit (E2E Playwright). `jsdom@31` (moteur CSS réécrit, canvas via `@napi-rs/canvas`, engines Node `^22.22.2 || ^24.15.0 || >=26.0.0`), `@testing-library/react 16.x`, `@testing-library/dom` `10.4.2` (peer déclarée, relevé le 29 octobre 2026), `@testing-library/jest-dom@7` |
+| Vitest | `5.1.0` | ✅ | `vite` est une peer obligatoire depuis la v5 (>= 6.4, résolu en `8.3.5`). `clearMocks: true` par défaut, `vi.mock` hors top-level lève une erreur. Les async Server Components ne sont pas testables en unit (E2E Playwright). `jsdom@31` (moteur CSS réécrit, canvas via `@napi-rs/canvas`, engines Node `^22.22.2 || ^24.15.0 || >=26.0.0`), `@testing-library/react 16.x`, `@testing-library/dom` `10.4.2` (peer déclarée, relevé le 29 octobre 2026), `@testing-library/jest-dom@7`. `@vitest/coverage-v8` a pour peer la version exacte de `vitest` (lue le 10 novembre 2026), les deux montent ensemble |
 | @vitejs/plugin-react | `6.3.0` | ✅ | Plugin documenté par Next 16 pour Vitest, transform Babel (pas SWC). Peer `vite ^8.0.0` |
 
 ## Base de données

@@ -11,7 +11,7 @@ paths:
 - Utiliser `useId()` pour les IDs d'accessibilité (`htmlFor`, `aria-describedby`), jamais pour des keys de listes
 - Brancher une Server Action par `useActionState` (de `react`) et lire l'état du formulaire par `useFormStatus` dans un **composant enfant** du `<form>`
 - Utiliser `useOptimistic` pour un retour d'interface immédiat, annulé automatiquement en cas d'échec
-- Placer `<ViewTransition>` (stable depuis React 19.3) dans chaque page ou dans un composant de page, jamais dans un layout : un layout persiste entre les navigations, `enter` et `exit` n'y déclenchent jamais. Garder la neutralisation par `prefers-reduced-motion`
+- Placer `<ViewTransition>` (stable depuis React 19.3) dans chaque page ou dans un composant de page, jamais dans un layout : un layout persiste entre les navigations, `enter` et `exit` n'y déclenchent jamais. Les pages passent par `PageShell`, qui pose `enter="page-fade" exit="page-fade"` (animation dans `src/app/globals.css`) ; la landing les pose elle-même. Garder la neutralisation par `prefers-reduced-motion`
 
 ## À éviter
 - `forwardRef` : inutile en React 19, forme legacy encore supportée dont la dépréciation est annoncée (codemod disponible)
