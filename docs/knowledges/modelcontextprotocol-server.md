@@ -161,6 +161,7 @@ async ({ id }) => {
 ### Points Importants
 
 - Un message d'erreur nomme la correction attendue : c'est le seul retour que le modèle reçoit pour réessayer
+- `McpServer` attrape l'exception du handler (`createToolError` dans le `catch` du handler `tools/call`, code 2.4.0, constaté le 2026-11-10) et la rend en `isError` avec son message, sans passer par `onerror` de `createMcpHandler` : aucune trace côté serveur. D'où une garde qui logge l'exception avant de rendre une erreur générique, sur chaque outil, lectures comprises (`guardTool`, `src/server/mcp/crm/results.ts`, règle : `.claude/rules/modelcontextprotocol-server/tools.md`)
 - La validation de `outputSchema` est sautée pour tout résultat `isError`
 - Des arguments qui ne passent pas `inputSchema` reviennent aussi en `isError: true` (« Input validation error: Invalid arguments for tool … ») sans que le handler soit appelé
 - Seule exception de protocole possible depuis un outil : `UrlElicitationRequiredError` (code -32042)
@@ -201,6 +202,7 @@ server.registerTool('sales_create', { description: 'Create a customer or a suppl
 - Claude Code réduit un `oneOf` racine à sa première branche : `entity` devient un `const` de la première entité et `required` est vidé (relevé le 2026-11-10 par une session Claude Code headless sur le serveur local, qui recopiait le schéma reçu). Un `anyOf` imbriqué dans une propriété est transmis tel quel
 - Les clés posées par `.meta()` sont fusionnées dans le JSON Schema annoncé (`~standard.jsonSchema` de Zod 4, appelé par le SDK au `tools/list`) : `anyOf` s'ajoute à côté de `type: "object"` de la propriété
 - La validation du SDK précède le handler et l'échec d'une union ne rend que « Invalid input » : laisser la partie propre à l'entité permissive pour le SDK (`z.looseObject({})`) et confier les erreurs au schéma strict de l'entité, qui nomme le champ fautif
+- Les champs racine sont parsés deux fois, par le SDK puis par le handler : ils restent idempotents, sans codec ni `transform` qui change le type. La partie d'entité en `looseObject` passe brute au SDK et n'est parsée qu'une fois, par l'entité : c'est là que se posent les codecs (dates)
 - Pas de valeur par défaut à la racine si elle varie selon l'entité (ex. un ordre de tri) : le SDK l'appliquerait avant le reparse et masquerait celle de l'entité
 - Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)). Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à sa conversion au `tools/list`
 - L'instruction du serveur (`new McpServer(info, { instructions })`) se tire du registre des entités : écrite à la main, elle reste figée sur les entités du premier jour

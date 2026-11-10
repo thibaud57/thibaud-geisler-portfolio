@@ -122,7 +122,7 @@ Couvre cinq entrées du registre des outils CRM, `opportunity`, `interview`, `pr
 ### Scénario 3 : action de prospection et opposition
 **GIVEN** un lead actif et un lead opposé le 2026-10-01
 **WHEN** un agent crée une action `DM_LINKEDIN` `A_FAIRE` pour chacun, puis passe la première en `REPONDU` par `crm_update` avec le seul champ `status`
-**THEN** la seconde création rend `isError` avec la date d'opposition et la première action reçoit les dates réglées par `applyStatusRules` (date de réponse posée, jour de l'action conservé)
+**THEN** la seconde création rend `isError` avec la date d'opposition et la première action reçoit les dates réglées par `applyStatusRules` (date de réponse posée, heure de l'envoi réel prise par l'action qui quitte `A_FAIRE`)
 
 ### Scénario 4 : signal mal rattaché
 **GIVEN** une entreprise et un lead `INBOUND`

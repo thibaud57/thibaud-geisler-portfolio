@@ -262,9 +262,10 @@ src/
 │   │                             # non exposés dans actions/_support/
 │   ├── assets/                   # Service d'un asset : validation de la clé, lecture R2, réponse
 │   ├── company-logo/             # Récupération du logo d'une entreprise depuis son site (fetch gardé)
-│   ├── crm/                      # Logique de domaine du CRM, sans cache ni FormData : une fonction par écriture,
-│   │                             # erreur attendue rendue en DomainResult (result.ts). Appelée par les Server Actions
-│   │                             # et par les outils MCP, la règle métier n'existe qu'ici
+│   ├── crm/                      # Logique de domaine du CRM, sans FormData : une fonction par écriture,
+│   │                             # erreur attendue rendue en DomainResult (result.ts), invalidation des caches par la
+│   │                             # primitive que l'adaptateur lui passe. Appelée par les Server Actions et par les
+│   │                             # outils MCP, la règle métier n'existe qu'ici
 │   └── mcp/                      # Serveur MCP des agents : chaîne de refus de la route, serveur par domaine, outils
 │       └── crm/                  # Outils du domaine crm : registre des entités (registry.ts), une définition par
 │                                 # entité (entities/), outils génériques crm_* (tools.ts)
