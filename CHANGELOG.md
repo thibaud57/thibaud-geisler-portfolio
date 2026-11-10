@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.2...v2.6.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **mcp:** dates des fiches liées et instants à l'heure de Paris, règles alignées sur l'admin ([#249](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/249)) ([5433505](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/5433505d0403ed15dbbf13f5f9f1ba7683bf7f1b))
+
 ## [2.6.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.1...v2.6.2) (2026-11-10)
 
 
