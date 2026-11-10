@@ -8,8 +8,6 @@ vi.mock("@/lib/logger", () => ({
 vi.mock("@/lib/prisma", () => {
   const prisma = {
     company: {
-      create: vi.fn(),
-      update: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
       findUnique: vi.fn(),
@@ -24,21 +22,33 @@ vi.mock("@/lib/prisma", () => {
   return { prisma }
 })
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/companies", async (orig) => ({
+  ...(await orig<typeof import("@/server/crm/companies")>()),
+  createCompany: vi.fn(),
+  updateCompany: vi.fn(),
+}))
 
 import { updateTag } from "next/cache"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
+import {
+  createCompany as createCompanyRecord,
+  updateCompany as updateCompanyRecord,
+} from "@/server/crm/companies"
+import { fail, ok } from "@/server/crm/result"
 import { createCompany, deleteCompany, updateCompany } from "./companies"
 import { initialCompanyFormState } from "./companies.types"
 
-const BASE_FIELDS = {
+const baseFields = () => ({
   slug: "acme",
   name: "Acme",
   size: NONE_VALUE,
   websiteUrl: "",
-}
+})
+
+const summary = () => ({ id: "c1", slug: "acme", name: "Acme" })
 
 function buildFormData(
   overrides: Record<string, string> = {},
@@ -47,7 +57,7 @@ function buildFormData(
 ): FormData {
   const submittedLists = { types: ["CLIENT_FINAL"], ...lists }
   const data = new FormData()
-  for (const [key, value] of Object.entries({ ...BASE_FIELDS, ...overrides })) {
+  for (const [key, value] of Object.entries({ ...baseFields(), ...overrides })) {
     data.set(key, value)
   }
   for (const sector of sectors) data.append("sectors", sector)
@@ -68,21 +78,19 @@ function withLegalEntity(overrides: Record<string, string> = {}): Record<string,
   }
 }
 
-const CRM_FIELDS = ["relationStatus", "notes", "details"] as const
-
 beforeEach(() => {
-  vi.mocked(prisma.company.create).mockResolvedValue({ id: "c1" } as never)
-  vi.mocked(prisma.company.update).mockResolvedValue({ id: "c1" } as never)
+  vi.mocked(createCompanyRecord).mockResolvedValue(ok(summary()))
+  vi.mocked(updateCompanyRecord).mockResolvedValue(ok(summary()))
   vi.mocked(prisma.company.findUnique).mockResolvedValue({ legalEntity: null } as never)
   vi.mocked(prisma.company.delete).mockResolvedValue({} as never)
 })
 
 describe("createCompany", () => {
-  it("rejects an empty slug without touching the database", async () => {
+  it("rejects an empty slug without calling the domain", async () => {
     const state = await createCompany(initialCompanyFormState, buildFormData({ slug: "" }))
 
     expect(state.errors.slug).toBeDefined()
-    expect(prisma.company.create).not.toHaveBeenCalled()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a malformed slug", async () => {
@@ -94,26 +102,20 @@ describe("createCompany", () => {
   it("normalizes the slug to lowercase", async () => {
     await createCompany(initialCompanyFormState, buildFormData({ slug: "Acme" }))
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ slug: "acme" }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ slug: "acme" }))
   })
 
   it("accepts an empty sectors list", async () => {
     const state = await createCompany(initialCompanyFormState, buildFormData({}, []))
 
     expect(state.ok).toBe(true)
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ sectors: [] }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ sectors: [] }))
   })
 
   it("keeps every submitted sector", async () => {
     await createCompany(initialCompanyFormState, buildFormData({}, ["SAAS", "FINTECH"]))
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ sectors: ["SAAS", "FINTECH"] }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ sectors: ["SAAS", "FINTECH"] }))
   })
 
   it.each([
@@ -122,27 +124,23 @@ describe("createCompany", () => {
   ])("stores %s as a null size", async (_label, size) => {
     await createCompany(initialCompanyFormState, buildFormData({ size }))
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ size: null }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ size: null }))
   })
 
   it.each(["pas-une-url", "javascript:alert(1)"])(
-    "rejects %s as a website url with a French message, without touching the database",
+    "rejects %s as a website url with a French message, without calling the domain",
     async (websiteUrl) => {
       const state = await createCompany(initialCompanyFormState, buildFormData({ websiteUrl }))
 
       expect(state.errors.websiteUrl).toEqual(["L'adresse du site n'est pas valide"])
-      expect(prisma.company.create).not.toHaveBeenCalled()
+      expect(createCompanyRecord).not.toHaveBeenCalled()
     },
   )
 
   it("stores an empty website url as null", async () => {
     await createCompany(initialCompanyFormState, buildFormData({ websiteUrl: "" }))
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ websiteUrl: null }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ websiteUrl: null }))
   })
 
   it("rejects a logo key outside the companies asset folder", async () => {
@@ -152,7 +150,7 @@ describe("createCompany", () => {
     )
 
     expect(state.errors.logoFilename).toBeDefined()
-    expect(prisma.company.create).not.toHaveBeenCalled()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("returns the submitted values on failure", async () => {
@@ -161,50 +159,70 @@ describe("createCompany", () => {
     expect(state.values?.name).toBe("Acme")
   })
 
-  it("invalidates the projects cache tag after a successful creation", async () => {
-    await createCompany(initialCompanyFormState, buildFormData())
+  it.each(["projects", "legal-entity"])(
+    "invalidates the %s cache tag after a successful creation",
+    async (tag) => {
+      await createCompany(initialCompanyFormState, buildFormData())
 
-    expect(updateTag).toHaveBeenCalledWith("projects")
-  })
+      expect(updateTag).toHaveBeenCalledWith(tag)
+    },
+  )
 
-  it("assigns a slug uniqueness violation to the slug field", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "Company_slug_key"),
-    )
+  it("assigns a slug uniqueness violation to the slug field, without invalidating", async () => {
+    vi.mocked(createCompanyRecord).mockResolvedValueOnce(fail({ code: "slug_taken" }))
 
     const state = await createCompany(initialCompanyFormState, buildFormData())
 
     expect(state.message).toBe("slug_taken")
     expect(state.errors.slug).toBeDefined()
+    expect(updateTag).not.toHaveBeenCalled()
   })
 
-  it("creates the legal entity with the company, with the company slug", async () => {
-    await createCompany(
-      initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityStatusKey: "SAS" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
+  it("maps a SIRET uniqueness violation to the SIRET field", async () => {
+    vi.mocked(createCompanyRecord).mockResolvedValueOnce(fail({ code: "siret_taken" }))
+
+    const state = await createCompany(initialCompanyFormState, buildFormData(withLegalEntity()))
+
+    expect(state.message).toBe("siret_taken")
+    expect(state.errors.legalEntitySiret).toBeDefined()
+    expect(state.errors.slug).toBeUndefined()
+  })
+
+  it("maps a legal entity slug collision to the legal name, without a form message", async () => {
+    vi.mocked(createCompanyRecord).mockResolvedValueOnce(fail({ code: "legal_entity_slug_taken" }))
+
+    const state = await createCompany(initialCompanyFormState, buildFormData(withLegalEntity()))
+
+    expect(state.message).toBeNull()
+    expect(state.errors.legalEntityName).toBeDefined()
+    expect(state.errors.slug).toBeUndefined()
+  })
+
+  it("answers unknown_error and keeps the typed values when the domain throws", async () => {
+    vi.mocked(createCompanyRecord).mockRejectedValueOnce(
+      constraintViolation("P2003", "Company_other_fkey"),
     )
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
+    const state = await createCompany(initialCompanyFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
+    expect(state.values?.name).toBe("Acme")
+  })
+
+  it("forwards the legal entity fields to the domain", async () => {
+    await createCompany(
+      initialCompanyFormState,
+      buildFormData(withLegalEntity({ legalEntityStatusKey: "SAS" })),
+    )
+
+    expect(createCompanyRecord).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            create: objectMatch({
-              slug: "acme",
-              name: "Acme SAS",
-              legalForm: "SAS",
-              address: {
-                create: {
-                  street: "1 rue de l'Exemple",
-                  postalCode: "75000",
-                  city: "Paris",
-                  country: "FR",
-                },
-              },
-            }),
-          },
-        }),
+        legalEntityName: "Acme SAS",
+        legalEntityStatusKey: "SAS",
+        legalEntityStreet: "1 rue de l'Exemple",
+        legalEntityPostalCode: "75000",
+        legalEntityCity: "Paris",
+        legalEntityCountry: "FR",
       }),
     )
   })
@@ -212,21 +230,17 @@ describe("createCompany", () => {
   it("rejects a legal entity without a name", async () => {
     const state = await createCompany(
       initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityName: "" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
+      buildFormData(withLegalEntity({ legalEntityName: "" })),
     )
 
     expect(state.errors.legalEntityName).toEqual(["La raison sociale est requise"])
-    expect(prisma.company.create).not.toHaveBeenCalled()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a SIRET that is not 14 digits", async () => {
     const state = await createCompany(
       initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntitySiret: "123 456 789 0123" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
+      buildFormData(withLegalEntity({ legalEntitySiret: "123 456 789 0123" })),
     )
 
     expect(state.errors.legalEntitySiret).toEqual(["Le SIRET compte 14 chiffres"])
@@ -235,17 +249,11 @@ describe("createCompany", () => {
   it("strips spaces from a SIRET", async () => {
     await createCompany(
       initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntitySiret: "111 222 333 00044" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
+      buildFormData(withLegalEntity({ legalEntitySiret: "111 222 333 00044" })),
     )
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: { create: objectMatch({ siret: "11122233300044" }) },
-        }),
-      }),
+    expect(createCompanyRecord).toHaveBeenCalledWith(
+      objectMatch({ legalEntitySiret: "11122233300044" }),
     )
   })
 
@@ -258,92 +266,13 @@ describe("createCompany", () => {
           legalEntityPostalCode: "",
           legalEntityCountry: "",
         }),
-        ["SAAS"],
-        { types: ["CLIENT_FINAL"] },
       ),
     )
 
     expect(state.errors.legalEntityStreet).toEqual(["Requis pour un siège complet"])
     expect(state.errors.legalEntityPostalCode).toBeDefined()
     expect(state.errors.legalEntityCountry).toBeDefined()
-    expect(prisma.company.create).not.toHaveBeenCalled()
-  })
-
-  it("ignores the RCS number when the registered office is in France", async () => {
-    await createCompany(
-      initialCompanyFormState,
-      buildFormData(
-        withLegalEntity({
-          legalEntityRcsNumber: "B123456",
-          legalEntityStreet: "1 rue de l'Exemple",
-          legalEntityPostalCode: "75000",
-          legalEntityCity: "Paris",
-          legalEntityCountry: "FR",
-        }),
-        ["SAAS"],
-        { types: ["CLIENT_FINAL"] },
-      ),
-    )
-
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({ legalEntity: { create: objectMatch({ rcsNumber: null }) } }),
-      }),
-    )
-  })
-
-  it("maps a SIRET uniqueness violation to the SIRET field", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "LegalEntity_siret_key"),
-    )
-
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntitySiret: "11122233300044" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
-    )
-
-    expect(state.message).toBe("siret_taken")
-    expect(state.errors.legalEntitySiret).toBeDefined()
-    expect(state.errors.slug).toBeUndefined()
-  })
-
-  it("maps a legal entity slug collision to the legal name", async () => {
-    vi.mocked(prisma.company.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "LegalEntity_slug_key"),
-    )
-
-    const state = await createCompany(
-      initialCompanyFormState,
-      buildFormData(withLegalEntity(), ["SAAS"], { types: ["CLIENT_FINAL"] }),
-    )
-
-    expect(state.errors.legalEntityName).toBeDefined()
-    expect(state.errors.slug).toBeUndefined()
-  })
-
-  it("defaults the capital currency to EUR when a capital is submitted without currency", async () => {
-    await createCompany(
-      initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityCapitalAmount: "10000" })),
-    )
-
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            create: objectMatch({ capitalAmount: 10000, capitalCurrency: "EUR" }),
-          },
-        }),
-      }),
-    )
-  })
-
-  it("invalidates the legal entity cache tag after a write", async () => {
-    await createCompany(initialCompanyFormState, buildFormData())
-
-    expect(updateTag).toHaveBeenCalledWith("legal-entity")
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a call without a session, before any validation", async () => {
@@ -351,7 +280,7 @@ describe("createCompany", () => {
 
     await expect(createCompany(initialCompanyFormState, buildFormData())).rejects.toThrow()
 
-    expect(prisma.company.create).not.toHaveBeenCalled()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a form that submits no type", async () => {
@@ -361,10 +290,10 @@ describe("createCompany", () => {
     )
 
     expect(state.errors.types).toEqual(["Sélectionne au moins un type"])
-    expect(prisma.company.create).not.toHaveBeenCalled()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
-  it("stores the submitted types, zones, relation status, notes and details, with zones sorted into canonical order", async () => {
+  it("forwards the submitted types, zones, relation status, notes and details, with zones sorted into canonical order", async () => {
     await createCompany(
       initialCompanyFormState,
       buildFormData(
@@ -378,15 +307,13 @@ describe("createCompany", () => {
       ),
     )
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
+    expect(createCompanyRecord).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({
-          types: ["CLIENT_FINAL", "PARTENAIRE"],
-          zones: ["PARIS", "LUXEMBOURG"],
-          relationStatus: "DORMANTE",
-          notes: "Rencontrée au salon",
-          details: "# 🏢 À propos\n\nÉditeur de logiciels.",
-        }),
+        types: ["CLIENT_FINAL", "PARTENAIRE"],
+        zones: ["PARIS", "LUXEMBOURG"],
+        relationStatus: "DORMANTE",
+        notes: "Rencontrée au salon",
+        details: "# 🏢 À propos\n\nÉditeur de logiciels.",
       }),
     )
   })
@@ -394,56 +321,40 @@ describe("createCompany", () => {
   it("rejects notes longer than 200 characters", async () => {
     const state = await createCompany(
       initialCompanyFormState,
-      buildFormData({ notes: "a".repeat(201) }, ["SAAS"], { types: ["CLIENT_FINAL"] }),
+      buildFormData({ notes: "a".repeat(201) }),
     )
 
     expect(state.errors.notes).toEqual([
       "Les notes tiennent sur une ligne (200 caractères au plus)",
     ])
-    expect(prisma.company.create).not.toHaveBeenCalled()
-  })
-
-  it("leaves the relation status to the database default when the field is absent", async () => {
-    await createCompany(initialCompanyFormState, buildFormData())
-
-    const data = vi.mocked(prisma.company.create).mock.calls[0]?.[0]?.data as Record<
-      string,
-      unknown
-    >
-    expect(data["relationStatus"]).toBeUndefined()
+    expect(createCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("stores empty notes and details as null", async () => {
-    await createCompany(
-      initialCompanyFormState,
-      buildFormData({ notes: "   ", details: "   " }, ["SAAS"], { types: ["CLIENT_FINAL"] }),
-    )
+    await createCompany(initialCompanyFormState, buildFormData({ notes: "   ", details: "   " }))
 
-    expect(prisma.company.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ notes: null, details: null }) }),
-    )
+    expect(createCompanyRecord).toHaveBeenCalledWith(objectMatch({ notes: null, details: null }))
   })
 })
 
 describe("updateCompany", () => {
-  it("targets the company by its id", async () => {
+  it("forwards the parsed fields to the domain, targeting the company by its id", async () => {
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
-    expect(prisma.company.update).toHaveBeenCalledWith(objectMatch({ where: { id: "c1" } }))
+    expect(updateCompanyRecord).toHaveBeenCalledWith("c1", {
+      kind: "fields",
+      fields: objectMatch({ slug: "acme", name: "Acme" }),
+    })
   })
 
-  it("keeps the submitted logo key instead of clearing it", async () => {
-    await updateCompany(
-      "c1",
-      initialCompanyFormState,
-      buildFormData({ logoFilename: "freelance/crm/entreprises/acme/logo.png" }),
-    )
+  it("answers company_not_found and purges the caches, without calling the domain, for an invalid id", async () => {
+    const state = await updateCompany("  ", initialCompanyFormState, buildFormData())
 
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({ logoFilename: "freelance/crm/entreprises/acme/logo.png" }),
-      }),
-    )
+    expect(state).toMatchObject({ ok: false, message: "company_not_found" })
+    expect(state.values?.name).toBe("Acme")
+    expect(updateCompanyRecord).not.toHaveBeenCalled()
+    expect(updateTag).toHaveBeenCalledWith("projects")
+    expect(updateTag).toHaveBeenCalledWith("legal-entity")
   })
 
   it("invalidates the projects cache tag after a successful update", async () => {
@@ -456,7 +367,7 @@ describe("updateCompany", () => {
     const state = await updateCompany("c1", initialCompanyFormState, buildFormData({ slug: "" }))
 
     expect(state.errors.slug).toBeDefined()
-    expect(prisma.company.update).not.toHaveBeenCalled()
+    expect(updateCompanyRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a call without a session, before any validation", async () => {
@@ -464,51 +375,31 @@ describe("updateCompany", () => {
 
     await expect(updateCompany("c1", initialCompanyFormState, buildFormData())).rejects.toThrow()
 
-    expect(prisma.company.update).not.toHaveBeenCalled()
+    expect(updateCompanyRecord).not.toHaveBeenCalled()
   })
 
-  it("leaves the optional CRM fields untouched when the form does not send them", async () => {
+  it("forwards no CRM or legal entity field the form does not send", async () => {
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
-    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
-      string,
-      unknown
-    >
-    for (const field of CRM_FIELDS) expect(data[field]).toBeUndefined()
+    const [, patch] = vi.mocked(updateCompanyRecord).mock.calls[0] ?? []
+    expect(patch?.fields).toMatchObject({
+      relationStatus: undefined,
+      notes: undefined,
+      details: undefined,
+      legalEntityName: undefined,
+    })
   })
 
-  it("clears the zones when the form submits none", async () => {
+  it("forwards an empty zones list when the form submits none", async () => {
     await updateCompany("c1", initialCompanyFormState, buildFormData())
 
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ zones: [] }) }),
-    )
+    expect(updateCompanyRecord).toHaveBeenCalledWith("c1", {
+      kind: "fields",
+      fields: objectMatch({ zones: [] }),
+    })
   })
 
-  it("upserts the legal entity on update", async () => {
-    await updateCompany(
-      "c1",
-      initialCompanyFormState,
-      buildFormData(withLegalEntity({ legalEntityPhone: "+33 3 00 00 00 00" }), ["SAAS"], {
-        types: ["CLIENT_FINAL"],
-      }),
-    )
-
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            upsert: {
-              create: objectMatch({ slug: "acme", phone: "+33 3 00 00 00 00" }),
-              update: objectMatch({ phone: "+33 3 00 00 00 00" }),
-            },
-          },
-        }),
-      }),
-    )
-  })
-
-  it("clears the capital currency when the capital is emptied", async () => {
+  it("forwards an emptied capital as null", async () => {
     await updateCompany(
       "c1",
       initialCompanyFormState,
@@ -517,34 +408,13 @@ describe("updateCompany", () => {
       ),
     )
 
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            upsert: objectMatch({
-              update: objectMatch({ capitalAmount: null, capitalCurrency: null }),
-            }),
-          },
-        }),
-      }),
-    )
+    expect(updateCompanyRecord).toHaveBeenCalledWith("c1", {
+      kind: "fields",
+      fields: objectMatch({ legalEntityCapitalAmount: null }),
+    })
   })
 
-  it("leaves the legal entity untouched when the form does not send it", async () => {
-    await updateCompany("c1", initialCompanyFormState, buildFormData())
-
-    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
-      string,
-      unknown
-    >
-    expect(data["legalEntity"]).toBeUndefined()
-  })
-
-  it("writes the vat liability date and regime on the publisher when the entity has one", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: { addressId: null, publisher: { id: "pub1" } },
-    } as never)
-
+  it("forwards the VAT liability date and regime", async () => {
     await updateCompany(
       "c1",
       initialCompanyFormState,
@@ -554,76 +424,26 @@ describe("updateCompany", () => {
           legalEntityVatRegime: "REEL_SIMPLIFIE",
           legalEntityVatNumber: "FR00000000000",
         }),
-        ["SAAS"],
-        { types: ["CLIENT_FINAL"] },
       ),
     )
 
-    expect(prisma.company.update).toHaveBeenCalledWith(
-      objectMatch({
-        data: objectMatch({
-          legalEntity: {
-            upsert: objectMatch({
-              update: objectMatch({
-                publisher: {
-                  update: { vatRegime: "REEL_SIMPLIFIE", vatLiableSince: new Date("2026-01-01") },
-                },
-              }),
-            }),
-          },
-        }),
+    expect(updateCompanyRecord).toHaveBeenCalledWith("c1", {
+      kind: "fields",
+      fields: objectMatch({
+        legalEntityVatLiableSince: new Date("2026-01-01"),
+        legalEntityVatRegime: "REEL_SIMPLIFIE",
       }),
-    )
+    })
   })
 
-  it("leaves the publisher VAT fields untouched when the form omits them", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: { addressId: null, publisher: { id: "pub1" } },
-    } as never)
+  it("assigns a slug uniqueness violation to the slug field", async () => {
+    vi.mocked(updateCompanyRecord).mockResolvedValueOnce(fail({ code: "slug_taken" }))
 
-    await updateCompany(
-      "c1",
-      initialCompanyFormState,
-      buildFormData(withLegalEntity(), ["SAAS"], { types: ["CLIENT_FINAL"] }),
-    )
+    const state = await updateCompany("c1", initialCompanyFormState, buildFormData())
 
-    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
-      string,
-      unknown
-    >
-    const legalEntity = data["legalEntity"] as {
-      upsert: { update: { publisher: { update: Record<string, unknown> } } }
-    }
-    const publisherUpdate = legalEntity.upsert.update.publisher.update
-    expect(publisherUpdate["vatRegime"]).toBeUndefined()
-    expect(publisherUpdate["vatLiableSince"]).toBeUndefined()
-  })
-
-  it("ignores vat fields when the entity has no publisher", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: { addressId: null, publisher: null },
-    } as never)
-
-    await updateCompany(
-      "c1",
-      initialCompanyFormState,
-      buildFormData(
-        withLegalEntity({
-          legalEntityVatLiableSince: "2026-01-01",
-          legalEntityVatRegime: "REEL_SIMPLIFIE",
-          legalEntityVatNumber: "FR00000000000",
-        }),
-        ["SAAS"],
-        { types: ["CLIENT_FINAL"] },
-      ),
-    )
-
-    const data = vi.mocked(prisma.company.update).mock.calls[0]?.[0]?.data as Record<
-      string,
-      unknown
-    >
-    const legalEntity = data["legalEntity"] as { upsert: { update: Record<string, unknown> } }
-    expect(legalEntity.upsert.update["publisher"]).toBeUndefined()
+    expect(state.message).toBe("slug_taken")
+    expect(state.errors.slug).toBeDefined()
+    expect(updateTag).not.toHaveBeenCalled()
   })
 })
 
@@ -647,31 +467,12 @@ describe("deleteCompany", () => {
     expect(prisma.address.delete).toHaveBeenCalledWith({ where: { id: "a1" } })
   })
 
-  it("only detaches a legal entity used as publisher or processor", async () => {
+  it.each([
+    ["publisher", { publisher: { id: "p1" }, _count: { processings: 0 } }],
+    ["processor", { publisher: null, _count: { processings: 1 } }],
+  ])("only detaches a legal entity used as %s", async (_role, usage) => {
     vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: {
-        id: "le1",
-        addressId: "a1",
-        publisher: { id: "p1" },
-        _count: { processings: 0 },
-      },
-    } as never)
-
-    await deleteCompany("c1")
-
-    expect(prisma.company.delete).toHaveBeenCalled()
-    expect(prisma.legalEntity.delete).not.toHaveBeenCalled()
-    expect(prisma.address.delete).not.toHaveBeenCalled()
-  })
-
-  it("only detaches a legal entity used as processor", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValueOnce({
-      legalEntity: {
-        id: "le1",
-        addressId: "a1",
-        publisher: null,
-        _count: { processings: 1 },
-      },
+      legalEntity: { id: "le1", addressId: "a1", ...usage },
     } as never)
 
     await deleteCompany("c1")
@@ -701,20 +502,20 @@ describe("deleteCompany", () => {
 })
 
 describe("company deleted since the screen loaded", () => {
-  it("answers an update with company_not_found and keeps the typed values", async () => {
-    vi.mocked(prisma.company.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.company.count).mockResolvedValueOnce(0)
+  it("answers an update with company_not_found, keeps the typed values and purges the caches", async () => {
+    vi.mocked(updateCompanyRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await updateCompany("c1", initialCompanyFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("company_not_found")
     expect(state.values?.name).toBe("Acme")
+    expect(updateTag).toHaveBeenCalledWith("projects")
+    expect(updateTag).toHaveBeenCalledWith("legal-entity")
   })
 
-  it("answers an update with unknown_error when the company still exists", async () => {
-    vi.mocked(prisma.company.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.company.count).mockResolvedValueOnce(1)
+  it("answers an update with unknown_error when the domain throws", async () => {
+    vi.mocked(updateCompanyRecord).mockRejectedValueOnce({ code: "P2025" })
 
     const state = await updateCompany("c1", initialCompanyFormState, buildFormData())
 

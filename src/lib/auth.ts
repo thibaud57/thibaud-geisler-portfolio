@@ -1,4 +1,5 @@
 import "server-only"
+import { apiKey } from "@better-auth/api-key"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { APIError } from "better-auth/api"
@@ -41,5 +42,12 @@ export const auth = betterAuth({
       },
     },
   },
-  plugins: [nextCookies()],
+  plugins: [
+    // Compteur cumulatif par clé, remis à zéro après une heure sans requête acceptée : il arrête un agent qui boucle (spec outils-de-l-app-pour-les-agents/01)
+    apiKey({
+      defaultPrefix: "tgp_",
+      rateLimit: { enabled: true, timeWindow: 3_600_000, maxRequests: 1000 },
+    }),
+    nextCookies(),
+  ],
 })

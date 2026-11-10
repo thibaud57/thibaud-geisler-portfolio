@@ -8,7 +8,7 @@ import { SENT_STATUS_WHERE } from "@/lib/crm/prospecting-action-status"
 import { prisma } from "@/lib/prisma"
 import type { Prisma } from "@/generated/prisma/client"
 import { opportunitySummarySelect } from "@/server/queries/opportunities"
-import { personNameOrder } from "@/server/queries/persons"
+import { type PageQuery, personNameOrder } from "@/server/queries/persons"
 import { signalsInclude } from "@/server/queries/signals"
 
 const legalEntityInclude = { legalEntity: { include: { address: true, publisher: true } } } as const
@@ -183,6 +183,53 @@ export async function findCompanyByIdForAdmin(id: string) {
     where: { id },
     include: adminCompanyInclude,
   })
+}
+
+// Fiche pour les outils des agents : les personnes y sont réduites à ce qui les nomme et à leurs rôles.
+const toolCompanyInclude = {
+  ...adminCompanyInclude,
+  persons: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      linkedinUrl: true,
+      lead: { select: { personId: true } },
+      contact: { select: { personId: true } },
+    },
+    orderBy: personNameOrder,
+  },
+} as const
+
+export async function findCompanyWithLinks(id: string) {
+  return prisma.company.findUnique({ where: { id }, include: toolCompanyInclude })
+}
+
+export async function findCompanyNames() {
+  return prisma.company.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
+  })
+}
+
+const companyRowSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  relationStatus: true,
+  types: true,
+  zones: true,
+  updatedAt: true,
+} as const
+
+export async function findCompaniesPage(
+  page: PageQuery<Prisma.CompanyWhereInput, Prisma.CompanyOrderByWithRelationInput>,
+) {
+  const [rows, total] = await prisma.$transaction([
+    prisma.company.findMany({ ...page, select: companyRowSelect }),
+    prisma.company.count({ where: page.where }),
+  ])
+  return { rows, total }
 }
 
 export type AdminCompanyDetail = NonNullable<Awaited<ReturnType<typeof findCompanyByIdForAdmin>>>

@@ -31,6 +31,18 @@ export function isPrismaError(err: unknown, code: PrismaErrorCode): boolean {
   return typeof err === "object" && err !== null && "code" in err && err.code === code
 }
 
+export async function rowExists<TWhere>(
+  delegate: { count: (args: { where: TWhere }) => Promise<number> },
+  where: TWhere,
+): Promise<boolean> {
+  return (await delegate.count({ where })) > 0
+}
+
+// Un P2025 vient aussi d'une instruction voisine (rattachement ou fiche liée absente) : seule l'absence réelle de la ligne vaut « supprimée ».
+export async function isRowGone(err: unknown, exists: () => Promise<boolean>): Promise<boolean> {
+  return isPrismaError(err, "P2025") && !(await exists())
+}
+
 const DriverConstraintError = z
   .object({
     meta: z.object({

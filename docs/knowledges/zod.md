@@ -2,7 +2,7 @@
 title: "Zod : Validation & Inference"
 version: "4.6.7"
 description: "Référence technique pour Zod v4 : schémas, safeParse, inference TS et intégration Server Actions."
-date: "2026-10-03"
+date: "2026-11-10"
 keywords: ["zod", "validation", "typescript", "server-action", "form"]
 scope: ["docs"]
 technologies: ["TypeScript", "Next.js", "React"]
@@ -196,6 +196,36 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 
 ---
 
+## Codecs
+
+### Description
+
+`z.codec(entrée, sortie, { decode, encode })` relie deux schémas par une conversion aller-retour typée (ex. un jour `YYYY-MM-DD` et une `Date`). `parse` applique `decode`, `z.encode` applique `encode` pour resérialiser. Un `.transform()` n'a pas de retour : le codec convient quand la valeur doit ressortir sous sa forme d'entrée. L'usage dans les outils MCP est dans `.claude/rules/modelcontextprotocol-server/tools.md`.
+
+### Exemple
+
+```ts
+const DayCodec = z.codec(z.iso.date(), z.date(), {
+  decode: (day) => new Date(`${day}T00:00:00Z`),
+  encode: (date) => date.toISOString().slice(0, 10),
+})
+
+DayCodec.parse('2026-02-03')                 // Date
+z.encode(DayCodec, new Date('2026-02-03'))   // '2026-02-03'
+
+z.toJSONSchema(DayCodec, { io: 'input' })    // { type: 'string', format: 'date', pattern: … }
+z.toJSONSchema(DayCodec)                     // lève : Date cannot be represented in JSON Schema
+```
+
+### Points Importants
+
+- `z.toJSONSchema(schema, { io: "input" })` rend le côté entrée du codec (une chaîne `format: date`) ; le côté sortie `Date` n'est pas représentable et lève « Date cannot be represented in JSON Schema »
+- Un `.describe()` posé sur le codec place `description` en tête de l'objet JSON Schema ; posé sur le schéma d'entrée, il garde l'ordre des clés
+- Un schéma qui contient un codec perd son `default` dans le JSON Schema d'entrée : `prefault` le garde
+- Sources : [zod.dev/codecs](https://zod.dev/codecs) et [zod.dev/json-schema](https://zod.dev/json-schema), comportements vérifiés en local sur Zod 4.6.7 le 2026-11-10
+
+---
+
 # Bonnes Pratiques
 
 ## ✅ Recommandations
@@ -225,6 +255,8 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 - [Zod v4 : Changelog](https://zod.dev/v4)
 - [Basic usage](https://zod.dev/basics)
 - [Zod 4.6](https://zod.dev/blog/zod-4-6)
+- [Codecs](https://zod.dev/codecs)
+- [JSON Schema](https://zod.dev/json-schema)
 
 ## Ressources Complémentaires
 

@@ -2,55 +2,40 @@
 
 import "server-only"
 
-import type { Prisma } from "@/generated/prisma/client"
-import type { FieldErrors } from "@/lib/form-state"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { interviewIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { interviewSchema, type InterviewInput } from "@/lib/schemas/interview"
-import { stringField, stringValues } from "@/lib/server-utils"
+import { rowExists, stringField, stringValues } from "@/lib/server-utils"
+import {
+  createInterview as createInterviewRecord,
+  updateInterview as updateInterviewRecord,
+  type InterviewFieldsError,
+  type WrittenInterview,
+} from "@/server/crm/interviews"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
+import type { DomainResult } from "@/server/crm/result"
 
 import {
   type ActionEvents,
   deleteEntity,
+  domainFailure,
+  type DomainFailure,
+  failureState,
   formStateHandlers,
-  rowExists,
   saveEntity,
 } from "./_support/shared"
 import type {
-  InterviewFormMessage,
   InterviewDeleteState,
+  InterviewFormMessage,
   InterviewFormState,
 } from "./interviews.types"
-import {
-  assertNewIdentity,
-  type DuplicateWording,
-  PersonConflictError,
-  revalidatePersonLists,
-} from "./_support/person-guards"
+import { CORRESPONDENT_WORDING, personConflictMessage } from "./_support/person-form"
 
 // L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre les listes des entretiens et des entreprises.
 function invalidateInterviewCaches(): void {
   revalidatePersonLists()
-}
-
-const CORRESPONDENT_WORDING: DuplicateWording = {
-  role: "contact",
-  own: "Ce contact existe déjà",
-  other: "Cette personne est déjà un lead",
-  otherHint: ", choisissez-la parmi les correspondants existants",
-}
-
-type RuleField = "opportunityId" | "side" | "correspondentIds" | "newCorrespondents"
-
-class InterviewRuleError extends Error {
-  readonly field: RuleField
-  readonly code: Exclude<InterviewFormMessage, "unknown_error">
-
-  constructor(field: RuleField, code: InterviewRuleError["code"], message: string) {
-    super(message)
-    this.field = field
-    this.code = code
-  }
 }
 
 function collectValues(formData: FormData): InterviewFormState["values"] {
@@ -71,86 +56,43 @@ function collectValues(formData: FormData): InterviewFormState["values"] {
   }
 }
 
-// Mener côté ESN suppose que l'opportunité en a une ; les correspondants existants doivent exister. Un correspondant opposé reste un fait de l'entretien : seul un nouveau ne doit pas l'être.
-async function assertInterviewTargets(
-  data: InterviewInput,
-  interviewId: string | null,
-): Promise<void> {
-  const [opportunity, foundCorrespondents] = await Promise.all([
-    prisma.opportunity.findUnique({
-      where: { id: data.opportunityId },
-      select: { intermediaryId: true },
-    }),
-    data.correspondentIds.length === 0
-      ? null
-      : prisma.person.count({
-          where: {
-            id: { in: data.correspondentIds },
-            ...(interviewId === null
-              ? { optedOutAt: null }
-              : { OR: [{ optedOutAt: null }, { interviews: { some: { id: interviewId } } }] }),
-          },
-        }),
-  ])
-  if (!opportunity) {
-    throw new InterviewRuleError(
-      "opportunityId",
-      "opportunity_not_found",
-      "Cette opportunité n'existe plus, recharge la page",
-    )
-  }
-  if (data.side === "ESN" && !opportunity.intermediaryId) {
-    throw new InterviewRuleError(
-      "side",
-      "opportunity_without_intermediary",
-      "Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final",
-    )
-  }
-  if (foundCorrespondents !== null && foundCorrespondents !== data.correspondentIds.length) {
-    throw new InterviewRuleError(
-      "correspondentIds",
-      "correspondent_not_found",
-      "Un des correspondants n'existe plus, recharge la page",
-    )
-  }
-}
+const failure = domainFailure<InterviewInput, InterviewFormMessage>
 
-// Correspondant inconnu : personne au rôle Contact créée dans la même transaction ; email ou LinkedIn déjà
-// connu (ou opposé à la prospection) refusé plutôt que dupliqué, par le garde partagé des fiches personne.
-async function correspondentRefs(
-  tx: Prisma.TransactionClient,
-  correspondentIds: InterviewInput["correspondentIds"],
-  newCorrespondents: InterviewInput["newCorrespondents"],
-): Promise<{ id: string }[]> {
-  const refs: { id: string }[] = correspondentIds.map((id) => ({ id }))
-  for (const { contactType, ...person } of newCorrespondents) {
-    await assertNewIdentity(
-      tx,
-      { email: person.email, linkedinUrl: person.linkedinUrl },
-      null,
-      CORRESPONDENT_WORDING,
-    )
-    const created = await tx.person.create({
-      data: { ...person, contact: { create: { types: [contactType], status: "ACTIF" } } },
-      select: { id: true },
-    })
-    refs.push(created)
-  }
-  return refs
-}
-
-function mapInterviewError(
-  err: unknown,
+function mapDomainError(
+  error: InterviewFieldsError,
   values: InterviewFormState["values"],
-): InterviewFormState | null {
-  // « exists » comme « opted_out » refusent le doublon ; le message du garde dit lequel des deux.
-  if (err instanceof PersonConflictError) {
-    const errors: FieldErrors<keyof InterviewInput> = { newCorrespondents: [err.message] }
-    return { ok: false, errors, message: "correspondent_exists", values }
+): DomainFailure<InterviewFormState> {
+  switch (error.code) {
+    case "opportunity_not_found":
+      return failure(
+        values,
+        { opportunityId: ["Cette opportunité n'existe plus, recharge la page"] },
+        "opportunity_not_found",
+      )
+    case "opportunity_without_intermediary":
+      return failure(
+        values,
+        { side: ["Cette opportunité n'a pas d'ESN : l'entretien est mené par le client final"] },
+        "opportunity_without_intermediary",
+      )
+    case "correspondent_not_found":
+      return failure(
+        values,
+        { correspondentIds: ["Un des correspondants n'existe plus, recharge la page"] },
+        "correspondent_not_found",
+      )
+    // « exists » comme « opted_out » refusent le doublon ; le message du garde dit lequel des deux.
+    case "correspondent_exists":
+      return failure(
+        values,
+        { newCorrespondents: [personConflictMessage(error.conflict, CORRESPONDENT_WORDING)] },
+        "correspondent_exists",
+      )
+    case "not_found":
+      return failure(values, {}, "interview_not_found", true)
+    default:
+      return assertNever(error)
   }
-  if (!(err instanceof InterviewRuleError)) return null
-  const errors: FieldErrors<keyof InterviewInput> = { [err.field]: [err.message] }
-  return { ok: false, errors, message: err.code, values }
 }
 
 const interviewExists = (id: string) => rowExists(prisma.interview, { id })
@@ -159,12 +101,11 @@ function saveInterview(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: InterviewInput) => Promise<{ id: string }>,
-  updatedId?: string,
+  persist: (data: InterviewInput) => Promise<DomainResult<WrittenInterview, InterviewFieldsError>>,
 ): Promise<InterviewFormState> {
   const values = collectValues(formData)
 
-  return saveEntity<InterviewInput, InterviewFormState, { id: string }>({
+  return saveEntity<InterviewInput, InterviewFormState, WrittenInterview, InterviewFieldsError>({
     actionName,
     events,
     schema: interviewSchema,
@@ -172,12 +113,8 @@ function saveInterview(
     persist,
     successLogFields: (_data, interview) => ({ id: interview.id }),
     invalidateCaches: invalidateInterviewCaches,
-    mapError: (err) => mapInterviewError(err, values),
-    ...formStateHandlers(values, {
-      message: "interview_not_found",
-      updatedId,
-      exists: interviewExists,
-    }),
+    onDomainError: (error) => mapDomainError(error, values),
+    ...formStateHandlers(values),
   })
 }
 
@@ -192,16 +129,7 @@ export async function createInterview(
     "createInterview",
     { success: "interview:created", failure: "interview:create_failed" },
     formData,
-    async (input) => {
-      await assertInterviewTargets(input, null)
-      const { correspondentIds, newCorrespondents, ...data } = input
-      return prisma.$transaction(async (tx) => {
-        const correspondents = await correspondentRefs(tx, correspondentIds, newCorrespondents)
-        return tx.interview.create({
-          data: { ...data, correspondents: { connect: correspondents } },
-        })
-      })
-    },
+    createInterviewRecord,
   )
 }
 
@@ -212,22 +140,21 @@ export async function updateInterview(
 ): Promise<InterviewFormState> {
   await getCurrentUser()
 
+  // Un id invalide ne désigne aucun entretien : même réponse qu'un entretien supprimé.
+  const parsedId = interviewIdSchema.safeParse(id)
+  if (!parsedId.success) {
+    return failureState(
+      mapDomainError({ code: "not_found" }, collectValues(formData)),
+      invalidateInterviewCaches,
+    )
+  }
+  const interviewId = parsedId.data
+
   return saveInterview(
     "updateInterview",
     { success: "interview:updated", failure: "interview:update_failed" },
     formData,
-    async (input) => {
-      await assertInterviewTargets(input, id)
-      const { correspondentIds, newCorrespondents, ...data } = input
-      return prisma.$transaction(async (tx) => {
-        const correspondents = await correspondentRefs(tx, correspondentIds, newCorrespondents)
-        return tx.interview.update({
-          where: { id },
-          data: { ...data, correspondents: { set: correspondents } },
-        })
-      })
-    },
-    id,
+    (data) => updateInterviewRecord(interviewId, data),
   )
 }
 

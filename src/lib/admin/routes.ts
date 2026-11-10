@@ -10,6 +10,7 @@ export const ADMIN_PROJECTS_PATH = "/admin/projets"
 export const ADMIN_WEEKLY_REVIEWS_PATH = "/admin/revues-hebdo"
 export const ADMIN_ASSETS_PATH = "/admin/assets"
 export const ADMIN_TAGS_PATH = "/admin/tags"
+export const ADMIN_API_KEYS_PATH = "/admin/cles-api"
 
 export function isAdminPath(pathname: string): boolean {
   return pathname === ADMIN_ROOT || pathname.startsWith(`${ADMIN_ROOT}/`)

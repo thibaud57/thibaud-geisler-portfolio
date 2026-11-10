@@ -6,23 +6,26 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    opportunity: {
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      findUnique: vi.fn(),
-      count: vi.fn(),
-    },
-    company: { findUnique: vi.fn() },
-  },
+  prisma: { opportunity: { delete: vi.fn(), count: vi.fn() } },
 }))
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/opportunities", () => ({
+  createOpportunity: vi.fn(),
+  updateOpportunity: vi.fn(),
+}))
+
+import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { opportunityIdSchema } from "@/lib/ids"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
+import {
+  createOpportunity as createOpportunityRecord,
+  updateOpportunity as updateOpportunityRecord,
+} from "@/server/crm/opportunities"
+import { fail, ok } from "@/server/crm/result"
 
 import { createOpportunity, deleteOpportunity, updateOpportunity } from "./opportunities"
 import { initialOpportunityFormState } from "./opportunities.types"
@@ -54,11 +57,11 @@ function buildFormData(overrides: Record<string, string> = {}): FormData {
   return data
 }
 
+const SUMMARY = { id: opportunityIdSchema.parse("o1"), title: "Refonte d'application" }
+
 beforeEach(() => {
-  vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["ESN_RECRUTEMENT"] } as never)
-  vi.mocked(prisma.opportunity.create).mockResolvedValue({ id: "o1" } as never)
-  vi.mocked(prisma.opportunity.update).mockResolvedValue({ id: "o1" } as never)
-  vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: null } as never)
+  vi.mocked(createOpportunityRecord).mockResolvedValue(ok(SUMMARY))
+  vi.mocked(updateOpportunityRecord).mockResolvedValue(ok(SUMMARY))
 })
 
 it.each([
@@ -74,8 +77,8 @@ it.each([
   const result = call()
 
   await expect(result).rejects.toThrow()
-  expect(prisma.opportunity.create).not.toHaveBeenCalled()
-  expect(prisma.opportunity.update).not.toHaveBeenCalled()
+  expect(createOpportunityRecord).not.toHaveBeenCalled()
+  expect(updateOpportunityRecord).not.toHaveBeenCalled()
   expect(prisma.opportunity.delete).not.toHaveBeenCalled()
 })
 
@@ -84,7 +87,7 @@ describe("createOpportunity", () => {
     const state = await createOpportunity(initialOpportunityFormState, buildFormData({ title: "" }))
 
     expect(state.errors.title).toEqual(["L'intitulé est requis"])
-    expect(prisma.opportunity.create).not.toHaveBeenCalled()
+    expect(createOpportunityRecord).not.toHaveBeenCalled()
   })
 
   it("rejects a final client equal to the intermediary", async () => {
@@ -94,7 +97,7 @@ describe("createOpportunity", () => {
     )
 
     expect(state.errors.clientId).toEqual(["Le client final ne peut pas être l'ESN"])
-    expect(prisma.opportunity.create).not.toHaveBeenCalled()
+    expect(createOpportunityRecord).not.toHaveBeenCalled()
   })
 
   it("rejects more on-site days than worked days", async () => {
@@ -104,10 +107,20 @@ describe("createOpportunity", () => {
     )
 
     expect(state.errors.onSiteDays).toEqual(["Pas plus de jours sur site que de jours travaillés"])
-    expect(prisma.opportunity.create).not.toHaveBeenCalled()
+    expect(createOpportunityRecord).not.toHaveBeenCalled()
   })
 
-  it("stores the start month as the first day of that month", async () => {
+  it("rejects a daily rate above the integer column maximum", async () => {
+    const state = await createOpportunity(
+      initialOpportunityFormState,
+      buildFormData({ dailyRate: "2147483648" }),
+    )
+
+    expect(state.errors.dailyRate).toEqual(["Le TJM est un entier positif"])
+    expect(createOpportunityRecord).not.toHaveBeenCalled()
+  })
+
+  it("hands the parsed fields to the domain, the start month as the first day of that month", async () => {
     await createOpportunity(
       initialOpportunityFormState,
       buildFormData({
@@ -120,16 +133,14 @@ describe("createOpportunity", () => {
       }),
     )
 
-    expect(prisma.opportunity.create).toHaveBeenCalledWith(
+    expect(createOpportunityRecord).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({
-          startMonth: new Date("2026-04-01T00:00:00.000Z"),
-          dailyRate: 650,
-          contract: "FREELANCE",
-          workMode: "HYBRIDE",
-          daysPerWeek: 4,
-          onSiteDays: 2,
-        }),
+        startMonth: new Date("2026-04-01T00:00:00.000Z"),
+        dailyRate: 650,
+        contract: "FREELANCE",
+        workMode: "HYBRIDE",
+        daysPerWeek: 4,
+        onSiteDays: 2,
       }),
     )
   })
@@ -140,104 +151,86 @@ describe("createOpportunity", () => {
       buildFormData({ daysPerWeek: NONE_VALUE, onSiteDays: NONE_VALUE }),
     )
 
-    expect(prisma.opportunity.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ daysPerWeek: null, onSiteDays: null }) }),
+    expect(createOpportunityRecord).toHaveBeenCalledWith(
+      objectMatch({ daysPerWeek: null, onSiteDays: null }),
     )
   })
 
-  it("accepts a direct client opportunity without an intermediary", async () => {
-    const state = await createOpportunity(
-      initialOpportunityFormState,
-      buildFormData({ clientId: "c2" }),
-    )
+  it("keeps the lists as they are after a refusal", async () => {
+    vi.mocked(createOpportunityRecord).mockResolvedValueOnce(fail({ code: "intermediary_not_esn" }))
 
-    expect(state.ok).toBe(true)
-    expect(prisma.company.findUnique).not.toHaveBeenCalled()
+    await createOpportunity(initialOpportunityFormState, buildFormData())
+
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
-  it.each([
-    ["Opportunity_referrerId_fkey", "referrer_not_found", "referrerId"],
-    ["Opportunity_intermediaryId_fkey", "company_not_found", "intermediaryId"],
-    ["Opportunity_clientId_fkey", "company_not_found", "clientId"],
-  ] as const)(
-    "maps a missing referrer or company to its field (%s)",
-    async (index, message, field) => {
-      vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
-        constraintViolation("P2003", index),
-      )
+  it("refreshes the lists after a success", async () => {
+    await createOpportunity(initialOpportunityFormState, buildFormData())
 
-      const state = await createOpportunity(
-        initialOpportunityFormState,
-        buildFormData({
-          referrerId: "r-missing",
-          intermediaryId: "esn-missing",
-          clientId: "c-missing",
-        }),
-      )
+    expect(revalidatePath).toHaveBeenCalled()
+  })
 
-      expect(state.message).toBe(message)
-      expect(Object.keys(state.errors)).toEqual([field])
-    },
-  )
-
-  it("falls back to an unknown error on a foreign key it does not recognise", async () => {
-    vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "Opportunity_other_fkey"),
-    )
+  it("answers an unexpected failure with an unknown error", async () => {
+    vi.mocked(createOpportunityRecord).mockRejectedValueOnce(new Error("database down"))
 
     const state = await createOpportunity(initialOpportunityFormState, buildFormData())
 
     expect(state.message).toBe("unknown_error")
     expect(state.errors).toEqual({})
   })
+})
 
-  it("leaves a vanished intermediary to its foreign key, mapped to its field", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue(null)
-    vi.mocked(prisma.opportunity.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "Opportunity_intermediaryId_fkey"),
-    )
+describe("domain errors", () => {
+  it.each([
+    [
+      { code: "intermediary_not_esn" },
+      "intermediary_not_esn",
+      "intermediaryId",
+      "L'ESN doit être une entreprise de type ESN / Recrutement",
+    ],
+    [
+      { code: "referrer_not_found", field: "referrerId" },
+      "referrer_not_found",
+      "referrerId",
+      "Cet apporteur n'existe plus, recharge la page",
+    ],
+    [
+      { code: "company_not_found", field: "intermediaryId" },
+      "company_not_found",
+      "intermediaryId",
+      "Cette entreprise n'existe plus, recharge la page",
+    ],
+    [
+      { code: "company_not_found", field: "clientId" },
+      "company_not_found",
+      "clientId",
+      "Cette entreprise n'existe plus, recharge la page",
+    ],
+    [
+      { code: "client_is_intermediary" },
+      null,
+      "clientId",
+      "Le client final ne peut pas être l'ESN",
+    ],
+    [
+      { code: "days_out_of_range" },
+      null,
+      "onSiteDays",
+      "Pas plus de jours sur site que de jours travaillés",
+    ],
+  ] as const)("maps %j to its message and field", async (error, message, field, text) => {
+    vi.mocked(updateOpportunityRecord).mockResolvedValueOnce(fail(error))
 
-    const state = await createOpportunity(
-      initialOpportunityFormState,
-      buildFormData({ intermediaryId: "esn-missing" }),
-    )
+    const state = await updateOpportunity("o1", initialOpportunityFormState, buildFormData())
 
-    expect(state.message).toBe("company_not_found")
-    expect(Object.keys(state.errors)).toEqual(["intermediaryId"])
-  })
-
-  it("rejects a daily rate above the integer column maximum", async () => {
-    const state = await createOpportunity(
-      initialOpportunityFormState,
-      buildFormData({ dailyRate: "2147483648" }),
-    )
-
-    expect(state.errors.dailyRate).toEqual(["Le TJM est un entier positif"])
-    expect(prisma.opportunity.create).not.toHaveBeenCalled()
+    expect(state.message).toBe(message)
+    expect(state.errors).toEqual({ [field]: [text] })
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 })
 
 describe("updateOpportunity", () => {
-  it("refuses an intermediary that is not typed ESN / Recrutement", async () => {
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["CLIENT_FINAL"] } as never)
-
-    const state = await updateOpportunity(
-      "o1",
-      initialOpportunityFormState,
-      buildFormData({ intermediaryId: "c1" }),
-    )
-
-    expect(state.message).toBe("intermediary_not_esn")
-    expect(state.errors.intermediaryId).toEqual([
-      "L'ESN doit être une entreprise de type ESN / Recrutement",
-    ])
-    expect(prisma.opportunity.update).not.toHaveBeenCalled()
-  })
-
-  it("keeps an intermediary that lost its ESN type when it is unchanged", async () => {
-    vi.mocked(prisma.opportunity.findUnique).mockResolvedValue({ intermediaryId: "c1" } as never)
-    vi.mocked(prisma.company.findUnique).mockResolvedValue({ types: ["CLIENT_FINAL"] } as never)
-
+  it("hands the parsed id and fields to the domain", async () => {
     const state = await updateOpportunity(
       "o1",
       initialOpportunityFormState,
@@ -245,31 +238,33 @@ describe("updateOpportunity", () => {
     )
 
     expect(state.ok).toBe(true)
-    expect(prisma.opportunity.update).toHaveBeenCalled()
+    expect(updateOpportunityRecord).toHaveBeenCalledWith(
+      "o1",
+      objectMatch({ intermediaryId: "c1", status: "ACCEPTEE" }),
+    )
   })
-})
 
-describe("opportunity deleted since the screen loaded", () => {
-  it("answers an update with opportunity_not_found and keeps the typed values", async () => {
-    vi.mocked(prisma.opportunity.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(0)
+  it("answers opportunity_not_found, keeps the typed values and refreshes the lists", async () => {
+    vi.mocked(updateOpportunityRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await updateOpportunity("o1", initialOpportunityFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("opportunity_not_found")
     expect(state.values?.title).toBe("Refonte d'application")
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("answers an update with unknown_error when the opportunity still exists", async () => {
-    vi.mocked(prisma.opportunity.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(1)
+  it("answers an empty id like a deleted opportunity, without calling the domain", async () => {
+    const state = await updateOpportunity("", initialOpportunityFormState, buildFormData())
 
-    const state = await updateOpportunity("o1", initialOpportunityFormState, buildFormData())
-
-    expect(state.message).toBe("unknown_error")
+    expect(state.message).toBe("opportunity_not_found")
+    expect(updateOpportunityRecord).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalled()
   })
+})
 
+describe("opportunity deleted since the screen loaded", () => {
   it("answers a delete with success", async () => {
     vi.mocked(prisma.opportunity.delete).mockRejectedValueOnce({ code: "P2025" })
     vi.mocked(prisma.opportunity.count).mockResolvedValueOnce(0)

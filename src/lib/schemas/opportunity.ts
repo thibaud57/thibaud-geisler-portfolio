@@ -9,11 +9,17 @@ import {
   nullifyNoneValue,
 } from "@/lib/schemas/none-value"
 import { notesField, optionalInt, optionalTextField } from "@/lib/schemas/fields"
+import { exceedsDaysPerWeek, isClientIntermediary } from "@/lib/crm/opportunities"
 import { ZONES } from "@/lib/crm/zones"
+import { isoDayToDate } from "@/lib/date-time"
 
 export const OPPORTUNITY_STATUSES = Object.values(OpportunityStatus)
 
-const POSTGRES_INT_MAX = 2147483647
+export const POSTGRES_INT_MAX = 2147483647
+export const TITLE_MAX_LENGTH = 120
+export const ROLE_MAX_LENGTH = 80
+export const DURATION_MONTHS_MAX = 60
+export const START_MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/
 
 const optionalId = <TSchema extends z.ZodType<string, string>>(idSchema: TSchema) =>
   z
@@ -31,14 +37,15 @@ function optionalDays(values: readonly string[], message: string) {
   )
 }
 
-// Minuit UTC : un fuseau à l'ouest de Greenwich décalerait sinon la colonne date au mois précédent.
+export const startMonthToDate = (month: string): Date => isoDayToDate(`${month}-01`)
+
 const startMonthField = z
   .string()
   .trim()
-  .refine((value) => value === "" || /^\d{4}-(0[1-9]|1[0-2])$/.test(value), {
+  .refine((value) => value === "" || START_MONTH_PATTERN.test(value), {
     error: "Mois de démarrage invalide",
   })
-  .transform((value) => (value === "" ? null : new Date(`${value}-01T00:00:00.000Z`)))
+  .transform((value) => (value === "" ? null : startMonthToDate(value)))
 
 export const opportunitySchema = z
   .object({
@@ -46,8 +53,12 @@ export const opportunitySchema = z
       .string()
       .trim()
       .min(1, "L'intitulé est requis")
-      .max(120, "L'intitulé ne peut pas dépasser 120 caractères"),
-    role: z.string().trim().max(80, "Le rôle tient en 80 caractères").transform(emptyToNull),
+      .max(TITLE_MAX_LENGTH, `L'intitulé ne peut pas dépasser ${TITLE_MAX_LENGTH} caractères`),
+    role: z
+      .string()
+      .trim()
+      .max(ROLE_MAX_LENGTH, `Le rôle tient en ${ROLE_MAX_LENGTH} caractères`)
+      .transform(emptyToNull),
     status: z.enum(OpportunityStatus, { error: "Statut inconnu" }),
     referrerId: optionalId(personIdSchema),
     intermediaryId: optionalId(companyIdSchema),
@@ -59,23 +70,23 @@ export const opportunitySchema = z
     onSiteDays: optionalDays(ON_SITE_DAYS, "Entre 0 et 5 jours sur site"),
     zone: nullableEnumField(ZONES, "Localité inconnue"),
     startMonth: startMonthField,
-    durationMonths: optionalInt(1, 60, "Une durée de 1 à 60 mois"),
+    durationMonths: optionalInt(
+      1,
+      DURATION_MONTHS_MAX,
+      `Une durée de 1 à ${DURATION_MONTHS_MAX} mois`,
+    ),
     notes: notesField,
     details: optionalTextField,
   })
   .superRefine((data, ctx) => {
-    if (data.clientId !== null && data.clientId === data.intermediaryId) {
+    if (isClientIntermediary(data.clientId, data.intermediaryId)) {
       ctx.addIssue({
         code: "custom",
         path: ["clientId"],
         message: "Le client final ne peut pas être l'ESN",
       })
     }
-    if (
-      data.onSiteDays !== null &&
-      data.daysPerWeek !== null &&
-      data.onSiteDays > data.daysPerWeek
-    ) {
+    if (exceedsDaysPerWeek(data.onSiteDays, data.daysPerWeek)) {
       ctx.addIssue({
         code: "custom",
         path: ["onSiteDays"],

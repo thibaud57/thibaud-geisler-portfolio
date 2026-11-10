@@ -13,6 +13,8 @@ paths:
 - Invalider par `revalidatePath(path)` (layout ou page entière) ou `revalidateTag(tag, profile)` (par tag)
 - Privilégier `updateTag(tag)` (read-your-writes) quand l'auteur doit voir sa modification immédiatement
 - Exporter l'état initial et les types qu'importe le client depuis un module voisin `<module>.types.ts` : un module `'use server'` n'exporte que des fonctions async, toute autre valeur casse le build
+- Pour un domaine qui a sa couche `src/server/<domaine>/` (CRM), l'action ne fait qu'adapter (`FormData`, état du formulaire, `updateTag`) et appelle la fonction de domaine : ne jamais y réécrire la règle métier, les outils MCP appellent la même fonction
+- Rendre l'erreur attendue du domaine en `DomainResult` et la traiter par `onDomainError` de `saveEntity` : il rend l'état du formulaire et décide aussi de l'invalidation (`invalidate: true` quand la cible a disparu)
 - Ranger les helpers partagés par les actions, sans `'use server'`, dans `src/server/actions/_support/` : chaque export d'un module `'use server'` devient un endpoint public
 
 ## À éviter

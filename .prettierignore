@@ -19,3 +19,6 @@ src/generated/
 # Exports locaux de la maquette et du design system Claude Design (gitignore)
 .design-sync/maquette/
 .design-sync/design-system/
+
+# Snapshot de contrat écrit par Vitest : le reformater le ferait diverger de ce que le test compare
+src/**/*.snapshot.json

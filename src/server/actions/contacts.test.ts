@@ -7,19 +7,8 @@ vi.mock("@/lib/logger", () => ({
 }))
 vi.mock("@/lib/prisma", () => {
   const prisma = {
-    person: {
-      create: vi.fn(),
-      update: vi.fn(),
-      deleteMany: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-    },
-    contact: {
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      count: vi.fn(),
-    },
+    person: { deleteMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
+    contact: { delete: vi.fn(), count: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   }
@@ -29,17 +18,32 @@ vi.mock("@/lib/prisma", () => {
   return { prisma }
 })
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
+vi.mock("@/server/crm/contacts", () => ({
+  attachContact: vi.fn(),
+  createContact: vi.fn(),
+  updateContact: vi.fn(),
+}))
+
+import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { personIdSchema } from "@/lib/ids"
+import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
+import {
+  attachContact as attachContactRecord,
+  createContact as createContactRecord,
+  updateContact as updateContactRecord,
+} from "@/server/crm/contacts"
+import type { PersonFieldsError } from "@/server/crm/person-write"
+import { fail, ok } from "@/server/crm/result"
 
 import { createContact, deleteContact, findLeadForContactAttach, updateContact } from "./contacts"
 import { initialContactFormState } from "./contacts.types"
 
 const BASE_FIELDS = {
-  name: "Jeanne Dupont",
+  name: "Jane Doe",
   jobRole: NONE_VALUE,
   zone: NONE_VALUE,
   companyId: NONE_VALUE,
@@ -69,23 +73,21 @@ function buildAttachFormData(personId: string): FormData {
   return data
 }
 
-function personRecord(overrides: Record<string, unknown> = {}): never {
-  return {
-    name: "Marie Durand",
-    optedOutAt: null,
-    lead: { personId: "p9" },
-    contact: null,
-    ...overrides,
-  } as never
-}
+const existsConflict = (
+  roles: { lead: boolean; contact: boolean },
+  field: "email" | "personId" = "email",
+): PersonFieldsError => ({
+  code: "person_conflict",
+  conflict: { reason: "exists", field, personName: "John Roe", roles },
+})
+
+const OPTED_OUT_AT = new Date("2026-03-11T23:30:00Z")
 
 beforeEach(() => {
+  vi.mocked(createContactRecord).mockResolvedValue(ok({ personId: "p1" }))
+  vi.mocked(attachContactRecord).mockResolvedValue(ok({ personId: "p9" }))
+  vi.mocked(updateContactRecord).mockResolvedValue(ok({ personId: "p1" }))
   vi.mocked(prisma.person.findFirst).mockResolvedValue(null)
-  vi.mocked(prisma.person.findUnique).mockResolvedValue(null)
-  vi.mocked(prisma.person.create).mockResolvedValue({ id: "p1" } as never)
-  vi.mocked(prisma.person.update).mockResolvedValue({ id: "p1" } as never)
-  vi.mocked(prisma.contact.create).mockResolvedValue({ personId: "p1" } as never)
-  vi.mocked(prisma.contact.update).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.contact.delete).mockResolvedValue({ personId: "p1" } as never)
   vi.mocked(prisma.person.deleteMany).mockResolvedValue({ count: 1 })
   vi.mocked(prisma.$queryRaw).mockResolvedValue([{ "?column?": 1 }] as never)
@@ -104,7 +106,8 @@ it.each([
   await expect(result).rejects.toThrow()
   expect(prisma.$transaction).not.toHaveBeenCalled()
   expect(prisma.person.findFirst).not.toHaveBeenCalled()
-  expect(prisma.person.findUnique).not.toHaveBeenCalled()
+  expect(createContactRecord).not.toHaveBeenCalled()
+  expect(updateContactRecord).not.toHaveBeenCalled()
 })
 
 describe("createContact", () => {
@@ -112,75 +115,57 @@ describe("createContact", () => {
     await createContact(
       initialContactFormState,
       buildFormData({
-        email: " Jeanne.Dupont@Example.COM ",
-        linkedinUrl: "fr.linkedin.com/in/Jeanne-Dupont-4b2a1c/",
+        email: " Jane.Doe@Example.COM ",
+        linkedinUrl: "fr.linkedin.com/in/Jane_Doe_Example_A/",
       }),
     )
 
-    expect(prisma.person.create).toHaveBeenCalledWith(
+    expect(createContactRecord).toHaveBeenCalledWith(
       objectMatch({
-        data: objectMatch({
-          email: "jeanne.dupont@example.com",
-          linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c",
-        }),
+        email: "jane.doe@example.com",
+        linkedinUrl: "https://www.linkedin.com/in/jane_doe_example_a",
+        types: ["COLLEGUE"],
+        status: "ACTIF",
       }),
     )
-    expect(prisma.contact.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ types: ["COLLEGUE"], personId: "p1" }) }),
-    )
   })
 
-  it("refuses a second contact with the same email or LinkedIn profile, naming it", async () => {
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Jeanne Dupont",
-      email: "jeanne@example.com",
-      optedOutAt: null,
-      lead: null,
-      contact: { personId: "p2" },
-    } as never)
+  it("answers ok and refreshes the lists after the domain wrote the contact", async () => {
+    const state = await createContact(initialContactFormState, buildFormData())
 
-    const state = await createContact(
-      initialContactFormState,
-      buildFormData({ email: "JEANNE@example.com" }),
-    )
-
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual(["Ce contact existe déjà : Jeanne Dupont"])
-    expect(prisma.person.create).not.toHaveBeenCalled()
+    expect(state.ok).toBe(true)
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it("points to the lead picker when the person only holds the lead role", async () => {
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Marie Durand",
-      email: "marie@example.com",
-      optedOutAt: null,
-      lead: { personId: "p2" },
-      contact: null,
-    } as never)
+  it.each([
+    [
+      "refuses a second contact with the same email, naming it",
+      { lead: false, contact: true },
+      "Ce contact existe déjà : John Roe",
+    ],
+    [
+      "points to the lead picker when the person only holds the lead role",
+      { lead: true, contact: false },
+      "Cette personne est déjà un lead : John Roe, choisissez-la « Depuis un lead »",
+    ],
+  ])("%s", async (_label, roles, message) => {
+    vi.mocked(createContactRecord).mockResolvedValue(fail(existsConflict(roles)))
 
-    const state = await createContact(
-      initialContactFormState,
-      buildFormData({ email: "marie@example.com" }),
-    )
+    const state = await createContact(initialContactFormState, buildFormData())
 
     expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual([
-      "Cette personne est déjà un lead : Marie Durand, choisissez-la « Depuis un lead »",
-    ])
-    expect(prisma.person.create).not.toHaveBeenCalled()
+    expect(state.errors.email).toEqual([message])
   })
 
   it("names the stop date when the person opposed", async () => {
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: null,
-      email: null,
-      optedOutAt: new Date("2026-03-11T23:30:00Z"),
-    } as never)
-
-    const state = await createContact(
-      initialContactFormState,
-      buildFormData({ linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c" }),
+    vi.mocked(createContactRecord).mockResolvedValue(
+      fail({
+        code: "person_conflict",
+        conflict: { reason: "opted_out", field: "linkedinUrl", optedOutAt: OPTED_OUT_AT },
+      }),
     )
+
+    const state = await createContact(initialContactFormState, buildFormData())
 
     expect(state.message).toBe("contact_opted_out")
     expect(state.errors.linkedinUrl).toEqual([
@@ -188,68 +173,8 @@ describe("createContact", () => {
     ])
   })
 
-  it("creates the role on an existing person without writing its fields", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
-
-    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
-
-    expect(state.ok).toBe(true)
-    expect(prisma.person.create).not.toHaveBeenCalled()
-    expect(prisma.contact.create).toHaveBeenCalledWith(
-      objectMatch({ data: objectMatch({ personId: "p9", types: ["COLLEGUE"], status: "ACTIF" }) }),
-    )
-  })
-
-  it("attaches the role even when the lead's own fields would not validate", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord({ name: null }))
-    const data = buildAttachFormData("p9")
-    data.set("name", "")
-    data.set("email", "not-an-email")
-
-    const state = await createContact(initialContactFormState, data)
-
-    expect(state.ok).toBe(true)
-    expect(prisma.contact.create).toHaveBeenCalled()
-  })
-
-  it("refuses to attach the contact role to a person who already has it", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(
-      personRecord({ contact: { personId: "p9" } }),
-    )
-
-    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
-
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.personId).toEqual(["Ce contact existe déjà : Marie Durand"])
-    expect(prisma.contact.create).not.toHaveBeenCalled()
-  })
-
-  it("refuses to attach the contact role to a person who opposed", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(
-      personRecord({ name: null, optedOutAt: new Date("2026-03-11T23:30:00Z") }),
-    )
-
-    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
-
-    expect(state.message).toBe("contact_opted_out")
-    expect(state.errors.personId).toEqual([
-      "Cette personne s'est opposée à la prospection le 12/03/2026",
-    ])
-    expect(prisma.contact.create).not.toHaveBeenCalled()
-  })
-
-  it("refuses to attach the contact role to a person that no longer exists", async () => {
-    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
-
-    expect(state.message).toBe("person_not_found")
-    expect(state.errors.personId).toBeDefined()
-    expect(prisma.contact.create).not.toHaveBeenCalled()
-  })
-
   it("maps a missing company to its field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "Person_companyId_fkey"),
-    )
+    vi.mocked(createContactRecord).mockResolvedValue(fail({ code: "company_not_found" }))
 
     const state = await createContact(
       initialContactFormState,
@@ -258,86 +183,111 @@ describe("createContact", () => {
 
     expect(state.message).toBe("company_not_found")
     expect(state.errors.companyId).toBeDefined()
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 
-  it("maps a concurrent duplicate on the LinkedIn profile to its field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "Person_linkedinUrl_key"),
-    )
+  it.each(["email", "linkedinUrl", "personId"] as const)(
+    "maps a concurrent unique violation on %s to its field",
+    async (field) => {
+      vi.mocked(createContactRecord).mockResolvedValue(fail({ code: "identity_taken", field }))
 
-    const state = await createContact(
-      initialContactFormState,
-      buildFormData({ linkedinUrl: "https://www.linkedin.com/in/jeanne-dupont-4b2a1c" }),
-    )
+      const state = await createContact(initialContactFormState, buildFormData())
 
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.linkedinUrl).toEqual(["Cette personne existe déjà"])
+      expect(state.message).toBe("contact_exists")
+      expect(state.errors[field]).toEqual(["Cette personne existe déjà"])
+    },
+  )
+
+  it("reports an unknown error when the domain throws", async () => {
+    vi.mocked(createContactRecord).mockRejectedValueOnce(new Error("boom"))
+
+    const state = await createContact(initialContactFormState, buildFormData())
+
+    expect(state.message).toBe("unknown_error")
   })
+})
 
-  it("refuses to attach the contact role to a person without the lead role", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord({ lead: null }))
-
+describe("createContact attaching an existing lead", () => {
+  it("hands the role to the domain without writing person fields", async () => {
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
-    expect(state.ok).toBe(false)
-    expect(state.errors.personId).toEqual(["Cette personne n'est pas un lead"])
-    expect(prisma.contact.create).not.toHaveBeenCalled()
+    expect(state.ok).toBe(true)
+    expect(attachContactRecord).toHaveBeenCalledWith(personIdSchema.parse("p9"), {
+      types: ["COLLEGUE"],
+      status: "ACTIF",
+    })
+    expect(createContactRecord).not.toHaveBeenCalled()
   })
 
-  it("locks the person row before reading its roles and writing the contact", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
+  it("attaches the role even when the lead's own fields would not validate", async () => {
+    const data = buildAttachFormData("p9")
+    data.set("name", "")
+    data.set("email", "not-an-email")
 
-    await createContact(initialContactFormState, buildAttachFormData("p9"))
+    const state = await createContact(initialContactFormState, data)
 
-    const lockOrder = vi.mocked(prisma.$queryRaw).mock.invocationCallOrder[0] ?? Infinity
-    const readOrder = vi.mocked(prisma.person.findUnique).mock.invocationCallOrder[0] ?? -1
-    const createOrder = vi.mocked(prisma.contact.create).mock.invocationCallOrder[0] ?? -1
-    expect(lockOrder).toBeLessThan(readOrder)
-    expect(lockOrder).toBeLessThan(createOrder)
+    expect(state.ok).toBe(true)
+    expect(attachContactRecord).toHaveBeenCalled()
   })
 
-  it("maps a unique violation on an unknown constraint to the email field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "Person_other_key"),
-    )
-
-    const state = await createContact(initialContactFormState, buildFormData())
-
-    expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual(["Cette personne existe déjà"])
-    expect(state.errors.personId).toBeUndefined()
-  })
-
-  it("maps a unique violation without constraint details to the email field", async () => {
-    vi.mocked(prisma.person.create).mockRejectedValueOnce({ code: "P2002" })
-
-    const state = await createContact(initialContactFormState, buildFormData())
-
-    expect(state.errors.email).toEqual(["Cette personne existe déjà"])
-  })
-
-  it("maps a concurrent duplicate on the contact primary key to the lead field", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
-    vi.mocked(prisma.contact.create).mockRejectedValueOnce(
-      constraintViolation("P2002", "Contact_pkey"),
+  it("refuses a person who already has the contact role", async () => {
+    vi.mocked(attachContactRecord).mockResolvedValue(
+      fail(existsConflict({ lead: true, contact: true }, "personId")),
     )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
     expect(state.message).toBe("contact_exists")
-    expect(state.errors.personId).toEqual(["Cette personne existe déjà"])
+    expect(state.errors.personId).toEqual(["Ce contact existe déjà : John Roe"])
   })
 
-  it("maps a person deleted during the attach to person_not_found", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue(personRecord())
-    vi.mocked(prisma.contact.create).mockRejectedValueOnce(
-      constraintViolation("P2003", "Contact_personId_fkey"),
+  it("refuses a person who opposed, giving the date", async () => {
+    vi.mocked(attachContactRecord).mockResolvedValue(
+      fail({
+        code: "person_conflict",
+        conflict: { reason: "opted_out", field: "personId", optedOutAt: OPTED_OUT_AT },
+      }),
+    )
+
+    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
+
+    expect(state.message).toBe("contact_opted_out")
+    expect(state.errors.personId).toEqual([
+      "Cette personne s'est opposée à la prospection le 12/03/2026",
+    ])
+  })
+
+  it("refuses a person that no longer exists", async () => {
+    vi.mocked(attachContactRecord).mockResolvedValue(
+      fail({ code: "person_conflict", conflict: { reason: "person_missing", field: "personId" } }),
     )
 
     const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
 
     expect(state.message).toBe("person_not_found")
     expect(state.errors.personId).toBeDefined()
+  })
+
+  it("refuses a person without the lead role", async () => {
+    vi.mocked(attachContactRecord).mockResolvedValue(
+      fail({ code: "person_conflict", conflict: { reason: "not_a_lead", field: "personId" } }),
+    )
+
+    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
+
+    expect(state.ok).toBe(false)
+    expect(state.errors.personId).toEqual(["Cette personne n'est pas un lead"])
+  })
+
+  it("maps a concurrent duplicate on the contact primary key to the lead field", async () => {
+    vi.mocked(attachContactRecord).mockResolvedValue(
+      fail({ code: "identity_taken", field: "personId" }),
+    )
+
+    const state = await createContact(initialContactFormState, buildAttachFormData("p9"))
+
+    expect(state.message).toBe("contact_exists")
+    expect(state.errors.personId).toEqual(["Cette personne existe déjà"])
   })
 })
 
@@ -354,121 +304,61 @@ describe("findLeadForContactAttach", () => {
 })
 
 describe("updateContact", () => {
-  it("ignores the contact being edited when checking duplicates", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-
+  it("hands the person id and the parsed fields to the domain", async () => {
     await updateContact(
       "p1",
       initialContactFormState,
-      buildFormData({ email: "jeanne@example.com" }),
+      buildFormData({ email: " Jane.Doe@Example.COM ", status: "INACTIF" }),
     )
 
-    expect(prisma.person.findFirst).toHaveBeenCalledWith(
-      objectMatch({ where: objectMatch({ NOT: { id: "p1" } }) }),
-    )
-  })
-
-  it("writes both the person fields and the role fields", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-
-    const state = await updateContact(
-      "p1",
-      initialContactFormState,
-      buildFormData({ email: " Jeanne.Dupont@Example.COM ", status: "INACTIF" }),
-    )
-
-    expect(state.ok).toBe(true)
-    expect(prisma.person.update).toHaveBeenCalledWith(
-      objectMatch({
-        where: { id: "p1" },
-        data: objectMatch({ email: "jeanne.dupont@example.com" }),
-      }),
-    )
-    expect(prisma.contact.update).toHaveBeenCalledWith(
-      objectMatch({
-        where: { personId: "p1" },
-        data: objectMatch({ types: ["COLLEGUE"], status: "INACTIF" }),
-      }),
+    expect(updateContactRecord).toHaveBeenCalledWith(
+      personIdSchema.parse("p1"),
+      objectMatch({ email: "jane.doe@example.com", types: ["COLLEGUE"], status: "INACTIF" }),
     )
   })
 
   it("names the lead role when the new identity belongs to a lead-only person", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Marie Durand",
-      email: "marie@example.com",
-      optedOutAt: null,
-      lead: { personId: "p2" },
-      contact: null,
-    } as never)
-
-    const state = await updateContact(
-      "p1",
-      initialContactFormState,
-      buildFormData({ email: "marie@example.com" }),
+    vi.mocked(updateContactRecord).mockResolvedValue(
+      fail(existsConflict({ lead: true, contact: false })),
     )
+
+    const state = await updateContact("p1", initialContactFormState, buildFormData())
 
     expect(state.message).toBe("contact_exists")
-    expect(state.errors.email).toEqual(["Cette personne est déjà un lead : Marie Durand"])
-    expect(prisma.person.update).not.toHaveBeenCalled()
+    expect(state.errors.email).toEqual(["Cette personne est déjà un lead : John Roe"])
   })
 
-  it("reports the lock rather than a duplicate when the person opposed since the page loaded", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: new Date() } as never)
-    vi.mocked(prisma.person.findFirst).mockResolvedValue({
-      name: "Marie Durand",
-      email: "marie@example.com",
-      optedOutAt: null,
-      lead: null,
-      contact: { personId: "p2" },
-    } as never)
+  it("reports the lock when the person opposed since the page loaded", async () => {
+    vi.mocked(updateContactRecord).mockResolvedValue(fail({ code: "person_locked" }))
 
-    const state = await updateContact(
-      "p1",
-      initialContactFormState,
-      buildFormData({ email: "marie@example.com" }),
-    )
+    const state = await updateContact("p1", initialContactFormState, buildFormData())
 
     expect(state.message).toBe("contact_opted_out_locked")
-    expect(prisma.person.findFirst).not.toHaveBeenCalled()
   })
 
-  it("reports a contact deleted since the page loaded", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.contact.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.contact.count).mockResolvedValueOnce(0)
+  it("reports a contact deleted since the page loaded and realigns the lists", async () => {
+    vi.mocked(updateContactRecord).mockResolvedValue(fail({ code: "not_found" }))
 
     const state = await updateContact("p1", initialContactFormState, buildFormData())
 
     expect(state.ok).toBe(false)
     expect(state.message).toBe("contact_not_found")
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
   it("answers contact_not_found for an empty person id, without writing", async () => {
     const state = await updateContact("", initialContactFormState, buildFormData())
 
     expect(state.message).toBe("contact_not_found")
-    expect(prisma.contact.update).not.toHaveBeenCalled()
+    expect(updateContactRecord).not.toHaveBeenCalled()
   })
 
-  it("reports an unknown error when a P2025 comes while the contact still exists", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: null } as never)
-    vi.mocked(prisma.contact.update).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.contact.count).mockResolvedValueOnce(1)
+  it("reports an unknown error when the domain throws", async () => {
+    vi.mocked(updateContactRecord).mockRejectedValueOnce(new Error("boom"))
 
     const state = await updateContact("p1", initialContactFormState, buildFormData())
 
     expect(state.message).toBe("unknown_error")
-  })
-
-  it("refuses to edit an opted-out contact", async () => {
-    vi.mocked(prisma.person.findUnique).mockResolvedValue({ optedOutAt: new Date() } as never)
-
-    const state = await updateContact("p1", initialContactFormState, buildFormData())
-
-    expect(state.message).toBe("contact_opted_out_locked")
-    expect(prisma.person.update).not.toHaveBeenCalled()
-    expect(prisma.contact.update).not.toHaveBeenCalled()
   })
 })
 

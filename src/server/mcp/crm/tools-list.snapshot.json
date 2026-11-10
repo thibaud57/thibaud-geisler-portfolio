@@ -1,0 +1,3182 @@
+[
+  {
+    "name": "crm_search",
+    "title": "Search CRM records by name",
+    "description": "Find CRM records by an approximate name, case and accents ignored. Call this first: crm_fetch and crm_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: the slug for a company, the company and roles for a lead or contact, \"client · status\" for an opportunity (found by title or by the name of its client or intermediary), the label \"Entretien N · type\" and \"opportunity title · date\" for an interview (found by that label or by its opportunity title), \"lead · date · status\" for a prospecting action (found by its title or by the name of its lead), the type label and \"company or lead · date\" for a signal (found by its content), the week label (\"S44 · 2026\") and the closing Friday as YYYY-MM-DD for a weekly review (found by that label or that date). A person who opted out of prospecting is returned only on her exact email or LinkedIn URL, as { label: \"Opposée à la prospection\", optedOut: true } without name: never recreate or contact her.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name or part of the name, case and accents ignored (e.g. \"societe acm\")."
+        },
+        "entities": {
+          "description": "Record types to search. All by default.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "company",
+              "lead",
+              "contact",
+              "opportunity",
+              "interview",
+              "prospecting-action",
+              "signal",
+              "weekly-review"
+            ]
+          }
+        },
+        "limit": {
+          "default": 10,
+          "description": "Maximum hits, 1 to 50. Defaults to 10.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "crm_fetch",
+    "title": "Fetch a CRM record",
+    "description": "Fetch one CRM record by id, with its links. For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact). For a lead or contact: her record, company and roles, and for a lead her referred opportunities, interviews, signals and prospecting action count. For an opportunity: its referrer (id and name, or id only when she opted out), intermediary, client and interviews. For an interview: its title, opportunity with intermediary and client, and correspondents (id and name, or id only when opted out). For a prospecting action: its fields and its lead (id and name, or id only when opted out); its day fields occurredAt and respondedAt are YYYY-MM-DD days, the format crm_create and crm_update take. For a signal: its fields and its company or its lead (id and name, or id only when opted out); occurredOn is a YYYY-MM-DD day. For a weekly review: its seven counters and its qualitative fields; closingFriday is a YYYY-MM-DD day. A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "company",
+            "lead",
+            "contact",
+            "opportunity",
+            "interview",
+            "prospecting-action",
+            "signal",
+            "weekly-review"
+          ],
+          "description": "Type of CRM record to fetch."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the record. Get it from crm_search first."
+        }
+      },
+      "required": [
+        "entity",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "crm_query",
+    "title": "List CRM records with filters",
+    "description": "List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date; for an opportunity id, title, status, daily rate, start month, client and intermediary; for an interview id, title (Entretien N · type), type, side, status, outcome, date, score and opportunity title; for a prospecting action id, title, channel, status, date, reply date and lead as id and name, or id only when opted out; for a signal id, type, day occurredOn, content, link, and its company or lead as id and name; for a weekly review id, closingFriday, the seven counters, status, motivation and updated date) and the total count before pagination. Persons who opted out are never listed. Page with offset. An interview has no name: sort name orders by opportunity title then date. A prospecting action is sorted by its title, and its day fields come as YYYY-MM-DD. A signal has no name: sort name orders by day. A weekly review has no name: sort name orders by closingFriday, and the default order is desc, so the first row is the last review, closingFriday as a YYYY-MM-DD day.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "company",
+            "lead",
+            "contact",
+            "opportunity",
+            "interview",
+            "prospecting-action",
+            "signal",
+            "weekly-review"
+          ],
+          "description": "Type of CRM record to list."
+        },
+        "filters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "company",
+              "description": "Filters, combined with AND. Each list matches any of its values.",
+              "type": "object",
+              "properties": {
+                "relationStatus": {
+                  "description": "Only this relationship status.",
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "DORMANTE",
+                    "ARCHIVEE"
+                  ]
+                },
+                "types": {
+                  "description": "Companies having at least one of these types.",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "CLIENT_FINAL",
+                      "ESN_RECRUTEMENT",
+                      "PARTENAIRE",
+                      "MA_SOCIETE"
+                    ]
+                  }
+                },
+                "zones": {
+                  "description": "Companies having at least one of these zones.",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "GRAND_EST",
+                      "PARIS",
+                      "FRANCE",
+                      "LUXEMBOURG",
+                      "BELGIQUE",
+                      "SUISSE",
+                      "ALLEMAGNE",
+                      "EUROPE",
+                      "MONDE"
+                    ]
+                  }
+                },
+                "sectors": {
+                  "description": "Companies having at least one of these sectors.",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ASSURANCE",
+                      "FINTECH",
+                      "SAAS",
+                      "SERVICES_RH",
+                      "ESN_CONSEIL",
+                      "LOGICIELS_ENTREPRISE",
+                      "ECOMMERCE",
+                      "IA_AUTOMATISATION",
+                      "MARKETING_COMMUNICATION",
+                      "BANQUE",
+                      "INDUSTRIE",
+                      "HEALTHTECH",
+                      "SECTEUR_PUBLIC",
+                      "AUTRE"
+                    ]
+                  }
+                },
+                "size": {
+                  "description": "Only this size category.",
+                  "type": "string",
+                  "enum": [
+                    "TPE",
+                    "PME",
+                    "ETI",
+                    "GROUPE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "lead",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "description": "Only this pipeline status.",
+                  "type": "string",
+                  "enum": [
+                    "NOUVEAU",
+                    "SUSPECT",
+                    "DISCUSSION",
+                    "HORS_ICP",
+                    "PERDU",
+                    "STAND_BY"
+                  ]
+                },
+                "origin": {
+                  "description": "Only this origin.",
+                  "type": "string",
+                  "enum": [
+                    "INBOUND",
+                    "OUTBOUND"
+                  ]
+                },
+                "interest": {
+                  "description": "Only this level of interest.",
+                  "type": "string",
+                  "enum": [
+                    "HOT",
+                    "WARM",
+                    "COLD"
+                  ]
+                },
+                "channel": {
+                  "description": "Only this channel.",
+                  "type": "string",
+                  "enum": [
+                    "LINKEDIN",
+                    "SITE_WEB",
+                    "CANDIDATURE",
+                    "PLATEFORME",
+                    "REFERENCE",
+                    "EVENEMENT",
+                    "COLD_EMAIL",
+                    "COLD_CALL",
+                    "AUTRE"
+                  ]
+                },
+                "companyId": {
+                  "description": "Only the leads of this company.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "jobRole": {
+                  "description": "Only this job role.",
+                  "type": "string",
+                  "enum": [
+                    "CTO",
+                    "TECH_LEAD",
+                    "RECRUTEUR",
+                    "DEVELOPPEUR",
+                    "CEO",
+                    "PRODUCT_OWNER",
+                    "C_LEVEL",
+                    "MANAGER",
+                    "AUTRE"
+                  ]
+                },
+                "zone": {
+                  "description": "Only this zone.",
+                  "type": "string",
+                  "enum": [
+                    "GRAND_EST",
+                    "PARIS",
+                    "FRANCE",
+                    "LUXEMBOURG",
+                    "BELGIQUE",
+                    "SUISSE",
+                    "ALLEMAGNE",
+                    "EUROPE",
+                    "MONDE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "contact",
+              "description": "Filters, combined with AND. types matches any of its values.",
+              "type": "object",
+              "properties": {
+                "types": {
+                  "description": "Contacts having at least one of these types.",
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "COLLEGUE",
+                      "CLIENT",
+                      "PARTENAIRE",
+                      "MENTOR",
+                      "CONTACT_TECH",
+                      "COMMERCIAL"
+                    ]
+                  }
+                },
+                "status": {
+                  "description": "Only this status.",
+                  "type": "string",
+                  "enum": [
+                    "ACTIF",
+                    "INACTIF",
+                    "A_RECONTACTER"
+                  ]
+                },
+                "companyId": {
+                  "description": "Only the contacts of this company.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "jobRole": {
+                  "description": "Only this job role.",
+                  "type": "string",
+                  "enum": [
+                    "CTO",
+                    "TECH_LEAD",
+                    "RECRUTEUR",
+                    "DEVELOPPEUR",
+                    "CEO",
+                    "PRODUCT_OWNER",
+                    "C_LEVEL",
+                    "MANAGER",
+                    "AUTRE"
+                  ]
+                },
+                "zone": {
+                  "description": "Only this zone.",
+                  "type": "string",
+                  "enum": [
+                    "GRAND_EST",
+                    "PARIS",
+                    "FRANCE",
+                    "LUXEMBOURG",
+                    "BELGIQUE",
+                    "SUISSE",
+                    "ALLEMAGNE",
+                    "EUROPE",
+                    "MONDE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "opportunity",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "description": "Only this status.",
+                  "type": "string",
+                  "enum": [
+                    "PROPOSEE",
+                    "EN_PROCESS",
+                    "OFFRE_RECUE",
+                    "EN_PAUSE",
+                    "ACCEPTEE",
+                    "REFUSEE",
+                    "DECLINEE",
+                    "ABANDONNEE"
+                  ]
+                },
+                "clientId": {
+                  "description": "Only the opportunities of this end client.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "intermediaryId": {
+                  "description": "Only the opportunities of this ESN.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "referrerId": {
+                  "description": "Only the opportunities brought by this person.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "workMode": {
+                  "description": "Only this work mode.",
+                  "type": "string",
+                  "enum": [
+                    "PRESENTIEL",
+                    "HYBRIDE",
+                    "REMOTE"
+                  ]
+                },
+                "zone": {
+                  "description": "Only this zone.",
+                  "type": "string",
+                  "enum": [
+                    "GRAND_EST",
+                    "PARIS",
+                    "FRANCE",
+                    "LUXEMBOURG",
+                    "BELGIQUE",
+                    "SUISSE",
+                    "ALLEMAGNE",
+                    "EUROPE",
+                    "MONDE"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "interview",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "description": "Only this status.",
+                  "type": "string",
+                  "enum": [
+                    "PLANIFIE",
+                    "FAIT",
+                    "ANNULE"
+                  ]
+                },
+                "type": {
+                  "description": "Only this type.",
+                  "type": "string",
+                  "enum": [
+                    "PREMIER_CONTACT",
+                    "RECRUTEUR_RH",
+                    "TECHNIQUE",
+                    "MANAGER_EQUIPE",
+                    "NEGOCIATION"
+                  ]
+                },
+                "side": {
+                  "description": "Only this side.",
+                  "type": "string",
+                  "enum": [
+                    "ESN",
+                    "CLIENT_FINAL"
+                  ]
+                },
+                "opportunityId": {
+                  "description": "Only the interviews of this opportunity.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "scheduledAt": {
+                  "description": "Only the interviews scheduled within this interval, ISO 8601 instants.",
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "description": "Lower bound, included. Omit it for no lower bound.",
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "to": {
+                      "description": "Upper bound, included. Omit it for no upper bound.",
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "prospecting-action",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "description": "Only this status.",
+                  "type": "string",
+                  "enum": [
+                    "A_FAIRE",
+                    "FAIT",
+                    "REPONDU",
+                    "CONVERTI",
+                    "IGNORE"
+                  ]
+                },
+                "channel": {
+                  "description": "Only this channel.",
+                  "type": "string",
+                  "enum": [
+                    "CANDIDATURE",
+                    "CONNEXION_LINKEDIN",
+                    "DM_LINKEDIN",
+                    "EMAIL",
+                    "SMS_WHATSAPP",
+                    "CALL",
+                    "AUTRE"
+                  ]
+                },
+                "personId": {
+                  "description": "Only the actions of this lead.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "occurredAt": {
+                  "description": "Only the actions dated within this interval, days YYYY-MM-DD.",
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "description": "Lower bound, included. Omit it for no lower bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "to": {
+                      "description": "Upper bound, included. Omit it for no upper bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "signal",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "companyId": {
+                  "description": "Only the signals of this company.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "personId": {
+                  "description": "Only the signals of this lead.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "type": {
+                  "description": "Only this type.",
+                  "type": "string",
+                  "enum": [
+                    "OFFRE_POSTE",
+                    "LEVEE",
+                    "EXPANSION",
+                    "NOUVEAU_PRODUIT",
+                    "PIVOT",
+                    "ACQUISITION",
+                    "POST",
+                    "COMMENTAIRE",
+                    "CONFERENCE",
+                    "INTERACTION"
+                  ]
+                },
+                "occurredOn": {
+                  "description": "Only the signals dated within this interval, days YYYY-MM-DD.",
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "description": "Lower bound, included. Omit it for no lower bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "to": {
+                      "description": "Upper bound, included. Omit it for no upper bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "weekly-review",
+              "description": "Filters, combined with AND.",
+              "type": "object",
+              "properties": {
+                "closingFriday": {
+                  "description": "Only the reviews closing within this interval, days YYYY-MM-DD.",
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "description": "Lower bound, included. Omit it for no lower bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "to": {
+                      "description": "Upper bound, included. Omit it for no upper bound.",
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "description": "Filters, all optional. The accepted filters depend on entity: use the branch titled with that entity."
+        },
+        "sort": {
+          "description": "Sort key. Defaults to name.",
+          "type": "string",
+          "enum": [
+            "name",
+            "createdAt",
+            "updatedAt"
+          ]
+        },
+        "order": {
+          "description": "Sort direction. Defaults to asc, desc for a weekly review.",
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "limit": {
+          "description": "Page size, 1 to 100. Defaults to 20.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "offset": {
+          "description": "Number of rows to skip. Defaults to 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "entity"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true
+    }
+  },
+  {
+    "name": "crm_create",
+    "title": "Create a CRM record",
+    "description": "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, only slug and name are required, and the Details get the standard section template unless you send your own. For a lead, only name and origin are required. A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field. For an opportunity, only title is required: the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own. For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own. For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules. For a signal, exactly one of companyId or personId, type, occurredOn (a day, YYYY-MM-DD) and content are required: the type must fit the target (company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION; lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION) and a lead must be OUTBOUND and not opted out. For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the seven counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review. A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company, the title for an opportunity) of the new record.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "company",
+            "lead",
+            "contact",
+            "opportunity",
+            "interview",
+            "prospecting-action",
+            "signal",
+            "weekly-review"
+          ],
+          "description": "Type of CRM record to create."
+        },
+        "data": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "company",
+              "description": "Fields of the company to create. Only slug and name are required.",
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "maxLength": 60,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Unique URL identifier, at most 60 characters: lowercase letters, digits and single hyphens (e.g. \"acme-corp\"). Trimmed and lowercased like in the admin."
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Display name, at most 120 characters."
+                },
+                "sectors": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ASSURANCE",
+                      "FINTECH",
+                      "SAAS",
+                      "SERVICES_RH",
+                      "ESN_CONSEIL",
+                      "LOGICIELS_ENTREPRISE",
+                      "ECOMMERCE",
+                      "IA_AUTOMATISATION",
+                      "MARKETING_COMMUNICATION",
+                      "BANQUE",
+                      "INDUSTRIE",
+                      "HEALTHTECH",
+                      "SECTEUR_PUBLIC",
+                      "AUTRE"
+                    ]
+                  },
+                  "description": "Business sectors of the company."
+                },
+                "size": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "TPE",
+                        "PME",
+                        "ETI",
+                        "GROUPE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Legal size category (TPE, PME, ETI, GROUPE). null clears it."
+                },
+                "websiteUrl": {
+                  "default": null,
+                  "description": "Website, an http or https URL. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "logoFilename": {
+                  "default": null,
+                  "description": "Storage key of the logo, under \"freelance/crm/entreprises/\". Call crm_fetch_company_logo to fetch it from the website instead of writing it. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "types": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "CLIENT_FINAL",
+                      "ESN_RECRUTEMENT",
+                      "PARTENAIRE",
+                      "MA_SOCIETE"
+                    ]
+                  },
+                  "description": "Relationship types (e.g. CLIENT_FINAL, ESN_RECRUTEMENT). At least one."
+                },
+                "relationStatus": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "DORMANTE",
+                    "ARCHIVEE"
+                  ],
+                  "description": "Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."
+                },
+                "zones": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "GRAND_EST",
+                      "PARIS",
+                      "FRANCE",
+                      "LUXEMBOURG",
+                      "BELGIQUE",
+                      "SUISSE",
+                      "ALLEMAGNE",
+                      "EUROPE",
+                      "MONDE"
+                    ]
+                  },
+                  "description": "Geographic zones of the company."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "description": "Whole Details text in markdown. Omit it to get the standard section template (À propos, Chiffres clés, ...). null creates the company without Details.",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "lead",
+              "description": "Fields of the lead to create. Only name and origin are required.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Full name, at most 120 characters."
+                },
+                "jobRole": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CTO",
+                        "TECH_LEAD",
+                        "RECRUTEUR",
+                        "DEVELOPPEUR",
+                        "CEO",
+                        "PRODUCT_OWNER",
+                        "C_LEVEL",
+                        "MANAGER",
+                        "AUTRE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Job role of the person. null clears it."
+                },
+                "zone": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "GRAND_EST",
+                        "PARIS",
+                        "FRANCE",
+                        "LUXEMBOURG",
+                        "BELGIQUE",
+                        "SUISSE",
+                        "ALLEMAGNE",
+                        "EUROPE",
+                        "MONDE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Geographic zone of the person. null clears it."
+                },
+                "email": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Email address, trimmed and lowercased like in the admin. null clears it."
+                },
+                "phone": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Phone number. null clears it."
+                },
+                "linkedinUrl": {
+                  "default": null,
+                  "description": "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "metAt": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Date of the first meeting, YYYY-MM-DD. null clears it."
+                },
+                "notes": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "companyId": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the company of the person. Get it from crm_search. null clears it."
+                },
+                "origin": {
+                  "type": "string",
+                  "enum": [
+                    "INBOUND",
+                    "OUTBOUND"
+                  ],
+                  "description": "How the lead came: INBOUND (she wrote first) or OUTBOUND."
+                },
+                "status": {
+                  "default": "NOUVEAU",
+                  "type": "string",
+                  "enum": [
+                    "NOUVEAU",
+                    "SUSPECT",
+                    "DISCUSSION",
+                    "HORS_ICP",
+                    "PERDU",
+                    "STAND_BY"
+                  ],
+                  "description": "Pipeline status (NOUVEAU, SUSPECT, DISCUSSION, HORS_ICP, PERDU, STAND_BY)."
+                },
+                "interest": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HOT",
+                        "WARM",
+                        "COLD"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Level of interest. null clears it."
+                },
+                "channel": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "LINKEDIN",
+                        "SITE_WEB",
+                        "CANDIDATURE",
+                        "PLATEFORME",
+                        "REFERENCE",
+                        "EVENEMENT",
+                        "COLD_EMAIL",
+                        "COLD_CALL",
+                        "AUTRE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Channel of the first contact. null clears it."
+                },
+                "details": {
+                  "description": "Whole Details text in markdown. Omit it to get the standard lead template for the origin. null creates the lead without Details.",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "origin"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "contact",
+              "description": "For entity \"contact\".",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "fromLeadId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Id of an existing lead to promote to contact. Get it from crm_search with the entity lead."
+                    },
+                    "types": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "COLLEGUE",
+                          "CLIENT",
+                          "PARTENAIRE",
+                          "MENTOR",
+                          "CONTACT_TECH",
+                          "COMMERCIAL"
+                        ]
+                      },
+                      "description": "Kinds of relationship (e.g. CLIENT, MENTOR)."
+                    },
+                    "status": {
+                      "default": "ACTIF",
+                      "type": "string",
+                      "enum": [
+                        "ACTIF",
+                        "INACTIF",
+                        "A_RECONTACTER"
+                      ],
+                      "description": "Status of the contact: ACTIF, INACTIF or A_RECONTACTER."
+                    }
+                  },
+                  "required": [
+                    "fromLeadId"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Promote an existing lead to contact: no person field is allowed with fromLeadId."
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "description": "Full name, at most 120 characters."
+                    },
+                    "jobRole": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "CTO",
+                            "TECH_LEAD",
+                            "RECRUTEUR",
+                            "DEVELOPPEUR",
+                            "CEO",
+                            "PRODUCT_OWNER",
+                            "C_LEVEL",
+                            "MANAGER",
+                            "AUTRE"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Job role of the person. null clears it."
+                    },
+                    "zone": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "GRAND_EST",
+                            "PARIS",
+                            "FRANCE",
+                            "LUXEMBOURG",
+                            "BELGIQUE",
+                            "SUISSE",
+                            "ALLEMAGNE",
+                            "EUROPE",
+                            "MONDE"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Geographic zone of the person. null clears it."
+                    },
+                    "email": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Email address, trimmed and lowercased like in the admin. null clears it."
+                    },
+                    "phone": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Phone number. null clears it."
+                    },
+                    "linkedinUrl": {
+                      "default": null,
+                      "description": "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "metAt": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Date of the first meeting, YYYY-MM-DD. null clears it."
+                    },
+                    "notes": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "One-line markers, at most 200 characters. null clears them."
+                    },
+                    "companyId": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Id of the company of the person. Get it from crm_search. null clears it."
+                    },
+                    "types": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "COLLEGUE",
+                          "CLIENT",
+                          "PARTENAIRE",
+                          "MENTOR",
+                          "CONTACT_TECH",
+                          "COMMERCIAL"
+                        ]
+                      },
+                      "description": "Kinds of relationship (e.g. CLIENT, MENTOR)."
+                    },
+                    "status": {
+                      "default": "ACTIF",
+                      "type": "string",
+                      "enum": [
+                        "ACTIF",
+                        "INACTIF",
+                        "A_RECONTACTER"
+                      ],
+                      "description": "Status of the contact: ACTIF, INACTIF or A_RECONTACTER."
+                    },
+                    "details": {
+                      "description": "Whole Details text in markdown. Omit it to get the standard contact template. null creates the contact without Details.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Create a new person with the contact role. Only name is required."
+                }
+              ]
+            },
+            {
+              "title": "opportunity",
+              "description": "Fields of the opportunity to create. Only title is required.",
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Title of the opportunity, at most 120 characters."
+                },
+                "role": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Role offered, at most 80 characters. null clears it."
+                },
+                "status": {
+                  "default": "PROPOSEE",
+                  "type": "string",
+                  "enum": [
+                    "PROPOSEE",
+                    "EN_PROCESS",
+                    "OFFRE_RECUE",
+                    "EN_PAUSE",
+                    "ACCEPTEE",
+                    "REFUSEE",
+                    "DECLINEE",
+                    "ABANDONNEE"
+                  ],
+                  "description": "Status: PROPOSEE, EN_PROCESS, OFFRE_RECUE, EN_PAUSE, ACCEPTEE, REFUSEE, DECLINEE or ABANDONNEE."
+                },
+                "referrerId": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the person who brought the opportunity, a lead or a contact. Get it from crm_search. null clears it."
+                },
+                "intermediaryId": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the intermediary company, which must have the type ESN_RECRUTEMENT. Get it from crm_search with the entity company. null for a direct client."
+                },
+                "clientId": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the end client company, different from the intermediary. Get it from crm_search with the entity company. null clears it."
+                },
+                "dailyRate": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2147483647
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Daily rate in euros, a positive integer. null clears it."
+                },
+                "contract": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FREELANCE",
+                        "CDI",
+                        "STAGE",
+                        "ALTERNANCE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Contract status (e.g. FREELANCE). null clears it."
+                },
+                "workMode": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PRESENTIEL",
+                        "HYBRIDE",
+                        "REMOTE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Work mode (e.g. HYBRIDE). null clears it."
+                },
+                "daysPerWeek": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Worked days per week, 1 to 5. null clears it."
+                },
+                "onSiteDays": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Days on site per week, 0 to 5, at most daysPerWeek. null clears it."
+                },
+                "zone": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "GRAND_EST",
+                        "PARIS",
+                        "FRANCE",
+                        "LUXEMBOURG",
+                        "BELGIQUE",
+                        "SUISSE",
+                        "ALLEMAGNE",
+                        "EUROPE",
+                        "MONDE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Geographic zone of the work. null clears it."
+                },
+                "startMonth": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Start month, YYYY-MM (e.g. 2026-11). null clears it."
+                },
+                "durationMonths": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Duration in months, 1 to 60. null clears it."
+                },
+                "notes": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "description": "Whole Details text in markdown. Omit it to get the standard section template (Contexte, Profil recherché, ...). null creates the opportunity without Details.",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "interview",
+              "description": "Fields of the interview to create. Required: opportunityId, side, type and scheduledAt.",
+              "type": "object",
+              "properties": {
+                "opportunityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the opportunity the interview belongs to. Get it from crm_search with the entity opportunity."
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "ESN",
+                    "CLIENT_FINAL"
+                  ],
+                  "description": "Who runs the interview: ESN (the opportunity must have an intermediary) or CLIENT_FINAL."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "PREMIER_CONTACT",
+                    "RECRUTEUR_RH",
+                    "TECHNIQUE",
+                    "MANAGER_EQUIPE",
+                    "NEGOCIATION"
+                  ],
+                  "description": "Type: PREMIER_CONTACT, RECRUTEUR_RH, TECHNIQUE, MANAGER_EQUIPE or NEGOCIATION."
+                },
+                "scheduledAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "description": "Date and time of the interview, ISO 8601 with its UTC offset (e.g. 2026-11-20T10:00:00+01:00)."
+                },
+                "correspondentIds": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Ids of the persons met, existing and not opted out (crm_search with the entity contact or lead). On update, the list replaces the whole previous one: send it complete, or omit it to keep it."
+                },
+                "format": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PRESENTIEL",
+                        "VISIO",
+                        "TELEPHONE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Format: PRESENTIEL, VISIO or TELEPHONE. null clears it."
+                },
+                "status": {
+                  "default": "PLANIFIE",
+                  "type": "string",
+                  "enum": [
+                    "PLANIFIE",
+                    "FAIT",
+                    "ANNULE"
+                  ],
+                  "description": "Status: PLANIFIE, FAIT or ANNULE."
+                },
+                "outcome": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "POSITIF",
+                        "NEGATIF",
+                        "SANS_SUITE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Outcome: POSITIF, NEGATIF or SANS_SUITE. Kept only when the status is FAIT, cleared otherwise. null clears it."
+                },
+                "score": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Score from 0 to 10. null clears it."
+                },
+                "decision": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "OUI_TRES_INTERESSE",
+                        "OUI_SOUS_CONDITIONS",
+                        "NON"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whether to continue the process: OUI_TRES_INTERESSE, OUI_SOUS_CONDITIONS or NON. null clears it."
+                },
+                "notes": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "description": "Whole Details text in markdown. Omit it to get the standard section template of the interview type. null creates the interview without Details.",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "opportunityId",
+                "side",
+                "type",
+                "scheduledAt"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "prospecting-action",
+              "description": "Fields of the action to create. Required: title, personId, channel and occurredAt.",
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Title of the action, at most 120 characters."
+                },
+                "personId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the lead the action targets: a person with a lead record who did not opt out. Get it from crm_search with the entity lead."
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "CANDIDATURE",
+                    "CONNEXION_LINKEDIN",
+                    "DM_LINKEDIN",
+                    "EMAIL",
+                    "SMS_WHATSAPP",
+                    "CALL",
+                    "AUTRE"
+                  ],
+                  "description": "Channel: CANDIDATURE, CONNEXION_LINKEDIN, DM_LINKEDIN, EMAIL, SMS_WHATSAPP, CALL or AUTRE."
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day of the action, YYYY-MM-DD: the planned day while the status is A_FAIRE, the sending day after."
+                },
+                "status": {
+                  "default": "A_FAIRE",
+                  "type": "string",
+                  "enum": [
+                    "A_FAIRE",
+                    "FAIT",
+                    "REPONDU",
+                    "CONVERTI",
+                    "IGNORE"
+                  ],
+                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date."
+                },
+                "respondedAt": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out, the status rules set it (or keep the stored one)."
+                },
+                "message": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Text of the message sent. null clears it."
+                },
+                "reply": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status. null clears it."
+                }
+              },
+              "required": [
+                "title",
+                "personId",
+                "channel",
+                "occurredAt"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "signal",
+              "description": "Fields of the signal to create. Required: exactly one of companyId or personId, type, occurredOn and content.",
+              "type": "object",
+              "properties": {
+                "companyId": {
+                  "description": "Id of the company the signal is about. Send this or personId, never both.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "personId": {
+                  "description": "Id of the lead the signal is about: an OUTBOUND lead who did not opt out. Send this or companyId, never both.",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "OFFRE_POSTE",
+                    "LEVEE",
+                    "EXPANSION",
+                    "NOUVEAU_PRODUIT",
+                    "PIVOT",
+                    "ACQUISITION",
+                    "POST",
+                    "COMMENTAIRE",
+                    "CONFERENCE",
+                    "INTERACTION"
+                  ],
+                  "description": "Type, which must fit the target. Company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION. Lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION."
+                },
+                "occurredOn": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day of the signal, YYYY-MM-DD: the day when the source gives it, the 1st of the month otherwise."
+                },
+                "content": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "What the signal says, at most 500 characters."
+                },
+                "sourceUrl": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Link to the source, at most 2048 characters. null clears it."
+                }
+              },
+              "required": [
+                "type",
+                "occurredOn",
+                "content"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "title": "weekly-review",
+              "description": "Fields of the review to create. Required: closingFriday. A counter left out is computed by the app for that week: never count it yourself.",
+              "type": "object",
+              "properties": {
+                "closingFriday": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Closing Friday of the reviewed week, YYYY-MM-DD. One review per Friday."
+                },
+                "connectionsSent": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "LinkedIn connection requests sent in the week. Integer from 0 to 999."
+                },
+                "connectionsAccepted": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Connection requests accepted in the week. Integer from 0 to 999."
+                },
+                "messagesSent": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Messages sent in the week. Integer from 0 to 999."
+                },
+                "conversationsEngaged": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Conversations engaged in the week. Integer from 0 to 999."
+                },
+                "meetingsBooked": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Meetings booked in the week. Integer from 0 to 999."
+                },
+                "interviewsHeld": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Interviews held in the week. Integer from 0 to 999."
+                },
+                "activeLeads": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Leads active when the review is created. Integer from 0 to 999."
+                },
+                "status": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "BONNE",
+                        "MOYENNE",
+                        "MAUVAISE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Overall status of the week: BONNE, MOYENNE, MAUVAISE. null clears it."
+                },
+                "motivation": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HAUTE",
+                        "POSITIVE",
+                        "NEUTRE",
+                        "BASSE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Motivation level: HAUTE, POSITIVE, NEUTRE, BASSE. null clears it."
+                },
+                "wins": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "What went well. null clears it."
+                },
+                "blockers": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "What got in the way. null clears it."
+                },
+                "nextWeekPlan": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Plan for the next week. null clears it."
+                },
+                "notes": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears it."
+                }
+              },
+              "required": [
+                "closingFriday"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Fields of the new record. They depend on entity: use the branch titled with that entity."
+        }
+      },
+      "required": [
+        "entity",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "crm_update",
+    "title": "Update a CRM record",
+    "description": "Update a CRM record by id: fields (absent stays unchanged, null clears an optional field), a Details section by title, or both. Call crm_search first for the id, and crm_fetch to read the current values. Replacing one Details section leaves the others untouched. Only a company, a lead, a contact, an opportunity and an interview have Details: a signal, a prospecting action and a weekly review take fields only and refuse detailsSection. The legal entity cannot be written here, nor the score of a lead, and the record of a person who opted out is locked. The same rules as at creation apply to an opportunity, checked against its stored values when you send one field only. For an interview, correspondentIds replaces the whole list (omit it to keep it) and outcome is cleared unless the status is FAIT. For a prospecting action, a status change goes through fields.status alone: the status rules set the dates (leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date), and the lead must not have opted out. For a signal, the target never changes and the type must keep fitting it. For a weekly review, a counter left out stays unchanged and is never recomputed, and closingFriday must stay a Friday no other review holds. Returns the id (and the slug and name for a company, the title for an opportunity).",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": [
+            "company",
+            "lead",
+            "contact",
+            "opportunity",
+            "interview",
+            "prospecting-action",
+            "signal",
+            "weekly-review"
+          ],
+          "description": "Type of CRM record to update."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the record. Get it from crm_search first."
+        },
+        "fields": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {},
+          "anyOf": [
+            {
+              "title": "company",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "maxLength": 60,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Unique URL identifier, at most 60 characters: lowercase letters, digits and single hyphens (e.g. \"acme-corp\"). Trimmed and lowercased like in the admin."
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Display name, at most 120 characters."
+                },
+                "sectors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ASSURANCE",
+                      "FINTECH",
+                      "SAAS",
+                      "SERVICES_RH",
+                      "ESN_CONSEIL",
+                      "LOGICIELS_ENTREPRISE",
+                      "ECOMMERCE",
+                      "IA_AUTOMATISATION",
+                      "MARKETING_COMMUNICATION",
+                      "BANQUE",
+                      "INDUSTRIE",
+                      "HEALTHTECH",
+                      "SECTEUR_PUBLIC",
+                      "AUTRE"
+                    ]
+                  },
+                  "description": "Business sectors of the company."
+                },
+                "size": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "TPE",
+                        "PME",
+                        "ETI",
+                        "GROUPE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Legal size category (TPE, PME, ETI, GROUPE). null clears it."
+                },
+                "websiteUrl": {
+                  "description": "Website, an http or https URL. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "logoFilename": {
+                  "description": "Storage key of the logo, under \"freelance/crm/entreprises/\". Call crm_fetch_company_logo to fetch it from the website instead of writing it. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "types": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "CLIENT_FINAL",
+                      "ESN_RECRUTEMENT",
+                      "PARTENAIRE",
+                      "MA_SOCIETE"
+                    ]
+                  },
+                  "description": "Relationship types (e.g. CLIENT_FINAL, ESN_RECRUTEMENT). At least one."
+                },
+                "relationStatus": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "DORMANTE",
+                    "ARCHIVEE"
+                  ],
+                  "description": "Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."
+                },
+                "zones": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "GRAND_EST",
+                      "PARIS",
+                      "FRANCE",
+                      "LUXEMBOURG",
+                      "BELGIQUE",
+                      "SUISSE",
+                      "ALLEMAGNE",
+                      "EUROPE",
+                      "MONDE"
+                    ]
+                  },
+                  "description": "Geographic zones of the company."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whole Details text in markdown, sections introduced by \"# \" headings. To change one section only, use detailsSection instead. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "lead",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Full name, at most 120 characters."
+                },
+                "jobRole": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CTO",
+                        "TECH_LEAD",
+                        "RECRUTEUR",
+                        "DEVELOPPEUR",
+                        "CEO",
+                        "PRODUCT_OWNER",
+                        "C_LEVEL",
+                        "MANAGER",
+                        "AUTRE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Job role of the person. null clears it."
+                },
+                "zone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "GRAND_EST",
+                        "PARIS",
+                        "FRANCE",
+                        "LUXEMBOURG",
+                        "BELGIQUE",
+                        "SUISSE",
+                        "ALLEMAGNE",
+                        "EUROPE",
+                        "MONDE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Geographic zone of the person. null clears it."
+                },
+                "email": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Email address, trimmed and lowercased like in the admin. null clears it."
+                },
+                "phone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Phone number. null clears it."
+                },
+                "linkedinUrl": {
+                  "description": "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "metAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Date of the first meeting, YYYY-MM-DD. null clears it."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whole Details text in markdown, sections introduced by \"# \" headings. To change one section only, use detailsSection instead. null clears it."
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the company of the person. Get it from crm_search. null clears it."
+                },
+                "origin": {
+                  "type": "string",
+                  "enum": [
+                    "INBOUND",
+                    "OUTBOUND"
+                  ],
+                  "description": "How the lead came: INBOUND (she wrote first) or OUTBOUND."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "NOUVEAU",
+                    "SUSPECT",
+                    "DISCUSSION",
+                    "HORS_ICP",
+                    "PERDU",
+                    "STAND_BY"
+                  ],
+                  "description": "Pipeline status (NOUVEAU, SUSPECT, DISCUSSION, HORS_ICP, PERDU, STAND_BY)."
+                },
+                "interest": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HOT",
+                        "WARM",
+                        "COLD"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Level of interest. null clears it."
+                },
+                "channel": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "LINKEDIN",
+                        "SITE_WEB",
+                        "CANDIDATURE",
+                        "PLATEFORME",
+                        "REFERENCE",
+                        "EVENEMENT",
+                        "COLD_EMAIL",
+                        "COLD_CALL",
+                        "AUTRE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Channel of the first contact. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "contact",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Full name, at most 120 characters."
+                },
+                "jobRole": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CTO",
+                        "TECH_LEAD",
+                        "RECRUTEUR",
+                        "DEVELOPPEUR",
+                        "CEO",
+                        "PRODUCT_OWNER",
+                        "C_LEVEL",
+                        "MANAGER",
+                        "AUTRE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Job role of the person. null clears it."
+                },
+                "zone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "GRAND_EST",
+                        "PARIS",
+                        "FRANCE",
+                        "LUXEMBOURG",
+                        "BELGIQUE",
+                        "SUISSE",
+                        "ALLEMAGNE",
+                        "EUROPE",
+                        "MONDE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Geographic zone of the person. null clears it."
+                },
+                "email": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Email address, trimmed and lowercased like in the admin. null clears it."
+                },
+                "phone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Phone number. null clears it."
+                },
+                "linkedinUrl": {
+                  "description": "LinkedIn profile URL (linkedin.com/in/<handle>), stored in its normalized form. null clears it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "metAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Date of the first meeting, YYYY-MM-DD. null clears it."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whole Details text in markdown, sections introduced by \"# \" headings. To change one section only, use detailsSection instead. null clears it."
+                },
+                "companyId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the company of the person. Get it from crm_search. null clears it."
+                },
+                "types": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "COLLEGUE",
+                      "CLIENT",
+                      "PARTENAIRE",
+                      "MENTOR",
+                      "CONTACT_TECH",
+                      "COMMERCIAL"
+                    ]
+                  },
+                  "description": "Kinds of relationship (e.g. CLIENT, MENTOR)."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIF",
+                    "INACTIF",
+                    "A_RECONTACTER"
+                  ],
+                  "description": "Status of the contact: ACTIF, INACTIF or A_RECONTACTER."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "opportunity",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Title of the opportunity, at most 120 characters."
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Role offered, at most 80 characters. null clears it."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PROPOSEE",
+                    "EN_PROCESS",
+                    "OFFRE_RECUE",
+                    "EN_PAUSE",
+                    "ACCEPTEE",
+                    "REFUSEE",
+                    "DECLINEE",
+                    "ABANDONNEE"
+                  ],
+                  "description": "Status: PROPOSEE, EN_PROCESS, OFFRE_RECUE, EN_PAUSE, ACCEPTEE, REFUSEE, DECLINEE or ABANDONNEE."
+                },
+                "referrerId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the person who brought the opportunity, a lead or a contact. Get it from crm_search. null clears it."
+                },
+                "intermediaryId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the intermediary company, which must have the type ESN_RECRUTEMENT. Get it from crm_search with the entity company. null for a direct client."
+                },
+                "clientId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Id of the end client company, different from the intermediary. Get it from crm_search with the entity company. null clears it."
+                },
+                "dailyRate": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2147483647
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Daily rate in euros, a positive integer. null clears it."
+                },
+                "contract": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "FREELANCE",
+                        "CDI",
+                        "STAGE",
+                        "ALTERNANCE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Contract status (e.g. FREELANCE). null clears it."
+                },
+                "workMode": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PRESENTIEL",
+                        "HYBRIDE",
+                        "REMOTE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Work mode (e.g. HYBRIDE). null clears it."
+                },
+                "daysPerWeek": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Worked days per week, 1 to 5. null clears it."
+                },
+                "onSiteDays": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 5
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Days on site per week, 0 to 5, at most daysPerWeek. null clears it."
+                },
+                "zone": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "GRAND_EST",
+                        "PARIS",
+                        "FRANCE",
+                        "LUXEMBOURG",
+                        "BELGIQUE",
+                        "SUISSE",
+                        "ALLEMAGNE",
+                        "EUROPE",
+                        "MONDE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Geographic zone of the work. null clears it."
+                },
+                "startMonth": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Start month, YYYY-MM (e.g. 2026-11). null clears it."
+                },
+                "durationMonths": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 60
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Duration in months, 1 to 60. null clears it."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whole Details text in markdown, sections introduced by \"# \" headings. To change one section only, use detailsSection instead. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "interview",
+              "description": "Fields to change. A field left out stays unchanged, null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "opportunityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the opportunity the interview belongs to. Get it from crm_search with the entity opportunity."
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "ESN",
+                    "CLIENT_FINAL"
+                  ],
+                  "description": "Who runs the interview: ESN (the opportunity must have an intermediary) or CLIENT_FINAL."
+                },
+                "correspondentIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Ids of the persons met, existing and not opted out (crm_search with the entity contact or lead). On update, the list replaces the whole previous one: send it complete, or omit it to keep it."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "PREMIER_CONTACT",
+                    "RECRUTEUR_RH",
+                    "TECHNIQUE",
+                    "MANAGER_EQUIPE",
+                    "NEGOCIATION"
+                  ],
+                  "description": "Type: PREMIER_CONTACT, RECRUTEUR_RH, TECHNIQUE, MANAGER_EQUIPE or NEGOCIATION."
+                },
+                "format": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "PRESENTIEL",
+                        "VISIO",
+                        "TELEPHONE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Format: PRESENTIEL, VISIO or TELEPHONE. null clears it."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PLANIFIE",
+                    "FAIT",
+                    "ANNULE"
+                  ],
+                  "description": "Status: PLANIFIE, FAIT or ANNULE."
+                },
+                "outcome": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "POSITIF",
+                        "NEGATIF",
+                        "SANS_SUITE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Outcome: POSITIF, NEGATIF or SANS_SUITE. Kept only when the status is FAIT, cleared otherwise. null clears it."
+                },
+                "scheduledAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "description": "Date and time of the interview, ISO 8601 with its UTC offset (e.g. 2026-11-20T10:00:00+01:00)."
+                },
+                "score": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Score from 0 to 10. null clears it."
+                },
+                "decision": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "OUI_TRES_INTERESSE",
+                        "OUI_SOUS_CONDITIONS",
+                        "NON"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whether to continue the process: OUI_TRES_INTERESSE, OUI_SOUS_CONDITIONS or NON. null clears it."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears them."
+                },
+                "details": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Whole Details text in markdown, sections introduced by \"# \" headings. To change one section only, use detailsSection instead. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "prospecting-action",
+              "description": "Fields to change. A field left out stays unchanged, null clears message or reply.",
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "description": "Title of the action, at most 120 characters."
+                },
+                "personId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Id of the lead the action targets: a person with a lead record who did not opt out. Get it from crm_search with the entity lead."
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "CANDIDATURE",
+                    "CONNEXION_LINKEDIN",
+                    "DM_LINKEDIN",
+                    "EMAIL",
+                    "SMS_WHATSAPP",
+                    "CALL",
+                    "AUTRE"
+                  ],
+                  "description": "Channel: CANDIDATURE, CONNEXION_LINKEDIN, DM_LINKEDIN, EMAIL, SMS_WHATSAPP, CALL or AUTRE."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "A_FAIRE",
+                    "FAIT",
+                    "REPONDU",
+                    "CONVERTI",
+                    "IGNORE"
+                  ],
+                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date."
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day of the action, YYYY-MM-DD: the planned day while the status is A_FAIRE, the sending day after."
+                },
+                "respondedAt": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out, the status rules set it (or keep the stored one)."
+                },
+                "message": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Text of the message sent. null clears it."
+                },
+                "reply": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "signal",
+              "description": "Fields to change. A field left out stays unchanged, null clears sourceUrl. The target (company or lead) never changes.",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "OFFRE_POSTE",
+                    "LEVEE",
+                    "EXPANSION",
+                    "NOUVEAU_PRODUIT",
+                    "PIVOT",
+                    "ACQUISITION",
+                    "POST",
+                    "COMMENTAIRE",
+                    "CONFERENCE",
+                    "INTERACTION"
+                  ],
+                  "description": "Type, which must fit the target. Company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION. Lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION."
+                },
+                "occurredOn": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Day of the signal, YYYY-MM-DD: the day when the source gives it, the 1st of the month otherwise."
+                },
+                "content": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "What the signal says, at most 500 characters."
+                },
+                "sourceUrl": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Link to the source, at most 2048 characters. null clears it."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "weekly-review",
+              "description": "Fields to change. A field left out stays unchanged, counters included: they are never recomputed. null clears an optional field.",
+              "type": "object",
+              "properties": {
+                "closingFriday": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                  "description": "Closing Friday of the reviewed week, YYYY-MM-DD. One review per Friday."
+                },
+                "connectionsSent": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "LinkedIn connection requests sent in the week. Integer from 0 to 999."
+                },
+                "connectionsAccepted": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Connection requests accepted in the week. Integer from 0 to 999."
+                },
+                "messagesSent": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Messages sent in the week. Integer from 0 to 999."
+                },
+                "conversationsEngaged": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Conversations engaged in the week. Integer from 0 to 999."
+                },
+                "meetingsBooked": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Meetings booked in the week. Integer from 0 to 999."
+                },
+                "interviewsHeld": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Interviews held in the week. Integer from 0 to 999."
+                },
+                "activeLeads": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Leads active when the review is created. Integer from 0 to 999."
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "BONNE",
+                        "MOYENNE",
+                        "MAUVAISE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Overall status of the week: BONNE, MOYENNE, MAUVAISE. null clears it."
+                },
+                "motivation": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "HAUTE",
+                        "POSITIVE",
+                        "NEUTRE",
+                        "BASSE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Motivation level: HAUTE, POSITIVE, NEUTRE, BASSE. null clears it."
+                },
+                "wins": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "What went well. null clears it."
+                },
+                "blockers": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "What got in the way. null clears it."
+                },
+                "nextWeekPlan": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Plan for the next week. null clears it."
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "One-line markers, at most 200 characters. null clears it."
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "description": "Fields to change. They depend on entity: use the branch titled with that entity. A field left out stays unchanged, null clears an optional field."
+        },
+        "detailsSection": {
+          "description": "Replace the body of one section of the Details. Only a company, a lead, a contact, an opportunity and an interview have Details. Do not combine with fields.details.",
+          "type": "object",
+          "properties": {
+            "heading": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Title of the existing section to fill, without the \"#\" (e.g. \"Chiffres clés\"). Case, accents and the leading emoji are ignored."
+            },
+            "content": {
+              "type": "string",
+              "description": "New body of the section in markdown, without its heading line. Replaces the previous body."
+            }
+          },
+          "required": [
+            "heading",
+            "content"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "entity",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "crm_fetch_company_logo",
+    "title": "Fetch the logo of a company",
+    "description": "Fetch the logo of a company from its website and store it in logoFilename. Call crm_search first for the id. The company needs a websiteUrl: fill it with crm_update if missing (a Wayback Machine capture works when the site cannot be read). Replaces the current logo. Returns { id, logoFilename }.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the company. Get it from crm_search first."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "idempotentHint": true
+    }
+  }
+]

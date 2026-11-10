@@ -370,12 +370,12 @@
   },
   "PrivacyPolicy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: October 3, 2026",
+    "lastUpdated": "Last updated: November 7, 2026",
     "recipients": {
       "title": "3. Recipients and processors",
-      "intro": "Personal data may be shared with the following processors for the described purposes:",
+      "intro": "Personal data may be shared with the following recipients for the described purposes:",
       "tableHeaders": {
-        "name": "Processor",
+        "name": "Recipient",
         "role": "Role",
         "purpose": "Purpose",
         "dataCategories": "Data categories",
@@ -429,7 +429,8 @@
     "retention": {
       "logs1Year": "Duration of the hosting service; technical logs kept for up to 1 year",
       "logs30Days": "30 days (SMTP logs), automatic deletion",
-      "session13Months": "Session duration, plus 13 months (consent cookie)"
+      "session13Months": "Session duration, plus 13 months (consent cookie)",
+      "recipientTerms": "Per the recipient's terms"
     },
     "legalBasis": {
       "CONSENT": "Consent (GDPR art. 6-1-a)",
@@ -449,7 +450,8 @@
       "HOSTING": "Hosting",
       "EMBEDDED_SERVICE": "Embedded service",
       "EMAIL_PROVIDER": "Email provider",
-      "ANALYTICS": "Analytics"
+      "ANALYTICS": "Analytics",
+      "AI_ASSISTANT": "AI assistant"
     },
     "dataCategory": {
       "IDENTITY": "Identity",
@@ -457,7 +459,8 @@
       "IP_ADDRESS": "IP address",
       "USAGE_DATA": "Usage data",
       "TECHNICAL_LOGS": "Technical logs",
-      "COOKIE_DATA": "Cookie data"
+      "COOKIE_DATA": "Cookie data",
+      "PROFESSIONAL_INFO": "Professional information (job title, company, exchange notes)"
     }
   }
 }

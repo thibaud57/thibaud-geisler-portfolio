@@ -3,7 +3,8 @@ import { z } from "zod"
 import { ReviewMotivation, ReviewStatus } from "@/generated/prisma/browser"
 import { nullableEnumField } from "@/lib/schemas/none-value"
 import { notesField, optionalTextField } from "@/lib/schemas/fields"
-import { isFridayIso, isoDayToDate } from "@/lib/crm/weekly-reviews"
+import { isFridayIso } from "@/lib/crm/weekly-reviews"
+import { isoDayToDate } from "@/lib/date-time"
 
 export const REVIEW_STATUSES = Object.values(ReviewStatus)
 export const REVIEW_MOTIVATIONS = Object.values(ReviewMotivation)
@@ -16,8 +17,9 @@ const counter = z
   })
   .transform((value) => (value === "" ? 0 : Number(value)))
 
+// `abort` : sans lui, `isFridayIso` lirait aussi un jour mal formé, que `isoDayToDate` refuse en levant.
 export const closingFridayField = z.iso
-  .date({ error: "Choisissez un vendredi" })
+  .date({ error: "Choisissez un vendredi", abort: true })
   .refine(isFridayIso, { error: "Choisissez un vendredi" })
   .transform(isoDayToDate)
 

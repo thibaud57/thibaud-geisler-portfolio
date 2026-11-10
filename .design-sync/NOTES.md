@@ -119,15 +119,61 @@ système, puis refait entièrement.
 Décisions prises que la maquette ne montre pas, et écrans qu'elle n'a pas. À reporter quand le
 propriétaire le demande ; chaque ligne part une fois faite.
 
-- **Écrans à dessiner** : résultats des jobs à valider (Feature 3 : candidats du sourcing à trier,
-  pré-remplissage à accepter) ; Analytics (Feature 9, avec les graphiques du système) ; Accueil
-  (`isHome`), à revoir avec la feature Missions (Feature 4) ; chatbot public (Feature 10), sur les
+- **Écrans à dessiner** : résultats des jobs à valider (Feature 4 : candidats du sourcing à trier,
+  pré-remplissage à accepter) ; Analytics (Feature 10, avec les graphiques du système) ; Accueil
+  (`isHome`), à revoir avec la feature Missions (Feature 5) ; chatbot public (Feature 11), sur les
   composants de chat du système.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
   garde l'ancien gabarit de la maquette (en-tête en texte, sans badges ni blocs titrés) et leurs
   tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
 
 ## Journal
+
+- **Page des clés d'API (envoyée le 2026-11-06)** : écrans `isApiKeys`, `dlgApiKeyForm`,
+  `dlgApiKeyCreated` et confirmation `delete-api-key` ajoutés à la maquette, ouverts par une entrée
+  « Clés d'API » du menu de compte. Placement choisi par le propriétaire sur une page de quatre
+  options rendues en local (menu de compte, pied de sidebar, groupe Réglages, modale Paramètres),
+  vocabulaire « Supprimer » retenu partout, alerte de `dlgApiKeyCreated` comprise (« supprimez-la »,
+  renvoyée le même jour), `ConfirmDeleteDialog` restant inchangé. Glyphe `key-round`
+  ajouté à la maquette (le système l'a reçu à la sync qui suit). Contrôle : sept vues capturées en local sans
+  erreur console. **Envoi** : trois fichiers de la maquette (`Espace admin.dc.html`,
+  `assets/icons/lucide/key-round.svg`, `github.md`), système non touché.
+
+- **`InputGroup` sort de `post-mvp/` (système synchronisé le 2026-11-06)** : le composant est dans le
+  code depuis longtemps (cadre du champ de recherche de `Command`) et la page des clés d'API l'emploie
+  pour la valeur secrète affichée une fois. Le système le range sous `core/`, sa fiche dit « installé »
+  avec le chemin du code et ses usages réels (le prompt de chat reste post-MVP), `bundle.js`,
+  `_ds_manifest.json`, readme, `index.d.ts` et `COMPONENTS.md` suivent. Glyphe `key-round` ajouté
+  au système et à la carte `Iconography`, que huit glyphes plus anciens n'ont jamais rejointe.
+  - **Contrôle du système** : 111 miroirs compilés ; dix cartes capturées avant et après, sans erreur
+    ni racine vide ni hauteur nulle, identiques au pixel sauf `Iconography` (le glyphe) et quelques
+    pixels de curseur ou d'animation qui bougent déjà entre deux rendus d'un bundle inchangé ;
+    `bundle.js` publié rend comme les miroirs compilés.
+  - **Maquette** : `_ds_src/` recompilé (bundle octet pour octet reproductible depuis l'ancien état
+    avant la modification, 240 exports identiques, les 80 composants employés présents), `readme.md`
+    corrigé à la main (son texte garde la disposition de l'export, pas celle de l'artifact). Onze vues
+    capturées avant et après, aucun écart hors du bruit de rendu.
+  - **Envoi** : le système par l'outil Artifact (voir `github.md`), puis trois fichiers de la
+    maquette par `DesignSync` le même jour (`_ds_src/_ds_bundle.js`, `_ds_src/readme.md`,
+    `github.md`). Un sous-agent n'a pas toujours `DesignSync` : l'envoi de la maquette se fait depuis
+    la session principale.
+
+- **Set Lucide réaligné, cartes `Iconography` et `InputGroup` (système synchronisé le 2026-11-06)** :
+  la maquette avait 167 glyphes, le système 136 ; les 32 absents du système y entrent, `maximize-2`, seul du système, passe dans la maquette et
+  `circle-dashed`, qu’aucun des deux n’avait, rejoint les deux (les dossiers portent les mêmes 169 noms).
+  `Iconography` recense les 169 (dont huit anciens jamais montrés), `InputGroup` montre en plus du prompt
+  de chat (post-MVP) le cadre du champ de recherche de `Command` et la valeur secrète avec « Copier »,
+  viewport de 394 à 600 px ; readme du système et de `_ds_src/` à 169 glyphes.
+  - **Contrôle du système** : les deux cartes capturées avant et après avec le Chromium de Playwright,
+    sans erreur console hors polices externes, sans 404, sans image cassée, sans racine vide ni hauteur
+    nulle ; aucun glyphe copié sans `stroke`, `viewBox 0 0 24 24` ou `stroke-width 2` ; `key-round` passe à
+    sa place alphabétique dans la carte.
+  - **Maquette** : aucun écran modifié ; les noms d'icônes de `Espace admin.dc.html` contrôlés contre
+    `assets/icons/lucide/` : seul `circle-dashed` manquait (statut « En cours » des chantiers, `CH_ICON`), ajouté aux deux ; plus
+    aucun 404 sur l’écran des chantiers.
+  - **Envoi** : le système par l'outil Artifact (voir `github.md`) ; la maquette (`assets/icons/lucide/maximize-2.svg`, `assets/icons/lucide/circle-dashed.svg`,
+    `_ds_src/readme.md`, `github.md`) sera envoyée depuis la session principale, `DesignSync` n'étant pas
+    dans celle d'un sous-agent.
 
 - **Étude de cas et formulaires de la v2.4.0, puis fin de la liste des arbitrages (préparés le
   2026-10-27)** : six arbitrages du 2026-10-26 reportés, et les six du 2026-10-14 restés ouverts

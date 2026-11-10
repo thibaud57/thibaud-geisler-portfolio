@@ -56,6 +56,17 @@ export function toMonthValue(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`
 }
 
+// Règles croisées de l'opportunité, partagées par le formulaire et le domaine : un champ absent (`null`) ne contredit rien.
+export const isClientIntermediary = (
+  clientId: string | null,
+  intermediaryId: string | null,
+): boolean => clientId !== null && clientId === intermediaryId
+
+export const exceedsDaysPerWeek = (
+  onSiteDays: number | null,
+  daysPerWeek: number | null,
+): boolean => onSiteDays !== null && daysPerWeek !== null && onSiteDays > daysPerWeek
+
 export const OPPORTUNITY_SECTION_TITLES = {
   opportunity: "Opportunité",
   conditions: "Conditions",

@@ -7,7 +7,6 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 
-import { CONTACT_DETAILS_TEMPLATE, leadDetailsTemplate } from "@/lib/crm/details-templates"
 import { prisma } from "@/lib/prisma-test-setup"
 import { createContact, deleteContact } from "@/server/actions/contacts"
 import { initialContactFormState } from "@/server/actions/contacts.types"
@@ -68,41 +67,7 @@ function buildAttachFormData(personId: string): FormData {
 }
 
 describe("createContact attach against real Postgres", () => {
-  it("adds the contact role to a lead", async () => {
-    const person = await createPerson("Sami Bernard", { lead: true, contact: false })
-
-    const state = await createContact(initialContactFormState, buildAttachFormData(person.id))
-
-    const attached = await prisma.contact.findUnique({ where: { personId: person.id } })
-    expect(state.ok).toBe(true)
-    expect(attached).not.toBeNull()
-  })
-
-  it("replaces an untouched lead template by the contact template", async () => {
-    const person = await createPerson("Lina Petit", { lead: true, contact: false })
-    await prisma.person.update({
-      where: { id: person.id },
-      data: { details: leadDetailsTemplate("OUTBOUND") },
-    })
-
-    await createContact(initialContactFormState, buildAttachFormData(person.id))
-
-    const promoted = await prisma.person.findUnique({ where: { id: person.id } })
-    expect(promoted?.details).toBe(CONTACT_DETAILS_TEMPLATE)
-  })
-
-  it("keeps written lead details at promotion", async () => {
-    const person = await createPerson("Noa Martin", { lead: true, contact: false })
-    const written = "# 🎯 Contexte\n\nRencontré lors d'un salon."
-    await prisma.person.update({ where: { id: person.id }, data: { details: written } })
-
-    await createContact(initialContactFormState, buildAttachFormData(person.id))
-
-    const promoted = await prisma.person.findUnique({ where: { id: person.id } })
-    expect(promoted?.details).toBe(written)
-  })
-
-  it("refuses an opposed lead and leaves no contact role", async () => {
+  it("answers contact_opted_out for an opposed lead and leaves no contact role", async () => {
     const person = await createPerson(
       "Hugo Martin",
       { lead: true, contact: false },
@@ -116,14 +81,12 @@ describe("createContact attach against real Postgres", () => {
     expect(attached).toBeNull()
   })
 
-  it("refuses a person who is not a lead", async () => {
+  it("answers on the person field when the person is not a lead", async () => {
     const person = await createPerson("Sami Bernard", { lead: false, contact: false })
 
     const state = await createContact(initialContactFormState, buildAttachFormData(person.id))
 
-    const attached = await prisma.contact.findUnique({ where: { personId: person.id } })
     expect(state.errors.personId).toEqual(["Cette personne n'est pas un lead"])
-    expect(attached).toBeNull()
   })
 })
 

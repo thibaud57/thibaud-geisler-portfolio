@@ -11,7 +11,7 @@ import {
 
 import type { ReviewMotivation, ReviewStatus } from "@/generated/prisma/client"
 import { recordFromKeys } from "@/lib/record-from-keys"
-import { dateOnlyToLocal } from "@/lib/date-time"
+import { dateOnlyToLocal, isoDayToDate } from "@/lib/date-time"
 import type { IconComponent } from "@/lib/icons"
 
 export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
@@ -61,11 +61,6 @@ export const REVIEW_FIELD_LABELS = {
   nextWeekPlan: "Plan S+1",
   notes: "Notes",
 } as const
-
-export function isoDayToDate(isoDay: string): Date {
-  const [year = 0, month = 1, day = 1] = isoDay.split("-").map(Number)
-  return new Date(Date.UTC(year, month - 1, day))
-}
 
 export function isFridayIso(isoDay: string): boolean {
   return isoDayToDate(isoDay).getUTCDay() === 5

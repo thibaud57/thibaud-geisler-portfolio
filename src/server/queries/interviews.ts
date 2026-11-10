@@ -1,9 +1,10 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
+import { interviewPlaces } from "@/lib/crm/interviews"
 import { prisma } from "@/lib/prisma"
 import { companyRefSelect } from "@/server/queries/company-ref"
-import { personRefSelect } from "@/server/queries/persons"
+import { type PageQuery, personRefSelect } from "@/server/queries/persons"
 
 // Champs minimaux pour déduire le numéro et l'entretien précédent d'une opportunité.
 export const orderedInterviewSelect = {
@@ -63,4 +64,40 @@ export async function findInterviewByIdForAdmin(
   id: string,
 ): Promise<AdminInterviewWithSiblings | null> {
   return prisma.interview.findUnique({ where: { id }, include: adminInterviewByIdInclude })
+}
+
+// Lecture légère pour la recherche des outils : tous les entretiens, pour que le numéro se déduise de l'opportunité entière.
+export async function findInterviewSearchRows() {
+  return prisma.interview.findMany({
+    select: { ...orderedInterviewSelect, opportunity: { select: { title: true } } },
+  })
+}
+
+const interviewRowSelect = {
+  ...orderedInterviewSelect,
+  side: true,
+  status: true,
+  outcome: true,
+  score: true,
+  updatedAt: true,
+  opportunity: { select: { title: true } },
+} as const
+
+// Le numéro se calcule sur tous les entretiens des opportunités de la page, avant filtre et pagination : « Entretien 2 » reste « Entretien 2 » dans une liste filtrée.
+export async function findInterviewsPage(
+  page: PageQuery<Prisma.InterviewWhereInput, Prisma.InterviewOrderByWithRelationInput>,
+) {
+  const [rows, total] = await prisma.$transaction([
+    prisma.interview.findMany({ ...page, select: interviewRowSelect }),
+    prisma.interview.count({ where: page.where }),
+  ])
+  const siblings = await prisma.interview.findMany({
+    where: { opportunityId: { in: [...new Set(rows.map((row) => row.opportunityId))] } },
+    select: orderedInterviewSelect,
+  })
+  const places = interviewPlaces(siblings)
+  return {
+    rows: rows.map((row) => ({ ...row, number: places.get(row.id)?.number ?? null })),
+    total,
+  }
 }

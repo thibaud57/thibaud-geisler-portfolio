@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react"
 import { getImageProps } from "next/image"
+import Link from "next/link"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ADMIN_ACCOUNT_ITEMS } from "@/config/admin-account-items"
 import { useAdminSignOut } from "@/hooks/use-admin-sign-out"
 
 export interface AdminAccount {
@@ -55,6 +57,14 @@ export function AdminUserMenu({ account }: { account: AdminAccount }) {
           <span className="text-xs text-muted-foreground">{account.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {ADMIN_ACCOUNT_ITEMS.map(({ href, label, icon: Icon }) => (
+          <DropdownMenuItem key={href} asChild>
+            <Link href={href}>
+              <Icon />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuItem onSelect={signOut}>
           <LogOut />
           Déconnexion
