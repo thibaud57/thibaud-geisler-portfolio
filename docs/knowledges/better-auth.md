@@ -1,8 +1,8 @@
 ---
 title: "Better Auth : Authentification Google OAuth single-user"
-version: "1.7.14"
+version: "1.7.18"
 description: "Référence technique pour Better Auth : configuration, adaptateur Prisma sur schéma dédié, hooks de base, session en proxy et garde serveur, clés d'API des agents et OAuth MCP en réserve."
-date: "2026-11-06"
+date: "2026-11-10"
 keywords: ["better-auth", "authentification", "oauth", "google", "session", "prisma", "api-key", "mcp"]
 scope: ["docs"]
 technologies: ["Next.js", "React", "Prisma", "PostgreSQL", "Zod"]
@@ -175,19 +175,19 @@ const allowed = valid && (key?.permissions?.orders?.length ?? 0) > 0
 ### Points Importants
 
 - Paquet séparé, importé depuis `@better-auth/api-key` (client : `@better-auth/api-key/client`), à installer **à la même version** que `better-auth`
-- La clé est hachée au repos par défaut, en SHA-256 encodé base64url (`defaultKeyHasher`, `packages/api-key/src/index.ts`, tag v1.7.14) ; la valeur en clair n'est renvoyée qu'une fois, par `createApiKey`. `disableKeyHashing` existe et ne s'active jamais
+- La clé est hachée au repos par défaut, en SHA-256 encodé base64url (`defaultKeyHasher`, `@better-auth/api-key` 1.7.18, `dist/index.mjs`, relevé le 2026-11-10) ; la valeur en clair n'est renvoyée qu'une fois, par `createApiKey`. `disableKeyHashing` existe et ne s'active jamais
 - `start` garde en clair les 6 premiers caractères, préfixe compris, pour reconnaître une clé dans une liste ; le préfixe accepte `[a-zA-Z0-9_-]` et se termine de préférence par `_`
 - `permissions`, `rateLimit*`, `refill*`, `remaining` et `enabled` sont **server-only** : un appel qui passe `headers` est traité comme client et lève `SERVER_ONLY_PROPERTY`. La création avec permissions se fait donc sans `headers`, avec `body.userId` lu après la garde de session
 - Le rate limit est actif par défaut, à 10 requêtes par 24 h d'après le code lu au 2026-11-06 : un serveur d'outils le règle explicitement, sinon il bloque dès le onzième appel. Le réglage du plugin est copié dans chaque clé à sa création
-- Ce rate limit n'est pas une fenêtre fixe (`evaluateRateLimit`, code 1.7.14) : chaque requête acceptée incrémente le compteur et met à jour `lastRequest` ; le compteur ne repart à zéro que si l'écart avec `lastRequest` dépasse la fenêtre ; au-delà du maximum, refus `RATE_LIMITED` jusqu'à une fenêtre après la dernière requête acceptée. Avec 1 000 par heure, un usage continu sans pause d'une heure se bloque après 1 000 requêtes cumulées
-- Le refus `RATE_LIMITED` de `verifyApiKey` porte `error.details.tryAgainIn` (millisecondes), absent des types publics : la route MCP en tire `Retry-After` (`evaluateRateLimit` et `catch` de `verifyApiKey`, qui étale `error.body`, `@better-auth/api-key` 1.7.14, `dist/index.mjs`, constaté le 2026-11-10)
+- Ce rate limit n'est pas une fenêtre fixe (`evaluateRateLimit`, code 1.7.18) : chaque requête acceptée incrémente le compteur et met à jour `lastRequest` ; le compteur ne repart à zéro que si l'écart avec `lastRequest` dépasse la fenêtre ; au-delà du maximum, refus `RATE_LIMITED` jusqu'à une fenêtre après la dernière requête acceptée. Avec 1 000 par heure, un usage continu sans pause d'une heure se bloque après 1 000 requêtes cumulées
+- Le refus `RATE_LIMITED` de `verifyApiKey` porte `error.details.tryAgainIn` (millisecondes), absent des types publics : la route MCP en tire `Retry-After` (`evaluateRateLimit` et `catch` de `verifyApiKey`, qui étale `error.body`, `@better-auth/api-key` 1.7.18, `dist/index.mjs`, constaté le 2026-11-10)
 - `verifyApiKey` ne lève pas : il renvoie `{ valid: false, error: { code, message } }`. Des permissions insuffisantes reviennent en `KEY_NOT_FOUND`, sans code dédié. Chaque appel consomme le rate limit : une vérification par requête
-- Toute erreur interne de `verifyApiKey` (base en panne comprise) revient en `INVALID_API_KEY`, le code d'une clé inconnue. Le logger de Better Auth écrit une ligne `error` « Failed to validate API key » à chaque refus, clé inconnue, expirée ou en rate limit comprise (`catch` de `verifyApiKey`, code 1.7.14) : elle ne signale pas la panne
+- Toute erreur interne de `verifyApiKey` (base en panne comprise) revient en `INVALID_API_KEY`, le code d'une clé inconnue. Le logger de Better Auth écrit une ligne `error` « Failed to validate API key » à chaque refus, clé inconnue, expirée ou en rate limit comprise (`catch` de `verifyApiKey`, code 1.7.18) : elle ne signale pas la panne
 - `verifyApiKey` supprime la clé expirée qu'il vérifie et répond `KEY_EXPIRED` ; la purge des autres clés expirées part de `createApiKey`, en tâche de fond non attendue, au plus une fois toutes les 10 s
 - `expiresIn` est en secondes, borné par défaut entre 1 jour et 365 jours (`keyExpiration`) ; une clé sans expiration omet le champ
 - Une clé n'ouvre une session que si `enableSessionForAPIKeys` est activé (défaut `false`) : ne pas l'activer, sinon une clé fuitée donne la session du propriétaire sur tous les endpoints Better Auth
 - Le modèle `apikey` (21 champs, index sur `configId`, `referenceId` et `key`, sans clé étrangère) se transcrit à la main avec `@@schema("auth")`, comme les quatre modèles de base ; `referenceId` remplace `userId` depuis la 1.7
-- Le modèle Prisma se nomme `Apikey` (client `prisma.apikey`) : l'adaptateur Prisma appelle `db[model]` avec le nom `apikey` (`@better-auth/prisma-adapter`, 1.7.14) et `ApiKey` (client `prisma.apiKey`) lève « Model apikey does not exist ». Better Auth contrôle le schéma au démarrage par défaut (`advanced.database.validateSchema`) et logge un `SchemaMismatchError` sur un écart
+- Le modèle Prisma se nomme `Apikey` (client `prisma.apikey`) : l'adaptateur Prisma appelle `db[model]` avec le nom `apikey` (`@better-auth/prisma-adapter`, 1.7.18) et `ApiKey` (client `prisma.apiKey`) lève « Model apikey does not exist ». Better Auth contrôle le schéma au démarrage par défaut (`advanced.database.validateSchema`) et logge un `SchemaMismatchError` sur un écart
 - Le plugin lit par défaut l'en-tête `x-api-key` pour ses propres hooks : une route qui lit `Authorization: Bearer` extrait la clé elle-même avant `verifyApiKey`
 
 ---
