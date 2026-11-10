@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.5.1...v2.6.0) (2026-11-10)
+
+
+### Features
+
+* outils de l'app pour les agents, serveur MCP authentifié par clé d'API et outils CRM ([#237](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/237)) ([0a93536](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/0a9353693ffa50996dd156cf8b8a5e99a8b317f2))
+
 ## [2.5.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.5.0...v2.5.1) (2026-11-04)
 
 
