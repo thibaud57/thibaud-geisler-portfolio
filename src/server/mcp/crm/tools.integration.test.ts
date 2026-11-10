@@ -44,6 +44,7 @@ import {
   retrieveCompanyLogo,
   type CompanyIconFailure,
 } from "@/server/company-logo/fetch-company-logo"
+import { CRM_ENTITY_NAMES } from "@/server/mcp/crm/registry"
 import { buildServer } from "@/server/mcp/server"
 
 const authInfo = {
@@ -105,6 +106,11 @@ function seedNumberedCompanies(count: number, activeCount: number) {
 
 const createCompanyArgs = (data: Record<string, unknown>) => ({ entity: "company", data })
 
+const entityEnumSchema = z.looseObject({
+  properties: z.looseObject({ entity: z.looseObject({ enum: z.array(z.string()) }) }),
+})
+const branchesSchema = z.looseObject({ anyOf: z.array(z.looseObject({ title: z.string() })) })
+
 describe("tools/list", () => {
   it("lists the generic tools and the logo tool with their hints", async () => {
     const { tools } = await client.listTools()
@@ -124,6 +130,39 @@ describe("tools/list", () => {
     expect(hints["crm_update"]?.idempotentHint).toBe(true)
     expect(hints["crm_fetch_company_logo"]?.readOnlyHint).not.toBe(true)
     expect(hints["crm_fetch_company_logo"]?.idempotentHint).toBe(true)
+  })
+
+  it.each(["crm_fetch", "crm_query", "crm_create", "crm_update"])(
+    "gives %s a flat input schema whose entity lists every entity",
+    async (name) => {
+      const { tools } = await client.listTools()
+
+      const inputSchema = tools.find((tool) => tool.name === name)?.inputSchema
+      expect(inputSchema).not.toHaveProperty("oneOf")
+      expect(inputSchema).not.toHaveProperty("anyOf")
+      expect(entityEnumSchema.parse(inputSchema).properties.entity.enum).toEqual(CRM_ENTITY_NAMES)
+    },
+  )
+
+  it.each([
+    { name: "crm_query", part: "filters" },
+    { name: "crm_create", part: "data" },
+    { name: "crm_update", part: "fields" },
+  ])("describes the $part of $name with one branch per entity", async ({ name, part }) => {
+    const { tools } = await client.listTools()
+
+    const properties = entityEnumSchema.parse(
+      tools.find((tool) => tool.name === name)?.inputSchema,
+    ).properties
+    expect(branchesSchema.parse(properties[part]).anyOf.map(({ title }) => title)).toEqual(
+      CRM_ENTITY_NAMES,
+    )
+  })
+
+  it("names every entity in the server instructions", () => {
+    const instructions = client.getInstructions() ?? ""
+
+    expect(CRM_ENTITY_NAMES.filter((entity) => !instructions.includes(entity))).toEqual([])
   })
 })
 

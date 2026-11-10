@@ -8,9 +8,7 @@ import { opportunityEntity } from "./entities/opportunity"
 import { prospectingActionEntity } from "./entities/prospecting-action"
 import { signalEntity } from "./entities/signal"
 import { weeklyReviewEntity } from "./entities/weekly-review"
-import type { RegisteredCrmEntity } from "./entity-definition"
-
-const REGISTERED_ENTITIES = [
+export const CRM_ENTITIES = [
   companyEntity,
   leadEntity,
   contactEntity,
@@ -21,17 +19,6 @@ const REGISTERED_ENTITIES = [
   weeklyReviewEntity,
 ] as const
 
-export type CrmEntity = (typeof REGISTERED_ENTITIES)[number]["entity"]
+export type CrmEntity = (typeof CRM_ENTITIES)[number]["entity"]
 
-// Annoter la forme générale : le tuple littéral figerait le nombre d'entités dans le type des `.map`
-export const CRM_ENTITIES: readonly [
-  RegisteredCrmEntity<CrmEntity>,
-  ...RegisteredCrmEntity<CrmEntity>[],
-] = REGISTERED_ENTITIES
-
-const [firstEntity, ...otherEntities] = CRM_ENTITIES
-
-export const CRM_ENTITY_NAMES: readonly [CrmEntity, ...CrmEntity[]] = [
-  firstEntity.entity,
-  ...otherEntities.map((entry) => entry.entity),
-]
+export const CRM_ENTITY_NAMES = CRM_ENTITIES.map((entry) => entry.entity)

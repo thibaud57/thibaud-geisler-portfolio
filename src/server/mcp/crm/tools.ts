@@ -11,29 +11,78 @@ import { mcpLoggerFor } from "@/server/mcp/logger"
 
 import { companyLogoErrorMessage, refreshCompanyCaches } from "./entities/company"
 import type { RegisteredCrmEntity, SearchHit } from "./entity-definition"
+import { pageQueryShape } from "./query-page"
 import { CRM_ENTITIES, CRM_ENTITY_NAMES, type CrmEntity } from "./registry"
 import { guardTool, toolError, toolJson } from "./results"
-
-const [firstEntity, ...otherEntities] = CRM_ENTITIES
+import { detailsSectionSchema } from "./update-input"
 
 type Entry = RegisteredCrmEntity<CrmEntity>
 
-function fetchSchemaFor(entry: Entry) {
-  return z.strictObject({
-    entity: z.literal(entry.entity).describe("Type of CRM record to fetch."),
-    id: z.string().trim().min(1).describe("Id of the record. Get it from crm_search first."),
+const entityField = (verb: string) =>
+  z.enum(CRM_ENTITY_NAMES).describe(`Type of CRM record to ${verb}.`)
+
+const recordIdField = z
+  .string()
+  .trim()
+  .min(1)
+  .describe("Id of the record. Get it from crm_search first.")
+
+// Claude Code ne garde d'un oneOf racine que sa première branche (constaté le 2026-11-10) : l'agent ne voyait que les entreprises.
+// La racine reste donc plate et la partie propre à chaque entité s'affiche en anyOf imbriqué, une branche par entité du registre (ADR-025).
+// Elle n'est pas validée ici : le schéma strict de l'entité la reparse dans defineCrmEntity, avec des erreurs qui nomment le champ.
+function perEntityPart(part: string, pick: (entry: Entry) => z.ZodObject, description: string) {
+  const branches = CRM_ENTITIES.map((entry) => {
+    const schema = z.toJSONSchema(pick(entry), { io: "input" }).properties?.[part]
+    if (typeof schema !== "object") throw new Error(`${entry.entity} has no "${part}" schema`)
+    return { title: entry.entity, description: `For entity "${entry.entity}".`, ...schema }
   })
+  return z.looseObject({}).meta({ anyOf: branches }).describe(description)
 }
 
-// Une entité ajoutée au registre entre dans chaque union sans toucher aux outils (ADR-025)
-function unionOf<T extends z.ZodObject>(pick: (entry: Entry) => T) {
-  return z.discriminatedUnion("entity", [pick(firstEntity), ...otherEntities.map(pick)])
-}
+const { sort, order, limit, offset } = pageQueryShape
 
-const fetchInputSchema = unionOf(fetchSchemaFor)
-const queryInputSchema = unionOf((entry) => entry.querySchema)
-const createInputSchema = unionOf((entry) => entry.createSchema)
-const updateInputSchema = unionOf((entry) => entry.updateSchema)
+const fetchInputSchema = z.strictObject({ entity: entityField("fetch"), id: recordIdField })
+
+// Sans défaut à la racine : celui de l'entité s'applique au reparse (une revue se trie par défaut en desc).
+const queryInputSchema = z.strictObject({
+  entity: entityField("list"),
+  filters: perEntityPart(
+    "filters",
+    (entry) => entry.querySchema,
+    "Filters, all optional. The accepted filters depend on entity: use the branch titled with that entity.",
+  ).optional(),
+  sort: sort.unwrap().optional().describe("Sort key. Defaults to name."),
+  order: order
+    .unwrap()
+    .optional()
+    .describe("Sort direction. Defaults to asc, desc for a weekly review."),
+  limit: limit.unwrap().optional().describe("Page size, 1 to 100. Defaults to 20."),
+  offset: offset.unwrap().optional().describe("Number of rows to skip. Defaults to 0."),
+})
+
+const createInputSchema = z.strictObject({
+  entity: entityField("create"),
+  data: perEntityPart(
+    "data",
+    (entry) => entry.createSchema,
+    "Fields of the new record. They depend on entity: use the branch titled with that entity.",
+  ),
+})
+
+const updateInputSchema = z.strictObject({
+  entity: entityField("update"),
+  id: recordIdField,
+  fields: perEntityPart(
+    "fields",
+    (entry) => entry.updateSchema,
+    "Fields to change. They depend on entity: use the branch titled with that entity. A field left out stays unchanged, null clears an optional field.",
+  ).optional(),
+  detailsSection: detailsSectionSchema
+    .optional()
+    .describe(
+      "Replace the body of one section of the Details. Only a company, a lead, a contact, an opportunity and an interview have Details. Do not combine with fields.details.",
+    ),
+})
 
 const searchInputSchema = z.strictObject({
   query: z
@@ -133,7 +182,7 @@ export function registerCrmTools(server: McpServer): void {
       inputSchema: queryInputSchema,
       annotations: { readOnlyHint: true },
     },
-    (args) => withEntity(args["entity"], (entry) => entry.query(args)),
+    (args) => withEntity(args.entity, (entry) => entry.query(args)),
   )
 
   server.registerTool(
@@ -144,8 +193,7 @@ export function registerCrmTools(server: McpServer): void {
         "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, only slug and name are required, and the Details get the standard section template unless you send your own. For a lead, only name and origin are required. A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field. For an opportunity, only title is required: the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own. For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own. For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules. For a signal, exactly one of companyId or personId, type, occurredOn (a day, YYYY-MM-DD) and content are required: the type must fit the target (company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION; lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION) and a lead must be OUTBOUND and not opted out. For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the seven counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review. A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company, the title for an opportunity) of the new record.",
       inputSchema: createInputSchema,
     },
-    (args, ctx) =>
-      withEntity(args["entity"], (entry) => entry.create(args, { log: crmLogger(ctx) })),
+    (args, ctx) => withEntity(args.entity, (entry) => entry.create(args, { log: crmLogger(ctx) })),
   )
 
   server.registerTool(
@@ -157,8 +205,7 @@ export function registerCrmTools(server: McpServer): void {
       inputSchema: updateInputSchema,
       annotations: { idempotentHint: true },
     },
-    (args, ctx) =>
-      withEntity(args["entity"], (entry) => entry.update(args, { log: crmLogger(ctx) })),
+    (args, ctx) => withEntity(args.entity, (entry) => entry.update(args, { log: crmLogger(ctx) })),
   )
 
   server.registerTool(

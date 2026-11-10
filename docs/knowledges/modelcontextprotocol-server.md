@@ -1,8 +1,8 @@
 ---
 title: "MCP TypeScript SDK (serveur) - Outils exposés aux agents"
 version: "2.4.0"
-description: "Référence technique pour @modelcontextprotocol/server v2 : serveur et outils, handler HTTP sans état, intégration en route handler Next.js, erreurs, unions Zod, tests et spec MCP 2026-07-28."
-date: "2026-11-06"
+description: "Référence technique pour @modelcontextprotocol/server v2 : serveur et outils, handler HTTP sans état, intégration en route handler Next.js, erreurs, schéma d'entrée multi-entités, tests et spec MCP 2026-07-28."
+date: "2026-11-10"
 keywords: ["mcp", "model-context-protocol", "agents", "outils", "streamable-http", "zod", "route-handler"]
 scope: ["docs"]
 technologies: ["Next.js", "TypeScript", "Zod", "Better Auth", "Claude Code"]
@@ -168,36 +168,42 @@ async ({ id }) => {
 
 ---
 
-## Union discriminée en schéma d'entrée
+## Schéma d'entrée multi-entités
 
 ### Description
 
-Un outil générique qui sert plusieurs entités prend une union discriminée Zod en `inputSchema`. Le SDK accepte un schéma racine non objet depuis la PR [#1796](https://github.com/modelcontextprotocol/typescript-sdk/pull/1796), mergée le 30 mars 2026, et ajoute `type: "object"` à la racine du JSON Schema annoncé, l'union restant en `oneOf` ou `anyOf` dessous.
+Un outil générique qui sert plusieurs entités garde une racine plate : `entity` en `z.enum`, et la partie propre à chaque entité dans une propriété décrite par un `anyOf` imbriqué, une branche titrée par entité. Le handler reparse l'entrée avec le schéma strict de l'entité désignée. Une union discriminée à la racine est acceptée par le SDK depuis la PR [#1796](https://github.com/modelcontextprotocol/typescript-sdk/pull/1796) (mergée le 30 mars 2026, `type: "object"` ajouté à la racine, l'union en `oneOf` dessous), mais Claude Code n'en transmet au modèle que la première branche.
 
 ### Exemple
 
 ```ts
-const createInput = z.discriminatedUnion('entity', [
-  z.object({ entity: z.literal('customer'), name: z.string(), email: z.email() }),
-  z.object({ entity: z.literal('supplier'), name: z.string(), vatId: z.string() }),
-])
+const SCHEMAS = { customer: customerDataSchema, supplier: supplierDataSchema } as const
 
-server.registerTool('sales_create', { description: 'Create a customer or a supplier', inputSchema: createInput }, async (input) => {
-  switch (input.entity) {
-    case 'customer':
-      return toResult(await createCustomer(input))
-    case 'supplier':
-      return toResult(await createSupplier(input))
-  }
+const branchOf = (entity: keyof typeof SCHEMAS) => ({
+  title: entity,
+  ...z.toJSONSchema(SCHEMAS[entity], { io: 'input' }),
+})
+
+const createInput = z.strictObject({
+  entity: z.enum(['customer', 'supplier']),
+  // Affichée au modèle, non validée par le SDK : le schéma strict de l'entité la reparse
+  data: z.looseObject({}).meta({ anyOf: [branchOf('customer'), branchOf('supplier')] }),
+})
+
+server.registerTool('sales_create', { description: 'Create a customer or a supplier', inputSchema: createInput }, async ({ entity, data }) => {
+  const parsed = SCHEMAS[entity].safeParse(data)
+  return parsed.success ? toResult(await create(entity, parsed.data)) : toError(z.prettifyError(parsed.error))
 })
 ```
 
 ### Points Importants
 
-- Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)) : la ligne v2 contient le correctif
-- Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à sa conversion au `tools/list`, et la branche `null` d'un `z.object().nullable()` devient inatteignable
-- La lecture d'un `oneOf` racine par les clients LLM : Claude Code 2.1.310 appelle correctement un outil dont l'union racine n'a qu'une entité (relevé le 2026-11-06), à revérifier dès plusieurs entités. Repli possible : un `z.object` plat avec `entity: z.enum([...])` et des champs optionnels, puis un parse discriminé dans le handler
-- Le narrowing par `switch` sur le discriminant garde l'exhaustivité au typage
+- Claude Code réduit un `oneOf` racine à sa première branche : `entity` devient un `const` de la première entité et `required` est vidé (relevé le 2026-11-10 par une session Claude Code headless sur le serveur local, qui recopiait le schéma reçu). Un `anyOf` imbriqué dans une propriété est transmis tel quel
+- Les clés posées par `.meta()` sont fusionnées dans le JSON Schema annoncé (`~standard.jsonSchema` de Zod 4, appelé par le SDK au `tools/list`) : `anyOf` s'ajoute à côté de `type: "object"` de la propriété
+- La validation du SDK précède le handler et l'échec d'une union ne rend que « Invalid input » : laisser la partie propre à l'entité permissive pour le SDK (`z.looseObject({})`) et confier les erreurs au schéma strict de l'entité, qui nomme le champ fautif
+- Pas de valeur par défaut à la racine si elle varie selon l'entité (ex. un ordre de tri) : le SDK l'appliquerait avant le reparse et masquerait celle de l'entité
+- Avant #1796, une union discriminée donnait un schéma d'outil vide ([#1643](https://github.com/modelcontextprotocol/typescript-sdk/issues/1643)). Effet de bord du correctif : un schéma racine qui n'est ni objet ni union (`z.string()`) lève à sa conversion au `tools/list`
+- L'instruction du serveur (`new McpServer(info, { instructions })`) se tire du registre des entités : écrite à la main, elle reste figée sur les entités du premier jour
 
 ---
 
