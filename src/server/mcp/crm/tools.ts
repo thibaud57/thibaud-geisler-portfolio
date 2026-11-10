@@ -128,11 +128,13 @@ const docsOf = (pick: (docs: CrmToolDocs) => string | undefined): string[] => [
   ...new Set(CRM_ENTITIES.flatMap(({ docs }) => pick(docs) ?? [])),
 ]
 
-const SEARCH_DESCRIPTION = `Find CRM records by an approximate name, case and accents ignored. Call this first: crm_fetch and crm_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: ${docsOf(({ search }) => search).join(", ")}. A person who opted out of prospecting is returned only on her exact email or LinkedIn URL, as { label: "Opposée à la prospection", optedOut: true } without name: never recreate or contact her.`
+const SEARCH_DESCRIPTION = `Find CRM records by an approximate name, case and accents ignored. Call this first: crm_fetch and crm_update need the id it returns. Returns { results: [{ entity, id, label, hint }] }, where hint tells two homonyms apart: ${docsOf(({ search }) => search).join(", ")}. A person who opted out of prospecting is returned only on their exact email or LinkedIn URL, as { label: "Opposée à la prospection", optedOut: true } without name: never recreate or contact them.`
 
-const FETCH_DESCRIPTION = `Fetch one CRM record by id, with its links. ${docsOf(({ fetch }) => fetch).join(" ")} A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches.`
+const INSTANTS = "Dates with a time are ISO 8601 in Paris time, with their offset."
 
-const QUERY_DESCRIPTION = `List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date; ${docsOf(({ queryRow }) => queryRow).join("; ")}) and the total count before pagination. Persons who opted out are never listed. Page with offset. ${docsOf(({ querySort }) => querySort).join(" ")}`
+const FETCH_DESCRIPTION = `Fetch one CRM record by id, with its links. ${docsOf(({ fetch }) => fetch).join(" ")} A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches. ${INSTANTS}`
+
+const QUERY_DESCRIPTION = `List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date; ${docsOf(({ queryRow }) => queryRow).join("; ")}) and the total count before pagination. Persons who opted out are never listed. Page with offset. ${docsOf(({ querySort }) => querySort).join(" ")} ${INSTANTS}`
 
 const CREATE_DESCRIPTION = `Create a CRM record. Call crm_search first to check it does not exist yet. ${docsOf(({ create }) => create).join(" ")} A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company, the title for an opportunity) of the new record.`
 

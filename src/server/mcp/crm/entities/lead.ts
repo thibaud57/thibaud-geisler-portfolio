@@ -8,7 +8,7 @@ import { personIdSchema } from "@/lib/ids"
 import { createLead, updateLead, type LeadPatch } from "@/server/crm/leads"
 import { findLeadByIdForAdmin, findLeadPerson, findLeadsPage } from "@/server/queries/leads"
 
-import { withDays } from "../day-fields"
+import { withDays, withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
 import { defineCrmEntity } from "../entity-definition"
 import {
   newPersonShape,
@@ -27,7 +27,9 @@ const entityField = z.literal("lead").describe('Type of CRM record: always "lead
 
 // `score`, `optedOutAt` et `exchangesErasedAt` restent hors des schémas : un champ exclu est refusé, jamais ignoré.
 const roleShape = {
-  origin: z.enum(LeadOrigin).describe("How the lead came: INBOUND (she wrote first) or OUTBOUND."),
+  origin: z
+    .enum(LeadOrigin)
+    .describe("How the lead came: INBOUND (the lead wrote first) or OUTBOUND."),
   status: z
     .enum(LeadStatus)
     .describe("Pipeline status (NOUVEAU, SUSPECT, DISCUSSION, HORS_ICP, PERDU, STAND_BY)."),
@@ -109,7 +111,9 @@ export const leadEntity = defineCrmEntity({
 
     const { hasContactRole, interviews, ...record } = lead
     return {
-      ...withDays(record, ["metAt"]),
+      ...withDays(withDays(record, ["metAt"]), ["lastReplyAt"], ZONED_DAY),
+      opportunities: record.opportunities.map(withMonth),
+      signals: record.signals.map(withSignalDay),
       roles: rolesOf({ lead: true, contact: hasContactRole }),
       // Les entretiens de l'opportunité n'entrent pas dans le contexte de l'agent : l'opportunité se lit par son id
       interviews: interviews.map(({ opportunity, ...interview }) => ({

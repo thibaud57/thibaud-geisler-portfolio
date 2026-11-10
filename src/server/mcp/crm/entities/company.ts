@@ -37,6 +37,7 @@ import {
   findCompanyWithLinks,
 } from "@/server/queries/companies"
 
+import { withDays, withMonth, withSignalDay } from "../day-fields"
 import { defineCrmEntity } from "../entity-definition"
 import { details, notes } from "../fields"
 import { rolesOf } from "../person-ref"
@@ -106,7 +107,7 @@ const createDataSchema = z
     size: fieldShape.size.default(null),
     websiteUrl: fieldShape.websiteUrl.default(null),
     logoFilename: fieldShape.logoFilename.default(null),
-    types: fieldShape.types.optional(),
+    types: fieldShape.types,
     relationStatus: fieldShape.relationStatus.optional(),
     zones: fieldShape.zones.optional(),
     notes: fieldShape.notes.optional(),
@@ -116,7 +117,7 @@ const createDataSchema = z
         "Whole Details text in markdown. Omit it to get the standard section template (À propos, Chiffres clés, ...). null creates the company without Details.",
       ),
   })
-  .describe("Fields of the company to create. Only slug and name are required.")
+  .describe("Fields of the company to create. Required: slug, name and types.")
 
 const updateFieldsSchema = z
   .strictObject(fieldShape)
@@ -251,7 +252,7 @@ export const companyEntity = defineCrmEntity({
     fetch:
       "For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact).",
     create:
-      "For a company, only slug and name are required, and the Details get the standard section template unless you send your own.",
+      "For a company, slug, name and types are required, and the Details get the standard section template unless you send your own.",
   },
   async search(query) {
     const needle = normalizeForSearch(query)
@@ -269,9 +270,16 @@ export const companyEntity = defineCrmEntity({
     const company = await findCompanyWithLinks(id)
     if (!company) return null
 
-    const { persons, ...record } = company
+    const { persons, legalEntity, ...record } = company
     return {
       ...record,
+      legalEntity: legalEntity && {
+        ...legalEntity,
+        publisher: legalEntity.publisher && withDays(legalEntity.publisher, ["vatLiableSince"]),
+      },
+      opportunitiesAsIntermediary: record.opportunitiesAsIntermediary.map(withMonth),
+      opportunitiesAsClient: record.opportunitiesAsClient.map(withMonth),
+      signals: record.signals.map(withSignalDay),
       persons: persons.map((person) => ({
         id: person.id,
         name: personDisplayName(person),

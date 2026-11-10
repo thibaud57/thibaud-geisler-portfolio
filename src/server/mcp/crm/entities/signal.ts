@@ -30,7 +30,7 @@ import {
   type SignalTargets,
 } from "@/server/queries/signals"
 
-import { dateColumnDay, withDays } from "../day-fields"
+import { dateColumnDay, withSignalDay } from "../day-fields"
 import { dateRange } from "../date-range"
 import { defineCrmEntity, joinHint } from "../entity-definition"
 import { personRef } from "../person-ref"
@@ -133,7 +133,7 @@ const withTarget = <T extends SignalTargets & { occurredOn: Date }>({
   company,
   person,
   ...row
-}: T) => ({ ...withDays(row, ["occurredOn"]), company, lead: person && personRef(person) })
+}: T) => ({ ...withSignalDay(row), company, lead: person && personRef(person) })
 
 function toWhere(filters: QueryInput["filters"]): Prisma.SignalWhereInput {
   const range = filters?.occurredOn
