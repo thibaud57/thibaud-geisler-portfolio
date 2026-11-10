@@ -12,7 +12,7 @@ technologies: ["Next.js", "React", "Prisma", "PostgreSQL", "Zod"]
 
 Better Auth est une bibliothèque d'authentification TypeScript qui s'auto-héberge : elle expose ses routes dans l'application et stocke ses données dans la base du projet, sans service tiers. Le portfolio l'emploie pour la seule surface qui en a besoin, l'espace admin, avec Google comme unique fournisseur et une whitelist d'un email. Il n'y a ni inscription, ni mot de passe, ni gestion multi-utilisateur (ADR-002).
 
-Ses quatre tables vivent dans un schéma PostgreSQL dédié `auth`, séparé du contenu éditorial (ADR-018).
+Ses quatre tables de base (`user`, `session`, `account`, `verification`) et la table `apikey` du plugin de clés d'API vivent dans un schéma PostgreSQL dédié `auth`, séparé du contenu éditorial (ADR-018).
 
 ---
 
@@ -186,31 +186,15 @@ const allowed = valid && (key?.permissions?.orders?.length ?? 0) > 0
 - `verifyApiKey` supprime la clé expirée qu'il vérifie et répond `KEY_EXPIRED` ; la purge des autres clés expirées part de `createApiKey`, en tâche de fond non attendue, au plus une fois toutes les 10 s
 - `expiresIn` est en secondes, borné par défaut entre 1 jour et 365 jours (`keyExpiration`) ; une clé sans expiration omet le champ
 - Une clé n'ouvre une session que si `enableSessionForAPIKeys` est activé (défaut `false`) : ne pas l'activer, sinon une clé fuitée donne la session du propriétaire sur tous les endpoints Better Auth
-- Le modèle `apikey` (21 champs, index sur `configId`, `referenceId` et `key`, sans clé étrangère) se transcrit à la main avec `@@schema("auth")`, comme les quatre modèles de base ; `referenceId` remplace `userId` depuis la 1.7
+- Le modèle `apikey` (index sur `configId`, `referenceId` et `key`, sans clé étrangère) se transcrit à la main avec `@@schema("auth")`, comme les quatre modèles de base ; `referenceId` remplace `userId` depuis la 1.7
 - Le modèle Prisma se nomme `Apikey` (client `prisma.apikey`) : l'adaptateur Prisma appelle `db[model]` avec le nom `apikey` (`@better-auth/prisma-adapter`, 1.7.18) et `ApiKey` (client `prisma.apiKey`) lève « Model apikey does not exist ». Better Auth contrôle le schéma au démarrage par défaut (`advanced.database.validateSchema`) et logge un `SchemaMismatchError` sur un écart
 - Le plugin lit par défaut l'en-tête `x-api-key` pour ses propres hooks : une route qui lit `Authorization: Bearer` extrait la clé elle-même avant `verifyApiKey`
 
 ---
 
-## OAuth pour clients MCP (plugin `@better-auth/mcp`)
+## OAuth pour clients MCP (en réserve)
 
-### Description
-
-Le plugin fait de l'app un serveur d'autorisation OAuth 2.1 et une ressource protégée (RFC 9728) pour des clients MCP qui exigent OAuth, comme les connecteurs claude.ai. Il reste en réserve : l'app authentifie ses agents par clé d'API, et aucun client utilisé ne l'impose ([ADR-025](../adrs/025-acces-agents-app.md)).
-
-### Exemple
-
-```ts
-// Route MCP enveloppée : JWT vérifié localement, 401 ou 403 insufficient_scope sinon
-export const POST = requireMcpAuth(auth, mcpHandler, { resource: 'https://app.example.com/api/mcp' })
-```
-
-### Points Importants
-
-- Il demande le plugin `jwt` (signature, JWKS) et recommande `@better-auth/cimd` (Client ID Metadata Documents, profil `mcp-2026-07-28`), en plus du SDK MCP v2
-- Il remplace `oauthProvider()` : ne jamais enregistrer les deux dans la même instance
-- L'enregistrement dynamique des clients n'est jamais activé implicitement, la spec MCP le dépréciant
-- Le login Google et sa whitelist restent l'étape d'identification du flux OAuth
+Le plugin `@better-auth/mcp` (serveur d'autorisation OAuth 2.1) n'est pas utilisé : l'app authentifie ses agents par clé d'API, et aucun client utilisé n'impose OAuth. Décision et conditions de réévaluation : [ADR-025](../adrs/025-acces-agents-app.md).
 
 ---
 

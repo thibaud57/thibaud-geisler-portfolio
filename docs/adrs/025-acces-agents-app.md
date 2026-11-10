@@ -1,7 +1,7 @@
 ---
 title: "ADR-025 : Accès des agents à l'app"
 status: "accepted"
-description: "Un serveur MCP servi par l'app (SDK TypeScript v2, une adresse par domaine, outils génériques), authentifié par une clé d'API Better Auth par usage ; conditions mesurées par le prototype le 2026-11-06"
+description: "Un serveur MCP servi par l'app (SDK TypeScript v2, une adresse par domaine, outils génériques), authentifié par une clé d'API Better Auth par usage ; conditions 2 et 3 mesurées par le prototype le 2026-11-06, condition 1 en partie ouverte (spike d'agent-os)"
 date: "2026-11-06"
 keywords: ["architecture", "adr", "mcp", "cli", "agents", "claude-code", "authentification", "agent-os", "api-key"]
 scope: ["docs", "architecture"]
@@ -12,7 +12,7 @@ technologies: ["Next.js", "Model Context Protocol", "Claude Code", "Better Auth"
 
 La Feature 3 « Outils de l'app pour les agents » de `BRAINSTORM.md` fait agir des agents sur l'app, dans trois situations :
 
-- **Claude Code sur le poste du propriétaire**, par internet, avec les skills freelance, qui écrivent aujourd'hui dans Notion et s'y rebranchent à leur bascule (Feature 4)
+- **Claude Code sur le poste du propriétaire**, par internet, avec les skills freelance, qui écrivent dans Notion et s'y rebranchent à leur bascule (Feature 4)
 - **Les jobs d'`agent-os`** (Feature 4), qui exécutent Claude Code sur l'abonnement par l'Agent SDK ([ADR-016](016-acces-llm.md), [ADR-026](026-execution-claude-code-abonnement.md)), depuis le réseau Docker interne ([ADR-019](019-communication-inter-services.md))
 - **L'assistant interne de l'espace admin** (Feature 4), qui tourne à travers `agent-os`
 
@@ -106,7 +106,7 @@ Pourquoi cette option, dans ce projet :
 
 Retenu pour l'implémentation :
 
-- **SDK** : `@modelcontextprotocol/server` (ligne v2) et son `createMcpHandler`, qui rend un handler `Request → Response` ; ni la ligne v1, ni `mcp-handler`, ni framework dédié. Spec 2026-07-28, le handler gardant son mode par défaut qui sert sans session les clients des révisions 2025 : Claude Code 2.1.310 et le CLI 2.1.317 embarqué par `claude-agent-sdk` 0.2.177 parlent déjà la 2026-07-28 (relevé le 2026-11-06), et rien ne justifie de couper un client 2025
+- **SDK** : `@modelcontextprotocol/server` (ligne v2) et son `createMcpHandler`, qui rend un handler `Request → Response` ; ni la ligne v1, ni `mcp-handler`, ni framework dédié. Spec 2026-07-28, le handler gardant son mode par défaut qui sert sans session les clients des révisions 2025 : les clients visés parlent déjà la 2026-07-28 (relevé en § Notes complémentaires), et rien ne justifie de couper un client 2025
 - **Une adresse par domaine** (`/api/mcp/<domaine>`) plutôt qu'un préfixe d'outils sur une adresse commune : une session d'`agent-os` ne déclare que le serveur de son domaine, et la clé se vérifie contre le domaine de l'adresse
 - **Outils génériques par domaine** : recherche tolérante, lecture d'une fiche et de ses liens, requête filtrée et paginée, création, modification, l'entité désignée par un discriminant (union Zod par entité du domaine) ; aucune suppression par défaut. Un même générique, enregistré une fois par domaine. Écartés : un outil par entité et par opération (« A common error we've observed is tools that merely wrap existing software functionality or API endpoints », [Anthropic, Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents), consulté le 2026-11-06) et un jeu global à tous les domaines (union de toutes les entités dans chaque schéma, aucune permission ni restriction possible par domaine). Un outil propre à une tâche s'ajoute quand le générique ne suffit pas
 - **Authentification** : `@better-auth/api-key`, une clé par usage (poste, `agent-os`), ses `permissions` limitées à ses domaines. Pas d'OAuth : claude.ai et Claude Desktop restent un cas de test, `@better-auth/mcp` en réserve si un usage réel l'exige
@@ -118,14 +118,11 @@ Acté dès maintenant, quelle que soit l'option retenue :
 - aucun agent n'utilise la session de l'espace admin ; un jeton par usage, révocable
 - la confirmation d'une écriture se décide outil par outil, au spec du domaine ; depuis `agent-os`, elle parvient au propriétaire comme toute attente d'une session ([ADR-026](026-execution-claude-code-abonnement.md))
 
-Conditions de l'acceptation, mesurées le 2026-11-06 par le prototype qui ouvre la Feature 3 (route `/api/mcp/crm`, outil `crm_fetch`) :
+Conditions de l'acceptation, mesurées par le prototype qui ouvre la Feature 3 (route `/api/mcp/crm`, outil `crm_fetch`), relevé en § Notes complémentaires :
 
-1. **Le serveur MCP de son domaine est servi correctement à une session d'`agent-os`, sans être exposé hors de la clé du domaine.** Trois faits distincts :
-   - **Mesuré le 2026-11-06** : sur le CLI 2.1.317 embarqué par `claude-agent-sdk` 0.2.177, la version qu'épingle `ai-kit`, sous `--strict-mcp-config`, le message `system/init` ne liste que `crm` (`connected`) et le seul outil `mcp__crm__crm_fetch`, sans serveur user, de plugin ni connecteur claude.ai. Conforme à la référence de l'Agent SDK Python (« ignore project `.mcp.json`, user settings, plugin-provided MCP servers, and claude.ai connectors », [Agent SDK, Python](https://code.claude.com/docs/en/agent-sdk/python), consulté le 2026-11-06). Cette mesure est une propriété du CLI sous ce drapeau : elle prouve que le serveur du domaine est servi correctement, pas le périmètre d'une session d'`agent-os`
-   - **Décidé** : une session d'`agent-os` passe `strict_mcp_config=False`, en parité avec le poste (décision d'`agent-os` et d'`ai-kit` du 2026-11-06, ADR-002 d'`agent-os` et ADR-004 d'`ai-kit`). Les plugins avec leurs serveurs MCP et les connecteurs claude.ai du compte sont chargés
-   - **À vérifier, non mesuré** : qu'en session non stricte ni un connecteur ni les settings globaux n'exposent le MCP de l'app hors de la clé du domaine, et que les connecteurs se chargent avec le token d'abonnement (spike d'`agent-os`, [ADR-026](026-execution-claude-code-abonnement.md) § Notes complémentaires)
-2. **Un serveur MCP minimal dans Next.js 16, sur le SDK v2 avec Zod 4, répond de façon stable en production standalone et refuse une requête sans clé.** Sur l'image de prod construite en local (Next.js 16.4.3, `@modelcontextprotocol/server` 2.4.0, Zod 4.6.7) : 60 appels `crm_fetch` sans erreur autour d'un redémarrage du container, 401 sans clé avant et après, aucune ligne `error` dans les logs
-3. **Le contexte consommé par les outils d'un domaine reste faible.** `/context` dans Claude Code, serveur `crm` connecté : environ 100 tokens d'`instructions` du serveur, le schéma de `crm_fetch` (196 tokens) n'entrant qu'au chargement de l'outil pour un appel. Claude Code lit l'union racine `{ entity, id }` sans erreur
+1. **Le serveur MCP de son domaine est servi correctement à une session d'`agent-os`, sans être exposé hors de la clé du domaine.** Partiellement ouverte. Le serveur est servi correctement (mesuré). Une session d'`agent-os` passe `strict_mcp_config=False`, en parité avec le poste (décision d'`agent-os` et d'`ai-kit`, ADR-002 d'`agent-os` et ADR-004 d'`ai-kit`) : plugins avec leurs serveurs MCP chargés, connecteurs claude.ai chargés si le token d'abonnement les récupère (à valider au spike d'`agent-os`, [ADR-026](026-execution-claude-code-abonnement.md) § Décision). Reste à vérifier : qu'en session non stricte ni un connecteur ni les settings globaux n'exposent le MCP de l'app hors de la clé du domaine
+2. **Un serveur MCP minimal dans Next.js 16, sur le SDK v2 avec Zod 4, répond de façon stable en production standalone et refuse une requête sans clé.** Mesurée
+3. **Le contexte consommé par les outils d'un domaine reste faible.** Mesurée
 
 ---
 
@@ -137,11 +134,8 @@ Conditions de l'acceptation, mesurées le 2026-11-06 par le prototype qui ouvre 
 - Un nouveau domaine n'écrit que ses schémas et sa logique : les outils viennent du générique
 
 ## Négatives
-- Dépendance à un SDK dont la ligne v2 a moins de six mois au 2026-11-06, à revérifier à chaque montée
 - La logique métier doit sortir des Server Actions pour servir aux deux entrées
-- Une clé d'API de longue durée à protéger et à faire tourner, stockée hachée en SHA-256 par `@better-auth/api-key` (`defaultKeyHasher`, tag v1.7.14)
-- Sans OAuth, claude.ai et Claude Desktop n'accèdent au serveur que si l'en-tête fixe des connecteurs est ouvert au compte
-- Une session d'`agent-os` non stricte charge la configuration MCP du poste : l'exposition du serveur de l'app hors de la clé du domaine reste à mesurer (condition 1)
+- Une clé d'API de longue durée à protéger et à faire tourner, stockée hachée en SHA-256 par `@better-auth/api-key` (`defaultKeyHasher`, relevé dans le code de la version installée, 1.7.18, le 2026-11-10)
 
 ---
 
@@ -151,11 +145,11 @@ Remplace la note « Serveur MCP » de l'[ADR-020](020-portfolio-bff.md) et la qu
 
 Chaque domaine déclare ses outils dans sa propre feature (`BRAINSTORM.md`, Features 2, 5, 6, 7 et 8), sur le socle posé par la Feature 3.
 
-**Pièges de Claude Code relevés au prototype** (2026-11-06) :
+**Relevé du prototype**, le 2026-11-06, sur l'image de production construite en local (Next.js 16.4.3, `@modelcontextprotocol/server` 2.4.0, Zod 4.6.7), avec Claude Code 2.1.310 et le CLI 2.1.317 embarqué par `claude-agent-sdk` 0.2.177, la version qu'épingle `ai-kit` :
 
-- En `-p`, le message `system/init` peut lister `mcp_servers: []` parce que les serveurs se connectent après la construction des outils ([claude-code #102804](https://github.com/anthropics/claude-code/issues/102804)) ; contournement cité : `MCP_CONNECTION_NONBLOCKING=0`
-- `--mcp-config` est variadique et avale un prompt qui le suit : le séparer par `--` ou le passer sur l'entrée standard ([claude-code #5593](https://github.com/anthropics/claude-code/issues/5593))
-- `claude mcp list` ne reflète pas une session lancée avec `--mcp-config` et peut bloquer un serveur du même nom par son cache d'authentification ([claude-code #80635](https://github.com/anthropics/claude-code/issues/80635))
-- `--tools ""` retire la recherche d'outils : tous les outils MCP entrent alors en contexte ([claude-code #106413](https://github.com/anthropics/claude-code/issues/106413))
-- Dans `url` et `headers` d'un serveur distant, Claude Code lit certaines variables d'identifiants comme vides au lieu de les développer ([Claude Code, MCP](https://code.claude.com/docs/en/mcp)) : le nom de la variable qui porte la clé se teste
-- Sous Windows, le CLI et l'extension VS Code indexent le même projet sous `C:/` et `c:/` dans `~/.claude.json` : un serveur ajouté en scope `local` depuis un terminal reste invisible de l'extension (constaté sur 2.1.310). Le déclarer depuis la session qui l'utilisera, ou en scope `user`
+- **Révision parlée** : Claude Code et ce CLI parlent déjà la 2026-07-28
+- **Condition 1** : sous `--strict-mcp-config`, le message `system/init` ne liste que `crm` (`connected`) et le seul outil `mcp__crm__crm_fetch`, sans serveur user, de plugin ni connecteur claude.ai, conforme à la référence de l'Agent SDK Python (« ignore project `.mcp.json`, user settings, plugin-provided MCP servers, and claude.ai connectors », [Agent SDK, Python](https://code.claude.com/docs/en/agent-sdk/python), consulté le 2026-11-06). C'est une propriété du CLI sous ce drapeau : elle prouve que le serveur du domaine est servi correctement, pas le périmètre d'une session non stricte d'`agent-os`, non mesuré
+- **Condition 2** : 60 appels `crm_fetch` sans erreur autour d'un redémarrage du container, 401 sans clé avant et après, aucune ligne `error` dans les logs
+- **Condition 3** : `/context` dans Claude Code, serveur `crm` connecté, environ 100 tokens d'`instructions` du serveur, le schéma de `crm_fetch` (196 tokens) n'entrant qu'au chargement de l'outil pour un appel. Claude Code lit l'union racine `{ entity, id }` sans erreur
+
+Les pièges de Claude Code relevés au prototype sont dans [knowledges/modelcontextprotocol-server.md](../knowledges/modelcontextprotocol-server.md#pièges-de-claude-code-client-du-serveur).

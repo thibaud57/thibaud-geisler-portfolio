@@ -10,7 +10,7 @@ technologies: ["PostgreSQL", "Next.js", "TypeScript"]
 
 # Description
 
-`Prisma` 7 est l'ORM TypeScript du portfolio, utilisé pour accéder à PostgreSQL (projets, tags, leads post-MVP). La v7 rend le client Rust-free (TypeScript pur, 90% plus léger, 3x plus rapide), impose les driver adapters (pour PostgreSQL : `@prisma/adapter-pg`), passe en ESM-only, ne charge plus `.env` automatiquement au runtime, et centralise la config dans `prisma.config.ts`.
+`Prisma` 7 est l'ORM TypeScript du portfolio, utilisé pour accéder à PostgreSQL (projets, tags, domaine CRM). La v7 rend le client Rust-free (TypeScript pur, 90% plus léger, 3x plus rapide), impose les driver adapters (pour PostgreSQL : `@prisma/adapter-pg`), passe en ESM-only, ne charge plus `.env` automatiquement au runtime, et centralise la config dans `prisma.config.ts`.
 
 ---
 
@@ -234,7 +234,7 @@ pg_restore -U "$POSTGRES_USER" -d portfolio_dev --data-only --disable-triggers
 
 - `--data-only` des deux côtés : le schéma vient des migrations, jamais du dump, sans quoi une restauration réintroduirait un schéma périmé
 - `--disable-triggers` à la restauration : les contraintes de clé étrangère rejetteraient les lignes insérées avant leur parent, l'ordre du dump ne suivant pas le graphe des relations
-- `--exclude-schema=auth` : restaurer une session ou un compte OAuth d'une autre instance n'a aucun sens, le schéma `auth` se repeuple à la première connexion Google
+- `--exclude-schema=auth` : restaurer une session ou un compte OAuth d'une autre instance n'a aucun sens, le schéma `auth` se repeuple à la première connexion Google (compte, session), mais pas les clés d'API des agents, absentes du dump : elles se recréent depuis `/admin/cles-api`
 - Restaurer sur une base vidée par `just db-reset` : `--data-only` n'efface rien, restaurer par-dessus des données existantes viole les contraintes d'unicité
 - `dumps/` est ignoré par git : un dump porte des données réelles
 
@@ -312,7 +312,7 @@ pnpm exec prisma studio                # GUI web pour explorer la base
 - Charger `.env` via `@next/env` (`loadEnvConfig`) dans `prisma.config.ts` et les scripts standalone (`scripts/dev-login.ts`)
 - Lire `DATABASE_URL` via `env.DATABASE_URL` depuis `@/env` (`@t3-oss/env-nextjs` + Zod) dans le code Next.js runtime (`src/lib/prisma.ts`)
 - Pattern singleton `globalThis` pour éviter les instances multiples en dev
-- Séparer `src/server/queries/` (lecture) et `src/server/actions/` (mutations)
+- Séparer `src/server/queries/` (lecture) et `src/server/actions/` (mutations).
 - `import 'server-only'` dans les modules qui accèdent à Prisma
 - Relancer `prisma generate` après chaque `migrate dev`
 

@@ -12,7 +12,7 @@ technologies: ["TypeScript", "Next.js", "React"]
 
 `Zod` est une librairie de validation de schémas TypeScript-first. Utilisée dans le portfolio comme source unique de vérité pour la validation des Server Actions (formulaire contact), la validation des variables d'environnement, et éventuellement celle des payloads API post-MVP. La v4 apporte un gain de performance massif (14x string, 7x array) et déplace les validateurs de format string en top-level (`z.email()`, `z.url()` au lieu de `z.string().email()`).
 
-La 4.6 (9 septembre 2026) ajoute `.validate()`, qui teste la validité sans construire de `ZodError`, `z.iban()`, et `z.withParser()` pour les environnements qui refusent `new Function`. Elle corrige aussi une rétention mémoire des schémas récursifs apparue en 4.5. La 4.6.3 retire le schéma autonome `z.properties()` introduit en 4.6.0, seule la forme `z.instanceof().properties()` reste.
+La 4.6 (9 septembre 2026) ajoute `.validate()`, qui teste la validité sans construire de `ZodError`, `z.iban()`, et `z.withParser()` pour les environnements qui refusent `new Function`. Elle corrige aussi une rétention mémoire des schémas récursifs apparue en 4.5. La 4.6.3 retire le schéma autonome `z.properties()` introduit en 4.6.0 : `z.properties()` redevient un check (`.check(z.properties({ ... }))`), et la méthode `z.instanceof(Cls).properties({ ... })` reste ([release v4.6.3](https://github.com/colinhacks/zod/releases/tag/v4.6.3), types de `zod` 4.6.7 relus le 2026-11-10).
 
 ---
 
@@ -200,7 +200,7 @@ type EmailOutput = z.output<typeof EmailSchema> // string (lowercased)
 
 ### Description
 
-`z.codec(entrée, sortie, { decode, encode })` relie deux schémas par une conversion aller-retour typée (ex. un jour `YYYY-MM-DD` et une `Date`). `parse` applique `decode`, `z.encode` applique `encode` pour resérialiser. Un `.transform()` n'a pas de retour : le codec convient quand la valeur doit ressortir sous sa forme d'entrée. L'usage dans les outils MCP est dans `.claude/rules/modelcontextprotocol-server/tools.md`.
+`z.codec(entrée, sortie, { decode, encode })` relie deux schémas par une conversion aller-retour typée (ex. un jour `YYYY-MM-DD` et une `Date`). `parse` applique `decode`, `z.encode` applique `encode` pour resérialiser. Un `.transform()` n'a pas de retour : le codec convient quand la valeur doit ressortir sous sa forme d'entrée. L'usage dans les outils MCP est dans `.claude/rules/modelcontextprotocol-server/input-schema.md`.
 
 ### Exemple
 

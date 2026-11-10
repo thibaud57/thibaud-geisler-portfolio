@@ -102,8 +102,8 @@ Acté :
 
 - **Déclenchement uniquement par une action du propriétaire** : depuis l'espace admin (bouton d'un job, carte du kanban, message à l'assistant), ou par un message au bot Telegram. Aucun cron, aucun lancement sur événement. Chaque run part d'une action du propriétaire
 - **Jamais l'API** : aucune API key dans l'environnement qui exécute Claude Code, authentification par token d'abonnement, dépassement payant désactivé sur le compte. Un quota épuisé suspend les runs au lieu de les facturer
-- **Environnement complet, sans duplication** : la configuration globale vient du dépôt `.claude`, celle d'un domaine vient du dépôt où la session travaille (les skills freelance pour le freelance, le dépôt de code pour le cycle de développement). Une session est non stricte (`strict_mcp_config=False`, ADR-002 d'`agent-os`) : plugins avec leurs serveurs MCP et connecteurs claude.ai du compte sont chargés comme sur le poste. Réserve, à valider au spike d'`agent-os` : le token de `claude setup-token` ne récupère pas les connecteurs claude.ai (source `Authentication` ci-dessous)
-- **Le téléphone remplace le terminal, l'admin sert de cockpit** : quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram. L'admin lance les runs et affiche leur état sur les cartes et les jobs, sans fil de conversation ; seul l'assistant interne y reste une conversation (amendement du 2026-10-24 : le créateur de specs et de docs de la Feature 9 aussi, [ADR-027](027-composants-chat.md)). Les règles de la configuration globale, comme la validation avant commit, s'appliquent telles quelles
+- **Environnement complet, sans duplication** : la configuration globale vient du dépôt `.claude`, celle d'un domaine vient du dépôt où la session travaille (les skills freelance pour le freelance, le dépôt de code pour le cycle de développement). Une session est non stricte (`strict_mcp_config=False`, ADR-002 d'`agent-os`) : plugins avec leurs serveurs MCP chargés, connecteurs claude.ai chargés si le token d'abonnement les récupère (à valider au spike d'`agent-os`, le token de `claude setup-token` ne les récupérant pas : source `Authentication` ci-dessous)
+- **Le téléphone remplace le terminal, l'admin sert de cockpit** : quand une session attend un accord ou une réponse, ou se termine, `agent-os` prévient le propriétaire par Telegram. L'admin lance les runs et affiche leur état sur les cartes et les jobs, sans fil de conversation ; seuls l'assistant interne et le créateur de specs et de docs de la Feature 9 y restent des conversations ([ADR-027](027-composants-chat.md)). Les règles de la configuration globale, comme la validation avant commit, s'appliquent telles quelles
 - **Un seul bot Telegram, tenu par `agent-os`** : alertes, réponses et messages libres qui ouvrent une session de l'assistant avec le MCP de l'app. Réception par long polling, le service n'ayant ni domaine ni port public ([ADR-019](019-communication-inter-services.md))
 - **Des PR, jamais de merge** : le propriétaire merge
 
@@ -124,11 +124,9 @@ Les autres options : B et C n'ont pas l'environnement global et ne se pilotent p
 - Le moteur ne dépend d'aucune fonctionnalité en research preview
 
 ## Négatives
-- Claude Code tourne sur le VPS de production : limites de ressources et isolation du container à tenir ([ADR-019](019-communication-inter-services.md))
-- Compromettre le container livre le token d'abonnement : token dédié, révocable, seul secret Anthropic du VPS
+- Le token d'abonnement est dédié, révocable, seul secret Anthropic du VPS ; limites de ressources et isolation du container se tiennent par [ADR-019](019-communication-inter-services.md)
 - Un service à construire : relais des questions et des accords vers Telegram, état des runs dans l'admin, reprise de session
 - Le texte des alertes transite par Telegram, sans chiffrement de bout en bout pour un bot : une question qui porte une donnée de lead fait de Telegram un destinataire, à inscrire au registre des traitements avec les agents internes
-- Exposé à la politique de facturation de l'usage programmatique d'Anthropic, suspendue et non abandonnée
 - Les transcripts de sessions restent sur le VPS et portent des données de leads : leur durée de conservation se fixe avec les agents internes
 
 ---

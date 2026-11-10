@@ -95,11 +95,12 @@ La v4 renomme plusieurs utilitaires pour harmoniser les échelles. Les anciennes
 ```html
 <!-- v3 → v4 -->
 <!-- shadow-sm → shadow-xs, shadow → shadow-sm -->
-<div class="shadow-sm">shadow 2px (ex shadow-sm v3)</div>
-<div class="shadow-md">shadow medium</div>
+<div class="shadow-sm">ombre de base (ex shadow v3)</div>
+<div class="shadow-xs">ombre la plus fine (ex shadow-sm v3)</div>
 
 <!-- rounded-sm → rounded-xs, rounded → rounded-sm -->
-<div class="rounded-sm">border radius 2px</div>
+<div class="rounded-sm">rayon de base, 4px (ex rounded v3)</div>
+<div class="rounded-xs">rayon fin, 2px (ex rounded-sm v3)</div>
 
 <!-- outline-none → outline-hidden -->
 <button class="outline-hidden">sans outline</button>
@@ -110,8 +111,8 @@ La v4 renomme plusieurs utilitaires pour harmoniser les échelles. Les anciennes
 
 ### Points Importants
 
-- `shadow-sm` v4 = `shadow` v3 (décalage d'un cran vers le plus grand)
-- `blur-sm` v4 = `blur` v3, idem pour `drop-shadow`, `rounded`
+- `shadow-sm` v4 = `shadow` v3 et `shadow-xs` v4 = `shadow-sm` v3 (décalage d'un cran, de même pour `rounded`, `blur`) ([upgrade guide](https://tailwindcss.com/docs/upgrade-guide), relevé le 2026-11-10)
+- Le décalage vaut aussi pour `drop-shadow`
 - `bg-opacity-*`, `text-opacity-*` supprimés : utiliser `bg-black/50` (opacity modifier)
 - `ring` par défaut passe de 3px à 1px
 
@@ -187,91 +188,17 @@ import './globals.css'
 
 ---
 
-# Commandes Clés
-
-## Installation (Next.js 16)
-
-### Description
-
-Installation de Tailwind v4 dans un projet Next.js 16. Pas de commande `tailwind init` en v4 (suppression du `tailwind.config.js`, config 100% CSS-first). Le setup consiste à installer 3 packages et créer `postcss.config.mjs` + importer Tailwind dans `globals.css`.
-
-### Syntaxe
-
-```bash
-# 1. Installer les 3 packages requis
-pnpm add tailwindcss @tailwindcss/postcss postcss
-
-# 2. Créer postcss.config.mjs à la racine
-cat > postcss.config.mjs << 'EOF'
-const config = {
-  plugins: {
-    "@tailwindcss/postcss": {},
-  },
-}
-export default config
-EOF
-
-# 3. Importer Tailwind dans src/app/globals.css
-# Remplacer tout contenu Tailwind v3 existant par :
-# @import "tailwindcss";
-```
-
-### Points Importants
-
-- Pas de `pnpm add @tailwindcss/cli` en contexte Next.js : PostCSS + Turbopack gèrent la compilation
-- Plugin PostCSS **renommé** : en v3 c'était `tailwindcss` dans `postcss.config`, en v4 c'est `@tailwindcss/postcss`
-- Aucun `tailwind.config.js` à créer : toute la config passe par `@theme` dans le CSS
-- Turbopack (défaut Next.js 16) est compatible nativement avec le plugin PostCSS Tailwind v4
-
----
-
-## CLI standalone (hors Next.js)
-
-### Description
-
-Le binaire `@tailwindcss/cli` est utile pour les projets HTML statique ou Vite sans plugin. Dans le portfolio (Next.js), il n'est **pas nécessaire**. Cette section est documentée pour complétude.
-
-### Syntaxe
-
-```bash
-# Installation
-pnpm add -D @tailwindcss/cli
-
-# Build single
-npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css
-
-# Watch mode
-npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --watch
-
-# Build production (minifié)
-npx @tailwindcss/cli -i ./src/input.css -o ./dist/output.css --minify
-```
-
-### Points Importants
-
-- Binaire **renommé** en v4 : `npx tailwindcss` → `npx @tailwindcss/cli`
-- Flags courts : `-i` (input), `-o` (output), `-w` (watch), `-m` (minify)
-- Dans le portfolio, cette CLI n'est pas utilisée (PostCSS gère via Next.js)
-
----
-
 # Bonnes Pratiques
 
 ## ✅ Recommandations
 
-- Déclarer tous les tokens dans `@theme` (CSS variables sémantiques)
-- Utiliser `@theme inline` pour exposer des variables imbriquées
-- Configurer `@custom-variant dark` pour le dark mode par classe
-- Préférer l'extraction en composants React plutôt que `@apply`
+- Déclarer tous les tokens dans `@theme` (CSS variables sémantiques) et utiliser `@theme inline` pour exposer des variables imbriquées
+- Poser `@custom-variant dark` pour le dark mode par classe : sans lui, `dark:*` ne génère rien
 - Utiliser les opacity modifiers (`bg-black/50`) au lieu de `bg-opacity-*`
 
 ## ❌ Anti-Patterns
 
-- Ne pas utiliser `@tailwind base/components/utilities` (supprimé en v4)
-- Ne pas créer de `tailwind.config.js` (inutile en v4)
-- Ne pas oublier `@custom-variant dark` pour le dark mode par classe
 - Ne pas utiliser `tailwindcss-animate` (déprécié, utiliser `tw-animate-css`)
-- Ne pas mélanger v3 et v4 dans le même projet
 
 ---
 

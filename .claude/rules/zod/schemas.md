@@ -9,7 +9,7 @@ paths:
 # Zod : schémas et typing
 
 ## À faire
-- Déclarer les schémas **au niveau module** dans `src/lib/schemas/`, jamais dans un handler ou une Server Action : partage client/serveur, pas de recompilation à chaque appel, importable depuis un test unitaire
+- Déclarer les schémas **au niveau module** dans `src/lib/schemas/`, jamais dans un handler ou une Server Action : partage client/serveur, pas de recompilation à chaque appel, importable depuis un test unitaire. Exception : l'`inputSchema` d'un outil MCP, déclaré dans `src/server/mcp/` et écrit pour des types JSON (`modelcontextprotocol-server/input-schema.md`)
 - Dériver les types via **`z.infer<typeof Schema>`** : JAMAIS dupliquer le type TypeScript à la main à côté du schéma
 - Utiliser **`z.coerce.number()`** pour convertir les nombres bruts de `FormData` ou `process.env` (toutes en string à la base) et **`z.stringbool()`** pour leurs booléens (`"true"`/`"false"`, `"1"`/`"0"`…)
 - `.refine()` pour les validations mono-champ, **`.superRefine()`** pour les validations cross-champs (multi-erreurs via `ctx.addIssue`)

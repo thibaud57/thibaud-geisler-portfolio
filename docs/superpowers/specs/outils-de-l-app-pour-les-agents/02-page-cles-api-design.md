@@ -24,7 +24,7 @@ Couvre la page `/admin/cles-api`, ouverte par une entrée du menu de compte : li
 
 ## Dependencies
 
-- `01-prototype-serveur-mcp-design.md` (statut: draft) : modèle `Apikey`, plugin `@better-auth/api-key` configuré, domaines partagés `src/lib/mcp-domains.ts`, route qui vérifie les clés
+- `01-prototype-serveur-mcp-design.md` (statut: implemented) : modèle `Apikey`, plugin `@better-auth/api-key` configuré, domaines partagés `src/lib/mcp-domains.ts`, route qui vérifie les clés
 
 ## Références de design
 

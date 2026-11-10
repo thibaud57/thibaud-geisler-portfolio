@@ -16,6 +16,7 @@ paths:
 - Créer un **utilisateur non-root** dédié (`addgroup` + `adduser`) et l'activer via `USER` dans le stage final `runner`
 - Lancer le process en **forme exec**. Un enchaînement par `sh -c` (migration puis serveur) finit par **`exec node server.js`** : sinon `sh` reste parent de Node, ne lui relaie pas le `SIGTERM` de `docker stop` et Docker tue le conteneur au bout de 10 s
 - Maintenir un **`.dockerignore`** excluant `node_modules`, `.next`, `.git`, `.env*`, `*.md` et tout fichier qui change sans entrer dans le build (`.github`, `compose*.yaml`, `Justfile`, `Dockerfile`) : chaque fichier du contexte peut invalider `COPY . .`, donc `next build`
+- Déclarer chaque **`NEXT_PUBLIC_*`** par `ARG` puis `ENV` dans le stage `builder`, et la passer en `build-args` de `deploy.yml` : inlinée au build, elle vaut sinon `undefined` dans le bundle de production, sans erreur (`SKIP_ENV_VALIDATION` masque son absence au build)
 - Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `/api/health`) : voir `nextjs/production-deployment.md`
 
 ## À éviter
@@ -24,7 +25,8 @@ paths:
 ## Gotchas
 - Le `runner` supprime npm (alertes Trivy) : pnpm s'installe dans `base`, jamais dans `runner`
 - `init: true` du compose relaie les signaux à son enfant direct, `sh`, pas au Node lancé par `sh -c` : il ne remplace pas `exec`
-- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou par `ulimits:` dans le compose si le service a beaucoup de connexions, jamais dans le Dockerfile (détail : `docs/knowledges/docker.md` § ulimit nofile v29)
+- **`deploy-prisma` : `pnpm deploy --legacy --prod`** sort un `node_modules` à plat, sans liens `.pnpm`, que la CLI Prisma exige pour lancer `migrate deploy` au démarrage du conteneur. `--legacy` est voulu : le warning « Shared workspace lockfile detected… » est attendu (cf. `docs/VERSIONS.md` § pnpm)
+- **Docker Engine 29 ulimit nofile** : valeur par défaut tombée à 1024 (depuis 1048576). Ajuster côté `daemon.json` ou par `ulimits:` dans le compose si le service a beaucoup de connexions, jamais dans le Dockerfile (état et piège de montée : `docs/PRODUCTION.md` § Plateforme d'hébergement)
 
 ## Exemples
 ```dockerfile

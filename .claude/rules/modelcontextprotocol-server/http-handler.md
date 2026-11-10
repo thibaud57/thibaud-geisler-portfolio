@@ -10,11 +10,11 @@ paths:
 - Servir le transport par `createMcpHandler(factory, options)` de `@modelcontextprotocol/server`, qui rend un handler Web standard `fetch(Request) → Response`
 - Créer le handler une fois par domaine au niveau du module : sa factory, qui construit le `McpServer` et enregistre ses outils, est appelée à chaque requête
 - Garder une route par domaine (`/api/mcp/<domaine>`) : le domaine de l'adresse choisit les outils servis et se vérifie contre les permissions de la clé (ADR-025)
-- Dans la route, dans cet ordre : valider l'origine, vérifier la clé, répondre soi-même 401 (clé absente ou invalide, avec `WWW-Authenticate: Bearer`) ou 403 (domaine hors des permissions), puis seulement `handler.fetch(request, { authInfo })`
+- Dans la route, dans cet ordre : valider l'origine (403), limiter par IP (429, avant toute lecture en base), refuser un domaine inconnu (404), vérifier la clé (401 absente ou invalide avec `WWW-Authenticate: Bearer`, 429 par clé avec `Retry-After`), refuser un domaine hors des permissions (403), puis seulement `handler.fetch(request, { authInfo })`. Ordre et seuils : ADR-025 et `src/server/mcp/authenticate.ts`
 - Passer l'identité de la clé vérifiée en `authInfo` et la lire dans l'outil par `ctx.http?.authInfo`
 - Exporter `POST` seul pour le transport, `GET` et `DELETE` répondant 405 avec `Allow: POST`
 - Laisser `responseMode` à son défaut `'auto'` : la réponse reste en JSON tant qu'aucune notification ne part avant le résultat, ce qui est le cas d'outils CRUD
-- Garder `legacy` à son défaut (`'stateless'`) : Claude Code 2.1.310 et le CLI 2.1.317 de `claude-agent-sdk` 0.2.177 parlent la révision 2026-07-28 (`era: 'modern'`, relevé le 2026-11-06), `'reject'` couperait sans gain un client des révisions 2025
+- Garder `legacy` à son défaut (`'stateless'`) : il sert aussi les clients des révisions 2025, `'reject'` les couperait sans gain (versions de clients relevées dans `docs/knowledges/modelcontextprotocol-server.md`)
 
 ## À éviter
 - Un `McpServer` singleton de module partagé entre requêtes : la factory doit rendre une instance neuve, sinon le handler lève « still serving another request »
@@ -22,7 +22,7 @@ paths:
 - `responseMode: 'json'` : `console.warn` hors Pino à chaque construction du handler (code 2.4.0), et sans effet sur l'ère legacy
 - Lire l'authentification dans les en-têtes depuis un outil : le handler ne dérive jamais `authInfo` des en-têtes, seule la route vérifie la clé
 - Accepter la session de l'espace admin ou un jeton émis pour un autre service sur cette route
-- La ligne v1 `@modelcontextprotocol/sdk` et son `StreamableHTTPServerTransport` : régression #1994 en mode sans état, ouverte au 2026-11-06
+- La ligne v1 `@modelcontextprotocol/sdk` et son `StreamableHTTPServerTransport` : régression #1994 en mode sans état (statut daté dans `docs/knowledges/modelcontextprotocol-server.md`)
 
 ## Gotchas
 - `createMcpHandler` ne valide pas `Origin`, que la spec 2026-07-28 impose (403 sur un `Origin` présent et invalide) : passer par `originValidationResponse(request, hostnames)` avant le handler. La liste attend des noms d'hôte, pas des origines. Un `Origin` absent passe (agent hors navigateur), le littéral `null` est refusé (code 2.4.0)

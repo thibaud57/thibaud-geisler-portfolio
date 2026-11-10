@@ -3,7 +3,7 @@ name: verify
 description: Recette de build-and-drive du portfolio pour la vérification runtime (lancement de l'app, pilotage des surfaces, capture des preuves).
 ---
 
-# Verify — recette runtime du portfolio
+# Verify : recette runtime du portfolio
 
 ## Prérequis
 
@@ -58,7 +58,7 @@ curl -s -X POST http://localhost:3000/fr/contact \
 
 Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.
 
-Sur l'image de production (Next 16.3.6, React 19.3.0), ce POST multipart répond **500 « Connection closed. »** alors que la même action soumise par un navigateur réussit (constaté le 2026-10-03). Y piloter le formulaire par le MCP Playwright, ou encoder le corps par `encodeReply` comme pour l'admin.
+Sur l'image de production (Next 16.3.6, React 19.3.0), ce POST multipart répond **500 « Connection closed. »** alors que la même action soumise par un navigateur réussit (constaté le 2026-10-03, non revalidé depuis). Y piloter le formulaire par le MCP Playwright, ou encoder le corps par `encodeReply` comme pour l'admin.
 
 ## Vérifier l'image de production sans `.env`
 
@@ -204,7 +204,7 @@ Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Comp
 - Une route de test temporaire est un pilotage légitime (elle atteint une vraie surface HTTP), mais la supprimer avant de rendre la main : `rm -rf src/app/api/<route-de-test>`. `cat > fichier` ne crée pas les dossiers manquants, d'où un 404 trompeur : créer le dossier d'abord.
 - `just dev` lancé en arrière-plan survit à la fin du shell qui l'a lancé, mais ses logs s'arrêtent d'être capturés si la redirection appartenait à ce shell : rediriger vers un fichier du scratchpad, pas compter sur la sortie de la commande.
 - Les logs Pino locaux ne sont pas filtrés des données personnelles, seul ce qui part vers un service externe l'est. Une donnée sensible visible dans le fichier de log local est le comportement attendu.
-- `/api/assets/*` lit le bucket R2 de dev (`R2_ASSETS_BUCKET` du `.env`), pas le disque : des 404 sur tous les assets signalent un bucket vide ou désynchronisé, pas un défaut de code. Le repeupler avec `aws s3 sync` depuis les fichiers source, token de dev (forme de la commande : `docs/PRODUCTION.md` § Checklist Release).
+- `/api/assets/*` lit le bucket R2 de dev (`R2_ASSETS_BUCKET` du `.env`), pas le disque : des 404 sur tous les assets signalent un bucket vide ou désynchronisé, pas un défaut de code. Le repeupler avec `aws s3 sync` depuis les fichiers source, token de dev : `aws s3 sync <dossier source> s3://<bucket de dev> --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com`.
 - Supprimer une route temporaire pendant que `pnpm dev` tournait laisse `.next/dev/types/validator.ts` la référencer : le `pnpm build` suivant échoue en `TS2307`. Supprimer `.next/dev/types/validator.ts` et `.next/dev/types/routes.d.ts` (régénérés) avant de builder.
 - Un layout qui lève `unauthorized()` ne retient pas le payload de ses pages : Next les rend en parallèle et sérialise la page quand même. Seul le grep du cookie forgé le révèle, l'écran affiché est correct dans les deux cas. Confirmé en production : `just build` puis `pnpm start` (le dev écrit dans `.next/dev`, le build de production y survit).
 - « Accès non autorisé » figure aussi dans le HTML d'une page admin **connectée** : Next sérialise l'UI de `unauthorized.tsx` dans le payload pour le client. Le compter ne prouve rien, seule l'absence du contenu propre à la page compte sous cookie forgé.

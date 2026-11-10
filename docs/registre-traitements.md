@@ -1,7 +1,7 @@
 ---
 title: "Registre des traitements"
 description: "Registre des activités de traitement de données personnelles (RGPD art. 30)."
-date: "2026-11-07"
+date: "2026-11-10"
 keywords: ["rgpd", "registre des traitements", "données personnelles", "cnil", "conformité"]
 scope: ["docs", "legal"]
 ---
@@ -95,15 +95,15 @@ scope: ["docs", "legal"]
 
 | Champ | Détail |
 |---|---|
-| Finalité | Contrôle d'accès à l'espace d'administration |
+| Finalité | Contrôle d'accès à l'espace d'administration et au serveur MCP par lequel les agents agissent sur l'app |
 | Base légale | Intérêt légitime (art. 6.1.f), le responsable de traitement étant aussi l'unique personne concernée |
 | Personnes concernées | Thibaud Geisler, seul compte Google autorisé par la whitelist |
-| Données | Email, nom et photo de profil renvoyés par Google, données techniques de session (dont le navigateur utilisé) et liaison avec le compte Google |
+| Données | Email, nom et photo de profil renvoyés par Google, données techniques de session (dont le navigateur utilisé) et liaison avec le compte Google. Clés d'API des agents : nom, préfixe, empreinte, domaines autorisés, dernière utilisation |
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | IONOS (hébergeur du VPS). Google agit en responsable de traitement indépendant pour les données du compte Google ([Controller-Controller Data Protection Terms](https://business.safety.google/controllerterms/)) |
 | Transferts hors UE | Aucun : données conservées sur le VPS IONOS |
 | Conservation | Durée de vie du compte, les sessions expirent d'elles-mêmes |
-| Sécurité | Connexion par Google uniquement, aucun mot de passe stocké. Seul l'email autorisé peut créer un compte, tout autre est rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour limiter les tentatives, retirée avant l'écriture de la session, comme pour le formulaire de contact (Traitement 1). Détail technique : [knowledges/better-auth.md](knowledges/better-auth.md) |
+| Sécurité | Connexion par Google uniquement, aucun mot de passe stocké. Seul l'email autorisé peut créer un compte, tout autre est rejeté avant création. Aucune adresse IP conservée : lue en mémoire pour limiter les tentatives, retirée avant l'écriture de la session, comme pour le formulaire de contact (Traitement 1). Agents : une clé d'API par usage, stockée hachée, limitée à ses domaines et révocable depuis l'espace admin ([ADR-025](adrs/025-acces-agents-app.md)). Détail technique : [knowledges/better-auth.md](knowledges/better-auth.md) |
 
 ## Traitement 7 : relations professionnelles (prospection et réseau)
 
@@ -120,7 +120,7 @@ scope: ["docs", "legal"]
 | Conservation | Prospect : 3 ans à compter de la collecte ou du dernier contact émanant de lui, puis relance pour savoir s'il souhaite rester, suppression sans réponse positive ([délibération CNIL n° 2021-131 du 23 septembre 2021](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000045538574)). Personne qui s'est opposée : son identité se réduit à l'email et au profil LinkedIn, son rôle de prospect (statut, intérêt, canal, score) et sa place d'apporteur d'une opportunité restant, conservés 3 ans, durée minimale recommandée par la CNIL, pour la seule gestion de l'opposition ([CNIL, liste repoussoir](https://www.cnil.fr/fr/comment-utiliser-une-liste-repoussoir-pour-respecter-lopposition-la-prospection-commerciale), consultée le 2026-09-26). Ses signaux d'activité sont supprimés dès l'opposition, leur seule finalité étant la prospection. L'historique de ses échanges (actions de prospection) est conservé sans être réutilisé jusqu'au terme de sa durée de conservation, et supprimé dès qu'elle en demande l'effacement : l'opposition (art. 21) n'emporte pas l'effacement (art. 17), qui reste une demande distincte. Réseau : durée de la relation, suppression à la demande de la personne ; aucune durée CNIL n'existe hors prospection, choix du responsable. Chez Anthropic : selon ses conditions |
 | Information des personnes | Au plus tard au premier message (art. 14.3.b), en couches : le message, signé et motivé, nomme ou rend évidente la source (profil ou publication consultés) et se termine par une invitation claire à dire non, présentée séparément du reste (art. 21.4), en langage courant ; le lien vers la [politique de confidentialité](https://thibaud-geisler.com/fr/confidentialite) figure dans la section Infos du profil LinkedIn et dans la signature email, la politique portant le détail (source, durées, droits). Le recours à l'assistant et son destinataire figurent dans la politique (puce « Prospection » et tableau des destinataires). Personne jamais contactée : exception d'effort disproportionné (art. 14.5.b), l'information étant rendue publique par la politique |
 | Stockage | Base PostgreSQL, schema `freelance`, joignable du seul réseau Docker interne |
-| Sécurité | Espace admin single-user derrière Google OAuth et whitelist (Traitement 6), HTTPS/TLS |
+| Sécurité | Espace admin single-user derrière Google OAuth et whitelist, accès des agents par clé d'API limitée au domaine `crm` (Traitement 6), HTTPS/TLS |
 | Analyse d'intérêt légitime | Tenue en interne (mise en balance des intérêts), revue à chaque nouvelle source, nouveau canal ou changement d'outil |
 | AIPD | Non nécessaire à cette échelle : aucune donnée sensible, aucune décision automatisée n'évalue les personnes, l'assistant ne calcule pas de score. À réévaluer avec la qualification par agent (Feature 4) |
 
