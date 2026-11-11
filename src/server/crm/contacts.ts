@@ -21,7 +21,7 @@ import {
   type PersonFieldsError,
   type PersonWriteError,
 } from "./person-write"
-import { ok, type DomainResult } from "./result"
+import { ok, type DomainResult } from "@/server/result"
 
 export type ContactWriteData = NewContactInput
 

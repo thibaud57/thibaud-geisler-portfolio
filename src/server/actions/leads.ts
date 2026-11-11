@@ -15,7 +15,7 @@ import {
   revalidatePersonLists,
 } from "@/server/crm/person-guards"
 import type { PersonFieldsError } from "@/server/crm/person-write"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 
 import {
   collectPersonValues,

@@ -11,22 +11,23 @@ import {
   updateContact,
   type ContactPatch,
 } from "@/server/crm/contacts"
+import { withDays } from "@/server/mcp/day-fields"
+import { defineEntity } from "@/server/mcp/entity-definition"
+import { pageQueryShape } from "@/server/mcp/query-page"
+import { updateSchemaOf } from "@/server/mcp/update-input"
 import { findContactByIdForAdmin, findContactsPage } from "@/server/queries/contacts"
 
-import { withDays } from "../day-fields"
-import { defineCrmEntity } from "../entity-definition"
 import {
   newPersonShape,
   PERSON_DOCS,
   personFieldShape,
   personFilterShape,
   personFilterWhere,
+  personOrderBy,
 } from "../person-fields"
 import { rolesOf } from "../person-ref"
 import { searchPersons } from "../person-search"
 import { personWrites, writePerson } from "../person-write-tool"
-import { pageQueryShape, personOrderBy } from "../query-page"
-import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("contact").describe('Type of CRM record: always "contact" here.')
 
@@ -116,7 +117,7 @@ function toWhere(filters: z.output<typeof querySchema>["filters"]): Prisma.Conta
 
 const WRITES = personWrites("contact")
 
-export const contactEntity = defineCrmEntity({
+export const contactEntity = defineEntity({
   entity: "contact",
   docs: {
     ...PERSON_DOCS,

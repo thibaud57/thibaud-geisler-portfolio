@@ -15,7 +15,7 @@ import {
   type OpportunityFieldsError,
   type WrittenOpportunity,
 } from "@/server/crm/opportunities"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 
 import {
   type ActionEvents,

@@ -11,7 +11,7 @@ import type { WeeklyReviewInput } from "@/lib/schemas/weekly-review"
 import { isPrismaError, isRowGone, rowExists } from "@/lib/server-utils"
 import { findWeekCounterSources } from "@/server/queries/weekly-reviews"
 
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 // Un compteur absent est calculé par l'app à la création, comme le préremplissage de l'admin.
 export type WeeklyReviewWriteData = Omit<WeeklyReviewInput, keyof ReviewCounts> &

@@ -8,7 +8,7 @@ paths:
 ## À faire
 - Renvoyer `content` (texte JSON) en plus de `structuredContent` quand l'outil a un `outputSchema`
 - Signaler un échec récupérable par `isError: true` avec un message qui nomme la correction attendue (outil à appeler, champ à fournir)
-- Garder chaque outil, lectures comprises, derrière une garde qui logge l'exception (`guardTool`, `src/server/mcp/crm/results.ts`) : le SDK la rend en `isError` sans aucun log
+- Garder chaque outil, lectures comprises, derrière une garde qui logge l'exception (`guardTool`, `src/server/mcp/results.ts`) : le SDK la rend en `isError` sans aucun log
 
 ## Gotchas
 - Des arguments qui ne passent pas `inputSchema` reviennent en `isError: true` sans appel du handler, et la validation de `outputSchema` est sautée sur tout résultat `isError`

@@ -6,22 +6,24 @@ import type { Prisma } from "@/generated/prisma/client"
 import { leadDetailsTemplate } from "@/lib/crm/details-templates"
 import { personIdSchema } from "@/lib/ids"
 import { createLead, updateLead, type LeadPatch } from "@/server/crm/leads"
+import { withDays } from "@/server/mcp/day-fields"
+import { defineEntity } from "@/server/mcp/entity-definition"
+import { pageQueryShape } from "@/server/mcp/query-page"
+import { updateSchemaOf } from "@/server/mcp/update-input"
 import { findLeadByIdForAdmin, findLeadPerson, findLeadsPage } from "@/server/queries/leads"
 
-import { withDays, withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
-import { defineCrmEntity } from "../entity-definition"
+import { withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
 import {
   newPersonShape,
   PERSON_DOCS,
   personFieldShape,
   personFilterShape,
   personFilterWhere,
+  personOrderBy,
 } from "../person-fields"
 import { personRef, rolesOf } from "../person-ref"
 import { searchPersons } from "../person-search"
 import { personWrites, writePerson } from "../person-write-tool"
-import { pageQueryShape, personOrderBy } from "../query-page"
-import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("lead").describe('Type of CRM record: always "lead" here.')
 
@@ -95,7 +97,7 @@ function toWhere(filters: z.output<typeof querySchema>["filters"]): Prisma.LeadW
 
 const WRITES = personWrites("lead")
 
-export const leadEntity = defineCrmEntity({
+export const leadEntity = defineEntity({
   entity: "lead",
   docs: { ...PERSON_DOCS, create: "For a lead, only name and origin are required." },
   search: (query) => searchPersons("lead", query),

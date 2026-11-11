@@ -1,7 +1,13 @@
 import { onTestFinished, vi } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
+import {
+  companyIdSchema,
+  opportunityIdSchema,
+  personIdSchema,
+  projectIdSchema,
+  tagIdSchema,
+} from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 
 export async function resetDatabase(): Promise<void> {
@@ -37,6 +43,20 @@ export function createProject(overrides: Partial<Prisma.ProjectCreateInput> = {}
       status: "PUBLISHED",
       ...overrides,
     },
+  })
+}
+
+// Tout projet a un ClientMeta (invariant du domaine) : `createProject` seul crée un projet nu, réservé aux tests de lecture.
+export function seedProject(companyId: string, overrides: Partial<Prisma.ProjectCreateInput> = {}) {
+  return createProject({
+    clientMeta: { create: { workMode: "REMOTE", company: { connect: { id: companyId } } } },
+    ...overrides,
+  })
+}
+
+export function seedTag(overrides: Partial<Prisma.TagUncheckedCreateInput> = {}) {
+  return prisma.tag.create({
+    data: { slug: "react", nameFr: "React", nameEn: "React", kind: "FRAMEWORK", ...overrides },
   })
 }
 
@@ -151,7 +171,27 @@ export async function seedClosedWeek(): Promise<void> {
 
 type TransactionWork = (tx: Prisma.TransactionClient) => Promise<unknown>
 
+export const sequence = (length: number) => Array.from({ length }, (_, index) => index + 1)
+
+export const slugsAndOrders = (rows: readonly { slug: string; displayOrder: number }[]) => ({
+  slugs: rows.map(({ slug }) => slug),
+  orders: rows.map(({ displayOrder }) => displayOrder),
+})
+
+export async function storedProjectTags(projectId: string) {
+  const links = await prisma.projectTag.findMany({
+    where: { projectId },
+    orderBy: { displayOrder: "asc" },
+    include: { tag: true },
+  })
+  return slugsAndOrders(links.map(({ tag, displayOrder }) => ({ slug: tag.slug, displayOrder })))
+}
+
 export const idOf = (person: { id: string }) => personIdSchema.parse(person.id)
+
+export const tagIdOf = (tag: { id: string }) => tagIdSchema.parse(tag.id)
+
+export const projectIdOf = (project: { id: string }) => projectIdSchema.parse(project.id)
 
 export const companyIdOf = (company: { id: string }) => companyIdSchema.parse(company.id)
 
@@ -165,11 +205,11 @@ export const storedReview = (id: string) => prisma.weeklyReview.findUniqueOrThro
 export const loadPerson = (id: string) =>
   prisma.person.findUniqueOrThrow({ where: { id }, include: { lead: true, contact: true } })
 
-// Rejoue au point d'écriture, dans une vraie transaction, une violation d'unicité ou de clé étrangère que les gardes rendent inatteignable sans course. Le spy est rendu à la fin du test même sans usage.
-export function rejectNextTransactionWrite(
-  model: "person" | "contact" | "interview" | "prospectingAction",
-  error: unknown,
-  method: "create" | "update" = "create",
+// Remplace, dans une vraie transaction, un appel que les gardes rendent inatteignable sans course. Le spy est rendu à la fin du test même sans usage.
+export function stubNextTransactionCall(
+  model: "person" | "contact" | "interview" | "prospectingAction" | "project",
+  method: "create" | "update" | "findUnique",
+  stub: () => Promise<unknown>,
 ): void {
   const transaction = prisma.$transaction.bind(prisma)
   const spy = vi.spyOn(prisma, "$transaction").mockImplementationOnce((work: TransactionWork) =>
@@ -181,11 +221,7 @@ export function rejectNextTransactionWrite(
             if (property !== model) return value
             return new Proxy(value as object, {
               get: (delegate, name): unknown =>
-                name === method
-                  ? // Erreur Prisma simulée : un objet à la forme de la réelle, pas une Error.
-                    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-                    () => Promise.reject(error)
-                  : Reflect.get(delegate, name),
+                name === method ? stub : Reflect.get(delegate, name),
             })
           },
         }),
@@ -195,6 +231,17 @@ export function rejectNextTransactionWrite(
   onTestFinished(() => {
     spy.mockRestore()
   })
+}
+
+// Rejoue au point d'écriture une violation d'unicité ou de clé étrangère que les gardes rendent inatteignable sans course.
+export function rejectNextTransactionWrite(
+  model: "person" | "contact" | "interview" | "prospectingAction",
+  error: unknown,
+  method: "create" | "update" = "create",
+): void {
+  // Erreur Prisma simulée : un objet à la forme de la réelle, pas une Error.
+  // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+  stubNextTransactionCall(model, method, () => Promise.reject(error))
 }
 
 export { prisma }

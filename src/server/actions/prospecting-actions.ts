@@ -21,7 +21,7 @@ import {
   type ProspectingActionWriteError,
   type WrittenProspectingAction,
 } from "@/server/crm/prospecting-actions"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 
 import { conflictErrors, personConflictMessage } from "./_support/person-form"
 import {

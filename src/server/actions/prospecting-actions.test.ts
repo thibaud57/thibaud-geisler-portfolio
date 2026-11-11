@@ -39,7 +39,7 @@ import {
   createProspectingAction as createProspectingActionRecord,
   updateProspectingAction as updateProspectingActionRecord,
 } from "@/server/crm/prospecting-actions"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 
 import {
   changeProspectingActionStatus,

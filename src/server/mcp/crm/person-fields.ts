@@ -5,9 +5,10 @@ import type { Prisma } from "@/generated/prisma/client"
 import { normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { companyIdSchema } from "@/lib/ids"
 import { PERSON_NAME_MAX_LENGTH } from "@/lib/schemas/person"
+import { dateColumnDay } from "@/server/mcp/day-fields"
+import type { ToolDocs } from "@/server/mcp/entity-definition"
+import { pageOrderBy, type SortKey, type SortOrder } from "@/server/mcp/query-page"
 
-import { dateColumnDay } from "./day-fields"
-import type { CrmToolDocs } from "./entity-definition"
 import { details, notes } from "./fields"
 
 // Les `.describe()` arrivent au modèle.
@@ -64,8 +65,8 @@ export const personFieldShape = {
     .describe("Id of the company of the person. Get it from crm_search. null clears it."),
 } as const
 
-// Lead et contact portent le même fragment : `tools.ts` ne l'écrit qu'une fois.
-export const PERSON_DOCS: CrmToolDocs = {
+// Lead et contact portent le même fragment : `docsOf` (`domain-tools.ts`) ne l'écrit qu'une fois.
+export const PERSON_DOCS: ToolDocs = {
   search: "the company and roles for a lead or contact (found by name, email or LinkedIn URL)",
   fetch:
     "For a lead or contact: their record, company and roles, and for a lead their referred opportunities, interviews, signals and prospecting action count.",
@@ -97,3 +98,9 @@ export function personFilterWhere(
 ): Prisma.PersonWhereInput {
   return { companyId: filters?.companyId, jobRole: filters?.jobRole, zone: filters?.zone }
 }
+
+// Le nom vit sur la personne.
+export const personOrderBy = (sort: SortKey, order: SortOrder) =>
+  pageOrderBy(sort, order, (direction) => [{ person: { name: direction } }], {
+    personId: "asc",
+  })

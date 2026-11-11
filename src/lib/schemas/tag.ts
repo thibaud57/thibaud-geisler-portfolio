@@ -5,24 +5,33 @@ import { isTagIconKey, type TagIconKey } from "@/lib/icons"
 import { positiveIntegerString } from "@/lib/schemas/positive-integer-string"
 import { SLUG_PATTERN } from "@/lib/schemas/slug"
 
+export const TAG_SLUG_MAX_LENGTH = 60
+export const TAG_NAME_MAX_LENGTH = 60
+
 export const tagSchema = z.object({
   slug: z
     .string()
     .trim()
     .toLowerCase()
     .min(1, "Le slug est requis")
-    .max(60, "Le slug ne peut pas dépasser 60 caractères")
+    .max(TAG_SLUG_MAX_LENGTH, `Le slug ne peut pas dépasser ${TAG_SLUG_MAX_LENGTH} caractères`)
     .regex(SLUG_PATTERN, "Le slug ne peut contenir que des minuscules, des chiffres et des tirets"),
   nameFr: z
     .string()
     .trim()
     .min(1, "Le nom français est requis")
-    .max(60, "Le nom français ne peut pas dépasser 60 caractères"),
+    .max(
+      TAG_NAME_MAX_LENGTH,
+      `Le nom français ne peut pas dépasser ${TAG_NAME_MAX_LENGTH} caractères`,
+    ),
   nameEn: z
     .string()
     .trim()
     .min(1, "Le nom anglais est requis")
-    .max(60, "Le nom anglais ne peut pas dépasser 60 caractères"),
+    .max(
+      TAG_NAME_MAX_LENGTH,
+      `Le nom anglais ne peut pas dépasser ${TAG_NAME_MAX_LENGTH} caractères`,
+    ),
   kind: z.enum(TagKind, { error: "La catégorie est requise" }),
   icon: z
     .string()

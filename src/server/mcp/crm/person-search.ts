@@ -4,7 +4,7 @@ import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { normalizeLinkedinProfileUrl } from "@/lib/crm/linkedin"
 import { findPersonsWithRole } from "@/server/queries/persons"
 
-import { joinHint, type SearchHit } from "./entity-definition"
+import { joinHint, type SearchHit } from "@/server/mcp/entity-definition"
 import { personRef, rolesOf } from "./person-ref"
 
 const OPTED_OUT_HIT_LABEL = "Opposée à la prospection"

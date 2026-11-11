@@ -21,7 +21,7 @@ import { signalIdSchema } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { objectMatch } from "@/lib/matchers-test-setup"
 import { prisma } from "@/lib/prisma"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 import { createSignal, updateSignal as updateSignalRecord } from "@/server/crm/signals"
 
 import { createCompanySignal, createPersonSignal, deleteSignal, updateSignal } from "./signals"

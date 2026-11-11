@@ -37,7 +37,7 @@ import {
   createCompany as createCompanyRecord,
   updateCompany as updateCompanyRecord,
 } from "@/server/crm/companies"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 import { createCompany, deleteCompany, updateCompany } from "./companies"
 import { initialCompanyFormState } from "./companies.types"
 

@@ -23,7 +23,10 @@ function createDomainHandler(domain: McpDomain): McpHttpHandler {
   )
 }
 
-const handlers = { crm: createDomainHandler("crm") } satisfies Record<McpDomain, McpHttpHandler>
+const handlers = {
+  crm: createDomainHandler("crm"),
+  portfolio: createDomainHandler("portfolio"),
+} satisfies Record<McpDomain, McpHttpHandler>
 
 // Le matcher de src/proxy.ts exclut /api : la route porte seule son authentification
 export async function POST(request: NextRequest, { params }: RouteContext<"/api/mcp/[domain]">) {
