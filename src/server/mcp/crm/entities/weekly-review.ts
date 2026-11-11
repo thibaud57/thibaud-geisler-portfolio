@@ -15,19 +15,19 @@ import {
   updateWeeklyReview,
   type WeeklyReviewWriteError,
 } from "@/server/crm/weekly-reviews"
+import { dateColumnDay, withDays } from "@/server/mcp/day-fields"
+import { defineEntity } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
+import { updateSchemaWithoutDetailsOf } from "@/server/mcp/update-input"
 import {
   findWeeklyReviewById,
   findWeeklyReviewSearchRows,
   findWeeklyReviewsPage,
 } from "@/server/queries/weekly-reviews"
 
-import { dateColumnDay, withDays } from "../day-fields"
 import { dateRange } from "../date-range"
-import { defineCrmEntity } from "../entity-definition"
 import { notes, optionalText } from "../fields"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { byId, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaWithoutDetailsOf } from "../update-input"
 
 const entityField = z
   .literal("weekly-review")
@@ -133,18 +133,18 @@ function weeklyReviewWriteErrorMessage(error: WeeklyReviewWriteError): string {
     case "review_week_exists":
       return "A review already exists for this closingFriday. Call crm_query with a closingFriday interval to find it, then crm_update it, or send another Friday."
     case "not_found":
-      return notFoundMessage("weekly review")
+      return notFoundMessage("crm", "weekly review")
     default:
       return assertNever(error)
   }
 }
 
 const WRITES = writeTexts(
-  { key: "weekly_review", noun: "review" },
+  { prefix: "crm", key: "weekly_review", noun: "review" },
   "Call crm_query with a closingFriday interval to check whether it was created before retrying.",
 )
 
-export const weeklyReviewEntity = defineCrmEntity({
+export const weeklyReviewEntity = defineEntity({
   entity: "weekly-review",
   docs: {
     search:

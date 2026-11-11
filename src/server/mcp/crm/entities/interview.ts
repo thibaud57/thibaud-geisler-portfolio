@@ -16,7 +16,6 @@ import { interviewDetailsTemplate } from "@/lib/crm/details-templates"
 import { interviewPlaces, interviewTitle } from "@/lib/crm/interviews"
 import { zonedIsoInstant } from "@/lib/date-time"
 import { interviewIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
-import { revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   createInterview,
   updateInterview,
@@ -24,6 +23,11 @@ import {
   type InterviewPatchWithoutNewCorrespondents,
   type InterviewWriteError,
 } from "@/server/crm/interviews"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
+import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
+import { updateSchemaOf } from "@/server/mcp/update-input"
 import {
   findInterviewByIdForAdmin,
   findInterviewSearchRows,
@@ -32,12 +36,8 @@ import {
 
 import { dateRange } from "../date-range"
 import { instantDate } from "../day-fields"
-import { defineCrmEntity, joinHint } from "../entity-definition"
-import { details, notes } from "../fields"
+import { details, detailsErrorMessage, notes } from "../fields"
 import { personRef } from "../person-ref"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("interview").describe('Type of CRM record: always "interview" here.')
 
@@ -182,7 +182,7 @@ function interviewWriteErrorMessage(
     case "correspondent_not_found":
       return "A correspondentIds entry matches no person, or a person who opted out of prospecting. Call crm_search with the entity contact to find the right ids, then call the tool again."
     case "not_found":
-      return notFoundMessage("interview")
+      return notFoundMessage("crm", "interview")
     case "no_details":
     case "section_not_found":
       return detailsErrorMessage(error, "interview")
@@ -192,11 +192,11 @@ function interviewWriteErrorMessage(
 }
 
 const WRITES = writeTexts(
-  { key: "interview", noun: "interview" },
+  { prefix: "crm", key: "interview", noun: "interview" },
   "Call crm_query with the opportunityId filter to check whether it was created before retrying.",
 )
 
-export const interviewEntity = defineCrmEntity({
+export const interviewEntity = defineEntity({
   entity: "interview",
   docs: {
     search:

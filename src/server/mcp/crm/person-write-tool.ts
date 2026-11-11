@@ -10,11 +10,12 @@ import {
   type PersonRole,
 } from "@/server/crm/person-guards"
 import type { PersonWriteError } from "@/server/crm/person-write"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
+import type { WriteContext } from "@/server/mcp/entity-definition"
+import { writeRecord, writeTexts, type WriteTexts } from "@/server/mcp/results"
 
-import type { CrmWriteContext } from "./entity-definition"
+import { detailsErrorMessage } from "./fields"
 import { rolesOf } from "./person-ref"
-import { detailsErrorMessage, writeRecord, writeTexts, type WriteTexts } from "./results"
 
 const IDENTITY_TAKEN: Record<ConflictField, string> = {
   email: "This email is already held by another person.",
@@ -69,14 +70,14 @@ function personWriteErrorMessage(error: PersonWriteError): string {
 
 export function personWrites(role: PersonRole): { create: WriteTexts; update: WriteTexts } {
   return writeTexts(
-    { key: role, noun: role, pronoun: "their" },
+    { prefix: "crm", key: role, noun: role, pronoun: "their" },
     "Call crm_search with their name or email to check whether the person was created before retrying.",
   )
 }
 
 export function writePerson(
   run: () => Promise<DomainResult<{ personId: string }, PersonWriteError>>,
-  ctx: CrmWriteContext,
+  ctx: WriteContext,
   texts: WriteTexts,
   logContext: object,
 ): Promise<CallToolResult> {

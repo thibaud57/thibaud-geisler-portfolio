@@ -6,7 +6,7 @@ const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }))
 vi.mock("next/headers", () => ({ headers: vi.fn(() => new Headers()) }))
 vi.mock("@/lib/logger", () => ({ logger: { child: vi.fn(() => log) } }))
 
-import { fail, ok, type DomainResult } from "@/server/crm/result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 import { deleteEntity, saveEntity } from "./shared"
 

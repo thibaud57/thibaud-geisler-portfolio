@@ -14,7 +14,7 @@ import {
   type DetailsSectionError,
 } from "./details-section"
 import { findOptedOutAt } from "./person-guards"
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 export type OpportunityWriteData = OpportunityInput
 

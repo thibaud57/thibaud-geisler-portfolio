@@ -37,7 +37,7 @@ import {
   updateContact as updateContactRecord,
 } from "@/server/crm/contacts"
 import type { PersonFieldsError } from "@/server/crm/person-write"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 
 import { createContact, deleteContact, findLeadForContactAttach, updateContact } from "./contacts"
 import { initialContactFormState } from "./contacts.types"

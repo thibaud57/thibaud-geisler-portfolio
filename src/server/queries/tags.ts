@@ -82,3 +82,42 @@ export async function countTagsByKind(): Promise<TagCountByKind> {
   const countByKind = new Map(grouped.map((entry) => [entry.kind, entry._count._all]))
   return recordFromKeys(KIND_ORDER, (kind) => countByKind.get(kind) ?? 0)
 }
+
+// Lectures de l'outil MCP : sans 'use cache', l'agent relit la base juste après ses écritures.
+export function findTagSearchRows() {
+  return prisma.tag.findMany({
+    select: { id: true, slug: true, nameFr: true, nameEn: true },
+  })
+}
+
+const TAG_TOOL_SELECT = {
+  id: true,
+  slug: true,
+  nameFr: true,
+  nameEn: true,
+  kind: true,
+  icon: true,
+  createdAt: true,
+  updatedAt: true,
+} as const satisfies Prisma.TagSelect
+
+export function findTagForTool(id: string) {
+  return prisma.tag.findUnique({
+    where: { id },
+    select: {
+      ...TAG_TOOL_SELECT,
+      projects: {
+        select: { project: { select: { id: true, slug: true, titleFr: true, status: true } } },
+        orderBy: { project: { slug: "asc" } },
+      },
+    },
+  })
+}
+
+// Non paginé : l'ordre de l'admin (catégories puis ordre d'affichage) ne s'écrit pas en `orderBy` Prisma.
+export function findTagsForTool(where: Prisma.TagWhereInput) {
+  return prisma.tag.findMany({
+    where,
+    select: { ...TAG_TOOL_SELECT, displayOrder: true },
+  })
+}

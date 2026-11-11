@@ -4,7 +4,7 @@ import { z } from "zod"
 import { PERSON_NOT_FOUND_TOAST } from "@/lib/admin/toasts"
 import type { FieldErrors, FormFailure, FormSuccess, FormValues } from "@/lib/form-state"
 import { createActionLogger, isRowGone } from "@/lib/server-utils"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 
 export interface ActionEvents {
   success: string

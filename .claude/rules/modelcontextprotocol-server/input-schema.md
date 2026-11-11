@@ -8,7 +8,7 @@ paths:
 ## À faire
 - Écrire `inputSchema` en Zod 4, avec un `.describe()` sur chaque champ que le modèle doit remplir : la description arrive au modèle
 - Construire la racine de l'`inputSchema` en objet plat, `entity: z.enum([...])` tiré du registre des entités du domaine, et la partie propre à chaque entité (`data`, `fields`, `filters`) en `anyOf` imbriqué, une branche titrée par entité, que le schéma strict de l'entité parse dans le handler : une entité ajoutée ne touche ni les outils ni un `switch`. L'exhaustivité se porte sur les codes d'erreur du domaine (`assertNever`)
-- Parser les dates des parties d'entité par un codec Zod (`z.codec`, `src/server/mcp/crm/day-fields.ts`), la conversion chaîne ↔ `Date` se faisant une fois à la frontière, plutôt que par une conversion à la main dans chaque entité
+- Parser les dates des parties d'entité par un codec Zod (`z.codec`, `src/server/mcp/day-fields.ts`), la conversion chaîne ↔ `Date` se faisant une fois à la frontière, plutôt que par une conversion à la main dans chaque entité
 
 ## À éviter
 - Une union (`z.discriminatedUnion`, `z.union`) à la racine d'un `inputSchema` : Claude Code n'en montre au modèle que la première branche

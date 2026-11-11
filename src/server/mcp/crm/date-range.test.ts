@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 
+import { dateColumnDay } from "@/server/mcp/day-fields"
+import { instantDate } from "./day-fields"
 import { dateRange } from "./date-range"
-import { dateColumnDay, instantDate } from "./day-fields"
 
 interface Bounds {
   from?: string

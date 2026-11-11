@@ -25,7 +25,7 @@ import {
   createInterview as createInterviewRecord,
   updateInterview as updateInterviewRecord,
 } from "@/server/crm/interviews"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 
 import { createInterview, deleteInterview, updateInterview } from "./interviews"
 import { initialInterviewFormState } from "./interviews.types"

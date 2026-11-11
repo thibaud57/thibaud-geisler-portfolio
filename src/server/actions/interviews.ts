@@ -15,7 +15,7 @@ import {
   type WrittenInterview,
 } from "@/server/crm/interviews"
 import { revalidatePersonLists } from "@/server/crm/person-guards"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 
 import {
   type ActionEvents,

@@ -19,7 +19,7 @@ import {
   type DetailsSectionError,
 } from "./details-section"
 import { revalidatePersonLists } from "./person-guards"
-import { fail, ok, type DomainResult } from "./result"
+import { fail, ok, type DomainResult } from "@/server/result"
 
 export type LegalEntityKey = Extract<keyof CompanyInput, `legalEntity${string}`>
 

@@ -1,34 +1,40 @@
 "use server"
 
 import "server-only"
-import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
+import { updateTag as updateCacheTag } from "next/cache"
 
-import type { Prisma } from "@/generated/prisma/client"
-import { ADMIN_PROJECTS_PATH } from "@/lib/admin/routes"
+import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { projectIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
-import { computeIdsAtPosition, renumberEntities, sameIdSet } from "@/lib/reorder"
+import { sameIdSet } from "@/lib/reorder"
 import { projectReorderSchema, projectSchema, type ProjectInput } from "@/lib/schemas/project"
+import { createActionLogger, rowExists, stringField, stringValues } from "@/lib/server-utils"
+import { fail } from "@/server/result"
 import {
-  createActionLogger,
-  isPrismaError,
-  rowExists,
-  stringField,
-  stringValues,
-  violatedConstraint,
-} from "@/lib/server-utils"
+  createProject as createProjectRecord,
+  findAllProjectIds,
+  invalidateProjectCaches,
+  renumberProjects,
+  updateProject as updateProjectRecord,
+  type ProjectSummary,
+  type ProjectWriteError,
+  type ProjectWriteResult,
+} from "@/server/portfolio/projects"
 
 import {
   type ActionEvents,
   deleteEntity,
+  domainFailure,
+  type DomainFailure,
   formStateHandlers,
   MISSING_COMPANY,
   MISSING_TAG,
-  missingRelationState,
   saveEntity,
 } from "./_support/shared"
 import {
   type ProjectDeleteState,
+  type ProjectFormMessage,
   type ProjectFormState,
   type ProjectReorderState,
 } from "./projects.types"
@@ -62,135 +68,38 @@ function collectValues(formData: FormData): ProjectFormState["values"] {
   }
 }
 
-function invalidateProjectCaches(): void {
-  updateCacheTag("projects")
-  revalidatePath(ADMIN_PROJECTS_PATH)
+function updateProjectCaches(): void {
+  invalidateProjectCaches(updateCacheTag)
 }
 
-// Champs du projet lui-même, séparés de ceux qui alimentent ClientMeta : Prisma refuserait
-// companyId ou workMode sur project.create/update.
-function projectData(input: ProjectInput) {
-  const { tagIds, companyId, workMode, contractStatus, teamSize, deliverablesCount, ...project } =
-    input
-  return project
-}
+const failure = domainFailure<ProjectInput, ProjectFormMessage>
 
-function clientMetaData(input: ProjectInput) {
-  const { companyId, workMode, contractStatus, teamSize, deliverablesCount } = input
-  return { companyId, workMode, contractStatus, teamSize, deliverablesCount }
-}
-
-// Attribution par contrainte et jamais par seul code d'erreur : ProjectTag porte sa propre unicité
-// (@@id([projectId, tagId])), un P2002 dessus ne doit pas s'afficher comme un slug déjà pris.
-function mapConstraintViolation(
-  err: unknown,
+function mapDomainError(
+  error: ProjectWriteError,
   values: ProjectFormState["values"],
-): ProjectFormState | null {
-  const constraint = violatedConstraint(err)
-
-  if (isPrismaError(err, "P2002") && constraint?.includes("slug")) {
-    return {
-      ok: false,
-      errors: { slug: ["Ce slug est déjà utilisé par un autre projet"] },
-      message: "slug_taken",
-      values,
-    }
+): DomainFailure<ProjectFormState> {
+  switch (error.code) {
+    case "slug_taken":
+      return failure(
+        values,
+        { slug: ["Ce slug est déjà utilisé par un autre projet"] },
+        "slug_taken",
+      )
+    case "company_not_found":
+      return failure(values, { companyId: [MISSING_COMPANY.text] }, MISSING_COMPANY.code)
+    case "tag_not_found":
+      return failure(values, { tagIds: [MISSING_TAG.text] }, MISSING_TAG.code)
+    case "dates_out_of_order":
+      return failure(
+        values,
+        { endedAt: ["La date de fin ne peut pas précéder la date de début"] },
+        null,
+      )
+    case "not_found":
+      return failure(values, {}, "project_not_found", true)
+    default:
+      return assertNever(error)
   }
-
-  // Entreprise ou tag supprimé entre l'affichage du formulaire et son envoi.
-  if (isPrismaError(err, "P2003") && constraint?.includes("companyId")) {
-    return missingRelationState("companyId", MISSING_COMPANY, values)
-  }
-
-  if (isPrismaError(err, "P2003") && constraint?.includes("tagId")) {
-    return missingRelationState("tagIds", MISSING_TAG, values)
-  }
-
-  return null
-}
-
-async function findAllProjectIds(
-  projectClient: Prisma.TransactionClient["project"],
-): Promise<string[]> {
-  const projects = await projectClient.findMany({
-    orderBy: { displayOrder: "asc" },
-    select: { id: true },
-  })
-  return projects.map((project) => project.id)
-}
-
-function renumberProjects(
-  projectClient: Prisma.TransactionClient["project"],
-  orderedIds: readonly string[],
-  edited?: { id: string; data: ReturnType<typeof projectData> },
-) {
-  return renumberEntities(
-    (id, data) => projectClient.update({ where: { id }, data }),
-    orderedIds,
-    edited,
-  )
-}
-
-function replaceProjectTags(
-  tx: Prisma.TransactionClient,
-  projectId: string,
-  tagIds: readonly string[],
-) {
-  return tx.projectTag.createMany({
-    data: tagIds.map((tagId, index) => ({ projectId, tagId, displayOrder: index + 1 })),
-  })
-}
-
-// L'ordre courant se lit dans la transaction, ce qui ferme la fenêtre entre sa lecture et son
-// écriture. READ COMMITTED ne sérialise pas pour autant deux transactions concurrentes. Rien en
-// base n'interdit deux projets au même rang : la mutation suivante renumérote l'ensemble.
-async function createProjectWithRelations(input: ProjectInput) {
-  return prisma.$transaction(async (tx) => {
-    const existingIds = await findAllProjectIds(tx.project)
-    const created = await tx.project.create({ data: projectData(input) })
-
-    await Promise.all(
-      renumberProjects(
-        tx.project,
-        computeIdsAtPosition(existingIds, created.id, input.displayOrder),
-      ),
-    )
-
-    await tx.clientMeta.create({ data: { projectId: created.id, ...clientMetaData(input) } })
-
-    if (input.tagIds.length > 0) {
-      await replaceProjectTags(tx, created.id, input.tagIds)
-    }
-
-    return created.id
-  })
-}
-
-async function updateProjectWithRelations(id: string, input: ProjectInput) {
-  return prisma.$transaction(async (tx) => {
-    const existingIds = await findAllProjectIds(tx.project)
-
-    await Promise.all(
-      renumberProjects(tx.project, computeIdsAtPosition(existingIds, id, input.displayOrder), {
-        id,
-        data: projectData(input),
-      }),
-    )
-
-    const meta = clientMetaData(input)
-    await tx.clientMeta.upsert({
-      where: { projectId: id },
-      create: { projectId: id, ...meta },
-      update: meta,
-    })
-
-    await tx.projectTag.deleteMany({ where: { projectId: id } })
-    if (input.tagIds.length > 0) {
-      await replaceProjectTags(tx, id, input.tagIds)
-    }
-
-    return id
-  })
 }
 
 const projectExists = (id: string) => rowExists(prisma.project, { id })
@@ -199,26 +108,21 @@ function saveProject(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (input: ProjectInput) => Promise<string>,
-  updatedId?: string,
+  persist: (input: ProjectInput) => Promise<ProjectWriteResult>,
 ): Promise<ProjectFormState> {
   const values = collectValues(formData)
 
-  return saveEntity<ProjectInput, ProjectFormState, string>({
+  return saveEntity<ProjectInput, ProjectFormState, ProjectSummary, ProjectWriteError>({
     actionName,
     events,
     schema: projectSchema,
     input: values,
     persist,
     successLogFields: (data) => ({ slug: data.slug }),
-    invalidateCaches: invalidateProjectCaches,
-    mapError: (err) => mapConstraintViolation(err, values),
-    ...formStateHandlers(values, {
-      message: "project_not_found",
-      updatedId,
-      exists: projectExists,
-    }),
-    onSuccess: (savedId) => ({ ok: true, errors: {}, message: null, savedId }),
+    invalidateCaches: updateProjectCaches,
+    onDomainError: (error) => mapDomainError(error, values),
+    ...formStateHandlers(values),
+    onSuccess: (project) => ({ ok: true, errors: {}, message: null, savedId: project.id }),
   })
 }
 
@@ -234,7 +138,7 @@ export async function createProject(
     "createProject",
     { success: "project:created", failure: "project:create_failed" },
     formData,
-    createProjectWithRelations,
+    ({ displayOrder, ...fields }) => createProjectRecord(fields, displayOrder),
   )
 }
 
@@ -249,8 +153,13 @@ export async function updateProject(
     "updateProject",
     { success: "project:updated", failure: "project:update_failed" },
     formData,
-    (input) => updateProjectWithRelations(id, input),
-    id,
+    async ({ displayOrder, ...fields }) => {
+      // Un id invalide vaut un projet supprimé.
+      const parsedId = projectIdSchema.safeParse(id)
+      return parsedId.success
+        ? updateProjectRecord(parsedId.data, fields, displayOrder)
+        : fail({ code: "not_found" })
+    },
   )
 }
 
@@ -265,18 +174,9 @@ export async function deleteProject(id: string): Promise<ProjectDeleteState> {
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await tx.project.delete({ where: { id } })
-        const remaining = await tx.project.findMany({
-          orderBy: { displayOrder: "asc" },
-          select: { id: true },
-        })
-        await Promise.all(
-          renumberProjects(
-            tx.project,
-            remaining.map((project) => project.id),
-          ),
-        )
+        await Promise.all(renumberProjects(tx.project, await findAllProjectIds(tx.project)))
       }),
-    invalidateCaches: invalidateProjectCaches,
+    invalidateCaches: updateProjectCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
     onUnknownError: () => ({ ok: false, errors: {}, message: "unknown_error" }),
   })
@@ -292,19 +192,18 @@ export async function reorderProjects(orderedIds: readonly string[]): Promise<Pr
     }
 
     try {
-      const existing = await prisma.project.findMany({ select: { id: true } })
+      const existingIds = await findAllProjectIds()
 
       // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du
       // glisser-déposer rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des
       // displayOrder en doublon ou troués.
-      const existingIds = existing.map((project) => project.id)
       if (!sameIdSet(existingIds, result.data.orderedIds)) {
         return { ok: false, message: "stale_order" }
       }
 
       await prisma.$transaction(renumberProjects(prisma.project, result.data.orderedIds))
 
-      invalidateProjectCaches()
+      updateProjectCaches()
       log.info({ event: "project:reordered", count: result.data.orderedIds.length })
       return { ok: true, message: null }
     } catch (err) {

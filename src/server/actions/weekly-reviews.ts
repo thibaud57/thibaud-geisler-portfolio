@@ -14,7 +14,7 @@ import {
 } from "@/lib/schemas/weekly-review"
 import { createActionLogger, rowExists, stringField } from "@/lib/server-utils"
 import { REVIEW_COUNTER_KEYS, type ReviewCounts } from "@/lib/crm/weekly-reviews"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 import {
   computeWeekCounts,
   createWeeklyReview as createWeeklyReviewRecord,

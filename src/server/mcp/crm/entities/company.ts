@@ -1,5 +1,4 @@
 import "server-only"
-import { revalidateTag } from "next/cache"
 import { z } from "zod"
 
 import {
@@ -31,19 +30,26 @@ import {
   type CompanyPatch,
   type CompanyWriteError,
 } from "@/server/crm/companies"
+import { withDays } from "@/server/mcp/day-fields"
+import { defineEntity } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import {
+  byId,
+  notFoundMessage,
+  revalidateTagMax,
+  writeRecord,
+  writeTexts,
+} from "@/server/mcp/results"
+import { updateSchemaOf } from "@/server/mcp/update-input"
 import {
   findCompaniesPage,
   findCompanyNames,
   findCompanyWithLinks,
 } from "@/server/queries/companies"
 
-import { withDays, withMonth, withSignalDay } from "../day-fields"
-import { defineCrmEntity } from "../entity-definition"
-import { details, notes } from "../fields"
+import { withMonth, withSignalDay } from "../day-fields"
+import { details, detailsErrorMessage, notes } from "../fields"
 import { rolesOf } from "../person-ref"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
-import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaOf } from "../update-input"
 
 const entityField = z.literal("company").describe('Type of CRM record: always "company" here.')
 
@@ -199,7 +205,7 @@ function companyWriteErrorMessage(error: CompanyWriteError, slug: string | undef
     case "legal_entity_slug_taken":
       return "A legal entity already uses the slug of this company. Choose another slug."
     case "not_found":
-      return notFoundMessage("company")
+      return notFoundMessage("crm", "company")
     case "no_details":
     case "section_not_found":
       return detailsErrorMessage(error, "company")
@@ -235,17 +241,15 @@ export function companyLogoErrorMessage(error: CompanyLogoError): string {
 }
 
 export function refreshCompanyCaches(): void {
-  invalidateCompanyCaches((tag) => {
-    revalidateTag(tag, "max")
-  })
+  invalidateCompanyCaches(revalidateTagMax)
 }
 
 const WRITES = writeTexts(
-  { key: "company", noun: "company" },
+  { prefix: "crm", key: "company", noun: "company" },
   "Call crm_search with its slug to check whether it was created before retrying.",
 )
 
-export const companyEntity = defineCrmEntity({
+export const companyEntity = defineEntity({
   entity: "company",
   docs: {
     search: "the slug for a company",

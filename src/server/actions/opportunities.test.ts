@@ -25,7 +25,7 @@ import {
   createOpportunity as createOpportunityRecord,
   updateOpportunity as updateOpportunityRecord,
 } from "@/server/crm/opportunities"
-import { fail, ok } from "@/server/crm/result"
+import { fail, ok } from "@/server/result"
 
 import { createOpportunity, deleteOpportunity, updateOpportunity } from "./opportunities"
 import { initialOpportunityFormState } from "./opportunities.types"

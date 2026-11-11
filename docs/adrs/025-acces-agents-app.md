@@ -16,7 +16,7 @@ La Feature 3 « Outils de l'app pour les agents » de `BRAINSTORM.md` fait agir 
 - **Les jobs d'`agent-os`** (Feature 4), qui exécutent Claude Code sur l'abonnement par l'Agent SDK ([ADR-016](016-acces-llm.md), [ADR-026](026-execution-claude-code-abonnement.md)), depuis le réseau Docker interne ([ADR-019](019-communication-inter-services.md))
 - **L'assistant interne de l'espace admin** (Feature 4), qui tourne à travers `agent-os`
 
-Le CRM (Feature 2) fournit les premiers outils. Chaque domaine suivant (Missions, Comptabilité, Finances, Publications LinkedIn) apporte les siens dans sa propre feature.
+Le CRM (Feature 2) fournit les premiers outils, puis les projets du portfolio et leurs tags (domaine `portfolio`, ajouté à la Feature 3 par décision du propriétaire du 2026-11-10). Chaque domaine suivant (Missions, Comptabilité, Finances, Publications LinkedIn) apporte les siens dans sa propre feature.
 
 Contraintes :
 
@@ -109,7 +109,7 @@ Retenu pour l'implémentation :
 - **SDK** : `@modelcontextprotocol/server` (ligne v2) et son `createMcpHandler`, qui rend un handler `Request → Response` ; ni la ligne v1, ni `mcp-handler`, ni framework dédié. Spec 2026-07-28, le handler gardant son mode par défaut qui sert sans session les clients des révisions 2025 : les clients visés parlent déjà la 2026-07-28 (relevé en § Notes complémentaires), et rien ne justifie de couper un client 2025
 - **Une adresse par domaine** (`/api/mcp/<domaine>`) plutôt qu'un préfixe d'outils sur une adresse commune : une session d'`agent-os` ne déclare que le serveur de son domaine, et la clé se vérifie contre le domaine de l'adresse
 - **Outils génériques par domaine** : recherche tolérante, lecture d'une fiche et de ses liens, requête filtrée et paginée, création, modification, l'entité désignée par un discriminant (union Zod par entité du domaine) ; aucune suppression par défaut. Un même générique, enregistré une fois par domaine. Écartés : un outil par entité et par opération (« A common error we've observed is tools that merely wrap existing software functionality or API endpoints », [Anthropic, Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents), consulté le 2026-11-06) et un jeu global à tous les domaines (union de toutes les entités dans chaque schéma, aucune permission ni restriction possible par domaine). Un outil propre à une tâche s'ajoute quand le générique ne suffit pas
-- **Authentification** : `@better-auth/api-key`, une clé par usage (poste, `agent-os`), ses `permissions` limitées à ses domaines. Pas d'OAuth : claude.ai et Claude Desktop restent un cas de test, `@better-auth/mcp` en réserve si un usage réel l'exige
+- **Authentification** : `@better-auth/api-key`, une clé par usage (poste, `agent-os`), ses `permissions` limitées à ses domaines. Le domaine `portfolio`, qui écrit le site public, ne figure que sur la clé du poste du propriétaire, jamais sur celle des jobs d'`agent-os` qui lisent le web. Pas d'OAuth : claude.ai et Claude Desktop restent un cas de test, `@better-auth/mcp` en réserve si un usage réel l'exige
 
 Acté dès maintenant, quelle que soit l'option retenue :
 
@@ -143,7 +143,7 @@ Conditions de l'acceptation, mesurées par le prototype qui ouvre la Feature 3 (
 
 Remplace la note « Serveur MCP » de l'[ADR-020](020-portfolio-bff.md) et la question ouverte du README de l'epic espace admin.
 
-Chaque domaine déclare ses outils dans sa propre feature (`BRAINSTORM.md`, Features 2, 5, 6, 7 et 8), sur le socle posé par la Feature 3.
+Le CRM et le portfolio ont leurs outils dans la Feature 3 ; chaque domaine suivant déclare les siens dans sa propre feature (`BRAINSTORM.md`, Features 5, 6, 7 et 8), sur le socle qu'elle pose.
 
 **Relevé du prototype**, le 2026-11-06, sur l'image de production construite en local (Next.js 16.4.3, `@modelcontextprotocol/server` 2.4.0, Zod 4.6.7), avec Claude Code 2.1.310 et le CLI 2.1.317 embarqué par `claude-agent-sdk` 0.2.177, la version qu'épingle `ai-kit` :
 

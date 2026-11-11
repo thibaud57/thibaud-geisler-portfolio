@@ -7,7 +7,6 @@ import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { OPPORTUNITY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
 import { companyIdSchema, opportunityIdSchema, personIdSchema } from "@/lib/ids"
-import { mapDefined } from "@/lib/utils"
 import {
   DURATION_MONTHS_MAX,
   POSTGRES_INT_MAX,
@@ -16,13 +15,18 @@ import {
   startMonthToDate,
   TITLE_MAX_LENGTH,
 } from "@/lib/schemas/opportunity"
-import { revalidatePersonLists } from "@/server/crm/person-guards"
+import { mapDefined } from "@/lib/utils"
 import {
   createOpportunity,
   updateOpportunity,
   type OpportunityPatch,
   type OpportunityWriteError,
 } from "@/server/crm/opportunities"
+import { revalidatePersonLists } from "@/server/crm/person-guards"
+import { defineEntity, joinHint } from "@/server/mcp/entity-definition"
+import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { byId, notFoundMessage, writeRecord, writeTexts } from "@/server/mcp/results"
+import { updateSchemaOf } from "@/server/mcp/update-input"
 import {
   findOpportunitiesPage,
   findOpportunityByIdForAdmin,
@@ -30,12 +34,8 @@ import {
 } from "@/server/queries/opportunities"
 
 import { withMonth } from "../day-fields"
-import { defineCrmEntity, joinHint } from "../entity-definition"
-import { details, notes } from "../fields"
-import { idOrderBy, pageQueryShape, type SortOrder } from "../query-page"
+import { details, detailsErrorMessage, notes } from "../fields"
 import { personRef } from "../person-ref"
-import { byId, detailsErrorMessage, notFoundMessage, writeRecord, writeTexts } from "../results"
-import { updateSchemaOf } from "../update-input"
 
 const entityField = z
   .literal("opportunity")
@@ -223,7 +223,7 @@ function opportunityWriteErrorMessage(error: OpportunityWriteError): string {
     case "days_out_of_range":
       return "onSiteDays cannot exceed daysPerWeek. Correct one of the two: on an update that sends only one of them, the value already stored counts."
     case "not_found":
-      return notFoundMessage("opportunity")
+      return notFoundMessage("crm", "opportunity")
     case "no_details":
     case "section_not_found":
       return detailsErrorMessage(error, "opportunity")
@@ -233,11 +233,11 @@ function opportunityWriteErrorMessage(error: OpportunityWriteError): string {
 }
 
 const WRITES = writeTexts(
-  { key: "opportunity", noun: "opportunity" },
+  { prefix: "crm", key: "opportunity", noun: "opportunity" },
   "Call crm_search with its title to check whether it was created before retrying.",
 )
 
-export const opportunityEntity = defineCrmEntity({
+export const opportunityEntity = defineEntity({
   entity: "opportunity",
   docs: {
     search:

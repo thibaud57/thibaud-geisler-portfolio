@@ -8,7 +8,7 @@ import { companyIdSchema, personIdSchema, signalIdSchema } from "@/lib/ids"
 import { prisma } from "@/lib/prisma"
 import { signalSchema, type SignalInput } from "@/lib/schemas/signal"
 import { rowExists, stringField } from "@/lib/server-utils"
-import type { DomainResult } from "@/server/crm/result"
+import type { DomainResult } from "@/server/result"
 import {
   createSignal,
   revalidateSignalLists,
