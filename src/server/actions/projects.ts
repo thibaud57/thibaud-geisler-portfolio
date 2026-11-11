@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma"
 import { sameIdSet } from "@/lib/reorder"
 import { projectReorderSchema, projectSchema, type ProjectInput } from "@/lib/schemas/project"
 import { createActionLogger, rowExists, stringField, stringValues } from "@/lib/server-utils"
+import { fail } from "@/server/result"
 import {
   createProject as createProjectRecord,
   findAllProjectIds,
@@ -26,7 +27,6 @@ import {
   deleteEntity,
   domainFailure,
   type DomainFailure,
-  failureState,
   formStateHandlers,
   MISSING_COMPANY,
   MISSING_TAG,
@@ -149,20 +149,17 @@ export async function updateProject(
 ): Promise<ProjectFormState> {
   await getCurrentUser()
 
-  // Un id invalide ne désigne aucun projet : même réponse qu'un projet supprimé.
-  const parsedId = projectIdSchema.safeParse(id)
-  if (!parsedId.success) {
-    return failureState(
-      mapDomainError({ code: "not_found" }, collectValues(formData)),
-      updateProjectCaches,
-    )
-  }
-
   return saveProject(
     "updateProject",
     { success: "project:updated", failure: "project:update_failed" },
     formData,
-    ({ displayOrder, ...fields }) => updateProjectRecord(parsedId.data, fields, displayOrder),
+    async ({ displayOrder, ...fields }) => {
+      // Un id invalide vaut un projet supprimé.
+      const parsedId = projectIdSchema.safeParse(id)
+      return parsedId.success
+        ? updateProjectRecord(parsedId.data, fields, displayOrder)
+        : fail({ code: "not_found" })
+    },
   )
 }
 
@@ -177,7 +174,7 @@ export async function deleteProject(id: string): Promise<ProjectDeleteState> {
     destroy: () =>
       prisma.$transaction(async (tx) => {
         await tx.project.delete({ where: { id } })
-        await Promise.all(renumberProjects(tx.project, await findAllProjectIds(tx)))
+        await Promise.all(renumberProjects(tx.project, await findAllProjectIds(tx.project)))
       }),
     invalidateCaches: updateProjectCaches,
     onSuccess: () => ({ ok: true, errors: {}, message: null }),
@@ -195,12 +192,11 @@ export async function reorderProjects(orderedIds: readonly string[]): Promise<Pr
     }
 
     try {
-      const existing = await prisma.project.findMany({ select: { id: true } })
+      const existingIds = await findAllProjectIds()
 
       // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du
       // glisser-déposer rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des
       // displayOrder en doublon ou troués.
-      const existingIds = existing.map((project) => project.id)
       if (!sameIdSet(existingIds, result.data.orderedIds)) {
         return { ok: false, message: "stale_order" }
       }

@@ -86,7 +86,7 @@ export async function countTagsByKind(): Promise<TagCountByKind> {
 // Lectures de l'outil MCP : sans 'use cache', l'agent relit la base juste après ses écritures.
 export function findTagSearchRows() {
   return prisma.tag.findMany({
-    select: { id: true, slug: true, nameFr: true, nameEn: true, kind: true },
+    select: { id: true, slug: true, nameFr: true, nameEn: true },
   })
 }
 

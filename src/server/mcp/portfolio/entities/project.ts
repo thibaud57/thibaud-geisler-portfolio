@@ -45,14 +45,14 @@ const entityField = z
 const SLUG_FIXED =
   "The slug of a project is fixed at creation: it is the address of its public page. Leave slug out of fields; to change it, ask the owner to do it in the admin."
 
-const projectDay = (description: string) =>
-  dateColumnDay({ example: "2026-03-01" }).nullable().describe(description)
+const projectDay = (text: string) =>
+  dateColumnDay({ example: "2026-03-01" }).nullable().describe(`${text} null clears it.`)
 
-const url = (description: string) =>
+const url = (text: string) =>
   z
     .url({ protocol: /^https?$/, error: "Expected an http or https URL." })
     .nullable()
-    .describe(`${description} null clears it.`)
+    .describe(`${text} null clears it.`)
 
 const caseStudy = (language: string) =>
   z
@@ -63,35 +63,36 @@ const caseStudy = (language: string) =>
       `Case study in markdown, ${language}. Independent of the other language. null clears it.`,
     )
 
+const title = (language: string) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(PROJECT_TITLE_MAX_LENGTH)
+    .describe(`${language} title, at most ${PROJECT_TITLE_MAX_LENGTH} characters.`)
+
+const description = (language: string) =>
+  z.string().trim().min(1).describe(`${language} description, plain text.`)
+
 // Les `.describe()` arrivent au modèle.
 const fieldShape = {
-  titleFr: z
-    .string()
-    .trim()
-    .min(1)
-    .max(PROJECT_TITLE_MAX_LENGTH)
-    .describe(`French title, at most ${PROJECT_TITLE_MAX_LENGTH} characters.`),
-  titleEn: z
-    .string()
-    .trim()
-    .min(1)
-    .max(PROJECT_TITLE_MAX_LENGTH)
-    .describe(`English title, at most ${PROJECT_TITLE_MAX_LENGTH} characters.`),
-  descriptionFr: z.string().trim().min(1).describe("French description, plain text."),
-  descriptionEn: z.string().trim().min(1).describe("English description, plain text."),
+  titleFr: title("French"),
+  titleEn: title("English"),
+  descriptionFr: description("French"),
+  descriptionEn: description("English"),
   type: z.enum(ProjectType).describe("CLIENT for a client project, PERSONAL for a personal one."),
   status: z
     .enum(ProjectStatus)
     .describe(
-      "DRAFT (offline), PUBLISHED (online at once) or ARCHIVED (offline). Defaults to DRAFT at creation.",
+      "DRAFT (offline), PUBLISHED (public) or ARCHIVED (offline). Defaults to DRAFT at creation.",
     ),
   formats: z
     .array(z.enum(ProjectFormat))
     .min(1)
     .describe(`At least one format among ${Object.values(ProjectFormat).join(", ")}.`),
-  startedAt: projectDay("Start day, YYYY-MM-DD. null clears it."),
+  startedAt: projectDay("Start day, YYYY-MM-DD."),
   endedAt: projectDay(
-    "End day, YYYY-MM-DD, not before startedAt (the stored one when only endedAt is sent). null clears it.",
+    "End day, YYYY-MM-DD, not before startedAt (the stored one when only endedAt is sent).",
   ),
   githubUrl: url("GitHub URL, http or https."),
   demoUrl: url("URL of the demo, http or https."),
@@ -239,6 +240,10 @@ function projectWriteErrorMessage(error: ProjectWriteError): string {
 const CLIENT_COMPANY_PUBLIC =
   "serves the name, logo, website, sectors and size of its client company publicly"
 
+// revalidateTag(tag, "max") d'un route handler : la page publique se régénère à la première visite qui suit l'écriture.
+const PUBLIC_REFRESH =
+  "the first public visit after a write may still show the previous version, the next ones show the new one"
+
 const WRITES = writeTexts(
   { prefix: "portfolio", key: "project", noun: "project" },
   "Call portfolio_search with its slug to check whether it was created before retrying.",
@@ -262,8 +267,8 @@ export const projectEntity = defineEntity({
     queryRow:
       "a project: id, slug, French and English titles, status, type, client company name, display order, updated date",
     querySort: "Projects sort by display order, as in the admin.",
-    create: `For a project, slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode are required; it is created as a DRAFT, last in the display order. A status PUBLISHED puts the project online at once (list, case study, sitemap), and ${CLIENT_COMPANY_PUBLIC}. A personal project belongs to the company of type MA_SOCIETE.`,
-    update: `A project takes the fields of its creation except slug, which is fixed. A status PUBLISHED puts the project online at once and ${CLIENT_COMPANY_PUBLIC}, and a project that is already PUBLISHED goes online with each change, at once; tagIds replaces the whole list in the order sent, and a field left out stays unchanged.`,
+    create: `For a project, slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode are required; it is created as a DRAFT, last in the display order. A status PUBLISHED makes the project public (list, case study, sitemap), and ${CLIENT_COMPANY_PUBLIC}; ${PUBLIC_REFRESH}. A personal project belongs to the company of type MA_SOCIETE.`,
+    update: `A project takes the fields of its creation except slug, which is fixed. A status PUBLISHED makes the project public and ${CLIENT_COMPANY_PUBLIC}, and each change to a PUBLISHED project goes public too; ${PUBLIC_REFRESH}. tagIds replaces the whole list in the order sent, and a field left out stays unchanged.`,
   },
   async search(query) {
     const needle = normalizeForSearch(query)

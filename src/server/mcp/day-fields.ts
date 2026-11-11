@@ -4,14 +4,14 @@ import { dateColumnIsoDay, isoDayToDate, zonedDayStart, zonedIsoDay } from "@/li
 import { recordFromKeys } from "@/lib/record-from-keys"
 
 interface DayParams {
-  // Jour d'exemple du message d'erreur ; sans lui, le message par défaut de Zod
+  // Jour d'exemple du message d'erreur (sinon celui par défaut de Zod)
   example?: string
   description?: string
 }
 
-// La description se pose ici, sur le schéma d'entrée : posée sur le codec, elle passerait en tête de l'objet JSON Schema que voit l'agent.
-// Le schéma d'entrée garantit un vrai jour (`2026-02-31` est refusé) : le decode ne lève donc jamais.
-// Côté agent, le schéma reste une chaîne `format: date` : `z.toJSONSchema(…, { io: "input" })` ignore le côté `Date`.
+// `description` sur le schéma d'entrée : posée sur le codec, elle irait en tête du JSON Schema vu par l'agent.
+// Un faux jour (`2026-02-31`) est refusé ici : le decode ne lève jamais.
+// `z.toJSONSchema(…, { io: "input" })` ignore le côté `Date` : l'agent voit une chaîne `format: date`.
 function isoDay({ example, description }: DayParams) {
   const day = z.iso.date(
     example === undefined ? undefined : { error: `Expected a day as YYYY-MM-DD, e.g. ${example}.` },
@@ -23,7 +23,7 @@ function isoDay({ example, description }: DayParams) {
 export const dateColumnDay = (params: DayParams = {}) =>
   z.codec(isoDay(params), z.date(), { decode: isoDayToDate, encode: dateColumnIsoDay })
 
-// Colonne Timestamptz dont le jour se lit à Paris : le jour entre en minuit de Paris et sort en jour de Paris, un instant UTC relu puis réécrit décalerait la fiche d'un jour.
+// Colonne Timestamptz lue à Paris : un instant UTC relu puis réécrit décalerait la fiche d'un jour.
 export const zonedDay = (params: DayParams = {}) =>
   z.codec(isoDay(params), z.date(), {
     decode: (day) => zonedDayStart(isoDayToDate(day)),
@@ -38,7 +38,6 @@ type DaysAsStrings<T, K extends keyof T> = Omit<T, K> & {
   [P in K]: T[P] extends Date ? string : string | null
 }
 
-// Les jours sortent comme ils entrent : le codec qui les lit à l'entrée les écrit à la sortie.
 export function withDays<K extends string, T extends Record<K, Date | null>>(
   row: T,
   keys: readonly K[],

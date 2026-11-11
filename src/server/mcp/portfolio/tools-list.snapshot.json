@@ -194,7 +194,7 @@
   {
     "name": "portfolio_create",
     "title": "Create a portfolio record",
-    "description": "Create a portfolio record. Call portfolio_search first to check it does not exist yet. For a tag, slug, nameFr, nameEn and kind are required, and the tag goes last in its category. For a project, slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode are required; it is created as a DRAFT, last in the display order. A status PUBLISHED puts the project online at once (list, case study, sitemap), and serves the name, logo, website, sectors and size of its client company publicly. A personal project belongs to the company of type MA_SOCIETE. Returns the id, the slug and, for a project, its French title.",
+    "description": "Create a portfolio record. Call portfolio_search first to check it does not exist yet. For a tag, slug, nameFr, nameEn and kind are required, and the tag goes last in its category. For a project, slug, titleFr, titleEn, descriptionFr, descriptionEn, type, formats, companyId and workMode are required; it is created as a DRAFT, last in the display order. A status PUBLISHED makes the project public (list, case study, sitemap), and serves the name, logo, website, sectors and size of its client company publicly; the first public visit after a write may still show the previous version, the next ones show the new one. A personal project belongs to the company of type MA_SOCIETE. Returns the id, the slug and, for a project, its French title.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -385,7 +385,7 @@
                     "PUBLISHED",
                     "ARCHIVED"
                   ],
-                  "description": "DRAFT (offline), PUBLISHED (online at once) or ARCHIVED (offline). Defaults to DRAFT at creation."
+                  "description": "DRAFT (offline), PUBLISHED (public) or ARCHIVED (offline). Defaults to DRAFT at creation."
                 },
                 "formats": {
                   "minItems": 1,
@@ -581,7 +581,7 @@
   {
     "name": "portfolio_update",
     "title": "Update a portfolio record",
-    "description": "Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. A tag takes nameFr, nameEn, kind and icon: its slug is fixed at creation, and a new kind puts it last in that category. A project takes the fields of its creation except slug, which is fixed. A status PUBLISHED puts the project online at once and serves the name, logo, website, sectors and size of its client company publicly, and a project that is already PUBLISHED goes online with each change, at once; tagIds replaces the whole list in the order sent, and a field left out stays unchanged. Returns the id, the slug and, for a project, its French title.",
+    "description": "Update a portfolio record by id: fields (absent stays unchanged, null clears an optional field). Call portfolio_search first for the id, and portfolio_fetch to read the current values. A tag takes nameFr, nameEn, kind and icon: its slug is fixed at creation, and a new kind puts it last in that category. A project takes the fields of its creation except slug, which is fixed. A status PUBLISHED makes the project public and serves the name, logo, website, sectors and size of its client company publicly, and each change to a PUBLISHED project goes public too; the first public visit after a write may still show the previous version, the next ones show the new one. tagIds replaces the whole list in the order sent, and a field left out stays unchanged. Returns the id, the slug and, for a project, its French title.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -755,7 +755,7 @@
                     "PUBLISHED",
                     "ARCHIVED"
                   ],
-                  "description": "DRAFT (offline), PUBLISHED (online at once) or ARCHIVED (offline). Defaults to DRAFT at creation."
+                  "description": "DRAFT (offline), PUBLISHED (public) or ARCHIVED (offline). Defaults to DRAFT at creation."
                 },
                 "formats": {
                   "minItems": 1,

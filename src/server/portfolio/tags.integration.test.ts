@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 
 import type { TagKind } from "@/generated/prisma/client"
 import { tagIdSchema } from "@/lib/ids"
-import { prisma, resetDatabase, seedTag, tagIdOf } from "@/lib/prisma-test-setup"
+import {
+  prisma,
+  resetDatabase,
+  seedTag,
+  sequence,
+  slugsAndOrders,
+  tagIdOf,
+} from "@/lib/prisma-test-setup"
 
 import { createTag, updateTag, type TagWriteData } from "./tags"
 
@@ -23,14 +30,10 @@ async function seedCategory(kind: TagKind, slugs: readonly string[]): Promise<vo
 }
 
 async function categorySlugs(kind: TagKind) {
-  const tags = await prisma.tag.findMany({ where: { kind }, orderBy: { displayOrder: "asc" } })
-  return {
-    slugs: tags.map((tag) => tag.slug),
-    orders: tags.map((tag) => tag.displayOrder),
-  }
+  return slugsAndOrders(
+    await prisma.tag.findMany({ where: { kind }, orderBy: { displayOrder: "asc" } }),
+  )
 }
-
-const sequence = (length: number) => Array.from({ length }, (_, index) => index + 1)
 
 const UNKNOWN_ID = tagIdSchema.parse("missing-tag")
 

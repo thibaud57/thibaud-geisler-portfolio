@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma"
 import { removeId, sameIdSet } from "@/lib/reorder"
 import { tagReorderSchema, tagSchema, type TagInput } from "@/lib/schemas/tag"
 import { createActionLogger, isPrismaError, rowExists } from "@/lib/server-utils"
-import { fail, type DomainResult } from "@/server/result"
+import { fail } from "@/server/result"
 import {
   createTag as createTagRecord,
   findCategoryIds,
@@ -20,6 +20,7 @@ import {
   updateTag as updateTagRecord,
   type TagSummary,
   type TagWriteError,
+  type TagWriteResult,
 } from "@/server/portfolio/tags"
 
 import {
@@ -72,7 +73,7 @@ function saveTag(
   actionName: string,
   events: ActionEvents,
   formData: FormData,
-  persist: (data: TagInput) => Promise<DomainResult<TagSummary, TagWriteError>>,
+  persist: (data: TagInput) => Promise<TagWriteResult>,
 ): Promise<TagFormState> {
   return saveEntity<TagInput, TagFormState, TagSummary, TagWriteError>({
     actionName,
@@ -115,7 +116,7 @@ export async function updateTag(
     { success: "tag:updated", failure: "tag:update_failed" },
     formData,
     async ({ displayOrder, ...fields }) => {
-      // Un id invalide ne désigne aucun tag : même réponse qu'un tag supprimé, sous l'instrumentation de l'action.
+      // Un id invalide vaut un tag supprimé.
       const parsedId = tagIdSchema.safeParse(id)
       return parsedId.success
         ? updateTagRecord(parsedId.data, fields, displayOrder)
@@ -153,15 +154,11 @@ export async function reorderTags(
     }
 
     try {
-      const existing = await prisma.tag.findMany({
-        where: { kind: result.data.kind },
-        select: { id: true },
-      })
+      const existingIds = await findCategoryIds(result.data.kind)
 
       // Une création ou une suppression survenue entre l'affichage de la liste et le dépôt du glisser-déposer
       // rend l'ordre reçu périmé : réécrire un sous-ensemble laisserait des displayOrder en doublon ou troués
       // dans la catégorie.
-      const existingIds = existing.map((tag) => tag.id)
       if (!sameIdSet(existingIds, result.data.orderedIds)) {
         return { ok: false, message: "stale_order" }
       }

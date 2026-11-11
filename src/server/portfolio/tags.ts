@@ -15,14 +15,18 @@ export type TagWriteData = Omit<TagInput, "displayOrder">
 
 export type TagWriteError = { code: "slug_taken" } | { code: "not_found" }
 
+export type TagPatch = Partial<TagWriteData>
+
 export interface TagSummary {
   id: TagId
   slug: string
 }
 
+export type TagWriteResult = DomainResult<TagSummary, TagWriteError>
+
 const SUMMARY_SELECT = { id: true, slug: true } as const
 
-// Tags lus par le site public : chaque adaptateur les invalide avec sa primitive (updateTag en action, revalidateTag en outil MCP).
+// Les projets affichent leurs tags : les deux entrées de cache tombent ensemble.
 export function invalidateTagCaches(invalidate: (tag: string) => void): void {
   invalidate("tags")
   invalidate("projects")
@@ -44,7 +48,7 @@ export async function findCategoryIds(
 export function renumberTags(
   tagClient: Prisma.TransactionClient["tag"],
   orderedIds: readonly string[],
-  edited?: { id: string; data: Partial<TagWriteData> },
+  edited?: { id: string; data: TagPatch },
 ) {
   return renumberEntities(
     (id, data) => tagClient.update({ where: { id }, data }),
@@ -69,23 +73,16 @@ function toSummary(row: { id: string; slug: string }): TagSummary {
   return { id: tagIdSchema.parse(row.id), slug: row.slug }
 }
 
-export async function createTag(
-  data: TagWriteData,
-  position?: number,
-): Promise<DomainResult<TagSummary, TagWriteError>> {
+export async function createTag(data: TagWriteData, position?: number): Promise<TagWriteResult> {
   try {
-    const existingIds = await findCategoryIds(data.kind)
-
     const created = await prisma.$transaction(async (tx) => {
-      // Sans position, un seul write : renuméroter la catégorie bumperait `updatedAt` de tous ses tags.
       const row = await tx.tag.create({
-        data:
-          position === undefined
-            ? { ...data, displayOrder: await nextDisplayOrder(tx, data.kind) }
-            : data,
+        data: { ...data, displayOrder: await nextDisplayOrder(tx, data.kind) },
         select: SUMMARY_SELECT,
       })
+      // Sans position, pas de renumérotation (cf. `writeUpdate`).
       if (position !== undefined) {
+        const existingIds = await findCategoryIds(data.kind, tx.tag)
         await Promise.all(renumberTags(tx.tag, computeIdsAtPosition(existingIds, row.id, position)))
       }
       return row
@@ -99,43 +96,38 @@ export async function createTag(
 
 async function writeUpdate(
   id: TagId,
-  patch: Partial<TagWriteData>,
+  patch: TagPatch,
   position: number | undefined,
-): Promise<DomainResult<TagSummary, TagWriteError>> {
+): Promise<TagWriteResult> {
   const current = await prisma.tag.findUnique({ where: { id }, select: { kind: true, slug: true } })
   if (!current) return fail({ code: "not_found" })
 
-  const edited = { id, data: patch }
   const kind = patch.kind ?? current.kind
+  const moved = kind !== current.kind
 
-  if (kind === current.kind) {
-    if (position === undefined) {
-      // Un seul write : renuméroter la catégorie bumperait `updatedAt` de tous ses tags.
-      await prisma.tag.update({ where: { id }, data: patch })
-    } else {
-      const existingIds = await findCategoryIds(kind)
-      await prisma.$transaction(
-        renumberTags(prisma.tag, computeIdsAtPosition(existingIds, id, position), edited),
-      )
-    }
+  if (!moved && position === undefined) {
+    // Pas de renumérotation : elle bumperait `updatedAt` de tous les tags de la catégorie.
+    await prisma.tag.update({ where: { id }, data: patch })
   } else {
-    const [oldIds, newExistingIds] = await Promise.all([
-      findCategoryIds(current.kind),
-      findCategoryIds(kind),
-    ])
-    await prisma.$transaction([
-      ...renumberTags(prisma.tag, removeId(oldIds, id)),
-      ...renumberTags(prisma.tag, placeInCategory(newExistingIds, id, position), edited),
-    ])
+    await prisma.$transaction(async (tx) => {
+      if (moved) {
+        const oldIds = await findCategoryIds(current.kind, tx.tag)
+        await Promise.all(renumberTags(tx.tag, removeId(oldIds, id)))
+      }
+      const existingIds = await findCategoryIds(kind, tx.tag)
+      await Promise.all(
+        renumberTags(tx.tag, placeInCategory(existingIds, id, position), { id, data: patch }),
+      )
+    })
   }
   return ok({ id, slug: patch.slug ?? current.slug })
 }
 
 export async function updateTag(
   id: TagId,
-  patch: Partial<TagWriteData>,
+  patch: TagPatch,
   position?: number,
-): Promise<DomainResult<TagSummary, TagWriteError>> {
+): Promise<TagWriteResult> {
   try {
     return await writeUpdate(id, patch, position)
   } catch (err) {

@@ -39,7 +39,6 @@ export type ProjectWriteResult = DomainResult<ProjectSummary, ProjectWriteError>
 
 const SUMMARY_SELECT = { id: true, slug: true, titleFr: true } as const
 
-// Projets lus par le site public : chaque adaptateur les invalide avec sa primitive (updateTag en action, revalidateTag en outil MCP).
 // Les tags affichent leur nombre de projets, d'où l'invalidation de leur écran d'admin.
 export function invalidateProjectCaches(invalidate: (tag: string) => void): void {
   invalidate("projects")
@@ -54,7 +53,7 @@ type ClientMetaFields = Pick<
 
 type ProjectFields = Omit<ProjectPatch, keyof ClientMetaFields | "tagIds">
 
-// Les champs du projet et ceux de ClientMeta vont à deux tables : Prisma refuserait companyId ou workMode sur project.create/update.
+// Deux tables : Prisma refuserait companyId ou workMode sur project.create/update.
 function splitFields(input: ProjectWriteData): {
   project: Omit<ProjectWriteData, keyof ClientMetaFields | "tagIds">
   meta: ClientMetaFields
@@ -75,8 +74,10 @@ function splitFields({
   return { project, meta: { companyId, workMode, contractStatus, teamSize, deliverablesCount } }
 }
 
-export async function findAllProjectIds(tx: Prisma.TransactionClient): Promise<string[]> {
-  const projects = await tx.project.findMany({
+export async function findAllProjectIds(
+  projectClient: Prisma.TransactionClient["project"] = prisma.project,
+): Promise<string[]> {
+  const projects = await projectClient.findMany({
     orderBy: { displayOrder: "asc" },
     select: { id: true },
   })
@@ -128,7 +129,7 @@ function toDomainError(err: unknown): ProjectWriteError | null {
   return null
 }
 
-// Sans position, deux créations concurrentes peuvent partager un rang jusqu'à la prochaine écriture avec position : accepté en mono-utilisateur.
+// Sans position, deux créations concurrentes peuvent partager un rang : accepté en mono-utilisateur.
 export async function createProject(
   data: ProjectWriteData,
   position?: number,
@@ -144,7 +145,7 @@ export async function createProject(
         select: SUMMARY_SELECT,
       })
       if (position !== undefined) {
-        const existingIds = await findAllProjectIds(tx)
+        const existingIds = await findAllProjectIds(tx.project)
         await Promise.all(
           renumberProjects(tx.project, computeIdsAtPosition(existingIds, row.id, position)),
         )
@@ -175,18 +176,18 @@ async function writeUpdate(
     })
     if (!current) return fail({ code: "not_found" })
 
-    // Les dates comparées sont celles que la base portera après l'écriture : le patch par-dessus le stocké.
+    // Dates telles que la base les portera : le patch par-dessus le stocké.
     const startedAt = patch.startedAt === undefined ? current.startedAt : patch.startedAt
     const endedAt = patch.endedAt === undefined ? current.endedAt : patch.endedAt
     if (datesOutOfOrder(startedAt, endedAt)) return fail({ code: "dates_out_of_order" })
 
     const { project, meta } = splitFields(patch)
     if (position === undefined) {
-      // Sans position, pas de renumérotation : elle bumperait `updatedAt` de tous les voisins.
-      // updatedAt explicite : Prisma saute un update vide, et un patch de tags ou de ClientMeta seul laisserait la date que la page publique affiche.
+      // Sans position, pas de renumérotation : elle bumperait `updatedAt` des voisins.
+      // updatedAt explicite : Prisma saute un update vide, et un patch de tags ou de ClientMeta seul garderait l'ancienne date de la page publique.
       await tx.project.update({ where: { id }, data: { ...project, updatedAt: new Date() } })
     } else {
-      const existingIds = await findAllProjectIds(tx)
+      const existingIds = await findAllProjectIds(tx.project)
       await Promise.all(
         renumberProjects(tx.project, computeIdsAtPosition(existingIds, id, position), {
           id,

@@ -22,7 +22,7 @@ export interface WriteContext {
   log: McpLogger
 }
 
-// Fragments de description des outils, assemblés par `docsOf` : une entité ajoutée ne touche pas les outils.
+// Assemblés par `docsOf` : une entité ajoutée ne touche pas les outils.
 export interface ToolDocs {
   readonly search?: string
   readonly fetch?: string
@@ -64,7 +64,7 @@ export interface RegisteredEntity<E extends string> {
   update(args: unknown, ctx: WriteContext): Promise<CallToolResult>
 }
 
-// Seul parse de la partie propre à l'entité, que le SDK laisse passer brut ; les champs racine, déjà parsés par le SDK, le sont une 2e fois (schémas idempotents).
+// Seul parse de la partie d'entité (le SDK la laisse brute) ; les champs racine, déjà parsés par le SDK, le sont deux fois (schémas idempotents).
 function parsedWith<S extends z.ZodType, Rest extends unknown[]>(
   schema: S,
   run: (data: z.output<S>, ...rest: Rest) => Promise<CallToolResult>,
@@ -95,7 +95,7 @@ export function defineEntity<
   }
 }
 
-// Chaque clé doit être le nom de son entité : une entité absente ou rangée sous un autre nom casse au typage.
+// Une entité absente ou rangée sous un autre nom casse au typage.
 export function entityTable<const T extends { [K in keyof T & string]: RegisteredEntity<K> }>(
   table: T,
 ): T {

@@ -40,7 +40,7 @@ export interface McpDomainConfig<E extends string> {
 
 export const INSTANTS = "Dates with a time are ISO 8601 in Paris time, with their offset."
 
-// Fragments des entités dans l'ordre du registre, sans doublon : lead et contact partagent le leur.
+// Dans l'ordre du registre, sans doublon : lead et contact partagent leur fragment.
 export const docsOf = (
   entities: readonly { docs: ToolDocs }[],
   pick: (docs: ToolDocs) => string | undefined,

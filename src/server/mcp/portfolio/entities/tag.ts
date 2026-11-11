@@ -33,20 +33,18 @@ const entityField = z.literal("tag").describe('Type of portfolio record: always 
 const SLUG_FIXED =
   "The slug of a tag is fixed at creation: the public site reads some slugs directly. Leave slug out of fields; to change it, create a new tag and move the projects to it in the admin."
 
+const name = (language: string) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(TAG_NAME_MAX_LENGTH)
+    .describe(`${language} display name, at most ${TAG_NAME_MAX_LENGTH} characters.`)
+
 // Les `.describe()` arrivent au modèle.
 const fieldShape = {
-  nameFr: z
-    .string()
-    .trim()
-    .min(1)
-    .max(TAG_NAME_MAX_LENGTH)
-    .describe(`French display name, at most ${TAG_NAME_MAX_LENGTH} characters.`),
-  nameEn: z
-    .string()
-    .trim()
-    .min(1)
-    .max(TAG_NAME_MAX_LENGTH)
-    .describe(`English display name, at most ${TAG_NAME_MAX_LENGTH} characters.`),
+  nameFr: name("French"),
+  nameEn: name("English"),
   kind: z
     .enum(TagKind)
     .describe("Category of the tag: EXPERTISE, AI, LANGUAGE, FRAMEWORK, DATABASE or INFRA."),
@@ -120,7 +118,7 @@ const updateSchema = updateSchemaWithoutDetailsOf(
 type SortableTag = Pick<Tag, "id" | "kind" | "displayOrder" | "createdAt" | "updatedAt">
 
 const comparators = {
-  // L'ordre de l'admin : catégories dans l'ordre de `KIND_ORDER` (pas celui de l'enum Postgres), puis ordre d'affichage
+  // Ordre de l'admin : catégories par `KIND_ORDER` (pas par l'enum Postgres), puis ordre d'affichage
   name: (a, b) =>
     KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.displayOrder - b.displayOrder,
   createdAt: (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),

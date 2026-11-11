@@ -22,6 +22,7 @@ import {
   seedCompany,
   seedProject,
   seedTag,
+  storedProjectTags,
   tagIdOf,
 } from "@/lib/prisma-test-setup"
 import { PORTFOLIO_ENTITY_NAMES } from "@/server/mcp/portfolio/registry"
@@ -39,13 +40,40 @@ const createTagArgs = (data: Record<string, unknown>) => ({
   data: { slug: "svelte", nameFr: "Svelte", nameEn: "Svelte", kind: "FRAMEWORK", ...data },
 })
 
-const updateTagArgs = (id: string, fields: Record<string, unknown>) => ({
-  entity: "tag",
+const updateArgs = (entity: "tag" | "project", id: string, fields: Record<string, unknown>) => ({
+  entity,
   id,
   fields,
 })
 
 const idsSchema = z.object({ id: z.string(), slug: z.string() })
+
+const projectSummarySchema = idsSchema.extend({ titleFr: z.string() })
+
+const rowsSchema = z.object({
+  rows: z.array(z.object({ slug: z.string() })),
+  total: z.number(),
+})
+
+const slugsOfRows = (result: ToolResult) =>
+  rowsSchema.parse(jsonOf(result)).rows.map(({ slug }) => slug)
+
+const expectNoInvalidation = () => {
+  expect(revalidateTag).not.toHaveBeenCalled()
+  expect(revalidatePath).not.toHaveBeenCalled()
+}
+
+const expectTagsInvalidated = () => {
+  expect(revalidateTag).toHaveBeenCalledWith("tags", "max")
+  expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
+  expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+}
+
+const expectProjectsInvalidated = () => {
+  expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
+  expect(revalidatePath).toHaveBeenCalledWith(ADMIN_PROJECTS_PATH, "layout")
+  expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+}
 
 async function slugsOf(kind: "FRAMEWORK" | "LANGUAGE" | "DATABASE") {
   const tags = await prisma.tag.findMany({ where: { kind }, orderBy: { displayOrder: "asc" } })
@@ -98,9 +126,7 @@ describe("portfolio_create", () => {
       nameFr: "Svelte",
       icon: ICON,
     })
-    expect(revalidateTag).toHaveBeenCalledWith("tags", "max")
-    expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+    expectTagsInvalidated()
   })
 
   it("creates a tag without icon", async () => {
@@ -118,8 +144,7 @@ describe("portfolio_create", () => {
     expect(result.isError).toBe(true)
     expect(textOf(result)).toContain("portfolio_search")
     expect(await prisma.tag.count()).toBe(1)
-    expect(revalidateTag).not.toHaveBeenCalled()
-    expect(revalidatePath).not.toHaveBeenCalled()
+    expectNoInvalidation()
   })
 
   it("refuses an icon outside the registry without writing", async () => {
@@ -207,14 +232,6 @@ describe("portfolio_query", () => {
     await seedTag({ slug: "strategy", kind: "EXPERTISE", displayOrder: 1 })
   }
 
-  const rowsSchema = z.object({
-    rows: z.array(z.object({ slug: z.string() })),
-    total: z.number(),
-  })
-
-  const slugsOfRows = (result: ToolResult) =>
-    rowsSchema.parse(jsonOf(result)).rows.map(({ slug }) => slug)
-
   it("lists tags filtered by kind, sorted like the admin", async () => {
     await seedCatalogue()
 
@@ -272,12 +289,12 @@ describe("portfolio_update", () => {
     const tag = await seedTag({ slug: "next", nameFr: "Next", nameEn: "Next", displayOrder: 1 })
     await seedTag({ slug: "typescript", kind: "LANGUAGE", displayOrder: 1 })
 
-    const renamed = await call("portfolio_update", updateTagArgs(tag.id, { nameFr: "Next.js" }))
+    const renamed = await call("portfolio_update", updateArgs("tag", tag.id, { nameFr: "Next.js" }))
     const moved = await call(
       "portfolio_update",
-      updateTagArgs(tag.id, { icon: ICON, kind: "LANGUAGE" }),
+      updateArgs("tag", tag.id, { icon: ICON, kind: "LANGUAGE" }),
     )
-    const cleared = await call("portfolio_update", updateTagArgs(tag.id, { icon: null }))
+    const cleared = await call("portfolio_update", updateArgs("tag", tag.id, { icon: null }))
 
     expect(idsSchema.parse(jsonOf(renamed))).toEqual({ id: tag.id, slug: "next" })
     expect(moved.isError).not.toBe(true)
@@ -290,9 +307,7 @@ describe("portfolio_update", () => {
       displayOrder: 2,
     })
     expect(await slugsOf("LANGUAGE")).toEqual(["typescript:1", "next:2"])
-    expect(revalidateTag).toHaveBeenCalledWith("tags", "max")
-    expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+    expectTagsInvalidated()
   })
 
   it.each([
@@ -303,30 +318,35 @@ describe("portfolio_update", () => {
   ])("refuses %s without writing", async (_label, fields, mention) => {
     const tag = await seedTag({ slug: "next", nameFr: "Next" })
 
-    const result = await call("portfolio_update", updateTagArgs(tag.id, fields))
+    const result = await call("portfolio_update", updateArgs("tag", tag.id, fields))
 
     expect(result.isError).toBe(true)
     expect(textOf(result)).toContain(mention)
     expect(await prisma.tag.findUniqueOrThrow({ where: { id: tag.id } })).toEqual(tag)
-    expect(revalidateTag).not.toHaveBeenCalled()
-    expect(revalidatePath).not.toHaveBeenCalled()
-  })
-
-  it("answers an unknown id with a message that points to portfolio_search", async () => {
-    const update = await call("portfolio_update", updateTagArgs("missing", { nameFr: "Inconnu" }))
-    const fetch = await call("portfolio_fetch", { entity: "tag", id: "missing" })
-
-    expect(update.isError).toBe(true)
-    expect(textOf(update)).toContain("portfolio_search")
-    expect(fetch.isError).toBe(true)
-    expect(textOf(fetch)).toContain("portfolio_search")
-    expect(revalidateTag).not.toHaveBeenCalled()
+    expectNoInvalidation()
   })
 })
 
-describe("project entity", () => {
-  const projectSummarySchema = z.object({ id: z.string(), slug: z.string(), titleFr: z.string() })
+describe("unknown id", () => {
+  it.each([
+    ["tag", { nameFr: "Inconnu" }],
+    ["project", { titleFr: "X" }],
+  ] as const)(
+    "answers an unknown %s id with a message that points to portfolio_search",
+    async (entity, fields) => {
+      const update = await call("portfolio_update", updateArgs(entity, "missing", fields))
+      const fetch = await call("portfolio_fetch", { entity, id: "missing" })
 
+      expect(update.isError).toBe(true)
+      expect(textOf(update)).toContain("portfolio_search")
+      expect(fetch.isError).toBe(true)
+      expect(textOf(fetch)).toContain("portfolio_search")
+      expectNoInvalidation()
+    },
+  )
+})
+
+describe("project entity", () => {
   const createProjectArgs = (companyId: string, data: Record<string, unknown> = {}) => ({
     entity: "project",
     data: {
@@ -343,28 +363,10 @@ describe("project entity", () => {
     },
   })
 
-  const updateProjectArgs = (id: string, fields: Record<string, unknown>) => ({
-    entity: "project",
-    id,
-    fields,
-  })
-
-  const tagSlugsOf = async (projectId: string) => {
-    const links = await prisma.projectTag.findMany({
-      where: { projectId },
-      orderBy: { displayOrder: "asc" },
-      include: { tag: true },
-    })
-    return links.map(({ tag }) => tag.slug)
-  }
+  const tagSlugsOf = async (projectId: string) => (await storedProjectTags(projectId)).slugs
 
   const storedProject = (id: string) =>
     prisma.project.findUniqueOrThrow({ where: { id }, include: { clientMeta: true, tags: true } })
-
-  const expectNoInvalidation = () => {
-    expect(revalidateTag).not.toHaveBeenCalled()
-    expect(revalidatePath).not.toHaveBeenCalled()
-  }
 
   it("creates a draft project last with its client and ordered tags, then fetches it", async () => {
     const company = await seedCompany({ name: "Acme" })
@@ -389,9 +391,7 @@ describe("project entity", () => {
       displayOrder: 3,
     })
     expect(await tagSlugsOf(summary.id)).toEqual(["vue", "next"])
-    expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_PROJECTS_PATH, "layout")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+    expectProjectsInvalidated()
 
     const fetched = await call("portfolio_fetch", { entity: "project", id: summary.id })
 
@@ -481,14 +481,8 @@ describe("project entity", () => {
     await prisma.projectTag.createMany({
       data: [first, third].map((project) => ({ projectId: project.id, tagId: next.id })),
     })
-    const rowsSchema = z.object({
-      rows: z.array(z.object({ slug: z.string() })),
-      total: z.number(),
-    })
-    const slugsFor = async (filters: Record<string, unknown>) => {
-      const result = await call("portfolio_query", { entity: "project", filters })
-      return rowsSchema.parse(jsonOf(result)).rows.map(({ slug }) => slug)
-    }
+    const slugsFor = async (filters: Record<string, unknown>) =>
+      slugsOfRows(await call("portfolio_query", { entity: "project", filters }))
 
     const all = await slugsFor({})
     const drafts = await slugsFor({ status: "DRAFT" })
@@ -534,7 +528,7 @@ describe("project entity", () => {
 
     const result = await call(
       "portfolio_update",
-      updateProjectArgs(draft.id, { status: "PUBLISHED" }),
+      updateArgs("project", draft.id, { status: "PUBLISHED" }),
     )
 
     expect(projectSummarySchema.parse(jsonOf(result))).toEqual({
@@ -548,9 +542,7 @@ describe("project entity", () => {
       clientMeta: { companyId: company.id, workMode: "REMOTE" },
     })
     expect(await tagSlugsOf(draft.id)).toEqual(["react"])
-    expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_PROJECTS_PATH, "layout")
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+    expectProjectsInvalidated()
   })
 
   it("corrects the French case study of a published project without touching its tags or English case study", async () => {
@@ -574,7 +566,7 @@ describe("project entity", () => {
 
     const result = await call(
       "portfolio_update",
-      updateProjectArgs(project.id, { caseStudyMarkdownFr: "Nouveau texte" }),
+      updateArgs("project", project.id, { caseStudyMarkdownFr: "Nouveau texte" }),
     )
 
     expect(result.isError).not.toBe(true)
@@ -592,7 +584,7 @@ describe("project entity", () => {
 
     const result = await call(
       "portfolio_update",
-      updateProjectArgs(project.id, { status: "ARCHIVED" }),
+      updateArgs("project", project.id, { status: "ARCHIVED" }),
     )
 
     expect(result.isError).not.toBe(true)
@@ -622,12 +614,12 @@ describe("project entity", () => {
       startedAt: new Date("2026-03-01T00:00:00Z"),
       endedAt: new Date("2026-05-15T00:00:00Z"),
       coverFilename: "projets/client/crm/cover.png",
-      githubUrl: "https://github.com/example/crm",
+      githubUrl: "https://git.example.com/acme/crm",
     })
 
     const result = await call(
       "portfolio_update",
-      updateProjectArgs(project.id, {
+      updateArgs("project", project.id, {
         caseStudyMarkdownFr: null,
         startedAt: null,
         endedAt: null,
@@ -642,7 +634,7 @@ describe("project entity", () => {
       endedAt: null,
       coverFilename: null,
       caseStudyMarkdownEn: "Text",
-      githubUrl: "https://github.com/example/crm",
+      githubUrl: "https://git.example.com/acme/crm",
     })
   })
 
@@ -654,7 +646,7 @@ describe("project entity", () => {
 
     const update = await call(
       "portfolio_update",
-      updateProjectArgs(project.id, { tagIds: [tag.id, tag.id] }),
+      updateArgs("project", project.id, { tagIds: [tag.id, tag.id] }),
     )
     const create = await call(
       "portfolio_create",
@@ -694,7 +686,7 @@ describe("project entity", () => {
 
     await call(
       "portfolio_update",
-      updateProjectArgs(project.id, { startedAt: "2026-03-01", endedAt: "2026-05-15" }),
+      updateArgs("project", project.id, { startedAt: "2026-03-01", endedAt: "2026-05-15" }),
     )
 
     expect(await storedProject(project.id)).toMatchObject({
@@ -720,7 +712,7 @@ describe("project entity", () => {
     const project = await seedProject(company.id, { startedAt: new Date("2026-05-01T00:00:00Z") })
     const before = await storedProject(project.id)
 
-    const result = await call("portfolio_update", updateProjectArgs(project.id, fields))
+    const result = await call("portfolio_update", updateArgs("project", project.id, fields))
 
     expect(result.isError).toBe(true)
     expect(textOf(result)).toContain(mention)
@@ -740,17 +732,6 @@ describe("project entity", () => {
     expectNoInvalidation()
   })
 
-  it("answers an unknown id with a message that points to portfolio_search", async () => {
-    const update = await call("portfolio_update", updateProjectArgs("missing", { titleFr: "X" }))
-    const fetch = await call("portfolio_fetch", { entity: "project", id: "missing" })
-
-    expect(update.isError).toBe(true)
-    expect(textOf(update)).toContain("portfolio_search")
-    expect(fetch.isError).toBe(true)
-    expect(textOf(fetch)).toContain("portfolio_search")
-    expectNoInvalidation()
-  })
-
   it("logs project:created and project:updated with the project id", async () => {
     const company = await seedCompany()
     const created = projectSummarySchema.parse(
@@ -758,7 +739,7 @@ describe("project entity", () => {
     )
     const projectId = projectIdOf(created)
 
-    await call("portfolio_update", updateProjectArgs(projectId, { titleFr: "CRM 2" }))
+    await call("portfolio_update", updateArgs("project", projectId, { titleFr: "CRM 2" }))
 
     expect(childLog.info).toHaveBeenCalledWith(
       expect.objectContaining({ event: "project:created", id: projectId, slug: "crm-freelance" }),
@@ -774,7 +755,7 @@ describe("tool logs", () => {
     const created = idsSchema.parse(jsonOf(await call("portfolio_create", createTagArgs({}))))
     const tagId = tagIdOf(created)
 
-    await call("portfolio_update", updateTagArgs(tagId, { nameFr: "Svelte 5" }))
+    await call("portfolio_update", updateArgs("tag", tagId, { nameFr: "Svelte 5" }))
 
     expect(childLog.child).toHaveBeenCalledWith({ domain: "portfolio", keyId: "key-1" })
     expect(childLog.info).toHaveBeenCalledWith(

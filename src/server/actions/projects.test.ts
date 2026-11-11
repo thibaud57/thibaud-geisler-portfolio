@@ -5,22 +5,13 @@ vi.mock("next/cache", () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }))
 vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
-vi.mock("@/lib/prisma", () => {
-  const project = {
-    update: vi.fn(),
-    delete: vi.fn(),
-    findMany: vi.fn(),
-    count: vi.fn(),
+vi.mock("@/lib/prisma", async () => {
+  const { mockPrismaClient } = await import("@/lib/prisma-mock-test-setup")
+  return {
+    prisma: mockPrismaClient({
+      project: { update: vi.fn(), delete: vi.fn(), findMany: vi.fn(), count: vi.fn() },
+    }),
   }
-  const prisma = { project, $transaction: vi.fn() }
-  // Sert les deux formes de $transaction (tableau de promesses ou callback interactif) sans
-  // configuration par test.
-  prisma.$transaction.mockImplementation((arg: unknown) =>
-    typeof arg === "function"
-      ? (arg as (tx: typeof prisma) => Promise<unknown>)(prisma)
-      : Promise.all(arg as Promise<unknown>[]),
-  )
-  return { prisma }
 })
 vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 vi.mock("@/server/portfolio/projects", async (importOriginal) => ({
@@ -30,6 +21,7 @@ vi.mock("@/server/portfolio/projects", async (importOriginal) => ({
 }))
 
 import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
+import { ADMIN_PROJECTS_PATH, ADMIN_TAGS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { projectIdSchema } from "@/lib/ids"
 import { objectMatch } from "@/lib/matchers-test-setup"
@@ -78,20 +70,41 @@ function buildFormData(
 }
 
 const PROJECT_ID = projectIdSchema.parse("p1")
-const SUMMARY = { id: PROJECT_ID, slug: "mon-projet", titleFr: "Mon projet" }
+const summary = () => ({ id: PROJECT_ID, slug: "mon-projet", titleFr: "Mon projet" })
+
+const expectProjectsInvalidated = () => {
+  expect(updateCacheTag).toHaveBeenCalledWith("projects")
+  expect(revalidatePath).toHaveBeenCalledWith(ADMIN_PROJECTS_PATH, "layout")
+  expect(revalidatePath).toHaveBeenCalledWith(ADMIN_TAGS_PATH)
+}
 
 beforeEach(() => {
   vi.mocked(prisma.project.findMany).mockResolvedValue([])
   vi.mocked(prisma.project.update).mockResolvedValue({} as never)
-  vi.mocked(createProjectRecord).mockResolvedValue(ok(SUMMARY))
-  vi.mocked(updateProjectRecord).mockResolvedValue(ok(SUMMARY))
+  vi.mocked(createProjectRecord).mockResolvedValue(ok(summary()))
+  vi.mocked(updateProjectRecord).mockResolvedValue(ok(summary()))
 })
 
 describe("createProject", () => {
-  it("rejects an empty slug without touching the domain", async () => {
-    const state = await createProject(initialProjectFormState, buildFormData({ slug: "" }))
+  it.each([
+    ["an empty slug", { slug: "" }, "slug"],
+    ["a CLIENT project without a company", { type: "CLIENT", companyId: "" }, "companyId"],
+    ["a PERSONAL project without a company", { type: "PERSONAL", companyId: "" }, "companyId"],
+    ["a CLIENT project without a work mode", { type: "CLIENT", workMode: "" }, "workMode"],
+    ["a PERSONAL project without a work mode", { type: "PERSONAL", workMode: "" }, "workMode"],
+    ["a javascript: URL on githubUrl", { githubUrl: "javascript:alert(1)" }, "githubUrl"],
+    ["a javascript: URL on demoUrl", { demoUrl: "javascript:alert(1)" }, "demoUrl"],
+    ["a malformed URL", { githubUrl: "pas-une-url" }, "githubUrl"],
+    [
+      "a cover that does not live in a project assets folder",
+      { coverFilename: "freelance/crm/entreprises/acme/logo.png" },
+      "coverFilename",
+    ],
+  ] as const)("rejects %s without touching the domain", async (_label, overrides, field) => {
+    const state = await createProject(initialProjectFormState, buildFormData(overrides))
 
-    expect(state.errors.slug).toBeDefined()
+    expect(state.ok).toBe(false)
+    expect(state.errors[field]).toBeDefined()
     expect(createProjectRecord).not.toHaveBeenCalled()
   })
 
@@ -99,26 +112,6 @@ describe("createProject", () => {
     await createProject(initialProjectFormState, buildFormData({}, { formats: ["API", "IA"] }))
 
     expect(createProjectRecord).toHaveBeenCalledWith(objectMatch({ formats: ["API", "IA"] }), 1)
-  })
-
-  it.each(["CLIENT", "PERSONAL"])("rejects a %s project without a company", async (type) => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ type, companyId: "" }),
-    )
-
-    expect(state.errors.companyId).toBeDefined()
-    expect(createProjectRecord).not.toHaveBeenCalled()
-  })
-
-  it.each(["CLIENT", "PERSONAL"])("rejects a %s project without a work mode", async (type) => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ type, workMode: "" }),
-    )
-
-    expect(state.errors.workMode).toBeDefined()
-    expect(createProjectRecord).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -137,26 +130,6 @@ describe("createProject", () => {
     )
 
     expect(state.ok).toBe(true)
-  })
-
-  it.each(["githubUrl", "demoUrl"])("rejects a javascript: URL on %s", async (field) => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ [field]: "javascript:alert(1)" }),
-    )
-
-    expect(state.ok).toBe(false)
-    expect(state.errors[field as "githubUrl" | "demoUrl"]).toBeDefined()
-    expect(createProjectRecord).not.toHaveBeenCalled()
-  })
-
-  it("rejects a malformed URL", async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ githubUrl: "pas-une-url" }),
-    )
-
-    expect(state.errors.githubUrl).toBeDefined()
   })
 
   it("passes an empty URL as null", async () => {
@@ -204,9 +177,7 @@ describe("createProject", () => {
     const state = await createProject(initialProjectFormState, buildFormData())
 
     expect(state).toMatchObject({ ok: true, savedId: PROJECT_ID })
-    expect(updateCacheTag).toHaveBeenCalledWith("projects")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/projets", "layout")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
+    expectProjectsInvalidated()
   })
 
   it("rejects an emptied deliverables count instead of coercing it to zero", async () => {
@@ -228,16 +199,6 @@ describe("createProject", () => {
     expect(createProjectRecord).toHaveBeenCalledWith(objectMatch({ deliverablesCount: 1 }), 1)
   })
 
-  it("rejects a cover that does not live in a project assets folder", async () => {
-    const state = await createProject(
-      initialProjectFormState,
-      buildFormData({ coverFilename: "freelance/crm/entreprises/acme/logo.png" }),
-    )
-
-    expect(state.errors.coverFilename).toBeDefined()
-    expect(createProjectRecord).not.toHaveBeenCalled()
-  })
-
   it("accepts a cover stored in a project assets folder", async () => {
     const state = await createProject(
       initialProjectFormState,
@@ -252,14 +213,6 @@ describe("createProject", () => {
 
     expect(state.values?.slug).toBe("")
   })
-
-  it("rejects a call without a session, before touching the domain", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    await expect(createProject(initialProjectFormState, buildFormData())).rejects.toThrow()
-
-    expect(createProjectRecord).not.toHaveBeenCalled()
-  })
 })
 
 describe("updateProject", () => {
@@ -272,9 +225,7 @@ describe("updateProject", () => {
 
     expect(state.ok).toBe(true)
     expect(updateProjectRecord).toHaveBeenCalledWith(PROJECT_ID, objectMatch({ slug: "autre" }), 3)
-    expect(updateCacheTag).toHaveBeenCalledWith("projects")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/projets", "layout")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
+    expectProjectsInvalidated()
   })
 
   it("answers project_not_found, keeps the typed values and invalidates the caches when the project was deleted meanwhile", async () => {
@@ -292,14 +243,6 @@ describe("updateProject", () => {
     const state = await updateProject("  ", initialProjectFormState, buildFormData())
 
     expect(state.message).toBe("project_not_found")
-    expect(updateProjectRecord).not.toHaveBeenCalled()
-  })
-
-  it("rejects a call without a session, before touching the domain", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    await expect(updateProject("p1", initialProjectFormState, buildFormData())).rejects.toThrow()
-
     expect(updateProjectRecord).not.toHaveBeenCalled()
   })
 })
@@ -376,17 +319,7 @@ describe("deleteProject", () => {
 
     await deleteProject("p1")
 
-    expect(updateCacheTag).toHaveBeenCalledWith("projects")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/projets", "layout")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
-  })
-
-  it("rejects a call without a session, before any database query", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    await expect(deleteProject("p1")).rejects.toThrow()
-
-    expect(prisma.project.delete).not.toHaveBeenCalled()
+    expectProjectsInvalidated()
   })
 })
 
@@ -412,14 +345,6 @@ describe("project deleted since the screen loaded", () => {
 })
 
 describe("reorderProjects", () => {
-  it("rejects a call without a session, before any database query", async () => {
-    vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
-
-    await expect(reorderProjects(["p1"])).rejects.toThrow()
-
-    expect(prisma.project.findMany).not.toHaveBeenCalled()
-  })
-
   it("rejects a list containing a duplicate without writing anything", async () => {
     const state = await reorderProjects(["p1", "p1"])
 
@@ -451,8 +376,32 @@ describe("reorderProjects", () => {
       where: { id: "p1" },
       data: { displayOrder: 2 },
     })
-    expect(updateCacheTag).toHaveBeenCalledWith("projects")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/projets", "layout")
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/tags")
+    expectProjectsInvalidated()
   })
+})
+
+describe("session guard", () => {
+  it.each([
+    [
+      "createProject",
+      () => createProject(initialProjectFormState, buildFormData()),
+      createProjectRecord,
+    ],
+    [
+      "updateProject",
+      () => updateProject("p1", initialProjectFormState, buildFormData()),
+      updateProjectRecord,
+    ],
+    ["deleteProject", () => deleteProject("p1"), prisma.project.delete],
+    ["reorderProjects", () => reorderProjects(["p1"]), prisma.project.findMany],
+  ])(
+    "rejects a %s call without a session, before touching the domain or the database",
+    async (_action, submit, untouched) => {
+      vi.mocked(getCurrentUser).mockRejectedValueOnce(new Error("UNAUTHORIZED"))
+
+      await expect(submit()).rejects.toThrow()
+
+      expect(untouched).not.toHaveBeenCalled()
+    },
+  )
 })

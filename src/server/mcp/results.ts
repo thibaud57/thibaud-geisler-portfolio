@@ -17,7 +17,7 @@ export function toolJson(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value, parisInstant) }] }
 }
 
-// Une écriture d'outil tourne dans un route handler : seul `revalidateTag(tag, "max")` y est permis (`updateTag` est réservé aux Server Actions).
+// Route handler : seul `revalidateTag(tag, "max")` y est permis (`updateTag` est réservé aux Server Actions).
 export const revalidateTagMax = (tag: string): void => {
   revalidateTag(tag, "max")
 }
@@ -29,13 +29,12 @@ export function toolError(message: string): CallToolResult {
 export const notFoundMessage = (prefix: McpDomain, noun: string): string =>
   `No ${noun} has this id. Call ${prefix}_search to find the right id, then call the tool again.`
 
-// Les textes d'une écriture : événements de log et message rendu à l'agent quand l'opération échoue.
 export interface WriteTexts {
   events: { success: string; failure: string }
   failureMessage: string
 }
 
-// Un create n'a pas d'id à relire : `createCheck` dit comment vérifier que l'enregistrement existe déjà avant de réessayer.
+// Un create n'a pas d'id à relire : `createCheck` dit comment vérifier l'existence avant de réessayer.
 export function writeTexts(
   {
     prefix,
@@ -64,7 +63,7 @@ interface ToolFailure {
   context?: object
 }
 
-// Seule `run` est gardée : un échec de `handle` (invalidation du cache) ne doit pas se faire passer pour un échec de l'opération.
+// Seule `run` est gardée : un échec de `handle` (cache) ne doit pas passer pour un échec de l'opération.
 export async function guardTool<T>(
   log: McpLogger,
   failure: ToolFailure,
@@ -97,7 +96,7 @@ export const byId = {
   rendered: (value: unknown) => value,
 }
 
-// Écriture d'une entité de suivi : l'échec attendu devient un message qui nomme la correction (l'agent corrige l'appel sans deviner), le succès invalide les listes de l'admin que l'entité alimente.
+// L'échec attendu devient un message qui nomme la correction ; le succès invalide les listes de l'admin que l'entité alimente.
 export function writeRecord<V, E extends { code: string }>({
   run,
   ctx,

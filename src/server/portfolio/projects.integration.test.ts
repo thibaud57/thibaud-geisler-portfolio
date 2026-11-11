@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
-import type { Prisma } from "@/generated/prisma/client"
 import { companyIdSchema, projectIdSchema, type CompanyId } from "@/lib/ids"
 import {
   companyIdOf,
@@ -10,6 +9,10 @@ import {
   seedCompany,
   seedProject,
   seedTag,
+  sequence,
+  slugsAndOrders,
+  storedProjectTags,
+  stubNextTransactionCall,
 } from "@/lib/prisma-test-setup"
 
 import { createProject, updateProject, type ProjectWriteData } from "./projects"
@@ -49,23 +52,8 @@ async function seedProjects(companyId: string, slugs: readonly string[]): Promis
 const projectBySlug = (slug: string) => prisma.project.findUniqueOrThrow({ where: { slug } })
 
 async function storedOrder() {
-  const projects = await prisma.project.findMany({ orderBy: { displayOrder: "asc" } })
-  return {
-    slugs: projects.map((project) => project.slug),
-    orders: projects.map((p) => p.displayOrder),
-  }
+  return slugsAndOrders(await prisma.project.findMany({ orderBy: { displayOrder: "asc" } }))
 }
-
-async function storedTags(projectId: string) {
-  const links = await prisma.projectTag.findMany({
-    where: { projectId },
-    orderBy: { displayOrder: "asc" },
-    include: { tag: true },
-  })
-  return { slugs: links.map((link) => link.tag.slug), orders: links.map((l) => l.displayOrder) }
-}
-
-const sequence = (length: number) => Array.from({ length }, (_, index) => index + 1)
 
 const UNKNOWN_PROJECT = projectIdSchema.parse("missing-project")
 const UNKNOWN_COMPANY = companyIdSchema.parse("missing-company")
@@ -101,7 +89,10 @@ describe("createProject", () => {
       include: { clientMeta: true },
     })
     expect(created.clientMeta).toMatchObject({ companyId, workMode: "HYBRIDE", teamSize: 4 })
-    expect(await storedTags(created.id)).toEqual({ slugs: ["react", "next"], orders: [1, 2] })
+    expect(await storedProjectTags(created.id)).toEqual({
+      slugs: ["react", "next"],
+      orders: [1, 2],
+    })
   })
 
   it("creates a project at the given position and renumbers all projects", async () => {
@@ -183,6 +174,20 @@ describe("updateProject", () => {
     })
   })
 
+  it("renames the slug sent by the admin", async () => {
+    const stored = await seedProject(companyId, { slug: "alpha" })
+
+    const result = await updateProject(projectIdOf(stored), { slug: "alpha-renomme" })
+
+    expect(result).toEqual({
+      ok: true,
+      value: { id: stored.id, slug: "alpha-renomme", titleFr: stored.titleFr },
+    })
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: stored.id } })).slug).toBe(
+      "alpha-renomme",
+    )
+  })
+
   it("keeps the tags when tagIds is absent and replaces them in order when present", async () => {
     const a = await seedTag({ slug: "a" })
     const b = await seedTag({ slug: "b" })
@@ -199,11 +204,11 @@ describe("updateProject", () => {
     const id = projectIdOf(stored)
 
     await updateProject(id, { titleFr: "Alpha 2" })
-    const kept = await storedTags(stored.id)
+    const kept = await storedProjectTags(stored.id)
     await updateProject(id, { tagIds: [c.id, b.id] })
-    const replaced = await storedTags(stored.id)
+    const replaced = await storedProjectTags(stored.id)
     await updateProject(id, { tagIds: [] })
-    const cleared = await storedTags(stored.id)
+    const cleared = await storedProjectTags(stored.id)
 
     expect(kept).toEqual({ slugs: ["a", "b"], orders: [1, 2] })
     expect(replaced).toEqual({ slugs: ["c", "b"], orders: [1, 2] })
@@ -240,30 +245,7 @@ describe("updateProject", () => {
   it("answers not_found when the project vanished between the read and the write", async () => {
     const stored = await seedProject(companyId, { slug: "alpha" })
     await prisma.project.delete({ where: { id: stored.id } })
-    const transaction = prisma.$transaction.bind(prisma)
-    const spy = vi
-      .spyOn(prisma, "$transaction")
-      .mockImplementationOnce((work: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
-        transaction((tx) =>
-          work(
-            new Proxy(tx, {
-              get(target, property) {
-                const value: unknown = Reflect.get(target, property)
-                if (property !== "project") return value
-                return new Proxy(value as object, {
-                  get: (delegate, name): unknown =>
-                    name === "findUnique"
-                      ? () => Promise.resolve(stored)
-                      : Reflect.get(delegate, name),
-                })
-              },
-            }),
-          ),
-        ),
-      )
-    onTestFinished(() => {
-      spy.mockRestore()
-    })
+    stubNextTransactionCall("project", "findUnique", () => Promise.resolve(stored))
 
     const result = await updateProject(projectIdOf(stored), { titleFr: "Alpha 2" })
 
@@ -296,7 +278,7 @@ describe("domain errors", () => {
     expect(await storedOrder()).toEqual({ slugs: ["alpha", "beta"], orders: sequence(2) })
   })
 
-  // Garde de l'attribution par contrainte : le P2002 de la clé composite de ProjectTag ne doit pas se lire comme un slug déjà pris.
+  // Attribution par contrainte : le P2002 de la clé composite de ProjectTag n'est pas un slug pris.
   it("rethrows a duplicated tag instead of reporting slug_taken", async () => {
     const tag = await seedTag({ slug: "next" })
     const stored = await seedProject(companyId, { slug: "alpha" })

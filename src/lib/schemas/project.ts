@@ -85,8 +85,7 @@ export const projectSchema = z.object({
     })
     .transform((value) => nullifyNoneValue(value, NONE_VALUE)),
   teamSize: z.preprocess(emptyToNull, z.coerce.number().int().min(1).nullable()),
-  // 0 est légitime (mission terminée sans livrable, ex. cadrage) : la stat publique
-  // « projets clients livrés » somme cette colonne et doit compter ce 0.
+  // 0 est légitime (cadrage sans livrable) : la stat publique « projets clients livrés » doit le compter.
   deliverablesCount: positiveIntegerString({
     requiredMessage: "Le nombre de livrables est requis",
     numberMessage: "Le nombre de livrables doit être un nombre",

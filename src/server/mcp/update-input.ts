@@ -36,7 +36,7 @@ const EMPTY_PATCH_MESSAGE = {
 
 type UpdateShape = keyof typeof EMPTY_PATCH_MESSAGE
 
-// Règles communes des `crm_update` : un patch vide ou une double écriture des Détails est refusé, jamais ignoré.
+// Un patch vide ou une double écriture des Détails est refusé, jamais ignoré.
 function updateInputIssues(
   value: { fields?: object; detailsSection?: unknown },
   shape: UpdateShape,
