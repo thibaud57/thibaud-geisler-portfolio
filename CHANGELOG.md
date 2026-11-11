@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.3...v2.7.0) (2026-11-11)
+
+
+### Features
+
+* **mcp:** domaine portfolio des outils pour les agents, tags et projets ([#252](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/252)) ([7f46241](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/7f462412df33c7c5bcc6b0d1a43f1dcf093f1f6d))
+
 ## [2.6.3](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.2...v2.6.3) (2026-11-10)
 
 
