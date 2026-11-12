@@ -16,7 +16,7 @@ coverage/
 next-env.d.ts
 src/generated/
 
-# Exports locaux de la maquette et du design system Claude Design (gitignore)
+# Copies locales des artifacts de la maquette et du design system (gitignore)
 .design-sync/maquette/
 .design-sync/design-system/
 

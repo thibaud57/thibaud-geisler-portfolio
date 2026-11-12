@@ -49,7 +49,7 @@ const eslintConfig = defineConfig([
     ".history/**",
     // Outillage Claude Code, sans code applicatif ; ses worktrees d'agents copient tout le depot
     ".claude/**",
-    // Exports locaux de la maquette et du design system Claude Design (gitignore), jamais du code du projet
+    // Copies locales des artifacts de la maquette et du design system (gitignore), jamais du code du projet
     ".design-sync/maquette/**",
     ".design-sync/design-system/**",
   ]),
