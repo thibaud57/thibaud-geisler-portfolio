@@ -297,7 +297,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Renderer choisi selon le préfixe `tag.icon` : `"simple-icons:*"` (technos, infra, outils), `"lucide:*"` (expertises) ou `"custom:*"` (SVG maison). Cards projets, case studies et stack `/a-propos` |
 | Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Logo de l'entreprise en 14px devant son nom. Une liste de badges en affichage s'arrête à trois puis « +N » en `outline` (`BadgeList`), muet sur la vitrine, relu au survol par `Tooltip` côté admin ; une vue détail et un champ d'édition les affichent tous |
-| Valeur d'énumération | Badge + Lucide, composé par `EnumBadge` | shadcn/ui | Badge `secondary` d'une valeur d'énumération du CRM, son glyphe devant le libellé quand l'énumération en a (§ Icônes), sinon `labelBadge` ; en-tête de vue détail par `headerBadge`. Les badges d'en-tête (nature d'un projet, catégorie d'un tag) passent en `outline` `meta`, le statut d'un projet en puce `StatusDot`. Le même glyphe précède l'option d'un `Select` (`EnumSelectItems`) |
+| Valeur d'énumération | Badge + Lucide, composé par `EnumBadge` | shadcn/ui | Badge `secondary` d'une valeur d'énumération du CRM, son glyphe devant le libellé quand l'énumération en a (§ Icônes), sinon `labelBadge` ; en-tête de vue détail par `headerBadge`. Les badges d'en-tête (nature d'un projet, catégorie d'un tag) passent en `outline` `meta`, le statut d'un projet en puce `StatusDot`. Le même glyphe précède l'option d'un `Select` (`EnumSelectItems`). L'état d'un run ne colore que son glyphe, texte et fond restent neutres (table § Icônes) |
 
 ### Feedback et chargement
 
@@ -313,10 +313,10 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Catégorie | Composant | Librairie | Notes |
 |-----------|-----------|-----------|-------|
 | Panneau latéral | Sheet | shadcn/ui | Menu mobile, navigation admin au téléphone |
-| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour confirmer une suppression, à la largeur du registry ; une modale de formulaire ou de lecture passe à 640px pour tenir deux colonnes. Pied en bandeau `muted/50` d'un bord à l'autre. La confirmation porte `TriangleAlert` (32px) en `text-destructive` dans `AlertDialogMedia`, sans tuile, titre et texte alignés à gauche. `ConfirmDeleteDialog` : titre qui nomme l'élément (« Supprimer « Agents IA » ? ») et bouton « Supprimer » |
+| Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour confirmer une suppression ou une action de run, à la largeur du registry ; une modale de formulaire ou de lecture passe à 640px pour tenir deux colonnes. Pied en bandeau `muted/50` d'un bord à l'autre. La confirmation porte `TriangleAlert` (32px) en `text-destructive` dans `AlertDialogMedia`, sans tuile, titre et texte alignés à gauche. `ConfirmDeleteDialog` : titre qui nomme l'élément (« Supprimer « Agents IA » ? ») et bouton « Supprimer » |
 | Agrandissement d'image | Dialog, composé par `ZoomableImage` | shadcn/ui | Vignette cliquable, image entière jusqu'à 80dvh de haut et pleine largeur moins les marges de la modale, bouton Fermer dans le coin haut droit de l'écran, légende sous l'image reprise de l'alt. Voile et contenu en thème sombre quel que soit le thème. Glyphe `Maximize2` dans le coin de la vignette, en pastille sombre translucide, visible au survol ou au focus sur un pointeur fin et en permanence sur écran tactile (`pointer-coarse`) |
 | Formulaire en modale | Dialog, composé par `FormDialog` et `FormDialogForm` | shadcn/ui | Repart d'un formulaire neuf à chaque ouverture. Titre d'une modification nommant l'élément (« Modifier Agents IA »), description disant l'action (« Créer un tag pour catégoriser les projets. »). Plafond de `85svh` (`svh`, la barre d'URL mobile faussant `vh`) : champs sur deux colonnes qui défilent seuls dans `DialogBody`, en-tête et pied fixes. Pied Annuler et Enregistrer, à l'icône `Save` |
-| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | L'écran ne fournit que des données : image (`AssetTileLink`), titre, sous-titre, badges `outline` `meta` à droite du titre, blocs titrés (`TitledBlock`) séparés d'un `Separator`. Deux colonnes, pleine largeur pour un texte long ou une liste de fiches rattachées ; libellé au registre Libellé de champ (§ Scale Typographique). Pied « Fermer » et « Modifier ». Un bloc sans donnée reste affiché, ses valeurs absentes rendues par `EmptyValue` |
+| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | L'écran ne fournit que des données : image (`AssetTileLink`), titre, sous-titre, badges `outline` `meta` à droite du titre, blocs titrés (`TitledBlock`) séparés d'un `Separator`. Deux colonnes, pleine largeur pour un texte long ou une liste de fiches rattachées ; libellé au registre Libellé de champ (§ Scale Typographique). Pied « Fermer » et « Modifier », qui porte aussi l'action de run que l'état autorise, en `destructive` quand elle interrompt ou abandonne, confirmée par une `AlertDialog` au texte et au bouton propres (`ConfirmDeleteDialog` reste celui de la suppression). Un bloc sans donnée reste affiché, ses valeurs absentes rendues par `EmptyValue` |
 | Consentement cookies | ConsentBanner, ConsentDialog | `c15t` (`c15t/next`) | Bandeau au premier passage ; modale de préférences rouverte par « Gérer mes cookies » au footer (`OpenCookiePreferencesLink`), par la politique de confidentialité et par le widget Calendly bloqué (`OpenCookiePreferencesButton`). Tokens du design system rendus par `ConsentTheme` (layout serveur), parties ajustées par les slots de `src/components/cookies/consent-theme.ts`. Rendu aligné sur c15t 2 : filet `border` au-dessus du pied de la modale, boutons du pied qui rétrécissent au lieu de déborder, liens non soulignés (exception volontaire à la règle des liens : le texte du bandeau est court et le lien y est déjà en `text-primary`). Titre du bandeau et de la modale en `h2`, boutons d'accordéon dans la police du site, Geist |
 | Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur. Seul, `align="end"` sous une barre d'outils (filtres d'une liste), ou en composition (Combobox, sélecteur de date). Son pied suit celui d'une modale (§ Conventions de Code > Règles, Pied d'action) |
 
@@ -426,6 +426,17 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - Taille cohérente par contexte : `16px` inline, `20px` UI standard, `24px` standalone, `32px+` décoratif
 - Une icône inscrite dans un conteneur se dimensionne par rapport à lui et sort de cette grille : `12px` dans un badge, imposé par `Badge` via `[&>svg]:size-3!`
 - Une énumération du CRM qui a sa table de glyphes Lucide (LinkedIn en logo de marque) les montre partout où sa valeur s'affiche : badge, option de `Select` (`EnumSelectItems`), case d'une grille de `Checkbox`, comme les emojis des selects Notion. Seul le panneau des filtres d'une liste reste en libellé seul : case, libellé et compteur y tiennent déjà la ligne. « Autre » n'en a pas ; une énumération sans table (taille, secteurs, zones) n'en reçoit pas : on n'invente pas de glyphe à une classification nominale. La table vit à côté des libellés de chaque domaine (`*_ICONS` près de `*_LABELS`), jamais dans l'écran
+- L'état d'un run a sa propre table, que la couleur du glyphe distingue du reste : « En cours » et « Terminé » nomment aussi d'autres énumérations, qui restent sans couleur. Le token colore le glyphe seul, jamais le texte ni le fond du badge
+
+| État de run | Glyphe Lucide | Token |
+|-------------|---------------|-------|
+| Pas lancé | `circle-dashed` | `--muted-foreground` |
+| En file | `clock` | `--muted-foreground` |
+| En cours | `loader-circle` | `--warning` |
+| En attente | `circle-pause` | `--info` |
+| Terminé | `circle-check` | `--success` |
+| Échec | `circle-x` | `--destructive` |
+| Interrompu | `octagon-x` | `--muted-foreground` |
 
 ---
 
@@ -528,7 +539,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - ✅ **Responsive** : écrire le style mobile d'abord, puis élargir avec `sm:`, `md:`, `lg:`
 - ✅ **Liens** : un lien dans du texte courant porte `text-primary` et un soulignement permanent léger (`decoration-primary/40`, `underline-offset-4`), plein au survol. Un lien seul sur sa ligne garde la couleur et ne se souligne qu'au survol. Un lien vers une autre fiche de l'admin prend la couleur du texte, précédé de son visuel, souligné au survol : le vert reste aux liens qui sortent de l'admin. Les liens d'interface se distinguent par la couleur seule (§ États des Composants)
 - ✅ **Valeurs numériques** : ce qui se compare (montants, quantités, taux, durées) s'aligne à droite en `tabular-nums`, en Geist Sans, le mono gardant ses usages (§ Police Monospace). Ce qui se lit comme une étiquette (années, dates, numéros de facture, identifiants) reste à gauche, une date gardant `tabular-nums`
-- ✅ **Pied d'action** : un pied de modale, de panneau ou d'en-tête de formulaire ne porte qu'un seul bouton `default` sauge, celui de l'action principale, placé en dernier à droite ; le reste est `outline` ou `ghost` (« Réinitialiser » avant « Appliquer »). Le bouton d'enregistrement porte l'icône `Save` (`Upload` pour un dépôt)
+- ✅ **Pied d'action** : un pied de modale, de panneau ou d'en-tête de formulaire ne porte qu'un seul bouton `default` sauge, celui de l'action principale, placé en dernier à droite ; le reste est `outline` ou `ghost` (« Réinitialiser » avant « Appliquer »), `destructive` pour une action qui interrompt ou abandonne. Le bouton d'enregistrement porte l'icône `Save` (`Upload` pour un dépôt)
 - ✅ **Textes d'interface** : rédaction (libellés, vocabulaire, apostrophe) dans la rule `shadcn-ui/admin-textes`
 - ✅ **Espacement des formulaires** : 16px (`gap-4`) entre les champs et entre les rangées, en modale comme en page
 - ✅ **Champs courts** : deux champs courts d'une même card se posent côte à côte en `sm:grid-cols-2`
@@ -555,8 +566,8 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 ## Maquette et design system externes
 
 - **Design system** : [Thibaud Geisler Design System](https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi), artifact Claude : composants, fiches d'usage, cartes et kit du site public. Synchronisé à la main depuis le dépôt, fait foi sur les composants
-- **Maquette** : [Espace Admin](https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103) : écrans de l'espace admin, fait foi sur l'apparence des écrans
-- **Lecture locale** : export de la maquette dans `.design-sync/maquette/` et copie du design system dans `.design-sync/design-system/` (mêmes chemins que l'artifact), ignorés par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
+- **Maquette** : [Espace Admin](https://claude.ai/artifact/8mEBAdNbDfbBf3tc6yYTPE), artifact Claude : écrans de l'espace admin, fait foi sur l'apparence des écrans
+- **Lecture locale** : copies de la maquette dans `.design-sync/maquette/` et du design system dans `.design-sync/design-system/` (mêmes chemins que leur artifact), ignorées par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

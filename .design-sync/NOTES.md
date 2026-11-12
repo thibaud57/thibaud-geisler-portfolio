@@ -5,7 +5,7 @@
 | Projet | Lien | Rôle |
 | --- | --- | --- |
 | Thibaud Geisler Design System, artifact Claude (projet d'origine `75a17be1-6ed8-4e44-9517-0b3184998c0c`) | https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi | Les **composants** : miroir JSX, `.d.ts`, fiche `README.md` et aperçu par composant, plus tokens, guidelines, assets et le kit du site public (`ui_kits/portfolio/`) |
-| Espace Admin (`d2229cd8-49ca-4774-b7c8-0fdc88b83103`) | https://claude.ai/design/p/d2229cd8-49ca-4774-b7c8-0fdc88b83103 | La **maquette** des écrans admin (`Espace admin.dc.html`), construite sur une copie liée du design system (`_ds/`), plus `ecarts-design-system.md` |
+| Espace Admin, artifact Claude (projet d'origine `d2229cd8-49ca-4774-b7c8-0fdc88b83103`) | https://claude.ai/artifact/8mEBAdNbDfbBf3tc6yYTPE | La **maquette** des écrans admin (`Espace admin.dc.html`), construite sur une copie liée du design system (`_ds/`), plus `ecarts-design-system.md` |
 
 **Les deux se lisent ensemble avant d'implémenter un écran admin** : le système dit avec quels
 composants, la maquette dit à quoi l'écran ressemble. Un sub-project qui ne consulte que l'un des
@@ -18,23 +18,20 @@ système, puis refait entièrement.
 
 ## Lire la maquette
 
-- **`DesignSync` tronque la lecture d'un fichier à 256 Kio** (`get_file`, constaté le 2026-09-17) :
-  `Espace admin.dc.html` dépasse cette taille, la fin du fichier ne revient pas et rien ne le signale.
-  Au 07, l'écran Tags était lisible, pas les modales, le formulaire entreprise ni l'écran des assets.
-- **Lire la maquette depuis son export** : dans Claude Design, menu du projet, Export puis
-  ZIP, dézippé dans `.design-sync/maquette/` (ignoré par git : la maquette fait foi, une copie
-  versionnée vieillirait). Ré-exporter avant de s'en servir si la maquette a bougé.
+- **Lire la maquette depuis son export local** `.design-sync/maquette/`, dézippé depuis claude.ai/design
+  (Export puis ZIP), ignoré par git (la maquette fait foi, une copie versionnée vieillirait). Ré-exporter
+  avant de s'en servir si la maquette a bougé. À rapatrier depuis l'artifact une fois le projet déplacé.
 - **Lire les fiches du design system depuis sa copie locale** `.design-sync/design-system/`
   (ignorée par git, comme par ESLint, Prettier et TypeScript : elle porte des `.jsx` et des `.d.ts`),
   qui reprend les chemins de l'artifact sans le préfixe `project/`. Chaque composant y a sa fiche
   `components/<Nom>/README.md` et ses types `components/<Nom>/<Nom>.d.ts` ; une fiche citée en
   `components/<groupe>/<Nom>.prompt.md` par un ancien spec est ce `README.md`. Les sources restent
   sous `components/<groupe>/<Nom>.jsx`. La copie `_ds/` de la maquette n'a pas les fiches.
-- **Lire un écran, pas le fichier** : l'export porte tous les écrans dans un seul fichier. Repérer
+- **Lire un écran, pas le fichier** : la maquette porte tous les écrans dans un seul fichier. Repérer
   l'écran par son identifiant (`isTags`, `dlgDeleteTag`…), lire sa plage, puis les valeurs
   calculées qu'il utilise (libellés, colonnes, items) dans le script en fin de fichier.
 - **Vérifier qu'un écran est complet avant de s'y fier** : un écran coupé ressemble à un écran
-  simple. L'export se termine par `</html>`, une lecture tronquée non.
+  simple. Le fichier se termine par `</html>`, une lecture tronquée non.
 
 ## Comment ce dépôt se synchronise
 
@@ -48,7 +45,7 @@ système, puis refait entièrement.
 - **Le convertisseur de `/design-sync` ne s'applique pas ; le lancer détruirait le distant** :
   app Next.js privée, sans point d'entrée de librairie, sans `dist`, sans Storybook, il n'a rien à
   empaqueter. Sa clôture supprime du distant tout ce que le build local ne contient pas : avec un build
-  vide, elle effacerait le design system, la maquette vivant dans un projet à part. La clé
+  vide, elle effacerait le design system ou la maquette. La clé
   `mode: manual` de `config.json`, hors schéma du skill, fait échouer un run du convertisseur avant
   toute écriture : ne pas la retirer. Un sync se fait donc toujours à la main, fichier par fichier.
 - **Tenir `github.md` à jour** : c'est le registre de sync du design system, il porte la branche
@@ -105,6 +102,12 @@ système, puis refait entièrement.
   HTTP, intercepter la requête du `.dc.html` et y injecter les deux scripts UMD de React 18.3.1 en
   tête de `<head>` ; cela ne vaut que pour la capture, le fichier envoyé reste intact. Les entrées
   du menu se cliquent par leur texte dans `[data-slot="sidebar"]`.
+- **Trois pièges de la capture** (constatés le 2026-11-11) : Échap ne ferme pas les modales de la
+  maquette, cliquer « Fermer » ; une carte du board se cible par `[data-slot="card"][data-size="sm"]`,
+  la colonne étant aussi une `Card` qui contient le texte ; à 320 px, le clic sur Kanban dans le
+  tiroir échoue même sur une fenêtre de 1400 px de haut (« outside of the viewport ») et le tiroir
+  laisse après usage un conteneur fixe vide (`z-index: 50`) qui bloque les clics de la page : naviguer
+  à largeur bureau, puis redimensionner avant de capturer.
 - **Une fenêtre flottante passe sous les menus de l'en-tête** : l'en-tête collant de la maquette
   (`z-index: 30`) crée un contexte d'empilement, si bien que son menu de compte (`z-index: 50`)
   plafonne à 30. `FloatingPanel` est donc à 20 : au-dessus de la page, sous l'en-tête, les menus et
@@ -357,3 +360,9 @@ propriétaire le demande ; chaque ligne part une fois faite.
   à chacun des 93 composants qui n'en avaient pas (817 fichiers). La maquette Espace Admin reste sur
   claude.ai/design, déplacement pas encore proposé sur le compte ce jour-là ; le site ferme le
   2026-12-14 (aide Anthropic « Move from standalone Claude Design to Claude »).
+- **2026-11-11, migration de la maquette en artifact** : l'Espace Admin devient l'artifact
+  https://claude.ai/artifact/8mEBAdNbDfbBf3tc6yYTPE, copie locale identique à l'octet près pour la
+  page et les sources (422 fichiers aux mêmes chemins ; seuls diffèrent la signature d'export de 59
+  icônes et le manifeste `_ds_src/_ds_manifest.json`, régénéré). Les sept logos d'entreprise de la
+  maquette, chargés depuis `img.logo.dev`, ne s'affichaient plus dans l'artifact (hôte externe bloqué) :
+  ils sont embarqués dans `assets/logos/` depuis le 2026-11-12.
