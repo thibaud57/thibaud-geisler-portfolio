@@ -18,9 +18,9 @@ système, puis refait entièrement.
 
 ## Lire la maquette
 
-- **Lire la maquette depuis son export local** `.design-sync/maquette/`, dézippé depuis claude.ai/design
-  (Export puis ZIP), ignoré par git (la maquette fait foi, une copie versionnée vieillirait). Ré-exporter
-  avant de s'en servir si la maquette a bougé. À rapatrier depuis l'artifact une fois le projet déplacé.
+- **Lire la maquette depuis sa copie locale** `.design-sync/maquette/`, aux chemins de son artifact
+  sans `project/`, ignorée par git (la maquette fait foi, une copie versionnée vieillirait). La
+  rapatrier depuis l'artifact avant de s'en servir si la maquette a bougé.
 - **Lire les fiches du design system depuis sa copie locale** `.design-sync/design-system/`
   (ignorée par git, comme par ESLint, Prettier et TypeScript : elle porte des `.jsx` et des `.d.ts`),
   qui reprend les chemins de l'artifact sans le préfixe `project/`. Chaque composant y a sa fiche
