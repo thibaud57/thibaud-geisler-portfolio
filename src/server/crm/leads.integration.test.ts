@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
 import { companyIdSchema, personIdSchema } from "@/lib/ids"
-import { constraintViolation } from "@/lib/matchers-test-setup"
+import { constraintViolation } from "@/testing/matchers"
 import {
   idOf,
   loadPerson,
@@ -11,7 +11,7 @@ import {
   rejectNextTransactionWrite,
   resetDatabase,
   seedPerson,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import { createLead, updateLead, type LeadWriteData } from "./leads"
 

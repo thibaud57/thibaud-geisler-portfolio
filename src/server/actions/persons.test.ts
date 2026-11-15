@@ -28,7 +28,7 @@ import { revalidatePath } from "next/cache"
 
 import { ADMIN_PROSPECTING_ACTIONS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 
 import { erasePersonExchanges, optOutPerson } from "./persons"

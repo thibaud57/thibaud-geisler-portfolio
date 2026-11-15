@@ -10,7 +10,7 @@ import {
   resetDatabase,
   seedCompany,
   seedCompanyWithLegalEntity,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 import type { CompanyInput } from "@/lib/schemas/company"
 import { retrieveCompanyLogo } from "@/server/company-logo/fetch-company-logo"
 

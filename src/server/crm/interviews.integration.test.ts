@@ -11,7 +11,7 @@ import {
   seedEsn,
   seedOpportunity,
   seedPerson,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 import { findInterviewsPage } from "@/server/queries/interviews"
 
 import {

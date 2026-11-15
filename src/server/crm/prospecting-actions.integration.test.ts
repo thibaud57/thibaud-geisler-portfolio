@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 
 import type { Prisma } from "@/generated/prisma/client"
 import { prospectingActionIdSchema, type PersonId } from "@/lib/ids"
-import { constraintViolation } from "@/lib/matchers-test-setup"
+import { constraintViolation } from "@/testing/matchers"
 import {
   idOf,
   OPTED_OUT_AT,
@@ -12,7 +12,7 @@ import {
   seedOptedOutLead,
   seedPerson,
   storedAction,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import {
   createProspectingAction,

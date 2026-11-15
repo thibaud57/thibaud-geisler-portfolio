@@ -3,7 +3,7 @@ import { headers } from "next/headers"
 import { transporter } from "@/lib/mailer"
 import { rateLimiter } from "@/lib/rate-limiter"
 import { logger } from "@/lib/logger"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 
 vi.mock("@/lib/mailer", () => ({
   transporter: { sendMail: vi.fn() },

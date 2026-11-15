@@ -10,7 +10,7 @@ import {
   seedCompany,
   seedPerson,
   storedSignal,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import { createSignal, updateSignal, type SignalWriteData } from "./signals"
 

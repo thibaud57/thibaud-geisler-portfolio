@@ -6,7 +6,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 vi.mock("@/lib/prisma", async () => {
-  const { mockPrismaClient } = await import("@/lib/prisma-mock-test-setup")
+  const { mockPrismaClient } = await import("@/testing/prisma-mock")
   return {
     prisma: mockPrismaClient({
       tag: { update: vi.fn(), delete: vi.fn(), count: vi.fn(), findMany: vi.fn() },
@@ -24,7 +24,7 @@ import { revalidatePath, updateTag as updateCacheTag } from "next/cache"
 import { ADMIN_TAGS_PATH } from "@/lib/admin/routes"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { tagIdSchema } from "@/lib/ids"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { constraintViolation, objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 import { fail, ok } from "@/server/result"
 import { createTag as createTagRecord, updateTag as updateTagRecord } from "@/server/portfolio/tags"

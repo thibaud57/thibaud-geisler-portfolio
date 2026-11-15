@@ -23,7 +23,7 @@ export default defineConfig({
         "src/app/api/**",
         "src/config/**",
       ],
-      exclude: ["src/generated/**", "**/*.test.*"],
+      exclude: ["src/generated/**", "src/testing/**", "**/*.test.*"],
     },
     projects: [
       {

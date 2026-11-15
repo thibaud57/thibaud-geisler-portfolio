@@ -1,7 +1,7 @@
 ---
 title: "DESIGN - Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-10-29"
+date: "2026-11-12"
 keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin", "dataviz"]
 scope: ["docs", "frontend"]
 technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "Tiptap", "Motion", "next-intl"]
@@ -91,13 +91,13 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--secondary` | `oklch(0.97 0 0)` | `oklch(0.269 0 0)` | Fond secondaire, identique à `--muted` |
 | `--secondary-foreground` | `oklch(0.205 0 0)` | `oklch(0.985 0 0)` | Texte sur secondary |
 | `--muted` | `oklch(0.97 0 0)` | `oklch(0.269 0 0)` | Fond atténué |
-| `--muted-foreground` | `oklch(0.556 0 0)` | `oklch(0.708 0 0)` | Texte atténué, placeholders, projet archivé, colonne À faire du kanban des actions |
+| `--muted-foreground` | `oklch(0.556 0 0)` | `oklch(0.708 0 0)` | Texte atténué, placeholders, projet archivé, colonne À faire du kanban des actions, glyphes neutres des états de run (§ Icônes) |
 | `--accent` | `oklch(0.965 0.008 140)` | `oklch(0.28 0.03 140)` | Fond accent (teinte sauge très légère), dégradé `primary/20 → accent/20` d'un aperçu ou d'un logo manquant |
 | `--accent-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte sur accent |
 | `--border` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 10%)` | Bordures |
 | `--input` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 15%)` | Bordures inputs, plus contrastées que `--border` en dark |
 | `--ring` | `oklch(0.53 0.04 140)` | `oklch(0.68 0.03 140)` | Focus ring (vert sauge) |
-| `--destructive` | `oklch(0.53 0.16 25)` | `oklch(0.68 0.15 25)` | Erreurs, actions destructives, statuts négatifs (action ignorée, revue hebdo mauvaise). Rouge brique, cf. § Couleurs Sémantiques |
+| `--destructive` | `oklch(0.53 0.16 25)` | `oklch(0.68 0.15 25)` | Erreurs, actions destructives, statuts négatifs (action ignorée, revue hebdo mauvaise, run en échec). Rouge brique, cf. § Couleurs Sémantiques |
 | `--card` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des cartes |
 | `--card-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des cartes |
 | `--popover` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des popovers |
@@ -116,9 +116,9 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
-| `--success` | `oklch(0.55 0.11 148)` | `oklch(0.72 0.11 148)` | Succès : projet publié, action répondue, action convertie dans le calendrier, revue hebdo bonne |
-| `--warning` | `oklch(0.56 0.11 72)` | `oklch(0.76 0.11 72)` | Attention : projet en brouillon, action à faire dans le calendrier, revue hebdo moyenne |
-| `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Action faite. Ardoise, pas un bleu franc |
+| `--success` | `oklch(0.55 0.11 148)` | `oklch(0.72 0.11 148)` | Succès : projet publié, action répondue, action convertie dans le calendrier, revue hebdo bonne, run terminé |
+| `--warning` | `oklch(0.56 0.11 72)` | `oklch(0.76 0.11 72)` | Attention : projet en brouillon, action à faire dans le calendrier, revue hebdo moyenne, run en cours |
+| `--info` | `oklch(0.52 0.07 250)` | `oklch(0.72 0.07 250)` | Action faite, run en attente. Ardoise, pas un bleu franc |
 | `--shine` | `oklch(1 0 0 / 0.95)` | `oklch(1 0 0 / 0.95)` | Reflet lumineux constant (BorderBeam, effets shimmer), volontairement non-thémé pour conserver l'effet de brillance en dark mode. Uniquement sur des surfaces `bg-primary`, invisible sur une carte claire |
 
 > Contraintes à tenir si l'un de ces tokens bouge ou si un cinquième s'ajoute : **chroma entre 0,11 et 0,16** (sauf `--info`, à 0,07), au-delà la couleur crie à côté d'un accent à 0,04 ; `--success` en teinte **148**, qui se confondrait avec `--primary` en 140 ; `--info-foreground` sombre en dark, l'ardoise y étant claire.
@@ -297,7 +297,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Badges Tag (technos/infra/outils/expertises) | TagBadge | shadcn/ui + @icons-pack/react-simple-icons + lucide-react | `variant="secondary"` + `border-border` portée par le CVA comme pour les badges meta, casse normale (noms de marque). Renderer choisi selon le préfixe `tag.icon` : `"simple-icons:*"` (technos, infra, outils), `"lucide:*"` (expertises) ou `"custom:*"` (SVG maison). Cards projets, case studies et stack `/a-propos` |
 | Badges Meta (format, entreprise, compteur, statut) | Badge, prop `meta` ; FormatBadges pour les formats | shadcn/ui | `meta` applique `uppercase tracking-wider` ; `variant="outline"`, `default` pour un état unique mis en avant. Logo de l'entreprise en 14px devant son nom. Une liste de badges en affichage s'arrête à trois puis « +N » en `outline` (`BadgeList`), muet sur la vitrine, relu au survol par `Tooltip` côté admin ; une vue détail et un champ d'édition les affichent tous |
-| Valeur d'énumération | Badge + Lucide, composé par `EnumBadge` | shadcn/ui | Badge `secondary` d'une valeur d'énumération du CRM, son glyphe devant le libellé quand l'énumération en a (§ Icônes), sinon `labelBadge` ; en-tête de vue détail par `headerBadge`. Les badges d'en-tête (nature d'un projet, catégorie d'un tag) passent en `outline` `meta`, le statut d'un projet en puce `StatusDot`. Le même glyphe précède l'option d'un `Select` (`EnumSelectItems`). L'état d'un run ne colore que son glyphe, texte et fond restent neutres (table § Icônes) |
+| Valeur d'énumération | Badge + Lucide, composé par `EnumBadge` | shadcn/ui | Badge `secondary` d'une valeur d'énumération du CRM, son glyphe devant le libellé quand l'énumération en a (§ Icônes), sinon `labelBadge` ; en-tête de vue détail par `headerBadge`. Les badges d'en-tête (nature d'un projet, catégorie d'un tag) passent en `outline` `meta`, le statut d'un projet en puce `StatusDot`. Le même glyphe précède l'option d'un `Select` (`EnumSelectItems`). États d'un run : table § Icônes |
 
 ### Feedback et chargement
 
@@ -316,7 +316,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Modales | Dialog, AlertDialog | shadcn/ui | `AlertDialog` pour confirmer une suppression ou une action de run, à la largeur du registry ; une modale de formulaire ou de lecture passe à 640px pour tenir deux colonnes. Pied en bandeau `muted/50` d'un bord à l'autre. La confirmation porte `TriangleAlert` (32px) en `text-destructive` dans `AlertDialogMedia`, sans tuile, titre et texte alignés à gauche. `ConfirmDeleteDialog` : titre qui nomme l'élément (« Supprimer « Agents IA » ? ») et bouton « Supprimer » |
 | Agrandissement d'image | Dialog, composé par `ZoomableImage` | shadcn/ui | Vignette cliquable, image entière jusqu'à 80dvh de haut et pleine largeur moins les marges de la modale, bouton Fermer dans le coin haut droit de l'écran, légende sous l'image reprise de l'alt. Voile et contenu en thème sombre quel que soit le thème. Glyphe `Maximize2` dans le coin de la vignette, en pastille sombre translucide, visible au survol ou au focus sur un pointeur fin et en permanence sur écran tactile (`pointer-coarse`) |
 | Formulaire en modale | Dialog, composé par `FormDialog` et `FormDialogForm` | shadcn/ui | Repart d'un formulaire neuf à chaque ouverture. Titre d'une modification nommant l'élément (« Modifier Agents IA »), description disant l'action (« Créer un tag pour catégoriser les projets. »). Plafond de `85svh` (`svh`, la barre d'URL mobile faussant `vh`) : champs sur deux colonnes qui défilent seuls dans `DialogBody`, en-tête et pied fixes. Pied Annuler et Enregistrer, à l'icône `Save` |
-| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | L'écran ne fournit que des données : image (`AssetTileLink`), titre, sous-titre, badges `outline` `meta` à droite du titre, blocs titrés (`TitledBlock`) séparés d'un `Separator`. Deux colonnes, pleine largeur pour un texte long ou une liste de fiches rattachées ; libellé au registre Libellé de champ (§ Scale Typographique). Pied « Fermer » et « Modifier », qui porte aussi l'action de run que l'état autorise, en `destructive` quand elle interrompt ou abandonne, confirmée par une `AlertDialog` au texte et au bouton propres (`ConfirmDeleteDialog` reste celui de la suppression). Un bloc sans donnée reste affiché, ses valeurs absentes rendues par `EmptyValue` |
+| Vue détail (admin) | Dialog, composé par `DetailDialog` | shadcn/ui | L'écran ne fournit que des données : image (`AssetTileLink`), titre, sous-titre, badges `outline` `meta` à droite du titre, blocs titrés (`TitledBlock`) séparés d'un `Separator`. Deux colonnes, pleine largeur pour un texte long ou une liste de fiches rattachées ; libellé au registre Libellé de champ (§ Scale Typographique). Pied « Fermer » et « Modifier » ; une action de run s'y pose selon § Conventions de Code > Règles, Pied d'action, confirmée par une `AlertDialog` propre (`ConfirmDeleteDialog` reste celui de la suppression). Un bloc sans donnée reste affiché, ses valeurs absentes rendues par `EmptyValue` |
 | Consentement cookies | ConsentBanner, ConsentDialog | `c15t` (`c15t/next`) | Bandeau au premier passage ; modale de préférences rouverte par « Gérer mes cookies » au footer (`OpenCookiePreferencesLink`), par la politique de confidentialité et par le widget Calendly bloqué (`OpenCookiePreferencesButton`). Tokens du design system rendus par `ConsentTheme` (layout serveur), parties ajustées par les slots de `src/components/cookies/consent-theme.ts`. Rendu aligné sur c15t 2 : filet `border` au-dessus du pied de la modale, boutons du pied qui rétrécissent au lieu de déborder, liens non soulignés (exception volontaire à la règle des liens : le texte du bandeau est court et le lien y est déjà en `text-primary`). Titre du bandeau et de la modale en `h2`, boutons d'accordéon dans la police du site, Geist |
 | Panneau contextuel | Popover | shadcn/ui | Ancré sur son déclencheur. Seul, `align="end"` sous une barre d'outils (filtres d'une liste), ou en composition (Combobox, sélecteur de date). Son pied suit celui d'une modale (§ Conventions de Code > Règles, Pied d'action) |
 

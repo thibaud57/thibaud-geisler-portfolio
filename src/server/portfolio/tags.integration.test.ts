@@ -2,14 +2,7 @@ import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest"
 
 import type { TagKind } from "@/generated/prisma/client"
 import { tagIdSchema } from "@/lib/ids"
-import {
-  prisma,
-  resetDatabase,
-  seedTag,
-  sequence,
-  slugsAndOrders,
-  tagIdOf,
-} from "@/lib/prisma-test-setup"
+import { prisma, resetDatabase, seedTag, sequence, slugsAndOrders, tagIdOf } from "@/testing/prisma"
 
 import { createTag, updateTag, type TagWriteData } from "./tags"
 

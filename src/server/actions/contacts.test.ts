@@ -28,7 +28,7 @@ import { revalidatePath } from "next/cache"
 
 import { getCurrentUser } from "@/lib/get-current-user"
 import { personIdSchema } from "@/lib/ids"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 import {
