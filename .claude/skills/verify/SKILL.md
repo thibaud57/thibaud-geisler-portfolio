@@ -37,7 +37,7 @@ just stop   # à la fin, libère le port 3000
 | Authentification (Better Auth) | `curl -s http://localhost:3000/api/auth/get-session` (`null` sans session). Flux OAuth réel et garde admin : voir ci-dessous |
 | Espace admin sans session | `curl -s -o /dev/null -D - http://localhost:3000/admin` : 307 vers `/admin/login`, sans préfixe de locale |
 | Espace admin connecté | `just dev-login` puis `curl -b <jar>`, voir « Se connecter sans Google » |
-| Base de données | `docker exec thibaud-geisler-portfolio-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -A -c "<SQL>"'` : les credentials viennent de l'environnement du conteneur, sans lire `.env` (base de test : `portfolio_test`, liste via `psql -d postgres -l`, sans `-d` psql cherche une base au nom de l'utilisateur, absente) |
+| Base de données | `docker exec thibaud-geisler-portfolio-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -A -c "<SQL>"'` : les credentials viennent de l'environnement du conteneur, sans lire `.env` (base de test : `portfolio_dev_test`, recréée par la suite d'intégration ; liste via `psql -d postgres -l`, sans `-d` psql cherche une base au nom de l'utilisateur, absente) |
 | Erreurs remontées à Sentry | `sentry issue list <org>/thibaud-geisler-portfolio --limit 5 --fresh`, puis `sentry issue view <SHORT-ID>` (l'ingestion prend 15 à 60 s, boucler plutôt qu'attendre un délai fixe). Détail et pièges : [knowledges/sentry.md](../../../docs/knowledges/sentry.md) |
 
 ## Piloter une Server Action sans navigateur

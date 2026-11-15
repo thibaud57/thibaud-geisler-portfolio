@@ -502,7 +502,7 @@ GitHub Actions porte quatre workflows : CI (lint, typecheck, tests, build, audit
 | Environnement | Description | Config |
 |---------------|-------------|--------|
 | `development` | Local sur machine dev | `.env` (modèle : `.env.example`) |
-| `test` | Vitest, base PostgreSQL dédiée | `.env.test` |
+| `test` | Vitest, base PostgreSQL dédiée, dérivée de celle de dev | `vitest.global-setup.ts` |
 | `production` | VPS IONOS via Dokploy | Variables d'env Dokploy |
 
 > Variables validées par `src/env.ts`, liste dans [PRODUCTION.md § Variables d'Environnement](PRODUCTION.md#variables-denvironnement).
@@ -594,8 +594,8 @@ Sonde externe sur `/api/health` et notification Dokploy d'échec de build. Seuil
 
 ### Environnement de Test
 
+- **Base de test** : `<base de DATABASE_URL>_test`, recréée et migrée à chaque run par `vitest.global-setup.ts`, avec refus de tout reset sur une base qui ne finit pas par `_test`. Local : `portfolio_dev_test`
 - **CI** : service container PostgreSQL éphémère (GitHub Actions), créé pour la durée du job et détruit automatiquement
-- **Local** : base de test dédiée (`DATABASE_URL` de `.env.test`), séparée de la base de dev `portfolio`
 - **Services externes** : SMTP toujours mocké, les appels nodemailer ne sont jamais réels
 
 ### Coverage

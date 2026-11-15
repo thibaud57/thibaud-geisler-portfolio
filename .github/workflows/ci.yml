@@ -89,9 +89,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - name: Apply Prisma migrations to test DB
-        run: pnpm prisma migrate deploy
-
       # `just lint` appelle actionlint, absent des runners. Script epingle au commit du tag
       # v1.7.12 et binaire epingle par l'argument : une URL sur `main` serait mutable.
       - name: Installer actionlint

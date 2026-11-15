@@ -54,6 +54,8 @@ export default defineConfig({
           name: "integration",
           environment: "node",
           include: ["src/**/*.integration.test.{ts,tsx}"],
+          globalSetup: ["./vitest.global-setup.ts"],
+          setupFiles: ["./vitest.test-database.ts"],
           pool: "forks",
           fileParallelism: false,
         },
