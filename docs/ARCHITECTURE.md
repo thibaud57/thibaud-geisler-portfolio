@@ -278,6 +278,7 @@ src/
 │       │                         # définition par entité (entities/), outil du logo
 │       └── portfolio/            # Domaine portfolio : configuration (domain.ts), registre (registry.ts), entités (entities/)
 ├── generated/                    # Sortie du générateur Prisma 7 (`src/generated/prisma`), gitignored
+├── testing/                      # Helpers de test partagés (base de test, mocks Prisma, client MCP, matchers)
 ├── types/                        # Sélections Prisma des projets, partagées par les pages publiques
 ├── env.ts                        # Validation runtime env vars (@t3-oss/env-nextjs + Zod, server vs client)
 ├── instrumentation.ts            # Bootstrap serveur : init Sentry avant le logger, remontée des erreurs de rendu (onRequestError)

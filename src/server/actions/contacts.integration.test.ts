@@ -7,7 +7,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 
-import { prisma } from "@/lib/prisma-test-setup"
+import { prisma } from "@/testing/prisma"
 import { createContact, deleteContact } from "@/server/actions/contacts"
 import { initialContactFormState } from "@/server/actions/contacts.types"
 import { deleteLead } from "@/server/actions/leads"

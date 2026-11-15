@@ -9,7 +9,7 @@ import {
   resetDatabase,
   seedClosedWeek,
   storedReview,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import {
   createWeeklyReview,

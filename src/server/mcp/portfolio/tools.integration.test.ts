@@ -13,7 +13,7 @@ vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), revalidatePath: vi.fn() }
 
 import { ADMIN_PROJECTS_PATH, ADMIN_TAGS_PATH } from "@/lib/admin/routes"
 import type { TagIconKey } from "@/lib/icons"
-import { jsonOf, textOf, setupMcpSession, type ToolResult } from "@/lib/mcp-test-setup"
+import { jsonOf, textOf, setupMcpSession, type ToolResult } from "@/testing/mcp"
 import {
   createProject,
   prisma,
@@ -24,7 +24,7 @@ import {
   seedTag,
   storedProjectTags,
   tagIdOf,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 import { PORTFOLIO_ENTITY_NAMES } from "@/server/mcp/portfolio/registry"
 
 const ICON: TagIconKey = "lucide:database"

@@ -2,7 +2,7 @@ import { GetObjectCommand, NoSuchKey } from "@aws-sdk/client-s3"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "@/app/api/assets/[...path]/route"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2 } from "@/lib/r2"
 

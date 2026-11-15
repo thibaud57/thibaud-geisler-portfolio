@@ -24,7 +24,7 @@ import {
   leadDetailsTemplate,
   OPPORTUNITY_DETAILS_TEMPLATE,
 } from "@/lib/crm/details-templates"
-import { jsonOf, textOf, setupMcpSession } from "@/lib/mcp-test-setup"
+import { jsonOf, textOf, setupMcpSession } from "@/testing/mcp"
 import {
   CLOSED_WEEK_COUNTS,
   CLOSED_WEEK_FRIDAY,
@@ -40,7 +40,7 @@ import {
   storedAction,
   storedReview,
   storedSignal,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 import { computeWeekCounters } from "@/server/actions/weekly-reviews"
 import {
   retrieveCompanyLogo,

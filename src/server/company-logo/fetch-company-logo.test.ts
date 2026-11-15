@@ -10,7 +10,7 @@ vi.mock("./normalize-icon", async (importOriginal) => ({
   normalizeIcon: vi.fn(),
 }))
 
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 import { adminR2 } from "@/lib/r2"
 
 import { fetchCompanyIcon, retrieveCompanyLogo, storeCompanyLogo } from "./fetch-company-logo"

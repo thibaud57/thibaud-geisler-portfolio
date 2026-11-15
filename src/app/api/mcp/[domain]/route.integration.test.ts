@@ -12,7 +12,7 @@ vi.mock("@/lib/logger", () => ({ logger: { child: vi.fn(() => childLog) } }))
 
 import { env } from "@/env"
 import { auth } from "@/lib/auth"
-import { prisma, resetDatabase, SEED_USER_ID, seedUser } from "@/lib/prisma-test-setup"
+import { prisma, resetDatabase, SEED_USER_ID, seedUser } from "@/testing/prisma"
 import { rateLimiter } from "@/lib/rate-limiter"
 
 import { DELETE, GET, POST } from "./route"

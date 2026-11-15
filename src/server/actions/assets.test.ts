@@ -20,7 +20,7 @@ vi.mock("@/lib/get-current-user", () => ({ getCurrentUser: vi.fn() }))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
 import { getCurrentUser } from "@/lib/get-current-user"
-import { objectMatch } from "@/lib/matchers-test-setup"
+import { objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 import { adminR2, r2 } from "@/lib/r2"
 import { deleteAsset, uploadAsset } from "./assets"

@@ -7,7 +7,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 
-import { prisma } from "@/lib/prisma-test-setup"
+import { prisma } from "@/testing/prisma"
 import { erasePersonExchanges } from "@/server/actions/persons"
 
 const EMAIL_DOMAIN = "@persons-integration.example.com"
