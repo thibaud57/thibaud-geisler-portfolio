@@ -122,8 +122,7 @@ système, puis refait entièrement.
 Décisions prises que la maquette ne montre pas, et écrans qu'elle n'a pas. À reporter quand le
 propriétaire le demande ; chaque ligne part une fois faite.
 
-- **Écrans à dessiner** : résultats des jobs à valider (Feature 4 : candidats du sourcing à trier,
-  pré-remplissage à accepter) ; Analytics (Feature 10, avec les graphiques du système) ; Accueil
+- **Écrans à dessiner** : Analytics (Feature 10, avec les graphiques du système) ; Accueil
   (`isHome`), à revoir avec la feature Missions (Feature 5) ; chatbot public (Feature 11), sur les
   composants de chat du système.
 - **Écrans sans spec** (suivi de mission, documents, finances, LinkedIn, Dev) : leur vue détail
@@ -131,6 +130,24 @@ propriétaire le demande ; chaque ligne part une fois faite.
   tables, composées à la main, n'ont pas de `TitleCell`. À reprendre quand leur feature sera spécifiée.
 
 ## Journal
+
+- **Écrans des jobs de la Feature 4 (synchronisés le 2026-11-15)** : la maquette dessine les
+  arbitrages A1 à A6 de `docs/BRAINSTORM.md` : fil d'un job dans la fenêtre de l'assistant, ouvert
+  par le badge de la colonne Run (leads, entreprises) ou par le bouton du job, qui porte l'état
+  pendant un run ; vue Sourcing des leads (case par ligne, écart n° 3) ; modale « Nouveau lead » ;
+  « Qualifier » et « Enrichir » dans le pied des vues détail ; score du lead en lecture seule et
+  card Qualification ; « Pré-remplir » sur l'entité légale ; « Revue du jour » et « Préparer avec
+  l'agent » ; l'assistant suit la procédure d'un job. Arbitrages votés sur une page de rendu réel :
+  fil sur l'échelle admin (questions à 14px, choix et réponse à 32px, interligne de 20px), proposition
+  d'écriture à la place du récap (Refuser et Accepter en icônes à droite du titre, issue en glyphe
+  coloré), écrits dans `docs/DESIGN.md`.
+  - **Système** : feuille du chat sur cette échelle, `DetailDialog` gagne `actions`, fiches `Item`,
+    `Questionnaire` et `DetailDialog` à jour, `lastChange` posé.
+  - **Contrôle** : 16 écrans joués en local sans erreur de page (les deux avertissements React de la
+    console sont antérieurs) ; le bundle de `_ds_src/` recompilé ne diffère de l'ancien que par
+    `DetailDialog`.
+  - **Envoi** : système (version 25) et maquette (version 6), puis copie locale remplacée par les
+    fichiers relus en ligne : seules leurs fins de ligne différaient.
 
 - **Page des clés d'API (envoyée le 2026-11-06)** : écrans `isApiKeys`, `dlgApiKeyForm`,
   `dlgApiKeyCreated` et confirmation `delete-api-key` ajoutés à la maquette, ouverts par une entrée

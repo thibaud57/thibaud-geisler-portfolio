@@ -1,7 +1,7 @@
 ---
 title: "DESIGN - Thibaud Geisler Portfolio"
 description: "Design system : typographie, couleurs, librairies UI, mapping composants et conventions de style."
-date: "2026-11-12"
+date: "2026-11-15"
 keywords: ["design", "ui", "design-system", "typography", "colors", "animations", "layout", "dark-mode", "icons", "components", "spacing", "admin", "dataviz"]
 scope: ["docs", "frontend"]
 technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity UI", "ReUI", "Tiptap", "Motion", "next-intl"]
@@ -55,7 +55,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | Subtitle (en-tête de page, texte de section) | 1.125rem (18px) | 400 (Regular) | `text-lg` : sous-titres centrés de `PageShell`, CTA final |
 | Body | 1rem (16px) | 400 (Regular) | `text-base` |
 | Small / Caption | 0.875rem (14px) | 400 (Regular) | `text-sm` |
-| Libellé de champ | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium` : `Label` d'un formulaire, libellé d'une ligne de vue détail, titre de la barre supérieure admin, titre d'un état vide |
+| Libellé de champ | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium` : `Label` d'un formulaire, libellé d'une ligne de vue détail, titre de la barre supérieure admin, titre d'un état vide, question et titre de proposition d'un fil de chat |
 | Aide et méta | 0.75rem (12px) | 400 (Regular) | `text-xs` en `text-muted-foreground` : aide persistante d'un champ, sous-titre de la première colonne d'une liste, date ou chiffre à droite d'une ligne de fiche rattachée, barre légale du footer |
 | Compteur et rang | 10px | 500 (Medium) | `text-[10px]` : compteur d'un bouton de barre d'outils (`COUNTER_BADGE_CLASS`), rang d'un tag réordonnable en préfixe de son badge, en mono, sans pastille |
 | Label (intitulé de section ou de donnée) | 0.875rem (14px) | 500 (Medium) | `text-sm font-medium tracking-[0.25em] text-muted-foreground uppercase` : stack, stats, signature de la landing, métadonnées d'étude de cas, sections de la sidebar admin, titres de bloc (`TitledBlock`). En `text-xs` sur les mois d'une liste de fiches rattachées et les colonnes du kanban. Constante `LABEL_CLASS`. Ajouter `text-balance` au-delà d'une dizaine de caractères, l'espacement large faisant vite déborder |
@@ -380,13 +380,16 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 |-----------|-----------|-----------|-------|
 | Réglage appliqué à l'instant | Switch | shadcn/ui | Une bascule qui s'engage sans passer par « Enregistrer ». Un choix soumis par un formulaire reste un `RadioGroup` (§ Formulaires) |
 | Graphiques | Chart | shadcn/ui (Recharts) | Audience, indicateurs CRM, chiffre d'affaires. Couleurs de série : `--chart-*` et § Palette de Couleurs > Règles |
-| Fil de conversation | Message, Bubble, MessageScroller, Marker | shadcn/ui | Assistant interne, créateur de specs et chatbot public, mêmes composants ([ADR-027](adrs/027-composants-chat.md)). Libellés en props : français en dur dans l'admin, next-intl sur le site public |
+| Fil de conversation | Message, Bubble, MessageScroller, Marker | shadcn/ui | Assistant interne, créateur de specs et chatbot public, mêmes composants ([ADR-027](adrs/027-composants-chat.md)). Libellés en props : français en dur dans l'admin, next-intl sur le site public. Interligne de 20px (`leading-sm`) partout dans le fil, réglé dans le thème des composants de chat |
 | Saisie de message | Prompt Input (pattern AI Elements), sur Input Group (§ Formulaires) | shadcn/ui | Champ sous le fil ; pendant qu'une question attend, ce qui s'y tape répond à la question en cours |
-| Questions de l'agent | Questionnaire | shadcn/ui | Questions posées une à une par l'agent : choix simple ou multiple, réponse libre, étapes. Stepper du créateur de specs |
+| Questions de l'agent | Questionnaire | shadcn/ui | Questions posées une à une par l'agent : choix simple ou multiple, réponse libre, étapes. Stepper du créateur de specs. Question au registre Libellé de champ, 8px avant ses choix ; choix et réponse libre à 32px, comme les contrôles `radix-nova` |
 | Étapes d'une session | Trace, Tool (pattern AI Elements) | shadcn/ui | Appels d'outils, liste des tâches et agents lancés en parallèle |
-| Confirmation d'écriture | Confirmation (pattern AI Elements) | shadcn/ui | Écriture de l'agent dans l'app à valider avant exécution |
+| Proposition d'écriture | Item (`ItemHeader`) + Button `icon-sm` + Tooltip | shadcn/ui | Titre qui dit l'action, Refuser (✕, `outline`) puis Accepter (✓, `default`) à sa droite, détails dessous en pleine largeur. Tranchée, le glyphe de l'issue remplace les boutons : `circle-check` en `--success`, `circle-x` en `--destructive`, `repeat` en `--muted-foreground` et carte à 50 % d'opacité pour une remplacée |
 | Réponse en streaming | Bulle markdown | composant maison (`react-markdown`, `remend`) | Markdown réparé à chaque morceau reçu, même rendu que `MarkdownContent` ; règles de sécurité dans l'ADR-027 |
-| Fenêtre de l'assistant | Fenêtre flottante | composant maison | Déplaçable et redimensionnable, pour ne jamais masquer la page en cours. Ouverte par un bouton à icône de l'en-tête, sur tous les écrans ; l'historique des conversations s'ouvre par l'entrée « Conversations » du menu de l'avatar |
+| Fenêtre de l'assistant | Fenêtre flottante | composant maison | Déplaçable et redimensionnable, pour ne jamais masquer la page en cours. Ouverte par un bouton à icône de l'en-tête, sur tous les écrans ; l'historique des conversations s'ouvre par l'entrée « Conversations » du menu de l'avatar. Le fil d'un job s'y ouvre aussi |
+| Bouton de job | Button `outline` | shadcn/ui | À la taille des autres actions de son en-tête (`sm` dans une card). Pendant un run, le glyphe coloré de l'état (§ Icônes) remplace son icône, l'état suit le libellé en `--muted-foreground` et le clic ouvre le fil. Jamais de badge d'état à côté d'un bouton |
+| Run d'un job en liste | Badge d'état de run dans un bouton nu | shadcn/ui | Colonne « Run » d'une liste et ligne « Run » d'une vue détail : le badge ouvre le fil du job. Fond `--accent` sur le badge au survol, anneau `--ring` au focus clavier |
+| Sélection de lignes | Checkbox dans une colonne de 48px | shadcn/ui | Vue Sourcing des leads : une case par ligne, sans en-tête. Les actions de la sélection vivent dans l'en-tête de l'écran, désactivées sans sélection |
 | Indicateur circulaire | ProgressCircle | composant maison (conventions Tremor) | Anneau à valeur unique (budget consommé, taux de remplissage), métrique à côté. SVG maison, pas une dépendance |
 
 ## États des Composants
