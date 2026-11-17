@@ -1,7 +1,7 @@
 ---
 title: "PRODUCTION : Thibaud Geisler Portfolio"
 description: "Documentation opérationnelle : release strategy, déploiement, monitoring, incidents et backup pour thibaud-geisler.com."
-date: "2026-11-10"
+date: "2026-11-17"
 keywords: ["production", "deployment", "monitoring", "incidents", "release", "dokploy", "docker"]
 scope: ["docs", "ops"]
 technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokploy", "Pino", "Sentry"]
@@ -472,7 +472,7 @@ Aucune politique CORS : le site sert ses propres pages et ses Server Actions, et
 | Dokploy Logs | Logs applicatifs stdout (Pino) en temps réel | Compose `Portfolio-app` → onglet Logs |
 | Dokploy Deployments | Historique des déploiements et de leurs logs | Compose `Portfolio-app` → onglet Deployments |
 | UptimeRobot | Sonde HTTP sur `/api/health` toutes les 5 min, depuis l'extérieur du VPS | Alerte email à `contact@`, au changement d'état uniquement |
-| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Spans des Server Actions absents sous Turbopack, non revalidé en `11.11.0` : [knowledges/sentry.md](knowledges/sentry.md#bundler-et-incidents-connus). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
+| Sentry | Erreurs applicatives (serveur, edge, navigateur) + tracing des routes, pages et queries Prisma. Spans des Server Actions absents sous Turbopack, non revalidé en `11.12.0` : [knowledges/sentry.md](knowledges/sentry.md#bundler-et-incidents-connus). Remontée vérifiable par `GET /admin/api/sentry-test`, connecté à l'espace admin : l'issue créée doit pointer sur `src/app/admin/(protected)/api/sentry-test/route.ts` | [sentry.io](https://sentry.io), organisation `<org>` |
 
 ## Métriques Clés
 
