@@ -16,7 +16,7 @@ Optionnel : l'utilisateur peut préciser quel check (`lint`, `format`, `typechec
 
 ### Par défaut (tout enchaîner)
 
-1. `just lint` : ESLint sur `src/`, Prettier en vérification, `prisma validate` sur le schéma, `actionlint` sur `.github/workflows`
+1. `just lint` : ESLint sur `src/`, Prettier en vérification, `prisma validate` sur le schéma, `actionlint` et zizmor sur `.github/`
 2. `just typecheck` : `tsc --noEmit`
 3. `just test` : unit + server + integration avec le plancher de couverture
 
@@ -26,7 +26,7 @@ Stopper au premier échec, afficher l'erreur brute sans troncature.
 
 | Commande | Recette |
 |---|---|
-| lint | `just lint` (ESLint, Prettier en vérification, `prisma validate`, `actionlint` ; ne corrige rien) |
+| lint | `just lint` (ESLint, Prettier en vérification, `prisma validate`, `actionlint`, zizmor ; ne corrige rien) |
 | format | `just format` (Prettier et `prisma format` réécrivent, à lancer si `lint` échoue sur le formatage) |
 | typecheck | `just typecheck` |
 | test | `just test` |

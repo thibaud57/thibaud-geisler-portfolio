@@ -101,7 +101,7 @@ The lockfile contains entries that the active policies reject.
 
 - `pnpm add` d'une version trop récente écrit seul des `minimumReleaseAgeExclude` (une entrée par paquet du même lot, `@sentry/*` en compte une quinzaine) : les retirer une fois le délai passé, puis vérifier par `pnpm install --frozen-lockfile`
 - Constaté le 9 octobre 2026 : sans ces exceptions, l'install figée de la CI et du Dockerfile échoue tant que le lockfile contient une version de moins de 24 h
-- Dependabot applique un cooldown par défaut de 3 jours aux mises à jour de version, ce qui couvre ce délai. Ses mises à jour de sécurité y échappent : une PR de sécurité vers une version publiée le jour même peut faire échouer la CI
+- Le cooldown de Dependabot (7 jours, `dependabot.yml`) couvre ce délai pour les mises à jour de version. Ses mises à jour de sécurité y échappent : une PR de sécurité vers une version publiée le jour même peut faire échouer la CI
 - `minimumReleaseAgeStrict: true` (implicite dès qu'on pose `minimumReleaseAge` explicitement) fait échouer la résolution au lieu de retomber sur une version trop jeune
 
 ---

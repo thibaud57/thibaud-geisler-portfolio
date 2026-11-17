@@ -10,6 +10,7 @@ set shell := ["bash", "-cu"]
 set script-interpreter := ["bash", "-eu"]
 
 PORT := env("PORT", "3000")
+ZIZMOR_VERSION := "1.32.0"
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
@@ -44,13 +45,18 @@ dev-login FILE:
 build:
     pnpm build
 
-# Lint ESLint sur src/ + formatage
+# Lint des workflows GitHub Actions (actionlint puis zizmor)
 [group('quality')]
-lint:
+lint-workflows:
+    actionlint
+    GH_TOKEN="${GH_TOKEN:-$(gh auth token)}" uvx zizmor@{{ ZIZMOR_VERSION }} .
+
+# Lint ESLint sur src/ + formatage + schéma Prisma + workflows
+[group('quality')]
+lint: lint-workflows
     pnpm lint
     pnpm format:check
     pnpm prisma validate
-    actionlint
 
 # Reformate tout le depot
 [group('quality')]
@@ -154,6 +160,7 @@ check:
     @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir devEngines de package.json)"
     @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir devEngines de package.json)"
     @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
+    @command -v uv >/dev/null 2>&1 || echo "⚠️ uv requis pour just lint (zizmor via uvx, winget install astral-sh.uv)"
     @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"
     @test -d .next/types || echo "⚠️ Types Next absents, lancer just install (postinstall les génère)"
     @[ -n "${DATABASE_URL:-}" ] || echo "⚠️ DATABASE_URL manquant dans .env"
