@@ -25,7 +25,7 @@ paths:
 ## Gotchas
 - Next 16 : Turbopack est le bundler **par défaut en dev ET build**, y compris dans le Dockerfile. L'opt-out `next build --webpack` ne se pose pas sans erreur reproduite : dev et prod cesseraient d'utiliser le même bundler
 - **Prisma 7 + Turbopack build** : l'opt-out `--webpack` posé pour une erreur WASM (`query_compiler_fast_bg.postgresql.mjs`) a été **retiré le 3 septembre 2026**, build de l'image revérifié sur Next 16.4.0 le 9 octobre 2026 (`docs/VERSIONS.md` § Prisma ORM). Revalider à chaque montée de Next ou de Prisma
-- Le build Docker tourne sur GitHub Actions (`deploy.yml`) sans aucune base : le rendu public ne lit rien au build (ADR-022). Il n'a lieu qu'au tag, un changement du `Dockerfile` se valide donc par un `docker build` local. L'issue Prisma #29025 (hash mismatch) impose la même version Prisma et la même image Node entre build et runtime
+- Le build Docker tourne sur GitHub Actions (job `deploy` de `release-please.yml`) sans aucune base : le rendu public ne lit rien au build (ADR-022). Il n'a lieu qu'à la release, un changement du `Dockerfile` se valide donc par un `docker build` local. L'issue Prisma #29025 (hash mismatch) impose la même version Prisma et la même image Node entre build et runtime
 - Codemod disponible : `next upgrade` (ou `next upgrade --revision <tag npm>`, Next 16.1+) applique les migrations. Le premier argument positionnel est un dossier, `next upgrade latest` viserait un dossier `latest`
 - Logging : `pino/logger.md`. Instrumentation : `sentry/instrumentation.md`. Dockerfile générique : `docker/dockerfile.md`. Compose : `docker-compose/compose.md`. `sharp` sur Alpine : `nextjs/images.md`. En-tête `X-Forwarded-Host` des Server Actions : `nextjs/server-actions-security.md`
 

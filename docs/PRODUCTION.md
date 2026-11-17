@@ -76,19 +76,19 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
 > ℹ️ Le job `quality` est **sauté** sur un diff purement documentaire (`**/*.md`, `docs/**`, `.claude/**`) : le check `ci` passe quand même, rien n'a été exécuté, c'est normal.
 
 **Manuel :**
-Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploiement :
+Dans l'ordre où ils s'exécutent, la création de la release déclenchant le déploiement :
 
 - [ ] Variables d'environnement à jour dans Dokploy
 - [ ] Si la release embarque une migration qui déplace ou transforme des données existantes : dernière sauvegarde réussie et datée du jour dans Dokploy (Database `portfolio-db` → Backups), le rollback du code ne défaisant pas une migration (§ Rollback)
 - [ ] Merge vers `main` validé (develop → main fin d'epic, ou hotfix/* → main pour bug critique)
-- [ ] PR release-please mergée → tag `vX.Y.Z` auto-créé → `deploy.yml` déclenché
+- [ ] PR release-please mergée → release et tag `vX.Y.Z` auto-créés → job `deploy` de `release-please.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
 - [ ] Smoke test : accueil, `/projets`, formulaire contact, `POST /api/mcp/crm` et `POST /api/mcp/portfolio` sans clé → `401`
 - [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste (jamais écrite dans une commande) : `tools/list`, `crm_query` et `crm_fetch` sur chaque entité, `portfolio_query` sur `tag` et `project`, `portfolio_fetch` d'un projet publié (client et tags dans l'ordre), refus sans écriture, `keyId` de la clé dans les `mcp:request` des logs (§ Logging). Détail : recette `verify`
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
-> **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **Le tag précède la validation prod** : c'est lui qui déclenche le déploiement, rien n'est en ligne avant. Il atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
+> **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **La release précède la validation prod** : sa création déclenche le déploiement, rien n'est en ligne avant. Le tag atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
 
@@ -125,16 +125,16 @@ Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploieme
 NODE_ENV=                           # development | production
 NEXT_PUBLIC_SITE_URL=               # URL canonique du site (requis : metadata, sitemap, JSON-LD, OG)
                                     # Dev local : http://localhost:3000 | Prod : https://thibaud-geisler.com
-                                    # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
+                                    # ⚠️ Inlinée dans le bundle JS au build → propagée via build args du job `deploy` de `release-please.yml` (input `vars.NEXT_PUBLIC_SITE_URL` GitHub Repository Variables)
 LOG_LEVEL=                          # Optionnel : niveau de log Pino (fatal|error|warn|info|debug|trace|silent). Défaut : debug en dev, info en prod
 
 # Calendly (widget inline /contact, exposé au navigateur, une URL par locale, event types FR/EN distincts)
-# ⚠️ Inlinées dans le bundle JS au build → propagées via build args du workflow GHA `deploy.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
+# ⚠️ Inlinées dans le bundle JS au build → propagées via build args du job `deploy` de `release-please.yml` (inputs `vars.NEXT_PUBLIC_CALENDLY_URL_FR/EN` GitHub Repository Variables)
 NEXT_PUBLIC_CALENDLY_URL_FR=        # URL Calendly FR (ex: https://calendly.com/<slug>/<event-type-fr>)
 NEXT_PUBLIC_CALENDLY_URL_EN=        # URL Calendly EN (ex: https://calendly.com/<slug>/<event-type-en>)
 
 # Sentry (monitoring d'erreurs et tracing, DSN exposé au navigateur)
-# ⚠️ Inlinée dans le bundle JS au build → propagée via build args du workflow GHA `deploy.yml` (input `vars.NEXT_PUBLIC_SENTRY_DSN` GitHub Repository Variables)
+# ⚠️ Inlinée dans le bundle JS au build → propagée via build args du job `deploy` de `release-please.yml` (input `vars.NEXT_PUBLIC_SENTRY_DSN` GitHub Repository Variables)
 NEXT_PUBLIC_SENTRY_DSN=             # DSN du projet Sentry (Project Settings → SDK Setup → Client Keys). Fiche : knowledges/sentry.md
 ```
 
@@ -184,7 +184,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 - ✅ **Les secrets vivent dans l'Environment du Compose Dokploy**, jamais dans le dépôt
 - ✅ **Toute variable ajoutée est documentée ici** et déclarée dans `src/env.ts`, sinon l'app répond 500 à chaque requête
-- ✅ **`NEXT_PUBLIC_` uniquement pour ce qui est exposé au navigateur**, et à passer en build-arg dans `deploy.yml` puisque la valeur est inlinée au build
+- ✅ **`NEXT_PUBLIC_` uniquement pour ce qui est exposé au navigateur**, et à passer en build-arg dans le job `deploy` de `release-please.yml` puisque la valeur est inlinée au build
 
 ### Anti-Patterns
 
@@ -201,17 +201,17 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 |---------|--------|-------|
 | Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`, zizmor), typecheck, tests, build (avec cache `.next/cache`, clé sur le lockfile et les sources), `pnpm audit` non bloquant ; tout sauté sur une PR de doc seule, `ci` agrégé (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
-| Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
-| Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
+| Merge de la PR release-please | release-please crée le tag `vX.Y.Z` et la release (GitHub App de release) | - |
+| Même run, une fois la release créée | build Docker + push GHCR + trigger Dokploy redeploy (job `deploy` de `release-please.yml`, checkout sur le tag) | Production |
 | Chaque lundi, ou dispatch manuel | Scan Trivy de l'image `latest` publiée sur GHCR, rapport dans l'onglet Security (workflow `security.yml`) | - |
 
-> GitHub Actions porte l'intégralité du build Docker : Dokploy ne build pas, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
+> GitHub Actions porte l'intégralité du build Docker : Dokploy ne build pas, il pull GHCR. Le déploiement est strictement piloté par les releases release-please, jamais par un merge direct sur `main`.
 
-> ⚠️ **release-please s'authentifie par le token de la GitHub App `thibaud57-release`**, jamais par `GITHUB_TOKEN` : la CI de la PR de release tourne sans approbation et le tag déclenche `deploy.yml`.
+> ⚠️ **release-please s'authentifie par le token de la GitHub App `thibaud57-release`**, jamais par `GITHUB_TOKEN` : la CI de la PR de release tourne sans approbation.
 
 ## Étapes de Déploiement (Automatiques)
 
-**Côté GHA (`deploy.yml`)** : tag `v*` push → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
+**Côté GHA (job `deploy` de `release-please.yml`)** : release créée → checkout sur le tag → build Docker → push GHCR (`latest` + `X.Y.Z` + `X.Y` + `sha-XXX`) → curl POST `api/compose.redeploy` Dokploy avec retry 3×. Le build ne touche aucune base : le site public ne cuit pas de contenu au prerender ([ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md)).
 
 **Côté Dokploy** : `docker compose pull` (image GHCR) → `docker compose up -d` (recreate container) → CMD `prisma migrate deploy && exec node server.js`. Le `exec` fait de Node le destinataire du `SIGTERM` de l'arrêt du container : il s'arrête en moins d'une seconde au lieu d'être tué au bout de 10 s.
 
@@ -221,7 +221,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > ⚠️ **`/api/health` est un contrôle de vie, pas de disponibilité** : la route retourne `{ status: 'ok' }` sans interroger la base, exécutée à chaque requête par `await connection()` (sans lui, `cacheComponents` la prérendait au build et le healthcheck lisait un fichier figé). Postgres injoignable pendant que le process Node tient, et le container reste `healthy`, la sonde externe ne voit rien. Une panne BDD se détecte donc dans les logs (§ Incident Response), jamais par le healthcheck. L'y ajouter un `SELECT 1` reviendrait à faire redémarrer l'app à chaque hoquet réseau de la base : c'est un arbitrage, pas un oubli.
 
-> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que `deploy.yml` apporte : déploiement sur tag de release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
+> ℹ️ **Provider Dokploy** : Provider `GitHub` fonctionne en pull-only tant que `compose.yaml` n'a que `image:` sans `build:`. Un `build:` ferait reconstruire l'image sur le VPS, ce qui marcherait depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) (le build ne lit plus la base) mais renoncerait à ce que le job `deploy` apporte : déploiement sur release et non à chaque push sur `main`, image versionnée sur GHCR pour le rollback (§ Rollback) et le scan Trivy hebdomadaire (`security.yml`), et un build qui ne prend ni le CPU ni la RAM du VPS au site qui tourne.
 
 ## Rollback
 
@@ -231,17 +231,17 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 **Procédure** :
 1. Identifier le dernier tag sain (`gh release list`, ou [CHANGELOG.md](../CHANGELOG.md))
-2. `gh workflow run deploy.yml --ref vX.Y.Z` : `deploy.yml` rebuild depuis ce tag, republie `latest` sur cette version et déclenche le redeploy Dokploy (~3-8 min)
+2. `gh workflow run release-please.yml -f tag=vX.Y.Z` : le job `deploy` (release-please est sauté) rebuild depuis ce tag, republie `latest` sur cette version et déclenche le redeploy Dokploy (~3-8 min)
 3. Vérifier le statut dans Dokploy → Compose `Portfolio-app` → onglet Deployments, puis smoke test
 4. Corriger la cause sur `hotfix/*` → `main` → nouveau tag : le retour arrière est un roll-*forward* vers un `PATCH` supérieur, jamais une suppression du tag fautif
 
-> ⚠️ **Dispatcher sur le ref du tag, jamais sur une branche** : le job de `deploy.yml` porte la condition `startsWith(github.ref, 'refs/tags/v')`. Lancé depuis une branche il est sauté, faute de quoi il publierait `latest` depuis du code jamais passé par la release.
+> ⚠️ **L'input `tag` doit être un tag publié `vX.Y.Z`** : le job `deploy` est sauté si l'input ne commence pas par `v`, et il build le code de ce tag, jamais celui d'une branche.
 
-> ℹ️ **« Redeploy » dans Dokploy** relance la **même** image : utile si le pull a échoué ou si le container est KO, sans effet sur la version déployée. C'est aussi le geste de reprise quand le `curl` de `deploy.yml` a échoué alors que l'image est bien sur GHCR.
+> ℹ️ **« Redeploy » dans Dokploy** relance la **même** image : utile si le pull a échoué ou si le container est KO, sans effet sur la version déployée. C'est aussi le geste de reprise quand le `curl` du job `deploy` a échoué alors que l'image est bien sur GHCR.
 
 > ⚠️ **Attention BDD** : le rollback du code ne défait pas les migrations Prisma déjà appliquées. Si la migration contenait un changement destructeur (`DROP COLUMN`, etc.), restaurer la BDD depuis le dernier backup (voir § Backup & Recovery) avant ou après le rollback.
 
-> ⚠️ **Une release qui déplace le schéma ou modifie `compose.yaml` ne se défait pas par le seul redéploiement d'un tag** : Dokploy clone `main` à chaque déploiement, le tag rejoué tourne donc avec le `compose.yaml` courant sur une base déjà migrée. Revenir en arrière exige de restaurer la sauvegarde prise avant le merge et de remettre sur `main` l'ancien `compose.yaml`, avant de dispatcher `deploy.yml` sur le tag visé.
+> ⚠️ **Une release qui déplace le schéma ou modifie `compose.yaml` ne se défait pas par le seul redéploiement d'un tag** : Dokploy clone `main` à chaque déploiement, le tag rejoué tourne donc avec le `compose.yaml` courant sur une base déjà migrée. Revenir en arrière exige de restaurer la sauvegarde prise avant le merge et de remettre sur `main` l'ancien `compose.yaml`, avant de lancer `release-please.yml` avec l'input `tag` visé.
 
 ## Checklist Pré-MEP
 
@@ -325,7 +325,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 |-----------|---------------------|--------------------|
 | Docker Engine | exécute les conteneurs de l'app et de la Database | SSH, `docker version --format '{{.Server.Version}}'` |
 | Docker Compose | lance le Compose `Portfolio-app` | SSH, `docker compose version --short` |
-| Dokploy | redéploie le Compose à l'appel de `deploy.yml`, porte la Database et ses backups | UI Dokploy |
+| Dokploy | redéploie le Compose à l'appel du job `deploy` de `release-please.yml`, porte la Database et ses backups | UI Dokploy |
 | Traefik (embarqué par Dokploy) | TLS et routage du domaine | SSH, `docker ps --filter name=traefik --format '{{.Image}}'` |
 | Cloudflare R2 | assets et sauvegardes | managed service, sans version |
 
@@ -352,9 +352,9 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | Credentials SMTP | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (transporter Nodemailer) |
 | `DATABASE_URL` | Dokploy : Environment du Compose | Via `env` (client Prisma) |
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
-| `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
+| `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Job `deploy` de `release-please.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
-| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token`, appelée par SHA. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux dépôts où elle est installée (le portfolio en fait partie). Token d'installation frappé à chaque run, restreint par les inputs `permission-*` aux trois droits de release-please. Indispensable pour que le push de tag déclenche `deploy.yml` |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token`, appelée par SHA. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux dépôts où elle est installée (le portfolio en fait partie). Token d'installation frappé à chaque run, restreint par les inputs `permission-*` aux trois droits de release-please. Indispensable pour que la CI de la PR de release tourne sans approbation |
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
@@ -670,8 +670,8 @@ Avant de déployer un fix, diagnostiquer la cause. Tout se fait depuis le dashbo
 2. Recréer le projet `Portfolio` : la Database Postgres, puis le Compose `Portfolio-app` (provider GitHub, branche `main`, `compose.yaml`, Trigger Type `tag`), enfin les domaines et leurs certificats
 3. Reposer les variables d'environnement du Compose (§ Environnements), dont `DATABASE_URL` pointant la nouvelle Database
 4. **Recréer la Backup Destination** (`r2 portfolio-backups`) et la sauvegarde planifiée sur la nouvelle Database : les tokens R2 survivent à la perte du VPS, la destination Dokploy non
-5. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, `deploy.yml` ne peut plus déclencher de redéploiement
-6. `gh workflow run deploy.yml --ref v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
+5. Générer un token API Dokploy, relever le `composeId` du Compose, mettre à jour les secrets GitHub `DOKPLOY_URL`, `DOKPLOY_TOKEN` et `DOKPLOY_COMPOSE_ID` : sans eux, le job `deploy` ne peut plus déclencher de redéploiement
+6. `gh workflow run release-please.yml -f tag=v<dernier tag>` : rebuild, push GHCR et redeploy, les migrations Prisma se jouent au démarrage du container
 7. Restaurer la BDD depuis le dernier backup (voir procédure ci-dessus). Les buckets R2 ne vivent pas sur le VPS : rien à restaurer côté assets
 8. Reposer `/etc/logrotate.d/docker-containers`, le défaut de log dans `/etc/docker/daemon.json` (§ Rétention) et la configuration Traefik du VPS, middlewares `security-headers`, `rate-limit`, `rate-limit-strict`, `redirect-www-to-apex`, `compress-br` et options TLS (§ Sécurité & Configuration) : aucun fichier du dépôt ne les porte
 9. Smoke test complet

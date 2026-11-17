@@ -12,7 +12,7 @@ RUN npm install -g pnpm@12
 
 # =============================================================================
 # Stage: deps — Install full (deps + devDeps) + génération client Prisma
-# Cache mount sur le store pnpm : profite aux builds locaux. Le runner GHA de deploy.yml repart
+# Cache mount sur le store pnpm : profite aux builds locaux. Le runner GHA du job deploy repart
 # à froid, seul son cache de couches (`cache-from: type=gha`) évite de réinstaller.
 # =============================================================================
 FROM base AS deps
