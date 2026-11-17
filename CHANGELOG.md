@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.0...v2.7.1) (2026-11-17)
+
+
+### Continuous Integration
+
+* aligner la configuration GitHub et déployer depuis la release ([#260](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/260)) ([6209e65](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6209e65ebc0a19f543d4bf8edb4b22b4e090b036))
+
 ## [2.7.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.6.3...v2.7.0) (2026-11-11)
 
 
