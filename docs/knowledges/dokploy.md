@@ -48,12 +48,12 @@ docker service update --publish-rm "published=3000,target=3000,mode=host" dokplo
 
 ### Description
 
-Dokploy sait déployer seul sur un événement GitHub (Autodeploy, Trigger Type « push » ou « tag ») ou sur appel de son API. Le portfolio utilise uniquement l'API : `deploy.yml` construit l'image, la pousse sur GHCR, puis appelle `compose.redeploy`. L'Autodeploy du Compose est coupé (relevé du 2026-09-25 : `autoDeploy = false`, `triggerType = tag`, Provider GitHub, branche `main`), sans quoi le push du tag lancerait un déploiement de l'image `latest` précédente avant que la nouvelle soit construite.
+Dokploy sait déployer seul sur un événement GitHub (Autodeploy, Trigger Type « push » ou « tag ») ou sur appel de son API. Le portfolio utilise uniquement l'API : le job `deploy` de `release-please.yml` construit l'image, la pousse sur GHCR, puis appelle `compose.redeploy`. L'Autodeploy du Compose est coupé (relevé du 2026-09-25 : `autoDeploy = false`, `triggerType = tag`, Provider GitHub, branche `main`), sans quoi le push du tag lancerait un déploiement de l'image `latest` précédente avant que la nouvelle soit construite.
 
 ### Exemple
 
 ```bash
-# Appel fait par deploy.yml
+# Appel fait par le job `deploy` de release-please.yml
 curl -X POST https://<dokploy-domain>/api/compose.redeploy \
   -H "x-api-key: ${DOKPLOY_TOKEN}" \
   -H "Content-Type: application/json" \

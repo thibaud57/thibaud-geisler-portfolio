@@ -117,7 +117,7 @@ jobs:
       - run: just test
 
       # DB injoignable : prouve que le build ne lit jamais la base (ADR-022), comme le sandbox
-      # BuildKit de deploy.yml. Port 1 : refus de connexion immédiat, pas de timeout qui traîne.
+      # BuildKit du job deploy de release-please.yml. Port 1 : refus de connexion immédiat, pas de timeout qui traîne.
       - run: just build
         env:
           DATABASE_URL: postgresql://test:test@127.0.0.1:1/test_db

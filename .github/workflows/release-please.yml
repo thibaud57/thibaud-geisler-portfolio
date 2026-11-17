@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  # Rollback : redéploie un tag déjà publié (PRODUCTION.md § Rollback)
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag à redéployer (vX.Y.Z)
+        required: true
 
 # Jamais d'annulation : une release interrompue laisserait une PR ou un tag incomplet
 concurrency:
@@ -14,11 +20,19 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   release-please:
     name: PR de release
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       # Token d'App et non GITHUB_TOKEN : la CI de la PR de release tourne sans approbation
       # (PRODUCTION.md § Pipelines)
@@ -35,5 +49,87 @@ jobs:
 
       # Config et manifeste lus à leur emplacement par défaut
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
         with:
           token: ${{ steps.app-token.outputs.token }}
+
+  deploy:
+    name: Build et déploiement
+    needs: release-please
+    # Sur dispatch, release-please est sauté et le tag vient de l'input
+    if: >-
+      !cancelled() && github.repository == 'thibaud57/thibaud-geisler-portfolio' &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      (github.event_name == 'workflow_dispatch' && startsWith(inputs.tag, 'v')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+
+    steps:
+      # Ni pnpm ni Node sur le runner : le Dockerfile installe lui-même les dépendances.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+
+      - name: Log in to GHCR
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          # SHA du checkout : sur un dispatch de rollback, celui du workflow serait le HEAD de main
+          context: git
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=sha
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build & push image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_CALENDLY_URL_FR=${{ vars.NEXT_PUBLIC_CALENDLY_URL_FR }}
+            NEXT_PUBLIC_CALENDLY_URL_EN=${{ vars.NEXT_PUBLIC_CALENDLY_URL_EN }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Secrets passés par `env:` : interpolés dans `run:`, ils seraient injectés dans le script
+      # avant son exécution par le shell.
+      - name: Trigger Dokploy compose redeploy
+        env:
+          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+        run: |
+          for i in 1 2 3; do
+            curl -fsSL --max-time 30 -X POST \
+              "$DOKPLOY_URL/api/compose.redeploy" \
+              -H "x-api-key: $DOKPLOY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"composeId\":\"$DOKPLOY_COMPOSE_ID\"}" && exit 0
+            echo "Attempt $i failed, retrying in $((i*5))s..."
+            sleep $((i*5))
+          done
+          exit 1

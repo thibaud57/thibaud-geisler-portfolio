@@ -16,7 +16,7 @@ paths:
 - Créer un **utilisateur non-root** dédié (`addgroup` + `adduser`) et l'activer via `USER` dans le stage final `runner`
 - Lancer le process en **forme exec**. Un enchaînement par `sh -c` (migration puis serveur) finit par **`exec node server.js`** : sinon `sh` reste parent de Node, ne lui relaie pas le `SIGTERM` de `docker stop` et Docker tue le conteneur au bout de 10 s
 - Maintenir un **`.dockerignore`** excluant `node_modules`, `.next`, `.git`, `.env*`, `*.md` et tout fichier qui change sans entrer dans le build (`.github`, `compose*.yaml`, `Justfile`, `Dockerfile`) : chaque fichier du contexte peut invalider `COPY . .`, donc `next build`
-- Déclarer chaque **`NEXT_PUBLIC_*`** par `ARG` puis `ENV` dans le stage `builder`, et la passer en `build-args` de `deploy.yml` : inlinée au build, elle vaut sinon `undefined` dans le bundle de production, sans erreur (`SKIP_ENV_VALIDATION` masque son absence au build)
+- Déclarer chaque **`NEXT_PUBLIC_*`** par `ARG` puis `ENV` dans le stage `builder`, et la passer en `build-args` du job `deploy` de `release-please.yml` : inlinée au build, elle vaut sinon `undefined` dans le bundle de production, sans erreur (`SKIP_ENV_VALIDATION` masque son absence au build)
 - Pour les règles **Next.js spécifiques** au conteneur (`output: standalone`, `HOSTNAME`, `/api/health`) : voir `nextjs/production-deployment.md`
 
 ## À éviter
