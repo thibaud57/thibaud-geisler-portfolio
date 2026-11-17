@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.1...v2.7.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **deps:** monter les dépendances npm et les actions GitHub ([#265](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/265)) ([dd69f0d](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/dd69f0d03b4fbf2cf8df396bc4366b63371ca6e4))
+
 ## [2.7.1](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.0...v2.7.1) (2026-11-17)
 
 
