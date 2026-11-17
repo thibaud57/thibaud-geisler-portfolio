@@ -289,6 +289,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 - [x] **`just test`** : tous les tests passent en local
 - [x] **`just build`** : build Next.js standalone passe sans erreur
 - [x] **Smoke test du livrable** : construire l'image localement (`docker build`, en passant les build-args `NEXT_PUBLIC_*`), puis `just docker-up` avec un `DATABASE_URL` joignable et une requête sur `localhost:3000/api/health`. Le build n'exige aucune base depuis [ADR-022](adrs/022-rendu-public-sans-donnee-au-build.md) : un `DATABASE_URL` joignable n'est nécessaire qu'au `just docker-up` qui suit. Pattern de data-fetching : [ARCHITECTURE.md § Patterns Utilisés](ARCHITECTURE.md#patterns-utilisés).
+- [x] **Réglages du dépôt** : appliqués, rulesets `main`, `develop` et tags compris, relevé du 2026-11-17
 
 ## Checklist Post-MEP
 
