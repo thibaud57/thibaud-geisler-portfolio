@@ -96,7 +96,8 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 | Technologie | Version Recommandée | Statut Production | Notes Critiques |
 |---|---|---|---|
 | GitHub Actions (runner) | `ubuntu-24.04` | ✅ | Actions épinglées par SHA, inventaire en § GitHub Actions |
-| actionlint | `1.7.12` | ✅ | Appelé par `just lint`, absent des runners : `ci.yml` télécharge le script épinglé au commit du tag, en lui passant `1.7.12` (relevé le 29 octobre 2026). Local : `winget install rhysd.actionlint` |
+| actionlint | `1.7.12` | ✅ | Appelé par `just lint-workflows`, absent des runners : `ci.yml` télécharge le script épinglé au commit du tag, en lui passant `1.7.12` (relevé le 29 octobre 2026). Local : `winget install rhysd.actionlint` |
+| zizmor | `1.32.0` | ✅ | Pas une action : `uvx` dans `just lint-workflows`, version en tête du `Justfile`, montée à la main (2 novembre 2026). `uv.toml` borne la version d'uv que lit `astral-sh/setup-uv` en CI |
 
 ---
 
@@ -139,7 +140,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Compatibilité Écosystème** :
 - TypeScript : ne pas activer `preserveSymlinks: true` (résolution des types cassée)
 - `pnpm/setup@v3.1.2` : lit `devEngines.packageManager` et `devEngines.runtime` et installe les dépendances en un step
-- Dependabot : ⚠️ PR de mise à jour fonctionnelles ; alertes de sécurité npm non fiables, le graphe de dépendances GitHub ne lisant que le premier document du lockfile ([dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904), ouverte au 15 octobre 2026). Son cooldown par défaut (3 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
+- Dependabot : ⚠️ PR de mise à jour fonctionnelles ; alertes de sécurité npm non fiables, le graphe de dépendances GitHub ne lisant que le premier document du lockfile ([dependabot-core#15904](https://github.com/dependabot/dependabot-core/issues/15904), ouverte au 15 octobre 2026). Son cooldown (7 jours) couvre le `minimumReleaseAge` des mises à jour de version, pas celui des mises à jour de sécurité
 
 **Issues connues** : le stage `deploy-prisma` du Dockerfile logue « Shared workspace lockfile detected but configuration forces legacy deploy implementation » : attendu, `--legacy` est voulu.
 
@@ -318,6 +319,7 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux deux
 | `actions/cache` | 6.1.0 (26 juin 2026) |
 | `pnpm/setup` | 3.1.2 (25 octobre 2026) |
 | `dorny/paths-filter` | 4.0.3 (5 août 2026) |
+| `astral-sh/setup-uv` | 10.3.3 (28 octobre 2026) |
 | `extractions/setup-just` (composite `.github/actions/setup-just`) | 4.0.0 (5 avril 2026) |
 | `googleapis/release-please-action` | 5.0.0 (22 avril 2026) |
 | `actions/create-github-app-token` | 3.3.0 (12 octobre 2026) |
@@ -336,7 +338,6 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux deux
 **Points d'attention** :
 - Node par défaut du runner ≠ Node du projet (image `20260831.293.1` : système `22.23.2`, tool cache `22.23.2` et `24.20.0`, valeurs qui bougent à chaque image) : Node vient de `devEngines.runtime`, jamais du runner. Node.js 20 est retiré des runners depuis le 23 septembre 2026
 - `just` : la composite lit `minimum-version` du `Justfile`, seule source de la version
-- **Réglages du dépôt** (Settings > Actions > General) : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement > Réglages Actions du dépôt
 
 **Recommandation** : ✅ `ubuntu-24.04`, chaque action par SHA avec la version en commentaire (un tag `@vN` est mobile et détournable), `cache: 'pnpm'` explicite.
 
@@ -448,7 +449,7 @@ Ces mises à jour majeures ont été testées puis écartées, ou identifiées e
 
 | Paquet | Actuel | Disponible | Blocage | Levée attendue |
 |---|---|---|---|---|
-| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.1` (devDependency directe épinglée) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0`, plage identique sur la `latest` npm (relevé le 10 novembre 2026) : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire du blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6 |
+| TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.1` (devDependency directe épinglée) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0`, plage identique sur la `latest` npm (relevé le 10 novembre 2026) : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire du blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6. Retirer alors l'`ignore` de la majeure dans `dependabot.yml` |
 | Prisma | `7.10.1` | `8.0.0-rc.33` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.1 est sur `prev`, relevé le 10 novembre 2026), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire | Publication de la 8.0.0 stable |
 
 ---

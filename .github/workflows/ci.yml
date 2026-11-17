@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on:
   push:
@@ -6,24 +6,31 @@ on:
   pull_request:
     branches: [main, develop]
 
-# Un push qui en chasse un autre annule le run précédent, mais seulement sur PR :
-# sur main chaque commit garde son propre verdict.
+# Annulation sur PR seulement. Hors PR un groupe par run : un groupe ne garde qu'un run en attente
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
+  # Doc seule : jobs sautés, `ci` passe. Un `paths-ignore` laisserait `ci` en attente
   changes:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
+    permissions:
+      contents: read
+      # Lecture des fichiers de la PR par paths-filter
+      pull-requests: read
     outputs:
       source: ${{ steps.filter.outputs.source }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Sur push, paths-filter trouve le commit précédent sans fetch
+          fetch-depth: 0
+          persist-credentials: false
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
@@ -37,7 +44,7 @@ jobs:
 
   quality:
     needs: changes
-    if: needs.changes.outputs.source == 'true' && !startsWith(github.head_ref, 'release-please--')
+    if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
@@ -63,6 +70,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Create .env for just (dotenv-required)
         run: |
@@ -80,6 +89,11 @@ jobs:
 
       - uses: ./.github/actions/setup-just
 
+      # uvx pour zizmor (just lint) ; aucun fichier Python à hacher pour une clé de cache
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .next/cache
@@ -96,6 +110,9 @@ jobs:
           bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - run: just lint
+        env:
+          # Audits en ligne de zizmor
+          GH_TOKEN: ${{ github.token }}
       - run: just typecheck
       - run: just test
 
@@ -115,22 +132,19 @@ jobs:
         if: steps.audit.outcome == 'failure'
         run: echo "::warning title=Audit des dépendances::just audit a relevé des vulnérabilités (high ou plus)"
 
+  # Seul check à exiger : les jobs ci-dessus se renomment sans toucher aux réglages
   ci:
     needs: [changes, quality]
-    # always(), pas !cancelled() : un job sauté compte comme réussi pour un check requis, un run
-    # annulé laisserait merger sans quality. Ici, il tourne et échoue (vérification ci-dessous).
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      - name: Verify
+      # Job sauté (`skipped`) = doc seule, accepté ; détection en échec, refusée
+      - name: Vérifier les jobs
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          if [[ "${{ needs.changes.result }}" != "success" ]]; then
-            echo "Changes detection job did not succeed: ${{ needs.changes.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.quality.result }}" == "failure" || "${{ needs.quality.result }}" == "cancelled" ]]; then
-            echo "Quality job failed or cancelled"
-            exit 1
-          fi
-          echo "CI OK (quality passed or doc-only skip)"
+          echo "$RESULTS"
+          [ "$CHANGES" = "success" ] || { echo "::error title=CI::Détection des fichiers modifiés en échec"; exit 1; }
+          case " $RESULTS " in *" failure "*|*" cancelled "*) echo "::error title=CI::Un job au moins n'est pas passé"; exit 1 ;; esac

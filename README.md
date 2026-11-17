@@ -20,6 +20,7 @@ Site en production : [thibaud-geisler.com](https://thibaud-geisler.com).
 - Docker (Compose, pour Postgres en dev)
 - [`just`](https://github.com/casey/just) (workflow standard du projet) avec bash (Git Bash sous Windows, le `Justfile` pose `set shell := ["bash", "-cu"]`)
 - [`actionlint`](https://github.com/rhysd/actionlint) (`winget install rhysd.actionlint`, requis par `just lint`)
+- [`uv`](https://docs.astral.sh/uv/) (`winget install astral-sh.uv`, lance zizmor par `uvx` pour `just lint`)
 
 ## Getting Started
 

@@ -61,12 +61,9 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
 | `refactor` | Refactoring sans changement fonctionnel | skip |
 | `test` | Ajout ou modification de tests | skip |
 | `chore` | Maintenance, dépendances, configuration Docker/Dokploy | skip |
+| `ci` | Workflows GitHub Actions | skip |
 
-> **PR develop → main** : le squash-merge crée 1 commit sur `main` dont le titre est le **titre de la PR**. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy.
-
-> **Forcer un numéro de version** : release-please lit `Release-As: X.Y.Z` dans le **corps d'un commit** de `main`, jamais dans la description de la PR. Le dépôt étant réglé en `COMMIT_MESSAGES`, ce corps est la liste des commits de `develop` : écrire le footer dans la description de la PR ne produit donc rien, silencieusement. Le poser en l'ajoutant dans l'éditeur de message au moment du squash.
-
-> **Corriger les release notes après coup** : ajouter un bloc `BEGIN_COMMIT_OVERRIDE` / `END_COMMIT_OVERRIDE` dans le corps de la PR **déjà mergée**, contenant les messages Conventional à retenir. release-please les utilise à la place du message du commit. Ne fonctionne qu'en squash-merge, ce qui est le réglage du dépôt.
+> **PR develop → main** : le squash-merge crée 1 commit sur `main` dont le titre est le **titre de la PR**. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy. Dépôt en squash seul, commit = titre de la PR, corps vide. Forcer une version : `gh pr merge <n> --squash --body "Release-As: X.Y.Z"`.
 
 ## Checklist Release
 
@@ -76,7 +73,7 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
 - [ ] `just audit` lu, même s'il ne bloque pas (§ Dépendances)
 - [ ] Alertes Trivy de l'onglet Security lues, même si le scan ne bloque pas (§ Dépendances)
 
-> ℹ️ Le job `quality` est **sauté** sur un diff purement documentaire et sur les branches `release-please--*` : une PR de release affichée « verte » n'a donc rien exécuté, c'est normal.
+> ℹ️ Le job `quality` est **sauté** sur un diff purement documentaire (`**/*.md`, `docs/**`, `.claude/**`) : le check `ci` passe quand même, rien n'a été exécuté, c'est normal.
 
 **Manuel :**
 Dans l'ordre où ils s'exécutent, le tag étant ce qui déclenche le déploiement :
@@ -202,7 +199,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 | Trigger | Étapes | Cible |
 |---------|--------|-------|
-| Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`), typecheck, tests, build (avec cache `.next/cache`, clé sur le lockfile et les sources), `pnpm audit` non bloquant (workflow `ci.yml`) | - |
+| Push sur `main`, PR vers `main` ou `develop` | lint (ESLint, Prettier, `prisma validate`, `actionlint`, zizmor), typecheck, tests, build (avec cache `.next/cache`, clé sur le lockfile et les sources), `pnpm audit` non bloquant ; tout sauté sur une PR de doc seule, `ci` agrégé (workflow `ci.yml`) | - |
 | Merge sur `main` | release-please ouvre/maj la PR de release (CHANGELOG + bump) | - |
 | Merge de la PR release-please | tag `vX.Y.Z` créé par la GitHub App de release | - |
 | Push tag `v*` | build Docker + push GHCR + trigger Dokploy redeploy (workflow `deploy.yml`) | Production |
@@ -210,25 +207,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 
 > GitHub Actions porte l'intégralité du build Docker : Dokploy ne build pas, il pull GHCR. Le déploiement est strictement piloté par les tags release-please, jamais par un merge direct sur `main`.
 
-## Réglages Actions du dépôt
-
-Le dépôt est public : n'importe qui peut ouvrir une PR depuis un fork, et ce que la CI exécute alors dépend autant des réglages de Settings → Actions que des workflows. Ces réglages ne vivent dans aucun fichier versionné, d'où leur relevé ici.
-
-| Réglage | Cible | Relevé le 2026-10-12 | Pourquoi |
-|---------|-------|----------------------|----------|
-| Permissions par défaut du `GITHUB_TOKEN` | `read` (restricted) | ✅ `read` (corrigé le 2026-10-09, avant : écriture) | Chaque workflow déclare en plus ses `permissions:`, un oubli retombe sur la lecture seule |
-| Autoriser Actions à créer et approuver des PR | Désactivé | ✅ désactivé (corrigé le 2026-10-09) | release-please passe par le token d'App ([Gestion des Secrets](#gestion-des-secrets)), le `GITHUB_TOKEN` n'a aucune PR à ouvrir ni à valider |
-| Épinglage SHA obligatoire | Activé | ✅ activé (corrigé le 2026-10-29, avant : désactivé) | Toutes les actions, y compris celles que les composites tierces appellent (`trivy-action`, `setup-trivy`, `setup-just`), sont appelées par SHA (lu dans leurs `action.yml`, 2026-10-29) |
-| Approbation des workflows de fork | Tous les contributeurs externes | ✅ tous les contributeurs externes (corrigé le 2026-10-12, avant : `first_time_contributors`) | Sinon, une seule PR acceptée (une typo suffit) dispense d'approbation toutes les suivantes |
-| Actor rules (rulesets) | Aucune, ou `dependabot[bot]` inclus | ✅ aucune | Une actor rule qui oublie `dependabot[bot]` bloque ses PR sans erreur visible |
-
-```bash
-# Relire l'état réel
-gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions
-gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/workflow
-gh api repos/thibaud57/thibaud-geisler-portfolio/actions/permissions/fork-pr-contributor-approval
-gh api repos/thibaud57/thibaud-geisler-portfolio/rulesets
-```
+> ⚠️ **release-please s'authentifie par le token de la GitHub App `thibaud57-release`**, jamais par `GITHUB_TOKEN` : la CI de la PR de release tourne sans approbation et le tag déclenche `deploy.yml`.
 
 ## Étapes de Déploiement (Automatiques)
 
@@ -375,7 +354,7 @@ Docker Engine, Docker Compose, Dokploy et Traefik tournent sur le VPS, **aucun f
 | `IP_HASH_SALT` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hachage des IP dans les logs) |
 | `DOKPLOY_URL` / `DOKPLOY_TOKEN` / `DOKPLOY_COMPOSE_ID` | GitHub : Repository Secrets | Workflow `deploy.yml` (curl trigger redeploy via API Dokploy) |
 | `SENTRY_AUTH_TOKEN` | GitHub : Repository Secrets | Secret de **build** uniquement, monté via BuildKit (`--mount=type=secret`) dans `Dockerfile` pour l'upload des source maps. N'est jamais posé en variable d'environnement Dokploy : le runtime du conteneur n'en a pas besoin |
-| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token`, appelée par SHA. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux trois dépôts où elle est installée (le portfolio en fait partie). Le token d'installation est frappé à chaque run, valable 1 h, révoqué dans le step `post` du job, et restreint par les inputs `permission-contents`, `permission-issues` et `permission-pull-requests` aux trois droits que demande release-please. Indispensable pour que le push de tag déclenche `deploy.yml` : les événements émis par le `GITHUB_TOKEN` intégré ne déclenchent aucun workflow |
+| `RELEASE_APP_CLIENT_ID` (Variable) + `RELEASE_APP_PRIVATE_KEY` (Secret) | GitHub : Repository Variables et Secrets | Workflow `release-please.yml` via `actions/create-github-app-token`, appelée par SHA. L'App `thibaud57-release` porte Contents / Issues / Pull requests en read-write et Metadata en read, bornées aux dépôts où elle est installée (le portfolio en fait partie). Token d'installation frappé à chaque run, restreint par les inputs `permission-*` aux trois droits de release-please. Indispensable pour que le push de tag déclenche `deploy.yml` |
 | `BETTER_AUTH_URL` / `BETTER_AUTH_SECRET` | Dokploy : Environment du Compose | Via `env` (`src/lib/auth.ts`), construction des redirect URIs OAuth ; `BETTER_AUTH_SECRET` côté serveur uniquement (signature des sessions et jetons) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Dokploy : Environment du Compose | Via `env`, provider Google OAuth ; `GOOGLE_CLIENT_SECRET` côté serveur uniquement |
 | `ADMIN_EMAIL` | Dokploy : Environment du Compose | Via `env`, côté serveur uniquement (hook de whitelist `databaseHooks.user.create.before`) |
@@ -471,13 +450,15 @@ Aucune politique CORS : le site sert ses propres pages et ses Server Actions, et
 
 | Outil | Scope | Fréquence | Config |
 |-------|-------|-----------|--------|
-| Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle | [.github/dependabot.yml](../.github/dependabot.yml) : PRs vers `develop`, 5 ouvertes au plus, mineures et patchs groupés en une PR `minor-patch`, majeures isolées |
+| Dependabot | `npm`, `github-actions`, `docker` (le `FROM` du Dockerfile) | Mensuelle, sécurité à l'alerte | [.github/dependabot.yml](../.github/dependabot.yml) : PRs de version vers `develop`, mineures et patchs groupés en une PR `minor-patch`, majeures isolées ; PRs de sécurité vers `main`, retitrées `fix(deps):` pour livrer (`docker` exclu) |
 | `pnpm audit` | Vulnérabilités des dépendances | À chaque run CI, et en local par `just audit` | Seuil `--audit-level=high`, **non bloquant** en CI (`continue-on-error`) : un step suivant émet un `::warning::` visible dans le résumé du run quand il échoue, il n'arrête pas le pipeline |
 | Trivy | Image `latest` de GHCR, celle que tire Dokploy : sévérités `CRITICAL` et `HIGH` corrigeables | Hebdomadaire, et à la demande par `gh workflow run security.yml` | Workflow `security.yml`, rapport dans l'onglet Security du dépôt (Code scanning, catégorie `trivy-image`). Ne bloque aucune release |
 
-> ⚠️ **Les PRs Dependabot visent `develop`, jamais `main`** : elles n'atteignent la production qu'au prochain merge d'epic. Un correctif de sécurité urgent passe par un `hotfix/*`.
+> ⚠️ **Les PRs Dependabot de version visent `develop`** : elles n'atteignent la production qu'au prochain merge d'epic. Les PRs de sécurité visent `main` directement.
 
-> ⚠️ **pnpm 11 refuse en install figée toute version publiée depuis moins de 24 h** (`minimumReleaseAge`), en CI comme dans le Dockerfile. Le cooldown par défaut de Dependabot (3 jours) en protège ses PRs de version, pas ses PRs de sécurité : une CI rouge le jour de la publication se relance le lendemain. Une montée manuelle trop récente laisse des `minimumReleaseAgeExclude` dans `pnpm-workspace.yaml`, à retirer avant de pousser (détail : [knowledges/pnpm.md](knowledges/pnpm.md)).
+> Hors Dependabot : `compose.override.yaml`, l'image PostgreSQL du service container de `ci.yml`, `devEngines.runtime`, les images de runner, le script actionlint de `ci.yml`, la version de zizmor et le `minimum-version` du Justfile. Alertes npm muettes : le graphe ne lit que le premier document de `pnpm-lock.yaml` (dependabot-core#15904, [VERSIONS.md § pnpm](VERSIONS.md)), `pnpm audit` relaie.
+
+> ⚠️ **pnpm 11 refuse en install figée toute version publiée depuis moins de 24 h** (`minimumReleaseAge`), en CI comme dans le Dockerfile. Le cooldown de Dependabot (7 jours) en protège ses PRs de version, pas ses PRs de sécurité : une CI rouge le jour de la publication se relance le lendemain. Une montée manuelle trop récente laisse des `minimumReleaseAgeExclude` dans `pnpm-workspace.yaml`, à retirer avant de pousser (détail : [knowledges/pnpm.md](knowledges/pnpm.md)).
 
 ---
 

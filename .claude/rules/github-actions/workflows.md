@@ -11,23 +11,25 @@ paths:
 - **Actions épinglées par SHA de commit**, version exacte en commentaire (`uses: actions/checkout@<sha> # vX.Y.Z`) : un tag `@vN` est mobile et détournable (`tj-actions/changed-files` en mars 2025, `aquasecurity/trivy-action`, utilisée par le projet, en mars 2026 : tags force-pushés vers du code malveillant). Dependabot (`github-actions`) met à jour le SHA et le commentaire ensemble, l'inventaire vit dans VERSIONS.md § GitHub Actions
 - **`pnpm/setup`** installe pnpm, Node et les dépendances en un seul step, sans `setup-node` ni `pnpm install` à part : pnpm et Node se lisent dans `devEngines` de `package.json` (jamais d'input `runtime:` en dur : seconde source qui diverge ; le Node système du runner change à chaque image), avec **`cache: true`** et **`require-lockfile: true`**, qui garde l'échec sur lockfile absent
 - **`just`** par la composite locale **`./.github/actions/setup-just`**, qui épingle `extractions/setup-just` sur le `minimum-version` du `Justfile` : sans pin, l'action prend la dernière release, qui peut durcir la grammaire
-- **Concurrency** : `group: ${{ github.workflow }}-${{ github.ref }}` + `cancel-in-progress: ${{ github.event_name == 'pull_request' }}` : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict
+- **Concurrency** : groupe par ref sur PR, par run ailleurs (`github.event_name == 'pull_request' && github.ref || github.run_id`), `cancel-in-progress` sur PR seulement : les runs redondants d'une PR s'annulent, chaque commit de `main` garde son verdict
 - **Permissions minimales** au niveau workflow (`contents: read`), jamais omises : sans elles, un job hérite du défaut du dépôt (Settings > Actions > General), à garder lui aussi en lecture seule
 - **`timeout-minutes: 15`** sur les jobs de qualité : un test qui hang ne consomme pas les 6 h par défaut
 - **Service container Postgres** pour les tests d'intégration : `image: postgres:18-alpine` (même tag que `compose.override.yaml`), healthcheck `pg_isready`, `DATABASE_URL` sur `localhost:5432` depuis le runner
 - **`just build` avec une `DATABASE_URL` injoignable** (`127.0.0.1:1`) et `SKIP_ENV_VALIDATION: 'true'` : depuis ADR-022 le build ne lit plus la base, un accès résiduel doit casser la CI au lieu de passer inaperçu
-- **Pattern agrégateur** pour un required check compatible doc-only : `changes` (`dorny/paths-filter` avec `predicate-quantifier: every`) → `quality` conditionnel → `ci` en **`if: always()`**, qui réussit si `quality` est vert ou sauté et échoue s'il est en échec ou annulé. Ajouter `pull-requests: read` aux permissions (API de paths-filter)
-- **Sauter `quality` sur les PR de release** par `&& !startsWith(github.head_ref, 'release-please--')` : elles touchent `package.json`, donc `source` rend `true`. Exclure `package.json` du filtre ferait sauter la CI à une vraie PR de dépendances. `github.head_ref` est vide au push, le garde-fou y reste intact
+- **Pattern agrégateur** pour un required check compatible doc-only : `changes` (`dorny/paths-filter`, sortie `source`) → `quality` conditionnel → `ci` en **`if: ${{ !cancelled() }}`**, qui exige `changes` en succès et refuse un `quality` en échec ou annulé. `pull-requests: read` sur le seul job `changes`
+- **`persist-credentials: false`** sur chaque `actions/checkout` qui ne pousse rien
+- **Annotations** `::error` et `::warning` avec `title=`
 - **Doubler un step `continue-on-error: true`** d'un step `if: steps.<id>.outcome == 'failure'` qui émet un `::warning::` : sinon l'échec conclut en succès et passe inaperçu
 
 ## À éviter
 - Interpoler `${{ secrets.NAME }}` directement dans un `run:` : la valeur est injectée dans le script avant que le shell ne le lise. La passer par `env:` du step et lire `$NAME`. Ne jamais `echo` un secret dans les logs
-- `if: always()` sur un step de nettoyage ou de rapport : il s'exécute aussi sur un run annulé. Préférer `if: ${{ !cancelled() }}`, l'enveloppe `${{ }}` étant obligatoire à cause du `!`. **Sauf sur le job agrégateur d'un check requis**, qui garde `always()` : un job sauté compte comme réussi pour un check requis, donc sous `!cancelled()` un run annulé laisserait merger sans `quality`
+- `if: always()` : il s'exécute aussi sur un run annulé. Préférer `if: ${{ !cancelled() }}`, l'enveloppe `${{ }}` étant obligatoire à cause du `!`
+- `paths:` ou `paths-ignore:` sur le trigger : le saut de doc passe par le job `changes` de `ci.yml`
 
 ## Gotchas
 - **`hashFiles` ne développe pas les accolades** : `hashFiles('src/**/*.{ts,tsx}')` rend une chaîne vide, sans erreur. Passer un glob par argument (`hashFiles('src/**/*.ts', 'src/**/*.tsx')`)
 - **Épingler un tag annoté** (`trivy-action`, `codeql-action`) : `gh api repos/<o>/<r>/git/ref/tags/<tag>` renvoie le SHA de l'objet tag, à déréférencer par `git/tags/<sha>` pour obtenir celui du commit
-- Le script d'installation d'`actionlint` (`ci.yml`) est épinglé à la main, Dependabot ne le suit pas
+- Le script d'installation d'`actionlint` (`ci.yml`) et la version de zizmor (`Justfile`) sont épinglés à la main, Dependabot ne les suit pas
 - Release, déploiement et tokens : voir `github-actions/release-deploy.md`
 
 ## Exemples
@@ -35,7 +37,7 @@ paths:
 # ✅ Job quality : setup déterministe, commandes via just
 quality:
   needs: changes
-  if: needs.changes.outputs.source == 'true' && !startsWith(github.head_ref, 'release-please--')
+  if: needs.changes.outputs.source == 'true'
   runs-on: ubuntu-24.04
   timeout-minutes: 15
   steps:

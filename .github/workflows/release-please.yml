@@ -1,24 +1,27 @@
-name: release-please
+name: Release
 
 on:
   push:
     branches:
       - main
 
-# Jamais d'annulation : une release interrompue à mi-chemin laisserait une PR ou un tag
-# incomplet, contrairement au gate qualité.
+# Jamais d'annulation : une release interrompue laisserait une PR ou un tag incomplet
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+# Les droits d'écriture de release-please vivent dans le token d'App
 permissions:
   contents: read
 
 jobs:
   release-please:
+    name: PR de release
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      # Token d'App et non GITHUB_TOKEN : la CI de la PR de release tourne sans approbation
+      # (PRODUCTION.md § Pipelines)
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app-token
         with:
@@ -30,6 +33,7 @@ jobs:
           permission-issues: write
           permission-pull-requests: write
 
+      # Config et manifeste lus à leur emplacement par défaut
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ steps.app-token.outputs.token }}
