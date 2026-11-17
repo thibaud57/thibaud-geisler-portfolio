@@ -30,7 +30,7 @@ vi.mock("@/server/crm/companies", async (orig) => ({
 
 import { updateTag } from "next/cache"
 import { getCurrentUser } from "@/lib/get-current-user"
-import { constraintViolation, objectMatch } from "@/lib/matchers-test-setup"
+import { constraintViolation, objectMatch } from "@/testing/matchers"
 import { prisma } from "@/lib/prisma"
 import { NONE_VALUE } from "@/lib/schemas/none-value"
 import {

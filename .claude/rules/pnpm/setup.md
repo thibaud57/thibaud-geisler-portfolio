@@ -21,7 +21,7 @@ paths:
 - Ajouter un `overrides` pour une vulnérabilité transitive sans vérifier la plage du parent : si elle autorise déjà la version corrigée, le vrai correctif est la re-résolution (Dependabot ou une PR `chore(deps)` dédiée)
 
 ## Gotchas
-- **`minimumReleaseAge` vaut 1 440 min (1 jour) par défaut depuis pnpm 11**. `pnpm install --frozen-lockfile` le réapplique à chaque entrée du lockfile : une version de moins de 24 h fait échouer l'install de la CI et du Dockerfile. Le cooldown par défaut de Dependabot (3 jours) couvre ses mises à jour de version, pas ses mises à jour de sécurité
+- **`minimumReleaseAge` vaut 1 440 min (1 jour) par défaut depuis pnpm 11**. `pnpm install --frozen-lockfile` le réapplique à chaque entrée du lockfile : une version de moins de 24 h fait échouer l'install de la CI et du Dockerfile. Le cooldown de Dependabot (7 jours) couvre ses mises à jour de version, pas ses mises à jour de sécurité
 - **Le champ `pnpm` ignoré ne fait pas échouer l'install** : pnpm l'annonce (`The "pnpm" field in package.json is no longer read by pnpm…`) puis installe quand même, le réglage est perdu sans erreur
 - **Une transitive figée dans le lockfile ne se met à jour par aucune commande de mise à jour** : ni `overrides`, ni `pnpm update <pkg> --depth Infinity`, ni `pnpm dedupe`, ni `pnpm install --force/--lockfile-only/--fix-lockfile`. Seule une re-résolution complète (lockfile supprimé) la débloque, en remontant toutes les autres (vérifié le 2026-09-05 sur `vite@8.0.8`, passé à 8.2.2 en résolution fraîche)
 - `onlyBuiltDependencies`, `neverBuiltDependencies` et `ignoredBuiltDependencies` sont supprimés depuis pnpm 11.0 : `allowBuilds` (map `package → boolean`, apparue en 10.26) les remplace tous

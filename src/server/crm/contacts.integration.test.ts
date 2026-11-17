@@ -4,7 +4,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 
 import { CONTACT_DETAILS_TEMPLATE, leadDetailsTemplate } from "@/lib/crm/details-templates"
 import { companyIdSchema, personIdSchema } from "@/lib/ids"
-import { constraintViolation } from "@/lib/matchers-test-setup"
+import { constraintViolation } from "@/testing/matchers"
 import {
   idOf,
   loadPerson,
@@ -12,7 +12,7 @@ import {
   rejectNextTransactionWrite,
   resetDatabase,
   seedPerson,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import { attachContact, createContact, updateContact, type ContactWriteData } from "./contacts"
 

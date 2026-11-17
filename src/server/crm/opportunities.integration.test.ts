@@ -10,7 +10,7 @@ import {
   seedEsn,
   seedOpportunity,
   seedPerson,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import { createOpportunity, updateOpportunity, type OpportunityWriteData } from "./opportunities"
 

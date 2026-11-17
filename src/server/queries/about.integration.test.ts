@@ -6,7 +6,7 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }))
 
-import { createProject, prisma, resetDatabase } from "@/lib/prisma-test-setup"
+import { createProject, prisma, resetDatabase } from "@/testing/prisma"
 import { countClientsSupported, countMissionsDelivered, findAllTags } from "@/server/queries/about"
 
 async function ensureCompany(slug: string) {

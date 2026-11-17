@@ -2,6 +2,7 @@
 paths:
   - "vitest.*.ts"
   - "__mocks__/**/*.ts"
+  - "src/testing/**/*.ts"
   - "src/**/*.test.{ts,tsx}"
 ---
 
@@ -10,10 +11,10 @@ paths:
 ## À faire
 - Configurer `vitest.config.ts` avec le plugin **`@vitejs/plugin-react`** et résoudre les alias `@/*` par **`resolve.tsconfigPaths: true`**, option de Vite (défaut `false`) et non de Vitest : elle dépend du Vite installé, peer de Vitest. Le plugin `vite-tsconfig-paths` a été retiré du projet le 2026-09-03, il ne servait plus
 - **Séparer les environnements via `projects`** : `unit` (jsdom, composants et lib), `server` (node, `src/server/**` et `src/app/api/**` hors intégration : actions, requêtes et route handlers tournent avec le `FormData`, le `File` et le `fetch` de Node) et `integration` (node, sérialisé sur la DB partagée, voir Gotchas). Jamais de directive `// @vitest-environment node` par fichier. `just test-unit` lance `unit` et `server`
-- **Helpers de test partagés** dans `src/lib/*-test-setup.ts` : `prisma-test-setup.ts` (client et remise à zéro de la base de test), `matchers-test-setup.ts` (`objectMatch`, `constraintViolation` à la forme réelle d'une erreur Prisma 7). Les importer plutôt que recopier ; un `vi.mock` d'une ligne reste dans chaque fichier (hoisting)
+- **Helpers de test partagés** dans `src/testing/` (`prisma.ts` : client et remise à zéro de la base de test, `prisma-mock.ts`, `mcp.ts`, `matchers.ts` : `objectMatch`, `constraintViolation` à la forme réelle d'une erreur Prisma 7), exclu de la couverture. Les importer plutôt que recopier ; un `vi.mock` d'une ligne reste dans chaque fichier (hoisting)
 - **Inliner `next-intl` côté project unit** via **`server.deps.inline: ['next-intl']`** : next-intl est ESM-only et importe `next/navigation` sans extension `.js` (workaround Next.js [#77200](https://github.com/vercel/next.js/issues/77200), pas fixé en Next 16). Sans inline, Node ESM strict refuse la résolution. Solution officielle [next-intl.dev/docs/environments/testing](https://next-intl.dev/docs/environments/testing). Préférer cette option à `vi.mock('next/navigation')` (insuffisant car le bug est à la résolution, avant `vi.mock`)
 - Colocaliser les fichiers `.test.ts(x)` et `.integration.test.ts(x)` **strictement à plat** à côté du fichier testé (ex: `foo.ts` + `foo.test.ts` dans le même dossier). Convention projet : pas de dossier `__tests__/`, pas de dossier `tests/` à la racine, pas de structure miroir
-- Maintenir une **DB de test séparée** pour les tests d'intégration Prisma (database `_test` distincte de `_dev`, ou container éphémère en CI)
+- **Base de test** : dérivée (`<base de DATABASE_URL>_test`), recréée et migrée à chaque run par `vitest.global-setup.ts`, imposée aux workers par `vitest.test-database.ts`. Jamais un fichier d'env de test sourcé : une variable exportée le masquerait. Tout DROP ou reset passe par `assertTestDatabase` (`src/testing/test-database.ts`)
 
 ## Gotchas
 - Les projects inline héritent de la config racine par défaut (`extends: true`) depuis Vitest 5, l'`extends: true` explicite du projet reste valide

@@ -6,10 +6,11 @@ set default-list
 set ignore-comments
 # bash sur tous les OS (Git Bash sous Windows) : set windows-shell est deprecie depuis just 1.56
 set shell := ["bash", "-cu"]
-# Recettes [script] : un seul bash pour tout le corps, le sourcing de .env.test persiste entre les lignes
+# Recettes [script] : un seul bash pour tout le corps
 set script-interpreter := ["bash", "-eu"]
 
 PORT := env("PORT", "3000")
+ZIZMOR_VERSION := "1.32.0"
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
@@ -44,13 +45,18 @@ dev-login FILE:
 build:
     pnpm build
 
-# Lint ESLint sur src/ + formatage
+# Lint des workflows GitHub Actions (actionlint puis zizmor)
 [group('quality')]
-lint:
+lint-workflows:
+    actionlint
+    GH_TOKEN="${GH_TOKEN:-$(gh auth token)}" uvx zizmor@{{ ZIZMOR_VERSION }} .
+
+# Lint ESLint sur src/ + formatage + schéma Prisma + workflows
+[group('quality')]
+lint: lint-workflows
     pnpm lint
     pnpm format:check
     pnpm prisma validate
-    actionlint
 
 # Reformate tout le depot
 [group('quality')]
@@ -70,9 +76,7 @@ audit:
 
 # Tous les projets Vitest ensemble, couverture fusionnée : plancher de 80 % (lignes et branches), anti-régression
 [group('quality')]
-[script]
 test:
-    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
     pnpm vitest run --coverage --coverage.thresholds.lines=80 --coverage.thresholds.branches=80
 
 # Tests unitaires (Vitest) : composants et lib en jsdom, code serveur en Node
@@ -80,18 +84,14 @@ test:
 test-unit:
     pnpm vitest run --project unit --project server
 
-# Tests d'intégration (DB de test via .env.test s'il existe)
+# Tests d'intégration : la suite recrée sa base <base de dev>_test (voir vitest.global-setup.ts)
 [group('quality')]
-[script]
 test-integration:
-    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
     pnpm vitest run --project integration
 
 # Tests en mode watch
 [group('quality')]
-[script]
 test-watch:
-    if [ -f ./.env.test ]; then set -a && . ./.env.test && set +a; fi
     pnpm test:watch
 
 # ── Infrastructure ────────────────────────────────────────────────────────────
@@ -143,29 +143,6 @@ db-restore FILE:
 db-studio:
     pnpm prisma studio
 
-# Démarre Postgres + migrations pour la DB de test
-[group('db')]
-[script]
-db-test:
-    docker compose up -d --wait postgres
-    set -a && . ./.env.test && set +a
-    pnpm prisma migrate deploy
-
-# Réinitialise la DB de test (drop, sans données)
-[confirm('Cela va DROP la DB de test. Continuer ?')]
-[group('db')]
-[script]
-db-test-reset:
-    set -a && . ./.env.test && set +a
-    pnpm prisma migrate reset --force
-
-# Prisma Studio sur la DB de test
-[group('db')]
-[script]
-db-test-studio:
-    set -a && . ./.env.test && set +a
-    pnpm prisma studio
-
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
 # Installe les dépendances (pnpm)
@@ -183,6 +160,7 @@ check:
     @command -v node >/dev/null 2>&1 || echo "⚠️ Node requis (voir devEngines de package.json)"
     @command -v pnpm >/dev/null 2>&1 || echo "⚠️ pnpm requis (voir devEngines de package.json)"
     @command -v actionlint >/dev/null 2>&1 || echo "⚠️ actionlint requis pour just lint (winget install rhysd.actionlint)"
+    @command -v uv >/dev/null 2>&1 || echo "⚠️ uv requis pour just lint (zizmor via uvx, winget install astral-sh.uv)"
     @test -d node_modules || echo "⚠️ Dépendances absentes, lancer just install"
     @test -d .next/types || echo "⚠️ Types Next absents, lancer just install (postinstall les génère)"
     @[ -n "${DATABASE_URL:-}" ] || echo "⚠️ DATABASE_URL manquant dans .env"

@@ -13,7 +13,7 @@ import {
   slugsAndOrders,
   storedProjectTags,
   stubNextTransactionCall,
-} from "@/lib/prisma-test-setup"
+} from "@/testing/prisma"
 
 import { createProject, updateProject, type ProjectWriteData } from "./projects"
 

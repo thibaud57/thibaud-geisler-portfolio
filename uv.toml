@@ -1,0 +1,2 @@
+# Lu par setup-uv en CI (sans lui, la dernière version) et par uvx en local : zizmor est le seul usage d'uv ici
+required-version = ">=0.13,<0.14"
