@@ -50,6 +50,7 @@ export const REVIEW_FIELD_LABELS = {
   acceptanceRate: "Taux acceptation",
   messagesSent: "Messages envoyés",
   conversationsEngaged: "Conversations engagées",
+  refusalsReceived: "Refus reçus",
   responseRate: "Taux réponse",
   meetingsBooked: "RDV décrochés",
   meetingConversion: "Conversion RDV",
@@ -89,6 +90,7 @@ export const REVIEW_COUNTER_KEYS = [
   "connectionsAccepted",
   "messagesSent",
   "conversationsEngaged",
+  "refusalsReceived",
   "meetingsBooked",
   "interviewsHeld",
   "activeLeads",
@@ -113,7 +115,7 @@ export function reviewRates(review: ReviewCounts): {
 } {
   return {
     acceptance: rate(review.connectionsAccepted, review.connectionsSent),
-    response: rate(review.conversationsEngaged, review.messagesSent),
+    response: rate(review.conversationsEngaged + review.refusalsReceived, review.messagesSent),
     meetingConversion: rate(review.meetingsBooked, review.conversationsEngaged),
   }
 }

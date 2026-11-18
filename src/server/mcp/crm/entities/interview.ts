@@ -207,7 +207,7 @@ export const interviewEntity = defineEntity({
       "for an interview id, title (Entretien N · type, or Premier contact), type, side, status, outcome, date, score and opportunity title",
     querySort: "An interview has no name: sort name orders by opportunity title then date.",
     create:
-      "For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own.",
+      "For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own. An interview is a meeting tied to an opportunity; calls are CALL prospecting actions (see the prospecting action rule).",
     update:
       "For an interview, correspondentIds replaces the whole list (omit it to keep it) and outcome is cleared unless the status is FAIT.",
   },

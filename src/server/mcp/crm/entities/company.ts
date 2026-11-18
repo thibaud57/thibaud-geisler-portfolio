@@ -12,6 +12,7 @@ import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
 import { COMPANY_LOGO_FOLDER, isCompanyLogoKey } from "@/lib/asset-keys"
+import { COMPANY_RELATION_DISPLAY_STATUSES } from "@/lib/crm/company-relation-status"
 import { COMPANY_DETAILS_TEMPLATE } from "@/lib/crm/details-templates"
 import { personDisplayName } from "@/lib/crm/persons"
 import { sortZones } from "@/lib/crm/zones"
@@ -32,7 +33,7 @@ import {
 } from "@/server/crm/companies"
 import { withDays } from "@/server/mcp/day-fields"
 import { defineEntity } from "@/server/mcp/entity-definition"
-import { idOrderBy, pageQueryShape, type SortOrder } from "@/server/mcp/query-page"
+import { pageQueryShape } from "@/server/mcp/query-page"
 import {
   byId,
   notFoundMessage,
@@ -47,7 +48,7 @@ import {
   findCompanyWithLinks,
 } from "@/server/queries/companies"
 
-import { withMonth, withSignalDay } from "../day-fields"
+import { withMonth, withSignalDay, ZONED_DAY } from "../day-fields"
 import { details, detailsErrorMessage, notes } from "../fields"
 import { rolesOf } from "../person-ref"
 
@@ -95,7 +96,9 @@ const fieldShape = {
     .describe("Relationship types (e.g. CLIENT_FINAL, ESN_RECRUTEMENT). At least one."),
   relationStatus: z
     .enum(RelationStatus)
-    .describe("Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."),
+    .describe(
+      "Status of the relationship: ACTIVE or ARCHIVEE. DORMANTE is derived from 12 months without interaction and only read.",
+    ),
   zones: z
     .array(z.enum(Zone))
     // overwrite plutôt que transform : le schéma reste représentable en JSON Schema
@@ -132,7 +135,12 @@ const updateFieldsSchema = z
 
 const companyFilterSchema = z
   .strictObject({
-    relationStatus: z.enum(RelationStatus).optional().describe("Only this relationship status."),
+    relationStatus: z
+      .enum(COMPANY_RELATION_DISPLAY_STATUSES)
+      .optional()
+      .describe(
+        "Only this displayed relationship status (ACTIVE, DORMANTE or ARCHIVEE). DORMANTE means 12 months without interaction.",
+      ),
     types: z
       .array(z.enum(CompanyType))
       .min(1)
@@ -171,9 +179,11 @@ const updateSchema = updateSchemaOf(
 
 type UpdateInput = z.output<typeof updateSchema>
 
+const INTERACTION_DAYS = ["lastInteractionAt"] as const
+
+// `relationStatus` reste hors du where : le statut affiché se calcule en mémoire dans `findCompaniesPage`.
 function toWhere(filters: z.output<typeof querySchema>["filters"]): Prisma.CompanyWhereInput {
   return {
-    relationStatus: filters?.relationStatus,
     size: filters?.size,
     types: filters?.types ? { hasSome: filters.types } : undefined,
     zones: filters?.zones ? { hasSome: filters.zones } : undefined,
@@ -185,8 +195,6 @@ function toWhere(filters: z.output<typeof querySchema>["filters"]): Prisma.Compa
 function withoutDetails({ details, ...rest }: NonNullable<UpdateInput["fields"]>) {
   return rest
 }
-
-const nameOrder = (order: SortOrder): Prisma.CompanyOrderByWithRelationInput[] => [{ name: order }]
 
 function toPatch(input: UpdateInput): CompanyPatch {
   const fields = input.fields ?? {}
@@ -271,12 +279,16 @@ export const companyEntity = defineEntity({
       }))
   },
   async fetch(id) {
-    const company = await findCompanyWithLinks(id)
+    const company = await findCompanyWithLinks(id, new Date())
     if (!company) return null
 
-    const { persons, legalEntity, ...record } = company
+    const { persons, legalEntity, displayRelationStatus, ...record } = company
     return {
-      ...record,
+      ...withDays(
+        { ...record, relationStatus: displayRelationStatus },
+        INTERACTION_DAYS,
+        ZONED_DAY,
+      ),
       legalEntity: legalEntity && {
         ...legalEntity,
         publisher: legalEntity.publisher && withDays(legalEntity.publisher, ["vatLiableSince"]),
@@ -292,13 +304,20 @@ export const companyEntity = defineEntity({
     }
   },
   querySchema,
-  query: ({ filters, sort, order, limit, offset }) =>
-    findCompaniesPage({
-      where: toWhere(filters),
-      orderBy: idOrderBy(sort, order, nameOrder),
-      take: limit,
-      skip: offset,
-    }),
+  async query({ filters, sort, order, limit, offset }) {
+    const { rows, total } = await findCompaniesPage(
+      {
+        where: toWhere(filters),
+        relationStatus: filters?.relationStatus,
+        sort,
+        order,
+        offset,
+        limit,
+      },
+      new Date(),
+    )
+    return { rows: rows.map((row) => withDays(row, INTERACTION_DAYS, ZONED_DAY)), total }
+  },
   createSchema,
   create: ({ data }, ctx) =>
     writeRecord({

@@ -37,6 +37,7 @@ const STORED_COUNTS = {
   connectionsAccepted: 4,
   messagesSent: 3,
   conversationsEngaged: 2,
+  refusalsReceived: 1,
   meetingsBooked: 1,
   interviewsHeld: 6,
   activeLeads: 7,
@@ -54,7 +55,7 @@ beforeEach(async () => {
 })
 
 describe("createWeeklyReview", () => {
-  it("computes the seven counters when absent, like the admin prefill", async () => {
+  it("computes the eight counters when absent, like the admin prefill", async () => {
     await seedClosedWeek()
 
     const result = await createWeeklyReview(reviewData())

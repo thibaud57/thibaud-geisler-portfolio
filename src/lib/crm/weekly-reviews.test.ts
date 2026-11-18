@@ -14,6 +14,7 @@ const COUNTS = {
   connectionsAccepted: 9,
   messagesSent: 14,
   conversationsEngaged: 5,
+  refusalsReceived: 0,
   meetingsBooked: 2,
   interviewsHeld: 1,
   activeLeads: 4,
@@ -24,6 +25,18 @@ describe("reviewRates", () => {
     const rates = reviewRates(COUNTS)
 
     expect(rates).toEqual({ acceptance: 50, response: 36, meetingConversion: 40 })
+  })
+
+  it("computes the response rate with refusals", () => {
+    const rates = reviewRates({
+      ...COUNTS,
+      messagesSent: 10,
+      conversationsEngaged: 3,
+      refusalsReceived: 2,
+      meetingsBooked: 2,
+    })
+
+    expect(rates).toMatchObject({ response: 50, meetingConversion: 67 })
   })
 
   it("leaves the rate empty when the denominator is zero", () => {
@@ -102,6 +115,7 @@ describe("parseCounterInputs", () => {
       connectionsAccepted: "",
       messagesSent: "0",
       conversationsEngaged: "3",
+      refusalsReceived: "2",
       meetingsBooked: "",
       interviewsHeld: "1",
       activeLeads: "4",
@@ -112,6 +126,7 @@ describe("parseCounterInputs", () => {
       connectionsAccepted: 0,
       messagesSent: 0,
       conversationsEngaged: 3,
+      refusalsReceived: 2,
       meetingsBooked: 0,
       interviewsHeld: 1,
       activeLeads: 4,

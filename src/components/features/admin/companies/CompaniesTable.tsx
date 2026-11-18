@@ -32,10 +32,11 @@ import {
   isEsn,
   RELATION_STATUS_LABELS,
 } from "@/lib/crm/companies"
+import { COMPANY_RELATION_DISPLAY_STATUSES } from "@/lib/crm/company-relation-status"
 import type { CompanyView } from "@/lib/crm/company-views"
 import { ADMIN_COMPANIES_PATH } from "@/lib/admin/routes"
 import { formatShortInstantDate } from "@/lib/date-time"
-import { COMPANY_TYPES, RELATION_STATUSES } from "@/lib/schemas/company"
+import { COMPANY_TYPES } from "@/lib/schemas/company"
 import { signalFacet } from "@/lib/crm/signals"
 import { ZONE_LABELS, ZONES } from "@/lib/crm/zones"
 import { useRowDetail } from "@/components/features/admin/detail/use-row-detail"
@@ -112,7 +113,7 @@ function buildColumns(view: CompanyView): readonly Column<AdminCompany>[] {
       width: COMPANY_COLUMN_WIDTHS.relationStatus,
       ...hideableColumn(visibleByDefault, "relationStatus"),
       cell: (company) =>
-        enumBadge(company.relationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS),
+        enumBadge(company.displayRelationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS),
     },
     {
       key: "worked",
@@ -193,9 +194,9 @@ const facets: readonly Facet<AdminCompany>[] = [
   enumFacet(
     "relationStatus",
     COMPANY_FIELD_LABELS.relationStatus,
-    RELATION_STATUSES,
+    COMPANY_RELATION_DISPLAY_STATUSES,
     RELATION_STATUS_LABELS,
-    (company: AdminCompany) => company.relationStatus,
+    (company: AdminCompany) => company.displayRelationStatus,
   ),
   enumFacet(
     "types",

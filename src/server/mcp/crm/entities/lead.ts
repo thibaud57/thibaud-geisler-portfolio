@@ -111,13 +111,13 @@ export const leadEntity = defineEntity({
     const lead = await findLeadByIdForAdmin(personId)
     if (!lead) return null
 
-    const { hasContactRole, interviews, ...record } = lead
+    const { hasContactRole, interviews, plannedCalls, ...record } = lead
     return {
-      ...withDays(withDays(record, ["metAt"]), ["lastReplyAt"], ZONED_DAY),
+      ...withDays(withDays(record, ["metAt"]), ["lastContactAt"], ZONED_DAY),
       opportunities: record.opportunities.map(withMonth),
       signals: record.signals.map(withSignalDay),
       roles: rolesOf({ lead: true, contact: hasContactRole }),
-      // Les entretiens de l'opportunité n'entrent pas dans le contexte de l'agent : l'opportunité se lit par son id
+      // Les entretiens de l'opportunité n'entrent pas dans le contexte de l'agent : l'opportunité se lit par son id. `plannedCalls` sert au seul statut affiché, `actionsCount` suffit à l'agent
       interviews: interviews.map(({ opportunity, ...interview }) => ({
         ...interview,
         opportunity: { id: opportunity.id, title: opportunity.title },

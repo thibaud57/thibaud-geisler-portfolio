@@ -37,7 +37,7 @@ export function revalidateReviewLists(): void {
 // Compteurs de la semaine close à ce vendredi : source commune de la création et du préremplissage de l'admin.
 export async function computeWeekCounts(closingFriday: Date, now: Date): Promise<ReviewCounts> {
   const bounds = weekBounds(closingFriday)
-  return countWeek(await findWeekCounterSources(bounds), bounds, now)
+  return countWeek(await findWeekCounterSources(bounds, now), bounds, now)
 }
 
 async function countersOf(data: WeeklyReviewWriteData): Promise<Partial<ReviewCounts>> {

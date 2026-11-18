@@ -298,7 +298,7 @@ describe("createCompany", () => {
       initialCompanyFormState,
       buildFormData(
         {
-          relationStatus: "DORMANTE",
+          relationStatus: "ARCHIVEE",
           notes: "  Rencontrée au salon  ",
           details: "# 🏢 À propos\n\nÉditeur de logiciels.",
         },
@@ -311,7 +311,7 @@ describe("createCompany", () => {
       objectMatch({
         types: ["CLIENT_FINAL", "PARTENAIRE"],
         zones: ["PARIS", "LUXEMBOURG"],
-        relationStatus: "DORMANTE",
+        relationStatus: "ARCHIVEE",
         notes: "Rencontrée au salon",
         details: "# 🏢 À propos\n\nÉditeur de logiciels.",
       }),

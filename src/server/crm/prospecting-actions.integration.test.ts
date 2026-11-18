@@ -112,6 +112,17 @@ describe("createProspectingAction", () => {
     expect(result).toEqual({ ok: false, error: { code: "person_not_found" } })
   })
 
+  it("rejects a status the channel forbids on create", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+
+    const result = await createProspectingAction(
+      actionData(idOf(jane), { channel: "CALL", status: "REPONDU" }),
+    )
+
+    expect(result).toEqual({ ok: false, error: { code: "status_not_allowed" } })
+    expect(await prisma.prospectingAction.count()).toBe(0)
+  })
+
   it("sets the reply time of an action created as replied and keeps its day", async () => {
     const jane = await seedPerson({ name: "Jane Doe" })
     const before = new Date()
@@ -185,6 +196,67 @@ describe("updateProspectingAction", () => {
 
     expect(await storedAction(id)).toMatchObject({
       status: "FAIT",
+      respondedAt: null,
+      reply: null,
+    })
+  })
+
+  it("rejects a status the channel forbids from a patch carrying only the status", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const id = await seedAction(jane.id, { channel: "CALL", status: "FAIT" })
+
+    const result = await updateProspectingAction(id, { status: "REFUSE" })
+
+    expect(result).toEqual({ ok: false, error: { code: "status_not_allowed" } })
+    expect((await storedAction(id)).status).toBe("FAIT")
+  })
+
+  it("rejects a status the channel forbids from a patch carrying only the channel", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const id = await seedAction(jane.id, {
+      status: "REPONDU",
+      respondedAt: new Date("2026-03-10T09:00:00Z"),
+      reply: REPLY,
+    })
+
+    const result = await updateProspectingAction(id, { channel: "CALL" })
+
+    expect(result).toEqual({ ok: false, error: { code: "status_not_allowed" } })
+    expect((await storedAction(id)).channel).toBe("DM_LINKEDIN")
+  })
+
+  it("rejects ignoring a message that was never sent", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const id = await seedAction(jane.id)
+
+    const result = await updateProspectingAction(id, { status: "IGNORE" })
+
+    expect(result).toEqual({ ok: false, error: { code: "unsent_action_ignored" } })
+    expect((await storedAction(id)).status).toBe("A_FAIRE")
+  })
+
+  it("allows ignoring a planned call", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const id = await seedAction(jane.id, { channel: "CALL" })
+
+    const result = await updateProspectingAction(id, { status: "IGNORE" })
+
+    expect(result).toEqual({ ok: true, value: { id } })
+    expect((await storedAction(id)).status).toBe("IGNORE")
+  })
+
+  it("stores no response date when a call is converted", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const id = await seedAction(jane.id, { channel: "CALL", status: "FAIT" })
+
+    await updateProspectingAction(id, {
+      status: "CONVERTI",
+      respondedAt: TUESDAY_MIDNIGHT_IN_PARIS,
+      reply: REPLY,
+    })
+
+    expect(await storedAction(id)).toMatchObject({
+      status: "CONVERTI",
       respondedAt: null,
       reply: null,
     })

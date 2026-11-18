@@ -12,9 +12,10 @@ vi.mock("@/lib/prisma", () => {
       delete: vi.fn(),
       findUnique: vi.fn(),
     },
-    prospectingAction: { deleteMany: vi.fn() },
+    prospectingAction: { deleteMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     signal: { deleteMany: vi.fn() },
     contact: { deleteMany: vi.fn() },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   }
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) =>
@@ -140,10 +141,12 @@ describe("optOutPerson", () => {
     expect(prisma.person.update).not.toHaveBeenCalled()
   })
 
-  it("does not touch the person's prospecting actions on a simple stop", async () => {
+  it("deletes only the planned actions on a simple stop", async () => {
     await optOutPerson("p1")
 
-    expect(prisma.prospectingAction.deleteMany).not.toHaveBeenCalled()
+    expect(prisma.prospectingAction.deleteMany).toHaveBeenCalledExactlyOnceWith({
+      where: { personId: "p1", status: "A_FAIRE" },
+    })
   })
 
   it("keeps the first opt-out date when a person opts out twice", async () => {

@@ -23,6 +23,12 @@ export const MESSAGE_CHANNELS: ReadonlySet<ActionChannel> = new Set([
   "SMS_WHATSAPP",
 ])
 
+// Les canaux où une réponse peut arriver : les messages et la candidature (retour RH).
+export const REPLYABLE_CHANNELS: ReadonlySet<ActionChannel> = new Set([
+  ...MESSAGE_CHANNELS,
+  "CANDIDATURE",
+])
+
 const VIEW_FILTERS: Record<ActionView, (action: ActionViewRow) => boolean> = {
   "a-faire": (action) => action.status === "A_FAIRE",
   connexions: (action) => action.channel === "CONNEXION_LINKEDIN" && action.status === "FAIT",
@@ -90,8 +96,7 @@ export const ACTION_VIEW_PAGES: Record<ActionView, { title: string; subtitle: st
   },
   connexions: {
     title: "Connexions",
-    subtitle:
-      "Connexions LinkedIn envoyées, en attente d'acceptation, les plus anciennes d'abord. Au-delà de J+14 sans suite, passer le lead en stand-by.",
+    subtitle: "Connexions LinkedIn envoyées, en attente d'acceptation, les plus anciennes d'abord.",
   },
   discussions: {
     title: "Discussions",
@@ -100,7 +105,7 @@ export const ACTION_VIEW_PAGES: Record<ActionView, { title: string; subtitle: st
   },
   candidatures: {
     title: "Candidatures",
-    subtitle: "Candidatures envoyées en attente de retour RH. Ignoré si aucun contact relançable.",
+    subtitle: "Candidatures envoyées en attente de retour RH.",
   },
   journal: {
     title: "Journal des actions",

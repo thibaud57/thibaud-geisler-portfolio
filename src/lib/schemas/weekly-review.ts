@@ -29,6 +29,7 @@ export const weeklyReviewSchema = z.object({
   connectionsAccepted: counter,
   messagesSent: counter,
   conversationsEngaged: counter,
+  refusalsReceived: counter,
   meetingsBooked: counter,
   interviewsHeld: counter,
   activeLeads: counter,

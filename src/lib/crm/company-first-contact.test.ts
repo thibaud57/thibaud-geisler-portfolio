@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest"
 
-import type { ActionStatus, InterviewStatus } from "@/generated/prisma/client"
+import type { ActionChannel, ActionStatus, InterviewStatus } from "@/generated/prisma/client"
 
 import { firstContactAtOf } from "./company-first-contact"
 
 function person(
   overrides: {
     metAt?: Date | null
-    actions?: { status: ActionStatus; occurredAt: Date }[]
+    actions?: { channel?: ActionChannel; status: ActionStatus; occurredAt: Date }[]
   } = {},
 ) {
-  return { metAt: overrides.metAt ?? null, prospectingActions: overrides.actions ?? [] }
+  return {
+    metAt: overrides.metAt ?? null,
+    prospectingActions: (overrides.actions ?? []).map((action) => ({
+      channel: "DM_LINKEDIN" as const,
+      ...action,
+    })),
+  }
 }
 
 function interview(status: InterviewStatus, scheduledAt: Date) {
@@ -86,6 +92,22 @@ describe("firstContactAtOf", () => {
     )
 
     expect(first).toEqual(new Date(2026, 2, 10))
+  })
+
+  it("ignores a call that did not take place", () => {
+    const first = firstContactAtOf(
+      [
+        person({
+          actions: [
+            { channel: "CALL", status: "IGNORE", occurredAt: new Date(2026, 1, 1) },
+            { channel: "DM_LINKEDIN", status: "FAIT", occurredAt: new Date(2026, 2, 1) },
+          ],
+        }),
+      ],
+      [],
+    )
+
+    expect(first).toEqual(new Date(2026, 2, 1))
   })
 
   it("returns null when the company has no sent action, meeting nor held interview", () => {

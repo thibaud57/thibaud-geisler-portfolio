@@ -6,21 +6,25 @@ describe("retentionEndOf", () => {
   it.each([
     {
       label: "when it never replied",
-      lastReplyAt: null,
+      lastContactAt: null,
       expected: new Date(2028, 4, 10),
     },
     {
       label: "when its reply predates it",
-      lastReplyAt: new Date(2024, 0, 5),
+      lastContactAt: new Date(2024, 0, 5),
       expected: new Date(2028, 4, 10),
     },
     {
       label: "after its last reply",
-      lastReplyAt: new Date(2026, 1, 3),
+      lastContactAt: new Date(2026, 1, 3),
       expected: new Date(2029, 1, 3),
     },
-  ])("keeps an active person three years $label", ({ lastReplyAt, expected }) => {
-    const end = retentionEndOf({ createdAt: new Date(2025, 4, 10), lastReplyAt, optedOutAt: null })
+  ])("keeps an active person three years $label", ({ lastContactAt, expected }) => {
+    const end = retentionEndOf({
+      createdAt: new Date(2025, 4, 10),
+      lastContactAt,
+      optedOutAt: null,
+    })
 
     expect(end).toEqual(expected)
   })
@@ -28,7 +32,7 @@ describe("retentionEndOf", () => {
   it("keeps an opted-out person three years after the stop", () => {
     const person = {
       createdAt: new Date(2020, 0, 1),
-      lastReplyAt: new Date(2026, 5, 1),
+      lastContactAt: new Date(2026, 5, 1),
       optedOutAt: new Date(2023, 8, 15),
     }
 
@@ -39,7 +43,7 @@ describe("retentionEndOf", () => {
 })
 
 describe("isRetentionOver", () => {
-  const person = { createdAt: new Date(2025, 4, 10), lastReplyAt: null, optedOutAt: null }
+  const person = { createdAt: new Date(2025, 4, 10), lastContactAt: null, optedOutAt: null }
 
   it.each([
     {

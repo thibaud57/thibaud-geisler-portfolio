@@ -4,6 +4,10 @@ import { z } from "zod"
 import type { Prisma } from "@/generated/prisma/client"
 import { matchesSearch, normalizeForSearch } from "@/lib/admin/search"
 import { assertNever } from "@/lib/assert-never"
+import {
+  STATUS_NOT_ALLOWED_MESSAGE,
+  UNSENT_ACTION_IGNORED_MESSAGE,
+} from "@/lib/crm/prospecting-action-status"
 import { zonedDayStartOf, zonedIsoDay } from "@/lib/date-time"
 import { personIdSchema, prospectingActionIdSchema } from "@/lib/ids"
 import {
@@ -60,7 +64,7 @@ const fieldShape = {
   status: z
     .enum(ACTION_STATUSES)
     .describe(
-      "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date.",
+      "Status: A_FAIRE, FAIT, REPONDU, CONVERTI, REFUSE (the person declined) or IGNORE. Allowed per channel: CONNEXION_LINKEDIN takes A_FAIRE, FAIT, REPONDU (accepted) and IGNORE; CALL takes A_FAIRE, FAIT, CONVERTI and IGNORE; every other channel takes all six. A_FAIRE to IGNORE is reserved for a call that did not take place: a message never sent is deleted in the admin space, not ignored. Changing the status sets the dates by the status rules: leaving A_FAIRE takes the real sending time (a call keeps its planned day), REPONDU, CONVERTI and REFUSE on a channel other than CALL set the reply date, any other status clears the reply and its date.",
     ),
   occurredAt: actionDay(
     "Day of the action, YYYY-MM-DD: the planned day while the status is A_FAIRE, the sending day after.",
@@ -68,11 +72,11 @@ const fieldShape = {
   respondedAt: actionDay()
     .nullable()
     .describe(
-      "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out or null, the status rules set it (or keep the stored one).",
+      "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU, CONVERTI or REFUSE on a channel other than CALL (a call is held live and has no reply): left out or null, the status rules set it (or keep the stored one).",
     ),
   message: optionalText("Text of the message sent."),
   reply: optionalText(
-    "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status.",
+    "Text of the reply received. Kept only with REPONDU, CONVERTI or REFUSE on a channel other than CALL, cleared with any other status.",
   ),
 } as const
 
@@ -157,6 +161,10 @@ function prospectingActionWriteErrorMessage(error: ProspectingActionWriteError):
       return "No person has this personId. Call crm_search with the entity lead to find the right id, then call the tool again."
     case "not_found":
       return notFoundMessage("crm", "prospecting action")
+    case "status_not_allowed":
+      return `${STATUS_NOT_ALLOWED_MESSAGE}. This channel does not take this status. Read the status allowed per channel in the crm_create or crm_update description, then call the tool again.`
+    case "unsent_action_ignored":
+      return `${UNSENT_ACTION_IGNORED_MESSAGE}. Only a planned call can go from A_FAIRE to IGNORE. Delete a message that was never sent in the admin space instead.`
     default:
       return assertNever(error)
   }
@@ -179,9 +187,9 @@ export const prospectingActionEntity = defineEntity({
     querySort:
       "A prospecting action is sorted by its title, and its day fields come as YYYY-MM-DD.",
     create:
-      "For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules.",
+      "For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE, must be one the channel allows, and the dates follow the status rules. A meeting tied to an opportunity is an interview (crm_create with the entity interview), never a CALL action; a call outside any opportunity (qualification, discovery, networking) is a CALL action; a call that gives birth to an opportunity is set to CONVERTI and its follow-up is held as interviews, so nothing is counted twice.",
     update:
-      "For a prospecting action, a status change applies the status rules: leaving A_FAIRE takes the real sending time unless occurredAt moves to another day in the same patch, REPONDU and CONVERTI keep the respondedAt sent with them (else the stored one, else today), any other status clears the reply and its date. The lead must not have opted out.",
+      "For a prospecting action, the status must be one its channel allows (the channel is checked as patched, so a patch that changes only the channel is refused when the stored status does not fit the new one), and A_FAIRE to IGNORE is refused unless the action is a call. A status change applies the status rules: leaving A_FAIRE takes the real sending time (a call keeps its planned day) unless occurredAt moves to another day in the same patch, REPONDU, CONVERTI and REFUSE keep the respondedAt sent with them (else the stored one, else today) on a channel other than CALL, any other status clears the reply and its date. The lead must not have opted out.",
   },
   async search(query) {
     const needle = normalizeForSearch(query)

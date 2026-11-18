@@ -1,5 +1,6 @@
 import {
   CircleCheck,
+  CircleSlash,
   ClipboardList,
   Mail,
   MessageCircle,
@@ -42,6 +43,7 @@ export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
   FAIT: "Fait",
   REPONDU: "Répondu",
   CONVERTI: "Converti",
+  REFUSE: "Refusé",
   IGNORE: "Ignoré",
 }
 
@@ -50,6 +52,7 @@ export const ACTION_STATUS_ICONS: Record<ActionStatus, IconComponent | null> = {
   FAIT: CircleCheck,
   REPONDU: Reply,
   CONVERTI: Target,
+  REFUSE: CircleSlash,
   IGNORE: VolumeX,
 }
 

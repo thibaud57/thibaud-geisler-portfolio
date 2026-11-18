@@ -60,16 +60,40 @@ afterEach(() => {
 
 const searchBodySchema = z.object({ results: z.array(z.unknown()) })
 
+function monthsAgo(months: number): Date {
+  const date = new Date()
+  date.setMonth(date.getMonth() - months)
+  return date
+}
+
+// Une personne jointe par un message envoyé à `occurredAt` : la seule interaction de son entreprise.
+const personContactedAt = (occurredAt: Date) => ({
+  create: {
+    name: "Jane Doe",
+    prospectingActions: {
+      create: {
+        title: "Relance proposition",
+        channel: "DM_LINKEDIN" as const,
+        status: "FAIT" as const,
+        occurredAt,
+      },
+    },
+  },
+})
+
+// Les `activeCount` premières n'ont aucune interaction (Active), les suivantes datent de quatorze mois (Dormante).
 function seedNumberedCompanies(count: number, activeCount: number) {
-  const data: Prisma.CompanyCreateManyInput[] = Array.from({ length: count }, (_, index) => {
-    const number = String(index + 1).padStart(2, "0")
-    return {
-      slug: `company-${number}`,
-      name: `Company ${number}`,
-      relationStatus: index < activeCount ? "ACTIVE" : "DORMANTE",
-    }
-  })
-  return prisma.company.createMany({ data })
+  const dormantSince = monthsAgo(14)
+  return Promise.all(
+    Array.from({ length: count }, (_, index) => {
+      const number = String(index + 1).padStart(2, "0")
+      return seedCompany({
+        slug: `company-${number}`,
+        name: `Company ${number}`,
+        ...(index < activeCount ? {} : { persons: personContactedAt(dormantSince) }),
+      })
+    }),
+  )
 }
 
 const createCompanyArgs = (data: Record<string, unknown>) => ({
@@ -276,6 +300,59 @@ describe("crm_query", () => {
     })
   })
 
+  it("filters companies on the displayed status, dormant and active", async () => {
+    await seedCompany({ slug: "acme", name: "Acme", persons: personContactedAt(monthsAgo(14)) })
+    await seedCompany({ slug: "globex", name: "Globex", persons: personContactedAt(monthsAgo(2)) })
+
+    const dormant = await call("crm_query", {
+      entity: "company",
+      filters: { relationStatus: "DORMANTE" },
+    })
+    const active = await call("crm_query", {
+      entity: "company",
+      filters: { relationStatus: "ACTIVE" },
+    })
+
+    expect(jsonOf(dormant)).toMatchObject({
+      total: 1,
+      rows: [{ slug: "acme", relationStatus: "DORMANTE" }],
+    })
+    expect(jsonOf(active)).toMatchObject({
+      total: 1,
+      rows: [{ slug: "globex", relationStatus: "ACTIVE" }],
+    })
+  })
+
+  it("counts the total after the displayed status filter", async () => {
+    await seedNumberedCompanies(25, 13)
+
+    const result = await call("crm_query", {
+      entity: "company",
+      filters: { relationStatus: "DORMANTE" },
+      limit: 5,
+      offset: 10,
+    })
+
+    expect(jsonOf(result)).toMatchObject({
+      total: 12,
+      rows: [{ name: "Company 24" }, { name: "Company 25" }],
+    })
+  })
+
+  it("keeps an archived company archived, without last interaction", async () => {
+    await seedCompany({ slug: "acme", name: "Acme", relationStatus: "ARCHIVEE" })
+
+    const result = await call("crm_query", {
+      entity: "company",
+      filters: { relationStatus: "ARCHIVEE" },
+    })
+
+    expect(jsonOf(result)).toMatchObject({
+      total: 1,
+      rows: [{ slug: "acme", relationStatus: "ARCHIVEE", lastInteractionAt: null }],
+    })
+  })
+
   it("sorts crm_query by name in the requested order", async () => {
     await seedNumberedCompanies(3, 3)
 
@@ -419,7 +496,7 @@ describe("cache refresh", () => {
     await call("crm_update", {
       entity: "company",
       id: company.id,
-      fields: { relationStatus: "DORMANTE" },
+      fields: { relationStatus: "ARCHIVEE" },
     })
 
     expect(revalidateTag).toHaveBeenCalledWith("projects", "max")
@@ -440,13 +517,13 @@ describe("crm_update", () => {
     const result = await call("crm_update", {
       entity: "company",
       id: company.id,
-      fields: { relationStatus: "DORMANTE" },
+      fields: { relationStatus: "ARCHIVEE" },
       detailsSection: { heading: "Chiffres clés", content: "50 salariés" },
     })
 
     const stored = await prisma.company.findUniqueOrThrow({ where: { id: company.id } })
     expect(result.isError).toBeFalsy()
-    expect(stored.relationStatus).toBe("DORMANTE")
+    expect(stored.relationStatus).toBe("ARCHIVEE")
     expect(stored.details).toBe(
       COMPANY_DETAILS_TEMPLATE.replace(
         "# 📊 Chiffres clés\n",
@@ -464,6 +541,20 @@ describe("crm_update", () => {
     const result = await call("crm_update", { entity: "company", id: company.id, ...patch })
 
     expect(result.isError).toBe(true)
+  })
+
+  it("rejects a dormant status sent to crm_update", async () => {
+    const company = await seedCompany()
+
+    const result = await call("crm_update", {
+      entity: "company",
+      id: company.id,
+      fields: { relationStatus: "DORMANTE" },
+    })
+
+    const stored = await prisma.company.findUniqueOrThrow({ where: { id: company.id } })
+    expect(result.isError).toBe(true)
+    expect(stored.relationStatus).toBe("ACTIVE")
   })
 
   it("rejects fields.details together with detailsSection", async () => {
@@ -847,6 +938,25 @@ describe("persons in crm_fetch", () => {
       expect(jsonOf(result)).toMatchObject({ metAt: "2026-09-15" })
     },
   )
+
+  it("returns the last contact day of a lead from its held call", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    await seedAction(jane.id, {
+      status: "REPONDU",
+      occurredAt: new Date("2026-10-20T10:00:00Z"),
+      respondedAt: new Date("2026-11-02T10:00:00Z"),
+    })
+    await seedAction(jane.id, {
+      channel: "CALL",
+      status: "FAIT",
+      occurredAt: new Date("2026-11-10T23:30:00Z"),
+    })
+
+    const result = await call("crm_fetch", { entity: "lead", id: jane.id })
+
+    expect(jsonOf(result)).toMatchObject({ lastContactAt: "2026-11-11" })
+    expect(jsonOf(result)).not.toHaveProperty("plannedCalls")
+  })
 
   it("fetches a lead with its links and its roles", async () => {
     const acme = await seedCompany()
@@ -2102,6 +2212,36 @@ describe("prospecting actions in crm_update", () => {
   })
 })
 
+describe("prospecting action statuses by channel", () => {
+  it("rejects creating or updating a call with a replied status", async () => {
+    const jane = await seedPerson({ name: "Jane Doe" })
+    const heldCall = await seedAction(jane.id, { channel: "CALL", status: "FAIT" })
+
+    const created = await call(
+      "crm_create",
+      createActionArgs({
+        personId: jane.id,
+        title: "Call de découverte",
+        channel: "CALL",
+        occurredAt: "2026-11-23",
+        status: "REPONDU",
+      }),
+    )
+    const updated = await call("crm_update", {
+      entity: "prospecting-action",
+      id: heldCall.id,
+      fields: { status: "REPONDU" },
+    })
+
+    expect(created.isError).toBe(true)
+    expect(textOf(created)).toContain("Statut impossible")
+    expect(updated.isError).toBe(true)
+    expect(textOf(updated)).toContain("Statut impossible")
+    expect(await prisma.prospectingAction.count()).toBe(1)
+    expect((await storedAction(heldCall.id)).status).toBe("FAIT")
+  })
+})
+
 describe("prospecting actions in crm_search, crm_query and crm_fetch", () => {
   it("finds an action by title or lead name, hint lead · date · status", async () => {
     const jane = await seedPerson({ name: "Jane Doe" })
@@ -2989,7 +3129,8 @@ const DATE_CASES: readonly DateCase[] = [
   leadFetch(["opportunities", 0, "createdAt"], ISO_INSTANT),
   leadFetch(["interviews", 0, "scheduledAt"], "2026-11-20T11:00:00.000+01:00"),
   leadFetch(["interviews", 0, "createdAt"], ISO_INSTANT),
-  leadFetch(["lastReplyAt"], "2026-11-22"),
+  leadFetch(["lastContactAt"], "2026-11-22"),
+  companyFetch(["lastInteractionAt"], "2026-11-22"),
   optedOutFetch(["optedOutAt"], "2026-10-01T02:00:00.000+02:00"),
   contactFetch(["metAt"], "2026-10-05"),
   opportunityFetch(["startMonth"], "2026-11"),
@@ -3014,7 +3155,19 @@ const DATE_CASES: readonly DateCase[] = [
   inSearch("weekly-review", CLOSED_WEEK_FRIDAY)(CLOSED_WEEK_FRIDAY),
 ]
 
+// Les dates des fixtures sont celles d'un mois à venir : l'horloge passe après elles, sinon `lastContactAt` les écarterait comme futures.
+function freezeClockAfterFixtures() {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-12-01T12:00:00Z") })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+}
+
 describe("dates of every entity in crm_fetch, crm_query and crm_search", () => {
+  freezeClockAfterFixtures()
+
   it.each(DATE_CASES)("renders $label", async ({ request, path, expected }) => {
     const { name, args } = request(await seedDatedRecords())
 
@@ -3030,7 +3183,8 @@ const DAY_KEYS = new Set([
   "occurredOn",
   "occurredAt",
   "respondedAt",
-  "lastReplyAt",
+  "lastContactAt",
+  "lastInteractionAt",
   "vatLiableSince",
   "closingFriday",
 ])
@@ -3047,6 +3201,8 @@ function dayFieldsIn(body: unknown): [string, unknown][] {
 }
 
 describe("day fields nested anywhere in crm_fetch and crm_query", () => {
+  freezeClockAfterFixtures()
+
   it("renders every day as YYYY-MM-DD and every month as YYYY-MM", async () => {
     const ids = await seedDatedRecords()
     const fetches: [string, string][] = [

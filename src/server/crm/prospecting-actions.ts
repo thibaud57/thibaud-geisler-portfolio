@@ -1,7 +1,11 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
-import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
+import {
+  applyStatusRules,
+  isStatusAllowed,
+  isTransitionAllowed,
+} from "@/lib/crm/prospecting-action-status"
 import {
   personIdSchema,
   prospectingActionIdSchema,
@@ -34,12 +38,15 @@ export type ProspectingActionWriteError =
   | { code: "person_conflict"; conflict: ProspectionConflict }
   | { code: "person_not_found" }
   | { code: "not_found" }
+  | { code: "status_not_allowed" }
+  | { code: "unsent_action_ignored" }
 
 export interface WrittenProspectingAction {
   id: ProspectingActionId
 }
 
 export const TIMING_SELECT = {
+  channel: true,
   status: true,
   occurredAt: true,
   respondedAt: true,
@@ -95,6 +102,8 @@ function writeFailure(err: unknown): ProspectingActionWriteError | null {
 export async function createProspectingAction(
   data: ProspectingActionWriteData,
 ): Promise<DomainResult<WrittenProspectingAction, ProspectingActionWriteError>> {
+  if (!isStatusAllowed(data.channel, data.status)) return fail({ code: "status_not_allowed" })
+
   try {
     return await prisma.$transaction(async (tx) => {
       await requireProspectableLead(tx, data.personId)
@@ -141,10 +150,16 @@ export async function updateProspectingAction(
         if (!current) return fail({ code: "not_found" })
 
         const next = {
+          channel: patch.channel ?? current.channel,
           status: patch.status ?? current.status,
           occurredAt: patch.occurredAt ?? current.occurredAt,
           respondedAt: patch.respondedAt ?? null,
           reply: patch.reply === undefined ? current.reply : patch.reply,
+        }
+        // Le couple effectif se juge après fusion : un patch du seul statut ou du seul canal peut le rendre impossible.
+        if (!isStatusAllowed(next.channel, next.status)) return fail({ code: "status_not_allowed" })
+        if (!isTransitionAllowed(next.channel, current.status, next.status)) {
+          return fail({ code: "unsent_action_ignored" })
         }
         const updated = await tx.prospectingAction.update({
           where: { id },

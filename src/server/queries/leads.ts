@@ -8,6 +8,13 @@ import type {
   Prisma,
 } from "@/generated/prisma/client"
 import type { CompanyId, PersonId } from "@/lib/ids"
+import { lastContactAtOf } from "@/lib/crm/person-last-contact"
+import {
+  HELD_CALL_WHERE,
+  isPlannedCall,
+  plannedCallWhere,
+} from "@/lib/crm/prospecting-action-status"
+import { zonedDayStartOf } from "@/lib/date-time"
 import { prisma } from "@/lib/prisma"
 import type { SignalItem } from "@/lib/crm/signals"
 import { companyRefSelect } from "@/server/queries/company-ref"
@@ -33,10 +40,7 @@ const adminLeadInclude = {
       },
       contact: { select: { personId: true } },
       prospectingActions: {
-        where: { respondedAt: { not: null } },
-        orderBy: { respondedAt: "desc" },
-        take: 1,
-        select: { respondedAt: true },
+        select: { channel: true, status: true, occurredAt: true, respondedAt: true },
       },
       interviews: {
         select: {
@@ -64,12 +68,35 @@ const adminLeadInclude = {
 
 type LeadWithPerson = Prisma.LeadGetPayload<{ include: typeof adminLeadInclude }>
 
+// Une relation ne se sélectionne qu'une fois : les réponses, les calls tenus (dernier contact) et les calls planifiés (RDV planifié) partagent cette lecture, que `toAdminLead` trie en mémoire.
+function adminLeadIncludeAt(now: Date) {
+  const { person } = adminLeadInclude
+  return {
+    person: {
+      include: {
+        ...person.include,
+        prospectingActions: {
+          ...person.include.prospectingActions,
+          where: {
+            OR: [
+              { respondedAt: { not: null } },
+              HELD_CALL_WHERE,
+              plannedCallWhere(zonedDayStartOf(now)),
+            ],
+          },
+        },
+      },
+    },
+  } satisfies Prisma.LeadInclude
+}
+
 export type AdminLead = FlatPerson & {
   id: string
   optedOutAt: Date | null
   exchangesErasedAt: Date | null
+  plannedCalls: readonly { occurredAt: Date }[]
   // Traitement 7 (registre) : point de départ des 3 ans de conservation, avec la date de création du rôle.
-  lastReplyAt: Date | null
+  lastContactAt: Date | null
   origin: LeadOrigin
   status: LeadStatus
   interest: LeadInterest | null
@@ -84,13 +111,17 @@ export type AdminLead = FlatPerson & {
 }
 
 // La personne aplatie sur son rôle Lead : liste et formulaire lisent une seule forme, jamais une relation imbriquée.
-function toAdminLead(row: LeadWithPerson): AdminLead {
+function toAdminLead(row: LeadWithPerson, now: Date): AdminLead {
+  const { prospectingActions, interviews } = row.person
   return {
     id: row.personId,
     ...flattenPerson(row.person),
     optedOutAt: row.person.optedOutAt,
     exchangesErasedAt: row.person.exchangesErasedAt,
-    lastReplyAt: row.person.prospectingActions[0]?.respondedAt ?? null,
+    lastContactAt: lastContactAtOf(prospectingActions, interviews, now),
+    plannedCalls: prospectingActions.filter((action) =>
+      isPlannedCall(action.channel, action.status),
+    ),
     origin: row.origin,
     status: row.status,
     interest: row.interest,
@@ -98,7 +129,7 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
     score: row.score,
     createdAt: row.createdAt,
     actionsCount: row.person._count.prospectingActions,
-    interviews: row.person.interviews,
+    interviews,
     hasContactRole: row.person.contact !== null,
     opportunities: row.person.referredOpportunities,
     signals: row.person.signals,
@@ -107,16 +138,21 @@ function toAdminLead(row: LeadWithPerson): AdminLead {
 
 // Sans `use cache`, comme les autres lectures admin : elle relit la base juste après ses propres mutations.
 export async function findAllLeadsForAdmin(): Promise<AdminLead[]> {
+  const now = new Date()
   const rows = await prisma.lead.findMany({
-    include: adminLeadInclude,
+    include: adminLeadIncludeAt(now),
     orderBy: { person: personNameOrder },
   })
-  return rows.map(toAdminLead)
+  return rows.map((row) => toAdminLead(row, now))
 }
 
 export async function findLeadByIdForAdmin(personId: PersonId): Promise<AdminLead | null> {
-  const row = await prisma.lead.findUnique({ where: { personId }, include: adminLeadInclude })
-  return row ? toAdminLead(row) : null
+  const now = new Date()
+  const row = await prisma.lead.findUnique({
+    where: { personId },
+    include: adminLeadIncludeAt(now),
+  })
+  return row ? toAdminLead(row, now) : null
 }
 
 // Lecture légère de la personne d'un lead, pour décider de la lecture complète.

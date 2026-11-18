@@ -3,6 +3,7 @@ import { z } from "zod"
 import { ActionChannel, ActionStatus } from "@/generated/prisma/browser"
 import { zonedDayStart } from "@/lib/date-time"
 import { personIdField } from "@/lib/ids"
+import { isStatusAllowed, STATUS_NOT_ALLOWED_MESSAGE } from "@/lib/crm/prospecting-action-status"
 import { optionalTextField } from "@/lib/schemas/fields"
 
 export const ACTION_CHANNELS = Object.values(ActionChannel)
@@ -20,24 +21,33 @@ const actionDay = z.iso.date({ error: "Date requise" })
 
 export const actionDayStart = (day: string): Date => zonedDayStart(new Date(day))
 
-export const prospectingActionSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "L'action est requise")
-    .max(
-      ACTION_TITLE_MAX_LENGTH,
-      `L'action ne peut pas dépasser ${ACTION_TITLE_MAX_LENGTH} caractères`,
+export const prospectingActionSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "L'action est requise")
+      .max(
+        ACTION_TITLE_MAX_LENGTH,
+        `L'action ne peut pas dépasser ${ACTION_TITLE_MAX_LENGTH} caractères`,
+      ),
+    personId: personIdField("Choisissez une personne"),
+    channel: z.enum(ActionChannel, { error: "Type inconnu" }),
+    status: z.enum(ActionStatus, { error: "Statut inconnu" }),
+    occurredAt: actionDay.transform(actionDayStart),
+    respondedAt: z.union(
+      [actionDay.transform(actionDayStart), z.literal("").transform(() => null)],
+      {
+        error: "Date de réponse invalide",
+      },
     ),
-  personId: personIdField("Choisissez une personne"),
-  channel: z.enum(ActionChannel, { error: "Type inconnu" }),
-  status: z.enum(ActionStatus, { error: "Statut inconnu" }),
-  occurredAt: actionDay.transform(actionDayStart),
-  respondedAt: z.union([actionDay.transform(actionDayStart), z.literal("").transform(() => null)], {
-    error: "Date de réponse invalide",
-  }),
-  message: optionalTextField,
-  reply: optionalTextField,
-})
+    message: optionalTextField,
+    reply: optionalTextField,
+  })
+  .superRefine((data, ctx) => {
+    if (!isStatusAllowed(data.channel, data.status)) {
+      ctx.addIssue({ path: ["status"], code: "custom", message: STATUS_NOT_ALLOWED_MESSAGE })
+    }
+  })
 
 export type ProspectingActionInput = z.infer<typeof prospectingActionSchema>

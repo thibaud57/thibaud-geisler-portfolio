@@ -12,7 +12,7 @@ export function DeleteProspectingActionDialog({ action }: Props) {
   return (
     <ConfirmDeleteDialog
       name={action.title}
-      description="Elle disparaît du journal et de l'historique du lead. Une action sans réponse se garde plutôt avec le statut « Ignoré »."
+      description="Elle disparaît du journal et de l'historique du lead. Une action envoyée restée sans réponse, ou un call qui n'a pas eu lieu, se garde plutôt avec le statut « Ignoré » ; une action jamais envoyée se supprime."
       successMessage="Action supprimée"
       onDelete={() => deleteProspectingAction(action.id)}
     />

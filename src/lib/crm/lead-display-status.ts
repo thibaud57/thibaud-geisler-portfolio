@@ -2,6 +2,7 @@ import { CalendarCheck, Trophy } from "lucide-react"
 
 import type { InterviewStatus, LeadStatus, OpportunityStatus } from "@/generated/prisma/client"
 import type { IconComponent } from "@/lib/icons"
+import { zonedDayStartOf } from "@/lib/date-time"
 import { LEAD_STATUS_ICONS, LEAD_STATUS_LABELS } from "@/lib/crm/leads"
 import { LEAD_STATUSES } from "@/lib/schemas/lead"
 
@@ -31,15 +32,19 @@ export interface LeadStatusSource {
   optedOutAt: Date | null
   opportunities: readonly { status: OpportunityStatus }[]
   interviews: readonly { status: InterviewStatus; scheduledAt: Date }[]
+  // Calls À faire à venir : un call se date au jour, pas à l'heure.
+  plannedCalls: readonly { occurredAt: Date }[]
 }
 
 // L'opposition prime sur tout : une personne opposée n'a pas de statut affiché, quel que soit le statut saisi.
-// Sinon, deal et RDV planifié sont des faits déduits qui l'emportent sur le statut saisi, le deal d'abord.
+// Sinon, deal et RDV planifié (entretien planifié ou call du jour ou à venir) sont des faits déduits qui l'emportent sur le statut saisi, le deal d'abord.
 export function leadDisplayStatus(lead: LeadStatusSource, now: Date): LeadDisplayStatus | null {
   if (lead.optedOutAt) return null
   if (lead.opportunities.some((opportunity) => opportunity.status === "ACCEPTEE")) return "DEAL"
-  const hasUpcomingMeeting = lead.interviews.some(
-    (interview) => interview.status === "PLANIFIE" && interview.scheduledAt >= now,
-  )
+  const today = zonedDayStartOf(now)
+  const hasUpcomingMeeting =
+    lead.interviews.some(
+      (interview) => interview.status === "PLANIFIE" && interview.scheduledAt >= now,
+    ) || lead.plannedCalls.some((call) => call.occurredAt >= today)
   return hasUpcomingMeeting ? "RDV_PLANIFIE" : lead.status
 }
