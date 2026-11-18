@@ -2,7 +2,7 @@
 feature: "Feature 2 : Domaine freelance CRM"
 subproject: "alignement-regles-crm"
 goal: "Aligner le CRM sur les règles de prospection : statut Refusé et statuts permis par canal, opposition qui clôt les actions, huit compteurs de revue, RDV planifié et dernier contact déduits du journal, statut Dormante d'une entreprise déduit."
-status: "draft"
+status: "implemented"
 complexity: "XL"
 tdd_scope: "partial"
 execution: "subagent-driven"
@@ -115,7 +115,7 @@ Aligne le CRM sur les règles de prospection en trois volets : actions et revue 
 - **Formulaire** (`ProspectingActionFormDialog`) : `SelectField` du Statut reçoit `options={ALLOWED_STATUSES[channel]}` ; changer de Type vers un canal qui interdit le statut choisi le ramène à Fait, statut permis partout. « Réponse reçue le » et Réponse ne s'affichent que si `hasResponseDate(channel, status)`
 - **Vue détail** (`buildActionDetail`) : la ligne de date de réponse et le bloc Réponse sont omis pour un call
 - **Suppression** : la fenêtre dit qu'une action envoyée restée sans réponse se garde en Ignoré comme un call non tenu ; une action jamais envoyée se supprime. Le MCP reste sans suppression (`.claude/rules/modelcontextprotocol-server/tools.md`) : un agent signale l'action jamais envoyée, le propriétaire la supprime dans l'admin
-- **Opposition** (`optOutPerson`, `07`) : dans sa transaction, avant de poser `optedOutAt`, elle supprime les actions À faire de la personne et passe Refusé, datée du jour, la plus récente de ses actions Fait sur un canal message ou candidature, s'il y en a une ; une connexion ou un call ne change pas. L'opposition reste un refus compté dans Refus reçus ; une fois posée, les actions de la personne restent verrouillées (`assertProspectionAllowed`). La fenêtre `OptOutPersonDialog` annonce ces deux effets
+- **Opposition** (`optOutPerson`, `07`) : dans sa transaction, avant de poser `optedOutAt`, elle supprime les actions À faire de la personne et passe Refusé, datée du jour, la plus récente de ses actions Fait sur un canal message ou candidature, s'il y en a une ; une connexion ou un call ne change pas. Une opposition reçue sur un message reste un refus compté dans Refus reçus, une candidature refusée n'entre dans aucun compteur ; une fois posée, les actions de la personne restent verrouillées (`assertProspectionAllowed`). La fenêtre `OptOutPersonDialog` annonce ces deux effets
 - **Sous-titres des vues** (`action-views.ts`) : Connexions et Candidatures perdent leur consigne de délai, fausse pour une connexion (sans acceptation à J+14, le lead passe Perdu, pas Stand-by) ; les délais et les bumps relèvent des agents, l'écran ne les recopie pas
 - **Glyphe et couleur de Refusé** : tranchés par arbitrage visuel du propriétaire avant l'écran, puis écrits dans `docs/DESIGN.md` § Palette de Couleurs ; `ACTION_STATUS_ICONS`, `COLUMN_ICON_CLASSES` et `STATUS_COLORS` les lisent. Refusé n'est pas mis en avant dans les fiches rattachées (`toActionLink`), comme Ignoré
 - **Saisie d'un RDV** : un RDV lié à une opportunité est un entretien ; un call hors opportunité (qualification, discovery, réseau) est une action Call ; un call qui fait naître une opportunité passe Converti et la suite se tient en entretiens. Écrite dans les descriptions MCP de l'action (`prospecting-action.ts`) et de l'entretien (`interview.ts`), la règle évite tout double comptage
@@ -125,7 +125,7 @@ Aligne le CRM sur les règles de prospection en trois volets : actions et revue 
 - **Compteurs** (`countWeek`, fonction pure, `18`) : une réponse se date à `respondedAt`, un envoi et un call à `occurredAt`, un entretien à `scheduledAt`. Connexions envoyées et Messages envoyés : connexions et messages sortis d'À faire, Refusé et Ignoré compris ; Connexions acceptées : connexions Répondu ; Conversations engagées : messages Répondu ou Converti ; Refus reçus : messages Refusé ; RDV décrochés : messages et candidatures Convertis ; Entretiens : entretiens Faits et calls Faits ou Convertis
 - **Taux** (`reviewRates`) : taux de réponse = (conversations + refus) / messages envoyés, toute réponse comptée ; la conversion RDV peut dépasser 100 % une semaine où un RDV vient d'une candidature. Libellé « Refus reçus » dans `REVIEW_FIELD_LABELS`
 - **Sources** : `findWeekCounterSources(bounds, now)` charge déjà les deux dates des actions ; il lit en plus les calls planifiés des leads pour le compteur Leads actifs (volet Leads). `computeWeekCounts` lui passe `now`
-- **Écrans** : colonne Refus reçus après Conversations engagées, largeur multiple de 8 mesurée (`.claude/rules/shadcn-ui/admin.md`) ; le formulaire passe à huit compteurs et la case des taux se retrouve seule sur sa ligne : disposition vérifiée au rendu, écart éventuel tranché par arbitrage visuel
+- **Écrans** : colonne Refus reçus après Conversations engagées, largeur multiple de 8 mesurée (`.claude/rules/shadcn-ui/admin.md`) ; le formulaire passe à huit compteurs et les taux prennent toute la largeur après les compteurs, sous leur libellé commun, en trois cases en lecture seule (une par taux), choix du propriétaire par arbitrage visuel
 - **MCP** : descriptions des compteurs (définitions, « eight counters »)
 
 ### Leads
