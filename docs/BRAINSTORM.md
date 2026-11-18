@@ -262,7 +262,7 @@ Prérequis : l'espace admin (Feature 1).
 Les actions de chaque domaine exposées aux agents, pour qu'un agent lise et agisse sur l'app sans toucher la base, sous les mêmes règles de validation que l'admin. Un serveur MCP servi par l'app, une adresse par domaine, authentifié par une clé d'API : forme, authentification et conditions de validation dans [ADR-025](adrs/025-acces-agents-app.md).
 
 * **Outils génériques par domaine** : recherche tolérante, lecture d'une fiche et de ses liens, requête filtrée et paginée, création, modification (y compris par section du champ Détails), l'entité désignée par un discriminant ; aucune suppression par défaut. Un outil propre à une tâche seulement quand le générique ne suffit pas, comme récupérer le logo d'une entreprise. Le même générique sert chaque domaine : le CRM et les projets ici, les domaines à venir dans leur feature
-* **Domaine portfolio** : les projets du portfolio et leurs tags, sans les assets, qui restent déposés depuis l'admin. Projets et tags reçoivent les outils du CRM, statut de publication compris : une modification d'un projet publié part en ligne aussitôt, un projet n'ayant qu'une version. Leur slug est fixé à la création. Le domaine ne figure que sur la clé du poste du propriétaire, jamais sur celle des jobs d'`agent-os` qui lisent le web, pour qu'un agent trompé par une page lue ne change pas le site public
+* **Domaine portfolio** : les projets du portfolio et leurs tags, sans les assets, qui restent déposés depuis l'admin. Projets et tags reçoivent les outils du CRM, statut de publication compris : une modification d'un projet publié part en ligne aussitôt, un projet n'ayant qu'une version. Leur slug est fixé à la création. Le domaine ne figure que sur la clé du poste du propriétaire, jamais sur celle d'`agent-os`, dont les jobs et l'assistant lisent le web, pour qu'un agent trompé par une page lue ne change pas le site public
 * **Logique métier commune** : sortie des Server Actions pour servir à l'admin comme aux agents, les règles (doublons, opposition RGPD) ne s'écrivant qu'une fois
 * **Clés d'API** : une par usage (poste, `agent-os`), limitée à ses domaines, créée et révoquée depuis l'admin, affichée une seule fois
 * **Clients** : Claude Code sur le poste, les sessions d'`agent-os` (Feature 4) et tout client MCP qui accepte une clé en en-tête. Claude Desktop et claude.ai servent de cas de test, sans écran ni OAuth dédiés
@@ -276,23 +276,38 @@ Prérequis : le CRM (Feature 2).
 
 ### Feature 4 : Agents internes
 
-Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, skills freelance). L'admin affiche l'état des runs et arrête un run actif par l'API interne d'`agent-os` ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Une bascule, puis deux briques, sur les outils de l'app (Feature 3) :
+Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claude plutôt qu'au token ([ADR-016](adrs/016-acces-llm.md)). Chaque exécution est une session Claude Code lancée par le propriétaire dans `agent-os`, avec son environnement complet (configuration globale, skills freelance). L'admin affiche l'état des runs et arrête un run actif par l'API interne d'`agent-os` ; quand une session attend un accord ou une réponse, ou se termine, Telegram prévient le téléphone, d'où se donne la réponse ([ADR-026](adrs/026-execution-claude-code-abonnement.md)). Des ouvertures d'outils, une bascule, puis deux briques, sur les outils de l'app (Feature 3) :
 
-* **Bascule des commandes CRM**, premier sub-project, lancé quand le propriétaire le décide : les jobs exécutent les commandes des skills freelance, qui doivent alors écrire dans l'app. Elle se fait d'un bloc :
+* **Ouvertures des outils de l'app**, avant la bascule, dont les commandes ont besoin : candidats du sourcing (statut ou entité), critères de qualification et grille de score, écriture de l'entité légale
+* **Bascule des commandes CRM**, lancée quand le propriétaire le décide : les jobs exécutent les commandes des skills freelance, qui doivent alors écrire dans l'app. Elle se fait d'un bloc :
   * commandes, agents et skills du CRM rebranchés de Notion sur les outils de l'app, les copies de test de la Feature 3 fusionnées dans les originales
   * schémas et formats JSON des skills, calqués sur les bases Notion, alignés sur le schéma de l'app, ce qui fait bouger une bonne partie des skills et agents
   * nouvel instantané complet du CRM Notion vers l'app, sur le modèle de la reprise de la Feature 2
   * gel du CRM Notion
+  * forme visée, commune aux jobs et à l'assistant : un playbook par flux dans le skill du CRM (ne demander que ce qui manque, un récap avant d'écrire), des commandes minces pour les jobs, un CLAUDE.md propre au container d'`agent-os`, les commandes Notion retirées
+  * commandes à créer ou réécrire : enrichissement d'entreprise (extrait de l'ajout de lead), pré-remplissage de l'entité légale, revues du jour et de la semaine, ajout de lead avec les défauts d'outreach et les critères de qualification ; l'outreach en lot (agent teams) remplacé par un ajout par lead
+  * contrat des commandes de job, repris de la Feature 8 d'`agent-os` (spec `02`) : `crm-scout [focus]`, `crm-add-lead "<société>" ["<nom>"]`, `crm-enrich-company "<id>"`, `crm-qualify "<id>"`, `crm-prefill-legal-entity "<id>"`, `crm-daily-review`, `crm-weekly-review [JJ/MM/AAAA]` ; une fiche qui existe est désignée par son identifiant dans l'app
+  * proposition d'écriture : une question du playbook, à forme convenue au spec, que l'admin rend en carte Accepter ou Refuser ; une proposition peut porter plusieurs écritures
+  * un contenu lu à l'extérieur passe sur la sortie standard, jamais par un fichier relu ensuite : `agent-os` crible le résultat de l'outil qui le lit
   
   Les autres domaines basculent leurs commandes dans leur feature
-* **Jobs déclenchés depuis l'admin** : l'IA propose, le propriétaire valide. L'espace admin dépose un job sur l'API interne d'`agent-os` ([ADR-015](adrs/015-decoupage-services.md), [ADR-019](adrs/019-communication-inter-services.md)), qui exécute une commande des skills freelance ; la session lit et écrit dans l'app par ses outils, sous les mêmes règles que l'admin, après la validation du propriétaire relayée sur Telegram. L'app reste seule à écrire dans ses schemas, chaque écriture passant par ses outils (ADR-010 d'`agent-os`). Premiers usages : les reports de la Feature 2 (pré-remplissage de l'entité légale, qualification ICP), l'enrichissement des fiches, la rédaction des messages de prospection et un sourcing qui dépose des candidats à trier
-* **Assistant interne** : un chat ouvert par un bouton de l'espace admin, en fenêtre flottante que l'admin déplace et redimensionne pour ne jamais masquer la page, qui connaît la page en cours ; une page Assistant garde l'historique des conversations. Il tourne sur l'abonnement via `agent-os`, garde sa session d'un message à l'autre, pilote l'app par ses outils et fait confirmer chaque écriture, par exemple pour discuter chaque candidat du sourcing avant de le garder. Il passe par la fenêtre de l'admin ; Telegram n'en relaie que les questions et les confirmations d'écriture. Le bot Telegram comme seconde interface de l'assistant (ordres rapides depuis le téléphone, conversation reprise d'un côté à l'autre) relève du Post-MVP d'`agent-os` (feature « Pilotage depuis Telegram »)
+* **Jobs déclenchés depuis l'admin** : l'IA propose, le propriétaire valide. L'espace admin dépose un job sur l'API interne d'`agent-os` ([ADR-015](adrs/015-decoupage-services.md), [ADR-019](adrs/019-communication-inter-services.md)), qui exécute une commande des skills freelance ; la session lit et écrit dans l'app par ses outils, sous les mêmes règles que l'admin, après la validation du propriétaire relayée sur Telegram. L'app reste seule à écrire dans ses schemas, chaque écriture passant par ses outils (ADR-010 d'`agent-os`). Jobs : ceux du contrat ci-dessus (Feature 8 d'`agent-os`). Arbitrages du 2026-11-15 :
+  * un bouton lance le job ; le badge du run ouvre son fil, où se lisent les étapes d'outils (nom et durée, sans leurs données) et se répondent les questions, aussi relayées sur Telegram
+  * l'app garde l'identifiant du dernier run de chaque fiche, d'où viennent la colonne Run et l'état du bouton ; un job échoué ne se relance pas, le bouton en dépose un nouveau
+  * les candidats du sourcing s'enregistrent dans l'app, dans la vue Sourcing des leads (statut ou entité à fixer au spec) ; « garder » lance un ajout de lead par candidat, avec sa société seule quand il n'a pas de contact
+  * l'entité légale se valide dans le fil puis s'écrit par les outils, sans état « suggéré » : les outils s'ouvrent à son écriture, sauf sur la société du propriétaire
+  * l'agent collecte les critères de qualification, l'app calcule le score avec sa grille ; l'ajout de lead les écrit dès la création
+  * les revues se lisent dans le fil et s'écrivent dans les écrans existants (revue hebdo, fiches)
+  * la rédaction d'un message de prospection et le journal d'une action passent par l'assistant, pas par un job
+* **Assistant interne** : un chat ouvert par un bouton de l'espace admin, en fenêtre flottante que l'admin déplace et redimensionne pour ne jamais masquer la page, qui connaît la page en cours ; une page Conversations garde l'historique des conversations. Il tourne sur l'abonnement via `agent-os`, garde sa session d'un message à l'autre, pilote l'app par ses outils et propose ses écritures avant d'écrire, par exemple pour discuter chaque candidat du sourcing avant de le garder. Il passe par la fenêtre de l'admin ; Telegram n'en relaie que les questions et les propositions d'écriture. Il reçoit les skills et commandes freelance et les outils web des jobs (Feature 8 d'`agent-os`) : une demande en conversation (« ajoute Jane Doe de chez Acme ») suit la même procédure qu'un job, questions au fil de l'eau puis une proposition avant d'écrire, acceptée ou refusée ; une correction s'écrit dans le chat et remplace la proposition. La page en cours passe dans le texte du message. Le bot Telegram comme seconde interface de l'assistant (ordres rapides depuis le téléphone, conversation reprise d'un côté à l'autre) relève du Post-MVP d'`agent-os` (feature « Pilotage depuis Telegram »)
 
-Données personnelles : au-delà d'Anthropic, traité avec la Feature 3, Telegram devient destinataire quand une alerte porte une donnée de lead, OpenRouter quand le criblage des résultats web d'un job en contient, Jina et Bright Data quand les requêtes de sourcing ou d'enrichissement en portent (liste de référence : ARCHITECTURE.md d'`agent-os` § Données Personnelles). Le spec de cette feature met à jour le registre des traitements, la politique de confidentialité et l'évaluation d'impact puis fixe la durée de conservation des conversations et des sessions, copies du schema `dev` d'`agent-os` comprises (runs et événements de run, qui portent le texte des sessions).
+Client de l'API interne d'`agent-os`, à écrire avec cette feature : contrat OpenAPI et stream SSE (états, textes, questions, accords, étapes d'outils, entités écrites), repris par une PR à chaque changement du contrat (ADR-019).
+
+Données personnelles : au-delà d'Anthropic, traité avec la Feature 3, Telegram devient destinataire quand une alerte porte une donnée de lead, OpenRouter quand le criblage des résultats web d'un run en contient, Jina et Bright Data quand les requêtes de sourcing ou d'enrichissement en portent (liste de référence : ARCHITECTURE.md d'`agent-os` § Données Personnelles). Le spec de cette feature met à jour le registre des traitements, la politique de confidentialité et l'évaluation d'impact puis fixe la durée de conservation des conversations et des sessions, copies du schema `dev` d'`agent-os` comprises (runs et événements de run, qui portent le texte des sessions).
 
 Écrans à maquetter : l'arrêt d'un run actif depuis l'écran qui l'a lancé et l'arrêt d'un tour dans la fenêtre de l'assistant, absents de la maquette. Rien de public : le chatbot du site et ses crédits au token restent la Feature 11.
 
-Prérequis : les outils de l'app (Feature 3) ; `ai-kit` et `agent-os` implémentés dans leurs dépôts.
+Prérequis : les outils de l'app (Feature 3) ; `ai-kit` et `agent-os` implémentés dans leurs dépôts, Feature 8 d'`agent-os` comprise. Elle se livre sans attendre la bascule : ses jobs se jouent en réel une fois les commandes basculées.
 
 ### Feature 5 : Domaine freelance Missions
 
@@ -339,7 +354,7 @@ Posts LinkedIn de l'idée à la publication, écran `isLinkedin` : pipeline, cal
 
 Rédaction assistée : veille de sujets, rédaction à partir d'un sujet, d'un projet ou d'une URL, relecture critique avant le brouillon, jamais de publication automatique. L'écran de commande et le stockage des brouillons sont ici, l'exécution passe par les jobs `agent-os`, donc sur l'abonnement plutôt qu'à l'acte.
 
-Prérequis : l'espace admin seul (Feature 1) pour les posts et leurs métriques ; les agents internes (Feature 4) pour la rédaction assistée.
+Prérequis : l'espace admin seul (Feature 1) pour les posts et leurs métriques ; les agents internes (Feature 4) et l'intégration de freelance-toolkit d'`agent-os` (sa Feature 8) pour la rédaction assistée.
 
 ### Feature 9 : Suivi du cycle de développement
 
@@ -393,8 +408,10 @@ Capacités produit à étudier selon le besoin réel :
 
 * **LinkedIn** : publication assistée et prospection. API officielle limitée et surveillée, faisabilité à valider avant de s'engager
 * **Indy** : déclarations et export comptable. La facturation elle-même étant tenue en interne, cette intégration ne couvrirait que le déclaratif
+* **Google Calendar** : synchronisation de l'agenda de l'Accueil avec le calendrier du propriétaire. Sens de la synchronisation et événements concernés à étudier
+* **Google Drive** : copie de secours des documents que l'app stocke (factures, pièces des CRA) et lecture par les agents des documents qui n'y sont pas encore
 
-Prérequis : les publications LinkedIn (Feature 8) pour LinkedIn ; la comptabilité (Feature 6) pour Indy.
+Prérequis : les publications LinkedIn (Feature 8) pour LinkedIn ; la comptabilité (Feature 6) pour Indy et Google Drive ; les missions (Feature 5) pour Google Calendar.
 
 > La supervision technique (erreurs, traces LLM) n'est pas une feature produit : voir [ARCHITECTURE.md](ARCHITECTURE.md) § Observabilité. L'analytics, elle, est la Feature 10 ci-dessus.
 
