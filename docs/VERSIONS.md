@@ -1,13 +1,13 @@
 ---
 title: "VERSIONS : Thibaud Geisler Portfolio"
 description: "Matrice de compatibilité, versions recommandées et configuration pour la stack Next.js + Prisma + PostgreSQL du portfolio (MVP + post-MVP)."
-date: "2026-11-17"
+date: "2026-11-18"
 keywords: ["versions", "dependencies", "compatibility", "setup", "nextjs", "prisma", "postgresql", "docker", "dokploy"]
 scope: ["docs", "config", "setup"]
 technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CSS", "shadcn/ui", "cn", "Magic UI", "Aceternity UI", "ReUI", "dnd-kit", "@date-fns/tz", "motion", "next-intl", "@icons-pack/react-simple-icons", "country-flag-icons", "Zod", "nodemailer", "Pino", "@next/env", "@t3-oss/env-nextjs", "server-only", "react-calendly", "c15t", "react-markdown", "remark-gfm", "Sentry", "@aws-sdk/client-s3", "Better Auth", "@better-auth/api-key", "MCP TypeScript SDK", "sharp", "decode-ico", "Tiptap", "tippy.js", "Vitest", "@vitejs/plugin-react", "PostgreSQL", "Prisma", "GitHub Actions"]
 ---
 
-> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **17 novembre 2026** ; les lignes relevées à une autre date portent la leur.
+> **Périmètre : ce que le dépôt déclare.** Versions npm lues dans `pnpm-lock.yaml` (ce qui est résolu, pas les plages de `package.json`), images et actions lues dans le `Dockerfile`, les compose et les workflows. Relevé le **18 novembre 2026** ; les lignes relevées à une autre date portent la leur.
 
 > **La plateforme d'hébergement est hors périmètre.** Docker Engine, Docker Compose, Dokploy et Cloudflare R2 ne sont déclarés par aucun fichier versionné ici : ils sont documentés dans [PRODUCTION.md](PRODUCTION.md) § Mises à jour > Plateforme d'hébergement.
 
@@ -181,7 +181,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Stabilité** : ✅
 
 **Décisions du projet** :
-- Style `radix-nova`. Depuis juillet 2026 `init` choisit la base `base` (Base UI) par défaut ([changelog](https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default)) : toujours `-b radix`, qui n'est pas déprécié. Style : `DESIGN.md` § Style shadcn
+- Style `radix-nova`. Depuis juillet 2026 `init` choisit la base `base` (Base UI) par défaut ([changelog](https://ui.shadcn.com/docs/changelog/2026-07-base-ui-default)) : toujours `-b radix`, qui n'est pas déprécié. Style : `DESIGN.md` § Stack UI
 - Depuis septembre 2026 les composants du registry importent `cn` depuis le paquet npm `cn` ([changelog](https://ui.shadcn.com/docs/changelog/2026-09-cn)) : rien ne casse sans migrer, mais chaque `add` installe `cn` à côté de `clsx` + `tailwind-merge`. Migré le 9 octobre 2026 par `shadcn migrate cn`, qui n'a touché que `src/lib/utils.ts` (réexport) et `package.json`
 - Ne pas installer `shadcn-ui` (paquet npm déprécié)
 - ReUI : registre `@reui` déclaré dans `components.json` (`https://reui.io/r/{style}/{name}.json`). Le code livré demande les mêmes corrections que les autres registries (import `cn` du paquet npm à réécrire vers `@/lib/utils`, puis `pnpm remove cn`), plus `Context.Provider` à passer en `<Context value>` et les lectures indexées à sécuriser pour `noUncheckedIndexedAccess` (`.claude/rules/shadcn-ui/setup.md`). Relire le fichier livré, lancer `just typecheck` et `just lint` après chaque ajout
@@ -195,7 +195,7 @@ technologies: ["Node.js", "pnpm", "TypeScript", "Next.js", "React", "Tailwind CS
 **Version actuelle** : `4.14.10`
 **Stabilité** : ✅
 
-- `getTranslations()` incompatible avec `use cache` sur Next.js 16.0 à 16.2, **résolu à partir de la 16.3** : la 16.3.0 active les root params par défaut (PR #93863) et génère leurs types (PR #91019). [amannn/next-intl#1493](https://github.com/amannn/next-intl/issues/1493) est fermée le 4 août 2026 en citant « nextjs 16.3 root-params ». Aucune peer ne l'impose : `next-intl@4.14.9` déclare `next: ^12 || … || ^16`
+- `getTranslations()` incompatible avec `use cache` sur Next.js 16.0 à 16.2, **résolu à partir de la 16.3** : la 16.3.0 active les root params par défaut (PR #93863) et génère leurs types (PR #91019). [amannn/next-intl#1493](https://github.com/amannn/next-intl/issues/1493) est fermée le 4 août 2026 en citant « nextjs 16.3 root-params ». Aucune peer ne l'impose : `next-intl@4.14.10` déclare `next: ^12 || … || ^16`
 - Le middleware pose par défaut des headers `Link` hreflang (`alternateLinks`), calculés sans les métadonnées de la page : `alternateLinks: false` dans `src/i18n/routing.ts` depuis le 9 octobre 2026, `alternates.languages` de `seo.ts` reste la seule source
 - `localeDetection: false` coupe la détection par `accept-language` et par cookie, `localeCookie: false` seulement le cookie (deux options distinctes, aucune dépréciée)
 
@@ -298,7 +298,7 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux deux
 
 **Issues connues & gotchas** :
 - **Turbopack build + Prisma 7 WASM** : l'opt-out `next build --webpack`, posé pour une erreur de résolution du module WASM `query_compiler_fast_bg.postgresql.mjs`, a été retiré du Dockerfile le 3 septembre 2026 (erreur non reproductible). Revérifié le 9 octobre 2026 sur Next 16.4.0 : image buildée en Turbopack, migrations appliquées au démarrage contre PostgreSQL 18, `/api/health` et `/fr` en 200 ; aucune issue upstream ouverte retrouvée côté `prisma/orm` ou `vercel/next.js`. À revérifier par un build d'image à chaque montée de Next ou de Prisma, le workaround tient en un flag
-- **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible si `prisma generate` est rejoué au déploiement sur une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']`. **Le projet n'est pas concerné** : build et client Prisma sortent de la même base `node:26-alpine`, `.dockerignore` exclut `node_modules` et `src/generated`, Dokploy est en pull-only. À revérifier si `.dockerignore` change ou si le déploiement cesse d'être en pull-only. Pipeline : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement
+- **CI/CD avec build séparé du déploiement** (issue #29025) : hash mismatch possible si `prisma generate` est rejoué au déploiement sur une base Node différente de celle du build. Workaround : `transpilePackages: ['@prisma/client', '@prisma/adapter-pg', 'pg']`. **Le projet n'est pas concerné** : build et client Prisma sortent de la même base `node:26.13.0-alpine`, `.dockerignore` exclut `node_modules` et `src/generated`, Dokploy est en pull-only. À revérifier si `.dockerignore` change ou si le déploiement cesse d'être en pull-only. Pipeline : [PRODUCTION.md](PRODUCTION.md) § CI/CD & Déploiement
 - **Server Components + `'use cache'`** : le build ne lit jamais la base (ADR-022), chaque lecture Prisma du site public est différée à la requête sous `<Suspense>` ; `ci.yml` le prouve en buildant avec une `DATABASE_URL` injoignable. Règle et gotcha `connection()` : `.claude/rules/nextjs/data-fetching.md`
 - `postinstall: "prisma generate"` obligatoire, sans quoi le client n'existe pas après un install propre
 
@@ -373,7 +373,6 @@ Comme pour Node, **aucun patch n'est épinglé** : `postgres:18-alpine` aux deux
 | `@tailwindcss/typography` + `postcss-selector-parser` | 🟢 Faible | `@tailwindcss/typography@0.5.20` épingle `postcss-selector-parser` à `6.0.10`, touché par GHSA-rj75-hqrm-r3gf (CPU exhaustion, corrigé en 6.1.5). Un `overrides` de `pnpm-workspace.yaml` force `6.1.5` (même majeure), `pnpm audit` vide depuis le 27 octobre 2026, 193 règles CSS `prose` identiques avant et après. Retirer l'override quand `@tailwindcss/typography` relève la dépendance à `>=6.1.5` |
 | ESLint 10 + peers des plugins de `eslint-config-next` | 🟢 Faible | Montée en v10 le 9 octobre 2026, débloquée par `eslint-config-next@16.4.0` ([vercel/next.js#99628](https://github.com/vercel/next.js/pull/99628)). `eslint-plugin-react`, `-import`, `-jsx-a11y` déclarent ESLint <= 9 : `pnpm peers check` les signale, sans effet, toutes leurs règles se déclenchent (vérifié par un fichier sonde). Revérifier par un fichier sonde à chaque montée d'ESLint ou de Next |
 | Deux copies de `typescript-eslint` (direct, exact, et celle que tire `eslint-config-next` en `^8.56.0`) | 🟡 Moyen | Le lint échoue au chargement de la config (`Cannot redefine plugin "@typescript-eslint"`), constaté le 10 novembre 2026 en montant la dépendance directe vers la 8.72.2 alors que le lockfile gardait la 8.72.1 pour `eslint-config-next`. Après chaque montée de `typescript-eslint`, `pnpm update typescript-eslint --depth Infinity` ramène la copie transitive à la même version, `pnpm why typescript-eslint` doit n'en montrer qu'une |
-| `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249, DoS par amplification, modérée, corrigée en `>= 11.0.1`) | 🟢 Faible | Tirée par `eslint`, `@eslint/config-array`, `@typescript-eslint/typescript-estree` et `@ts-morph/common` (`shadcn`), dont les plages `^10.x` excluent la 11 : un `overrides` vers la 11 sortirait de la plage de chaque dépendant, donc aucun. Outillage de lint et CLI, devDependencies absentes de l'image (`pnpm deploy --prod`). `pnpm audit` et l'alerte Dependabot la signalent (relevé le 17 novembre 2026), sans correctif en 10.x (la 10.2.6 est la dernière). Lever quand `eslint` et `typescript-estree` relèvent leur plage vers la 11. Les `glob` et `minimatch` vulnérables tirés par `@sentry/nextjs` ont disparu avec la 11.11.0 (`glob` 14.0.4, `minimatch` 11.0.5) |
 | `picomatch` <= 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS par extglobs répétés, haute, **aucun correctif publié**) | 🟡 Moyen | Deux copies (2.3.2 et 4.0.7), tirées par `shadcn`, `vitest`, `vite` et, côté production, `next-intl` (`@parcel/watcher`), `@sentry/nextjs` et `c15t`. Le motif extglob doit venir de l'attaquant : le code du projet n'appelle jamais picomatch ni micromatch. Aucun `overrides` possible (la 4.0.7 est la dernière version publiée, relevé le 17 novembre 2026). `pnpm audit --audit-level=high` reste en échec (la CI ne bloque pas). Lever quand une version corrigée est publiée : `pnpm update picomatch --depth Infinity` |
 | `deepmerge` <= 4.3.1 (GHSA-gcqx-w48m-w2h4, prototype pollution de `mergeObject()`, faible, aucun correctif publié) | 🟢 Faible | Tirée par `shadcn` et `@shadcn/registry`, CLI de développement hors runtime et hors image. `pnpm audit` la signale (relevé le 10 novembre 2026). Lever quand un correctif existe |
 | Better Auth : refus levé dans un `databaseHooks` pendant le callback OAuth | ✅ Traité | Lever `APIError` avec un `code` dans le body : sans `code`, le callback relance l'erreur en 403 JSON au lieu de rediriger vers `onAPIError.errorURL?error=<code>` (`dist/api/routes/callback.mjs` en 1.7.5) |
@@ -444,14 +443,15 @@ pnpm typecheck && pnpm lint && pnpm test
 - [ ] Runner CI `ubuntu-24.04` (pas `ubuntu-latest`), actions épinglées par SHA (§ GitHub Actions)
 - [ ] Build Docker en Turbopack, aucun `--webpack` (§ Prisma ORM > Issues connues & gotchas)
 
-## Montées Bloquées (état au 10 novembre 2026)
+## Montées Bloquées (état au 18 novembre 2026)
 
 Ces mises à jour majeures ont été testées puis écartées, ou identifiées et non tentées. Ne pas les rejouer sans que la contrainte listée soit levée.
 
 | Paquet | Actuel | Disponible | Blocage | Levée attendue |
 |---|---|---|---|---|
 | TypeScript | `6.0.3` | `7.0.2` | `typescript-eslint@8.72.2` (devDependency directe épinglée) déclare `peerDependencies.typescript: >=4.8.4 <6.1.0`, plage identique sur la `latest` npm 8.73.0 (relevé le 17 novembre 2026) : monter `typescript-eslint` ne débloque rien. `tsc --noEmit` passe, mais `eslint` casse au chargement de la config | Publication d'un `typescript-eslint` stable supportant TS 7 (seules des alphas existent). Piste intermédiaire du blog TS 7 : l'alias `typescript@npm:@typescript/typescript6` pour les outils qui ont encore besoin de l'API 6. Retirer alors l'`ignore` de la majeure dans `dependabot.yml` |
-| Prisma | `7.10.1` | `8.0.0-rc.33` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.1 est sur `prev`, relevé le 10 novembre 2026), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire | Publication de la 8.0.0 stable |
+| Prisma | `7.10.1` | `8.0.0-rc.34` | Release candidate, jamais en production. **Attention** : cette rc est publiée sur le dist-tag `latest` de `prisma` (la 7.10.1 est sur `prev`, relevé le 18 novembre 2026), un `pnpm add prisma` ou un `pnpm dlx prisma@latest` la tire | Publication de la 8.0.0 stable |
+| minimatch | `10.2.6` | `11.0.1` | Alerte Dependabot GHSA-g3hv-75wg-m249 (DoS par amplification, modérée, corrigée en `>= 11.0.1`). Plage `^10` de `eslint`, `@eslint/config-array`, `@typescript-eslint/typescript-estree` et `@ts-morph/common` (`shadcn`) : un `overrides` vers la 11 sortirait de la plage de chaque dépendant. Outillage de lint et CLI, absents de l'image (`pnpm deploy --prod`). Les `glob` et `minimatch` tirés par `@sentry/nextjs` sont déjà en 11.x (`glob` 14.0.4, `minimatch` 11.0.5) | `eslint` et `typescript-estree` acceptent minimatch 11 |
 
 ---
 
