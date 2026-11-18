@@ -124,10 +124,11 @@ export const CLOSED_WEEK_FRIDAY = "2026-10-30"
 export const CLOSED_WEEK_COUNTS = {
   connectionsSent: 2,
   connectionsAccepted: 1,
-  messagesSent: 1,
+  messagesSent: 2,
   conversationsEngaged: 1,
-  meetingsBooked: 1,
-  interviewsHeld: 1,
+  refusalsReceived: 1,
+  meetingsBooked: 2,
+  interviewsHeld: 2,
   activeLeads: 1,
 } as const
 
@@ -156,6 +157,19 @@ export async function seedClosedWeek(): Promise<void> {
         occurredAt: "2026-10-27T10:00:00Z",
         respondedAt: "2026-10-29T10:00:00Z",
       }),
+      action({
+        channel: "DM_LINKEDIN",
+        status: "REFUSE",
+        occurredAt: "2026-10-27T11:00:00Z",
+        respondedAt: "2026-10-29T11:00:00Z",
+      }),
+      action({
+        channel: "CANDIDATURE",
+        status: "CONVERTI",
+        occurredAt: "2026-10-27T12:00:00Z",
+        respondedAt: "2026-10-29T12:00:00Z",
+      }),
+      action({ channel: "CALL", status: "FAIT", occurredAt: "2026-10-29T14:00:00Z" }),
       action({ channel: "CONNEXION_LINKEDIN", status: "FAIT", occurredAt: "2026-10-31T09:00:00Z" }),
     ],
   })

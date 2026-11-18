@@ -7,8 +7,9 @@ vi.mock("@/lib/logger", () => ({
   logger: { child: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) },
 }))
 
+import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
 import { prisma } from "@/testing/prisma"
-import { erasePersonExchanges } from "@/server/actions/persons"
+import { erasePersonExchanges, optOutPerson } from "@/server/actions/persons"
 
 const EMAIL_DOMAIN = "@persons-integration.example.com"
 const OPPORTUNITY_TITLE = "Persons integration opportunity"
@@ -24,9 +25,62 @@ function createPerson(name: string, optedOutAt: Date | null) {
   })
 }
 
+function actionFactory(personId: string) {
+  return (title: string, channel: ActionChannel, status: ActionStatus, occurredAt: string) =>
+    prisma.prospectingAction.create({
+      data: { title, personId, channel, status, occurredAt: new Date(occurredAt) },
+    })
+}
+
 afterEach(async () => {
   await prisma.person.deleteMany({ where: { email: { endsWith: EMAIL_DOMAIN } } })
   await prisma.opportunity.deleteMany({ where: { title: OPPORTUNITY_TITLE } })
+})
+
+describe("optOutPerson against real Postgres", () => {
+  it("deletes planned actions and refuses the latest pending message when opting out", async () => {
+    const person = await createPerson("Jane Doe", null)
+    const action = actionFactory(person.id)
+    const firstDm = await action("First DM", "DM_LINKEDIN", "FAIT", "2026-03-02T08:00:00Z")
+    const email = await action("Follow-up email", "EMAIL", "FAIT", "2026-03-09T08:00:00Z")
+    await action("Planned DM", "DM_LINKEDIN", "A_FAIRE", "2026-03-16T08:00:00Z")
+    await action("Planned call", "CALL", "A_FAIRE", "2026-03-17T08:00:00Z")
+    const before = new Date()
+
+    const state = await optOutPerson(person.id)
+
+    const remaining = await prisma.prospectingAction.findMany({
+      where: { personId: person.id },
+      orderBy: { occurredAt: "asc" },
+    })
+    expect(state.ok).toBe(true)
+    expect(remaining.map((kept) => [kept.id, kept.status])).toEqual([
+      [firstDm.id, "FAIT"],
+      [email.id, "REFUSE"],
+    ])
+    expect(remaining[1]?.respondedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime())
+  })
+
+  it("deletes planned actions without refusing anything when no message awaits", async () => {
+    const person = await createPerson("Jane Doe", null)
+    const action = actionFactory(person.id)
+    await action("Connection", "CONNEXION_LINKEDIN", "FAIT", "2026-03-02T08:00:00Z")
+    await action("Call", "CALL", "FAIT", "2026-03-03T08:00:00Z")
+    await action("Answered DM", "DM_LINKEDIN", "REPONDU", "2026-03-04T08:00:00Z")
+    await action("Planned DM", "DM_LINKEDIN", "A_FAIRE", "2026-03-16T08:00:00Z")
+
+    await optOutPerson(person.id)
+
+    const remaining = await prisma.prospectingAction.findMany({
+      where: { personId: person.id },
+      orderBy: { occurredAt: "asc" },
+    })
+    expect(remaining.map((kept) => [kept.title, kept.status])).toEqual([
+      ["Connection", "FAIT"],
+      ["Call", "FAIT"],
+      ["Answered DM", "REPONDU"],
+    ])
+  })
 })
 
 describe("erasePersonExchanges against real Postgres", () => {

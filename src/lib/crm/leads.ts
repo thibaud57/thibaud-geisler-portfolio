@@ -101,7 +101,7 @@ export const LEAD_FIELD_LABELS = {
   interest: "Intérêt",
   channel: "Canal",
   score: "Score",
-  lastReplyAt: "Dernier contact de sa part",
+  lastContactAt: "Dernier contact de sa part",
   retentionEnd: "À conserver jusqu'au",
   contactRole: "Fiche contact",
 } as const

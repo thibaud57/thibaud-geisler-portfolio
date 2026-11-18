@@ -29,7 +29,14 @@ function sources(overrides: Partial<CounterSources> = {}): CounterSources {
 type LeadSource = CounterSources["leads"][number]
 
 function lead(status: LeadSource["status"], overrides: Partial<LeadSource> = {}): LeadSource {
-  return { status, opportunities: [], interviews: [], optedOutAt: null, ...overrides }
+  return {
+    status,
+    opportunities: [],
+    interviews: [],
+    plannedCalls: [],
+    optedOutAt: null,
+    ...overrides,
+  }
 }
 
 describe("countWeek", () => {
@@ -74,6 +81,83 @@ describe("countWeek", () => {
     expect(counts.messagesSent).toBe(1)
   })
 
+  it("counts refusals apart from conversations", () => {
+    const counts = countWeek(
+      sources({
+        actions: [
+          action("DM_LINKEDIN", "REFUSE", BEFORE, IN_WEEK),
+          action("EMAIL", "REPONDU", BEFORE, IN_WEEK),
+        ],
+      }),
+      BOUNDS,
+      NOW,
+    )
+
+    expect(counts).toMatchObject({ refusalsReceived: 1, conversationsEngaged: 1 })
+  })
+
+  it("counts a refused message as sent", () => {
+    const counts = countWeek(
+      sources({ actions: [action("DM_LINKEDIN", "REFUSE", IN_WEEK, IN_WEEK)] }),
+      BOUNDS,
+      NOW,
+    )
+
+    expect(counts.messagesSent).toBe(1)
+  })
+
+  it("counts converted applications as booked meetings", () => {
+    const counts = countWeek(
+      sources({
+        actions: [
+          action("CANDIDATURE", "CONVERTI", BEFORE, IN_WEEK),
+          action("CALL", "CONVERTI", BEFORE, IN_WEEK),
+        ],
+      }),
+      BOUNDS,
+      NOW,
+    )
+
+    expect(counts.meetingsBooked).toBe(1)
+  })
+
+  it("counts held calls with held interviews, on the day of the call", () => {
+    const counts = countWeek(
+      sources({
+        interviews: [{ status: "FAIT", scheduledAt: IN_WEEK }],
+        actions: [
+          action("CALL", "FAIT", IN_WEEK),
+          action("CALL", "CONVERTI", IN_WEEK),
+          action("CALL", "IGNORE", IN_WEEK),
+          action("CALL", "FAIT", BEFORE),
+        ],
+      }),
+      BOUNDS,
+      NOW,
+    )
+
+    expect(counts.interviewsHeld).toBe(3)
+  })
+
+  it("ignores the other channel in every counter", () => {
+    const counts = countWeek(
+      sources({ actions: [action("AUTRE", "REPONDU", IN_WEEK, IN_WEEK)] }),
+      BOUNDS,
+      NOW,
+    )
+
+    expect(counts).toEqual({
+      connectionsSent: 0,
+      connectionsAccepted: 0,
+      messagesSent: 0,
+      conversationsEngaged: 0,
+      refusalsReceived: 0,
+      meetingsBooked: 0,
+      interviewsHeld: 0,
+      activeLeads: 0,
+    })
+  })
+
   it("counts interviews held in the week from the interview records", () => {
     const counts = countWeek(
       sources({
@@ -110,6 +194,17 @@ describe("countWeek", () => {
     )
 
     expect(counts.activeLeads).toBe(3)
+  })
+
+  it("counts a new lead with a planned call as active", () => {
+    const withCall = lead("NOUVEAU", { plannedCalls: [{ occurredAt: NOW }] })
+    const withoutCall = lead("NOUVEAU")
+
+    const counts = [withCall, withoutCall].map(
+      (row) => countWeek(sources({ leads: [row] }), BOUNDS, NOW).activeLeads,
+    )
+
+    expect(counts).toEqual([1, 0])
   })
 })
 

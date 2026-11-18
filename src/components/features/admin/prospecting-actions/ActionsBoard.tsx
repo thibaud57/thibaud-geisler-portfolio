@@ -53,6 +53,7 @@ const COLUMN_ICON_CLASSES: Record<ActionStatus, string> = {
   FAIT: "text-info",
   REPONDU: "text-success",
   CONVERTI: "text-primary",
+  REFUSE: "text-destructive",
   IGNORE: "text-destructive",
 }
 

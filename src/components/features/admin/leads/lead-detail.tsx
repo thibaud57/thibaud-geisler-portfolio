@@ -138,8 +138,8 @@ export function buildLeadDetail(
             value: formatDateOnly(lead.metAt),
           },
           {
-            label: LEAD_FIELD_LABELS.lastReplyAt,
-            value: formatShortInstantDate(lead.lastReplyAt),
+            label: LEAD_FIELD_LABELS.lastContactAt,
+            value: formatShortInstantDate(lead.lastContactAt),
           },
         ],
       },

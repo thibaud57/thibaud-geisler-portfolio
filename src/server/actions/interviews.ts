@@ -33,7 +33,7 @@ import type {
 } from "./interviews.types"
 import { CORRESPONDENT_WORDING, personConflictMessage } from "./_support/person-form"
 
-// L'entretien s'affiche sur son opportunité et fait le statut « RDV planifié » de ses correspondants, leads comme contacts ; les entreprises en déduisent isProspect des leads actifs, qui lisent les entretiens ; `revalidatePersonLists` couvre les listes des entretiens et des entreprises.
+// Un entretien fait le statut « RDV planifié » de ses correspondants, l'isProspect des entreprises et, une fois Fait, le dernier contact de ses correspondants : `revalidatePersonLists` couvre ces listes.
 function invalidateInterviewCaches(): void {
   revalidatePersonLists()
 }

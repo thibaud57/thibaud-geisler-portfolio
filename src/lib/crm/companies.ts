@@ -6,8 +6,8 @@ import type {
   CompanyType,
   OpportunityStatus,
   ProjectType,
-  RelationStatus,
 } from "@/generated/prisma/client"
+import type { CompanyRelationDisplayStatus } from "@/lib/crm/company-relation-status"
 import type { IconComponent } from "@/lib/icons"
 import type { CompanyInput } from "@/lib/schemas/company"
 import { OPPORTUNITY_FIELD_LABELS } from "@/lib/crm/opportunities"
@@ -58,13 +58,13 @@ export const COMPANY_TYPE_ICONS: Record<CompanyType, IconComponent | null> = {
   MA_SOCIETE: House,
 }
 
-export const RELATION_STATUS_LABELS: Record<RelationStatus, string> = {
+export const RELATION_STATUS_LABELS: Record<CompanyRelationDisplayStatus, string> = {
   ACTIVE: "Active",
   DORMANTE: "Dormante",
   ARCHIVEE: "Archivée",
 }
 
-export const COMPANY_STATUS_ICONS: Record<RelationStatus, IconComponent | null> = {
+export const COMPANY_STATUS_ICONS: Record<CompanyRelationDisplayStatus, IconComponent | null> = {
   ACTIVE: CircleCheck,
   DORMANTE: Moon,
   ARCHIVEE: Archive,
@@ -94,6 +94,7 @@ export const COMPANY_FIELD_LABELS = {
   worked: "Travaillée",
   projects: "Projets",
   firstContactAt: "Premier contact",
+  lastInteractionAt: "Dernière interaction",
   endClients: "Clients finaux",
   zones: "Localités",
   notes: "Notes",

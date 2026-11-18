@@ -20,21 +20,22 @@ interface LeadViewRow extends LeadStatusSource {
   linkedinUrl: string | null
 }
 
-export const IN_PROGRESS: ReadonlySet<LeadDisplayStatus | null> = new Set([
+export const PIPELINE_STATUSES: ReadonlySet<LeadDisplayStatus | null> = new Set([
   "NOUVEAU",
   "SUSPECT",
   "DISCUSSION",
   "RDV_PLANIFIE",
 ])
 
-// Un lead opposé ou Deal sort du pipeline : la règle est partagée par tout écran qui distingue les leads actifs.
-export function isActiveLead(lead: LeadStatusSource, now: Date): boolean {
-  return IN_PROGRESS.has(leadDisplayStatus(lead, now))
+// Un lead opposé ou Deal sort du pipeline : la règle est partagée par tout écran qui distingue les leads en cours. Nouveau y reste, à la différence des leads actifs du KPI de la revue.
+export function isInPipeline(lead: LeadStatusSource, now: Date): boolean {
+  return PIPELINE_STATUSES.has(leadDisplayStatus(lead, now))
 }
 
 const VIEW_FILTERS: Record<Exclude<LeadView, "all">, (lead: LeadViewRow, now: Date) => boolean> = {
-  "en-cours": (lead, now) => IN_PROGRESS.has(leadDisplayStatus(lead, now)),
-  chauds: (lead, now) => lead.interest === "HOT" && IN_PROGRESS.has(leadDisplayStatus(lead, now)),
+  "en-cours": (lead, now) => PIPELINE_STATUSES.has(leadDisplayStatus(lead, now)),
+  chauds: (lead, now) =>
+    lead.interest === "HOT" && PIPELINE_STATUSES.has(leadDisplayStatus(lead, now)),
   "a-qualifier": (lead, now) => leadDisplayStatus(lead, now) === "NOUVEAU",
   "stand-by": (lead, now) => leadDisplayStatus(lead, now) === "STAND_BY",
 }

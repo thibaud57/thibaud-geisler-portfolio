@@ -223,7 +223,7 @@ describe("findPublishedBySlug company payload", () => {
         name: "Acme",
         sectors: ["SAAS"],
         types: ["CLIENT_FINAL"],
-        relationStatus: "DORMANTE",
+        relationStatus: "ARCHIVEE",
         zones: ["LUXEMBOURG"],
         notes: "Note interne",
         details: "# 🏢 À propos\n\nDétails internes.",

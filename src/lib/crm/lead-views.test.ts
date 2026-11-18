@@ -7,7 +7,7 @@ import type {
   OpportunityStatus,
 } from "@/generated/prisma/client"
 
-import { isActiveLead, LEAD_VIEWS, leadsForView } from "./lead-views"
+import { isInPipeline, LEAD_VIEWS, leadsForView } from "./lead-views"
 
 const NOW = new Date(2026, 8, 27, 12, 0)
 
@@ -32,6 +32,7 @@ interface TestLead {
   linkedinUrl: string | null
   opportunities: { status: OpportunityStatus }[]
   interviews: { status: InterviewStatus; scheduledAt: Date }[]
+  plannedCalls: { occurredAt: Date }[]
 }
 
 function lead(overrides: Partial<TestLead> = {}): TestLead {
@@ -47,19 +48,32 @@ function lead(overrides: Partial<TestLead> = {}): TestLead {
     linkedinUrl: null,
     opportunities: [],
     interviews: [],
+    plannedCalls: [],
     ...overrides,
   }
 }
 
-describe("isActiveLead", () => {
-  it("treats a lead with an accepted opportunity as not active", () => {
-    const deal = lead({ status: "DISCUSSION", opportunities: [{ status: "ACCEPTEE" }] })
-    const optedOut = lead({ optedOutAt: new Date("2026-03-12T09:00:00Z") })
-    const fresh = lead({ status: "NOUVEAU" })
+describe("isInPipeline", () => {
+  it.each([
+    {
+      label: "treats a lead with an accepted opportunity as out of the pipeline",
+      row: lead({ status: "DISCUSSION", opportunities: [{ status: "ACCEPTEE" }] }),
+      expected: false,
+    },
+    {
+      label: "treats an opted-out lead as out of the pipeline",
+      row: lead({ optedOutAt: new Date("2026-03-12T09:00:00Z") }),
+      expected: false,
+    },
+    {
+      label: "keeps new leads in the pipeline",
+      row: lead({ status: "NOUVEAU" }),
+      expected: true,
+    },
+  ])("$label", ({ row, expected }) => {
+    const inPipeline = isInPipeline(row, NOW)
 
-    const results = [deal, optedOut, fresh].map((row) => isActiveLead(row, NOW))
-
-    expect(results).toEqual([false, false, true])
+    expect(inPipeline).toBe(expected)
   })
 })
 

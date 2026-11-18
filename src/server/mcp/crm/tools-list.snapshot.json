@@ -49,7 +49,7 @@
   {
     "name": "crm_fetch",
     "title": "Fetch a CRM record",
-    "description": "Fetch one CRM record by id, with its links. For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact). For a lead or contact: their record, company and roles, and for a lead their referred opportunities, interviews, signals and prospecting action count. For an opportunity: its referrer (id and name, or id only when they opted out), intermediary, client and interviews. For an interview: its title, opportunity with intermediary and client, and correspondents (id and name, or id only when opted out). For a prospecting action: its fields and its lead (id and name, or id only when opted out); its day fields occurredAt and respondedAt are YYYY-MM-DD days, the format crm_create and crm_update take. For a signal: its fields and its company or its lead (id and name, or id only when opted out); occurredOn is a YYYY-MM-DD day. For a weekly review: its seven counters and its qualitative fields; closingFriday is a YYYY-MM-DD day. A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "description": "Fetch one CRM record by id, with its links. For a company: the legal entity, opportunities as intermediary and as client, signals and attached persons (id, name, roles lead or contact). For a lead or contact: their record, company and roles, and for a lead their referred opportunities, interviews, signals and prospecting action count. For an opportunity: its referrer (id and name, or id only when they opted out), intermediary, client and interviews. For an interview: its title, opportunity with intermediary and client, and correspondents (id and name, or id only when opted out). For a prospecting action: its fields and its lead (id and name, or id only when opted out); its day fields occurredAt and respondedAt are YYYY-MM-DD days, the format crm_create and crm_update take. For a signal: its fields and its company or its lead (id and name, or id only when opted out); occurredOn is a YYYY-MM-DD day. For a weekly review: its eight counters and its qualitative fields; closingFriday is a YYYY-MM-DD day. A person who opted out is reduced to { id, name: null, optedOut: true, optedOutAt }. Call crm_search first to get the id. Returns an error naming the id if nothing matches. Dates with a time are ISO 8601 in Paris time, with their offset.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -88,7 +88,7 @@
   {
     "name": "crm_query",
     "title": "List CRM records with filters",
-    "description": "List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date; for an opportunity id, title, status, daily rate, start month, client and intermediary; for an interview id, title (Entretien N · type, or Premier contact), type, side, status, outcome, date, score and opportunity title; for a prospecting action id, title, channel, status, date, reply date and lead as id and name, or id only when opted out; for a signal id, type, day occurredOn, content, link, and its company or lead as id and name; for a weekly review id, closingFriday, the seven counters, status, motivation and updated date) and the total count before pagination. Persons who opted out are never listed. Page with offset. An interview has no name: sort name orders by opportunity title then date. A prospecting action is sorted by its title, and its day fields come as YYYY-MM-DD. A signal has no name: sort name orders by day. A weekly review has no name: sort name orders by closingFriday, and the default order is desc, so the first row is the last review, closingFriday as a YYYY-MM-DD day. Dates with a time are ISO 8601 in Paris time, with their offset.",
+    "description": "List CRM records of one entity, filtered, sorted and paginated. Use it to browse (e.g. all active companies); use crm_search to find one record by name. Returns { rows, total }: summary rows (id, name, slug or company, status, types, zones, updated date; for an opportunity id, title, status, daily rate, start month, client and intermediary; for an interview id, title (Entretien N · type, or Premier contact), type, side, status, outcome, date, score and opportunity title; for a prospecting action id, title, channel, status, date, reply date and lead as id and name, or id only when opted out; for a signal id, type, day occurredOn, content, link, and its company or lead as id and name; for a weekly review id, closingFriday, the eight counters, status, motivation and updated date) and the total count before pagination. Persons who opted out are never listed. Page with offset. An interview has no name: sort name orders by opportunity title then date. A prospecting action is sorted by its title, and its day fields come as YYYY-MM-DD. A signal has no name: sort name orders by day. A weekly review has no name: sort name orders by closingFriday, and the default order is desc, so the first row is the last review, closingFriday as a YYYY-MM-DD day. Dates with a time are ISO 8601 in Paris time, with their offset.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -118,7 +118,7 @@
               "type": "object",
               "properties": {
                 "relationStatus": {
-                  "description": "Only this relationship status.",
+                  "description": "Only this displayed relationship status (ACTIVE, DORMANTE or ARCHIVEE). DORMANTE means 12 months without interaction.",
                   "type": "string",
                   "enum": [
                     "ACTIVE",
@@ -485,6 +485,7 @@
                     "FAIT",
                     "REPONDU",
                     "CONVERTI",
+                    "REFUSE",
                     "IGNORE"
                   ]
                 },
@@ -653,7 +654,7 @@
   {
     "name": "crm_create",
     "title": "Create a CRM record",
-    "description": "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, slug, name and types are required, and the Details get the standard section template unless you send your own. For a lead, only name and origin are required. A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field. For an opportunity, only title is required: the referrer must not have opted out, the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own. For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own. For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE and the dates follow the status rules. For a signal, exactly one of companyId or personId, type, occurredOn (a day, YYYY-MM-DD) and content are required: the type must fit the target (company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION; lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION) and a lead must be OUTBOUND and not opted out. For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the seven counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review. A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company, the title for an opportunity) of the new record.",
+    "description": "Create a CRM record. Call crm_search first to check it does not exist yet. For a company, slug, name and types are required, and the Details get the standard section template unless you send your own. For a lead, only name and origin are required. A contact is created from its person fields, or by promoting an existing lead with { fromLeadId, types, status } and no person field. For an opportunity, only title is required: the referrer must not have opted out, the intermediary must be a company of type ESN_RECRUTEMENT, the client must differ from the intermediary, onSiteDays cannot exceed daysPerWeek, and the Details get the standard template unless you send your own. For an interview, opportunityId, side, type and scheduledAt (ISO 8601 with its offset) are required: side ESN needs an intermediary on the opportunity, correspondentIds must be existing persons who did not opt out (create a new one with crm_create first), and the Details get the template of its type unless you send your own. An interview is a meeting tied to an opportunity; calls are CALL prospecting actions (see the prospecting action rule). For a prospecting action, personId (a lead who did not opt out and holds a lead record), title, channel and occurredAt (a day, YYYY-MM-DD) are required: the status starts at A_FAIRE, must be one the channel allows, and the dates follow the status rules. A meeting tied to an opportunity is an interview (crm_create with the entity interview), never a CALL action; a call outside any opportunity (qualification, discovery, networking) is a CALL action; a call that gives birth to an opportunity is set to CONVERTI and its follow-up is held as interviews, so nothing is counted twice. For a signal, exactly one of companyId or personId, type, occurredOn (a day, YYYY-MM-DD) and content are required: the type must fit the target (company: OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT, ACQUISITION; lead: POST, COMMENTAIRE, CONFERENCE, INTERACTION) and a lead must be OUTBOUND and not opted out. For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the eight counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review. A duplicate email or LinkedIn URL, or a person who opted out, is refused. The legal entity cannot be written here, nor the score of a lead. Returns the id (and the slug and name for a company, the title for an opportunity) of the new record.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -770,10 +771,9 @@
                   "type": "string",
                   "enum": [
                     "ACTIVE",
-                    "DORMANTE",
                     "ARCHIVEE"
                   ],
-                  "description": "Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."
+                  "description": "Status of the relationship: ACTIVE or ARCHIVEE. DORMANTE is derived from 12 months without interaction and only read."
                 },
                 "zones": {
                   "type": "array",
@@ -1695,9 +1695,10 @@
                     "FAIT",
                     "REPONDU",
                     "CONVERTI",
+                    "REFUSE",
                     "IGNORE"
                   ],
-                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date."
+                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI, REFUSE (the person declined) or IGNORE. Allowed per channel: CONNEXION_LINKEDIN takes A_FAIRE, FAIT, REPONDU (accepted) and IGNORE; CALL takes A_FAIRE, FAIT, CONVERTI and IGNORE; every other channel takes all six. A_FAIRE to IGNORE is reserved for a call that did not take place: a message never sent is deleted in the admin space, not ignored. Changing the status sets the dates by the status rules: leaving A_FAIRE takes the real sending time (a call keeps its planned day), REPONDU, CONVERTI and REFUSE on a channel other than CALL set the reply date, any other status clears the reply and its date."
                 },
                 "respondedAt": {
                   "anyOf": [
@@ -1710,7 +1711,7 @@
                       "type": "null"
                     }
                   ],
-                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out or null, the status rules set it (or keep the stored one)."
+                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU, CONVERTI or REFUSE on a channel other than CALL (a call is held live and has no reply): left out or null, the status rules set it (or keep the stored one)."
                 },
                 "message": {
                   "default": null,
@@ -1736,7 +1737,7 @@
                       "type": "null"
                     }
                   ],
-                  "description": "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status. null clears it."
+                  "description": "Text of the reply received. Kept only with REPONDU, CONVERTI or REFUSE on a channel other than CALL, cleared with any other status. null clears it."
                 }
               },
               "required": [
@@ -1847,17 +1848,23 @@
                   "maximum": 999,
                   "description": "Conversations engaged in the week. Integer from 0 to 999."
                 },
+                "refusalsReceived": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Refusals received in the week. Integer from 0 to 999."
+                },
                 "meetingsBooked": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 999,
-                  "description": "Meetings booked in the week. Integer from 0 to 999."
+                  "description": "Meetings booked in the week: converted messages and applications. Integer from 0 to 999."
                 },
                 "interviewsHeld": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 999,
-                  "description": "Interviews held in the week. Integer from 0 to 999."
+                  "description": "Interviews held in the week, calls held included. Integer from 0 to 999."
                 },
                 "activeLeads": {
                   "type": "integer",
@@ -1973,7 +1980,7 @@
   {
     "name": "crm_update",
     "title": "Update a CRM record",
-    "description": "Update a CRM record by id: fields (absent stays unchanged, null clears an optional field), a Details section by title, or both. Call crm_search first for the id, and crm_fetch to read the current values. Replacing one Details section leaves the others untouched. Only a company, a lead, a contact, an opportunity and an interview have Details: a signal, a prospecting action and a weekly review take fields only and refuse detailsSection. The legal entity cannot be written here, nor the score of a lead, and the record of a person who opted out is locked. The same rules as at creation apply to an opportunity, checked against its stored values when you send one field only. For an interview, correspondentIds replaces the whole list (omit it to keep it) and outcome is cleared unless the status is FAIT. For a prospecting action, a status change applies the status rules: leaving A_FAIRE takes the real sending time unless occurredAt moves to another day in the same patch, REPONDU and CONVERTI keep the respondedAt sent with them (else the stored one, else today), any other status clears the reply and its date. The lead must not have opted out. For a signal, the target never changes and the type must keep fitting it. For a weekly review, a counter left out stays unchanged and is never recomputed, and closingFriday must stay a Friday no other review holds. Returns the id (and the slug and name for a company, the title for an opportunity).",
+    "description": "Update a CRM record by id: fields (absent stays unchanged, null clears an optional field), a Details section by title, or both. Call crm_search first for the id, and crm_fetch to read the current values. Replacing one Details section leaves the others untouched. Only a company, a lead, a contact, an opportunity and an interview have Details: a signal, a prospecting action and a weekly review take fields only and refuse detailsSection. The legal entity cannot be written here, nor the score of a lead, and the record of a person who opted out is locked. The same rules as at creation apply to an opportunity, checked against its stored values when you send one field only. For an interview, correspondentIds replaces the whole list (omit it to keep it) and outcome is cleared unless the status is FAIT. For a prospecting action, the status must be one its channel allows (the channel is checked as patched, so a patch that changes only the channel is refused when the stored status does not fit the new one), and A_FAIRE to IGNORE is refused unless the action is a call. A status change applies the status rules: leaving A_FAIRE takes the real sending time (a call keeps its planned day) unless occurredAt moves to another day in the same patch, REPONDU, CONVERTI and REFUSE keep the respondedAt sent with them (else the stored one, else today) on a channel other than CALL, any other status clears the reply and its date. The lead must not have opted out. For a signal, the target never changes and the type must keep fitting it. For a weekly review, a counter left out stays unchanged and is never recomputed, and closingFriday must stay a Friday no other review holds. Returns the id (and the slug and name for a company, the title for an opportunity).",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -2091,10 +2098,9 @@
                   "type": "string",
                   "enum": [
                     "ACTIVE",
-                    "DORMANTE",
                     "ARCHIVEE"
                   ],
-                  "description": "Status of the relationship: ACTIVE, DORMANTE or ARCHIVEE."
+                  "description": "Status of the relationship: ACTIVE or ARCHIVEE. DORMANTE is derived from 12 months without interaction and only read."
                 },
                 "zones": {
                   "type": "array",
@@ -2900,9 +2906,10 @@
                     "FAIT",
                     "REPONDU",
                     "CONVERTI",
+                    "REFUSE",
                     "IGNORE"
                   ],
-                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI or IGNORE. Changing it sets the dates by the status rules: leaving A_FAIRE takes the real sending time, REPONDU and CONVERTI set the reply date, any other status clears the reply and its date."
+                  "description": "Status: A_FAIRE, FAIT, REPONDU, CONVERTI, REFUSE (the person declined) or IGNORE. Allowed per channel: CONNEXION_LINKEDIN takes A_FAIRE, FAIT, REPONDU (accepted) and IGNORE; CALL takes A_FAIRE, FAIT, CONVERTI and IGNORE; every other channel takes all six. A_FAIRE to IGNORE is reserved for a call that did not take place: a message never sent is deleted in the admin space, not ignored. Changing the status sets the dates by the status rules: leaving A_FAIRE takes the real sending time (a call keeps its planned day), REPONDU, CONVERTI and REFUSE on a channel other than CALL set the reply date, any other status clears the reply and its date."
                 },
                 "occurredAt": {
                   "type": "string",
@@ -2921,7 +2928,7 @@
                       "type": "null"
                     }
                   ],
-                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU or CONVERTI: left out or null, the status rules set it (or keep the stored one)."
+                  "description": "Day the person replied, YYYY-MM-DD. Optional and used only with REPONDU, CONVERTI or REFUSE on a channel other than CALL (a call is held live and has no reply): left out or null, the status rules set it (or keep the stored one)."
                 },
                 "message": {
                   "anyOf": [
@@ -2945,7 +2952,7 @@
                       "type": "null"
                     }
                   ],
-                  "description": "Text of the reply received. Kept only with REPONDU or CONVERTI, cleared with any other status. null clears it."
+                  "description": "Text of the reply received. Kept only with REPONDU, CONVERTI or REFUSE on a channel other than CALL, cleared with any other status. null clears it."
                 }
               },
               "additionalProperties": false
@@ -3034,17 +3041,23 @@
                   "maximum": 999,
                   "description": "Conversations engaged in the week. Integer from 0 to 999."
                 },
+                "refusalsReceived": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 999,
+                  "description": "Refusals received in the week. Integer from 0 to 999."
+                },
                 "meetingsBooked": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 999,
-                  "description": "Meetings booked in the week. Integer from 0 to 999."
+                  "description": "Meetings booked in the week: converted messages and applications. Integer from 0 to 999."
                 },
                 "interviewsHeld": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 999,
-                  "description": "Interviews held in the week. Integer from 0 to 999."
+                  "description": "Interviews held in the week, calls held included. Integer from 0 to 999."
                 },
                 "activeLeads": {
                   "type": "integer",

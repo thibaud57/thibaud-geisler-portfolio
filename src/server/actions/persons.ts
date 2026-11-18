@@ -4,11 +4,13 @@ import "server-only"
 
 import { assertNever } from "@/lib/assert-never"
 import { getCurrentUser } from "@/lib/get-current-user"
+import { personIdSchema } from "@/lib/ids"
+import { REPLYABLE_CHANNELS } from "@/lib/crm/action-views"
 import { OPTED_OUT_CLEARED, optOutDeletesPerson } from "@/lib/crm/persons"
 import { prisma } from "@/lib/prisma"
 import { createActionLogger } from "@/lib/server-utils"
 
-import { revalidatePersonLists } from "@/server/crm/person-guards"
+import { lockPerson, revalidatePersonLists } from "@/server/crm/person-guards"
 import type { ErasePersonExchangesState, OptOutPersonState } from "./persons.types"
 
 type OptOutOutcome = "not_found" | "refused" | "already_opted_out" | "deleted" | "opted_out"
@@ -21,6 +23,8 @@ export async function optOutPerson(id: string): Promise<OptOutPersonState> {
   return createActionLogger("optOutPerson", async ({ log }) => {
     try {
       const outcome: OptOutOutcome = await prisma.$transaction(async (tx) => {
+        const personId = personIdSchema.safeParse(id)
+        if (!personId.success) return "not_found"
         const person = await tx.person.findUnique({
           where: { id },
           select: {
@@ -39,10 +43,30 @@ export async function optOutPerson(id: string): Promise<OptOutPersonState> {
           await tx.person.delete({ where: { id } })
           return "deleted"
         }
-        // L'UPDATE d'abord : il verrouille la ligne, qu'un rattachement « Depuis un lead » verrouille aussi. Ce rattachement voit alors l'opposition, ou son rôle Contact, déjà créé, part avec la suppression qui suit.
+        const optedOutAt = new Date()
+        // Le verrou sérialise avec la garde d'une création d'action (FOR SHARE) avant le deleteMany, et les actions se traitent avant optedOutAt selon le spec.
+        await lockPerson(tx, personId.data)
+        await tx.prospectingAction.deleteMany({ where: { personId: id, status: "A_FAIRE" } })
+        const pendingMessage = await tx.prospectingAction.findFirst({
+          where: {
+            personId: id,
+            status: "FAIT",
+            channel: { in: [...REPLYABLE_CHANNELS] },
+          },
+          orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+          select: { id: true },
+        })
+        // Une opposition reçue en réponse à un message ou une candidature est un refus ; une connexion ou un call en attente n'est jamais refusé.
+        if (pendingMessage) {
+          await tx.prospectingAction.update({
+            where: { id: pendingMessage.id },
+            data: { status: "REFUSE", respondedAt: optedOutAt },
+          })
+        }
+        // Cet UPDATE verrouille la ligne, qu'un rattachement « Depuis un lead » verrouille aussi. Ce rattachement voit alors l'opposition, ou son rôle Contact, déjà créé, part avec la suppression qui suit.
         await tx.person.update({
           where: { id },
-          data: { ...OPTED_OUT_CLEARED, optedOutAt: new Date() },
+          data: { ...OPTED_OUT_CLEARED, optedOutAt },
         })
         // Les signaux ne servaient qu'à cibler la prospection : l'opposition leur ôte toute finalité, à la différence de l'historique des échanges, gardé comme preuve.
         await tx.signal.deleteMany({ where: { personId: id } })

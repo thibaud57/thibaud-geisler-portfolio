@@ -3,7 +3,7 @@ export const RETENTION_YEARS = 3
 
 interface RetentionPerson {
   createdAt: Date
-  lastReplyAt: Date | null
+  lastContactAt: Date | null
   optedOutAt: Date | null
 }
 
@@ -31,7 +31,7 @@ export function isOptOutOver(optedOutAt: Date, now: Date): boolean {
 
 export function retentionEndOf(person: RetentionPerson): Date {
   if (person.optedOutAt) return optOutEndOf(person.optedOutAt)
-  return activityEndOf(person.createdAt, person.lastReplyAt, RETENTION_YEARS)
+  return activityEndOf(person.createdAt, person.lastContactAt, RETENTION_YEARS)
 }
 
 export function isRetentionOver(person: RetentionPerson, now: Date): boolean {
