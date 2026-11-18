@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.2...v2.8.0) (2026-11-18)
+
+
+### Features
+
+* aligne le CRM sur les règles de prospection ([#271](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/271)) ([d55cb5b](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/d55cb5bb228f44f83eaab5b08eaa7e480626c2dc))
+
 ## [2.7.2](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.1...v2.7.2) (2026-11-17)
 
 
