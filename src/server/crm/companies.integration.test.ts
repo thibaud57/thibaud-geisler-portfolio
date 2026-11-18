@@ -150,7 +150,7 @@ describe("createCompany", () => {
       companyInput({
         types: ["CLIENT_FINAL", "PARTENAIRE"],
         zones: ["PARIS", "LUXEMBOURG"],
-        relationStatus: "DORMANTE",
+        relationStatus: "ARCHIVEE",
         notes: "Rencontrée au salon",
         details: "# 🏢 À propos\n\nÉditeur de logiciels.",
       }),
@@ -159,7 +159,7 @@ describe("createCompany", () => {
     expect(await loadCompany()).toMatchObject({
       types: ["CLIENT_FINAL", "PARTENAIRE"],
       zones: ["PARIS", "LUXEMBOURG"],
-      relationStatus: "DORMANTE",
+      relationStatus: "ARCHIVEE",
       notes: "Rencontrée au salon",
       details: "# 🏢 À propos\n\nÉditeur de logiciels.",
     })
@@ -197,7 +197,7 @@ describe("updateCompany with fields", () => {
       fields: {
         types: ["PARTENAIRE"],
         zones: ["PARIS", "LUXEMBOURG"],
-        relationStatus: "DORMANTE",
+        relationStatus: "ARCHIVEE",
         notes: "Rencontrée au salon",
         details: "# 🏢 À propos\n\nÉditeur de logiciels.",
       },
@@ -208,7 +208,7 @@ describe("updateCompany with fields", () => {
       sectors: ["SAAS"],
       types: ["PARTENAIRE"],
       zones: ["PARIS", "LUXEMBOURG"],
-      relationStatus: "DORMANTE",
+      relationStatus: "ARCHIVEE",
       notes: "Rencontrée au salon",
       details: "# 🏢 À propos\n\nÉditeur de logiciels.",
     })
@@ -429,7 +429,7 @@ describe("updateCompany with a details section", () => {
 
     const result = await updateCompany(companyIdOf(company), {
       ...sectionPatch,
-      fields: { notes: "Après", relationStatus: "DORMANTE" },
+      fields: { notes: "Après", relationStatus: "ARCHIVEE" },
       detailsSection: { heading: "Inconnue", content: "x" },
     })
 
@@ -458,7 +458,7 @@ describe("updateCompany with a details section", () => {
 
     const result = await updateCompany(companyIdOf(company), {
       ...sectionPatch,
-      fields: { notes: "Après", relationStatus: "DORMANTE" },
+      fields: { notes: "Après", relationStatus: "ARCHIVEE" },
     })
 
     expect(result).toEqual({ ok: false, error: { code: "no_details" } })

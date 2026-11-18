@@ -10,6 +10,7 @@ const STATUS_COLORS: Record<ActionStatus, string> = {
   FAIT: "var(--color-info)",
   REPONDU: "var(--color-success)",
   CONVERTI: "var(--color-success)",
+  REFUSE: "var(--color-destructive)",
   IGNORE: "var(--color-destructive)",
 }
 

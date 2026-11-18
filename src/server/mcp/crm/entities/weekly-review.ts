@@ -49,8 +49,9 @@ const fieldShape = {
   connectionsAccepted: counter("Connection requests accepted in the week."),
   messagesSent: counter("Messages sent in the week."),
   conversationsEngaged: counter("Conversations engaged in the week."),
-  meetingsBooked: counter("Meetings booked in the week."),
-  interviewsHeld: counter("Interviews held in the week."),
+  refusalsReceived: counter("Refusals received in the week."),
+  meetingsBooked: counter("Meetings booked in the week: converted messages and applications."),
+  interviewsHeld: counter("Interviews held in the week, calls held included."),
   activeLeads: counter("Leads active when the review is created."),
   status: z
     .enum(REVIEW_STATUSES)
@@ -150,13 +151,13 @@ export const weeklyReviewEntity = defineEntity({
     search:
       'the week label ("S44 · 2026") and the closing Friday as YYYY-MM-DD for a weekly review (found by that label or that date)',
     fetch:
-      "For a weekly review: its seven counters and its qualitative fields; closingFriday is a YYYY-MM-DD day.",
+      "For a weekly review: its eight counters and its qualitative fields; closingFriday is a YYYY-MM-DD day.",
     queryRow:
-      "for a weekly review id, closingFriday, the seven counters, status, motivation and updated date",
+      "for a weekly review id, closingFriday, the eight counters, status, motivation and updated date",
     querySort:
       "A weekly review has no name: sort name orders by closingFriday, and the default order is desc, so the first row is the last review, closingFriday as a YYYY-MM-DD day.",
     create:
-      "For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the seven counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review.",
+      "For a weekly review, only closingFriday (a Friday, YYYY-MM-DD, unique: one review per week) is required: the eight counters left out are computed by the app for that week, never count them yourself, and a counter you send is kept. status (BONNE, MOYENNE, MAUVAISE), motivation (HAUTE, POSITIVE, NEUTRE, BASSE), wins, blockers, nextWeekPlan and notes are optional. No cadence check: to know the last review, call crm_query on weekly-review.",
     update:
       "For a weekly review, a counter left out stays unchanged and is never recomputed, and closingFriday must stay a Friday no other review holds.",
   },

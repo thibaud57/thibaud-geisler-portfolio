@@ -13,7 +13,7 @@ function action(overrides: Partial<BoardRow> = {}): BoardRow {
 }
 
 describe("boardColumns", () => {
-  it("puts every status in its own column, in the pipeline order", () => {
+  it("puts every status in its own column", () => {
     const actions = [
       action({ id: "ignored", status: "IGNORE" }),
       action({ id: "todo", status: "A_FAIRE" }),
@@ -22,11 +22,23 @@ describe("boardColumns", () => {
 
     const columns = boardColumns(actions)
 
-    expect(Object.keys(columns)).toEqual(["A_FAIRE", "FAIT", "REPONDU", "CONVERTI", "IGNORE"])
     expect(columns.A_FAIRE.map(({ id }) => id)).toEqual(["todo"])
     expect(columns.FAIT.map(({ id }) => id)).toEqual(["done"])
     expect(columns.REPONDU).toEqual([])
     expect(columns.IGNORE.map(({ id }) => id)).toEqual(["ignored"])
+  })
+
+  it("places the refused column before the ignored one", () => {
+    const columns = boardColumns([])
+
+    expect(Object.keys(columns)).toEqual([
+      "A_FAIRE",
+      "FAIT",
+      "REPONDU",
+      "CONVERTI",
+      "REFUSE",
+      "IGNORE",
+    ])
   })
 
   it("sorts each column from the most recent action", () => {

@@ -165,3 +165,9 @@ export function calendarDaysBetween(a: Date, b: Date): number {
 export function isWithinCalendarDays(a: Date, b: Date, days: number): boolean {
   return calendarDaysBetween(a, b) <= days
 }
+
+// La plus récente des dates saisies qui ne sont pas dans le futur (une date future est une saisie erronée), sinon null.
+export function latestPastDate(dates: readonly (Date | null)[], now: Date): Date | null {
+  const past = dates.filter((date): date is Date => date !== null && date <= now)
+  return past.length === 0 ? null : new Date(Math.max(...past.map((date) => date.getTime())))
+}

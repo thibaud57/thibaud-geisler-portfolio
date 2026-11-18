@@ -1,6 +1,8 @@
 import "server-only"
 
 import type { Prisma } from "@/generated/prisma/client"
+import { plannedCallWhere } from "@/lib/crm/prospecting-action-status"
+import { zonedDayStartOf } from "@/lib/date-time"
 import { prisma } from "@/lib/prisma"
 import type { CounterSources } from "@/lib/crm/review-counters"
 import type { PageQuery } from "@/server/queries/persons"
@@ -28,6 +30,7 @@ const weeklyReviewRowSelect = {
   connectionsAccepted: true,
   messagesSent: true,
   conversationsEngaged: true,
+  refusalsReceived: true,
   meetingsBooked: true,
   interviewsHeld: true,
   activeLeads: true,
@@ -46,10 +49,10 @@ export async function findWeeklyReviewsPage(
   return { rows, total }
 }
 
-export async function findWeekCounterSources(bounds: {
-  start: Date
-  end: Date
-}): Promise<CounterSources> {
+export async function findWeekCounterSources(
+  bounds: { start: Date; end: Date },
+  now: Date,
+): Promise<CounterSources> {
   const inWeek = { gte: bounds.start, lt: bounds.end }
   const [actions, interviews, leads] = await Promise.all([
     prisma.prospectingAction.findMany({
@@ -60,7 +63,7 @@ export async function findWeekCounterSources(bounds: {
       where: { scheduledAt: inWeek },
       select: { status: true, scheduledAt: true },
     }),
-    // Opportunités apportées et entretiens vivent sur la personne, pas sur le rôle Lead. `leadDisplayStatus` ne lit que « une opportunité acceptée existe » et les entretiens planifiés.
+    // Opportunités apportées et entretiens vivent sur la personne, pas sur le rôle Lead. `leadDisplayStatus` ne lit que « une opportunité acceptée existe », les entretiens planifiés et les calls planifiés.
     prisma.lead.findMany({
       where: { person: { optedOutAt: null } },
       select: {
@@ -77,6 +80,10 @@ export async function findWeekCounterSources(bounds: {
               where: { status: "PLANIFIE" },
               select: { status: true, scheduledAt: true },
             },
+            prospectingActions: {
+              where: plannedCallWhere(zonedDayStartOf(now)),
+              select: { occurredAt: true },
+            },
           },
         },
       },
@@ -89,6 +96,7 @@ export async function findWeekCounterSources(bounds: {
       ...lead,
       opportunities: person.referredOpportunities,
       interviews: person.interviews,
+      plannedCalls: person.prospectingActions,
       optedOutAt: person.optedOutAt,
     })),
   }

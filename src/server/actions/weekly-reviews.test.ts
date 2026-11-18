@@ -40,6 +40,7 @@ const BASE_FIELDS = {
   connectionsAccepted: "9",
   messagesSent: "14",
   conversationsEngaged: "5",
+  refusalsReceived: "1",
   meetingsBooked: "2",
   interviewsHeld: "1",
   activeLeads: "4",

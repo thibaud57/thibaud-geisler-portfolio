@@ -116,6 +116,25 @@ describe("prospecting action guards against real Postgres", () => {
     expect(untouched?.status).toBe("A_FAIRE")
   })
 
+  it("refuses moving a call to replied from the board", async () => {
+    const lead = await createLead("Hugo Marchand")
+    const call = await prisma.prospectingAction.create({
+      data: {
+        title: "Call de découverte",
+        personId: lead.id,
+        channel: "CALL",
+        status: "FAIT",
+        occurredAt: new Date("2026-03-09T08:00:00Z"),
+      },
+    })
+
+    const state = await changeProspectingActionStatus(call.id, "REPONDU")
+
+    const untouched = await prisma.prospectingAction.findUnique({ where: { id: call.id } })
+    expect(state.errors.status).toEqual(["Statut impossible pour ce type d'action"])
+    expect(untouched?.status).toBe("FAIT")
+  })
+
   it("refuses to reschedule an action of an opposed person", async () => {
     const opposed = await createLead("Gaelle Henry", OPTED_OUT_AT)
     const action = await createAction(opposed.id, "Message d'origine")

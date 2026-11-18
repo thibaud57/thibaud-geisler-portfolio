@@ -106,6 +106,7 @@ function buildDataColumns(view: ReviewView): readonly Column<AdminWeeklyReview>[
     rateColumn(visibleByDefault, "acceptanceRate", (rates) => rates.acceptance),
     counterColumn(visibleByDefault, "messagesSent"),
     counterColumn(visibleByDefault, "conversationsEngaged"),
+    counterColumn(visibleByDefault, "refusalsReceived"),
     rateColumn(visibleByDefault, "responseRate", (rates) => rates.response),
     counterColumn(visibleByDefault, "meetingsBooked"),
     rateColumn(visibleByDefault, "meetingConversion", (rates) => rates.meetingConversion),

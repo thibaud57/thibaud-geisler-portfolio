@@ -12,7 +12,6 @@ vi.mock("@/lib/prisma", () => {
       updateMany: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
-      findUniqueOrThrow: vi.fn(),
     },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
@@ -38,6 +37,7 @@ import { prisma } from "@/lib/prisma"
 import {
   createProspectingAction as createProspectingActionRecord,
   updateProspectingAction as updateProspectingActionRecord,
+  type ProspectingActionWriteError,
 } from "@/server/crm/prospecting-actions"
 import { fail, ok } from "@/server/result"
 
@@ -51,7 +51,6 @@ import {
 import { initialProspectingActionFormState } from "./prospecting-actions.types"
 
 const NOW = new Date("2026-03-11T13:30:00Z")
-const MONDAY = new Date("2026-03-09T08:00:00Z")
 const MONDAY_MIDNIGHT_IN_PARIS = new Date("2026-03-08T23:00:00Z")
 const REPLY = "Merci, on peut en parler jeudi."
 const OPTED_OUT_AT = new Date("2026-02-02T10:00:00Z")
@@ -320,69 +319,69 @@ describe("deleteProspectingAction", () => {
 })
 
 describe("changeProspectingActionStatus", () => {
-  it("changes the status alone and applies the same rules", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
-      status: "FAIT",
-      occurredAt: MONDAY,
-      respondedAt: null,
-      reply: null,
-    } as never)
-
+  it("hands the status alone to the domain and refreshes the lists", async () => {
     const state = await changeProspectingActionStatus("a1", "REPONDU")
 
-    expect(state.ok).toBe(true)
-    expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
-      where: { id: "a1" },
-      data: { status: "REPONDU", occurredAt: MONDAY, respondedAt: NOW, reply: null },
-    })
+    expect(state).toEqual({ ok: true, errors: {}, message: null })
+    expect(updateProspectingActionRecord).toHaveBeenCalledWith(WRITTEN.id, { status: "REPONDU" })
+    expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it.each([
+  it("rejects an unknown status without calling the domain", async () => {
+    const state = await changeProspectingActionStatus("a1", "BOGUS")
+
+    expect(state.errors.status).toEqual(["Statut inconnu"])
+    expect(updateProspectingActionRecord).not.toHaveBeenCalled()
+  })
+
+  it.each<[string, ProspectingActionWriteError, string]>([
     [
-      "keeps the reply when the status alone moves a replied action to converted",
-      "CONVERTI",
-      { respondedAt: NOW, reply: REPLY },
+      "status_not_allowed",
+      { code: "status_not_allowed" },
+      "Statut impossible pour ce type d'action",
     ],
     [
-      "clears the reply when the status alone moves a replied action back to done",
-      "FAIT",
-      { respondedAt: null, reply: null },
+      "unsent_action_ignored",
+      { code: "unsent_action_ignored" },
+      "Une action jamais envoyée se supprime au lieu d'être ignorée",
     ],
-  ] as const)("%s", async (_label, status, replied) => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockResolvedValueOnce({
-      status: "REPONDU",
-      occurredAt: MONDAY,
-      respondedAt: NOW,
-      reply: REPLY,
-    } as never)
+    [
+      "person_conflict (opted out)",
+      { code: "person_conflict", conflict: OPTED_OUT_CONFLICT },
+      OPTED_OUT_MESSAGE,
+    ],
+    [
+      "person_conflict (no lead role)",
+      { code: "person_conflict", conflict: NO_LEAD_CONFLICT },
+      "Cette personne n'a pas de fiche lead",
+    ],
+  ])(
+    "returns each domain refusal as a status error when a move is not allowed (%s)",
+    async (_code, error, message) => {
+      vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(fail(error))
 
-    await changeProspectingActionStatus("a1", status)
+      const state = await changeProspectingActionStatus("a1", "FAIT")
 
-    expect(prisma.prospectingAction.update).toHaveBeenCalledWith({
-      where: { id: "a1" },
-      data: { status, occurredAt: MONDAY, ...replied },
-    })
-  })
+      expect(state).toEqual({ ok: false, errors: { status: [message] }, message: null })
+    },
+  )
 
-  it("refuses to move an action of a person who opposed prospecting", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([]).mockResolvedValueOnce(OPTED_OUT_ROWS)
-
-    const state = await changeProspectingActionStatus("a1", "FAIT")
-
-    expect(state.ok).toBe(false)
-    expect(state.errors.status).toEqual([OPTED_OUT_MESSAGE])
-    expect(prisma.prospectingAction.update).not.toHaveBeenCalled()
-  })
-
-  it("tells the board the action was deleted and refreshes the screens", async () => {
-    vi.mocked(prisma.prospectingAction.findUniqueOrThrow).mockRejectedValueOnce({ code: "P2025" })
-    vi.mocked(prisma.prospectingAction.count).mockResolvedValueOnce(0)
+  it("returns the deleted-action message when a moved action no longer exists", async () => {
+    vi.mocked(updateProspectingActionRecord).mockResolvedValueOnce(fail({ code: "not_found" }))
 
     const state = await changeProspectingActionStatus("a1", "FAIT")
 
     expect(state.ok).toBe(false)
     expect(state.errors.status).toEqual(["Cette action a été supprimée"])
     expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("answers an unexpected failure with an unknown error", async () => {
+    vi.mocked(updateProspectingActionRecord).mockRejectedValueOnce(new Error("database down"))
+
+    const state = await changeProspectingActionStatus("a1", "FAIT")
+
+    expect(state.message).toBe("unknown_error")
   })
 })
 

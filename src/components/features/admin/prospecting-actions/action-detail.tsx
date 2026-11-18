@@ -7,6 +7,7 @@ import { textSection } from "@/components/features/admin/detail/detail-sections"
 import { enumBadge } from "@/components/features/admin/display/badges"
 import { PersonLink } from "@/components/features/admin/display/record-links"
 import { formatShortInstantDate } from "@/lib/date-time"
+import { channelTakesResponse } from "@/lib/crm/prospecting-action-status"
 import {
   ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
@@ -26,6 +27,9 @@ export function buildActionDetail(
   action: AdminProspectingAction,
   onEdit: () => void,
 ): DetailContent {
+  // Un call se tient en direct : ni date ni texte de réponse.
+  const hasResponse = channelTakesResponse(action.channel)
+
   const sections: DetailSection[] = [
     {
       title: PROSPECTING_ACTION_SECTION_TITLES.action,
@@ -36,14 +40,18 @@ export function buildActionDetail(
         },
         { label: LABELS.channel, value: channelBadge(action) },
         { label: LABELS.occurredAt, value: formatShortInstantDate(action.occurredAt) },
-        {
-          label: respondedAtLabel(action.channel),
-          value: formatShortInstantDate(action.respondedAt),
-        },
+        ...(hasResponse
+          ? [
+              {
+                label: respondedAtLabel(action.channel),
+                value: formatShortInstantDate(action.respondedAt),
+              },
+            ]
+          : []),
       ],
     },
     textSection(LABELS.message, action.message, { preserveLines: true }),
-    textSection(LABELS.reply, action.reply, { preserveLines: true }),
+    ...(hasResponse ? [textSection(LABELS.reply, action.reply, { preserveLines: true })] : []),
   ]
 
   return {

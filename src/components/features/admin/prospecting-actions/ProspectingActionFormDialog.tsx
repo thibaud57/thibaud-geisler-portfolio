@@ -16,7 +16,11 @@ import type { ActionChannel, ActionStatus } from "@/generated/prisma/client"
 import { useFormActionSubmit } from "@/hooks/use-form-action-submit"
 import { useSaveFeedback } from "@/hooks/use-save-feedback"
 import { personDisplayName } from "@/lib/crm/persons"
-import { isRepliedStatus } from "@/lib/crm/prospecting-action-status"
+import {
+  ALLOWED_STATUSES,
+  hasResponseDate,
+  statusForChannel,
+} from "@/lib/crm/prospecting-action-status"
 import {
   ACTION_CHANNEL_ICONS,
   ACTION_CHANNEL_LABELS,
@@ -25,7 +29,7 @@ import {
   PROSPECTING_ACTION_FIELD_LABELS as LABELS,
   respondedAtLabel,
 } from "@/lib/crm/prospecting-actions"
-import { ACTION_CHANNELS, ACTION_STATUSES } from "@/lib/schemas/prospecting-action"
+import { ACTION_CHANNELS } from "@/lib/schemas/prospecting-action"
 import {
   createProspectingAction,
   updateProspectingAction,
@@ -129,7 +133,7 @@ function ProspectingActionForm({
     gone: { code: "prospecting_action_not_found", toast: "Cette action a été supprimée" },
   })
 
-  const replied = isRepliedStatus(status)
+  const replied = hasResponseDate(channel, status)
 
   return (
     <FormDialogForm
@@ -173,7 +177,10 @@ function ProspectingActionForm({
         labels={ACTION_CHANNEL_LABELS}
         icons={ACTION_CHANNEL_ICONS}
         value={channel}
-        onValueChange={setChannel}
+        onValueChange={(nextChannel) => {
+          setChannel(nextChannel)
+          setStatus(statusForChannel(nextChannel, status))
+        }}
         errors={state.errors.channel}
       />
 
@@ -181,7 +188,7 @@ function ProspectingActionForm({
         id={`${formId}-status`}
         name="status"
         label={LABELS.status}
-        options={ACTION_STATUSES}
+        options={ALLOWED_STATUSES[channel]}
         labels={ACTION_STATUS_LABELS}
         icons={ACTION_STATUS_ICONS}
         value={status}

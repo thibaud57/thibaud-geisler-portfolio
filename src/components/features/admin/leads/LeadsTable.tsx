@@ -33,7 +33,7 @@ import {
   leadDisplayStatus,
 } from "@/lib/crm/lead-display-status"
 import {
-  IN_PROGRESS,
+  PIPELINE_STATUSES,
   LEAD_VIEW_LOCKED_FACETS,
   type LeadFacetKey,
   leadsForView,
@@ -177,7 +177,9 @@ function buildDataColumns(view: LeadView, now: Date): readonly Column<AdminLead>
   ]
 }
 
-const IN_PROGRESS_STATUSES = LEAD_DISPLAY_STATUSES.filter((status) => IN_PROGRESS.has(status))
+const PIPELINE_DISPLAY_STATUSES = LEAD_DISPLAY_STATUSES.filter((status) =>
+  PIPELINE_STATUSES.has(status),
+)
 
 const OPTED_OUT_FACET_VALUE = "opted-out"
 
@@ -186,7 +188,7 @@ function statusFacet(view: LeadView, now: Date): Facet<AdminLead, "status"> {
   const facet: Facet<AdminLead, "status"> = enumFacet(
     "status",
     LEAD_FIELD_LABELS.status,
-    view === "en-cours" || view === "chauds" ? IN_PROGRESS_STATUSES : LEAD_DISPLAY_STATUSES,
+    view === "en-cours" || view === "chauds" ? PIPELINE_DISPLAY_STATUSES : LEAD_DISPLAY_STATUSES,
     LEAD_DISPLAY_STATUS_LABELS,
     (lead) => leadDisplayStatus(lead, now),
   )

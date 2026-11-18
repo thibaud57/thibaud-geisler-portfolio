@@ -97,7 +97,7 @@ technologies: ["Next.js", "Tailwind CSS", "shadcn/ui", "Magic UI", "Aceternity U
 | `--border` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 10%)` | Bordures |
 | `--input` | `oklch(0.922 0 0)` | `oklch(1 0 0 / 15%)` | Bordures inputs, plus contrastées que `--border` en dark |
 | `--ring` | `oklch(0.53 0.04 140)` | `oklch(0.68 0.03 140)` | Focus ring (vert sauge) |
-| `--destructive` | `oklch(0.53 0.16 25)` | `oklch(0.68 0.15 25)` | Erreurs, actions destructives, statuts négatifs (action ignorée, revue hebdo mauvaise, run en échec). Rouge brique, cf. § Couleurs Sémantiques |
+| `--destructive` | `oklch(0.53 0.16 25)` | `oklch(0.68 0.15 25)` | Erreurs, actions destructives, statuts négatifs (action refusée ou ignorée, revue hebdo mauvaise, run en échec). Rouge brique, cf. § Couleurs Sémantiques |
 | `--card` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des cartes |
 | `--card-foreground` | `oklch(0.145 0 0)` | `oklch(0.985 0 0)` | Texte des cartes |
 | `--popover` | `oklch(1 0 0)` | `oklch(0.205 0 0)` | Fond des popovers |
@@ -288,7 +288,7 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 | Lignes rattachées | Link + `TruncateTooltip` + Button, composé par `RelatedLinksList` sur `RelatedLinkRow` | composant maison | Une rangée par fiche : `marker` (glyphe de l'énumération en 14px ou point neutre), libellé en lien, méta tronquée sous `TruncateTooltip`, puis à droite `trailing` (date ou chiffre en `tabular-nums`) et `actions` sans gap. Rangées groupées sous un en-tête de mois |
 | Fiches rattachées | Card, composé par `RelatedLinksCard` sur `RelatedLinksList` | shadcn/ui | Card d'une page de fiche, dans la colonne principale sous la card Détails. Le bloc de la vue détail reprend les mêmes lignes sans la card |
 | Fiches rattachées avec création | Card + Button, composé par `RelatedCreateCard` | composant maison | Compose `RelatedLinksCard`, `PendingRelatedCard` (card vide, bouton d'ajout `outline` désactivé) et `CreateLinkButton` (« Nouveau … » en `outline` `sm`). Entretiens et opportunités d'un lead, entretiens d'une opportunité |
-| Tableau kanban | Kanban | ReUI | **Headless** : colonne et carte composées en `Card` (colonne : icône du statut, libellé au registre Label, compteur en `Badge` `outline` ; carte `size="sm"`). Une rangée de colonnes de 13.75rem au moins, qui défile horizontalement. Le tableau remplit la hauteur de l'écran sous l'en-tête : colonnes pleine hauteur même vides, cartes qui défilent dans leur colonne (`overflow-y-auto`, `no-scrollbar`). Aucune poignée de colonne, ordre fixe |
+| Tableau kanban | Kanban | ReUI | **Headless** : colonne et carte composées en `Card` (colonne : icône du statut, libellé au registre Label, compteur en `Badge` `outline` ; carte `size="sm"`). Une rangée de colonnes de 13.75rem au moins, qui défile horizontalement. Le tableau remplit la hauteur de l'écran sous l'en-tête : colonnes pleine hauteur même vides, cartes qui défilent dans leur colonne (`overflow-y-auto`, `no-scrollbar`). Aucune poignée de colonne, ordre fixe : une colonne par statut d'action, dans l'ordre de l'énumération (six colonnes, Refusé avant Ignoré) |
 | Agenda mensuel | EventCalendar, composé par `AdminMonthCalendar` | ReUI | Sur une surface `bg-card` cerclée comme une `Card`. Vue mois seule (`showViewSwitcher={false}`), grille affichée même vide, en français, semaine au lundi, défilement avec la page. Un élément occupe une journée entière, sa pastille teintée par son statut (§ Couleurs Sémantiques). Pas de bouton « Ajouter » dans la barre ; tire `ScrollArea` (shadcn) pour ses surfaces défilantes |
 
 ### Badges
@@ -571,6 +571,12 @@ Chaque lib UI a son sous-dossier dans `src/components/` pour la séparation visu
 - **Design system** : [Thibaud Geisler Design System](https://claude.ai/artifact/1YqgqnqwrcJV9M2GZmusWi), artifact Claude : composants, fiches d'usage, cartes et kit du site public. Synchronisé à la main depuis le dépôt, fait foi sur les composants
 - **Maquette** : [Espace Admin](https://claude.ai/artifact/8mEBAdNbDfbBf3tc6yYTPE), artifact Claude : écrans de l'espace admin, fait foi sur l'apparence des écrans
 - **Lecture locale** : copies de la maquette dans `.design-sync/maquette/` et du design system dans `.design-sync/design-system/` (mêmes chemins que leur artifact), ignorées par git, procédure dans `.design-sync/NOTES.md`. À refaire quand la maquette évolue : sa lecture distante est tronquée au-delà de 256 Kio, sans erreur
+
+### Arbitrages
+
+| Sujet | Règle retenue | Ce que montre la source | Décidé le |
+|-------|---------------|-------------------------|-----------|
+| Statut d'action Refusé | Statut à part entière partout où les statuts d'action s'énumèrent : colonne du kanban entre Converti et Ignoré, option, facette, pastille du calendrier. Glyphe `circle-slash`, token `--destructive` (glyphe de colonne et pastille) | Maquette : cinq statuts, ni colonne Refusé (`actBoardColumns`) ni couleur de calendrier (`actEvents`) | 2026-11-18 |
 
 ## Documentation Officielle
 - [shadcn/ui](https://ui.shadcn.com)

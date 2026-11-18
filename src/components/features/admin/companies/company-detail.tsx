@@ -149,7 +149,9 @@ export function buildCompanyDetail(
     image: { assetKey: company.logoFilename },
     title: company.name,
     subtitle: company.slug,
-    badges: [headerBadge(company.relationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS)],
+    badges: [
+      headerBadge(company.displayRelationStatus, RELATION_STATUS_LABELS, COMPANY_STATUS_ICONS),
+    ],
     sections: [
       {
         title: COMPANY_SECTION_TITLES.identity,
@@ -194,6 +196,10 @@ export function buildCompanyDetail(
           {
             label: COMPANY_FIELD_LABELS.firstContactAt,
             value: formatShortInstantDate(company.firstContactAt),
+          },
+          {
+            label: COMPANY_FIELD_LABELS.lastInteractionAt,
+            value: formatShortInstantDate(company.lastInteractionAt),
           },
           {
             label: COMPANY_FIELD_LABELS.endClients,

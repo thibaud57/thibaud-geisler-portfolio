@@ -32,6 +32,7 @@ export function boardColumns<T extends BoardRow>(actions: readonly T[]): Record<
     FAIT: column("FAIT"),
     REPONDU: column("REPONDU"),
     CONVERTI: column("CONVERTI"),
+    REFUSE: column("REFUSE"),
     IGNORE: column("IGNORE"),
   }
 }

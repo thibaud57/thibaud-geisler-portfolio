@@ -100,9 +100,9 @@ enum CompanyType {
   @@schema("freelance")
 }
 
+// Dormante se déduit de la dernière interaction (company-relation-status.ts), elle n'est jamais saisie.
 enum RelationStatus {
   ACTIVE
-  DORMANTE
   ARCHIVEE
 
   @@schema("freelance")
@@ -131,7 +131,7 @@ enum LeadOrigin {
   @@schema("freelance")
 }
 
-// Statuts saisis seulement : Deal et RDV planifié se déduisent (opportunité acceptée, entretien planifié à venir).
+// Statuts saisis seulement : Deal et RDV planifié se déduisent (opportunité acceptée, entretien ou call planifié à venir).
 enum LeadStatus {
   NOUVEAU
   SUSPECT
@@ -298,6 +298,7 @@ enum ActionStatus {
   FAIT
   REPONDU
   CONVERTI
+  REFUSE
   IGNORE
 
   @@schema("freelance")
@@ -576,6 +577,7 @@ model WeeklyReview {
   connectionsAccepted  Int               @default(0)
   messagesSent         Int               @default(0)
   conversationsEngaged Int               @default(0)
+  refusalsReceived     Int               @default(0)
   meetingsBooked       Int               @default(0)
   interviewsHeld       Int               @default(0)
   activeLeads          Int               @default(0)
@@ -623,9 +625,9 @@ model ProspectingAction {
   // Planifiée tant que l'action est À faire, date d'envoi réelle ensuite.
   occurredAt  DateTime      @db.Timestamptz
   message     String?
-  // Suit la date de réponse : effacée quand l'action quitte Répondu ou Converti.
+  // Suit la date de réponse : effacée quand l'action quitte un statut de réponse ou est un call.
   reply       String?
-  // Dernier contact émanant de la personne, point de départ des 3 ans de conservation (registre, Traitement 7).
+  // Date de la réponse de la personne : entre dans le dernier contact (`lastContactAtOf`), qui ouvre les 3 ans de conservation (registre, Traitement 7).
   respondedAt DateTime?     @db.Timestamptz
 
   // Cascade : le message est une donnée personnelle. Vers la personne, pas le rôle :

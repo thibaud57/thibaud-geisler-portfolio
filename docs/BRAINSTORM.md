@@ -243,7 +243,7 @@ Ce qui relève du jugement (sourcing web, enrichissement, rédaction) part dans 
 
 La maquette de l'espace admin dessine déjà ces écrans, et le CRUD des entreprises livré avant eux s'arrête au sous-ensemble que le schéma porte. Côté entreprises, cette feature reprend donc, écrans de la maquette à l'appui :
 
-* **Fiche entreprise enrichie** : types, zones, statut de relation, notes ; la date de premier contact, « travaillée » et les clients finaux d'une ESN se déduisent des actions, des rencontres, des entretiens, des projets et des missions acceptées, jamais saisis. Les vues « Recrutement » et « Prospects » de la liste en dépendent, et restent désactivées jusque-là
+* **Fiche entreprise enrichie** : types, zones, statut de relation, notes ; la date de premier contact, « travaillée », le statut Dormante et les clients finaux d'une ESN se déduisent des actions, des rencontres, des entretiens, des projets et des missions acceptées, jamais saisis. Les vues « Recrutement » et « Prospects » de la liste en dépendent, et restent désactivées jusque-là
 * **Entité légale créée depuis la fiche** : raison sociale, forme juridique, SIRET, TVA, RCS, capital et adresse, en saisie manuelle ; sur la société du propriétaire, la date d'assujettissement à la TVA et le régime, dont dépendent les mentions légales du site
 * **Panneau de détail** ouvert au clic sur une ligne de liste
 * **Logo récupéré depuis le site de l'entreprise** ([ADR-023](adrs/023-source-logos-entreprise.md)) : un bouton lit l'icône déclarée à l'adresse du champ site web, ou sur la capture Wayback que l'admin y met quand le site a disparu, et la stocke dans le bucket d'assets ; le dépôt manuel écrase le fichier
@@ -282,7 +282,7 @@ Ce qui demande du jugement dans l'espace admin, exécuté sur l'abonnement Claud
 * **Ouvertures des outils de l'app**, avant la bascule, dont les commandes ont besoin : candidats du sourcing (statut ou entité), critères de qualification et grille de score, écriture de l'entité légale
 * **Bascule des commandes CRM**, lancée quand le propriétaire le décide : les jobs exécutent les commandes des skills freelance, qui doivent alors écrire dans l'app. Elle se fait d'un bloc :
   * commandes, agents et skills du CRM rebranchés de Notion sur les outils de l'app, les copies de test de la Feature 3 fusionnées dans les originales
-  * schémas et formats JSON des skills, calqués sur les bases Notion, alignés sur le schéma de l'app, ce qui fait bouger une bonne partie des skills et agents
+  * schémas et formats JSON des skills, calqués sur les bases Notion, alignés sur le schéma de l'app, ce qui fait bouger une bonne partie des skills et agents ; un RDV lié à une opportunité que les skills saisissent en Call devient un entretien, ses statuts À faire, Fait et Ignoré passant à Planifié, Fait et Annulé
   * nouvel instantané complet du CRM Notion vers l'app, sur le modèle de la reprise de la Feature 2
   * gel du CRM Notion
   * forme visée, commune aux jobs et à l'assistant : un playbook par flux dans le skill du CRM (ne demander que ce qui manque, un récap avant d'écrire), des commandes minces pour les jobs, un CLAUDE.md propre au container d'`agent-os`, les commandes Notion retirées

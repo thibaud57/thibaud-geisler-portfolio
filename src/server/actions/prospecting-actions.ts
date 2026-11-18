@@ -6,17 +6,19 @@ import { assertNever } from "@/lib/assert-never"
 import { prospectingActionIdSchema } from "@/lib/ids"
 import { getCurrentUser } from "@/lib/get-current-user"
 import { prisma } from "@/lib/prisma"
-import { applyStatusRules } from "@/lib/crm/prospecting-action-status"
+import {
+  STATUS_NOT_ALLOWED_MESSAGE,
+  UNSENT_ACTION_IGNORED_MESSAGE,
+} from "@/lib/crm/prospecting-action-status"
 import {
   prospectingActionSchema,
   type ProspectingActionInput,
 } from "@/lib/schemas/prospecting-action"
-import { createActionLogger, isPrismaError, rowExists, stringField } from "@/lib/server-utils"
+import { createActionLogger, rowExists, stringField } from "@/lib/server-utils"
 import { PersonConflictError, revalidatePersonLists } from "@/server/crm/person-guards"
 import {
   assertProspectionAllowed,
   createProspectingAction as createProspectingActionRecord,
-  TIMING_SELECT,
   updateProspectingAction as updateProspectingActionRecord,
   type ProspectingActionWriteError,
   type WrittenProspectingAction,
@@ -68,6 +70,28 @@ function mapDomainError(
       return failure(values, { personId: [MISSING_PERSON.text] }, MISSING_PERSON.code)
     case "not_found":
       return failure(values, {}, "prospecting_action_not_found", true)
+    case "status_not_allowed":
+      return failure(values, { status: [STATUS_NOT_ALLOWED_MESSAGE] }, null)
+    case "unsent_action_ignored":
+      return failure(values, { status: [UNSENT_ACTION_IGNORED_MESSAGE] }, null)
+    default:
+      return assertNever(error)
+  }
+}
+
+// Le plateau n'a pas de champ où afficher l'erreur : chaque refus du domaine devient celle du statut.
+function statusErrorMessage(error: ProspectingActionWriteError): string {
+  switch (error.code) {
+    case "person_conflict":
+      return personConflictMessage(error.conflict)
+    case "person_not_found":
+      return MISSING_PERSON.text
+    case "not_found":
+      return DELETED_ACTION_MESSAGE
+    case "status_not_allowed":
+      return STATUS_NOT_ALLOWED_MESSAGE
+    case "unsent_action_ignored":
+      return UNSENT_ACTION_IGNORED_MESSAGE
     default:
       return assertNever(error)
   }
@@ -160,37 +184,25 @@ export async function changeProspectingActionStatus(
     const id = parsedId.data
 
     try {
-      await prisma.$transaction(async (tx) => {
-        await assertProspectionAllowed(tx, { actionId: id })
-        const current = await tx.prospectingAction.findUniqueOrThrow({
-          where: { id },
-          select: TIMING_SELECT,
+      const result = await updateProspectingActionRecord(id, { status: parsed.data })
+      if (!result.ok) {
+        // L'écran montrait une action supprimée ailleurs : la revalidation le réaligne sur la base, sans quoi chaque glissement échouerait.
+        if (result.error.code === "not_found") revalidatePersonLists()
+        log.warn({
+          event: "prospecting_action:status_change_refused",
+          id,
+          reason: result.error.code,
         })
-        const timing = applyStatusRules(
-          current,
-          { ...current, status: parsed.data, respondedAt: null },
-          new Date(),
-        )
-        await tx.prospectingAction.update({ where: { id }, data: timing })
-      })
+        return {
+          ok: false,
+          errors: { status: [statusErrorMessage(result.error)] },
+          message: null,
+        }
+      }
       revalidatePersonLists()
       log.info({ event: "prospecting_action:status_changed", id, status: parsed.data })
       return { ok: true, errors: {}, message: null }
     } catch (err) {
-      if (err instanceof PersonConflictError) {
-        log.warn({ event: "prospecting_action:status_change_refused", id, reason: "opted_out" })
-        return {
-          ok: false,
-          errors: { status: [personConflictMessage(err.conflict)] },
-          message: null,
-        }
-      }
-      if (isPrismaError(err, "P2025") && !(await prospectingActionExists(id))) {
-        // L'écran montrait une action supprimée ailleurs : la revalidation le réaligne sur la base, sans quoi chaque glissement échouerait.
-        revalidatePersonLists()
-        log.warn({ event: "prospecting_action:status_change_refused", id, reason: "deleted" })
-        return { ok: false, errors: { status: [DELETED_ACTION_MESSAGE] }, message: null }
-      }
       log.error({ err, event: "prospecting_action:status_change_failed", id })
       return { ok: false, errors: {}, message: "unknown_error" }
     }

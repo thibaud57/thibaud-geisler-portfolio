@@ -9,7 +9,7 @@ import { DateField } from "@/components/features/admin/form/DateField"
 import { FormDialog, FormDialogForm } from "@/components/features/admin/form/FormDialog"
 import { NotesField } from "@/components/features/admin/form/NotesField"
 import { NumberField } from "@/components/features/admin/form/NumberField"
-import { ReviewRates } from "@/components/features/admin/weekly-reviews/ReviewRates"
+import { EmptyValue } from "@/components/features/admin/display/EmptyValue"
 import { EditRowButton } from "@/components/features/admin/table/EditRowButton"
 import { SelectField } from "@/components/features/admin/form/SelectField"
 import { TextareaField } from "@/components/features/admin/form/TextareaField"
@@ -22,6 +22,7 @@ import { NONE_LABEL, NONE_LABEL_FEMININE } from "@/lib/schemas/none-value"
 import { REVIEW_MOTIVATIONS, REVIEW_STATUSES } from "@/lib/schemas/weekly-review"
 import {
   defaultClosingFriday,
+  formatRate,
   parseCounterInputs,
   REVIEW_COUNTER_KEYS,
   REVIEW_FIELD_LABELS as LABELS,
@@ -58,6 +59,14 @@ const TEXT_FIELDS = [
   { key: "wins", placeholder: "Ce qui a avancé cette semaine" },
   { key: "blockers", placeholder: "Ce qui coince" },
   { key: "nextWeekPlan", placeholder: "Les actions de la semaine prochaine" },
+] as const
+
+type Rates = ReturnType<typeof reviewRates>
+
+const RATE_FIELDS = [
+  { key: "acceptanceRate", pick: (rates: Rates) => rates.acceptance },
+  { key: "responseRate", pick: (rates: Rates) => rates.response },
+  { key: "meetingConversion", pick: (rates: Rates) => rates.meetingConversion },
 ] as const
 
 interface Props {
@@ -111,6 +120,7 @@ function ReviewForm({
       : (defaultFriday ?? defaultClosingFriday(new Date())),
   )
   const [counters, setCounters] = useState(() => toCounterValues(review))
+  const rates = reviewRates(parseCounterInputs(counters))
 
   function handleCompute() {
     if (!day) return
@@ -210,14 +220,22 @@ function ReviewForm({
         />
       ))}
 
-      <FormField id={`${formId}-computedRates`} label={LABELS.computedRates}>
-        <output
-          id={`${formId}-computedRates`}
-          className="flex h-8 items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground tabular-nums"
-        >
-          <ReviewRates rates={reviewRates(parseCounterInputs(counters))} />
-        </output>
-      </FormField>
+      <div className="sm:col-span-2">
+        <FormField id={`${formId}-computedRates`} label={LABELS.computedRates}>
+          <div className="grid grid-cols-3 gap-4">
+            {RATE_FIELDS.map(({ key, pick }, index) => (
+              <output
+                key={key}
+                id={index === 0 ? `${formId}-computedRates` : undefined}
+                aria-label={LABELS[key]}
+                className="flex h-8 items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground tabular-nums"
+              >
+                {formatRate(pick(rates)) ?? <EmptyValue />}
+              </output>
+            ))}
+          </div>
+        </FormField>
+      </div>
 
       {TEXT_FIELDS.map(({ key, placeholder }) => (
         <div key={key} className="sm:col-span-2">
