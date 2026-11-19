@@ -24,29 +24,31 @@ technologies: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "Docker", "Dokpl
 ### Flow
 
 ```
-feature/* → develop → main → tag vX.Y.Z   (flux normal, fin d'epic)
-hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
+<type>/<slug> → develop → main → tag vX.Y.Z   (flux normal, fin d'epic)
+hotfix/<slug> → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
+
+Types et nommage des branches : convention Git commune (CLAUDE.md user § Git & intégration).
 ```
 
 ### Flux Release
 
 | Étape | Branch | Environnement | Déclencheur |
 |-------|--------|---------------|-------------|
-| Développement | `feature/*` | Local | - |
-| Intégration | `develop` | Local | Merge feature/* → develop |
+| Développement | `<type>/<slug>` | Local | - |
+| Intégration | `develop` | Local | Merge `<type>/<slug>` → develop |
 | Mise en production | `main` | Production (Dokploy) | Merge develop → main (epic terminé) |
 | PR release (CHANGELOG + bump version) | `release-please--branches--main--*` | - | Auto à chaque merge sur `main` (release-please) |
 | Tag release | - | - | Auto au merge de la PR release-please |
-| Resync develop | `develop` | Local | `git pull origin main` après tag |
+| Resync develop | `develop` | Local | Après tag, depuis `develop` : `git pull origin main` puis `git push origin develop` |
 
 ### Flux Hotfix (bug critique prod)
 
 | Étape | Branch | Environnement | Déclencheur |
 |-------|--------|---------------|-------------|
-| Fix | `hotfix/*` depuis `main` | Local | - |
-| Mise en production | `main` | Production (Dokploy) | Merge hotfix/* → main |
+| Fix | `hotfix/<slug>` depuis `main` | Local | - |
+| Mise en production | `main` | Production (Dokploy) | Merge `hotfix/<slug>` → main (PR titrée `fix:`) |
 | Tag release | - | - | Auto au merge de la PR release-please |
-| Resync develop | `develop` | Local | `git pull origin main` après tag |
+| Resync develop | `develop` | Local | Après tag, depuis `develop` : `git pull origin main` puis `git push origin develop` |
 
 ## Convention Commits
 
@@ -63,7 +65,9 @@ hotfix/*  → main → tag vX.Y.Z             (flux hotfix, bug critique prod)
 | `chore` | Maintenance, dépendances, configuration Docker/Dokploy | skip |
 | `ci` | Workflows GitHub Actions | skip |
 
-> **PR develop → main** : le squash-merge crée 1 commit sur `main` dont le titre est le **titre de la PR**. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy. Dépôt en squash seul, commit = titre de la PR, corps vide. Forcer une version : `gh pr merge <n> --squash --body "Release-As: X.Y.Z"`.
+> **PR vers `main`** (promotion `develop → main` ou hotfix) : le squash-merge crée 1 commit sur `main` dont le titre est le **titre de la PR**. Titre obligatoirement `feat:` / `fix:` / `feat!:` sinon release-please skip → pas de PR de release → pas de tag → pas de deploy. Dépôt en squash seul, commit = titre de la PR, corps vide. Forcer une version : `gh pr merge <n> --squash --body "Release-As: X.Y.Z"`.
+
+> **Suppression de branche** : `delete_branch_on_merge` est désactivé, GitHub supprimerait `develop` au merge de la promotion. Une PR de travail se merge avec `--delete-branch`, jamais la promotion `develop → main`.
 
 ## Checklist Release
 
@@ -80,7 +84,7 @@ Dans l'ordre où ils s'exécutent, la création de la release déclenchant le d�
 
 - [ ] Variables d'environnement à jour dans Dokploy
 - [ ] Si la release embarque une migration qui déplace ou transforme des données existantes : dernière sauvegarde réussie et datée du jour dans Dokploy (Database `portfolio-db` → Backups), le rollback du code ne défaisant pas une migration (§ Rollback)
-- [ ] Merge vers `main` validé (develop → main fin d'epic, ou hotfix/* → main pour bug critique)
+- [ ] Merge vers `main` validé (develop → main fin d'epic, ou `hotfix/<slug>` → main pour bug critique)
 - [ ] PR release-please mergée → release et tag `vX.Y.Z` auto-créés → job `deploy` de `release-please.yml` déclenché
 - [ ] Déploiement confirmé (Compose `Portfolio-app` → Deployments → statut ✅)
 - [ ] Migrations Prisma appliquées, à vérifier dans les logs au démarrage du container
@@ -88,7 +92,7 @@ Dans l'ordre où ils s'exécutent, la création de la release déclenchant le d�
 - [ ] Smoke test MCP authentifié, sans écriture, avec la clé d'API du poste (jamais écrite dans une commande) : `tools/list`, `crm_query` et `crm_fetch` sur chaque entité, `portfolio_query` sur `tag` et `project`, `portfolio_fetch` d'un projet publié (client et tags dans l'ordre), refus sans écriture, `keyId` de la clé dans les `mcp:request` des logs (§ Logging). Détail : recette `verify`
 - [ ] Security headers vérifiés si `next.config.ts` a changé (`curl -I https://thibaud-geisler.com/fr`)
 
-> **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `feature/* → develop` ne déclenchent rien. **La release précède la validation prod** : sa création déclenche le déploiement, rien n'est en ligne avant. Le tag atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/*` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
+> **Politique de tagging** : les tags sont générés par release-please au merge de la PR de release sur `main` (fin d'epic ou hotfix critique) ; les merges `<type>/<slug> → develop` ne déclenchent rien. **La release précède la validation prod** : sa création déclenche le déploiement, rien n'est en ligne avant. Le tag atteste donc qu'une version est *mise* en production, pas qu'elle y est *validée*. Smoke test rouge → `hotfix/<slug>` → `main` → nouveau tag, jamais de suppression du tag fautif : elle fausserait le CHANGELOG sans rien redéployer.
 
 ---
 
@@ -233,7 +237,7 @@ ADMIN_EMAIL=                       # Seule adresse de compte Google autorisée �
 1. Identifier le dernier tag sain (`gh release list`, ou [CHANGELOG.md](../CHANGELOG.md))
 2. `gh workflow run release-please.yml -f tag=vX.Y.Z` : le job `deploy` (release-please est sauté) rebuild depuis ce tag, republie `latest` sur cette version et déclenche le redeploy Dokploy (~3-8 min)
 3. Vérifier le statut dans Dokploy → Compose `Portfolio-app` → onglet Deployments, puis smoke test
-4. Corriger la cause sur `hotfix/*` → `main` → nouveau tag : le retour arrière est un roll-*forward* vers un `PATCH` supérieur, jamais une suppression du tag fautif
+4. Corriger la cause sur `hotfix/<slug>` → `main` → nouveau tag : le retour arrière est un roll-*forward* vers un `PATCH` supérieur, jamais une suppression du tag fautif. Annuler un changement livré suit le même chemin : une branche `hotfix/<slug>` depuis `main` et une PR titrée `fix:`, jamais de commit direct sur `main`
 
 > ⚠️ **L'input `tag` doit être un tag publié `vX.Y.Z`** : le job `deploy` est sauté si l'input ne commence pas par `v`, et il build le code de ce tag, jamais celui d'une branche.
 
