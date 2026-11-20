@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.8.0...v2.9.0) (2026-11-20)
+
+
+### Features
+
+* déclare Sentry dans la politique de confidentialité ([#275](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/275)) ([6bffcb1](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/6bffcb10d03216facafbbfbc3738e346a6a7545b))
+
 ## [2.8.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.7.2...v2.8.0) (2026-11-18)
 
 
