@@ -334,6 +334,7 @@ enum ProcessingKind {
   EMAIL_PROVIDER
   ANALYTICS
   AI_ASSISTANT
+  ERROR_MONITORING
 
   @@schema("public")
 }

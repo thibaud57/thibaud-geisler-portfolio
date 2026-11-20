@@ -370,7 +370,7 @@
   },
   "PrivacyPolicy": {
     "title": "Politique de confidentialité",
-    "lastUpdated": "Dernière mise à jour : 10 novembre 2026",
+    "lastUpdated": "Dernière mise à jour : 20 novembre 2026",
     "recipients": {
       "title": "3. Destinataires et sous-traitants",
       "intro": "Les données personnelles peuvent être transmises aux destinataires suivants pour les finalités décrites :",
@@ -429,6 +429,7 @@
     "retention": {
       "logs1Year": "Durée de la prestation d'hébergement ; logs techniques conservés 1 an maximum",
       "logs30Days": "30 jours (logs SMTP), suppression automatique",
+      "errors30Days": "30 jours (traces d'erreurs), suppression automatique",
       "session13Months": "Durée de la session, plus 13 mois (cookie de consentement)",
       "recipientTerms": "Selon les conditions du destinataire"
     },
@@ -451,7 +452,8 @@
       "EMBEDDED_SERVICE": "Service embarqué",
       "EMAIL_PROVIDER": "Fournisseur d'emails",
       "ANALYTICS": "Analytics",
-      "AI_ASSISTANT": "Assistant IA"
+      "AI_ASSISTANT": "Assistant IA",
+      "ERROR_MONITORING": "Suivi des erreurs"
     },
     "dataCategory": {
       "IDENTITY": "Identité",

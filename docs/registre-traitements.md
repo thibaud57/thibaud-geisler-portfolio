@@ -1,7 +1,7 @@
 ---
 title: "Registre des traitements"
 description: "Registre des activités de traitement de données personnelles (RGPD art. 30)."
-date: "2026-11-10"
+date: "2026-11-20"
 keywords: ["rgpd", "registre des traitements", "données personnelles", "cnil", "conformité"]
 scope: ["docs", "legal"]
 ---
@@ -73,7 +73,7 @@ scope: ["docs", "legal"]
 | Données | Trace technique de l'erreur : message, pile d'appels, URL et méthode de la requête. Identité, adresse IP, cookies, en-têtes et contenu des requêtes sont exclus, et une adresse email citée dans un message d'erreur est masquée avant envoi. Sentry déduit de l'adresse IP de connexion une localisation approximative (pays, ville) sans conserver l'adresse : pour une erreur survenue dans le navigateur, c'est celle du visiteur |
 | Destinataire | Thibaud Geisler |
 | Sous-traitant | Sentry (Functional Software, Inc.) |
-| Transferts hors UE | Aucun : organisation `<org>` en région européenne, ingestion `de.sentry.io` (Francfort) |
+| Transferts hors UE | Hébergement en région européenne (organisation `<org>`, ingestion `de.sentry.io`, Francfort). Functional Software, Inc. étant établie aux États-Unis, un accès depuis les États-Unis reste possible, encadré par l'EU-US Data Privacy Framework (puis clauses contractuelles types) selon le [DPA Sentry](https://sentry.io/legal/dpa/) |
 | Conservation | 30 jours (plan Developer), géré par Sentry |
 | Sécurité | Collecte restreinte à la source par la configuration du SDK, masquage des emails avant envoi (erreurs et logs), stockage des adresses IP désactivé côté Sentry, HTTPS/TLS. Détail technique : [knowledges/sentry.md](knowledges/sentry.md#données-personnelles-et-rgpd) |
 
