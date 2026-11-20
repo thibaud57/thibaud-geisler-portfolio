@@ -275,7 +275,7 @@ Items validés une première fois avant le tout premier merge `develop → main`
 
 - [x] **Pages légales `/mentions-legales` + `/confidentialite`** : publiées (RGPD art. 13/14, base légale intérêt légitime pour le formulaire de contact)
 - [x] **Bandeau de consentement cookies** : actif (bandeau c15t, qui conditionne le montage du widget Calendly)
-- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles (formulaire de contact, logs serveur, Calendly)
+- [x] **Registre des traitements (RGPD art. 30)** : [registre-traitements.md](registre-traitements.md) créé, recense les traitements de données personnelles
 
 ### Cohérence documentaire
 
