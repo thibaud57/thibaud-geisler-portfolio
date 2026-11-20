@@ -6,6 +6,7 @@ export const ApeCode = z.enum(["6201Z"])
 export const RetentionPolicyKey = z.enum([
   "logs1Year",
   "logs30Days",
+  "errors30Days",
   "session13Months",
   "recipientTerms",
 ])

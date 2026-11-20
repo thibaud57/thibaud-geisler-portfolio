@@ -38,11 +38,11 @@ Backend : Node.js + TypeScript strict (Next.js App Router, Server Actions) | Fro
 
 ### Workflow Git
 
-Branches : `feature/*` → `develop` → `main` → tag `vX.Y.Z` (auto via release-please) → deploy auto sur tag (GHA → GHCR → Dokploy pull) | `hotfix/*` → `main`
-Commits : `type(scope): description`, types `feat | fix | docs | refactor | test | chore`
-PR feature : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer, release-please et Dokploy en dépendent)
-PR develop → main : titre obligatoirement Conventional bumping (`feat:` / `fix:` / `feat!:`) sinon release-please skip → pas de tag → pas de deploy. Détails : [PRODUCTION.md § Convention Commits](../docs/PRODUCTION.md#convention-commits)
-Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop local et supprimer la feature branch. Après un tag : `git pull origin main` puis `git push origin develop`, le resync ne passe pas par git-sync
+Flux : `<type>/<slug>` → `develop` → `main` → tag `vX.Y.Z` (auto via release-please) → deploy auto sur tag (GHA → GHCR → Dokploy pull) | `hotfix/<slug>` → `main`, PR titrée `fix:`
+Commits, types et nommage des branches : convention Git commune (CLAUDE.md user § Git & intégration), opérations dans le skill `git-ops`
+PR de travail : toujours `gh pr create --base develop` (default branch GitHub = `main`, ne jamais la changer, release-please et Dokploy en dépendent)
+PR vers `main` : titre obligatoirement Conventional bumping (`feat:` / `fix:` / `feat!:`) sinon release-please skip → pas de tag → pas de deploy. Détails : [PRODUCTION.md § Convention Commits](../docs/PRODUCTION.md#convention-commits)
+Après merge d'une PR de travail : `/git-sync --base=develop` pour aligner develop local. Resync de `develop` après un tag : [PRODUCTION.md § Flux Release](../docs/PRODUCTION.md#flux-release), il ne passe pas par git-sync
 
 **Discipline commit** : pas de `git commit` en cours de workflow d'implémentation, seulement une fois toutes les phases terminées. Les skills qui commitent à la volée (TDD red/green via subagent) restent tolérés dans leur scope interne.
 
@@ -62,7 +62,7 @@ Après merge d'une PR feature : `/git-sync --base=develop` pour aligner develop 
 | `/quality-check` | Lint, typecheck, tests (`just lint` / `typecheck` / `test`) |
 | `/setup-ops` | Install, bootstrap env, diagnostics (`just install` / `setup` / `check`) |
 | `infra-ops` | Docker + Prisma DB (`just docker-*` / `db-*`). Invocation explicite uniquement (effets destructifs possibles) |
-| `git-ops` | Workflow git `feature/*` → `develop` → `main`, commits Conventional, PRs, tags. Invocation explicite uniquement |
+| `git-ops` | Workflow git `<type>/<slug>` → `develop` → `main`, commits Conventional, PRs, merge. Invocation explicite uniquement |
 | `verify` | Recette de build-and-drive (lancer l'app, piloter chaque surface, capturer les preuves), lue et enrichie par `/verify`. Voir [.claude/skills/verify/](skills/verify/) |
 | `shadcn` | Auto-chargé sur composants. Discovery/audit/install via CLI pour les 3 registries (`@shadcn`, `@magicui`, `@aceternity`). Voir [.claude/skills/shadcn/](skills/shadcn/). |
 

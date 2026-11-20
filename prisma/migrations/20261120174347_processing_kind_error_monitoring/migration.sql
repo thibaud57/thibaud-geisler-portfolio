@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ProcessingKind" ADD VALUE 'ERROR_MONITORING';
