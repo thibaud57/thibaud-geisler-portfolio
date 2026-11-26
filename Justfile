@@ -94,6 +94,16 @@ test-integration:
 test-watch:
     pnpm test:watch
 
+# Un scénario de la recette /verify contre l'app lancée par just dev (ex : just verify prospection)
+[group('quality')]
+verify parcours *ARGS:
+    node .claude/skills/verify/scripts/{{ parcours }}.mjs {{ ARGS }}
+
+# Tous les scénarios de /verify à la suite (écrit dans la base de dev sous un préfixe de passage, puis nettoie)
+[group('quality')]
+verify-all:
+    node .claude/skills/verify/scripts/run_all.mjs
+
 # ── Infrastructure ────────────────────────────────────────────────────────────
 
 # Démarre les services Docker (profil validation)
