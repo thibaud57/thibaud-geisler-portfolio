@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.10.0...v2.11.0) (2026-11-27)
+
+
+### Features
+
+* icône du tag Jev ([#286](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/286)) ([ad948ce](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ad948ce20b9d3ad126a0f2f8c7cc8e0e4e69d163))
+
 ## [2.10.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.9.0...v2.10.0) (2026-11-27)
 
 
