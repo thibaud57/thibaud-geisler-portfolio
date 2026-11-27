@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.10.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.9.0...v2.10.0) (2026-11-27)
+
+
+### Features
+
+* politique de confidentialité des sessions d'agent-os et icônes des nouveaux tags ([#283](https://github.com/thibaud57/thibaud-geisler-portfolio/issues/283)) ([ce3c14a](https://github.com/thibaud57/thibaud-geisler-portfolio/commit/ce3c14a095d8213800876f04707f6f7ccea13b33))
+
 ## [2.9.0](https://github.com/thibaud57/thibaud-geisler-portfolio/compare/v2.8.0...v2.9.0) (2026-11-20)
 
 
