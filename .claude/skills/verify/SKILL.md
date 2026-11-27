@@ -1,302 +1,282 @@
 ---
 name: verify
-description: Recette de build-and-drive du portfolio pour la vérification runtime (lancement de l'app, pilotage des surfaces, capture des preuves).
+description: Recette de /verify pour le portfolio. Pilote l'application Next.js lancée, site public et espace admin, dans un navigateur et par requêtes HTTP. À lancer avant chaque commit qui touche du code exécutable.
+argument-hint: [complet]
+allowed-tools: Bash(just dev), Bash(curl -s http://localhost:3000/*), mcp__plugin_playwright_playwright__*
 ---
 
-# Verify : recette runtime du portfolio
+# verify - Recette du portfolio
 
-## Prérequis
+## Principes
 
-Postgres doit tourner, sinon les pages qui lisent la base répondent 500 sans que ce soit lié au changement :
+Repris du `/verify` intégré de Claude Code 2.1.318, relevé le 2026-11-24.
 
-```bash
-docker ps --format "{{.Names}}: {{.Status}}" | grep postgres   # attendu : healthy
-just db                                                         # démarre Postgres + migrations de portfolio_dev si absent
-```
+- Vérifier, c'est observer l'app lancée : la lancer, l'amener là où le code modifié s'exécute, capturer ce qu'elle rend. Ni tests, ni typecheck, ni import d'un module interne suivi d'un appel
+- Périmètre : le diff complet, commits de la branche et working tree (`git diff @{u}..`, `git diff origin/HEAD...`, `git diff HEAD`), ou ce que l'appelant nomme. Dire le nombre de commits. Sans diff ni périmètre nommé, le dire et s'arrêter
+- Le diff fait foi, toute description est une affirmation à son sujet : un écart entre les deux est un constat
+- La surface est l'endroit où l'utilisateur, humain ou programme, rencontre le changement. Une fonction interne n'en est pas une : suivre son appelant jusqu'à l'écran, la route ou l'outil qui l'atteint
+- Sans surface exécutable (doc, types, configuration sans effet, tests seuls) : SKIP en une ligne. Diff mixte : vérifier le code, ignorer les tests. Lire un test pour savoir quoi contrôler reste permis
+- Jouer le plus petit chemin qui exécute le code modifié, de bout en bout par l'interface réelle : si l'utilisateur clique, cliquer, pas appeler l'action sous l'écran
+- Relire son plan avant de lancer : s'il ne contient que build, typecheck et tests, il ne vérifie rien. Trouver une étape qui atteint la surface ou rendre BLOCKED
+- Le changement confirmé, sonder autour à la même surface : champ vide, valeur trop longue, action faite deux fois, état périmé dans un second onglet, Échap au mauvais moment, erreurs voisines de celle du diff
+- Capturer ce que l'app renvoie, la mémoire n'est pas une preuve. Un comportement inattendu se capture puis s'attribue au changement ou à l'environnement, il ne se contourne pas. Une casse sans rapport est un constat
+- Isoler l'état partagé avec le poste : ports, fichiers temporaires, sessions
+- Chemin qui supprime, publie, envoie ou écrit hors du dépôt, sans dry-run ni cible sûre : ne pas le jouer, vérifier autour, dire ce qui n'a pas été joué
 
-## Lancer et attendre
+## Modes
 
-`just dev` bloque le shell et ses logs sont la principale source de preuve : le rediriger vers un fichier, puis attendre la réponse HTTP plutôt qu'un délai fixe.
+| Mode | Quand | Ce qui se joue |
+|------|-------|----------------|
+| Diff (défaut) | avant chaque commit de code | les flux dont la zone croise le diff, pilotés en direct, puis des sondes autour du changement |
+| Complet (argument `complet`) | fin de feature, avant une mise en production | `just verify-all`, puis en direct les flux de la feature qu'aucun scénario ne couvre |
 
-```bash
-(pnpm dev > "$SCRATCH/verify-dev.log" 2>&1 &)
-until curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/fr | grep -q 200; do sleep 2; done
-just stop   # à la fin, libère le port 3000
-```
+Les scénarios de `verify-all` pilotent l'app lancée de l'extérieur : tous par `just verify-all`, un seul par `just verify <parcours>` (nom de la dernière colonne de `Flux par zone`). Ce ne sont pas les tests du dépôt, que cette recette ne lance jamais.
 
-## Surfaces et comment les piloter
-
-| Surface | Pilotage |
-|---|---|
-| Page publique | `curl -s http://localhost:3000/fr/<route>` |
-| En-têtes (CSP, sécurité) | `curl -s -D - -o /dev/null http://localhost:3000/fr/contact` |
-| Route handler | `curl -s "http://localhost:3000/api/<route>"` |
-| Serveur MCP (`/api/mcp/<domaine>`) | Refus par `curl -X POST` avec un corps `initialize` JSON-RPC ; outils par un script `.mjs` du scratchpad qui importe `@modelcontextprotocol/client` du dépôt (`pathToFileURL`), clé jetable semée en SQL, voir Gotchas |
-| Server Action (formulaire) | voir ci-dessous, le POST se reconstruit à la main |
-| Logs applicatifs (Pino) | `grep "<event>" "$SCRATCH/verify-dev.log"` |
-| Authentification (Better Auth) | `curl -s http://localhost:3000/api/auth/get-session` (`null` sans session). Flux OAuth réel et garde admin : voir ci-dessous |
-| Espace admin sans session | `curl -s -o /dev/null -D - http://localhost:3000/admin` : 307 vers `/admin/login`, sans préfixe de locale |
-| Espace admin connecté | `just dev-login` puis `curl -b <jar>`, voir « Se connecter sans Google » |
-| Base de données | `docker exec thibaud-geisler-portfolio-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d portfolio_dev -A -c "<SQL>"'` : les credentials viennent de l'environnement du conteneur, sans lire `.env` (base de test : `portfolio_dev_test`, recréée par la suite d'intégration ; liste via `psql -d postgres -l`, sans `-d` psql cherche une base au nom de l'utilisateur, absente) |
-| Erreurs remontées à Sentry | `sentry issue list <org>/thibaud-geisler-portfolio --limit 5 --fresh`, puis `sentry issue view <SHORT-ID>` (l'ingestion prend 15 à 60 s, boucler plutôt qu'attendre un délai fixe). Détail et pièges : [knowledges/sentry.md](../../../docs/knowledges/sentry.md) |
-
-## Piloter une Server Action sans navigateur
-
-Le formulaire n'a pas d'`action` HTTP classique (React gère la soumission). Reconstruire le POST à la main : les champs cachés `$ACTION_*` sont dans le HTML de la page, et le header `Next-Action` porte l'id de l'action.
+## Lancer
 
 ```bash
-curl -s http://localhost:3000/fr/contact -o page.html
-grep -oE '<input[^>]*ACTION[^>]*>' page.html          # récupère les champs et l'id d'action
-
-curl -s -X POST http://localhost:3000/fr/contact \
-  -H "Next-Action: <id récupéré ci-dessus>" \
-  -F '$ACTION_REF_1=' -F '$ACTION_1:0={"id":"<id>","bound":"$@1"}' \
-  -F '$ACTION_1:1=[{"ok":null,"errors":{},"message":null}]' \
-  -F '$ACTION_KEY=<clé récupérée>' \
-  -F 'name=Test' -F 'email=test@example.com' -F 'subject=Test' -F 'message=Test' -F 'website='
+just db                                                # Postgres et migrations de portfolio_dev
+just dev > <dossier temporaire>/verify-dev.log 2>&1    # en background
 ```
 
-Sans le header `Next-Action`, Next.js rend la page normalement au lieu d'exécuter l'action : le 200 obtenu ne prouve rien.
+- **Prérequis** : `.env` complet et jamais lu, conteneur Postgres `healthy` (`docker ps`). Pour l'espace admin, le compte admin s'est déjà connecté une fois par Google. Pour les scénarios, Chrome installé sur le poste. Données de la base de dev que les scénarios lisent sans les créer : `visiteur-projets` un projet client et un projet personnel publiés, `referencement` et `agents-portfolio` un projet publié, `visiteur-cv` le CV dans le bucket de dev
+- **Prêt quand** : `http://localhost:3000/fr` répond 200. La première page compile à la demande, compter une minute. Lire le début du log avant d'attendre : le serveur y annonce son port
+- **Arrêt** : `just stop`
+- **Isolation** : navigateur vierge, log dans un dossier temporaire, entités de test sous un préfixe propre au passage
 
-Sur l'image de production (Next 16.3.6, React 19.3.0), ce POST multipart répond **500 « Connection closed. »** alors que la même action soumise par un navigateur réussit (constaté le 2026-10-03, non revalidé depuis). Y piloter le formulaire par le MCP Playwright, ou encoder le corps par `encodeReply` comme pour l'admin.
+## Piloter
 
-## Vérifier l'image de production sans `.env`
+Deux domaines dans la même application : le site public sous `/fr` et `/en`, l'espace admin sous `/admin`. S'y ajoutent les routes d'API et le serveur MCP. Tout ce qu'un utilisateur fait en cliquant se pilote dans un navigateur par le MCP Playwright.
 
-Une montée de Next, de Prisma ou du SDK Sentry se prouve sur l'image que le déploiement construit, pas seulement en dev. L'image se build et tourne sans aucun secret, contre un Postgres jetable :
+### Site public
+
+1. Ouvrir `http://localhost:3000/fr/<route>`
+2. Agir sur l'écran que le diff touche
+3. Capturer l'écran, relever les erreurs de console
 
 ```bash
-docker build -t portfolio-verif \
-  --build-arg NEXT_PUBLIC_SENTRY_DSN="$(gh variable get NEXT_PUBLIC_SENTRY_DSN)" .   # idem pour les 3 autres NEXT_PUBLIC_* (variables du dépôt, publiques par construction)
-docker network create verif-net
-docker run -d --name verif-pg --network verif-net -e POSTGRES_USER=verif -e POSTGRES_PASSWORD=verif -e POSTGRES_DB=portfolio postgres:18-alpine
-docker run -d --name verif-app --network verif-net -p 3100:3000 \
-  -e DATABASE_URL="postgresql://verif:verif@verif-pg:5432/portfolio" \
-  -e SKIP_ENV_VALIDATION=true -e SENTRY_ENVIRONMENT=verification portfolio-verif
-docker rm -f verif-app verif-pg && docker network rm verif-net && docker rmi portfolio-verif   # en fin de run
+curl -s http://localhost:3000/fr/contact -D - -o /dev/null    # en-têtes de sécurité et CSP
+curl -s http://localhost:3000/sitemap.xml
+curl -s http://localhost:3000/llms.txt
+curl -s http://localhost:3000/api/assets/<clé> -o /dev/null -w "%{http_code}\n"
 ```
 
-- La CMD applique les migrations avant de servir : `docker logs verif-app` doit les lister, puis les routes publiques répondent 200 sur une base vide
-- Attendus sans secrets, sans rapport avec le changement : `/api/auth/*` en 500 (`BETTER_AUTH_SECRET` absent), images `/_next/image` en 400 (bucket R2 non configuré), action contact en `smtp_error`
-- `SENTRY_ENVIRONMENT=verification` isole les événements du run dans Sentry. Ils créent pourtant de vraies issues dans le projet : les résoudre en fin de run par `sentry issue resolve <SHORT-ID>` (sans préfixe d'org : `<org>/<SHORT-ID>` affiche l'issue sans la résoudre), après avoir vérifié leur `firstSeen`
-- Les spans d'un run se listent par `sentry api "organizations/<org>/events/?dataset=spans&field=span.op&field=span.description&field=timestamp&query=environment:verification&statsPeriod=1h&project=-1&sort=-timestamp"`, ceux d'une trace précise avec `query=trace:<trace_id>`
-
-## Piloter une Server Action de l'espace admin
-
-Un formulaire rendu dans une modale fermée n'est pas dans le HTML : ni champs `$ACTION_*`, ni id d'action à y récupérer. L'id se lit dans le manifeste du build de dev, une fois la page servie au moins une fois :
+### Espace admin
 
 ```bash
-find ".next/dev/server/app/admin/(protected)" -name server-reference-manifest.json | while read f; do echo "== $f"
-  node -e 'const m=require(process.argv[1]); for (const [id,v] of Object.entries(m.node)) console.log(id, v.exportedName)' "./$f"; done
+just dev-login <dossier temporaire>/admin.jar
+cp <dossier temporaire>/admin.jar .playwright-mcp/admin.txt
 ```
 
-Chaque page ne liste que les actions que ses composants importent, et le POST vise cette page : `deleteCompany` sur `/admin/entreprises`, `createCompany`/`updateCompany` sur `/admin/entreprises/nouvelle` ou `[id]`, `deleteProject`/`reorderProjects` sur `/admin/projets`, `createProject`/`updateProject` sur `/admin/projets/nouveau` ou `[id]`, `uploadAsset`/`deleteAsset` sur `/admin/assets`, `createApiKey`/`deleteApiKey` sur `/admin/cles-api`.
-
-Le corps se construit avec le vrai `encodeReply` que Next embarque, jamais à la main. Un script du scratchpad ne résout pas `next/...` depuis son propre dossier, d'où le `createRequire` pointé sur le dépôt :
-
-```js
-const req = require("module").createRequire("<racine du dépôt>/package.json")
-const { encodeReply } = req("next/dist/compiled/react-server-dom-turbopack/client.edge.js")
-
-const fd = new FormData()
-fd.append("slug", "verify-xx-a")                                  // les champs du formulaire
-const body = await encodeReply([{ ok: null, errors: {}, message: null }, fd])  // (prevState, formData)
-// action liée par bind(null, id) : encodeReply([id, prevState, fd])
-// action à arguments simples, deleteTag(id) : encodeReply([id]), corps texte
-
-await fetch("http://localhost:3000/admin/tags", {
-  method: "POST", body, redirect: "manual",
-  headers: { "Next-Action": "<id>", Accept: "text/x-component",
-             Origin: "http://localhost:3000", Cookie: "<cookies du jar>" },
-})
-// la valeur retournée est la ligne qui contient `"ok":` ; en dev, une ligne `1:D"$…"` de debug peut la précéder
-```
-
-Un champ à valeurs multiples (`sectors`, `formats`, `tagIds`) s'ajoute une fois par valeur : les actions le lisent par `getAll`, un seul `append` ne teste pas ce piège. Un fichier se dépose avec `fd.append("file", new Blob([octets], { type: "image/png" }), "x.png")`, à côté de `folder`, `slug` et `filename`.
-
-Toute entité de test (tag, entreprise, projet, asset) prend un préfixe de slug propre au run et se supprime avant de rendre la main, dans l'ordre imposé par les `Restrict` : projet, puis entreprise et tags, puis assets. Une entité de la base de dev modifiée pour un test se restaure et se vérifie en base champ par champ. Jamais `db-reset`.
-
-Toute donnée de test est fictive, exigence du propriétaire : aucune personne réelle, aucune entreprise ni domaine d'entreprise réels. Emails sur le domaine réservé `example.com`, noms et profils LinkedIn inventés (« Verify Exemple », `linkedin.com/in/verify-exemple`), y compris dans les tests unitaires et d'intégration.
-
-Les deux refus d'accès ne se lisent pas pareil, et c'est ce qui prouve la défense en profondeur : sans cookie, le proxy répond **307** avant même l'action ; avec un cookie forgé, qui passe le proxy, c'est la garde `getCurrentUser()` de l'action qui répond **401**. Seul le second prouve que l'action se protège elle-même.
-
-## Parcours de bout en bout de l'espace admin
-
-Le contenu public vient de l'admin : c'est ce parcours qui prouve l'epic, pas les écrans pris un par un. Il s'enchaîne avec les actions réelles, et chaque étape se vérifie en base **et** côté vitrine :
-
-1. Créer un tag, une entreprise (deux secteurs), déposer son logo sous `freelance/crm/entreprises/<slug>/`, puis une couverture sous `projets/client/<slug-projet>/`.
-2. Créer un projet `DRAFT` qui les utilise, à l'ordre pré-rempli n+1 : le créer ailleurs renumérote tous les projets de la base de dev. En base, `ClientMeta` et `ProjectTag` existent.
-3. En brouillon : `/fr/projets/<slug>` répond **404** et `/api/assets/freelance/crm/entreprises/<slug>/logo.png` aussi (logo servi seulement si un projet de l'entreprise est publié).
-4. Passer en `PUBLISHED` : le projet apparaît sur `/fr/projets` et `/en/projets`, sa page répond 200, la couverture et le logo sont servis, `sitemap.xml` et `llms.txt` le listent.
-5. Renommer le tag et l'entreprise : `/fr/projets` et `/fr/a-propos` montrent les nouveaux noms dès la requête suivante.
-6. Refus attendus : supprimer le tag (`tag_in_use`), l'entreprise (`company_in_use`), la couverture et le logo (`asset_in_use`, `usedBy` nomme le slug). Une clé citée seulement dans `caseStudyMarkdownFr` bloque aussi la suppression.
-7. Repasser en `DRAFT` : le 404, la disparition des listes et du sitemap, et le 404 du logo reviennent.
-8. Supprimer le projet : `ClientMeta` et `ProjectTag` partent avec, le tag et l'entreprise restent. Ensuite, tout se supprime.
-9. Sans session : une action de chaque famille (tags, entreprises, projets, assets) répond 307 sans cookie et 401 avec un cookie forgé, sans rien écrire en base.
-
-Un objet R2 se prouve par un GET sur sa route (`/api/assets/…`, ou `/admin/api/assets/…` avec le jar pour `freelance/`) : 200 présent, 404 absent. Le client `aws` exigerait les clés du `.env`.
-
-## Piloter le flux OAuth Google
-
-Google exige un vrai navigateur et un vrai compte : le développeur clique sur « Continuer avec Google » depuis `http://localhost:3000/admin/login`, la recette contrôle le log et la base. Compter `auth."user"`, `auth.session` et `auth.account` avant puis après chaque connexion. Le compte refusé se teste dans une fenêtre privée neuve et doit revenir sur `/admin/login?error=FORBIDDEN` sans créer de ligne.
-
-## Se connecter sans Google
-
-`just dev-login <jar>` crée une vraie session pour `ADMIN_EMAIL` (plugin Better Auth `testUtils`, hors de l'instance de l'app) et écrit son cookie au format curl. La garde réelle est exercée : session en base et whitelist. Prérequis : le compte admin existe, donc une connexion Google a déjà eu lieu une fois.
-
-```bash
-just dev-login "$SCRATCH/admin.jar"            # chemin Windows (C:/…) : un /c/… de Git Bash échoue côté Node
-curl -s -b "$SCRATCH/admin.jar" http://localhost:3000/admin -o admin.html
-grep -oE 'data-state="(expanded|collapsed)"' admin.html    # repli de la sidebar rendu côté serveur
-printf 'localhost\tFALSE\t/\tFALSE\t0\tsidebar_state\tfalse\n' >> "$SCRATCH/admin.jar"   # simuler un repli persisté
-curl -s -b "$SCRATCH/admin.jar" -c "$SCRATCH/admin.jar" -X POST -H "Origin: http://localhost:3000" \
-  -H "Content-Type: application/json" -d '{}' http://localhost:3000/api/auth/sign-out   # déconnexion, jar mis à jour
-rm -f "$SCRATCH/admin.jar"                     # le jar vaut une session admin valide
-```
-
-Compter `auth.session` avant et après la déconnexion : une ligne en moins.
-
-## Piloter l'admin dans un navigateur (MCP Playwright)
-
-Clics, modales, glisser-déposer et rendu visuel se pilotent avec le MCP Playwright, sur la même session que `just dev-login`. Le code de `browser_run_code_unsafe` tourne dans une VM sans `require` ni `import` et le MCP recopie ce code dans sa sortie : le cookie se lit donc depuis le disque, jamais en clair dans le code.
-
-```bash
-cp "$SCRATCH/admin.jar" .playwright-mcp/admin.txt   # dossier gitignoré, seule racine lisible en file://
-```
+`just dev-login` crée une vraie session pour le compte admin, sans passer par Google. Le MCP ne lit en `file:` que le dossier `.playwright-mcp/` de la racine de la session. Il recopie dans sa sortie le code qu'on lui passe : le cookie se lit donc depuis le disque, jamais en clair dans le code.
 
 ```js
 async (page) => {
-  await page.goto("file:///<racine du dépôt>/.playwright-mcp/admin.txt")
+  await page.goto("file:///<racine de la session>/.playwright-mcp/admin.txt")
   const jar = await page.evaluate(() => document.body.innerText)
   const cookies = jar.split("\n").map((l) => l.replace(/^#HttpOnly_/, "")).filter((l) => l && !l.startsWith("#"))
     .map((l) => l.split("\t")).filter((p) => p.length >= 7)
     .map((p) => ({ name: p[5], value: p[6].trim(), url: "http://localhost:3000" }))
   await page.context().addCookies(cookies)
-  await page.goto("http://localhost:3000/admin/tags")
+  await page.goto("http://localhost:3000/admin/<écran>")
   return cookies.map((c) => c.name)   // les noms, jamais les valeurs
 }
 ```
 
-Supprimer `.playwright-mcp/admin.txt` aussitôt les cookies posés : `eslint .` le lit aussi. En fin de run, `clearCookies()` côté navigateur puis la déconnexion par curl ci-dessus. Mesurer plutôt que regarder : `getBoundingClientRect` et `getComputedStyle` donnent les écarts et couleurs exacts, une capture d'élément (`locator.screenshot`) donne le rendu à comparer à la maquette. Relever les `console` de type `warning` et `error` pendant chaque scénario.
-
-## Contrôler la fidélité à la maquette
-
-Quand la spec a une section « Références de design », l'écran livré se compare à la maquette, pas seulement au fonctionnel : au 07, un écran qui passait tous les tests ne lui ressemblait pas.
-
-- **Source** : l'extrait que `/implement-subproject` passe à `/verify` quand il en passe un, c'est ce que les implementers ont reçu. Sinon les copies locales : `.design-sync/maquette/Espace admin.dc.html` pour les écrans, `.design-sync/design-system/components/` pour les fiches de composants (procédure et fraîcheur dans `.design-sync/NOTES.md`). Chaque écran s'y trouve par son identifiant (`isTags`, `dlgDeleteTag`…), les valeurs calculées (libellés, colonnes, items) dans le script en fin de fichier
-- **Les règles du propriétaire d'abord** : elles vivent dans les sections de `docs/DESIGN.md` (Mapping Composants, États des Composants, Conventions de Code). Sa sous-rubrique Arbitrages, quand elle existe, ne liste que les écarts pas encore réalignés dans la maquette ou le design system. Un écart à la maquette qui applique une règle du DESIGN.md est conforme
-- **Comparer écran par écran**, modales et états compris (vide, erreur de validation, suppression refusée) : disposition, ordre et largeur des colonnes, composants, libellés, boutons et leur ordre. Mesurer les largeurs et écarts au `getBoundingClientRect`, capturer chaque modale au `locator.screenshot`
-- **Un écart non consigné est un échec**, rapporté avec l'écran, la ligne de la maquette et la mesure. Jamais corrigé en silence : c'est au propriétaire de trancher entre la maquette et le code
-
-## Prouver que la garde admin tient
-
-Un cookie forgé passe le proxy, qui ne teste que sa présence : c'est la garde serveur qui doit tout refuser, **y compris le payload RSC de la page**, pas seulement l'écran affiché.
+- Supprimer `.playwright-mcp/admin.txt` dès les cookies posés
+- En fin de passage : `clearCookies()` dans le navigateur, déconnexion, puis suppression du jar, qui vaut une session admin
 
 ```bash
-curl -s -H "Cookie: better-auth.session_token=forged.value" http://localhost:3000/admin -o forged.html
-grep -c "Accès non autorisé" forged.html   # attendu : 1
-grep -c "<texte propre à la page>" forged.html   # attendu : 0, sinon le contenu fuit dans le flight
+curl -s http://localhost:3000/api/auth/sign-out -X POST -b <jar> -c <jar> \
+  -H "Origin: http://localhost:3000" -H "Content-Type: application/json" -d '{}'
 ```
 
-Le taint se prouve avec une sonde jetable, à retirer aussitôt : un Client Component vide (`"use client"`, `export function TaintProbe(_props: { user: unknown }) { return null }`) monté par la page avec `user={await getCurrentUser()}`. Le développeur recharge `/admin` connecté, le log doit porter `⨯ Error: N'expose jamais l'objet user complet…`.
+- **Sans session** : `curl -s http://localhost:3000/admin -o /dev/null -D -` répond 307 vers `/admin/login`
+- **Garde admin** : `curl -s http://localhost:3000/admin/<écran> -H "Cookie: better-auth.session_token=forged.value" -o <dossier temporaire>/forged.html`. Le proxy laisse passer ce cookie forgé, la garde serveur doit tout refuser : aucun texte propre à l'écran ne doit figurer dans la réponse
+- **Listes** : 25 lignes par page, filtrer par le champ de recherche avant de lire les lignes. `?detail=<id>` ouvre la vue détail sans clic
 
-## Gotchas
+Une action doit aussi se protéger elle-même : sans cookie le proxy répond 307 avant l'action, avec un cookie forgé c'est l'action qui répond 401. Seul un POST direct le prouve, depuis un script `.mjs` d'un dossier temporaire. L'id de l'action se lit dans le `server-reference-manifest.json` de la page, sous `.next/dev/server/app/admin/(protected)`, une fois la page servie. Le corps se construit avec le `encodeReply` que Next embarque, jamais à la main : un champ mal préfixé arrive `undefined` et renvoie de fausses erreurs de validation.
 
-- Une route de test temporaire est un pilotage légitime (elle atteint une vraie surface HTTP), mais la supprimer avant de rendre la main : `rm -rf src/app/api/<route-de-test>`. `cat > fichier` ne crée pas les dossiers manquants, d'où un 404 trompeur : créer le dossier d'abord.
-- `just dev` lancé en arrière-plan survit à la fin du shell qui l'a lancé, mais ses logs s'arrêtent d'être capturés si la redirection appartenait à ce shell : rediriger vers un fichier du scratchpad, pas compter sur la sortie de la commande.
-- Les logs Pino locaux ne sont pas filtrés des données personnelles, seul ce qui part vers un service externe l'est. Une donnée sensible visible dans le fichier de log local est le comportement attendu.
-- `/api/assets/*` lit le bucket R2 de dev (`R2_ASSETS_BUCKET` du `.env`), pas le disque : des 404 sur tous les assets signalent un bucket vide ou désynchronisé, pas un défaut de code. Le repeupler avec `aws s3 sync` depuis les fichiers source, token de dev : `aws s3 sync <dossier source> s3://<bucket de dev> --endpoint-url https://<account-id>.eu.r2.cloudflarestorage.com`.
-- Supprimer une route temporaire pendant que `pnpm dev` tournait laisse `.next/dev/types/validator.ts` la référencer : le `pnpm build` suivant échoue en `TS2307`. Supprimer `.next/dev/types/validator.ts` et `.next/dev/types/routes.d.ts` (régénérés) avant de builder.
-- Un layout qui lève `unauthorized()` ne retient pas le payload de ses pages : Next les rend en parallèle et sérialise la page quand même. Seul le grep du cookie forgé le révèle, l'écran affiché est correct dans les deux cas. Confirmé en production : `just build` puis `pnpm start` (le dev écrit dans `.next/dev`, le build de production y survit).
-- « Accès non autorisé » figure aussi dans le HTML d'une page admin **connectée** : Next sérialise l'UI de `unauthorized.tsx` dans le payload pour le client. Le compter ne prouve rien, seule l'absence du contenu propre à la page compte sous cookie forgé.
-- « encountered uncached data… » sur une page d'un segment imbriqué (`/admin/tags`) alors que `/admin` est propre : il manque le `loading.tsx` du segment. Celui de `(protected)/` appartient au layout partagé, la navigation entre pages sœurs ne le traverse pas. N'apparaît qu'en dev sous session valide, le build reste vert.
-- Une constante exportée par un module `"use client"` (ex. `SIDEBAR_COOKIE_NAME` de `sidebar.tsx`) arrive dans un Server Component en référence client, pas en valeur : `cookies().get(<constante>)` ne trouve rien, sans erreur ni au typage ni au build. Seul le `data-state` rendu sous cookie posé le révèle.
-- Après une déconnexion par curl sans `-c`, le jar renvoie le cookie supprimé : `/admin` répond 200 (écran « Accès non autorisé ») au lieu du 307 qu'obtient un navigateur, dont le cookie est effacé.
-- `?error=state_mismatch` après une connexion signifie un callback rejoué avec un `state` déjà consommé (onglet Google réutilisé, double clic), pas un défaut : repartir d'une fenêtre neuve.
-- En dev, une requête au cookie forgé logue « Could not validate `instant`… `NEXT_HTTP_ERROR_FALLBACK;401` » : c'est la validation de navigation de Next qui trace l'`unauthorized()`, attendu. « encountered uncached data… outside of `<Suspense>` » sur une page admin, lui, est un vrai défaut : la page lit `headers()` hors de la frontière de `(protected)/loading.tsx`.
-- Les noms des variables serveur (`GOOGLE_CLIENT_SECRET`, `SMTP_PASS`…) figurent dans un chunk de `.next/static` : c'est le schéma de t3-env, attendu. Seule la présence d'une *valeur* serait un défaut, et la chercher exige de lire `.env` : le développeur lance lui-même le grep.
-- Un `FormData` encodé à la main avec le préfixe `1_` (au lieu du `_1_` qu'emploie `encodeReply`) n'échoue pas : l'action s'exécute, reçoit des champs `undefined` et renvoie des erreurs de validation en anglais (« expected string, received undefined »), qui ressemblent à un défaut du schéma. Constaté le 2026-09-17 sur Next 16.3.3.
-- Pino est formaté en pretty en dev, pas en JSON, et colorisé : des codes ANSI séparent `event` de ses deux-points dans le fichier de log. Chercher `grep -c 'event.*"tag:created"'` ; `"event":"tag:created"` comme `event: "tag:created"` ne trouvent rien et font croire que l'action n'a pas logué (constaté le 2026-09-17).
-- `just build` lancé pendant que `pnpm dev` tourne corrompt un JSON du cache `.next` : toutes les pages répondent 500 avec `SyntaxError: Unexpected non-whitespace character after JSON`, sans rapport avec le code. Arrêter ce serveur par le PID qu'affiche « Another next dev server is already running » (`taskkill //PID <pid> //T //F`), puis relancer `pnpm dev` (constaté le 2026-09-17, `just stop` ne l'avait pas arrêté).
-- Le client Prisma logue lui-même en `prisma:error`, avec un extrait du code source appelant, les violations de contrainte que l'action intercepte pourtant proprement (`P2002` slug déjà pris, `P2003` tag rattaché). L'action a bien renvoyé son message métier. Mais un grep des noms d'événements tombe aussi sur cet extrait de code : compter les événements sur les lignes `event:`, pas sur leur seul nom.
-- Le glisser-déposer des listes admin et des tags du formulaire projet est le drag natif HTML5 (`draggable="true"`) : `locator.dragTo(cible)` le déclenche, une suite de `page.mouse.move` ne fait rien.
-- Après une navigation client, Next 16 garde la page précédente cachée dans le DOM : deux formulaires coexistent (`/admin/projets/nouveau` puis `[id]`) et un `getByLabel` échoue en strict mode. Cibler `form:visible`.
-- La fermeture d'une modale se lit sur `data-state="closed"` de `[role=dialog]`, pas sur `isVisible()` : l'animation de sortie la garde visible près d'une seconde et fait croire qu'Échap n'a rien fermé. Échap ferme d'abord la couche Radix la plus haute, une infobulle ouverte par le focus initial le consomme (constaté le 2026-10-05 sur la vue détail des entreprises).
-- Dans la modale de dépôt, choisir le fichier remplace le « Nom du fichier » déjà saisi par le nom du fichier : choisir le fichier d'abord, puis renommer.
-- Git Bash réécrit en chemin Windows tout argument qui commence par `/` : `node script.mjs /admin/assets` reçoit `C:/Program Files/Git/admin/assets`. Préfixer la commande par `MSYS_NO_PATHCONV=1`.
-- Les tables du CRM vivent dans le schéma `freelance` : `select … from freelance."Company"`, un `"Company"` nu répond « relation does not exist ».
-- L'éditeur markdown (Tiptap) se lit par son champ caché (`input[name=details]`, `input[name^=caseStudyMarkdown]`), qui porte le markdown sérialisé, et se pilote au clavier dans `.ProseMirror` (`# `, `- `, `> `, `/`). Le menu `/` est un `[data-tippy-root]`.
-- Les images passent par l'optimiseur : dans le HTML, leurs URLs sont encodées (`/_next/image?url=%2Fapi%2Fassets%2F...`). Un `grep "/api/assets/"` sur la page n'en voit qu'une partie, chercher aussi la forme encodée et requêter l'URL `/_next/image` elle-même.
-- Le port 3000 peut être tenu par VS Code (port forward vers Dokploy : `/fr` répond 404 avec `<title>Dokploy</title>`, `netstat` montre `Code.exe`). `just stop` tue par port et viserait ce processus : vérifier le propriétaire (`tasklist //FI "PID eq <pid>"`, double barre sous Git Bash), lancer `PORT=3001 pnpm dev` et arrêter par le PID du listener 3001 (constaté le 2026-10-06).
-- Sur un autre port que 3000, la déconnexion par curl répond 403 `INVALID_ORIGIN` (`BETTER_AUTH_URL` vaut `http://localhost:3000`) alors que la session fonctionne : noter l'id de la ligne `auth.session` créée par `dev-login` et la supprimer en SQL en fin de run.
-- L'outil `browser_navigate` du MCP Playwright refuse les URL `file:` : lire `admin.txt` par le `page.goto` de `browser_run_code_unsafe`, comme plus haut. Le MCP n'écrit pas hors du dépôt : capturer sous `.playwright-mcp/` puis déplacer vers le scratchpad.
-- Les pages déjà visitées restent dans le DOM, vues détail comprises : `[role=dialog]` renvoie aussi des dialogues masqués (`data-state="open"`, largeur 0) et `tbody tr` mêle les lignes des tables cachées. Cibler `[role="dialog"][data-state="open"]` en `.last()` et repartir d'un `goto` pour un DOM propre.
-- Champ date (`OptionalDateField`) : déclencheur `button[data-slot="popover-trigger"]` nommé par son libellé, jours en `button[data-day="DD/MM/YYYY"]`, valeur dans `input[name=metAt]` (`yyyy-MM-dd`). Le popover se referme entre deux appels `browser_run_code_unsafe` : ouvrir et cliquer dans le même appel.
-- Une fiche de personne opposée a perdu son nom (`name` null) : la nettoyer par `email` ou `"linkedinUrl"`, un `where name like 'Verify%'` ne la trouve plus. `Lead` part en cascade avec `Person`.
-- SQL passé par `bash -c` : le shell développe `$$`. Envoyer le SQL sur stdin (`docker exec -i … psql <<< "…"`), identifiants entre guillemets doubles échappés.
-- `history.length` plafonne à 50 sous Chromium : un retour arrière se vérifie par `location.pathname` et le `h1` après `page.goBack()`.
-- Le glisser de l'EventCalendar ReUI (calendrier des actions) suit les événements pointeur, pas le drag natif : `page.mouse.down()`, un premier `move` de quelques pixels puis un `move` en `steps` jusqu'à la cellule, `up()`. Les cellules se ciblent par leur `aria-label` (« jeudi 8 octobre 2026 »), le débordement du jour par `[data-slot="event-calendar-more"]` (constaté le 2026-10-09).
-- Le serveur de production rend en UTC, le poste en heure de Paris : un écart d'hydratation lié au fuseau ne se voit qu'en relançant `TZ=UTC pnpm dev`. Sans issue, le bouton des outils Next.js reste « Open Next.js Dev Tools », sans compteur.
-- Échéance de conservation : réservée aux leads (colonne « À conserver jusqu'au », filtre Échéance), absente des contacts depuis le 2026-10-13. Elle vaut le plus tardif de `Lead.createdAt` et de la dernière réponse, plus 3 ans ; pour une fiche opposée, `optedOutAt` plus 3 ans, après quoi seule « Supprimer » reste sur sa ligne dans Tous. Pour prouver que la réponse pilote l'échéance, antidater `freelance."Lead"."createdAt"` en SQL sur la fiche de test. Dans la modale d'action, le sélecteur de personne est un `button[data-slot=popover-trigger]` comme le champ date (cibler `[id$=-personId]` et `[id$=-occurredAt]`, pas `.first()`), et `[role=dialog]` `.last()` renvoie alors le popover ouvert, pas la modale (constaté le 2026-10-09).
-- Une fiche inexistante (`/admin/contacts/<id>`, `/admin/leads/<id>`) répond **200** en dev avec le corps « 404 This page could not be found » : le streaming a déjà envoyé les en-têtes. Prouver le « introuvable » par le texte de la page, pas par le code HTTP. Semer des données de test en SQL demande `"updatedAt"` explicite sur `Person`, `Lead`, `Contact`, `Company` et `ProspectingAction` (pas de défaut en base), et un `maxlength` HTML tronque un `fill` trop long : une erreur de validation de longueur ne se déclenche pas depuis le formulaire (constaté le 2026-10-09).
-- Opportunités : l'éditeur Détails (Tiptap) rend ses titres en `<h1>`, donc `main h1` ramène aussi ceux de l'éditeur et des pages cachées (strict mode) : cibler `main h1:visible` en `.first()`. Le champ Démarrage (`MonthField`) s'ouvre par `button[data-slot=popover-trigger]` nommé « Démarrage », le mois se clique par `button[aria-label="avril 2026"]` (`aria-pressed`), « Effacer » vit dans le panneau et la valeur dans `input[name=startMonth]` (`AAAA-MM`) ; le panneau n'a pas les `data-slot` de la fiche (mois courant en `border-border`, mois choisi en `bg-primary`) et se referme entre deux appels `browser_run_code_unsafe` (constaté le 2026-10-10).
-- « Browser is already in use for …\ms-playwright-mcp\mcp-chrome-… » au premier appel du MCP Playwright : un Chrome d'une session précédente tient encore le profil (son parent est un `@playwright/mcp/cli.js` plus ancien, à lire par `Get-CimInstance Win32_Process` filtré sur le nom du profil). Plutôt que de le tuer, piloter Chrome depuis un script `.mjs` du scratchpad avec `playwright-core` du cache npx du MCP (`createRequire("<npm-cache>/_npx/<hash>/node_modules/@playwright/mcp/package.json")("playwright-core")`, `chromium.launch({ channel: "chrome", headless: true })`), profil temporaire donc sans conflit ; le jar curl se lit alors sur disque sans passer par `.playwright-mcp/` (constaté le 2026-10-10).
-- Entretiens : semer `freelance."Interview"` (`side`, `type`, `scheduledAt`, `opportunityId`, `updatedAt` obligatoires, `status` défaut `PLANIFIE`) puis la liaison `freelance."_InterviewCorrespondents"` (`"A"` = id de l'entretien, `"B"` = id de la personne). Le statut affiché d'un lead se lit sur le premier `[data-slot=badge]` de sa ligne dans Tous et En cours ; la vue Stand-by n'a pas de colonne statut, son premier badge est l'origine. Le nom d'un lead figure dans le HTML de toutes les vues (payload RSC, filtrage client) : seule une ligne `table:visible tbody tr` rendue prouve l'appartenance à une vue (constaté le 2026-10-10).
-- Les ids sont du texte libre : des ids lisibles semés en SQL (`verify-co-esn`, `verify-p-lead`) passent dans `/admin/entreprises/<id>`, `/admin/leads/<id>`, `/admin/opportunites/<id>` et dans `?detail=`. Les valeurs d'enum se lisent dans `pg_enum` (`CompanyType` : `ESN_RECRUTEMENT`, `CLIENT_FINAL`, `PARTENAIRE`, `MA_SOCIETE`) et la base de dev n'a aucune ESN au départ. Une personne à la fois lead et contact se sème par `Person`, `Lead` et `Contact` (`personId`). Après « Ne plus contacter », l'apporteur d'une opportunité s'affiche par son email, la fiche ayant perdu son nom (constaté le 2026-10-10).
-- Formulaire d'un entretien : les champs se ciblent par suffixe d'id (`button[id$="-type"]`, `-status`, `-outcome`, `-scheduledAt`, `-opportunityId`, `-correspondentIds`, radios `-side-esn` / `-side-client`) ; les champs d'une ligne « Nouveau contact » n'ont ni id ni name, ils se ciblent par `aria-label` (« Nom du nouveau contact », « Type du nouveau contact »…) et l'Entreprise y est un `Select`, pas un combobox à recherche (`getByRole("combobox", { name: "Entreprise du nouveau contact" })` puis `[role=option]`). Un nouvel entretien part sans date, heure 10:00, et refuse l'envoi tant qu'aucune date n'est choisie (« Date et heure requises ») : ouvrir `[id$=-scheduledAt]` et cliquer `button[data-day="DD/MM/YYYY"]` dans le même appel ; la page d'édition n'affiche date et heure stockées qu'après hydratation (« Choisir une date » au premier rendu, attendu). Le numéro « Entretien N » exclut les Premier contact (constaté le 2026-10-11).
-- Écran Entretiens : `a[href='/admin/entretiens']` matche l'entrée du menu et la sous-entrée Journal, cibler les sous-entrées par `[data-slot=sidebar-menu-sub-button]`, présentes dans le DOM seulement quand le groupe est ouvert (depuis une autre page, l'entrée parente mène au Journal). Après une navigation client vers une liste, `networkidle` revient avant les lignes : attendre `table:visible tbody tr`. `RelatedLinksList` rend « : » entre libellé et méta dans le texte brut. Les boutons de ligne s'appellent `Modifier <titre> · <opportunité>` et `Supprimer <titre> · <opportunité>` (constaté le 2026-10-11).
-- Un `timezoneId: "UTC"` passé à `browser.newContext` met le navigateur hors du fuseau du serveur de dev (Paris) : il révèle un écart d'hydratation lié au fuseau sans relancer `TZ=UTC pnpm dev` (constaté le 2026-10-11).
-- Revues hebdo : semer `freelance."WeeklyReview"` (`id`, `"closingFriday"` en date seule, `"updatedAt"` obligatoires, compteurs à 0 par défaut), une seule ligne par vendredi. Les compteurs attendus de « Calculer depuis le CRM » se recalculent en SQL avec les bornes samedi 0 h → samedi 0 h de Paris (`timestamptz '2026-10-10 00:00+02'`), puis se comparent aux huit `input[name=…]` du formulaire (`connectionsSent`, `connectionsAccepted`, `messagesSent`, `conversationsEngaged`, `refusalsReceived`, `meetingsBooked`, `interviewsHeld`, `activeLeads`). Le champ Date vendredi s'ouvre par `button[id$="-closingFriday"]`, valeur dans `input[name=closingFriday]`. Les puces du calendrier vivent dans une couche `event-calendar-month-bar-overlay`, hors des cellules : leur jour se prouve par la géométrie (abscisse sous l'en-tête « ven. »), à refaire dans un contexte `America/Los_Angeles` pour le décalage d'un jour (constaté le 2026-10-11).
-- Un serveur de dev lancé avant une migration garde l'ancien client Prisma, mis en cache sur `globalThis` par `src/lib/prisma.ts` : le hot reload ne le remplace pas. Une écriture sur la nouvelle colonne renvoie alors `unknown_error` sans toast, et rien n'est écrit en base. Comparer l'heure de démarrage du processus (`(Get-Process -Id <pid>).StartTime`) à celle de la migration, puis relancer le serveur (constaté le 2026-10-13).
-- Le texte « This page could not be found » figure deux fois dans le HTML de **toute** page admin, valide comprise : Next sérialise l'UI de la page introuvable dans le payload, comme « Accès non autorisé ». Prouver qu'une page répond par son contenu propre (titre, bouton), jamais par l'absence de ce texte (constaté le 2026-10-13).
-- Refus d'écriture sur une personne opposée : semer `Person` (`updatedAt`), `Lead` et une `ProspectingAction` `A_FAIRE`, poser `"optedOutAt" = now()` en SQL, puis appeler par `encodeReply` `changeProspectingActionStatus(id, status)` sur `/admin/actions-prospection/pipeline` et `rescheduleProspectingAction(id, "AAAA-MM-JJ")` sur `/admin/actions-prospection/calendrier`. La replanification attend le jour seul, comme le calendrier : un instant ISO complet répond « Date invalide » avant même la garde. Attendu : `ok:false` avec le message d'opposition sur `status` ou `occurredAt`, et rien d'écrit en base (constaté le 2026-10-13).
-- Le hook `validate_command.py` refuse une commande qui mêle `curl` et des pipes (lu comme l'exécution d'un script distant) : lancer la déconnexion par curl seule, et le reste dans un autre appel (constaté le 2026-10-13).
-- Un `click()` Playwright sur un lien qui ouvre une page de formulaire lourde (nouvel entretien) peut rester pendu jusqu'au timeout, et le `goto` suivant aussi : fermer le navigateur, puis suivre le `href` lu sur le lien par `goto` avec `waitUntil: "commit"` et attendre un élément de la page (constaté le 2026-10-13).
-- Le hook `block_sensitive_files.py` refuse toute commande où `.env`, `.key`, `.token`, `.pem` (et autres extensions de secrets) apparaît en mot entier, même dans du code : un `node -e` qui lit `t.key` sur les tags d'un événement Sentry est bloqué. Écrire `t["key"]` (constaté le 2026-10-03).
-- Une valeur dérivée d'une liste admin (« Premier contact » des entreprises) se prouve sur toute la base : concaténer les chaînes `self.__next_f.push([1,"…"])` du HTML (`JSON.parse` de chacune), relever la valeur par entité, puis la comparer à un calcul SQL. L'entreprise de premier niveau s'ancre sur `{"id":…,"slug":…,"name":…,"logoFilename":…,"websiteUrl"` : les entreprises imbriquées des opportunités commencent aussi par `id`, `slug`, `name`. Un `node -e` passé par Git Bash perd les `\\` de ses regex : écrire le script dans un fichier `.mjs` du scratchpad. Passer une action à Fait par `changeProspectingActionStatus` la date à l'instant de l'appel, pas à sa date prévue (constaté le 2026-10-13).
-- Opposition : `optOutPerson` met aussi `companyId` à null, le lead sort alors de la fiche entreprise. Pour prouver que la fiche n'affiche pas de statut à un lead opposé, remettre `companyId` en SQL après l'opposition (constaté le 2026-10-14).
-- Signaux : OFFRE_POSTE, LEVEE, EXPANSION, NOUVEAU_PRODUIT, PIVOT et ACQUISITION sont réservés aux entreprises, un lead reçoit POST, COMMENTAIRE, CONFERENCE ou INTERACTION. Seuls les types d'entreprise ont une fraîcheur : le filtre « Signal récent » n'existe que sur Entreprises (retiré de Leads le 2026-10-14).
-- Revues : « Calculer depuis le CRM » ne compte un entretien qu'une fois Fait, un Planifié ne compte pas. Le dialogue « Clôturer la semaine » propose par défaut le dernier vendredi écoulé : pour la semaine en cours, cliquer `button[data-day="DD/MM/YYYY"]` du vendredi voulu. Un clic sur un samedi ou un dimanche du calendrier ouvre le vendredi suivant (constaté le 2026-10-14).
-- Premier contact d'une entreprise : une action envoyée ou une rencontre d'une personne rattachée, ou un entretien Fait de l'une de ses opportunités, y compris côté client final. Un lead lié seulement à l'ESN ne dérive aucune date pour le client (constaté le 2026-10-14).
-- Listes admin paginées à 25 lignes : filtrer par `main input[type=search]:visible` avant de lire `table:visible tbody tr` ; `?detail=<id>` ouvre la vue détail sans clic (constaté le 2026-10-14).
-- Kanban du Pipeline : le glisser passe par `[data-slot=kanban-item-handle]` avec `page.mouse` (down, petit move, move en `steps` vers `[data-slot=kanban-column]`, up). Le toast se lit sur `[data-sonner-toast]` ; la carte d'une action supprimée entre-temps disparaît après la revalidation (constaté le 2026-10-14).
-- Rendu d'un lead opposé : nom d'affichage = email, colonne Statut = badge « Ne plus contacter » (jamais un statut saisi), et `AdminCompany.leads` n'affiche plus de statut (constaté le 2026-10-14).
-- Récupération de logo : `fetchCompanyLogo(url, slug)` est dans le manifeste de `/admin/entreprises/[id]` et s'appelle par `encodeReply([url, slug])`, sans enregistrer la fiche. Pour prouver l'échéance de 20 s, une page `https://httpbin.org/base64/<base64 URL-safe>` qui déclare trois `<link rel="icon">` vers `https://httpbin.org/delay/9` répond `site_too_slow` en 20 à 21 s ; pino en pretty répartit `event` et `reason` sur deux lignes, grepper `reason` (constaté le 2026-10-24).
-- Dans un worktree, le hook refuse `psql -U "$POSTGRES_USER"` et les `node -e` avec `require` : fixer `-U portfolio` et écrire les scripts dans un `.mjs` du scratchpad (constaté le 2026-10-24).
-- Port 3000 occupé un instant : `pnpm dev` bascule seul sur 3001 (« Port 3000 is in use… »), et la boucle d'attente sur 3000 ne voit jamais de 200. Lire le log avant d'attendre, puis relancer en `PORT=3000` une fois le port libre (constaté le 2026-10-26).
-- `playwright-core` du cache npx réclame parfois une révision de navigateur absente (« npx playwright install ») : lancer `chromium.launch({ executablePath: "<LOCALAPPDATA>/ms-playwright/chromium_headless_shell-<rev>/chrome-headless-shell-win64/chrome-headless-shell.exe", args: ["--no-sandbox"] })` sur la révision installée (constaté le 2026-10-26).
-- Aucune étude de cas de la base de dev n'a d'image dans son markdown : pour tester leur rendu (figure, agrandissement), ajouter `![alt](/api/assets/<clé existante>)` en SQL **avant** la première visite de la page (requête `'use cache'`), noter le `md5` du champ, puis le retirer par `replace()` et comparer le `md5` en fin de run (constaté le 2026-10-26).
-- Clé d'API jetable pour la route MCP, sans lire l'env local : un `.mjs` du scratchpad importe `defaultKeyHasher` de `node_modules/@better-auth/api-key/dist/index.mjs`, hache un secret `tgp_…` et écrit un `insert into auth.apikey` (id fixe, `"referenceId"` = id de `auth."user"`, `permissions` `'{"crm":["read","write"]}'`, `"rateLimitTimeWindow"` 3600000, `"rateLimitMax"` 1000), envoyé sur stdin à `psql`. Garder le secret dans un fichier du scratchpad, jamais dans une commande (le hook bloque `.key`), et supprimer la ligne en fin de run. Un `initialize` en `protocolVersion: "2025-06-18"` logue `era: "legacy"`, le client 2.4.0 `modern` (constaté le 2026-11-06)
-- Page des clés d'API : dans la modale de création, la valeur créée se lit par `input[readonly]`, l'expiration s'ouvre par `button[id$="-expiry"]` (option par `getByRole("option")`), les domaines par `button[id$="-domains"]` puis `[cmdk-item]`, le retrait d'un domaine par `button[aria-label="Retirer CRM"]`. La confirmation de suppression est un `[role=alertdialog]`, pas un `dialog`. Le champ nom n'a pas de `maxlength` : un `fill` de 33 caractères atteint bien l'erreur serveur. Lire la copie demande `permissions: ["clipboard-read", "clipboard-write"]` sur le contexte (constaté le 2026-11-06)
-- Prouver qu'une valeur secrète (clé d'API) n'apparaît pas dans le log sans l'écrire en ligne de commande : `grep -cF -f <fichier du scratchpad qui la contient> "$SCRATCH/verify-dev.log"`. Une suppression d'une clé déjà supprimée logue `prisma:error` P2025 sans événement `api_key:deleted` : attendu, ne pas compter un événement par clic (constaté le 2026-11-06)
-- Erreur d'hydratation `data-aria-hidden` en console sur toutes les listes admin (`/admin/tags` compris) quand Playwright clique un bouton dès que `table tbody tr` existe : la table n'est pas encore hydratée. Attendre environ 1,5 s après le chargement avant le premier clic, pour ne pas la prendre pour un défaut du changement testé (constaté le 2026-11-06)
-- Étude de cas, admin : les champs `caseStudyMarkdownFr`/`En` n'ont aucune validation, aucune erreur de champ ne peut s'y déclencher. Les deux éditeurs restent montés sous leurs onglets, `new FormData(form)` prouve que les deux langues partent sans enregistrer (constaté le 2026-10-26).
-- L'entité légale et son adresse vivent dans le schéma `public` (`public."LegalEntity"`, `public."Address"`), pas dans `freelance` : les semer avec un `id` explicite (pas de défaut en base) et `"updatedAt"`, l'entreprise les référence par `"legalEntityId"`. À nettoyer après l'entreprise (constaté le 2026-11-07).
-- Logo en succès sans site tiers réel : une page `https://httpbin.org/base64/<base64 URL-safe>` qui déclare `<link rel="icon" href="https://httpbin.org/image/png">` (PNG 100 x 100, seuil de 32 px) enregistre `freelance/crm/entreprises/<slug>/logo-<hash>.png` dans le bucket R2 de dev. Pour le nettoyer, remettre `"logoFilename"` à null puis appeler `deleteAsset(key)` par `encodeReply` sur `/admin/assets` (sinon `asset_in_use`) : le GET admin de la clé répond ensuite 404 (constaté le 2026-11-07).
-- Client MCP depuis un `.mjs` du scratchpad : `import(pathToFileURL("<dépôt>/node_modules/@modelcontextprotocol/client/dist/index.mjs"))`, `new Client({ name, version }, { versionNegotiation: { mode: "auto" } })` et `StreamableHTTPClientTransport(new URL("http://localhost:3000/api/mcp/crm"), { requestInit: { headers: { Authorization: "Bearer <clé lue d'un fichier>" } } })`. Le serveur tourne en vrai : aucune injection d'`authInfo`, `keyId` figure dans chaque ligne de log. Une requête refusée par une garde de domaine (doublon, opposition) ne logue aucun `lead:*` / `contact:*`, seules les écritures abouties en logguent, avec `personId` (constaté le 2026-11-07).
-- La base de dev contient déjà un lead « Jane Doe » de l'entreprise « Acme » (slug `acme`) et 2 leads en `DISCUSSION` : `crm_search 'jane doe'` rend donc deux fiches et `crm_query` sur `DISCUSSION` un `total` de 2 + les leads semés. Semer sa propre entreprise sous un autre slug (`verify04-acme`, nom « Acme ») et filtrer par `companyId` pour un compte déterministe. Une personne opposée semée en SQL garde son rôle `Lead` (ligne `Lead` nécessaire pour la recherche) et son email en clair ; nettoyer par `id like 'verify04-%'` ou `email like 'verify04-%'` et `"companyId"`, avant l'entreprise (constaté le 2026-11-07).
-- Actions admin des personnes : `createLead` et `updateLead` sont dans le manifeste de `/admin/leads/nouveau`, `createContact` et `updateContact` dans celui de `/admin/contacts/nouveau` (POST sur cette page). `updateLead(id, …)` et `updateContact(id, …)` se lient par `encodeReply([id, prevState, fd])`. Le rattachement d'un lead en contact passe par le champ `personId` de `createContact` (vide : nouvelle personne) ; les champs optionnels vides s'envoient en chaîne vide, `types` une fois par valeur. Date d'opposition rendue `01/10/2026` (constaté le 2026-11-07).
-- Outils de suivi (opportunité, entretien, action, signal, revue) : les ids créés par `crm_create` sont des UUID v7 sans préfixe de run, et une revue n'a aucun champ texte : noter chaque id rendu (ou poser `wins` à « Verify… ») pour le nettoyage, les titres et contenus préfixés ne couvrent pas la revue. Les actions admin se trouvent dans les manifestes de `/admin/opportunites/nouvelle`, `/admin/entretiens/nouveau`, `/admin/revues-hebdo` (dont `computeWeekCounters(isoFriday)`), et celles des signaux (`createCompanySignal(companyId, …)`, `createPersonSignal(personId, …)`, `updateSignal(id, …)`) dans ceux de `/admin/entreprises/<id>` et `/admin/leads/<id>`, liées par `encodeReply([id, prevState, fd])` (constaté le 2026-11-09).
-- `crm_search` coupe à 10 par défaut après un classement exact, préfixe, puis alphabétique : sur la base de dev, « plateforme » remonte d'abord des signaux et entretiens réels et masque les fiches de test. Restreindre `entities` et passer `limit: 50` (constaté le 2026-11-09).
-- Action de prospection `A_FAIRE` passée à `REPONDU` par `crm_update` (ou `changeProspectingActionStatus`) : `occurredAt` prend le jour réel de l'envoi, la date prévue ne survit que si elle est celle d'aujourd'hui, et `respondedAt` vaut le même jour. Pour prouver « jour conservé », planifier l'action à la date du jour (constaté le 2026-11-09).
-- Sur `crm_create` d'une action, un `personId` inexistant répond « no lead record » (la garde cherche le rôle lead avant la clé étrangère) : le message `person_not_found` n'apparaît que sur une course, il ne se prouve pas par un id inventé (constaté le 2026-11-09).
-- `encodeReply` change les `\n` d'un champ multiligne (`details`) en `\r\n` : restaurer une entité de la base de dev en rejouant `updateCompany` avec ses valeurs d'origine modifie ses Détails. Restaurer `details` et `"updatedAt"` en SQL, puis comparer la ligne au snapshot par `cmp` sur son JSON (constaté le 2026-11-10).
-- Invalidation par un outil MCP (`revalidateTag(tag, "max")`) : la première requête qui suit sert encore l'ancienne valeur, la suivante la nouvelle ; une action admin (`updateTag`) est lisible dès la requête suivante. Prouver une invalidation côté outil sur deux requêtes (constaté le 2026-11-10).
-- 429 du rate limit par clé : `Retry-After` vaut le reste de la fenêtre en secondes (3600 au premier refus avec `"rateLimitTimeWindow"` à 3600000), et Better Auth logue lui-même `ERROR [Better Auth]: Failed to validate API key: Rate limit exceeded` avec `details.tryAgainIn` : attendu (constaté le 2026-11-10).
-- Compteurs d'une revue créée par `crm_create` : choisir un vendredi dont la semaine contient des actions sorties d'`A_FAIRE`, sinon tous les compteurs valent 0 et ne prouvent rien (constaté le 2026-11-10).
-- Requêtes MCP par `curl` avec une clé : passer l'en-tête par `curl -H @<fichier du scratchpad>`, le secret n'apparaît jamais dans la commande. Côté script, `JSON.stringify` supprime un champ `undefined` : un id non résolu fait répondre « Send exactly one of companyId or personId », qui ressemble à un défaut de l'outil (constaté le 2026-11-10).
-- Filtre `occurredAt` d'une action par `crm_query` : une action `A_FAIRE` passée à `REPONDU` prend le jour réel de l'envoi et sort du filtre de sa date planifiée. Tester l'intervalle sur la date planifiée avant le changement de statut, puis sur le jour de l'envoi après (constaté le 2026-11-10).
-- Filtre par intervalle sur la base de dev (`closingFriday`, `occurredOn`) : les lignes réelles remplissent l'intervalle ouvert (`{ to: … }`), un `total` ne prouve rien. Contrôler la présence ou l'absence de l'id semé dans `rows` (constaté le 2026-11-10).
-- Contact : le widget Calendly vit dans l'onglet « Réservez un créneau », à activer par `getByRole("tab", { name: "Réservez un créneau" })` avant de chercher « Activer Calendly ». Une fois le widget monté, `networkidle` ne se déclenche plus : `waitUntil: "load"` puis une attente fixe (constaté le 2026-11-10).
-- Console après montage de Calendly : erreurs de `calendly.com`, `assets.calendly.com`, `connect.facebook.net` (scripts refusés, violations CSP de style dans l'iframe) et de l'antivirus qui injecte dans les iframes TLS inspectées. Étiqueter chaque message par `m.location().url` : seule une erreur de `localhost:3000` compte. Le `console.warn` « [c15t] Local mode keeps consent only in this browser… » à chaque page est attendu tant que `acknowledgeNoRecords` n'est pas posé (constaté le 2026-11-10).
-- Éditeur Tiptap sur un contenu existant : `Control+End` ne place pas le curseur en fin de document et `# ` tapé dans un paragraphe le transforme entier en titre. Vider d'abord par `Control+A` puis `Delete`, et recharger par un `goto` neuf plutôt qu'un `page.reload` juste après « Enregistrer » (constaté le 2026-11-10).
-- Semer une entreprise en SQL : `types` est un tableau (`'{CLIENT_FINAL}'`), `sectors` aussi (`'{}'`), `"updatedAt"` obligatoire. Côté `crm_query`, les filtres passent par `filters` et `limit` monte à 100 : avec plus d'entreprises que la limite, filtrer plutôt que compter sur la première page (constaté le 2026-11-10).
-- Les outils MCP rendent les instants à l'heure de Paris avec leur décalage (`2026-11-20T11:00:00.000+01:00`), jamais en `Z` : comparer à cette forme, pas à `toISOString()`. La fiche lead n'a pas d'`updatedAt` à sa racine (constaté le 2026-11-10).
-- Domaine `portfolio` (`/api/mcp/portfolio`) : semer la clé jetable avec `permissions` `'{"crm":["read","write"],"portfolio":["read","write"]}'` et une seconde clé `crm` seule pour prouver le 403. Un tag de test se supprime par `deleteTag(id)` sur `/admin/tags` (`encodeReply([id])`, page visitée une fois pour le manifeste) ; les tags vivent dans `public."Tag"` (constaté le 2026-11-10).
-- Projets par le domaine `portfolio` : la fiche de `portfolio_fetch` porte le client sous `clientMeta.company` (`id`, `name`, `logoFilename`), pas à la racine. Semer l'entreprise en SQL (`freelance."Company"`), supprimer le projet par `deleteProject(id)` sur `/admin/projets` (`encodeReply([id])`) avant ses tags et l'entreprise. Une page publique de brouillon ou d'archive ne se prouve pas par son code HTTP (streaming) mais par l'absence du texte de l'étude de cas (constaté le 2026-11-11).
-- Un script `.mjs` écrit en heredoc qui contient un littéral SQL `$d$…$d$` déclenche le garde-fou de suppression du hook sans aucun `rm` : écrire le script avec l'outil Write et échapper les apostrophes SQL par `''` (constaté le 2026-11-10).
-- Statuts par canal sur le Kanban et le formulaire d'action : un call n'offre ni Répondu ni Refusé (Converti reste permis), une connexion ni Converti ni Refusé ; changer le Type d'un DM Refusé en Call ramène le Statut à Fait. Les refus du domaine se lisent en toast `[data-sonner-toast]` et la carte revient dans sa colonne, base inchangée : DM À faire vers Ignoré « Une action jamais envoyée se supprime au lieu d'être ignorée », call Fait vers Répondu « Statut impossible pour ce type d'action ». Un call À faire dont le jour est passé glisse vers Ignoré sans toast et garde son `occurredAt`, un DM Fait glissé vers Refusé prend `respondedAt` à l'instant du glisser. La colonne Refusé (`lucide-circle-slash`) et Ignoré (`lucide-volume-x`) ont la même couleur calculée (`--destructive`), seul le glyphe les distingue ; les pastilles du calendrier (`[data-slot=event-calendar-event]`) suivent la même couleur. Les colonnes font `minmax(220px, 1fr)` avec défilement latéral : à 1440 px la sixième est coupée, glisser vers Refusé ou Ignoré demande une fenêtre de 1920 px ; le sélecteur de période (7 jours par défaut) masque les actions plus anciennes (constaté le 2026-11-18).
-- Routes des vues complètes : le journal des actions est `/admin/actions-prospection` (`/journal` répond 404) et celui des revues `/admin/revues-hebdo`. `?detail=<id>` n'ouvre rien sur les revues : ouvrir le formulaire par `button[aria-label="Modifier S44 · 2026"]` (semaine lue dans la ligne) ; « Clôturer la semaine » depuis `/admin/revues-hebdo/revue`. L'en-tête des colonnes de la revue passe sur deux lignes (47 px) : « Refus reçus » tient à 88 px (mot le plus long 35 px, icône 14 px, gap 4 px, paddings 16 + 16), 80 px déborde (constaté le 2026-11-18).
-- Calcul d'une revue de test : la base de dev a déjà une revue par vendredi récent (le dernier vendredi écoulé est pris), choisir un vendredi libre et semer des actions dans ses bornes sans enregistrer la revue ; « Calculer depuis le CRM » ne l'écrit pas. Les attendus se recalculent en SQL : messages = `DM_LINKEDIN`, `EMAIL`, `SMS_WHATSAPP` hors À faire, RDV décrochés = messages et `CANDIDATURE` Convertis à `respondedAt`, Entretiens = entretiens Faits plus calls Faits ou Convertis à `occurredAt`. Leads actifs dépend de toute la base : le prouver par différence, lire la valeur puis semer un lead Nouveau avec un call À faire de demain (+1 attendu). À partir de 640 px le formulaire à huit compteurs pose la case des taux seule sur sa ligne, moitié gauche (écart à arbitrer), en une colonne à 375 px (constaté le 2026-11-18).
-- Opposition depuis `/admin/leads/<id>` : le bouton « Ne plus contacter » ouvre la fenêtre, la confirmation est son dernier bouton `Ne plus contacter`. Le DM Fait le plus récent passe `REFUSE` avec `respondedAt` à l'instant, les actions À faire (DM et call) sont supprimées, un call ou une connexion Faits restent. Toast « Personne passée en « ne plus contacter » » (constaté le 2026-11-18).
-- Entreprises : la facette Statut de la relation s'ouvre dans le popover « Filtres » (cases avec compteurs : Active, Dormante, Archivée), pas par un bouton « Statut ». Le formulaire montre la valeur saisie (Active) pour une entreprise affichée Dormante et ne propose que Active et Archivée. Pour semer une Dormante, une action Faite de plus de douze mois à une personne rattachée suffit (ligne `Lead` incluse), la colonne Premier contact et la ligne « Dernière interaction » portent alors la même date (constaté le 2026-11-18).
-- Rattraper les migrations sur un état ancien sans toucher `portfolio_dev` : `create database portfolio_replay`, appliquer par `psql -v ON_ERROR_STOP=1` (stdin) le `migration.sql` de chaque migration antérieure à la première nouvelle, restaurer un dump d'avant par `MSYS_NO_PATHCONV=1 docker exec <pg> pg_restore -U portfolio -d portfolio_replay --data-only --disable-triggers --no-owner /tmp/x.dump` (fichier copié par `docker cp`), semer en SQL les cas du rattrapage (call Converti avec date et texte de réponse, call Répondu, connexion Convertie, entreprise `DORMANTE`), compter, appliquer les nouvelles migrations une à une, recompter, puis `drop database portfolio_replay` et supprimer le dump du conteneur. Cinq erreurs `public._prisma_migrations does not exist` à la restauration sont attendues (la table n'existe pas quand on applique les SQL à la main) ; la base temporaire ne sert pas `prisma migrate status`. Attendu au 2026-11-18 : plus de call avec date de réponse, call Répondu en Fait, connexion Convertie en Répondu, plus d'entreprise Dormante saisie, revues inchangées avec `refusalsReceived` à 0 ; `RelationStatus` réduit à `ACTIVE,ARCHIVEE` (constaté le 2026-11-18).
+```js
+const req = require("module").createRequire("<racine du dépôt>/package.json")
+const { encodeReply } = req("next/dist/compiled/react-server-dom-turbopack/client.edge.js")
+const fd = new FormData()
+fd.append("slug", "<préfixe du passage>-a")
+const body = await encodeReply([{ ok: null, errors: {}, message: null }, fd])   // (prevState, formData)
+// action liée par bind(null, id) : encodeReply([id, prevState, fd]) ; action à arguments simples : encodeReply([id])
+await fetch("http://localhost:3000/admin/<écran>", { method: "POST", body, redirect: "manual",
+  headers: { "Next-Action": "<id>", Accept: "text/x-component", Origin: "http://localhost:3000", Cookie: "<cookie forgé ou absent>" } })
+```
+
+### Base et logs
+
+```bash
+docker exec -i thibaud-geisler-portfolio-postgres-1 psql -U portfolio -d portfolio_dev -A <<< '<SQL>'
+grep -c 'event.*"<événement>"' <dossier temporaire>/verify-dev.log
+```
+
+- Les tables du CRM vivent dans le schéma `freelance`, l'authentification dans `auth`, le reste dans `public`
+- Semer une fiche en SQL demande un `id` et un `"updatedAt"` explicites. Les ids sont du texte libre : un id lisible sous préfixe passe dans `/admin/<écran>/<id>` et dans `?detail=`
+- Erreurs remontées à Sentry : `sentry issue list <org>/<projet> --limit 5 --fresh`, l'ingestion prend 15 à 60 s. Détail dans `docs/knowledges/sentry.md`
+
+### Serveur MCP
+
+```bash
+curl -s http://localhost:3000/api/mcp/<domaine> -X POST -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"verify","version":"0"}}}'
+```
+
+- Domaines : `crm` et `portfolio`. Sans clé, la requête répond 401
+- **Clé jetable** : un script `.mjs` d'un dossier temporaire importe `defaultKeyHasher` de `node_modules/@better-auth/api-key/dist/index.mjs`, hache un secret `tgp_…` et écrit un `insert into auth.apikey` envoyé à `psql` sur stdin : id fixe, `"referenceId"` = id d'une ligne de `auth."user"`, `permissions` `'{"crm":["read","write"]}'` (ajouter `"portfolio"` pour ce domaine), `"rateLimitTimeWindow"` 3600000, `"rateLimitMax"` 1000, dates explicites. Supprimer la ligne en fin de passage
+- **Outils** : le même script importe le client par `pathToFileURL("<racine du dépôt>/node_modules/@modelcontextprotocol/client/dist/index.mjs")` et ouvre un `StreamableHTTPClientTransport` sur `/api/mcp/<domaine>` avec l'en-tête `Authorization: Bearer <clé lue d'un fichier>`
+- Le secret reste dans un fichier, jamais dans une commande : `curl -H @<fichier>` pour une requête directe
+
+### Image de production
+
+Une montée de Next, de Prisma ou du SDK Sentry se prouve sur l'image que le déploiement construit. Elle se build et tourne sans aucun secret, contre un Postgres jetable :
+
+```bash
+docker build -t portfolio-verif --build-arg NEXT_PUBLIC_SENTRY_DSN="$(gh variable get NEXT_PUBLIC_SENTRY_DSN)" .   # idem pour les autres NEXT_PUBLIC_*
+docker network create verif-net
+docker run -d --name verif-pg --network verif-net -e POSTGRES_USER=verif -e POSTGRES_PASSWORD=verif -e POSTGRES_DB=portfolio postgres:18-alpine
+docker run -d --name verif-app --network verif-net -p 3100:3000 \
+  -e DATABASE_URL="postgresql://verif:verif@verif-pg:5432/portfolio" \
+  -e SKIP_ENV_VALIDATION=true -e SENTRY_ENVIRONMENT=verification portfolio-verif
+docker rm -f verif-app verif-pg && docker network rm verif-net && docker rmi portfolio-verif   # en fin de passage
+```
+
+- `docker logs verif-app` liste les migrations appliquées, puis les routes publiques répondent 200 sur une base vide
+- Attendus sans secrets, sans rapport avec le changement : `/api/auth/*` en 500, images `/_next/image` en 400, action de contact en `smtp_error`
+
+### Ce qui se capture
+
+- **Écrans** : 1280 et 390 px de large, français et anglais, thème clair et sombre, états de l'écran touché (vide, erreur de validation, suppression refusée), modales comprises
+- **Evidence** : une capture par écran, les erreurs de console de `localhost:3000`, les lignes d'événement du log, l'état en base
+- **Diff visuel** : mesurer plutôt que regarder (`getBoundingClientRect`, `getComputedStyle`, capture d'un élément) et comparer à l'extrait de design que l'appelant fournit, sinon aux règles de `docs/DESIGN.md`. Un écart à la maquette qui applique une règle de `docs/DESIGN.md` est conforme. Tout autre écart est un constat, jamais corrigé en silence
+
+## Effets et limites
+
+- Le formulaire de contact envoie un vrai e-mail : ne le soumettre que si le diff le touche, une seule fois. En mode complet sans ce diff, l'ouvrir sans l'envoyer et le dire dans le rapport
+- Une erreur provoquée part au Sentry réel, image de production comprise (`SENTRY_ENVIRONMENT=verification` isole ses événements). Résoudre les issues créées en fin de passage par `sentry issue resolve <SHORT-ID>`, après avoir vérifié leur `firstSeen`
+- Un dépôt d'asset écrit dans le bucket R2 de dev : le supprimer par l'écran Assets avant de rendre la main
+- La récupération du logo d'une entreprise appelle le site saisi et écrit le logo dans le bucket R2 de dev : n'y mettre qu'une page de test, puis remettre `"logoFilename"` à null en SQL avant de supprimer l'asset, refusé sinon comme encore utilisé
+- Créer, enregistrer ou supprimer un projet ou un tag fait renuméroter toute sa liste par l'app : le rang et la date de modification des vrais projets, et des vrais tags de la même catégorie, sont réécrits à chaque fois. Créer au rang proposé par le formulaire garde les rangs identiques, un autre rang ou un glisser les décale. `publication` et `agents-portfolio` passent par là
+- `just verify-all` prend plusieurs minutes et écrit dans la base de dev : `publication`, `prospection`, `calendrier`, `opportunites-entretiens`, `opportunite-acceptee`, `signaux`, `contacts`, `opposition`, `revue-hebdo`, `agents-crm` et `agents-portfolio` créent leurs entités sous un préfixe `verify-<hex>` et les retirent en fin de passage, même après un échec. Tous les scénarios admin ouvrent une vraie session par `just dev-login` et la ferment en fin de passage. `agents-crm` et `agents-portfolio` créent de vraies clés d'API par l'écran Clés d'API et les suppriment en fin de passage. Les `visiteur-*` et `referencement` ne font que lire, comme `admin-mobile`. Jamais deux passages à la fois
+- La base de dev porte les données réelles du propriétaire. Toute entité de test est fictive (domaine `example.com`), préfixée par passage et supprimée dans l'ordre des contraintes : projet, puis entreprise et tags, puis assets. Une entité existante modifiée pour un test se restaure et se compare champ par champ. Jamais `just db-reset`
+- `just db` applique les migrations en attente, migrations de données comprises
+- La connexion par Google demande un vrai compte et un vrai navigateur : geste du propriétaire, la recette en contrôle le log et les tables `auth`
+- `just stop` tue ce qui écoute sur le port 3000, quel qu'en soit le propriétaire
+- L'onglet de réservation du formulaire de contact charge Calendly et ses cookies tiers une fois activé
+- Chercher la valeur d'un secret dans le build exigerait de lire `.env` : geste du propriétaire
+
+## Flux par zone
+
+Zones sous `src/`, sauf mention.
+
+| Zone du diff | Flux à piloter | Scénario `verify-all` |
+|--------------|----------------|-----------------------|
+| `app/[locale]/`, `components/`, `i18n/`, `messages/` (racine) | Site : ouvrir la page touchée en `/fr` et en `/en`, à 1280 et 390 px, changer de langue et de thème depuis l'en-tête | `visiteur-projets`, `visiteur-pages`, `visiteur-preferences`, `visiteur-mobile` |
+| `components/cookies/` | Site, navigateur vierge : refuser les cookies, recharger : choix enregistré, bandeau absent | `visiteur-consentement` |
+| Page et action de contact (`server/actions/contact.ts`, `lib/mailer.ts`) | Site : soumettre le formulaire par le navigateur : message de succès, événement dans le log | aucun |
+| `app/admin/(protected)/<écran>/`, `server/actions/`, `server/queries/` | Admin : sur l'écran touché, créer, modifier puis supprimer une entité de test. Un refus attendu (entité encore utilisée) s'affiche sans rien écrire | celui de l'écran |
+| `server/portfolio/`, écrans `projets`, `tags`, `entreprises` | Admin puis site : créer un tag, une entreprise et un projet en brouillon (page publique introuvable), publier (listes, page, `sitemap.xml`, `llms.txt`), renommer (visible à la requête suivante), dépublier, supprimer | `publication` |
+| `server/crm/`, écrans `entreprises`, `leads`, `actions-prospection` (journal, pipeline) | Admin : créer entreprise, lead et action, la glisser dans Fait, y répondre, relire les fiches et l'état en base | `prospection` |
+| `actions-prospection/calendrier`, `lib/crm/action-calendar.ts` | Admin : une relance à faire est posée à son jour, glissée sur un autre jour, conservée au rechargement | `calendrier` |
+| écrans `opportunites`, `entretiens` | Admin : créer une opportunité puis un entretien avec un lead : le lead passe en RDV planifié. Passer l'opportunité d'un lead à Acceptée : elle rejoint Acceptées, le lead affiche « Deal » hors de En cours, son client entre dans Travaillées | `opportunites-entretiens`, `opportunite-acceptee` |
+| `components/features/admin/signals/`, `server/actions/signals.ts`, `lib/crm/signals.ts` | Admin : « Nouveau signal » sur la page d'une entreprise, badge « Récent » dans la card et la vue détail, filtre « Récent » de la liste Entreprises | `signaux` |
+| écran `contacts` | Admin : créer un contact, promouvoir un lead en contact : une personne, deux fiches liées | `contacts` |
+| `persons/OptOutPersonDialog`, `server/crm/person-guards.ts` | Admin : « Ne plus contacter » sur un lead : nom effacé, relance disparue du journal, sorti des contacts | `opposition` |
+| écran `revues-hebdo`, `lib/crm/review-counters.ts` | Admin : les compteurs suivent le travail de la semaine, la revue s'enregistre sur un vendredi libre | `revue-hebdo` |
+| `proxy.ts`, `lib/auth.ts`, `lib/get-current-user.ts`, `lib/admin-whitelist.ts`, `app/admin/layout.tsx`, `app/admin/login/`, `app/api/auth/` | sans session : 307. Cookie forgé : « Accès non autorisé », aucun contenu de l'écran. `just dev-login` puis déconnexion : une ligne `auth.session` en moins | `admin-acces` |
+| `proxy.ts`, `i18n/routing.ts` | Site, navigateur vierge : `/` redirige en 307 vers `/en` avec une langue anglaise, vers `/fr` avec une langue non gérée, `/fr` reste `/fr` | `visiteur-langue` |
+| `components/layout/admin/`, `components/ui/sidebar.tsx`, `config/admin-nav-items.ts` | Admin à 390 px : sidebar masquée, tiroir ouvert par le header, entrée du tiroir menant à son écran, aucun débordement horizontal | `admin-mobile` |
+| `app/api/assets/`, `server/assets/`, `lib/r2.ts` | Site : le lien du CV de l'accueil télécharge un PDF non vide | `visiteur-cv` |
+| `app/api/assets/`, `server/assets/`, `lib/r2.ts`, écran `assets` | `GET /api/assets/<clé>` : 200 pour l'asset d'un projet publié, 404 sinon. Dossiers privés par `/admin/api/assets/<clé>` avec le jar. Admin : l'écran Assets liste les fichiers | aucun |
+| `app/api/mcp/`, `server/mcp/`, `lib/mcp-domains.ts`, écran `cles-api` | MCP : `initialize` sans clé : 401. Avec une clé créée par l'écran, appeler l'outil touché puis relire la fiche par l'écran admin | `agents-crm`, `agents-portfolio` |
+| `app/sitemap.ts`, `app/robots.ts`, `app/llms.txt/`, `lib/seo.ts` | `sitemap.xml`, `robots.txt` et `llms.txt` ne listent que les pages et projets publiés | `referencement`, `publication` |
+| `env.ts`, `instrumentation.ts`, `instrumentation-client.ts`, racine : `next.config.ts`, `sentry.*.config.ts` | démarrage sans erreur dans le log, en-têtes de `/fr/contact`, une page de chaque domaine | aucun |
+| Racine : `package.json`, `pnpm-lock.yaml`, `Dockerfile`, `compose.yaml` | image de production : build, migrations listées, routes publiques en 200 | tous |
+| Racine : `prisma/` | `just db`, relancer le serveur, rejouer l'écran qui lit la table touchée. Migration de données : la jouer d'abord sur une base temporaire, jamais par `just db-restore` qui vise `portfolio_dev`. Créer `portfolio_replay`, y appliquer par `psql` sur stdin le `migration.sql` de chaque migration antérieure, restaurer un dump par `pg_restore --data-only --disable-triggers --no-owner`, compter, appliquer les nouvelles migrations une à une, recompter, puis `drop database` |
+
+## Pièges
+
+Environnement et serveur :
+
+- `/fr` répond 404 avec un titre étranger au site : le port 3000 est tenu par un autre programme. Vérifier son propriétaire (`netstat -ano`, `tasklist //FI "PID eq <pid>"`), lancer `PORT=3001 just dev` et arrêter par le PID du listener 3001. Les scénarios de `verify-all` visent `localhost:3000` en dur : sur 3001 ils ne se jouent pas, libérer 3000 d'abord
+- La boucle d'attente sur 3000 ne voit jamais de 200 : le port était pris un instant et `pnpm dev` a basculé seul sur 3001. Le log le dit dès sa première ligne
+- Sur un autre port que 3000, la déconnexion par `curl` répond 403 `INVALID_ORIGIN` : supprimer en SQL la ligne `auth.session` créée par `dev-login`
+- Toutes les pages répondent 500 avec `SyntaxError: Unexpected non-whitespace character after JSON` : `just build` a tourné pendant `just dev` et corrompu le cache `.next`. Arrêter le serveur par son PID, puis relancer
+- Une écriture sur une colonne neuve renvoie `unknown_error` sans rien écrire : le serveur, lancé avant la migration, garde l'ancien client Prisma. Le relancer
+- `just build` échoue en `TS2307` après la suppression d'une route temporaire pendant que le serveur tournait : supprimer `.next/dev/types/validator.ts` et `.next/dev/types/routes.d.ts`, qui se régénèrent
+- Tous les assets répondent 404 : le bucket R2 de dev est vide ou désynchronisé, ce n'est pas un défaut de code
+- Un argument qui commence par `/` arrive transformé en chemin Windows sous Git Bash : préfixer la commande par `MSYS_NO_PATHCONV=1`. Un chemin passé à `just dev-login` s'écrit en `C:/…`
+- Le shell développe `$$` dans un SQL passé en argument : l'envoyer sur stdin
+
+Lire ce que l'app renvoie :
+
+- Une fiche inexistante répond 200 en dev, le streaming a déjà envoyé les en-têtes : prouver « introuvable » par le texte rendu dans le navigateur
+- « Accès non autorisé » et « This page could not be found » figurent dans le HTML de toute page admin, valide et connectée comprise : Next sérialise ces écrans dans le payload. Prouver une page par son contenu propre, jamais par la présence ou l'absence de ces textes
+- Un événement du log reste introuvable : Pino est en pretty et colorisé en dev, des codes ANSI séparent `event` de sa valeur. Chercher `event.*"<nom>"`
+- Un nom d'événement apparaît sur une ligne `prisma:error` : Prisma logue l'extrait du code appelant sur une violation de contrainte que l'action intercepte pourtant. Compter les lignes `event:`
+- Le log porte « Could not validate `instant` … 401 » sous cookie forgé : attendu. « encountered uncached data … outside of `<Suspense>` » sur une page admin est un vrai défaut
+- `?error=state_mismatch` après une connexion Google : callback rejoué, repartir d'une fenêtre neuve
+- Après une déconnexion par `curl` sans `-c`, le jar renvoie le cookie supprimé et `/admin` répond 200 au lieu de 307
+- Les URLs d'image sont encodées dans le HTML (`/_next/image?url=%2Fapi%2Fassets%2F…`) : chercher aussi cette forme
+- La première requête après une invalidation par un outil MCP sert encore l'ancienne valeur, la suivante la nouvelle. Une action admin est lisible dès la requête suivante
+- Un `total` ne prouve rien sur la base de dev, déjà peuplée : contrôler la présence de l'id semé dans les lignes rendues
+
+Piloter le navigateur :
+
+- `browser_navigate` refuse une URL `file:` : lire le jar par le `page.goto` de `browser_run_code_unsafe`. Une capture n'est acceptée que sous `.playwright-mcp/`
+- « Browser is already in use » au premier appel : un Chrome d'une session précédente tient le profil du MCP. Fermer cette session, ou piloter depuis un script `.mjs` d'un dossier temporaire, sur un profil temporaire : `createRequire("<cache npx>/_npx/<hash>/node_modules/@playwright/mcp/package.json")("playwright-core")` puis `chromium.launch({ channel: "chrome", headless: true })`. Si la révision du navigateur manque, passer `executablePath` vers le `chrome-headless-shell` déjà installé
+- Les pages déjà visitées restent cachées dans le DOM : cibler `form:visible`, `table:visible tbody tr`, `article:visible`, `[role="dialog"][data-state="open"]` en dernier. Repartir d'un `goto` donne un DOM propre
+- Une erreur d'hydratation `data-aria-hidden` sort quand un clic part dès que la table existe ou que le menu mobile du site s'ouvre : attendre 1,5 s après le chargement
+- Une modale semble rester ouverte : lire `data-state="closed"`, l'animation de sortie la garde visible près d'une seconde. Échap ferme d'abord la couche la plus haute, une infobulle comprise
+- Un popover se referme entre deux appels du MCP : l'ouvrir et y cliquer dans le même appel
+- Un glisser ne fait rien : les listes admin suivent le drag natif HTML5 (`locator.dragTo`), le calendrier et le kanban les événements pointeur (`mouse.down`, un petit `move`, un `move` en `steps`, `up`)
+- Un clic sur un lien vers un formulaire lourd reste pendu : suivre son `href` par `goto` avec `waitUntil: "commit"`, puis attendre un élément de la page
+- Un écart d'hydratation lié au fuseau ne se voit pas en heure de Paris : ouvrir un contexte en `timezoneId: "UTC"`, le fuseau du serveur de production
+- L'éditeur de texte riche se lit par son champ caché et se pilote au clavier. Sur un contenu existant, vider par `Control+A` puis `Delete`. Après l'enregistrement, recharger par un `goto` neuf
+- Sur la page de contact, le widget Calendly vit dans son onglet et empêche `networkidle` une fois monté : attendre `load`. Seules les erreurs de console de `localhost:3000` comptent, les domaines tiers en émettent toujours
+- Un avertissement `[c15t] Local mode…` sort en console sur chaque page : attendu
+
+## Rapport
+
+```
+## Vérification : <ce qui a changé, en une ligne>
+
+**Verdict :** PASS | FAIL | BLOCKED | SKIP
+
+**Attendu :** <ce que le changement doit faire d'après le diff et ce qui est annoncé, leur écart s'il y en a un>
+
+**Méthode :** <mode, ce qui a été lancé>
+
+### Étapes
+
+1. ✅/❌/⚠️/🔍 <action sur l'app lancée> → <ce qu'elle a rendu>
+   <evidence : capture, réponse HTTP, ligne de log, état en base>
+
+**Capture :** <l'image ou l'extrait qui montre le changement>
+
+### Constats
+
+<ce qui a fait hésiter pendant le pilotage>
+```
+
+- Une étape est une action sur l'app lancée : build, installation, tests et typecheck n'en sont pas
+- 🔍 marque une sonde hors du chemin nominal. Au moins une : un rapport sans sonde ne rejoue que le cas nominal, encore PASS mais à moitié fait
+- Constats : frictions, surprises, casse sans rapport avec le changement, notes d'environnement, une ligne par sonde même quand elle tient. ⚠️ en tête pour ce qui mérite d'interrompre le lecteur. Rien de ce qui se lit déjà sur la PR
+
+- **PASS** : l'app a tourné et le changement fait ce qu'il doit à sa surface. Tests verts, build propre ou code qui semble juste ne suffisent pas
+- **FAIL** : il ne le fait pas, il casse autre chose, ou l'annonce et le diff divergent sur le fond. Dans le doute, FAIL avec la capture brute
+- **BLOCKED** : impossible d'atteindre un état où le changement s'observe (build cassé, base absente, session admin impossible). Dire où ça s'arrête, sans jugement sur le changement
+- **SKIP** : aucune surface exécutable, en une ligne
+- Pas de succès partiel : 3 sur 4 est un FAIL tant que le quatrième n'est pas passé ou expliqué
+- L'evidence voyage dans le rapport : réponses et lignes de log en ligne, chemin d'une capture seulement si le lecteur partage le disque
+
+## Tenir la recette
+
+- Modifier ce fichier seulement s'il a induit en erreur : commande fausse, étape manquante
+- Un parcours métier livré prend une ligne dans `Flux par zone`
+- Ni liste d'assertions, ni récit daté, ni scénario qui redit un test
