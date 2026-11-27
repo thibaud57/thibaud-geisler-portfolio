@@ -335,6 +335,9 @@ enum ProcessingKind {
   ANALYTICS
   AI_ASSISTANT
   ERROR_MONITORING
+  MESSAGING
+  WEB_SEARCH
+  AI_SCREENING
 
   @@schema("public")
 }
