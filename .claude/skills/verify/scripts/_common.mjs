@@ -292,9 +292,18 @@ export function adminScreens(page) {
     // Calendrier rendu avant de chercher le jour : compté trop tôt, le jour passe pour absent du mois
     await page.locator("button[data-day]").first().waitFor()
     const day = page.locator(`button[data-day="${label}"]`)
+    // Clic dans le calendrier : s'il échoue, dire si le popover était encore ouvert (0 jour affiché : refermé)
+    const clickInCalendar = async (target) => {
+      try {
+        await target.click()
+      } catch (error) {
+        const shown = await page.locator("button[data-day]").count()
+        throw new Error(`calendrier : clic impossible, ${shown} jour(s) affiché(s) | ${String(error).split("\n")[0]}`)
+      }
+    }
     // Un jour de fin de mois ou un vendredi à venir est sur une page suivante du calendrier
     for (let attempt = 0; attempt < 3 && (await day.count()) === 0; attempt += 1) {
-      await page.locator('button[name="next-month"]:visible').click()
+      await clickInCalendar(page.locator('button[name="next-month"]:visible'))
       await page.locator("button[data-day]").first().waitFor()
     }
     // Jour introuvable : dire ce que le calendrier affiche, un clic en attente ne dirait rien de la cause
@@ -302,7 +311,7 @@ export function adminScreens(page) {
       const shown = await page.locator("button[data-day]").evaluateAll((days) => days.map((item) => item.dataset.day))
       throw new Error(`jour ${label} absent du calendrier, affiché du ${shown.at(0)} au ${shown.at(-1)} (${shown.length} jours)`)
     }
-    await day.click()
+    await clickInCalendar(day)
   }
 
   async function eventually(condition, timeout = 15_000) {
