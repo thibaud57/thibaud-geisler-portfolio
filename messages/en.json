@@ -370,7 +370,7 @@
   },
   "PrivacyPolicy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: November 20, 2026",
+    "lastUpdated": "Last updated: November 27, 2026",
     "recipients": {
       "title": "3. Recipients and processors",
       "intro": "Personal data may be shared with the following recipients for the described purposes:",
@@ -430,6 +430,8 @@
       "logs1Year": "Duration of the hosting service; technical logs kept for up to 1 year",
       "logs30Days": "30 days (SMTP logs), automatic deletion",
       "errors30Days": "30 days (error traces), automatic deletion",
+      "telegramChat": "Until the chat is deleted, or after 18 months of account inactivity",
+      "noContentRetention": "No content retention (logging disabled)",
       "session13Months": "Session duration, plus 13 months (consent cookie)",
       "recipientTerms": "Per the recipient's terms"
     },
@@ -453,7 +455,10 @@
       "EMAIL_PROVIDER": "Email provider",
       "ANALYTICS": "Analytics",
       "AI_ASSISTANT": "AI assistant",
-      "ERROR_MONITORING": "Error monitoring"
+      "ERROR_MONITORING": "Error monitoring",
+      "MESSAGING": "Messaging",
+      "WEB_SEARCH": "Web search",
+      "AI_SCREENING": "Prompt injection detection"
     },
     "dataCategory": {
       "IDENTITY": "Identity",

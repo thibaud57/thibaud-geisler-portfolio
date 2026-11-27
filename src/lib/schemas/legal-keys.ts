@@ -7,6 +7,8 @@ export const RetentionPolicyKey = z.enum([
   "logs1Year",
   "logs30Days",
   "errors30Days",
+  "telegramChat",
+  "noContentRetention",
   "session13Months",
   "recipientTerms",
 ])

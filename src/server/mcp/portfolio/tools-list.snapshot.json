@@ -254,6 +254,7 @@
                     {
                       "type": "string",
                       "enum": [
+                        "custom:langfuse",
                         "custom:remotion",
                         "lucide:audio-waveform",
                         "lucide:bot",
@@ -271,11 +272,14 @@
                         "lucide:message-circle",
                         "lucide:network",
                         "lucide:plug",
+                        "lucide:scale",
                         "lucide:scan-search",
                         "lucide:shield-ban",
+                        "lucide:shield-half",
                         "lucide:ship",
                         "lucide:sparkles",
                         "lucide:square-function",
+                        "lucide:user-round-check",
                         "lucide:workflow",
                         "simple-icons:android",
                         "simple-icons:angular",
@@ -316,6 +320,7 @@
                         "simple-icons:spring",
                         "simple-icons:springboot",
                         "simple-icons:tauri",
+                        "simple-icons:telegram",
                         "simple-icons:traefikproxy",
                         "simple-icons:typescript"
                       ]
@@ -638,6 +643,7 @@
                     {
                       "type": "string",
                       "enum": [
+                        "custom:langfuse",
                         "custom:remotion",
                         "lucide:audio-waveform",
                         "lucide:bot",
@@ -655,11 +661,14 @@
                         "lucide:message-circle",
                         "lucide:network",
                         "lucide:plug",
+                        "lucide:scale",
                         "lucide:scan-search",
                         "lucide:shield-ban",
+                        "lucide:shield-half",
                         "lucide:ship",
                         "lucide:sparkles",
                         "lucide:square-function",
+                        "lucide:user-round-check",
                         "lucide:workflow",
                         "simple-icons:android",
                         "simple-icons:angular",
@@ -700,6 +709,7 @@
                         "simple-icons:spring",
                         "simple-icons:springboot",
                         "simple-icons:tauri",
+                        "simple-icons:telegram",
                         "simple-icons:traefikproxy",
                         "simple-icons:typescript"
                       ]
