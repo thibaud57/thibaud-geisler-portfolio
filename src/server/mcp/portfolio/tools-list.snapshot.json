@@ -254,6 +254,7 @@
                     {
                       "type": "string",
                       "enum": [
+                        "custom:jev",
                         "custom:langfuse",
                         "custom:remotion",
                         "lucide:audio-waveform",
@@ -643,6 +644,7 @@
                     {
                       "type": "string",
                       "enum": [
+                        "custom:jev",
                         "custom:langfuse",
                         "custom:remotion",
                         "lucide:audio-waveform",
